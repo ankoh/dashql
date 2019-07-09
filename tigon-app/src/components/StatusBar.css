@@ -9,6 +9,8 @@
 
     font-weight: 400;
     font-size: 9pt;
+
+    border-radius: 4px;
 }
 
 .StatusBar-LogStats {
@@ -23,6 +25,7 @@
 
 .StatusBar-LogStats-Active {
     background-color: rgb(41, 136, 204);
+    border-radius: 0px 0px 4px 4px;
 }
 
 .StatusBar-LogStat {

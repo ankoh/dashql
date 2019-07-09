@@ -30,8 +30,8 @@
 
 .Router > .StatusBar {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 8px;
+    right: 8px;
+    max-width: 300px;
     height: 24px !important;
 }

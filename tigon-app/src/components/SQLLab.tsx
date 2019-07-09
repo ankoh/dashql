@@ -18,7 +18,15 @@ class SQLLab extends React.Component<ISQLLabProps> {
     public render() {
         return (
             <div className="SQLLab">
-                <Terminal />
+                <div className="SQLLab-Viewer">
+                </div>
+                <div className="SQLLab-Input">
+                    <div className="SQLLab-Input-Header">
+                    </div>
+                    <div className="SQLLab-Input-Terminal">
+                        <Terminal />
+                    </div>
+                </div>
             </div>
         );
     }

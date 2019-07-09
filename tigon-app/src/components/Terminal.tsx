@@ -7,6 +7,8 @@ import { connect } from 'react-redux';
 import 'xterm/dist/xterm.css';
 import './Terminal.css';
 
+xterm.Terminal.applyAddon(fit);
+
 interface ITerminalProps {
 }
 
@@ -17,8 +19,6 @@ class Terminal extends React.Component<ITerminalProps> {
     constructor(props: ITerminalProps) {
         super(props);
 
-        xterm.Terminal.applyAddon(fit);
-
         this.termContainer = React.createRef();
         this.term = new xterm.Terminal();
     }
@@ -26,7 +26,7 @@ class Terminal extends React.Component<ITerminalProps> {
     public render() {
         return (
             <div className="Terminal">
-                <div ref={this.termContainer} className="Terminal-XTerm">
+                <div ref={this.termContainer} className="Terminal-Container">
                 </div>
             </div>
         );
@@ -37,12 +37,18 @@ class Terminal extends React.Component<ITerminalProps> {
             this.term.open(this.termContainer.current);
             fit.fit(this.term);
 
-            this.term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ')
+            this.term.write('> ')
             this.term.on('key', (key, ev) => {
                 console.log(key.charCodeAt(0));
                 if (key.charCodeAt(0) === 13)
                     this.term.write('\n');
                 this.term.write(key);
+            });
+
+
+            this.term.setOption('theme', {
+                background: 'rgb(31, 17, 58)',
+                foreground: 'rgb(255, 255, 255)',
             });
         }
     }
