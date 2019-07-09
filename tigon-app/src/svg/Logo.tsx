@@ -14,17 +14,17 @@ export function Logo(props: IProps) {
         >
     <defs>
         <radialGradient cx="0%" cy="35.4035526%" fx="0%" fy="35.4035526%" r="77.3697843%" gradientTransform="translate(0.000000,0.354036),scale(0.681005,1.000000),rotate(18.384627),translate(-0.000000,-0.354036)" id="radialGradient-1">
-            <stop stop-color="#FFB425" offset="0%"></stop>
-            <stop stop-color="#E35270" offset="100%"></stop>
+            <stop stopColor="#FFB425" offset="0%"></stop>
+            <stop stopColor="#E35270" offset="100%"></stop>
         </radialGradient>
         <radialGradient cx="14.0724618%" cy="12.8904943%" fx="14.0724618%" fy="12.8904943%" r="133.806433%" gradientTransform="translate(0.140725,0.128905),scale(0.947151,1.000000),rotate(52.287860),scale(1.000000,0.992756),translate(-0.140725,-0.128905)" id="radialGradient-2">
-            <stop stop-color="#FFB425" offset="0%"></stop>
-            <stop stop-color="#FFB425" offset="9.70237413%"></stop>
-            <stop stop-color="#FD5151" offset="60.3336833%"></stop>
-            <stop stop-color="#FD5151" offset="100%"></stop>
+            <stop stopColor="#FFB425" offset="0%"></stop>
+            <stop stopColor="#FFB425" offset="9.70237413%"></stop>
+            <stop stopColor="#FD5151" offset="60.3336833%"></stop>
+            <stop stopColor="#FD5151" offset="100%"></stop>
         </radialGradient>
     </defs>
-    <g id="Page-2" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <g id="Page-2" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
         <g id="Logo" transform="translate(-36.000000, -39.000000)">
             <g transform="translate(36.000000, 39.000000)">
                 <path d="M8.14699425,78.8022645 C18.2664894,99.2898383 39.3720908,113.381085 63.7688792,113.381085 C98.0105337,113.381085 124.768879,86.6227394 124.768879,52.3810849 C124.768879,46.1169354 124.839895,40.0697618 123.112181,34.3698185 C126.115147,41.784326 127.768879,48.8895806 127.768879,57.3810849 C127.768879,92.7273089 99.1151032,121.381085 63.7688792,121.381085 C33.3062491,121.381085 7.8145043,100.098195 1.35190958,71.5906788 C1.012995,70.0956736 0.726414676,68.5807991 0.494196205,67.0480829 C0.286131773,65.6747911 0.121708515,64.2871762 0.00238485758,62.8866966 C-0.152227992,61.0720343 7.25932024,77.0051109 8.14699425,78.8022645 Z" id="Tail" fill="url(#radialGradient-1)" transform="translate(63.884440, 77.875452) scale(-1, 1) translate(-63.884440, -77.875452) "></path>

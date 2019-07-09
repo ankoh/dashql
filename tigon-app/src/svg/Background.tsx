@@ -12,21 +12,21 @@ export function FluidBackground(props: IProps) {
     <defs>
         <polygon id="path-1" points="0 0 1187 0 1187 818 0 818"></polygon>
         <linearGradient x1="4.17755203%" y1="46.4296801%" x2="27.729%" y2="45.0554482%" id="linearGradient-3">
-            <stop stop-color="#FF4F5E" offset="0%"></stop>
-            <stop stop-color="#FFAC49" offset="93.1508657%"></stop>
-            <stop stop-color="#FF7139" offset="100%"></stop>
+            <stop stopColor="#FF4F5E" offset="0%"></stop>
+            <stop stopColor="#FFAC49" offset="93.1508657%"></stop>
+            <stop stopColor="#FF7139" offset="100%"></stop>
         </linearGradient>
         <linearGradient x1="22.6900327%" y1="76.958%" x2="23.8338848%" y2="90.182%" id="linearGradient-4">
-            <stop stop-color="#9059FF" offset="0%"></stop>
-            <stop stop-color="#FF4F5E" offset="100%"></stop>
+            <stop stopColor="#9059FF" offset="0%"></stop>
+            <stop stopColor="#FF4F5E" offset="100%"></stop>
         </linearGradient>
     </defs>
-    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <g id="Page-1" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
         <g id="Background" transform="translate(-1.000000, 0.000000)">
             <polygon id="Path" points="0 0 1188 0 1188 818 0 818"></polygon>
             <g id="Clipped" transform="translate(1.000000, 0.000000)">
                 <g id="a"></g>
-                <g id="Group" mask="url(#mask-2)" fill-rule="nonzero">
+                <g id="Group" mask="url(#mask-2)" fillRule="nonzero">
                     <g transform="translate(-5138.000000, -2820.000000)" id="Path">
                         <path d="M4615.42841,5288.08577 C4110.0178,5155.15463 4216.8775,4858.4248 4321.7431,4467.06105 C4426.6087,4075.6973 4272.96858,3907.00932 4609.80185,3880.64132 L7659.25073,3641.92132 C7996.084,3615.55332 8367.6679,4295.00895 8391.20014,4671.74995 C8414.73238,5048.49195 7718.36153,5949.51098 7381.52928,5975.87998 L4615.42841,5288.08577 Z" fill="url(#linearGradient-3)" transform="translate(6312.919478, 4808.527899) rotate(75.000000) translate(-6312.919478, -4808.527899) "></path>
                         <path d="M5263.74304,5801.91116 C5211.68604,6168.72616 4903.99304,6419.16016 4576.49304,6361.27116 L1343.36997,6277.79313 C1414.80104,5835.49147 1400.22511,5397.42996 1112.80104,5068.19616 L1584.09504,1747.31116 C1636.15304,1380.49716 1943.84504,1130.06216 2271.34504,1187.95116 C2598.84604,1245.84016 2822.13704,1590.13016 2770.07904,1956.94416 L2393.04304,4613.65216 L4765.01004,5032.91816 C5092.51004,5090.80616 5315.80104,5435.09616 5263.74304,5801.91116 Z" fill="url(#linearGradient-4)" transform="translate(3192.038525, 3774.611177) rotate(-145.000000) translate(-3192.038525, -3774.611177) "></path>

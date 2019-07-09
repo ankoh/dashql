@@ -11,12 +11,15 @@
     position: relative;
     padding: 16px 0 16px 0;
 
+    font-weight: 500;
     box-sizing: border-box;
     border-radius: 4px;
+
+    color: rgb(31, 17, 58);
 }
 
 .TabBar-Tab-Active {
-    background-color: rgb(245, 245, 245);
+    background-color: rgb(240, 240, 240);
 }
 
 .TabBar-Tab-Icon {
