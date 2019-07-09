@@ -1,0 +1,84 @@
+.StatusBar {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+    background-color: rgb(19, 156, 254);
+    color: rgb(255, 255, 255);
+
+    font-weight: 400;
+    font-size: 9pt;
+}
+
+.StatusBar-LogStats {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+}
+
+.StatusBar-LogStats:hover {
+    background-color: rgb(41, 136, 204);
+}
+
+.StatusBar-LogStats-Active {
+    background-color: rgb(41, 136, 204);
+}
+
+.StatusBar-LogStat {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 100%;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+.StatusBar-LogViewer {
+    position: absolute;
+    top: -300px;
+    right: 0px;
+    width: 600px;
+    height: 300px;
+}
+
+.StatusBar-LogStat-Name {
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.StatusBar-LogStat-Icon {
+    padding-left: 4px;
+    padding-right: 4px;
+    width: 13px;
+    height: 13px;
+}
+
+.StatusBar-Left {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.StatusBar-Server {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    padding-right: 12px;
+}
+
+.StatusBar-Server-Name {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.StatusBar-Server-Status {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.StatusBar-Server-Version {
+    padding-left: 8px;
+    padding-right: 8px;
+}

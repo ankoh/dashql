@@ -1,0 +1,100 @@
+.LogViewer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+
+    border-radius: 2px;
+    background-color: rgb(41, 136, 204);
+}
+
+.LogViewer-Header {
+    width: 100%;
+    height: 24px;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+    border-radius: 2px;
+    background-color: rgb(19, 156, 254);
+}
+
+.LogViewer-Title {
+    margin-left: 12px;
+    font-weight: 400;
+    font-size: 10pt;
+    line-height: 24px;
+}
+
+.LogViewer-Close {
+    height: 24px;
+    width: 24px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.LogViewer-Entries-Scroller {
+    position: relative;
+    width: 100%;
+    flex-grow: 1;
+    padding: 2px 2px;
+
+    font-family: "Roboto Mono";
+    font-weight: 400;
+    font-size: 9pt;
+    line-height: 1.2;
+
+    background-color: rgb(41, 136, 204);
+}
+
+.LogViewer-Entries {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.LogViewer-Entry {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.LogViewer-Entry-Timestamp {
+    flex: 0 0 calc(8ch + 8px);
+
+    padding: 4px 4px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+
+    border: 1px solid rgb(41, 136, 204);
+    background-color: rgb(37, 122, 182);
+}
+
+.LogViewer-Entry-LogLevel {
+    flex: 0 0 calc(8ch + 8px);
+
+    padding: 4px 4px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    font-weight: 500;
+
+    color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgb(41, 136, 204);
+    background-color: rgb(37, 122, 182);
+}
+
+.LogViewer-Entry-Text {
+    flex: 1 1 0px;
+
+    padding: 4px 4px;
+    border: 1px solid rgb(41, 136, 204);
+    background-color: rgb(37, 122, 182);
+}

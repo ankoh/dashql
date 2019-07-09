@@ -1,0 +1,164 @@
+
+.ServerSelector {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    background-color: rgb(80, 102, 132);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.ServerSelector-Hire-Text {
+    font-family: "Dosis", sans-serif;
+
+    position: absolute;
+    top: 16px;
+    right: 4px;
+    font-size: 16px;
+    font-weight: 500;
+
+    transform: rotate(45deg);
+    color: rgb(42, 63, 95);
+}
+
+.ServerSelector-Hire-Background {
+    position: absolute;
+    top: 0;
+    right: 0;
+    border-style: solid;
+    border-width: 0 76px 76px 0;
+    border-color: transparent rgb(255, 255, 255) transparent transparent;
+}
+
+.ServerSelector-Header {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.ServerSelector-Header-Logo {
+    width: 44px;
+    height: 44px;
+    margin: 8px 24px 8px 0px;
+}
+
+.ServerSelector-Header-Name {
+    font-family: "Dosis", sans-serif;
+    font-size: 30px;
+    font-weight: 500;
+    color: rgb(255, 255, 255);
+    letter-spacing: 0.5px;
+    line-height: 32px;
+}
+
+.ServerSelector-Header-Description {
+}
+
+.ServerSelector-List-Container {
+    margin-top: 16px;
+    margin-bottom: 16px;
+    width: 300px;
+    background-color: rgb(255, 255, 255);
+    border-radius: 4px;
+}
+
+.ServerSelector-List-Header {
+    font-family: "Dosis", sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-align: left;
+
+    color: rgb(42, 63, 95);
+    border-radius: 4px 4px 0px 0px;
+
+    background-color: rgb(235, 240, 248) !important;
+    padding: 4px 12px;
+    box-sizing: border-box;
+    border-bottom: 1px solid rgb(200, 212, 227);
+}
+
+.ServerSelector-List {
+}
+
+.ServerSelector-List-Entry {
+    display: grid;
+    grid-template-columns: 40px 72px auto 40px;
+    grid-column-gap: 8px;
+    color: rgb(42, 63, 95);
+}
+
+.ServerSelector-List-Entry-Border {
+    grid-row: 2;
+    grid-column: 2 / span 3;
+    border-bottom: 1px solid rgb(200, 212, 227);
+}
+
+.ServerSelector-List-Entry-Status {
+    grid-row: 1 / span 2;
+    grid-column: 1;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.ServerSelector-List-Entry-Status > .PulsingCircleSpinner {
+    width: 16px;
+    height: 16px;
+}
+
+.ServerSelector-List-Entry-Hostname {
+    grid-row: 1;
+    grid-column: 2 / span 2;
+    padding: 4px 0px 0px 0px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.ServerSelector-List-Entry-Protocol {
+    grid-row: 2;
+    grid-column: 2;
+    font-size: 12px;
+    line-height: 24px;
+    padding: 0px 0px 4px 0px;
+}
+
+.ServerSelector-List-Entry-Port {
+    grid-row: 2;
+    grid-column: 3;
+    font-size: 12px;
+    line-height: 24px;
+    padding: 0px 0px 4px 0px;
+}
+
+.ServerSelector-List-Entry-Arrow {
+    grid-row: 1 / span 2;
+    grid-column: 4;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    margin-bottom: 1px;
+}
+
+.ServerSelector-List-Entry-Arrow:hover {
+    background-color: rgb(245, 245, 245);
+}
+
+.ServerSelector-Version {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    font-size: 14px;
+    color: rgb(255, 255, 255);
+}

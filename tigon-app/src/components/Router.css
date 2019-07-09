@@ -1,0 +1,37 @@
+.Router {
+    height: 100%;
+    width: 100%;
+    background-color: rgb(41, 45, 52)
+}
+
+.Router > .DashboardEditor {
+    position: fixed;
+    top: 48px;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+}
+
+.Router > .SQLLab {
+    position: fixed;
+    top: 48px !important;
+    bottom: 24px !important;
+    left: 0;
+    right: 0;
+}
+
+.Router > .NavigationBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px !important;
+}
+
+.Router > .StatusBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 24px !important;
+}

@@ -1,0 +1,234 @@
+.SQLLab {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.SQLLab-Inspector {
+    position: absolute;
+    top: calc(35%);
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.SQLLab-Inspector-Content {
+    position: absolute;
+    top: 0px;
+    left: 48px;
+    right: 0;
+    bottom: 0;
+    background-color: rgb(255, 255, 255);
+}
+
+.SQLLab-Inspector-Header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+
+    background-color: rgb(235, 240, 248) !important;
+    color: rgb(42, 63, 95);
+    box-sizing: border-box;
+    border-bottom: 1px solid rgb(200, 212, 227);
+}
+
+.SQLLab-Inspector-Header-Title {
+    font-family: "Dosis", sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    line-height: 32px;
+    text-align: center;
+}
+
+.SQLLab-Inspector-Header-Buttons {
+    position: absolute;
+    top: 0;
+    right: 2px;
+    bottom: 1px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.SQLLab-Inspector-Header-Button {
+    height: 24px;
+    margin: 0 2px;
+    padding: 0 8px;
+    font-size: 13px;
+    line-height: 24px;
+    border-radius: 4px;
+    color: white;
+    text-align: center;
+    background-color: rgb(61, 78, 102);
+    background-color: rgb(19, 156, 254);
+    background-color: rgb(80, 102, 132);
+    background-color: rgb(200, 212, 227);
+    color: rgb(42, 63, 95);
+    text-align: center;
+}
+
+.SQLLab-Inspector-Body {
+    position: absolute;
+    top: 32px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgb(255, 255, 255);
+}
+
+.SQLLab-Inspector-DataTable {
+    width: 100%;
+    height: 100%;
+    border: none !important;
+}
+
+.SQLLab-Inspector-DataTable .rthead {
+    overflow-y: scroll;
+}
+
+.SQLLab-Inspector-DataTable .rt-thead.-header {
+    box-shadow: none !important;
+    border-bottom: 1px solid rgb(200, 212, 227);
+    box-sizing: border-box;
+}
+
+.SQLLab-Inspector-DataTable .rt-thead.-headerGroups {
+    background-color: rgb(235, 240, 248) !important;
+    color: rgb(42, 63, 95);
+    font-family: "Dosis", sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    line-height: 20px;
+}
+
+.SQLLab-Inspector-DataTable .-pagination {
+    box-shadow: none !important;
+    border-top: 1px solid rgb(200, 212, 227);
+    box-sizing: border-box;
+}
+
+.SQLLab-Inspector-Sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 48px;
+    background-color: rgb(61, 78, 102);
+
+    display: flex;
+    flex-direction: column;
+}
+
+.SQLLab-Inspector-Sidebar-Tab {
+    width: 100%;
+    height: 48px;
+    background-color: rgb(61, 78, 102);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.SQLLab-Inspector-Sidebar-Tab:hover {
+    background-color: rgb(80, 102, 132);
+}
+
+.SQLLab-Inspector-Sidebar-Tab-Active {
+    background-color: rgb(80, 102, 132);
+}
+
+.SQLLab-Separator {
+    position: absolute;
+    top: calc(35% - 1px);
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: rgb(200, 212, 227);
+}
+
+.SQLLab-QueryPrompt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(35% - 1px);
+    z-index: 10;
+}
+
+.SQLLab-QueryPrompt-Editor {
+    position: absolute;
+    top: 0;
+    left: 48px;
+    right: 256px;
+    bottom: 0;
+}
+
+.SQLLab-QueryPrompt-Controls {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 48px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    background-color: rgb(41, 136, 204);
+}
+
+.SQLLab-QueryPrompt-Controls-Button {
+    width: 100%;
+    height: 48px;
+    background-color: rgb(19, 156, 254);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.SQLLab-QueryPrompt-Controls-Button:hover {
+    background-color: rgb(41, 136, 204);
+}
+
+.SQLLab-QueryPrompt-Controls-ExpandedSpace {
+    flex: 1 0 auto;
+}
+
+.SQLLab-QueryPrompt-Results {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 256px;
+    background-color: rgb(61, 78, 102);
+}
+
+.SQLLab-QueryPrompt-Results-Table {
+    padding: 20px 20px 14px 20px;
+    display: grid;
+    grid-template-columns: 104px auto;
+    grid-template-rows: 22px;
+    grid-column-gap: 16px;
+    grid-row-gap: 8px;
+    color: white;
+    line-height: 22px;
+}
+
+.SQLLab-QueryPrompt-Results-Label {
+    grid-column: 1;
+}
+
+.SQLLab-QueryPrompt-Results-Value {
+    grid-column: 2;
+    text-align: center;
+}
+
+.SQLLab-QueryPrompt-Results-Value-Highlighted {
+    grid-column: 2;
+    text-align: center;
+    border-radius: 4px;
+    background-color: rgb(41, 136, 204);
+}

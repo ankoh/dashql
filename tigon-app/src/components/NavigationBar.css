@@ -1,0 +1,29 @@
+.NavigationBar {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    width: 100%;
+
+    background-color: rgb(80, 102, 132);
+    color: rgb(255, 255, 255);
+}
+
+.NavigationBar-Back {
+    margin-left: 64px;
+
+    width: 48px;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.NavigationBar-Back:hover {
+    background-color: hsl(215, 25%, 37%);
+}
+
+.NavigationBar-Tabs {
+}
+

@@ -1,0 +1,23 @@
+.TabBar {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+}
+
+.TabBar-Tab {
+    flex: 1 1 auto;
+    height: 100%;
+    position: relative;
+    padding: 0 20px 0 20px;
+
+    box-sizing: border-box;
+}
+
+.TabBar-Tab-Active {
+    border-bottom: 4px solid rgb(19, 156, 254);
+}
+
+.TabBar-Tab-Name {
+    line-height: 48px;
+}
+

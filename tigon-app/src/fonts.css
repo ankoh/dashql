@@ -1,0 +1,61 @@
+/* -------------------------------------------------------------------- */
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 300;
+    src: url(./fonts/OpenSans-Light.ttf) format('truetype');
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 400;
+    src: url(./fonts/OpenSans-Regular.ttf) format('truetype');
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 500;
+    src: url(./fonts/OpenSans-SemiBold.ttf) format('truetype');
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 700;
+    src: url(./fonts/OpenSans-Bold.ttf) format('truetype');
+}
+
+/* -------------------------------------------------------------------- */
+
+@font-face {
+    font-family: 'Dosis';
+    font-style: normal;
+    font-weight: 300;
+    src: url(./fonts/Dosis-Light.ttf) format('truetype');
+}
+
+@font-face {
+    font-family: 'Dosis';
+    font-style: normal;
+    font-weight: 400;
+    src: url(./fonts/Dosis-Regular.ttf) format('truetype');
+}
+
+@font-face {
+    font-family: 'Dosis';
+    font-style: normal;
+    font-weight: 500;
+    src: url(./fonts/Dosis-SemiBold.ttf) format('truetype');
+}
+
+@font-face {
+    font-family: 'Dosis';
+    font-style: normal;
+    font-weight: 700;
+    src: url(./fonts/Dosis-Bold.ttf) format('truetype');
+}
+
+/* -------------------------------------------------------------------- */
