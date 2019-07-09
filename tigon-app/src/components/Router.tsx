@@ -1,6 +1,5 @@
 import * as React from 'react';
 import SQLLab from './SQLLab';
-import ServerSelector from './ServerSelector';
 import StatusBar from './StatusBar';
 import NavigationBar from './NavigationBar';
 import * as Store from '../store';
@@ -15,24 +14,11 @@ interface IRouterProps {
 class Router extends React.Component<IRouterProps> {
     public render() {
         switch (this.props.rootView) {
-            case Store.RootView.SERVER_SELECTOR:
-                return (
-                    <div className="Router">
-                        <ServerSelector />
-                    </div>
-                );
             case Store.RootView.SQL_LAB:
                 return (
                     <div className="Router">
                         <NavigationBar />
                         <SQLLab />
-                        <StatusBar />
-                    </div>
-                );
-            case Store.RootView.DASHBOARD_EDITOR:
-                return (
-                    <div className="Router">
-                        <NavigationBar />
                         <StatusBar />
                     </div>
                 );

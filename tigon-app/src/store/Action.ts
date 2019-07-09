@@ -9,9 +9,6 @@ export enum ActionType {
     NAVIGATE_ROOT           = 'NAVIGATE_ROOT',
     NAVIGATE_SQL_LAB        = 'NAVIGATE_SQL_LAB',
     PUSH_LOG_ENTRY          = 'PUSH_LOG_ENTRY',
-    SERVER_DESELECT         = 'SERVER_DESELECT',
-    SERVER_INFO_UPDATE      = 'SERVER_STATUS_UPDATE',
-    SERVER_SELECT           = 'SERVER_SELECT',
     LAB_QUERY_ABORT         = 'LAB_QUERY_ABORT',
     LAB_QUERY_RESULT        = 'LAB_QUERY_RESULT',
     LAB_QUERY_START         = 'LAB_QUERY_START',
@@ -28,9 +25,6 @@ export type RootAction =
     | Action<ActionType.NAVIGATE_ROOT, Store.RootView>
     | Action<ActionType.NAVIGATE_SQL_LAB, number>
     | Action<ActionType.PUSH_LOG_ENTRY, Store.LogEntry>
-    | Action<ActionType.SERVER_DESELECT, {}>
-    | Action<ActionType.SERVER_INFO_UPDATE, [string, Partial<Store.ServerInfo>]>
-    | Action<ActionType.SERVER_SELECT, string>
     | Action<ActionType.LAB_QUERY_ABORT, {}>
     | Action<ActionType.LAB_QUERY_RESULT, Store.QueryResult>
     | Action<ActionType.LAB_QUERY_START, {}>
@@ -69,18 +63,6 @@ export function navigateLab(tabID: number): RootAction {
 
 export function configureApp(config: Store.AppConfig): RootAction {
     return createAction<ActionType.CONFIGURE_APP, Store.AppConfig>(ActionType.CONFIGURE_APP, config);
-}
-
-export function selectServer(key: string): RootAction {
-    return createAction<ActionType.SERVER_SELECT, string>(ActionType.SERVER_SELECT, key);
-}
-
-export function deselectServer(): RootAction {
-    return createAction<ActionType.SERVER_DESELECT, {}>(ActionType.SERVER_DESELECT, {});
-}
-
-export function updateServerInfo(key: string, serverInfo: Partial<Store.ServerInfo>): RootAction {
-    return createAction<ActionType.SERVER_INFO_UPDATE, [string, Partial<Store.ServerInfo>]>(ActionType.SERVER_INFO_UPDATE, [key, serverInfo]);
 }
 
 export function startLabQuery(): RootAction {

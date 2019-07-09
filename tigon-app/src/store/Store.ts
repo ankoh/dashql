@@ -6,9 +6,7 @@ import * as Immutable from 'immutable';
 
 // A view
 export enum RootView {
-    SERVER_SELECTOR = 0,
-    SQL_LAB  = 1,
-    DASHBOARD_EDITOR = 2
+    SQL_LAB  = 0,
 }
 
 // A connection protocol
@@ -70,16 +68,6 @@ export class Query {
     public options: QueryOption[] = [];
 }
 
-// A data viz
-export class DataViz {
-    // TODO
-}
-
-// A dashboard
-export class Dashboards {
-    // TODO
-}
-
 // The server connection info
 export class ConnectionInfo {
     public host: string = "";
@@ -95,8 +83,6 @@ export class ServerConfig {
     public protocol: ConnectionProtocol = ConnectionProtocol.CP_HTTP;
     public connection: ConnectionInfo = new ConnectionInfo();
     public queries: Query[] = [];
-    public dataVizzes: DataViz[] = [];
-    public dashboards: DataViz[] = [];
 }
 
 // The server status

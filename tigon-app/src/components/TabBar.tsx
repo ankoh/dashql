@@ -22,9 +22,6 @@ function TabBarTab(props: ITabBarTabProps) {
         case Store.RootView.SQL_LAB:
             tabName = "SQL Lab";
             break;
-        case Store.RootView.DASHBOARD_EDITOR:
-            tabName = "Dashboards";
-            break;
     }
     return (
         <div

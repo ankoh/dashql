@@ -3,29 +3,6 @@ import { ActionType, RootAction } from './Action';
 
 const MAX_LOG_SIZE = 100;
 
-function resetLab(): Partial<Store.RootState> {
-    return {
-        labQueryDuration: null,
-        labQueryOptions: [],
-        labQueryParameters: [],
-        labQueryResult: null,
-        labQueryStart: null,
-        labQueryTemplate: "",
-        labView: 0,
-    };
-}
-
-function loadInitialLabDataSource(state: Store.RootState, serverKey: string): Partial<Store.RootState> {
-    const conf = state.serverConfigs.get(serverKey);
-    if (!conf || conf.queries.length === 0) { return {} }
-    const ds = conf.queries[0];
-    return {
-        labQueryOptions: ds.options,
-        labQueryParameters: ds.parameters,
-        labQueryTemplate: ds.template.join('\n'),
-    };
-}
-
 export function reducer(state: Store.RootState = new Store.RootState(), a: RootAction): Store.RootState {
     switch (a.type) {
         case ActionType.PUSH_LOG_ENTRY:
@@ -47,21 +24,6 @@ export function reducer(state: Store.RootState = new Store.RootState(), a: RootA
                         }
                     }),
                 };
-            };
-        case ActionType.SERVER_SELECT: {
-            return {
-                ...state,
-                ...resetLab(),
-                ...loadInitialLabDataSource(state, a.payload),
-                rootView: Store.RootView.SQL_LAB,
-                selectedServer: a.payload,
-            };
-        }
-        case ActionType.SERVER_DESELECT:
-            return {
-                ...state,
-                rootView: Store.RootView.SERVER_SELECTOR,
-                selectedServer: null,
             };
         case ActionType.LAB_QUERY_ABORT:
             return {
@@ -89,26 +51,6 @@ export function reducer(state: Store.RootState = new Store.RootState(), a: RootA
             return {
                 ...state,
                 labQueryTemplate: a.payload,
-            };
-        case ActionType.SERVER_INFO_UPDATE:
-            return {
-                ...state,
-                serverInfos: state.serverInfos.update(a.payload[0], (s) => {
-                    s = s || new Store.ServerInfo();
-                    let cF = s.connectionFailures + 1;
-                    let cH = s.connectionHeartbeat;
-                    if (a.payload[1].connectionStatus === Store.ConnectionStatus.CS_CONNECTED) {
-                        cF = 0;
-                        cH = (cH + 1) & 1;
-                    }
-                    return {
-                        ...s,
-                        ...a.payload[1],
-                        connectionFailures: cF,
-                        connectionHeartbeat: cH,
-                        lastUpdate: Date.now(),
-                    };
-                })
             };
         case ActionType.CONFIGURE_APP: 
             return {

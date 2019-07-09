@@ -6,9 +6,6 @@ import { Logger } from './Logger';
 
 // The worker interval
 const workerIntervalMS = 400;
-const serverCheckDefaultIntervalMS = 1400;
-const serverCheckMaxIntervalMS = 10000;
-const serverCheckBackoff = 1.25;
 
 // A controller
 export class Controller {
@@ -80,67 +77,13 @@ export class Controller {
         this.store.dispatch(Store.abortLabQuery());
     }
 
-    // Update the status of a single server
-    protected updateServerStatus(key: string, config: Store.ServerConfig) {
-        const state = this.store.getState();
-
-        // Server checks not necessary?
-        const prevStatus = state.serverInfos.get(key) || new Store.ServerInfo();
-        const now = Date.now();
-        const delta = now - prevStatus.lastUpdate;
-        let threshold = serverCheckDefaultIntervalMS * Math.pow(serverCheckBackoff, prevStatus.connectionFailures);
-        threshold = Math.min(threshold, serverCheckMaxIntervalMS);
-        if (delta < threshold) {
-            return;
-        }
-        const serverKey = Store.ServerConfig.buildKey(config);
-
-        // Which protocol
-        switch (config.protocol) {
-            case Store.ConnectionProtocol.CP_HTTP:
-            case Store.ConnectionProtocol.CP_HTTPS:
-                HTTPApi.getVersion(config)
-                    .then((resp) => {
-                        this.store.dispatch(Store.updateServerInfo(serverKey, {
-                            connectionStatus: Store.ConnectionStatus.CS_CONNECTED,
-                            version: resp.version,
-                        }))
-                    })
-                    .catch((error) => {
-                        this.store.dispatch(Store.updateServerInfo(serverKey, {
-                            connectionStatus: Store.ConnectionStatus.CS_DISCONNECTED,
-                        }))
-                    });
-                break;
-        }
-    }
-
-    // Update the status of all servers
-    protected updateAllServerStatus(state: Store.RootState) {
-        if (state.rootView === Store.RootView.SERVER_SELECTOR) {
-            state.serverConfigs.forEach((config: Store.ServerConfig | undefined, key: string | undefined) => {
-                if (!key || !config) { return; }
-                this.updateServerStatus(key, config);
-            });
-        } else if (state.selectedServer != null) {
-            const config = state.serverConfigs.get(state.selectedServer)
-            if (config != null) {
-                this.updateServerStatus(state.selectedServer, config);
-            }
-        }
-    }
 
     // The worker function
     protected worker() {
         // Clear the worker timer
         clearTimeout(this.workerTimer || undefined);
 
-        const state = this.store.getState();
-        try {
-            this.updateAllServerStatus(state);
-        } catch(e) {
-            this.logger.warning(`catched error in worker: ${e}`);
-        }
+        // TODO
 
         // Reschedule worker
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
