@@ -7,7 +7,7 @@ import * as Store from "./Store";
 export enum ActionType {
     CONFIGURE_APP           = 'CONFIGURE_APP',
     NAVIGATE_ROOT           = 'NAVIGATE_ROOT',
-    NAVIGATE_SQL_LAB        = 'NAVIGATE_SQL_LAB',
+    NAVIGATE_DATA_EXPLORER        = 'NAVIGATE_DATA_EXPLORER',
     PUSH_LOG_ENTRY          = 'PUSH_LOG_ENTRY',
     LAB_QUERY_ABORT         = 'LAB_QUERY_ABORT',
     LAB_QUERY_RESULT        = 'LAB_QUERY_RESULT',
@@ -23,7 +23,7 @@ export enum ActionType {
 export type RootAction =
     | Action<ActionType.CONFIGURE_APP, Store.AppConfig>
     | Action<ActionType.NAVIGATE_ROOT, Store.RootView>
-    | Action<ActionType.NAVIGATE_SQL_LAB, number>
+    | Action<ActionType.NAVIGATE_DATA_EXPLORER, number>
     | Action<ActionType.PUSH_LOG_ENTRY, Store.LogEntry>
     | Action<ActionType.LAB_QUERY_ABORT, {}>
     | Action<ActionType.LAB_QUERY_RESULT, Store.QueryResult>
@@ -58,7 +58,7 @@ export function navigateRoot(view: Store.RootView): RootAction {
 }
 
 export function navigateLab(tabID: number): RootAction {
-    return createAction<ActionType.NAVIGATE_SQL_LAB, number>(ActionType.NAVIGATE_SQL_LAB, tabID);
+    return createAction<ActionType.NAVIGATE_DATA_EXPLORER, number>(ActionType.NAVIGATE_DATA_EXPLORER, tabID);
 }
 
 export function configureApp(config: Store.AppConfig): RootAction {

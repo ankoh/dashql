@@ -6,7 +6,7 @@ import * as Immutable from 'immutable';
 
 // A view
 export enum RootView {
-    SQL_LAB  = 0,
+    DATA_EXPLORER  = 0,
 }
 
 // A connection protocol
@@ -165,7 +165,7 @@ export class RootState {
         this.serverInfos = Immutable.Map<string, ServerInfo>();
         this.logs = Immutable.List<LogEntry>();
         this.logWarnings = 0;
-        this.rootView = RootView.SQL_LAB;
+        this.rootView = RootView.DATA_EXPLORER;
         this.selectedServer = null;
         this.labView = 0;
         this.labQueryStart = null;

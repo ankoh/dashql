@@ -67,7 +67,7 @@ export function reducer(state: Store.RootState = new Store.RootState(), a: RootA
                 })
             };
         case ActionType.NAVIGATE_ROOT: return { ...state, rootView: a.payload };
-        case ActionType.NAVIGATE_SQL_LAB: return { ...state, labView: a.payload };
+        case ActionType.NAVIGATE_DATA_EXPLORER: return { ...state, labView: a.payload };
         case ActionType.OTHER: return state;
         default: return state;
     }
