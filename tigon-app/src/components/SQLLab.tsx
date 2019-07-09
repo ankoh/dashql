@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as Store from '../store';
 import { IAppContext, withAppContext } from '../AppContext';
+import Terminal from './Terminal';
 import './SQLLab.css';
 import { connect } from 'react-redux';
 
@@ -17,6 +18,7 @@ class SQLLab extends React.Component<ISQLLabProps> {
     public render() {
         return (
             <div className="SQLLab">
+                <Terminal />
             </div>
         );
     }
