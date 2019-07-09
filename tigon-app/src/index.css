@@ -10,4 +10,15 @@ body {
 
     font-family: "Open Sans", --apple-default, sans-serif;
     color: rgb(42, 63, 95);
+
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+.Background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }

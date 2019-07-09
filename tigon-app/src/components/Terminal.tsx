@@ -37,6 +37,7 @@ class Terminal extends React.Component<ITerminalProps> {
             this.term.open(this.termContainer.current);
             fit.fit(this.term);
 
+            this.term.focus();
             this.term.write('> ')
             this.term.on('key', (key, ev) => {
                 console.log(key.charCodeAt(0));
@@ -47,8 +48,9 @@ class Terminal extends React.Component<ITerminalProps> {
 
 
             this.term.setOption('theme', {
-                background: 'rgb(31, 17, 58)',
-                foreground: 'rgb(255, 255, 255)',
+                background: 'rgb(255, 255, 255)',
+                foreground: 'rgb(0, 0, 0)',
+                cursor: 'rgb(0, 0, 0)'
             });
         }
     }
