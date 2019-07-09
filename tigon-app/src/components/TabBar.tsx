@@ -3,6 +3,9 @@ import * as React from 'react';
 import * as Store from '../store';
 import { connect } from 'react-redux';
 import classNames from 'classnames';
+import {
+    TableChartIcon
+} from '../svg/Icons';
 
 interface ITabBarProps {
     rootView: Store.RootView;
@@ -20,7 +23,7 @@ function TabBarTab(props: ITabBarTabProps) {
     let tabName = "?";
     switch (props.tabView) {
         case Store.RootView.DATA_EXPLORER:
-            tabName = "Data Explorer";
+            tabName = "Explorer";
             break;
     }
     return (

@@ -2,22 +2,32 @@
     display: flex;
     flex-direction: row;
     height: 100%;
+    padding: 0 0 0 0;
 }
 
 .TabBar-Tab {
     flex: 1 1 auto;
     height: 100%;
     position: relative;
-    padding: 0 20px 0 20px;
+    padding: 16px 0 16px 0;
 
     box-sizing: border-box;
+    border-radius: 4px;
 }
 
 .TabBar-Tab-Active {
-    border-bottom: 4px solid rgb(19, 156, 254);
+    background-color: rgb(102, 128, 163);
+}
+
+.TabBar-Tab-Icon {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .TabBar-Tab-Name {
-    line-height: 48px;
+    line-height: 24px;
+    text-align: center;
 }
 

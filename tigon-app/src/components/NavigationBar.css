@@ -1,16 +1,18 @@
 .NavigationBar {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     height: 100%;
     width: 100%;
 
     background-color: rgb(80, 102, 132);
     color: rgb(255, 255, 255);
+    border-radius: 4px;
 }
 
 .NavigationBar-Logo {
-    width: 48px;
-    height: 100%;
+    width: 100%;
+    height: 48px;
+    padding: 16px 0 16px 0;
 
     display: flex;
     flex-direction: column;
