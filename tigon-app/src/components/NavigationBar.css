@@ -8,9 +8,7 @@
     color: rgb(255, 255, 255);
 }
 
-.NavigationBar-Back {
-    margin-left: 64px;
-
+.NavigationBar-Logo {
     width: 48px;
     height: 100%;
 
@@ -18,10 +16,6 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-}
-
-.NavigationBar-Back:hover {
-    background-color: hsl(215, 25%, 37%);
 }
 
 .NavigationBar-Tabs {
