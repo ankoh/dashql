@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@types/classnames": "^2.2.9",
+    "@types/emscripten": "^0.0.33",
     "@types/react-custom-scrollbars": "^4.0.5",
     "@types/react-redux": "^7.1.1",
     "redux-devtools": "^3.5.0"

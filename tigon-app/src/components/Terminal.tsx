@@ -12,6 +12,30 @@ xterm.Terminal.applyAddon(fit);
 interface ITerminalProps {
 }
 
+// --------------------------------------------------------------
+// WASM HACK BEGIN
+// --------------------------------------------------------------
+
+declare global {
+    interface Window {
+        Module: any;
+    }
+}
+
+function loadScript(url: string, callback: any){
+    let script = document.createElement("script")
+    script.type = "text/javascript";
+    script.onload = function(){
+        callback();
+    };
+    script.src = url;
+    document.getElementsByTagName("head")[0].appendChild(script);
+}
+
+// --------------------------------------------------------------
+// WASM HACK END
+// --------------------------------------------------------------
+
 class Terminal extends React.Component<ITerminalProps> {
     protected termContainer: React.RefObject<HTMLDivElement>;
     protected term: xterm.Terminal;
@@ -51,6 +75,28 @@ class Terminal extends React.Component<ITerminalProps> {
                 background: 'rgb(255, 255, 255)',
                 foreground: 'rgb(0, 0, 0)',
                 cursor: 'rgb(0, 0, 0)'
+            });
+
+            let term = this.term;
+            window.Module = {
+                print: (function() {
+                    return function(text: any) {
+                        term.writeln(text);
+                    };
+                })(),
+                printErr: function(text: any) {
+                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                    if (0) {
+                        term.writeln(text);
+                    }
+                },				
+                canvas: (function() {
+                    return null;
+                })()
+            };
+
+            loadScript("core/tigon.js", () => {
+                console.log("script loaded");
             });
         }
     }

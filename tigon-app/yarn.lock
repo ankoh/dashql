@@ -1290,6 +1290,11 @@
   resolved "https://registry.yarnpkg.com/@types/classnames/-/classnames-2.2.9.tgz#d868b6febb02666330410fe7f58f3c4b8258be7b"
   integrity sha512-MNl+rT5UmZeilaPxAVs6YaPC2m6aA8rofviZbhbxpPpl61uKodfdQVsBtgJGTqGizEf02oW3tsVe7FYB8kK14A==
 
+"@types/emscripten@^0.0.33":
+  version "0.0.33"
+  resolved "https://registry.yarnpkg.com/@types/emscripten/-/emscripten-0.0.33.tgz#1bab776827bff5e8fdec6999a8df9e4dc1ffa62d"
+  integrity sha512-yPoJUCnjLpURQMlSRZSWTQaGXpVabmj9yK7uKM70wVBaF1vg47W8WZ6ELTf6qh4LE96TxpPKCKTHlwtQyM6e4Q==
+
 "@types/hoist-non-react-statics@^3.3.0":
   version "3.3.1"
   resolved "https://registry.yarnpkg.com/@types/hoist-non-react-statics/-/hoist-non-react-statics-3.3.1.tgz#1124aafe5118cb591977aeb1ceaaed1070eb039f"

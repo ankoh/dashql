@@ -26,6 +26,8 @@ class DataExplorer extends React.Component<IDataExplorerProps> {
                     <div className="DataExplorer-Input-Terminal">
                         <Terminal />
                     </div>
+
+                    <p id="output" />
                 </div>
             </div>
         );
