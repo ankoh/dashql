@@ -23,7 +23,7 @@ ExternalProject_Add(
         <BINARY_DIR>/src/libduckdb_static.a
         <BINARY_DIR>/third_party/hyperloglog/libhyperloglog.a
         <BINARY_DIR>/third_party/miniz/libminiz.a
-        <BINARY_DIR>/third_party/pg_query/libpg_query.a
+        <BINARY_DIR>/third_party/libpg_query/libpg_query.a
         <BINARY_DIR>/third_party/re2/libre2.a
 )
 
