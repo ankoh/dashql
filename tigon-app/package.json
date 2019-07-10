@@ -9,8 +9,10 @@
     "@types/react-dom": "16.8.4",
     "classnames": "^2.2.6",
     "d3": "^5.9.7",
+    "dagre-d3": "^0.6.3",
     "immutable": "^4.0.0-rc.12",
     "react": "^16.8.6",
+    "react-ace": "^7.0.2",
     "react-custom-scrollbars": "^4.2.1",
     "react-dom": "^16.8.6",
     "react-redux": "^7.1.0",
@@ -44,6 +46,7 @@
   "devDependencies": {
     "@types/classnames": "^2.2.9",
     "@types/d3": "^5.7.2",
+    "@types/dagre-d3": "^0.4.39",
     "@types/emscripten": "^0.0.33",
     "@types/react-custom-scrollbars": "^4.0.5",
     "@types/react-redux": "^7.1.1",
