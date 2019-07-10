@@ -19,17 +19,28 @@ function TabBarTab(props: ITabBarTabProps) {
     const isActive = props.tabView === props.rootView;
     let tabName = "?";
     switch (props.tabView) {
-        case Store.RootView.DATA_EXPLORER:
+        case Store.RootView.DATA_MODEL:
+            tabName = "Data Model";
+            break;
+        case Store.RootView.EXPLORER:
             tabName = "Explorer";
+            break;
+        case Store.RootView.WORKBOOK:
+            tabName = "Workbook";
+            break;
+        case Store.RootView.LIBRARY:
+            tabName = "Library";
             break;
     }
     return (
-        <div
-            className={classNames("TabBar-Tab", isActive ? "TabBar-Tab-Active" : "")}
-            onClick={()=>{ props.onViewChanged(props.tabView); }}
-        >
-            <div className="TabBar-Tab-Name">
-                {tabName}
+        <div className="TabBar-Tab-Container">
+            <div
+                className={classNames("TabBar-Tab", isActive ? "TabBar-Tab-Active" : "")}
+                onClick={()=>{ props.onViewChanged(props.tabView); }}
+            >
+                <div className="TabBar-Tab-Name">
+                    {tabName}
+                </div>
             </div>
         </div>
     );
@@ -39,13 +50,26 @@ class TabBar extends React.Component<ITabBarProps> {
     public render() {
         return (
             <div className="TabBar">
-                <div className="TabBar-Tab-Container">
-                    <TabBarTab
-                        tabView={Store.RootView.DATA_EXPLORER}
-                        rootView={this.props.rootView}
-                        onViewChanged={this.props.onViewChanged}
-                    />
-                </div>
+                <TabBarTab
+                    tabView={Store.RootView.DATA_MODEL}
+                    rootView={this.props.rootView}
+                    onViewChanged={this.props.onViewChanged}
+                />
+                <TabBarTab
+                    tabView={Store.RootView.EXPLORER}
+                    rootView={this.props.rootView}
+                    onViewChanged={this.props.onViewChanged}
+                />
+                <TabBarTab
+                    tabView={Store.RootView.WORKBOOK}
+                    rootView={this.props.rootView}
+                    onViewChanged={this.props.onViewChanged}
+                />
+                <TabBarTab
+                    tabView={Store.RootView.LIBRARY}
+                    rootView={this.props.rootView}
+                    onViewChanged={this.props.onViewChanged}
+                />
             </div>
         );
     }

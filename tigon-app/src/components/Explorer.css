@@ -1,8 +1,8 @@
-.DataExplorer {
+.Explorer {
     padding: 16px;
 }
 
-.DataExplorer-Viewer {
+.Explorer-Viewer {
     position: relative;
     border-radius: 4px 4px 0px 0px;
     width: 100%;
@@ -10,7 +10,7 @@
     background: rgb(255, 255, 255, 0.9);
 }
 
-.DataExplorer-Viewer-Config-Container {
+.Explorer-Viewer-Config-Container {
     position: absolute;
     top: 0;
     right: 0;
@@ -19,7 +19,7 @@
     padding: 8px;
 }
 
-.DataExplorer-Viewer-Config {
+.Explorer-Viewer-Config {
     width: 100%;
     height: 100%;
     background: rgb(255, 255, 255);
@@ -28,7 +28,7 @@
     display: none;
 }
 
-.DataExplorer-Viewer-Controls {
+.Explorer-Viewer-Controls {
     position: absolute;
     bottom: 0;
     left: 0;
@@ -39,21 +39,21 @@
     flex-direction: row;
 }
 
-.DataExplorer-Viewer-VizTypes {
+.Explorer-Viewer-VizTypes {
     display: flex;
     flex-direction: row;
 
     padding: 4px;
 }
 
-.DataExplorer-Viewer-VizType-Container {
+.Explorer-Viewer-VizType-Container {
     width: 48px;
     height: 100%;
     padding: 4px;
     box-sizing: border-box;
 }
 
-.DataExplorer-Viewer-VizType {
+.Explorer-Viewer-VizType {
     height: 100%;
     border-radius: 4px;
     background-color: rgb(255, 255, 255);
@@ -64,11 +64,11 @@
     align-items: center;
 }
 
-.DataExplorer-Viewer-VizType-Active {
+.Explorer-Viewer-VizType-Active {
     background-color: rgb(0, 0, 0) !important;
 }
 
-.DataExplorer-Input {
+.Explorer-Input {
     position: relative;
     border-radius: 0px 0px 4px 4px;
     width: 100%;
@@ -76,7 +76,7 @@
     background: rgb(255, 255, 255, 0.9);
 }
 
-.DataExplorer-Input-Header {
+.Explorer-Input-Header {
     position: absolute;
     top: 0;
     left: 0;
@@ -85,7 +85,7 @@
     background: rgb(255, 255, 255);
 }
 
-.DataExplorer-Input-TabBar {
+.Explorer-Input-TabBar {
     position: absolute;
     top: 48px;
     left: 0;
@@ -99,12 +99,12 @@
     flex-direction: column;
 }
 
-.DataExplorer-Input-Tab-Container {
+.Explorer-Input-Tab-Container {
     height: 32px;
     padding: 4px;
 }
 
-.DataExplorer-Input-Tab {
+.Explorer-Input-Tab {
     border-radius: 4px;
     background: rgb(255, 255, 255);
     width: 100%;
@@ -116,11 +116,11 @@
     align-items: center;
 }
 
-.DataExplorer-Input-Tab-Active {
+.Explorer-Input-Tab-Active {
     background: rgb(0, 0, 0) !important;
 }
 
-.DataExplorer-Input-Terminal {
+.Explorer-Input-Terminal {
     position: absolute;
     top: 48px;
     left: 56px;
@@ -130,7 +130,7 @@
     box-sizing: border-box;
 }
 
-.DataExplorer-Input-Beans {
+.Explorer-Input-Beans {
     position: absolute;
     left: 48px;
     right: 0;
@@ -142,22 +142,22 @@
     justify-content: space-between;
 }
 
-.DataExplorer-Input-Beans-Action {
+.Explorer-Input-Beans-Action {
     display: flex;
     flex-direction: row;
 }
 
-.DataExplorer-Input-Beans-Status {
+.Explorer-Input-Beans-Status {
     display: flex;
     flex-direction: row;
 }
 
-.DataExplorer-Input-Bean-Container {
+.Explorer-Input-Bean-Container {
     width: auto;
     padding: 4px 8px 8px 0px;
 }
 
-.DataExplorer-Input-Bean {
+.Explorer-Input-Bean {
     border-radius: 4px;
     background: rgb(255, 255, 255);
     min-width: 80px;
