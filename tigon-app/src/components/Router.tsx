@@ -18,7 +18,11 @@ class Router extends React.Component<IRouterProps> {
                 return (
                     <div className="Router">
                         <NavigationBar />
-                        <DataExplorer />
+                        <div className="Router-Page-Container">
+                            <div className="Router-Page">
+                                <DataExplorer />
+                            </div>
+                        </div>
                         <StatusBar />
                     </div>
                 );

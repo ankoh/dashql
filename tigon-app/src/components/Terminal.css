@@ -1,15 +1,16 @@
 .Terminal {
+    position: relative;
     height: 100%;
     width: 100%;
+    border-radius: 4px !important;
+    border: solid 8px rgb(0, 0, 0);
+    box-sizing: border-box;
+    background: rgb(0, 0, 0);
 }
 
 .Terminal-Container {
-    border-radius: 4px !important;
-    border: solid 4px rgb(255, 255, 255);
-    height: 100%;
     width: 100%;
-    box-sizing: border-box;
-    background: rgb(255, 255, 255);
+    height: 100%;
 }
 
 .xterm-viewport {
