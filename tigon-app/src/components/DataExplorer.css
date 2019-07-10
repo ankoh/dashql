@@ -58,7 +58,7 @@
     top: 48px;
     left: 0;
     bottom: 0;
-    width: 64px;
+    width: 56px;
     padding: 4px 4px;
 
     box-sizing: border-box;
@@ -77,12 +77,21 @@
     background: rgb(255, 255, 255);
     width: 100%;
     height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.DataExplorer-Input-Tab-Active {
+    background: rgb(0, 0, 0) !important;
 }
 
 .DataExplorer-Input-Terminal {
     position: absolute;
     top: 48px;
-    left: 64px;
+    left: 56px;
     right: 0;
     bottom: 32px;
     padding: 8px 8px 4px 0px;
@@ -91,7 +100,7 @@
 
 .DataExplorer-Input-Beans {
     position: absolute;
-    left: 56px;
+    left: 48px;
     right: 0;
     bottom: 0;
     height: 32px;

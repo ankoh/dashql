@@ -490,7 +490,6 @@ interface IProgramIIconProps {
     height?: string;
     fill?: string;
     stroke?: string;
-    programId: number;
 }
 
 export function ProgramIcon(props: IProgramIIconProps) {
@@ -507,18 +506,6 @@ export function ProgramIcon(props: IProgramIIconProps) {
                 <path d="M0 0h24v24H0z" fill="none"/>
                 <path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/>
             </g>
-            <text
-                fill={props.fill || '#ffffff'}
-                x="24"
-                y="24"
-                textAnchor="end"
-                fontFamily="Roboto Mono"
-                fontWeight={400}
-                fontSize="10pt"
-                dominantBaseline="end"
-            >
-                {props.programId}
-            </text>
         </svg>);
 }
 

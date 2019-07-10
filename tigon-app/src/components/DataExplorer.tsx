@@ -3,6 +3,10 @@ import * as Store from '../store';
 import { IAppContext, withAppContext } from '../AppContext';
 import Terminal from './Terminal';
 import './DataExplorer.css';
+import {
+    ConsoleIcon,
+    ProgramIcon
+} from '../svg/Icons';
 import { connect } from 'react-redux';
 
 interface IDataExplorerProps {
@@ -31,11 +35,13 @@ class DataExplorer extends React.Component<IDataExplorerProps> {
                     </div>
                     <div className="DataExplorer-Input-TabBar">
                         <div className="DataExplorer-Input-Tab-Container">
-                            <div className="DataExplorer-Input-Tab">
+                            <div className="DataExplorer-Input-Tab DataExplorer-Input-Tab-Active">
+                                <ConsoleIcon />
                             </div>
                         </div>
                         <div className="DataExplorer-Input-Tab-Container">
                             <div className="DataExplorer-Input-Tab">
+                                <ProgramIcon fill="rgb(0, 0, 0)" />
                             </div>
                         </div>
                     </div>
