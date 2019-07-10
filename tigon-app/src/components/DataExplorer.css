@@ -29,7 +29,7 @@
 .DataExplorer-Input-Terminal {
     position: absolute;
     top: 20px;
-    bottom: 8px;
+    bottom: 16px;
     right: 16px;
     width: calc(100% - 32px);
     max-width: 800px;
