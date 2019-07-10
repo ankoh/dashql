@@ -9,17 +9,16 @@
     flex: 1 1 auto;
     height: 100%;
     position: relative;
-    padding: 16px 0 16px 0;
+    padding: 12px 0 12px 0;
 
-    font-weight: 500;
+    font-weight: 400;
+    font-size: 15px;
     box-sizing: border-box;
     border-radius: 4px;
-
-    color: rgb(31, 17, 58);
 }
 
 .TabBar-Tab-Active {
-    background-color: rgb(240, 240, 240);
+    background-color: rgb(255, 255, 255);
 }
 
 .TabBar-Tab-Icon {
