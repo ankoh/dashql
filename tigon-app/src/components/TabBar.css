@@ -1,24 +1,30 @@
 .TabBar {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     height: 100%;
-    padding: 0 0 0 0;
+    padding: 4px;
+}
+
+.TabBar-Tab-Container {
+    height: auto;
+    width: 100%;
+    padding: 4px;
+    box-sizing: border-box;
 }
 
 .TabBar-Tab {
-    flex: 1 1 auto;
-    height: 100%;
     position: relative;
-    padding: 12px 0 12px 0;
 
     font-weight: 400;
     font-size: 15px;
     box-sizing: border-box;
     border-radius: 4px;
+    padding: 4px 0px;
 }
 
 .TabBar-Tab-Active {
-    background-color: rgb(255, 255, 255);
+    background-color: rgb(0, 0, 0)!important;
+    color: rgb(255, 255, 255)!important;
 }
 
 .TabBar-Tab-Icon {

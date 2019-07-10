@@ -31,8 +31,8 @@ class DataExplorer extends React.Component<IDataExplorerProps> {
                     <div className="DataExplorer-Viewer-Controls">
                         <div className="DataExplorer-Viewer-VizTypes">
                             <div className="DataExplorer-Viewer-VizType-Container">
-                                <div className="DataExplorer-Viewer-VizType">
-                                    <PlanIcon fill="rgb(0, 0, 0)" />
+                                <div className="DataExplorer-Viewer-VizType DataExplorer-Viewer-VizType-Active">
+                                    <PlanIcon fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
                             <div className="DataExplorer-Viewer-VizType-Container">

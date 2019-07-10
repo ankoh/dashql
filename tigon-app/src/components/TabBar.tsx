@@ -39,11 +39,13 @@ class TabBar extends React.Component<ITabBarProps> {
     public render() {
         return (
             <div className="TabBar">
-                <TabBarTab
-                    tabView={Store.RootView.DATA_EXPLORER}
-                    rootView={this.props.rootView}
-                    onViewChanged={this.props.onViewChanged}
-                />
+                <div className="TabBar-Tab-Container">
+                    <TabBarTab
+                        tabView={Store.RootView.DATA_EXPLORER}
+                        rootView={this.props.rootView}
+                        onViewChanged={this.props.onViewChanged}
+                    />
+                </div>
             </div>
         );
     }
