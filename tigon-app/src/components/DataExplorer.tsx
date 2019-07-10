@@ -5,17 +5,18 @@ import Terminal from './Terminal';
 import './DataExplorer.css';
 import {
     ConsoleIcon,
-    ProgramIcon
+    ProgramIcon,
+    PieChartIcon,
+    TableChartIcon,
+    BubbleChartIcon,
+    BarChartIcon,
+    LineChartIcon,
+    PlanIcon,
 } from '../svg/Icons';
 import { connect } from 'react-redux';
 
 interface IDataExplorerProps {
     appContext: IAppContext;
-    labView: number;
-    navigateLab: (tabID: number) => void;
-    queryDuration: number | null;
-    queryResult: Store.QueryResult | null;
-    queryStart: number | null;
 }
 
 class DataExplorer extends React.Component<IDataExplorerProps> {
@@ -28,6 +29,38 @@ class DataExplorer extends React.Component<IDataExplorerProps> {
                         </div>
                     </div>
                     <div className="DataExplorer-Viewer-Controls">
+                        <div className="DataExplorer-Viewer-VizTypes">
+                            <div className="DataExplorer-Viewer-VizType-Container">
+                                <div className="DataExplorer-Viewer-VizType">
+                                    <PlanIcon fill="rgb(0, 0, 0)" />
+                                </div>
+                            </div>
+                            <div className="DataExplorer-Viewer-VizType-Container">
+                                <div className="DataExplorer-Viewer-VizType">
+                                    <TableChartIcon fill="rgb(0, 0, 0)" />
+                                </div>
+                            </div>
+                            <div className="DataExplorer-Viewer-VizType-Container">
+                                <div className="DataExplorer-Viewer-VizType">
+                                    <LineChartIcon fill="rgb(0, 0, 0)" />
+                                </div>
+                            </div>
+                            <div className="DataExplorer-Viewer-VizType-Container">
+                                <div className="DataExplorer-Viewer-VizType">
+                                    <BarChartIcon fill="rgb(0, 0, 0)" />
+                                </div>
+                            </div>
+                            <div className="DataExplorer-Viewer-VizType-Container">
+                                <div className="DataExplorer-Viewer-VizType">
+                                    <BubbleChartIcon fill="rgb(0, 0, 0)" />
+                                </div>
+                            </div>
+                            <div className="DataExplorer-Viewer-VizType-Container">
+                                <div className="DataExplorer-Viewer-VizType">
+                                    <PieChartIcon fill="rgb(0, 0, 0)" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div className="DataExplorer-Input">

@@ -66,6 +66,20 @@ export function BarChartIcon(props: IIconProps) {
         </svg>);
 }
 
+export function LineChartIcon(props: IIconProps) {
+    return (
+        <svg
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <path clipPath="url(#b)" d="M23 8c0 1.1-.9 2-2 2-.18 0-.35-.02-.51-.07l-3.56 3.55c.05.16.07.34.07.52 0 1.1-.9 2-2 2s-2-.9-2-2c0-.18.02-.36.07-.52l-2.55-2.55c-.16.05-.34.07-.52.07s-.36-.02-.52-.07l-4.55 4.56c.05.16.07.33.07.51 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.18 0 .35.02.51.07l4.56-4.55C8.02 9.36 8 9.18 8 9c0-1.1.9-2 2-2s2 .9 2 2c0 .18-.02.36-.07.52l2.55 2.55c.16-.05.34-.07.52-.07s.36.02.52.07l3.55-3.56C19.02 8.35 19 8.18 19 8c0-1.1.9-2 2-2s2 .9 2 2z"
+                    fill={props.fill || '#ffffff'}
+                    fillRule="nonzero"
+            />
+        </svg>);
+}
+
 export function BubbleChartIcon(props: IIconProps) {
     return (
         <svg
@@ -74,14 +88,12 @@ export function BubbleChartIcon(props: IIconProps) {
             viewBox="0 0 24 24"
         >
             <g
-                fill="none"
+                fill={props.fill || '#ffffff'}
                 fillRule="evenodd"
             >
-                <path
-                    d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
+                <circle cx="7.2" cy="14.4" r="3.2" />
+                <circle cx="14.8" cy="18" r="2" />
+                <circle cx="15.2" cy="8.8" r="4.8" />
             </g>
         </svg>);
 }
@@ -259,225 +271,6 @@ export function UndoIcon(props: IIconProps) {
             >
                 <path
                     d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function BreakpointIcon(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function BreakpointOutlineIcon(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16zM16 17H5V7h11l3.55 5L16 17z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function BreakpointIconNoPadding(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '19px'}
-            height={props.height || '14px'}
-            viewBox="0 0 19 14"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fill-rule="nonzero"
-            >
-                <path
-                    d="M14.63,0.84 C14.27,0.33 13.67,0 13,0 L2,0.01 C0.9,0.01 0,0.9 0,2 L0,12 C0,13.1 0.9,13.99 2,13.99 L13,14 C13.67,14 14.27,13.67 14.63,13.16 L19,7 L14.63,0.84 Z"
-                />
-            </g>
-        </svg>);
-}
-
-export function BreakpointOutlineIconNoPadding(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '19px'}
-            height={props.height || '14px'}
-            viewBox="0 0 19 14"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fill-rule="nonzero"
-            >
-                <path
-                    d="M14.63,0.84 C14.27,0.33 13.67,0 13,0 L2,0.01 C0.9,0.01 0,0.9 0,2 L0,12 C0,13.1 0.9,13.99 2,13.99 L13,14 C13.67,14 14.27,13.67 14.63,13.16 L19,7 L14.63,0.84 Z M13,12 L2,12 L2,2 L13,2 L16.55,7 L13,12 Z"
-                />
-            </g>
-        </svg>);
-}
-
-export function StepOutIcon(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-                transform="translate(3.0, 4.0)"
-            >
-                <path
-                    d="M0,14 L0,2 L4,2 L4,1.77635684e-15 L7,3 L4,6 L4,4 L2,4 L2,12 L7,12 L7,14 L0,14 Z M9,12 L18,12 L18,14 L9,14 L9,12 Z M9,7 L15,7 L15,9 L9,9 L9,7 Z M9,2 L18,2 L18,4 L9,4 L9,2 Z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function StepOverIcon(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-                transform="translate(3.0, 6.0)"
-            >
-                <path
-                    d="M0,-1.77635684e-15 L7,-1.77635684e-15 L7,2 L2,2 L2,10 L4,10 L4,8 L7,11 L4,14 L4,12 L0,12 L0,-1.77635684e-15 Z M9,10 L18,10 L18,12 L9,12 L9,10 Z M9,5 L15,5 L15,7 L9,7 L9,5 Z M9,0 L18,0 L18,2 L9,2 L9,0 Z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function StepIntoIcon(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-                transform="translate(3.0, 6.0)"
-            >
-                <path
-                    d="M0,-1.77635684e-15 L2,0 L2,5 L4,5 L4,3 L7,6 L4,9 L4,7 L0,7 L0,-1.77635684e-15 Z M9,10 L18,10 L18,12 L9,12 L9,10 Z M9,5 L15,5 L15,7 L9,7 L9,5 Z M9,0 L18,0 L18,2 L9,2 L9,0 Z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function NoSplitIcon(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M20,4 L4,4 C2.9,4 2.01,4.9 2.01,6 L2,18 C2,19.1 2.9,20 4,20 L20,20 C21.1,20 22,19.1 22,18 L22,6 C22,4.9 21.1,4 20,4 Z M20,18 L4,18 L4,9 L20,9 L20,18 Z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function HSplitIcon(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M20,4 L4,4 C2.9,4 2.01,4.9 2.01,6 L2,18 C2,19.1 2.9,20 4,20 L20,20 C21.1,20 22,19.1 22,18 L22,6 C22,4.9 21.1,4 20,4 Z M20,18 L13,18 L13,9 L20,9 L20,18 Z M11,18 L4,18 L4,9 L11,9 L11,18 Z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function VSplitIcon(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M20,4 L4,4 C2.9,4 2.01,4.9 2.01,6 L2,18 C2,19.1 2.9,20 4,20 L20,20 C21.1,20 22,19.1 22,18 L22,6 C22,4.9 21.1,4 20,4 Z M20,18 L4,18 L4,15 L20,15 L20,18 Z M20,13 L4,13 L4,9 L20,9 L20,13 Z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function HVSplitIcon(props: IIconProps) {
-    return (
-        <svg
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M20,4 L4,4 C2.9,4 2.01,4.9 2.01,6 L2,18 C2,19.1 2.9,20 4,20 L20,20 C21.1,20 22,19.1 22,18 L22,6 C22,4.9 21.1,4 20,4 Z M20,13 L13,13 L13,9 L20,9 L20,13 Z M11,13 L4,13 L4,9 L11,9 L11,13 Z M20,18 L4,18 L4,15 L20,15"
                     fill={props.fill || '#ffffff'}
                     fillRule="nonzero"
                 />
