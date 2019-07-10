@@ -39,12 +39,14 @@ function loadScript(url: string, callback: any){
 class Terminal extends React.Component<ITerminalProps> {
     protected termContainer: React.RefObject<HTMLDivElement>;
     protected term: xterm.Terminal;
+    protected buffer: String;
 
     constructor(props: ITerminalProps) {
         super(props);
 
         this.termContainer = React.createRef();
         this.term = new xterm.Terminal();
+        this.buffer = "";
     }
 
     public render() {
@@ -62,12 +64,20 @@ class Terminal extends React.Component<ITerminalProps> {
             fit.fit(this.term);
 
             this.term.focus();
-            this.term.write('> ')
             this.term.on('key', (key, ev) => {
-                console.log(key.charCodeAt(0));
-                if (key.charCodeAt(0) === 13)
+                if (key.charCodeAt(0) === 13) {
+                    this.buffer += '\n';
                     this.term.write('\n');
+                }
+                this.buffer += key;
                 this.term.write(key);
+
+                if (key.charCodeAt(0) === 59) {
+                    this.term.write('\n');
+                    let run_query = window.Module.cwrap('run_query', 'void', ['string']);
+                    run_query(this.buffer.toString());
+                    this.buffer = '';
+                }
             });
 
 

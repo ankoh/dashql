@@ -1,17 +1,22 @@
 #include <stdio.h>
 #include "duckdb.hpp"
 
-int main() {
-    duckdb::DuckDB db{nullptr};
-    duckdb::Connection conn{db};
+std::unique_ptr<duckdb::DuckDB> db;
 
-    conn.Query("CREATE TABLE foo(i INTEGER)");
-    conn.Query("INSERT INTO foo VALUES (3)");
-    auto result = conn.Query("SELECT * FROM foo");
+extern "C" {
+
+void run_query(char* text) {
+    duckdb::Connection conn{*db};
+    auto result = conn.Query(text);
     auto result_str = result->ToString();
-
-    printf("hello, duckdb!\n");
     printf("%s\n", result_str.c_str());
+}
+
+}
+
+int main() {
+    db = std::make_unique<duckdb::DuckDB>(nullptr);
+    printf("initialized database!\n");
     return 0;
 }
 
