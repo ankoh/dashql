@@ -19,6 +19,10 @@ class DataExplorer extends React.Component<IDataExplorerProps> {
         return (
             <div className="DataExplorer">
                 <div className="DataExplorer-Viewer">
+                    <div className="DataExplorer-Viewer-Config-Container">
+                        <div className="DataExplorer-Viewer-Config">
+                        </div>
+                    </div>
                     <div className="DataExplorer-Viewer-Controls">
                     </div>
                 </div>
