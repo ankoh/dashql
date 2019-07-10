@@ -23,8 +23,32 @@ class DataExplorer extends React.Component<IDataExplorerProps> {
                 <div className="DataExplorer-Input">
                     <div className="DataExplorer-Input-Header">
                     </div>
+                    <div className="DataExplorer-Input-TabBar">
+                        <div className="DataExplorer-Input-Tab-Container">
+                            <div className="DataExplorer-Input-Tab">
+                            </div>
+                        </div>
+                        <div className="DataExplorer-Input-Tab-Container">
+                            <div className="DataExplorer-Input-Tab">
+                            </div>
+                        </div>
+                    </div>
                     <div className="DataExplorer-Input-Terminal">
                         <Terminal />
+                    </div>
+                    <div className="DataExplorer-Input-Beans">
+                        <div className="DataExplorer-Input-Beans-Action">
+                        </div>
+                        <div className="DataExplorer-Input-Beans-Status">
+                            <div className="DataExplorer-Input-Bean-Container">
+                                <div className="DataExplorer-Input-Bean">
+                                </div>
+                            </div>
+                            <div className="DataExplorer-Input-Bean-Container">
+                                <div className="DataExplorer-Input-Bean">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

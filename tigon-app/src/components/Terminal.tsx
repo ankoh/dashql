@@ -82,7 +82,7 @@ class Terminal extends React.Component<ITerminalProps> {
 
 
             this.term.setOption('theme', {
-                background: 'rgb(0, 0, 0)',
+                background: 'rgb(0, 0, 0, 0)',
                 foreground: 'rgb(255, 255, 255)',
                 cursor: 'rgb(255, 255, 255)'
             });
