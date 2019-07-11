@@ -1,0 +1,69 @@
+
+namespace TigonCore.DB;
+
+// The raw data types
+enum RawTypeID: uint8 {
+    INVALID = 0,    // bool
+    BOOLEAN = 1,    // int8
+    TINYINT = 2,    // int16
+    SMALLINT = 3,   // int32
+    INTEGER = 4,    // int64
+    BIGINT = 5,     // int64
+    HASH = 6,       // uint64
+    POINTER = 7,    // uint64
+    FLOAT = 8,      // float32
+    DOUBLE = 9,     // float64
+    VARCHAR = 10,   // string
+    VARBINARY = 11  // [ubyte]
+}
+
+// The sql data types
+enum SQLTypeID: uint8 {
+    INVALID = 0,
+    SQLNULL = 1,
+    BOOLEAN = 2,
+    TINYINT = 3,
+    SMALLINT = 4,
+    INTEGER = 5,
+    BIGINT = 6,
+    DATE = 7,
+    TIMESTAMP = 8,
+    REAL = 9,
+    DOUBLE = 10,
+    FLOAT = 11,
+    DECIMAL = 12,
+    CHAR = 13,
+    VARCHAR = 14,
+    VARBINARY = 15,
+}
+
+// The error codes
+enum ErrorCode {
+    Raw = 0,
+}
+
+// An error
+struct Error {
+    code: ErrorCode;
+    message: string;
+}
+
+// A query plan
+struct QueryPlan {
+    node_names: [string];
+    node_child_offsets: [uint64];
+    node_children: [uint64];
+    node_timings: [double];
+    node_cardinalities: [uint64];
+}
+
+// A query result
+struct QueryResult {
+    query_id: uint64;
+    query_plan: QueryPlan;
+    row_count: uint64;
+    column_types_sql: [SQLTypeID];
+    column_types_raw: [RawTypeID];
+    column_names: [string];
+    data: [ubyte];
+}
