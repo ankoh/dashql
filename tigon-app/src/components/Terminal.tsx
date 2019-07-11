@@ -105,7 +105,7 @@ class Terminal extends React.Component<ITerminalProps> {
                 })()
             };
 
-            loadScript("core/tigon.js", () => {
+            loadScript("lib/tigon.js", () => {
                 console.log("script loaded");
             });
         }
