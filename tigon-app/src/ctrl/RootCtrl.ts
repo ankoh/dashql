@@ -41,32 +41,6 @@ export class RootController {
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
     }
 
-    // Run a lab query
-    public runLabQuery() {
-        // Get state
-        const state = this.store.getState();
-        if (state.selectedServer == null) {
-            this.logger.warning(`tried to run query without selected server`);
-            return;
-        }
-
-        // Get server config
-        const config = state.serverConfigs.get(state.selectedServer);
-        if (config == null) {
-            this.logger.warning(`tried to run query without server configuration`);
-            return;
-        }
-
-        this.store.dispatch(Model.startLabQuery());
-    }
-
-    // Abort a lab query
-    public abortLabQuery() {
-        // TODO
-        this.store.dispatch(Model.abortLabQuery());
-    }
-
-
     // The worker function
     protected worker() {
         // Clear the worker timer

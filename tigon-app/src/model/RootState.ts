@@ -134,6 +134,8 @@ export class RootState {
     public serverConfigs: Immutable.Map<string, ServerConfig>;
     // The server status
     public serverInfos: Immutable.Map<string, ServerInfo>;
+    // The selected server
+    public selectedServer: string | null;
 
     // The log entries
     public logs: Immutable.List<LogEntry>;
@@ -142,23 +144,6 @@ export class RootState {
 
     // The root view
     public rootView: RootView;
-    // The selected server
-    public selectedServer: string | null;
-
-    // The selected view of the sql lab
-    public labView: number;
-    // The start of the last query
-    public labQueryStart: number | null;
-    // The duration of the last query
-    public labQueryDuration: number | null;
-    // The results of the last query
-    public labQueryResult: QueryResult | null;
-    // The template of the last query
-    public labQueryTemplate: string;
-    // The options of the last query
-    public labQueryOptions: QueryOption[];
-    // The parameters of the last query
-    public labQueryParameters: QueryParameter[];
 
     // Constructor
     constructor() {
@@ -166,17 +151,10 @@ export class RootState {
         this.appConfigLoadPending = true;
         this.serverConfigs = Immutable.Map<string, ServerConfig>();
         this.serverInfos = Immutable.Map<string, ServerInfo>();
+        this.selectedServer = null;
         this.logs = Immutable.List<LogEntry>();
         this.logWarnings = 0;
         this.rootView = RootView.EXPLORER;
-        this.selectedServer = null;
-        this.labView = 0;
-        this.labQueryStart = null;
-        this.labQueryDuration = null;
-        this.labQueryOptions = [];
-        this.labQueryParameters = [];
-        this.labQueryResult = null;
-        this.labQueryTemplate = "SELECT count(*) FROM lineitem;";
         return;
     }
 }

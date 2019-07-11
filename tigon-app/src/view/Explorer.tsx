@@ -130,16 +130,11 @@ class Explorer extends React.Component<IExplorerProps> {
 
 function mapStateToExplorerProps(state: Model.RootState) {
     return {
-        labView: state.labView,
-        queryDuration: state.labQueryDuration,
-        queryResult: state.labQueryResult,
-        queryStart: state.labQueryStart,
     };
 }
 
 function mapDispatchToExplorerProps(dispatch: Model.Dispatch) {
     return {
-        navigateLab: (tabID: number) => { dispatch(Model.navigateLab(tabID)); }
     };
 }
 

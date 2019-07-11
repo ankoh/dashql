@@ -25,33 +25,6 @@ export function reducer(state: State.RootState = new State.RootState(), a: RootA
                     }),
                 };
             };
-        case ActionType.LAB_QUERY_ABORT:
-            return {
-                ...state,
-                labQueryDuration: null,
-                labQueryResult: null,
-                labQueryStart: null,
-            };
-        case ActionType.LAB_QUERY_START:
-            return {
-                ...state,
-                labQueryDuration: null,
-                labQueryResult: null,
-                labQueryStart: Date.now(),
-            };
-        case ActionType.LAB_QUERY_RESULT:
-            const now = Date.now();
-            return {
-                ...state,
-                labQueryDuration: now - (state.labQueryStart || now),
-                labQueryResult: a.payload,
-                labQueryStart: null,
-            };
-        case ActionType.LAB_TEMPLATE_UPDATE:
-            return {
-                ...state,
-                labQueryTemplate: a.payload,
-            };
         case ActionType.CONFIGURE_APP: 
             return {
                 ...state,
@@ -67,7 +40,6 @@ export function reducer(state: State.RootState = new State.RootState(), a: RootA
                 })
             };
         case ActionType.NAVIGATE_ROOT: return { ...state, rootView: a.payload };
-        case ActionType.NAVIGATE_DATA_EXPLORER: return { ...state, labView: a.payload };
         case ActionType.OTHER: return state;
         default: return state;
     }
