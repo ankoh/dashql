@@ -7,11 +7,12 @@ import {
     BarChartIcon,
     BubbleChartIcon,
     ConsoleIcon,
+    DNSIcon,
     LineChartIcon,
     PieChartIcon,
     PlanIcon,
-    SaveIcon,
     ProgramIcon,
+    SaveIcon,
     SettingsIcon,
     TableChartIcon,
     UndoIcon,
@@ -73,6 +74,11 @@ class Explorer extends React.Component<IExplorerProps> {
                             </div>
                             <div className="Explorer-Viewer-Action-Container">
                                 <div className="Explorer-Viewer-Action">
+                                    <UndoIcon fill="rgb(0, 0, 0)" />
+                                </div>
+                            </div>
+                            <div className="Explorer-Viewer-Action-Container">
+                                <div className="Explorer-Viewer-Action">
                                     <SaveIcon fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
@@ -93,15 +99,11 @@ class Explorer extends React.Component<IExplorerProps> {
                         </div>
                         <div className="Explorer-Input-Tab-Container">
                             <div className="Explorer-Input-Tab">
-                                x
-                            </div>
-                        </div>
-                        <div className="Explorer-Input-Tab-Container">
-                            <div className="Explorer-Input-Tab">
-                                x
+                                <DNSIcon fill="rgb(0, 0, 0)" />
                             </div>
                         </div>
                     </div>
+
                     <div className="Explorer-Input-Terminal">
                         <Terminal />
                     </div>

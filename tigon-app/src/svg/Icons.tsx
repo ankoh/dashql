@@ -298,6 +298,45 @@ export function SaveIcon(props: IIconProps) {
         </svg>);
 }
 
+export function SaveAltIcon(props: IIconProps) {
+    return (
+        <svg
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill="none"
+                fillRule="evenodd"
+            >
+                <path
+                    d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"
+                    fill={props.fill || '#ffffff'}
+                    fillRule="nonzero"
+                />
+            </g>
+        </svg>);
+}
+
+export function ImportExportIcon(props: IIconProps) {
+    return (
+        <svg
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill="none"
+                fillRule="evenodd"
+            >
+                <path
+                    d="M9 3L5 6.99h3V14h2V6.99h3L9 3zm7 14.01V10h-2v7.01h-3L15 21l4-3.99h-3z"
+                    fill={props.fill || '#ffffff'}
+                    fillRule="nonzero"
+                />
+            </g>
+        </svg>);
+}
 
 export function UndoIcon(props: IIconProps) {
     return (
@@ -312,6 +351,46 @@ export function UndoIcon(props: IIconProps) {
             >
                 <path
                     d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"
+                    fill={props.fill || '#ffffff'}
+                    fillRule="nonzero"
+                />
+            </g>
+        </svg>);
+}
+
+export function SettingBackupRestoreIcon(props: IIconProps) {
+    return (
+        <svg
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill="none"
+                fillRule="evenodd"
+            >
+                <path
+                    d="M14 12c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2zm-2-9c-4.97 0-9 4.03-9 9H0l4 4 4-4H5c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.51 0-2.91-.49-4.06-1.3l-1.42 1.44C8.04 20.3 9.94 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"
+                    fill={props.fill || '#ffffff'}
+                    fillRule="nonzero"
+                />
+            </g>
+        </svg>);
+}
+
+export function DNSIcon(props: IIconProps) {
+    return (
+        <svg
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill="none"
+                fillRule="evenodd"
+            >
+                <path
+                    d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"
                     fill={props.fill || '#ffffff'}
                     fillRule="nonzero"
                 />
