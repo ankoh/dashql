@@ -31,6 +31,6 @@ emmake make -j$(nproc) \
     && { echo "[ OK  ] Build project"; } \
     || { echo "[ ERR ] Build project"; exit 1; }
 
-cp ${CORE_BUILD_DIR}/tigon_core.{wasm,js}  ${APP_LIB_DIR}
+cp ${CORE_BUILD_DIR}/tigon_web.{wasm,js}  ${APP_LIB_DIR}
 
 cd ${CORE_SOURCE_DIR}

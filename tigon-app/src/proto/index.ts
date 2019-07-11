@@ -1,1 +1,1 @@
-export * from './core_db';
+export * as proto from './web_api_generated';

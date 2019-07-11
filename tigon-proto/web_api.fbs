@@ -1,4 +1,4 @@
-namespace TigonCore.DB;
+namespace tigon.webapi;
 
 // The raw data types
 enum RawTypeID: uint8 {

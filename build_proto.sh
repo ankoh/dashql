@@ -4,7 +4,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 PROTO_DIR="${PROJECT_ROOT}/tigon-proto"
 CORE_SOURCE_DIR="${PROJECT_ROOT}/tigon-core"
-CORE_PROTO_DIR="${CORE_SOURCE_DIR}/include/proto"
+CORE_PROTO_DIR="${CORE_SOURCE_DIR}/include/tigon/proto"
 APP_SOURCE_DIR="${PROJECT_ROOT}/tigon-app"
 APP_PROTO_DIR="${APP_SOURCE_DIR}/src/proto"
 
@@ -13,7 +13,7 @@ APP_PROTO_DIR="${APP_SOURCE_DIR}/src/proto"
     || { echo "[ ERR ] Command: flatc"; exit 1; }
 
 PROTO_FILES=( \
-    ${PROTO_DIR}/core_db.fbs \
+    ${PROTO_DIR}/web_api.fbs \
 )
 
 for PROTO_FILE in ${PROTO_FILES}; do

@@ -1,10 +1,12 @@
-#include <stdio.h>
+#include <cstdio>
 #include "duckdb.hpp"
-#include "proto/core_db_generated.h"
+#include "tigon/proto/web_api_generated.h"
 
 std::unique_ptr<duckdb::DuckDB> db;
 
 extern "C" {
+
+void tigon_db_query(char* str);
 
 void run_query(char* text) {
     duckdb::Connection conn{*db};
@@ -17,7 +19,7 @@ void run_query(char* text) {
 
 int main() {
     db = std::make_unique<duckdb::DuckDB>(nullptr);
-    printf("initialized database!\n");
+    printf("tigon core loaded\n");
     return 0;
 }
 
