@@ -4,15 +4,17 @@ import { IAppContext, withAppContext } from '../AppContext';
 import Terminal from './Terminal';
 import './Explorer.css';
 import {
-    ConsoleIcon,
-    ProgramIcon,
-    PieChartIcon,
-    TableChartIcon,
-    BubbleChartIcon,
     BarChartIcon,
+    BubbleChartIcon,
+    ConsoleIcon,
     LineChartIcon,
+    PieChartIcon,
     PlanIcon,
+    SaveIcon,
+    ProgramIcon,
     SettingsIcon,
+    TableChartIcon,
+    UndoIcon,
 } from '../svg/Icons';
 import { connect } from 'react-redux';
 
@@ -67,6 +69,11 @@ class Explorer extends React.Component<IExplorerProps> {
                             <div className="Explorer-Viewer-Action-Container">
                                 <div className="Explorer-Viewer-Action">
                                     <SettingsIcon fill="rgb(0, 0, 0)" />
+                                </div>
+                            </div>
+                            <div className="Explorer-Viewer-Action-Container">
+                                <div className="Explorer-Viewer-Action">
+                                    <SaveIcon fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
                         </div>
