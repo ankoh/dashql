@@ -26,4 +26,9 @@ add_executable(tigon
 
 target_link_libraries(tigon duckdb re2 miniz pg_query hyperloglog)
 
-set_target_properties(tigon PROPERTIES LINK_FLAGS "-s EXPORTED_FUNCTIONS='[_main, _run_query]' -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]'")
+set_target_properties(tigon PROPERTIES LINK_FLAGS "\
+    -s MODULARIZE=1 \
+    -s EXPORT_NAME=TigonCore \
+    -s EXPORTED_FUNCTIONS='[_main, _run_query]' \
+    -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]' \
+")
