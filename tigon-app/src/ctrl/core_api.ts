@@ -2,17 +2,17 @@ import * as proto from '../proto';
 
 // Mute typescript
 declare global {
-    var TigonCore: any;
+    var TigonWeb: any;
 }
 
 
 export class CoreAPI {
     // The webassembly module
-    protected coreModule: any;
+    protected webAPI: any;
 
     // Init the core api
     public init() {
-        this.coreModule = TigonCore({
+        this.webAPI = TigonWeb({
             print: (function() {
                 return function(text: any) {
                     console.log("[wasm] print");
@@ -31,6 +31,6 @@ export class CoreAPI {
 
     // Run a query
     public runQuery(text: string) {
-        this.coreModule.ccall('run_query', 'void', ['string'], [text]);
+        this.webAPI.ccall('run_query', 'void', ['string'], [text]);
     }
 };

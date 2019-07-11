@@ -27,7 +27,7 @@ target_link_libraries(tigon_web duckdb re2 miniz pg_query hyperloglog)
 if(DEFINED ENV{EMSDK})
     set_target_properties(tigon_web PROPERTIES LINK_FLAGS "\
         -s MODULARIZE=1 \
-        -s EXPORT_NAME=TigonCore \
+        -s EXPORT_NAME=TigonWeb \
         -s EXPORTED_FUNCTIONS='[_main, _run_query]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]' \
     ")
