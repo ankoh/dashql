@@ -12,6 +12,7 @@ import {
     BarChartIcon,
     LineChartIcon,
     PlanIcon,
+    SettingsIcon,
 } from '../svg/Icons';
 import { connect } from 'react-redux';
 
@@ -24,8 +25,8 @@ class Explorer extends React.Component<IExplorerProps> {
         return (
             <div className="Explorer">
                 <div className="Explorer-Viewer">
-                    <div className="Explorer-Viewer-Config-Container">
-                        <div className="Explorer-Viewer-Config">
+                    <div className="Explorer-Viewer-Output-Container">
+                        <div className="Explorer-Viewer-Output">
                         </div>
                     </div>
                     <div className="Explorer-Viewer-Controls">
@@ -61,11 +62,17 @@ class Explorer extends React.Component<IExplorerProps> {
                                 </div>
                             </div>
                         </div>
+
+                        <div className="Explorer-Viewer-Actions">
+                            <div className="Explorer-Viewer-Action-Container">
+                                <div className="Explorer-Viewer-Action">
+                                    <SettingsIcon fill="rgb(0, 0, 0)" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div className="Explorer-Input">
-                    <div className="Explorer-Input-Header">
-                    </div>
                     <div className="Explorer-Input-TabBar">
                         <div className="Explorer-Input-Tab-Container">
                             <div className="Explorer-Input-Tab Explorer-Input-Tab-Active">

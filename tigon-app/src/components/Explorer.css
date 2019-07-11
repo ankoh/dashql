@@ -10,6 +10,23 @@
     background: rgb(255, 255, 255, 0.9);
 }
 
+.Explorer-Viewer-Output-Container {
+    position: absolute;
+    top: 48px;
+    left: 0;
+    right: 0;
+    bottom: 0px;
+    padding: 0px 8px 4px 8px;
+}
+
+.Explorer-Viewer-Output {
+    width: 100%;
+    height: 100%;
+    background: rgb(255, 255, 255);
+    box-sizing: border-box;
+    border-radius: 4px;
+}
+
 .Explorer-Viewer-Config-Container {
     position: absolute;
     top: 0;
@@ -19,24 +36,41 @@
     padding: 8px;
 }
 
-.Explorer-Viewer-Config {
-    width: 100%;
-    height: 100%;
-    background: rgb(255, 255, 255);
-    box-sizing: border-box;
-    border-radius: 4px;
-    display: none;
-}
-
 .Explorer-Viewer-Controls {
     position: absolute;
-    bottom: 0;
-    left: 0;
+    top: 0;
     right: 0;
+    left: 0;
     height: 48px;
 
     display: flex;
     flex-direction: row;
+    justify-content: space-between;
+}
+
+.Explorer-Viewer-Actions {
+    display: flex;
+    flex-direction: row;
+
+    padding: 4px;
+}
+
+.Explorer-Viewer-Action-Container {
+    width: 48px;
+    height: 100%;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.Explorer-Viewer-Action {
+    height: 100%;
+    border-radius: 4px;
+    background-color: rgb(255, 255, 255);
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
 }
 
 .Explorer-Viewer-VizTypes {
@@ -72,26 +106,17 @@
     position: relative;
     border-radius: 0px 0px 4px 4px;
     width: 100%;
-    height: 360px;
+    height: 320px;
     background: rgb(255, 255, 255, 0.9);
-}
-
-.Explorer-Input-Header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 48px;
-    background: rgb(255, 255, 255);
 }
 
 .Explorer-Input-TabBar {
     position: absolute;
-    top: 48px;
+    top: 0;
     left: 0;
     bottom: 0;
     width: 56px;
-    padding: 4px 4px;
+    padding: 0px 4px 4px 4px;
 
     box-sizing: border-box;
 
@@ -122,11 +147,11 @@
 
 .Explorer-Input-Terminal {
     position: absolute;
-    top: 48px;
+    top: 0;
     left: 56px;
     right: 0;
     bottom: 32px;
-    padding: 8px 8px 4px 0px;
+    padding: 4px 8px 4px 0px;
     box-sizing: border-box;
 }
 
