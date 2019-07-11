@@ -37,18 +37,18 @@ enum SQLTypeID: uint8 {
 }
 
 // The error codes
-enum ErrorCode {
+enum ErrorCode: uint8 {
     Raw = 0,
 }
 
 // An error
-struct Error {
+table Error {
     code: ErrorCode;
     message: string;
 }
 
 // A query plan
-struct QueryPlan {
+table QueryPlan {
     node_names: [string];
     node_child_offsets: [uint64];
     node_children: [uint64];
@@ -57,7 +57,7 @@ struct QueryPlan {
 }
 
 // A query result
-struct QueryResult {
+table QueryResult {
     query_id: uint64;
     query_plan: QueryPlan;
     row_count: uint64;
