@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "duckdb.hpp"
+#include "proto/core_db_generated.h"
 
 std::unique_ptr<duckdb::DuckDB> db;
 

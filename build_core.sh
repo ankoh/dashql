@@ -8,18 +8,18 @@ APP_SOURCE_DIR="${PROJECT_ROOT}/tigon-app"
 APP_LIB_DIR="${APP_SOURCE_DIR}/public/lib"
 
 [ ! -z "${EMSDK}" ] \
-    && { echo "[ OK  ] Environment: EMSDK"; } \
+    && { echo "[ OK  ] Test environment: EMSDK"; } \
     || { \
-        echo "[ ERR ] Environment: EMSDK"; \
+        echo "[ ERR ] Test environment: EMSDK"; \
         echo "You need to source emsdk_env.sh before running this script."; \
         exit 1; \
     }
 [ -x "$(command -v emconfigure)" ] \
-    && { echo "[ OK  ] Command: emconfigure"; } \
-    || { echo "[ ERR ] Command: emconfigure"; exit 1; }
+    && { echo "[ OK  ] Test command: emconfigure"; } \
+    || { echo "[ ERR ] Test command: emconfigure"; exit 1; }
 [ -x "$(command -v emmake)" ] \
-    && { echo "[ OK  ] Command: emmake"; } \
-    || { echo "[ ERR ] Command: emmake"; exit 1; }
+    && { echo "[ OK  ] Test command: emmake"; } \
+    || { echo "[ ERR ] Test command: emmake"; exit 1; }
 
 cd ${CORE_BUILD_DIR}
 

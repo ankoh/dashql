@@ -1,3 +1,6 @@
 [submodule "tigon-core/third_party/duckdb"]
 	path = tigon-core/third_party/duckdb
 	url = https://github.com/cwida/duckdb
+[submodule "tigon-core/third_party/flatbuffers"]
+	path = tigon-core/third_party/flatbuffers
+	url = https://github.com/google/flatbuffers
