@@ -32,6 +32,12 @@ export class RootController {
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
     }
 
+
+    // Run a query
+    public runQuery(text: string) {
+        this.core.runQuery(text);
+    }
+
     // The worker function
     protected worker() {
         // Clear the worker timer

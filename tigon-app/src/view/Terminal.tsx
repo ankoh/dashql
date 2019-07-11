@@ -43,6 +43,8 @@ class Terminal extends React.Component<ITerminalProps> {
             fit.fit(this.term);
 
             this.term.focus();
+
+            let ctrl = this.props.appContext.ctrl;
             this.term.on('key', (key, ev) => {
                 if (key.charCodeAt(0) === 13) {
                     this.buffer += '\n';
@@ -53,13 +55,13 @@ class Terminal extends React.Component<ITerminalProps> {
 
                 if (key.charCodeAt(0) === 59) {
                     this.term.write('\n');
-                    this.props.appContext.ctrl.core.runQuery(this.buffer.toString());
+                    ctrl.runQuery(this.buffer.toString());
                     this.buffer = '';
                 }
             });
 
             this.term.setOption('theme', {
-                background: 'rgb(0, 0, 0)',
+                background: 'rgb(0, 0, 0, 0)',
                 foreground: 'rgb(255, 255, 255)',
                 cursor: 'rgb(255, 255, 255)'
             });
