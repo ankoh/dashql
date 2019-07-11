@@ -16,16 +16,16 @@
     flex-direction: row;
     height: 100%;
 
-    background-color: rgb(254, 80, 94);
+    background-color: rgb(220, 92, 76);
     border-radius: 4px;
 }
 
 .StatusBar-LogStats:hover {
-    background-color: rgb(220, 92, 76);
+    background-color: rgb(254, 80, 94);
 }
 
 .StatusBar-LogStats-Active {
-    background-color: rgb(220, 92, 76);
+    background-color: rgb(254, 80, 94);
     border-radius: 0px 0px 4px 4px;
 }
 
