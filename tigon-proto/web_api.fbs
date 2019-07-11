@@ -36,6 +36,13 @@ enum SQLTypeID: uint8 {
     VARBINARY = 15,
 }
 
+// A sql type
+struct SQLType {
+    type_id: SQLTypeID;
+    width: uint16;
+    scale: uint8;
+}
+
 // The error codes
 enum ErrorCode: uint8 {
     Raw = 0,
@@ -56,13 +63,24 @@ table QueryPlan {
     node_cardinalities: [uint64];
 }
 
+// A column of a query result
+table QueryResultColumn {
+    type_id: RawTypeID;
+    data: [ubyte];
+    null_mask: [ubyte];
+}
+
+// A data chunk
+table QueryResultChunk {
+    columns: [QueryResultColumn];
+}
+
 // A query result
 table QueryResult {
     query_id: uint64;
     query_plan: QueryPlan;
-    row_count: uint64;
-    column_types_sql: [SQLTypeID];
     column_types_raw: [RawTypeID];
+    column_types_sql: [SQLType];
     column_names: [string];
-    data: [ubyte];
+    data_chunks: [QueryResultChunk];
 }

@@ -5,7 +5,6 @@ declare global {
     var TigonWeb: any;
 }
 
-
 export class CoreAPI {
     // The webassembly module
     protected webAPI: any;
