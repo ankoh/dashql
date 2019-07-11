@@ -1,12 +1,12 @@
-import './StatusBar.css';
+import './status_bar.css';
 import * as React from 'react';
 import * as Model from '../model';
-import LogViewer from './LogViewer';
+import LogViewer from './log_viewer';
 import { connect } from 'react-redux';
 
 import {
     WarningIcon,
-} from '../svg/Icons';
+} from '../svg/icons';
 
 const connStatusNames = new Map<Model.ConnectionStatus, string>([
     [Model.ConnectionStatus.CS_CONNECTED, 'connected'],

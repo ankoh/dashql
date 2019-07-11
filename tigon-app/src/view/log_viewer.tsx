@@ -1,9 +1,9 @@
-import './LogViewer.css';
+import './log_viewer.css';
 import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as Model from '../model';
 import Scrollbar from 'react-custom-scrollbars';
-import { CloseIcon } from '../svg/Icons';
+import { CloseIcon } from '../svg/icons';
 import { connect } from 'react-redux';
 
 const levelNames = new Map<Model.LogLevel, string>([

@@ -1,4 +1,4 @@
-import * as State from "./RootState";
+import * as State from "./root_state";
 
 // ---------------------------------------------------------------------------
 // The action type

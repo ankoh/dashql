@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as Model from '../model';
-import TabBar from './TabBar';
-import { Logo } from '../svg/Logo'
+import TabBar from './tab_bar';
+import { Logo } from '../svg/logo'
 import { connect } from 'react-redux';
 
-import './NavigationBar.css';
+import './navigation_bar.css';
 
 interface INavigationBarProps {
     navigateRoot: (view: Model.RootView) => void;

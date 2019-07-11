@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import * as Model from './model';
-import Router from './view/Router';
-import { AppContextProvider, IAppContext } from './AppContext';
-import { FluidBackground } from './svg/Background';
+import Router from './view/router';
+import { AppContextProvider, IAppContext } from './app_context';
+import { FluidBackground } from './svg/background';
 import { Provider as ReduxProvider } from 'react-redux';
 import { RootController, Logger } from './ctrl';
 

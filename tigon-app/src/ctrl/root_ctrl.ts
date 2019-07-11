@@ -1,6 +1,6 @@
 import * as Model from '../model';
-import { Logger } from './Logger';
-import { CoreAPI } from './CoreAPI';
+import { Logger } from './logger';
+import { CoreAPI } from './core_api';
 
 // The worker interval
 const workerIntervalMS = 400;
