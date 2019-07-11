@@ -1,3 +1,5 @@
+import * as proto from '../proto';
+
 // Mute typescript
 declare global {
     var TigonCore: any;

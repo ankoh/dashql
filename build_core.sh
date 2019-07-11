@@ -21,8 +21,6 @@ APP_LIB_DIR="${APP_SOURCE_DIR}/public/lib"
     && { echo "[ OK  ] Command: emmake"; } \
     || { echo "[ ERR ] Command: emmake"; exit 1; }
 
-set -x
-
 cd ${CORE_BUILD_DIR}
 
 emconfigure cmake ${CORE_SOURCE_DIR} \
