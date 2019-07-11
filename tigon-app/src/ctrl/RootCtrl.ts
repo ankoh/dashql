@@ -1,7 +1,6 @@
-import * as HTTP from '../util/HTTP';
 import * as Model from '../model';
-import { LoggableError } from '../util/Error';
 import { Logger } from './Logger';
+import { CoreAPI } from './CoreAPI';
 
 // The worker interval
 const workerIntervalMS = 400;
@@ -12,6 +11,8 @@ export class RootController {
     public store: Model.ReduxStore;
     // The logger
     public logger: Logger;
+    // The core api
+    public core: CoreAPI;
 
     // The worker timeout
     protected workerTimer: number | null;
@@ -21,22 +22,12 @@ export class RootController {
         this.store = store;
         this.logger = logger;
         this.workerTimer = null;
+        this.core = new CoreAPI();
     }
 
     // Init the controller
     public init() {
-        // Load app config
-        HTTP.loadFromPublic<Model.AppConfig>('config.json')
-            .then(config => {
-                const knownServerCount = config.knownServers ? config.knownServers.length : 0;
-                this.store.dispatch(Model.configureApp(config));
-                this.logger.info(`loaded application config (${knownServerCount} servers)`);
-            })
-            .catch(error => {
-                if (error instanceof LoggableError) {
-                    this.logger.storeError(error);
-                }
-            });
+        this.core.init();
 
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
     }

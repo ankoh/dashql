@@ -7,9 +7,12 @@ import { connect } from 'react-redux';
 import 'xterm/dist/xterm.css';
 import './Terminal.css';
 
+import { IAppContext, withAppContext } from '../AppContext';
+
 xterm.Terminal.applyAddon(fit);
 
 interface ITerminalProps {
+    appContext: IAppContext;
 }
 
 class Terminal extends React.Component<ITerminalProps> {
@@ -50,36 +53,16 @@ class Terminal extends React.Component<ITerminalProps> {
 
                 if (key.charCodeAt(0) === 59) {
                     this.term.write('\n');
-                    let run_query = window.TigonCore.cwrap('run_query', 'void', ['string']);
-                    run_query(this.buffer.toString());
+                    this.props.appContext.ctrl.core.runQuery(this.buffer.toString());
                     this.buffer = '';
                 }
             });
 
-
             this.term.setOption('theme', {
-                background: 'rgb(0, 0, 0, 0)',
+                background: 'rgb(0, 0, 0)',
                 foreground: 'rgb(255, 255, 255)',
                 cursor: 'rgb(255, 255, 255)'
             });
-
-            let term = this.term;
-            window.TigonCore = {
-                print: (function() {
-                    return function(text: any) {
-                        term.writeln(text);
-                    };
-                })(),
-                printErr: function(text: any) {
-                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-                    if (0) {
-                        term.writeln(text);
-                    }
-                },				
-                canvas: (function() {
-                    return null;
-                })()
-            };
         }
     }
 
@@ -100,5 +83,5 @@ function mapDispatchToProps(dispatch: Model.Dispatch) {
     };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(Terminal);
+export default withAppContext(connect(mapStateToProps, mapDispatchToProps)(Terminal));
 
