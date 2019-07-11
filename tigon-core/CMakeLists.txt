@@ -20,13 +20,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include("${CMAKE_SOURCE_DIR}/third_party/duckdb.cmake")
 
-add_executable(tigon
+add_executable(tigon_core
     src/hello_world.cpp
 )
 
-target_link_libraries(tigon duckdb re2 miniz pg_query hyperloglog)
+target_link_libraries(tigon_core duckdb re2 miniz pg_query hyperloglog)
 
-set_target_properties(tigon PROPERTIES LINK_FLAGS "\
+set_target_properties(tigon_core PROPERTIES LINK_FLAGS "\
     -s MODULARIZE=1 \
     -s EXPORT_NAME=TigonCore \
     -s EXPORTED_FUNCTIONS='[_main, _run_query]' \

@@ -9,7 +9,11 @@ APP_LIB_DIR="${APP_SOURCE_DIR}/public/lib"
 
 [ ! -z "${EMSDK}" ] \
     && { echo "[ OK  ] Environment: EMSDK"; } \
-    || { echo "[ ERR ] Environment: EMSDK"; exit 1; }
+    || { \
+        echo "[ ERR ] Environment: EMSDK"; \
+        echo "You need to source emsdk_env.sh before running this script."; \
+        exit 1; \
+    }
 [ -x "$(command -v emconfigure)" ] \
     && { echo "[ OK  ] Command: emconfigure"; } \
     || { echo "[ ERR ] Command: emconfigure"; exit 1; }
@@ -29,6 +33,6 @@ emmake make -j$(nproc) \
     && { echo "[ OK  ] Build project"; } \
     || { echo "[ ERR ] Build project"; exit 1; }
 
-cp ${CORE_BUILD_DIR}/tigon.{wasm,js}  ${APP_LIB_DIR}
+cp ${CORE_BUILD_DIR}/tigon_core.{wasm,js}  ${APP_LIB_DIR}
 
 cd ${CORE_SOURCE_DIR}
