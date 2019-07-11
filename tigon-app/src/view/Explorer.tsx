@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as Store from '../store';
+import * as Model from '../model';
 import { IAppContext, withAppContext } from '../AppContext';
 import Terminal from './Terminal';
 import './Explorer.css';
@@ -128,7 +128,7 @@ class Explorer extends React.Component<IExplorerProps> {
     }
 }
 
-function mapStateToExplorerProps(state: Store.RootState) {
+function mapStateToExplorerProps(state: Model.RootState) {
     return {
         labView: state.labView,
         queryDuration: state.labQueryDuration,
@@ -137,9 +137,9 @@ function mapStateToExplorerProps(state: Store.RootState) {
     };
 }
 
-function mapDispatchToExplorerProps(dispatch: Store.Dispatch) {
+function mapDispatchToExplorerProps(dispatch: Model.Dispatch) {
     return {
-        navigateLab: (tabID: number) => { dispatch(Store.navigateLab(tabID)); }
+        navigateLab: (tabID: number) => { dispatch(Model.navigateLab(tabID)); }
     };
 }
 

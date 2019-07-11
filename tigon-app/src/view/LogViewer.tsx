@@ -1,17 +1,17 @@
 import './LogViewer.css';
 import * as Immutable from 'immutable';
 import * as React from 'react';
-import * as store from '../store';
+import * as Model from '../model';
 import Scrollbar from 'react-custom-scrollbars';
 import { CloseIcon } from '../svg/Icons';
 import { connect } from 'react-redux';
 
-const levelNames = new Map<store.LogLevel, string>([
-    [store.LogLevel.LL_UNDEFINED, 'UNDEFINED'],
-    [store.LogLevel.LL_DEBUG, 'DEBUG'],
-    [store.LogLevel.LL_INFO, 'INFO'],
-    [store.LogLevel.LL_WARNING, 'WARNING'],
-    [store.LogLevel.LL_ERROR, 'ERROR'],
+const levelNames = new Map<Model.LogLevel, string>([
+    [Model.LogLevel.LL_UNDEFINED, 'UNDEFINED'],
+    [Model.LogLevel.LL_DEBUG, 'DEBUG'],
+    [Model.LogLevel.LL_INFO, 'INFO'],
+    [Model.LogLevel.LL_WARNING, 'WARNING'],
+    [Model.LogLevel.LL_ERROR, 'ERROR'],
 ]);
 
 function dts(date: Date) {
@@ -21,7 +21,7 @@ function dts(date: Date) {
 }
 
 interface ILogViewerProps {
-    logs: Immutable.List<store.LogEntry>;
+    logs: Immutable.List<Model.LogEntry>;
     close: () => void;
 }
 
@@ -65,13 +65,13 @@ export class LogViewer extends React.PureComponent<ILogViewerProps> {
 }
 
 // Map state to props
-function mapStateToProps(state: store.RootState) {
+function mapStateToProps(state: Model.RootState) {
     return {
         logs: state.logs
     };
 }
 // Map log viewer dispatchs
-function mapDispatchToProps(dispatch: store.RootState) {
+function mapDispatchToProps(dispatch: Model.RootState) {
     return {};
 }
 

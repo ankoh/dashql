@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as Store from '../store';
+import * as Model from '../model';
 import TabBar from './TabBar';
 import { Logo } from '../svg/Logo'
 import { connect } from 'react-redux';
@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import './NavigationBar.css';
 
 interface INavigationBarProps {
-    navigateRoot: (view: Store.RootView) => void;
+    navigateRoot: (view: Model.RootView) => void;
 }
 
 class NavigationBar extends React.Component<INavigationBarProps> {
@@ -25,13 +25,13 @@ class NavigationBar extends React.Component<INavigationBarProps> {
     }
 }
 
-function mapStateToProps(state: Store.RootState) {
+function mapStateToProps(state: Model.RootState) {
     return {
     };
 }
-function mapDispatchToProps(dispatch: Store.Dispatch) {
+function mapDispatchToProps(dispatch: Model.Dispatch) {
     return {
-        navigateRoot: (view: Store.RootView) => { dispatch(Store.navigateRoot(view)); },
+        navigateRoot: (view: Model.RootView) => { dispatch(Model.navigateRoot(view)); },
     };
 }
 

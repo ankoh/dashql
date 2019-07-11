@@ -1,4 +1,4 @@
-import { HTTPStatusError, LoggableError } from '../utils/Error';
+import { HTTPStatusError, LoggableError } from '../util/Error';
 
 const defaultTimeout = 7000;
 

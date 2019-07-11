@@ -1,5 +1,5 @@
-import { compose, createStore } from 'redux';
-import * as Store from './store';
+import { compose, createStore as createReduxStore } from 'redux';
+import * as Model from './';
 
 /* tslint:disable */
 const windowIfDefined = typeof window === 'undefined' ? null : window as any;
@@ -10,8 +10,8 @@ if (windowIfDefined && typeof windowIfDefined.__REDUX_DEVTOOLS_EXTENSION_COMPOSE
 const enhancer = composeEnhancers();
 /* tslint:enable */
 
-export default function configureStore(): Store.ReduxStore {
-    const store = createStore<Store.RootState, Store.RootAction, any, any>(Store.reducer, enhancer);
+export default function createStore(): Model.ReduxStore {
+    const store = createReduxStore<Model.RootState, Model.RootAction, any, any>(Model.reducer, enhancer);
 
     // Return the store
     return store;

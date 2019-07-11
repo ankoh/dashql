@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { Controller } from './controller/Controller';
+import { RootController } from './ctrl';
 
 export interface IAppContext {
-    controller: Controller,
+    ctrl: RootController,
 }
 
-const ctxt = React.createContext<IAppContext | null>(null);
-export const AppContextProvider = ctxt.Provider;
-export const AppContextConsumer = ctxt.Consumer;
+const ctx = React.createContext<IAppContext | null>(null);
+export const AppContextProvider = ctx.Provider;
+export const AppContextConsumer = ctx.Consumer;
 
 export function withAppContext<
     ALL_PROPS extends { appContext?: IAppContext },

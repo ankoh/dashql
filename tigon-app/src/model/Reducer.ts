@@ -1,17 +1,17 @@
-import * as Store from './Store';
-import { ActionType, RootAction } from './Action';
+import * as State from './RootState';
+import { ActionType, RootAction } from './RootAction';
 
 const MAX_LOG_SIZE = 100;
 
-export function reducer(state: Store.RootState = new Store.RootState(), a: RootAction): Store.RootState {
+export function reducer(state: State.RootState = new State.RootState(), a: RootAction): State.RootState {
     switch (a.type) {
         case ActionType.PUSH_LOG_ENTRY:
             {
                 let warnings = state.logWarnings;
-                if (a.payload.level >= Store.LogLevel.LL_WARNING) {
+                if (a.payload.level >= State.LogLevel.LL_WARNING) {
                     warnings += 1;
                 }
-                if (state.logs.size >= MAX_LOG_SIZE && (state.logs.last() as Store.LogEntry).level >= Store.LogLevel.LL_WARNING) {
+                if (state.logs.size >= MAX_LOG_SIZE && (state.logs.last() as State.LogEntry).level >= State.LogLevel.LL_WARNING) {
                     warnings -= 1;
                 }
                 return {
@@ -59,7 +59,7 @@ export function reducer(state: Store.RootState = new Store.RootState(), a: RootA
                 serverConfigs: state.serverConfigs.withMutations((mutableConfigs) => {
                     if (!a.payload.knownServers) { return; }
                     a.payload.knownServers.forEach(ks => {
-                        const k = Store.ServerConfig.buildKey(ks);
+                        const k = State.ServerConfig.buildKey(ks);
                         if (!mutableConfigs.has(k)) {
                             mutableConfigs.set(k, ks);
                         }

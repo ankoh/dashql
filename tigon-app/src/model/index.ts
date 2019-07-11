@@ -1,10 +1,11 @@
 import { Store as ReduxStore } from 'redux';
-import { RootState } from './Store';
-import { RootAction } from './Action';
+import { RootState } from './RootState';
+import { RootAction } from './RootAction';
 
 // Export things
 export * from './Reducer';
-export * from './Action';
+export * from './RootAction';
+export * from './RootState';
 export * from './Store';
 
 // The action dispatch

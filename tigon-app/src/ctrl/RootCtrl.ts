@@ -1,15 +1,15 @@
-import * as HTTP from '../utils/HTTP';
-import * as Store from '../store';
-import { LoggableError } from '../utils/Error';
+import * as HTTP from '../util/HTTP';
+import * as Model from '../model';
+import { LoggableError } from '../util/Error';
 import { Logger } from './Logger';
 
 // The worker interval
 const workerIntervalMS = 400;
 
 // A controller
-export class Controller {
-    // The Store
-    public store: Store.ReduxStore;
+export class RootController {
+    // The Model
+    public store: Model.ReduxStore;
     // The logger
     public logger: Logger;
 
@@ -17,7 +17,7 @@ export class Controller {
     protected workerTimer: number | null;
 
     // Constructor
-    constructor(store: Store.ReduxStore, logger: Logger) {
+    constructor(store: Model.ReduxStore, logger: Logger) {
         this.store = store;
         this.logger = logger;
         this.workerTimer = null;
@@ -26,10 +26,10 @@ export class Controller {
     // Init the controller
     public init() {
         // Load app config
-        HTTP.loadFromPublic<Store.AppConfig>('config.json')
+        HTTP.loadFromPublic<Model.AppConfig>('config.json')
             .then(config => {
                 const knownServerCount = config.knownServers ? config.knownServers.length : 0;
-                this.store.dispatch(Store.configureApp(config));
+                this.store.dispatch(Model.configureApp(config));
                 this.logger.info(`loaded application config (${knownServerCount} servers)`);
             })
             .catch(error => {
@@ -57,13 +57,13 @@ export class Controller {
             return;
         }
 
-        this.store.dispatch(Store.startLabQuery());
+        this.store.dispatch(Model.startLabQuery());
     }
 
     // Abort a lab query
     public abortLabQuery() {
         // TODO
-        this.store.dispatch(Store.abortLabQuery());
+        this.store.dispatch(Model.abortLabQuery());
     }
 
 

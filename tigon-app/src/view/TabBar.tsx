@@ -1,34 +1,34 @@
 import './TabBar.css';
 import * as React from 'react';
-import * as Store from '../store';
+import * as Model from '../model';
 import { connect } from 'react-redux';
 import classNames from 'classnames';
 
 interface ITabBarProps {
-    rootView: Store.RootView;
-    onViewChanged: (view: Store.RootView) => void;
+    rootView: Model.RootView;
+    onViewChanged: (view: Model.RootView) => void;
 }
 
 interface ITabBarTabProps {
-    rootView: Store.RootView;
-    onViewChanged: (view: Store.RootView) => void;
-    tabView: Store.RootView;
+    rootView: Model.RootView;
+    onViewChanged: (view: Model.RootView) => void;
+    tabView: Model.RootView;
 }
 
 function TabBarTab(props: ITabBarTabProps) {
     const isActive = props.tabView === props.rootView;
     let tabName = "?";
     switch (props.tabView) {
-        case Store.RootView.DATA_MODEL:
+        case Model.RootView.DATA_MODEL:
             tabName = "Data Model";
             break;
-        case Store.RootView.EXPLORER:
+        case Model.RootView.EXPLORER:
             tabName = "Explorer";
             break;
-        case Store.RootView.WORKBOOK:
+        case Model.RootView.WORKBOOK:
             tabName = "Workbook";
             break;
-        case Store.RootView.LIBRARY:
+        case Model.RootView.LIBRARY:
             tabName = "Library";
             break;
     }
@@ -51,12 +51,12 @@ class TabBar extends React.Component<ITabBarProps> {
         return (
             <div className="TabBar">
                 <TabBarTab
-                    tabView={Store.RootView.DATA_MODEL}
+                    tabView={Model.RootView.DATA_MODEL}
                     rootView={this.props.rootView}
                     onViewChanged={this.props.onViewChanged}
                 />
                 <TabBarTab
-                    tabView={Store.RootView.EXPLORER}
+                    tabView={Model.RootView.EXPLORER}
                     rootView={this.props.rootView}
                     onViewChanged={this.props.onViewChanged}
                 />
@@ -65,13 +65,13 @@ class TabBar extends React.Component<ITabBarProps> {
     }
 }
 
-function mapStateToProps(state: Store.RootState) {
+function mapStateToProps(state: Model.RootState) {
     return {
         rootView: state.rootView
     };
 }
 
-function mapDispatchToProps(dispatch: Store.Dispatch) {
+function mapDispatchToProps(dispatch: Model.Dispatch) {
     return {
     };
 }

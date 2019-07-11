@@ -1,4 +1,4 @@
-import * as Store from "./Store";
+import * as State from "./RootState";
 
 // ---------------------------------------------------------------------------
 // The action type
@@ -21,12 +21,12 @@ export enum ActionType {
 // ---------------------------------------------------------------------------
 
 export type RootAction =
-    | Action<ActionType.CONFIGURE_APP, Store.AppConfig>
-    | Action<ActionType.NAVIGATE_ROOT, Store.RootView>
+    | Action<ActionType.CONFIGURE_APP, State.AppConfig>
+    | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.NAVIGATE_DATA_EXPLORER, number>
-    | Action<ActionType.PUSH_LOG_ENTRY, Store.LogEntry>
+    | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
     | Action<ActionType.LAB_QUERY_ABORT, {}>
-    | Action<ActionType.LAB_QUERY_RESULT, Store.QueryResult>
+    | Action<ActionType.LAB_QUERY_RESULT, State.QueryResult>
     | Action<ActionType.LAB_QUERY_START, {}>
     | Action<ActionType.LAB_TEMPLATE_UPDATE, string>
     | Action<ActionType.OTHER, {}>;
@@ -49,20 +49,20 @@ export function createAction<T, P>(type: T, payload: P): Action<T, P> {
     return { type, payload };
 }
 
-export function pushLogEntry(log: Store.LogEntry): RootAction {
-    return createAction<ActionType.PUSH_LOG_ENTRY, Store.LogEntry>(ActionType.PUSH_LOG_ENTRY, log);
+export function pushLogEntry(log: State.LogEntry): RootAction {
+    return createAction<ActionType.PUSH_LOG_ENTRY, State.LogEntry>(ActionType.PUSH_LOG_ENTRY, log);
 }
 
-export function navigateRoot(view: Store.RootView): RootAction {
-    return createAction<ActionType.NAVIGATE_ROOT, Store.RootView>(ActionType.NAVIGATE_ROOT, view);
+export function navigateRoot(view: State.RootView): RootAction {
+    return createAction<ActionType.NAVIGATE_ROOT, State.RootView>(ActionType.NAVIGATE_ROOT, view);
 }
 
 export function navigateLab(tabID: number): RootAction {
     return createAction<ActionType.NAVIGATE_DATA_EXPLORER, number>(ActionType.NAVIGATE_DATA_EXPLORER, tabID);
 }
 
-export function configureApp(config: Store.AppConfig): RootAction {
-    return createAction<ActionType.CONFIGURE_APP, Store.AppConfig>(ActionType.CONFIGURE_APP, config);
+export function configureApp(config: State.AppConfig): RootAction {
+    return createAction<ActionType.CONFIGURE_APP, State.AppConfig>(ActionType.CONFIGURE_APP, config);
 }
 
 export function startLabQuery(): RootAction {
@@ -73,8 +73,8 @@ export function abortLabQuery(): RootAction {
     return createAction<ActionType.LAB_QUERY_ABORT, {}>(ActionType.LAB_QUERY_ABORT, {});
 }
 
-export function storeQueryResult(result: Store.QueryResult): RootAction {
-    return createAction<ActionType.LAB_QUERY_RESULT, Store.QueryResult>(ActionType.LAB_QUERY_RESULT, result);
+export function storeQueryResult(result: State.QueryResult): RootAction {
+    return createAction<ActionType.LAB_QUERY_RESULT, State.QueryResult>(ActionType.LAB_QUERY_RESULT, result);
 }
 
 export function updateLabTemplate(template: string): RootAction {

@@ -1,6 +1,6 @@
 import './StatusBar.css';
 import * as React from 'react';
-import * as Store from '../store';
+import * as Model from '../model';
 import LogViewer from './LogViewer';
 import { connect } from 'react-redux';
 
@@ -8,15 +8,15 @@ import {
     WarningIcon,
 } from '../svg/Icons';
 
-const connStatusNames = new Map<Store.ConnectionStatus, string>([
-    [Store.ConnectionStatus.CS_CONNECTED, 'connected'],
-    [Store.ConnectionStatus.CS_DISCONNECTED, 'disconnected'],
-    [Store.ConnectionStatus.CS_UNDEFINED, 'undefined'],
+const connStatusNames = new Map<Model.ConnectionStatus, string>([
+    [Model.ConnectionStatus.CS_CONNECTED, 'connected'],
+    [Model.ConnectionStatus.CS_DISCONNECTED, 'disconnected'],
+    [Model.ConnectionStatus.CS_UNDEFINED, 'undefined'],
 ]);
 
 interface IStatusBarProps {
-    serverConfig: Store.ServerConfig | null;
-    serverInfo: Store.ServerInfo | null;
+    serverConfig: Model.ServerConfig | null;
+    serverInfo: Model.ServerInfo | null;
     logWarnings: number;
 }
 
@@ -34,7 +34,7 @@ export class StatusBar extends React.Component<IStatusBarProps, IStatusBarState>
     }
 
     public render() {
-        let connStatus = Store.ConnectionStatus.CS_UNDEFINED;
+        let connStatus = Model.ConnectionStatus.CS_UNDEFINED;
         let url = '-';
         let version = '-';
         if (this.props.serverInfo) {
@@ -90,7 +90,7 @@ export class StatusBar extends React.Component<IStatusBarProps, IStatusBarState>
 }
 
 // Map state to props
-function mapStateToProps(state: Store.RootState) {
+function mapStateToProps(state: Model.RootState) {
     const serverConfig = (state.selectedServer && state.serverConfigs.get(state.selectedServer)) || null;
     const serverInfo = (state.selectedServer && state.serverInfos.get(state.selectedServer)) || null;
     return {
@@ -100,7 +100,7 @@ function mapStateToProps(state: Store.RootState) {
     };
 }
 // Map llvm explorer dispatchs
-function mapDispatchToProps(dispatch: Store.RootState) {
+function mapDispatchToProps(dispatch: Model.RootState) {
     return {};
 }
 

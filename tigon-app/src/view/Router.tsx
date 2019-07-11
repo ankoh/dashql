@@ -2,19 +2,19 @@ import * as React from 'react';
 import Explorer from './Explorer';
 import StatusBar from './StatusBar';
 import NavigationBar from './NavigationBar';
-import * as Store from '../store';
+import * as Model from '../model';
 import { connect } from 'react-redux';
 
 import './Router.css';
 
 interface IRouterProps {
-    rootView: Store.RootView;
+    rootView: Model.RootView;
 }
 
 class Router extends React.Component<IRouterProps> {
     public render() {
         switch (this.props.rootView) {
-            case Store.RootView.EXPLORER:
+            case Model.RootView.EXPLORER:
                 return (
                     <div className="Router">
                         <NavigationBar />
@@ -32,12 +32,12 @@ class Router extends React.Component<IRouterProps> {
     }
 }
 
-function mapStateToProps(state: Store.RootState) {
+function mapStateToProps(state: Model.RootState) {
     return {
         rootView: state.rootView
     };
 }
-function mapDispatchToProps(dispatch: Store.Dispatch) {
+function mapDispatchToProps(dispatch: Model.Dispatch) {
     return {};
 }
 
