@@ -1,5 +1,4 @@
 import * as HTTP from '../utils/HTTP';
-import * as HTTPApi from '../utils/HTTPApi';
 import * as Store from '../store';
 import { LoggableError } from '../utils/Error';
 import { Logger } from './Logger';
@@ -59,16 +58,6 @@ export class Controller {
         }
 
         this.store.dispatch(Store.startLabQuery());
-
-        // Post the query
-        HTTPApi.postQuery(config, state.labQueryTemplate)
-            .then((result: Store.QueryResult) => {
-                this.logger.info(`received query result with ${result.resultCount} rows`)
-                this.store.dispatch(Store.storeQueryResult(result));
-            })
-            .catch((err: Error) => {
-                this.logger.warning(`query failed with error: ${err}`)
-            });
     }
 
     // Abort a lab query

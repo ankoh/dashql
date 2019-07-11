@@ -3,7 +3,6 @@ import * as React from 'react';
 import * as Store from '../store';
 import LogViewer from './LogViewer';
 import { connect } from 'react-redux';
-import * as HTTPApi from '../utils/HTTPApi';
 
 import {
     WarningIcon,
@@ -41,9 +40,6 @@ export class StatusBar extends React.Component<IStatusBarProps, IStatusBarState>
         if (this.props.serverInfo) {
             connStatus = this.props.serverInfo.connectionStatus;
             version = this.props.serverInfo.version;
-        }
-        if (this.props.serverConfig) {
-            url = HTTPApi.buildURL(this.props.serverConfig);
         }
 
         return (
