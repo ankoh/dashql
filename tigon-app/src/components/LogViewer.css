@@ -5,7 +5,7 @@
     height: 100%;
 
     border-radius: 2px;
-    background-color: rgb(41, 136, 204);
+    background-color: rgb(220, 92, 76);
 }
 
 .LogViewer-Header {
@@ -17,7 +17,6 @@
     justify-content: space-between;
 
     border-radius: 2px;
-    background-color: rgb(19, 156, 254);
 }
 
 .LogViewer-Title {
@@ -46,8 +45,6 @@
     font-weight: 400;
     font-size: 9pt;
     line-height: 1.2;
-
-    background-color: rgb(41, 136, 204);
 }
 
 .LogViewer-Entries {
@@ -70,9 +67,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     text-align: center;
-
-    border: 1px solid rgb(41, 136, 204);
-    background-color: rgb(37, 122, 182);
 }
 
 .LogViewer-Entry-LogLevel {
@@ -86,14 +80,10 @@
     font-weight: 500;
 
     color: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgb(41, 136, 204);
-    background-color: rgb(37, 122, 182);
 }
 
 .LogViewer-Entry-Text {
     flex: 1 1 0px;
 
     padding: 4px 4px;
-    border: 1px solid rgb(41, 136, 204);
-    background-color: rgb(37, 122, 182);
 }

@@ -65,7 +65,7 @@ export class StatusBar extends React.Component<IStatusBarProps, IStatusBarState>
                     }
                 </div>
                 <div
-                    className={'StatusBar-LogStats' + (this.state.logsOpen && ' StatusBar-LogStats-Active')}
+                    className={'StatusBar-LogStats' + (this.state.logsOpen ? ' StatusBar-LogStats-Active' : '')}
                     onClick={this.toggleLogViewer}
                 >
                     <div className="StatusBar-LogStat">

@@ -4,27 +4,28 @@
     flex-direction: row;
     justify-content: space-between;
 
-    background-color: rgb(19, 156, 254);
     color: rgb(255, 255, 255);
 
     font-weight: 400;
     font-size: 9pt;
 
-    border-radius: 4px;
 }
 
 .StatusBar-LogStats {
     display: flex;
     flex-direction: row;
     height: 100%;
+
+    background-color: rgb(254, 80, 94);
+    border-radius: 4px;
 }
 
 .StatusBar-LogStats:hover {
-    background-color: rgb(41, 136, 204);
+    background-color: rgb(220, 92, 76);
 }
 
 .StatusBar-LogStats-Active {
-    background-color: rgb(41, 136, 204);
+    background-color: rgb(220, 92, 76);
     border-radius: 0px 0px 4px 4px;
 }
 

@@ -68,18 +68,18 @@ class Explorer extends React.Component<IExplorerProps> {
 
                         <div className="Explorer-Viewer-Actions">
                             <div className="Explorer-Viewer-Action-Container">
-                                <div className="Explorer-Viewer-Action">
+                                <div className="Explorer-Viewer-Action-Toggle">
                                     <SettingsIcon fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
                             <div className="Explorer-Viewer-Action-Container">
                                 <div className="Explorer-Viewer-Action">
-                                    <UndoIcon fill="rgb(0, 0, 0)" />
+                                    <UndoIcon fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
                             <div className="Explorer-Viewer-Action-Container">
                                 <div className="Explorer-Viewer-Action">
-                                    <SaveIcon fill="rgb(0, 0, 0)" />
+                                    <SaveIcon fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
                         </div>
