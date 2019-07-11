@@ -77,6 +77,16 @@ class Explorer extends React.Component<IExplorerProps> {
                                 <ProgramIcon fill="rgb(0, 0, 0)" />
                             </div>
                         </div>
+                        <div className="Explorer-Input-Tab-Container">
+                            <div className="Explorer-Input-Tab">
+                                x
+                            </div>
+                        </div>
+                        <div className="Explorer-Input-Tab-Container">
+                            <div className="Explorer-Input-Tab">
+                                x
+                            </div>
+                        </div>
                     </div>
                     <div className="Explorer-Input-Terminal">
                         <Terminal />
