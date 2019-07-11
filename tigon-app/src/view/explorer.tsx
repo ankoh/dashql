@@ -35,13 +35,13 @@ class Explorer extends React.Component<IExplorerProps> {
                     <div className="explorer-viewer-controls">
                         <div className="explorer-viewer-viztypes">
                             <div className="explorer-viewer-viztype-container">
-                                <div className="explorer-viewer-viztype explorer-viewer-viztype-active">
-                                    <PlanIcon fill="rgb(255, 255, 255)" />
+                                <div className="explorer-viewer-viztype">
+                                    <PlanIcon fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
                             <div className="explorer-viewer-viztype-container">
-                                <div className="explorer-viewer-viztype">
-                                    <TableChartIcon fill="rgb(0, 0, 0)" />
+                                <div className="explorer-viewer-viztype  explorer-viewer-viztype-active">
+                                    <TableChartIcon fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
                             <div className="explorer-viewer-viztype-container">
