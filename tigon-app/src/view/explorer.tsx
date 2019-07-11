@@ -26,98 +26,98 @@ interface IExplorerProps {
 class Explorer extends React.Component<IExplorerProps> {
     public render() {
         return (
-            <div className="Explorer">
-                <div className="Explorer-Viewer">
-                    <div className="Explorer-Viewer-Output-Container">
-                        <div className="Explorer-Viewer-Output">
+            <div className="explorer">
+                <div className="explorer-viewer">
+                    <div className="explorer-viewer-output-container">
+                        <div className="explorer-viewer-output">
                         </div>
                     </div>
-                    <div className="Explorer-Viewer-Controls">
-                        <div className="Explorer-Viewer-VizTypes">
-                            <div className="Explorer-Viewer-VizType-Container">
-                                <div className="Explorer-Viewer-VizType Explorer-Viewer-VizType-Active">
+                    <div className="explorer-viewer-controls">
+                        <div className="explorer-viewer-viztypes">
+                            <div className="explorer-viewer-viztype-container">
+                                <div className="explorer-viewer-viztype explorer-viewer-viztype-active">
                                     <PlanIcon fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
-                            <div className="Explorer-Viewer-VizType-Container">
-                                <div className="Explorer-Viewer-VizType">
+                            <div className="explorer-viewer-viztype-container">
+                                <div className="explorer-viewer-viztype">
                                     <TableChartIcon fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
-                            <div className="Explorer-Viewer-VizType-Container">
-                                <div className="Explorer-Viewer-VizType">
+                            <div className="explorer-viewer-viztype-container">
+                                <div className="explorer-viewer-viztype">
                                     <LineChartIcon fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
-                            <div className="Explorer-Viewer-VizType-Container">
-                                <div className="Explorer-Viewer-VizType">
+                            <div className="explorer-viewer-viztype-container">
+                                <div className="explorer-viewer-viztype">
                                     <BarChartIcon fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
-                            <div className="Explorer-Viewer-VizType-Container">
-                                <div className="Explorer-Viewer-VizType">
+                            <div className="explorer-viewer-viztype-container">
+                                <div className="explorer-viewer-viztype">
                                     <BubbleChartIcon fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
-                            <div className="Explorer-Viewer-VizType-Container">
-                                <div className="Explorer-Viewer-VizType">
+                            <div className="explorer-viewer-viztype-container">
+                                <div className="explorer-viewer-viztype">
                                     <PieChartIcon fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="Explorer-Viewer-Settings-Container">
-                            <div className="Explorer-Viewer-Settings">
+                        <div className="explorer-viewer-Settings-container">
+                            <div className="explorer-viewer-Settings">
                                 <SettingsIcon fill="rgb(0, 0, 0)" />
                             </div>
                         </div>
 
-                        <div className="Explorer-Viewer-Actions">
-                            <div className="Explorer-Viewer-Action-Container">
-                                <div className="Explorer-Viewer-Action">
+                        <div className="explorer-viewer-actions">
+                            <div className="explorer-viewer-action-container">
+                                <div className="explorer-viewer-action">
                                     <UndoIcon fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
-                            <div className="Explorer-Viewer-Action-Container">
-                                <div className="Explorer-Viewer-Action">
+                            <div className="explorer-viewer-action-container">
+                                <div className="explorer-viewer-action">
                                     <SaveIcon fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className="Explorer-Input">
-                    <div className="Explorer-Input-TabBar">
-                        <div className="Explorer-Input-Tab-Container">
-                            <div className="Explorer-Input-Tab Explorer-Input-Tab-Active">
+                <div className="explorer-input">
+                    <div className="explorer-input-tabBar">
+                        <div className="explorer-input-tab-container">
+                            <div className="explorer-input-tab explorer-input-tab-active">
                                 <ConsoleIcon />
                             </div>
                         </div>
-                        <div className="Explorer-Input-Tab-Container">
-                            <div className="Explorer-Input-Tab">
+                        <div className="explorer-input-tab-container">
+                            <div className="explorer-input-tab">
                                 <ProgramIcon fill="rgb(0, 0, 0)" />
                             </div>
                         </div>
-                        <div className="Explorer-Input-Tab-Container">
-                            <div className="Explorer-Input-Tab">
+                        <div className="explorer-input-tab-container">
+                            <div className="explorer-input-tab">
                                 <DNSIcon fill="rgb(0, 0, 0)" />
                             </div>
                         </div>
                     </div>
 
-                    <div className="Explorer-Input-Terminal">
+                    <div className="explorer-input-terminal">
                         <Terminal />
                     </div>
-                    <div className="Explorer-Input-Beans">
-                        <div className="Explorer-Input-Beans-Action">
+                    <div className="explorer-input-beans">
+                        <div className="explorer-input-beans-action">
                         </div>
-                        <div className="Explorer-Input-Beans-Status">
-                            <div className="Explorer-Input-Bean-Container">
-                                <div className="Explorer-Input-Bean">
+                        <div className="explorer-input-beans-status">
+                            <div className="explorer-input-bean-container">
+                                <div className="explorer-input-bean">
                                 </div>
                             </div>
-                            <div className="Explorer-Input-Bean-Container">
-                                <div className="Explorer-Input-Bean">
+                            <div className="explorer-input-bean-container">
+                                <div className="explorer-input-bean">
                                 </div>
                             </div>
                         </div>

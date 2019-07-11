@@ -1,8 +1,8 @@
-.Explorer {
+.explorer {
     padding: 16px;
 }
 
-.Explorer-Viewer {
+.explorer-viewer {
     position: relative;
     border-radius: 4px 4px 0px 0px;
     width: 100%;
@@ -10,7 +10,7 @@
     background: rgb(255, 255, 255, 0.9);
 }
 
-.Explorer-Viewer-Output-Container {
+.explorer-viewer-output-container {
     position: absolute;
     top: 48px;
     left: 0;
@@ -19,7 +19,7 @@
     padding: 0px 8px 4px 8px;
 }
 
-.Explorer-Viewer-Output {
+.explorer-viewer-output {
     width: 100%;
     height: 100%;
     background: rgb(255, 255, 255);
@@ -27,16 +27,7 @@
     border-radius: 4px;
 }
 
-.Explorer-Viewer-Config-Container {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 180px;
-    padding: 8px;
-}
-
-.Explorer-Viewer-Controls {
+.explorer-viewer-controls {
     position: absolute;
     top: 0;
     right: 0;
@@ -48,21 +39,21 @@
     justify-content: space-between;
 }
 
-.Explorer-Viewer-Actions {
+.explorer-viewer-actions {
     display: flex;
     flex-direction: row;
 
     padding: 4px;
 }
 
-.Explorer-Viewer-Action-Container {
+.explorer-viewer-action-container {
     width: 48px;
     height: 100%;
     padding: 4px;
     box-sizing: border-box;
 }
 
-.Explorer-Viewer-Action {
+.explorer-viewer-action {
     height: 100%;
     border-radius: 4px;
     background-color: rgb(0, 95, 223);
@@ -73,7 +64,7 @@
     align-items: center;
 }
 
-.Explorer-Viewer-VizTypes {
+.explorer-viewer-viztypes {
     display: flex;
     flex-direction: row;
     flex: 1;
@@ -81,14 +72,14 @@
     padding: 4px;
 }
 
-.Explorer-Viewer-VizType-Container {
+.explorer-viewer-viztype-container {
     width: 48px;
     height: 100%;
     padding: 4px;
     box-sizing: border-box;
 }
 
-.Explorer-Viewer-VizType {
+.explorer-viewer-viztype {
     height: 100%;
     border-radius: 4px;
     background-color: rgb(255, 255, 255);
@@ -99,12 +90,12 @@
     align-items: center;
 }
 
-.Explorer-Viewer-VizType-Active {
+.explorer-viewer-viztype-active {
     background-color: rgb(0, 0, 0) !important;
 }
 
 
-.Explorer-Viewer-Settings-Container {
+.explorer-viewer-Settings-container {
     width: 64px;
     height: 100%;
     padding: 8px;
@@ -112,7 +103,7 @@
     box-sizing: border-box;
 }
 
-.Explorer-Viewer-Settings {
+.explorer-viewer-Settings {
     height: 100%;
     border-radius: 4px;
     background-color: rgb(255, 255, 255);
@@ -124,7 +115,7 @@
 }
 
 
-.Explorer-Input {
+.explorer-input {
     position: relative;
     border-radius: 0px 0px 4px 4px;
     width: 100%;
@@ -132,7 +123,7 @@
     background: rgb(255, 255, 255, 0.9);
 }
 
-.Explorer-Input-TabBar {
+.explorer-input-tabBar {
     position: absolute;
     top: 0;
     left: 0;
@@ -146,12 +137,12 @@
     flex-direction: column;
 }
 
-.Explorer-Input-Tab-Container {
+.explorer-input-tab-container {
     height: 32px;
     padding: 4px;
 }
 
-.Explorer-Input-Tab {
+.explorer-input-tab {
     border-radius: 4px;
     background: rgb(255, 255, 255);
     width: 100%;
@@ -163,11 +154,11 @@
     align-items: center;
 }
 
-.Explorer-Input-Tab-Active {
+.explorer-input-tab-active {
     background: rgb(0, 0, 0) !important;
 }
 
-.Explorer-Input-Terminal {
+.explorer-input-terminal {
     position: absolute;
     top: 0;
     left: 56px;
@@ -177,7 +168,7 @@
     box-sizing: border-box;
 }
 
-.Explorer-Input-Beans {
+.explorer-input-beans {
     position: absolute;
     left: 48px;
     right: 0;
@@ -189,22 +180,22 @@
     justify-content: space-between;
 }
 
-.Explorer-Input-Beans-Action {
+.explorer-input-beans-action {
     display: flex;
     flex-direction: row;
 }
 
-.Explorer-Input-Beans-Status {
+.explorer-input-beans-status {
     display: flex;
     flex-direction: row;
 }
 
-.Explorer-Input-Bean-Container {
+.explorer-input-bean-container {
     width: auto;
     padding: 4px 8px 8px 0px;
 }
 
-.Explorer-Input-Bean {
+.explorer-input-bean {
     border-radius: 4px;
     background: rgb(255, 255, 255);
     min-width: 80px;
