@@ -60,6 +60,16 @@ class TabBar extends React.Component<ITabBarProps> {
                     rootView={this.props.rootView}
                     onViewChanged={this.props.onViewChanged}
                 />
+                <TabBarTab
+                    tabView={Model.RootView.WORKBOOK}
+                    rootView={this.props.rootView}
+                    onViewChanged={this.props.onViewChanged}
+                />
+                <TabBarTab
+                    tabView={Model.RootView.LIBRARY}
+                    rootView={this.props.rootView}
+                    onViewChanged={this.props.onViewChanged}
+                />
             </div>
         );
     }
