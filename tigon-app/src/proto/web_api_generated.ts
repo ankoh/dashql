@@ -531,42 +531,42 @@ typeId():tigon.webapi.RawTypeID {
 
 /**
  * @param number index
- * @returns number
+ * @returns boolean
  */
-data(index: number):number|null {
+nullMask(index: number):boolean|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index) : 0;
-};
-
-/**
- * @returns number
- */
-dataLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @returns Uint8Array
- */
-dataArray():Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
-};
-
-/**
- * @param number index
- * @returns number
- */
-nullMask(index: number):number|null {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index) : 0;
+  return offset ? !!this.bb!.readInt8(this.bb!.__vector(this.bb_pos + offset) + index) : false;
 };
 
 /**
  * @returns number
  */
 nullMaskLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns Int8Array
+ */
+nullMaskArray():Int8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? new Int8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+};
+
+/**
+ * @param number index
+ * @returns number
+ */
+fixedLengthData(index: number):number|null {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index) : 0;
+};
+
+/**
+ * @returns number
+ */
+fixedLengthDataLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
@@ -574,16 +574,36 @@ nullMaskLength():number {
 /**
  * @returns Uint8Array
  */
-nullMaskArray():Uint8Array|null {
+fixedLengthDataArray():Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+};
+
+/**
+ * @param number index
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array
+ */
+stringData(index: number):string
+stringData(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
+stringData(index: number,optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__string(this.bb!.__vector(this.bb_pos + offset) + index * 4, optionalEncoding) : null;
+};
+
+/**
+ * @returns number
+ */
+stringDataLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
 /**
  * @param flatbuffers.Builder builder
  */
 static startQueryResultColumn(builder:flatbuffers.Builder) {
-  builder.startObject(3);
+  builder.startObject(4);
 };
 
 /**
@@ -596,50 +616,21 @@ static addTypeId(builder:flatbuffers.Builder, typeId:tigon.webapi.RawTypeID) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset dataOffset
- */
-static addData(builder:flatbuffers.Builder, dataOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, dataOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param Array.<number> data
- * @returns flatbuffers.Offset
- */
-static createDataVector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
-  builder.startVector(1, data.length, 1);
-  for (var i = data.length - 1; i >= 0; i--) {
-    builder.addInt8(data[i]);
-  }
-  return builder.endVector();
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startDataVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(1, numElems, 1);
-};
-
-/**
- * @param flatbuffers.Builder builder
  * @param flatbuffers.Offset nullMaskOffset
  */
 static addNullMask(builder:flatbuffers.Builder, nullMaskOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, nullMaskOffset, 0);
+  builder.addFieldOffset(1, nullMaskOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param Array.<number> data
+ * @param Array.<boolean> data
  * @returns flatbuffers.Offset
  */
-static createNullMaskVector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
+static createNullMaskVector(builder:flatbuffers.Builder, data:boolean[]):flatbuffers.Offset {
   builder.startVector(1, data.length, 1);
   for (var i = data.length - 1; i >= 0; i--) {
-    builder.addInt8(data[i]);
+    builder.addInt8(+data[i]);
   }
   return builder.endVector();
 };
@@ -654,6 +645,64 @@ static startNullMaskVector(builder:flatbuffers.Builder, numElems:number) {
 
 /**
  * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset fixedLengthDataOffset
+ */
+static addFixedLengthData(builder:flatbuffers.Builder, fixedLengthDataOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, fixedLengthDataOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<number> data
+ * @returns flatbuffers.Offset
+ */
+static createFixedLengthDataVector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
+  builder.startVector(1, data.length, 1);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addInt8(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startFixedLengthDataVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(1, numElems, 1);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset stringDataOffset
+ */
+static addStringData(builder:flatbuffers.Builder, stringDataOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, stringDataOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<flatbuffers.Offset> data
+ * @returns flatbuffers.Offset
+ */
+static createStringDataVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startStringDataVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
 static endQueryResultColumn(builder:flatbuffers.Builder):flatbuffers.Offset {
@@ -661,11 +710,12 @@ static endQueryResultColumn(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createQueryResultColumn(builder:flatbuffers.Builder, typeId:tigon.webapi.RawTypeID, dataOffset:flatbuffers.Offset, nullMaskOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createQueryResultColumn(builder:flatbuffers.Builder, typeId:tigon.webapi.RawTypeID, nullMaskOffset:flatbuffers.Offset, fixedLengthDataOffset:flatbuffers.Offset, stringDataOffset:flatbuffers.Offset):flatbuffers.Offset {
   QueryResultColumn.startQueryResultColumn(builder);
   QueryResultColumn.addTypeId(builder, typeId);
-  QueryResultColumn.addData(builder, dataOffset);
   QueryResultColumn.addNullMask(builder, nullMaskOffset);
+  QueryResultColumn.addFixedLengthData(builder, fixedLengthDataOffset);
+  QueryResultColumn.addStringData(builder, stringDataOffset);
   return QueryResultColumn.endQueryResultColumn(builder);
 }
 }
@@ -817,7 +867,7 @@ queryPlan(obj?:tigon.webapi.QueryPlan):tigon.webapi.QueryPlan|null {
  * @param number index
  * @returns tigon.webapi.RawTypeID
  */
-columnTypesRaw(index: number):tigon.webapi.RawTypeID|null {
+columnRawTypes(index: number):tigon.webapi.RawTypeID|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? /**  */ (this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index)) : /**  */ (0);
 };
@@ -825,7 +875,7 @@ columnTypesRaw(index: number):tigon.webapi.RawTypeID|null {
 /**
  * @returns number
  */
-columnTypesRawLength():number {
+columnRawTypesLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
@@ -833,7 +883,7 @@ columnTypesRawLength():number {
 /**
  * @returns Uint8Array
  */
-columnTypesRawArray():Uint8Array|null {
+columnRawTypesArray():Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
@@ -843,7 +893,7 @@ columnTypesRawArray():Uint8Array|null {
  * @param tigon.webapi.SQLType= obj
  * @returns tigon.webapi.SQLType
  */
-columnTypesSql(index: number, obj?:tigon.webapi.SQLType):tigon.webapi.SQLType|null {
+columnSqlTypes(index: number, obj?:tigon.webapi.SQLType):tigon.webapi.SQLType|null {
   var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? (obj || new tigon.webapi.SQLType).__init(this.bb!.__vector(this.bb_pos + offset) + index * 6, this.bb!) : null;
 };
@@ -851,7 +901,7 @@ columnTypesSql(index: number, obj?:tigon.webapi.SQLType):tigon.webapi.SQLType|nu
 /**
  * @returns number
  */
-columnTypesSqlLength():number {
+columnSqlTypesLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
@@ -919,10 +969,10 @@ static addQueryPlan(builder:flatbuffers.Builder, queryPlanOffset:flatbuffers.Off
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset columnTypesRawOffset
+ * @param flatbuffers.Offset columnRawTypesOffset
  */
-static addColumnTypesRaw(builder:flatbuffers.Builder, columnTypesRawOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, columnTypesRawOffset, 0);
+static addColumnRawTypes(builder:flatbuffers.Builder, columnRawTypesOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, columnRawTypesOffset, 0);
 };
 
 /**
@@ -930,7 +980,7 @@ static addColumnTypesRaw(builder:flatbuffers.Builder, columnTypesRawOffset:flatb
  * @param Array.<tigon.webapi.RawTypeID> data
  * @returns flatbuffers.Offset
  */
-static createColumnTypesRawVector(builder:flatbuffers.Builder, data:tigon.webapi.RawTypeID[]):flatbuffers.Offset {
+static createColumnRawTypesVector(builder:flatbuffers.Builder, data:tigon.webapi.RawTypeID[]):flatbuffers.Offset {
   builder.startVector(1, data.length, 1);
   for (var i = data.length - 1; i >= 0; i--) {
     builder.addInt8(data[i]);
@@ -942,23 +992,23 @@ static createColumnTypesRawVector(builder:flatbuffers.Builder, data:tigon.webapi
  * @param flatbuffers.Builder builder
  * @param number numElems
  */
-static startColumnTypesRawVector(builder:flatbuffers.Builder, numElems:number) {
+static startColumnRawTypesVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(1, numElems, 1);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset columnTypesSqlOffset
+ * @param flatbuffers.Offset columnSqlTypesOffset
  */
-static addColumnTypesSql(builder:flatbuffers.Builder, columnTypesSqlOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, columnTypesSqlOffset, 0);
+static addColumnSqlTypes(builder:flatbuffers.Builder, columnSqlTypesOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, columnSqlTypesOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
  * @param number numElems
  */
-static startColumnTypesSqlVector(builder:flatbuffers.Builder, numElems:number) {
+static startColumnSqlTypesVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(6, numElems, 2);
 };
 
@@ -1029,12 +1079,12 @@ static endQueryResult(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createQueryResult(builder:flatbuffers.Builder, queryId:flatbuffers.Long, queryPlanOffset:flatbuffers.Offset, columnTypesRawOffset:flatbuffers.Offset, columnTypesSqlOffset:flatbuffers.Offset, columnNamesOffset:flatbuffers.Offset, dataChunksOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createQueryResult(builder:flatbuffers.Builder, queryId:flatbuffers.Long, queryPlanOffset:flatbuffers.Offset, columnRawTypesOffset:flatbuffers.Offset, columnSqlTypesOffset:flatbuffers.Offset, columnNamesOffset:flatbuffers.Offset, dataChunksOffset:flatbuffers.Offset):flatbuffers.Offset {
   QueryResult.startQueryResult(builder);
   QueryResult.addQueryId(builder, queryId);
   QueryResult.addQueryPlan(builder, queryPlanOffset);
-  QueryResult.addColumnTypesRaw(builder, columnTypesRawOffset);
-  QueryResult.addColumnTypesSql(builder, columnTypesSqlOffset);
+  QueryResult.addColumnRawTypes(builder, columnRawTypesOffset);
+  QueryResult.addColumnSqlTypes(builder, columnSqlTypesOffset);
   QueryResult.addColumnNames(builder, columnNamesOffset);
   QueryResult.addDataChunks(builder, dataChunksOffset);
   return QueryResult.endQueryResult(builder);

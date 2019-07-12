@@ -66,8 +66,9 @@ table QueryPlan {
 // A column of a query result
 table QueryResultColumn {
     type_id: RawTypeID;
-    data: [ubyte];
-    null_mask: [ubyte];
+    null_mask: [bool];
+    fixed_length_data: [ubyte];
+    string_data: [string];
 }
 
 // A data chunk
@@ -79,8 +80,8 @@ table QueryResultChunk {
 table QueryResult {
     query_id: uint64;
     query_plan: QueryPlan;
-    column_types_raw: [RawTypeID];
-    column_types_sql: [SQLType];
+    column_raw_types: [RawTypeID];
+    column_sql_types: [SQLType];
     column_names: [string];
     data_chunks: [QueryResultChunk];
 }

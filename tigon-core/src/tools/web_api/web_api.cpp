@@ -4,58 +4,101 @@
 #include "flatbuffers/flatbuffers.h"
 #include "tigon/proto/web_api_generated.h"
 #include <optional>
+#include <unordered_map>
 
 namespace fb = flatbuffers;
 using namespace tigon;
 
-std::unique_ptr<duckdb::DuckDB> db;
-
 namespace {
 
+/// The Web API
+class WebAPI {
+    public:
+    /// A buffer id
+    using BufferID = uint32_t;
+
+    protected:
+    /// A buffer
+    class Buffer {
+        /// The detached flatbuffer
+        fb::DetachedBuffer detachedBuffer;
+
+    };
+
+    /// The database
+    duckdb::DuckDB database;
+    /// The next query id
+    uint64_t nextQueryID;
+    /// The buffers
+    std::unordered_map<BufferID, Buffer> buffers;
+
+    public:
+    /// Constructor
+    WebAPI();
+
+    /// Run a query
+    BufferID runQuery(const char* text);
+
+    /// The static instance
+    static std::unique_ptr<WebAPI> Instance;
+};
+
+/// The instance
+std::unique_ptr<WebAPI> WebAPI::Instance;
+
+/// Constructor
+WebAPI::WebAPI()
+    : database(nullptr), nextQueryID(), buffers() {}
+
+/// Write a fixed-length result column
 template<typename T>
-fb::Offset<webapi::QueryResultColumn> writeQueryResultColumn(fb::FlatBufferBuilder& builder, duckdb::Vector& vec) {
+fb::Offset<webapi::QueryResultColumn> writeFixedLengthResultColumn(fb::FlatBufferBuilder& builder, duckdb::Vector& vec) {
     uint8_t* nullmask;
     uint8_t* data;
-    auto e = builder.CreateUninitializedVector(vec.count, sizeof(T), &data);
-    auto n = builder.CreateUninitializedVector(vec.count, sizeof(bool), &nullmask);
+    auto n = builder.CreateUninitializedVector(vec.count, &nullmask);
+    auto d = builder.CreateUninitializedVector(vec.count, sizeof(T), &data);
     duckdb::VectorOperations::Exec(
         vec.sel_vector, 0,
         [&](duckdb::index_t i, duckdb::index_t k) {
-            reinterpret_cast<bool*>(data)[k] = vec.data[i];
-            reinterpret_cast<T*>(nullmask)[k] = vec.nullmask[i];
+            nullmask[k] = vec.nullmask[i];
+            reinterpret_cast<T*>(data)[k] = vec.data[i];
         }, 0);
     webapi::QueryResultColumnBuilder c{builder};
     c.add_type_id(static_cast<webapi::RawTypeID>(vec.type));
     c.add_null_mask(n);
-    c.add_data(e);
+    c.add_fixed_length_data(d);
     return c.Finish();
 }
 
+/// Write a string result column
+fb::Offset<webapi::QueryResultColumn> writeStringResultColumn(fb::FlatBufferBuilder& builder, duckdb::Vector& vec) {
+    uint8_t* nullmask;
+    auto n = builder.CreateUninitializedVector(vec.count, &nullmask);
+    builder.StartVector(vec.count, sizeof(fb::Offset<fb::String>));
+    auto** source = reinterpret_cast<const char **>(vec.data);
+    for (size_t i = 0; i < vec.count; ++i) {
+        nullmask[i] = source[i] == nullptr;
+        builder.PushElement(builder.CreateString(source[i]));
+    }
+    webapi::QueryResultColumnBuilder c{builder};
+    c.add_type_id(static_cast<webapi::RawTypeID>(vec.type));
+    c.add_null_mask(n);
+    c.add_string_data({builder.EndVector(vec.count)});
+    return c.Finish();
 }
 
-extern "C" {
+/// Run a query
+WebAPI::BufferID WebAPI::runQuery(const char* text) {
+    auto queryID = nextQueryID++;
 
-void run_query(char* text) {
-    duckdb::Connection conn{*db};
-    auto result = conn.Query(text);
-    auto result_str = result->ToString();
-    printf("%s\n", result_str.c_str());
-
-
-}
-
-uint8_t* tigon_db_query(char* text);
-
-
-uint8_t* tigon_db_query(char* text) {
     // Create a new connection
-    duckdb::Connection conn{*db};
+    duckdb::Connection conn{database};
     // Send the query to the existing database
     auto result = conn.SendQuery(text);
 
     // Query failed?
     if (!result->success) {
-        return nullptr;
+        return 0;
     }
 
     // Create the buffer builder
@@ -66,87 +109,76 @@ uint8_t* tigon_db_query(char* text) {
     for (auto chunk = result->Fetch(); !!chunk && chunk->size() > 0; chunk = result->Fetch()) {
 
         // Write chunk columns
-        std::vector<fb::Offset<webapi::QueryResultColumn>> chunkColumns;
+        std::vector<fb::Offset<webapi::QueryResultColumn>> columns;
         for (size_t v = 0; v < chunk->column_count; ++v) {
             auto& vec = chunk->GetVector(v);
 
-            // Write column data
-            fb::Offset<webapi::QueryResultColumn> col;
+            // Write result column
+            fb::Offset<webapi::QueryResultColumn> column;
             switch (vec.type) {
                 case duckdb::TypeId::INVALID:
                 case duckdb::TypeId::VARBINARY:
                     // TODO
                     break;
                 case duckdb::TypeId::BOOLEAN:
-                    col = writeQueryResultColumn<bool>(builder, vec);
+                    column = writeFixedLengthResultColumn<bool>(builder, vec);
                     break;
-                case duckdb::TypeId::TINYINT: {
-                    col = writeQueryResultColumn<int16_t>(builder, vec);
+                case duckdb::TypeId::TINYINT:
+                    column = writeFixedLengthResultColumn<int16_t>(builder, vec);
                     break;
-                }
-                case duckdb::TypeId::SMALLINT: {
-                    col = writeQueryResultColumn<int32_t>(builder, vec);
+                case duckdb::TypeId::SMALLINT:
+                    column = writeFixedLengthResultColumn<int32_t>(builder, vec);
                     break;
-                }
-                case duckdb::TypeId::INTEGER: {
-                    col = writeQueryResultColumn<int64_t>(builder, vec);
+                case duckdb::TypeId::INTEGER:
+                    column = writeFixedLengthResultColumn<int64_t>(builder, vec);
                     break;
-                }
-                case duckdb::TypeId::BIGINT: {
-                    col = writeQueryResultColumn<int64_t>(builder, vec);
+                case duckdb::TypeId::BIGINT:
+                    column = writeFixedLengthResultColumn<int64_t>(builder, vec);
                     break;
-                }
-                case duckdb::TypeId::POINTER: {
-                    col = writeQueryResultColumn<uint64_t>(builder, vec);
+                case duckdb::TypeId::POINTER:
+                    column = writeFixedLengthResultColumn<uint64_t>(builder, vec);
                     break;
-                }
-                case duckdb::TypeId::HASH: {
-                    col = writeQueryResultColumn<uint64_t>(builder, vec);
+                case duckdb::TypeId::HASH:
+                    column = writeFixedLengthResultColumn<uint64_t>(builder, vec);
                     break;
-                }
-                case duckdb::TypeId::FLOAT: {
-                    col = writeQueryResultColumn<float>(builder, vec);
+                case duckdb::TypeId::FLOAT:
+                    column = writeFixedLengthResultColumn<float>(builder, vec);
                     break;
-                }
-                case duckdb::TypeId::DOUBLE: {
-                    col = writeQueryResultColumn<double>(builder, vec);
+                case duckdb::TypeId::DOUBLE:
+                    column = writeFixedLengthResultColumn<double>(builder, vec);
                     break;
-                }
-                case Type::VARCHAR:
-                {
-                    // TODO first sum string lengths
-                    // then write in sequence
-                    // OR special casing strings to get constant access?
-
-                    std::vector<fb::Offset<fb::String>> colStrs;
-                    colStrs.reserve(vector.count);
-                    auto** data = reinterpret_cast<const char **>(vector.data);
-                    for (size_t i = 0; i < vector.count; ++i) {
-                        if (data[i] == nullptr) {
-                            // TODO
-                        }
-                        colStrs.push_back(builder.CreateString(data[i]));
-                    }
-                    col = webapi::QueryResultColumnBuilder{builder};
+                case duckdb::TypeId::VARCHAR:
+                    column = writeStringResultColumn(builder, vec);
                     break;
-                }
             }
-        }
-    }
 
-    // Write types
+            // Push new chunk column
+            columns.push_back(column);
+        }
+        auto columnOffset = builder.CreateVector(columns);
+
+        // Build result chunk
+        webapi::QueryResultChunkBuilder chunkBuilder{builder};
+        chunkBuilder.add_columns(columnOffset);
+        chunks.push_back(chunkBuilder.Finish());
+    }
+    auto dataChunks = builder.CreateVector(chunks);
+
+    // Write column types
+    fb::Offset<fb::Vector<uint8_t>> columnRawTypes;
     {
-        webapi::RawTypeID* writer;
-        builder.CreateUninitializedVector<webapi::RawTypeID>(result->types.size(), &writer);
+        uint8_t* writer;
+        columnRawTypes = builder.CreateUninitializedVector<uint8_t>(result->types.size(), &writer);
         for (size_t i = 0; i < result->types.size(); ++i) {
-            writer[i] = static_cast<webapi::RawTypeID>(result->types[i]);
+            writer[i] = static_cast<uint8_t>(result->types[i]);
         }
     }
 
-    // Write sql types
+    // Write column sql types
+    fb::Offset<fb::Vector<const webapi::SQLType*>> columnSQLTypes;
     {
         webapi::SQLType* writer;
-        builder.CreateUninitializedVectorOfStructs<webapi::SQLType>(result->sql_types.size(), &writer);
+        columnSQLTypes = builder.CreateUninitializedVectorOfStructs<webapi::SQLType>(result->sql_types.size(), &writer);
         for (size_t i = 0; i < result->sql_types.size(); ++i) {
             writer[i] = webapi::SQLType{
                 static_cast<webapi::SQLTypeID>(result->sql_types[i].id),
@@ -156,13 +188,39 @@ uint8_t* tigon_db_query(char* text) {
         }
     }
 
-    return nullptr;
+    // Write column names
+    auto columnNames = builder.CreateVectorOfStrings(result->names);
+
+    // Write the query result
+    webapi::QueryResultBuilder resultBuilder{builder};
+    resultBuilder.add_query_id(queryID);
+    resultBuilder.add_column_names(columnNames);
+    resultBuilder.add_column_raw_types(columnRawTypes);
+    resultBuilder.add_column_sql_types(columnSQLTypes);
+    resultBuilder.add_data_chunks(dataChunks);
+    auto queryResult = resultBuilder.Finish();
+
+    // Finish the flatbuffer
+    builder.Finish(queryResult);
+
+    auto buffer = builder.Release();
+
+    // Write names
+    return 0;
+}
+
+}
+
+extern "C" {
+
+WebAPI::BufferID tigon_db_query(char* text) {
+    return WebAPI::Instance->runQuery(text);
 }
 
 }
 
 int main() {
-    db = std::make_unique<duckdb::DuckDB>(nullptr);
+    WebAPI::Instance = std::make_unique<WebAPI>();
     printf("tigon core ready\n");
     return 0;
 }
