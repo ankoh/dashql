@@ -35,7 +35,7 @@ export class RootController {
 
     // Run a query
     public runQuery(text: string) {
-        this.core.runQuery(text);
+        //        this.core.runQuery(text);
     }
 
     // The worker function

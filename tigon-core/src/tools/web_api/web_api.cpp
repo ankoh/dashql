@@ -170,13 +170,27 @@ WebAPI::BufferID WebAPI::runQuery(const char* text) {
     // Send the query to the existing database
     auto result = conn.SendQuery(text);
 
-    // Query failed?
-    if (!result->success) {
-        return 0;
-    }
-
     // Create the buffer builder
     fb::FlatBufferBuilder builder{1024};
+
+    // Query failed?
+    if (!result->success) {
+        // Write the error
+        auto message = builder.CreateString(result->error);
+        webapi::ErrorBuilder errorBuilder{builder};
+        errorBuilder.add_message(message);
+        errorBuilder.add_code(webapi::ErrorCode::Raw);
+        auto error = errorBuilder.Finish();
+
+        // Write the result
+        webapi::QueryResultBuilder resultBuilder{builder};
+        resultBuilder.add_error(error);
+        auto queryResult = resultBuilder.Finish();
+
+        // Finish the flatbuffer
+        builder.Finish(queryResult);
+        return registerBuffer(builder.Release());
+    }
 
     // Fetch result rows and immediately write them into a flatbuffer
     std::vector<fb::Offset<webapi::QueryResultChunk>> chunks;

@@ -28,7 +28,8 @@ for PROTO_FILE in ${PROTO_FILES}; do
 
     flatc -I ${PROTO_DIR} -o ${APP_PROTO_DIR} ${PROTO_FILE} --ts --no-fb-import \
         && mv ${APP_PROTO_OUT} ${APP_PROTO_TMP} \
-        && echo "import { flatbuffers } from \"flatbuffers\";" > ${APP_PROTO_OUT} \
+        && echo "/* eslint-disable */" > ${APP_PROTO_OUT} \
+        && echo "import { flatbuffers } from \"flatbuffers\";" >> ${APP_PROTO_OUT} \
         && cat ${APP_PROTO_TMP} >> ${APP_PROTO_OUT} \
         && rm ${APP_PROTO_TMP} \
         && { echo "[ OK  ] ${PROTO_FILE}: Typescript"; } \

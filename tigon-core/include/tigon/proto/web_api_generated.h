@@ -527,14 +527,18 @@ inline flatbuffers::Offset<QueryResultChunk> CreateQueryResultChunkDirect(
 struct QueryResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_QUERY_ID = 4,
-    VT_QUERY_PLAN = 6,
-    VT_COLUMN_RAW_TYPES = 8,
-    VT_COLUMN_SQL_TYPES = 10,
-    VT_COLUMN_NAMES = 12,
-    VT_DATA_CHUNKS = 14
+    VT_ERROR = 6,
+    VT_QUERY_PLAN = 8,
+    VT_COLUMN_RAW_TYPES = 10,
+    VT_COLUMN_SQL_TYPES = 12,
+    VT_COLUMN_NAMES = 14,
+    VT_DATA_CHUNKS = 16
   };
   uint64_t query_id() const {
     return GetField<uint64_t>(VT_QUERY_ID, 0);
+  }
+  const Error *error() const {
+    return GetPointer<const Error *>(VT_ERROR);
   }
   const QueryPlan *query_plan() const {
     return GetPointer<const QueryPlan *>(VT_QUERY_PLAN);
@@ -554,6 +558,8 @@ struct QueryResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint64_t>(verifier, VT_QUERY_ID) &&
+           VerifyOffset(verifier, VT_ERROR) &&
+           verifier.VerifyTable(error()) &&
            VerifyOffset(verifier, VT_QUERY_PLAN) &&
            verifier.VerifyTable(query_plan()) &&
            VerifyOffset(verifier, VT_COLUMN_RAW_TYPES) &&
@@ -575,6 +581,9 @@ struct QueryResultBuilder {
   flatbuffers::uoffset_t start_;
   void add_query_id(uint64_t query_id) {
     fbb_.AddElement<uint64_t>(QueryResult::VT_QUERY_ID, query_id, 0);
+  }
+  void add_error(flatbuffers::Offset<Error> error) {
+    fbb_.AddOffset(QueryResult::VT_ERROR, error);
   }
   void add_query_plan(flatbuffers::Offset<QueryPlan> query_plan) {
     fbb_.AddOffset(QueryResult::VT_QUERY_PLAN, query_plan);
@@ -606,6 +615,7 @@ struct QueryResultBuilder {
 inline flatbuffers::Offset<QueryResult> CreateQueryResult(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t query_id = 0,
+    flatbuffers::Offset<Error> error = 0,
     flatbuffers::Offset<QueryPlan> query_plan = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> column_raw_types = 0,
     flatbuffers::Offset<flatbuffers::Vector<const SQLType *>> column_sql_types = 0,
@@ -618,12 +628,14 @@ inline flatbuffers::Offset<QueryResult> CreateQueryResult(
   builder_.add_column_sql_types(column_sql_types);
   builder_.add_column_raw_types(column_raw_types);
   builder_.add_query_plan(query_plan);
+  builder_.add_error(error);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<QueryResult> CreateQueryResultDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t query_id = 0,
+    flatbuffers::Offset<Error> error = 0,
     flatbuffers::Offset<QueryPlan> query_plan = 0,
     const std::vector<uint8_t> *column_raw_types = nullptr,
     const std::vector<SQLType> *column_sql_types = nullptr,
@@ -636,6 +648,7 @@ inline flatbuffers::Offset<QueryResult> CreateQueryResultDirect(
   return tigon::webapi::CreateQueryResult(
       _fbb,
       query_id,
+      error,
       query_plan,
       column_raw_types__,
       column_sql_types__,

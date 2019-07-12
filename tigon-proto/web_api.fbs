@@ -79,6 +79,7 @@ table QueryResultChunk {
 // A query result
 table QueryResult {
     query_id: uint64;
+    error: Error;
     query_plan: QueryPlan;
     column_raw_types: [RawTypeID];
     column_sql_types: [SQLType];
