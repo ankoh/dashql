@@ -1,5 +1,3 @@
-import * as React from 'react';
-import * as Model from '../model';
 import * as xterm from 'xterm';
 import * as fit from 'xterm/lib/addons/fit/fit';
 
@@ -35,7 +33,6 @@ class HistoryBuffer {
 
 /// A terminal
 class Terminal {
-    protected termContainer: React.RefObject<HTMLDivElement>;
     protected term: xterm.Terminal;
     protected termSize: {
         columns: number;
@@ -50,7 +47,6 @@ class Terminal {
 
     /// Constructor
     constructor() {
-        this.termContainer = React.createRef();
         this.term = new xterm.Terminal();
         this.termSize = {
             columns: this.term.cols,
