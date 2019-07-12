@@ -37,7 +37,7 @@ class HistoryBuffer {
 }
 
 // A terminal
-export class Terminal {
+export class TerminalController {
     protected term: xterm.Terminal;
     protected termSize: {
         columns: number;
@@ -82,7 +82,7 @@ export class Terminal {
 
     // The closest left word boundary of the given input at the given offset
     static closestLeftBoundary(input: string, offset: number) {
-        let found = Terminal.wordBoundaries(input, true)
+        let found = TerminalController.wordBoundaries(input, true)
             .reverse()
             .find(x => x < offset);
         return found == null ? 0 : found;
@@ -90,7 +90,7 @@ export class Terminal {
 
     // The closest right word boundary of the given input at the given offset
     static closestRightBoundary(input: string, offset: number) {
-        let found = Terminal.wordBoundaries(input, false).find(x => x > offset);
+        let found = TerminalController.wordBoundaries(input, false).find(x => x > offset);
         return found == null ? input.length : found;
     }
 
@@ -117,15 +117,10 @@ export class Terminal {
 
     // Counts the lines in the given input
     static countLines(input: string, maxCols: number) {
-        return Terminal.offsetToColRow(input, input.length, maxCols).row + 1;
+        return TerminalController.offsetToColRow(input, input.length, maxCols).row + 1;
     }
 
     // Checks if there is an incomplete input
-    // 
-    // An incomplete input is considered:
-    // - An input that contains unterminated single quotes
-    // - An input that contains unterminated double quotes
-    // - An input that ends with "\"
     static isIncompleteInput(input: string) {
         // Empty input is not incomplete
         if (input.trim() === "") {
