@@ -55,13 +55,15 @@ class Terminal extends React.Component<ITerminalProps> {
 
                 if (key.charCodeAt(0) === 59) {
                     this.term.write('\n');
-                    ctrl.runQuery(this.buffer.toString());
+                    let result = ctrl.runQuery(this.buffer.toString());
+                    console.log(result);
+                    result.destroy();
                     this.buffer = '';
                 }
             });
 
             this.term.setOption('theme', {
-                background: 'rgb(0, 0, 0, 0)',
+                background: 'rgb(0, 0, 0)',
                 foreground: 'rgb(255, 255, 255)',
                 cursor: 'rgb(255, 255, 255)'
             });

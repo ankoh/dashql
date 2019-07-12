@@ -1,6 +1,6 @@
 import * as Model from '../model';
 import { Logger } from './logger';
-import { CoreAPI } from './core_api';
+import { CoreAPI, QueryResult } from './core_api';
 
 // The worker interval
 const workerIntervalMS = 400;
@@ -28,14 +28,12 @@ export class RootController {
     // Init the controller
     public init() {
         this.core.init();
-
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
     }
 
-
     // Run a query
-    public runQuery(text: string) {
-        //        this.core.runQuery(text);
+    public runQuery(text: string): QueryResult {
+        return this.core.runQuery(text);
     }
 
     // The worker function
