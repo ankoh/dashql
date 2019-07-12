@@ -11,18 +11,18 @@ import { IAppContext, withAppContext } from '../app_context';
 
 xterm.Terminal.applyAddon(fit);
 
-/// The terminal props
+// The terminal props
 interface ITerminalProps {
     appContext: IAppContext;
 }
 
-/// A terminal
+// A terminal
 class Terminal extends React.Component<ITerminalProps> {
     protected termContainer: React.RefObject<HTMLDivElement>;
     protected term: xterm.Terminal;
     protected input: string;
 
-    /// Constructor
+    // Constructor
     constructor(props: ITerminalProps) {
         super(props);
 
@@ -41,7 +41,7 @@ class Terminal extends React.Component<ITerminalProps> {
         );
     }
 
-    /// Component did mount to the dom
+    // Component did mount to the dom
     public componentDidMount() {
         if (this.termContainer.current != null) {
             this.term.open(this.termContainer.current);
@@ -76,11 +76,11 @@ class Terminal extends React.Component<ITerminalProps> {
         }
     }
 
-    /// Component did update
+    // Component did update
     public componentDidUpdate() {
     }
 
-    /// Component will unmount from the dom
+    // Component will unmount from the dom
     public componentWillUnmount() {
         this.term.dispose();
     }
