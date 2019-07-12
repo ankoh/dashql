@@ -28,7 +28,13 @@ if(DEFINED ENV{EMSDK})
     set_target_properties(tigon_web PROPERTIES LINK_FLAGS "\
         -s MODULARIZE=1 \
         -s EXPORT_NAME=TigonWeb \
-        -s EXPORTED_FUNCTIONS='[_main, _tigon_db_query]' \
+        -s EXPORTED_FUNCTIONS='[\
+            _main, \
+            _tigon_get_buffer, \
+            _tigon_get_buffer_size, \
+            _tigon_release_buffer, \
+            _tigon_run_query \
+        ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]' \
     ")
 endif()
