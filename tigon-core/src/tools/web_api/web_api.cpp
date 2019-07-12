@@ -16,20 +16,61 @@ class WebAPI {
    public:
     /// A buffer id
     using BufferID = uint32_t;
+    /// A query id
+    using QueryID = uint32_t;
+
+    /// An invalid query id
+    static constexpr BufferID INVALID_BUFFER_ID = 0;
+    /// An invalid query id
+    static constexpr QueryID INVALID_QUERY_ID = 0;
 
    protected:
     /// A buffer
     class Buffer {
         /// The detached flatbuffer
         fb::DetachedBuffer detachedBuffer;
+
+        public:
+        /// Constructor
+        Buffer(fb::DetachedBuffer b)
+            : detachedBuffer(std::move(b)) {}
+
+        /// Get the data
+        uint8_t* getData() {
+            return detachedBuffer.data();
+        }
+
+        /// Get the size
+        uint32_t getSize() {
+            return detachedBuffer.size();
+        }
     };
 
     /// The database
     duckdb::DuckDB database;
     /// The next query id
-    uint64_t nextQueryID;
+    uint32_t nextQueryID;
+    /// The next buffer id
+    uint32_t nextBufferID;
     /// The buffers
     std::unordered_map<BufferID, Buffer> buffers;
+
+    /// Allocate a query id
+    uint32_t allocateQueryID() {
+        auto id = nextQueryID++;
+        nextQueryID = !nextQueryID ? 1 : nextQueryID;
+        return id;
+    }
+
+    /// Allocate a buffer id
+    uint32_t allocateBufferID() {
+        auto id = nextBufferID++;
+        nextBufferID = !nextBufferID ? 1 : nextBufferID;
+        return id;
+    }
+
+    /// Register a buffer
+    BufferID registerBuffer(flatbuffers::DetachedBuffer buffer);
 
    public:
     /// Constructor
@@ -52,8 +93,33 @@ class WebAPI {
 /// The instance
 std::unique_ptr<WebAPI> WebAPI::Instance;
 
+/// Register a buffer
+WebAPI::BufferID WebAPI::registerBuffer(flatbuffers::DetachedBuffer buffer) {
+    auto id = allocateBufferID();
+    buffers.insert({id, Buffer{std::move(buffer)}});
+    return id;
+}
+
 /// Constructor
-WebAPI::WebAPI() : database(nullptr), nextQueryID(), buffers() {}
+WebAPI::WebAPI()
+    : database(nullptr), nextQueryID(1), nextBufferID(1), buffers() {}
+
+/// Get a buffer
+uint8_t* WebAPI::getBuffer(WebAPI::BufferID id) {
+    auto iter = buffers.find(id);
+    return iter == buffers.end() ? nullptr : iter->second.getData();
+}
+
+/// Get the size of a buffer
+uint32_t WebAPI::getBufferSize(WebAPI::BufferID id) {
+    auto iter = buffers.find(id);
+    return iter == buffers.end() ? 0 : iter->second.getSize();
+}
+
+/// Release a buffer
+void WebAPI::releaseBuffer(WebAPI::BufferID id) {
+    buffers.erase(id);
+}
 
 /// Write a fixed-length result column
 template <typename T>
@@ -97,7 +163,7 @@ fb::Offset<webapi::QueryResultColumn> writeStringResultColumn(
 
 /// Run a query
 WebAPI::BufferID WebAPI::runQuery(const char* text) {
-    auto queryID = nextQueryID++;
+    auto queryID = allocateQueryID();
 
     // Create a new connection
     duckdb::Connection conn{database};
@@ -217,11 +283,7 @@ WebAPI::BufferID WebAPI::runQuery(const char* text) {
 
     // Finish the flatbuffer
     builder.Finish(queryResult);
-
-    auto buffer = builder.Release();
-
-    // Write names
-    return 0;
+    return registerBuffer(builder.Release());
 }
 
 }  // namespace
@@ -232,7 +294,6 @@ extern "C" {
 WebAPI::BufferID tigon_db_query(char* text) {
     return WebAPI::Instance->runQuery(text);
 }
-
 }
 
 /// Initialize the web api
