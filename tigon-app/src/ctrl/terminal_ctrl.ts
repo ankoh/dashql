@@ -8,10 +8,7 @@
 
 import * as xterm from 'xterm';
 import * as fit from 'xterm/lib/addons/fit/fit';
-
 import 'xterm/dist/xterm.css';
-
-import { IAppContext, withAppContext } from '../app_context';
 
 xterm.Terminal.applyAddon(fit);
 
@@ -40,7 +37,7 @@ class HistoryBuffer {
 }
 
 /// A terminal
-class Terminal {
+export class Terminal {
     protected term: xterm.Terminal;
     protected termSize: {
         columns: number;
@@ -70,8 +67,8 @@ class Terminal {
 
     /// Apply prompts to the given input
     protected applyPrompts(input: string): string {
-        let inputPrompt = this.activePrompt && this.activePrompt.inputPrompt || "";
-        let continuationPrompt = this.activePrompt && this.activePrompt.continuationPrompt || "";
+        let inputPrompt = (this.activePrompt && this.activePrompt.inputPrompt) || "";
+        let continuationPrompt = (this.activePrompt && this.activePrompt.continuationPrompt) || "";
         return inputPrompt + input.replace(/\n/g, "\n" + continuationPrompt);
     }
 
@@ -168,7 +165,7 @@ class Terminal {
 
     /// Prints a list of items using a wide-format
     public printWide(items: Array<string>, padding: number = 2) {
-        if (items.length == 0) {
+        if (items.length === 0) {
             return this.println("");
         }
 

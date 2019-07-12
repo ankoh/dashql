@@ -61,7 +61,7 @@ class Terminal extends React.Component<ITerminalProps> {
                 if (key.charCodeAt(0) === 59) {
                     this.term.write('\n');
                     let result = ctrl.core.runQuery(this.input.toString());
-                    let resultBuffer = result.getBuffer();
+                    // let resultBuffer = result.getBuffer();
                     // TODO do something with the data
                     result.destroy();
                     this.input = '';
