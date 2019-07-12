@@ -1,3 +1,11 @@
+// ---------------------------------------------------------------------------
+// Tigon
+// (c) 2019 Andre Kohn
+// ---------------------------------------------------------------------------
+// Kudos go to Ioannis Charalampidis.
+// Parts of this file were heavily inspired by his local-echo example.
+// ---------------------------------------------------------------------------
+
 import * as xterm from 'xterm';
 import * as fit from 'xterm/lib/addons/fit/fit';
 
@@ -58,6 +66,19 @@ class Terminal {
         this.input = "";
         this.history = null;
         this.cursor = 0;
+    }
+
+    /// Apply prompts to the given input
+    protected applyPrompts(input: string): string {
+        let inputPrompt = this.activePrompt && this.activePrompt.inputPrompt || "";
+        let continuationPrompt = this.activePrompt && this.activePrompt.continuationPrompt || "";
+        return inputPrompt + input.replace(/\n/g, "\n" + continuationPrompt);
+    }
+
+    /// Apply the offset as required in order to accompany the prompt additions to the input
+    protected applyPromptOffset(input: string, offset: number): number {
+        let newInput = this.applyPrompts(input.substr(0, offset));
+        return newInput.length;
     }
 
     /// Clear the input.
