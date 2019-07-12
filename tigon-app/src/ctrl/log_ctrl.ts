@@ -1,7 +1,7 @@
 import * as Model from '../model';
 import { LoggableError } from '../util/error';
 
-export class Logger {
+export class LogController {
     // The store
     public store: Model.ReduxStore;
 
@@ -41,5 +41,5 @@ export class Logger {
     public error(text: string)      { this.storeLog(Model.LogLevel.LL_ERROR, text); }
 }
 
-export default Logger;
+export default LogController;
 

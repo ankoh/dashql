@@ -5,14 +5,13 @@ import Router from './view/router';
 import { AppContextProvider, IAppContext } from './app_context';
 import { FluidBackground } from './svg/background';
 import { Provider as ReduxProvider } from 'react-redux';
-import { RootController, Logger } from './ctrl';
+import { RootController } from './ctrl';
 
 import './fonts/fonts.css';
 import './index.css';
 
 const store = Model.createStore();
-const logger = new Logger(store);
-const controller = new RootController(store, logger);
+const controller = new RootController(store);
 
 controller.init();
 

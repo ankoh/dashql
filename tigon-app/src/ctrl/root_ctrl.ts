@@ -1,6 +1,6 @@
 import * as Model from '../model';
-import { Logger } from './logger';
-import { CoreAPI, QueryResult } from './core_api';
+import { LogController } from './log_ctrl';
+import { CoreController } from './core_ctrl';
 
 // The worker interval
 const workerIntervalMS = 400;
@@ -10,30 +10,25 @@ export class RootController {
     // The Model
     public store: Model.ReduxStore;
     // The logger
-    public logger: Logger;
+    public log: LogController;
     // The core api
-    public core: CoreAPI;
+    public core: CoreController;
 
     // The worker timeout
     protected workerTimer: number | null;
 
     // Constructor
-    constructor(store: Model.ReduxStore, logger: Logger) {
+    constructor(store: Model.ReduxStore) {
         this.store = store;
-        this.logger = logger;
+        this.log = new LogController(store);
+        this.core = new CoreController();
         this.workerTimer = null;
-        this.core = new CoreAPI();
     }
 
     // Init the controller
     public init() {
         this.core.init();
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
-    }
-
-    // Run a query
-    public runQuery(text: string): QueryResult {
-        return this.core.runQuery(text);
     }
 
     // The worker function
