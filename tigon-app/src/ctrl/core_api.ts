@@ -12,13 +12,14 @@ export class QueryResult {
     protected bufferID: number;
     protected result: proto.QueryResult;
 
+    // Constructor
     constructor(core: any, bufferID: number, result: proto.QueryResult) {
         this.core = core;
         this.bufferID = bufferID;
         this.result = result;
     }
 
-    /// Destroy a query result
+    // Destroy a query result
     public destroy() {
         this.core.ccall('tigon_release_buffer', 'void', ['number'], [this.bufferID]);
     }
@@ -49,7 +50,7 @@ export class CoreAPI {
     }
 
     // Run a query
-    public runQuery(text: string) {
+    public runQuery(text: string): QueryResult {
         let bufferID = this.core.ccall('tigon_run_query', 'number', ['string'], [text]);
         let bufferPtr = this.core.ccall('tigon_get_buffer', 'number', ['number'], [bufferID]);
         let bufferSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [bufferID]);
