@@ -12,7 +12,7 @@ export class QueryResult {
     protected bufferID: number;
     protected result: proto.QueryResult;
 
-    constructor(core: any, bufferID: number, result: proto.tigon.webapi.QueryResult) {
+    constructor(core: any, bufferID: number, result: proto.QueryResult) {
         this.core = core;
         this.bufferID = bufferID;
         this.result = result;

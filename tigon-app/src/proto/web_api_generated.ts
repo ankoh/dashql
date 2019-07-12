@@ -5,7 +5,6 @@ import { flatbuffers } from "flatbuffers";
 /**
  * @enum {number}
  */
-declare namespace tigon.webapi{
 export enum RawTypeID{
   INVALID= 0,
   BOOLEAN= 1,
@@ -19,12 +18,11 @@ export enum RawTypeID{
   DOUBLE= 9,
   VARCHAR= 10,
   VARBINARY= 11
-}};
+};
 
 /**
  * @enum {number}
  */
-declare namespace tigon.webapi{
 export enum SQLTypeID{
   INVALID= 0,
   SQLNULL= 1,
@@ -42,20 +40,18 @@ export enum SQLTypeID{
   CHAR= 13,
   VARCHAR= 14,
   VARBINARY= 15
-}};
+};
 
 /**
  * @enum {number}
  */
-declare namespace tigon.webapi{
 export enum ErrorCode{
   Raw= 0
-}};
+};
 
 /**
  * @constructor
  */
-declare namespace tigon.webapi{
 export class SQLType {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -72,9 +68,9 @@ __init(i:number, bb:flatbuffers.ByteBuffer):SQLType {
 };
 
 /**
- * @returns tigon.webapi.SQLTypeID
+ * @returns SQLTypeID
  */
-typeId():tigon.webapi.SQLTypeID {
+typeId():SQLTypeID {
   return /**  */ (this.bb!.readUint8(this.bb_pos));
 };
 
@@ -94,12 +90,12 @@ scale():number {
 
 /**
  * @param flatbuffers.Builder builder
- * @param tigon.webapi.SQLTypeID type_id
+ * @param SQLTypeID type_id
  * @param number width
  * @param number scale
  * @returns flatbuffers.Offset
  */
-static createSQLType(builder:flatbuffers.Builder, type_id: tigon.webapi.SQLTypeID, width: number, scale: number):flatbuffers.Offset {
+static createSQLType(builder:flatbuffers.Builder, type_id: SQLTypeID, width: number, scale: number):flatbuffers.Offset {
   builder.prep(2, 6);
   builder.pad(1);
   builder.writeInt8(scale);
@@ -110,11 +106,9 @@ static createSQLType(builder:flatbuffers.Builder, type_id: tigon.webapi.SQLTypeI
 };
 
 }
-}
 /**
  * @constructor
  */
-declare namespace tigon.webapi{
 export class Error {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -140,11 +134,11 @@ static getRootAsError(bb:flatbuffers.ByteBuffer, obj?:Error):Error {
 };
 
 /**
- * @returns tigon.webapi.ErrorCode
+ * @returns ErrorCode
  */
-code():tigon.webapi.ErrorCode {
+code():ErrorCode {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : tigon.webapi.ErrorCode.Raw;
+  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : ErrorCode.Raw;
 };
 
 /**
@@ -167,10 +161,10 @@ static startError(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param tigon.webapi.ErrorCode code
+ * @param ErrorCode code
  */
-static addCode(builder:flatbuffers.Builder, code:tigon.webapi.ErrorCode) {
-  builder.addFieldInt8(0, code, tigon.webapi.ErrorCode.Raw);
+static addCode(builder:flatbuffers.Builder, code:ErrorCode) {
+  builder.addFieldInt8(0, code, ErrorCode.Raw);
 };
 
 /**
@@ -190,18 +184,16 @@ static endError(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createError(builder:flatbuffers.Builder, code:tigon.webapi.ErrorCode, messageOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createError(builder:flatbuffers.Builder, code:ErrorCode, messageOffset:flatbuffers.Offset):flatbuffers.Offset {
   Error.startError(builder);
   Error.addCode(builder, code);
   Error.addMessage(builder, messageOffset);
   return Error.endError(builder);
 }
 }
-}
 /**
  * @constructor
  */
-declare namespace tigon.webapi{
 export class QueryPlan {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -493,11 +485,9 @@ static createQueryPlan(builder:flatbuffers.Builder, nodeNamesOffset:flatbuffers.
   return QueryPlan.endQueryPlan(builder);
 }
 }
-}
 /**
  * @constructor
  */
-declare namespace tigon.webapi{
 export class QueryResultColumn {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -523,11 +513,11 @@ static getRootAsQueryResultColumn(bb:flatbuffers.ByteBuffer, obj?:QueryResultCol
 };
 
 /**
- * @returns tigon.webapi.RawTypeID
+ * @returns RawTypeID
  */
-typeId():tigon.webapi.RawTypeID {
+typeId():RawTypeID {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : tigon.webapi.RawTypeID.INVALID;
+  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : RawTypeID.INVALID;
 };
 
 /**
@@ -609,10 +599,10 @@ static startQueryResultColumn(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param tigon.webapi.RawTypeID typeId
+ * @param RawTypeID typeId
  */
-static addTypeId(builder:flatbuffers.Builder, typeId:tigon.webapi.RawTypeID) {
-  builder.addFieldInt8(0, typeId, tigon.webapi.RawTypeID.INVALID);
+static addTypeId(builder:flatbuffers.Builder, typeId:RawTypeID) {
+  builder.addFieldInt8(0, typeId, RawTypeID.INVALID);
 };
 
 /**
@@ -711,7 +701,7 @@ static endQueryResultColumn(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createQueryResultColumn(builder:flatbuffers.Builder, typeId:tigon.webapi.RawTypeID, nullMaskOffset:flatbuffers.Offset, fixedLengthDataOffset:flatbuffers.Offset, stringDataOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createQueryResultColumn(builder:flatbuffers.Builder, typeId:RawTypeID, nullMaskOffset:flatbuffers.Offset, fixedLengthDataOffset:flatbuffers.Offset, stringDataOffset:flatbuffers.Offset):flatbuffers.Offset {
   QueryResultColumn.startQueryResultColumn(builder);
   QueryResultColumn.addTypeId(builder, typeId);
   QueryResultColumn.addNullMask(builder, nullMaskOffset);
@@ -720,11 +710,9 @@ static createQueryResultColumn(builder:flatbuffers.Builder, typeId:tigon.webapi.
   return QueryResultColumn.endQueryResultColumn(builder);
 }
 }
-}
 /**
  * @constructor
  */
-declare namespace tigon.webapi{
 export class QueryResultChunk {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -751,12 +739,12 @@ static getRootAsQueryResultChunk(bb:flatbuffers.ByteBuffer, obj?:QueryResultChun
 
 /**
  * @param number index
- * @param tigon.webapi.QueryResultColumn= obj
- * @returns tigon.webapi.QueryResultColumn
+ * @param QueryResultColumn= obj
+ * @returns QueryResultColumn
  */
-columns(index: number, obj?:tigon.webapi.QueryResultColumn):tigon.webapi.QueryResultColumn|null {
+columns(index: number, obj?:QueryResultColumn):QueryResultColumn|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new tigon.webapi.QueryResultColumn).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+  return offset ? (obj || new QueryResultColumn).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
 };
 
 /**
@@ -818,11 +806,9 @@ static createQueryResultChunk(builder:flatbuffers.Builder, columnsOffset:flatbuf
   return QueryResultChunk.endQueryResultChunk(builder);
 }
 }
-}
 /**
  * @constructor
  */
-declare namespace tigon.webapi{
 export class QueryResult {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -856,28 +842,28 @@ queryId():flatbuffers.Long {
 };
 
 /**
- * @param tigon.webapi.Error= obj
- * @returns tigon.webapi.Error|null
+ * @param Error= obj
+ * @returns Error|null
  */
-error(obj?:tigon.webapi.Error):tigon.webapi.Error|null {
+error(obj?:Error):Error|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? (obj || new tigon.webapi.Error).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? (obj || new Error).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
 
 /**
- * @param tigon.webapi.QueryPlan= obj
- * @returns tigon.webapi.QueryPlan|null
+ * @param QueryPlan= obj
+ * @returns QueryPlan|null
  */
-queryPlan(obj?:tigon.webapi.QueryPlan):tigon.webapi.QueryPlan|null {
+queryPlan(obj?:QueryPlan):QueryPlan|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? (obj || new tigon.webapi.QueryPlan).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? (obj || new QueryPlan).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
 
 /**
  * @param number index
- * @returns tigon.webapi.RawTypeID
+ * @returns RawTypeID
  */
-columnRawTypes(index: number):tigon.webapi.RawTypeID|null {
+columnRawTypes(index: number):RawTypeID|null {
   var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? /**  */ (this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index)) : /**  */ (0);
 };
@@ -900,12 +886,12 @@ columnRawTypesArray():Uint8Array|null {
 
 /**
  * @param number index
- * @param tigon.webapi.SQLType= obj
- * @returns tigon.webapi.SQLType
+ * @param SQLType= obj
+ * @returns SQLType
  */
-columnSqlTypes(index: number, obj?:tigon.webapi.SQLType):tigon.webapi.SQLType|null {
+columnSqlTypes(index: number, obj?:SQLType):SQLType|null {
   var offset = this.bb!.__offset(this.bb_pos, 12);
-  return offset ? (obj || new tigon.webapi.SQLType).__init(this.bb!.__vector(this.bb_pos + offset) + index * 6, this.bb!) : null;
+  return offset ? (obj || new SQLType).__init(this.bb!.__vector(this.bb_pos + offset) + index * 6, this.bb!) : null;
 };
 
 /**
@@ -938,12 +924,12 @@ columnNamesLength():number {
 
 /**
  * @param number index
- * @param tigon.webapi.QueryResultChunk= obj
- * @returns tigon.webapi.QueryResultChunk
+ * @param QueryResultChunk= obj
+ * @returns QueryResultChunk
  */
-dataChunks(index: number, obj?:tigon.webapi.QueryResultChunk):tigon.webapi.QueryResultChunk|null {
+dataChunks(index: number, obj?:QueryResultChunk):QueryResultChunk|null {
   var offset = this.bb!.__offset(this.bb_pos, 16);
-  return offset ? (obj || new tigon.webapi.QueryResultChunk).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+  return offset ? (obj || new QueryResultChunk).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
 };
 
 /**
@@ -995,10 +981,10 @@ static addColumnRawTypes(builder:flatbuffers.Builder, columnRawTypesOffset:flatb
 
 /**
  * @param flatbuffers.Builder builder
- * @param Array.<tigon.webapi.RawTypeID> data
+ * @param Array.<RawTypeID> data
  * @returns flatbuffers.Offset
  */
-static createColumnRawTypesVector(builder:flatbuffers.Builder, data:tigon.webapi.RawTypeID[]):flatbuffers.Offset {
+static createColumnRawTypesVector(builder:flatbuffers.Builder, data:RawTypeID[]):flatbuffers.Offset {
   builder.startVector(1, data.length, 1);
   for (var i = data.length - 1; i >= 0; i--) {
     builder.addInt8(data[i]);
@@ -1107,6 +1093,5 @@ static createQueryResult(builder:flatbuffers.Builder, queryId:flatbuffers.Long, 
   QueryResult.addColumnNames(builder, columnNamesOffset);
   QueryResult.addDataChunks(builder, dataChunksOffset);
   return QueryResult.endQueryResult(builder);
-}
 }
 }
