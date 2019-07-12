@@ -85,12 +85,17 @@ class Terminal {
     }
 
     /// Handle terminal resize
-    protected handleTermResize(rows: number, cols: number) {
+    protected handleTermResize(rows: number, columns: number) {
         this.clearInput();
+        this.termSize = {
+            rows,
+            columns
+        };
+        // this.setInput(this.input, false);
     }
 
     /// Return a promise that will resolve when the user has completed typing a single line
-    protected read(inputPrompt: string, continuationPrompt: string = "> ") {
+    public read(inputPrompt: string, continuationPrompt: string = "> ") {
         let t = this;
         return new Promise(function (resolve: ResolveInputFunc, reject: RejectInputFunc): void {
             t.term.write(inputPrompt);
@@ -107,7 +112,7 @@ class Terminal {
     }
 
     /// Return a promise that will resolve when the user has completed typeing a single char
-    protected readChar(inputPrompt: string) {
+    public readChar(inputPrompt: string) {
         let t = this;
         return new Promise(function (resolve: ResolveInputFunc, reject: RejectInputFunc): void {
             t.term.write(inputPrompt);
@@ -118,4 +123,58 @@ class Terminal {
             };
         });
     }
+
+    /// Abort a message and changes line
+    public abortRead(reason: string = "aborted") {
+        if (this.activePrompt != null) {
+            this.term.write("\r\n");
+            this.activePrompt.reject(reason);
+            this.activePrompt = null;
+        } else if (this.activeCharPrompt != null) {
+            this.term.write("\r\n");
+            this.activeCharPrompt.reject(reason);
+            this.activeCharPrompt = null;
+        }
+        this.active = false;
+    }
+
+    /// Print a message
+    public print(msg: string) {
+        let normed = msg.replace(/[\r\n]+/g, "\n");
+        this.term.write(normed.replace(/\n/g, "\r\n"));
+    }
+
+    /// Print a line
+    public println(msg: string) {
+        this.print(msg + "\n");
+    }
+
+    /// Prints a list of items using a wide-format
+    public printWide(items: Array<string>, padding: number = 2) {
+        if (items.length == 0) {
+            return this.println("");
+        }
+
+        // Compute item sizes and matrix row/cols
+        const itemWidth = items.reduce((width, item) => Math.max(width, item.length), 0) + padding;
+        const wideCols = Math.floor(this.termSize.columns / itemWidth);
+        const wideRows = Math.ceil(items.length / wideCols);
+
+        // Print matrix
+        let i = 0;
+        for (let row = 0; row < wideRows; ++row) {
+            let rowStr = "";
+
+            // Prepare columns
+            for (let col = 0; col < wideCols; ++col) {
+                if (i < items.length) {
+                let item = items[i++];
+                item += " ".repeat(itemWidth - item.length);
+                rowStr += item;
+                }
+            }
+            this.println(rowStr);
+        }
+    }
+
 }
