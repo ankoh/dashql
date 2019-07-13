@@ -13,34 +13,18 @@ import 'xterm/dist/xterm.css';
 
 xterm.Terminal.applyAddon(fit);
 
-type ResolveInputFunc = (text: string) => void;
-type RejectInputFunc = (text: string) => void;
-
-// An active prompt
-interface ActivePrompt {
-    inputPrompt: string;
-    continuationPrompt: string;
-    resolve: ResolveInputFunc;
-    reject: RejectInputFunc;
-}
-
-// An active char prompt
-interface ActiveCharPrompt {
-    inputPrompt: string;
-    resolve: ResolveInputFunc;
-    reject: RejectInputFunc;
-}
-
 // A history buffer
 class HistoryBuffer {
     protected buffer: Array<string | null>;
     protected cursor: number;
 
+    // Constructor
     constructor(size: number = 64) {
         this.buffer = new Array<string | null>(size).fill(null);
         this.cursor = 0;
     }
 
+    // Push a command to the history buffer
     public push(text: string) {
         if (text.trim() === "") {
             return;
@@ -49,12 +33,120 @@ class HistoryBuffer {
         this.cursor = (this.cursor + 1) % this.buffer.length;
     }
 
+    // Get the previous command
     public getPrevious(): string | null {
         return this.buffer[(this.cursor + (this.buffer.length - 1)) % this.buffer.length];
     }
 
+    // Get the next command
     public getNext(): string | null {
         return this.buffer[(this.cursor + 1) % this.buffer.length];
+    }
+}
+
+type ResolveInputFunc = (text: string) => void;
+type RejectInputFunc = (text: string) => void;
+
+// A prompt
+class Prompt {
+    promptPrefix: string;
+    continuationPrefix: string;
+    resolve: ResolveInputFunc;
+    reject: RejectInputFunc;
+
+    input: string;
+    inputRowMap: Array<number>;
+    inputColumnMap: Array<number>;
+
+    output: string;
+
+    // Constructor
+    constructor(promptPrefix: string = "> ", continuationPrefix: string = "|", resolve: ResolveInputFunc, reject: RejectInputFunc) {
+        this.promptPrefix = promptPrefix;
+        this.continuationPrefix = continuationPrefix;
+        this.resolve = resolve;
+        this.reject = reject;
+
+        this.input = "";
+        this.inputRowMap = new Array<number>();
+        this.inputColumnMap = new Array<number>();
+
+        this.output = "";
+    }
+
+    // Reset prompt with new text
+    public reset(text: string = "") {
+        this.inputRowMap.length = 0;
+        this.inputColumnMap.length = 0;
+        this.output = this.promptPrefix;
+        let row = 0;
+        for (let i = 0; i < text.length; ++i) {
+            this.inputColumnMap.push(this.output.length);
+            this.inputRowMap.push(row);
+            this.output += text[i];
+            if (text[i] === "\n") {
+                ++row;
+                this.output += this.continuationPrefix;
+            }
+        }
+        this.input = text;
+    }
+
+    // Append a string to the prompt
+    public append(text: string) {
+        let row = this.getLastRow();
+        for (let i = 0; i < text.length; ++i) {
+            this.inputColumnMap.push(this.output.length);
+            this.inputRowMap.push(row);
+            this.output += text[i];
+            if (text[i] === "\n") {
+                ++row;
+                this.output += this.continuationPrefix;
+            }
+        }
+        this.input += text;
+    }
+
+    // Insert at an index
+    public insertAt(index: number, text: string) {
+        // Append at the end?
+        // Otherwise fall back to reset.
+        if (index === this.input.length) {
+            return this.append(text);
+        } else {
+            this.reset(this.input.substr(0, index) + text + this.input.substr(index));
+        }
+    }
+
+    // Get the cursor position
+    public getCursorPosition(cursor: number): [number, number] {
+        if (cursor >= this.input.length) {
+            return this.getInsertPosition();
+        }
+        return [this.inputRowMap[cursor], this.inputColumnMap[cursor]];
+    }
+
+    // Get the insert position
+    public getInsertPosition(): [number, number] {
+        if (this.input.length === 0) {
+            return [0, 0];
+        } else {
+            let last = this.input.length - 1;
+            return [
+                this.inputRowMap[last],
+                this.inputColumnMap[last] + 1
+            ];
+        }
+    }
+
+    // Get the last row
+    public getLastRow(): number {
+        if (this.input.length === 0) {
+            return 0;
+        } else {
+            let last = this.input.length - 1;
+            return this.inputRowMap[last];
+        }
     }
 }
 
@@ -65,12 +157,12 @@ export class TerminalController {
         columns: number;
         rows: number;
     };
-    protected active: boolean;
-    protected activePrompt: ActivePrompt | null;
-    protected activeCharPrompt: ActiveCharPrompt | null;
-    protected input: string;
     protected history: HistoryBuffer;
+    protected activePrompt: Prompt | null;
     protected cursor: number;
+
+    protected onDataHandler: any;
+    protected onResizeHandler: any;
 
     // Constructor
     constructor() {
@@ -79,216 +171,136 @@ export class TerminalController {
             columns: this.term.cols,
             rows: this.term.rows,
         };
-        this.active = false;
-        this.activePrompt = null;
-        this.activeCharPrompt = null;
-        this.input = "";
         this.history = new HistoryBuffer();
+        this.activePrompt = null;
         this.cursor = 0;
+
+        this.onDataHandler = this.onData.bind(this);
+        this.onResizeHandler = this.onResize.bind(this);
     }
 
     // ------------------
-    // Public API
+    // Public
     // ------------------
 
-    // Return a promise that will resolve when the user has completed typing a single line
-    public read(inputPrompt: string, continuationPrompt: string = "> ") {
+    // Open terminal in new div element
+    public open(element: HTMLDivElement) {
+        this.term.open(element);
+        fit.fit(this.term);
+    }
+
+    // Fit terminal to div element
+    public fit() {
+        fit.fit(this.term);
+    }
+
+    // Attach to terminal events
+    public attach() {
+        this.term.on("data", this.onDataHandler);
+        this.term.on("resize", this.onResizeHandler);
+    }
+
+    // Detach from terminal events
+    public detach() {
+        this.term.off("data", this.onDataHandler);
+        this.term.off("resize", this.onResizeHandler);
+    }
+
+    // Read next input from the terminal
+    public read(inputPrompt: string, continuationPrompt: string = "> "): Promise<string> {
         let t = this;
         return new Promise(function (resolve: ResolveInputFunc, reject: RejectInputFunc): void {
             t.term.write(inputPrompt);
-            t.activePrompt = {
-                inputPrompt,
-                continuationPrompt,
-                resolve,
-                reject
-            };
-            t.input = "";
+            t.activePrompt = new Prompt(inputPrompt, continuationPrompt, resolve, reject);
             t.cursor = 0;
-            t.active = true;
         });
     }
 
-    // Return a promise that will resolve when the user has completed typeing a single char
-    public readChar(inputPrompt: string) {
-        let t = this;
-        return new Promise(function (resolve: ResolveInputFunc, reject: RejectInputFunc): void {
-            t.term.write(inputPrompt);
-            t.activeCharPrompt = {
-                inputPrompt,
-                resolve,
-                reject
-            };
-        });
-    }
-
-    // Abort a message and changes line
+    // Abort pending reads
     public abortRead(reason: string = "aborted") {
         if (this.activePrompt != null) {
             this.term.write("\r\n");
             this.activePrompt.reject(reason);
             this.activePrompt = null;
-        } else if (this.activeCharPrompt != null) {
-            this.term.write("\r\n");
-            this.activeCharPrompt.reject(reason);
-            this.activeCharPrompt = null;
         }
-        this.active = false;
     }
 
     // Print a message
-    public print(msg: string) {
-        let normed = msg.replace(/[\r\n]+/g, "\n");
+    public print(text: string) {
+        let normed = text.replace(/[\r\n]+/g, "\n");
         this.term.write(normed.replace(/\n/g, "\r\n"));
     }
 
     // Print a line
-    public printLine(msg: string) {
-        this.print(msg + "\n");
-    }
-
-    // Prints a list of items using a wide-format
-    public printWide(items: Array<string>, padding: number = 2) {
-        if (items.length === 0) {
-            return this.printLine("");
-        }
-
-        // Compute item sizes and matrix row/cols
-        const itemWidth = items.reduce((width, item) => Math.max(width, item.length), 0) + padding;
-        const wideCols = Math.floor(this.termSize.columns / itemWidth);
-        const wideRows = Math.ceil(items.length / wideCols);
-
-        // Print matrix
-        let i = 0;
-        for (let row = 0; row < wideRows; ++row) {
-            let rowStr = "";
-
-            // Prepare columns
-            for (let col = 0; col < wideCols; ++col) {
-                if (i < items.length) {
-                let item = items[i++];
-                item += " ".repeat(itemWidth - item.length);
-                rowStr += item;
-                }
-            }
-            this.printLine(rowStr);
-        }
+    public printLine(text: string) {
+        this.print(text + "\n");
     }
 
     // ------------------
     // Internal
     // ------------------
 
-    // Apply prompts to the given input
-    protected applyPrompts(input: string): string {
-        let inputPrompt = (this.activePrompt && this.activePrompt.inputPrompt) || "";
-        let continuationPrompt = (this.activePrompt && this.activePrompt.continuationPrompt) || "";
-        return inputPrompt + input.replace(/\n/g, "\n" + continuationPrompt);
-    }
+    // Set the input
+    protected setInput(input: string = "") {
+        if (!this.activePrompt) {
+            return;
+        }
 
-    // Apply the offset as required in order to accompany the prompt additions to the input
-    protected applyPromptOffset(input: string, offset: number): number {
-        let newInput = this.applyPrompts(input.substr(0, offset));
-        return newInput.length;
-    }
+        // Get the cursor and insert positions of the current prompt
+        let cursorPos = this.activePrompt.getCursorPosition(this.cursor);
+        let insertPos = this.activePrompt.getInsertPosition();
 
-    // Clear the input.
-    // This function will erase all the lines that display the current prompt
-    // and move the cursor to the beginning of the first line of the prompt.
-    protected clearInput() {
-        let currentPrompt = this.applyPrompts(this.input);
-        let promptCursor = this.applyPromptOffset(this.input, this.cursor);
-        let offsetInPrompt = offsetToPos(currentPrompt, promptCursor, this.termSize.columns);
-        let totalPromptLines = countLines(currentPrompt, this.termSize.columns);
-
-        // Move cursor to the last line in the prompt.
+        // Move cursor to the line following the last line in the prompt.
         // \x1B[E: Cursor Next Line
-        for (let i = 0; i < totalPromptLines - offsetInPrompt.row - 1; ++i) {
+        for (let i = 0; i < (insertPos[0] - cursorPos[0]) + 1; ++i) {
             this.term.write("\x1B[E");
         }
 
-        // Clear the current line.
+        // Clear the previous line.
         // \x1B[F: Cursor Previous Line
         // \x1B[K: Cursor Erase Line
-        for (let i = 1; i < totalPromptLines; ++i) {
+        this.term.write("\r")
+        for (let i = 1; i < insertPos[0]; ++i) {
             this.term.write("\x1B[F\x1B[K")
         }
-    }
 
-    // Replace the input.
-    // This function clears all the lines that the current input occupies
-    // and then replaces them with the new input.
-    protected setInput(newInput: string, clearInput: boolean = true) {
-        if (clearInput) {
-            this.clearInput();
-        }
-
-        // Write the new input lines, including the current prompt
-        let newPrompt = this.applyPrompts(newInput);
-        this.print(newPrompt);
-
-        // Trim cursor overflow
-        if (this.cursor > newInput.length) {
-            this.cursor = newInput.length;
-        }
-
-        // Move the cursor
-        let newCursor = this.applyPromptOffset(newInput, this.cursor);
-        let newLines = countLines(newPrompt, this.termSize.columns);
-        let newPos = offsetToPos(newPrompt, newCursor, this.termSize.columns);
-
-        this.term.write("\r");
-
-        // Adjust vertically.
-        // \x1B[F: Cursor Previous Line
-        for (let i = 0; i < newLines - newPos.row - 1; ++i) {
-            this.term.write("\x1B[F");
-        }
-
-        // Move horizontally
-        // \x1B[F: Cursor Forward
-        for (let i = 0; i < newPos.col; ++i) {
-            this.term.write("\x1B[C");
-        }
-
-        this.input = newInput;
+        // Reset the prompt
+        this.activePrompt.reset(input);
+        // Write the prompt output
+        this.term.write(this.activePrompt.output);
     }
 
     // Set the new cursor position, as an offset on the input string
     protected setCursor(newCursor: number) {
-        newCursor = Math.min(Math.max(0, newCursor), this.input.length);
+        if (!this.activePrompt) {
+            return;
+        }
 
-        // Apply prompt formatting
-        let inputWithPrompt = this.applyPrompts(this.input);
-
-        // Compute previous cursor position
-        let prevOffset = this.applyPromptOffset(this.input, this.cursor);
-        let prevPos = offsetToPos(inputWithPrompt, prevOffset, this.termSize.columns);
-
-        // Compute next cursor position
-        let newOffset = this.applyPromptOffset(this.input, newCursor);
-        let newPos = offsetToPos(inputWithPrompt, newOffset, this.termSize.columns);
+        // Get previous and new position
+        let prevPos = this.activePrompt.getCursorPosition(this.cursor);
+        let newPos = this.activePrompt.getCursorPosition(Math.max(0, newCursor));
 
         // Move vertically
         // \x1B[B: Cursor Down
         // \x1B[A: Cursor Up
-        for (let i = prevPos.row; i < newPos.row; ++i) {
+        for (let i = prevPos[0]; i < newPos[0]; ++i) {
             this.term.write("\x1B[B");
         }
-        for (let i = newPos.row; i < prevPos.row; ++i) {
+        for (let i = newPos[0]; i < prevPos[0]; ++i) {
             this.term.write("\x1B[A");
         }
 
         // Move horizontally
         // \x1B[C: Cursor Forward
         // \x1B[D: Cursor Back
-        for (let i = prevPos.col; i < newPos.col; ++i) {
+        for (let i = prevPos[1]; i < newPos[1]; ++i) {
             this.term.write("\x1B[C");
         }
-        for (let i = newPos.col; i < prevPos.col; ++i) {
+        for (let i = newPos[1]; i < prevPos[1]; ++i) {
             this.term.write("\x1B[D");
         }
 
-        // Set the new offset
+        // Set the new cursor
         this.cursor = newCursor;
     }
 
@@ -304,81 +316,70 @@ export class TerminalController {
 
     // Erase a character before the cursor
     protected eraseBeforeCursor() {
-        if (this.cursor <= 0) {
-            return;
-        }
-        let newInput = this.input.substr(0, this.cursor - 1) + this.input.substr(this.cursor);
-        this.cursor -= 1;
-        this.setInput(newInput, true);
+        this.setCursor(this.cursor - 1);
+        this.eraseAtCursor();
     }
 
     // Erase a character at the cursor
     protected eraseAtCursor() {
-        let newInput = this.input.substr(0, this.cursor) + this.input.substr(this.cursor + 1);
-        this.setInput(newInput, true);
+        if (!this.activePrompt || this.cursor <= 0) {
+            return;
+        }
+        let input = this.activePrompt.input;
+        this.setInput(input.substr(0, this.cursor) + input.substr(this.cursor + 1));
     }
 
     // Insert at the cursor
     protected insertAtCursor(text: string) {
-        let newInput = this.input.substr(0, this.cursor) + text + this.input.substr(this.cursor);
+        if (!this.activePrompt || this.cursor <= 0) {
+            return;
+        }
+        this.activePrompt.insertAt(this.cursor, text);
+        this.print(text);
         this.cursor += text.length;
-        this.setInput(newInput);
     }
 
     // Commit an input
     protected commitInput() {
-        this.history.push(this.input);
-        if (this.activePrompt != null) {
-            this.activePrompt.resolve(this.input);
-            this.activePrompt = null;
+        if (!this.activePrompt || this.cursor <= 0) {
+            return;
         }
+        this.history.push(this.activePrompt.input);
+        this.activePrompt.resolve(this.activePrompt.input);
+        this.activePrompt = null;
         this.term.write('\r\n');
-        this.active = false;
-    }
-
-    // Resize the temrinal
-    protected resizeTerminal(rows: number, columns: number) {
-        this.clearInput();
-        this.termSize = {
-            columns,
-            rows,
-        };
-        this.setInput(this.input, false);
     }
 
     // Is the input incomplete?
     protected inputIsIncomplete() {
-        // Input ends with semicolon?
-        if (this.input.endsWith(";")) {
+        if (!this.activePrompt) {
+            return false;
+        }
+        if (this.activePrompt.input.endsWith(";")) {
             return true;
         }
         return false;
     }
 
-    // Process user input
-    protected process(data: string) {
-        if (!this.active) {
-            return;
-        }
+    // Process terminal data
+    protected onData(data: string) {
+        let candidate: string | null = "";
         let prefix = data.charCodeAt(0);
+        let input = (this.activePrompt && this.activePrompt.input) || "";
 
         // Handle ANSI escape sequences
         if (prefix === 0x1b) {
             switch (data.substr(1)) {
                 case "[A": // Arrow Up
-                    let value = this.history.getPrevious();
-                    if (value) {
-                        this.setInput(value);
-                        this.setCursor(value.length);
+                    candidate = this.history.getPrevious()
+                    if (candidate) {
+                        this.setInput(candidate);
                     }
                     break;
                 case "[B": // Arrow Down
-                    if (this.history) {
-                        let value = this.history.getNext();
-                        if (value) {
-                            this.setInput(value);
-                            this.setCursor(value.length);
-                        }
+                    candidate = this.history.getNext()
+                    if (candidate) {
+                        this.setInput(candidate);
                     }
                     break;
                 case "[D": // Arrow Left
@@ -391,21 +392,16 @@ export class TerminalController {
                     this.eraseAtCursor();
                     break;
                 case "[F": // End
-                    this.setCursor(this.input.length);
+                    this.setCursor(input.length);
                     break;
                 case "[H": // Home
                     this.setCursor(0);
                     break;
                 case "b": // ALT + LEFT
-                    this.setCursor(closestLeftBoundary(this.input, this.cursor));
+                    this.setCursor(closestLeftBoundary(input, this.cursor));
                     break;
                 case "f": // ALT + RIGHT
-                    this.setCursor(closestRightBoundary(this.input, this.cursor));
-                    break;
-                case "\x7F": // CTRL + BACKSPACE
-                    let o = closestLeftBoundary(this.input, this.cursor);
-                    this.setInput(this.input.substr(0, o) + this.input.substr(this.cursor));
-                    this.setCursor(o);
+                    this.setCursor(closestRightBoundary(input, this.cursor));
                     break;
             }
         } else if (prefix < 32 || prefix === 0x7f) {
@@ -425,15 +421,30 @@ export class TerminalController {
                     this.insertAtCursor(" ");
                     break;
                 case "\x03": // CTRL + C
-                    this.setCursor(this.input.length);
-                    this.term.write("^C\r\n" + ((this.activePrompt && this.activePrompt.inputPrompt) || ""));
-                    this.input = "";
-                    this.cursor = 0;
+                    if (this.activePrompt) {
+                        this.setInput("");
+                    } else {
+                        this.term.write("^C\r\n");
+                    }
                     break;
             }
         } else {
             this.insertAtCursor(data);
         }
+    }
+
+    // Handle the temrinal resize
+    protected onResize(rows: number, columns: number) {
+        if (!this.activePrompt) {
+            return;
+        }
+        let tmp = this.activePrompt.input;
+        this.setInput("");
+        this.termSize = {
+            columns,
+            rows,
+        };
+        this.setInput(tmp);
     }
 }
 
@@ -464,28 +475,4 @@ function closestLeftBoundary(input: string, offset: number) {
 function closestRightBoundary(input: string, offset: number) {
     let found = wordBoundaries(input, false).find(x => x > offset);
     return found == null ? input.length : found;
-}
-
-// Convert offset at the given input to position.
-// TODO: Maintain the line breaks?
-function offsetToPos(input: string, offset: number, maxCols: number) {
-    let row = 0, col = 0;
-    for (let i = 0; i < offset; ++i) {
-        if (input.charAt(i) === "\n") {
-            col = 0;
-            row += 1;
-        } else {
-            col += 1;
-            if (col > maxCols) {
-                col = 0;
-                row += 1;
-            }
-        }
-    }
-    return { row, col };
-}
-
-// Counts the lines in the given input
-function countLines(input: string, maxCols: number) {
-    return offsetToPos(input, input.length, maxCols).row + 1;
 }
