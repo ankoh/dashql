@@ -6,6 +6,13 @@
 // Parts of this file were heavily inspired by his local-echo example.
 // ---------------------------------------------------------------------------
 // https://en.wikipedia.org/wiki/ANSI_escape_code
+// http://ascii-table.com/ansi-escape-sequences.php
+// http://ascii-table.com/ansi-escape-sequences-vt-100.php
+//
+// \x1B[K   Clear line from cursor right
+// \x1B[0K  Clear line from cursor right
+// \x1B[1K  Clear line from cursor left
+// \x1B[2K  Clear entire line
 
 import * as xterm from 'xterm';
 import * as fit from 'xterm/lib/addons/fit/fit';
@@ -61,7 +68,7 @@ class Prompt {
     output: string;
 
     // Constructor
-    constructor(promptPrefix: string = "> ", continuationPrefix: string = "|", resolve: ResolveInputFunc, reject: RejectInputFunc) {
+    constructor(promptPrefix: string = "> ", continuationPrefix: string = "| ", resolve: ResolveInputFunc, reject: RejectInputFunc) {
         this.promptPrefix = promptPrefix;
         this.continuationPrefix = continuationPrefix;
         this.resolve = resolve;
@@ -80,12 +87,14 @@ class Prompt {
         this.inputColumnMap.length = 0;
         this.output = this.promptPrefix;
         let row = 0;
+        let rowStart = 0;
         for (let i = 0; i < text.length; ++i) {
-            this.inputColumnMap.push(this.output.length);
+            this.inputColumnMap.push(this.output.length - rowStart);
             this.inputRowMap.push(row);
             this.output += text[i];
             if (text[i] === "\n") {
                 ++row;
+                rowStart = this.output.length;
                 this.output += this.continuationPrefix;
             }
         }
@@ -95,12 +104,14 @@ class Prompt {
     // Append a string to the prompt
     public append(text: string) {
         let row = this.getLastRow();
+        let rowStart = 0;
         for (let i = 0; i < text.length; ++i) {
-            this.inputColumnMap.push(this.output.length);
+            this.inputColumnMap.push(this.output.length - rowStart);
             this.inputRowMap.push(row);
             this.output += text[i];
             if (text[i] === "\n") {
                 ++row;
+                rowStart = this.output.length;
                 this.output += this.continuationPrefix;
             }
         }
@@ -239,19 +250,20 @@ export class TerminalController {
         let cursorPos = this.activePrompt.getCursorPosition(this.cursor);
         let insertPos = this.activePrompt.getInsertPosition();
 
-        // Move cursor to the line following the last line in the prompt.
+        // Move cursor to the last line.
         // \x1B[E: Cursor Next Line
-        for (let i = 0; i < (insertPos[0] - cursorPos[0]) + 1; ++i) {
+        this.term.write("\r")
+        for (let i = 0; i < (insertPos[0] - cursorPos[0]); ++i) {
             this.term.write("\x1B[E");
         }
 
         // Clear the previous line.
-        // \x1B[F: Cursor Previous Line
-        // \x1B[K: Cursor Erase Line
-        this.term.write("\r")
-        for (let i = 1; i < insertPos[0]; ++i) {
-            this.term.write("\x1B[F\x1B[K")
+        // \x1B[2K: Cursor Erase Full Line
+        for (let i = 0; i <= insertPos[0]; ++i) {
+            this.term.write("\x1B[2K");
         }
+
+        console.log("reset to: " + input);
 
         // Reset the prompt
         this.activePrompt.reset(input);
@@ -266,10 +278,11 @@ export class TerminalController {
         if (!this.activePrompt) {
             return;
         }
+        let c = Math.max(Math.min(newCursor, this.activePrompt.input.length), 0);
 
         // Get previous and new position
         let prevPos = this.activePrompt.getCursorPosition(this.cursor);
-        let newPos = this.activePrompt.getCursorPosition(Math.max(0, newCursor));
+        let newPos = this.activePrompt.getCursorPosition(c);
 
         // Move vertically
         // \x1B[B: Cursor Down
@@ -292,7 +305,7 @@ export class TerminalController {
         }
 
         // Set the new cursor
-        this.cursor = newCursor;
+        this.cursor = c;
     }
 
     // Move the cursor backward
@@ -313,7 +326,7 @@ export class TerminalController {
 
     // Erase a character at the cursor
     protected eraseAtCursor() {
-        if (!this.activePrompt || this.cursor <= 0) {
+        if (!this.activePrompt || this.cursor < 0) {
             return;
         }
         this.resetPrompt(
@@ -347,9 +360,9 @@ export class TerminalController {
     }
 
     // Is the input incomplete?
-    protected inputIsIncomplete() {
+    protected inputIsComplete() {
         if (!this.activePrompt) {
-            return false;
+            return true;
         }
         if (this.activePrompt.input.endsWith(";")) {
             return true;
@@ -403,10 +416,10 @@ export class TerminalController {
         } else if (prefix < 32 || prefix === 0x7f) {
             switch (data) {
                 case "\r": // Enter
-                    if (this.inputIsIncomplete()) {
-                        this.insertAtCursor("\n");
-                    } else {
+                    if (this.inputIsComplete()) {
                         this.commitInput();
+                    } else {
+                        this.insertAtCursor("\n");
                     }
                     break;
                 case "\x7F": // Backspace

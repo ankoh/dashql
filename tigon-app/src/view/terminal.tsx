@@ -49,8 +49,12 @@ class Terminal extends React.Component<ITerminalProps> {
             ctrl.terminal.attach();
 
             ctrl.terminal.read("> ", "| ",)
-                .then(console.log)
-                .catch(console.log);
+                .then(function(text: string) {
+                    console.log("ok: " + text);
+                })
+                .catch(function(text: string) {
+                    console.log("err: " + text);
+                });
 
             // ctrl.terminal.term.setOption('theme', {
             //     background: 'rgb(0, 0, 0)',
