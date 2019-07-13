@@ -107,17 +107,6 @@ class Prompt {
         this.input += text;
     }
 
-    // Insert at an index
-    public insertAt(index: number, text: string) {
-        // Append at the end?
-        // Otherwise fall back to reset.
-        if (index === this.input.length) {
-            return this.append(text);
-        } else {
-            this.reset(this.input.substr(0, index) + text + this.input.substr(index));
-        }
-    }
-
     // Get the cursor position
     public getCursorPosition(cursor: number): [number, number] {
         if (cursor >= this.input.length) {
@@ -241,7 +230,7 @@ export class TerminalController {
     // ------------------
 
     // Set the input
-    protected setInput(input: string = "") {
+    protected resetPrompt(input: string = "") {
         if (!this.activePrompt) {
             return;
         }
@@ -268,6 +257,8 @@ export class TerminalController {
         this.activePrompt.reset(input);
         // Write the prompt output
         this.term.write(this.activePrompt.output);
+        // Set the cursor
+        this.cursor = this.activePrompt.input.length;
     }
 
     // Set the new cursor position, as an offset on the input string
@@ -325,8 +316,9 @@ export class TerminalController {
         if (!this.activePrompt || this.cursor <= 0) {
             return;
         }
-        let input = this.activePrompt.input;
-        this.setInput(input.substr(0, this.cursor) + input.substr(this.cursor + 1));
+        this.resetPrompt(
+            this.activePrompt.input.substr(0, this.cursor) +
+            this.activePrompt.input.substr(this.cursor + 1));
     }
 
     // Insert at the cursor
@@ -334,9 +326,13 @@ export class TerminalController {
         if (!this.activePrompt || this.cursor <= 0) {
             return;
         }
-        this.activePrompt.insertAt(this.cursor, text);
-        this.print(text);
-        this.cursor += text.length;
+        if (this.cursor === this.activePrompt.input.length && !text.includes("\n")) {
+            this.activePrompt.append(text);
+            this.print(text);
+            this.cursor += text.length;
+        } else {
+            this.resetPrompt(text);
+        }
     }
 
     // Commit an input
@@ -373,13 +369,13 @@ export class TerminalController {
                 case "[A": // Arrow Up
                     candidate = this.history.getPrevious()
                     if (candidate) {
-                        this.setInput(candidate);
+                        this.resetPrompt(candidate);
                     }
                     break;
                 case "[B": // Arrow Down
                     candidate = this.history.getNext()
                     if (candidate) {
-                        this.setInput(candidate);
+                        this.resetPrompt(candidate);
                     }
                     break;
                 case "[D": // Arrow Left
@@ -397,32 +393,32 @@ export class TerminalController {
                 case "[H": // Home
                     this.setCursor(0);
                     break;
-                case "b": // ALT + LEFT
+                case "b": // Alt + Left
                     this.setCursor(closestLeftBoundary(input, this.cursor));
                     break;
-                case "f": // ALT + RIGHT
+                case "f": // Alt + Right
                     this.setCursor(closestRightBoundary(input, this.cursor));
                     break;
             }
         } else if (prefix < 32 || prefix === 0x7f) {
             switch (data) {
-                case "\r": // ENTER
+                case "\r": // Enter
                     if (this.inputIsIncomplete()) {
                         this.insertAtCursor("\n");
                     } else {
                         this.commitInput();
                     }
                     break;
-                case "\x7F": // BACKSPACE
+                case "\x7F": // Backspace
                     this.eraseBeforeCursor();
                     break;
-                case "\t": // TAB
+                case "\t": // Tab
                     // TODO autocompletion
                     this.insertAtCursor(" ");
                     break;
-                case "\x03": // CTRL + C
+                case "\x03": // Ctrl + C
                     if (this.activePrompt) {
-                        this.setInput("");
+                        this.resetPrompt("");
                     } else {
                         this.term.write("^C\r\n");
                     }
@@ -439,12 +435,12 @@ export class TerminalController {
             return;
         }
         let tmp = this.activePrompt.input;
-        this.setInput("");
+        this.resetPrompt("");
         this.termSize = {
             columns,
             rows,
         };
-        this.setInput(tmp);
+        this.resetPrompt(tmp);
     }
 }
 
