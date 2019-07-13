@@ -5,6 +5,7 @@
 // Kudos go to Ioannis Charalampidis.
 // Parts of this file were heavily inspired by his local-echo example.
 // ---------------------------------------------------------------------------
+// https://en.wikipedia.org/wiki/ANSI_escape_code
 
 import * as xterm from 'xterm';
 import * as fit from 'xterm/lib/addons/fit/fit';
@@ -94,11 +95,9 @@ export class TerminalController {
         return found == null ? input.length : found;
     }
 
-    // Convert offset at the given input to col/row location
-    // 
-    // This function is not optimized and practically emulates via brute-force
-    // the navigation on the terminal, wrapping when they reach the column width.
-    static offsetToColRow(input: string, offset: number, maxCols: number) {
+    // Convert offset at the given input to col/row location.
+    // TODO: make this more efficient
+    static offsetToPos(input: string, offset: number, maxCols: number) {
         let row = 0, col = 0;
         for (let i = 0; i < offset; ++i) {
             if (input.charAt(i) === "\n") {
@@ -117,7 +116,7 @@ export class TerminalController {
 
     // Counts the lines in the given input
     static countLines(input: string, maxCols: number) {
-        return TerminalController.offsetToColRow(input, input.length, maxCols).row + 1;
+        return TerminalController.offsetToPos(input, input.length, maxCols).row + 1;
     }
 
     // Checks if there is an incomplete input
@@ -163,7 +162,96 @@ export class TerminalController {
     // This function will erase all the lines that display the current prompt
     // and move the cursor to the beginning of the first line of the prompt.
     protected clearInput() {
-        // TODO
+        let currentPrompt = this.applyPrompts(this.input);
+        let promptCursor = this.applyPromptOffset(this.input, this.cursor);
+        let offsetInPrompt = TerminalController.offsetToPos(currentPrompt, promptCursor, this.termSize.columns);
+        let totalPromptLines = TerminalController.countLines(currentPrompt, this.termSize.columns);
+
+        // Move cursor to the last line in the prompt
+        for (let i = 0; i < totalPromptLines - offsetInPrompt.row - 1; ++i) {
+            // \x1B[E: Cursor Next Line
+            this.term.write("\x1B[E");
+        }
+
+        // Clear the current line
+        for (let i = 1; i < totalPromptLines; ++i) {
+            // \x1B[F: Cursor Previous Line
+            // \x1B[K: Cursor Erase Line
+            this.term.write("\x1B[F\x1B[K")
+        }
+    }
+
+    // Replace the input.
+    // This function clears all the lines that the current input occupies
+    // and then replaces them with the new input.
+    protected setInput(newInput: string, clearInput: boolean = true) {
+        if (clearInput) {
+            this.clearInput();
+        }
+
+        // Write the new input lines, including the current prompt
+        let newPrompt = this.applyPrompts(newInput);
+        this.print(newPrompt);
+
+        // Trim cursor overflow
+        if (this.cursor > newInput.length) {
+            this.cursor = newInput.length;
+        }
+
+        // Move the cursor to the appropriate row/column
+        let newCursor = this.applyPromptOffset(newInput, this.cursor);
+        let newLines = TerminalController.countLines(newPrompt, this.termSize.columns);
+        let posInPrompt = TerminalController.offsetToPos(newPrompt, newCursor, this.termSize.columns);
+
+        this.term.write("\r");
+        for (let i = 0; i < newLines - posInPrompt.row - 1; ++i) {
+            // \x1B[F: Cursor Previous Line
+            this.term.write("\x1B[F");
+        }
+        for (let i = 0; i < posInPrompt.col; ++i) {
+            // \x1B[F: Cursor Forward
+            this.term.write("\x1B[C");
+        }
+        this.input = newInput;
+    }
+
+    // Set the new cursor position, as an offset on the input string
+    protected setCursor(newCursor: number) {
+        newCursor = Math.min(Math.max(0, newCursor), this.input.length);
+
+        // Apply prompt formatting
+        let inputWithPrompt = this.applyPrompts(this.input);
+
+        // Compute previous cursor position
+        let prevOffset = this.applyPromptOffset(this.input, this.cursor);
+        let prevPos = TerminalController.offsetToPos(inputWithPrompt, prevOffset, this.termSize.columns);
+
+        // Compute next cursor position
+        let newOffset = this.applyPromptOffset(this.input, newCursor);
+        let newPos = TerminalController.offsetToPos(inputWithPrompt, newOffset, this.termSize.columns);
+
+        // Move vertically
+        // \x1B[B: Cursor Down
+        // \x1B[A: Cursor Up
+        for (let i = prevPos.row; i < newPos.row; ++i) {
+            this.term.write("\x1B[B");
+        }
+        for (let i = newPos.row; i < prevPos.row; ++i) {
+            this.term.write("\x1B[A");
+        }
+
+        // Adjust horizontally
+        // \x1B[C: Cursor Back
+        // \x1B[C: Cursor Forward
+        for (let i = prevPos.col; i < newPos.col; ++i) {
+            this.term.write("\x1B[C");
+        }
+        for (let i = newPos.col; i < prevPos.col; ++i) {
+            this.term.write("\x1B[D");
+        }
+
+        // Set the new offset
+        this.cursor = newCursor;
     }
 
     // Handle input completion
@@ -240,14 +328,14 @@ export class TerminalController {
     }
 
     // Print a line
-    public println(msg: string) {
+    public printLine(msg: string) {
         this.print(msg + "\n");
     }
 
     // Prints a list of items using a wide-format
     public printWide(items: Array<string>, padding: number = 2) {
         if (items.length === 0) {
-            return this.println("");
+            return this.printLine("");
         }
 
         // Compute item sizes and matrix row/cols
@@ -268,7 +356,7 @@ export class TerminalController {
                 rowStr += item;
                 }
             }
-            this.println(rowStr);
+            this.printLine(rowStr);
         }
     }
 
