@@ -333,9 +333,11 @@ export class TerminalController {
         if (!this.activePrompt || this.cursor < 0) {
             return;
         }
+        let c = this.cursor;
         this.resetPrompt(
             this.activePrompt.input.substr(0, this.cursor) +
             this.activePrompt.input.substr(this.cursor + 1));
+        this.setCursor(c);
     }
 
     // Insert at the cursor
@@ -348,7 +350,12 @@ export class TerminalController {
             this.print(text);
             this.cursor += text.length;
         } else {
-            this.resetPrompt(this.activePrompt.input + text);
+            let c = this.cursor;
+            this.resetPrompt(
+                this.activePrompt.input.substr(0, this.cursor) +
+                text +
+                this.activePrompt.input.substr(this.cursor));
+            this.setCursor(c + text.length);
         }
     }
 
