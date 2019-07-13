@@ -194,6 +194,11 @@ export class TerminalController {
         fit.fit(this.term);
     }
 
+    // Focus on the terminal
+    public focus() {
+        this.term.focus();
+    }
+
     // Attach to terminal events
     public attach() {
         this.term.on("data", this.onDataHandler);

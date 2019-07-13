@@ -47,8 +47,9 @@ class Terminal extends React.Component<ITerminalProps> {
             let ctrl = this.props.appContext.ctrl;
             ctrl.terminal.open(this.termContainer.current);
             ctrl.terminal.attach();
+            ctrl.terminal.focus();
 
-            ctrl.terminal.read("> ", "  ",)
+            ctrl.terminal.read("> ", "   ",)
                 .then(function(text: string) {
                     console.log("ok: " + text);
                 })
