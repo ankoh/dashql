@@ -1,6 +1,7 @@
 import * as Model from '../model';
-import { LogController } from './log_ctrl';
 import { CoreController } from './core_ctrl';
+import { LogController } from './log_ctrl';
+import { TerminalController } from './terminal_ctrl';
 
 // The worker interval
 const workerIntervalMS = 400;
@@ -11,8 +12,10 @@ export class RootController {
     public store: Model.ReduxStore;
     // The logger
     public log: LogController;
-    // The core api
+    // The core
     public core: CoreController;
+    // The terminal
+    public terminal: TerminalController;
 
     // The worker timeout
     protected workerTimer: number | null;
@@ -22,6 +25,7 @@ export class RootController {
         this.store = store;
         this.log = new LogController(store);
         this.core = new CoreController();
+        this.terminal = new TerminalController();
         this.workerTimer = null;
     }
 
