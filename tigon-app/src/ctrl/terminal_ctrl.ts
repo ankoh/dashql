@@ -378,6 +378,7 @@ export class TerminalController {
         if (this.activePrompt.input.endsWith(";")) {
             return true;
         }
+        console.log("incomplete: " + this.activePrompt.input);
         return false;
     }
 
@@ -427,11 +428,7 @@ export class TerminalController {
         } else if (prefix < 32 || prefix === 0x7f) {
             switch (data) {
                 case "\r": // Carriage-Return
-                    if (this.inputIsComplete()) {
-                        this.commitInput();
-                    } else {
-                        this.insertAtCursor("\n");
-                    }
+                    this.insertAtCursor("\n");
                     break;
                 case "\x7F": // Backspace
                     this.eraseBeforeCursor();
@@ -450,6 +447,11 @@ export class TerminalController {
             }
         } else {
             this.insertAtCursor(data);
+
+            // Command complete?
+            if (data.endsWith(";")) {
+                this.commitInput();
+            }
         }
     }
 
