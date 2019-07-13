@@ -201,14 +201,14 @@ export class TerminalController {
         // Move the cursor to the appropriate row/column
         let newCursor = this.applyPromptOffset(newInput, this.cursor);
         let newLines = TerminalController.countLines(newPrompt, this.termSize.columns);
-        let posInPrompt = TerminalController.offsetToPos(newPrompt, newCursor, this.termSize.columns);
+        let newPos = TerminalController.offsetToPos(newPrompt, newCursor, this.termSize.columns);
 
         this.term.write("\r");
-        for (let i = 0; i < newLines - posInPrompt.row - 1; ++i) {
+        for (let i = 0; i < newLines - newPos.row - 1; ++i) {
             // \x1B[F: Cursor Previous Line
             this.term.write("\x1B[F");
         }
-        for (let i = 0; i < posInPrompt.col; ++i) {
+        for (let i = 0; i < newPos.col; ++i) {
             // \x1B[F: Cursor Forward
             this.term.write("\x1B[C");
         }
@@ -254,8 +254,41 @@ export class TerminalController {
         this.cursor = newCursor;
     }
 
-    // Handle input completion
-    protected handleReadComplete() {
+    // Move the cursor backward
+    protected moveCursorBack() {
+        this.setCursor(this.cursor - 1);
+    }
+
+    // Move the cursor forward
+    protected moveCursorForward() {
+        this.setCursor(this.cursor + 1);
+    }
+
+    // Erase a character before the cursor
+    protected eraseBeforeCursor() {
+        if (this.cursor <= 0) {
+            return;
+        }
+        let newInput = this.input.substr(0, this.cursor - 1) + this.input.substr(this.cursor);
+        this.cursor -= 1;
+        this.setInput(newInput, true);
+    }
+
+    // Erase a character at the cursor
+    protected eraseAtCursor() {
+        let newInput = this.input.substr(0, this.cursor) + this.input.substr(this.cursor + 1);
+        this.setInput(newInput, true);
+    }
+
+    // Insert at the cursor
+    protected insertAtCursor(text: string) {
+        let newInput = this.input.substr(0, this.cursor) + text + this.input.substr(this.cursor);
+        this.cursor += text.length;
+        this.setInput(newInput);
+    }
+
+    // Commit an input
+    protected commitInput() {
         if (this.history != null) {
             this.history.push(this.input);
         }
@@ -267,14 +300,14 @@ export class TerminalController {
         this.active = false;
     }
 
-    // Handle terminal resize
-    protected handleTermResize(rows: number, columns: number) {
+    // Resize the temrinal
+    protected resizeTerminal(rows: number, columns: number) {
         this.clearInput();
         this.termSize = {
+            columns,
             rows,
-            columns
         };
-        // this.setInput(this.input, false);
+        this.setInput(this.input, false);
     }
 
     // Return a promise that will resolve when the user has completed typing a single line
