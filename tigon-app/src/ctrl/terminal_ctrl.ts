@@ -323,7 +323,7 @@ export class TerminalController {
 
     // Insert at the cursor
     protected insertAtCursor(text: string) {
-        if (!this.activePrompt || this.cursor <= 0) {
+        if (!this.activePrompt || this.cursor < 0) {
             return;
         }
         if (this.cursor === this.activePrompt.input.length && !text.includes("\n")) {
