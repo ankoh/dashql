@@ -33,8 +33,82 @@ interface ActiveCharPrompt {
 
 // A history buffer
 class HistoryBuffer {
-    public push(text: string) {
+    protected buffer: Array<string | null>;
+    protected cursor: number;
+
+    constructor(size: number = 64) {
+        this.buffer = new Array<string | null>(size).fill(null);
+        this.cursor = 0;
     }
+
+    public push(text: string) {
+        if (text.trim() === "") {
+            return;
+        }
+        this.buffer[this.cursor] = text;
+        this.cursor = (this.cursor + 1) % this.buffer.length;
+    }
+
+    public getPrevious(): string | null {
+        return this.buffer[(this.cursor + (this.buffer.length - 1)) % this.buffer.length];
+    }
+
+    public getNext(): string | null {
+        return this.buffer[(this.cursor + 1) % this.buffer.length];
+    }
+}
+
+// Detects all the word boundaries on the given input
+function wordBoundaries(input: string, leftSide: boolean = true): Array<number> {
+    let match;
+    let words = new Array<number>();
+    let rx = /\w+/g;
+    while ((match = rx.exec(input))) {
+        if (leftSide) {
+            words.push(match.index);
+        } else {
+            words.push(match.index + match[0].length);
+        }
+    }
+    return words;
+}
+
+// The closest left word boundary of the given input at the given offset
+function closestLeftBoundary(input: string, offset: number) {
+    let found = wordBoundaries(input, true)
+        .reverse()
+        .find(x => x < offset);
+    return found == null ? 0 : found;
+}
+
+// The closest right word boundary of the given input at the given offset
+function closestRightBoundary(input: string, offset: number) {
+    let found = wordBoundaries(input, false).find(x => x > offset);
+    return found == null ? input.length : found;
+}
+
+// Convert offset at the given input to position.
+// TODO: Maintain the line breaks?
+function offsetToPos(input: string, offset: number, maxCols: number) {
+    let row = 0, col = 0;
+    for (let i = 0; i < offset; ++i) {
+        if (input.charAt(i) === "\n") {
+            col = 0;
+            row += 1;
+        } else {
+            col += 1;
+            if (col > maxCols) {
+                col = 0;
+                row += 1;
+            }
+        }
+    }
+    return { row, col };
+}
+
+// Counts the lines in the given input
+function countLines(input: string, maxCols: number) {
+    return offsetToPos(input, input.length, maxCols).row + 1;
 }
 
 // A terminal
@@ -48,7 +122,7 @@ export class TerminalController {
     protected activePrompt: ActivePrompt | null;
     protected activeCharPrompt: ActiveCharPrompt | null;
     protected input: string;
-    protected history: HistoryBuffer | null;
+    protected history: HistoryBuffer;
     protected cursor: number;
 
     // Constructor
@@ -62,88 +136,13 @@ export class TerminalController {
         this.activePrompt = null;
         this.activeCharPrompt = null;
         this.input = "";
-        this.history = null;
+        this.history = new HistoryBuffer();
         this.cursor = 0;
     }
 
-    // Detects all the word boundaries on the given input
-    static wordBoundaries(input: string, leftSide: boolean = true): Array<number> {
-        let match;
-        let words = new Array<number>();
-        let rx = /\w+/g;
-        while ((match = rx.exec(input))) {
-            if (leftSide) {
-                words.push(match.index);
-            } else {
-                words.push(match.index + match[0].length);
-            }
-        }
-        return words;
-    }
-
-    // The closest left word boundary of the given input at the given offset
-    static closestLeftBoundary(input: string, offset: number) {
-        let found = TerminalController.wordBoundaries(input, true)
-            .reverse()
-            .find(x => x < offset);
-        return found == null ? 0 : found;
-    }
-
-    // The closest right word boundary of the given input at the given offset
-    static closestRightBoundary(input: string, offset: number) {
-        let found = TerminalController.wordBoundaries(input, false).find(x => x > offset);
-        return found == null ? input.length : found;
-    }
-
-    // Convert offset at the given input to col/row location.
-    // TODO: make this more efficient
-    static offsetToPos(input: string, offset: number, maxCols: number) {
-        let row = 0, col = 0;
-        for (let i = 0; i < offset; ++i) {
-            if (input.charAt(i) === "\n") {
-                col = 0;
-                row += 1;
-            } else {
-                col += 1;
-                if (col > maxCols) {
-                    col = 0;
-                    row += 1;
-                }
-            }
-        }
-        return { row, col };
-    }
-
-    // Counts the lines in the given input
-    static countLines(input: string, maxCols: number) {
-        return TerminalController.offsetToPos(input, input.length, maxCols).row + 1;
-    }
-
-    // Checks if there is an incomplete input
-    static isIncompleteInput(input: string) {
-        // Empty input is not incomplete
-        if (input.trim() === "") {
-            return false;
-        }
-        // Check for dangling single-quote strings
-        if ((input.match(/'/g) || []).length % 2 !== 0) {
-            return true;
-        }
-        // Check for dangling double-quote strings
-        if ((input.match(/"/g) || []).length % 2 !== 0) {
-            return true;
-        }
-        // Check for tailing slash
-        if (input.endsWith("\\") && !input.endsWith("\\\\")) {
-            return true;
-        }
-        return false;
-    }
-
-    // Returns true if the expression ends on a tailing whitespace
-    static hasTailingWhitespace(input: string) {
-        return input.match(/[^\\][ \t]$/m) != null;
-    }
+    // ------------------
+    // Internal
+    // ------------------
 
     // Apply prompts to the given input
     protected applyPrompts(input: string): string {
@@ -164,19 +163,19 @@ export class TerminalController {
     protected clearInput() {
         let currentPrompt = this.applyPrompts(this.input);
         let promptCursor = this.applyPromptOffset(this.input, this.cursor);
-        let offsetInPrompt = TerminalController.offsetToPos(currentPrompt, promptCursor, this.termSize.columns);
-        let totalPromptLines = TerminalController.countLines(currentPrompt, this.termSize.columns);
+        let offsetInPrompt = offsetToPos(currentPrompt, promptCursor, this.termSize.columns);
+        let totalPromptLines = countLines(currentPrompt, this.termSize.columns);
 
-        // Move cursor to the last line in the prompt
+        // Move cursor to the last line in the prompt.
+        // \x1B[E: Cursor Next Line
         for (let i = 0; i < totalPromptLines - offsetInPrompt.row - 1; ++i) {
-            // \x1B[E: Cursor Next Line
             this.term.write("\x1B[E");
         }
 
-        // Clear the current line
+        // Clear the current line.
+        // \x1B[F: Cursor Previous Line
+        // \x1B[K: Cursor Erase Line
         for (let i = 1; i < totalPromptLines; ++i) {
-            // \x1B[F: Cursor Previous Line
-            // \x1B[K: Cursor Erase Line
             this.term.write("\x1B[F\x1B[K")
         }
     }
@@ -198,20 +197,25 @@ export class TerminalController {
             this.cursor = newInput.length;
         }
 
-        // Move the cursor to the appropriate row/column
+        // Move the cursor
         let newCursor = this.applyPromptOffset(newInput, this.cursor);
-        let newLines = TerminalController.countLines(newPrompt, this.termSize.columns);
-        let newPos = TerminalController.offsetToPos(newPrompt, newCursor, this.termSize.columns);
+        let newLines = countLines(newPrompt, this.termSize.columns);
+        let newPos = offsetToPos(newPrompt, newCursor, this.termSize.columns);
 
         this.term.write("\r");
+
+        // Adjust vertically.
+        // \x1B[F: Cursor Previous Line
         for (let i = 0; i < newLines - newPos.row - 1; ++i) {
-            // \x1B[F: Cursor Previous Line
             this.term.write("\x1B[F");
         }
+
+        // Move horizontally
+        // \x1B[F: Cursor Forward
         for (let i = 0; i < newPos.col; ++i) {
-            // \x1B[F: Cursor Forward
             this.term.write("\x1B[C");
         }
+
         this.input = newInput;
     }
 
@@ -224,11 +228,11 @@ export class TerminalController {
 
         // Compute previous cursor position
         let prevOffset = this.applyPromptOffset(this.input, this.cursor);
-        let prevPos = TerminalController.offsetToPos(inputWithPrompt, prevOffset, this.termSize.columns);
+        let prevPos = offsetToPos(inputWithPrompt, prevOffset, this.termSize.columns);
 
         // Compute next cursor position
         let newOffset = this.applyPromptOffset(this.input, newCursor);
-        let newPos = TerminalController.offsetToPos(inputWithPrompt, newOffset, this.termSize.columns);
+        let newPos = offsetToPos(inputWithPrompt, newOffset, this.termSize.columns);
 
         // Move vertically
         // \x1B[B: Cursor Down
@@ -240,9 +244,9 @@ export class TerminalController {
             this.term.write("\x1B[A");
         }
 
-        // Adjust horizontally
-        // \x1B[C: Cursor Back
+        // Move horizontally
         // \x1B[C: Cursor Forward
+        // \x1B[D: Cursor Back
         for (let i = prevPos.col; i < newPos.col; ++i) {
             this.term.write("\x1B[C");
         }
@@ -289,9 +293,7 @@ export class TerminalController {
 
     // Commit an input
     protected commitInput() {
-        if (this.history != null) {
-            this.history.push(this.input);
-        }
+        this.history.push(this.input);
         if (this.activePrompt != null) {
             this.activePrompt.resolve(this.input);
             this.activePrompt = null;
@@ -309,6 +311,101 @@ export class TerminalController {
         };
         this.setInput(this.input, false);
     }
+
+    // Is the input incomplete?
+    protected inputIsIncomplete() {
+        // Input ends with semicolon?
+        if (this.input.endsWith(";")) {
+            return true;
+        }
+        return false;
+    }
+
+    // Process user input
+    protected process(data: string) {
+        if (!this.active) {
+            return;
+        }
+        let prefix = data.charCodeAt(0);
+
+        // Handle ANSI escape sequences
+        if (prefix === 0x1b) {
+            switch (data.substr(1)) {
+                case "[A": // Arrow Up
+                    let value = this.history.getPrevious();
+                    if (value) {
+                        this.setInput(value);
+                        this.setCursor(value.length);
+                    }
+                    break;
+                case "[B": // Arrow Down
+                    if (this.history) {
+                        let value = this.history.getNext();
+                        if (value) {
+                            this.setInput(value);
+                            this.setCursor(value.length);
+                        }
+                    }
+                    break;
+                case "[D": // Arrow Left
+                    this.moveCursorBack();
+                    break;
+                case "[C": // Arrow Right
+                    this.moveCursorForward();
+                    break;
+                case "[3~": // Erase at cursor
+                    this.eraseAtCursor();
+                    break;
+                case "[F": // End
+                    this.setCursor(this.input.length);
+                    break;
+                case "[H": // Home
+                    this.setCursor(0);
+                    break;
+                case "b": // ALT + LEFT
+                    this.setCursor(closestLeftBoundary(this.input, this.cursor));
+                    break;
+                case "f": // ALT + RIGHT
+                    this.setCursor(closestRightBoundary(this.input, this.cursor));
+                    break;
+                case "\x7F": // CTRL + BACKSPACE
+                    let o = closestLeftBoundary(this.input, this.cursor);
+                    this.setInput(this.input.substr(0, o) + this.input.substr(this.cursor));
+                    this.setCursor(o);
+                    break;
+            }
+        } else if (prefix < 32 || prefix === 0x7f) {
+            switch (data) {
+                case "\r": // ENTER
+                    if (this.inputIsIncomplete()) {
+                        this.insertAtCursor("\n");
+                    } else {
+                        this.commitInput();
+                    }
+                    break;
+                case "\x7F": // BACKSPACE
+                    this.eraseBeforeCursor();
+                    break;
+                case "\t": // TAB
+                    // TODO autocompletion
+                    this.insertAtCursor(" ");
+                    break;
+                case "\x03": // CTRL + C
+                    this.setCursor(this.input.length);
+                    this.term.write("^C\r\n" + ((this.activePrompt && this.activePrompt.inputPrompt) || ""));
+                    this.input = "";
+                    this.cursor = 0;
+                    break;
+            }
+        } else {
+            this.insertAtCursor(data);
+        }
+    }
+
+
+    // ------------------
+    // Public API
+    // ------------------
 
     // Return a promise that will resolve when the user has completed typing a single line
     public read(inputPrompt: string, continuationPrompt: string = "> ") {
