@@ -68,7 +68,7 @@ class Prompt {
     output: string;
 
     // Constructor
-    constructor(promptPrefix: string = "> ", continuationPrefix: string = "| ", resolve: ResolveInputFunc, reject: RejectInputFunc) {
+    constructor(promptPrefix: string = "> ", continuationPrefix: string = "  ", resolve: ResolveInputFunc, reject: RejectInputFunc) {
         this.promptPrefix = promptPrefix;
         this.continuationPrefix = continuationPrefix;
         this.resolve = resolve;
@@ -90,13 +90,13 @@ class Prompt {
         let rowStart = 0;
         for (let i = 0; i < text.length; ++i) {
             this.inputColumnMap.push(this.output.length - rowStart);
-            this.inputRowMap.push(row);
             this.output += text[i];
             if (text[i] === "\n") {
                 ++row;
                 rowStart = this.output.length;
                 this.output += this.continuationPrefix;
             }
+            this.inputRowMap.push(row);
         }
         this.input = text;
     }
@@ -107,13 +107,13 @@ class Prompt {
         let rowStart = 0;
         for (let i = 0; i < text.length; ++i) {
             this.inputColumnMap.push(this.output.length - rowStart);
-            this.inputRowMap.push(row);
             this.output += text[i];
             if (text[i] === "\n") {
                 ++row;
                 rowStart = this.output.length;
                 this.output += this.continuationPrefix;
             }
+            this.inputRowMap.push(row);
         }
         this.input += text;
     }
@@ -250,17 +250,21 @@ export class TerminalController {
         let cursorPos = this.activePrompt.getCursorPosition(this.cursor);
         let insertPos = this.activePrompt.getInsertPosition();
 
-        // Move cursor to the last line.
+        console.log(cursorPos);
+        console.log(insertPos);
+
+        // Move cursor to the last line after the last line.
         // \x1B[E: Cursor Next Line
         this.term.write("\r")
-        for (let i = 0; i < (insertPos[0] - cursorPos[0]); ++i) {
+        for (let i = 0; i <= (insertPos[0] - cursorPos[0]); ++i) {
             this.term.write("\x1B[E");
         }
 
         // Clear the previous line.
-        // \x1B[2K: Cursor Erase Full Line
+        // \x1B[F: Move to previous line
+        // \x1B[2K: Erase full line
         for (let i = 0; i <= insertPos[0]; ++i) {
-            this.term.write("\x1B[2K");
+            this.term.write("\x1B[F\x1B[2K");
         }
 
         console.log("reset to: " + input);
@@ -268,7 +272,7 @@ export class TerminalController {
         // Reset the prompt
         this.activePrompt.reset(input);
         // Write the prompt output
-        this.term.write(this.activePrompt.output);
+        this.print(this.activePrompt.output);
         // Set the cursor
         this.cursor = this.activePrompt.input.length;
     }
@@ -344,7 +348,7 @@ export class TerminalController {
             this.print(text);
             this.cursor += text.length;
         } else {
-            this.resetPrompt(text);
+            this.resetPrompt(this.activePrompt.input + text);
         }
     }
 
@@ -415,11 +419,11 @@ export class TerminalController {
             }
         } else if (prefix < 32 || prefix === 0x7f) {
             switch (data) {
-                case "\r": // Enter
+                case "\r": // Carriage-Return
                     if (this.inputIsComplete()) {
                         this.commitInput();
                     } else {
-                        this.insertAtCursor("\n");
+                        this.insertAtCursor("\r\n");
                     }
                     break;
                 case "\x7F": // Backspace
