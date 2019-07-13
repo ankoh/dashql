@@ -19,7 +19,6 @@ interface ITerminalProps {
 // A terminal
 class Terminal extends React.Component<ITerminalProps> {
     protected termContainer: React.RefObject<HTMLDivElement>;
-    protected term: xterm.Terminal;
     protected input: string;
 
     // Constructor
@@ -27,7 +26,6 @@ class Terminal extends React.Component<ITerminalProps> {
         super(props);
 
         this.termContainer = React.createRef();
-        this.term = new xterm.Terminal();
         this.input = "";
     }
 
@@ -44,35 +42,21 @@ class Terminal extends React.Component<ITerminalProps> {
     // Component did mount to the dom
     public componentDidMount() {
         if (this.termContainer.current != null) {
-            this.term.open(this.termContainer.current);
-            fit.fit(this.term);
 
-            this.term.focus();
 
             let ctrl = this.props.appContext.ctrl;
-            this.term.on('key', (key, ev) => {
-                if (key.charCodeAt(0) === 13) {
-                    this.input += '\n';
-                    this.term.write('\n');
-                }
-                this.input += key;
-                this.term.write(key);
+            ctrl.terminal.open(this.termContainer.current);
+            ctrl.terminal.attach();
 
-                if (key.charCodeAt(0) === 59) {
-                    this.term.write('\n');
-                    let result = ctrl.core.runQuery(this.input.toString());
-                    // let resultBuffer = result.getBuffer();
-                    // TODO do something with the data
-                    result.destroy();
-                    this.input = '';
-                }
-            });
+            ctrl.terminal.read("> ", "| ",)
+                .then(console.log)
+                .catch(console.log);
 
-            this.term.setOption('theme', {
-                background: 'rgb(0, 0, 0)',
-                foreground: 'rgb(255, 255, 255)',
-                cursor: 'rgb(255, 255, 255)'
-            });
+            // ctrl.terminal.term.setOption('theme', {
+            //     background: 'rgb(0, 0, 0)',
+            //     foreground: 'rgb(255, 255, 255)',
+            //     cursor: 'rgb(255, 255, 255)'
+            // });
         }
     }
 
@@ -82,7 +66,8 @@ class Terminal extends React.Component<ITerminalProps> {
 
     // Component will unmount from the dom
     public componentWillUnmount() {
-        this.term.dispose();
+        let ctrl = this.props.appContext.ctrl;
+        ctrl.terminal.detach();
     }
 }
 
