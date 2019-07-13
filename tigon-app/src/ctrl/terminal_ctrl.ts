@@ -423,7 +423,7 @@ export class TerminalController {
                     if (this.inputIsComplete()) {
                         this.commitInput();
                     } else {
-                        this.insertAtCursor("\r\n");
+                        this.insertAtCursor("\n");
                     }
                     break;
                 case "\x7F": // Backspace
