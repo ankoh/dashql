@@ -1,13 +1,12 @@
 import * as React from 'react';
 import * as Model from '../../model';
 import { connect } from 'react-redux';
-import { MultiGrid, GridCellProps } from 'react-virtualized';
-import { withSize, SizeMeProps } from 'react-sizeme';
+import { AutoSizer, MultiGrid, GridCellProps } from 'react-virtualized';
 
 import './table.css';
 
 // The table properties
-interface ITableProps extends SizeMeProps {
+interface ITableProps {
     data: Model.DataSource;
 }
 
@@ -71,17 +70,21 @@ class Table extends React.Component<ITableProps, ITableState> {
     public render() {
         return (
             <div className="table">
-                <MultiGrid
-                    cellRenderer={this.renderCell.bind(this)}
-                    columnCount={this.props.data.getColumnCount() + 1}
-                    columnWidth={100}
-                    fixedRowCount={1}
-                    fixedColumnCount={1}
-                    height={this.props.size.height || 200}
-                    width={this.props.size.width || 300}
-                    rowCount={this.props.data.getRowCount() + 1}
-                    rowHeight={32}
-                />
+                <AutoSizer>
+                    {({ height, width }) => (
+                        <MultiGrid
+                            cellRenderer={this.renderCell.bind(this)}
+                            columnCount={this.props.data.getColumnCount() + 1}
+                            columnWidth={100}
+                            height={height}
+                            width={width}
+                            fixedRowCount={1}
+                            fixedColumnCount={1}
+                            rowCount={this.props.data.getRowCount() + 1}
+                            rowHeight={32}
+                        />
+                    )}
+                </AutoSizer>
             </div>
         );
     }
@@ -98,5 +101,5 @@ function mapDispatchToProps(dispatch: Model.Dispatch) {
     };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(withSize()(Table));
+export default connect(mapStateToProps, mapDispatchToProps)(Table);
 
