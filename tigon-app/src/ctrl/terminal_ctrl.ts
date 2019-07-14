@@ -255,9 +255,6 @@ export class TerminalController {
         let cursorPos = this.activePrompt.getCursorPosition(this.cursor);
         let insertPos = this.activePrompt.getInsertPosition();
 
-        console.log(cursorPos);
-        console.log(insertPos);
-
         // Move cursor to the last line after the last line.
         // \x1B[E: Cursor Next Line
         this.term.write("\r")
@@ -271,8 +268,6 @@ export class TerminalController {
         for (let i = 0; i <= insertPos[0]; ++i) {
             this.term.write("\x1B[F\x1B[2K");
         }
-
-        console.log("reset to: " + input);
 
         // Reset the prompt
         this.activePrompt.reset(input);
@@ -383,7 +378,6 @@ export class TerminalController {
         if (this.activePrompt.input.endsWith(";")) {
             return true;
         }
-        console.log("incomplete: " + this.activePrompt.input);
         return false;
     }
 

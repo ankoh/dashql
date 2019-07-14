@@ -126,6 +126,19 @@ class Explorer extends React.Component<IExplorerProps> {
             </div>
         );
     }
+
+    // Component did mount to the dom
+    public componentDidMount() {
+            let ctrl = this.props.appContext.ctrl;
+
+            ctrl.terminal.read("> ", "   ",)
+                .then(function(text: string) {
+                    console.log("ok: " + text);
+                })
+                .catch(function(text: string) {
+                    console.log("err: " + text);
+                });
+    }
 }
 
 function mapStateToExplorerProps(state: Model.RootState) {

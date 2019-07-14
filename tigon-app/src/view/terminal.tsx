@@ -1,15 +1,11 @@
 import * as React from 'react';
 import * as Model from '../model';
-import * as xterm from 'xterm';
-import * as fit from 'xterm/lib/addons/fit/fit';
 import { connect } from 'react-redux';
 
 import 'xterm/dist/xterm.css';
 import './terminal.css';
 
 import { IAppContext, withAppContext } from '../app_context';
-
-xterm.Terminal.applyAddon(fit);
 
 // The terminal props
 interface ITerminalProps {
@@ -42,26 +38,10 @@ class Terminal extends React.Component<ITerminalProps> {
     // Component did mount to the dom
     public componentDidMount() {
         if (this.termContainer.current != null) {
-
-
             let ctrl = this.props.appContext.ctrl;
             ctrl.terminal.open(this.termContainer.current);
             ctrl.terminal.attach();
             ctrl.terminal.focus();
-
-            ctrl.terminal.read("> ", "   ",)
-                .then(function(text: string) {
-                    console.log("ok: " + text);
-                })
-                .catch(function(text: string) {
-                    console.log("err: " + text);
-                });
-
-            // ctrl.terminal.term.setOption('theme', {
-            //     background: 'rgb(0, 0, 0)',
-            //     foreground: 'rgb(255, 255, 255)',
-            //     cursor: 'rgb(255, 255, 255)'
-            // });
         }
     }
 
