@@ -41,7 +41,12 @@ class Table extends React.Component<ITableProps, ITableState> {
         // First column?
         if (props.columnIndex === 0) {
             return (
-                <div key={props.key} style={props.style}>
+                <div
+                    key={props.key}
+                    style={{
+                        ...props.style
+                    }}
+                >
                     {props.rowIndex > 0 ? props.rowIndex : ""}
                 </div>
             );
@@ -83,9 +88,14 @@ class Table extends React.Component<ITableProps, ITableState> {
                             cellRenderer={this.renderCell.bind(this)}
                             columnCount={columnCount + 1}
                             columnWidth={function(index: Index) {
+                                let lineNumberWidth = 48;
+                                let available = width - lineNumberWidth;
+                                let equalWidths = available / columnCount;
+                                let maxWidth = available * 0.2;
+                                let minWidth = 60;
                                 return (index.index == 0)
-                                    ? 48
-                                    : ((width - 50) / columnCount); 
+                                    ? lineNumberWidth
+                                    : Math.max(Math.min(equalWidths, maxWidth), minWidth); 
                             }}
                             height={height}
                             width={width}
