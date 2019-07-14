@@ -14,32 +14,42 @@ interface ITableProps {
     data: Model.DataSource;
 }
 
-// The cell render
-function cellRenderer(props: GridCellProps) {
-    return (
-        <div key={props.key} style={props.style}>
-            {list[props.rowIndex][props.columnIndex]}
-        </div>
-    );
-}
-
 // The table
 class Table extends React.Component<ITableProps> {
     private lastUpdate: number;
 
+    // Constructor
     constructor(props: ITableProps) {
         super(props);
         this.lastUpdate = props.data.timestamp;
     }
 
+    // Only update the component if the timestamp changes
+    public shouldComponentUpdate(nextProps: ITableProps): boolean {
+        if (this.props === nextProps && this.lastUpdate == nextProps.data.timestamp) {
+            return false;
+        }
+        return true;
+    }
+
+    // Render a single cell
+    public renderCell(props: GridCellProps) {
+        return (
+            <div key={props.key} style={props.style}>
+                {list[props.rowIndex][props.columnIndex]}
+            </div>
+        );
+    }
+
+    // Render the full table
     public render() {
         return (
             <div className="table">
                 <MultiGrid
-                    cellRenderer={cellRenderer}
+                    cellRenderer={this.renderCell}
                     columnCount={list[0].length}
                     columnWidth={100}
-                    fixedColumnCount={2}
+                    fixedColumnCount={1}
                     fixedRowCount={1}
                     height={300}
                     width={300}
