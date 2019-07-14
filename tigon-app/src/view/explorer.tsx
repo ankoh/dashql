@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as Model from '../model';
 import { IAppContext, withAppContext } from '../app_context';
+import Grid from './viz/grid';
 import Terminal from './terminal';
 import './explorer.css';
 import {
@@ -21,6 +22,7 @@ import { connect } from 'react-redux';
 
 interface IExplorerProps {
     appContext: IAppContext;
+    dataSource: Model.DataSource;
 }
 
 class Explorer extends React.Component<IExplorerProps> {
@@ -30,6 +32,7 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className="explorer-viewer">
                     <div className="explorer-viewer-output-container">
                         <div className="explorer-viewer-output">
+                            <Grid data={this.props.dataSource} />
                         </div>
                     </div>
                     <div className="explorer-viewer-controls">
@@ -129,20 +132,21 @@ class Explorer extends React.Component<IExplorerProps> {
 
     // Component did mount to the dom
     public componentDidMount() {
-            let ctrl = this.props.appContext.ctrl;
+        let ctrl = this.props.appContext.ctrl;
+        ctrl.terminal.read("> ", "   ",)
+            .then(function(text: string) {
+                console.log("ok: " + text);
+            })
+            .catch(function(text: string) {
+                console.log("err: " + text);
+            });
 
-            ctrl.terminal.read("> ", "   ",)
-                .then(function(text: string) {
-                    console.log("ok: " + text);
-                })
-                .catch(function(text: string) {
-                    console.log("err: " + text);
-                });
     }
 }
 
 function mapStateToExplorerProps(state: Model.RootState) {
     return {
+        dataSource: state.explorerDataSource,
     };
 }
 

@@ -1,4 +1,5 @@
 import * as Immutable from 'immutable';
+import { DataSource } from './data_source';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -145,6 +146,9 @@ export class RootState {
     // The root view
     public rootView: RootView;
 
+    // The explorer data source
+    public explorerDataSource: DataSource;
+
     // Constructor
     constructor() {
         this.appConfig = null;
@@ -155,6 +159,12 @@ export class RootState {
         this.logs = Immutable.List<LogEntry>();
         this.logWarnings = 0;
         this.rootView = RootView.EXPLORER;
+        this.explorerDataSource = new DataSource([
+            ['', 'Tesla', 'Mercedes', 'Toyota', 'Volvo'],
+            ['2019', 10, 11, 12, 13],
+            ['2020', 20, 11, 14, 13],
+            ['2021', 30, 15, 12, 13],
+        ]);
         return;
     }
 }

@@ -3,12 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@handsontable/react": "^3.0.0",
     "classnames": "^2.2.6",
     "d3": "^5.9.7",
     "dagre-d3": "^0.6.3",
     "flatbuffers": "^1.11.0",
-    "handsontable": "^7.1.0",
     "immutable": "^4.0.0-rc.12",
     "react": "^16.8.6",
     "react-ace": "^7.0.2",
@@ -17,6 +15,7 @@
     "react-redux": "^7.1.0",
     "react-scripts": "3.0.1",
     "react-select": "^3.0.4",
+    "react-virtualized": "^9.21.1",
     "redux": "^4.0.2",
     "typescript": "3.5.3",
     "xterm": "^3.14.4"
@@ -54,6 +53,7 @@
     "@types/react-custom-scrollbars": "^4.0.5",
     "@types/react-dom": "16.8.4",
     "@types/react-redux": "^7.1.1",
+    "@types/react-virtualized": "^9.21.2",
     "redux-devtools": "^3.5.0"
   }
 }
