@@ -160,7 +160,7 @@ export class RootState {
         this.logWarnings = 0;
         this.rootView = RootView.EXPLORER;
         this.explorerDataSource = new InlineAnyRows(
-            ['', 'Tesla', 'Mercedes', 'Toyota', 'Volvo'],
+            ['Year', 'Tesla', 'Mercedes', 'Toyota', 'Volvo'],
             [
                 '2019', 10, 11, 12, 13,
                 '2020', 20, 11, 14, 13,

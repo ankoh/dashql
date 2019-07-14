@@ -39,23 +39,32 @@ class Table extends React.Component<ITableProps, ITableState> {
 
     // Render a single cell
     public renderCell(props: GridCellProps) {
-        // Header?
-        if (props.rowIndex === 0) {
+        // First column?
+        if (props.columnIndex === 0) {
             return (
                 <div key={props.key} style={props.style}>
-                    {this.props.data.getColumn(props.columnIndex).getName()}
-                </div>
-            );
-        } else {
-            return (
-                <div key={props.key} style={props.style}>
-                    {this.props.data.getColumn(props.columnIndex).getRowAsString(props.rowIndex)}
+                    {props.rowIndex > 0 ? props.rowIndex : ""}
                 </div>
             );
         }
-    }
 
-    public componentDidMount() {
+        // Header row?
+        if (props.rowIndex === 0) {
+            return (
+                <div key={props.key} style={props.style}>
+                    {this.props.data.getColumn(props.columnIndex - 1).getName()}
+                </div>
+            );
+        }
+
+        // Data cell
+        let columnIndex = props.columnIndex - 1;
+        let rowIndex = props.rowIndex - 1;
+        return (
+            <div key={props.key} style={props.style}>
+                {this.props.data.getColumn(columnIndex).getRowAsString(rowIndex)}
+            </div>
+        );
     }
 
     // Render the full table
@@ -64,13 +73,14 @@ class Table extends React.Component<ITableProps, ITableState> {
             <div className="table">
                 <MultiGrid
                     cellRenderer={this.renderCell.bind(this)}
-                    columnCount={this.props.data.getColumnCount()}
+                    columnCount={this.props.data.getColumnCount() + 1}
                     columnWidth={100}
                     fixedRowCount={1}
+                    fixedColumnCount={1}
                     height={this.props.size.height || 200}
                     width={this.props.size.width || 300}
                     rowCount={this.props.data.getRowCount() + 1}
-                    rowHeight={40}
+                    rowHeight={32}
                 />
             </div>
         );
