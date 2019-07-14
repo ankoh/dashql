@@ -1,9 +1,9 @@
-.Router {
+.router {
     height: 100%;
     width: 100%;
 }
 
-.Router > .NavigationBar {
+.router > .NavigationBar {
     position: fixed;
     top: 16px;
     left: 16px;
@@ -11,7 +11,7 @@
     height: auto;
 }
 
-.Router > .StatusBar {
+.router > .StatusBar {
     position: fixed;
     bottom: 16px;
     right: 16px;
@@ -19,7 +19,7 @@
     height: 24px !important;
 }
 
-.Router-Page-Container {
+.router-page-container {
     height: 100%;
     width: 100%;
 
@@ -31,7 +31,7 @@
     background-color: rgb(41, 45, 52);
 }
 
-.Router-Page {
+.router-page {
     width: 80%;
     max-width: 900px;
 }

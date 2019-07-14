@@ -16,10 +16,10 @@ class Router extends React.Component<IRouterProps> {
         switch (this.props.rootView) {
             case Model.RootView.EXPLORER:
                 return (
-                    <div className="Router">
+                    <div className="router">
                         <NavigationBar />
-                        <div className="Router-Page-Container">
-                            <div className="Router-Page">
+                        <div className="router-page-container">
+                            <div className="router-page">
                                 <Explorer />
                             </div>
                         </div>
