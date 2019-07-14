@@ -2,21 +2,24 @@ import * as React from 'react';
 import * as Model from '../../model';
 import { connect } from 'react-redux';
 import { MultiGrid, GridCellProps } from 'react-virtualized';
+import { withSize, SizeMeProps } from 'react-sizeme';
 
 import './table.css';
 
-const list = [
-  ['Brian Vaughn', 'Software Engineer', 'San Jose', 'CA', 95125 /* ... */ ]
-];
-
 // The table properties
-interface ITableProps {
+interface ITableProps extends SizeMeProps {
     data: Model.DataSource;
 }
 
+// The table state
+interface ITableState {
+    width: number;
+    height: number;
+}
+
 // The table
-class Table extends React.Component<ITableProps> {
-    private lastUpdate: number;
+class Table extends React.Component<ITableProps, ITableState> {
+    protected lastUpdate: number;
 
     // Constructor
     constructor(props: ITableProps) {
@@ -25,8 +28,10 @@ class Table extends React.Component<ITableProps> {
     }
 
     // Only update the component if the timestamp changes
-    public shouldComponentUpdate(nextProps: ITableProps): boolean {
-        if (this.props === nextProps && this.lastUpdate == nextProps.data.timestamp) {
+    public shouldComponentUpdate(nextProps: ITableProps, nextState: ITableState): boolean {
+        if (this.state === nextState &&
+            this.props === nextProps &&
+            this.lastUpdate === nextProps.data.timestamp) {
             return false;
         }
         return true;
@@ -34,11 +39,23 @@ class Table extends React.Component<ITableProps> {
 
     // Render a single cell
     public renderCell(props: GridCellProps) {
-        return (
-            <div key={props.key} style={props.style}>
-                {list[props.rowIndex][props.columnIndex]}
-            </div>
-        );
+        // Header?
+        if (props.rowIndex === 0) {
+            return (
+                <div key={props.key} style={props.style}>
+                    {this.props.data.getColumn(props.columnIndex).getName()}
+                </div>
+            );
+        } else {
+            return (
+                <div key={props.key} style={props.style}>
+                    {this.props.data.getColumn(props.columnIndex).getRowAsString(props.rowIndex)}
+                </div>
+            );
+        }
+    }
+
+    public componentDidMount() {
     }
 
     // Render the full table
@@ -46,15 +63,14 @@ class Table extends React.Component<ITableProps> {
         return (
             <div className="table">
                 <MultiGrid
-                    cellRenderer={this.renderCell}
-                    columnCount={list[0].length}
+                    cellRenderer={this.renderCell.bind(this)}
+                    columnCount={this.props.data.getColumnCount()}
                     columnWidth={100}
-                    fixedColumnCount={1}
                     fixedRowCount={1}
-                    height={300}
-                    width={300}
-                    rowCount={list.length}
-                    rowHeight={60}
+                    height={this.props.size.height || 200}
+                    width={this.props.size.width || 300}
+                    rowCount={this.props.data.getRowCount() + 1}
+                    rowHeight={40}
                 />
             </div>
         );
@@ -72,5 +88,5 @@ function mapDispatchToProps(dispatch: Model.Dispatch) {
     };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(Table);
+export default connect(mapStateToProps, mapDispatchToProps)(withSize()(Table));
 
