@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as Model from '../model';
 import { IAppContext, withAppContext } from '../app_context';
-import Grid from './viz/grid';
+import Table from './viz/table';
 import Terminal from './terminal';
 import './explorer.css';
 import {
@@ -32,7 +32,7 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className="explorer-viewer">
                     <div className="explorer-viewer-output-container">
                         <div className="explorer-viewer-output">
-                            <Grid data={this.props.dataSource} />
+                            <Table data={this.props.dataSource} />
                         </div>
                     </div>
                     <div className="explorer-viewer-controls">

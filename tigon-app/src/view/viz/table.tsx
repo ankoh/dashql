@@ -3,18 +3,18 @@ import * as Model from '../../model';
 import { connect } from 'react-redux';
 import { MultiGrid, GridCellProps } from 'react-virtualized';
 
-import './grid.css';
+import './table.css';
 
-// Grid data as an array of arrays
 const list = [
   ['Brian Vaughn', 'Software Engineer', 'San Jose', 'CA', 95125 /* ... */ ]
 ];
 
 // The table properties
-interface IGridProps {
+interface ITableProps {
     data: Model.DataSource;
 }
 
+// The cell render
 function cellRenderer(props: GridCellProps) {
     return (
         <div key={props.key} style={props.style}>
@@ -24,27 +24,29 @@ function cellRenderer(props: GridCellProps) {
 }
 
 // The table
-class Grid extends React.Component<IGridProps> {
+class Table extends React.Component<ITableProps> {
     private lastUpdate: number;
 
-    constructor(props: IGridProps) {
+    constructor(props: ITableProps) {
         super(props);
         this.lastUpdate = props.data.timestamp;
     }
+
     public render() {
         return (
-            <MultiGrid
-                className="grid"
-                cellRenderer={cellRenderer}
-                columnCount={list[0].length}
-                columnWidth={100}
-                fixedColumnCount={2}
-                fixedRowCount={1}
-                height={300}
-                width={300}
-                rowCount={list.length}
-                rowHeight={60}
-            />
+            <div className="table">
+                <MultiGrid
+                    cellRenderer={cellRenderer}
+                    columnCount={list[0].length}
+                    columnWidth={100}
+                    fixedColumnCount={2}
+                    fixedRowCount={1}
+                    height={300}
+                    width={300}
+                    rowCount={list.length}
+                    rowHeight={60}
+                />
+            </div>
         );
     }
 }
@@ -60,5 +62,5 @@ function mapDispatchToProps(dispatch: Model.Dispatch) {
     };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(Grid);
+export default connect(mapStateToProps, mapDispatchToProps)(Table);
 
