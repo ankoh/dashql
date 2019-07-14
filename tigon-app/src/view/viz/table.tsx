@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as Model from '../../model';
 import { connect } from 'react-redux';
-import { AutoSizer, MultiGrid, GridCellProps } from 'react-virtualized';
+import { AutoSizer, MultiGrid, GridCellProps, Index } from 'react-virtualized';
 
 import './table.css';
 
@@ -66,16 +66,27 @@ class Table extends React.Component<ITableProps, ITableState> {
         );
     }
 
+    // 
+    public computeColumnWidth(index: Index, totalWidth: number): number {
+        return 42;
+        // return index ? 50: ((totalWidth - 50) / this.props.data.getColumnCount());
+    }
+
     // Render the full table
     public render() {
+        let columnCount = this.props.data.getColumnCount();
         return (
             <div className="table">
                 <AutoSizer>
                     {({ height, width }) => (
                         <MultiGrid
                             cellRenderer={this.renderCell.bind(this)}
-                            columnCount={this.props.data.getColumnCount() + 1}
-                            columnWidth={100}
+                            columnCount={columnCount + 1}
+                            columnWidth={function(index: Index) {
+                                return (index.index == 0)
+                                    ? 48
+                                    : ((width - 50) / columnCount); 
+                            }}
                             height={height}
                             width={width}
                             fixedRowCount={1}
