@@ -23,6 +23,8 @@ import { connect } from 'react-redux';
 interface IExplorerProps {
     appContext: IAppContext;
     dataSource: Model.DataSource;
+
+    setExplorerDataSource: (d: Model.DataSource) => void;
 }
 
 class Explorer extends React.Component<IExplorerProps> {
@@ -133,12 +135,15 @@ class Explorer extends React.Component<IExplorerProps> {
     // Component did mount to the dom
     public componentDidMount() {
         let ctrl = this.props.appContext.ctrl;
+        let self = this;
         ctrl.terminal.read("> ", "   ",)
             .then(function(text: string) {
-                console.log("ok: " + text);
+                let result = ctrl.core.runQuery(text);
+                let d = new Model.QueryResultDataSource(result);
+                self.props.setExplorerDataSource(d);
             })
             .catch(function(text: string) {
-                console.log("err: " + text);
+                ctrl.terminal.printLine("err: " + text);
             });
 
     }
@@ -152,6 +157,7 @@ function mapStateToExplorerProps(state: Model.RootState) {
 
 function mapDispatchToExplorerProps(dispatch: Model.Dispatch) {
     return {
+        setExplorerDataSource: (d: Model.DataSource) => { dispatch(Model.setExplorerDataSource(d)); },
     };
 }
 

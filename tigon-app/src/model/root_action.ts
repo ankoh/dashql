@@ -1,14 +1,16 @@
 import * as State from "./root_state";
+import * as Model from "../model";
 
 // ---------------------------------------------------------------------------
 // The action type
 // ---------------------------------------------------------------------------
 
 export enum ActionType {
-    CONFIGURE_APP           = 'CONFIGURE_APP',
-    NAVIGATE_ROOT           = 'NAVIGATE_ROOT',
-    PUSH_LOG_ENTRY          = 'PUSH_LOG_ENTRY',
-    OTHER                   = 'OTHER',
+    CONFIGURE_APP               = 'CONFIGURE_APP',
+    NAVIGATE_ROOT               = 'NAVIGATE_ROOT',
+    PUSH_LOG_ENTRY              = 'PUSH_LOG_ENTRY',
+    SET_EXPLORER_DATA_SOURCE    = 'SET_EXPLORER_DATA_SOURCE',
+    OTHER                       = 'OTHER',
 }
 
 // ---------------------------------------------------------------------------
@@ -19,6 +21,7 @@ export type RootAction =
     | Action<ActionType.CONFIGURE_APP, State.AppConfig>
     | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
+    | Action<ActionType.SET_EXPLORER_DATA_SOURCE, Model.DataSource>
     | Action<ActionType.OTHER, {}>;
 
 // ---------------------------------------------------------------------------
@@ -49,4 +52,8 @@ export function navigateRoot(view: State.RootView): RootAction {
 
 export function configureApp(config: State.AppConfig): RootAction {
     return createAction<ActionType.CONFIGURE_APP, State.AppConfig>(ActionType.CONFIGURE_APP, config);
+}
+
+export function setExplorerDataSource(d: Model.DataSource): RootAction {
+    return createAction<ActionType.SET_EXPLORER_DATA_SOURCE, Model.DataSource>(ActionType.SET_EXPLORER_DATA_SOURCE, d);
 }
