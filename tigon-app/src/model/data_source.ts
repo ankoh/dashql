@@ -77,14 +77,14 @@ export class QueryResultDataSource extends DataSource {
     constructor(result: ctrl.QueryResult) {
         super();
         this.result = result;
-        this.chunks = new Array();
+        this.chunks = [];
         let resultBuffer = result.getBuffer();
 
         // Prepare column arrays
         let columnCount = resultBuffer.columnRawTypesLength();
-        this.columnData = new Array();
+        this.columnData = [];
         for (let i = 0; i < columnCount; ++i) {
-            this.columnData.push(new Array());
+            this.columnData.push([]);
         }
 
         // Write chunks
@@ -128,6 +128,7 @@ export class QueryResultDataSource extends DataSource {
                             } else {
                                 this.columnData[j].push(new DataView(buffer.buffer, buffer.byteOffset, buffer.length));
                             }
+                            break;
                         }
                         case proto.RawTypeID.VARCHAR:
                             // Push indexed buffer

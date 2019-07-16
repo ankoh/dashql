@@ -93,7 +93,7 @@ class Table extends React.Component<ITableProps, ITableState> {
                                 let equalWidths = available / columnCount;
                                 let maxWidth = available * 0.2;
                                 let minWidth = 60;
-                                return (index.index == 0)
+                                return (index.index === 0)
                                     ? lineNumberWidth
                                     : Math.max(Math.min(equalWidths, maxWidth), minWidth); 
                             }}
