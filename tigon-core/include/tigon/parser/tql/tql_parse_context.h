@@ -18,98 +18,10 @@ namespace tql {
 // ---------------------------------------------------------------------------------------------------
 struct Parser;
 // ---------------------------------------------------------------------------------------------------
-// A single type
-struct Type {
-    // Type class
-    enum Class: uint8_t {
-        kInteger,
-        kTimestamp,
-        kNumeric,
-        kChar,
-        kVarchar,
-    };
-    // The type class
-    Class tclass;
-    // The type argument (if any)
-    union {
-        struct {
-            uint32_t length;
-            uint32_t precision;
-        };
-    };
-
-    // Get type name
-    const char *Name() const;
-
-    // Static methods to construct a column
-    static Type Integer();
-    static Type Timestamp();
-    static Type Numeric(unsigned length, unsigned precision);
-    static Type Char(unsigned length);
-    static Type Varchar(unsigned length);
+struct LoadStatement {
 };
 // ---------------------------------------------------------------------------------------------------
-// An index type
-enum IndexType: uint8_t {
-    kSTLUnorderedMap,
-    kSTLMap,
-    kSTXMap
-};
-// ---------------------------------------------------------------------------------------------------
-// A single column
-// Required by test/schemac/schema_parser_test.cc
-struct Column {
-    // Name of the column
-    std::string id;
-    // Type of the column
-    Type type;
-};
-// ---------------------------------------------------------------------------------------------------
-// A single table
-// Required by test/schemac/schema_parser_test.cc
-struct Table {
-    // Name of the table
-    std::string id;
-    // Columns
-    std::vector<Column> columns;
-    // Primary key
-    std::vector<Column> primary_key;
-    // Index type
-    IndexType index_type;
-};
-// ---------------------------------------------------------------------------------------------------
-// A single index
-// Required by test/schemac/schema_parser_test.cc
-struct Index {
-    // Name of the index
-    std::string id;
-    // Name of the indexed table
-    std::string table_id;
-    // Columns
-    std::vector<Column> columns;
-    // Index type
-    IndexType index_type;
-};
-// ---------------------------------------------------------------------------------------------------
-// A complete schema
-// Required by test/schemac/schema_parser_test.cc
-struct Schema {
-    // Tables
-    std::vector<Table> tables;
-    // Indexes
-    std::vector<Index> indexes;
-};
-// ---------------------------------------------------------------------------------------------------
-// Some declaration for the example grammar
-struct SomeDeclaration {
-    // The identifier
-    std::string id;
-    // The type
-    Type type;
-
-    // Constructor
-    explicit SomeDeclaration(const std::string &id = "", Type type = Type::Integer())
-        : id(id), type(type) {}
+struct ExtractStatement {
 };
 // ---------------------------------------------------------------------------------------------------
 // Schema parse context

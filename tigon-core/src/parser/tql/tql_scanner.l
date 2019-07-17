@@ -85,15 +85,20 @@ loc.step ();
 %}
 
 [ \t]+              { loc.step(); }
-"\n"                { loc.lines (yyleng); loc.step (); }
-";"                 { return tql::Parser::make_SEMICOLON(loc); }
-","                 { return tql::Parser::make_COMMA(loc); }
-"{"                 { return tql::Parser::make_LCB(loc); }
-"}"                 { return tql::Parser::make_RCB(loc); }
-"integer"           { return tql::Parser::make_INTEGER(loc); }
-"char"              { return tql::Parser::make_CHAR(loc); }
-"foo"               { return tql::Parser::make_FOO(loc); }
+\n                  { loc.lines (yyleng); loc.step (); }
+
+;                   { return tql::Parser::make_SEMICOLON(loc); }
+,                   { return tql::Parser::make_COMMA(loc); }
+{                   { return tql::Parser::make_LCB(loc); }
+}                   { return tql::Parser::make_RCB(loc); }
+
+(select|with)[^;]*  { return tql::Parser::make_SQL_STATEMENT(yytext, loc); }
+
+integer             { return tql::Parser::make_INTEGER(loc); }
+char                { return tql::Parser::make_CHAR(loc); }
+foo                 { return tql::Parser::make_FOO(loc); }
 [a-z][a-z0-9_]*     { return tql::Parser::make_IDENTIFIER(yytext, loc); }
+
 [0-9]+              {
                         uint32_t value = 0;
                         try {
@@ -105,6 +110,7 @@ loc.step ();
                         }
                         return tql::Parser::make_INTEGER_VALUE(value, loc);
                     }
+
 <<EOF>>             { return tql::Parser::make_EOF(loc); }
 .                   { ctx.Error(loc.begin.line, loc.begin.column, "invalid character"); }
 

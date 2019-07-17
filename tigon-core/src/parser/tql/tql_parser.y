@@ -40,17 +40,35 @@ tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 }
 // ---------------------------------------------------------------------------------------------------
 // Token definitions
-%token <int>            INTEGER_VALUE    "integer_value"
-%token <std::string>    IDENTIFIER       "identifier"
-%token LCB              "left_curly_brackets"
-%token RCB              "right_curly_brackets"
-%token SEMICOLON        "semicolon"
-%token INTEGER          "integer"
-%token CHAR             "char"
-%token COMMA            "comma"
-%token FOO              "foo"
-%token BAR              "bar"
-%token EOF 0            "eof"
+%token <std::string_view>   SQL_STATEMENT "sql_statement"
+%token <std::string_view>   IDENTIFIER    "identifier"
+
+%token SEMICOLON            "semicolon"
+
+%token LRB                  "left_round_brackets"
+%token RRB                  "right_round_brackets"
+%token LOAD                 "load"
+%token EXTRACT              "extract"
+%token AS                   "as"
+%token INTO                 "into"
+%token FROM                 "from"
+%token JSONPATH             "jsonpath"
+%token HTTP                 "http"
+%token FILE                 "file"
+%token DATA                 "data"
+%token WITH                 "with"
+%token USING                "using"
+%token DECLARE              "declare"
+%token DEFINE               "define"
+
+%token <int>                INTEGER_VALUE    "integer_value"
+%token INTEGER              "integer"
+%token CHAR                 "char"
+%token COMMA                "comma"
+%token FOO                  "foo"
+%token BAR                  "bar"
+
+%token EOF 0                "eof"
 // ---------------------------------------------------------------------------------------------------
 %type <std::vector<tigon::tql::SomeDeclaration>> some_declaration_list;
 %type <tigon::tql::SomeDeclaration> some_declaration;
@@ -58,29 +76,79 @@ tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 // ---------------------------------------------------------------------------------------------------
 %%
 
-%start foo_statement_list;
+%start tql_statement_list;
 
-foo_statement_list:
-    foo_statement_list foo_statment
+tql_statement_list:
+    tql_statement_list tql_statement SEMICOLON
  |  %empty
     ;
 
-foo_statment:
-    FOO IDENTIFIER LCB some_declaration_list RCB SEMICOLON         { ctx.defineFoo($2, $4); }
+tql_statement:
+    SQL_STATEMENT       { std::swap($$, $1); }
+ |  declaration         { std::swap($$, $1); }
+ |  load_statement      { std::swap($$, $1); }
+ |  extract_statement   { std::swap($$, $1); }
     ;
 
-some_declaration_list:
-    some_declaration_list COMMA some_declaration        { $1.push_back($3); std::swap($$, $1); }
- |  some_declaration                                    { $$ = std::vector<tigon::tql::SomeDeclaration> { $1 }; }
- |  %empty                                              {}
+parameter_type:
+    INTEGER
+ |  FLOAT
+ |  TEXT
+ |  DATE
+ |  DATETIME
+ |  TIME
     ;
 
-some_declaration:
-    IDENTIFIER some_type                                { $$ = tigon::tql::SomeDeclaration($1, $2); }
+declaration:
+    DECLARE input_or_output_declaration
+    ;
 
-some_type:
-    INTEGER                                             { $$ = Type::Integer(); }
- |  CHAR LCB INTEGER_VALUE RCB                          { $$ = Type::Char($3); }
+input_or_output_declaration:
+    INPUT input_declaration
+ |  OUTPUT output_declaration
+    ;
+
+input_declaration:
+    PARAMETER IDENTIFIER opt_as parameter_type { $$ = Declaration() }
+ |  DATA IDENTIFIER { $$ = Declaration() }
+    ;
+
+output_declaration:
+    VIEW IDENTIFIER
+    ;
+
+opt_as:
+    AS
+ |  %empty
+    ;
+
+load_statement:
+    LOAD IDENTIFIER FROM load_method { $$ = LoadStatement(); }
+    ;
+
+load_method:
+    HTTP LRB RRB { $$ = LoadMethod(); }
+  | FILE LRB RRB { $$ = LoadMethod(); }
+    ;
+
+extract_statement:
+    EXTRACT IDENTIFIER extract_argument_list { $$ = ExtractStatement(); }
+    ;
+
+extract_argument_list:
+    extract_argument_list extract_argument
+  | %empty
+    ;
+
+extract_argument:
+    INTO IDENTIFIER { $$ = ExtractIdentifier() }
+  | USING extract_method { std::swap($$, $1); }
+    ;
+
+extract_method:
+    CSV LRB RRB { $$ = CSVExtraction(); }
+  | JSONPATH LRB RRB { $$ = JSONPathExtraction(); }
+    ;
 
 %%
 // ---------------------------------------------------------------------------------------------------
