@@ -9,7 +9,7 @@ load raw_data from http (
     url = "http://history.openweathermap.org/{{days}}"
 );
 
-extract raw_data into weather_data using jsonpath (
+extract weather_data from raw_data using jsonpath (
     day = '$.values[*].foo' as integer,
     value = '$.values[*].bar' as float,
 );
