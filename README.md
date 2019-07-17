@@ -2,8 +2,7 @@
 TQL
 
 ```
-declare input parameter days as integer;
-declare input data raw_data;
+declare parameter days as integer;
 
 load raw_data from http (
     method = "get",
