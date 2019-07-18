@@ -10,8 +10,11 @@ load raw_data from http (
 );
 
 extract weather_data from raw_data using jsonpath (
-    day = '$.values[*].foo' as integer,
-    value = '$.values[*].bar' as float,
+    prefix = '$.values[*]',
+    columns = (
+        day = '@.foo' as integer,
+        value = '@.bar' as float
+    )
 );
 
 define output as
