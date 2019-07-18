@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------------------------------
-// TIGON
+// Tigon
 // ---------------------------------------------------------------------------------------------------
 %skeleton "lalr1.cc"
 %require "3.0.4"
@@ -9,7 +9,7 @@
 // Define the parser class name
 %define parser_class_name {Parser}
 // Create the parser in our namespace
-%define api.namespace {tigon::tql}
+%define api.namespace {tigon::ql}
 // Use C++ variant to store the values and get better type warnings (compared to "union")
 %define api.value.type variant
 // With variant-based values, symbols are handled as a whole in the scanner
@@ -25,18 +25,18 @@
 // Enable location tracking.
 %locations
 // Pass the compiler as parameter to yylex/yyparse.
-%param { tigon::tql::ParseContext &ctx }
+%param { tigon::ql::ParseContext &ctx }
 // ---------------------------------------------------------------------------------------------------
 // Added to the header file and parser implementation before bison definitions.
 // We include string for string tokens and forward declare the parse context.
 %code requires {
 #include <string>
-#include "tigon/parser/tql/tql_parse_context.h"
+#include "tigon/parser/ql/ql_parse_context.h"
 }
 // ---------------------------------------------------------------------------------------------------
 // Import the compiler header in the implementation file
 %code {
-tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
+tigon::ql::Parser::symbol_type yylex(tigon::ql::ParseContext& ctx);
 }
 // ---------------------------------------------------------------------------------------------------
 // Token definitions
@@ -70,24 +70,35 @@ tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 
 %token EOF 0                "eof"
 // ---------------------------------------------------------------------------------------------------
-%type <std::vector<tigon::tql::SomeDeclaration>> some_declaration_list;
-%type <tigon::tql::SomeDeclaration> some_declaration;
-%type <tigon::tql::Type> some_type;
+%type <std::vector<tigon::ql::SomeDeclaration>> some_declaration_list;
+%type <tigon::ql::SomeDeclaration> some_declaration;
+%type <tigon::ql::Type> some_type;
 // ---------------------------------------------------------------------------------------------------
 %%
 
-%start tql_statement_list;
+%start ql_statement_list;
 
-tql_statement_list:
-    tql_statement_list tql_statement SEMICOLON
+ql_statement_list:
+    ql_statement_list ql_statement SEMICOLON
  |  %empty
     ;
 
-tql_statement:
-    SQL_STATEMENT       { std::swap($$, $1); }
- |  declaration         { std::swap($$, $1); }
+ql_statement:
+    declaration         { std::swap($$, $1); }
+ |  definition          { std::swap($$, $1); }
  |  load_statement      { std::swap($$, $1); }
  |  extract_statement   { std::swap($$, $1); }
+    ;
+
+declaration:
+    DECLARE PARAMETER IDENTIFIER opt_as parameter_type {
+        $$ = Declaration()
+    }
+    ;
+
+opt_as:
+    AS
+ |  %empty
     ;
 
 parameter_type:
@@ -99,27 +110,8 @@ parameter_type:
  |  TIME
     ;
 
-declaration:
-    DECLARE input_or_output_declaration
-    ;
-
-input_or_output_declaration:
-    INPUT input_declaration
- |  OUTPUT output_declaration
-    ;
-
-input_declaration:
-    PARAMETER IDENTIFIER opt_as parameter_type { $$ = Declaration() }
- |  DATA IDENTIFIER { $$ = Declaration() }
-    ;
-
-output_declaration:
-    VIEW IDENTIFIER
-    ;
-
-opt_as:
-    AS
- |  %empty
+definition:
+    DEFINE OUTPUT AS SQL_STATEMENT
     ;
 
 load_statement:
@@ -127,33 +119,25 @@ load_statement:
     ;
 
 load_method:
-    HTTP LRB RRB { $$ = LoadMethod(); }
-  | FILE LRB RRB { $$ = LoadMethod(); }
+    HTTP LRB RRB { $$ = HTTPLoader(); }
+  | FILE LRB RRB { $$ = FileLoader(); }
     ;
 
 extract_statement:
-    EXTRACT IDENTIFIER extract_argument_list { $$ = ExtractStatement(); }
-    ;
-
-extract_argument_list:
-    extract_argument_list extract_argument
-  | %empty
-    ;
-
-extract_argument:
-    INTO IDENTIFIER { $$ = ExtractIdentifier() }
-  | USING extract_method { std::swap($$, $1); }
+    EXTRACT IDENTIFIER FROM IDENTIFIER USING extract_method {
+        $$ = ExtractStatement();
+    }
     ;
 
 extract_method:
-    CSV LRB RRB { $$ = CSVExtraction(); }
-  | JSONPATH LRB RRB { $$ = JSONPathExtraction(); }
+    CSV LRB RRB { $$ = CSVExtractor(); }
+  | JSONPATH LRB RRB { $$ = JSONPathExtractor(); }
     ;
 
 %%
 // ---------------------------------------------------------------------------------------------------
 // Define error function
-void tigon::tql::Parser::error(const location_type& l, const std::string& m) {
+void tigon::ql::Parser::error(const location_type& l, const std::string& m) {
     ctx.Error(l.begin.line, l.begin.column, m);
 }
 // ---------------------------------------------------------------------------------------------------

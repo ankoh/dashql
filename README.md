@@ -1,5 +1,5 @@
 
-TQL
+TigonQL
 
 ```
 declare parameter days as integer;

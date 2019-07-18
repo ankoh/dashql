@@ -1,13 +1,13 @@
 // ---------------------------------------------------------------------------------------------------
 // Tigon
 // ---------------------------------------------------------------------------------------------------
-#include "tigon/parser/tql/tql_parse_context.h"
-#include "./gen/tql_parser.h"
+#include "tigon/parser/ql/ql_parse_context.h"
+#include "./gen/ql_parser.h"
 #include <sstream>
 #include <unordered_set>
 #include "tigon/infra/error.h"
 // ---------------------------------------------------------------------------------------------------
-using namespace tigon::tql;
+using namespace tigon::ql;
 // ---------------------------------------------------------------------------------------------------
 Type Type::Integer()    { Type t; t.tclass = kInteger; return t; }
 Type Type::Timestamp()  { Type t; t.tclass = kTimestamp; return t; }
@@ -52,7 +52,7 @@ ParseContext::~ParseContext() {}
 // Parse a string
 Schema ParseContext::Parse(std::istream &in) {
     beginScan(in);
-    tigon::tql::Parser parser(*this);
+    tigon::ql::Parser parser(*this);
     parser.set_debug_level(trace_parsing_);
     parser.parse();
     endScan();

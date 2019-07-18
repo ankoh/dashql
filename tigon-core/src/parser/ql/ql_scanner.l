@@ -13,22 +13,22 @@
 #include <cstdlib>
 #include <string>
 #include <istream>
-#include "tigon/parser/tql/tql_parse_context.h"
-#include "./tql_parser.h"
+#include "tigon/parser/ql/ql_parse_context.h"
+#include "./ql_parser.h"
 
 namespace tigon {
-namespace tql {
+namespace ql {
 
 // The location of the current token
-extern tigon::tql::location loc;
+extern tigon::ql::location loc;
 // The input stream of the scanner
 extern std::istream *in;
 
-}  // namespace tql
+}  // namespace ql
 }  // namespace tigon
 
 using namespace tigon;
-using namespace tigon::tql;
+using namespace tigon::ql;
 
 // Work around an incompatibility in flex (at least versions
 // 2.5.31 through 2.5.33): it generates code that does
@@ -87,17 +87,17 @@ loc.step ();
 [ \t]+              { loc.step(); }
 \n                  { loc.lines (yyleng); loc.step (); }
 
-;                   { return tql::Parser::make_SEMICOLON(loc); }
-,                   { return tql::Parser::make_COMMA(loc); }
-{                   { return tql::Parser::make_LCB(loc); }
-}                   { return tql::Parser::make_RCB(loc); }
+;                   { return ql::Parser::make_SEMICOLON(loc); }
+,                   { return ql::Parser::make_COMMA(loc); }
+{                   { return ql::Parser::make_LCB(loc); }
+}                   { return ql::Parser::make_RCB(loc); }
 
-(select|with)[^;]*  { return tql::Parser::make_SQL_STATEMENT(yytext, loc); }
+(select|with)[^;]*  { return ql::Parser::make_SQL_STATEMENT(yytext, loc); }
 
-integer             { return tql::Parser::make_INTEGER(loc); }
-char                { return tql::Parser::make_CHAR(loc); }
-foo                 { return tql::Parser::make_FOO(loc); }
-[a-z][a-z0-9_]*     { return tql::Parser::make_IDENTIFIER(yytext, loc); }
+integer             { return ql::Parser::make_INTEGER(loc); }
+char                { return ql::Parser::make_CHAR(loc); }
+foo                 { return ql::Parser::make_FOO(loc); }
+[a-z][a-z0-9_]*     { return ql::Parser::make_IDENTIFIER(yytext, loc); }
 
 [0-9]+              {
                         uint32_t value = 0;
@@ -108,10 +108,10 @@ foo                 { return tql::Parser::make_FOO(loc); }
                         } catch(const std::out_of_range &err) {
                             ctx.Error(loc.begin.line, loc.begin.column, "integer out of range");
                         }
-                        return tql::Parser::make_INTEGER_VALUE(value, loc);
+                        return ql::Parser::make_INTEGER_VALUE(value, loc);
                     }
 
-<<EOF>>             { return tql::Parser::make_EOF(loc); }
+<<EOF>>             { return ql::Parser::make_EOF(loc); }
 .                   { ctx.Error(loc.begin.line, loc.begin.column, "invalid character"); }
 
 %%
@@ -121,18 +121,18 @@ foo                 { return tql::Parser::make_FOO(loc); }
 // ---------------------------------------------------------------------------------------------------
 
 // The input stream
-tigon::tql::location tigon::tql::loc;
+tigon::ql::location tigon::ql::loc;
 // The input stream of the scanner
-std::istream *tigon::tql::in = nullptr;
+std::istream *tigon::ql::in = nullptr;
 
 // Begin a scan
-void tigon::tql::ParseContext::beginScan(std::istream &is) {
+void tigon::ql::ParseContext::beginScan(std::istream &is) {
     yy_flex_debug = trace_scanning_;
     in = &is;
 }
 
 // End a scan
-void tigon::tql::ParseContext::endScan() {
+void tigon::ql::ParseContext::endScan() {
     in = nullptr;
 }
 
