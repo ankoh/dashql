@@ -63,7 +63,9 @@ tigon::ql::Parser::symbol_type yylex(tigon::ql::ParseContext& ctx);
 %token FILE                 "file"
 %token FLOAT                "float"
 %token FROM                 "from"
+%token GET                  "get"
 %token GRID                 "grid"
+%token HASH                 "hash"
 %token HISTOGRAM            "histogram"
 %token HTTP                 "http"
 %token INTEGER              "integer"
@@ -78,15 +80,17 @@ tigon::ql::Parser::symbol_type yylex(tigon::ql::ParseContext& ctx);
 %token LRB                  "left_round_bracket"
 %token LSB                  "left_square_bracket"
 %token MD                   "md"
+%token METHOD               "method"
 %token NUMBER               "number"
 %token PALETTE              "palette"
 %token PERCENT              "percent"
 %token PIE                  "pie"
 %token POINT                "point"
+%token POST                 "post"
+%token PUT                  "put"
 %token PX                   "px"
-%token RRB                  "right_round_bracket"
 %token RGB                  "rgb"
-%token HASH                 "hash"
+%token RRB                  "right_round_bracket"
 %token RSB                  "right_square_bracket"
 %token SCALE                "scale"
 %token SCATTER              "scatter"
@@ -96,6 +100,7 @@ tigon::ql::Parser::symbol_type yylex(tigon::ql::ParseContext& ctx);
 %token TABLE                "table"
 %token TEXT                 "text"
 %token TIME                 "time"
+%token URL                  "url"
 %token USING                "using"
 %token WITH                 "with"
 %token X                    "x"
@@ -155,8 +160,24 @@ load_statement:
     ;
 
 load_method:
-    HTTP LRB RRB { $$ = HTTPLoader(); }
-  | FILE LRB RRB { $$ = FileLoader(); }
+    HTTP LRB load_method_http_arg_list RRB { $$ = HTTPLoader(); }
+  | FILE { $$ = FileLoader(); }
+    ;
+
+load_method_http_arg_list:
+    load_method_http_arg_list load_method_http_arg COMMA
+  | %empty
+    ;
+
+load_method_http_arg:
+    METHOD EQUAL http_method
+  | URL STRING_VALUE
+    ;
+
+http_method:
+    GET
+ |  PUT
+ |  POST
     ;
 
 extract_statement:
@@ -235,7 +256,7 @@ vis_axes_arg_list:
 
 vis_axes_arg:
     X EQUAL vis_axis_arg_list
-    Y EQUAL vis_axis_arg_list
+ |  Y EQUAL vis_axis_arg_list
     ;
 
 vis_axis_arg_list:
@@ -281,10 +302,15 @@ vis_layout_arg:
     ROW EQUAL NUMBER_VALUE
  |  WIDTH EQUAL LRB vis_layout_width_arg_list RRB
  |  HEIGHT EQUAL LRB vis_layout_height_arg_list RRB
-
     ;
 
-vis_layout_class: STAR | SM | MD | LG | XL;
+vis_layout_class:
+    STAR
+ |  SM
+ |  MD
+ |  LG
+ |  XL
+    ;
 
 vis_layout_width_arg_list:
     vis_layout_width_arg_list vis_layout_width_arg COMMA
@@ -313,8 +339,6 @@ vis_layout_unit:
     PERCENT
  |  PX
     ;
-
-
 
 %%
 
