@@ -63,14 +63,14 @@ Schema ParseContext::Parse(std::istream &in) {
 // ---------------------------------------------------------------------------------------------------
 // Yield an error
 void ParseContext::Error(const std::string& m) {
-    throw TQLParseError(m);
+    throw QLParseError(m);
 }
 // ---------------------------------------------------------------------------------------------------
 // Yield an error
 void ParseContext::Error(uint32_t line, uint32_t column, const std::string &err) {
     std::stringstream ss;
     ss << "[ l=" << line << " c=" << column << " ] " << err << std::endl;
-    throw TQLParseError(ss.str());
+    throw QLParseError(ss.str());
 }
 // ---------------------------------------------------------------------------------------------------
 // Define a table
