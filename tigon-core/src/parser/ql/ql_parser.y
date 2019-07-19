@@ -118,9 +118,10 @@ statement_list:
     ;
 
 statement:
-    parameter_declaration
+    extract_statement
  |  load_statement
- |  extract_statement
+ |  parameter_declaration
+ |  sql_statment
  |  vis_statement
     ;
 
