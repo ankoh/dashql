@@ -124,6 +124,71 @@ struct ExtractStatement {
     ExtractMethod method;
 };
 
+struct VisArguments {
+    /// A length unit
+    enum LengthUnit: uint8_t {
+        Span = 0,
+        Pixel = 1,
+        Percent = 2,
+    };
+
+    /// The scale of an axis
+    enum AxisScale: uint8_t {
+        Linear = 0,
+        Logarithmic = 1,
+    };
+
+    /// A length value
+    struct LengthValue {
+        /// The length
+        uint16_t value;
+        /// The unit
+        LengthUnit unit;
+        /// Is set?
+        bool is_set;
+    };
+
+    /// A layout length
+    struct LayoutLength {
+        /// Small displays
+        LengthValue sm;
+        /// Medium displays
+        LengthValue md;
+        /// Large displays
+        LengthValue lg;
+        /// Extra large displays
+        LengthValue xl;
+    };
+
+    /// A layout
+    struct Layout {
+        /// The width
+        LayoutLength width;
+        /// The height
+        LayoutLength height;
+    };
+
+    /// An axis
+    struct Axis {
+        /// The column
+        std::string_view column;
+        /// The scale
+        AxisScale scale;
+    };
+
+    /// The axes
+    struct Axes {
+        /// X-axis
+        Axis x;
+        /// Y-axis
+        Axis y;
+    };
+};
+
+struct VisStatement {
+};
+
+
 /// A statement
 using Statement = std::variant<
     ExtractStatement,

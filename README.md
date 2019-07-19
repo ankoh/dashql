@@ -18,7 +18,6 @@ extract weather_data from raw_data using jsonpath (
 
 visualize wheather_data using line chart (
     layout = (
-        row = 0,
         width = (
             * = 8,
             sm = 4,
