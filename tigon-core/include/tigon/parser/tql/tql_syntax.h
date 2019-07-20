@@ -34,8 +34,6 @@ struct ParameterDeclaration {
     std::string_view name;
     /// The type
     Type type;
-    /// The default value
-    std::string_view default_value;
 };
 
 /// A load statement

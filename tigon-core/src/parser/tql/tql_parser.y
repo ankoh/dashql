@@ -124,6 +124,7 @@ using std::vector;
 %type <DisplayStatement::Type> display_method;
 %type <DisplayStatement::TypeFlag> display_method_prefix;
 %type <LoadStatement::HTTPLoader::Method> http_method;
+%type <Type> type;
 %type <std::string_view> identifier;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
 %type <std::unique_ptr<DisplayStatement>> display_statement;
@@ -148,7 +149,7 @@ statement:
     ;
 
 parameter_declaration:
-    DECLARE PARAMETER identifier opt_as parameter_type
+    DECLARE PARAMETER identifier opt_as type
     ;
 
 identifier:
@@ -161,13 +162,13 @@ opt_as:
  |  %empty
     ;
 
-parameter_type:
-    INTEGER
- |  FLOAT
- |  TEXT
- |  DATE
- |  DATETIME
- |  TIME
+type:
+    INTEGER   { $$ = Type::Integer; }
+ |  FLOAT     { $$ = Type::Float; }
+ |  TEXT      { $$ = Type::Text; }
+ |  DATE      { $$ = Type::Date; }
+ |  DATETIME  { $$ = Type::DateTime; }
+ |  TIME      { $$ = Type::Time; }
     ;
 
 sql_statement:
