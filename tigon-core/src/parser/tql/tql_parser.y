@@ -38,7 +38,7 @@
 
 // Import the compiler header in the implementation file
 %code {
-tigon::ql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
+tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 }
 
 %token <std::string_view>   SQL_SELECT          "sql_select"
@@ -57,15 +57,11 @@ tigon::ql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 %token CHART                "chart"
 %token COLOR                "color"
 %token COLUMN               "column"
-%token COMMA                "comma"
 %token CSV                  "csv"
-%token DATA                 "data"
 %token DATE                 "date"
 %token DATETIME             "datetime"
 %token DECLARE              "declare"
-%token DEFINE               "define"
 %token DISPLAY              "display"
-%token EQUAL                "equal"
 %token EXTRACT              "extract"
 %token FIELD                "field"
 %token FILE                 "file"
@@ -73,13 +69,11 @@ tigon::ql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 %token FROM                 "from"
 %token GET                  "get"
 %token GRID                 "grid"
-%token HASH                 "hash"
 %token HEIGHT               "height"
 %token HISTOGRAM            "histogram"
 %token HORIZONTAL           "horizontal"
 %token HTTP                 "http"
 %token INTEGER              "integer"
-%token INTO                 "into"
 %token JSONPATH             "jsonpath"
 %token LAYOUT               "layout"
 %token LG                   "lg"
@@ -87,8 +81,6 @@ tigon::ql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 %token LINEAR               "linear"
 %token LOAD                 "load"
 %token LOG                  "log"
-%token LRB                  "left_round_bracket"
-%token LSB                  "left_square_bracket"
 %token MD                   "md"
 %token METHOD               "method"
 %token NUMBER               "number"
@@ -103,39 +95,34 @@ tigon::ql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 %token PX                   "px"
 %token RGB                  "rgb"
 %token ROW                  "row"
-%token RRB                  "right_round_bracket"
-%token RSB                  "right_square_bracket"
 %token SCALE                "scale"
 %token SCATTER              "scatter"
-%token SEMICOLON            "semicolon"
 %token SM                   "sm"
 %token STACKED              "stacked"
 %token STAR                 "*"
 %token TABLE                "table"
 %token TEXT                 "text"
+%token TICK                 "'"
 %token TIME                 "time"
 %token URL                  "url"
 %token USING                "using"
 %token VERTICAL             "vertical"
 %token WIDTH                "width"
-%token WITH                 "with"
-%token X                    "x"
 %token XL                   "xl"
-%token Y                    "y"
 
 %token EOF 0                "eof"
 
-// %type <std::vector<tigon::ql::SomeDeclaration>> some_declaration_list;
-// %type <tigon::ql::SomeDeclaration> some_declaration;
-// %type <tigon::ql::Type> some_type;
-// %type <tigon::ql::Type> some_type;
+// %type <std::vector<tigon::tql::SomeDeclaration>> some_declaration_list;
+// %type <tigon::tql::SomeDeclaration> some_declaration;
+// %type <tigon::tql::Type> some_type;
+// %type <tigon::tql::Type> some_type;
 
 %%
 
 %start statement_list;
 
 statement_list:
-    statement_list statement SEMICOLON
+    statement_list statement ';'
  |  %empty
     ;
 
@@ -148,7 +135,12 @@ statement:
     ;
 
 parameter_declaration:
-    DECLARE PARAMETER IDENTIFIER_LITERAL opt_as parameter_type
+    DECLARE PARAMETER identifier opt_as parameter_type
+    ;
+
+identifier:
+    IDENTIFIER_LITERAL
+ |  '\''  STRING_LITERAL '\''
     ;
 
 opt_as:
@@ -171,21 +163,21 @@ sql_statement:
     ;
 
 load_statement:
-    LOAD IDENTIFIER_LITERAL FROM load_method
+    LOAD identifier FROM load_method
     ;
 
 load_method:
-    HTTP LRB load_method_http_arg_list RRB
+    HTTP '(' load_method_http_arg_list ')'
   | FILE
     ;
 
 load_method_http_arg_list:
-    load_method_http_arg_list load_method_http_arg COMMA
+    load_method_http_arg_list load_method_http_arg ','
   | %empty
     ;
 
 load_method_http_arg:
-    METHOD EQUAL http_method
+    METHOD '=' http_method
   | URL STRING_LITERAL
     ;
 
@@ -196,16 +188,16 @@ http_method:
     ;
 
 extract_statement:
-    EXTRACT IDENTIFIER_LITERAL FROM IDENTIFIER_LITERAL USING extract_method
+    EXTRACT identifier FROM identifier USING extract_method
     ;
 
 extract_method:
-    CSV LRB RRB
-  | JSONPATH LRB RRB
+    CSV '(' ')'
+  | JSONPATH '(' ')'
     ;
 
 display_statement:
-    DISPLAY IDENTIFIER_LITERAL USING display_method_prefix_list display_method
+    DISPLAY identifier USING display_method_prefix_list display_method
     ;
 
 display_method_prefix_list:
@@ -247,7 +239,7 @@ opt_field:
     ;
 
 display_args:
-    LRB display_arg_list RRB
+    '(' display_arg_list ')'
  |  %empty
     ;
 
@@ -257,29 +249,29 @@ display_arg_list:
     ;
 
 display_arg:
-    AXES EQUAL LRB display_axes_arg_list RRB
- |  COLOR EQUAL LRB display_color_arg_list RRB
- |  LAYOUT EQUAL LRB display_layout_arg_list RRB
+    AXES '=' '(' display_axes_arg_list ')'
+ |  COLOR '=' '(' display_color_arg_list ')'
+ |  LAYOUT '=' '(' display_layout_arg_list ')'
     ;
 
 display_axes_arg_list:
-    display_axes_arg_list display_axes_arg COMMA
+    display_axes_arg_list display_axes_arg ','
  |  %empty
     ;
 
 display_axes_arg:
-    X EQUAL display_axis_arg_list
- |  Y EQUAL display_axis_arg_list
+    'x' '=' display_axis_arg_list
+ |  'y' '=' display_axis_arg_list
     ;
 
 display_axis_arg_list:
-    display_axis_arg_list display_axis_arg COMMA
+    display_axis_arg_list display_axis_arg ','
  |  %empty
     ;
 
 display_axis_arg:
-    COLUMN EQUAL IDENTIFIER_LITERAL
- |  SCALE EQUAL display_axis_scale
+    COLUMN '=' identifier
+ |  SCALE '=' display_axis_scale
 
 display_axis_scale:
     LINEAR
@@ -287,33 +279,33 @@ display_axis_scale:
     ;
 
 display_color_arg_list:
-    display_color_arg_list display_color_arg COMMA
+    display_color_arg_list display_color_arg ','
  |  %empty
     ;
 
 display_color_arg:
-    COLUMN EQUAL IDENTIFIER_LITERAL
- |  PALETTE EQUAL LSB display_color_list RSB
+    COLUMN '=' identifier
+ |  PALETTE '=' '[' display_color_list ']'
     ;
 
 display_color_list:
-    display_color_list display_color COMMA
+    display_color_list display_color ','
  |  %empty
     ;
 
 display_color:
-    RGB LRB INTEGER_LITERAL COMMA INTEGER_LITERAL COMMA INTEGER_LITERAL RRB
+    RGB '(' INTEGER_LITERAL ',' INTEGER_LITERAL ',' INTEGER_LITERAL ')'
  |  HEX_COLOR_LITERAL
     ;
 
 display_layout_arg_list:
-    display_layout_arg_list display_layout_arg COMMA
+    display_layout_arg_list display_layout_arg ','
  |  %empty
     ;
 
 display_layout_arg:
-    WIDTH EQUAL LRB display_layout_width_arg_list RRB
- |  HEIGHT EQUAL LRB display_layout_height_arg_list RRB
+    WIDTH '=' '(' display_layout_width_arg_list ')'
+ |  HEIGHT '=' '(' display_layout_height_arg_list ')'
     ;
 
 display_layout_class:
@@ -325,21 +317,21 @@ display_layout_class:
     ;
 
 display_layout_width_arg_list:
-    display_layout_width_arg_list display_layout_width_arg COMMA
+    display_layout_width_arg_list display_layout_width_arg ','
  |  %empty
     ;
 
 display_layout_width_arg:
-    display_layout_class EQUAL INTEGER_LITERAL
+    display_layout_class '=' INTEGER_LITERAL
     ;
 
 display_layout_height_arg_list:
-    display_layout_height_arg_list display_layout_height_arg COMMA
+    display_layout_height_arg_list display_layout_height_arg ','
  |  %empty
     ;
 
 display_layout_height_arg:
-    display_layout_class EQUAL INTEGER_LITERAL opt_display_layout_unit
+    display_layout_class '=' INTEGER_LITERAL opt_display_layout_unit
     ;
 
 opt_display_layout_unit:

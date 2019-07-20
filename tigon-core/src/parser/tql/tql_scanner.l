@@ -85,21 +85,70 @@ using namespace tigon::tql;
 loc.step ();
 %}
 
-[ \t]+              { loc.step(); }
-\n                  { loc.lines (yyleng); loc.step (); }
+"area"              { return Parser::make_AREA(loc); }
+"as"                { return Parser::make_AS(loc); }
+"axes"              { return Parser::make_AXES(loc); }
+"bar"               { return Parser::make_BAR(loc); }
+"box"               { return Parser::make_BOX(loc); }
+"bubble"            { return Parser::make_BUBBLE(loc); }
+"chart"             { return Parser::make_CHART(loc); }
+"color"             { return Parser::make_COLOR(loc); }
+"column"            { return Parser::make_COLUMN(loc); }
+"csv"               { return Parser::make_CSV(loc); }
+"date"              { return Parser::make_DATE(loc); }
+"datetime"          { return Parser::make_DATETIME(loc); }
+"declare"           { return Parser::make_DECLARE(loc); }
+"display"           { return Parser::make_DISPLAY(loc); }
+"extract"           { return Parser::make_EXTRACT(loc); }
+"field"             { return Parser::make_FIELD(loc); }
+"file"              { return Parser::make_FILE(loc); }
+"float"             { return Parser::make_FLOAT(loc); }
+"from"              { return Parser::make_FROM(loc); }
+"get"               { return Parser::make_GET(loc); }
+"grid"              { return Parser::make_GRID(loc); }
+"height"            { return Parser::make_HEIGHT(loc); }
+"histogram"         { return Parser::make_HISTOGRAM(loc); }
+"horizontal"        { return Parser::make_HORIZONTAL(loc); }
+"http"              { return Parser::make_HTTP(loc); }
+"integer"           { return Parser::make_INTEGER(loc); }
+"jsonpath"          { return Parser::make_JSONPATH(loc); }
+"layout"            { return Parser::make_LAYOUT(loc); }
+"lg"                { return Parser::make_LG(loc); }
+"line"              { return Parser::make_LINE(loc); }
+"linear"            { return Parser::make_LINEAR(loc); }
+"load"              { return Parser::make_LOAD(loc); }
+"log"               { return Parser::make_LOG(loc); }
+"md"                { return Parser::make_MD(loc); }
+"method"            { return Parser::make_METHOD(loc); }
+"number"            { return Parser::make_NUMBER(loc); }
+"palette"           { return Parser::make_PALETTE(loc); }
+"parameter"         { return Parser::make_PARAMETER(loc); }
+"percent"           { return Parser::make_PERCENT(loc); }
+"pie"               { return Parser::make_PIE(loc); }
+"plot"              { return Parser::make_PLOT(loc); }
+"point"             { return Parser::make_POINT(loc); }
+"post"              { return Parser::make_POST(loc); }
+"put"               { return Parser::make_PUT(loc); }
+"px"                { return Parser::make_PX(loc); }
+"rgb"               { return Parser::make_RGB(loc); }
+"row"               { return Parser::make_ROW(loc); }
+"scale"             { return Parser::make_SCALE(loc); }
+"scatter"           { return Parser::make_SCATTER(loc); }
+"sm"                { return Parser::make_SM(loc); }
+"stacked"           { return Parser::make_STACKED(loc); }
+"star"              { return Parser::make_STAR(loc); }
+"table"             { return Parser::make_TABLE(loc); }
+"text"              { return Parser::make_TEXT(loc); }
+"time"              { return Parser::make_TIME(loc); }
+"url"               { return Parser::make_URL(loc); }
+"using"             { return Parser::make_USING(loc); }
+"vertical"          { return Parser::make_VERTICAL(loc); }
+"width"             { return Parser::make_WIDTH(loc); }
+"xl"                { return Parser::make_XL(loc); }
 
-;                   { return Parser::make_SEMICOLON(loc); }
-,                   { return Parser::make_COMMA(loc); }
-{                   { return Parser::make_LCB(loc); }
-}                   { return Parser::make_RCB(loc); }
-
-(select|with)[^;]*  { return Parser::make_SQL_STATEMENT(yytext, loc); }
-
-integer             { return Parser::make_INTEGER(loc); }
-char                { return Parser::make_CHAR(loc); }
-foo                 { return Parser::make_FOO(loc); }
-[a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER(yytext, loc); }
-
+select[^;]*         { return Parser::make_SQL_SELECT(yytext, loc); }
+[a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER_LITERAL(yytext, loc); }
+'[^']*'             { return Parser::make_STRING_LITERAL(yytext, loc); }
 [0-9]+              {
                         uint32_t value = 0;
                         try {
@@ -109,8 +158,11 @@ foo                 { return Parser::make_FOO(loc); }
                         } catch(const std::out_of_range &err) {
                             ctx.Error(loc.begin.line, loc.begin.column, "integer out of range");
                         }
-                        return Parser::make_INTEGER_VALUE(value, loc);
+                        return Parser::make_INTEGER_LITERAL(value, loc);
                     }
+
+[ \t]+              { loc.step(); }
+\n                  { loc.lines (yyleng); loc.step (); }
 
 <<EOF>>             { return Parser::make_EOF(loc); }
 .                   { ctx.Error(loc.begin.line, loc.begin.column, "invalid character"); }
