@@ -1,6 +1,26 @@
 
-TigonQL
+# TigonQL
 
+## Simple
+```
+declare parameter days as integer;
+
+load raw_data from http (
+    method = "get",
+    url = "http://history.openweathermap.org/{{days}}"
+);
+
+extract weather_data from raw_data using jsonpath (
+    columns = (
+        day = '$.values[*].foo' as integer,
+        value = '$.values[*].bar' as float
+    )
+)
+
+visualize wheather_data using line chart;
+```
+
+## Visualization Options
 ```
 declare parameter days as integer;
 
@@ -48,6 +68,4 @@ visualize wheather_data using line chart (
         ]
     )
 );
-
-
 ```
