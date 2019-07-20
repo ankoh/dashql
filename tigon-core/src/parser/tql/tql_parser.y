@@ -117,6 +117,8 @@ using std::vector;
 
 %token EOF 0                "eof"
 
+%type <DisplayStatement::TypeFlag> display_method_prefix;
+%type <std::unique_ptr<DisplayStatement>> display_statement;
 %type <DisplayStatement::AxisScale> display_axis_scale;
 %type <std::string_view> identifier;
 %type <std::vector<DisplayStatement::RGBColor>> display_color_list;
@@ -206,34 +208,42 @@ extract_method:
     ;
 
 display_statement:
-    DISPLAY identifier USING display_method_prefix_list display_method
+    DISPLAY identifier USING display_method_prefix_list display_method {
+        auto& c = ctx.cached<D>();
+        c->target = $2;
+        $$ = move(c);
+    }
     ;
 
 display_method_prefix_list:
-    display_method_prefix_list display_method_prefix
- |  %empty
+    display_method_prefix_list display_method_prefix {
+        ctx.cached<D>()->type_flags |= static_cast<uint64_t>($2);
+    }
+ |  display_method_prefix {
+        ctx.cached<D>()->type_flags |= static_cast<uint64_t>($1);
+    }
     ;
 
 display_method_prefix:
-    HORIZONTAL
- |  VERTICAL
- |  STACKED
+    HORIZONTAL { $$ = D::TypeFlag::Horizontal; }
+ |  VERTICAL   { $$ = D::TypeFlag::Vertical; }
+ |  STACKED    { $$ = D::TypeFlag::Stacked; }
     ;
 
 display_method:
-    AREA opt_plot display_fields
- |  BAR opt_plot display_fields
- |  BOX opt_plot display_fields
- |  BUBBLE opt_plot display_fields
- |  GRID display_fields
- |  HISTOGRAM opt_plot display_fields
- |  LINE opt_plot display_fields
- |  NUMBER opt_field display_fields
- |  PIE opt_plot display_fields
- |  POINT opt_plot display_fields
- |  SCATTER opt_plot display_fields
- |  TABLE display_fields
- |  TEXT opt_field display_fields
+    AREA opt_plot display_fields      { ctx.cached<D>()->type = D::Type::Area; }
+ |  BAR opt_plot display_fields       { ctx.cached<D>()->type = D::Type::Bar; }
+ |  BOX opt_plot display_fields       { ctx.cached<D>()->type = D::Type::Box; }
+ |  BUBBLE opt_plot display_fields    { ctx.cached<D>()->type = D::Type::Bubble; }
+ |  GRID display_fields               { ctx.cached<D>()->type = D::Type::Grid; }
+ |  HISTOGRAM opt_plot display_fields { ctx.cached<D>()->type = D::Type::Histogram; }
+ |  LINE opt_plot display_fields      { ctx.cached<D>()->type = D::Type::Line; }
+ |  NUMBER opt_field display_fields   { ctx.cached<D>()->type = D::Type::Number; }
+ |  PIE opt_plot display_fields       { ctx.cached<D>()->type = D::Type::Pie; }
+ |  POINT opt_plot display_fields     { ctx.cached<D>()->type = D::Type::Point; }
+ |  SCATTER opt_plot display_fields   { ctx.cached<D>()->type = D::Type::Scatter; }
+ |  TABLE display_fields              { ctx.cached<D>()->type = D::Type::Table; }
+ |  TEXT opt_field display_fields     { ctx.cached<D>()->type = D::Type::Text; }
     ;
 
 opt_plot:

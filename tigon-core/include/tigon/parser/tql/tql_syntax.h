@@ -110,6 +110,31 @@ struct ExtractStatement {
 };
 
 struct DisplayStatement {
+    /// A type
+    enum class Type {
+        Area,
+        Bar,
+        Box,
+        Bubble,
+        Grid,
+        Histogram,
+        Line,
+        Number,
+        Pie,
+        Point,
+        Scatter,
+        Table,
+        Text
+    };
+
+    /// Type flags
+    enum class TypeFlag: uint64_t {
+        None = 0,
+        Horizontal = 1,
+        Vertical = 1 << 1,
+        Stacked = 1 << 2,
+    };
+
     /// A rgb color
     struct RGBColor {
         /// The red color
@@ -238,6 +263,12 @@ struct DisplayStatement {
         std::unique_ptr<Axis> y;
     };
 
+    /// The target
+    std::string_view target;
+    /// The type
+    Type type;
+    /// The type flags
+    uint64_t type_flags;
     /// The layout
     Layout layout;
     /// The color
