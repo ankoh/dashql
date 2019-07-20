@@ -180,7 +180,7 @@ std::istream *tigon::tql::in = nullptr;
 
 // Begin a scan
 void tigon::tql::ParseContext::beginScan(std::istream &is) {
-    yy_flex_debug = trace_scanning_;
+    yy_flex_debug = trace_scanning;
     in = &is;
 }
 

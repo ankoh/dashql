@@ -114,9 +114,8 @@ using D = tigon::tql::DisplayStatement;
 
 %token EOF 0                "eof"
 
+%type <std::vector<DisplayStatement::RGBColor>> display_color_list;
 %type <DisplayStatement::RGBColor> display_color_value;
-%type <DisplayStatement::Layout> display_layout;
-%type <std::pair<DisplayStatement::LayoutOption, std::unique_ptr<DisplayStatement::LayoutLength>>> display_layout_arg;
 %type <DisplayStatement::SizeClass> display_size_class;
 %type <std::unique_ptr<DisplayStatement::LayoutLength>> display_layout_length;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_arg;
@@ -295,37 +294,34 @@ display_color_arg:
     ;
 
 display_color_list:
-    display_color_list display_color_value ','
- |  %empty
+    display_color_list display_color_value ',' {
+        $1.push_back($2);
+        $$ = std::move($1);
+    }
+ |  %empty { $$ = std::vector<D::RGBColor>(); }
     ;
 
 display_color_value:
     RGB '(' INTEGER_LITERAL ',' INTEGER_LITERAL ',' INTEGER_LITERAL ')' {
-        $$ = D::RGBColor($3, $5, $7);
+        $$ = D::RGBColor{
+            static_cast<uint8_t>($3),
+            static_cast<uint8_t>($5),
+            static_cast<uint8_t>($7)
+        };
     }
  |  HEX_COLOR_LITERAL {
-        $$ = D::RGBColor($1 & 0xFF, ($1 >> 8) & 0xFF, ($1 >> 16) & 0xFF);
+        $$ = D::RGBColor{$1};
     }
     ;
 
 display_layout:
-    display_layout display_layout_arg ','   {
-        switch (std::get<0>($2)) {
-            case D::LayoutOption::Width:
-                $1.width = std::move(std::get<1>($2));
-                break;
-            case D::LayoutOption::Height:
-                $1.height = std::move(std::get<1>($2));
-                break;
-        }
-        $$ = std::move($1);
-    }
- |  %empty { $$ = D::Layout(); }
+    display_layout display_layout_arg ','
+ |  %empty
     ;
 
 display_layout_arg:
-    WIDTH '=' '(' display_layout_length ')'     { $$ = {D::LayoutOption::Width, move($4)}; }
- |  HEIGHT '=' '(' display_layout_length ')'    { $$ = {D::LayoutOption::Height, move($4)}; }
+    WIDTH '=' '(' display_layout_length ')'  { ctx.setDisplayLayoutWidth(move($4)); }
+ |  HEIGHT '=' '(' display_layout_length ')' { ctx.setDisplayLayoutHeight(move($4)); }
     ;
 
 display_size_class:

@@ -120,11 +120,14 @@ struct DisplayStatement {
         uint8_t blue;
 
         /// Constructor
-        RGBColor()
-            : red(), green(), blue() {}
+        RGBColor() : red(), green(), blue() {}
         /// Constructor
-        RGBColor(uint8_t r, uint8_t g, uint8_t b)
-            : red(r), green(g), blue(b) {}
+        RGBColor(uint8_t r, uint8_t g, uint8_t b) : red(r), green(g), blue(b) {}
+        /// Constructor
+        RGBColor(uint32_t rgb)
+            : red(static_cast<uint8_t>(rgb & 0xFF)),
+            green(static_cast<uint8_t>((rgb >> 8) & 0xFF)),
+            blue(static_cast<uint8_t>((rgb >> 16) & 0xFF)) {}
     };
 
     /// A length unit
@@ -153,8 +156,7 @@ struct DisplayStatement {
         bool is_set;
 
         /// Constructor
-        LengthValue()
-            : value(), unit(), is_set(false) {}
+        LengthValue() : value(), unit(), is_set(false) {}
 
         /// Set the value
         void set(uint32_t v, LengthUnit u = LengthUnit::Span) {
@@ -172,7 +174,7 @@ struct DisplayStatement {
         }
 
         /// Get the value
-        std::pair<uint32_t, LengthUnit> get() { return { value, unit }; }
+        std::pair<uint32_t, LengthUnit> get() { return {value, unit}; }
     };
 
     /// A layout length
@@ -187,8 +189,7 @@ struct DisplayStatement {
         LengthValue xl;
 
         /// Constructor
-        LayoutLength()
-            :sm(), md(), lg(), xl() {}
+        LayoutLength() : sm(), md(), lg(), xl() {}
 
         /// Set the default value
         void setDefault(uint16_t value, LengthUnit unit = LengthUnit::Span) {
@@ -197,12 +198,6 @@ struct DisplayStatement {
             lg.setDefault(value, unit);
             xl.setDefault(value, unit);
         };
-    };
-
-    /// A layout option
-    enum class LayoutOption {
-        Width,
-        Height
     };
 
     /// A layout
@@ -234,6 +229,9 @@ struct DisplayStatement {
         /// Y-axis
         Axis y;
     };
+
+    /// The layout
+    Layout layout;
 };
 
 /// A statement

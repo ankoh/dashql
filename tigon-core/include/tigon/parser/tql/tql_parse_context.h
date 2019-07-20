@@ -24,33 +24,38 @@ namespace tql {
 class ParseContext {
     friend class Parser;
 
-  public:
-    // Constructor
-    explicit ParseContext(bool trace_scanning = false, bool trace_parsing = false);
-    // Destructor
-    virtual ~ParseContext();
+  protected:
+    /// Trace the scanning
+    bool trace_scanning;
+    /// Trace the parsing
+    bool trace_parsing;
 
-    // Parse an istream
-    Program Parse(std::istream &in);
+    /// The current display statement
+    std::unique_ptr<DisplayStatement> display;
 
-    // Throw an error
-    void Error(uint32_t line, uint32_t column, const std::string &err);
-    // Throw an error
-    void Error(const std::string &m);
-
-  private:
-    // Begin a scan
+    /// Begin a scan
     void beginScan(std::istream &in);
-    // End a scan
+    /// End a scan
     void endScan();
 
-    // Define statements
-    void defineStatements(std::vector<Statement> &&statements);
+    /// Define a layout width
+    void setDisplayLayoutWidth(std::unique_ptr<DisplayStatement::LayoutLength> width);
+    /// Define a layout height
+    void setDisplayLayoutHeight(std::unique_ptr<DisplayStatement::LayoutLength> height);
 
-    // Trace the scanning
-    bool trace_scanning_;
-    // Trace the parsing
-    bool trace_parsing_;
+  public:
+    /// Constructor
+    explicit ParseContext(bool trace_scanning = false, bool trace_parsing = false);
+    /// Destructor
+    virtual ~ParseContext();
+
+    /// Parse an istream
+    Program Parse(std::istream &in);
+
+    /// Throw an error
+    void Error(uint32_t line, uint32_t column, const std::string &err);
+    /// Throw an error
+    void Error(const std::string &m);
 };
 
 } // namespace tql
