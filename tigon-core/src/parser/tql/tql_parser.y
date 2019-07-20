@@ -355,9 +355,7 @@ display_layout_length:
     ;
 
 display_layout_length_arg:
-    display_size_class '=' INTEGER_LITERAL opt_display_layout_unit {
-        $$ = {$1, $3, $4};
-    }
+    display_size_class '=' INTEGER_LITERAL opt_display_layout_unit { $$ = {$1, $3, $4}; }
     ;
 
 opt_display_layout_unit:
