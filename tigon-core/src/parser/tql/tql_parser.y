@@ -139,8 +139,8 @@ using std::vector;
 %start statement_list;
 
 statement_list:
-    statement_list statement ';'
- |  %empty
+    statement_list ';' statement
+ |  statement
     ;
 
 statement:
