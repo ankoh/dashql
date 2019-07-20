@@ -266,8 +266,8 @@ display_axes:
     ;
 
 display_axes_field:
-    'x' '=' '(' display_axis ')' { ctx.cached<D>()->axes.x = std::move(ctx.cached<D::Axis>()); }
- |  'y' '=' '(' display_axis ')' { ctx.cached<D>()->axes.y = std::move(ctx.cached<D::Axis>()); }
+    'x' '=' '(' display_axis ')' { ctx.cache<D>()->axes.x = std::move(ctx.cache<D::Axis>()); }
+ |  'y' '=' '(' display_axis ')' { ctx.cache<D>()->axes.y = std::move(ctx.cache<D::Axis>()); }
     ;
 
 display_axis:
@@ -276,8 +276,8 @@ display_axis:
     ;
 
 display_axis_field:
-    COLUMN '=' identifier        { ctx.cached<D::Axis>()->column = std::move($3); }
- |  SCALE '=' display_axis_scale { ctx.cached<D::Axis>()->scale = std::move($3); }
+    COLUMN '=' identifier        { ctx.cache<D::Axis>()->column = std::move($3); }
+ |  SCALE '=' display_axis_scale { ctx.cache<D::Axis>()->scale = std::move($3); }
     ;
 
 display_axis_scale:
@@ -291,8 +291,8 @@ display_color:
     ;
 
 display_color_field:
-    COLUMN '=' identifier                  { ctx.cached<D>()->color.column = std::move($3); }
- |  PALETTE '=' '[' display_color_list ']' { ctx.cached<D>()->color.palette = std::move($4); }
+    COLUMN '=' identifier                  { ctx.cache<D>()->color.column = std::move($3); }
+ |  PALETTE '=' '[' display_color_list ']' { ctx.cache<D>()->color.palette = std::move($4); }
     ;
 
 display_color_list:
@@ -317,8 +317,8 @@ display_layout:
     ;
 
 display_layout_field:
-    WIDTH '=' '(' display_layout_length ')'  { ctx.cached<D>()->layout.width = move(ctx.cached<D::LayoutLength>()); }
- |  HEIGHT '=' '(' display_layout_length ')' { ctx.cached<D>()->layout.height = move(ctx.cached<D::LayoutLength>()); }
+    WIDTH '=' '(' display_layout_length ')'  { ctx.cache<D>()->layout.width = move(ctx.cache<D::LayoutLength>()); }
+ |  HEIGHT '=' '(' display_layout_length ')' { ctx.cache<D>()->layout.height = move(ctx.cache<D::LayoutLength>()); }
     ;
 
 display_size_class:

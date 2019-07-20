@@ -14,7 +14,7 @@ using namespace tigon::tql;
 using D = tigon::tql::DisplayStatement;
 
 ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
-    : trace_scanning(trace_scanning), trace_parsing(trace_parsing), display(std::make_unique<DisplayStatement>()) {}
+    : trace_scanning(trace_scanning), trace_parsing(trace_parsing) {}
 
 ParseContext::~ParseContext() {}
 
