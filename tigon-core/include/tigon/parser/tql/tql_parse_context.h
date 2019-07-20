@@ -35,12 +35,12 @@ class ParseContext {
         std::unique_ptr<DisplayStatement>,
         std::unique_ptr<DisplayStatement::Axis>,
         std::unique_ptr<DisplayStatement::LayoutLength>
-    > cachedValues;
+    > cache;
 
     /// Get a cached value
     template <typename T>
-    std::unique_ptr<T>& cache() {
-        auto& c = std::get<std::unique_ptr<T>>(cachedValues);
+    std::unique_ptr<T>& cached() {
+        auto& c = std::get<std::unique_ptr<T>>(cache);
         if (!c) {
             c = std::make_unique<T>();
         }
@@ -50,7 +50,7 @@ class ParseContext {
     /// Set a layout length field
     void setLayoutLengthField(DisplayStatement::SizeClass size, uint32_t value,
                                      DisplayStatement::LengthUnit unit) {
-        auto& length = cache<DisplayStatement::LayoutLength>();
+        auto& length = cached<DisplayStatement::LayoutLength>();
         switch (size) {
         case DisplayStatement::SizeClass::Wildcard:
             length->setDefault(value, unit);
