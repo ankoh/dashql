@@ -46,7 +46,7 @@ void ParseContext::setDisplayLayoutWidth(std::unique_ptr<D::LayoutLength> width)
 }
 
 void ParseContext::setDisplayLayoutHeight(std::unique_ptr<D::LayoutLength> height)
-// Set a layout width
+// Set a layout height
 {
     display->layout.height = std::move(height);
 }
