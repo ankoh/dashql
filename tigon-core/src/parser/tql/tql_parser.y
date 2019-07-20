@@ -111,10 +111,11 @@ tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 
 %token EOF 0                "eof"
 
-// %type <std::vector<tigon::tql::SomeDeclaration>> some_declaration_list;
-// %type <tigon::tql::SomeDeclaration> some_declaration;
-// %type <tigon::tql::Type> some_type;
-// %type <tigon::tql::Type> some_type;
+%type <DisplayStatement::SizeClass> display_size_class;
+%type <DisplayStatement::LayoutLength> display_layout_length_arg_list;
+%type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_arg;
+%type <DisplayStatement::LengthUnit> opt_display_layout_unit;
+%type <DisplayStatement::LengthUnit> display_layout_unit;
 
 %%
 
@@ -303,44 +304,46 @@ display_layout_arg_list:
     ;
 
 display_layout_arg:
-    WIDTH '=' '(' display_layout_width_arg_list ')'
- |  HEIGHT '=' '(' display_layout_height_arg_list ')'
+    WIDTH '=' '(' display_layout_length_arg_list ')'
+ |  HEIGHT '=' '(' display_layout_length_arg_list ')'
     ;
 
-display_layout_class:
-    '*'
- |  SM
- |  MD
- |  LG
- |  XL
+display_size_class:
+    '*' { $$ = DisplayStatement::SizeClass::Wildcard; }
+ |  SM  { $$ = DisplayStatement::SizeClass::Small; }
+ |  MD  { $$ = DisplayStatement::SizeClass::Medium; }
+ |  LG  { $$ = DisplayStatement::SizeClass::Large; }
+ |  XL  { $$ = DisplayStatement::SizeClass::ExtraLarge; }
     ;
 
-display_layout_width_arg_list:
-    display_layout_width_arg_list display_layout_width_arg ','
- |  %empty
+display_layout_length_arg_list:
+    display_layout_length_arg_list display_layout_length_arg ',' {
+        switch (std::get<1>($2)) {
+            case DisplayStatement::SizeClass::Wildcard: break;
+            case DisplayStatement::SizeClass::Small: break;
+            case DisplayStatement::SizeClass::Medium: break;
+            case DisplayStatement::SizeClass::Large: break;
+            case DisplayStatement::SizeClass::ExtraLarge: break;
+        }
+        $$ = std::move($1);
+    }
+ |  %empty { $$ = DisplayStatement::LayoutLength(); }
     ;
 
-display_layout_width_arg:
-    display_layout_class '=' INTEGER_LITERAL
-    ;
-
-display_layout_height_arg_list:
-    display_layout_height_arg_list display_layout_height_arg ','
- |  %empty
-    ;
-
-display_layout_height_arg:
-    display_layout_class '=' INTEGER_LITERAL opt_display_layout_unit
+display_layout_length_arg:
+    display_size_class '=' INTEGER_LITERAL opt_display_layout_unit {
+        $$ = {$1, $3, $4};
+    }
     ;
 
 opt_display_layout_unit:
-    display_layout_unit
- |  %empty
+    display_layout_unit { $$ = $1; }
+ |  %empty              { $$ = DisplayStatement::LengthUnit::Span; }
     ;
 
 display_layout_unit:
-    PERCENT
- |  PX
+    PERCENT { $$ = DisplayStatement::LengthUnit::Percent; }
+ |  PX      { $$ = DisplayStatement::LengthUnit::Pixel; }
     ;
 
 %%

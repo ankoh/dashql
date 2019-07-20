@@ -38,77 +38,69 @@ struct ParameterDeclaration {
     std::string_view default_value;
 };
 
-/// An output definiton
-struct OutputDefinition {
-    /// The output name
-    std::string_view name;
-    /// The sql statement
-    SQLStatement statement;
-};
-
-/// A http loader
-struct HTTPLoader {
-    /// A paramter
-    struct Parameter {
-        /// The key
-        std::string_view key;
-        /// The value
-        std::string_view value;
-    };
-
-    /// The parameters
-    std::vector<Parameter> parameters;
-};
-
-/// A file loader
-struct FileLoader {};
-
-using LoadMethod = std::variant<HTTPLoader, FileLoader>;
-
 /// A load statement
 struct LoadStatement {
+    /// A http loader
+    struct HTTPLoader {
+        /// A paramter
+        struct Parameter {
+            /// The key
+            std::string_view key;
+            /// The value
+            std::string_view value;
+        };
+
+        /// The parameters
+        std::vector<Parameter> parameters;
+    };
+
+    /// A file loader
+    struct FileLoader {};
+
+    using LoadMethod = std::variant<HTTPLoader, FileLoader>;
+
     /// The name
     std::string_view name;
     /// The method
     LoadMethod method;
 };
 
-/// An extractor that uses Jsonpath
-struct JSONPathExtractor {
-    /// The column definition
-    struct ColumnDefinition {
-        /// The name
-        std::string_view name;
-        /// The json path
-        std::string_view json_path;
-        /// The type
-        Type type;
-    };
-
-    /// The columns
-    std::vector<ColumnDefinition> columns;
-};
-
-/// An extractor that uses CSV
-struct CSVExtractor {
-    /// The column definition
-    struct ColumnDefinition {
-        /// The name
-        std::string_view name;
-        /// The index within the csv
-        unsigned index;
-        /// The type
-        Type type;
-    };
-
-    /// The columns
-    std::vector<ColumnDefinition> columns;
-};
-
-using ExtractMethod = std::variant<JSONPathExtractor, CSVExtractor>;
-
 /// An extract statement
 struct ExtractStatement {
+    /// An extractor that uses Jsonpath
+    struct JSONPathExtractor {
+        /// The column definition
+        struct ColumnDefinition {
+            /// The name
+            std::string_view name;
+            /// The json path
+            std::string_view json_path;
+            /// The type
+            Type type;
+        };
+
+        /// The columns
+        std::vector<ColumnDefinition> columns;
+    };
+
+    /// An extractor that uses CSV
+    struct CSVExtractor {
+        /// The column definition
+        struct ColumnDefinition {
+            /// The name
+            std::string_view name;
+            /// The index within the csv
+            unsigned index;
+            /// The type
+            Type type;
+        };
+
+        /// The columns
+        std::vector<ColumnDefinition> columns;
+    };
+
+    using ExtractMethod = std::variant<JSONPathExtractor, CSVExtractor>;
+
     /// The target
     std::string_view name;
     /// The source
@@ -117,7 +109,7 @@ struct ExtractStatement {
     ExtractMethod method;
 };
 
-struct DisplayArguments {
+struct DisplayStatement {
     /// A length unit
     enum LengthUnit : uint8_t {
         Span = 0,
@@ -125,10 +117,13 @@ struct DisplayArguments {
         Percent = 2,
     };
 
-    /// The scale of an axis
-    enum AxisScale : uint8_t {
-        Linear = 0,
-        Logarithmic = 1,
+    /// A layout class
+    enum SizeClass {
+        Wildcard,
+        Small,
+        Medium,
+        Large,
+        ExtraLarge,
     };
 
     /// A length value
@@ -161,6 +156,12 @@ struct DisplayArguments {
         LayoutLength height;
     };
 
+    /// The scale of an axis
+    enum AxisScale : uint8_t {
+        Linear = 0,
+        Logarithmic = 1,
+    };
+
     /// An axis
     struct Axis {
         /// The column
@@ -178,10 +179,8 @@ struct DisplayArguments {
     };
 };
 
-struct DisplayStatement {};
-
 /// A statement
-using Statement = std::variant<ExtractStatement, LoadStatement, OutputDefinition, ParameterDeclaration>;
+using Statement = std::variant<ExtractStatement, LoadStatement,ParameterDeclaration>;
 
 /// A program
 struct Program {
