@@ -140,7 +140,7 @@ parameter_declaration:
 
 identifier:
     IDENTIFIER_LITERAL
- |  '\''  STRING_LITERAL '\''
+ |  STRING_LITERAL
     ;
 
 opt_as:
