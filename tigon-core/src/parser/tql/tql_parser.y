@@ -42,6 +42,9 @@
 tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 
 using D = tigon::tql::DisplayStatement;
+using std::get;
+using std::move;
+using std::vector;
 }
 
 %token <std::string_view>   SQL_SELECT          "sql_select"
@@ -266,8 +269,8 @@ display_axes:
     ;
 
 display_axes_field:
-    'x' '=' '(' display_axis ')' { ctx.cache<D>()->axes.x = std::move(ctx.cache<D::Axis>()); }
- |  'y' '=' '(' display_axis ')' { ctx.cache<D>()->axes.y = std::move(ctx.cache<D::Axis>()); }
+    'x' '=' '(' display_axis ')' { ctx.cache<D>()->axes.x = move(ctx.cache<D::Axis>()); }
+ |  'y' '=' '(' display_axis ')' { ctx.cache<D>()->axes.y = move(ctx.cache<D::Axis>()); }
     ;
 
 display_axis:
@@ -276,8 +279,8 @@ display_axis:
     ;
 
 display_axis_field:
-    COLUMN '=' identifier        { ctx.cache<D::Axis>()->column = std::move($3); }
- |  SCALE '=' display_axis_scale { ctx.cache<D::Axis>()->scale = std::move($3); }
+    COLUMN '=' identifier        { ctx.cache<D::Axis>()->column = move($3); }
+ |  SCALE '=' display_axis_scale { ctx.cache<D::Axis>()->scale = move($3); }
     ;
 
 display_axis_scale:
@@ -291,13 +294,13 @@ display_color:
     ;
 
 display_color_field:
-    COLUMN '=' identifier                  { ctx.cache<D>()->color.column = std::move($3); }
- |  PALETTE '=' '[' display_color_list ']' { ctx.cache<D>()->color.palette = std::move($4); }
+    COLUMN '=' identifier                  { ctx.cache<D>()->color.column = move($3); }
+ |  PALETTE '=' '[' display_color_list ']' { ctx.cache<D>()->color.palette = move($4); }
     ;
 
 display_color_list:
-    display_color_list display_color_value ',' { $1.push_back($2); $$ = std::move($1); }
- |  %empty { $$ = std::vector<D::RGBColor>(); }
+    display_color_list display_color_value ',' { $1.push_back($2); $$ = move($1); }
+ |  %empty { $$ = vector<D::RGBColor>(); }
     ;
 
 display_color_value:
@@ -331,10 +334,10 @@ display_size_class:
 
 display_layout_length:
     display_layout_length ',' display_layout_length_field {
-        ctx.setLayoutLengthField(std::get<0>($3), std::get<1>($3), std::get<2>($3));
+        ctx.setLayoutLengthField(get<0>($3), get<1>($3), get<2>($3));
     }
  |  display_layout_length_field {
-        ctx.setLayoutLengthField(std::get<0>($1), std::get<1>($1), std::get<2>($1));
+        ctx.setLayoutLengthField(get<0>($1), get<1>($1), get<2>($1));
     }
     ;
 
