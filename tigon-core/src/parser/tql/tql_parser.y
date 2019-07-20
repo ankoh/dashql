@@ -128,6 +128,7 @@ using std::vector;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
 %type <std::unique_ptr<DisplayStatement>> display_statement;
 %type <std::vector<DisplayStatement::RGBColor>> display_color_list;
+%type <std::vector<DisplayStatement::RGBColor>> opt_display_color_list;
 
 %%
 
@@ -184,8 +185,8 @@ load_method:
     ;
 
 load_method_http_field_list:
-    load_method_http_field_list load_method_http_field ','
-  | %empty
+    load_method_http_field_list ',' load_method_http_field
+  | load_method_http_field
     ;
 
 load_method_http_field:
@@ -306,13 +307,18 @@ display_color:
     ;
 
 display_color_field:
-    COLUMN '=' identifier                  { ctx.cached<D>()->color.column = move($3); }
- |  PALETTE '=' '[' display_color_list ']' { ctx.cached<D>()->color.palette = move($4); }
+    COLUMN '=' identifier              { ctx.cached<D>()->color.column = move($3); }
+ |  PALETTE '=' opt_display_color_list { ctx.cached<D>()->color.palette = move($3); }
+    ;
+
+opt_display_color_list:
+    '[' display_color_list ']'  { $$ = move($2); }
+ |  %empty                      { $$ = vector<D::RGBColor>(); }
     ;
 
 display_color_list:
-    display_color_list display_color_value ',' { $1.push_back($2); $$ = move($1); }
- |  %empty { $$ = vector<D::RGBColor>(); }
+    display_color_list ',' display_color_value { $1.push_back($3); $$ = move($1); }
+ |  display_color_value                        { $$ = vector<D::RGBColor>{$1}; }
     ;
 
 display_color_value:
