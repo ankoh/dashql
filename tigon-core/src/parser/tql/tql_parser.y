@@ -173,16 +173,16 @@ load_statement:
     ;
 
 load_method:
-    HTTP '(' load_method_http_arg_list ')'
+    HTTP '(' load_method_http_field_list ')'
   | FILE
     ;
 
-load_method_http_arg_list:
-    load_method_http_arg_list load_method_http_arg ','
+load_method_http_field_list:
+    load_method_http_field_list load_method_http_field ','
   | %empty
     ;
 
-load_method_http_arg:
+load_method_http_field:
     METHOD '=' http_method
   | URL STRING_LITERAL
     ;
@@ -218,19 +218,19 @@ display_method_prefix:
     ;
 
 display_method:
-    AREA opt_plot display_args
- |  BAR opt_plot display_args
- |  BOX opt_plot display_args
- |  BUBBLE opt_plot display_args
- |  GRID display_args
- |  HISTOGRAM opt_plot display_args
- |  LINE opt_plot display_args
- |  NUMBER opt_field display_args
- |  PIE opt_plot display_args
- |  POINT opt_plot display_args
- |  SCATTER opt_plot display_args
- |  TABLE display_args
- |  TEXT opt_field display_args
+    AREA opt_plot display_fields
+ |  BAR opt_plot display_fields
+ |  BOX opt_plot display_fields
+ |  BUBBLE opt_plot display_fields
+ |  GRID display_fields
+ |  HISTOGRAM opt_plot display_fields
+ |  LINE opt_plot display_fields
+ |  NUMBER opt_field display_fields
+ |  PIE opt_plot display_fields
+ |  POINT opt_plot display_fields
+ |  SCATTER opt_plot display_fields
+ |  TABLE display_fields
+ |  TEXT opt_field display_fields
     ;
 
 opt_plot:
@@ -244,38 +244,38 @@ opt_field:
  |  %empty
     ;
 
-display_args:
-    '(' display_arg_list ')'
+display_fields:
+    '(' display_field_list ')'
  |  %empty
     ;
 
-display_arg_list:
-    display_arg_list display_arg
+display_field_list:
+    display_field_list display_field
  |  %empty
     ;
 
-display_arg:
+display_field:
     AXES '=' '(' display_axes ')'
  |  COLOR '=' '(' display_color ')'
  |  LAYOUT '=' '(' display_layout ')'
     ;
 
 display_axes:
-    display_axes display_axes_arg ','
+    display_axes display_axes_field ','
  |  %empty
     ;
 
-display_axes_arg:
+display_axes_field:
     'x' '=' display_axis
  |  'y' '=' display_axis
     ;
 
 display_axis:
-    display_axis display_axis_arg ','
+    display_axis display_axis_field ','
  |  %empty
     ;
 
-display_axis_arg:
+display_axis_field:
     COLUMN '=' identifier
  |  SCALE '=' display_axis_scale
 
