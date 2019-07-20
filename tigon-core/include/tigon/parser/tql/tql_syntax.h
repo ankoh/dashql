@@ -1,9 +1,11 @@
-// ---------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 // Tigon
-// ---------------------------------------------------------------------------------------------------
-#ifndef INCLUDE_TIGON_PARSER_QL_QL_PARSE_CONTEXT_H_
-#define INCLUDE_TIGON_PARSER_QL_QL_PARSE_CONTEXT_H_
-// ---------------------------------------------------------------------------------------------------
+// (c) 2019 Andre Kohn
+//---------------------------------------------------------------------------
+
+#ifndef INCLUDE_TIGON_PARSER_TQL_TQL_SYNTAX_H_
+#define INCLUDE_TIGON_PARSER_TQL_TQL_SYNTAX_H_
+
 #include <map>
 #include <memory>
 #include <stack>
@@ -11,23 +13,14 @@
 #include <tuple>
 #include <unordered_map>
 #include <utility>
-#include <vector>
 #include <variant>
+#include <vector>
 
 namespace tigon {
-namespace ql {
-
-struct Parser;
+namespace tql {
 
 /// A type
-enum class Type {
-    Integer,
-    Float,
-    Text,
-    Date,
-    DateTime,
-    Time
-};
+enum class Type { Integer, Float, Text, Date, DateTime, Time };
 
 /// A raw sql statement
 struct SQLStatement {
@@ -55,7 +48,7 @@ struct OutputDefinition {
 
 /// A http loader
 struct HTTPLoader {
-    /// A paramter 
+    /// A paramter
     struct Parameter {
         /// The key
         std::string_view key;
@@ -126,14 +119,14 @@ struct ExtractStatement {
 
 struct VisArguments {
     /// A length unit
-    enum LengthUnit: uint8_t {
+    enum LengthUnit : uint8_t {
         Span = 0,
         Pixel = 1,
         Percent = 2,
     };
 
     /// The scale of an axis
-    enum AxisScale: uint8_t {
+    enum AxisScale : uint8_t {
         Linear = 0,
         Logarithmic = 1,
     };
@@ -185,17 +178,10 @@ struct VisArguments {
     };
 };
 
-struct VisStatement {
-};
-
+struct VisStatement {};
 
 /// A statement
-using Statement = std::variant<
-    ExtractStatement,
-    LoadStatement,
-    OutputDefinition,
-    ParameterDeclaration
->;
+using Statement = std::variant<ExtractStatement, LoadStatement, OutputDefinition, ParameterDeclaration>;
 
 /// A program
 struct Program {
@@ -203,42 +189,8 @@ struct Program {
     std::vector<Statement> statements;
 };
 
-// Schema parse context
-class ParseContext {
-    friend Parser;
+} // namespace tql
+} // namespace tigon
 
- public:
-    // Constructor
-    explicit ParseContext(bool trace_scanning = false, bool trace_parsing = false);
-    // Destructor
-    virtual ~ParseContext();
-
-    // Parse an istream
-    Program Parse(std::istream &in);
-
-    // Throw an error
-    void Error(uint32_t line, uint32_t column, const std::string &err);
-    // Throw an error
-    void Error(const std::string &m);
-
- private:
-    // Begin a scan
-    void beginScan(std::istream &in);
-    // End a scan
-    void endScan();
-
-    // Define statements
-    void defineStatements(std::vector<Statement>&& statements);
-
-    // Trace the scanning
-    bool trace_scanning_;
-    // Trace the parsing
-    bool trace_parsing_;
-};
-
-}  // namespace schemac
-}  // namespace imlab
-
-#endif  // INCLUDE_TIGON_PARSER_QL_QL_PARSE_CONTEXT_H_
-
+#endif // INCLUDE_TIGON_PARSER_TQL_TQL_SYNTAX_H_
 

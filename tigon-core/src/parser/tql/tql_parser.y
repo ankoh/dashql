@@ -1,6 +1,7 @@
-// ---------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 // Tigon
-// ---------------------------------------------------------------------------------------------------
+// (c) 2019 Andre Kohn
+//---------------------------------------------------------------------------
 
 %skeleton "lalr1.cc"
 %require "3.0.4"
@@ -10,13 +11,13 @@
 // Define the parser class name
 %define parser_class_name {Parser}
 // Create the parser in our namespace
-%define api.namespace {tigon::ql}
+%define api.namespace {tigon::tql}
 // Use C++ variant to store the values and get better type warnings (compared to "union")
 %define api.value.type variant
 // With variant-based values, symbols are handled as a whole in the scanner
 %define api.token.constructor
 // Prefix all tokens
-%define api.token.prefix {QL_}
+%define api.token.prefix {TQL_}
 // Check if variants are constructed and destroyed properly
 %define parse.assert
 // Trace the parser
@@ -26,33 +27,38 @@
 // Enable location tracking.
 %locations
 // Pass the compiler as parameter to yylex/yyparse.
-%param { tigon::ql::ParseContext &ctx }
+%param { tigon::tql::ParseContext &ctx }
 
 // Added to the header file and parser implementation before bison definitions.
 // We include string for string tokens and forward declare the parse context.
 %code requires {
 #include <string>
-#include "tigon/parser/ql/ql_parse_context.h"
+#include "tigon/parser/tql/tql_parse_context.h"
 }
 
 // Import the compiler header in the implementation file
 %code {
-tigon::ql::Parser::symbol_type yylex(tigon::ql::ParseContext& ctx);
+tigon::ql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 }
 
 %token <std::string_view>   SQL_SELECT          "sql_select"
 %token <std::string_view>   SQL_WITH            "sql_with"
-%token <std::string_view>   IDENTIFIER_VALUE    "identifier_value"
-%token <uint32_t>           HEX_COLOR_VALUE     "hex_color_value"
-%token <int>                INTEGER_VALUE       "integer_value"
+%token <std::string_view>   IDENTIFIER_LITERAL  "identifier_literal"
+%token <std::string_view>   STRING_LITERAL      "string_literal"
+%token <uint32_t>           HEX_COLOR_LITERAL   "hex_color_literal"
+%token <int>                INTEGER_LITERAL     "integer_literal"
 
 %token AREA                 "area"
 %token AS                   "as"
+%token AXES                 "axes"
 %token BAR                  "bar"
 %token BOX                  "box"
 %token BUBBLE               "bubble"
+%token CHART                "chart"
+%token COLOR                "color"
 %token COLUMN               "column"
 %token COMMA                "comma"
+%token CSV                  "csv"
 %token DATA                 "data"
 %token DATE                 "date"
 %token DATETIME             "datetime"
@@ -60,13 +66,16 @@ tigon::ql::Parser::symbol_type yylex(tigon::ql::ParseContext& ctx);
 %token DEFINE               "define"
 %token EQUAL                "equal"
 %token EXTRACT              "extract"
+%token FIELD                "field"
 %token FILE                 "file"
 %token FLOAT                "float"
 %token FROM                 "from"
 %token GET                  "get"
 %token GRID                 "grid"
 %token HASH                 "hash"
+%token HEIGHT               "height"
 %token HISTOGRAM            "histogram"
+%token HORIZONTAL           "horizontal"
 %token HTTP                 "http"
 %token INTEGER              "integer"
 %token INTO                 "into"
@@ -83,35 +92,43 @@ tigon::ql::Parser::symbol_type yylex(tigon::ql::ParseContext& ctx);
 %token METHOD               "method"
 %token NUMBER               "number"
 %token PALETTE              "palette"
+%token PARAMETER            "parameter"
 %token PERCENT              "percent"
 %token PIE                  "pie"
+%token PLOT                 "plot"
 %token POINT                "point"
 %token POST                 "post"
 %token PUT                  "put"
 %token PX                   "px"
 %token RGB                  "rgb"
+%token ROW                  "row"
 %token RRB                  "right_round_bracket"
 %token RSB                  "right_square_bracket"
 %token SCALE                "scale"
 %token SCATTER              "scatter"
 %token SEMICOLON            "semicolon"
 %token SM                   "sm"
+%token STACKED              "stacked"
 %token STAR                 "*"
 %token TABLE                "table"
 %token TEXT                 "text"
 %token TIME                 "time"
 %token URL                  "url"
 %token USING                "using"
+%token VERTICAL             "vertical"
+%token VISUALIZE            "visualize"
 %token WITH                 "with"
+%token WIDTH                "width"
 %token X                    "x"
 %token XL                   "xl"
 %token Y                    "y"
 
 %token EOF 0                "eof"
 
-%type <std::vector<tigon::ql::SomeDeclaration>> some_declaration_list;
-%type <tigon::ql::SomeDeclaration> some_declaration;
-%type <tigon::ql::Type> some_type;
+// %type <std::vector<tigon::ql::SomeDeclaration>> some_declaration_list;
+// %type <tigon::ql::SomeDeclaration> some_declaration;
+// %type <tigon::ql::Type> some_type;
+// %type <tigon::ql::Type> some_type;
 
 %%
 
@@ -126,14 +143,12 @@ statement:
     extract_statement
  |  load_statement
  |  parameter_declaration
- |  sql_statment
+ |  sql_statement
  |  vis_statement
     ;
 
 parameter_declaration:
-    DECLARE PARAMETER IDENTIFIER_VALUE opt_as parameter_type {
-        $$ = ParameterDeclaration()
-    }
+    DECLARE PARAMETER IDENTIFIER_LITERAL opt_as parameter_type
     ;
 
 opt_as:
@@ -156,12 +171,12 @@ sql_statement:
     ;
 
 load_statement:
-    LOAD IDENTIFIER_VALUE FROM load_method { $$ = LoadStatement(); }
+    LOAD IDENTIFIER_LITERAL FROM load_method
     ;
 
 load_method:
-    HTTP LRB load_method_http_arg_list RRB { $$ = HTTPLoader(); }
-  | FILE { $$ = FileLoader(); }
+    HTTP LRB load_method_http_arg_list RRB
+  | FILE
     ;
 
 load_method_http_arg_list:
@@ -171,7 +186,7 @@ load_method_http_arg_list:
 
 load_method_http_arg:
     METHOD EQUAL http_method
-  | URL STRING_VALUE
+  | URL STRING_LITERAL
     ;
 
 http_method:
@@ -181,18 +196,16 @@ http_method:
     ;
 
 extract_statement:
-    EXTRACT IDENTIFIER_VALUE FROM IDENTIFIER_VALUE USING extract_method {
-        $$ = ExtractStatement();
-    }
+    EXTRACT IDENTIFIER_LITERAL FROM IDENTIFIER_LITERAL USING extract_method
     ;
 
 extract_method:
-    CSV LRB RRB { $$ = CSVExtractor(); }
-  | JSONPATH LRB RRB { $$ = JSONPathExtractor(); }
+    CSV LRB RRB
+  | JSONPATH LRB RRB
     ;
 
 vis_statement:
-    VISUALIZE IDENTIFIER_VALUE USING vis_method
+    VISUALIZE IDENTIFIER_LITERAL USING vis_method_prefix_list vis_method
     ;
 
 vis_method_prefix_list:
@@ -265,7 +278,7 @@ vis_axis_arg_list:
     ;
 
 vis_axis_arg:
-    COLUMN EQUAL IDENTIFIER_VALUE
+    COLUMN EQUAL IDENTIFIER_LITERAL
  |  SCALE EQUAL vis_axis_scale
 
 vis_axis_scale:
@@ -279,7 +292,7 @@ vis_color_arg_list:
     ;
 
 vis_color_arg:
-    COLUMN EQUAL IDENTIFIER_VALUE
+    COLUMN EQUAL IDENTIFIER_LITERAL
  |  PALETTE EQUAL LSB vis_color_list RSB
     ;
 
@@ -289,8 +302,8 @@ vis_color_list:
     ;
 
 vis_color:
-    RGB LRB NUMBER_VALUE COMMA NUMBER_VALUE COMMA NUMBER_VALUE RRB
- |  HEX_COLOR_VALUE
+    RGB LRB INTEGER_LITERAL COMMA INTEGER_LITERAL COMMA INTEGER_LITERAL RRB
+ |  HEX_COLOR_LITERAL
     ;
 
 vis_layout_arg_list:
@@ -299,8 +312,7 @@ vis_layout_arg_list:
     ;
 
 vis_layout_arg:
-    ROW EQUAL NUMBER_VALUE
- |  WIDTH EQUAL LRB vis_layout_width_arg_list RRB
+    WIDTH EQUAL LRB vis_layout_width_arg_list RRB
  |  HEIGHT EQUAL LRB vis_layout_height_arg_list RRB
     ;
 
@@ -318,7 +330,7 @@ vis_layout_width_arg_list:
     ;
 
 vis_layout_width_arg:
-    vis_layout_class EQUAL NUMBER_VALUE
+    vis_layout_class EQUAL INTEGER_LITERAL
     ;
 
 vis_layout_height_arg_list:
@@ -327,7 +339,7 @@ vis_layout_height_arg_list:
     ;
 
 vis_layout_height_arg:
-    vis_layout_class EQUAL NUMBER_VALUE opt_vis_layout_unit
+    vis_layout_class EQUAL INTEGER_LITERAL opt_vis_layout_unit
     ;
 
 opt_vis_layout_unit:
@@ -343,7 +355,7 @@ vis_layout_unit:
 %%
 
 // Define error function
-void tigon::ql::Parser::error(const location_type& l, const std::string& m) {
+void tigon::tql::Parser::error(const location_type& l, const std::string& m) {
     ctx.Error(l.begin.line, l.begin.column, m);
 }
 

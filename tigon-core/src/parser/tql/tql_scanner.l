@@ -1,7 +1,8 @@
 %{
-// ---------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 // Tigon
-// ---------------------------------------------------------------------------------------------------
+// (c) 2019 Andre Kohn
+//---------------------------------------------------------------------------
 %}
 
 %{
@@ -13,22 +14,22 @@
 #include <cstdlib>
 #include <string>
 #include <istream>
-#include "tigon/parser/ql/ql_parse_context.h"
-#include "./ql_parser.h"
+#include "tigon/parser/tql/tql_parse_context.h"
+#include "./tql_parser.h"
 
 namespace tigon {
-namespace ql {
+namespace tql {
 
 // The location of the current token
-extern tigon::ql::location loc;
+extern tigon::tql::location loc;
 // The input stream of the scanner
 extern std::istream *in;
 
-}  // namespace ql
+}  // namespace tql
 }  // namespace tigon
 
 using namespace tigon;
-using namespace tigon::ql;
+using namespace tigon::tql;
 
 // Work around an incompatibility in flex (at least versions
 // 2.5.31 through 2.5.33): it generates code that does
@@ -87,17 +88,17 @@ loc.step ();
 [ \t]+              { loc.step(); }
 \n                  { loc.lines (yyleng); loc.step (); }
 
-;                   { return ql::Parser::make_SEMICOLON(loc); }
-,                   { return ql::Parser::make_COMMA(loc); }
-{                   { return ql::Parser::make_LCB(loc); }
-}                   { return ql::Parser::make_RCB(loc); }
+;                   { return Parser::make_SEMICOLON(loc); }
+,                   { return Parser::make_COMMA(loc); }
+{                   { return Parser::make_LCB(loc); }
+}                   { return Parser::make_RCB(loc); }
 
-(select|with)[^;]*  { return ql::Parser::make_SQL_STATEMENT(yytext, loc); }
+(select|with)[^;]*  { return Parser::make_SQL_STATEMENT(yytext, loc); }
 
-integer             { return ql::Parser::make_INTEGER(loc); }
-char                { return ql::Parser::make_CHAR(loc); }
-foo                 { return ql::Parser::make_FOO(loc); }
-[a-z][a-z0-9_]*     { return ql::Parser::make_IDENTIFIER(yytext, loc); }
+integer             { return Parser::make_INTEGER(loc); }
+char                { return Parser::make_CHAR(loc); }
+foo                 { return Parser::make_FOO(loc); }
+[a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER(yytext, loc); }
 
 [0-9]+              {
                         uint32_t value = 0;
@@ -108,10 +109,10 @@ foo                 { return ql::Parser::make_FOO(loc); }
                         } catch(const std::out_of_range &err) {
                             ctx.Error(loc.begin.line, loc.begin.column, "integer out of range");
                         }
-                        return ql::Parser::make_INTEGER_VALUE(value, loc);
+                        return Parser::make_INTEGER_VALUE(value, loc);
                     }
 
-<<EOF>>             { return ql::Parser::make_EOF(loc); }
+<<EOF>>             { return Parser::make_EOF(loc); }
 .                   { ctx.Error(loc.begin.line, loc.begin.column, "invalid character"); }
 
 %%
@@ -121,18 +122,18 @@ foo                 { return ql::Parser::make_FOO(loc); }
 // ---------------------------------------------------------------------------------------------------
 
 // The input stream
-tigon::ql::location tigon::ql::loc;
+tigon::tql::location tigon::tql::loc;
 // The input stream of the scanner
-std::istream *tigon::ql::in = nullptr;
+std::istream *tigon::tql::in = nullptr;
 
 // Begin a scan
-void tigon::ql::ParseContext::beginScan(std::istream &is) {
+void tigon::tql::ParseContext::beginScan(std::istream &is) {
     yy_flex_debug = trace_scanning_;
     in = &is;
 }
 
 // End a scan
-void tigon::ql::ParseContext::endScan() {
+void tigon::tql::ParseContext::endScan() {
     in = nullptr;
 }
 
