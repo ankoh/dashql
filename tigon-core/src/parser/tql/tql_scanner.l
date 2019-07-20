@@ -131,7 +131,6 @@ loc.step ();
 "put"               { return Parser::make_PUT(loc); }
 "px"                { return Parser::make_PX(loc); }
 "rgb"               { return Parser::make_RGB(loc); }
-"row"               { return Parser::make_ROW(loc); }
 "scale"             { return Parser::make_SCALE(loc); }
 "scatter"           { return Parser::make_SCATTER(loc); }
 "sm"                { return Parser::make_SM(loc); }
