@@ -296,7 +296,13 @@ struct DisplayStatement {
 };
 
 /// A statement
-using Statement = std::variant<ExtractStatement, LoadStatement, ParameterDeclaration>;
+using Statement = std::variant<
+    std::unique_ptr<DisplayStatement>,
+    std::unique_ptr<ExtractStatement>,
+    std::unique_ptr<LoadStatement>,
+    std::unique_ptr<ParameterDeclaration>,
+    std::unique_ptr<SQLStatement>
+>;
 
 /// A program
 struct Program {

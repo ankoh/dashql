@@ -125,38 +125,41 @@ using std::vector;
 %type <DisplayStatement::Type> display_method;
 %type <DisplayStatement::TypeFlag> display_method_prefix;
 %type <LoadStatement::HTTPLoader::Method> http_method;
-%type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
+%type <Statement> statement;
 %type <Type> type;
 %type <std::string_view> identifier;
 %type <std::string_view> sql_statement;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
 %type <std::unique_ptr<DisplayStatement>> display_statement;
+%type <std::unique_ptr<LoadStatement>> load_statement;
+%type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
 %type <std::vector<DisplayStatement::RGBColor>> display_color_list;
 %type <std::vector<DisplayStatement::RGBColor>> opt_display_color_list;
+%type <std::vector<Statement>> statement_list;
 
 %%
 
 %start statement_list;
 
 statement_list:
-    statement_list ';' statement
- |  statement
+    statement_list ';' statement {}
+ |  statement                    {}
     ;
 
 statement:
-    extract_statement
- |  display_statement
- |  load_statement
- |  parameter_declaration
- |  sql_statement
+    extract_statement     { $$ = Statement { std::make_unique<ExtractStatement>() }; }
+ |  display_statement     { $$ = Statement { move($1) }; }
+ |  load_statement        { $$ = Statement { move($1) }; }
+ |  parameter_declaration { $$ = Statement { move($1) }; }
+ |  sql_statement         { $$ = Statement { std::make_unique<SQLStatement>() }; }
     ;
 
 parameter_declaration:
     DECLARE PARAMETER identifier opt_as type {
-        auto& param = ctx.cached<P>();
-        param->name = $3;
-        param->type = $5;
-        $$ = move(param);
+        auto& p = ctx.cached<P>();
+        p->name = $3;
+        p->type = $5;
+        $$ = move(p);
     }
     ;
 
@@ -185,7 +188,11 @@ sql_statement:
     ;
 
 load_statement:
-    LOAD identifier FROM load_method { ctx.cached<L>()->name = $2; }
+    LOAD identifier FROM load_method {
+        auto& l = ctx.cached<L>();
+        l->name = $2;
+        $$ = move(l);
+    }
     ;
 
 load_method:
@@ -220,10 +227,10 @@ extract_method:
 
 display_statement:
     DISPLAY identifier USING display_method_prefix_list display_method {
-        auto& c = ctx.cached<D>();
-        c->target = $2;
-        c->type = $5;
-        $$ = move(c);
+        auto& d = ctx.cached<D>();
+        d->target = $2;
+        d->type = $5;
+        $$ = move(d);
     }
     ;
 
