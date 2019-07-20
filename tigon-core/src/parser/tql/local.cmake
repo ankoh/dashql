@@ -28,12 +28,12 @@ add_custom_target(tql_gen
     COMMAND ${FLEX_EXECUTABLE}
         --outfile=${TQL_SCANNER_OUT}
         "${CMAKE_SOURCE_DIR}/src/parser/tql/tql_scanner.l"
+    BYPRODUCTS ${TQL_SCANNER_OUT} ${TQL_PARSER_OUT}
     DEPENDS "${CMAKE_SOURCE_DIR}/src/parser/tql/tql_parser.y"
             "${CMAKE_SOURCE_DIR}/src/parser/tql/tql_scanner.l"
 )
 
 add_library(tql ${TQL_CC})
-add_dependencies(tql tql_gen)
 
 # ---------------------------------------------------------------------------
 # Linting

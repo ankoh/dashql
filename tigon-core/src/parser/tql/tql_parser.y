@@ -112,7 +112,7 @@ tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 %token EOF 0                "eof"
 
 %type <DisplayStatement::SizeClass> display_size_class;
-%type <DisplayStatement::LayoutLength> display_layout_length_arg_list;
+%type <std::unique_ptr<DisplayStatement::LayoutLength>> display_layout_length;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_arg;
 %type <DisplayStatement::LengthUnit> opt_display_layout_unit;
 %type <DisplayStatement::LengthUnit> display_layout_unit;
@@ -249,23 +249,23 @@ display_arg_list:
     ;
 
 display_arg:
-    AXES '=' '(' display_axes_arg_list ')'
- |  COLOR '=' '(' display_color_arg_list ')'
- |  LAYOUT '=' '(' display_layout_arg_list ')'
+    AXES '=' '(' display_axes ')'
+ |  COLOR '=' '(' display_color ')'
+ |  LAYOUT '=' '(' display_layout ')'
     ;
 
-display_axes_arg_list:
-    display_axes_arg_list display_axes_arg ','
+display_axes:
+    display_axes display_axes_arg ','
  |  %empty
     ;
 
 display_axes_arg:
-    'x' '=' display_axis_arg_list
- |  'y' '=' display_axis_arg_list
+    'x' '=' display_axis
+ |  'y' '=' display_axis
     ;
 
-display_axis_arg_list:
-    display_axis_arg_list display_axis_arg ','
+display_axis:
+    display_axis display_axis_arg ','
  |  %empty
     ;
 
@@ -278,8 +278,8 @@ display_axis_scale:
  |  LOG
     ;
 
-display_color_arg_list:
-    display_color_arg_list display_color_arg ','
+display_color:
+    display_color display_color_arg ','
  |  %empty
     ;
 
@@ -289,23 +289,23 @@ display_color_arg:
     ;
 
 display_color_list:
-    display_color_list display_color ','
+    display_color_list display_color_value ','
  |  %empty
     ;
 
-display_color:
+display_color_value:
     RGB '(' INTEGER_LITERAL ',' INTEGER_LITERAL ',' INTEGER_LITERAL ')'
  |  HEX_COLOR_LITERAL
     ;
 
-display_layout_arg_list:
-    display_layout_arg_list display_layout_arg ','
+display_layout:
+    display_layout display_layout_arg ','
  |  %empty
     ;
 
 display_layout_arg:
-    WIDTH '=' '(' display_layout_length_arg_list ')'
- |  HEIGHT '=' '(' display_layout_length_arg_list ')'
+    WIDTH '=' '(' display_layout_length ')'
+ |  HEIGHT '=' '(' display_layout_length ')'
     ;
 
 display_size_class:
@@ -316,28 +316,28 @@ display_size_class:
  |  XL  { $$ = DisplayStatement::SizeClass::ExtraLarge; }
     ;
 
-display_layout_length_arg_list:
-    display_layout_length_arg_list display_layout_length_arg ',' {
+display_layout_length:
+    display_layout_length display_layout_length_arg ',' {
         switch (std::get<0>($2)) {
             case DisplayStatement::SizeClass::Wildcard:
-                $1.setDefault(std::get<1>($2), std::get<2>($2));
+                $1->setDefault(std::get<1>($2), std::get<2>($2));
                 break;
             case DisplayStatement::SizeClass::Small:
-                $1.sm.setDefault(std::get<1>($2), std::get<2>($2));
+                $1->sm.setDefault(std::get<1>($2), std::get<2>($2));
                 break;
             case DisplayStatement::SizeClass::Medium:
-                $1.md.setDefault(std::get<1>($2), std::get<2>($2));
+                $1->md.setDefault(std::get<1>($2), std::get<2>($2));
                 break;
             case DisplayStatement::SizeClass::Large:
-                $1.lg.setDefault(std::get<1>($2), std::get<2>($2));
+                $1->lg.setDefault(std::get<1>($2), std::get<2>($2));
                 break;
             case DisplayStatement::SizeClass::ExtraLarge:
-                $1.xl.setDefault(std::get<1>($2), std::get<2>($2));
+                $1->xl.setDefault(std::get<1>($2), std::get<2>($2));
                 break;
         }
         $$ = std::move($1);
     }
- |  %empty { $$ = DisplayStatement::LayoutLength(); }
+ |  %empty { $$ = std::make_unique<DisplayStatement::LayoutLength>(); }
     ;
 
 display_layout_length_arg:

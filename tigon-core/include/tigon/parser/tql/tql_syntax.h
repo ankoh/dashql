@@ -129,7 +129,7 @@ struct DisplayStatement {
     /// A length value
     struct LengthValue {
         /// The length
-        uint16_t value;
+        uint32_t value;
         /// The unit
         LengthUnit unit;
         /// Is set?
@@ -140,14 +140,14 @@ struct DisplayStatement {
             : value(), unit(), is_set(false) {}
 
         /// Set the value
-        void set(uint16_t v, LengthUnit u = LengthUnit::Span) {
+        void set(uint32_t v, LengthUnit u = LengthUnit::Span) {
             value = v;
             unit = u;
             is_set = true;
         }
 
         /// Set the default value
-        void setDefault(uint16_t v, LengthUnit u = LengthUnit::Span) {
+        void setDefault(uint32_t v, LengthUnit u = LengthUnit::Span) {
             if (is_set)
                 return;
             value = v;
@@ -155,7 +155,7 @@ struct DisplayStatement {
         }
 
         /// Get the value
-        std::pair<uint16_t, LengthUnit> get() { return { value, unit }; }
+        std::pair<uint32_t, LengthUnit> get() { return { value, unit }; }
     };
 
     /// A layout length
