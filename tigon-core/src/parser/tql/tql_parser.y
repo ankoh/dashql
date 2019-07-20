@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------
 
 %skeleton "lalr1.cc"
-%require "3.0.4"
+%require "3.2"
 
 // Write a parser header file
 %defines
