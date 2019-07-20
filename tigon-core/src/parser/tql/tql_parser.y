@@ -318,12 +318,22 @@ display_size_class:
 
 display_layout_length_arg_list:
     display_layout_length_arg_list display_layout_length_arg ',' {
-        switch (std::get<1>($2)) {
-            case DisplayStatement::SizeClass::Wildcard: break;
-            case DisplayStatement::SizeClass::Small: break;
-            case DisplayStatement::SizeClass::Medium: break;
-            case DisplayStatement::SizeClass::Large: break;
-            case DisplayStatement::SizeClass::ExtraLarge: break;
+        switch (std::get<0>($2)) {
+            case DisplayStatement::SizeClass::Wildcard:
+                $1.setDefault(std::get<1>($2), std::get<2>($2));
+                break;
+            case DisplayStatement::SizeClass::Small:
+                $1.sm.setDefault(std::get<1>($2), std::get<2>($2));
+                break;
+            case DisplayStatement::SizeClass::Medium:
+                $1.md.setDefault(std::get<1>($2), std::get<2>($2));
+                break;
+            case DisplayStatement::SizeClass::Large:
+                $1.lg.setDefault(std::get<1>($2), std::get<2>($2));
+                break;
+            case DisplayStatement::SizeClass::ExtraLarge:
+                $1.xl.setDefault(std::get<1>($2), std::get<2>($2));
+                break;
         }
         $$ = std::move($1);
     }

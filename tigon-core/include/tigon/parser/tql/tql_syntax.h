@@ -134,6 +134,28 @@ struct DisplayStatement {
         LengthUnit unit;
         /// Is set?
         bool is_set;
+
+        /// Constructor
+        LengthValue()
+            : value(), unit(), is_set(false) {}
+
+        /// Set the value
+        void set(uint16_t v, LengthUnit u = LengthUnit::Span) {
+            value = v;
+            unit = u;
+            is_set = true;
+        }
+
+        /// Set the default value
+        void setDefault(uint16_t v, LengthUnit u = LengthUnit::Span) {
+            if (is_set)
+                return;
+            value = v;
+            unit = u;
+        }
+
+        /// Get the value
+        std::pair<uint16_t, LengthUnit> get() { return { value, unit }; }
     };
 
     /// A layout length
@@ -146,6 +168,18 @@ struct DisplayStatement {
         LengthValue lg;
         /// Extra large displays
         LengthValue xl;
+
+        /// Constructor
+        LayoutLength()
+            :sm(), md(), lg(), xl() {}
+
+        /// Set the default value
+        void setDefault(uint16_t value, LengthUnit unit = LengthUnit::Span) {
+            sm.setDefault(value, unit);
+            md.setDefault(value, unit);
+            lg.setDefault(value, unit);
+            xl.setDefault(value, unit);
+        };
     };
 
     /// A layout
@@ -180,7 +214,7 @@ struct DisplayStatement {
 };
 
 /// A statement
-using Statement = std::variant<ExtractStatement, LoadStatement,ParameterDeclaration>;
+using Statement = std::variant<ExtractStatement, LoadStatement, ParameterDeclaration>;
 
 /// A program
 struct Program {

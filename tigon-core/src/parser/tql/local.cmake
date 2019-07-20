@@ -29,7 +29,8 @@ add_custom_target(tql_gen
         --outfile=${TQL_SCANNER_OUT}
         "${CMAKE_SOURCE_DIR}/src/parser/tql/tql_scanner.l"
     DEPENDS "${CMAKE_SOURCE_DIR}/src/parser/tql/tql_parser.y"
-            "${CMAKE_SOURCE_DIR}/src/parser/tql/tql_scanner.l")
+            "${CMAKE_SOURCE_DIR}/src/parser/tql/tql_scanner.l"
+)
 
 add_library(tql ${TQL_CC})
 add_dependencies(tql tql_gen)
