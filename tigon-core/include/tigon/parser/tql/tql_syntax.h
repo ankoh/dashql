@@ -233,15 +233,17 @@ struct DisplayStatement {
     /// The axes
     struct Axes {
         /// X-axis
-        Axis x;
+        std::unique_ptr<Axis> x;
         /// Y-axis
-        Axis y;
+        std::unique_ptr<Axis> y;
     };
 
     /// The layout
     Layout layout;
     /// The color
     Color color;
+    /// The axes
+    Axes axes;
 };
 
 /// A statement

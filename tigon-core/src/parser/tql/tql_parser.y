@@ -266,8 +266,8 @@ display_axes:
     ;
 
 display_axes_field:
-    'x' '=' '(' display_axis ')'
- |  'y' '=' '(' display_axis ')'
+    'x' '=' '(' display_axis ')' { ctx.cached<D>()->axes.x = std::move(ctx.cached<D::Axis>()); }
+ |  'y' '=' '(' display_axis ')' { ctx.cached<D>()->axes.y = std::move(ctx.cached<D::Axis>()); }
     ;
 
 display_axis:
@@ -276,8 +276,9 @@ display_axis:
     ;
 
 display_axis_field:
-    COLUMN '=' identifier
- |  SCALE '=' display_axis_scale
+    COLUMN '=' identifier        { ctx.cached<D::Axis>()->column = std::move($3); }
+ |  SCALE '=' display_axis_scale { ctx.cached<D::Axis>()->scale = std::move($3); }
+    ;
 
 display_axis_scale:
     LINEAR { $$ = D::AxisScale::Linear; }
@@ -290,15 +291,12 @@ display_color:
     ;
 
 display_color_field:
-    COLUMN '=' identifier                   { ctx.setDisplayColorColumn($3); }
- |  PALETTE '=' '[' display_color_list ']'  { ctx.setDisplayColorPalette(std::move($4)); }
+    COLUMN '=' identifier                  { ctx.cached<D>()->color.column = std::move($3); }
+ |  PALETTE '=' '[' display_color_list ']' { ctx.cached<D>()->color.palette = std::move($4); }
     ;
 
 display_color_list:
-    display_color_list display_color_value ',' {
-        $1.push_back($2);
-        $$ = std::move($1);
-    }
+    display_color_list display_color_value ',' { $1.push_back($2); $$ = std::move($1); }
  |  %empty { $$ = std::vector<D::RGBColor>(); }
     ;
 
@@ -310,9 +308,7 @@ display_color_value:
             static_cast<uint8_t>($7)
         };
     }
- |  HEX_COLOR_LITERAL {
-        $$ = D::RGBColor{$1};
-    }
+ |  HEX_COLOR_LITERAL { $$ = D::RGBColor{$1}; }
     ;
 
 display_layout:
@@ -321,14 +317,8 @@ display_layout:
     ;
 
 display_layout_field:
-    WIDTH '=' '(' display_layout_length ')'  {
-        auto l = ctx.finishDisplayLayoutLength();
-        ctx.setDisplayLayoutWidth(move(l));
-    }
- |  HEIGHT '=' '(' display_layout_length ')' {
-        auto l = ctx.finishDisplayLayoutLength();
-        ctx.setDisplayLayoutWidth(move(l));
-    }
+    WIDTH '=' '(' display_layout_length ')'  { ctx.cached<D>()->layout.width = move(ctx.cached<D::LayoutLength>()); }
+ |  HEIGHT '=' '(' display_layout_length ')' { ctx.cached<D>()->layout.height = move(ctx.cached<D::LayoutLength>()); }
     ;
 
 display_size_class:
@@ -341,10 +331,10 @@ display_size_class:
 
 display_layout_length:
     display_layout_length ',' display_layout_length_field {
-        ctx.setDisplayLayoutLengthField(std::get<0>($3), std::get<1>($3), std::get<2>($3));
+        ctx.setLayoutLengthField(std::get<0>($3), std::get<1>($3), std::get<2>($3));
     }
  |  display_layout_length_field {
-        ctx.setDisplayLayoutLengthField(std::get<0>($1), std::get<1>($1), std::get<2>($1));
+        ctx.setLayoutLengthField(std::get<0>($1), std::get<1>($1), std::get<2>($1));
     }
     ;
 

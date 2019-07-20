@@ -31,57 +31,56 @@ class ParseContext {
     bool trace_parsing;
 
     /// The current display layout
+    std::unique_ptr<DisplayStatement::Axis> displayAxis;
+    /// The current display layout
     std::unique_ptr<DisplayStatement::LayoutLength> displayLayoutLength;
     /// The current display statement
     std::unique_ptr<DisplayStatement> display;
+
+    /// The cache
+    std::tuple<
+        std::unique_ptr<DisplayStatement>,
+        std::unique_ptr<DisplayStatement::Axis>,
+        std::unique_ptr<DisplayStatement::LayoutLength>
+    > cache;
+
+    /// Get a cached value
+    template <typename T>
+    std::unique_ptr<T>& cached() {
+        auto& c = std::get<std::unique_ptr<T>>(cache);
+        if (!c) {
+            c = std::make_unique<T>();
+        }
+        return c;
+    }
+
+    /// Set a layout length field
+    void setLayoutLengthField(DisplayStatement::SizeClass size, uint32_t value,
+                                     DisplayStatement::LengthUnit unit) {
+        auto& length = cached<DisplayStatement::LayoutLength>();
+        switch (size) {
+        case DisplayStatement::SizeClass::Wildcard:
+            length->setDefault(value, unit);
+            break;
+        case DisplayStatement::SizeClass::Small:
+            length->sm.setDefault(value, unit);
+            break;
+        case DisplayStatement::SizeClass::Medium:
+            length->md.setDefault(value, unit);
+            break;
+        case DisplayStatement::SizeClass::Large:
+            length->lg.setDefault(value, unit);
+            break;
+        case DisplayStatement::SizeClass::ExtraLarge:
+            length->xl.setDefault(value, unit);
+            break;
+        }
+    }
 
     /// Begin a scan
     void beginScan(std::istream &in);
     /// End a scan
     void endScan();
-
-    /// Finish layout length
-    auto finishDisplayLayoutLength() {
-        auto result = std::move(displayLayoutLength);
-        displayLayoutLength = std::make_unique<DisplayStatement::LayoutLength>();
-        return result;
-    }
-    /// Set a layout length field
-    void setDisplayLayoutLengthField(DisplayStatement::SizeClass size, uint32_t value, DisplayStatement::LengthUnit unit) {
-        switch (size) {
-            case DisplayStatement::SizeClass::Wildcard:
-                displayLayoutLength->setDefault(value, unit);
-                break;
-            case DisplayStatement::SizeClass::Small:
-                displayLayoutLength->sm.setDefault(value, unit);
-                break;
-            case DisplayStatement::SizeClass::Medium:
-                displayLayoutLength->md.setDefault(value, unit);
-                break;
-            case DisplayStatement::SizeClass::Large:
-                displayLayoutLength->lg.setDefault(value, unit);
-                break;
-            case DisplayStatement::SizeClass::ExtraLarge:
-                displayLayoutLength->xl.setDefault(value, unit);
-                break;
-        }
-    }
-    /// Set a color column
-    void setDisplayColorColumn(std::string_view column) {
-        display->color.column = column;
-    }
-    /// Set a color palette
-    void setDisplayColorPalette(std::vector<DisplayStatement::RGBColor> colors) {
-        display->color.palette = std::move(colors);
-    }
-    /// Set a layout width
-    void setDisplayLayoutWidth(std::unique_ptr<DisplayStatement::LayoutLength> width) {
-        display->layout.width = std::move(width);
-    }
-    /// Set a layout height
-    void setDisplayLayoutHeight(std::unique_ptr<DisplayStatement::LayoutLength> height) {
-        display->layout.height = std::move(height);
-    }
 
   public:
     /// Constructor
