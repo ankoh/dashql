@@ -1,7 +1,8 @@
-
 # TigonQL
 
-## Simple
+## TigonQL
+
+### Simple
 ```
 declare parameter days as integer;
 
@@ -20,7 +21,7 @@ extract weather_data from raw_data using jsonpath (
 visualize wheather_data using line chart;
 ```
 
-## Visualization Options
+### Visualization Options
 ```
 declare parameter days as integer;
 
