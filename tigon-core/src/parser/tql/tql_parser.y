@@ -99,7 +99,6 @@ tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 %token SCATTER              "scatter"
 %token SM                   "sm"
 %token STACKED              "stacked"
-%token STAR                 "*"
 %token TABLE                "table"
 %token TEXT                 "text"
 %token TICK                 "'"
@@ -309,7 +308,7 @@ display_layout_arg:
     ;
 
 display_layout_class:
-    STAR
+    '*'
  |  SM
  |  MD
  |  LG

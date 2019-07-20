@@ -136,7 +136,6 @@ loc.step ();
 "scatter"           { return Parser::make_SCATTER(loc); }
 "sm"                { return Parser::make_SM(loc); }
 "stacked"           { return Parser::make_STACKED(loc); }
-"star"              { return Parser::make_STAR(loc); }
 "table"             { return Parser::make_TABLE(loc); }
 "text"              { return Parser::make_TEXT(loc); }
 "time"              { return Parser::make_TIME(loc); }
