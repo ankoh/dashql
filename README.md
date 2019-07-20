@@ -18,7 +18,7 @@ extract weather_data from raw_data using jsonpath (
     )
 )
 
-visualize wheather_data using line chart;
+display wheather_data using line chart;
 ```
 
 ### Fine-grained Configuration
@@ -37,7 +37,7 @@ extract weather_data from raw_data using jsonpath (
     )
 )
 
-visualize wheather_data using line chart (
+display wheather_data using line chart (
     layout = (
         width = (
             * = 8,

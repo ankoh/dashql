@@ -117,7 +117,7 @@ struct ExtractStatement {
     ExtractMethod method;
 };
 
-struct VisArguments {
+struct DisplayArguments {
     /// A length unit
     enum LengthUnit : uint8_t {
         Span = 0,
@@ -178,7 +178,7 @@ struct VisArguments {
     };
 };
 
-struct VisStatement {};
+struct DisplayStatement {};
 
 /// A statement
 using Statement = std::variant<ExtractStatement, LoadStatement, OutputDefinition, ParameterDeclaration>;

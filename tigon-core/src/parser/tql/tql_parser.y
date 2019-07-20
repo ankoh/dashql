@@ -64,6 +64,7 @@ tigon::ql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 %token DATETIME             "datetime"
 %token DECLARE              "declare"
 %token DEFINE               "define"
+%token DISPLAY              "display"
 %token EQUAL                "equal"
 %token EXTRACT              "extract"
 %token FIELD                "field"
@@ -116,9 +117,8 @@ tigon::ql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 %token URL                  "url"
 %token USING                "using"
 %token VERTICAL             "vertical"
-%token VISUALIZE            "visualize"
-%token WITH                 "with"
 %token WIDTH                "width"
+%token WITH                 "with"
 %token X                    "x"
 %token XL                   "xl"
 %token Y                    "y"
@@ -141,10 +141,10 @@ statement_list:
 
 statement:
     extract_statement
+ |  display_statement
  |  load_statement
  |  parameter_declaration
  |  sql_statement
- |  vis_statement
     ;
 
 parameter_declaration:
@@ -204,35 +204,35 @@ extract_method:
   | JSONPATH LRB RRB
     ;
 
-vis_statement:
-    VISUALIZE IDENTIFIER_LITERAL USING vis_method_prefix_list vis_method
+display_statement:
+    DISPLAY IDENTIFIER_LITERAL USING display_method_prefix_list display_method
     ;
 
-vis_method_prefix_list:
-    vis_method_prefix_list vis_method_prefix
+display_method_prefix_list:
+    display_method_prefix_list display_method_prefix
  |  %empty
     ;
 
-vis_method_prefix:
+display_method_prefix:
     HORIZONTAL
  |  VERTICAL
  |  STACKED
     ;
 
-vis_method:
-    AREA opt_plot vis_args
- |  BAR opt_plot vis_args
- |  BOX opt_plot vis_args
- |  BUBBLE opt_plot vis_args
- |  GRID vis_args
- |  HISTOGRAM opt_plot vis_args
- |  LINE opt_plot vis_args
- |  NUMBER opt_field vis_args
- |  PIE opt_plot vis_args
- |  POINT opt_plot vis_args
- |  SCATTER opt_plot vis_args
- |  TABLE vis_args
- |  TEXT opt_field vis_args
+display_method:
+    AREA opt_plot display_args
+ |  BAR opt_plot display_args
+ |  BOX opt_plot display_args
+ |  BUBBLE opt_plot display_args
+ |  GRID display_args
+ |  HISTOGRAM opt_plot display_args
+ |  LINE opt_plot display_args
+ |  NUMBER opt_field display_args
+ |  PIE opt_plot display_args
+ |  POINT opt_plot display_args
+ |  SCATTER opt_plot display_args
+ |  TABLE display_args
+ |  TEXT opt_field display_args
     ;
 
 opt_plot:
@@ -246,77 +246,77 @@ opt_field:
  |  %empty
     ;
 
-vis_args:
-    LRB vis_arg_list RRB
+display_args:
+    LRB display_arg_list RRB
  |  %empty
     ;
 
-vis_arg_list:
-    vis_arg_list vis_arg
+display_arg_list:
+    display_arg_list display_arg
  |  %empty
     ;
 
-vis_arg:
-    AXES EQUAL LRB vis_axes_arg_list RRB
- |  COLOR EQUAL LRB vis_color_arg_list RRB
- |  LAYOUT EQUAL LRB vis_layout_arg_list RRB
+display_arg:
+    AXES EQUAL LRB display_axes_arg_list RRB
+ |  COLOR EQUAL LRB display_color_arg_list RRB
+ |  LAYOUT EQUAL LRB display_layout_arg_list RRB
     ;
 
-vis_axes_arg_list:
-    vis_axes_arg_list vis_axes_arg COMMA
+display_axes_arg_list:
+    display_axes_arg_list display_axes_arg COMMA
  |  %empty
     ;
 
-vis_axes_arg:
-    X EQUAL vis_axis_arg_list
- |  Y EQUAL vis_axis_arg_list
+display_axes_arg:
+    X EQUAL display_axis_arg_list
+ |  Y EQUAL display_axis_arg_list
     ;
 
-vis_axis_arg_list:
-    vis_axis_arg_list vis_axis_arg COMMA
+display_axis_arg_list:
+    display_axis_arg_list display_axis_arg COMMA
  |  %empty
     ;
 
-vis_axis_arg:
+display_axis_arg:
     COLUMN EQUAL IDENTIFIER_LITERAL
- |  SCALE EQUAL vis_axis_scale
+ |  SCALE EQUAL display_axis_scale
 
-vis_axis_scale:
+display_axis_scale:
     LINEAR
  |  LOG
     ;
 
-vis_color_arg_list:
-    vis_color_arg_list vis_color_arg COMMA
+display_color_arg_list:
+    display_color_arg_list display_color_arg COMMA
  |  %empty
     ;
 
-vis_color_arg:
+display_color_arg:
     COLUMN EQUAL IDENTIFIER_LITERAL
- |  PALETTE EQUAL LSB vis_color_list RSB
+ |  PALETTE EQUAL LSB display_color_list RSB
     ;
 
-vis_color_list:
-    vis_color_list vis_color COMMA
+display_color_list:
+    display_color_list display_color COMMA
  |  %empty
     ;
 
-vis_color:
+display_color:
     RGB LRB INTEGER_LITERAL COMMA INTEGER_LITERAL COMMA INTEGER_LITERAL RRB
  |  HEX_COLOR_LITERAL
     ;
 
-vis_layout_arg_list:
-    vis_layout_arg_list vis_layout_arg COMMA
+display_layout_arg_list:
+    display_layout_arg_list display_layout_arg COMMA
  |  %empty
     ;
 
-vis_layout_arg:
-    WIDTH EQUAL LRB vis_layout_width_arg_list RRB
- |  HEIGHT EQUAL LRB vis_layout_height_arg_list RRB
+display_layout_arg:
+    WIDTH EQUAL LRB display_layout_width_arg_list RRB
+ |  HEIGHT EQUAL LRB display_layout_height_arg_list RRB
     ;
 
-vis_layout_class:
+display_layout_class:
     STAR
  |  SM
  |  MD
@@ -324,30 +324,30 @@ vis_layout_class:
  |  XL
     ;
 
-vis_layout_width_arg_list:
-    vis_layout_width_arg_list vis_layout_width_arg COMMA
+display_layout_width_arg_list:
+    display_layout_width_arg_list display_layout_width_arg COMMA
  |  %empty
     ;
 
-vis_layout_width_arg:
-    vis_layout_class EQUAL INTEGER_LITERAL
+display_layout_width_arg:
+    display_layout_class EQUAL INTEGER_LITERAL
     ;
 
-vis_layout_height_arg_list:
-    vis_layout_height_arg_list vis_layout_height_arg COMMA
+display_layout_height_arg_list:
+    display_layout_height_arg_list display_layout_height_arg COMMA
  |  %empty
     ;
 
-vis_layout_height_arg:
-    vis_layout_class EQUAL INTEGER_LITERAL opt_vis_layout_unit
+display_layout_height_arg:
+    display_layout_class EQUAL INTEGER_LITERAL opt_display_layout_unit
     ;
 
-opt_vis_layout_unit:
-    vis_layout_unit
+opt_display_layout_unit:
+    display_layout_unit
  |  %empty
     ;
 
-vis_layout_unit:
+display_layout_unit:
     PERCENT
  |  PX
     ;
