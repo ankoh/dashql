@@ -111,14 +111,14 @@ struct ExtractStatement {
 
 struct DisplayStatement {
     /// A length unit
-    enum LengthUnit : uint8_t {
+    enum class LengthUnit : uint8_t {
         Span = 0,
         Pixel = 1,
         Percent = 2,
     };
 
     /// A layout class
-    enum SizeClass {
+    enum class SizeClass {
         Wildcard,
         Small,
         Medium,
@@ -191,7 +191,7 @@ struct DisplayStatement {
     };
 
     /// The scale of an axis
-    enum AxisScale : uint8_t {
+    enum class AxisScale : uint8_t {
         Linear = 0,
         Logarithmic = 1,
     };
