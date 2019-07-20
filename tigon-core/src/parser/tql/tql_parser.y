@@ -118,7 +118,7 @@ using D = tigon::tql::DisplayStatement;
 %type <DisplayStatement::RGBColor> display_color_value;
 %type <DisplayStatement::SizeClass> display_size_class;
 %type <std::unique_ptr<DisplayStatement::LayoutLength>> display_layout_length;
-%type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_arg;
+%type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
 %type <DisplayStatement::LengthUnit> opt_display_layout_unit;
 %type <DisplayStatement::LengthUnit> display_layout_unit;
 
@@ -284,11 +284,11 @@ display_axis_scale:
     ;
 
 display_color:
-    display_color display_color_arg ','
+    display_color display_color_field ','
  |  %empty
     ;
 
-display_color_arg:
+display_color_field:
     COLUMN '=' identifier
  |  PALETTE '=' '[' display_color_list ']'
     ;
@@ -315,11 +315,11 @@ display_color_value:
     ;
 
 display_layout:
-    display_layout display_layout_arg ','
+    display_layout display_layout_field ','
  |  %empty
     ;
 
-display_layout_arg:
+display_layout_field:
     WIDTH '=' '(' display_layout_length ')'  { ctx.setDisplayLayoutWidth(move($4)); }
  |  HEIGHT '=' '(' display_layout_length ')' { ctx.setDisplayLayoutHeight(move($4)); }
     ;
@@ -333,7 +333,7 @@ display_size_class:
     ;
 
 display_layout_length:
-    display_layout_length display_layout_length_arg ',' {
+    display_layout_length display_layout_length_field ',' {
         switch (std::get<0>($2)) {
             case D::SizeClass::Wildcard:
                 $1->setDefault(std::get<1>($2), std::get<2>($2));
@@ -356,7 +356,7 @@ display_layout_length:
  |  %empty { $$ = std::make_unique<D::LayoutLength>(); }
     ;
 
-display_layout_length_arg:
+display_layout_length_field:
     display_size_class '=' INTEGER_LITERAL opt_display_layout_unit { $$ = {$1, $3, $4}; }
     ;
 
