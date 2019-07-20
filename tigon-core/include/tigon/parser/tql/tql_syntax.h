@@ -130,6 +130,14 @@ struct DisplayStatement {
             blue(static_cast<uint8_t>((rgb >> 16) & 0xFF)) {}
     };
 
+    /// A display color
+    struct Color {
+        /// The column
+        std::string_view column;
+        /// The palette
+        std::vector<RGBColor> palette;
+    };
+
     /// A length unit
     enum class LengthUnit : uint8_t {
         Span = 0,
@@ -232,6 +240,8 @@ struct DisplayStatement {
 
     /// The layout
     Layout layout;
+    /// The color
+    Color color;
 };
 
 /// A statement

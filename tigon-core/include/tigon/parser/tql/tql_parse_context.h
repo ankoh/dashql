@@ -38,10 +38,22 @@ class ParseContext {
     /// End a scan
     void endScan();
 
-    /// Define a layout width
-    void setDisplayLayoutWidth(std::unique_ptr<DisplayStatement::LayoutLength> width);
-    /// Define a layout height
-    void setDisplayLayoutHeight(std::unique_ptr<DisplayStatement::LayoutLength> height);
+    /// Set a color column
+    void setDisplayColorColumn(std::string_view column) {
+        display->color.column = column;
+    }
+    /// Set a color palette
+    void setDisplayColorPalette(std::vector<DisplayStatement::RGBColor> colors) {
+        display->color.palette = std::move(colors);
+    }
+    /// Set a layout width
+    void setDisplayLayoutWidth(std::unique_ptr<DisplayStatement::LayoutLength> width) {
+        display->layout.width = std::move(width);
+    }
+    /// Set a layout height
+    void setDisplayLayoutHeight(std::unique_ptr<DisplayStatement::LayoutLength> height) {
+        display->layout.height = std::move(height);
+    }
 
   public:
     /// Constructor

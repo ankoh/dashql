@@ -38,15 +38,3 @@ void ParseContext::Error(uint32_t line, uint32_t column, const std::string &err)
     ss << "[ l=" << line << " c=" << column << " ] " << err << std::endl;
     throw TQLParseError(ss.str());
 }
-
-void ParseContext::setDisplayLayoutWidth(std::unique_ptr<D::LayoutLength> width)
-// Set a layout width
-{
-    display->layout.width = std::move(width);
-}
-
-void ParseContext::setDisplayLayoutHeight(std::unique_ptr<D::LayoutLength> height)
-// Set a layout height
-{
-    display->layout.height = std::move(height);
-}

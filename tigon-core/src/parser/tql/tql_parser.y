@@ -114,6 +114,7 @@ using D = tigon::tql::DisplayStatement;
 
 %token EOF 0                "eof"
 
+%type <std::string_view> identifier;
 %type <std::vector<DisplayStatement::RGBColor>> display_color_list;
 %type <DisplayStatement::RGBColor> display_color_value;
 %type <DisplayStatement::SizeClass> display_size_class;
@@ -144,8 +145,8 @@ parameter_declaration:
     ;
 
 identifier:
-    IDENTIFIER_LITERAL
- |  STRING_LITERAL
+    IDENTIFIER_LITERAL  { $$ = $1; }
+ |  STRING_LITERAL      { $$ = $1; }
     ;
 
 opt_as:
@@ -289,8 +290,8 @@ display_color:
     ;
 
 display_color_field:
-    COLUMN '=' identifier
- |  PALETTE '=' '[' display_color_list ']'
+    COLUMN '=' identifier                   { ctx.setDisplayColorColumn($3); }
+ |  PALETTE '=' '[' display_color_list ']'  { ctx.setDisplayColorPalette(std::move($4)); }
     ;
 
 display_color_list:
