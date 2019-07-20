@@ -234,19 +234,19 @@ display_method_prefix:
     ;
 
 display_method:
-    AREA opt_plot display_fields      { $$ = D::Type::Area; }
- |  BAR opt_plot display_fields       { $$ = D::Type::Bar; }
- |  BOX opt_plot display_fields       { $$ = D::Type::Box; }
- |  BUBBLE opt_plot display_fields    { $$ = D::Type::Bubble; }
- |  GRID display_fields               { $$ = D::Type::Grid; }
- |  HISTOGRAM opt_plot display_fields { $$ = D::Type::Histogram; }
- |  LINE opt_plot display_fields      { $$ = D::Type::Line; }
- |  NUMBER opt_field display_fields   { $$ = D::Type::Number; }
- |  PIE opt_plot display_fields       { $$ = D::Type::Pie; }
- |  POINT opt_plot display_fields     { $$ = D::Type::Point; }
- |  SCATTER opt_plot display_fields   { $$ = D::Type::Scatter; }
- |  TABLE display_fields              { $$ = D::Type::Table; }
- |  TEXT opt_field display_fields     { $$ = D::Type::Text; }
+    AREA opt_plot opt_display_fields      { $$ = D::Type::Area; }
+ |  BAR opt_plot opt_display_fields       { $$ = D::Type::Bar; }
+ |  BOX opt_plot opt_display_fields       { $$ = D::Type::Box; }
+ |  BUBBLE opt_plot opt_display_fields    { $$ = D::Type::Bubble; }
+ |  GRID opt_display_fields               { $$ = D::Type::Grid; }
+ |  HISTOGRAM opt_plot opt_display_fields { $$ = D::Type::Histogram; }
+ |  LINE opt_plot opt_display_fields      { $$ = D::Type::Line; }
+ |  NUMBER opt_field opt_display_fields   { $$ = D::Type::Number; }
+ |  PIE opt_plot opt_display_fields       { $$ = D::Type::Pie; }
+ |  POINT opt_plot opt_display_fields     { $$ = D::Type::Point; }
+ |  SCATTER opt_plot opt_display_fields   { $$ = D::Type::Scatter; }
+ |  TABLE opt_display_fields              { $$ = D::Type::Table; }
+ |  TEXT opt_field opt_display_fields     { $$ = D::Type::Text; }
     ;
 
 opt_plot:
@@ -260,13 +260,13 @@ opt_field:
  |  %empty
     ;
 
-display_fields:
-    '(' display_field_list ')'
+opt_display_fields:
+    '(' display_fields ')'
  |  %empty
     ;
 
-display_field_list:
-    display_field_list ',' display_field
+display_fields:
+    display_fields ',' display_field
  |  display_field
     ;
 
