@@ -43,6 +43,7 @@ tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 
 using D = tigon::tql::DisplayStatement;
 using L = tigon::tql::LoadStatement;
+using P = tigon::tql::ParameterDeclaration;
 using std::get;
 using std::move;
 using std::vector;
@@ -124,8 +125,10 @@ using std::vector;
 %type <DisplayStatement::Type> display_method;
 %type <DisplayStatement::TypeFlag> display_method_prefix;
 %type <LoadStatement::HTTPLoader::Method> http_method;
+%type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
 %type <Type> type;
 %type <std::string_view> identifier;
+%type <std::string_view> sql_statement;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
 %type <std::unique_ptr<DisplayStatement>> display_statement;
 %type <std::vector<DisplayStatement::RGBColor>> display_color_list;
@@ -149,7 +152,12 @@ statement:
     ;
 
 parameter_declaration:
-    DECLARE PARAMETER identifier opt_as type
+    DECLARE PARAMETER identifier opt_as type {
+        auto& param = ctx.cached<P>();
+        param->name = $3;
+        param->type = $5;
+        $$ = move(param);
+    }
     ;
 
 identifier:
@@ -172,8 +180,8 @@ type:
     ;
 
 sql_statement:
-    SQL_SELECT
- |  SQL_WITH
+    SQL_SELECT { $$ = $1; }
+ |  SQL_WITH   { $$ = $1; }
     ;
 
 load_statement:

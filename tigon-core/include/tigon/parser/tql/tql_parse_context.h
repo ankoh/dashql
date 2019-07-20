@@ -37,7 +37,8 @@ class ParseContext {
         std::unique_ptr<DisplayStatement>,
         std::unique_ptr<LoadStatement::FileLoader>,
         std::unique_ptr<LoadStatement::HTTPLoader>,
-        std::unique_ptr<LoadStatement>
+        std::unique_ptr<LoadStatement>,
+        std::unique_ptr<ParameterDeclaration>
     > cache;
 
     /// Get a cached value
