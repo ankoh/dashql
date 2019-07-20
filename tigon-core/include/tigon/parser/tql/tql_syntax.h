@@ -110,6 +110,23 @@ struct ExtractStatement {
 };
 
 struct DisplayStatement {
+    /// A rgb color
+    struct RGBColor {
+        /// The red color
+        uint8_t red;
+        /// The green color
+        uint8_t green;
+        /// The blue color
+        uint8_t blue;
+
+        /// Constructor
+        RGBColor()
+            : red(), green(), blue() {}
+        /// Constructor
+        RGBColor(uint8_t r, uint8_t g, uint8_t b)
+            : red(r), green(g), blue(b) {}
+    };
+
     /// A length unit
     enum class LengthUnit : uint8_t {
         Span = 0,

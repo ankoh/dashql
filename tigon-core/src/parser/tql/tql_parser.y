@@ -33,6 +33,7 @@
 // We include string for string tokens and forward declare the parse context.
 %code requires {
 #include <string>
+#include <cstdlib>
 #include "tigon/parser/tql/tql_parse_context.h"
 }
 
@@ -113,6 +114,7 @@ using D = tigon::tql::DisplayStatement;
 
 %token EOF 0                "eof"
 
+%type <DisplayStatement::RGBColor> display_color_value;
 %type <DisplayStatement::Layout> display_layout;
 %type <std::pair<DisplayStatement::LayoutOption, std::unique_ptr<DisplayStatement::LayoutLength>>> display_layout_arg;
 %type <DisplayStatement::SizeClass> display_size_class;
@@ -298,8 +300,12 @@ display_color_list:
     ;
 
 display_color_value:
-    RGB '(' INTEGER_LITERAL ',' INTEGER_LITERAL ',' INTEGER_LITERAL ')'
- |  HEX_COLOR_LITERAL
+    RGB '(' INTEGER_LITERAL ',' INTEGER_LITERAL ',' INTEGER_LITERAL ')' {
+        $$ = D::RGBColor($3, $5, $7);
+    }
+ |  HEX_COLOR_LITERAL {
+        $$ = D::RGBColor($1 & 0xFF, ($1 >> 8) & 0xFF, ($1 >> 16) & 0xFF);
+    }
     ;
 
 display_layout:
