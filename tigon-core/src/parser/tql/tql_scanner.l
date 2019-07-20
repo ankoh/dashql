@@ -147,6 +147,7 @@ loc.step ();
 "xl"                { return Parser::make_XL(loc); }
 
 select[^;]*         { return Parser::make_SQL_SELECT(yytext, loc); }
+with[^;]*           { return Parser::make_SQL_WITH(yytext, loc); }
 [a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER_LITERAL(yytext, loc); }
 '[^']*'             { return Parser::make_STRING_LITERAL(yytext, loc); }
 [0-9]+              {
