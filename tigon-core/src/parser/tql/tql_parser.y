@@ -189,7 +189,7 @@ load_method_http_field_list:
 
 load_method_http_field:
     METHOD '=' http_method
-  | URL STRING_LITERAL
+  | URL '=' STRING_LITERAL
     ;
 
 http_method:
