@@ -42,6 +42,7 @@
 tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 
 using D = tigon::tql::DisplayStatement;
+using L = tigon::tql::LoadStatement;
 using std::get;
 using std::move;
 using std::vector;
@@ -122,6 +123,7 @@ using std::vector;
 %type <DisplayStatement::SizeClass> display_size_class;
 %type <DisplayStatement::Type> display_method;
 %type <DisplayStatement::TypeFlag> display_method_prefix;
+%type <LoadStatement::HTTPMethod> http_method;
 %type <std::string_view> identifier;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
 %type <std::unique_ptr<DisplayStatement>> display_statement;
@@ -193,9 +195,9 @@ load_method_http_field:
     ;
 
 http_method:
-    GET
- |  PUT
- |  POST
+    GET  { $$ = L::HTTPMethod::Get; }
+ |  PUT  { $$ = L::HTTPMethod::Put; }
+ |  POST { $$ = L::HTTPMethod::Post; }
     ;
 
 extract_statement:

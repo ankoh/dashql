@@ -54,6 +54,13 @@ struct LoadStatement {
         std::vector<Parameter> parameters;
     };
 
+    /// A http method
+    enum class HTTPMethod {
+        Get,
+        Put,
+        Post
+    };
+
     /// A file loader
     struct FileLoader {};
 
