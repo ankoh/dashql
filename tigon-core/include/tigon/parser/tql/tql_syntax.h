@@ -224,13 +224,29 @@ struct DisplayStatement {
         /// Constructor
         LayoutLength() : sm(), md(), lg(), xl() {}
 
-        /// Set the default value
-        void setDefault(uint16_t value, LengthUnit unit = LengthUnit::Span) {
-            sm.setDefault(value, unit);
-            md.setDefault(value, unit);
-            lg.setDefault(value, unit);
-            xl.setDefault(value, unit);
-        };
+        /// Set a value
+        void set(SizeClass size, uint32_t value, LengthUnit unit) {
+            switch (size) {
+            case SizeClass::Wildcard:
+                sm.setDefault(value, unit);
+                md.setDefault(value, unit);
+                lg.setDefault(value, unit);
+                xl.setDefault(value, unit);
+                break;
+            case SizeClass::Small:
+                sm.setDefault(value, unit);
+                break;
+            case SizeClass::Medium:
+                md.setDefault(value, unit);
+                break;
+            case SizeClass::Large:
+                lg.setDefault(value, unit);
+                break;
+            case SizeClass::ExtraLarge:
+                xl.setDefault(value, unit);
+                break;
+            }
+        }
     };
 
     /// A layout

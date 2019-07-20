@@ -47,29 +47,6 @@ class ParseContext {
         return c;
     }
 
-    /// Set a layout length field
-    void setLayoutLengthField(DisplayStatement::SizeClass size, uint32_t value,
-                                     DisplayStatement::LengthUnit unit) {
-        auto& length = cached<DisplayStatement::LayoutLength>();
-        switch (size) {
-        case DisplayStatement::SizeClass::Wildcard:
-            length->setDefault(value, unit);
-            break;
-        case DisplayStatement::SizeClass::Small:
-            length->sm.setDefault(value, unit);
-            break;
-        case DisplayStatement::SizeClass::Medium:
-            length->md.setDefault(value, unit);
-            break;
-        case DisplayStatement::SizeClass::Large:
-            length->lg.setDefault(value, unit);
-            break;
-        case DisplayStatement::SizeClass::ExtraLarge:
-            length->xl.setDefault(value, unit);
-            break;
-        }
-    }
-
     /// Begin a scan
     void beginScan(std::istream &in);
     /// End a scan

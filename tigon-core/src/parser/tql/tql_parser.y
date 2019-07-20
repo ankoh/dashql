@@ -350,10 +350,10 @@ display_size_class:
 
 display_layout_length:
     display_layout_length ',' display_layout_length_field {
-        ctx.setLayoutLengthField(get<0>($3), get<1>($3), get<2>($3));
+        ctx.cached<D::LayoutLength>()->set(get<0>($3), get<1>($3), get<2>($3));
     }
  |  display_layout_length_field {
-        ctx.setLayoutLengthField(get<0>($1), get<1>($1), get<2>($1));
+        ctx.cached<D::LayoutLength>()->set(get<0>($1), get<1>($1), get<2>($1));
     }
     ;
 
