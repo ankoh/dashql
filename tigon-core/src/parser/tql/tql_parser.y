@@ -39,6 +39,8 @@
 // Import the compiler header in the implementation file
 %code {
 tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
+
+using D = tigon::tql::DisplayStatement;
 }
 
 %token <std::string_view>   SQL_SELECT          "sql_select"
@@ -111,6 +113,8 @@ tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 
 %token EOF 0                "eof"
 
+%type <DisplayStatement::Layout> display_layout;
+%type <std::pair<DisplayStatement::LayoutOption, std::unique_ptr<DisplayStatement::LayoutLength>>> display_layout_arg;
 %type <DisplayStatement::SizeClass> display_size_class;
 %type <std::unique_ptr<DisplayStatement::LayoutLength>> display_layout_length;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_arg;
@@ -299,45 +303,55 @@ display_color_value:
     ;
 
 display_layout:
-    display_layout display_layout_arg ','
- |  %empty
+    display_layout display_layout_arg ','   {
+        switch (std::get<0>($2)) {
+            case D::LayoutOption::Width:
+                $1.width = std::move(std::get<1>($2));
+                break;
+            case D::LayoutOption::Height:
+                $1.height = std::move(std::get<1>($2));
+                break;
+        }
+        $$ = std::move($1);
+    }
+ |  %empty { $$ = D::Layout(); }
     ;
 
 display_layout_arg:
-    WIDTH '=' '(' display_layout_length ')'
- |  HEIGHT '=' '(' display_layout_length ')'
+    WIDTH '=' '(' display_layout_length ')'     { $$ = {D::LayoutOption::Width, move($4)}; }
+ |  HEIGHT '=' '(' display_layout_length ')'    { $$ = {D::LayoutOption::Height, move($4)}; }
     ;
 
 display_size_class:
-    '*' { $$ = DisplayStatement::SizeClass::Wildcard; }
- |  SM  { $$ = DisplayStatement::SizeClass::Small; }
- |  MD  { $$ = DisplayStatement::SizeClass::Medium; }
- |  LG  { $$ = DisplayStatement::SizeClass::Large; }
- |  XL  { $$ = DisplayStatement::SizeClass::ExtraLarge; }
+    '*' { $$ = D::SizeClass::Wildcard; }
+ |  SM  { $$ = D::SizeClass::Small; }
+ |  MD  { $$ = D::SizeClass::Medium; }
+ |  LG  { $$ = D::SizeClass::Large; }
+ |  XL  { $$ = D::SizeClass::ExtraLarge; }
     ;
 
 display_layout_length:
     display_layout_length display_layout_length_arg ',' {
         switch (std::get<0>($2)) {
-            case DisplayStatement::SizeClass::Wildcard:
+            case D::SizeClass::Wildcard:
                 $1->setDefault(std::get<1>($2), std::get<2>($2));
                 break;
-            case DisplayStatement::SizeClass::Small:
+            case D::SizeClass::Small:
                 $1->sm.setDefault(std::get<1>($2), std::get<2>($2));
                 break;
-            case DisplayStatement::SizeClass::Medium:
+            case D::SizeClass::Medium:
                 $1->md.setDefault(std::get<1>($2), std::get<2>($2));
                 break;
-            case DisplayStatement::SizeClass::Large:
+            case D::SizeClass::Large:
                 $1->lg.setDefault(std::get<1>($2), std::get<2>($2));
                 break;
-            case DisplayStatement::SizeClass::ExtraLarge:
+            case D::SizeClass::ExtraLarge:
                 $1->xl.setDefault(std::get<1>($2), std::get<2>($2));
                 break;
         }
         $$ = std::move($1);
     }
- |  %empty { $$ = std::make_unique<DisplayStatement::LayoutLength>(); }
+ |  %empty { $$ = std::make_unique<D::LayoutLength>(); }
     ;
 
 display_layout_length_arg:
@@ -348,12 +362,12 @@ display_layout_length_arg:
 
 opt_display_layout_unit:
     display_layout_unit { $$ = $1; }
- |  %empty              { $$ = DisplayStatement::LengthUnit::Span; }
+ |  %empty              { $$ = D::LengthUnit::Span; }
     ;
 
 display_layout_unit:
-    PERCENT { $$ = DisplayStatement::LengthUnit::Percent; }
- |  PX      { $$ = DisplayStatement::LengthUnit::Pixel; }
+    PERCENT { $$ = D::LengthUnit::Percent; }
+ |  PX      { $$ = D::LengthUnit::Pixel; }
     ;
 
 %%

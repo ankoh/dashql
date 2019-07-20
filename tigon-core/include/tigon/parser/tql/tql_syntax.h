@@ -182,12 +182,18 @@ struct DisplayStatement {
         };
     };
 
+    /// A layout option
+    enum class LayoutOption {
+        Width,
+        Height
+    };
+
     /// A layout
     struct Layout {
         /// The width
-        LayoutLength width;
+        std::unique_ptr<LayoutLength> width;
         /// The height
-        LayoutLength height;
+        std::unique_ptr<LayoutLength> height;
     };
 
     /// The scale of an axis
