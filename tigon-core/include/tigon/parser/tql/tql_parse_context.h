@@ -30,6 +30,8 @@ class ParseContext {
     /// Trace the parsing
     bool trace_parsing;
 
+    /// The current display layout
+    std::unique_ptr<DisplayStatement::LayoutLength> displayLayoutLength;
     /// The current display statement
     std::unique_ptr<DisplayStatement> display;
 
@@ -38,6 +40,32 @@ class ParseContext {
     /// End a scan
     void endScan();
 
+    /// Finish layout length
+    auto finishDisplayLayoutLength() {
+        auto result = std::move(displayLayoutLength);
+        displayLayoutLength = std::make_unique<DisplayStatement::LayoutLength>();
+        return result;
+    }
+    /// Set a layout length field
+    void setDisplayLayoutLengthField(DisplayStatement::SizeClass size, uint32_t value, DisplayStatement::LengthUnit unit) {
+        switch (size) {
+            case DisplayStatement::SizeClass::Wildcard:
+                displayLayoutLength->setDefault(value, unit);
+                break;
+            case DisplayStatement::SizeClass::Small:
+                displayLayoutLength->sm.setDefault(value, unit);
+                break;
+            case DisplayStatement::SizeClass::Medium:
+                displayLayoutLength->md.setDefault(value, unit);
+                break;
+            case DisplayStatement::SizeClass::Large:
+                displayLayoutLength->lg.setDefault(value, unit);
+                break;
+            case DisplayStatement::SizeClass::ExtraLarge:
+                displayLayoutLength->xl.setDefault(value, unit);
+                break;
+        }
+    }
     /// Set a color column
     void setDisplayColorColumn(std::string_view column) {
         display->color.column = column;

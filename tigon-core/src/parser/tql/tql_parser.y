@@ -114,11 +114,11 @@ using D = tigon::tql::DisplayStatement;
 
 %token EOF 0                "eof"
 
+%type <DisplayStatement::AxisScale> display_axis_scale;
 %type <std::string_view> identifier;
 %type <std::vector<DisplayStatement::RGBColor>> display_color_list;
 %type <DisplayStatement::RGBColor> display_color_value;
 %type <DisplayStatement::SizeClass> display_size_class;
-%type <std::unique_ptr<DisplayStatement::LayoutLength>> display_layout_length;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
 %type <DisplayStatement::LengthUnit> opt_display_layout_unit;
 %type <DisplayStatement::LengthUnit> display_layout_unit;
@@ -261,18 +261,18 @@ display_field:
     ;
 
 display_axes:
-    display_axes display_axes_field ','
- |  %empty
+    display_axes ',' display_axes_field
+ |  display_axes_field
     ;
 
 display_axes_field:
-    'x' '=' display_axis
- |  'y' '=' display_axis
+    'x' '=' '(' display_axis ')'
+ |  'y' '=' '(' display_axis ')'
     ;
 
 display_axis:
-    display_axis display_axis_field ','
- |  %empty
+    display_axis ',' display_axis_field
+ |  display_axis_field
     ;
 
 display_axis_field:
@@ -280,12 +280,12 @@ display_axis_field:
  |  SCALE '=' display_axis_scale
 
 display_axis_scale:
-    LINEAR
- |  LOG
+    LINEAR { $$ = D::AxisScale::Linear; }
+ |  LOG    { $$ = D::AxisScale::Logarithmic; }
     ;
 
 display_color:
-    display_color display_color_field ','
+    display_color ',' display_color_field
  |  %empty
     ;
 
@@ -316,13 +316,19 @@ display_color_value:
     ;
 
 display_layout:
-    display_layout display_layout_field ','
- |  %empty
+    display_layout ',' display_layout_field
+ |  display_layout_field
     ;
 
 display_layout_field:
-    WIDTH '=' '(' display_layout_length ')'  { ctx.setDisplayLayoutWidth(move($4)); }
- |  HEIGHT '=' '(' display_layout_length ')' { ctx.setDisplayLayoutHeight(move($4)); }
+    WIDTH '=' '(' display_layout_length ')'  {
+        auto l = ctx.finishDisplayLayoutLength();
+        ctx.setDisplayLayoutWidth(move(l));
+    }
+ |  HEIGHT '=' '(' display_layout_length ')' {
+        auto l = ctx.finishDisplayLayoutLength();
+        ctx.setDisplayLayoutWidth(move(l));
+    }
     ;
 
 display_size_class:
@@ -334,27 +340,12 @@ display_size_class:
     ;
 
 display_layout_length:
-    display_layout_length display_layout_length_field ',' {
-        switch (std::get<0>($2)) {
-            case D::SizeClass::Wildcard:
-                $1->setDefault(std::get<1>($2), std::get<2>($2));
-                break;
-            case D::SizeClass::Small:
-                $1->sm.setDefault(std::get<1>($2), std::get<2>($2));
-                break;
-            case D::SizeClass::Medium:
-                $1->md.setDefault(std::get<1>($2), std::get<2>($2));
-                break;
-            case D::SizeClass::Large:
-                $1->lg.setDefault(std::get<1>($2), std::get<2>($2));
-                break;
-            case D::SizeClass::ExtraLarge:
-                $1->xl.setDefault(std::get<1>($2), std::get<2>($2));
-                break;
-        }
-        $$ = std::move($1);
+    display_layout_length ',' display_layout_length_field {
+        ctx.setDisplayLayoutLengthField(std::get<0>($3), std::get<1>($3), std::get<2>($3));
     }
- |  %empty { $$ = std::make_unique<D::LayoutLength>(); }
+ |  display_layout_length_field {
+        ctx.setDisplayLayoutLengthField(std::get<0>($1), std::get<1>($1), std::get<2>($1));
+    }
     ;
 
 display_layout_length_field:
