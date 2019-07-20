@@ -42,29 +42,26 @@ struct ParameterDeclaration {
 struct LoadStatement {
     /// A http loader
     struct HTTPLoader {
-        /// A paramter
-        struct Parameter {
-            /// The key
-            std::string_view key;
-            /// The value
-            std::string_view value;
+        /// A http method
+        enum class Method {
+            Get,
+            Put,
+            Post
         };
 
-        /// The parameters
-        std::vector<Parameter> parameters;
-    };
-
-    /// A http method
-    enum class HTTPMethod {
-        Get,
-        Put,
-        Post
+        /// A URL
+        std::string_view url;
+        /// A method
+        Method method;
     };
 
     /// A file loader
     struct FileLoader {};
 
-    using LoadMethod = std::variant<HTTPLoader, FileLoader>;
+    using LoadMethod = std::variant<
+        std::unique_ptr<HTTPLoader>,
+        std::unique_ptr<FileLoader>
+    >;
 
     /// The name
     std::string_view name;

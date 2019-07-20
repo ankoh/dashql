@@ -123,7 +123,7 @@ using std::vector;
 %type <DisplayStatement::SizeClass> display_size_class;
 %type <DisplayStatement::Type> display_method;
 %type <DisplayStatement::TypeFlag> display_method_prefix;
-%type <LoadStatement::HTTPMethod> http_method;
+%type <LoadStatement::HTTPLoader::Method> http_method;
 %type <std::string_view> identifier;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
 %type <std::unique_ptr<DisplayStatement>> display_statement;
@@ -176,12 +176,12 @@ sql_statement:
     ;
 
 load_statement:
-    LOAD identifier FROM load_method
+    LOAD identifier FROM load_method { ctx.cached<L>()->name = $2; }
     ;
 
 load_method:
-    HTTP '(' load_method_http_field_list ')'
-  | FILE
+    HTTP '(' load_method_http_field_list ')' { ctx.cached<L>()->method = move(ctx.cached<L::HTTPLoader>()); }
+  | FILE { ctx.cached<L>()->method = move(ctx.cached<L::FileLoader>()); }
     ;
 
 load_method_http_field_list:
@@ -190,14 +190,14 @@ load_method_http_field_list:
     ;
 
 load_method_http_field:
-    METHOD '=' http_method
-  | URL '=' STRING_LITERAL
+    METHOD '=' http_method { ctx.cached<L::HTTPLoader>()->method = $3; }
+  | URL '=' STRING_LITERAL { ctx.cached<L::HTTPLoader>()->url = $3; }
     ;
 
 http_method:
-    GET  { $$ = L::HTTPMethod::Get; }
- |  PUT  { $$ = L::HTTPMethod::Put; }
- |  POST { $$ = L::HTTPMethod::Post; }
+    GET  { $$ = L::HTTPLoader::Method::Get; }
+ |  PUT  { $$ = L::HTTPLoader::Method::Put; }
+ |  POST { $$ = L::HTTPLoader::Method::Post; }
     ;
 
 extract_statement:

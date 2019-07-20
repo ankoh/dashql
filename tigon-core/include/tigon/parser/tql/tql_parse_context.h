@@ -32,9 +32,12 @@ class ParseContext {
 
     /// The cached values
     std::tuple<
-        std::unique_ptr<DisplayStatement>,
         std::unique_ptr<DisplayStatement::Axis>,
-        std::unique_ptr<DisplayStatement::LayoutLength>
+        std::unique_ptr<DisplayStatement::LayoutLength>,
+        std::unique_ptr<DisplayStatement>,
+        std::unique_ptr<LoadStatement::FileLoader>,
+        std::unique_ptr<LoadStatement::HTTPLoader>,
+        std::unique_ptr<LoadStatement>
     > cache;
 
     /// Get a cached value
