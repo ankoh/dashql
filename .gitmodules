@@ -4,3 +4,6 @@
 [submodule "tigon-core/third_party/flatbuffers"]
 	path = tigon-core/third_party/flatbuffers
 	url = https://github.com/google/flatbuffers
+[submodule "tigon-core/third_party/googletest"]
+	path = tigon-core/third_party/googletest
+	url = https://github.com/google/googletest
