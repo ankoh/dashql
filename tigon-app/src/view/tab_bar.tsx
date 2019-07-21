@@ -19,9 +19,6 @@ function TabBarTab(props: ITabBarTabProps) {
     const isActive = props.tabView === props.rootView;
     let tabName = "?";
     switch (props.tabView) {
-        case Model.RootView.DATA_MODEL:
-            tabName = "Data Model";
-            break;
         case Model.RootView.EXPLORER:
             tabName = "Explorer";
             break;
@@ -50,11 +47,6 @@ class TabBar extends React.Component<ITabBarProps> {
     public render() {
         return (
             <div className="TabBar">
-                <TabBarTab
-                    tabView={Model.RootView.DATA_MODEL}
-                    rootView={this.props.rootView}
-                    onViewChanged={this.props.onViewChanged}
-                />
                 <TabBarTab
                     tabView={Model.RootView.EXPLORER}
                     rootView={this.props.rootView}

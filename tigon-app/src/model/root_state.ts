@@ -7,10 +7,9 @@ import { DataSource, InlineAnyRows } from './data_source';
 
 // A view
 export enum RootView {
-    DATA_MODEL = 0,
-    EXPLORER = 1,
-    WORKBOOK = 2,
-    LIBRARY = 3,
+    EXPLORER = 0,
+    WORKBOOK = 1,
+    LIBRARY = 1,
 }
 
 // A connection protocol
