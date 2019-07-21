@@ -142,8 +142,8 @@ using std::vector;
 %start statement_list;
 
 statement_list:
-    statement_list ';' statement {}
- |  statement                    {}
+    statement_list ';' statement { $$ = move($1); $$.push_back(move($3)); }
+ |  statement                    { $$ = vector<Statement>{}; $$.push_back(move($1)); }
     ;
 
 statement:
