@@ -50,7 +50,7 @@ include("${CMAKE_SOURCE_DIR}/src/parser/tql/local.cmake")
 
 # Web API
 add_executable(tigon_web
-    src/tools/web_api/web_api.cc
+    ${CMAKE_SOURCE_DIR}/src/tools/web_api/web_api.cc
 )
 
 # Link libraries
@@ -77,7 +77,10 @@ endif()
 
 # ---------------------------------------------------------------------------
 
-add_executable(tester test/tester.cc)
+add_executable(tester
+    ${CMAKE_SOURCE_DIR}/test/tester.cc
+    ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc
+)
 target_link_libraries(tester
     tql
     gtest gmock
