@@ -23,14 +23,19 @@ if (APPLE)
     list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/flex)
 endif (APPLE)
 
+# ---------------------------------------------------------------------------
+
 # Include cmake lists
 include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/duckdb.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/flatbuffers.cmake")
+include("${CMAKE_SOURCE_DIR}/third_party/googletest.cmake")
 
 # Find packages
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
+
+# ---------------------------------------------------------------------------
 
 # Include directories
 include_directories(
@@ -41,7 +46,9 @@ include_directories(
 # Inlude parser
 include("${CMAKE_SOURCE_DIR}/src/parser/tql/local.cmake")
 
-# Add executable
+# ---------------------------------------------------------------------------
+
+# Web API
 add_executable(tigon_web
     src/tools/web_api/web_api.cc
 )
@@ -67,4 +74,16 @@ if(DEFINED ENV{EMSDK})
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]' \
     ")
 endif()
+
+# ---------------------------------------------------------------------------
+
+add_executable(tester test/tester.cc)
+target_link_libraries(tester
+    tql
+    gtest gmock
+    duckdb re2 miniz pg_query hyperloglog
+)
+
+enable_testing()
+add_test(tigon tester)
 
