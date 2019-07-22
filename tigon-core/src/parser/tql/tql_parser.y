@@ -249,9 +249,7 @@ display_method_prefix_list:
     display_method_prefix_list display_method_prefix {
         ctx.cached<D>()->type_flags |= static_cast<uint64_t>($2);
     }
- |  display_method_prefix {
-        ctx.cached<D>()->type_flags |= static_cast<uint64_t>($1);
-    }
+ |  %empty
     ;
 
 display_method_prefix:
@@ -330,17 +328,17 @@ display_axis_scale:
 
 display_color:
     display_color COMMA display_color_field
- |  %empty
+ |  display_color_field
     ;
 
 display_color_field:
-    COLUMN EQUAL identifier              { ctx.cached<D>()->color.column = move($3); }
- |  PALETTE EQUAL opt_display_color_list { ctx.cached<D>()->color.palette = move($3); }
+    COLUMN EQUAL identifier                      { ctx.cached<D>()->color.column = move($3); }
+ |  PALETTE EQUAL LSB opt_display_color_list RSB { ctx.cached<D>()->color.palette = move($4); }
     ;
 
 opt_display_color_list:
-    '[' display_color_list ']'  { $$ = move($2); }
- |  %empty                      { $$ = vector<D::RGBColor>(); }
+    display_color_list  { $$ = move($1); }
+ |  %empty              { $$ = vector<D::RGBColor>(); }
     ;
 
 display_color_list:

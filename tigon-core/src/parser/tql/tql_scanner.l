@@ -89,7 +89,7 @@ loc.step ();
 "("                 { return Parser::make_LRB(loc); }
 ")"                 { return Parser::make_RRB(loc); }
 "["                 { return Parser::make_LSB(loc); }
-"]"                 { return Parser::make_RRB(loc); }
+"]"                 { return Parser::make_RSB(loc); }
 "="                 { return Parser::make_EQUAL(loc); }
 ","                 { return Parser::make_COMMA(loc); }
 "*"                 { return Parser::make_STAR(loc); }
