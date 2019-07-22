@@ -85,6 +85,15 @@ using namespace tigon::tql;
 loc.step ();
 %}
 
+";"                 { return Parser::make_SEMICOLON(loc); }
+"("                 { return Parser::make_LRB(loc); }
+")"                 { return Parser::make_RRB(loc); }
+"["                 { return Parser::make_LSB(loc); }
+"]"                 { return Parser::make_RRB(loc); }
+"="                 { return Parser::make_EQUAL(loc); }
+","                 { return Parser::make_COMMA(loc); }
+"*"                 { return Parser::make_STAR(loc); }
+
 "area"              { return Parser::make_AREA(loc); }
 "as"                { return Parser::make_AS(loc); }
 "axes"              { return Parser::make_AXES(loc); }
@@ -142,7 +151,9 @@ loc.step ();
 "using"             { return Parser::make_USING(loc); }
 "vertical"          { return Parser::make_VERTICAL(loc); }
 "width"             { return Parser::make_WIDTH(loc); }
+"x"                 { return Parser::make_X(loc); }
 "xl"                { return Parser::make_XL(loc); }
+"y"                 { return Parser::make_Y(loc); }
 
 select[^;]*         { return Parser::make_SQL_SELECT(yytext, loc); }
 with[^;]*           { return Parser::make_SQL_WITH(yytext, loc); }

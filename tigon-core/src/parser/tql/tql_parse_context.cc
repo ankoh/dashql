@@ -35,6 +35,6 @@ void ParseContext::Error(const std::string &m) { throw TQLParseError(m); }
 // Yield an error
 void ParseContext::Error(uint32_t line, uint32_t column, const std::string &err) {
     std::stringstream ss;
-    ss << "[ l=" << line << " c=" << column << " ] " << err << std::endl;
+    ss << "[" << line << ":" << column << "] " << err;
     throw TQLParseError(ss.str());
 }

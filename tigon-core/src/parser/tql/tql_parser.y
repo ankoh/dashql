@@ -56,6 +56,15 @@ using std::vector;
 %token <uint32_t>           HEX_COLOR_LITERAL   "hex_color_literal"
 %token <int>                INTEGER_LITERAL     "integer_literal"
 
+%token SEMICOLON            "semicolon"
+%token LRB                  "left_round_bracket"
+%token RRB                  "right_round_bracket"
+%token LSB                  "left_square_bracket"
+%token RSB                  "right_square_bracket"
+%token EQUAL                "equal"
+%token COMMA                "comma"
+%token STAR                 "star"
+
 %token AREA                 "area"
 %token AS                   "as"
 %token AXES                 "axes"
@@ -113,7 +122,9 @@ using std::vector;
 %token USING                "using"
 %token VERTICAL             "vertical"
 %token WIDTH                "width"
+%token X                    "x"
 %token XL                   "xl"
+%token Y                    "y"
 
 %token EOF 0                "eof"
 
@@ -142,8 +153,8 @@ using std::vector;
 %start statement_list;
 
 statement_list:
-    statement_list ';' statement { $$ = move($1); $$.push_back(move($3)); }
- |  statement                    { $$ = vector<Statement>{}; $$.push_back(move($1)); }
+    statement_list statement SEMICOLON  { $$ = move($1); $$.push_back(move($2)); }
+ |  %empty                              { $$ = vector<Statement>{}; }
     ;
 
 statement:
@@ -196,18 +207,18 @@ load_statement:
     ;
 
 load_method:
-    HTTP '(' load_method_http_field_list ')' { ctx.cached<L>()->method = move(ctx.cached<L::HTTPLoader>()); }
+    HTTP LRB load_method_http_field_list RRB { ctx.cached<L>()->method = move(ctx.cached<L::HTTPLoader>()); }
   | FILE { ctx.cached<L>()->method = move(ctx.cached<L::FileLoader>()); }
     ;
 
 load_method_http_field_list:
-    load_method_http_field_list ',' load_method_http_field
+    load_method_http_field_list COMMA load_method_http_field
   | load_method_http_field
     ;
 
 load_method_http_field:
-    METHOD '=' http_method { ctx.cached<L::HTTPLoader>()->method = $3; }
-  | URL '=' STRING_LITERAL { ctx.cached<L::HTTPLoader>()->url = $3; }
+    METHOD EQUAL http_method { ctx.cached<L::HTTPLoader>()->method = $3; }
+  | URL EQUAL STRING_LITERAL { ctx.cached<L::HTTPLoader>()->url = $3; }
     ;
 
 http_method:
@@ -221,8 +232,8 @@ extract_statement:
     ;
 
 extract_method:
-    CSV '(' ')'
-  | JSONPATH '(' ')'
+    CSV LRB RRB
+  | JSONPATH LRB RRB
     ;
 
 display_statement:
@@ -277,39 +288,39 @@ opt_field:
     ;
 
 opt_display_fields:
-    '(' display_fields ')'
+    LRB display_fields RRB
  |  %empty
     ;
 
 display_fields:
-    display_fields ',' display_field
+    display_fields COMMA display_field
  |  display_field
     ;
 
 display_field:
-    AXES '=' '(' display_axes ')'
- |  COLOR '=' '(' display_color ')'
- |  LAYOUT '=' '(' display_layout ')'
+    AXES EQUAL LRB display_axes RRB
+ |  COLOR EQUAL LRB display_color RRB
+ |  LAYOUT EQUAL LRB display_layout RRB
     ;
 
 display_axes:
-    display_axes ',' display_axes_field
+    display_axes COMMA display_axes_field
  |  display_axes_field
     ;
 
 display_axes_field:
-    'x' '=' '(' display_axis ')' { ctx.cached<D>()->axes.x = move(ctx.cached<D::Axis>()); }
- |  'y' '=' '(' display_axis ')' { ctx.cached<D>()->axes.y = move(ctx.cached<D::Axis>()); }
+    X EQUAL LRB display_axis RRB { ctx.cached<D>()->axes.x = move(ctx.cached<D::Axis>()); }
+ |  Y EQUAL LRB display_axis RRB { ctx.cached<D>()->axes.y = move(ctx.cached<D::Axis>()); }
     ;
 
 display_axis:
-    display_axis ',' display_axis_field
+    display_axis COMMA display_axis_field
  |  display_axis_field
     ;
 
 display_axis_field:
-    COLUMN '=' identifier        { ctx.cached<D::Axis>()->column = move($3); }
- |  SCALE '=' display_axis_scale { ctx.cached<D::Axis>()->scale = move($3); }
+    COLUMN EQUAL identifier        { ctx.cached<D::Axis>()->column = move($3); }
+ |  SCALE EQUAL display_axis_scale { ctx.cached<D::Axis>()->scale = move($3); }
     ;
 
 display_axis_scale:
@@ -318,13 +329,13 @@ display_axis_scale:
     ;
 
 display_color:
-    display_color ',' display_color_field
+    display_color COMMA display_color_field
  |  %empty
     ;
 
 display_color_field:
-    COLUMN '=' identifier              { ctx.cached<D>()->color.column = move($3); }
- |  PALETTE '=' opt_display_color_list { ctx.cached<D>()->color.palette = move($3); }
+    COLUMN EQUAL identifier              { ctx.cached<D>()->color.column = move($3); }
+ |  PALETTE EQUAL opt_display_color_list { ctx.cached<D>()->color.palette = move($3); }
     ;
 
 opt_display_color_list:
@@ -333,12 +344,12 @@ opt_display_color_list:
     ;
 
 display_color_list:
-    display_color_list ',' display_color_value { $1.push_back($3); $$ = move($1); }
- |  display_color_value                        { $$ = vector<D::RGBColor>{$1}; }
+    display_color_list COMMA display_color_value { $1.push_back($3); $$ = move($1); }
+ |  display_color_value                          { $$ = vector<D::RGBColor>{$1}; }
     ;
 
 display_color_value:
-    RGB '(' INTEGER_LITERAL ',' INTEGER_LITERAL ',' INTEGER_LITERAL ')' {
+    RGB LRB INTEGER_LITERAL COMMA INTEGER_LITERAL COMMA INTEGER_LITERAL RRB {
         $$ = D::RGBColor{
             static_cast<uint8_t>($3),
             static_cast<uint8_t>($5),
@@ -349,25 +360,25 @@ display_color_value:
     ;
 
 display_layout:
-    display_layout ',' display_layout_field
+    display_layout COMMA display_layout_field
  |  display_layout_field
     ;
 
 display_layout_field:
-    WIDTH '=' '(' display_layout_length ')'  { ctx.cached<D>()->layout.width = move(ctx.cached<D::LayoutLength>()); }
- |  HEIGHT '=' '(' display_layout_length ')' { ctx.cached<D>()->layout.height = move(ctx.cached<D::LayoutLength>()); }
+    WIDTH EQUAL LRB display_layout_length RRB  { ctx.cached<D>()->layout.width = move(ctx.cached<D::LayoutLength>()); }
+ |  HEIGHT EQUAL LRB display_layout_length RRB { ctx.cached<D>()->layout.height = move(ctx.cached<D::LayoutLength>()); }
     ;
 
 display_size_class:
-    '*' { $$ = D::SizeClass::Wildcard; }
- |  SM  { $$ = D::SizeClass::Small; }
- |  MD  { $$ = D::SizeClass::Medium; }
- |  LG  { $$ = D::SizeClass::Large; }
- |  XL  { $$ = D::SizeClass::ExtraLarge; }
+    STAR { $$ = D::SizeClass::Wildcard; }
+ |  SM   { $$ = D::SizeClass::Small; }
+ |  MD   { $$ = D::SizeClass::Medium; }
+ |  LG   { $$ = D::SizeClass::Large; }
+ |  XL   { $$ = D::SizeClass::ExtraLarge; }
     ;
 
 display_layout_length:
-    display_layout_length ',' display_layout_length_field {
+    display_layout_length COMMA display_layout_length_field {
         ctx.cached<D::LayoutLength>()->set(get<0>($3), get<1>($3), get<2>($3));
     }
  |  display_layout_length_field {
@@ -376,7 +387,7 @@ display_layout_length:
     ;
 
 display_layout_length_field:
-    display_size_class '=' INTEGER_LITERAL opt_display_layout_unit { $$ = {$1, $3, $4}; }
+    display_size_class EQUAL INTEGER_LITERAL opt_display_layout_unit { $$ = {$1, $3, $4}; }
     ;
 
 opt_display_layout_unit:
