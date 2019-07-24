@@ -38,7 +38,7 @@ class Table extends React.Component<ITableProps, ITableState> {
 
     // Render a single cell
     public renderCell(props: GridCellProps) {
-        const cellBorder = '1px solid rgb(230, 230, 230)';
+        const cellBorder = '1px solid rgb(225, 225, 225)';
         const fixedCellColor = 'rgb(245, 245, 245)';
 
         enum CellType {
