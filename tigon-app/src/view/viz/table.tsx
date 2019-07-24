@@ -38,37 +38,99 @@ class Table extends React.Component<ITableProps, ITableState> {
 
     // Render a single cell
     public renderCell(props: GridCellProps) {
-        // First column?
-        if (props.columnIndex === 0) {
-            return (
-                <div
-                    key={props.key}
-                    style={{
-                        ...props.style
-                    }}
-                >
-                    {props.rowIndex > 0 ? props.rowIndex : ""}
-                </div>
-            );
-        }
+        const cellBorder = '1px solid rgb(230, 230, 230)';
+        const fixedCellColor = 'rgb(245, 245, 245)';
 
-        // Header row?
+        enum CellType {
+            Anchor,
+            ColumnHeader,
+            RowHeader,
+            Data
+        };
+        let cellType = CellType.Data;
+
         if (props.rowIndex === 0) {
-            return (
-                <div key={props.key} style={props.style}>
-                    {this.props.data.getColumn(props.columnIndex - 1).getName()}
-                </div>
-            );
+            if (props.columnIndex === 0) {
+                cellType = CellType.Anchor;
+            } else {
+                cellType = CellType.ColumnHeader;
+            }
+        } else if (props.columnIndex === 0) {
+            cellType = CellType.RowHeader
         }
 
-        // Data cell
-        let columnIndex = props.columnIndex - 1;
-        let rowIndex = props.rowIndex - 1;
-        return (
-            <div key={props.key} style={props.style}>
-                {this.props.data.getColumn(columnIndex).getRowAsString(rowIndex)}
-            </div>
-        );
+        switch (cellType) {
+            case CellType.Anchor:
+                return (
+                    <div
+                        key={props.key}
+                        style={{
+                            ...props.style,
+                            backgroundColor: fixedCellColor,
+                            boxSizing: 'border-box',
+                            borderBottom: cellBorder,
+                            borderRight: cellBorder,
+                            textAlign: 'center',
+                            lineHeight: '28px',
+                        }}
+                    />
+                );
+            case CellType.ColumnHeader:
+                return (
+                    <div
+                        key={props.key}
+                        style={{
+                            ...props.style,
+                            backgroundColor: fixedCellColor,
+                            boxSizing: 'border-box',
+                            borderBottom: cellBorder,
+                            borderRight: cellBorder,
+                            textAlign: 'center',
+                            lineHeight: '28px',
+                        }}
+                    >
+                        {this.props.data.getColumn(props.columnIndex - 1).getName()}
+                    </div>
+                );
+            case CellType.RowHeader:
+                return (
+                    <div
+                        key={props.key}
+                        style={{
+                            ...props.style,
+                            backgroundColor: fixedCellColor,
+                            boxSizing: 'border-box',
+                            borderBottom: cellBorder,
+                            borderRight: cellBorder,
+                            textAlign: 'center',
+                            lineHeight: '28px',
+                        }}
+                    >
+                        {props.rowIndex}
+                    </div>
+                );
+            case CellType.Data:
+            {
+                let columnIndex = props.columnIndex - 1;
+                let rowIndex = props.rowIndex - 1;
+                return (
+                    <div
+                        key={props.key}
+                        style={{
+                            ...props.style,
+                            boxSizing: 'border-box',
+                            borderBottom: cellBorder,
+                            borderRight: cellBorder,
+                            lineHeight: '28px',
+                            padding: '0px 8px 0px 8px',
+                            backgroundColor: 'white',
+                        }}
+                    >
+                        {this.props.data.getColumn(columnIndex).getRowAsString(rowIndex)}
+                    </div>
+                );
+            }
+        }
     }
 
     // 
@@ -102,7 +164,7 @@ class Table extends React.Component<ITableProps, ITableState> {
                             fixedRowCount={1}
                             fixedColumnCount={1}
                             rowCount={this.props.data.getRowCount() + 1}
-                            rowHeight={32}
+                            rowHeight={28}
                         />
                     )}
                 </AutoSizer>
