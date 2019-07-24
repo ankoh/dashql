@@ -41,51 +41,51 @@ class Explorer extends React.Component<IExplorerProps> {
                         <div className="explorer-viewer-viztypes">
                             <div className="explorer-viewer-viztype-container">
                                 <div className="explorer-viewer-viztype">
-                                    <PlanIcon fill="rgb(0, 0, 0)" />
+                                    <PlanIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
                             <div className="explorer-viewer-viztype-container">
                                 <div className="explorer-viewer-viztype  explorer-viewer-viztype-active">
-                                    <TableChartIcon fill="rgb(255, 255, 255)" />
+                                    <TableChartIcon width="20px" height="20px" fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
                             <div className="explorer-viewer-viztype-container">
                                 <div className="explorer-viewer-viztype">
-                                    <LineChartIcon fill="rgb(0, 0, 0)" />
+                                    <LineChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
                             <div className="explorer-viewer-viztype-container">
                                 <div className="explorer-viewer-viztype">
-                                    <BarChartIcon fill="rgb(0, 0, 0)" />
+                                    <BarChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
                             <div className="explorer-viewer-viztype-container">
                                 <div className="explorer-viewer-viztype">
-                                    <BubbleChartIcon fill="rgb(0, 0, 0)" />
+                                    <BubbleChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
                             <div className="explorer-viewer-viztype-container">
                                 <div className="explorer-viewer-viztype">
-                                    <PieChartIcon fill="rgb(0, 0, 0)" />
+                                    <PieChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
                                 </div>
                             </div>
                         </div>
 
                         <div className="explorer-viewer-Settings-container">
                             <div className="explorer-viewer-Settings">
-                                <SettingsIcon fill="rgb(0, 0, 0)" />
+                                <SettingsIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
                             </div>
                         </div>
 
                         <div className="explorer-viewer-actions">
                             <div className="explorer-viewer-action-container">
                                 <div className="explorer-viewer-action">
-                                    <UndoIcon fill="rgb(255, 255, 255)" />
+                                    <UndoIcon width="20px" height="20px" fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
                             <div className="explorer-viewer-action-container">
                                 <div className="explorer-viewer-action">
-                                    <SaveIcon fill="rgb(255, 255, 255)" />
+                                    <SaveIcon width="20px" height="20px" fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
                         </div>
@@ -95,17 +95,17 @@ class Explorer extends React.Component<IExplorerProps> {
                     <div className="explorer-input-tabBar">
                         <div className="explorer-input-tab-container">
                             <div className="explorer-input-tab explorer-input-tab-active">
-                                <ConsoleIcon />
+                                <ConsoleIcon width="20px" height="20px" />
                             </div>
                         </div>
                         <div className="explorer-input-tab-container">
                             <div className="explorer-input-tab">
-                                <ProgramIcon fill="rgb(0, 0, 0)" />
+                                <ProgramIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
                             </div>
                         </div>
                         <div className="explorer-input-tab-container">
                             <div className="explorer-input-tab">
-                                <DNSIcon fill="rgb(0, 0, 0)" />
+                                <DNSIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
                             </div>
                         </div>
                     </div>
