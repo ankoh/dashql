@@ -9,6 +9,14 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# TestBigEndian fails in Snappy and Brotli builds.
+# https://github.com/emscripten-core/emscripten/issues/400
+if(DEFINED ENV{EMSDK})
+    set(EMSDK $ENV{EMSDK})
+    message(STATUS "EMSDK: ${EMSDK}/fastcomp/emscripten")
+    set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${EMSDK}/fastcomp/emscripten/cmake/Modules")
+endif()
+
 # Unfortunately, macOS (<= High Sierra) ships with a too old bison version.
 # You need to manually install bison and flex via homebrew.
 # (It's a good thing to have homebrew installed anyway)
@@ -31,6 +39,8 @@ include("${CMAKE_SOURCE_DIR}/third_party/arrow.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/duckdb.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/googletest.cmake")
+include("${CMAKE_SOURCE_DIR}/third_party/snappy.cmake")
+include("${CMAKE_SOURCE_DIR}/third_party/brotli.cmake")
 
 # Find packages
 find_package(BISON REQUIRED)
@@ -57,7 +67,8 @@ add_executable(tigon_web
 # Link libraries
 target_link_libraries(tigon_web
     tql
-    arrow parquet
+    snappy
+    brotli_enc brotli_dec brotli_common
     duckdb re2 miniz pg_query hyperloglog
 )
 
@@ -86,7 +97,6 @@ add_executable(tester
 target_link_libraries(tester
     tql
     gtest gmock
-    arrow parquet
     duckdb re2 miniz pg_query hyperloglog
 )
 

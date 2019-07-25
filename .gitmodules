@@ -10,3 +10,9 @@
 [submodule "tigon-core/third_party/arrow"]
 	path = tigon-core/third_party/arrow
 	url = https://github.com/apache/arrow
+[submodule "tigon-core/third_party/snappy"]
+	path = tigon-core/third_party/snappy
+	url = https://github.com/google/snappy
+[submodule "tigon-core/third_party/brotli"]
+	path = tigon-core/third_party/brotli
+	url = https://github.com/google/brotli

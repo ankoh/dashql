@@ -9,7 +9,7 @@ ExternalProject_Add(
     arrow_build
     PREFIX "${CMAKE_BINARY_DIR}/third_party/arrow"
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/arrow/cpp"
-    INSTALL_DIR "${CMAKE_BINARY_DIR}/thrid_party/arrow/install"
+    INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/arrow/install"
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
@@ -17,7 +17,7 @@ ExternalProject_Add(
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/thrid_party/arrow/install
+        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/third_party/arrow/install
         -DARROW_PARQUET=ON
         -DARROW_BUILD_STATIC=ON
         -DARROW_BUILD_SHARED=OFF
@@ -43,6 +43,8 @@ set(ARROW_INCLUDE_DIR ${install_dir}/include)
 set(ARROW_LIBRARY_PATH ${install_dir}/lib/libarrow.a)
 set(PARQUET_INCLUDE_DIR ${install_dir}/include)
 set(PARQUET_LIBRARY_PATH ${install_dir}/lib/libparquet.a)
+file(MAKE_DIRECTORY ${ARROW_INCLUDE_DIR})
+file(MAKE_DIRECTORY ${PARQUET_INCLUDE_DIR})
 
 add_library(arrow STATIC IMPORTED)
 set_property(TARGET arrow PROPERTY IMPORTED_LOCATION ${ARROW_LIBRARY_PATH})
