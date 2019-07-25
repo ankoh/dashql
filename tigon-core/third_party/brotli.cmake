@@ -27,10 +27,12 @@ ExternalProject_Add(
 
 ExternalProject_Get_Property(brotli_build install_dir)
 set(BROTLI_INCLUDE_DIR ${install_dir}/include)
-set(BROTLIENC_LIBRARY_PATH ${install_dir}/lib/libbrotlienc-static.a)
-set(BROTLIDEC_LIBRARY_PATH ${install_dir}/lib/libbrotlidec-static.a)
-set(BROTLICOMMON_LIBRARY_PATH ${install_dir}/lib/libbrotlicommon-static.a)
+set(BROTLI_ENC_LIBRARY_PATH ${install_dir}/lib/libbrotlienc-static.a)
+set(BROTLI_DEC_LIBRARY_PATH ${install_dir}/lib/libbrotlidec-static.a)
+set(BROTLI_COMMON_LIBRARY_PATH ${install_dir}/lib/libbrotlicommon-static.a)
 file(MAKE_DIRECTORY ${BROTLI_INCLUDE_DIR})
+
+set(BROTLI_ROOT ${install_dir})
 
 add_library(brotli_enc STATIC IMPORTED)
 set_property(TARGET brotli_enc PROPERTY IMPORTED_LOCATION ${BROTLIENC_LIBRARY_PATH})

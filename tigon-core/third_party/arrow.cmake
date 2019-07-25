@@ -31,6 +31,12 @@ ExternalProject_Add(
         -DARROW_GFLAGS_USE_SHARED=OFF
         -DARROW_USE_SIMD=OFF
         -DARROW_ALTIVEC=OFF
+        -DSnappy_LIB=${SNAPPY_LIBRARY_PATH}
+        -DSnappy_INCLUDE_DIR=${SNAPPY_INCLUDE_DIR}
+        -DBROTLI_COMMON_LIBRARY=${BROTLI_COMMON_LIBRARY_PATH}
+        -DBROTLI_ENC_LIBRARY=${BROTLI_ENC_LIBRARY_PATH}
+        -DBROTLI_DEC_LIBRARY=${BROTLI_DEC_LIBRARY_PATH}
+        -DBROTLI_INCLUDE_DIR=${BROTLI_INCLUDE_DIR}
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     BUILD_BYPRODUCTS
@@ -54,5 +60,6 @@ add_library(parquet STATIC IMPORTED)
 set_property(TARGET parquet PROPERTY IMPORTED_LOCATION ${PARQUET_LIBRARY_PATH})
 set_property(TARGET parquet APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PARQUET_INCLUDE_DIR})
 
+add_dependencies(arrow_build snappy_build brotli_build)
 add_dependencies(arrow arrow_build)
 add_dependencies(parquet arrow_build)

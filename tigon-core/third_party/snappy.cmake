@@ -30,6 +30,8 @@ set(SNAPPY_INCLUDE_DIR ${install_dir}/include)
 set(SNAPPY_LIBRARY_PATH ${install_dir}/lib/libsnappy.a)
 file(MAKE_DIRECTORY ${SNAPPY_INCLUDE_DIR})
 
+set(Snappy_ROOT ${install_dir})
+
 add_library(snappy STATIC IMPORTED)
 set_property(TARGET snappy PROPERTY IMPORTED_LOCATION ${SNAPPY_LIBRARY_PATH})
 set_property(TARGET snappy APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${SNAPPY_INCLUDE_DIR})
