@@ -7,9 +7,10 @@ include(ExternalProject)
 
 ExternalProject_Add(
     duckdb_build
+    PREFIX "${CMAKE_BINARY_DIR}/third_party/duckdb"
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/duckdb"
     CMAKE_ARGS
-        -GNinja
+        -G${CMAKE_GENERATOR}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}

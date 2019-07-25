@@ -27,6 +27,7 @@ endif (APPLE)
 
 # Include cmake lists
 include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
+include("${CMAKE_SOURCE_DIR}/third_party/arrow.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/duckdb.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/googletest.cmake")
@@ -56,6 +57,7 @@ add_executable(tigon_web
 # Link libraries
 target_link_libraries(tigon_web
     tql
+    arrow parquet
     duckdb re2 miniz pg_query hyperloglog
 )
 
@@ -84,6 +86,7 @@ add_executable(tester
 target_link_libraries(tester
     tql
     gtest gmock
+    arrow parquet
     duckdb re2 miniz pg_query hyperloglog
 )
 

@@ -10,11 +10,14 @@ find_package(Threads REQUIRED)
 # Build gtest
 ExternalProject_Add(
     gtest_build
+    PREFIX "${CMAKE_BINARY_DIR}/third_party/gtest"
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/googletest/googletest"
     CMAKE_ARGS
+        -G${CMAKE_GENERATOR}
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     INSTALL_COMMAND ""
@@ -24,11 +27,14 @@ ExternalProject_Add(
 # Build gmock
 ExternalProject_Add(
     gmock_build
+    PREFIX "${CMAKE_BINARY_DIR}/third_party/gmock"
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/googletest/googlemock"
     CMAKE_ARGS
+        -G${CMAKE_GENERATOR}
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     INSTALL_COMMAND ""

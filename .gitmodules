@@ -7,3 +7,6 @@
 [submodule "tigon-core/third_party/googletest"]
 	path = tigon-core/third_party/googletest
 	url = https://github.com/google/googletest
+[submodule "tigon-core/third_party/arrow"]
+	path = tigon-core/third_party/arrow
+	url = https://github.com/apache/arrow
