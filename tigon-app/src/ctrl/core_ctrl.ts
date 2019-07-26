@@ -2,7 +2,7 @@ import * as proto from '../proto';
 import { flatbuffers } from 'flatbuffers';
 
 // Real devs don't need types. ¯\_(ツ)_/¯
-declare function TigonWeb(args: any): any;
+declare function TigonCore(args: any): any;
 
 // A query result
 export class QueryResult {
@@ -42,7 +42,7 @@ export class CoreController {
         if (loadCore != null) {
             this.loadCore = loadCore;
         } else {
-            this.loadCore = TigonWeb;
+            this.loadCore = TigonCore;
         }
     }
 

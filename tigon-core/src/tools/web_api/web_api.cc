@@ -290,20 +290,17 @@ extern "C" {
 
 /// Get a buffer
 uint8_t *tigon_get_buffer(WebAPI::BufferID id) { return WebAPI::Instance->getBuffer(id); }
-
 /// Get a buffer size
 uint32_t tigon_get_buffer_size(WebAPI::BufferID id) { return WebAPI::Instance->getBufferSize(id); }
-
 /// Release a buffer
 void tigon_release_buffer(WebAPI::BufferID id) { WebAPI::Instance->releaseBuffer(id); }
-
 /// Run a query
 WebAPI::BufferID tigon_run_query(char *text) { return WebAPI::Instance->runQuery(text); }
+
 }
 
 /// Initialize the web api
 int main() {
     WebAPI::Instance = std::make_unique<WebAPI>();
-    printf("tigon core ready\n");
     return 0;
 }

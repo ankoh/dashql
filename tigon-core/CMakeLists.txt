@@ -94,7 +94,7 @@ target_link_libraries(tigon_web
 if(DEFINED ENV{EMSDK})
     set_target_properties(tigon_web PROPERTIES LINK_FLAGS "\
         -s MODULARIZE=1 \
-        -s EXPORT_NAME=TigonWeb \
+        -s EXPORT_NAME=TigonCore \
         -s EXPORTED_FUNCTIONS='[\
             _main, \
             _tigon_get_buffer, \
