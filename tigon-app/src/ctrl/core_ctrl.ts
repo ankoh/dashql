@@ -2,7 +2,7 @@ import * as proto from '../proto';
 import { flatbuffers } from 'flatbuffers';
 
 // Real devs don't need types. ¯\_(ツ)_/¯
-var TigonWeb: any;
+declare function TigonWeb(args: any): any;
 
 // A query result
 export class QueryResult {
