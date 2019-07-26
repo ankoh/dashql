@@ -42,9 +42,10 @@ export class RootController {
     }
 
     // Init the controller
-    public init() {
+    public init(): Promise<void> {
         this.core.init();
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
+        return Promise.resolve();
     }
 
     // The worker function
