@@ -29,6 +29,7 @@ ExternalProject_Add(
         -DARROW_BOOST_USE_SHARED=OFF
         -DARROW_PROTOBUF_USE_SHARED=OFF
         -DARROW_GFLAGS_USE_SHARED=OFF
+        -DARROW_USE_GLOG=OFF
         -DARROW_USE_SIMD=OFF
         -DARROW_ALTIVEC=OFF
         -DSnappy_LIB=${SNAPPY_LIBRARY_PATH}
@@ -37,6 +38,9 @@ ExternalProject_Add(
         -DBROTLI_ENC_LIBRARY=${BROTLI_ENC_LIBRARY_PATH}
         -DBROTLI_DEC_LIBRARY=${BROTLI_DEC_LIBRARY_PATH}
         -DBROTLI_INCLUDE_DIR=${BROTLI_INCLUDE_DIR}
+        -DFLATBUFFERS_LIB=${FLATBUFFERS_LIBRARY_PATH}
+        -DFLATBUFFERS_INCLUDE_DIR=${FLATBUFFERS_INCLUDE_DIR}
+        -DFLATC=${FLATC}
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     BUILD_BYPRODUCTS
@@ -60,6 +64,6 @@ add_library(parquet STATIC IMPORTED)
 set_property(TARGET parquet PROPERTY IMPORTED_LOCATION ${PARQUET_LIBRARY_PATH})
 set_property(TARGET parquet APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PARQUET_INCLUDE_DIR})
 
-add_dependencies(arrow_build snappy_build brotli_build)
+add_dependencies(arrow_build snappy_build brotli_build flatbuffers_build flatc_build)
 add_dependencies(arrow arrow_build)
 add_dependencies(parquet arrow_build)

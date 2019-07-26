@@ -32,8 +32,6 @@ set(BROTLI_DEC_LIBRARY_PATH ${install_dir}/lib/libbrotlidec-static.a)
 set(BROTLI_COMMON_LIBRARY_PATH ${install_dir}/lib/libbrotlicommon-static.a)
 file(MAKE_DIRECTORY ${BROTLI_INCLUDE_DIR})
 
-set(BROTLI_ROOT ${install_dir})
-
 add_library(brotli_enc STATIC IMPORTED)
 set_property(TARGET brotli_enc PROPERTY IMPORTED_LOCATION ${BROTLIENC_LIBRARY_PATH})
 set_property(TARGET brotli_enc APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BROTLI_INCLUDE_DIR})
