@@ -25,7 +25,7 @@ ExternalProject_Add(
         -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
-        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/third_party/thrift/install
         -DBUILD_SHARED_LIBS=OFF
         -DBUILD_COMPILER=OFF
@@ -57,36 +57,3 @@ set_property(TARGET thrift APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${THRIF
 
 add_dependencies(thrift_build boost_ep)
 add_dependencies(thrift thrift_build)
-
-# Thrift compiler (bypass emscripten toolchain)
-# ExternalProject_Add(
-#     thriftc_build
-#     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/thrift"
-#     PREFIX "${CMAKE_BINARY_DIR}/third_party/thriftc"
-#     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/thriftc/install"
-#     CMAKE_ARGS
-#         -G${CMAKE_GENERATOR}
-#         -DCMAKE_CXX_STANDARD=17
-#         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-#         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-#         -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
-#         -DCMAKE_BUILD_TYPE=Release
-#         -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/third_party/thriftc/install
-#         -DBUILD_SHARED_LIBS=OFF
-#         -DBUILD_COMPILER=ON
-#         -DBUILD_TESTING=OFF
-#         -DBUILD_TUTORIALS=OFF
-#         -DWITH_AS3=OFF
-#         -DWITH_CPP=OFF
-#         -DWITH_C_GLIB=OFF
-#         -DWITH_PYTHON=OFF
-#         -DWITH_HASKELL=OFF
-#         -DWITH_JAVA=OFF
-#     DOWNLOAD_COMMAND ""
-#     UPDATE_COMMAND ""
-#     BUILD_BYPRODUCTS
-#         <INSTALL_DIR>/bin/thrift
-# )
-# 
-# ExternalProject_Get_Property(thriftc_build install_dir)
-# set(THRIFTC ${install_dir}/bin/thrift)

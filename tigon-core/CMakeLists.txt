@@ -6,10 +6,10 @@
 project(tigon)
 cmake_minimum_required(VERSION 3.10)
 
-# Configure cmake
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -std=c++17)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
 
 # ---------------------------------------------------------------------------
 # Homebrew (only relevant on macOS)
