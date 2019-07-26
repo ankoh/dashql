@@ -16,3 +16,6 @@
 [submodule "tigon-core/third_party/brotli"]
 	path = tigon-core/third_party/brotli
 	url = https://github.com/google/brotli
+[submodule "tigon-core/third_party/thrift"]
+	path = tigon-core/third_party/thrift
+	url = https://github.com/apache/thrift

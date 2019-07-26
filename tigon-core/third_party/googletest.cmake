@@ -14,6 +14,8 @@ ExternalProject_Add(
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/googletest/googletest"
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
+        -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_FLAGS=-std=c++17
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
@@ -31,6 +33,8 @@ ExternalProject_Add(
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/googletest/googlemock"
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
+        -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_FLAGS=-std=c++17
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}

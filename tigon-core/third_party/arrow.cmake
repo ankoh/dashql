@@ -12,6 +12,8 @@ ExternalProject_Add(
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/arrow/install"
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
+        -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_FLAGS=-std=c++17
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
@@ -43,6 +45,8 @@ ExternalProject_Add(
         -DFLATBUFFERS_LIB=${FLATBUFFERS_LIBRARY_PATH}
         -DFLATBUFFERS_INCLUDE_DIR=${FLATBUFFERS_INCLUDE_DIR}
         -DFLATC=${FLATC}
+        -DTHRIFT_STATIC_LIB=${THRIFT_LIBRARY_PATH}
+        -DTHRIFT_INCLUDE_DIR=${THRIFT_INCLUDE_DIR}
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     BUILD_BYPRODUCTS
@@ -66,6 +70,6 @@ add_library(parquet STATIC IMPORTED)
 set_property(TARGET parquet PROPERTY IMPORTED_LOCATION ${PARQUET_LIBRARY_PATH})
 set_property(TARGET parquet APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PARQUET_INCLUDE_DIR})
 
-add_dependencies(arrow_build snappy_build brotli_build flatbuffers_build flatc_build)
+add_dependencies(arrow_build snappy_build brotli_build flatbuffers_build flatc_build thrift_build)
 add_dependencies(arrow arrow_build)
 add_dependencies(parquet arrow_build)

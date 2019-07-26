@@ -5,7 +5,7 @@
 
 include(ExternalProject)
 
-# Flatbuffers
+# Flatbuffers library
 ExternalProject_Add(
     flatbuffers_build
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/flatbuffers"
@@ -14,6 +14,7 @@ ExternalProject_Add(
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
         -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_FLAGS=-std=c++17
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
@@ -22,7 +23,7 @@ ExternalProject_Add(
         -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/third_party/flatbuffers/install
         -DFLATBUFFERS_BUILD_TESTS=OFF
         -DFLATBUFFERS_BUILD_FLATLIB=ON
-        -DFLATBUFFERS_BUILD_FLATC=ON
+        -DFLATBUFFERS_BUILD_FLATC=OFF
         -DFLATBUFFERS_BUILD_FLATHASH=OFF
         -DFLATBUFFERS_BUILD_SHAREDLIB=OFF
         -DFLATBUFFERS_INSTALL=ON
@@ -44,7 +45,7 @@ set_property(TARGET flatbuffers APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${
 
 add_dependencies(flatbuffers flatbuffers_build)
 
-# Flatc (independat from emscripten)
+# Flatc (bypass emscripten toolchain)
 ExternalProject_Add(
     flatc_build
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/flatbuffers"
@@ -53,22 +54,23 @@ ExternalProject_Add(
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
         -DCMAKE_CXX_STANDARD=17
-        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_FLAGS=-std=c++17
         -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_CXX_COMPILER=clang++
+        -DCMAKE_C_COMPILER=clang
+        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/third_party/flatc/install
         -DFLATBUFFERS_BUILD_TESTS=OFF
         -DFLATBUFFERS_BUILD_FLATLIB=OFF
         -DFLATBUFFERS_BUILD_FLATC=ON
         -DFLATBUFFERS_BUILD_FLATHASH=OFF
         -DFLATBUFFERS_BUILD_SHAREDLIB=OFF
-        -DFLATBUFFERS_INSTALL=OFF
+        -DFLATBUFFERS_INSTALL=ON
     BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} flatc
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
-    INSTALL_COMMAND ""
     BUILD_BYPRODUCTS
-        <BINARY_DIR>/flatc
+        <INSTALL_DIR>/bin/flatc
 )
 
-ExternalProject_Get_Property(flatc_build binary_dir)
-set(FLATC ${binary_dir}/flatc)
+ExternalProject_Get_Property(flatc_build install_dir)
+set(FLATC ${install_dir}/bin/flatc)
