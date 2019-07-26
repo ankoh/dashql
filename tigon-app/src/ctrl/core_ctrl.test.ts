@@ -1,9 +1,14 @@
-const sum = (...a: number[]) => a.reduce((acc, val) => acc + val, 0);
+import { CoreController } from './core_ctrl';
 
-test('basic', () => {
-  expect(sum()).toBe(0);
-});
+declare global {
+    var TigonWeb: any;
+}
 
-test('basic again', () => {
-  expect(sum(1, 2)).toBe(3);
+global.TigonWeb = require('../../public/lib/tigon_web');
+
+describe("controller/core", () => {
+    test("init succeeds", () => {
+        let core = new CoreController();
+        core.init();
+    });
 });
