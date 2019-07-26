@@ -6,10 +6,8 @@
 %skeleton "lalr1.cc"
 %require "3.2"
 
-// Write a parser header file
-%defines
 // Define the parser class name
-%define parser_class_name {Parser}
+%define api.parser.class {Parser}
 // Create the parser in our namespace
 %define api.namespace {tigon::tql}
 // Use C++ variant to store the values and get better type warnings (compared to "union")

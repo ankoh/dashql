@@ -17,6 +17,12 @@
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "./tql_parser.h"
 
+// ISO C++17 does not allow 'register' storage class specifier
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wregister"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wregister"
+
 namespace tigon {
 namespace tql {
 

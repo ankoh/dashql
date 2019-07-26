@@ -8,6 +8,8 @@ include(ExternalProject)
 # ---------------------------------------------------------------------------
 # Thrift library
 
+# 26.07.2019: Thrift must be built with C++11 since it uses std::auto_ptr
+
 ExternalProject_Add(
     thrift_build
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/thrift"
@@ -15,8 +17,8 @@ ExternalProject_Add(
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/thrift/install"
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
-        -DCMAKE_CXX_STANDARD=17
-        -DCMAKE_CXX_FLAGS=-std=c++17
+        -DCMAKE_CXX_STANDARD=11
+        -DCMAKE_CXX_FLAGS=-std=c++11
         -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
@@ -30,7 +32,6 @@ ExternalProject_Add(
         -DBUILD_TESTING=OFF
         -DBUILD_TUTORIALS=OFF
         -DWITH_QT4=OFF
-        -DWITH_AS3=OFF
         -DWITH_CPP=ON
         -DWITH_STATIC_LIB=ON
         -DWITH_C_GLIB=OFF
@@ -38,8 +39,7 @@ ExternalProject_Add(
         -DWITH_HASKELL=OFF
         -DWITH_JAVA=OFF
         -DWITH_LIBEVENT=OFF
-        -DBOOST_ROOT="/usr/local/Cellar/boost/1.70.0/"
-        -DBISON_EXECUTABLE=${BISON_EXECUTABLE}
+        -DBoost_INCLUDE_DIR=${BOOST_INCLUDE_DIR}
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     BUILD_BYPRODUCTS
@@ -55,6 +55,7 @@ add_library(thrift STATIC IMPORTED)
 set_property(TARGET thrift PROPERTY IMPORTED_LOCATION ${THRIFT_LIBRARY_PATH})
 set_property(TARGET thrift APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${THRIFT_INCLUDE_DIR})
 
+add_dependencies(thrift_build boost_ep)
 add_dependencies(thrift thrift_build)
 
 # Thrift compiler (bypass emscripten toolchain)

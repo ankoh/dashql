@@ -34,6 +34,7 @@ add_custom_target(tql_gen
 )
 
 add_library(tql ${TQL_CC})
+set_property(TARGET tql PROPERTY CXX_STANDARD 17)
 
 # ---------------------------------------------------------------------------
 # Linting
