@@ -4,6 +4,10 @@ import { flatbuffers } from 'flatbuffers';
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
 
+// IMPORTANT:
+// ALL methods that transitively depend on the core MUST be asynchronous.
+// This will be crucial if we ever want to move the core to a web worker.
+
 // A query result
 export class QueryResult {
     protected core: any;
@@ -23,8 +27,9 @@ export class QueryResult {
     }
 
     // Destroy a query result
-    public destroy() {
+    public destroy(): Promise<void> {
         this.core.ccall('tigon_release_buffer', 'void', ['number'], [this.bufferID]);
+        return Promise.resolve();
     }
 };
 
