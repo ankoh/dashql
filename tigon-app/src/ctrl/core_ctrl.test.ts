@@ -3,28 +3,27 @@ import * as fs from 'fs';
 import * as path from 'path';
 import TigonWeb from '../../public/lib/tigon_web';
 
-let wasm = fs.readFileSync(path.resolve(__dirname, '../../public/lib/tigon_web.wasm'));
+// The core loader
+let coreLoader: (args: any) => any;
+// The shared core
+let sharedCore: CoreController;
 
-function wasmLoader(args: any): any {
-    return TigonWeb({ ...args, wasmBinary: wasm });
-}
+beforeAll(async () => {
+    // Create the core laoder
+    let modulePath = path.resolve(__dirname, '../../public/lib/tigon_web.wasm');
+    let moduleBinary = await fs.promises.readFile(modulePath);
+    coreLoader = (args: any) => {
+        return TigonWeb({ ...args, wasmBinary: moduleBinary });
+    };
+
+    // Share a controller betwee multiple tests
+    sharedCore = new CoreController(coreLoader);
+    await sharedCore.init();
+});
 
 describe("controller/core", () => {
-    test("init succeeds", async () => {
-        try {
-            let core = new CoreController(wasmLoader);
-            await core.init();
-        } catch (e) {
-            fail(e);
-        }
-    });
-
     test("runQuery 'SELECT 1;'", async () => {
-        let core = new CoreController(wasmLoader);
-        await core.init();
-
-        let result = await core.runQuery("SELECT 1;");
-
+        let result = await sharedCore.runQuery("SELECT 1;");
         result.destroy();
     });
 });
