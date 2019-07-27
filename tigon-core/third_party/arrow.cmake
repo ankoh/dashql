@@ -25,7 +25,7 @@ ExternalProject_Add(
         -DARROW_BUILD_SHARED=OFF
         -DARROW_BUILD_STATIC=ON
         -DARROW_BUILD_UTILITIES=OFF
-        -DARROW_COMPUTE=OFF
+        -DARROW_COMPUTE=ON
         -DARROW_DATASET=OFF
         -DARROW_FLIGHT=OFF
         -DARROW_GFLAGS_USE_SHARED=OFF
@@ -40,20 +40,22 @@ ExternalProject_Add(
         -DARROW_WITH_BROTLI=ON
         -DARROW_WITH_LZ4=OFF
         -DARROW_WITH_PROTOBUF=OFF
+        -DARROW_WITH_RAPIDJSON=ON
         -DARROW_WITH_SNAPPY=ON
         -DARROW_WITH_ZLIB=OFF
         -DARROW_WITH_ZSTD=OFF
-        -DSnappy_LIB=${SNAPPY_LIBRARY_PATH}
-        -DSnappy_INCLUDE_DIR=${SNAPPY_INCLUDE_DIR}
         -DBROTLI_COMMON_LIBRARY=${BROTLI_COMMON_LIBRARY_PATH}
-        -DBROTLI_ENC_LIBRARY=${BROTLI_ENC_LIBRARY_PATH}
         -DBROTLI_DEC_LIBRARY=${BROTLI_DEC_LIBRARY_PATH}
+        -DBROTLI_ENC_LIBRARY=${BROTLI_ENC_LIBRARY_PATH}
         -DBROTLI_INCLUDE_DIR=${BROTLI_INCLUDE_DIR}
-        -DFLATBUFFERS_LIB=${FLATBUFFERS_LIBRARY_PATH}
         -DFLATBUFFERS_INCLUDE_DIR=${FLATBUFFERS_INCLUDE_DIR}
+        -DFLATBUFFERS_LIB=${FLATBUFFERS_LIBRARY_PATH}
         -DFLATC=${FLATC}
-        -DTHRIFT_STATIC_LIB=${THRIFT_LIBRARY_PATH}
+        -DRAPIDJSON_INCLUDE_DIR=${RAPIDJSON_INCLUDE_DIR}
+        -DSnappy_INCLUDE_DIR=${SNAPPY_INCLUDE_DIR}
+        -DSnappy_LIB=${SNAPPY_LIBRARY_PATH}
         -DTHRIFT_INCLUDE_DIR=${THRIFT_INCLUDE_DIR}
+        -DTHRIFT_STATIC_LIB=${THRIFT_LIBRARY_PATH}
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     BUILD_BYPRODUCTS
@@ -82,12 +84,13 @@ add_dependencies(arrow arrow_build)
 add_dependencies(parquet arrow_build)
 
 target_link_libraries(parquet INTERFACE
-    thrift
+    arrow thrift
     brotli_enc brotli_dec brotli_common snappy 
     boost_filesystem boost_regex boost_system
 )
 
 target_link_libraries(arrow INTERFACE
-    parquet
+    thrift
+    brotli_enc brotli_dec brotli_common snappy 
     boost_filesystem boost_regex boost_system
 )

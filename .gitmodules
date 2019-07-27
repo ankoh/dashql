@@ -19,3 +19,6 @@
 [submodule "tigon-core/third_party/thrift"]
 	path = tigon-core/third_party/thrift
 	url = https://github.com/apache/thrift
+[submodule "tigon-core/third_party/rapidjson"]
+	path = tigon-core/third_party/rapidjson
+	url = https://github.com/Tencent/rapidjson

@@ -60,6 +60,7 @@ include("${CMAKE_SOURCE_DIR}/third_party/snappy.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/brotli.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/boost.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/thrift.cmake")
+include("${CMAKE_SOURCE_DIR}/third_party/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/arrow.cmake")
 
 # ---------------------------------------------------------------------------
