@@ -28,7 +28,7 @@ emconfigure cmake ${CORE_SOURCE_DIR} \
     && { echo "[ OK  ] Build configuration"; } \
     || { echo "[ ERR ] Build configuration"; exit 1; }
 
-emmake make -j$(nproc) \
+emmake make -j$(nproc) tigon_web \
     && { echo "[ OK  ] Build project"; } \
     || { echo "[ ERR ] Build project"; exit 1; }
 

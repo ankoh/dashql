@@ -3,125 +3,72 @@
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
+#include "tigon/tools/web/web_api.h"
 #include "common/vector_operations/vector_operations.hpp"
 #include "duckdb.hpp"
 #include "flatbuffers/flatbuffers.h"
 #include "tigon/proto/web_api_generated.h"
 #include <cstdio>
+#include <memory>
 #include <optional>
 #include <unordered_map>
 
 namespace fb = flatbuffers;
 using namespace tigon;
 
-namespace {
-
-/// The Web API
-class WebAPI {
-  public:
-    /// A buffer id
-    using BufferID = uint32_t;
-    /// A query id
-    using QueryID = uint32_t;
-
-    /// An invalid query id
-    static constexpr BufferID INVALID_BUFFER_ID = 0;
-    /// An invalid query id
-    static constexpr QueryID INVALID_QUERY_ID = 0;
-
-  protected:
-    /// A buffer
-    class Buffer {
-        /// The detached flatbuffer
-        fb::DetachedBuffer detachedBuffer;
-
-      public:
-        /// Constructor
-        Buffer(fb::DetachedBuffer b) : detachedBuffer(std::move(b)) {}
-
-        /// Get the data
-        uint8_t *getData() { return detachedBuffer.data(); }
-
-        /// Get the size
-        uint32_t getSize() { return detachedBuffer.size(); }
-    };
-
-    /// The database
-    duckdb::DuckDB database;
-    /// The next query id
-    uint32_t nextQueryID;
-    /// The next buffer id
-    uint32_t nextBufferID;
-    /// The buffers
-    std::unordered_map<BufferID, Buffer> buffers;
-
-    /// Allocate a query id
-    uint32_t allocateQueryID() {
-        auto id = nextQueryID++;
-        nextQueryID = !nextQueryID ? 1 : nextQueryID;
-        return id;
+/// Reset the response
+void WebAPI::Response::reset() {
+    statusCode = proto::StatusCode::Success;
+    errorMessage.clear();
+    if (!!data & !dataLeaked) {
+        session.releaseBuffer(data);
     }
+    data = nullptr;
+    dataLeaked = false;
+}
 
-    /// Allocate a buffer id
-    uint32_t allocateBufferID() {
-        auto id = nextBufferID++;
-        nextBufferID = !nextBufferID ? 1 : nextBufferID;
-        return id;
-    }
+/// Request succeeded
+void WebAPI::Response::requestSucceeded(Buffer* d) {
+    reset();
+    statusCode = proto::StatusCode::Success;
+    data = d;
+}
 
-    /// Register a buffer
-    BufferID registerBuffer(flatbuffers::DetachedBuffer buffer);
-
-  public:
-    /// Constructor
-    WebAPI();
-
-    /// Get a buffer
-    uint8_t *getBuffer(BufferID buffer);
-    /// Get a buffer size
-    uint32_t getBufferSize(BufferID buffer);
-    /// Release a buffer
-    void releaseBuffer(BufferID buffer);
-
-    /// Run a query
-    BufferID runQuery(const char *text);
-
-    /// The static instance
-    static std::unique_ptr<WebAPI> Instance;
-};
-
-/// The instance
-std::unique_ptr<WebAPI> WebAPI::Instance;
-
-/// Register a buffer
-WebAPI::BufferID WebAPI::registerBuffer(flatbuffers::DetachedBuffer buffer) {
-    auto id = allocateBufferID();
-    buffers.insert({id, Buffer{std::move(buffer)}});
-    return id;
+void WebAPI::Response::requestFailed(proto::StatusCode status, std::string err) {
+    reset();
+    statusCode = status;
+    errorMessage = move(err);
 }
 
 /// Constructor
-WebAPI::WebAPI() : database(nullptr), nextQueryID(1), nextBufferID(1), buffers() {}
+WebAPI::Response::Response(WebAPI::Session &session)
+    : session(session), statusCode(), errorMessage(), data(nullptr), dataLeaked(false) {}
 
-/// Get a buffer
-uint8_t *WebAPI::getBuffer(WebAPI::BufferID id) {
-    auto iter = buffers.find(id);
-    return iter == buffers.end() ? nullptr : iter->second.getData();
-}
+/// Destructor
+WebAPI::Response::~Response() { reset(); }
 
-/// Get the size of a buffer
-uint32_t WebAPI::getBufferSize(WebAPI::BufferID id) {
-    auto iter = buffers.find(id);
-    return iter == buffers.end() ? 0 : iter->second.getSize();
+/// Constructor
+WebAPI::Session::Session(std::shared_ptr<duckdb::DuckDB> database)
+    : database(std::move(database)), nextQueryID(), buffers(), response(*this) {}
+
+/// Destructor
+WebAPI::Session::~Session() {}
+
+/// Register a buffer
+WebAPI::Buffer *WebAPI::Session::registerBuffer(flatbuffers::DetachedBuffer detached) {
+    auto buffer = std::make_unique<WebAPI::Buffer>(std::move(detached));
+    auto bufferPtr = buffer.get();
+    buffers.insert({bufferPtr, move(buffer)});
+    return bufferPtr;
 }
 
 /// Release a buffer
-void WebAPI::releaseBuffer(WebAPI::BufferID id) { buffers.erase(id); }
+void WebAPI::Session::releaseBuffer(WebAPI::Buffer *buffer) { buffers.erase(buffer); }
 
 /// Write a fixed-length result column
 template <typename T>
-fb::Offset<webapi::QueryResultColumn> writeFixedLengthResultColumn(fb::FlatBufferBuilder &builder,
-                                                                   duckdb::Vector &vec) {
+static fb::Offset<proto::QueryResultColumn> writeFixedLengthResultColumn(fb::FlatBufferBuilder &builder,
+                                                                         duckdb::Vector &vec) {
     uint8_t *nullmask;
     uint8_t *data;
     auto n = builder.CreateUninitializedVector(vec.count, &nullmask);
@@ -132,15 +79,16 @@ fb::Offset<webapi::QueryResultColumn> writeFixedLengthResultColumn(fb::FlatBuffe
                                        reinterpret_cast<T *>(data)[k] = vec.data[i];
                                    },
                                    0);
-    webapi::QueryResultColumnBuilder c{builder};
-    c.add_type_id(static_cast<webapi::RawTypeID>(vec.type));
+    proto::QueryResultColumnBuilder c{builder};
+    c.add_type_id(static_cast<proto::RawTypeID>(vec.type));
     c.add_null_mask(n);
     c.add_fixed_length_data(d);
     return c.Finish();
 }
 
 /// Write a string result column
-fb::Offset<webapi::QueryResultColumn> writeStringResultColumn(fb::FlatBufferBuilder &builder, duckdb::Vector &vec) {
+static fb::Offset<proto::QueryResultColumn> writeStringResultColumn(fb::FlatBufferBuilder &builder,
+                                                                    duckdb::Vector &vec) {
     uint8_t *nullmask;
     auto n = builder.CreateUninitializedVector(vec.count, &nullmask);
     builder.StartVector(vec.count, sizeof(fb::Offset<fb::String>));
@@ -149,54 +97,41 @@ fb::Offset<webapi::QueryResultColumn> writeStringResultColumn(fb::FlatBufferBuil
         nullmask[i] = source[i] == nullptr;
         builder.PushElement(builder.CreateString(source[i]));
     }
-    webapi::QueryResultColumnBuilder c{builder};
-    c.add_type_id(static_cast<webapi::RawTypeID>(vec.type));
+    proto::QueryResultColumnBuilder c{builder};
+    c.add_type_id(static_cast<proto::RawTypeID>(vec.type));
     c.add_null_mask(n);
     c.add_string_data({builder.EndVector(vec.count)});
     return c.Finish();
 }
 
 /// Run a query
-WebAPI::BufferID WebAPI::runQuery(const char *text) {
+void WebAPI::Session::query(std::string_view text) {
     auto queryID = allocateQueryID();
 
     // Create a new connection
-    duckdb::Connection conn{database};
+    duckdb::Connection conn{*database};
     // Send the query to the existing database
-    auto result = conn.SendQuery(text);
+    auto result = conn.SendQuery(std::string{text});
 
     // Create the buffer builder
     fb::FlatBufferBuilder builder{1024};
 
     // Query failed?
     if (!result->success) {
-        // Write the error
-        auto message = builder.CreateString(result->error);
-        webapi::ErrorBuilder errorBuilder{builder};
-        errorBuilder.add_message(message);
-        errorBuilder.add_code(webapi::ErrorCode::Raw);
-        auto error = errorBuilder.Finish();
-
-        // Write the result
-        webapi::QueryResultBuilder resultBuilder{builder};
-        resultBuilder.add_error(error);
-        auto queryResult = resultBuilder.Finish();
-
-        // Finish the flatbuffer
-        builder.Finish(queryResult);
-        return registerBuffer(builder.Release());
+        response.requestFailed(proto::StatusCode::GenericError, result->error);
+        return;
     }
 
     // Fetch result rows and immediately write them into a flatbuffer
-    std::vector<fb::Offset<webapi::QueryResultChunk>> chunks;
+    std::vector<fb::Offset<proto::QueryResultChunk>> chunks;
     for (auto chunk = result->Fetch(); !!chunk && chunk->size() > 0; chunk = result->Fetch()) {
         // Write chunk columns
-        std::vector<fb::Offset<webapi::QueryResultColumn>> columns;
+        std::vector<fb::Offset<proto::QueryResultColumn>> columns;
         for (size_t v = 0; v < chunk->column_count; ++v) {
             auto &vec = chunk->GetVector(v);
 
             // Write result column
-            fb::Offset<webapi::QueryResultColumn> column;
+            fb::Offset<proto::QueryResultColumn> column;
             switch (vec.type) {
             case duckdb::TypeId::INVALID:
             case duckdb::TypeId::VARBINARY:
@@ -240,7 +175,7 @@ WebAPI::BufferID WebAPI::runQuery(const char *text) {
         auto columnOffset = builder.CreateVector(columns);
 
         // Build result chunk
-        webapi::QueryResultChunkBuilder chunkBuilder{builder};
+        proto::QueryResultChunkBuilder chunkBuilder{builder};
         chunkBuilder.add_columns(columnOffset);
         chunks.push_back(chunkBuilder.Finish());
     }
@@ -257,13 +192,13 @@ WebAPI::BufferID WebAPI::runQuery(const char *text) {
     }
 
     // Write column sql types
-    fb::Offset<fb::Vector<const webapi::SQLType *>> columnSQLTypes;
+    fb::Offset<fb::Vector<const proto::SQLType *>> columnSQLTypes;
     {
-        webapi::SQLType *writer;
-        columnSQLTypes = builder.CreateUninitializedVectorOfStructs<webapi::SQLType>(result->sql_types.size(), &writer);
+        proto::SQLType *writer;
+        columnSQLTypes = builder.CreateUninitializedVectorOfStructs<proto::SQLType>(result->sql_types.size(), &writer);
         for (size_t i = 0; i < result->sql_types.size(); ++i) {
-            writer[i] = webapi::SQLType{static_cast<webapi::SQLTypeID>(result->sql_types[i].id),
-                                        result->sql_types[i].width, result->sql_types[i].scale};
+            writer[i] = proto::SQLType{static_cast<proto::SQLTypeID>(result->sql_types[i].id),
+                                       result->sql_types[i].width, result->sql_types[i].scale};
         }
     }
 
@@ -271,7 +206,7 @@ WebAPI::BufferID WebAPI::runQuery(const char *text) {
     auto columnNames = builder.CreateVectorOfStrings(result->names);
 
     // Write the query result
-    webapi::QueryResultBuilder resultBuilder{builder};
+    proto::QueryResultBuilder resultBuilder{builder};
     resultBuilder.add_query_id(queryID);
     resultBuilder.add_column_names(columnNames);
     resultBuilder.add_column_raw_types(columnRawTypes);
@@ -281,26 +216,25 @@ WebAPI::BufferID WebAPI::runQuery(const char *text) {
 
     // Finish the flatbuffer
     builder.Finish(queryResult);
-    return registerBuffer(builder.Release());
+    auto buffer = registerBuffer(builder.Release());
+
+    // Mark as successfull
+    response.requestSucceeded(buffer);
 }
 
-} // namespace
+/// Constructor
+WebAPI::WebAPI()
+    : database(std::make_shared<duckdb::DuckDB>()), sessions() {}
 
-extern "C" {
-
-/// Get a buffer
-uint8_t *tigon_get_buffer(WebAPI::BufferID id) { return WebAPI::Instance->getBuffer(id); }
-/// Get a buffer size
-uint32_t tigon_get_buffer_size(WebAPI::BufferID id) { return WebAPI::Instance->getBufferSize(id); }
-/// Release a buffer
-void tigon_release_buffer(WebAPI::BufferID id) { WebAPI::Instance->releaseBuffer(id); }
-/// Run a query
-WebAPI::BufferID tigon_run_query(char *text) { return WebAPI::Instance->runQuery(text); }
-
+/// Create a session
+WebAPI::Session& WebAPI::createSession() {
+    auto session = std::make_unique<WebAPI::Session>(database);
+    auto sessionPtr = session.get();
+    sessions.insert({sessionPtr, move(session)});
+    return *sessionPtr;
 }
 
-/// Initialize the web api
-int main() {
-    WebAPI::Instance = std::make_unique<WebAPI>();
-    return 0;
+/// End a session
+void WebAPI::endSession(Session* session) {
+    sessions.erase(session);
 }

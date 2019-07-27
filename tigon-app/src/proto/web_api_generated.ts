@@ -45,8 +45,9 @@ export enum SQLTypeID{
 /**
  * @enum {number}
  */
-export enum ErrorCode{
-  Raw= 0
+export enum StatusCode{
+  Success= 0,
+  GenericError= 1
 };
 
 /**
@@ -105,91 +106,6 @@ static createSQLType(builder:flatbuffers.Builder, type_id: SQLTypeID, width: num
   return builder.offset();
 };
 
-}
-/**
- * @constructor
- */
-export class Error {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns Error
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):Error {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param Error= obj
- * @returns Error
- */
-static getRootAsError(bb:flatbuffers.ByteBuffer, obj?:Error):Error {
-  return (obj || new Error).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @returns ErrorCode
- */
-code():ErrorCode {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : ErrorCode.Raw;
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-message():string|null
-message(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-message(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Builder builder
- */
-static startError(builder:flatbuffers.Builder) {
-  builder.startObject(2);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param ErrorCode code
- */
-static addCode(builder:flatbuffers.Builder, code:ErrorCode) {
-  builder.addFieldInt8(0, code, ErrorCode.Raw);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset messageOffset
- */
-static addMessage(builder:flatbuffers.Builder, messageOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, messageOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @returns flatbuffers.Offset
- */
-static endError(builder:flatbuffers.Builder):flatbuffers.Offset {
-  var offset = builder.endObject();
-  return offset;
-};
-
-static createError(builder:flatbuffers.Builder, code:ErrorCode, messageOffset:flatbuffers.Offset):flatbuffers.Offset {
-  Error.startError(builder);
-  Error.addCode(builder, code);
-  Error.addMessage(builder, messageOffset);
-  return Error.endError(builder);
-}
 }
 /**
  * @constructor
@@ -842,20 +758,11 @@ queryId():flatbuffers.Long {
 };
 
 /**
- * @param Error= obj
- * @returns Error|null
- */
-error(obj?:Error):Error|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? (obj || new Error).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
-};
-
-/**
  * @param QueryPlan= obj
  * @returns QueryPlan|null
  */
 queryPlan(obj?:QueryPlan):QueryPlan|null {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
+  var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? (obj || new QueryPlan).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
 
@@ -864,7 +771,7 @@ queryPlan(obj?:QueryPlan):QueryPlan|null {
  * @returns RawTypeID
  */
 columnRawTypes(index: number):RawTypeID|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+  var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? /**  */ (this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index)) : /**  */ (0);
 };
 
@@ -872,7 +779,7 @@ columnRawTypes(index: number):RawTypeID|null {
  * @returns number
  */
 columnRawTypesLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+  var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -880,7 +787,7 @@ columnRawTypesLength():number {
  * @returns Uint8Array
  */
 columnRawTypesArray():Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+  var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
 
@@ -890,7 +797,7 @@ columnRawTypesArray():Uint8Array|null {
  * @returns SQLType
  */
 columnSqlTypes(index: number, obj?:SQLType):SQLType|null {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
+  var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? (obj || new SQLType).__init(this.bb!.__vector(this.bb_pos + offset) + index * 6, this.bb!) : null;
 };
 
@@ -898,7 +805,7 @@ columnSqlTypes(index: number, obj?:SQLType):SQLType|null {
  * @returns number
  */
 columnSqlTypesLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
+  var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -910,7 +817,7 @@ columnSqlTypesLength():number {
 columnNames(index: number):string
 columnNames(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
 columnNames(index: number,optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 14);
+  var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.__string(this.bb!.__vector(this.bb_pos + offset) + index * 4, optionalEncoding) : null;
 };
 
@@ -918,7 +825,7 @@ columnNames(index: number,optionalEncoding?:any):string|Uint8Array|null {
  * @returns number
  */
 columnNamesLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 14);
+  var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -928,7 +835,7 @@ columnNamesLength():number {
  * @returns QueryResultChunk
  */
 dataChunks(index: number, obj?:QueryResultChunk):QueryResultChunk|null {
-  var offset = this.bb!.__offset(this.bb_pos, 16);
+  var offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? (obj || new QueryResultChunk).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
 };
 
@@ -936,7 +843,7 @@ dataChunks(index: number, obj?:QueryResultChunk):QueryResultChunk|null {
  * @returns number
  */
 dataChunksLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 16);
+  var offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -944,7 +851,7 @@ dataChunksLength():number {
  * @param flatbuffers.Builder builder
  */
 static startQueryResult(builder:flatbuffers.Builder) {
-  builder.startObject(7);
+  builder.startObject(6);
 };
 
 /**
@@ -957,18 +864,10 @@ static addQueryId(builder:flatbuffers.Builder, queryId:flatbuffers.Long) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset errorOffset
- */
-static addError(builder:flatbuffers.Builder, errorOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, errorOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
  * @param flatbuffers.Offset queryPlanOffset
  */
 static addQueryPlan(builder:flatbuffers.Builder, queryPlanOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, queryPlanOffset, 0);
+  builder.addFieldOffset(1, queryPlanOffset, 0);
 };
 
 /**
@@ -976,7 +875,7 @@ static addQueryPlan(builder:flatbuffers.Builder, queryPlanOffset:flatbuffers.Off
  * @param flatbuffers.Offset columnRawTypesOffset
  */
 static addColumnRawTypes(builder:flatbuffers.Builder, columnRawTypesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, columnRawTypesOffset, 0);
+  builder.addFieldOffset(2, columnRawTypesOffset, 0);
 };
 
 /**
@@ -1005,7 +904,7 @@ static startColumnRawTypesVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset columnSqlTypesOffset
  */
 static addColumnSqlTypes(builder:flatbuffers.Builder, columnSqlTypesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(4, columnSqlTypesOffset, 0);
+  builder.addFieldOffset(3, columnSqlTypesOffset, 0);
 };
 
 /**
@@ -1021,7 +920,7 @@ static startColumnSqlTypesVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset columnNamesOffset
  */
 static addColumnNames(builder:flatbuffers.Builder, columnNamesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(5, columnNamesOffset, 0);
+  builder.addFieldOffset(4, columnNamesOffset, 0);
 };
 
 /**
@@ -1050,7 +949,7 @@ static startColumnNamesVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset dataChunksOffset
  */
 static addDataChunks(builder:flatbuffers.Builder, dataChunksOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(6, dataChunksOffset, 0);
+  builder.addFieldOffset(5, dataChunksOffset, 0);
 };
 
 /**
@@ -1083,10 +982,9 @@ static endQueryResult(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createQueryResult(builder:flatbuffers.Builder, queryId:flatbuffers.Long, errorOffset:flatbuffers.Offset, queryPlanOffset:flatbuffers.Offset, columnRawTypesOffset:flatbuffers.Offset, columnSqlTypesOffset:flatbuffers.Offset, columnNamesOffset:flatbuffers.Offset, dataChunksOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createQueryResult(builder:flatbuffers.Builder, queryId:flatbuffers.Long, queryPlanOffset:flatbuffers.Offset, columnRawTypesOffset:flatbuffers.Offset, columnSqlTypesOffset:flatbuffers.Offset, columnNamesOffset:flatbuffers.Offset, dataChunksOffset:flatbuffers.Offset):flatbuffers.Offset {
   QueryResult.startQueryResult(builder);
   QueryResult.addQueryId(builder, queryId);
-  QueryResult.addError(builder, errorOffset);
   QueryResult.addQueryPlan(builder, queryPlanOffset);
   QueryResult.addColumnRawTypes(builder, columnRawTypesOffset);
   QueryResult.addColumnSqlTypes(builder, columnSqlTypesOffset);

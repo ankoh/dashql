@@ -79,9 +79,14 @@ include("${CMAKE_SOURCE_DIR}/src/parser/tql/local.cmake")
 
 # Web API
 add_executable(tigon_web
-    ${CMAKE_SOURCE_DIR}/src/tools/web_api/web_api.cc
+    ${CMAKE_SOURCE_DIR}/src/tools/web/web_api_proxy.cc
+    ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
 )
 set_property(TARGET tigon_web PROPERTY CXX_STANDARD 17)
+
+# include(CheckIPOSupported)
+# check_ipo_supported()
+# set_target_properties(tigon_web PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 # Link libraries
 target_link_libraries(tigon_web
@@ -97,10 +102,14 @@ if(DEFINED ENV{EMSDK})
         -s EXPORT_NAME=TigonCore \
         -s EXPORTED_FUNCTIONS='[\
             _main, \
-            _tigon_get_buffer, \
+            _tigon_create_session, \
+            _tigon_end_session, \
             _tigon_get_buffer_size, \
             _tigon_release_buffer, \
-            _tigon_run_query \
+            _tigon_get_response_status, \
+            _tigon_get_response_error_message, \
+            _tigon_get_response_data, \
+            _tigon_query \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]' \
     ")

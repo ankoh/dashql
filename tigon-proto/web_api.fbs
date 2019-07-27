@@ -1,4 +1,4 @@
-namespace tigon.webapi;
+namespace tigon.proto;
 
 // The raw data types
 enum RawTypeID: uint8 {
@@ -43,15 +43,10 @@ struct SQLType {
     scale: uint8;
 }
 
-// The error codes
-enum ErrorCode: uint8 {
-    Raw = 0,
-}
-
-// An error
-table Error {
-    code: ErrorCode;
-    message: string;
+// The status codes
+enum StatusCode: uint8 {
+    Success = 0,
+    GenericError = 1,
 }
 
 // A query plan
@@ -79,7 +74,6 @@ table QueryResultChunk {
 // A query result
 table QueryResult {
     query_id: uint64;
-    error: Error;
     query_plan: QueryPlan;
     column_raw_types: [RawTypeID];
     column_sql_types: [SQLType];

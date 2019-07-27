@@ -3,7 +3,6 @@ import { CacheController } from './cache_ctrl';
 import { CoreController } from './core_ctrl';
 import { LogController } from './log_ctrl';
 import { ScriptController } from './script_ctrl';
-import { SessionController } from './session_ctrl';
 import { TerminalController } from './terminal_ctrl';
 
 // The worker interval
@@ -23,8 +22,6 @@ export class RootController {
     public script: ScriptController;
     // The terminal
     public terminal: TerminalController;
-    // The session
-    public session: SessionController;
 
     // The worker timeout
     protected workerTimer: number | null;
@@ -37,7 +34,6 @@ export class RootController {
         this.cache = new CacheController();
         this.script = new ScriptController();
         this.terminal = new TerminalController();
-        this.session = new SessionController();
         this.workerTimer = null;
     }
 

@@ -11,24 +11,26 @@ declare function TigonCore(args: any): any;
 // A query result
 export class QueryResult {
     protected core: any;
-    protected bufferID: number;
-    protected buffer: proto.QueryResult;
+    protected session: number;
+    protected bufferPtr: number;
+    protected bufferReader: proto.QueryResult;
 
     // Constructor
-    constructor(core: any, bufferID: number, result: proto.QueryResult) {
+    constructor(core: any, session: number, bufferPtr: number, bufferReader: proto.QueryResult) {
         this.core = core;
-        this.bufferID = bufferID;
-        this.buffer = result;
+        this.session = session;
+        this.bufferPtr = bufferPtr;
+        this.bufferReader = bufferReader;
     }
 
     // Get the result
     public getBuffer(): proto.QueryResult {
-        return this.buffer;
+        return this.bufferReader;
     }
 
     // Destroy a query result
     public destroy(): Promise<void> {
-        this.core.ccall('tigon_release_buffer', 'void', ['number'], [this.bufferID]);
+        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [this.session, this.bufferPtr]);
         return Promise.resolve();
     }
 };
@@ -85,15 +87,40 @@ export class CoreController {
         }
     }
 
-    // Run a query
-    public async runQuery(text: string): Promise<QueryResult> {
+    // Create a session 
+    public async createSession(): Promise<number> {
         await this.waitUntilReady();
-        let bufferID = this.core.ccall('tigon_run_query', 'number', ['string'], [text]);
-        let bufferPtr = this.core.ccall('tigon_get_buffer', 'number', ['number'], [bufferID]);
-        let bufferSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [bufferID]);
-        let data = new Uint8Array(this.core.HEAPU8.buffer, bufferPtr, bufferSize);
-        let byteBuffer = new flatbuffers.ByteBuffer(data);
-        let result = proto.QueryResult.getRootAsQueryResult(byteBuffer);
-        return Promise.resolve(new QueryResult(this.core, bufferID, result));
+        let session = this.core.ccall('tigon_create_session', 'number', [], []);
+        return Promise.resolve(session);
+    }
+
+    // End a session
+    public async endSession(session: number): Promise<void> {
+        await this.waitUntilReady();
+        this.core.ccall('tigon_end_session', 'void', ['number'], [session]);
+        return Promise.resolve();
+    }
+
+    // Run a query
+    public async query(session: number, text: string): Promise<QueryResult> {
+        await this.waitUntilReady();
+        console.log(session);
+        this.core.ccall('tigon_query', 'void', ['number', 'string'], [session, text]);
+
+        // Did the query fail?
+        let status = this.core.ccall('tigon_get_response_status', 'number', ['number'], [session]);
+        if (status != proto.StatusCode.Success) {
+            let error = this.core.ccall('tigon_get_response_error_message', 'string', ['number'], [session]);
+            return Promise.reject(new Error(error));
+        }
+
+        // Get result buffer
+        let bPtr = this.core.ccall('tigon_get_response_data', 'number', ['number'], [session]);
+        let bSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [bPtr]);
+        let u8B = new Uint8Array(this.core.HEAPU8.buffer, bPtr, bSize);
+        let fB = new flatbuffers.ByteBuffer(u8B);
+        let reader = proto.QueryResult.getRootAsQueryResult(fB);
+        let result = new QueryResult(this.core, session, bPtr, reader);
+        return Promise.resolve(result);
     }
 };

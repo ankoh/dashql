@@ -9,21 +9,24 @@ let coreLoader: (args: any) => any;
 let sharedCore: CoreController;
 
 beforeAll(async () => {
-    // Create the core laoder
+    // Create the core ladder
     let modulePath = path.resolve(__dirname, '../../public/lib/tigon_web.wasm');
     let moduleBinary = await fs.promises.readFile(modulePath);
     coreLoader = (args: any) => {
         return TigonWeb({ ...args, wasmBinary: moduleBinary });
     };
 
-    // Share a controller betwee multiple tests
+    // Share a controller between multiple tests
     sharedCore = new CoreController(coreLoader);
     await sharedCore.init();
 });
 
 describe("controller/core", () => {
     test("runQuery 'SELECT 1;'", async () => {
-        let result = await sharedCore.runQuery("SELECT 1;");
+        let session = await sharedCore.createSession();
+        let result = await sharedCore.query(session, "SELECT 1;");
+
         result.destroy();
+        await sharedCore.endSession();
     });
 });
