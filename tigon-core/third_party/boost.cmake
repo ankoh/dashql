@@ -3,11 +3,6 @@
 # (c) 2019 Andre Kohn
 # ---------------------------------------------------------------------------
 
-# Note that we cannot link to boost in webassembly.
-# If this ever happens, we're out of luck anyway.
-
-# Thrift only depends on headers.
-
 include(ExternalProject)
 include(ProcessorCount)
 ProcessorCount(NPROCS)

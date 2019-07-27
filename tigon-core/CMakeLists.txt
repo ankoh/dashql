@@ -30,7 +30,7 @@ endif()
 # ---------------------------------------------------------------------------
 # Bison
 
-find_package(BISON 2.5.1)
+find_package(BISON 2.5.1 QUIET)
 find_package(Flex REQUIRED)
 
 # In the case where we cannot find a system-wide installation, look for
@@ -128,9 +128,8 @@ target_link_libraries(tester
     tql
     gtest gmock
     duckdb re2 miniz pg_query hyperloglog
-    arrow parquet
-    brotli_enc brotli_dec brotli_common
-    snappy thrift
+    parquet arrow thrift
+    brotli_enc brotli_dec brotli_common snappy 
     boost_filesystem boost_regex boost_system
 )
 
