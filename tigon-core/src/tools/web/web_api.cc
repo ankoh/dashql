@@ -222,6 +222,11 @@ void WebAPI::Session::query(std::string_view text) {
     response.requestSucceeded(buffer);
 }
 
+/// Extract a parquet buffer
+void WebAPI::Session::extractParquet(const uint8_t* buffer, uint32_t bufferSize) {
+    
+}
+
 /// Constructor
 WebAPI::WebAPI()
     : database(std::make_shared<duckdb::DuckDB>()), sessions() {}

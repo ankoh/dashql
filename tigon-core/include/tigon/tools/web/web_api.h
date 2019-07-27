@@ -111,6 +111,9 @@ class WebAPI {
         void releaseBuffer(Buffer* buffer);
         /// Run a query
         void query(std::string_view text);
+
+        /// Extract parquet file
+        void extractParquet(const uint8_t* buffer, uint32_t bufferSize);
     };
 
   protected:

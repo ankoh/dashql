@@ -70,3 +70,44 @@ display wheather_data using line chart (
     )
 );
 ```
+
+## Build Instructions
+
+### Core
+
+#### Webassembly Build
+
+```
+
+source ${PATH_TO_EMSDK}/emsdk_env.sh
+
+./build_core.sh
+
+```
+
+#### Debug Build
+
+```
+
+mkdir -p tigon-core/build/debug
+
+cd tigon-core/build/debug
+
+cmake \
+    -GNinja \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
+    ../../
+
+# On macOS, use a newer clang from homebrew that ships with filesystem support
+cmake \
+    -GNinja \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
+    -DCMAKE_CXX_COMPILER=/usr/local/cellar/llvm@7/7.0.1/bin/clang++ \
+    -DCMAKE_C_COMPILER=/usr/local/cellar/llvm@7/7.0.1/bin/clang \
+    ../../
+
+ninja
+
+```
