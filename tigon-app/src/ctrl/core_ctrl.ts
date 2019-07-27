@@ -104,12 +104,11 @@ export class CoreController {
     // Run a query
     public async query(session: number, text: string): Promise<QueryResult> {
         await this.waitUntilReady();
-        console.log(session);
         this.core.ccall('tigon_query', 'void', ['number', 'string'], [session, text]);
 
         // Did the query fail?
         let status = this.core.ccall('tigon_get_response_status', 'number', ['number'], [session]);
-        if (status != proto.StatusCode.Success) {
+        if (status !== proto.StatusCode.Success) {
             let error = this.core.ccall('tigon_get_response_error_message', 'string', ['number'], [session]);
             return Promise.reject(new Error(error));
         }
