@@ -92,8 +92,8 @@ set_property(TARGET tigon_web PROPERTY CXX_STANDARD 17)
 target_link_libraries(tigon_web
     tql
     arrow parquet
-    duckdb re2 miniz pg_query hyperloglog
-    boost_filesystem boost_regex boost_system
+    duckdb
+    parquet arrow
 )
 
 # Define emscripten export
@@ -127,10 +127,8 @@ add_executable(tester
 target_link_libraries(tester
     tql
     gtest gmock
-    duckdb re2 miniz pg_query hyperloglog
-    parquet arrow thrift
-    brotli_enc brotli_dec brotli_common snappy 
-    boost_filesystem boost_regex boost_system
+    duckdb
+    parquet arrow
 )
 
 enable_testing()

@@ -80,3 +80,14 @@ set_property(TARGET parquet APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PARQ
 add_dependencies(arrow_build snappy_build brotli_build flatbuffers_build flatc_build thrift_build)
 add_dependencies(arrow arrow_build)
 add_dependencies(parquet arrow_build)
+
+target_link_libraries(parquet INTERFACE
+    thrift
+    brotli_enc brotli_dec brotli_common snappy 
+    boost_filesystem boost_regex boost_system
+)
+
+target_link_libraries(arrow INTERFACE
+    parquet
+    boost_filesystem boost_regex boost_system
+)

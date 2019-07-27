@@ -70,3 +70,5 @@ add_library(duckdb STATIC IMPORTED)
 set_property(TARGET duckdb PROPERTY IMPORTED_LOCATION ${DUCKDB_LIBRARY_PATH})
 set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_INCLUDE_DIR})
 add_dependencies(duckdb duckdb_build)
+
+target_link_libraries(duckdb INTERFACE re2 miniz pg_query hyperloglog)
