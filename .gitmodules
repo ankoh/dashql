@@ -22,3 +22,6 @@
 [submodule "tigon-core/third_party/rapidjson"]
 	path = tigon-core/third_party/rapidjson
 	url = https://github.com/Tencent/rapidjson
+[submodule "tigon-core/third_party/double-conversion"]
+	path = tigon-core/third_party/double-conversion
+	url = https://github.com/google/double-conversion

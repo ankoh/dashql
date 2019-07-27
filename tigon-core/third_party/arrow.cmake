@@ -48,6 +48,8 @@ ExternalProject_Add(
         -DBROTLI_DEC_LIBRARY=${BROTLI_DEC_LIBRARY_PATH}
         -DBROTLI_ENC_LIBRARY=${BROTLI_ENC_LIBRARY_PATH}
         -DBROTLI_INCLUDE_DIR=${BROTLI_INCLUDE_DIR}
+        -DDoubleConversion_INCLUDE_DIR=${DOUBLE_CONVERSION_INCLUDE_DIR}
+        -DDoubleConversion_LIB=${DOUBLE_CONVERSION_LIBRARY_PATH}
         -DFLATBUFFERS_INCLUDE_DIR=${FLATBUFFERS_INCLUDE_DIR}
         -DFLATBUFFERS_LIB=${FLATBUFFERS_LIBRARY_PATH}
         -DFLATC=${FLATC}
@@ -84,13 +86,16 @@ add_dependencies(arrow arrow_build)
 add_dependencies(parquet arrow_build)
 
 target_link_libraries(parquet INTERFACE
-    arrow thrift
+    arrow
+    thrift
+    double_conversion
     brotli_enc brotli_dec brotli_common snappy 
     boost_filesystem boost_regex boost_system
 )
 
 target_link_libraries(arrow INTERFACE
     thrift
+    double_conversion
     brotli_enc brotli_dec brotli_common snappy 
     boost_filesystem boost_regex boost_system
 )

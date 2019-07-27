@@ -54,6 +54,7 @@ endif()
 # Include cmake lists
 include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/duckdb.cmake")
+include("${CMAKE_SOURCE_DIR}/third_party/double-conversion.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/snappy.cmake")
