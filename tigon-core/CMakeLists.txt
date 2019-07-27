@@ -127,8 +127,11 @@ add_executable(tester
 target_link_libraries(tester
     tql
     gtest gmock
-    arrow parquet
     duckdb re2 miniz pg_query hyperloglog
+    arrow parquet
+    brotli_enc brotli_dec brotli_common
+    snappy thrift
+    boost_filesystem boost_regex boost_system
 )
 
 enable_testing()
