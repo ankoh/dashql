@@ -93,7 +93,6 @@ set_property(TARGET tigon_web PROPERTY CXX_STANDARD 17)
 # Link libraries
 target_link_libraries(tigon_web
     tql
-    arrow parquet
     duckdb
     parquet arrow
 )
@@ -128,9 +127,9 @@ add_executable(tester
 )
 target_link_libraries(tester
     tql
-    gtest gmock
     duckdb
     parquet arrow
+    gtest gmock
 )
 
 enable_testing()
