@@ -126,6 +126,7 @@ loc.step ();
 "horizontal"        { return Parser::make_HORIZONTAL(loc); }
 "http"              { return Parser::make_HTTP(loc); }
 "integer"           { return Parser::make_INTEGER(loc); }
+"json"              { return Parser::make_JSON(loc); }
 "jsonpath"          { return Parser::make_JSONPATH(loc); }
 "layout"            { return Parser::make_LAYOUT(loc); }
 "lg"                { return Parser::make_LG(loc); }
@@ -138,6 +139,7 @@ loc.step ();
 "number"            { return Parser::make_NUMBER(loc); }
 "palette"           { return Parser::make_PALETTE(loc); }
 "parameter"         { return Parser::make_PARAMETER(loc); }
+"parquet"           { return Parser::make_PARQUET(loc); }
 "percent"           { return Parser::make_PERCENT(loc); }
 "pie"               { return Parser::make_PIE(loc); }
 "plot"              { return Parser::make_PLOT(loc); }
