@@ -22,7 +22,10 @@ if(DEFINED ENV{EMSDK})
             -j${NPROCS}
             --disable-icu
             toolset=emscripten
-            link=static variant=release threading=single
+            link=static
+            variant=release
+            threading=single
+            visibility=global
             runtime-link=static
             system regex filesystem
             install
@@ -68,7 +71,10 @@ else()
         BUILD_COMMAND ./b2
             -j${NPROCS}
             --disable-icu
-            link=static variant=release threading=single
+            link=static
+            variant=release
+            threading=single
+            visibility=global
             runtime-link=static
             system regex filesystem
             install
