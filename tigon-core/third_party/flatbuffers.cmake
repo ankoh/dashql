@@ -7,7 +7,7 @@ include(ExternalProject)
 
 # Flatbuffers library
 ExternalProject_Add(
-    flatbuffers_build
+    flatbuffers_ep
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/flatbuffers"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/flatbuffers"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/flatbuffers/install"
@@ -34,7 +34,7 @@ ExternalProject_Add(
         <INSTALL_DIR>/lib/libflatbuffers.a
 )
 
-ExternalProject_Get_Property(flatbuffers_build install_dir)
+ExternalProject_Get_Property(flatbuffers_ep install_dir)
 set(FLATBUFFERS_INCLUDE_DIR ${install_dir}/include)
 set(FLATBUFFERS_LIBRARY_PATH ${install_dir}/lib/libflatbuffers.a)
 file(MAKE_DIRECTORY ${FLATBUFFERS_INCLUDE_DIR})
@@ -43,11 +43,11 @@ add_library(flatbuffers STATIC IMPORTED)
 set_property(TARGET flatbuffers PROPERTY IMPORTED_LOCATION ${FLATBUFFERS_LIBRARY_PATH})
 set_property(TARGET flatbuffers APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${FLATBUFFERS_INCLUDE_DIR})
 
-add_dependencies(flatbuffers flatbuffers_build)
+add_dependencies(flatbuffers flatbuffers_ep)
 
 # Flatc (bypass emscripten toolchain)
 ExternalProject_Add(
-    flatc_build
+    flatc_ep
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/flatbuffers"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/flatc"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/flatc/install"
@@ -72,5 +72,5 @@ ExternalProject_Add(
         <INSTALL_DIR>/bin/flatc
 )
 
-ExternalProject_Get_Property(flatc_build install_dir)
+ExternalProject_Get_Property(flatc_ep install_dir)
 set(FLATC ${install_dir}/bin/flatc)

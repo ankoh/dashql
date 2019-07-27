@@ -6,7 +6,7 @@
 include(ExternalProject)
 
 ExternalProject_Add(
-    snappy_build
+    snappy_ep
     PREFIX "${CMAKE_BINARY_DIR}/third_party/snappy"
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/snappy"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/snappy/install"
@@ -28,7 +28,7 @@ ExternalProject_Add(
         <INSTALL_DIR>/lib/libsnappy.a
 )
 
-ExternalProject_Get_Property(snappy_build install_dir)
+ExternalProject_Get_Property(snappy_ep install_dir)
 set(SNAPPY_INCLUDE_DIR ${install_dir}/include)
 set(SNAPPY_LIBRARY_PATH ${install_dir}/lib/libsnappy.a)
 file(MAKE_DIRECTORY ${SNAPPY_INCLUDE_DIR})
@@ -37,4 +37,4 @@ add_library(snappy STATIC IMPORTED)
 set_property(TARGET snappy PROPERTY IMPORTED_LOCATION ${SNAPPY_LIBRARY_PATH})
 set_property(TARGET snappy APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${SNAPPY_INCLUDE_DIR})
 
-add_dependencies(snappy snappy_build)
+add_dependencies(snappy snappy_ep)

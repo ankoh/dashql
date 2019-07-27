@@ -6,7 +6,7 @@
 include(ExternalProject)
 
 ExternalProject_Add(
-    arrow_build
+    arrow_ep
     PREFIX "${CMAKE_BINARY_DIR}/third_party/arrow"
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/arrow/cpp"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/arrow/install"
@@ -65,7 +65,7 @@ ExternalProject_Add(
         <INSTALL_DIR>/lib/libparquet.a
 )
 
-ExternalProject_Get_Property(arrow_build install_dir)
+ExternalProject_Get_Property(arrow_ep install_dir)
 set(ARROW_INCLUDE_DIR ${install_dir}/include)
 set(ARROW_LIBRARY_PATH ${install_dir}/lib/libarrow.a)
 set(PARQUET_INCLUDE_DIR ${install_dir}/include)
@@ -81,9 +81,9 @@ add_library(parquet STATIC IMPORTED)
 set_property(TARGET parquet PROPERTY IMPORTED_LOCATION ${PARQUET_LIBRARY_PATH})
 set_property(TARGET parquet APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PARQUET_INCLUDE_DIR})
 
-add_dependencies(arrow_build snappy_build brotli_build flatbuffers_build flatc_build thrift_build)
-add_dependencies(arrow arrow_build)
-add_dependencies(parquet arrow_build)
+add_dependencies(arrow_ep snappy_ep brotli_ep flatbuffers_ep flatc_ep thrift_ep)
+add_dependencies(arrow arrow_ep)
+add_dependencies(parquet arrow_ep)
 
 target_link_libraries(parquet INTERFACE
     arrow

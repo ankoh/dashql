@@ -6,7 +6,7 @@
 include(ExternalProject)
 
 ExternalProject_Add(
-    brotli_build
+    brotli_ep
     PREFIX "${CMAKE_BINARY_DIR}/third_party/brotli"
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/brotli"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/brotli/install"
@@ -24,10 +24,12 @@ ExternalProject_Add(
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     BUILD_BYPRODUCTS
-        <INSTALL_DIR>/lib/libbrotli.a
+        <INSTALL_DIR>/lib/libbrotlienc-static.a
+        <INSTALL_DIR>/lib/libbrotlidec-static.a
+        <INSTALL_DIR>/lib/libbrotlicommon-static.a
 )
 
-ExternalProject_Get_Property(brotli_build install_dir)
+ExternalProject_Get_Property(brotli_ep install_dir)
 set(BROTLI_INCLUDE_DIR ${install_dir}/include)
 set(BROTLI_ENC_LIBRARY_PATH ${install_dir}/lib/libbrotlienc-static.a)
 set(BROTLI_DEC_LIBRARY_PATH ${install_dir}/lib/libbrotlidec-static.a)
@@ -46,6 +48,6 @@ add_library(brotli_common STATIC IMPORTED)
 set_property(TARGET brotli_common PROPERTY IMPORTED_LOCATION ${BROTLI_COMMON_LIBRARY_PATH})
 set_property(TARGET brotli_common APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BROTLI_INCLUDE_DIR})
 
-add_dependencies(brotli_enc brotli_build)
-add_dependencies(brotli_dec brotli_build)
-add_dependencies(brotli_common brotli_build)
+add_dependencies(brotli_enc brotli_ep)
+add_dependencies(brotli_dec brotli_ep)
+add_dependencies(brotli_common brotli_ep)

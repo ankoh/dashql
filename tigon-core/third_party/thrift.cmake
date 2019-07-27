@@ -11,7 +11,7 @@ include(ExternalProject)
 # 26.07.2019: Thrift must be built with C++11 since it uses std::auto_ptr
 
 ExternalProject_Add(
-    thrift_build
+    thrift_ep
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/thrift"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/thrift"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/thrift/install"
@@ -46,7 +46,7 @@ ExternalProject_Add(
         <INSTALL_DIR>/lib/libthrift.a
 )
 
-ExternalProject_Get_Property(thrift_build install_dir)
+ExternalProject_Get_Property(thrift_ep install_dir)
 set(THRIFT_INCLUDE_DIR ${install_dir}/include)
 set(THRIFT_LIBRARY_PATH ${install_dir}/lib/libthrift.a)
 file(MAKE_DIRECTORY ${THRIFT_INCLUDE_DIR})
@@ -55,5 +55,5 @@ add_library(thrift STATIC IMPORTED)
 set_property(TARGET thrift PROPERTY IMPORTED_LOCATION ${THRIFT_LIBRARY_PATH})
 set_property(TARGET thrift APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${THRIFT_INCLUDE_DIR})
 
-add_dependencies(thrift_build boost_ep)
-add_dependencies(thrift thrift_build)
+add_dependencies(thrift_ep boost_ep)
+add_dependencies(thrift thrift_ep)
