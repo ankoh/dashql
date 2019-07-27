@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/parser/tql/tql_parse_context.h"
-#include "./gen/tql_parser.h"
+#include "tigon/parser/tql/tql_parser.h"
 #include "tigon/infra/error.h"
 #include <iostream>
 #include <sstream>
