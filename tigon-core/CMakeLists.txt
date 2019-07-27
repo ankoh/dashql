@@ -93,6 +93,7 @@ target_link_libraries(tigon_web
     tql
     arrow parquet
     duckdb re2 miniz pg_query hyperloglog
+    boost_filesystem boost_regex boost_system
 )
 
 # Define emscripten export
