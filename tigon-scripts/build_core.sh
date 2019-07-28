@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/.."
 
 CORE_SOURCE_DIR="${PROJECT_ROOT}/tigon-core"
 CORE_BUILD_DIR="${PROJECT_ROOT}/tigon-core/build/emscripten"
