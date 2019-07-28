@@ -111,6 +111,7 @@ if(DEFINED ENV{EMSDK})
             _tigon_get_response_status, \
             _tigon_get_response_error_message, \
             _tigon_get_response_data, \
+            _tigon_extract_parquet, \
             _tigon_query \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]' \

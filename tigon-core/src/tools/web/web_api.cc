@@ -13,6 +13,14 @@
 #include <optional>
 #include <unordered_map>
 
+#include "arrow/api.h"
+#include "arrow/buffer.h"
+#include "arrow/io/api.h"
+#include "arrow/io/memory.h"
+#include "arrow/memory_pool.h"
+#include "parquet/arrow/reader.h"
+#include "parquet/exception.h"
+
 namespace fb = flatbuffers;
 using namespace tigon;
 
@@ -224,7 +232,14 @@ void WebAPI::Session::query(std::string_view text) {
 
 /// Extract a parquet buffer
 void WebAPI::Session::extractParquet(const uint8_t* buffer, uint32_t bufferSize) {
-    
+    // Create the buffer reader
+    auto bufferReader = std::make_shared<arrow::io::BufferReader>(buffer, bufferSize);
+    std::unique_ptr<parquet::arrow::FileReader> parquetReader;
+    PARQUET_THROW_NOT_OK(parquet::arrow::OpenFile(bufferReader, arrow::default_memory_pool(), &parquetReader));
+
+    // Reader the arrow table
+    std::shared_ptr<arrow::Table> table;
+    PARQUET_THROW_NOT_OK(parquetReader->ReadTable(&table));
 }
 
 /// Constructor

@@ -43,4 +43,10 @@ WebAPI::Buffer *tigon_get_response_data(WebAPI::Session *session) { return sessi
 
 /// Run a query
 void tigon_query(WebAPI::Session *session, const char *text) { session->query(text); }
+
+/// Extract a parquet file
+void tigon_extract_parquet(WebAPI::Session *session, const uint8_t* buffer, uint32_t bufferSize) {
+    session->extractParquet(buffer, bufferSize);
+}
+
 }

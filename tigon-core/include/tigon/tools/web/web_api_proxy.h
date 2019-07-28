@@ -30,6 +30,10 @@ tigon::WebAPI::Buffer *tigon_get_response_data(tigon::WebAPI::Session *session);
 
 /// Run a query
 void tigon_query(tigon::WebAPI::Session *session, const char *text);
+
+/// Extract parquet
+void tigon_extract_parquet(tigon::WebAPI::Session* session, const uint8_t* buffer, uint32_t bufferSize);
+
 }
 
 #endif // INCLUDE_TIGON_TOOLS_WEB_WEB_API_PROXY_H_

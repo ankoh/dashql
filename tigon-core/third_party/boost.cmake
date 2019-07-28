@@ -11,7 +11,7 @@ if(DEFINED ENV{EMSDK})
 
     ExternalProject_Add(boost_ep
         BUILD_IN_SOURCE 1
-        URL "http://sourceforge.net/projects/boost/files/boost/1.70.0/boost_1_70_0.tar.gz"
+        URL "http://sourceforge.net/projects/boost/files/boost/1.67.0/boost_1_67_0.tar.gz"
         PREFIX "${CMAKE_BINARY_DIR}/third_party/boost"
         INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/boost/install"
         CONFIGURE_COMMAND ./bootstrap.sh
@@ -25,9 +25,8 @@ if(DEFINED ENV{EMSDK})
             link=static
             variant=release
             threading=single
-            visibility=global
             runtime-link=static
-            system regex filesystem
+            filesystem regex system
             install
         INSTALL_COMMAND ""
         BUILD_BYPRODUCTS
@@ -41,6 +40,7 @@ if(DEFINED ENV{EMSDK})
     set(BOOST_INCLUDE_DIR ${install_dir}/include)
     set(BOOST_INCLUDE_DIRS ${install_dir}/include)
     set(BOOST_LIBRARY_DIR ${install_dir}/lib)
+    set(BOOST_ROOT ${INSTALL_DIR})
 
     file(MAKE_DIRECTORY ${BOOST_INCLUDE_DIR})
     file(MAKE_DIRECTORY ${BOOST_LIBRARY_DIR})
@@ -61,7 +61,7 @@ else()
 
     ExternalProject_Add(boost_ep
         BUILD_IN_SOURCE 1
-        URL "http://sourceforge.net/projects/boost/files/boost/1.70.0/boost_1_70_0.tar.gz"
+        URL "http://sourceforge.net/projects/boost/files/boost/1.67.0/boost_1_67_0.tar.gz"
         PREFIX "${CMAKE_BINARY_DIR}/third_party/boost"
         INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/boost/install"
         CONFIGURE_COMMAND ./bootstrap.sh
@@ -74,9 +74,8 @@ else()
             link=static
             variant=release
             threading=single
-            visibility=global
             runtime-link=static
-            system regex filesystem
+            filesystem regex system
             install
         INSTALL_COMMAND ""
         BUILD_BYPRODUCTS
@@ -105,5 +104,4 @@ else()
     add_library(boost_regex STATIC IMPORTED)
     set_property(TARGET boost_regex PROPERTY IMPORTED_LOCATION ${BOOST_LIBRARY_DIR}/libboost_regex.a)
     set_property(TARGET boost_regex APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BOOST_INCLUDE_DIR})
-
 endif()

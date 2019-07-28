@@ -38,17 +38,26 @@ std::shared_ptr<arrow::Table> generateTable() {
     return arrow::Table::Make(schema, {i64array, strarray});
 }
 
-TEST(ParquetTest, WriteToBuffer) {
-    auto table = generateTable();
-
-    // Create the output stream
+TEST(ParquetTest, MemoryWriterReader) {
     auto memoryPool = arrow::MemoryPool::CreateDefault();
     std::shared_ptr<arrow::ResizableBuffer> buffer;
-    PARQUET_THROW_NOT_OK(arrow::AllocateResizableBuffer(memoryPool.get(), 1024, &buffer));
-    std::shared_ptr<arrow::io::OutputStream> outputStream = std::make_shared<arrow::io::BufferOutputStream>(buffer);
 
-    // Write the table
-    PARQUET_THROW_NOT_OK(parquet::arrow::WriteTable(*table, memoryPool.get(), outputStream, 3));
+    // Write the parquet file to memory
+    {
+        auto table = generateTable();
+        PARQUET_THROW_NOT_OK(arrow::AllocateResizableBuffer(memoryPool.get(), 1024, &buffer));
+        std::shared_ptr<arrow::io::OutputStream> outputStream = std::make_shared<arrow::io::BufferOutputStream>(buffer);
+        PARQUET_THROW_NOT_OK(parquet::arrow::WriteTable(*table, memoryPool.get(), outputStream, 3));
+    }
+
+    // Write the parquet file from memory
+    {
+        auto bufferReader = std::make_shared<arrow::io::BufferReader>(buffer);
+        std::unique_ptr<parquet::arrow::FileReader> fileReader;
+        PARQUET_THROW_NOT_OK(parquet::arrow::OpenFile(bufferReader, arrow::default_memory_pool(), &fileReader));
+        std::shared_ptr<arrow::Table> table;
+        PARQUET_THROW_NOT_OK(fileReader->ReadTable(&table));
+    }
 }
 
 }
