@@ -12,7 +12,7 @@ include(ExternalProject)
 
 ExternalProject_Add(
     thrift_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/thrift"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/thrift/"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/thrift"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/thrift/install"
     CMAKE_ARGS
@@ -39,6 +39,10 @@ ExternalProject_Add(
         -DWITH_HASKELL=OFF
         -DWITH_JAVA=OFF
         -DWITH_LIBEVENT=OFF
+        -DBUILD_CPP=ON
+        -DBOOST_ROOT=${BOOST_ROOT}
+        -DBOOST_INCLUDEDIR=${BOOST_INCLUDE_DIR}
+        -DBOOST_LIBRARYDIR=${BOOST_LIBRARY_DIR}
         -DBoost_INCLUDE_DIR=${BOOST_INCLUDE_DIR}
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
