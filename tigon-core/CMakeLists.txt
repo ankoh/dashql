@@ -94,6 +94,7 @@ set_property(TARGET tigon_web PROPERTY CXX_STANDARD 17)
 target_link_libraries(tigon_web
     tql
     duckdb
+    rapidjson
     parquet arrow
 )
 
@@ -131,6 +132,7 @@ target_link_libraries(tester
     tql
     duckdb
     parquet arrow
+    rapidjson
     gtest gmock
 )
 
