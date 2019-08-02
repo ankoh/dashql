@@ -93,7 +93,8 @@ set_property(TARGET tigon_web PROPERTY CXX_STANDARD 17)
 
 # Link libraries
 target_link_libraries(tigon_web
-    tql
+    tigon_rpath
+    tigon_tql
     duckdb
     rapidjson
     parquet arrow
@@ -130,7 +131,8 @@ add_executable(tester
     ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc
 )
 target_link_libraries(tester
-    tql
+    tigon_rpath
+    tigon_tql
     duckdb
     parquet arrow
     rapidjson
