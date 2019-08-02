@@ -42,7 +42,7 @@ class ParseContext {
     virtual ~ParseContext();
 
     /// Parse an istream
-    RecordPath Parse(std::istream &in);
+    std::unique_ptr<RPath> Parse(std::istream &in);
 
     /// Throw an error
     void Error(uint32_t line, uint32_t column, const std::string &err);

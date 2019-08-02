@@ -77,6 +77,7 @@ array_access:
     STAR
  |  INTEGER_LITERAL array_slice_or_indexes
  |  COLON opt_integer
+ |  %empty
     ;
 
 array_slice_or_indexes:

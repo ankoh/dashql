@@ -17,7 +17,7 @@ ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
 
 ParseContext::~ParseContext() {}
 
-RecordPath ParseContext::Parse(std::istream &in) {
+std::unique_ptr<RPath> ParseContext::Parse(std::istream &in) {
     beginScan(in);
     tigon::rpath::Parser parser(*this);
     parser.set_debug_level(trace_parsing);

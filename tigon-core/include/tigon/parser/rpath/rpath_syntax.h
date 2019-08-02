@@ -19,8 +19,34 @@
 namespace tigon {
 namespace rpath {
 
+struct ArraySlice {
+    std::optional<int32_t> begin;
+    std::optional<int32_t> end;
+};
+
+struct ArrayIndexes {
+    std::vector<int32_t> indexes;
+};
+
+struct ChildMember {
+    std::string name;
+};
+
+struct DesendantMember {
+    std::string name;
+};
+
+using RPathComponent = std::variant<
+    ArrayIndexes,
+    ArraySlice,
+    ChildMember,
+    DesendantMember
+>;
+
 /// A record path
-struct RecordPath {
+struct RPath {
+    /// The path components
+    std::vector<RPathComponent> components;
 };
 
 } // namespace rpath
