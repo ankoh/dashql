@@ -12,13 +12,13 @@ enum TQLType: uint8 {
 
 /// A query statement
 table TQLQueryStatement {
-    text: string;
+    query_text: string;
 }
 
 /// A parameter declaration
 table TQLParameterDeclaration {
-    name: string;
-    type: TQLType;
+    parameter_name: string;
+    parameter_type: TQLType;
     default_value_i64: int64;
     default_value_f64: float64;
     default_value_str: string;
@@ -33,8 +33,8 @@ enum TQLHTTPMethod: uint8 {
 
 /// A http loader
 table TQLHTTPLoader {
-    url: string;
-    method: TQLHTTPMethod;
+    http_url: string;
+    http_method: TQLHTTPMethod;
 }
 
 /// A file loader
@@ -48,16 +48,25 @@ union TQLLoadMethod {
 
 /// A load statement
 table TQLLoadStatement {
-    name: string;
-    method: TQLLoadMethod;
+    data_name: string;
+    load_method: TQLLoadMethod;
 }
 
 /// A json extractor
-table TQLJSONExtractor {
+table TQLJSONExtract {
+}
+
+/// A csv column
+table TQLCSVColumn {
+    column_name: string;
+    column_type: TQLType;
+    source_name: string;
+    source_index: int32;
 }
 
 /// A csv extractor
-table TQLCSVExtractor {
+table TQLCSVExtract {
+    columns: [TQLCSVColumn];
 }
 
 /// A parquet extractor
@@ -66,16 +75,16 @@ table TQLParquetExtractor {
 
 /// An extract method
 union TQLExtractMethod {
-    TQLJSONExtractor,
-    TQLCSVExtractor,
+    TQLJSONExtract,
+    TQLCSVExtract,
     TQLParquetExtractor,
 }
 
 /// An extract statement
 table TQLExtractStatement {
-    name: string;
-    source: string;
-    method: TQLExtractMethod;
+    extract_name: string;
+    extract_method: TQLExtractMethod;
+    data_name: string;
 }
 
 /// An display type
@@ -112,7 +121,7 @@ struct TQLDisplayColor {
 
 /// A display color palette
 table TQLDisplayColorPalette {
-    column: string;
+    color_target: string;
     palette: [TQLDisplayColor];
 }
 
@@ -163,9 +172,9 @@ table TQLDisplayAxes {
 
 /// A display statement
 table TQLDisplayStatement {
-    target: string;
-    type: TQLType;
-    type_flags: uint16;
+    display_name: string;
+    display_type: TQLDisplayType;
+    display_type_flags: uint16;
     layout: TQLDisplayLayout;
     color: TQLDisplayColor;
     axes: TQLDisplayAxes;

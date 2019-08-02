@@ -11,6 +11,14 @@
 namespace tigon {
 
 class CSVExtract: public Extract {
+    public:
+    /// Constructor
+    CSVExtract(duckdb::Connection& conn, proto::TQLExtractStatement& statement);
+    /// Destructor
+    ~CSVExtract() = default;
+
+    /// Prepare the database
+    void prepare() override;
     /// Read a buffer into the extract
     void read(nonstd::span<std::byte> buffer) override;
 };

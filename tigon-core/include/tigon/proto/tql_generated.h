@@ -19,9 +19,11 @@ struct TQLFileLoader;
 
 struct TQLLoadStatement;
 
-struct TQLJSONExtractor;
+struct TQLJSONExtract;
 
-struct TQLCSVExtractor;
+struct TQLCSVColumn;
+
+struct TQLCSVExtract;
 
 struct TQLParquetExtractor;
 
@@ -173,8 +175,8 @@ bool VerifyTQLLoadMethodVector(flatbuffers::Verifier &verifier, const flatbuffer
 /// An extract method
 enum class TQLExtractMethod : uint8_t {
   NONE = 0,
-  TQLJSONExtractor = 1,
-  TQLCSVExtractor = 2,
+  TQLJSONExtract = 1,
+  TQLCSVExtract = 2,
   TQLParquetExtractor = 3,
   MIN = NONE,
   MAX = TQLParquetExtractor
@@ -183,8 +185,8 @@ enum class TQLExtractMethod : uint8_t {
 inline const TQLExtractMethod (&EnumValuesTQLExtractMethod())[4] {
   static const TQLExtractMethod values[] = {
     TQLExtractMethod::NONE,
-    TQLExtractMethod::TQLJSONExtractor,
-    TQLExtractMethod::TQLCSVExtractor,
+    TQLExtractMethod::TQLJSONExtract,
+    TQLExtractMethod::TQLCSVExtract,
     TQLExtractMethod::TQLParquetExtractor
   };
   return values;
@@ -193,8 +195,8 @@ inline const TQLExtractMethod (&EnumValuesTQLExtractMethod())[4] {
 inline const char * const *EnumNamesTQLExtractMethod() {
   static const char * const names[] = {
     "NONE",
-    "TQLJSONExtractor",
-    "TQLCSVExtractor",
+    "TQLJSONExtract",
+    "TQLCSVExtract",
     "TQLParquetExtractor",
     nullptr
   };
@@ -211,12 +213,12 @@ template<typename T> struct TQLExtractMethodTraits {
   static const TQLExtractMethod enum_value = TQLExtractMethod::NONE;
 };
 
-template<> struct TQLExtractMethodTraits<TQLJSONExtractor> {
-  static const TQLExtractMethod enum_value = TQLExtractMethod::TQLJSONExtractor;
+template<> struct TQLExtractMethodTraits<TQLJSONExtract> {
+  static const TQLExtractMethod enum_value = TQLExtractMethod::TQLJSONExtract;
 };
 
-template<> struct TQLExtractMethodTraits<TQLCSVExtractor> {
-  static const TQLExtractMethod enum_value = TQLExtractMethod::TQLCSVExtractor;
+template<> struct TQLExtractMethodTraits<TQLCSVExtract> {
+  static const TQLExtractMethod enum_value = TQLExtractMethod::TQLCSVExtract;
 };
 
 template<> struct TQLExtractMethodTraits<TQLParquetExtractor> {
@@ -522,15 +524,15 @@ FLATBUFFERS_STRUCT_END(TQLDisplayLengthValue, 16);
 /// A query statement
 struct TQLQueryStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_TEXT = 4
+    VT_QUERY_TEXT = 4
   };
-  const flatbuffers::String *text() const {
-    return GetPointer<const flatbuffers::String *>(VT_TEXT);
+  const flatbuffers::String *query_text() const {
+    return GetPointer<const flatbuffers::String *>(VT_QUERY_TEXT);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_TEXT) &&
-           verifier.VerifyString(text()) &&
+           VerifyOffset(verifier, VT_QUERY_TEXT) &&
+           verifier.VerifyString(query_text()) &&
            verifier.EndTable();
   }
 };
@@ -538,8 +540,8 @@ struct TQLQueryStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct TQLQueryStatementBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_text(flatbuffers::Offset<flatbuffers::String> text) {
-    fbb_.AddOffset(TQLQueryStatement::VT_TEXT, text);
+  void add_query_text(flatbuffers::Offset<flatbuffers::String> query_text) {
+    fbb_.AddOffset(TQLQueryStatement::VT_QUERY_TEXT, query_text);
   }
   explicit TQLQueryStatementBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -555,35 +557,35 @@ struct TQLQueryStatementBuilder {
 
 inline flatbuffers::Offset<TQLQueryStatement> CreateTQLQueryStatement(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> text = 0) {
+    flatbuffers::Offset<flatbuffers::String> query_text = 0) {
   TQLQueryStatementBuilder builder_(_fbb);
-  builder_.add_text(text);
+  builder_.add_query_text(query_text);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<TQLQueryStatement> CreateTQLQueryStatementDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *text = nullptr) {
-  auto text__ = text ? _fbb.CreateString(text) : 0;
+    const char *query_text = nullptr) {
+  auto query_text__ = query_text ? _fbb.CreateString(query_text) : 0;
   return tigon::proto::CreateTQLQueryStatement(
       _fbb,
-      text__);
+      query_text__);
 }
 
 /// A parameter declaration
 struct TQLParameterDeclaration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
-    VT_TYPE = 6,
+    VT_PARAMETER_NAME = 4,
+    VT_PARAMETER_TYPE = 6,
     VT_DEFAULT_VALUE_I64 = 8,
     VT_DEFAULT_VALUE_F64 = 10,
     VT_DEFAULT_VALUE_STR = 12
   };
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const flatbuffers::String *parameter_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_PARAMETER_NAME);
   }
-  TQLType type() const {
-    return static_cast<TQLType>(GetField<uint8_t>(VT_TYPE, 0));
+  TQLType parameter_type() const {
+    return static_cast<TQLType>(GetField<uint8_t>(VT_PARAMETER_TYPE, 0));
   }
   int64_t default_value_i64() const {
     return GetField<int64_t>(VT_DEFAULT_VALUE_I64, 0);
@@ -596,9 +598,9 @@ struct TQLParameterDeclaration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Ta
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
-           VerifyField<uint8_t>(verifier, VT_TYPE) &&
+           VerifyOffset(verifier, VT_PARAMETER_NAME) &&
+           verifier.VerifyString(parameter_name()) &&
+           VerifyField<uint8_t>(verifier, VT_PARAMETER_TYPE) &&
            VerifyField<int64_t>(verifier, VT_DEFAULT_VALUE_I64) &&
            VerifyField<double>(verifier, VT_DEFAULT_VALUE_F64) &&
            VerifyOffset(verifier, VT_DEFAULT_VALUE_STR) &&
@@ -610,11 +612,11 @@ struct TQLParameterDeclaration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Ta
 struct TQLParameterDeclarationBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(TQLParameterDeclaration::VT_NAME, name);
+  void add_parameter_name(flatbuffers::Offset<flatbuffers::String> parameter_name) {
+    fbb_.AddOffset(TQLParameterDeclaration::VT_PARAMETER_NAME, parameter_name);
   }
-  void add_type(TQLType type) {
-    fbb_.AddElement<uint8_t>(TQLParameterDeclaration::VT_TYPE, static_cast<uint8_t>(type), 0);
+  void add_parameter_type(TQLType parameter_type) {
+    fbb_.AddElement<uint8_t>(TQLParameterDeclaration::VT_PARAMETER_TYPE, static_cast<uint8_t>(parameter_type), 0);
   }
   void add_default_value_i64(int64_t default_value_i64) {
     fbb_.AddElement<int64_t>(TQLParameterDeclaration::VT_DEFAULT_VALUE_I64, default_value_i64, 0);
@@ -639,8 +641,8 @@ struct TQLParameterDeclarationBuilder {
 
 inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclaration(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
-    TQLType type = TQLType::INTEGER,
+    flatbuffers::Offset<flatbuffers::String> parameter_name = 0,
+    TQLType parameter_type = TQLType::INTEGER,
     int64_t default_value_i64 = 0,
     double default_value_f64 = 0.0,
     flatbuffers::Offset<flatbuffers::String> default_value_str = 0) {
@@ -648,24 +650,24 @@ inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclaratio
   builder_.add_default_value_f64(default_value_f64);
   builder_.add_default_value_i64(default_value_i64);
   builder_.add_default_value_str(default_value_str);
-  builder_.add_name(name);
-  builder_.add_type(type);
+  builder_.add_parameter_name(parameter_name);
+  builder_.add_parameter_type(parameter_type);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclarationDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
-    TQLType type = TQLType::INTEGER,
+    const char *parameter_name = nullptr,
+    TQLType parameter_type = TQLType::INTEGER,
     int64_t default_value_i64 = 0,
     double default_value_f64 = 0.0,
     const char *default_value_str = nullptr) {
-  auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto parameter_name__ = parameter_name ? _fbb.CreateString(parameter_name) : 0;
   auto default_value_str__ = default_value_str ? _fbb.CreateString(default_value_str) : 0;
   return tigon::proto::CreateTQLParameterDeclaration(
       _fbb,
-      name__,
-      type,
+      parameter_name__,
+      parameter_type,
       default_value_i64,
       default_value_f64,
       default_value_str__);
@@ -674,20 +676,20 @@ inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclaratio
 /// A http loader
 struct TQLHTTPLoader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_URL = 4,
-    VT_METHOD = 6
+    VT_HTTP_URL = 4,
+    VT_HTTP_METHOD = 6
   };
-  const flatbuffers::String *url() const {
-    return GetPointer<const flatbuffers::String *>(VT_URL);
+  const flatbuffers::String *http_url() const {
+    return GetPointer<const flatbuffers::String *>(VT_HTTP_URL);
   }
-  TQLHTTPMethod method() const {
-    return static_cast<TQLHTTPMethod>(GetField<uint8_t>(VT_METHOD, 0));
+  TQLHTTPMethod http_method() const {
+    return static_cast<TQLHTTPMethod>(GetField<uint8_t>(VT_HTTP_METHOD, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_URL) &&
-           verifier.VerifyString(url()) &&
-           VerifyField<uint8_t>(verifier, VT_METHOD) &&
+           VerifyOffset(verifier, VT_HTTP_URL) &&
+           verifier.VerifyString(http_url()) &&
+           VerifyField<uint8_t>(verifier, VT_HTTP_METHOD) &&
            verifier.EndTable();
   }
 };
@@ -695,11 +697,11 @@ struct TQLHTTPLoader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct TQLHTTPLoaderBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_url(flatbuffers::Offset<flatbuffers::String> url) {
-    fbb_.AddOffset(TQLHTTPLoader::VT_URL, url);
+  void add_http_url(flatbuffers::Offset<flatbuffers::String> http_url) {
+    fbb_.AddOffset(TQLHTTPLoader::VT_HTTP_URL, http_url);
   }
-  void add_method(TQLHTTPMethod method) {
-    fbb_.AddElement<uint8_t>(TQLHTTPLoader::VT_METHOD, static_cast<uint8_t>(method), 0);
+  void add_http_method(TQLHTTPMethod http_method) {
+    fbb_.AddElement<uint8_t>(TQLHTTPLoader::VT_HTTP_METHOD, static_cast<uint8_t>(http_method), 0);
   }
   explicit TQLHTTPLoaderBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -715,23 +717,23 @@ struct TQLHTTPLoaderBuilder {
 
 inline flatbuffers::Offset<TQLHTTPLoader> CreateTQLHTTPLoader(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> url = 0,
-    TQLHTTPMethod method = TQLHTTPMethod::GET) {
+    flatbuffers::Offset<flatbuffers::String> http_url = 0,
+    TQLHTTPMethod http_method = TQLHTTPMethod::GET) {
   TQLHTTPLoaderBuilder builder_(_fbb);
-  builder_.add_url(url);
-  builder_.add_method(method);
+  builder_.add_http_url(http_url);
+  builder_.add_http_method(http_method);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<TQLHTTPLoader> CreateTQLHTTPLoaderDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *url = nullptr,
-    TQLHTTPMethod method = TQLHTTPMethod::GET) {
-  auto url__ = url ? _fbb.CreateString(url) : 0;
+    const char *http_url = nullptr,
+    TQLHTTPMethod http_method = TQLHTTPMethod::GET) {
+  auto http_url__ = http_url ? _fbb.CreateString(http_url) : 0;
   return tigon::proto::CreateTQLHTTPLoader(
       _fbb,
-      url__,
-      method);
+      http_url__,
+      http_method);
 }
 
 /// A file loader
@@ -766,56 +768,56 @@ inline flatbuffers::Offset<TQLFileLoader> CreateTQLFileLoader(
 /// A load statement
 struct TQLLoadStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
-    VT_METHOD_TYPE = 6,
-    VT_METHOD = 8
+    VT_DATA_NAME = 4,
+    VT_LOAD_METHOD_TYPE = 6,
+    VT_LOAD_METHOD = 8
   };
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const flatbuffers::String *data_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_DATA_NAME);
   }
-  TQLLoadMethod method_type() const {
-    return static_cast<TQLLoadMethod>(GetField<uint8_t>(VT_METHOD_TYPE, 0));
+  TQLLoadMethod load_method_type() const {
+    return static_cast<TQLLoadMethod>(GetField<uint8_t>(VT_LOAD_METHOD_TYPE, 0));
   }
-  const void *method() const {
-    return GetPointer<const void *>(VT_METHOD);
+  const void *load_method() const {
+    return GetPointer<const void *>(VT_LOAD_METHOD);
   }
-  template<typename T> const T *method_as() const;
-  const TQLHTTPLoader *method_as_TQLHTTPLoader() const {
-    return method_type() == TQLLoadMethod::TQLHTTPLoader ? static_cast<const TQLHTTPLoader *>(method()) : nullptr;
+  template<typename T> const T *load_method_as() const;
+  const TQLHTTPLoader *load_method_as_TQLHTTPLoader() const {
+    return load_method_type() == TQLLoadMethod::TQLHTTPLoader ? static_cast<const TQLHTTPLoader *>(load_method()) : nullptr;
   }
-  const TQLFileLoader *method_as_TQLFileLoader() const {
-    return method_type() == TQLLoadMethod::TQLFileLoader ? static_cast<const TQLFileLoader *>(method()) : nullptr;
+  const TQLFileLoader *load_method_as_TQLFileLoader() const {
+    return load_method_type() == TQLLoadMethod::TQLFileLoader ? static_cast<const TQLFileLoader *>(load_method()) : nullptr;
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
-           VerifyField<uint8_t>(verifier, VT_METHOD_TYPE) &&
-           VerifyOffset(verifier, VT_METHOD) &&
-           VerifyTQLLoadMethod(verifier, method(), method_type()) &&
+           VerifyOffset(verifier, VT_DATA_NAME) &&
+           verifier.VerifyString(data_name()) &&
+           VerifyField<uint8_t>(verifier, VT_LOAD_METHOD_TYPE) &&
+           VerifyOffset(verifier, VT_LOAD_METHOD) &&
+           VerifyTQLLoadMethod(verifier, load_method(), load_method_type()) &&
            verifier.EndTable();
   }
 };
 
-template<> inline const TQLHTTPLoader *TQLLoadStatement::method_as<TQLHTTPLoader>() const {
-  return method_as_TQLHTTPLoader();
+template<> inline const TQLHTTPLoader *TQLLoadStatement::load_method_as<TQLHTTPLoader>() const {
+  return load_method_as_TQLHTTPLoader();
 }
 
-template<> inline const TQLFileLoader *TQLLoadStatement::method_as<TQLFileLoader>() const {
-  return method_as_TQLFileLoader();
+template<> inline const TQLFileLoader *TQLLoadStatement::load_method_as<TQLFileLoader>() const {
+  return load_method_as_TQLFileLoader();
 }
 
 struct TQLLoadStatementBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(TQLLoadStatement::VT_NAME, name);
+  void add_data_name(flatbuffers::Offset<flatbuffers::String> data_name) {
+    fbb_.AddOffset(TQLLoadStatement::VT_DATA_NAME, data_name);
   }
-  void add_method_type(TQLLoadMethod method_type) {
-    fbb_.AddElement<uint8_t>(TQLLoadStatement::VT_METHOD_TYPE, static_cast<uint8_t>(method_type), 0);
+  void add_load_method_type(TQLLoadMethod load_method_type) {
+    fbb_.AddElement<uint8_t>(TQLLoadStatement::VT_LOAD_METHOD_TYPE, static_cast<uint8_t>(load_method_type), 0);
   }
-  void add_method(flatbuffers::Offset<void> method) {
-    fbb_.AddOffset(TQLLoadStatement::VT_METHOD, method);
+  void add_load_method(flatbuffers::Offset<void> load_method) {
+    fbb_.AddOffset(TQLLoadStatement::VT_LOAD_METHOD, load_method);
   }
   explicit TQLLoadStatementBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -831,85 +833,197 @@ struct TQLLoadStatementBuilder {
 
 inline flatbuffers::Offset<TQLLoadStatement> CreateTQLLoadStatement(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
-    TQLLoadMethod method_type = TQLLoadMethod::NONE,
-    flatbuffers::Offset<void> method = 0) {
+    flatbuffers::Offset<flatbuffers::String> data_name = 0,
+    TQLLoadMethod load_method_type = TQLLoadMethod::NONE,
+    flatbuffers::Offset<void> load_method = 0) {
   TQLLoadStatementBuilder builder_(_fbb);
-  builder_.add_method(method);
-  builder_.add_name(name);
-  builder_.add_method_type(method_type);
+  builder_.add_load_method(load_method);
+  builder_.add_data_name(data_name);
+  builder_.add_load_method_type(load_method_type);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<TQLLoadStatement> CreateTQLLoadStatementDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
-    TQLLoadMethod method_type = TQLLoadMethod::NONE,
-    flatbuffers::Offset<void> method = 0) {
-  auto name__ = name ? _fbb.CreateString(name) : 0;
+    const char *data_name = nullptr,
+    TQLLoadMethod load_method_type = TQLLoadMethod::NONE,
+    flatbuffers::Offset<void> load_method = 0) {
+  auto data_name__ = data_name ? _fbb.CreateString(data_name) : 0;
   return tigon::proto::CreateTQLLoadStatement(
       _fbb,
-      name__,
-      method_type,
-      method);
+      data_name__,
+      load_method_type,
+      load_method);
 }
 
 /// A json extractor
-struct TQLJSONExtractor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+struct TQLJSONExtract FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
 };
 
-struct TQLJSONExtractorBuilder {
+struct TQLJSONExtractBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  explicit TQLJSONExtractorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit TQLJSONExtractBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  TQLJSONExtractorBuilder &operator=(const TQLJSONExtractorBuilder &);
-  flatbuffers::Offset<TQLJSONExtractor> Finish() {
+  TQLJSONExtractBuilder &operator=(const TQLJSONExtractBuilder &);
+  flatbuffers::Offset<TQLJSONExtract> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<TQLJSONExtractor>(end);
+    auto o = flatbuffers::Offset<TQLJSONExtract>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<TQLJSONExtractor> CreateTQLJSONExtractor(
+inline flatbuffers::Offset<TQLJSONExtract> CreateTQLJSONExtract(
     flatbuffers::FlatBufferBuilder &_fbb) {
-  TQLJSONExtractorBuilder builder_(_fbb);
+  TQLJSONExtractBuilder builder_(_fbb);
   return builder_.Finish();
 }
 
-/// A csv extractor
-struct TQLCSVExtractor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+/// A csv column
+struct TQLCSVColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_COLUMN_NAME = 4,
+    VT_COLUMN_TYPE = 6,
+    VT_SOURCE_NAME = 8,
+    VT_SOURCE_INDEX = 10
+  };
+  const flatbuffers::String *column_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_COLUMN_NAME);
+  }
+  TQLType column_type() const {
+    return static_cast<TQLType>(GetField<uint8_t>(VT_COLUMN_TYPE, 0));
+  }
+  const flatbuffers::String *source_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_SOURCE_NAME);
+  }
+  int32_t source_index() const {
+    return GetField<int32_t>(VT_SOURCE_INDEX, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_COLUMN_NAME) &&
+           verifier.VerifyString(column_name()) &&
+           VerifyField<uint8_t>(verifier, VT_COLUMN_TYPE) &&
+           VerifyOffset(verifier, VT_SOURCE_NAME) &&
+           verifier.VerifyString(source_name()) &&
+           VerifyField<int32_t>(verifier, VT_SOURCE_INDEX) &&
            verifier.EndTable();
   }
 };
 
-struct TQLCSVExtractorBuilder {
+struct TQLCSVColumnBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  explicit TQLCSVExtractorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  void add_column_name(flatbuffers::Offset<flatbuffers::String> column_name) {
+    fbb_.AddOffset(TQLCSVColumn::VT_COLUMN_NAME, column_name);
+  }
+  void add_column_type(TQLType column_type) {
+    fbb_.AddElement<uint8_t>(TQLCSVColumn::VT_COLUMN_TYPE, static_cast<uint8_t>(column_type), 0);
+  }
+  void add_source_name(flatbuffers::Offset<flatbuffers::String> source_name) {
+    fbb_.AddOffset(TQLCSVColumn::VT_SOURCE_NAME, source_name);
+  }
+  void add_source_index(int32_t source_index) {
+    fbb_.AddElement<int32_t>(TQLCSVColumn::VT_SOURCE_INDEX, source_index, 0);
+  }
+  explicit TQLCSVColumnBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  TQLCSVExtractorBuilder &operator=(const TQLCSVExtractorBuilder &);
-  flatbuffers::Offset<TQLCSVExtractor> Finish() {
+  TQLCSVColumnBuilder &operator=(const TQLCSVColumnBuilder &);
+  flatbuffers::Offset<TQLCSVColumn> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<TQLCSVExtractor>(end);
+    auto o = flatbuffers::Offset<TQLCSVColumn>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<TQLCSVExtractor> CreateTQLCSVExtractor(
-    flatbuffers::FlatBufferBuilder &_fbb) {
-  TQLCSVExtractorBuilder builder_(_fbb);
+inline flatbuffers::Offset<TQLCSVColumn> CreateTQLCSVColumn(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> column_name = 0,
+    TQLType column_type = TQLType::INTEGER,
+    flatbuffers::Offset<flatbuffers::String> source_name = 0,
+    int32_t source_index = 0) {
+  TQLCSVColumnBuilder builder_(_fbb);
+  builder_.add_source_index(source_index);
+  builder_.add_source_name(source_name);
+  builder_.add_column_name(column_name);
+  builder_.add_column_type(column_type);
   return builder_.Finish();
+}
+
+inline flatbuffers::Offset<TQLCSVColumn> CreateTQLCSVColumnDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *column_name = nullptr,
+    TQLType column_type = TQLType::INTEGER,
+    const char *source_name = nullptr,
+    int32_t source_index = 0) {
+  auto column_name__ = column_name ? _fbb.CreateString(column_name) : 0;
+  auto source_name__ = source_name ? _fbb.CreateString(source_name) : 0;
+  return tigon::proto::CreateTQLCSVColumn(
+      _fbb,
+      column_name__,
+      column_type,
+      source_name__,
+      source_index);
+}
+
+/// A csv extractor
+struct TQLCSVExtract FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_COLUMNS = 4
+  };
+  const flatbuffers::Vector<flatbuffers::Offset<TQLCSVColumn>> *columns() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TQLCSVColumn>> *>(VT_COLUMNS);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_COLUMNS) &&
+           verifier.VerifyVector(columns()) &&
+           verifier.VerifyVectorOfTables(columns()) &&
+           verifier.EndTable();
+  }
+};
+
+struct TQLCSVExtractBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_columns(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TQLCSVColumn>>> columns) {
+    fbb_.AddOffset(TQLCSVExtract::VT_COLUMNS, columns);
+  }
+  explicit TQLCSVExtractBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  TQLCSVExtractBuilder &operator=(const TQLCSVExtractBuilder &);
+  flatbuffers::Offset<TQLCSVExtract> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<TQLCSVExtract>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<TQLCSVExtract> CreateTQLCSVExtract(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TQLCSVColumn>>> columns = 0) {
+  TQLCSVExtractBuilder builder_(_fbb);
+  builder_.add_columns(columns);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<TQLCSVExtract> CreateTQLCSVExtractDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<flatbuffers::Offset<TQLCSVColumn>> *columns = nullptr) {
+  auto columns__ = columns ? _fbb.CreateVector<flatbuffers::Offset<TQLCSVColumn>>(*columns) : 0;
+  return tigon::proto::CreateTQLCSVExtract(
+      _fbb,
+      columns__);
 }
 
 /// A parquet extractor
@@ -944,72 +1058,72 @@ inline flatbuffers::Offset<TQLParquetExtractor> CreateTQLParquetExtractor(
 /// An extract statement
 struct TQLExtractStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
-    VT_SOURCE = 6,
-    VT_METHOD_TYPE = 8,
-    VT_METHOD = 10
+    VT_EXTRACT_NAME = 4,
+    VT_EXTRACT_METHOD_TYPE = 6,
+    VT_EXTRACT_METHOD = 8,
+    VT_DATA_NAME = 10
   };
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const flatbuffers::String *extract_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_EXTRACT_NAME);
   }
-  const flatbuffers::String *source() const {
-    return GetPointer<const flatbuffers::String *>(VT_SOURCE);
+  TQLExtractMethod extract_method_type() const {
+    return static_cast<TQLExtractMethod>(GetField<uint8_t>(VT_EXTRACT_METHOD_TYPE, 0));
   }
-  TQLExtractMethod method_type() const {
-    return static_cast<TQLExtractMethod>(GetField<uint8_t>(VT_METHOD_TYPE, 0));
+  const void *extract_method() const {
+    return GetPointer<const void *>(VT_EXTRACT_METHOD);
   }
-  const void *method() const {
-    return GetPointer<const void *>(VT_METHOD);
+  template<typename T> const T *extract_method_as() const;
+  const TQLJSONExtract *extract_method_as_TQLJSONExtract() const {
+    return extract_method_type() == TQLExtractMethod::TQLJSONExtract ? static_cast<const TQLJSONExtract *>(extract_method()) : nullptr;
   }
-  template<typename T> const T *method_as() const;
-  const TQLJSONExtractor *method_as_TQLJSONExtractor() const {
-    return method_type() == TQLExtractMethod::TQLJSONExtractor ? static_cast<const TQLJSONExtractor *>(method()) : nullptr;
+  const TQLCSVExtract *extract_method_as_TQLCSVExtract() const {
+    return extract_method_type() == TQLExtractMethod::TQLCSVExtract ? static_cast<const TQLCSVExtract *>(extract_method()) : nullptr;
   }
-  const TQLCSVExtractor *method_as_TQLCSVExtractor() const {
-    return method_type() == TQLExtractMethod::TQLCSVExtractor ? static_cast<const TQLCSVExtractor *>(method()) : nullptr;
+  const TQLParquetExtractor *extract_method_as_TQLParquetExtractor() const {
+    return extract_method_type() == TQLExtractMethod::TQLParquetExtractor ? static_cast<const TQLParquetExtractor *>(extract_method()) : nullptr;
   }
-  const TQLParquetExtractor *method_as_TQLParquetExtractor() const {
-    return method_type() == TQLExtractMethod::TQLParquetExtractor ? static_cast<const TQLParquetExtractor *>(method()) : nullptr;
+  const flatbuffers::String *data_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_DATA_NAME);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
-           VerifyOffset(verifier, VT_SOURCE) &&
-           verifier.VerifyString(source()) &&
-           VerifyField<uint8_t>(verifier, VT_METHOD_TYPE) &&
-           VerifyOffset(verifier, VT_METHOD) &&
-           VerifyTQLExtractMethod(verifier, method(), method_type()) &&
+           VerifyOffset(verifier, VT_EXTRACT_NAME) &&
+           verifier.VerifyString(extract_name()) &&
+           VerifyField<uint8_t>(verifier, VT_EXTRACT_METHOD_TYPE) &&
+           VerifyOffset(verifier, VT_EXTRACT_METHOD) &&
+           VerifyTQLExtractMethod(verifier, extract_method(), extract_method_type()) &&
+           VerifyOffset(verifier, VT_DATA_NAME) &&
+           verifier.VerifyString(data_name()) &&
            verifier.EndTable();
   }
 };
 
-template<> inline const TQLJSONExtractor *TQLExtractStatement::method_as<TQLJSONExtractor>() const {
-  return method_as_TQLJSONExtractor();
+template<> inline const TQLJSONExtract *TQLExtractStatement::extract_method_as<TQLJSONExtract>() const {
+  return extract_method_as_TQLJSONExtract();
 }
 
-template<> inline const TQLCSVExtractor *TQLExtractStatement::method_as<TQLCSVExtractor>() const {
-  return method_as_TQLCSVExtractor();
+template<> inline const TQLCSVExtract *TQLExtractStatement::extract_method_as<TQLCSVExtract>() const {
+  return extract_method_as_TQLCSVExtract();
 }
 
-template<> inline const TQLParquetExtractor *TQLExtractStatement::method_as<TQLParquetExtractor>() const {
-  return method_as_TQLParquetExtractor();
+template<> inline const TQLParquetExtractor *TQLExtractStatement::extract_method_as<TQLParquetExtractor>() const {
+  return extract_method_as_TQLParquetExtractor();
 }
 
 struct TQLExtractStatementBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(TQLExtractStatement::VT_NAME, name);
+  void add_extract_name(flatbuffers::Offset<flatbuffers::String> extract_name) {
+    fbb_.AddOffset(TQLExtractStatement::VT_EXTRACT_NAME, extract_name);
   }
-  void add_source(flatbuffers::Offset<flatbuffers::String> source) {
-    fbb_.AddOffset(TQLExtractStatement::VT_SOURCE, source);
+  void add_extract_method_type(TQLExtractMethod extract_method_type) {
+    fbb_.AddElement<uint8_t>(TQLExtractStatement::VT_EXTRACT_METHOD_TYPE, static_cast<uint8_t>(extract_method_type), 0);
   }
-  void add_method_type(TQLExtractMethod method_type) {
-    fbb_.AddElement<uint8_t>(TQLExtractStatement::VT_METHOD_TYPE, static_cast<uint8_t>(method_type), 0);
+  void add_extract_method(flatbuffers::Offset<void> extract_method) {
+    fbb_.AddOffset(TQLExtractStatement::VT_EXTRACT_METHOD, extract_method);
   }
-  void add_method(flatbuffers::Offset<void> method) {
-    fbb_.AddOffset(TQLExtractStatement::VT_METHOD, method);
+  void add_data_name(flatbuffers::Offset<flatbuffers::String> data_name) {
+    fbb_.AddOffset(TQLExtractStatement::VT_DATA_NAME, data_name);
   }
   explicit TQLExtractStatementBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1025,50 +1139,50 @@ struct TQLExtractStatementBuilder {
 
 inline flatbuffers::Offset<TQLExtractStatement> CreateTQLExtractStatement(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
-    flatbuffers::Offset<flatbuffers::String> source = 0,
-    TQLExtractMethod method_type = TQLExtractMethod::NONE,
-    flatbuffers::Offset<void> method = 0) {
+    flatbuffers::Offset<flatbuffers::String> extract_name = 0,
+    TQLExtractMethod extract_method_type = TQLExtractMethod::NONE,
+    flatbuffers::Offset<void> extract_method = 0,
+    flatbuffers::Offset<flatbuffers::String> data_name = 0) {
   TQLExtractStatementBuilder builder_(_fbb);
-  builder_.add_method(method);
-  builder_.add_source(source);
-  builder_.add_name(name);
-  builder_.add_method_type(method_type);
+  builder_.add_data_name(data_name);
+  builder_.add_extract_method(extract_method);
+  builder_.add_extract_name(extract_name);
+  builder_.add_extract_method_type(extract_method_type);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<TQLExtractStatement> CreateTQLExtractStatementDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
-    const char *source = nullptr,
-    TQLExtractMethod method_type = TQLExtractMethod::NONE,
-    flatbuffers::Offset<void> method = 0) {
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  auto source__ = source ? _fbb.CreateString(source) : 0;
+    const char *extract_name = nullptr,
+    TQLExtractMethod extract_method_type = TQLExtractMethod::NONE,
+    flatbuffers::Offset<void> extract_method = 0,
+    const char *data_name = nullptr) {
+  auto extract_name__ = extract_name ? _fbb.CreateString(extract_name) : 0;
+  auto data_name__ = data_name ? _fbb.CreateString(data_name) : 0;
   return tigon::proto::CreateTQLExtractStatement(
       _fbb,
-      name__,
-      source__,
-      method_type,
-      method);
+      extract_name__,
+      extract_method_type,
+      extract_method,
+      data_name__);
 }
 
 /// A display color palette
 struct TQLDisplayColorPalette FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_COLUMN = 4,
+    VT_COLOR_TARGET = 4,
     VT_PALETTE = 6
   };
-  const flatbuffers::String *column() const {
-    return GetPointer<const flatbuffers::String *>(VT_COLUMN);
+  const flatbuffers::String *color_target() const {
+    return GetPointer<const flatbuffers::String *>(VT_COLOR_TARGET);
   }
   const flatbuffers::Vector<const TQLDisplayColor *> *palette() const {
     return GetPointer<const flatbuffers::Vector<const TQLDisplayColor *> *>(VT_PALETTE);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_COLUMN) &&
-           verifier.VerifyString(column()) &&
+           VerifyOffset(verifier, VT_COLOR_TARGET) &&
+           verifier.VerifyString(color_target()) &&
            VerifyOffset(verifier, VT_PALETTE) &&
            verifier.VerifyVector(palette()) &&
            verifier.EndTable();
@@ -1078,8 +1192,8 @@ struct TQLDisplayColorPalette FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tab
 struct TQLDisplayColorPaletteBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_column(flatbuffers::Offset<flatbuffers::String> column) {
-    fbb_.AddOffset(TQLDisplayColorPalette::VT_COLUMN, column);
+  void add_color_target(flatbuffers::Offset<flatbuffers::String> color_target) {
+    fbb_.AddOffset(TQLDisplayColorPalette::VT_COLOR_TARGET, color_target);
   }
   void add_palette(flatbuffers::Offset<flatbuffers::Vector<const TQLDisplayColor *>> palette) {
     fbb_.AddOffset(TQLDisplayColorPalette::VT_PALETTE, palette);
@@ -1098,23 +1212,23 @@ struct TQLDisplayColorPaletteBuilder {
 
 inline flatbuffers::Offset<TQLDisplayColorPalette> CreateTQLDisplayColorPalette(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> column = 0,
+    flatbuffers::Offset<flatbuffers::String> color_target = 0,
     flatbuffers::Offset<flatbuffers::Vector<const TQLDisplayColor *>> palette = 0) {
   TQLDisplayColorPaletteBuilder builder_(_fbb);
   builder_.add_palette(palette);
-  builder_.add_column(column);
+  builder_.add_color_target(color_target);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<TQLDisplayColorPalette> CreateTQLDisplayColorPaletteDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *column = nullptr,
+    const char *color_target = nullptr,
     const std::vector<TQLDisplayColor> *palette = nullptr) {
-  auto column__ = column ? _fbb.CreateString(column) : 0;
+  auto color_target__ = color_target ? _fbb.CreateString(color_target) : 0;
   auto palette__ = palette ? _fbb.CreateVectorOfStructs<TQLDisplayColor>(*palette) : 0;
   return tigon::proto::CreateTQLDisplayColorPalette(
       _fbb,
-      column__,
+      color_target__,
       palette__);
 }
 
@@ -1361,21 +1475,21 @@ inline flatbuffers::Offset<TQLDisplayAxes> CreateTQLDisplayAxes(
 /// A display statement
 struct TQLDisplayStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_TARGET = 4,
-    VT_TYPE = 6,
-    VT_TYPE_FLAGS = 8,
+    VT_DISPLAY_NAME = 4,
+    VT_DISPLAY_TYPE = 6,
+    VT_DISPLAY_TYPE_FLAGS = 8,
     VT_LAYOUT = 10,
     VT_COLOR = 12,
     VT_AXES = 14
   };
-  const flatbuffers::String *target() const {
-    return GetPointer<const flatbuffers::String *>(VT_TARGET);
+  const flatbuffers::String *display_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_DISPLAY_NAME);
   }
-  TQLType type() const {
-    return static_cast<TQLType>(GetField<uint8_t>(VT_TYPE, 0));
+  TQLDisplayType display_type() const {
+    return static_cast<TQLDisplayType>(GetField<uint8_t>(VT_DISPLAY_TYPE, 0));
   }
-  uint16_t type_flags() const {
-    return GetField<uint16_t>(VT_TYPE_FLAGS, 0);
+  uint16_t display_type_flags() const {
+    return GetField<uint16_t>(VT_DISPLAY_TYPE_FLAGS, 0);
   }
   const TQLDisplayLayout *layout() const {
     return GetPointer<const TQLDisplayLayout *>(VT_LAYOUT);
@@ -1388,10 +1502,10 @@ struct TQLDisplayStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_TARGET) &&
-           verifier.VerifyString(target()) &&
-           VerifyField<uint8_t>(verifier, VT_TYPE) &&
-           VerifyField<uint16_t>(verifier, VT_TYPE_FLAGS) &&
+           VerifyOffset(verifier, VT_DISPLAY_NAME) &&
+           verifier.VerifyString(display_name()) &&
+           VerifyField<uint8_t>(verifier, VT_DISPLAY_TYPE) &&
+           VerifyField<uint16_t>(verifier, VT_DISPLAY_TYPE_FLAGS) &&
            VerifyOffset(verifier, VT_LAYOUT) &&
            verifier.VerifyTable(layout()) &&
            VerifyField<TQLDisplayColor>(verifier, VT_COLOR) &&
@@ -1404,14 +1518,14 @@ struct TQLDisplayStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
 struct TQLDisplayStatementBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_target(flatbuffers::Offset<flatbuffers::String> target) {
-    fbb_.AddOffset(TQLDisplayStatement::VT_TARGET, target);
+  void add_display_name(flatbuffers::Offset<flatbuffers::String> display_name) {
+    fbb_.AddOffset(TQLDisplayStatement::VT_DISPLAY_NAME, display_name);
   }
-  void add_type(TQLType type) {
-    fbb_.AddElement<uint8_t>(TQLDisplayStatement::VT_TYPE, static_cast<uint8_t>(type), 0);
+  void add_display_type(TQLDisplayType display_type) {
+    fbb_.AddElement<uint8_t>(TQLDisplayStatement::VT_DISPLAY_TYPE, static_cast<uint8_t>(display_type), 0);
   }
-  void add_type_flags(uint16_t type_flags) {
-    fbb_.AddElement<uint16_t>(TQLDisplayStatement::VT_TYPE_FLAGS, type_flags, 0);
+  void add_display_type_flags(uint16_t display_type_flags) {
+    fbb_.AddElement<uint16_t>(TQLDisplayStatement::VT_DISPLAY_TYPE_FLAGS, display_type_flags, 0);
   }
   void add_layout(flatbuffers::Offset<TQLDisplayLayout> layout) {
     fbb_.AddOffset(TQLDisplayStatement::VT_LAYOUT, layout);
@@ -1436,9 +1550,9 @@ struct TQLDisplayStatementBuilder {
 
 inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatement(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> target = 0,
-    TQLType type = TQLType::INTEGER,
-    uint16_t type_flags = 0,
+    flatbuffers::Offset<flatbuffers::String> display_name = 0,
+    TQLDisplayType display_type = TQLDisplayType::Area,
+    uint16_t display_type_flags = 0,
     flatbuffers::Offset<TQLDisplayLayout> layout = 0,
     const TQLDisplayColor *color = 0,
     flatbuffers::Offset<TQLDisplayAxes> axes = 0) {
@@ -1446,26 +1560,26 @@ inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatement(
   builder_.add_axes(axes);
   builder_.add_color(color);
   builder_.add_layout(layout);
-  builder_.add_target(target);
-  builder_.add_type_flags(type_flags);
-  builder_.add_type(type);
+  builder_.add_display_name(display_name);
+  builder_.add_display_type_flags(display_type_flags);
+  builder_.add_display_type(display_type);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatementDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *target = nullptr,
-    TQLType type = TQLType::INTEGER,
-    uint16_t type_flags = 0,
+    const char *display_name = nullptr,
+    TQLDisplayType display_type = TQLDisplayType::Area,
+    uint16_t display_type_flags = 0,
     flatbuffers::Offset<TQLDisplayLayout> layout = 0,
     const TQLDisplayColor *color = 0,
     flatbuffers::Offset<TQLDisplayAxes> axes = 0) {
-  auto target__ = target ? _fbb.CreateString(target) : 0;
+  auto display_name__ = display_name ? _fbb.CreateString(display_name) : 0;
   return tigon::proto::CreateTQLDisplayStatement(
       _fbb,
-      target__,
-      type,
-      type_flags,
+      display_name__,
+      display_type,
+      display_type_flags,
       layout,
       color,
       axes);
@@ -1571,12 +1685,12 @@ inline bool VerifyTQLExtractMethod(flatbuffers::Verifier &verifier, const void *
     case TQLExtractMethod::NONE: {
       return true;
     }
-    case TQLExtractMethod::TQLJSONExtractor: {
-      auto ptr = reinterpret_cast<const TQLJSONExtractor *>(obj);
+    case TQLExtractMethod::TQLJSONExtract: {
+      auto ptr = reinterpret_cast<const TQLJSONExtract *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case TQLExtractMethod::TQLCSVExtractor: {
-      auto ptr = reinterpret_cast<const TQLCSVExtractor *>(obj);
+    case TQLExtractMethod::TQLCSVExtract: {
+      auto ptr = reinterpret_cast<const TQLCSVExtract *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case TQLExtractMethod::TQLParquetExtractor: {

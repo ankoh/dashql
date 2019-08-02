@@ -43,8 +43,8 @@ export enum TQLLoadMethod{
  */
 export enum TQLExtractMethod{
   NONE= 0,
-  TQLJSONExtractor= 1,
-  TQLCSVExtractor= 2,
+  TQLJSONExtract= 1,
+  TQLCSVExtract= 2,
   TQLParquetExtractor= 3
 };
 
@@ -149,9 +149,9 @@ static getRootAsTQLQueryStatement(bb:flatbuffers.ByteBuffer, obj?:TQLQueryStatem
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
-text():string|null
-text(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-text(optionalEncoding?:any):string|Uint8Array|null {
+queryText():string|null
+queryText(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+queryText(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
@@ -165,10 +165,10 @@ static startTQLQueryStatement(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset textOffset
+ * @param flatbuffers.Offset queryTextOffset
  */
-static addText(builder:flatbuffers.Builder, textOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, textOffset, 0);
+static addQueryText(builder:flatbuffers.Builder, queryTextOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, queryTextOffset, 0);
 };
 
 /**
@@ -180,9 +180,9 @@ static endTQLQueryStatement(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createTQLQueryStatement(builder:flatbuffers.Builder, textOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createTQLQueryStatement(builder:flatbuffers.Builder, queryTextOffset:flatbuffers.Offset):flatbuffers.Offset {
   TQLQueryStatement.startTQLQueryStatement(builder);
-  TQLQueryStatement.addText(builder, textOffset);
+  TQLQueryStatement.addQueryText(builder, queryTextOffset);
   return TQLQueryStatement.endTQLQueryStatement(builder);
 }
 }
@@ -219,9 +219,9 @@ static getRootAsTQLParameterDeclaration(bb:flatbuffers.ByteBuffer, obj?:TQLParam
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
-name():string|null
-name(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-name(optionalEncoding?:any):string|Uint8Array|null {
+parameterName():string|null
+parameterName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+parameterName(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
@@ -229,7 +229,7 @@ name(optionalEncoding?:any):string|Uint8Array|null {
 /**
  * @returns TQLType
  */
-type():TQLType {
+parameterType():TQLType {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLType.INTEGER;
 };
@@ -270,18 +270,18 @@ static startTQLParameterDeclaration(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset nameOffset
+ * @param flatbuffers.Offset parameterNameOffset
  */
-static addName(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, nameOffset, 0);
+static addParameterName(builder:flatbuffers.Builder, parameterNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, parameterNameOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param TQLType type
+ * @param TQLType parameterType
  */
-static addType(builder:flatbuffers.Builder, type:TQLType) {
-  builder.addFieldInt8(1, type, TQLType.INTEGER);
+static addParameterType(builder:flatbuffers.Builder, parameterType:TQLType) {
+  builder.addFieldInt8(1, parameterType, TQLType.INTEGER);
 };
 
 /**
@@ -317,10 +317,10 @@ static endTQLParameterDeclaration(builder:flatbuffers.Builder):flatbuffers.Offse
   return offset;
 };
 
-static createTQLParameterDeclaration(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset, type:TQLType, defaultValueI64:flatbuffers.Long, defaultValueF64:number, defaultValueStrOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createTQLParameterDeclaration(builder:flatbuffers.Builder, parameterNameOffset:flatbuffers.Offset, parameterType:TQLType, defaultValueI64:flatbuffers.Long, defaultValueF64:number, defaultValueStrOffset:flatbuffers.Offset):flatbuffers.Offset {
   TQLParameterDeclaration.startTQLParameterDeclaration(builder);
-  TQLParameterDeclaration.addName(builder, nameOffset);
-  TQLParameterDeclaration.addType(builder, type);
+  TQLParameterDeclaration.addParameterName(builder, parameterNameOffset);
+  TQLParameterDeclaration.addParameterType(builder, parameterType);
   TQLParameterDeclaration.addDefaultValueI64(builder, defaultValueI64);
   TQLParameterDeclaration.addDefaultValueF64(builder, defaultValueF64);
   TQLParameterDeclaration.addDefaultValueStr(builder, defaultValueStrOffset);
@@ -360,9 +360,9 @@ static getRootAsTQLHTTPLoader(bb:flatbuffers.ByteBuffer, obj?:TQLHTTPLoader):TQL
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
-url():string|null
-url(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-url(optionalEncoding?:any):string|Uint8Array|null {
+httpUrl():string|null
+httpUrl(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+httpUrl(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
@@ -370,7 +370,7 @@ url(optionalEncoding?:any):string|Uint8Array|null {
 /**
  * @returns TQLHTTPMethod
  */
-method():TQLHTTPMethod {
+httpMethod():TQLHTTPMethod {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLHTTPMethod.GET;
 };
@@ -384,18 +384,18 @@ static startTQLHTTPLoader(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset urlOffset
+ * @param flatbuffers.Offset httpUrlOffset
  */
-static addUrl(builder:flatbuffers.Builder, urlOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, urlOffset, 0);
+static addHttpUrl(builder:flatbuffers.Builder, httpUrlOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, httpUrlOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param TQLHTTPMethod method
+ * @param TQLHTTPMethod httpMethod
  */
-static addMethod(builder:flatbuffers.Builder, method:TQLHTTPMethod) {
-  builder.addFieldInt8(1, method, TQLHTTPMethod.GET);
+static addHttpMethod(builder:flatbuffers.Builder, httpMethod:TQLHTTPMethod) {
+  builder.addFieldInt8(1, httpMethod, TQLHTTPMethod.GET);
 };
 
 /**
@@ -407,10 +407,10 @@ static endTQLHTTPLoader(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createTQLHTTPLoader(builder:flatbuffers.Builder, urlOffset:flatbuffers.Offset, method:TQLHTTPMethod):flatbuffers.Offset {
+static createTQLHTTPLoader(builder:flatbuffers.Builder, httpUrlOffset:flatbuffers.Offset, httpMethod:TQLHTTPMethod):flatbuffers.Offset {
   TQLHTTPLoader.startTQLHTTPLoader(builder);
-  TQLHTTPLoader.addUrl(builder, urlOffset);
-  TQLHTTPLoader.addMethod(builder, method);
+  TQLHTTPLoader.addHttpUrl(builder, httpUrlOffset);
+  TQLHTTPLoader.addHttpMethod(builder, httpMethod);
   return TQLHTTPLoader.endTQLHTTPLoader(builder);
 }
 }
@@ -497,9 +497,9 @@ static getRootAsTQLLoadStatement(bb:flatbuffers.ByteBuffer, obj?:TQLLoadStatemen
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
-name():string|null
-name(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-name(optionalEncoding?:any):string|Uint8Array|null {
+dataName():string|null
+dataName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+dataName(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
@@ -507,7 +507,7 @@ name(optionalEncoding?:any):string|Uint8Array|null {
 /**
  * @returns TQLLoadMethod
  */
-methodType():TQLLoadMethod {
+loadMethodType():TQLLoadMethod {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLLoadMethod.NONE;
 };
@@ -516,7 +516,7 @@ methodType():TQLLoadMethod {
  * @param flatbuffers.Table obj
  * @returns ?flatbuffers.Table
  */
-method<T extends flatbuffers.Table>(obj:T):T|null {
+loadMethod<T extends flatbuffers.Table>(obj:T):T|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.__union(obj, this.bb_pos + offset) : null;
 };
@@ -530,26 +530,26 @@ static startTQLLoadStatement(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset nameOffset
+ * @param flatbuffers.Offset dataNameOffset
  */
-static addName(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, nameOffset, 0);
+static addDataName(builder:flatbuffers.Builder, dataNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, dataNameOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param TQLLoadMethod methodType
+ * @param TQLLoadMethod loadMethodType
  */
-static addMethodType(builder:flatbuffers.Builder, methodType:TQLLoadMethod) {
-  builder.addFieldInt8(1, methodType, TQLLoadMethod.NONE);
+static addLoadMethodType(builder:flatbuffers.Builder, loadMethodType:TQLLoadMethod) {
+  builder.addFieldInt8(1, loadMethodType, TQLLoadMethod.NONE);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset methodOffset
+ * @param flatbuffers.Offset loadMethodOffset
  */
-static addMethod(builder:flatbuffers.Builder, methodOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, methodOffset, 0);
+static addLoadMethod(builder:flatbuffers.Builder, loadMethodOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, loadMethodOffset, 0);
 };
 
 /**
@@ -561,11 +561,11 @@ static endTQLLoadStatement(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createTQLLoadStatement(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset, methodType:TQLLoadMethod, methodOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createTQLLoadStatement(builder:flatbuffers.Builder, dataNameOffset:flatbuffers.Offset, loadMethodType:TQLLoadMethod, loadMethodOffset:flatbuffers.Offset):flatbuffers.Offset {
   TQLLoadStatement.startTQLLoadStatement(builder);
-  TQLLoadStatement.addName(builder, nameOffset);
-  TQLLoadStatement.addMethodType(builder, methodType);
-  TQLLoadStatement.addMethod(builder, methodOffset);
+  TQLLoadStatement.addDataName(builder, dataNameOffset);
+  TQLLoadStatement.addLoadMethodType(builder, loadMethodType);
+  TQLLoadStatement.addLoadMethod(builder, loadMethodOffset);
   return TQLLoadStatement.endTQLLoadStatement(builder);
 }
 }
@@ -574,16 +574,16 @@ static createTQLLoadStatement(builder:flatbuffers.Builder, nameOffset:flatbuffer
  *
  * @constructor
  */
-export class TQLJSONExtractor {
+export class TQLJSONExtract {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLJSONExtractor
+ * @returns TQLJSONExtract
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLJSONExtractor {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLJSONExtract {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -591,17 +591,17 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLJSONExtractor {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLJSONExtractor= obj
- * @returns TQLJSONExtractor
+ * @param TQLJSONExtract= obj
+ * @returns TQLJSONExtract
  */
-static getRootAsTQLJSONExtractor(bb:flatbuffers.ByteBuffer, obj?:TQLJSONExtractor):TQLJSONExtractor {
-  return (obj || new TQLJSONExtractor).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLJSONExtract(bb:flatbuffers.ByteBuffer, obj?:TQLJSONExtract):TQLJSONExtract {
+  return (obj || new TQLJSONExtract).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLJSONExtractor(builder:flatbuffers.Builder) {
+static startTQLJSONExtract(builder:flatbuffers.Builder) {
   builder.startObject(0);
 };
 
@@ -609,14 +609,138 @@ static startTQLJSONExtractor(builder:flatbuffers.Builder) {
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLJSONExtractor(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLJSONExtract(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLJSONExtractor(builder:flatbuffers.Builder):flatbuffers.Offset {
-  TQLJSONExtractor.startTQLJSONExtractor(builder);
-  return TQLJSONExtractor.endTQLJSONExtractor(builder);
+static createTQLJSONExtract(builder:flatbuffers.Builder):flatbuffers.Offset {
+  TQLJSONExtract.startTQLJSONExtract(builder);
+  return TQLJSONExtract.endTQLJSONExtract(builder);
+}
+}
+/**
+ * A csv column
+ *
+ * @constructor
+ */
+export class TQLCSVColumn {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns TQLCSVColumn
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLCSVColumn {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLCSVColumn= obj
+ * @returns TQLCSVColumn
+ */
+static getRootAsTQLCSVColumn(bb:flatbuffers.ByteBuffer, obj?:TQLCSVColumn):TQLCSVColumn {
+  return (obj || new TQLCSVColumn).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+columnName():string|null
+columnName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+columnName(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @returns TQLType
+ */
+columnType():TQLType {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLType.INTEGER;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+sourceName():string|null
+sourceName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+sourceName(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @returns number
+ */
+sourceIndex():number {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.readInt32(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startTQLCSVColumn(builder:flatbuffers.Builder) {
+  builder.startObject(4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset columnNameOffset
+ */
+static addColumnName(builder:flatbuffers.Builder, columnNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, columnNameOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param TQLType columnType
+ */
+static addColumnType(builder:flatbuffers.Builder, columnType:TQLType) {
+  builder.addFieldInt8(1, columnType, TQLType.INTEGER);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset sourceNameOffset
+ */
+static addSourceName(builder:flatbuffers.Builder, sourceNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, sourceNameOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number sourceIndex
+ */
+static addSourceIndex(builder:flatbuffers.Builder, sourceIndex:number) {
+  builder.addFieldInt32(3, sourceIndex, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endTQLCSVColumn(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+static createTQLCSVColumn(builder:flatbuffers.Builder, columnNameOffset:flatbuffers.Offset, columnType:TQLType, sourceNameOffset:flatbuffers.Offset, sourceIndex:number):flatbuffers.Offset {
+  TQLCSVColumn.startTQLCSVColumn(builder);
+  TQLCSVColumn.addColumnName(builder, columnNameOffset);
+  TQLCSVColumn.addColumnType(builder, columnType);
+  TQLCSVColumn.addSourceName(builder, sourceNameOffset);
+  TQLCSVColumn.addSourceIndex(builder, sourceIndex);
+  return TQLCSVColumn.endTQLCSVColumn(builder);
 }
 }
 /**
@@ -624,16 +748,16 @@ static createTQLJSONExtractor(builder:flatbuffers.Builder):flatbuffers.Offset {
  *
  * @constructor
  */
-export class TQLCSVExtractor {
+export class TQLCSVExtract {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLCSVExtractor
+ * @returns TQLCSVExtract
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLCSVExtractor {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLCSVExtract {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -641,32 +765,80 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLCSVExtractor {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLCSVExtractor= obj
- * @returns TQLCSVExtractor
+ * @param TQLCSVExtract= obj
+ * @returns TQLCSVExtract
  */
-static getRootAsTQLCSVExtractor(bb:flatbuffers.ByteBuffer, obj?:TQLCSVExtractor):TQLCSVExtractor {
-  return (obj || new TQLCSVExtractor).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLCSVExtract(bb:flatbuffers.ByteBuffer, obj?:TQLCSVExtract):TQLCSVExtract {
+  return (obj || new TQLCSVExtract).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param number index
+ * @param TQLCSVColumn= obj
+ * @returns TQLCSVColumn
+ */
+columns(index: number, obj?:TQLCSVColumn):TQLCSVColumn|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? (obj || new TQLCSVColumn).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+columnsLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLCSVExtractor(builder:flatbuffers.Builder) {
-  builder.startObject(0);
+static startTQLCSVExtract(builder:flatbuffers.Builder) {
+  builder.startObject(1);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset columnsOffset
+ */
+static addColumns(builder:flatbuffers.Builder, columnsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, columnsOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<flatbuffers.Offset> data
+ * @returns flatbuffers.Offset
+ */
+static createColumnsVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startColumnsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
 };
 
 /**
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLCSVExtractor(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLCSVExtract(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLCSVExtractor(builder:flatbuffers.Builder):flatbuffers.Offset {
-  TQLCSVExtractor.startTQLCSVExtractor(builder);
-  return TQLCSVExtractor.endTQLCSVExtractor(builder);
+static createTQLCSVExtract(builder:flatbuffers.Builder, columnsOffset:flatbuffers.Offset):flatbuffers.Offset {
+  TQLCSVExtract.startTQLCSVExtract(builder);
+  TQLCSVExtract.addColumns(builder, columnsOffset);
+  return TQLCSVExtract.endTQLCSVExtract(builder);
 }
 }
 /**
@@ -752,29 +924,18 @@ static getRootAsTQLExtractStatement(bb:flatbuffers.ByteBuffer, obj?:TQLExtractSt
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
-name():string|null
-name(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-name(optionalEncoding?:any):string|Uint8Array|null {
+extractName():string|null
+extractName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+extractName(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
-};
-
-/**
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array|null
- */
-source():string|null
-source(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-source(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
 
 /**
  * @returns TQLExtractMethod
  */
-methodType():TQLExtractMethod {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
+extractMethodType():TQLExtractMethod {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLExtractMethod.NONE;
 };
 
@@ -782,9 +943,20 @@ methodType():TQLExtractMethod {
  * @param flatbuffers.Table obj
  * @returns ?flatbuffers.Table
  */
-method<T extends flatbuffers.Table>(obj:T):T|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+extractMethod<T extends flatbuffers.Table>(obj:T):T|null {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.__union(obj, this.bb_pos + offset) : null;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+dataName():string|null
+dataName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+dataName(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
 
 /**
@@ -796,34 +968,34 @@ static startTQLExtractStatement(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset nameOffset
+ * @param flatbuffers.Offset extractNameOffset
  */
-static addName(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, nameOffset, 0);
+static addExtractName(builder:flatbuffers.Builder, extractNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, extractNameOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset sourceOffset
+ * @param TQLExtractMethod extractMethodType
  */
-static addSource(builder:flatbuffers.Builder, sourceOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, sourceOffset, 0);
+static addExtractMethodType(builder:flatbuffers.Builder, extractMethodType:TQLExtractMethod) {
+  builder.addFieldInt8(1, extractMethodType, TQLExtractMethod.NONE);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param TQLExtractMethod methodType
+ * @param flatbuffers.Offset extractMethodOffset
  */
-static addMethodType(builder:flatbuffers.Builder, methodType:TQLExtractMethod) {
-  builder.addFieldInt8(2, methodType, TQLExtractMethod.NONE);
+static addExtractMethod(builder:flatbuffers.Builder, extractMethodOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, extractMethodOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset methodOffset
+ * @param flatbuffers.Offset dataNameOffset
  */
-static addMethod(builder:flatbuffers.Builder, methodOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, methodOffset, 0);
+static addDataName(builder:flatbuffers.Builder, dataNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, dataNameOffset, 0);
 };
 
 /**
@@ -835,12 +1007,12 @@ static endTQLExtractStatement(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createTQLExtractStatement(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset, sourceOffset:flatbuffers.Offset, methodType:TQLExtractMethod, methodOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createTQLExtractStatement(builder:flatbuffers.Builder, extractNameOffset:flatbuffers.Offset, extractMethodType:TQLExtractMethod, extractMethodOffset:flatbuffers.Offset, dataNameOffset:flatbuffers.Offset):flatbuffers.Offset {
   TQLExtractStatement.startTQLExtractStatement(builder);
-  TQLExtractStatement.addName(builder, nameOffset);
-  TQLExtractStatement.addSource(builder, sourceOffset);
-  TQLExtractStatement.addMethodType(builder, methodType);
-  TQLExtractStatement.addMethod(builder, methodOffset);
+  TQLExtractStatement.addExtractName(builder, extractNameOffset);
+  TQLExtractStatement.addExtractMethodType(builder, extractMethodType);
+  TQLExtractStatement.addExtractMethod(builder, extractMethodOffset);
+  TQLExtractStatement.addDataName(builder, dataNameOffset);
   return TQLExtractStatement.endTQLExtractStatement(builder);
 }
 }
@@ -934,9 +1106,9 @@ static getRootAsTQLDisplayColorPalette(bb:flatbuffers.ByteBuffer, obj?:TQLDispla
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
-column():string|null
-column(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-column(optionalEncoding?:any):string|Uint8Array|null {
+colorTarget():string|null
+colorTarget(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+colorTarget(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
@@ -968,10 +1140,10 @@ static startTQLDisplayColorPalette(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset columnOffset
+ * @param flatbuffers.Offset colorTargetOffset
  */
-static addColumn(builder:flatbuffers.Builder, columnOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, columnOffset, 0);
+static addColorTarget(builder:flatbuffers.Builder, colorTargetOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, colorTargetOffset, 0);
 };
 
 /**
@@ -999,9 +1171,9 @@ static endTQLDisplayColorPalette(builder:flatbuffers.Builder):flatbuffers.Offset
   return offset;
 };
 
-static createTQLDisplayColorPalette(builder:flatbuffers.Builder, columnOffset:flatbuffers.Offset, paletteOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createTQLDisplayColorPalette(builder:flatbuffers.Builder, colorTargetOffset:flatbuffers.Offset, paletteOffset:flatbuffers.Offset):flatbuffers.Offset {
   TQLDisplayColorPalette.startTQLDisplayColorPalette(builder);
-  TQLDisplayColorPalette.addColumn(builder, columnOffset);
+  TQLDisplayColorPalette.addColorTarget(builder, colorTargetOffset);
   TQLDisplayColorPalette.addPalette(builder, paletteOffset);
   return TQLDisplayColorPalette.endTQLDisplayColorPalette(builder);
 }
@@ -1469,25 +1641,25 @@ static getRootAsTQLDisplayStatement(bb:flatbuffers.ByteBuffer, obj?:TQLDisplaySt
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
-target():string|null
-target(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-target(optionalEncoding?:any):string|Uint8Array|null {
+displayName():string|null
+displayName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+displayName(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
 
 /**
- * @returns TQLType
+ * @returns TQLDisplayType
  */
-type():TQLType {
+displayType():TQLDisplayType {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLType.INTEGER;
+  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLDisplayType.Area;
 };
 
 /**
  * @returns number
  */
-typeFlags():number {
+displayTypeFlags():number {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 };
@@ -1528,26 +1700,26 @@ static startTQLDisplayStatement(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset targetOffset
+ * @param flatbuffers.Offset displayNameOffset
  */
-static addTarget(builder:flatbuffers.Builder, targetOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, targetOffset, 0);
+static addDisplayName(builder:flatbuffers.Builder, displayNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, displayNameOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param TQLType type
+ * @param TQLDisplayType displayType
  */
-static addType(builder:flatbuffers.Builder, type:TQLType) {
-  builder.addFieldInt8(1, type, TQLType.INTEGER);
+static addDisplayType(builder:flatbuffers.Builder, displayType:TQLDisplayType) {
+  builder.addFieldInt8(1, displayType, TQLDisplayType.Area);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param number typeFlags
+ * @param number displayTypeFlags
  */
-static addTypeFlags(builder:flatbuffers.Builder, typeFlags:number) {
-  builder.addFieldInt16(2, typeFlags, 0);
+static addDisplayTypeFlags(builder:flatbuffers.Builder, displayTypeFlags:number) {
+  builder.addFieldInt16(2, displayTypeFlags, 0);
 };
 
 /**
@@ -1583,11 +1755,11 @@ static endTQLDisplayStatement(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createTQLDisplayStatement(builder:flatbuffers.Builder, targetOffset:flatbuffers.Offset, type:TQLType, typeFlags:number, layoutOffset:flatbuffers.Offset, colorOffset:flatbuffers.Offset, axesOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createTQLDisplayStatement(builder:flatbuffers.Builder, displayNameOffset:flatbuffers.Offset, displayType:TQLDisplayType, displayTypeFlags:number, layoutOffset:flatbuffers.Offset, colorOffset:flatbuffers.Offset, axesOffset:flatbuffers.Offset):flatbuffers.Offset {
   TQLDisplayStatement.startTQLDisplayStatement(builder);
-  TQLDisplayStatement.addTarget(builder, targetOffset);
-  TQLDisplayStatement.addType(builder, type);
-  TQLDisplayStatement.addTypeFlags(builder, typeFlags);
+  TQLDisplayStatement.addDisplayName(builder, displayNameOffset);
+  TQLDisplayStatement.addDisplayType(builder, displayType);
+  TQLDisplayStatement.addDisplayTypeFlags(builder, displayTypeFlags);
   TQLDisplayStatement.addLayout(builder, layoutOffset);
   TQLDisplayStatement.addColor(builder, colorOffset);
   TQLDisplayStatement.addAxes(builder, axesOffset);
