@@ -13,8 +13,8 @@ set(RPATH_PARSER_OUT ${CMAKE_BINARY_DIR}/include/tigon/parser/rpath/rpath_parser
 set(RPATH_PARSER_HEADER_OUT ${CMAKE_BINARY_DIR}/include/tigon/parser/rpath/rpath_parser.h)
 
 set(RPATH_PARSE_CONTEXT ${CMAKE_SOURCE_DIR}/src/parser/rpath/rpath_parse_context.cc)
-set(RPATH_SEMANA ${CMAKE_SOURCE_DIR}/src/parser/rpath/rpath_semana.cc)
-set(RPATH_CC ${RPATH_SCANNER_OUT} ${RPATH_PARSER_OUT} ${RPATH_COMPILER} ${RPATH_PARSE_CONTEXT} ${RPATH_SEMANA})
+set(RPATH_SEMANTIC ${CMAKE_SOURCE_DIR}/src/parser/rpath/rpath_semantic.cc)
+set(RPATH_CC ${RPATH_SCANNER_OUT} ${RPATH_PARSER_OUT} ${RPATH_COMPILER} ${RPATH_PARSE_CONTEXT} ${RPATH_SEMANTIC})
 set(RPATH_CC_LINTING ${RPATH_COMPILER} ${RPATH_PARSE_CONTEXT})
 
 if(NOT EXISTS ${RPATH_PARSER_OUT})
