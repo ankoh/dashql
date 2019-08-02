@@ -13,6 +13,7 @@ APP_PROTO_DIR="${APP_SOURCE_DIR}/src/proto"
     || { echo "[ ERR ] Command: flatc"; exit 1; }
 
 PROTO_FILES=( \
+    ${PROTO_DIR}/tql.fbs \
     ${PROTO_DIR}/web_api.fbs \
 )
 

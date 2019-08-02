@@ -1,0 +1,186 @@
+namespace tigon.proto;
+
+// A TQL type
+enum TQLType: uint8 {
+    INTEGER = 0,
+    FLOAT = 1,
+    TEXT = 2,
+    DATE = 3,
+    DATETIME = 4,
+    TIME = 5
+}
+
+/// A query statement
+table TQLQueryStatement {
+    text: string;
+}
+
+/// A parameter declaration
+table TQLParameterDeclaration {
+    name: string;
+    type: TQLType;
+    default_value_i64: int64;
+    default_value_f64: float64;
+    default_value_str: string;
+}
+
+/// A http method
+enum TQLHTTPMethod: uint8 {
+    GET = 0,
+    PUT = 1,
+    POST = 2
+}
+
+/// A http loader
+table TQLHTTPLoader {
+    url: string;
+    method: TQLHTTPMethod;
+}
+
+/// A file loader
+table TQLFileLoader {}
+
+/// A load method
+union TQLLoadMethod {
+    TQLHTTPLoader,
+    TQLFileLoader
+}
+
+/// A load statement
+table TQLLoadStatement {
+    name: string;
+    method: TQLLoadMethod;
+}
+
+/// A json extractor
+table TQLJSONExtractor {
+}
+
+/// A csv extractor
+table TQLCSVExtractor {
+}
+
+/// A parquet extractor
+table TQLParquetExtractor {
+}
+
+/// An extract method
+union TQLExtractMethod {
+    TQLJSONExtractor,
+    TQLCSVExtractor,
+    TQLParquetExtractor,
+}
+
+/// An extract statement
+table TQLExtractStatement {
+    name: string;
+    source: string;
+    method: TQLExtractMethod;
+}
+
+/// An display type
+enum TQLDisplayType: uint8 {
+    Area = 0,
+    Bar = 1,
+    Box = 2,
+    Bubble = 3,
+    Grid = 4,
+    Histogram = 5,
+    Line = 6,
+    Number = 7,
+    Pie = 8,
+    Point = 9,
+    Scatter = 10,
+    Table = 11,
+    Text = 12,
+}
+
+/// A display type
+enum TQLDisplayTypeFlag: uint16 {
+    None = 0,
+    Horizontal = 1,
+    Vertical = 2,
+    Stacked = 4,
+}
+
+/// A display color
+struct TQLDisplayColor {
+    red: uint8;
+    green: uint8;
+    blue: uint8;
+}
+
+/// A display color palette
+table TQLDisplayColorPalette {
+    column: string;
+    palette: [TQLDisplayColor];
+}
+
+/// A display length unit
+enum TQLDisplayLengthUnit: uint8 {
+    Span = 0,
+    Pixel = 1,
+    Percent = 2,
+}
+
+/// A display length value
+struct TQLDisplayLengthValue {
+    value: float64;
+    unit: TQLDisplayLengthUnit;
+}
+
+/// A display length
+table TQLDisplayLength {
+    small: TQLDisplayLengthValue;
+    medium: TQLDisplayLengthValue;
+    large: TQLDisplayLengthValue;
+    extra_large: TQLDisplayLengthValue;
+}
+
+/// A display layout
+table TQLDisplayLayout {
+    width: TQLDisplayLength;
+    height: TQLDisplayLength;
+}
+
+/// A display axis sclae
+enum TQLDisplayAxisScale: uint8 {
+    Linear = 0,
+    Logarithmic = 1,
+}
+
+/// A display axis
+table TQLDisplayAxis {
+    column: string;
+    scale: TQLDisplayAxisScale;
+}
+
+/// Display axes
+table TQLDisplayAxes {
+    x: TQLDisplayAxis;
+    y: TQLDisplayAxis;
+}
+
+/// A display statement
+table TQLDisplayStatement {
+    target: string;
+    type: TQLType;
+    type_flags: uint16;
+    layout: TQLDisplayLayout;
+    color: TQLDisplayColor;
+    axes: TQLDisplayAxes;
+}
+
+/// A TQL statement
+union TQLStatement {
+    TQLDisplayStatement,
+    TQLExtractStatement,
+    TQLLoadStatement,
+    TQLParameterDeclaration,
+    TQLQueryStatement
+}
+
+/// A TQL program
+table TQLProgram {
+    statements: [TQLStatement];
+}
