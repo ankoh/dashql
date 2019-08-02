@@ -63,6 +63,7 @@ include("${CMAKE_SOURCE_DIR}/third_party/boost.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/thrift.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/arrow.cmake")
+include("${CMAKE_SOURCE_DIR}/third_party/cwcsv.cmake")
 
 # ---------------------------------------------------------------------------
 # Headers
@@ -89,7 +90,7 @@ target_link_libraries(tigon
     tigon_rpath
     tigon_tql
     duckdb
-    rapidjson
+    rapidjson cwcsv
     parquet arrow
 )
 

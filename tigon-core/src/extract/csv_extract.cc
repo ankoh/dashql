@@ -4,6 +4,7 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/extract/csv_extract.h"
+#include "cwcsv/parser.h"
 
 using namespace tigon;
 
