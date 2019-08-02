@@ -3,18 +3,18 @@
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
-#ifndef INCLUDE_TIGON_EXTRACT_JSON_EXTRACT_H_
-#define INCLUDE_TIGON_EXTRACT_JSON_EXTRACT_H_
+#ifndef INCLUDE_TIGON_EXTRACT_EXTRACT_H_
+#define INCLUDE_TIGON_EXTRACT_EXTRACT_H_
 
-#include "tigon/extract/extract.h"
+#include "tigon/common/span.h"
 
 namespace tigon {
 
-class JSONExtract: public Extract {
+class Extract {
     /// Read a buffer into the extract
-    void read(nonstd::span<std::byte> buffer) override;
+    virtual void read(nonstd::span<std::byte> buffer);
 };
 
 } // namespace tigon
 
-#endif // INCLUDE_TIGON_EXTRACT_JSON_EXTRACT_H_
+#endif // INCLUDE_TIGON_EXTRACT_EXTRACT_H_

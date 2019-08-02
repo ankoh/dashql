@@ -70,7 +70,7 @@ struct LoadStatement {
 /// An extract statement
 struct ExtractStatement {
     /// An extractor that uses Jsonpath
-    struct JSONPathExtractor {
+    struct JSONPathExtract {
         /// The column definition
         struct ColumnDefinition {
             /// The name
@@ -86,7 +86,7 @@ struct ExtractStatement {
     };
 
     /// An extractor that uses CSV
-    struct CSVExtractor {
+    struct CSVExtract {
         /// The column definition
         struct ColumnDefinition {
             /// The name
@@ -101,7 +101,7 @@ struct ExtractStatement {
         std::vector<ColumnDefinition> columns;
     };
 
-    using ExtractMethod = std::variant<JSONPathExtractor, CSVExtractor>;
+    using ExtractMethod = std::variant<JSONPathExtract, CSVExtract>;
 
     /// The target
     std::string_view name;

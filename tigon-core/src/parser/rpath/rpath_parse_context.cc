@@ -4,8 +4,8 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/parser/rpath/rpath_parse_context.h"
+#include "tigon/common/error.h"
 #include "tigon/parser/rpath/rpath_parser.h"
-#include "tigon/infra/error.h"
 #include <iostream>
 #include <sstream>
 #include <unordered_set>
