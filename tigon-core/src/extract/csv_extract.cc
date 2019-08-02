@@ -21,11 +21,13 @@ void CSVExtract::prepare() {
 void CSVExtract::read(nonstd::span<std::byte> buffer) {
     auto *method = statement.extract_method_as<proto::TQLCSVExtract>();
     auto *columns = method->columns();
-    auto *str = reinterpret_cast<unsigned char *>(buffer.data());
-    auto strLen = buffer.size() * sizeof(unsigned char *) / sizeof(std::byte);
+
+    // Cast the buffer
+    static_assert(sizeof(char) == sizeof(std::byte));
+    auto *str = reinterpret_cast<char*>(buffer.data());
 
     // Parse the buffer
-    auto parser = csv::make_parser(str, strLen);
+    auto parser = csv::make_parser(str, buffer.size());
     for (auto &&row : parser) {
         for (auto &&cell : row) {
         }
