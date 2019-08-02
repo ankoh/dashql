@@ -42,7 +42,7 @@ TEST(HW2Test, MatchResultToParquet) {
             PrimitiveNode::Make("MatchOutcome", Repetition::REQUIRED, ParquetType::INT32),
             PrimitiveNode::Make("ObjectiveScore", Repetition::REQUIRED, ParquetType::INT32),
         }),
-        GroupNode::Make("Players", Repetition::REQUIRED, {
+        GroupNode::Make("Players", Repetition::REPEATED, {
             PrimitiveNode::Make("IsHuman", Repetition::REQUIRED, ParquetType::BOOLEAN),
             PrimitiveNode::Make("Gamertag", Repetition::REQUIRED, ParquetType::BYTE_ARRAY),
             GroupNode::Make("UnitStats", Repetition::REQUIRED, {
@@ -53,6 +53,14 @@ TEST(HW2Test, MatchResultToParquet) {
             })
         })
     };
+
+    // TODO continue here if these issues make progress:
+    //  https://issues.apache.org/jira/browse/ARROW-1644
+    //  https://github.com/apache/parquet-cpp/pull/462
+    //  https://github.com/apache/arrow/pull/4066
+
+    // Right now, parquet does not support arrow schemas with list -> struct -> list.
+    // Which is pretty essential in the case of HW2 at least.
 }
 
 }
