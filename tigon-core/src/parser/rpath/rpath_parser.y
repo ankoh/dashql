@@ -75,11 +75,11 @@ member_access:
 
 array_access:
     STAR
- |  INTEGER_LITERAL array_slice_or_list
+ |  INTEGER_LITERAL array_slice_or_indexes
  |  COLON opt_integer
     ;
 
-array_slice_or_list:
+array_slice_or_indexes:
     COLON opt_integer
  |  COMMA integer_list
     ;
