@@ -67,32 +67,25 @@ include("${CMAKE_SOURCE_DIR}/third_party/arrow.cmake")
 # ---------------------------------------------------------------------------
 # Headers
 
-# Include directories
 include_directories(
     "${FLATBUFFERS_INCLUDE_DIR}"
     "${CMAKE_SOURCE_DIR}/include"
 )
 
-# Inludes
+# ---------------------------------------------------------------------------
+# Libraries
+
+add_library(tigon
+    ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
+    ${CMAKE_SOURCE_DIR}/src/extract/json_extract.cc
+    ${CMAKE_SOURCE_DIR}/src/extract/parquet_extract.cc
+    ${CMAKE_SOURCE_DIR}/src/parser/sql/sql_parser.cc
+)
+
 include("${CMAKE_SOURCE_DIR}/src/parser/rpath/local.cmake")
 include("${CMAKE_SOURCE_DIR}/src/parser/tql/local.cmake")
 
-# ---------------------------------------------------------------------------
-# Web API
-
-# Web API
-add_executable(tigon_web
-    ${CMAKE_SOURCE_DIR}/src/tools/web/web_api_proxy.cc
-    ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
-)
-set_property(TARGET tigon_web PROPERTY CXX_STANDARD 17)
-
-# include(CheckIPOSupported)
-# check_ipo_supported()
-# set_target_properties(tigon_web PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
-
-# Link libraries
-target_link_libraries(tigon_web
+target_link_libraries(tigon
     tigon_rpath
     tigon_tql
     duckdb
@@ -100,7 +93,16 @@ target_link_libraries(tigon_web
     parquet arrow
 )
 
-# Define emscripten export
+# ---------------------------------------------------------------------------
+# Web API
+
+add_executable(tigon_web
+    ${CMAKE_SOURCE_DIR}/src/tools/web/web_api_proxy.cc
+    ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
+)
+
+target_link_libraries(tigon_web tigon)
+
 if(DEFINED ENV{EMSDK})
     set_target_properties(tigon_web PROPERTIES LINK_FLAGS "\
         -s MODULARIZE=1 \
@@ -130,14 +132,7 @@ add_executable(tester
     ${CMAKE_SOURCE_DIR}/test/examples/parquet_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc
 )
-target_link_libraries(tester
-    tigon_rpath
-    tigon_tql
-    duckdb
-    parquet arrow
-    rapidjson
-    gtest gmock
-)
+target_link_libraries(tester tigon gtest gmock)
 
 enable_testing()
 add_test(tigon tester)
