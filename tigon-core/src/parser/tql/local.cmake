@@ -13,8 +13,9 @@ set(TQL_PARSER_OUT ${CMAKE_BINARY_DIR}/include/tigon/parser/tql/tql_parser.cc)
 set(TQL_PARSER_HEADER_OUT ${CMAKE_BINARY_DIR}/include/tigon/parser/tql/tql_parser.h)
 
 set(TQL_PARSE_CONTEXT ${CMAKE_SOURCE_DIR}/src/parser/tql/tql_parse_context.cc)
-set(TQL_CC ${TQL_SCANNER_OUT} ${TQL_PARSER_OUT} ${TQL_COMPILER} ${TQL_PARSE_CONTEXT})
-set(TQL_CC_LINTING ${TQL_COMPILER} ${TQL_PARSE_CONTEXT})
+set(TQL_SEMANA ${CMAKE_SOURCE_DIR}/src/parser/tql/tql_semana.cc)
+set(TQL_CC ${TQL_SCANNER_OUT} ${TQL_PARSER_OUT} ${TQL_COMPILER} ${TQL_PARSE_CONTEXT} ${TQL_SEMANA})
+set(TQL_CC_LINTING ${TQL_COMPILER} ${TQL_PARSE_CONTEXT} ${TQL_SEMANA})
 
 if(NOT EXISTS ${TQL_PARSER_OUT})
     file(WRITE ${TQL_PARSER_OUT} "")
