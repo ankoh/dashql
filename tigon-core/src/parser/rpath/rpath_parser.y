@@ -35,18 +35,63 @@ using std::vector;
 %token <std::string_view>   IDENTIFIER_LITERAL  "identifier_literal"
 %token <int>                INTEGER_LITERAL     "integer_literal"
 
+%token INTEGER              "integer"
 %token LSB                  "left_square_bracket"
 %token RSB                  "right_square_bracket"
 %token STAR                 "star"
+
+%token COLON                "colon"
+%token COMMA                "comma"
+%token DOLLAR               "dollar"
+%token DOT                  "dot"
+%token DOT_DOT              "two_dots"
 
 %token EOF 0                "eof"
 
 %%
 
-%start record_path;
+%start path;
 
-record_path:
-    %empty
+path:
+    DOLLAR path_component_list
+ |  path_component_list
+    ;
+
+path_component_list:
+    path_component_list path_component
+ |  %empty
+    ;
+
+path_component:
+    DOT_DOT member_access
+ |  DOT member_access
+ |  LSB array_access RSB
+    ;
+
+member_access:
+    STAR
+ |  IDENTIFIER_LITERAL
+    ;
+
+array_access:
+    STAR
+ |  INTEGER_LITERAL array_slice_or_list
+ |  COLON opt_integer
+    ;
+
+array_slice_or_list:
+    COLON opt_integer
+ |  COMMA integer_list
+    ;
+
+integer_list:
+    integer_list INTEGER_LITERAL COMMA
+ |  %empty
+    ;
+
+opt_integer:
+    INTEGER_LITERAL
+ |  %empty
     ;
 
 %%
