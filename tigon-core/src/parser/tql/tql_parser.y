@@ -6,36 +6,24 @@
 %skeleton "lalr1.cc"
 %require "3.2"
 
-// Define the parser class name
 %define api.parser.class {Parser}
-// Create the parser in our namespace
 %define api.namespace {tigon::tql}
-// Use C++ variant to store the values and get better type warnings (compared to "union")
 %define api.value.type variant
-// With variant-based values, symbols are handled as a whole in the scanner
 %define api.token.constructor
-// Prefix all tokens
 %define api.token.prefix {TQL_}
-// Check if variants are constructed and destroyed properly
 %define parse.assert
-// Trace the parser
 %define parse.trace
-// Use verbose parser errors
 %define parse.error verbose
-// Enable location tracking.
 %locations
-// Pass the compiler as parameter to yylex/yyparse.
+
 %param { tigon::tql::ParseContext &ctx }
 
-// Added to the header file and parser implementation before bison definitions.
-// We include string for string tokens and forward declare the parse context.
 %code requires {
 #include <string>
 #include <cstdlib>
 #include "tigon/parser/tql/tql_parse_context.h"
 }
 
-// Import the compiler header in the implementation file
 %code {
 tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 
@@ -400,7 +388,6 @@ display_layout_unit:
 
 %%
 
-// Define error function
 void tigon::tql::Parser::error(const location_type& l, const std::string& m) {
     ctx.Error(l.begin.line, l.begin.column, m);
 }

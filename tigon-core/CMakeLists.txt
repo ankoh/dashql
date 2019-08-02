@@ -73,7 +73,8 @@ include_directories(
     "${CMAKE_SOURCE_DIR}/include"
 )
 
-# Inlude parser
+# Inludes
+include("${CMAKE_SOURCE_DIR}/src/parser/rpath/local.cmake")
 include("${CMAKE_SOURCE_DIR}/src/parser/tql/local.cmake")
 
 # ---------------------------------------------------------------------------
