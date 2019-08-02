@@ -12,12 +12,7 @@ APP_PROTO_DIR="${APP_SOURCE_DIR}/src/proto"
     && { echo "[ OK  ] Command: flatc"; } \
     || { echo "[ ERR ] Command: flatc"; exit 1; }
 
-PROTO_FILES=( \
-    ${PROTO_DIR}/tql.fbs \
-    ${PROTO_DIR}/web_api.fbs \
-)
-
-for PROTO_FILE in ${PROTO_FILES}; do
+for PROTO_FILE in ${PROTO_DIR}/*; do
     TMP=$(mktemp -d)
     PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
     PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"

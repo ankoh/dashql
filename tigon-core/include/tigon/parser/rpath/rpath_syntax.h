@@ -32,7 +32,7 @@ struct ChildMember {
     std::string name;
 };
 
-struct DesendantMember {
+struct DescendantMember {
     std::string name;
 };
 
@@ -40,7 +40,7 @@ using RPathComponent = std::variant<
     ArrayIndexes,
     ArraySlice,
     ChildMember,
-    DesendantMember
+    DescendantMember
 >;
 
 /// A record path
