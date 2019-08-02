@@ -94,6 +94,11 @@ loc.step ();
 "["                 { return Parser::make_LSB(loc); }
 "]"                 { return Parser::make_RSB(loc); }
 "*"                 { return Parser::make_STAR(loc); }
+".."                { return Parser::make_DOT_DOT(loc); }
+"."                 { return Parser::make_DOT(loc); }
+":"                 { return Parser::make_COLON(loc); }
+","                 { return Parser::make_COMMA(loc); }
+"$"                 { return Parser::make_DOLLAR(loc); }
 
 [a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER_LITERAL(yytext, loc); }
 [0-9]+              {
