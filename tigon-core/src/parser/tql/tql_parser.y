@@ -78,7 +78,6 @@ using std::vector;
 %token HTTP                 "http"
 %token INTEGER              "integer"
 %token JSON                 "json"
-%token JSONPATH             "jsonpath"
 %token LAYOUT               "layout"
 %token LG                   "lg"
 %token LINE                 "line"
@@ -221,7 +220,8 @@ extract_statement:
 
 extract_method:
     CSV LRB RRB
-  | JSONPATH LRB RRB
+  | JSON LRB RRB
+  | PARQUET LRB RRB
     ;
 
 display_statement:

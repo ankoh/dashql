@@ -127,7 +127,6 @@ loc.step ();
 "http"              { return Parser::make_HTTP(loc); }
 "integer"           { return Parser::make_INTEGER(loc); }
 "json"              { return Parser::make_JSON(loc); }
-"jsonpath"          { return Parser::make_JSONPATH(loc); }
 "layout"            { return Parser::make_LAYOUT(loc); }
 "lg"                { return Parser::make_LG(loc); }
 "line"              { return Parser::make_LINE(loc); }
