@@ -10,10 +10,10 @@
 
 namespace tigon {
 
-class CSVExtract: public Extract {
-    public:
+class CSVExtract : public Extract {
+  public:
     /// Constructor
-    CSVExtract(duckdb::Connection& conn, proto::TQLExtractStatement& statement);
+    CSVExtract(duckdb::Connection &conn, proto::TQLExtractStatement &statement);
     /// Destructor
     ~CSVExtract() = default;
 
