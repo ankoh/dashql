@@ -151,12 +151,6 @@ export class Task {
     public progress: TaskProgress = new TaskProgress();
 }
 
-// A load task
-export class HTTPLoadTask extends Task {
-    public httpMethod: proto.TQLHTTPMethod = proto.TQLHTTPMethod.GET;
-    public httpURL: string = "";
-}
-
 // An extract task
 export class CSVExtractTask extends Task {
 }
@@ -169,8 +163,24 @@ export class QueryTask extends Task {
 export class CacheEntry {
 }
 
+// ---------------------------------------------------------------------------
+// TQL HTTP loading
+// ---------------------------------------------------------------------------
+
+// A http request
+export class HTTPRequest {
+    public method: proto.TQLHTTPMethod = proto.TQLHTTPMethod.GET;
+    public url: string = "";
+}
+
+// A load task
+export class HTTPLoadTask extends Task {
+    public request: HTTPRequest = new HTTPRequest();
+}
+
 // A cache entry
 export class HTTPCacheEntry extends CacheEntry {
+    public info: HTTPRequest = new HTTPRequest();
 }
 
 // ---------------------------------------------------------------------------
