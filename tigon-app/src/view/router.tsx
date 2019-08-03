@@ -1,6 +1,5 @@
 import * as React from 'react';
 import Explorer from './explorer';
-import StatusBar from './status_bar';
 import NavigationBar from './navigation_bar';
 import * as Model from '../model';
 import { connect } from 'react-redux';
@@ -23,7 +22,6 @@ class Router extends React.Component<IRouterProps> {
                                 <Explorer />
                             </div>
                         </div>
-                        <StatusBar />
                     </div>
                 );
             default:

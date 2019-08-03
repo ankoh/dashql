@@ -1,5 +1,6 @@
 import * as Immutable from 'immutable';
 import { DataSource, InlineAnyRows } from './data_source';
+import * as proto from '../proto';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -38,6 +39,22 @@ export enum LogLevel {
 export enum DataVizType {
     DVT_TABLE = 0,
     DVT_CHART = 1,
+}
+
+// A task type
+export enum TaskType {
+    UNDEFINED = 0,
+    LOAD_HTTP = 1,
+    EXTRACT_CSV = 2,
+    QUERY = 3,
+}
+
+// A task status
+export enum TaskStatus {
+    PENDING = 0,
+    QUEUED = 1,
+    STARTED = 2,
+    FINISHED =3,
 }
 
 // ---------------------------------------------------------------------------
@@ -119,6 +136,40 @@ export class LogEntry {
     public text: string = "";
 }
 
+// A task progresss
+export class TaskProgress {
+    public created: Date | null = null;
+    public queued: Date | null = null;
+    public finished: Date | null = null;
+    public progress: number = 0.0;
+};
+
+// A task
+export class Task {
+    public taskType: TaskType = TaskType.UNDEFINED;
+    public status: TaskStatus = TaskStatus.PENDING;
+    public progress: TaskProgress = new TaskProgress();
+}
+
+// A load task
+export class HTTPLoadTask extends Task {
+    public httpMethod: proto.TQLHTTPMethod = proto.TQLHTTPMethod.GET;
+    public httpURL: string = "";
+}
+
+// An extract task
+export class CSVExtractTask extends Task {
+}
+
+// A query task
+export class QueryTask extends Task {
+}
+
+// A cache entry
+export class CacheEntry {
+    
+}
+
 // ---------------------------------------------------------------------------
 // Root state type
 // ---------------------------------------------------------------------------
@@ -136,6 +187,9 @@ export class RootState {
     public serverInfos: Immutable.Map<string, ServerInfo>;
     // The selected server
     public selectedServer: string | null;
+
+    // The tasks
+    public tasks: Immutable.List<Task>;
 
     // The log entries
     public logs: Immutable.List<LogEntry>;
@@ -155,6 +209,7 @@ export class RootState {
         this.serverConfigs = Immutable.Map<string, ServerConfig>();
         this.serverInfos = Immutable.Map<string, ServerInfo>();
         this.selectedServer = null;
+        this.tasks = Immutable.List<Task>();
         this.logs = Immutable.List<LogEntry>();
         this.logWarnings = 0;
         this.rootView = RootView.EXPLORER;
