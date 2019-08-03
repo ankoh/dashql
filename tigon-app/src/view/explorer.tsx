@@ -124,6 +124,11 @@ class Explorer extends React.Component<IExplorerProps> {
                             </div>
                         </div>
                         <div className="explorer-bean-container">
+                            <div className="explorer-bean explorer-bean-tables">
+                                <b>0</b> tables
+                            </div>
+                        </div>
+                        <div className="explorer-bean-container">
                             <div className="explorer-bean explorer-bean-cache">
                                 <b>0 B</b> cached
                             </div>

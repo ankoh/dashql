@@ -167,7 +167,10 @@ export class QueryTask extends Task {
 
 // A cache entry
 export class CacheEntry {
-    
+}
+
+// A cache entry
+export class HTTPCacheEntry extends CacheEntry {
 }
 
 // ---------------------------------------------------------------------------
