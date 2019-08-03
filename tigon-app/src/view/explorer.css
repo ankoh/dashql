@@ -116,9 +116,8 @@
 
 .explorer-input {
     position: relative;
-    border-radius: 0px 0px 4px 4px;
     width: 100%;
-    height: 280px;
+    height: 240px;
     background: rgb(255, 255, 255, 0.9);
 }
 
@@ -162,39 +161,41 @@
     top: 0;
     left: 56px;
     right: 0;
-    bottom: 32px;
+    bottom: 0px;
     padding: 4px 8px 4px 0px;
     box-sizing: border-box;
 }
 
-.explorer-input-beans {
-    position: absolute;
-    left: 48px;
-    right: 0;
-    bottom: 0;
+.explorer-beans {
+    position: relative;
+
+    width: 100%;
     height: 32px;
+    border-radius: 0px 0px 4px 4px;
 
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+
+    background: rgb(255, 255, 255, 0.9);
 }
 
-.explorer-input-beans-action {
+.explorer-beans-action {
     display: flex;
     flex-direction: row;
 }
 
-.explorer-input-beans-status {
+.explorer-beans-status {
     display: flex;
     flex-direction: row;
 }
 
-.explorer-input-bean-container {
+.explorer-bean-container {
     width: auto;
     padding: 4px 8px 8px 0px;
 }
 
-.explorer-input-bean {
+.explorer-bean {
     border-radius: 4px;
     background: rgb(255, 255, 255);
     min-width: 80px;

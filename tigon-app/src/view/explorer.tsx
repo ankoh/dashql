@@ -113,17 +113,17 @@ class Explorer extends React.Component<IExplorerProps> {
                     <div className="explorer-input-terminal">
                         <Terminal />
                     </div>
-                    <div className="explorer-input-beans">
-                        <div className="explorer-input-beans-action">
-                        </div>
-                        <div className="explorer-input-beans-status">
-                            <div className="explorer-input-bean-container">
-                                <div className="explorer-input-bean">
-                                </div>
+                </div>
+                <div className="explorer-beans">
+                    <div className="explorer-beans-action">
+                    </div>
+                    <div className="explorer-beans-status">
+                        <div className="explorer-bean-container">
+                            <div className="explorer-bean">
                             </div>
-                            <div className="explorer-input-bean-container">
-                                <div className="explorer-input-bean">
-                                </div>
+                        </div>
+                        <div className="explorer-bean-container">
+                            <div className="explorer-bean">
                             </div>
                         </div>
                     </div>

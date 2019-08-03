@@ -30,6 +30,8 @@ void CSVExtract::read(nonstd::span<std::byte> buffer) {
     auto parser = csv::make_parser(str, buffer.size());
     for (auto &&row : parser) {
         for (auto &&cell : row) {
+            // TODO: Do we really need to assemble a INSERT INTO .. VALUES .. statement here?
+            //       Phew I'd love a bulk import for sure...
         }
     }
 }
