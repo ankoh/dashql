@@ -1,5 +1,4 @@
 import * as idb from 'idb';
-import * as Model from '../model';
 
 const DB_NAME = 'tigon_idb';
 const DB_VERSION = 1;

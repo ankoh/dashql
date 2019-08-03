@@ -13,9 +13,9 @@ struct TQLQueryStatement;
 
 struct TQLParameterDeclaration;
 
-struct TQLHTTPLoader;
+struct TQLHTTPLoadMethod;
 
-struct TQLFileLoader;
+struct TQLFileLoadMethod;
 
 struct TQLLoadStatement;
 
@@ -126,17 +126,17 @@ inline const char *EnumNameTQLHTTPMethod(TQLHTTPMethod e) {
 /// A load method
 enum class TQLLoadMethod : uint8_t {
   NONE = 0,
-  TQLHTTPLoader = 1,
-  TQLFileLoader = 2,
+  TQLHTTPLoadMethod = 1,
+  TQLFileLoadMethod = 2,
   MIN = NONE,
-  MAX = TQLFileLoader
+  MAX = TQLFileLoadMethod
 };
 
 inline const TQLLoadMethod (&EnumValuesTQLLoadMethod())[3] {
   static const TQLLoadMethod values[] = {
     TQLLoadMethod::NONE,
-    TQLLoadMethod::TQLHTTPLoader,
-    TQLLoadMethod::TQLFileLoader
+    TQLLoadMethod::TQLHTTPLoadMethod,
+    TQLLoadMethod::TQLFileLoadMethod
   };
   return values;
 }
@@ -144,15 +144,15 @@ inline const TQLLoadMethod (&EnumValuesTQLLoadMethod())[3] {
 inline const char * const *EnumNamesTQLLoadMethod() {
   static const char * const names[] = {
     "NONE",
-    "TQLHTTPLoader",
-    "TQLFileLoader",
+    "TQLHTTPLoadMethod",
+    "TQLFileLoadMethod",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameTQLLoadMethod(TQLLoadMethod e) {
-  if (e < TQLLoadMethod::NONE || e > TQLLoadMethod::TQLFileLoader) return "";
+  if (e < TQLLoadMethod::NONE || e > TQLLoadMethod::TQLFileLoadMethod) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesTQLLoadMethod()[index];
 }
@@ -161,12 +161,12 @@ template<typename T> struct TQLLoadMethodTraits {
   static const TQLLoadMethod enum_value = TQLLoadMethod::NONE;
 };
 
-template<> struct TQLLoadMethodTraits<TQLHTTPLoader> {
-  static const TQLLoadMethod enum_value = TQLLoadMethod::TQLHTTPLoader;
+template<> struct TQLLoadMethodTraits<TQLHTTPLoadMethod> {
+  static const TQLLoadMethod enum_value = TQLLoadMethod::TQLHTTPLoadMethod;
 };
 
-template<> struct TQLLoadMethodTraits<TQLFileLoader> {
-  static const TQLLoadMethod enum_value = TQLLoadMethod::TQLFileLoader;
+template<> struct TQLLoadMethodTraits<TQLFileLoadMethod> {
+  static const TQLLoadMethod enum_value = TQLLoadMethod::TQLFileLoadMethod;
 };
 
 bool VerifyTQLLoadMethod(flatbuffers::Verifier &verifier, const void *obj, TQLLoadMethod type);
@@ -674,7 +674,7 @@ inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclaratio
 }
 
 /// A http loader
-struct TQLHTTPLoader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+struct TQLHTTPLoadMethod FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_HTTP_URL = 4,
     VT_HTTP_METHOD = 6
@@ -694,74 +694,74 @@ struct TQLHTTPLoader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct TQLHTTPLoaderBuilder {
+struct TQLHTTPLoadMethodBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_http_url(flatbuffers::Offset<flatbuffers::String> http_url) {
-    fbb_.AddOffset(TQLHTTPLoader::VT_HTTP_URL, http_url);
+    fbb_.AddOffset(TQLHTTPLoadMethod::VT_HTTP_URL, http_url);
   }
   void add_http_method(TQLHTTPMethod http_method) {
-    fbb_.AddElement<uint8_t>(TQLHTTPLoader::VT_HTTP_METHOD, static_cast<uint8_t>(http_method), 0);
+    fbb_.AddElement<uint8_t>(TQLHTTPLoadMethod::VT_HTTP_METHOD, static_cast<uint8_t>(http_method), 0);
   }
-  explicit TQLHTTPLoaderBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit TQLHTTPLoadMethodBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  TQLHTTPLoaderBuilder &operator=(const TQLHTTPLoaderBuilder &);
-  flatbuffers::Offset<TQLHTTPLoader> Finish() {
+  TQLHTTPLoadMethodBuilder &operator=(const TQLHTTPLoadMethodBuilder &);
+  flatbuffers::Offset<TQLHTTPLoadMethod> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<TQLHTTPLoader>(end);
+    auto o = flatbuffers::Offset<TQLHTTPLoadMethod>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<TQLHTTPLoader> CreateTQLHTTPLoader(
+inline flatbuffers::Offset<TQLHTTPLoadMethod> CreateTQLHTTPLoadMethod(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> http_url = 0,
     TQLHTTPMethod http_method = TQLHTTPMethod::GET) {
-  TQLHTTPLoaderBuilder builder_(_fbb);
+  TQLHTTPLoadMethodBuilder builder_(_fbb);
   builder_.add_http_url(http_url);
   builder_.add_http_method(http_method);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<TQLHTTPLoader> CreateTQLHTTPLoaderDirect(
+inline flatbuffers::Offset<TQLHTTPLoadMethod> CreateTQLHTTPLoadMethodDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *http_url = nullptr,
     TQLHTTPMethod http_method = TQLHTTPMethod::GET) {
   auto http_url__ = http_url ? _fbb.CreateString(http_url) : 0;
-  return tigon::proto::CreateTQLHTTPLoader(
+  return tigon::proto::CreateTQLHTTPLoadMethod(
       _fbb,
       http_url__,
       http_method);
 }
 
 /// A file loader
-struct TQLFileLoader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+struct TQLFileLoadMethod FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
 };
 
-struct TQLFileLoaderBuilder {
+struct TQLFileLoadMethodBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  explicit TQLFileLoaderBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit TQLFileLoadMethodBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  TQLFileLoaderBuilder &operator=(const TQLFileLoaderBuilder &);
-  flatbuffers::Offset<TQLFileLoader> Finish() {
+  TQLFileLoadMethodBuilder &operator=(const TQLFileLoadMethodBuilder &);
+  flatbuffers::Offset<TQLFileLoadMethod> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<TQLFileLoader>(end);
+    auto o = flatbuffers::Offset<TQLFileLoadMethod>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<TQLFileLoader> CreateTQLFileLoader(
+inline flatbuffers::Offset<TQLFileLoadMethod> CreateTQLFileLoadMethod(
     flatbuffers::FlatBufferBuilder &_fbb) {
-  TQLFileLoaderBuilder builder_(_fbb);
+  TQLFileLoadMethodBuilder builder_(_fbb);
   return builder_.Finish();
 }
 
@@ -782,11 +782,11 @@ struct TQLLoadStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return GetPointer<const void *>(VT_LOAD_METHOD);
   }
   template<typename T> const T *load_method_as() const;
-  const TQLHTTPLoader *load_method_as_TQLHTTPLoader() const {
-    return load_method_type() == TQLLoadMethod::TQLHTTPLoader ? static_cast<const TQLHTTPLoader *>(load_method()) : nullptr;
+  const TQLHTTPLoadMethod *load_method_as_TQLHTTPLoadMethod() const {
+    return load_method_type() == TQLLoadMethod::TQLHTTPLoadMethod ? static_cast<const TQLHTTPLoadMethod *>(load_method()) : nullptr;
   }
-  const TQLFileLoader *load_method_as_TQLFileLoader() const {
-    return load_method_type() == TQLLoadMethod::TQLFileLoader ? static_cast<const TQLFileLoader *>(load_method()) : nullptr;
+  const TQLFileLoadMethod *load_method_as_TQLFileLoadMethod() const {
+    return load_method_type() == TQLLoadMethod::TQLFileLoadMethod ? static_cast<const TQLFileLoadMethod *>(load_method()) : nullptr;
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -799,12 +799,12 @@ struct TQLLoadStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-template<> inline const TQLHTTPLoader *TQLLoadStatement::load_method_as<TQLHTTPLoader>() const {
-  return load_method_as_TQLHTTPLoader();
+template<> inline const TQLHTTPLoadMethod *TQLLoadStatement::load_method_as<TQLHTTPLoadMethod>() const {
+  return load_method_as_TQLHTTPLoadMethod();
 }
 
-template<> inline const TQLFileLoader *TQLLoadStatement::load_method_as<TQLFileLoader>() const {
-  return load_method_as_TQLFileLoader();
+template<> inline const TQLFileLoadMethod *TQLLoadStatement::load_method_as<TQLFileLoadMethod>() const {
+  return load_method_as_TQLFileLoadMethod();
 }
 
 struct TQLLoadStatementBuilder {
@@ -1656,12 +1656,12 @@ inline bool VerifyTQLLoadMethod(flatbuffers::Verifier &verifier, const void *obj
     case TQLLoadMethod::NONE: {
       return true;
     }
-    case TQLLoadMethod::TQLHTTPLoader: {
-      auto ptr = reinterpret_cast<const TQLHTTPLoader *>(obj);
+    case TQLLoadMethod::TQLHTTPLoadMethod: {
+      auto ptr = reinterpret_cast<const TQLHTTPLoadMethod *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case TQLLoadMethod::TQLFileLoader: {
-      auto ptr = reinterpret_cast<const TQLFileLoader *>(obj);
+    case TQLLoadMethod::TQLFileLoadMethod: {
+      auto ptr = reinterpret_cast<const TQLFileLoadMethod *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;

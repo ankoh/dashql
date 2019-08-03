@@ -32,18 +32,18 @@ enum TQLHTTPMethod: uint8 {
 }
 
 /// A http loader
-table TQLHTTPLoader {
+table TQLHTTPLoadMethod {
     http_url: string;
     http_method: TQLHTTPMethod;
 }
 
 /// A file loader
-table TQLFileLoader {}
+table TQLFileLoadMethod {}
 
 /// A load method
 union TQLLoadMethod {
-    TQLHTTPLoader,
-    TQLFileLoader
+    TQLHTTPLoadMethod,
+    TQLFileLoadMethod
 }
 
 /// A load statement
