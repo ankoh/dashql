@@ -32,8 +32,8 @@ export enum TQLHTTPMethod{
  */
 export enum TQLLoadMethod{
   NONE= 0,
-  TQLHTTPLoader= 1,
-  TQLFileLoader= 2
+  TQLHTTPLoadMethod= 1,
+  TQLFileLoadMethod= 2
 };
 
 /**
@@ -332,16 +332,16 @@ static createTQLParameterDeclaration(builder:flatbuffers.Builder, parameterNameO
  *
  * @constructor
  */
-export class TQLHTTPLoader {
+export class TQLHTTPLoadMethod {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLHTTPLoader
+ * @returns TQLHTTPLoadMethod
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLHTTPLoader {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLHTTPLoadMethod {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -349,11 +349,11 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLHTTPLoader {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLHTTPLoader= obj
- * @returns TQLHTTPLoader
+ * @param TQLHTTPLoadMethod= obj
+ * @returns TQLHTTPLoadMethod
  */
-static getRootAsTQLHTTPLoader(bb:flatbuffers.ByteBuffer, obj?:TQLHTTPLoader):TQLHTTPLoader {
-  return (obj || new TQLHTTPLoader).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLHTTPLoadMethod(bb:flatbuffers.ByteBuffer, obj?:TQLHTTPLoadMethod):TQLHTTPLoadMethod {
+  return (obj || new TQLHTTPLoadMethod).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
 /**
@@ -378,7 +378,7 @@ httpMethod():TQLHTTPMethod {
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLHTTPLoader(builder:flatbuffers.Builder) {
+static startTQLHTTPLoadMethod(builder:flatbuffers.Builder) {
   builder.startObject(2);
 };
 
@@ -402,16 +402,16 @@ static addHttpMethod(builder:flatbuffers.Builder, httpMethod:TQLHTTPMethod) {
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLHTTPLoader(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLHTTPLoadMethod(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLHTTPLoader(builder:flatbuffers.Builder, httpUrlOffset:flatbuffers.Offset, httpMethod:TQLHTTPMethod):flatbuffers.Offset {
-  TQLHTTPLoader.startTQLHTTPLoader(builder);
-  TQLHTTPLoader.addHttpUrl(builder, httpUrlOffset);
-  TQLHTTPLoader.addHttpMethod(builder, httpMethod);
-  return TQLHTTPLoader.endTQLHTTPLoader(builder);
+static createTQLHTTPLoadMethod(builder:flatbuffers.Builder, httpUrlOffset:flatbuffers.Offset, httpMethod:TQLHTTPMethod):flatbuffers.Offset {
+  TQLHTTPLoadMethod.startTQLHTTPLoadMethod(builder);
+  TQLHTTPLoadMethod.addHttpUrl(builder, httpUrlOffset);
+  TQLHTTPLoadMethod.addHttpMethod(builder, httpMethod);
+  return TQLHTTPLoadMethod.endTQLHTTPLoadMethod(builder);
 }
 }
 /**
@@ -419,16 +419,16 @@ static createTQLHTTPLoader(builder:flatbuffers.Builder, httpUrlOffset:flatbuffer
  *
  * @constructor
  */
-export class TQLFileLoader {
+export class TQLFileLoadMethod {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLFileLoader
+ * @returns TQLFileLoadMethod
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLFileLoader {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLFileLoadMethod {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -436,17 +436,17 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLFileLoader {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLFileLoader= obj
- * @returns TQLFileLoader
+ * @param TQLFileLoadMethod= obj
+ * @returns TQLFileLoadMethod
  */
-static getRootAsTQLFileLoader(bb:flatbuffers.ByteBuffer, obj?:TQLFileLoader):TQLFileLoader {
-  return (obj || new TQLFileLoader).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLFileLoadMethod(bb:flatbuffers.ByteBuffer, obj?:TQLFileLoadMethod):TQLFileLoadMethod {
+  return (obj || new TQLFileLoadMethod).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLFileLoader(builder:flatbuffers.Builder) {
+static startTQLFileLoadMethod(builder:flatbuffers.Builder) {
   builder.startObject(0);
 };
 
@@ -454,14 +454,14 @@ static startTQLFileLoader(builder:flatbuffers.Builder) {
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLFileLoader(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLFileLoadMethod(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLFileLoader(builder:flatbuffers.Builder):flatbuffers.Offset {
-  TQLFileLoader.startTQLFileLoader(builder);
-  return TQLFileLoader.endTQLFileLoader(builder);
+static createTQLFileLoadMethod(builder:flatbuffers.Builder):flatbuffers.Offset {
+  TQLFileLoadMethod.startTQLFileLoadMethod(builder);
+  return TQLFileLoadMethod.endTQLFileLoadMethod(builder);
 }
 }
 /**
