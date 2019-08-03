@@ -1,4 +1,5 @@
 import * as idb from 'idb';
+import * as Model from '../model';
 
 const DB_NAME = 'tigon_idb';
 const DB_VERSION = 1;
@@ -31,27 +32,27 @@ export class CacheController {
     }
 
     // Get the entry
-    protected async getEntry(key: string): Promise<Blob | undefined> {
+    public async getEntry(key: string): Promise<Blob | undefined> {
         return (await this.db).get(CACHE_TABLE, key);
     }
 
     // Set the entry
-    protected async setEntry(key: string, value: Blob) : Promise<string> {
+    public async setEntry(key: string, value: Blob) : Promise<string> {
         return (await this.db).put(CACHE_TABLE, value, key);
     }
 
     // Delete the entry
-    protected async deleteEntry(key: string) : Promise<void> {
+    public async deleteEntry(key: string) : Promise<void> {
         return (await this.db).delete(CACHE_TABLE, key);
     }
 
     // Clear the entries
-    protected async clearEntries() : Promise<void> {
+    public async clearEntries() : Promise<void> {
         return (await this.db).clear(CACHE_TABLE);
     }
 
     // Get the entries
-    protected async getEntries() : Promise<string[]> {
+    public async getEntries() : Promise<string[]> {
         return (await this.db).getAllKeys(CACHE_TABLE);
     }
 }
