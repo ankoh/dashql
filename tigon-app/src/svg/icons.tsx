@@ -9,10 +9,10 @@ interface IIconProps {
 export function DeleteIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <path
                 d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
@@ -25,10 +25,10 @@ export function DeleteIcon(props: IIconProps) {
 export function TableChartIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <path
                 d="M10 10.02h5V21h-5zM17 21h3c1.1 0 2-.9 2-2v-9h-5v11zm3-18H5c-1.1 0-2 .9-2 2v3h19V5c0-1.1-.9-2-2-2zM3 19c0 1.1.9 2 2 2h3V10H3v9z"
@@ -41,10 +41,10 @@ export function TableChartIcon(props: IIconProps) {
 export function BarChartIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <path
                 d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"
@@ -57,10 +57,10 @@ export function BarChartIcon(props: IIconProps) {
 export function LineChartIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <path clipPath="url(#b)" d="M23 8c0 1.1-.9 2-2 2-.18 0-.35-.02-.51-.07l-3.56 3.55c.05.16.07.34.07.52 0 1.1-.9 2-2 2s-2-.9-2-2c0-.18.02-.36.07-.52l-2.55-2.55c-.16.05-.34.07-.52.07s-.36-.02-.52-.07l-4.55 4.56c.05.16.07.33.07.51 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.18 0 .35.02.51.07l4.56-4.55C8.02 9.36 8 9.18 8 9c0-1.1.9-2 2-2s2 .9 2 2c0 .18-.02.36-.07.52l2.55 2.55c.16-.05.34-.07.52-.07s.36.02.52.07l3.55-3.56C19.02 8.35 19 8.18 19 8c0-1.1.9-2 2-2s2 .9 2 2z"
                     fill={props.fill || '#ffffff'}
@@ -72,10 +72,10 @@ export function LineChartIcon(props: IIconProps) {
 export function BubbleChartIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -91,10 +91,10 @@ export function BubbleChartIcon(props: IIconProps) {
 export function InsertChartIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -112,10 +112,10 @@ export function InsertChartIcon(props: IIconProps) {
 export function PieChartIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -133,10 +133,10 @@ export function PieChartIcon(props: IIconProps) {
 export function CloseIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -154,10 +154,10 @@ export function CloseIcon(props: IIconProps) {
 export function ServerIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -175,10 +175,10 @@ export function ServerIcon(props: IIconProps) {
 export function LinkOffIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -196,10 +196,10 @@ export function LinkOffIcon(props: IIconProps) {
 export function PlayIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -217,10 +217,10 @@ export function PlayIcon(props: IIconProps) {
 export function StopIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -239,10 +239,10 @@ export function StopIcon(props: IIconProps) {
 export function ClearIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -260,10 +260,10 @@ export function ClearIcon(props: IIconProps) {
 export function ClearAllIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -281,10 +281,10 @@ export function ClearAllIcon(props: IIconProps) {
 export function SaveIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -301,10 +301,10 @@ export function SaveIcon(props: IIconProps) {
 export function SaveAltIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -322,10 +322,10 @@ export function SaveAltIcon(props: IIconProps) {
 export function ImportExportIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -343,10 +343,10 @@ export function ImportExportIcon(props: IIconProps) {
 export function UndoIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -364,10 +364,10 @@ export function UndoIcon(props: IIconProps) {
 export function SettingBackupRestoreIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -385,10 +385,10 @@ export function SettingBackupRestoreIcon(props: IIconProps) {
 export function DNSIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -413,10 +413,10 @@ interface IProgramIIconProps {
 export function ProgramIcon(props: IProgramIIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -430,10 +430,10 @@ export function ProgramIcon(props: IProgramIIconProps) {
 export function ConsoleIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -449,10 +449,10 @@ export function ConsoleIcon(props: IIconProps) {
 export function WarningIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -470,10 +470,10 @@ export function WarningIcon(props: IIconProps) {
 export function ErrorIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill="none"
@@ -491,10 +491,10 @@ export function ErrorIcon(props: IIconProps) {
 export function ZoomOutIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -508,10 +508,10 @@ export function ZoomOutIcon(props: IIconProps) {
 export function FullscreenIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -526,10 +526,10 @@ export function FullscreenIcon(props: IIconProps) {
 export function MoveIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -544,10 +544,10 @@ export function MoveIcon(props: IIconProps) {
 export function CardinalityIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -562,10 +562,10 @@ export function CardinalityIcon(props: IIconProps) {
 export function MoreHIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -580,10 +580,10 @@ export function MoreHIcon(props: IIconProps) {
 export function LinkIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -597,10 +597,10 @@ export function LinkIcon(props: IIconProps) {
 export function ScrollTopIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -614,10 +614,10 @@ export function ScrollTopIcon(props: IIconProps) {
 export function ScrollBottomIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -631,10 +631,10 @@ export function ScrollBottomIcon(props: IIconProps) {
 export function ScrollUpIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -648,10 +648,10 @@ export function ScrollUpIcon(props: IIconProps) {
 export function ScrollDownIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -665,10 +665,10 @@ export function ScrollDownIcon(props: IIconProps) {
 export function LaptopIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -682,10 +682,10 @@ export function LaptopIcon(props: IIconProps) {
 export function ArrowBackIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -699,10 +699,10 @@ export function ArrowBackIcon(props: IIconProps) {
 export function ArrowBackIosIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -716,10 +716,10 @@ export function ArrowBackIosIcon(props: IIconProps) {
 export function ArrowForwardIosIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -733,10 +733,10 @@ export function ArrowForwardIosIcon(props: IIconProps) {
 export function DataTransferIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -750,10 +750,10 @@ export function DataTransferIcon(props: IIconProps) {
 export function DataTransferCircleIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -768,10 +768,10 @@ export function DataTransferCircleIcon(props: IIconProps) {
 export function GlobeWireframeIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -785,10 +785,10 @@ export function GlobeWireframeIcon(props: IIconProps) {
 export function GlobeIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -802,10 +802,10 @@ export function GlobeIcon(props: IIconProps) {
 export function FireIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -819,10 +819,10 @@ export function FireIcon(props: IIconProps) {
 export function AddIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -836,10 +836,10 @@ export function AddIcon(props: IIconProps) {
 export function SettingsIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -853,10 +853,10 @@ export function SettingsIcon(props: IIconProps) {
 export function EditIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
@@ -870,10 +870,10 @@ export function EditIcon(props: IIconProps) {
 export function PlanIcon(props: IIconProps) {
     return (
         <svg
+            className="icon"
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-            className="icon"
         >
             <g
                 fill={props.fill || '#ffffff'}
