@@ -80,11 +80,6 @@ class Explorer extends React.Component<IExplorerProps> {
                         <div className="explorer-viewer-actions">
                             <div className="explorer-viewer-action-container">
                                 <div className="explorer-viewer-action">
-                                    <UndoIcon width="20px" height="20px" fill="rgb(255, 255, 255)" />
-                                </div>
-                            </div>
-                            <div className="explorer-viewer-action-container">
-                                <div className="explorer-viewer-action">
                                     <SaveIcon width="20px" height="20px" fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
@@ -101,11 +96,6 @@ class Explorer extends React.Component<IExplorerProps> {
                         <div className="explorer-input-tab-container">
                             <div className="explorer-input-tab">
                                 <ProgramIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
-                            </div>
-                        </div>
-                        <div className="explorer-input-tab-container">
-                            <div className="explorer-input-tab">
-                                <DNSIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
                             </div>
                         </div>
                     </div>
