@@ -1,4 +1,4 @@
-import './tab_bar.css';
+import './tab_bar.scss';
 import * as React from 'react';
 import * as Model from '../model';
 import { connect } from 'react-redux';

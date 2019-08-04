@@ -1,3 +1,5 @@
+@import '../theme.scss';
+
 .statusbar {
     position: relative;
     display: flex;
@@ -22,14 +24,11 @@
 }
 
 .statusbar-bean {
+    @include button-toggle;
+
     display: flex;
     flex-direction: row;
     height: 100%;
-
-    background-color: white;
-    border-radius: 4px;
-    border: 1px solid rgb(225, 225, 225);
-    box-sizing: border-box;
 
     padding-left: 8px;
     padding-right: 8px;
@@ -38,12 +37,6 @@
 
     font-size: 12px;
     line-height: 20px;
-}
-
-.statusbar-bean:hover {
-    background-color: rgb(0, 0, 0);
-    color: rgb(255, 255, 255);
-    border: 1px solid rgb(0, 0, 0) !important;
 }
 
 .statusbar-logstats-active {

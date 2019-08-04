@@ -3,7 +3,7 @@ import * as Model from '../model';
 import { IAppContext, withAppContext } from '../app_context';
 import Table from './viz/table';
 import Terminal from './terminal';
-import './explorer.css';
+import './explorer.scss';
 import {
     BarChartIcon,
     BubbleChartIcon,

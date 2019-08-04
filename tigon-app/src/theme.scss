@@ -1,0 +1,37 @@
+@mixin button {
+    border-radius: 4px;
+    border: 1px solid rgb(240, 240, 240);
+    box-sizing: border-box;
+}
+
+@mixin button-toggle {
+    @include button;
+
+    background-color: rgb(255, 255, 255);
+    color: rgb(0, 0, 0);
+
+    &:hover {
+        background-color: rgb(0, 0, 0);
+        border: 1px solid rgb(0, 0, 0);
+        color: rgb(255, 255, 255);
+    }
+}
+
+@mixin button-action {
+    @include button;
+
+    background-color: rgb(0, 95, 223);
+    color: rgb(255, 255, 255);
+
+    &:hover {
+        background-color: rgb(0, 95, 223);
+        border: 1px solid rgb(0, 95, 223);
+    }
+}
+
+@mixin flex-center-children {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
