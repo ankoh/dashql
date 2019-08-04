@@ -4,7 +4,7 @@
     flex-direction: row;
     justify-content: space-between;
 
-    color: rgb(255, 255, 255);
+    color: rgb(0, 0, 0);
 
     font-weight: 400;
     font-size: 9pt;
@@ -16,7 +16,7 @@
     flex-direction: row;
     align-items: center;
 
-    background-color: rgb(255, 255, 255, 0.9);
+    background-color: rgb(255, 255, 255, 0.6);
     border-radius: 4px;
     padding: 8px 4px;
 }
@@ -26,7 +26,7 @@
     flex-direction: row;
     height: 100%;
 
-    background-color: rgb(0, 95, 223);
+    background-color: white;
     border-radius: 4px;
 
     padding-left: 8px;
@@ -39,7 +39,8 @@
 }
 
 .statusbar-bean:hover {
-    background-color: rgb(254, 80, 94);
+    background-color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
 }
 
 .statusbar-logstats-active {
