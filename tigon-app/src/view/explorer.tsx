@@ -43,7 +43,7 @@ class Explorer extends React.Component<IExplorerProps> {
                                 </div>
                             </div>
                             <div className="explorer-viewer-viztype-container">
-                                <div className="explorer-viewer-viztype  explorer-viewer-viztype-active">
+                                <div className="explorer-viewer-viztype active">
                                     <TableChartIcon width="20px" height="20px" fill="rgb(255, 255, 255)" />
                                 </div>
                             </div>
@@ -85,9 +85,9 @@ class Explorer extends React.Component<IExplorerProps> {
                     </div>
                 </div>
                 <div className="explorer-input">
-                    <div className="explorer-input-tabBar">
+                    <div className="explorer-input-tabbar">
                         <div className="explorer-input-tab-container">
-                            <div className="explorer-input-tab explorer-input-tab-active">
+                            <div className="explorer-input-tab active">
                                 <ConsoleIcon width="20px" height="20px" />
                             </div>
                         </div>

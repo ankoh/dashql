@@ -32,7 +32,7 @@ function TabBarTab(props: ITabBarTabProps) {
     return (
         <div className="TabBar-Tab-Container">
             <div
-                className={classNames("TabBar-Tab", isActive ? "TabBar-Tab-Active" : "")}
+                className={classNames("TabBar-Tab", isActive ? " active" : "")}
                 onClick={()=>{ props.onViewChanged(props.tabView); }}
             >
                 <div className="TabBar-Tab-Name">
