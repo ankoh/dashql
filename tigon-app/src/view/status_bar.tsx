@@ -34,52 +34,33 @@ export class StatusBar extends React.Component<IStatusBarProps, IStatusBarState>
     }
 
     public render() {
-        let connStatus = Model.ConnectionStatus.CS_UNDEFINED;
-        let url = '-';
-        let version = '-';
-        if (this.props.serverInfo) {
-            connStatus = this.props.serverInfo.connectionStatus;
-            version = this.props.serverInfo.version;
-        }
-
         return (
-            <div className="StatusBar">
-                <div className="StatusBar-Left">
+            <div className="statusbar">
+                <div />
+                <div className="statusbar-right">
+                    <div className="statusbar-bean">
+                        <b>0&nbsp;</b>&nbsp;tasks
+                    </div>
+                    <div className="statusbar-bean">
+                        <b>0&nbsp;</b>&nbsp;tables
+                    </div>
+                    <div className="statusbar-bean">
+                        <b>0&nbsp;B</b>&nbsp;cached
+                    </div>
+                    <div
+                        className={'statusbar-bean' + (this.state.logsOpen ? ' statusbar-logstats-active' : '')}
+                        onClick={this.toggleLogViewer}
+                    >
+                        <b>{this.props.logWarnings}</b>&nbsp;warnings
+                    </div>
                     {
-                        this.props.serverConfig &&
-                        <div className="StatusBar-Server">
-                            <span className="StatusBar-Server-Name">
-                                server:&nbsp;<b>{url}</b>
-                            </span>
-                            <span className="StatusBar-Server-Status">
-                                status:&nbsp;<b>{connStatusNames.get(connStatus) || '-'}</b>
-                            </span>
-                            <span className="StatusBar-Server-Version">
-                                version:&nbsp;<b>{version}</b>
-                            </span>
+                        this.state.logsOpen && (
+                        <div className="statusbar-logviewer">
+                            <LogViewer close={this.toggleLogViewer} />
                         </div>
+                        )
                     }
                 </div>
-                <div
-                    className={'StatusBar-LogStats' + (this.state.logsOpen ? ' StatusBar-LogStats-Active' : '')}
-                    onClick={this.toggleLogViewer}
-                >
-                    <div className="StatusBar-LogStat">
-                        <div className="StatusBar-LogStat-Icon">
-                            <WarningIcon width="13px" height="13px" />
-                        </div>
-                        <div className="StatusBar-LogStat-Name">
-                            warnings: <b>{this.props.logWarnings}</b>
-                        </div>
-                    </div>
-                </div>
-                {
-                    this.state.logsOpen && (
-                    <div className="StatusBar-LogViewer">
-                        <LogViewer close={this.toggleLogViewer} />
-                    </div>
-                    )
-                }
             </div>
         );
     }

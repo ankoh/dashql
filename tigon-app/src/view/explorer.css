@@ -119,6 +119,7 @@
     width: 100%;
     height: 240px;
     background: rgb(255, 255, 255, 0.9);
+    border-radius: 0px 0px 4px 4px;
 }
 
 .explorer-input-tabBar {
@@ -162,65 +163,6 @@
     left: 56px;
     right: 0;
     bottom: 0px;
-    padding: 4px 8px 4px 0px;
+    padding: 4px 8px 8px 0px;
     box-sizing: border-box;
-}
-
-.explorer-beans {
-    position: relative;
-
-    width: 100%;
-    height: 32px;
-    border-radius: 0px 0px 4px 4px;
-
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-
-    background: rgb(255, 255, 255, 0.9);
-}
-
-.explorer-beans-action {
-    display: flex;
-    flex-direction: row;
-}
-
-.explorer-beans-status {
-    display: flex;
-    flex-direction: row;
-    padding: 0px 4px 4px 0px;
-}
-
-.explorer-bean-container {
-    width: auto;
-    padding: 4px;
-}
-
-.explorer-bean {
-    border-radius: 4px;
-    width: 100%;
-    height: 100%;
-    color: rgb(255, 255, 255);
-    padding: 0px 12px;
-    box-sizing: border-box;
-
-    font-size: 12px;
-    line-height: 20px;
-    text-align: center;
-}
-
-.explorer-bean-tasks {
-    background-color: rgb(140, 140, 140);
-}
-
-.explorer-bean-log {
-    background-color: rgb(140, 140, 140);
-}
-
-.explorer-bean-cache {
-    background-color: rgb(140, 140, 140);
-}
-
-.explorer-bean-tables {
-    background-color: rgb(140, 140, 140);
 }

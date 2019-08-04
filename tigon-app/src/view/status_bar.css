@@ -1,4 +1,4 @@
-.StatusBar {
+.statusbar {
     position: relative;
     display: flex;
     flex-direction: row;
@@ -11,34 +11,43 @@
 
 }
 
-.StatusBar-LogStats {
+.statusbar-right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    background-color: rgb(255, 255, 255, 0.9);
+    border-radius: 4px;
+    padding: 8px 4px;
+}
+
+.statusbar-bean {
     display: flex;
     flex-direction: row;
     height: 100%;
 
-    background-color: rgb(220, 92, 76);
+    background-color: rgb(120, 120, 120);
     border-radius: 4px;
+
+    padding-left: 8px;
+    padding-right: 8px;
+    margin-left: 4px;
+    margin-right: 4px;
+
+    font-size: 12px;
+    line-height: 20px;
 }
 
-.StatusBar-LogStats:hover {
+.statusbar-bean:hover {
     background-color: rgb(254, 80, 94);
 }
 
-.StatusBar-LogStats-Active {
+.statusbar-logstats-active {
     background-color: rgb(254, 80, 94);
     border-radius: 0px 0px 4px 4px;
 }
 
-.StatusBar-LogStat {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    height: 100%;
-    padding-left: 12px;
-    padding-right: 12px;
-}
-
-.StatusBar-LogViewer {
+.statusbar-logviewer {
     position: absolute;
     top: -300px;
     right: 0px;
@@ -52,8 +61,6 @@
 }
 
 .StatusBar-LogStat-Icon {
-    padding-left: 4px;
-    padding-right: 4px;
     width: 13px;
     height: 13px;
 }
@@ -62,27 +69,4 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-}
-
-.StatusBar-Server {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-
-    padding-right: 12px;
-}
-
-.StatusBar-Server-Name {
-    padding-left: 8px;
-    padding-right: 8px;
-}
-
-.StatusBar-Server-Status {
-    padding-left: 8px;
-    padding-right: 8px;
-}
-
-.StatusBar-Server-Version {
-    padding-left: 8px;
-    padding-right: 8px;
 }

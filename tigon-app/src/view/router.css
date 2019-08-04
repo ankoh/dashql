@@ -11,12 +11,10 @@
     height: auto;
 }
 
-.router > .StatusBar {
+.router > .statusbar {
     position: fixed;
     bottom: 16px;
     right: 16px;
-    max-width: 300px;
-    height: 24px !important;
 }
 
 .router-page-container {
