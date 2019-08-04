@@ -1,18 +1,8 @@
-import './status_bar.css';
+import './status_bar.scss';
 import * as React from 'react';
 import * as Model from '../model';
 import LogViewer from './log_viewer';
 import { connect } from 'react-redux';
-
-import {
-    WarningIcon,
-} from '../svg/icons';
-
-const connStatusNames = new Map<Model.ConnectionStatus, string>([
-    [Model.ConnectionStatus.CS_CONNECTED, 'connected'],
-    [Model.ConnectionStatus.CS_DISCONNECTED, 'disconnected'],
-    [Model.ConnectionStatus.CS_UNDEFINED, 'undefined'],
-]);
 
 interface IStatusBarProps {
     serverConfig: Model.ServerConfig | null;

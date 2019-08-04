@@ -8,7 +8,6 @@ import {
     BarChartIcon,
     BubbleChartIcon,
     ConsoleIcon,
-    DNSIcon,
     LineChartIcon,
     PieChartIcon,
     PlanIcon,
@@ -16,7 +15,6 @@ import {
     SaveIcon,
     SettingsIcon,
     TableChartIcon,
-    UndoIcon,
 } from '../svg/icons';
 import { connect } from 'react-redux';
 

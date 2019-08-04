@@ -16,7 +16,7 @@
     flex-direction: row;
     align-items: center;
 
-    background-color: rgb(255, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.6);
     border-radius: 4px;
     padding: 8px 4px;
 }
@@ -43,6 +43,7 @@
 .statusbar-bean:hover {
     background-color: rgb(0, 0, 0);
     color: rgb(255, 255, 255);
+    border: 1px solid rgb(0, 0, 0) !important;
 }
 
 .statusbar-logstats-active {
