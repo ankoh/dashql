@@ -1,20 +1,20 @@
 @import '../theme.scss';
 
-.TabBar {
+.tabbar {
     display: flex;
     flex-direction: column;
     height: 100%;
     padding: 4px;
 }
 
-.TabBar-Tab-Container {
+.tabbar_tab_container {
     height: auto;
     width: 100%;
     padding: 4px;
     box-sizing: border-box;
 }
 
-.TabBar-Tab {
+.tabbar_tab {
     @include button-toggle;
 
     position: relative;
@@ -24,19 +24,19 @@
     padding: 4px 0px;
 }
 
-.TabBar-Tab-Active {
+.tabbar_tab_active {
     background-color: rgb(0, 0, 0)!important;
     color: rgb(255, 255, 255)!important;
 }
 
-.TabBar-Tab-Icon {
+.tabbar_tab-Icon {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
 }
 
-.TabBar-Tab-Name {
+.tabbar_tab_name {
     line-height: 24px;
     text-align: center;
 }

@@ -28,8 +28,8 @@ class Terminal extends React.Component<ITerminalProps> {
     // Render the terminal
     public render() {
         return (
-            <div className="terminal-borderbox">
-                <div ref={this.termContainer} className="terminal-container">
+            <div className="terminal_borderbox">
+                <div ref={this.termContainer} className="terminal_container">
                 </div>
             </div>
         );

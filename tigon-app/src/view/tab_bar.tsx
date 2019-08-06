@@ -30,12 +30,12 @@ function TabBarTab(props: ITabBarTabProps) {
             break;
     }
     return (
-        <div className="TabBar-Tab-Container">
+        <div className="tabbar_tab_container">
             <div
-                className={classNames("TabBar-Tab", isActive ? " active" : "")}
+                className={classNames("tabbar_tab", isActive ? " active" : "")}
                 onClick={()=>{ props.onViewChanged(props.tabView); }}
             >
-                <div className="TabBar-Tab-Name">
+                <div className="tabbar_tab_name">
                     {tabName}
                 </div>
             </div>
@@ -46,7 +46,7 @@ function TabBarTab(props: ITabBarTabProps) {
 class TabBar extends React.Component<ITabBarProps> {
     public render() {
         return (
-            <div className="TabBar">
+            <div className="tabbar">
                 <TabBarTab
                     tabView={Model.RootView.EXPLORER}
                     rootView={this.props.rootView}
