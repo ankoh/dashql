@@ -100,6 +100,9 @@ class WebAPI {
         /// Destructor
         ~Session();
 
+        /// Release a buffer
+        void releaseBuffer(Buffer* buffer);
+
         /// Get the response status
         auto getResponseStatus() { return response.getStatus(); }
         /// Get the response error
@@ -107,10 +110,10 @@ class WebAPI {
         /// Get the response data
         auto* getResponseData() { return response.getData(); }
 
-        /// Release a buffer
-        void releaseBuffer(Buffer* buffer);
         /// Run a query
         void query(std::string_view text);
+        /// Parse TQL
+        void parseTQL(std::string_view text);
 
         /// Extract parquet file
         void extractParquet(const uint8_t* buffer, uint32_t bufferSize);

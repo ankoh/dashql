@@ -7,6 +7,8 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "duckdb.hpp"
 #include "flatbuffers/flatbuffers.h"
+#include "tigon/parser/tql/tql_parse_context.h"
+#include "tigon/proto/tql_generated.h"
 #include "tigon/proto/web_api_generated.h"
 #include <cstdio>
 #include <memory>
@@ -228,6 +230,46 @@ void WebAPI::Session::query(std::string_view text) {
 
     // Mark as successfull
     response.requestSucceeded(buffer);
+}
+
+template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
+template<class... Ts> overload(Ts...) -> overload<Ts...>;
+
+/// Parse TQL
+void WebAPI::Session::parseTQL(std::string_view text) {
+    // Create input stream
+    std::istringstream in;
+    in.rdbuf()->pubsetbuf(const_cast<char*>(text.data()), text.length());
+
+    // Parse statement
+    tql::ParseContext ctx;
+    auto program = ctx.Parse(in);
+
+    for (auto& statement: program.statements) {
+        std::visit(overload {
+            // Display statement
+            [&](std::unique_ptr<tql::DisplayStatement>& display) {
+            },
+
+            // Extract statement
+            [&](std::unique_ptr<tql::ExtractStatement>& display) {
+            },
+
+            // Load statement
+            [&](std::unique_ptr<tql::LoadStatement>& display) {
+            },
+
+            // Parameter declaration
+            [&](std::unique_ptr<tql::ParameterDeclaration>& display) {
+            },
+
+            // SQL statement
+            [&](std::unique_ptr<tql::SQLStatement>& display) {
+            }
+        }, statement);
+    }
+
+    // TODO now generate the flatbuffer for the program
 }
 
 /// Extract a parquet buffer
