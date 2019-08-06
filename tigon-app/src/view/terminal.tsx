@@ -3,7 +3,7 @@ import * as Model from '../model';
 import { connect } from 'react-redux';
 
 import 'xterm/dist/xterm.css';
-import './terminal.css';
+import './terminal.scss';
 
 import { IAppContext, withAppContext } from '../app_context';
 
@@ -28,8 +28,8 @@ class Terminal extends React.Component<ITerminalProps> {
     // Render the terminal
     public render() {
         return (
-            <div className="Terminal">
-                <div ref={this.termContainer} className="Terminal-Container">
+            <div className="terminal-borderbox">
+                <div ref={this.termContainer} className="terminal-container">
                 </div>
             </div>
         );
