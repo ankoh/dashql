@@ -3,7 +3,6 @@ import * as ReactDOM from 'react-dom';
 import * as Model from './model';
 import Router from './view/router';
 import { AppContextProvider, IAppContext } from './app_context';
-import { FluidBackground } from './svg/background';
 import { Provider as ReduxProvider } from 'react-redux';
 import { RootController } from './ctrl';
 
@@ -21,9 +20,6 @@ const appContext: IAppContext = {
 
 ReactDOM.render(
     <ReduxProvider store={store}>
-        <div className="Background">
-            <FluidBackground />
-        </div>
         <AppContextProvider value={appContext}>
             <Router />
         </AppContextProvider>
