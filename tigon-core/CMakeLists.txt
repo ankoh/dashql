@@ -31,7 +31,7 @@ endif()
 # Bison
 
 find_package(BISON 2.5.1 QUIET)
-find_package(Flex REQUIRED)
+find_package(FLEX REQUIRED)
 
 # In the case where we cannot find a system-wide installation, look for
 # homebrew and ask for its bison installation.
