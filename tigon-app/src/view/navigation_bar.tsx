@@ -4,7 +4,7 @@ import TabBar from './tab_bar';
 import { Logo } from '../svg/logo'
 import { connect } from 'react-redux';
 
-import './navigation_bar.css';
+import './navigation_bar.scss';
 
 interface INavigationBarProps {
     navigateRoot: (view: Model.RootView) => void;
@@ -13,11 +13,11 @@ interface INavigationBarProps {
 class NavigationBar extends React.Component<INavigationBarProps> {
     public render() {
         return (
-            <div className="NavigationBar">
-                <div className="NavigationBar-Logo">
+            <div className="navbar">
+                <div className="navbar-logo">
                     <Logo />
                 </div>
-                <div className="NavigationBar-Tabs">
+                <div className="navbar-tabs">
                     <TabBar onViewChanged={this.props.navigateRoot} />
                 </div>
             </div>

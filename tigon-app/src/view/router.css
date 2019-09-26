@@ -3,7 +3,7 @@
     width: 100%;
 }
 
-.router > .NavigationBar {
+.router > .navbar {
     position: fixed;
     top: 16px;
     left: 16px;
@@ -17,7 +17,7 @@
     right: 16px;
 }
 
-.router-page-container {
+.router_page_container {
     height: 100%;
     width: 100%;
 
@@ -25,11 +25,9 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-
-    background-color: rgb(41, 45, 52);
 }
 
-.router-page {
+.router_page {
     width: 80%;
     max-width: 900px;
 }

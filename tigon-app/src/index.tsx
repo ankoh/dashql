@@ -7,7 +7,7 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { RootController } from './ctrl';
 
 import './fonts/fonts.css';
-import './index.css';
+import './index.scss';
 
 const store = Model.createStore();
 const controller = new RootController(store);
@@ -20,6 +20,7 @@ const appContext: IAppContext = {
 
 ReactDOM.render(
     <ReduxProvider store={store}>
+        <div id="background" />
         <AppContextProvider value={appContext}>
             <Router />
         </AppContextProvider>

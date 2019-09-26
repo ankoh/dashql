@@ -1,4 +1,8 @@
-$border_default: 1px solid rgb(230, 230, 230);
+$background_color: rgb(180, 180, 180);
+$background_line_color: rgb(175, 175, 175);
+$card_background_color: rgba(255, 255, 255, 0.75);
+
+$border_default: 1px solid rgb(228, 228, 228);
 
 
 @mixin button {
