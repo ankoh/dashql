@@ -28,8 +28,8 @@ if(NOT EXISTS ${RPATH_SCANNER_OUT})
 endif()
 
 # Generate parser & scanner
-add_custom_command(
-    OUTPUT ${RPATH_SCANNER_OUT} ${RPATH_PARSER_OUT} 
+add_custom_target(
+    tigon_rpath_parser
     COMMAND ${BISON_EXECUTABLE}
         --defines=${RPATH_PARSER_HEADER_OUT}
         --output=${RPATH_PARSER_OUT}
@@ -45,7 +45,9 @@ add_custom_command(
 )
 
 add_library(tigon_rpath ${RPATH_CC})
+add_dependencies(tigon_rpath tigon_rpath_parser)
 target_include_directories(tigon_rpath PRIVATE ${CMAKE_BINARY_DIR}/include)
+target_link_libraries(tigon_rpath flatbuffers)
 set_property(TARGET tigon_rpath PROPERTY CXX_STANDARD 17)
 
 # ---------------------------------------------------------------------------
@@ -53,4 +55,5 @@ set_property(TARGET tigon_rpath PROPERTY CXX_STANDARD 17)
 # ---------------------------------------------------------------------------
 
 add_clang_tidy_target(lint_parser_rpath "${RPATH_CC_LINTING}")
+add_dependencies(lint_parser_rpath tigon_rpath_parser)
 list(APPEND lint_targets lint_parser_rpath)

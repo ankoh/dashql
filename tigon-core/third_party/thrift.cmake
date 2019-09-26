@@ -51,6 +51,7 @@ ExternalProject_Add(
 )
 
 ExternalProject_Get_Property(thrift_ep install_dir)
+set(THRIFT_INCLUDE_DIR ${install_dir}/bin/thrift)
 set(THRIFT_INCLUDE_DIR ${install_dir}/include)
 set(THRIFT_LIBRARY_PATH ${install_dir}/lib/libthrift.a)
 file(MAKE_DIRECTORY ${THRIFT_INCLUDE_DIR})
@@ -61,3 +62,26 @@ set_property(TARGET thrift APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${THRIF
 
 add_dependencies(thrift_ep boost_ep)
 add_dependencies(thrift thrift_ep)
+
+ExternalProject_Add(
+    thriftc_ep
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/thrift/compiler/cpp"
+    PREFIX "${CMAKE_BINARY_DIR}/third_party/thriftc"
+    INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/thriftc/install"
+    CMAKE_ARGS
+        -G${CMAKE_GENERATOR}
+        -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_FLAGS=-std=c++17
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_CXX_COMPILER=clang++
+        -DCMAKE_C_COMPILER=clang
+        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/third_party/thriftc/install
+        -DPACKAGE_VERSION=0.12.0
+    DOWNLOAD_COMMAND ""
+    UPDATE_COMMAND ""
+    BUILD_BYPRODUCTS
+        <INSTALL_DIR>/bin/thrift
+)
+
+ExternalProject_Get_Property(thriftc_ep install_dir)
+set(THRIFTC ${install_dir}/bin/thrift)

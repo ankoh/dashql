@@ -29,8 +29,8 @@ if(NOT EXISTS ${TQL_SCANNER_OUT})
 endif()
 
 # Generate parser & scanner
-add_custom_command(
-    OUTPUT ${TQL_SCANNER_OUT} ${TQL_PARSER_OUT}
+add_custom_target(
+    tigon_tql_parser
     COMMAND ${BISON_EXECUTABLE}
         --defines=${TQL_PARSER_HEADER_OUT}
         --output=${TQL_PARSER_OUT}
@@ -46,7 +46,9 @@ add_custom_command(
 )
 
 add_library(tigon_tql ${TQL_CC})
+add_dependencies(tigon_tql tigon_tql_parser)
 target_include_directories(tigon_tql PRIVATE ${CMAKE_BINARY_DIR}/include)
+target_link_libraries(tigon_tql flatbuffers)
 set_property(TARGET tigon_tql PROPERTY CXX_STANDARD 17)
 
 # ---------------------------------------------------------------------------
@@ -54,4 +56,5 @@ set_property(TARGET tigon_tql PROPERTY CXX_STANDARD 17)
 # ---------------------------------------------------------------------------
 
 add_clang_tidy_target(lint_parser_tql "${TQL_CC_LINTING}")
+add_dependencies(lint_parser_tql tigon_tql_parser)
 list(APPEND lint_targets lint_parser_tql)

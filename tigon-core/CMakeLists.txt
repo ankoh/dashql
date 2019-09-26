@@ -30,7 +30,7 @@ endif()
 # ---------------------------------------------------------------------------
 # Bison
 
-find_package(BISON 2.5.1 QUIET)
+find_package(BISON 3.3 REQUIRED)
 find_package(FLEX REQUIRED)
 
 # In the case where we cannot find a system-wide installation, look for

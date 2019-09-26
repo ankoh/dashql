@@ -24,7 +24,7 @@ APP_LIB_DIR="${APP_SOURCE_DIR}/public/lib"
 mkdir -p ${CORE_BUILD_DIR}
 cd ${CORE_BUILD_DIR}
 
-emconfigure cmake ${CORE_SOURCE_DIR} \
+emconfigure cmake ${CORE_SOURCE_DIR} -DBISON_EXECUTABLE=$(which bison) \
     && { echo "[ OK  ] Build configuration"; } \
     || { echo "[ ERR ] Build configuration"; exit 1; }
 

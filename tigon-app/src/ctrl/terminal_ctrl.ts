@@ -14,11 +14,9 @@
 // \x1B[1K  Clear line from cursor left
 // \x1B[2K  Clear entire line
 
-import * as xterm from 'xterm';
-import * as fit from 'xterm/lib/addons/fit/fit';
-import 'xterm/dist/xterm.css';
-
-xterm.Terminal.applyAddon(fit);
+import { Terminal } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
+import 'xterm/css/xterm.css';
 
 // A history buffer
 class HistoryBuffer {
@@ -152,7 +150,8 @@ class Prompt {
 
 // A terminal
 export class TerminalController {
-    protected term: xterm.Terminal;
+    protected term: Terminal;
+    protected termFitAddon: FitAddon;
     protected termSize: {
         columns: number;
         rows: number;
@@ -166,7 +165,14 @@ export class TerminalController {
 
     // Constructor
     constructor() {
-        this.term = new xterm.Terminal();
+        this.onDataHandler = this.onData.bind(this);
+        this.onResizeHandler = this.onResize.bind(this);
+
+        this.term = new Terminal();
+        this.termFitAddon = new FitAddon();
+        this.term.loadAddon(this.termFitAddon);
+        this.term.onData(this.onDataHandler);
+        this.term.onResize(this.onResizeHandler);
         this.termSize = {
             columns: this.term.cols,
             rows: this.term.rows,
@@ -174,9 +180,6 @@ export class TerminalController {
         this.history = new HistoryBuffer();
         this.activePrompt = null;
         this.cursor = 0;
-
-        this.onDataHandler = this.onData.bind(this);
-        this.onResizeHandler = this.onResize.bind(this);
     }
 
     // ------------------
@@ -186,12 +189,12 @@ export class TerminalController {
     // Open terminal in new div element
     public open(element: HTMLDivElement) {
         this.term.open(element);
-        fit.fit(this.term);
+        this.termFitAddon.fit();
     }
 
     // Fit terminal to div element
     public fit() {
-        fit.fit(this.term);
+        this.termFitAddon.fit();
     }
 
     // Focus on the terminal
@@ -201,14 +204,10 @@ export class TerminalController {
 
     // Attach to terminal events
     public attach() {
-        this.term.on("data", this.onDataHandler);
-        this.term.on("resize", this.onResizeHandler);
     }
 
     // Detach from terminal events
     public detach() {
-        this.term.off("data", this.onDataHandler);
-        this.term.off("resize", this.onResizeHandler);
     }
 
     // Read next input from the terminal

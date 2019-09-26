@@ -13,7 +13,8 @@ if(DEFINED ENV{EMSDK})
 
     ExternalProject_Add(boost_ep
         BUILD_IN_SOURCE 1
-        URL "http://sourceforge.net/projects/boost/files/boost/1.67.0/boost_1_67_0.tar.gz"
+        URL http://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz
+        URL_HASH "SHA256=da3411ea45622579d419bfda66f45cd0f8c32a181d84adfa936f5688388995cf"
         PREFIX "${CMAKE_BINARY_DIR}/third_party/boost"
         INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/boost/install"
         CONFIGURE_COMMAND ./bootstrap.sh

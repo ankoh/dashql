@@ -53,6 +53,7 @@ set(ARROW_FLAGS
     -DSnappy_LIB=${SNAPPY_LIBRARY_PATH}
     -DTHRIFT_INCLUDE_DIR=${THRIFT_INCLUDE_DIR}
     -DTHRIFT_STATIC_LIB=${THRIFT_LIBRARY_PATH}
+    -DTHRIFT_COMPILER=${THRIFTC}
 )
 
 if(DEFINED ENV{EMSDK})
@@ -113,7 +114,7 @@ add_library(parquet STATIC IMPORTED)
 set_property(TARGET parquet PROPERTY IMPORTED_LOCATION ${PARQUET_LIBRARY_PATH})
 set_property(TARGET parquet APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PARQUET_INCLUDE_DIR})
 
-add_dependencies(arrow_ep snappy_ep brotli_ep flatbuffers_ep flatc_ep thrift_ep boost_ep)
+add_dependencies(arrow_ep snappy_ep brotli_ep flatbuffers_ep flatc_ep thrift_ep thriftc_ep boost_ep)
 add_dependencies(arrow arrow_ep)
 add_dependencies(parquet arrow_ep)
 

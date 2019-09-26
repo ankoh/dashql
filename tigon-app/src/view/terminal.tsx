@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as Model from '../model';
 import { connect } from 'react-redux';
 
-import 'xterm/dist/xterm.css';
+import 'xterm/css/xterm.css';
 import './terminal.scss';
 
 import { IAppContext, withAppContext } from '../app_context';
