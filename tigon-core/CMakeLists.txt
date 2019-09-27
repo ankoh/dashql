@@ -32,6 +32,7 @@ endif()
 
 find_package(BISON 3.3 REQUIRED)
 find_package(FLEX REQUIRED)
+find_package(Threads REQUIRED)
 
 # In the case where we cannot find a system-wide installation, look for
 # homebrew and ask for its bison installation.
@@ -92,6 +93,7 @@ target_link_libraries(tigon
     duckdb
     rapidjson cwcsv
     parquet arrow
+    Threads::Threads
 )
 
 # ---------------------------------------------------------------------------
@@ -133,7 +135,7 @@ add_executable(tester
     ${CMAKE_SOURCE_DIR}/test/examples/parquet_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc
 )
-target_link_libraries(tester tigon gtest gmock)
+target_link_libraries(tester tigon gtest gmock Threads::Threads)
 
 enable_testing()
 add_test(tigon tester)
