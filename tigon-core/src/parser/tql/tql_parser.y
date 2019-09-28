@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------
 
 %skeleton "lalr1.cc"
-%require "3.2"
+%require "3.3"
 
 %define api.parser.class {Parser}
 %define api.namespace {tigon::tql}
