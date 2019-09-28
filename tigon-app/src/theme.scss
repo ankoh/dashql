@@ -1,106 +1,17 @@
-$background_color: rgb(180, 180, 180);
-$background_line_color: rgb(175, 175, 175);
-$card_background_color: rgba(255, 255, 255, 0.75);
+$background_color: rgb(190, 190, 190);
+$background_line_color: rgb(185, 185, 185);
+
+$card_background_color: rgb(235, 235, 235);
 $card_border_radius: 3px;
 $card_border_radius_n: $card_border_radius $card_border_radius 0px 0px;
 $card_border_radius_s: 0px 0px $card_border_radius $card_border_radius;
-$status_background: rgba(255, 255, 255, 0.75);
+
+$status_background: rgb(235, 235, 235);
+
 $button_border_radius: 3px;
+$button_color_action_active: rgb(0, 95, 223);
 
-$border_default: 1px solid rgb(228, 228, 228);
+$border_color: rgb(228, 228, 228);
+$border_default: 1px solid $border_color;
 
-
-@mixin button {
-    border-radius: $button_border_radius;
-    border: $border_default;
-    box-sizing: border-box;
-}
-
-@mixin button-toggle {
-    @include button;
-
-    background-color: rgb(255, 255, 255);
-    color: rgb(0, 0, 0);
-
-    &:hover, &.active {
-        background-color: rgb(0, 0, 0);
-        border: 1px solid rgb(0, 0, 0);
-        color: rgb(255, 255, 255);
-    }
-}
-
-@mixin button-action {
-    @include button;
-
-    background-color: rgb(0, 95, 223);
-    color: rgb(255, 255, 255);
-
-    &:hover, &.active {
-        background-color: rgb(0, 95, 223);
-        border: 1px solid rgb(0, 95, 223);
-        color: rgb(255, 255, 255);
-    }
-}
-
-@mixin iconbutton-toggle {
-    @include button;
-
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-
-    background-color: rgb(255, 255, 255);
-    color: rgb(0, 0, 0);
-
-    .icon {
-        path {
-            fill: rgb(0, 0, 0);
-        }
-
-        circle {
-            fill: rgb(0, 0, 0);
-        }
-    }
-
-    &:hover, &.active {
-        background-color: rgb(0, 0, 0);
-        border: 1px solid rgb(0, 0, 0);
-        color: rgb(255, 255, 255);
-
-        .icon {
-            path {
-                fill: rgb(255, 255, 255);
-            }
-
-            circle {
-                fill: rgb(255, 255, 255);
-            }
-        }
-    }
-}
-
-@mixin iconbutton-action {
-    @include button-action;
-
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-
-    .icon {
-        path {
-            fill: rgb(255, 255, 255);
-        }
-
-        circle {
-            fill: rgb(255, 255, 255);
-        }
-    }
-
-    &:hover, &.active {
-        background-color: rgb(0, 95, 223);
-        border: 1px solid rgb(0, 95, 223);
-        color: rgb(255, 255, 255);
-    }
-}
+@import './theme/buttons.scss';

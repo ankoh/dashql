@@ -5,7 +5,7 @@ import StatusBar from './status_bar';
 import * as Model from '../model';
 import { connect } from 'react-redux';
 
-import './router.css';
+import './router.scss';
 
 interface IRouterProps {
     rootView: Model.RootView;

@@ -5,10 +5,10 @@
 
 .router > .navbar {
     position: fixed;
-    top: 16px;
-    left: 16px;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
     width: 112px !important;
-    height: auto;
 }
 
 .router > .statusbar {
@@ -18,8 +18,11 @@
 }
 
 .router_page_container {
-    height: 100%;
-    width: 100%;
+    position: fixed;
+    left: 112px;
+    right: 0px;
+    top: 0px;
+    bottom: 0px;
 
     display: flex;
     flex-direction: column;
