@@ -1,5 +1,5 @@
-$background_color: rgb(190, 190, 190);
-$background_line_color: rgb(185, 185, 185);
+$background_color: rgb(200, 200, 200);
+$background_line_color: rgb(192, 192, 192);
 
 $card_background_color: rgb(235, 235, 235);
 $card_border_radius: 3px;
@@ -7,6 +7,7 @@ $card_border_radius_n: $card_border_radius $card_border_radius 0px 0px;
 $card_border_radius_s: 0px 0px $card_border_radius $card_border_radius;
 
 $status_background: rgb(235, 235, 235);
+$status_border: 1px solid $background_line_color;
 
 $button_border_radius: 3px;
 $button_color_action_active: rgb(0, 95, 223);
