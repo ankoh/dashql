@@ -1,12 +1,17 @@
 $background_color: rgb(180, 180, 180);
 $background_line_color: rgb(175, 175, 175);
 $card_background_color: rgba(255, 255, 255, 0.75);
+$card_border_radius: 3px;
+$card_border_radius_n: $card_border_radius $card_border_radius 0px 0px;
+$card_border_radius_s: 0px 0px $card_border_radius $card_border_radius;
+$status_background: rgba(255, 255, 255, 0.75);
+$button_border_radius: 3px;
 
 $border_default: 1px solid rgb(228, 228, 228);
 
 
 @mixin button {
-    border-radius: 4px;
+    border-radius: $button_border_radius;
     border: $border_default;
     box-sizing: border-box;
 }

@@ -18,8 +18,8 @@
     flex-direction: row;
     align-items: center;
 
-    background-color: rgba(255, 255, 255, 0.6);
-    border-radius: 4px;
+    background-color: $status_background;
+    border-radius: $card_border_radius;
     padding: 8px 4px;
 }
 
@@ -41,7 +41,6 @@
 
 .statusbar-logstats-active {
     background-color: rgb(254, 80, 94);
-    border-radius: 0px 0px 4px 4px;
 }
 
 .statusbar-logviewer {
