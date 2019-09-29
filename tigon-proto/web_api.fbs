@@ -49,13 +49,63 @@ enum StatusCode: uint8 {
     GenericError = 1,
 }
 
+// The logical operator types
+// duckdb: common/enums/logical_operator_type.hpp
+enum LogicalOperatorType: uint8 {
+    INVALID = 0,
+    PROJECTION = 1,
+    FILTER = 2,
+    AGGREGATE_AND_GROUP_BY = 3,
+    WINDOW = 4,
+    LIMIT = 5,
+    ORDER_BY = 6,
+    COPY_FROM_FILE = 7,
+    COPY_TO_FILE = 8,
+    DISTINCT = 9,
+    INDEX_SCAN = 10,
+
+    // Data sources
+    GET = 11,
+    CHUNK_GET = 12,
+    DELIM_GET = 13,
+    EXPRESSION_GET = 14,
+    TABLE_FUNCTION = 15,
+    SUBQUERY = 16,
+    EMPTY_RESULT = 17,
+
+    // Joins
+    JOIN = 18,
+    DELIM_JOIN = 19,
+    COMPARISON_JOIN = 20,
+    ANY_JOIN = 21,
+    CROSS_PRODUCT = 22,
+
+    // SetOps
+    UNION = 23,
+    EXCEPT = 24,
+    INTERSECT = 25,
+    
+    // Updates
+    INSERT = 26,
+    DELETE = 27,
+    UPDATE = 28,
+    CREATE_TABLE = 29,
+    CREATE_INDEX = 30,
+    
+    // Explain
+    EXPLAIN = 31,
+    
+    // Helpers
+    PRUNE_COLUMNS = 32,
+    PREPARE = 33,
+    EXECUTE = 34
+}
+
 // A query plan
 table QueryPlan {
-    node_names: [string];
-    node_child_offsets: [uint64];
-    node_children: [uint64];
-    node_timings: [double];
-    node_cardinalities: [uint64];
+    operator_children: [uint64];
+    operator_child_offsets: [uint64];
+    operator_types: [LogicalOperatorType];
 }
 
 // A column of a query result

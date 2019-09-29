@@ -46,7 +46,7 @@ void tigon_parse_tql(WebAPI::Session *session, const char *text) { session->pars
 /// Run a query
 void tigon_run_query(WebAPI::Session *session, const char *text) { session->runQuery(text); }
 /// Explain a query
-void tigon_explain_query(WebAPI::Session *session, const char* text) { session->explainQuery(text); }
+void tigon_plan_query(WebAPI::Session *session, const char* text) { session->planQuery(text); }
 
 /// Extract a parquet file
 void tigon_extract_parquet(WebAPI::Session *session, const uint8_t* buffer, uint32_t bufferSize) {

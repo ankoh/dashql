@@ -21,6 +21,7 @@
 #include <optional>
 #include <unordered_map>
 #include <string_view>
+#include <iostream>
 
 #include "arrow/api.h"
 #include "arrow/buffer.h"
@@ -279,8 +280,8 @@ void WebAPI::Session::runQuery(std::string_view text) {
     response.requestSucceeded(buffer);
 }
 
-/// Explain a sql statement
-void WebAPI::Session::explainQuery(std::string_view text) {
+/// Plan a sql statement
+void WebAPI::Session::planQuery(std::string_view text) {
     duckdb::Connection conn{*database};
 
     // Parse the statements
@@ -288,13 +289,16 @@ void WebAPI::Session::explainQuery(std::string_view text) {
     parser.ParseQuery(std::string(text));
 
     conn.context->transaction.BeginTransaction();
-  
-    // Get statements
-    for (auto& statement: parser.statements) {
-        duckdb::Planner planner{*conn.context};
-        planner.CreatePlan(move(statement));
-        // planner.plan
+
+    if (parser.statements.size()) {
+        // foo
     }
+
+    duckdb::Planner planner{*conn.context};
+    planner.CreatePlan(move(*parser.statements.begin()));
+    
+    auto planStr = planner.plan->ToString();
+    std::cout << planStr << std::endl;
 
     conn.context->transaction.Rollback();
 }
