@@ -82,6 +82,7 @@ add_library(tigon
     ${CMAKE_SOURCE_DIR}/src/extract/json_extract.cc
     ${CMAKE_SOURCE_DIR}/src/extract/parquet_extract.cc
     ${CMAKE_SOURCE_DIR}/src/parser/sql/sql_parser.cc
+    ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
 )
 
 include("${CMAKE_SOURCE_DIR}/src/parser/rpath/local.cmake")
@@ -101,7 +102,6 @@ target_link_libraries(tigon
 
 add_executable(tigon_web
     ${CMAKE_SOURCE_DIR}/src/tools/web/web_api_proxy.cc
-    ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
 )
 
 target_link_libraries(tigon_web tigon)
@@ -133,6 +133,7 @@ endif()
 
 add_executable(tester
     ${CMAKE_SOURCE_DIR}/test/tester.cc
+    ${CMAKE_SOURCE_DIR}/test/web_api_test.cc
     ${CMAKE_SOURCE_DIR}/test/examples/hw2/hw2_test.cc
     ${CMAKE_SOURCE_DIR}/test/examples/parquet_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc

@@ -286,6 +286,8 @@ void WebAPI::Session::explainQuery(std::string_view text) {
     // Parse the statements
     duckdb::Parser parser(*conn.context);
     parser.ParseQuery(std::string(text));
+
+    conn.context->transaction.BeginTransaction();
   
     // Get statements
     for (auto& statement: parser.statements) {
@@ -293,6 +295,8 @@ void WebAPI::Session::explainQuery(std::string_view text) {
         planner.CreatePlan(move(statement));
         // planner.plan
     }
+
+    conn.context->transaction.Rollback();
 }
 
 /// Extract a parquet buffer

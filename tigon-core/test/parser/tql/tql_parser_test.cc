@@ -32,7 +32,7 @@ TEST(TQLTest, LoadHTTP) {
 
 TEST(TQLTest, ExtractJsonPath) {
     std::stringstream in{R"RAW(
-        extract weather_data from raw_data using jsonpath ();
+        extract weather_data from raw_data using json ();
     )RAW"};
     ParseContext ctx;
     ctx.Parse(in);
