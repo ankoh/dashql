@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as Model from '../model';
 import TabBar from './tab_bar';
-import { Logo } from '../svg/logo'
 import { connect } from 'react-redux';
 
 import './navigation_bar.scss';
@@ -15,7 +14,7 @@ class NavigationBar extends React.Component<INavigationBarProps> {
         return (
             <div className="navbar">
                 <div className="navbar-logo">
-                    <Logo />
+                    <img src="/img/logo_300.png" alt="Logo" />
                 </div>
                 <div className="navbar-tabs">
                     <TabBar onViewChanged={this.props.navigateRoot} />

@@ -13,13 +13,17 @@
 
 .navbar-logo {
     width: 100%;
-    height: 52px;
-    padding: 16px 0 16px 0;
+    padding: 8px 0px 8px 0px;
 
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+}
+
+.navbar-logo img {
+    width: 60px;
+    height: 60px;
 }
 
 .navbar-tabs {
