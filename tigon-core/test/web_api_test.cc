@@ -14,22 +14,30 @@ TEST(WebAPITest, ExplainQuery) {
     tigon::WebAPI::Session session{db};
 
     session.runQuery(R"RAW(
-        CREATE TABLE foo(
+        CREATE TABLE r1(
             a int,
             b int
         );
-        CREATE TABLE bar(
+        CREATE TABLE r2(
             c int,
             d int
         );
+        CREATE TABLE r3(
+            e int,
+            f int
+        );
     )RAW");
     session.runQuery(R"RAW(
-        INSERT INTO foo VALUES
+        INSERT INTO r1 VALUES
             (1, 2),
             (3, 4),
             (5, 6);
 
-        INSERT INTO bar VALUES
+        INSERT INTO r2 VALUES
+            (1, 2),
+            (3, 4),
+            (5, 6);
+        INSERT INTO r3 VALUES
             (1, 2),
             (3, 4),
             (5, 6);
@@ -38,7 +46,7 @@ TEST(WebAPITest, ExplainQuery) {
     session.explainQuery("SELECT 1;");
     session.explainQuery(R"RAW(
         SELECT *
-        FROM foo, bar
+        FROM r1, r2
         WHERE a = c;
     )RAW");
 }
