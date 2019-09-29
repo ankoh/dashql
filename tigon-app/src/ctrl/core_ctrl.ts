@@ -123,10 +123,10 @@ export class CoreController {
         return Promise.resolve(result);
     }
 
-    // Explain a query
-    public async explainQuery(session: number, text: string): Promise<void> {
+    // Plan a query
+    public async planQuery(session: number, text: string): Promise<void> {
         await this.waitUntilReady();
-        this.core.ccall('tigon_explain_query', 'void', ['number', 'string'], [session, text]);
+        this.core.ccall('tigon_plan_query', 'void', ['number', 'string'], [session, text]);
 
         // Did the query fail?
         let status = this.core.ccall('tigon_get_response_status', 'number', ['number'], [session]);
