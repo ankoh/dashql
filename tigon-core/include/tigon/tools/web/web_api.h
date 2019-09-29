@@ -110,10 +110,12 @@ class WebAPI {
         /// Get the response data
         auto* getResponseData() { return response.getData(); }
 
-        /// Run a query
-        void query(std::string_view text);
         /// Parse TQL
         void parseTQL(std::string_view text);
+        /// Run SQL query
+        void runQuery(std::string_view text);
+        /// Explain SQL query
+        void explainQuery(std::string_view text);
 
         /// Extract parquet file
         void extractParquet(const uint8_t* buffer, uint32_t bufferSize);

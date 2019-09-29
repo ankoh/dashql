@@ -41,8 +41,12 @@ const char *tigon_get_response_error_message(WebAPI::Session *session) {
 /// Get the response data
 WebAPI::Buffer *tigon_get_response_data(WebAPI::Session *session) { return session->getResponseData(); }
 
+/// Parse tql
+void tigon_parse_tql(WebAPI::Session *session, const char *text) { session->parseTQL(text); }
 /// Run a query
-void tigon_query(WebAPI::Session *session, const char *text) { session->query(text); }
+void tigon_run_query(WebAPI::Session *session, const char *text) { session->runQuery(text); }
+/// Explain a query
+void tigon_explain_query(WebAPI::Session *session, const char* text) { session->explainQuery(text); }
 
 /// Extract a parquet file
 void tigon_extract_parquet(WebAPI::Session *session, const uint8_t* buffer, uint32_t bufferSize) {

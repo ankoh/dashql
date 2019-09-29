@@ -120,7 +120,9 @@ if(DEFINED ENV{EMSDK})
             _tigon_get_response_error_message, \
             _tigon_get_response_data, \
             _tigon_extract_parquet, \
-            _tigon_query \
+            _tigon_parse_tql, \
+            _tigon_run_query, \
+            _tigon_explain_query \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]' \
     ")

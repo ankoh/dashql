@@ -4,16 +4,23 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/tools/web/web_api.h"
-#include "common/vector_operations/vector_operations.hpp"
+
 #include "duckdb.hpp"
+#include "common/vector_operations/vector_operations.hpp"
+#include "main/client_context.hpp"
+#include "parser/parser.hpp"
+#include "planner/planner.hpp"
+
 #include "flatbuffers/flatbuffers.h"
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/proto/tql_generated.h"
 #include "tigon/proto/web_api_generated.h"
+
 #include <cstdio>
 #include <memory>
 #include <optional>
 #include <unordered_map>
+#include <string_view>
 
 #include "arrow/api.h"
 #include "arrow/buffer.h"
@@ -75,6 +82,46 @@ WebAPI::Buffer *WebAPI::Session::registerBuffer(flatbuffers::DetachedBuffer deta
 /// Release a buffer
 void WebAPI::Session::releaseBuffer(WebAPI::Buffer *buffer) { buffers.erase(buffer); }
 
+template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
+template<class... Ts> overload(Ts...) -> overload<Ts...>;
+
+/// Parse TQL
+void WebAPI::Session::parseTQL(std::string_view text) {
+    // Create input stream
+    std::istringstream in;
+    in.rdbuf()->pubsetbuf(const_cast<char*>(text.data()), text.length());
+
+    // Parse statement
+    tql::ParseContext ctx;
+    auto program = ctx.Parse(in);
+
+    for (auto& statement: program.statements) {
+        std::visit(overload {
+            // Display statement
+            [&](std::unique_ptr<tql::DisplayStatement>& display) {
+            },
+
+            // Extract statement
+            [&](std::unique_ptr<tql::ExtractStatement>& display) {
+            },
+
+            // Load statement
+            [&](std::unique_ptr<tql::LoadStatement>& display) {
+            },
+
+            // Parameter declaration
+            [&](std::unique_ptr<tql::ParameterDeclaration>& display) {
+            },
+
+            // SQL statement
+            [&](std::unique_ptr<tql::SQLStatement>& display) {
+            }
+        }, statement);
+    }
+
+    // TODO now generate the flatbuffer for the program
+}
+
 /// Write a fixed-length result column
 template <typename T>
 static fb::Offset<proto::QueryResultColumn> writeFixedLengthResultColumn(fb::FlatBufferBuilder &builder,
@@ -115,7 +162,7 @@ static fb::Offset<proto::QueryResultColumn> writeStringResultColumn(fb::FlatBuff
 }
 
 /// Run a query
-void WebAPI::Session::query(std::string_view text) {
+void WebAPI::Session::runQuery(std::string_view text) {
     auto queryID = allocateQueryID();
 
     // Create a new connection
@@ -232,44 +279,20 @@ void WebAPI::Session::query(std::string_view text) {
     response.requestSucceeded(buffer);
 }
 
-template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
-template<class... Ts> overload(Ts...) -> overload<Ts...>;
+/// Explain a sql statement
+void WebAPI::Session::explainQuery(std::string_view text) {
+    duckdb::Connection conn{*database};
 
-/// Parse TQL
-void WebAPI::Session::parseTQL(std::string_view text) {
-    // Create input stream
-    std::istringstream in;
-    in.rdbuf()->pubsetbuf(const_cast<char*>(text.data()), text.length());
-
-    // Parse statement
-    tql::ParseContext ctx;
-    auto program = ctx.Parse(in);
-
-    for (auto& statement: program.statements) {
-        std::visit(overload {
-            // Display statement
-            [&](std::unique_ptr<tql::DisplayStatement>& display) {
-            },
-
-            // Extract statement
-            [&](std::unique_ptr<tql::ExtractStatement>& display) {
-            },
-
-            // Load statement
-            [&](std::unique_ptr<tql::LoadStatement>& display) {
-            },
-
-            // Parameter declaration
-            [&](std::unique_ptr<tql::ParameterDeclaration>& display) {
-            },
-
-            // SQL statement
-            [&](std::unique_ptr<tql::SQLStatement>& display) {
-            }
-        }, statement);
+    // Parse the statements
+    duckdb::Parser parser(*conn.context);
+    parser.ParseQuery(std::string(text));
+  
+    // Get statements
+    for (auto& statement: parser.statements) {
+        duckdb::Planner planner{*conn.context};
+        planner.CreatePlan(move(statement));
+        // planner.plan
     }
-
-    // TODO now generate the flatbuffer for the program
 }
 
 /// Extract a parquet buffer

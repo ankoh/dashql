@@ -24,7 +24,7 @@ beforeAll(async () => {
 describe("controller/core", () => {
     test("runQuery 'SELECT 1;'", async () => {
         let session = await sharedCore.createSession();
-        let result = await sharedCore.query(session, "SELECT 1;");
+        let result = await sharedCore.runQuery(session, "SELECT 1;");
 
         result.destroy();
         await sharedCore.endSession();

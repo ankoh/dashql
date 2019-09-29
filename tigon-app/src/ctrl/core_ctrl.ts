@@ -102,9 +102,9 @@ export class CoreController {
     }
 
     // Run a query
-    public async query(session: number, text: string): Promise<QueryResult> {
+    public async runQuery(session: number, text: string): Promise<QueryResult> {
         await this.waitUntilReady();
-        this.core.ccall('tigon_query', 'void', ['number', 'string'], [session, text]);
+        this.core.ccall('tigon_run_query', 'void', ['number', 'string'], [session, text]);
 
         // Did the query fail?
         let status = this.core.ccall('tigon_get_response_status', 'number', ['number'], [session]);
@@ -121,5 +121,22 @@ export class CoreController {
         let reader = proto.QueryResult.getRootAsQueryResult(fB);
         let result = new QueryResult(this.core, session, bPtr, reader);
         return Promise.resolve(result);
+    }
+
+    // Explain a query
+    public async explainQuery(session: number, text: string): Promise<void> {
+        await this.waitUntilReady();
+        this.core.ccall('tigon_explain_query', 'void', ['number', 'string'], [session, text]);
+
+        // Did the query fail?
+        let status = this.core.ccall('tigon_get_response_status', 'number', ['number'], [session]);
+        if (status !== proto.StatusCode.Success) {
+            let error = this.core.ccall('tigon_get_response_error_message', 'string', ['number'], [session]);
+            return Promise.reject(new Error(error));
+        }
+
+        // TODO: unpack explain result
+
+        return Promise.resolve();
     }
 };
