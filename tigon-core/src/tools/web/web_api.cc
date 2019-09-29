@@ -282,25 +282,117 @@ void WebAPI::Session::runQuery(std::string_view text) {
 
 /// Plan a sql statement
 void WebAPI::Session::planQuery(std::string_view text) {
-    duckdb::Connection conn{*database};
-
     // Parse the statements
+    duckdb::Connection conn{*database};
     duckdb::Parser parser(*conn.context);
     parser.ParseQuery(std::string(text));
 
+    // Create the buffer builder
+    fb::FlatBufferBuilder builder{1024};
+
+    // Begin transaction
     conn.context->transaction.BeginTransaction();
 
-    if (parser.statements.size()) {
-        // foo
+    // Invalid statement count?
+    if (parser.statements.size() != 1) {
+        // TODO
+        response.requestFailed(proto::StatusCode::GenericError, "foo");
+        return;
     }
 
+    // Plan the statement
     duckdb::Planner planner{*conn.context};
     planner.CreatePlan(move(*parser.statements.begin()));
-    
-    auto planStr = planner.plan->ToString();
-    std::cout << planStr << std::endl;
 
+    // Remember the children
+    std::vector<duckdb::LogicalOperator*> operators;
+    std::vector<std::tuple<size_t, size_t>> operatorChildEdges;
+
+    // Traverse the plan
+    std::vector<size_t> dfsStack;
+    while (!dfsStack.empty()) {
+        // Get next operator
+        auto targetID = dfsStack.back();
+        dfsStack.pop_back();
+
+        // Add children
+        for (auto &child : operators[targetID]->children) {
+            auto childID = operators.size();
+            operators.push_back(child.get());
+            dfsStack.push_back(childID);
+            operatorChildEdges.push_back({targetID, childID});
+        }
+    }
+
+    // End transaction
     conn.context->transaction.Rollback();
+
+    // Write the children
+    fb::Offset<fb::Vector<uint64_t>> operatorChildVector;
+    fb::Offset<fb::Vector<uint64_t>> operatorChildOffsetVector;
+    {
+        // Encode children 
+        std::vector<size_t> operatorChildren;
+        std::vector<size_t> operatorChildOffsets;
+        std::sort(operatorChildEdges.begin(), operatorChildEdges.end(), [&](auto& l, auto& r) {
+            return std::get<0>(l) < std::get<0>(r);
+        });
+        auto edgeIter = operatorChildEdges.begin();
+        auto oid = 0;
+        for (; oid < operators.size() && edgeIter != operatorChildEdges.end(); ++oid) {
+            auto& [parent, child] = *edgeIter;
+            operatorChildOffsets.push_back(operatorChildren.size());
+
+            // Operator has no children?
+            if (oid != parent) {
+                continue;
+            }
+
+            operatorChildren.push_back(child);
+
+            // Add additional children 
+            edgeIter++;
+            for (; edgeIter != operatorChildEdges.end(); ++edgeIter) {
+                auto& [nextParent, nextChild] = *edgeIter;
+                if (oid != nextParent) {
+                    break;
+                } else {
+                    operatorChildren.push_back(nextChild);
+                }
+            }
+        }
+
+        // Write children
+        {
+            uint64_t *writer;
+            operatorChildVector = builder.CreateUninitializedVector<uint64_t>(operatorChildren.size(), &writer);
+            for (size_t i = 0; i < operatorChildren.size(); ++i) {
+                writer[i] = static_cast<size_t>(operatorChildren[i]);
+            }
+        }
+
+        // Write child offsets
+        {
+            uint64_t *writer;
+            operatorChildOffsetVector = builder.CreateUninitializedVector<uint64_t>(operatorChildren.size(), &writer);
+            for (size_t i = 0; i < operatorChildOffsets.size(); ++i) {
+                writer[i] = static_cast<size_t>(operatorChildOffsets[i]);
+            }
+        }
+    }
+
+    // Write the query result
+    proto::QueryPlanBuilder planBuilder{builder};
+    planBuilder.add_operator_children(operatorChildVector);
+    planBuilder.add_operator_child_offsets(operatorChildOffsetVector);
+    auto plan = planBuilder.Finish();
+
+    // Finish the flatbuffer
+    builder.Finish(plan);
+    auto buffer = registerBuffer(builder.Release());
+
+    // Mark as successfull
+    response.requestSucceeded(buffer);
 }
 
 /// Extract a parquet buffer

@@ -51,6 +51,47 @@ export enum StatusCode{
 };
 
 /**
+ * @enum {number}
+ */
+export enum LogicalOperatorType{
+  INVALID= 0,
+  PROJECTION= 1,
+  FILTER= 2,
+  AGGREGATE_AND_GROUP_BY= 3,
+  WINDOW= 4,
+  LIMIT= 5,
+  ORDER_BY= 6,
+  COPY_FROM_FILE= 7,
+  COPY_TO_FILE= 8,
+  DISTINCT= 9,
+  INDEX_SCAN= 10,
+  GET= 11,
+  CHUNK_GET= 12,
+  DELIM_GET= 13,
+  EXPRESSION_GET= 14,
+  TABLE_FUNCTION= 15,
+  SUBQUERY= 16,
+  EMPTY_RESULT= 17,
+  JOIN= 18,
+  DELIM_JOIN= 19,
+  COMPARISON_JOIN= 20,
+  ANY_JOIN= 21,
+  CROSS_PRODUCT= 22,
+  UNION= 23,
+  EXCEPT= 24,
+  INTERSECT= 25,
+  INSERT= 26,
+  DELETE= 27,
+  UPDATE= 28,
+  CREATE_TABLE= 29,
+  CREATE_INDEX= 30,
+  EXPLAIN= 31,
+  PRUNE_COLUMNS= 32,
+  PREPARE= 33,
+  EXECUTE= 34
+};
+
+/**
  * @constructor
  */
 export class SQLType {
@@ -136,20 +177,17 @@ static getRootAsQueryPlan(bb:flatbuffers.ByteBuffer, obj?:QueryPlan):QueryPlan {
 
 /**
  * @param number index
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array
+ * @returns flatbuffers.Long
  */
-nodeNames(index: number):string
-nodeNames(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
-nodeNames(index: number,optionalEncoding?:any):string|Uint8Array|null {
+operatorChildren(index: number):flatbuffers.Long|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.__string(this.bb!.__vector(this.bb_pos + offset) + index * 4, optionalEncoding) : null;
+  return offset ? this.bb!.readUint64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : this.bb!.createLong(0, 0);
 };
 
 /**
  * @returns number
  */
-nodeNamesLength():number {
+operatorChildrenLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
@@ -158,7 +196,7 @@ nodeNamesLength():number {
  * @param number index
  * @returns flatbuffers.Long
  */
-nodeChildOffsets(index: number):flatbuffers.Long|null {
+operatorChildOffsets(index: number):flatbuffers.Long|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.readUint64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : this.bb!.createLong(0, 0);
 };
@@ -166,112 +204,49 @@ nodeChildOffsets(index: number):flatbuffers.Long|null {
 /**
  * @returns number
  */
-nodeChildOffsetsLength():number {
+operatorChildOffsetsLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
 /**
  * @param number index
- * @returns flatbuffers.Long
+ * @returns LogicalOperatorType
  */
-nodeChildren(index: number):flatbuffers.Long|null {
+operatorTypes(index: number):LogicalOperatorType|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? this.bb!.readUint64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : this.bb!.createLong(0, 0);
+  return offset ? /**  */ (this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index)) : /**  */ (0);
 };
 
 /**
  * @returns number
  */
-nodeChildrenLength():number {
+operatorTypesLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
 /**
- * @param number index
- * @returns number
+ * @returns Uint8Array
  */
-nodeTimings(index: number):number|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? this.bb!.readFloat64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : 0;
-};
-
-/**
- * @returns number
- */
-nodeTimingsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @returns Float64Array
- */
-nodeTimingsArray():Float64Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? new Float64Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
-};
-
-/**
- * @param number index
- * @returns flatbuffers.Long
- */
-nodeCardinalities(index: number):flatbuffers.Long|null {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
-  return offset ? this.bb!.readUint64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : this.bb!.createLong(0, 0);
-};
-
-/**
- * @returns number
- */
-nodeCardinalitiesLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+operatorTypesArray():Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
 
 /**
  * @param flatbuffers.Builder builder
  */
 static startQueryPlan(builder:flatbuffers.Builder) {
-  builder.startObject(5);
+  builder.startObject(3);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset nodeNamesOffset
+ * @param flatbuffers.Offset operatorChildrenOffset
  */
-static addNodeNames(builder:flatbuffers.Builder, nodeNamesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, nodeNamesOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param Array.<flatbuffers.Offset> data
- * @returns flatbuffers.Offset
- */
-static createNodeNamesVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
-  builder.startVector(4, data.length, 4);
-  for (var i = data.length - 1; i >= 0; i--) {
-    builder.addOffset(data[i]);
-  }
-  return builder.endVector();
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startNodeNamesVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(4, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset nodeChildOffsetsOffset
- */
-static addNodeChildOffsets(builder:flatbuffers.Builder, nodeChildOffsetsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, nodeChildOffsetsOffset, 0);
+static addOperatorChildren(builder:flatbuffers.Builder, operatorChildrenOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, operatorChildrenOffset, 0);
 };
 
 /**
@@ -279,7 +254,7 @@ static addNodeChildOffsets(builder:flatbuffers.Builder, nodeChildOffsetsOffset:f
  * @param Array.<flatbuffers.Long> data
  * @returns flatbuffers.Offset
  */
-static createNodeChildOffsetsVector(builder:flatbuffers.Builder, data:flatbuffers.Long[]):flatbuffers.Offset {
+static createOperatorChildrenVector(builder:flatbuffers.Builder, data:flatbuffers.Long[]):flatbuffers.Offset {
   builder.startVector(8, data.length, 8);
   for (var i = data.length - 1; i >= 0; i--) {
     builder.addInt64(data[i]);
@@ -291,16 +266,16 @@ static createNodeChildOffsetsVector(builder:flatbuffers.Builder, data:flatbuffer
  * @param flatbuffers.Builder builder
  * @param number numElems
  */
-static startNodeChildOffsetsVector(builder:flatbuffers.Builder, numElems:number) {
+static startOperatorChildrenVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(8, numElems, 8);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset nodeChildrenOffset
+ * @param flatbuffers.Offset operatorChildOffsetsOffset
  */
-static addNodeChildren(builder:flatbuffers.Builder, nodeChildrenOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, nodeChildrenOffset, 0);
+static addOperatorChildOffsets(builder:flatbuffers.Builder, operatorChildOffsetsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, operatorChildOffsetsOffset, 0);
 };
 
 /**
@@ -308,7 +283,7 @@ static addNodeChildren(builder:flatbuffers.Builder, nodeChildrenOffset:flatbuffe
  * @param Array.<flatbuffers.Long> data
  * @returns flatbuffers.Offset
  */
-static createNodeChildrenVector(builder:flatbuffers.Builder, data:flatbuffers.Long[]):flatbuffers.Offset {
+static createOperatorChildOffsetsVector(builder:flatbuffers.Builder, data:flatbuffers.Long[]):flatbuffers.Offset {
   builder.startVector(8, data.length, 8);
   for (var i = data.length - 1; i >= 0; i--) {
     builder.addInt64(data[i]);
@@ -320,27 +295,27 @@ static createNodeChildrenVector(builder:flatbuffers.Builder, data:flatbuffers.Lo
  * @param flatbuffers.Builder builder
  * @param number numElems
  */
-static startNodeChildrenVector(builder:flatbuffers.Builder, numElems:number) {
+static startOperatorChildOffsetsVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(8, numElems, 8);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset nodeTimingsOffset
+ * @param flatbuffers.Offset operatorTypesOffset
  */
-static addNodeTimings(builder:flatbuffers.Builder, nodeTimingsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, nodeTimingsOffset, 0);
+static addOperatorTypes(builder:flatbuffers.Builder, operatorTypesOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, operatorTypesOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param Array.<number> data
+ * @param Array.<LogicalOperatorType> data
  * @returns flatbuffers.Offset
  */
-static createNodeTimingsVector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
-  builder.startVector(8, data.length, 8);
+static createOperatorTypesVector(builder:flatbuffers.Builder, data:LogicalOperatorType[]):flatbuffers.Offset {
+  builder.startVector(1, data.length, 1);
   for (var i = data.length - 1; i >= 0; i--) {
-    builder.addFloat64(data[i]);
+    builder.addInt8(data[i]);
   }
   return builder.endVector();
 };
@@ -349,37 +324,8 @@ static createNodeTimingsVector(builder:flatbuffers.Builder, data:number[] | Uint
  * @param flatbuffers.Builder builder
  * @param number numElems
  */
-static startNodeTimingsVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(8, numElems, 8);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset nodeCardinalitiesOffset
- */
-static addNodeCardinalities(builder:flatbuffers.Builder, nodeCardinalitiesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(4, nodeCardinalitiesOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param Array.<flatbuffers.Long> data
- * @returns flatbuffers.Offset
- */
-static createNodeCardinalitiesVector(builder:flatbuffers.Builder, data:flatbuffers.Long[]):flatbuffers.Offset {
-  builder.startVector(8, data.length, 8);
-  for (var i = data.length - 1; i >= 0; i--) {
-    builder.addInt64(data[i]);
-  }
-  return builder.endVector();
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startNodeCardinalitiesVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(8, numElems, 8);
+static startOperatorTypesVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(1, numElems, 1);
 };
 
 /**
@@ -391,13 +337,11 @@ static endQueryPlan(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createQueryPlan(builder:flatbuffers.Builder, nodeNamesOffset:flatbuffers.Offset, nodeChildOffsetsOffset:flatbuffers.Offset, nodeChildrenOffset:flatbuffers.Offset, nodeTimingsOffset:flatbuffers.Offset, nodeCardinalitiesOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createQueryPlan(builder:flatbuffers.Builder, operatorChildrenOffset:flatbuffers.Offset, operatorChildOffsetsOffset:flatbuffers.Offset, operatorTypesOffset:flatbuffers.Offset):flatbuffers.Offset {
   QueryPlan.startQueryPlan(builder);
-  QueryPlan.addNodeNames(builder, nodeNamesOffset);
-  QueryPlan.addNodeChildOffsets(builder, nodeChildOffsetsOffset);
-  QueryPlan.addNodeChildren(builder, nodeChildrenOffset);
-  QueryPlan.addNodeTimings(builder, nodeTimingsOffset);
-  QueryPlan.addNodeCardinalities(builder, nodeCardinalitiesOffset);
+  QueryPlan.addOperatorChildren(builder, operatorChildrenOffset);
+  QueryPlan.addOperatorChildOffsets(builder, operatorChildOffsetsOffset);
+  QueryPlan.addOperatorTypes(builder, operatorTypesOffset);
   return QueryPlan.endQueryPlan(builder);
 }
 }

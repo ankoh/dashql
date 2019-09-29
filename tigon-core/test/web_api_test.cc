@@ -43,8 +43,8 @@ TEST(WebAPITest, ExplainQuery) {
             (5, 6);
     )RAW");
 
-    session.explainQuery("SELECT 1;");
-    session.explainQuery(R"RAW(
+    session.planQuery("SELECT 1;");
+    session.planQuery(R"RAW(
         SELECT *
         FROM r1, r2
         WHERE a = c;

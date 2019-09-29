@@ -181,6 +181,135 @@ inline const char *EnumNameStatusCode(StatusCode e) {
   return EnumNamesStatusCode()[index];
 }
 
+enum class LogicalOperatorType : uint8_t {
+  INVALID = 0,
+  PROJECTION = 1,
+  FILTER = 2,
+  AGGREGATE_AND_GROUP_BY = 3,
+  WINDOW = 4,
+  LIMIT = 5,
+  ORDER_BY = 6,
+  COPY_FROM_FILE = 7,
+  COPY_TO_FILE = 8,
+  DISTINCT = 9,
+  INDEX_SCAN = 10,
+  GET = 11,
+  CHUNK_GET = 12,
+  DELIM_GET = 13,
+  EXPRESSION_GET = 14,
+  TABLE_FUNCTION = 15,
+  SUBQUERY = 16,
+  EMPTY_RESULT = 17,
+  JOIN = 18,
+  DELIM_JOIN = 19,
+  COMPARISON_JOIN = 20,
+  ANY_JOIN = 21,
+  CROSS_PRODUCT = 22,
+  UNION = 23,
+  EXCEPT = 24,
+  INTERSECT = 25,
+  INSERT = 26,
+  DELETE = 27,
+  UPDATE = 28,
+  CREATE_TABLE = 29,
+  CREATE_INDEX = 30,
+  EXPLAIN = 31,
+  PRUNE_COLUMNS = 32,
+  PREPARE = 33,
+  EXECUTE = 34,
+  MIN = INVALID,
+  MAX = EXECUTE
+};
+
+inline const LogicalOperatorType (&EnumValuesLogicalOperatorType())[35] {
+  static const LogicalOperatorType values[] = {
+    LogicalOperatorType::INVALID,
+    LogicalOperatorType::PROJECTION,
+    LogicalOperatorType::FILTER,
+    LogicalOperatorType::AGGREGATE_AND_GROUP_BY,
+    LogicalOperatorType::WINDOW,
+    LogicalOperatorType::LIMIT,
+    LogicalOperatorType::ORDER_BY,
+    LogicalOperatorType::COPY_FROM_FILE,
+    LogicalOperatorType::COPY_TO_FILE,
+    LogicalOperatorType::DISTINCT,
+    LogicalOperatorType::INDEX_SCAN,
+    LogicalOperatorType::GET,
+    LogicalOperatorType::CHUNK_GET,
+    LogicalOperatorType::DELIM_GET,
+    LogicalOperatorType::EXPRESSION_GET,
+    LogicalOperatorType::TABLE_FUNCTION,
+    LogicalOperatorType::SUBQUERY,
+    LogicalOperatorType::EMPTY_RESULT,
+    LogicalOperatorType::JOIN,
+    LogicalOperatorType::DELIM_JOIN,
+    LogicalOperatorType::COMPARISON_JOIN,
+    LogicalOperatorType::ANY_JOIN,
+    LogicalOperatorType::CROSS_PRODUCT,
+    LogicalOperatorType::UNION,
+    LogicalOperatorType::EXCEPT,
+    LogicalOperatorType::INTERSECT,
+    LogicalOperatorType::INSERT,
+    LogicalOperatorType::DELETE,
+    LogicalOperatorType::UPDATE,
+    LogicalOperatorType::CREATE_TABLE,
+    LogicalOperatorType::CREATE_INDEX,
+    LogicalOperatorType::EXPLAIN,
+    LogicalOperatorType::PRUNE_COLUMNS,
+    LogicalOperatorType::PREPARE,
+    LogicalOperatorType::EXECUTE
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesLogicalOperatorType() {
+  static const char * const names[] = {
+    "INVALID",
+    "PROJECTION",
+    "FILTER",
+    "AGGREGATE_AND_GROUP_BY",
+    "WINDOW",
+    "LIMIT",
+    "ORDER_BY",
+    "COPY_FROM_FILE",
+    "COPY_TO_FILE",
+    "DISTINCT",
+    "INDEX_SCAN",
+    "GET",
+    "CHUNK_GET",
+    "DELIM_GET",
+    "EXPRESSION_GET",
+    "TABLE_FUNCTION",
+    "SUBQUERY",
+    "EMPTY_RESULT",
+    "JOIN",
+    "DELIM_JOIN",
+    "COMPARISON_JOIN",
+    "ANY_JOIN",
+    "CROSS_PRODUCT",
+    "UNION",
+    "EXCEPT",
+    "INTERSECT",
+    "INSERT",
+    "DELETE",
+    "UPDATE",
+    "CREATE_TABLE",
+    "CREATE_INDEX",
+    "EXPLAIN",
+    "PRUNE_COLUMNS",
+    "PREPARE",
+    "EXECUTE",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameLogicalOperatorType(LogicalOperatorType e) {
+  if (e < LogicalOperatorType::INVALID || e > LogicalOperatorType::EXECUTE) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesLogicalOperatorType()[index];
+}
+
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) SQLType FLATBUFFERS_FINAL_CLASS {
  private:
   uint8_t type_id_;
@@ -216,40 +345,27 @@ FLATBUFFERS_STRUCT_END(SQLType, 6);
 
 struct QueryPlan FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NODE_NAMES = 4,
-    VT_NODE_CHILD_OFFSETS = 6,
-    VT_NODE_CHILDREN = 8,
-    VT_NODE_TIMINGS = 10,
-    VT_NODE_CARDINALITIES = 12
+    VT_OPERATOR_CHILDREN = 4,
+    VT_OPERATOR_CHILD_OFFSETS = 6,
+    VT_OPERATOR_TYPES = 8
   };
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *node_names() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_NODE_NAMES);
+  const flatbuffers::Vector<uint64_t> *operator_children() const {
+    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_OPERATOR_CHILDREN);
   }
-  const flatbuffers::Vector<uint64_t> *node_child_offsets() const {
-    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_NODE_CHILD_OFFSETS);
+  const flatbuffers::Vector<uint64_t> *operator_child_offsets() const {
+    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_OPERATOR_CHILD_OFFSETS);
   }
-  const flatbuffers::Vector<uint64_t> *node_children() const {
-    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_NODE_CHILDREN);
-  }
-  const flatbuffers::Vector<double> *node_timings() const {
-    return GetPointer<const flatbuffers::Vector<double> *>(VT_NODE_TIMINGS);
-  }
-  const flatbuffers::Vector<uint64_t> *node_cardinalities() const {
-    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_NODE_CARDINALITIES);
+  const flatbuffers::Vector<uint8_t> *operator_types() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_OPERATOR_TYPES);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NODE_NAMES) &&
-           verifier.VerifyVector(node_names()) &&
-           verifier.VerifyVectorOfStrings(node_names()) &&
-           VerifyOffset(verifier, VT_NODE_CHILD_OFFSETS) &&
-           verifier.VerifyVector(node_child_offsets()) &&
-           VerifyOffset(verifier, VT_NODE_CHILDREN) &&
-           verifier.VerifyVector(node_children()) &&
-           VerifyOffset(verifier, VT_NODE_TIMINGS) &&
-           verifier.VerifyVector(node_timings()) &&
-           VerifyOffset(verifier, VT_NODE_CARDINALITIES) &&
-           verifier.VerifyVector(node_cardinalities()) &&
+           VerifyOffset(verifier, VT_OPERATOR_CHILDREN) &&
+           verifier.VerifyVector(operator_children()) &&
+           VerifyOffset(verifier, VT_OPERATOR_CHILD_OFFSETS) &&
+           verifier.VerifyVector(operator_child_offsets()) &&
+           VerifyOffset(verifier, VT_OPERATOR_TYPES) &&
+           verifier.VerifyVector(operator_types()) &&
            verifier.EndTable();
   }
 };
@@ -257,20 +373,14 @@ struct QueryPlan FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct QueryPlanBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_node_names(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> node_names) {
-    fbb_.AddOffset(QueryPlan::VT_NODE_NAMES, node_names);
+  void add_operator_children(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> operator_children) {
+    fbb_.AddOffset(QueryPlan::VT_OPERATOR_CHILDREN, operator_children);
   }
-  void add_node_child_offsets(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> node_child_offsets) {
-    fbb_.AddOffset(QueryPlan::VT_NODE_CHILD_OFFSETS, node_child_offsets);
+  void add_operator_child_offsets(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> operator_child_offsets) {
+    fbb_.AddOffset(QueryPlan::VT_OPERATOR_CHILD_OFFSETS, operator_child_offsets);
   }
-  void add_node_children(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> node_children) {
-    fbb_.AddOffset(QueryPlan::VT_NODE_CHILDREN, node_children);
-  }
-  void add_node_timings(flatbuffers::Offset<flatbuffers::Vector<double>> node_timings) {
-    fbb_.AddOffset(QueryPlan::VT_NODE_TIMINGS, node_timings);
-  }
-  void add_node_cardinalities(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> node_cardinalities) {
-    fbb_.AddOffset(QueryPlan::VT_NODE_CARDINALITIES, node_cardinalities);
+  void add_operator_types(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> operator_types) {
+    fbb_.AddOffset(QueryPlan::VT_OPERATOR_TYPES, operator_types);
   }
   explicit QueryPlanBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -286,39 +396,29 @@ struct QueryPlanBuilder {
 
 inline flatbuffers::Offset<QueryPlan> CreateQueryPlan(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> node_names = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> node_child_offsets = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> node_children = 0,
-    flatbuffers::Offset<flatbuffers::Vector<double>> node_timings = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> node_cardinalities = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> operator_children = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> operator_child_offsets = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> operator_types = 0) {
   QueryPlanBuilder builder_(_fbb);
-  builder_.add_node_cardinalities(node_cardinalities);
-  builder_.add_node_timings(node_timings);
-  builder_.add_node_children(node_children);
-  builder_.add_node_child_offsets(node_child_offsets);
-  builder_.add_node_names(node_names);
+  builder_.add_operator_types(operator_types);
+  builder_.add_operator_child_offsets(operator_child_offsets);
+  builder_.add_operator_children(operator_children);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<QueryPlan> CreateQueryPlanDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *node_names = nullptr,
-    const std::vector<uint64_t> *node_child_offsets = nullptr,
-    const std::vector<uint64_t> *node_children = nullptr,
-    const std::vector<double> *node_timings = nullptr,
-    const std::vector<uint64_t> *node_cardinalities = nullptr) {
-  auto node_names__ = node_names ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*node_names) : 0;
-  auto node_child_offsets__ = node_child_offsets ? _fbb.CreateVector<uint64_t>(*node_child_offsets) : 0;
-  auto node_children__ = node_children ? _fbb.CreateVector<uint64_t>(*node_children) : 0;
-  auto node_timings__ = node_timings ? _fbb.CreateVector<double>(*node_timings) : 0;
-  auto node_cardinalities__ = node_cardinalities ? _fbb.CreateVector<uint64_t>(*node_cardinalities) : 0;
+    const std::vector<uint64_t> *operator_children = nullptr,
+    const std::vector<uint64_t> *operator_child_offsets = nullptr,
+    const std::vector<uint8_t> *operator_types = nullptr) {
+  auto operator_children__ = operator_children ? _fbb.CreateVector<uint64_t>(*operator_children) : 0;
+  auto operator_child_offsets__ = operator_child_offsets ? _fbb.CreateVector<uint64_t>(*operator_child_offsets) : 0;
+  auto operator_types__ = operator_types ? _fbb.CreateVector<uint8_t>(*operator_types) : 0;
   return tigon::proto::CreateQueryPlan(
       _fbb,
-      node_names__,
-      node_child_offsets__,
-      node_children__,
-      node_timings__,
-      node_cardinalities__);
+      operator_children__,
+      operator_child_offsets__,
+      operator_types__);
 }
 
 struct QueryResultColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
