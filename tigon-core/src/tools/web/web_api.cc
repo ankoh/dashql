@@ -328,9 +328,19 @@ void WebAPI::Session::planQuery(std::string_view text) {
     conn.context->transaction.Rollback();
 
     // Write the children
+    fb::Offset<fb::Vector<uint8_t>> operatorTypeVector;
     fb::Offset<fb::Vector<uint64_t>> operatorChildVector;
     fb::Offset<fb::Vector<uint64_t>> operatorChildOffsetVector;
     {
+        // Write operator types
+        {
+            uint8_t *writer;
+            operatorTypeVector = builder.CreateUninitializedVector<uint8_t>(operators.size(), &writer);
+            for (size_t i = 0; i < operators.size(); ++i) {
+                writer[i] = static_cast<uint8_t>(operators[i]->type);
+            }
+        }
+
         // Encode children 
         std::vector<size_t> operatorChildren;
         std::vector<size_t> operatorChildOffsets;
@@ -383,6 +393,7 @@ void WebAPI::Session::planQuery(std::string_view text) {
 
     // Write the query result
     proto::QueryPlanBuilder planBuilder{builder};
+    planBuilder.add_operator_types(operatorTypeVector);
     planBuilder.add_operator_children(operatorChildVector);
     planBuilder.add_operator_child_offsets(operatorChildOffsetVector);
     auto plan = planBuilder.Finish();
