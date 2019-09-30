@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as Model from '../../model';
-import { connect } from 'react-redux';
 import { AutoSizer, MultiGrid, GridCellProps, Index } from 'react-virtualized';
 
 import './table.css';
@@ -173,16 +172,5 @@ class Table extends React.Component<ITableProps, ITableState> {
     }
 }
 
-function mapStateToProps(state: Model.RootState) {
-    return {
-    };
-}
-
-function mapDispatchToProps(dispatch: Model.Dispatch) {
-    return {
-        navigateRoot: (view: Model.RootView) => { dispatch(Model.navigateRoot(view)); },
-    };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(Table);
+export default Table;
 
