@@ -20,7 +20,7 @@ import { connect } from 'react-redux';
 
 interface IExplorerProps {
     appContext: IAppContext;
-    dataSource: Model.DataSource;
+    dataSource: Model.DataSource | null;
 
     setExplorerDataSource: (d: Model.DataSource) => void;
 }
@@ -32,7 +32,7 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className="explorer-viewer">
                     <div className="explorer-viewer-output-container">
                         <div className="explorer-viewer-output">
-                            <Table data={this.props.dataSource} />
+                            <Table data={this.props.dataSource || new Model.DataSource()} />
                         </div>
                     </div>
                     <div className="explorer-viewer-controls">
@@ -113,7 +113,6 @@ class Explorer extends React.Component<IExplorerProps> {
         ctrl.terminal.read("> ", "   ",)
         .then(async function(text: string) {
             let session = await ctrl.core.createSession(); // TODO
-            await ctrl.core.planQuery(session, text);
             let result = await ctrl.core.runQuery(session, text);
             let d = new Model.QueryResultDataSource(result);
             self.props.setExplorerDataSource(d);

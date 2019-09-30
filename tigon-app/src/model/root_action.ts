@@ -10,6 +10,7 @@ export enum ActionType {
     NAVIGATE_ROOT               = 'NAVIGATE_ROOT',
     PUSH_LOG_ENTRY              = 'PUSH_LOG_ENTRY',
     SET_EXPLORER_DATA_SOURCE    = 'SET_EXPLORER_DATA_SOURCE',
+    SET_EXPLORER_PLAN           = 'SET_EXPLORER_PLAN',
     OTHER                       = 'OTHER',
 }
 
@@ -22,6 +23,7 @@ export type RootAction =
     | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
     | Action<ActionType.SET_EXPLORER_DATA_SOURCE, Model.DataSource>
+    | Action<ActionType.SET_EXPLORER_PLAN, Model.QueryPlan>
     | Action<ActionType.OTHER, {}>;
 
 // ---------------------------------------------------------------------------
@@ -56,4 +58,8 @@ export function configureApp(config: State.AppConfig): RootAction {
 
 export function setExplorerDataSource(d: Model.DataSource): RootAction {
     return createAction<ActionType.SET_EXPLORER_DATA_SOURCE, Model.DataSource>(ActionType.SET_EXPLORER_DATA_SOURCE, d);
+}
+
+export function setExplorerQueryPlan(p: Model.QueryPlan): RootAction {
+    return createAction<ActionType.SET_EXPLORER_PLAN, Model.QueryPlan>(ActionType.SET_EXPLORER_PLAN, p);
 }

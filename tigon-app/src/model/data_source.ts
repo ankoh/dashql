@@ -66,7 +66,7 @@ export class InlineAnyRows extends DataSource {
 }
 
 export class QueryResultDataSource extends DataSource {
-    result: ctrl.QueryResult;
+    result: ctrl.CoreBuffer<proto.QueryResult>;
     chunks: Array<{
         offset: number,
         chunk: proto.QueryResultChunk,
@@ -74,7 +74,7 @@ export class QueryResultDataSource extends DataSource {
     columnData: Array<Array<DataView | null>>;
 
     // Constructor
-    constructor(result: ctrl.QueryResult) {
+    constructor(result: ctrl.CoreBuffer<proto.QueryResult>) {
         super();
         this.result = result;
         this.chunks = [];

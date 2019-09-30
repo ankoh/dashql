@@ -26,10 +26,20 @@ export function reducer(state: State.RootState = new State.RootState(), a: RootA
                 };
             };
         case ActionType.SET_EXPLORER_DATA_SOURCE:
-            state.explorerDataSource.destroy();
+            if (state.explorerDataSource) {
+                state.explorerDataSource.destroy();
+            }
             return {
                 ...state,
                 explorerDataSource: a.payload
+            };
+        case ActionType.SET_EXPLORER_PLAN:
+            if (state.explorerPlan) {
+                state.explorerPlan.destroy();
+            }
+            return {
+                ...state,
+                explorerPlan: a.payload
             };
         case ActionType.CONFIGURE_APP: 
             return {

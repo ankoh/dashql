@@ -1,5 +1,6 @@
 import * as Immutable from 'immutable';
 import { DataSource, InlineAnyRows } from './data_source';
+import { QueryPlan } from './query_plan';
 import * as proto from '../proto';
 
 // ---------------------------------------------------------------------------
@@ -213,7 +214,9 @@ export class RootState {
     public rootView: RootView;
 
     // The explorer data source
-    public explorerDataSource: DataSource;
+    public explorerDataSource: DataSource | null;
+    // The explorer plan
+    public explorerPlan: QueryPlan | null;
 
     // Constructor
     constructor() {
@@ -234,6 +237,7 @@ export class RootState {
                 '2021', 30, 15, 12, 13
             ],
         );
+        this.explorerPlan = null;
         return;
     }
 }
