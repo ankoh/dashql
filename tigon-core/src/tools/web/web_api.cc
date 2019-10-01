@@ -329,20 +329,21 @@ void WebAPI::Session::planQuery(std::string_view text) {
     // End transaction
     conn.context->transaction.Rollback();
 
-    // Write the children
     fb::Offset<fb::Vector<uint8_t>> operatorTypeVector;
     fb::Offset<fb::Vector<uint64_t>> operatorChildVector;
     fb::Offset<fb::Vector<uint64_t>> operatorChildOffsetVector;
-    {
-        // Write operator types
-        {
-            uint8_t *writer;
-            operatorTypeVector = builder.CreateUninitializedVector<uint8_t>(operators.size(), &writer);
-            for (size_t i = 0; i < operators.size(); ++i) {
-                writer[i] = static_cast<uint8_t>(operators[i]->type);
-            }
-        }
 
+    // Write operator types
+    {
+        uint8_t *writer;
+        operatorTypeVector = builder.CreateUninitializedVector<uint8_t>(operators.size(), &writer);
+        for (size_t i = 0; i < operators.size(); ++i) {
+            writer[i] = static_cast<uint8_t>(operators[i]->type);
+        }
+    }
+
+    // Write the children
+    {
         // Encode children 
         std::vector<size_t> operatorChildren;
         std::vector<size_t> operatorChildOffsets;
@@ -355,14 +356,14 @@ void WebAPI::Session::planQuery(std::string_view text) {
         auto oid = 0;
         for (; oid < operators.size(); ++oid) {
             auto& [parent, child] = *edgeIter;
+            operatorChildOffsets[parent] = operatorChildren.size();
 
             // Operator has no children?
             if (oid != parent || edgeIter != operatorChildEdges.end()) {
-                operatorChildOffsets[parent] = operatorChildren.size();
                 continue;
             }
 
-            operatorChildOffsets[parent] = operatorChildren.size();
+            // Found a child
             operatorChildren.push_back(child);
 
             // Add additional children 
@@ -378,21 +379,16 @@ void WebAPI::Session::planQuery(std::string_view text) {
         }
 
         // Write children
-        {
-            uint64_t *writer;
-            operatorChildVector = builder.CreateUninitializedVector<uint64_t>(operatorChildren.size(), &writer);
-            for (size_t i = 0; i < operatorChildren.size(); ++i) {
-                writer[i] = static_cast<size_t>(operatorChildren[i]);
-            }
+        uint64_t *writer;
+        operatorChildVector = builder.CreateUninitializedVector<uint64_t>(operatorChildren.size(), &writer);
+        for (size_t i = 0; i < operatorChildren.size(); ++i) {
+            writer[i] = static_cast<size_t>(operatorChildren[i]);
         }
 
         // Write child offsets
-        {
-            uint64_t *writer;
-            operatorChildOffsetVector = builder.CreateUninitializedVector<uint64_t>(operatorChildren.size(), &writer);
-            for (size_t i = 0; i < operatorChildOffsets.size(); ++i) {
-                writer[i] = static_cast<size_t>(operatorChildOffsets[i]);
-            }
+        operatorChildOffsetVector = builder.CreateUninitializedVector<uint64_t>(operatorChildOffsets.size(), &writer);
+        for (size_t i = 0; i < operatorChildOffsets.size(); ++i) {
+            writer[i] = static_cast<size_t>(operatorChildOffsets[i]);
         }
     }
 
