@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as Model from '../model';
 import { IAppContext, withAppContext } from '../app_context';
-// import Table from './viz/table';
+import Table from './viz/table';
 import PlanViewer from './viz/plan_viewer';
 import Terminal from './terminal';
 import './explorer.scss';
@@ -28,13 +28,15 @@ interface IExplorerProps {
     setExplorerPlan: (d: Model.QueryPlan) => void;
 }
 
-//     <div className="explorer-viewer-output">
-//         <Table data={this.props.dataSource || new Model.DataSource()} />
-//     </div>
 class Explorer extends React.Component<IExplorerProps> {
     public renderOutput() {
         return (
             <div className="explorer-viewer-output-container">
+                {
+                    <div className="explorer-viewer-output">
+                        <Table data={this.props.dataSource || new Model.DataSource()} />
+                    </div>   
+                }
                 {
                     this.props.plan &&
                     <div className="explorer-viewer-output">
@@ -133,9 +135,9 @@ class Explorer extends React.Component<IExplorerProps> {
             let d = new Model.QueryResultDataSource(result);
             self.props.setExplorerDataSource(d);
 
-            let plan = await ctrl.core.planQuery(session, text);
-            let p = new Model.QueryPlan(plan);
-            self.props.setExplorerPlan(p);
+            // let plan = await ctrl.core.planQuery(session, text);
+            // let p = new Model.QueryPlan(plan);
+            // self.props.setExplorerPlan(p);
         })
         .catch(function(text: string) {
             ctrl.terminal.printLine("err: " + text);
