@@ -60,6 +60,6 @@ export function setExplorerDataSource(d: Model.DataSource): RootAction {
     return createAction<ActionType.SET_EXPLORER_DATA_SOURCE, Model.DataSource>(ActionType.SET_EXPLORER_DATA_SOURCE, d);
 }
 
-export function setExplorerQueryPlan(p: Model.QueryPlan): RootAction {
+export function setExplorerPlan(p: Model.QueryPlan): RootAction {
     return createAction<ActionType.SET_EXPLORER_PLAN, Model.QueryPlan>(ActionType.SET_EXPLORER_PLAN, p);
 }

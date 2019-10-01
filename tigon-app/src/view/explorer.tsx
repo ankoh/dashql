@@ -1,7 +1,8 @@
 import * as React from 'react';
 import * as Model from '../model';
 import { IAppContext, withAppContext } from '../app_context';
-import Table from './viz/table';
+// import Table from './viz/table';
+import PlanViewer from './viz/plan_viewer';
 import Terminal from './terminal';
 import './explorer.scss';
 import {
@@ -21,20 +22,34 @@ import { connect } from 'react-redux';
 interface IExplorerProps {
     appContext: IAppContext;
     dataSource: Model.DataSource | null;
+    plan: Model.QueryPlan | null;
 
     setExplorerDataSource: (d: Model.DataSource) => void;
+    setExplorerPlan: (d: Model.QueryPlan) => void;
 }
 
+//     <div className="explorer-viewer-output">
+//         <Table data={this.props.dataSource || new Model.DataSource()} />
+//     </div>
 class Explorer extends React.Component<IExplorerProps> {
+    public renderOutput() {
+        return (
+            <div className="explorer-viewer-output-container">
+                {
+                    this.props.plan &&
+                    <div className="explorer-viewer-output">
+                        <PlanViewer plan={this.props.plan} />
+                    </div>
+                }
+            </div>
+        );
+    }
+
     public render() {
         return (
             <div className="explorer">
                 <div className="explorer-viewer">
-                    <div className="explorer-viewer-output-container">
-                        <div className="explorer-viewer-output">
-                            <Table data={this.props.dataSource || new Model.DataSource()} />
-                        </div>
-                    </div>
+                    {this.renderOutput()}
                     <div className="explorer-viewer-controls">
                         <div className="explorer-viewer-viztypes">
                             <div className="explorer-viewer-viztype-container">
@@ -113,9 +128,14 @@ class Explorer extends React.Component<IExplorerProps> {
         ctrl.terminal.read("> ", "   ",)
         .then(async function(text: string) {
             let session = await ctrl.core.createSession(); // TODO
+
             let result = await ctrl.core.runQuery(session, text);
             let d = new Model.QueryResultDataSource(result);
             self.props.setExplorerDataSource(d);
+
+            let plan = await ctrl.core.planQuery(session, text);
+            let p = new Model.QueryPlan(plan);
+            self.props.setExplorerPlan(p);
         })
         .catch(function(text: string) {
             ctrl.terminal.printLine("err: " + text);
@@ -127,12 +147,14 @@ class Explorer extends React.Component<IExplorerProps> {
 function mapStateToExplorerProps(state: Model.RootState) {
     return {
         dataSource: state.explorerDataSource,
+        plan: state.explorerPlan,
     };
 }
 
 function mapDispatchToExplorerProps(dispatch: Model.Dispatch) {
     return {
         setExplorerDataSource: (d: Model.DataSource) => { dispatch(Model.setExplorerDataSource(d)); },
+        setExplorerPlan: (p: Model.QueryPlan) => { dispatch(Model.setExplorerPlan(p)); },
     };
 }
 

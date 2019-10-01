@@ -307,9 +307,11 @@ void WebAPI::Session::planQuery(std::string_view text) {
     // Remember the children
     std::vector<duckdb::LogicalOperator*> operators;
     std::vector<std::tuple<size_t, size_t>> operatorChildEdges;
+    operators.push_back(planner.plan.get());
 
     // Traverse the plan
     std::vector<size_t> dfsStack;
+    dfsStack.push_back(0);
     while (!dfsStack.empty()) {
         // Get next operator
         auto targetID = dfsStack.back();
@@ -347,17 +349,20 @@ void WebAPI::Session::planQuery(std::string_view text) {
         std::sort(operatorChildEdges.begin(), operatorChildEdges.end(), [&](auto& l, auto& r) {
             return std::get<0>(l) < std::get<0>(r);
         });
+        operatorChildOffsets.resize(operators.size(), 0);
+
         auto edgeIter = operatorChildEdges.begin();
         auto oid = 0;
-        for (; oid < operators.size() && edgeIter != operatorChildEdges.end(); ++oid) {
+        for (; oid < operators.size(); ++oid) {
             auto& [parent, child] = *edgeIter;
-            operatorChildOffsets.push_back(operatorChildren.size());
 
             // Operator has no children?
-            if (oid != parent) {
+            if (oid != parent || edgeIter != operatorChildEdges.end()) {
+                operatorChildOffsets[parent] = operatorChildren.size();
                 continue;
             }
 
+            operatorChildOffsets[parent] = operatorChildren.size();
             operatorChildren.push_back(child);
 
             // Add additional children 
