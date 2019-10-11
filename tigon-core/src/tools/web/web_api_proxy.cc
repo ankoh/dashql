@@ -50,9 +50,4 @@ void tigon_run_query(WebAPI::Session *session, const char *text) { session->runQ
 /// Explain a query
 void tigon_plan_query(WebAPI::Session *session, const char* text) { session->planQuery(text); }
 
-/// Extract a parquet file
-void tigon_extract_parquet(WebAPI::Session *session, const uint8_t* buffer, uint32_t bufferSize) {
-    session->extractParquet(buffer, bufferSize);
-}
-
 }

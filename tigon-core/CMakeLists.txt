@@ -55,15 +55,9 @@ endif()
 # Include cmake lists
 include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/duckdb.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/double-conversion.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/googletest.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/snappy.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/brotli.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/boost.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/thrift.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/rapidjson.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/arrow.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/cwcsv.cmake")
 
 # ---------------------------------------------------------------------------
@@ -80,7 +74,6 @@ include_directories(
 add_library(tigon
     ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
     ${CMAKE_SOURCE_DIR}/src/extract/json_extract.cc
-    ${CMAKE_SOURCE_DIR}/src/extract/parquet_extract.cc
     ${CMAKE_SOURCE_DIR}/src/parser/sql/sql_parser.cc
     ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
 )
@@ -93,7 +86,6 @@ target_link_libraries(tigon
     tigon_tql
     duckdb
     rapidjson cwcsv
-    parquet arrow
     Threads::Threads
 )
 
@@ -119,7 +111,6 @@ if(DEFINED ENV{EMSDK})
             _tigon_get_response_status, \
             _tigon_get_response_error_message, \
             _tigon_get_response_data, \
-            _tigon_extract_parquet, \
             _tigon_parse_tql, \
             _tigon_run_query, \
             _tigon_plan_query \
@@ -135,7 +126,6 @@ add_executable(tester
     ${CMAKE_SOURCE_DIR}/test/tester.cc
     ${CMAKE_SOURCE_DIR}/test/web_api_test.cc
     ${CMAKE_SOURCE_DIR}/test/examples/hw2/hw2_test.cc
-    ${CMAKE_SOURCE_DIR}/test/examples/parquet_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc
 )
 target_link_libraries(tester tigon gtest gmock Threads::Threads)
