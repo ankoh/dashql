@@ -27,6 +27,6 @@ describe("controller/core", () => {
         let result = await sharedCore.runQuery(session, "SELECT 1;");
 
         result.destroy();
-        await sharedCore.endSession();
+        await sharedCore.endSession(session);
     });
 });

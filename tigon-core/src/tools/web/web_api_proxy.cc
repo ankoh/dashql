@@ -4,6 +4,7 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/tools/web/web_api_proxy.h"
+#include <iostream>
 
 namespace fb = flatbuffers;
 using namespace tigon;
@@ -12,6 +13,7 @@ static std::unique_ptr<WebAPI> instance;
 
 int main() {
     instance = std::make_unique<WebAPI>();
+    std::cout << "foo" << std::endl;
     return 0;
 }
 

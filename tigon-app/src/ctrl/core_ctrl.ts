@@ -56,19 +56,13 @@ export class CoreController {
     // Initialize the core
     public init(): Promise<void> {
         this.coreLoading = new Promise<void>(resolve => {
+
             this.core = this.loadCore({
-                print: (function() {
-                    return function(text: any) {
-                        console.log("[wasm] print");
-                        console.log(text);
-                    };
-                })(),
+                print: function(text: any) {
+                    console.log("[wasm::stdout] " + text);
+                },
                 printErr: function(text: any) {
-                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-                    if (0) {
-                        console.log("[wasm] printErr");
-                        console.log(text);
-                    }
+                    console.log("[wasm::stderr] " + text);
                 },
                 onRuntimeInitialized: function() {
                     resolve();

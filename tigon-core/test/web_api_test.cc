@@ -44,11 +44,14 @@ TEST(WebAPITest, ExplainQuery) {
     )RAW");
 
     session.planQuery("SELECT 1;");
+    ASSERT_EQ(session.getResponseStatus(), tigon::proto::StatusCode::Success);
+
     session.planQuery(R"RAW(
         SELECT *
         FROM r1, r2
         WHERE a = c;
     )RAW");
+    ASSERT_EQ(session.getResponseStatus(), tigon::proto::StatusCode::Success);
 }
 
 }

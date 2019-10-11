@@ -295,10 +295,12 @@ void WebAPI::Session::planQuery(std::string_view text) {
 
     // Invalid statement count?
     if (parser.statements.size() != 1) {
+        std::cout << "invalid number of statements" << std::endl;
         // TODO
         response.requestFailed(proto::StatusCode::GenericError, "foo");
         return;
     }
+    std::cout << "1" << std::endl;
 
     // Plan the statement
     duckdb::Planner planner{*conn.context};
