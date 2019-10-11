@@ -33,6 +33,7 @@ class Explorer extends React.Component<IExplorerProps> {
         return (
             <div className="explorer-viewer-output-container">
                 {
+                    false &&
                     <div className="explorer-viewer-output">
                         <Table data={this.props.dataSource || new Model.DataSource()} />
                     </div>   
