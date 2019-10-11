@@ -7,21 +7,9 @@
 [submodule "tigon-core/third_party/googletest"]
 	path = tigon-core/third_party/googletest
 	url = https://github.com/google/googletest
-[submodule "tigon-core/third_party/arrow"]
-	path = tigon-core/third_party/arrow
-	url = https://github.com/apache/arrow
-[submodule "tigon-core/third_party/snappy"]
-	path = tigon-core/third_party/snappy
-	url = https://github.com/google/snappy
-[submodule "tigon-core/third_party/brotli"]
-	path = tigon-core/third_party/brotli
-	url = https://github.com/google/brotli
-[submodule "tigon-core/third_party/thrift"]
-	path = tigon-core/third_party/thrift
-	url = https://github.com/apache/thrift
 [submodule "tigon-core/third_party/rapidjson"]
 	path = tigon-core/third_party/rapidjson
 	url = https://github.com/Tencent/rapidjson
-[submodule "tigon-core/third_party/double-conversion"]
-	path = tigon-core/third_party/double-conversion
-	url = https://github.com/google/double-conversion
+[submodule "tigon-core/third_party/spdlog"]
+	path = tigon-core/third_party/spdlog
+    url = https://github.com/gabime/spdlog
