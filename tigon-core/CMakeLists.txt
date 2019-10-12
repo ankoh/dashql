@@ -59,6 +59,7 @@ include("${CMAKE_SOURCE_DIR}/third_party/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/cwcsv.cmake")
+include("${CMAKE_SOURCE_DIR}/third_party/spdlog.cmake")
 
 # ---------------------------------------------------------------------------
 # Headers
@@ -85,7 +86,7 @@ target_link_libraries(tigon
     tigon_rpath
     tigon_tql
     duckdb
-    rapidjson cwcsv
+    rapidjson cwcsv spdlog
     Threads::Threads
 )
 

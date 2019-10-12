@@ -4,6 +4,8 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/tools/web/web_api_proxy.h"
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_sinks.h"
 #include <iostream>
 
 namespace fb = flatbuffers;
@@ -11,9 +13,21 @@ using namespace tigon;
 
 static std::unique_ptr<WebAPI> instance;
 
-int main() {
+int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
+
+    // Prepare the logger
+    auto logSink = std::make_shared<spdlog::sinks::stderr_sink_st>();
+    auto logger = std::make_shared<spdlog::logger>("console", logSink);
+    logger->set_level(spdlog::level::debug);
+    logger->set_pattern(R"RAW({"time":"%T","level":"%l","message":"%v"})RAW");
+    spdlog::set_default_logger(logger);
+    spdlog::info("initialized logger");
+       
+    // Create the instance
     instance = std::make_unique<WebAPI>();
-    std::cout << "foo" << std::endl;
+    spdlog::info("initialized web api");
     return 0;
 }
 

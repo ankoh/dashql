@@ -11,6 +11,8 @@
 #include "parser/parser.hpp"
 #include "planner/planner.hpp"
 
+#include "spdlog/spdlog.h"
+
 #include "flatbuffers/flatbuffers.h"
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/proto/tql_generated.h"
@@ -287,12 +289,9 @@ void WebAPI::Session::planQuery(std::string_view text) {
 
     // Invalid statement count?
     if (parser.statements.size() != 1) {
-        std::cout << "invalid number of statements" << std::endl;
-        // TODO
-        response.requestFailed(proto::StatusCode::GenericError, "foo");
+        spdlog::warn("invalid number of statements");
         return;
     }
-    std::cout << "1" << std::endl;
 
     // Plan the statement
     duckdb::Planner planner{*conn.context};

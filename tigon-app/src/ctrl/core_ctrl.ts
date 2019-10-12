@@ -59,10 +59,10 @@ export class CoreController {
 
             this.core = this.loadCore({
                 print: function(text: any) {
-                    console.log("[wasm::stdout] " + text);
+                    console.log(text);
                 },
                 printErr: function(text: any) {
-                    console.log("[wasm::stderr] " + text);
+                    console.log(text);
                 },
                 onRuntimeInitialized: function() {
                     resolve();
