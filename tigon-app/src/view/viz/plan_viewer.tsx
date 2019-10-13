@@ -1,4 +1,5 @@
 import './plan_viewer.scss';
+import * as proto from '../../proto';
 import * as React from 'react';
 import * as Model from '../../model';
 import * as d3 from 'd3';
@@ -17,7 +18,49 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
         this.container = React.createRef();
     }
 
-    // Component did mount to the dom
+    /// Get an operator name
+    private getOperatorName(type: proto.LogicalOperatorType) {
+        var operatorTypeNames = [
+            "INVALID",
+            "PROJECTION",
+            "FILTER",
+            "AGGREGATE_AND_GROUP_BY",
+            "WINDOW",
+            "LIMIT",
+            "ORDER_BY",
+            "COPY_FROM_FILE",
+            "COPY_TO_FILE",
+            "DISTINCT",
+            "INDEX_SCAN",
+            "GET",
+            "CHUNK_GET",
+            "DELIM_GET",
+            "EXPRESSION_GET",
+            "TABLE_FUNCTION",
+            "SUBQUERY",
+            "EMPTY_RESULT",
+            "JOIN",
+            "DELIM_JOIN",
+            "COMPARISON_JOIN",
+            "ANY_JOIN",
+            "CROSS_PRODUCT",
+            "UNION",
+            "EXCEPT",
+            "INTERSECT",
+            "INSERT",
+            "DELETE",
+            "UPDATE",
+            "CREATE_TABLE",
+            "CREATE_INDEX",
+            "EXPLAIN",
+            "PRUNE_COLUMNS",
+            "PREPARE",
+            "EXECUTE"
+        ];
+        return operatorTypeNames[type];
+    }
+
+    /// Component did mount to the dom
     public componentDidMount() {
         if (this.container.current != null) {
             let graph = new dagre.graphlib.Graph()
@@ -41,7 +84,14 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
 
             // Create nodes
             for (let oid = 0; oid < opCount; oid += 1) {
-                graph.setNode(String(oid), { label: String(oid), width: 100, height: 48 })
+                let name = this.getOperatorName(buffer.operatorTypes(oid) || 0);
+                graph.setNode(String(oid), {
+                    label: name,
+                    width: 4 + name.length * 8,
+                    height: 12,
+                    rx: 3,
+                    ry: 3,
+                })
             }
 
             // Create edges
@@ -49,7 +99,8 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
                 let begin = getChildOffset(oid);
                 let end = (oid + 1 < ofsCount) ? getChildOffset(oid + 1) : childCount;
                 for (let cid = begin; cid < end; cid += 1) {
-                    graph.setEdge(String(oid), String(getChild(cid)));
+                    graph.setEdge(String(oid), String(getChild(cid)), {
+                    });
                 }
             }
 

@@ -1,4 +1,23 @@
 @import '../../theme.scss';
 
 .plan_viewer {
+
 }
+
+.plan_viewer_graph {
+    > .output > .nodes > .node {
+        > rect {
+            fill: #FFFFFF;
+        }
+
+        > .label {
+            > g > text {
+                font-size: 13px;
+                text-align: center;
+                alignment-baseline: central;
+            }
+        }
+    }
+}
+
+
