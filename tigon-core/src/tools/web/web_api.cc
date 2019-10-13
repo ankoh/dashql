@@ -276,6 +276,8 @@ void WebAPI::Session::runQuery(std::string_view text) {
 
 /// Plan a sql statement
 void WebAPI::Session::planQuery(std::string_view text) {
+    spdlog::debug("planning '{}'", text);
+
     // Parse the statements
     duckdb::Connection conn{*database};
     duckdb::Parser parser(*conn.context);
