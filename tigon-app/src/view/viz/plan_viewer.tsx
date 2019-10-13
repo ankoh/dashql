@@ -21,7 +21,9 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
     public componentDidMount() {
         if (this.container.current != null) {
             let graph = new dagre.graphlib.Graph()
-                .setGraph({})
+                .setGraph({
+                    rankdir: 'LR',
+                })
                 .setDefaultEdgeLabel(function() { return {}; });
 
             let buffer = this.props.plan.buffer.getReader();
@@ -51,11 +53,13 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
                 }
             }
 
+            // Compute the graph layout
             dagre.layout(graph);
 
-            // // // TODO(ankoh): Get rid of the any cast at some point (d3 <-> dagre)
+            // Render the graph
             let render = new dagreD3.render() as any;
-            render(d3.select(this.container.current), graph);
+            let element = d3.select(this.container.current);
+            render(element, graph);
         }
     }
 
