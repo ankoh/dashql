@@ -73,7 +73,8 @@ TEST(WebAPITest, ExplainQuery) {
         ASSERT_EQ(opChildOffsets->size(), 2);
         ASSERT_EQ(opChildOffsets->Get(0), 0);
         ASSERT_EQ(opChildOffsets->Get(1), 1);
-        ASSERT_EQ(opChildren->size(), 0);
+        ASSERT_EQ(opChildren->size(), 1);
+        ASSERT_EQ(opChildren->Get(0), 1);
     }
 
     {

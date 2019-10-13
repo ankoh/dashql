@@ -348,20 +348,22 @@ void WebAPI::Session::planQuery(std::string_view text) {
         operatorChildOffsets.resize(operators.size(), 0);
 
         auto edgeIter = operatorChildEdges.begin();
-        auto oid = 0;
-        for (; oid < operators.size(); ++oid) {
-            auto& [parent, child] = *edgeIter;
-            operatorChildOffsets[parent] = operatorChildren.size();
+        for (auto oid = 0; oid < operators.size(); ++oid) {
+            operatorChildOffsets[oid] = operatorChildren.size();
 
-            // Operator has no children?
-            if (oid != parent || edgeIter != operatorChildEdges.end()) {
+            // Reached end?
+            if (edgeIter == operatorChildEdges.end()) {
                 continue;
             }
 
-            // Found a child
-            operatorChildren.push_back(child);
+            // At parent of next edge?
+            auto& [parent, child] = *edgeIter;
+            if (oid != parent) {
+                continue;
+            }
 
-            // Add additional children 
+            // Store children 
+            operatorChildren.push_back(child);
             edgeIter++;
             for (; edgeIter != operatorChildEdges.end(); ++edgeIter) {
                 auto& [nextParent, nextChild] = *edgeIter;
