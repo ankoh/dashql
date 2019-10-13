@@ -65,6 +65,9 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
         if (this.container.current != null) {
             let graph = new dagre.graphlib.Graph()
                 .setGraph({
+                    ranksep: 20,
+                    nodesep: 8,
+                    edgesep: 8,
                     rankdir: 'LR',
                 })
                 .setDefaultEdgeLabel(function() { return {}; });
@@ -100,6 +103,7 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
                 let end = (oid + 1 < ofsCount) ? getChildOffset(oid + 1) : childCount;
                 for (let cid = begin; cid < end; cid += 1) {
                     graph.setEdge(String(oid), String(getChild(cid)), {
+                        arrowhead: "undirected",
                     });
                 }
             }
