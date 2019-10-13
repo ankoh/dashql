@@ -84,6 +84,40 @@ TEST(WebAPITest, ExplainQuery) {
             WHERE a = c;
         )RAW");
         ASSERT_EQ(session.getResponseStatus(), proto::StatusCode::Success);
+
+        // Get the plan
+        auto* responseBuffer = session.getResponseData();
+        auto* responseData = responseBuffer->getData();
+        auto* queryPlan = flatbuffers::GetRoot<proto::QueryPlan>(responseData);
+        ASSERT_NE(responseBuffer, nullptr);
+        ASSERT_NE(responseData, nullptr);
+        ASSERT_NE(queryPlan, nullptr);
+
+        // Inspect the plan
+        auto* opTypes = queryPlan->operator_types();
+        auto* opChildOffsets = queryPlan->operator_child_offsets();
+        auto* opChildren = queryPlan->operator_children();
+        ASSERT_EQ(opTypes->size(), 5)
+            << accumulate(opTypes->begin(), opTypes->end(), string{}, [](auto& prev, uint8_t type) {
+                return string{prev.empty() ? "" : prev + ","} +
+                    proto::EnumNameLogicalOperatorType(static_cast<proto::LogicalOperatorType>(type));
+            });
+        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(0), proto::LogicalOperatorType::PROJECTION);
+        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(1), proto::LogicalOperatorType::FILTER);
+        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(2), proto::LogicalOperatorType::CROSS_PRODUCT);
+        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(3), proto::LogicalOperatorType::GET);
+        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(4), proto::LogicalOperatorType::GET);
+        ASSERT_EQ(opChildOffsets->size(), 5);
+        ASSERT_EQ(opChildOffsets->Get(0), 0);
+        ASSERT_EQ(opChildOffsets->Get(1), 1);
+        ASSERT_EQ(opChildOffsets->Get(2), 2);
+        ASSERT_EQ(opChildOffsets->Get(3), 4);
+        ASSERT_EQ(opChildOffsets->Get(4), 4);
+        ASSERT_EQ(opChildren->size(), 4);
+        ASSERT_EQ(opChildren->Get(0), 1);
+        ASSERT_EQ(opChildren->Get(1), 2);
+        ASSERT_EQ(opChildren->Get(2), 3);
+        ASSERT_EQ(opChildren->Get(3), 4);
     }
 }
 
