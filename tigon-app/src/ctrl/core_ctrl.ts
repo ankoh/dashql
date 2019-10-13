@@ -12,25 +12,25 @@ declare function TigonCore(args: any): any;
 export class CoreBuffer<ProtoBuffer> {
     protected core: any;
     protected session: number;
-    protected bufferPtr: number;
+    protected buffer: number;
     protected bufferReader: ProtoBuffer;
 
     // Constructor
-    constructor(core: any, session: number, bufferPtr: number, bufferReader: ProtoBuffer) {
+    constructor(core: any, session: number, buffer: number, bufferReader: ProtoBuffer) {
         this.core = core;
         this.session = session;
-        this.bufferPtr = bufferPtr;
+        this.buffer = buffer;
         this.bufferReader = bufferReader;
     }
 
     // Get the result
-    public getBuffer(): ProtoBuffer {
+    public getReader(): ProtoBuffer {
         return this.bufferReader;
     }
 
     // Destroy a query result
     public destroy(): Promise<void> {
-        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [this.session, this.bufferPtr]);
+        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [this.session, this.buffer]);
         return Promise.resolve();
     }
 };
@@ -108,12 +108,13 @@ export class CoreController {
         }
 
         // Get result buffer
-        let bPtr = this.core.ccall('tigon_get_response_data', 'number', ['number'], [session]);
-        let bSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [bPtr]);
-        let u8B = new Uint8Array(this.core.HEAPU8.buffer, bPtr, bSize);
+        let buffer = this.core.ccall('tigon_get_response_buffer', 'number', ['number'], [session]);
+        let bData = this.core.ccall('tigon_get_buffer_data', 'number', ['number'], [buffer]);
+        let bSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [buffer]);
+        let u8B = new Uint8Array(this.core.HEAPU8.subarray(bData, bData + bSize));
         let fB = new flatbuffers.ByteBuffer(u8B);
         let reader = proto.QueryResult.getRootAsQueryResult(fB);
-        let result = new CoreBuffer<proto.QueryResult>(this.core, session, bPtr, reader);
+        let result = new CoreBuffer<proto.QueryResult>(this.core, session, buffer, reader);
         return Promise.resolve(result);
     }
 
@@ -130,12 +131,16 @@ export class CoreController {
         }
 
         // Get plan buffer
-        let bPtr = this.core.ccall('tigon_get_response_data', 'number', ['number'], [session]);
-        let bSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [bPtr]);
-        let u8B = new Uint8Array(this.core.HEAPU8.buffer, bPtr, bSize);
+        let buffer = this.core.ccall('tigon_get_response_buffer', 'number', ['number'], [session]);
+        let bData = this.core.ccall('tigon_get_buffer_data', 'number', ['number'], [buffer]);
+        let bSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [buffer]);
+        let u8B = new Uint8Array(this.core.HEAPU8.subarray(bData, bData + bSize));
         let fB = new flatbuffers.ByteBuffer(u8B);
         let reader = proto.QueryPlan.getRootAsQueryPlan(fB);
-        let plan = new CoreBuffer<proto.QueryPlan>(this.core, session, bPtr, reader);
+        console.log("bData: " + bData);
+        console.log("bSize: " + bSize);
+        console.log("childOffsets: " + reader.operatorChildOffsetsLength());
+        let plan = new CoreBuffer<proto.QueryPlan>(this.core, session, buffer, reader);
         return Promise.resolve(plan);
     }
 };

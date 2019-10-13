@@ -52,7 +52,7 @@ TEST(WebAPITest, ExplainQuery) {
         ASSERT_EQ(session.getResponseStatus(), proto::StatusCode::Success);
 
         // Get the query plan
-        auto* responseBuffer = session.getResponseData();
+        auto* responseBuffer = session.getResponseBuffer();
         auto* responseData = responseBuffer->getData();
         auto* queryPlan = flatbuffers::GetRoot<proto::QueryPlan>(responseData);
         ASSERT_NE(responseBuffer, nullptr);
@@ -86,7 +86,7 @@ TEST(WebAPITest, ExplainQuery) {
         ASSERT_EQ(session.getResponseStatus(), proto::StatusCode::Success);
 
         // Get the plan
-        auto* responseBuffer = session.getResponseData();
+        auto* responseBuffer = session.getResponseBuffer();
         auto* responseData = responseBuffer->getData();
         auto* queryPlan = flatbuffers::GetRoot<proto::QueryPlan>(responseData);
         ASSERT_NE(responseBuffer, nullptr);

@@ -17,6 +17,8 @@ tigon::WebAPI::Session *tigon_create_session();
 void tigon_end_session(tigon::WebAPI::Session *session);
 
 /// Get a buffer size
+void* tigon_get_buffer_data(tigon::WebAPI::Buffer* buffer);
+/// Get a buffer size
 int tigon_get_buffer_size(tigon::WebAPI::Buffer* buffer);
 /// Release a buffer
 void tigon_release_buffer(tigon::WebAPI::Session *session, tigon::WebAPI::Buffer *buffer);

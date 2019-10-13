@@ -78,7 +78,7 @@ export class QueryResultDataSource extends DataSource {
         super();
         this.result = result;
         this.chunks = [];
-        let resultBuffer = result.getBuffer();
+        let resultBuffer = result.getReader();
 
         // Prepare column arrays
         let columnCount = resultBuffer.columnRawTypesLength();
@@ -178,7 +178,7 @@ export class QueryResultDataSource extends DataSource {
 
     protected getRowAsString(column: number, row: number): string {
         // Get type
-        let rawType = this.result.getBuffer().columnRawTypes(column);
+        let rawType = this.result.getReader().columnRawTypes(column);
         if (rawType == null) {
             return "";
         }

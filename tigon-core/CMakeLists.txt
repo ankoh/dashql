@@ -107,11 +107,12 @@ if(DEFINED ENV{EMSDK})
             _main, \
             _tigon_create_session, \
             _tigon_end_session, \
+            _tigon_get_buffer_data, \
             _tigon_get_buffer_size, \
             _tigon_release_buffer, \
-            _tigon_get_response_status, \
+            _tigon_get_response_buffer, \
             _tigon_get_response_error_message, \
-            _tigon_get_response_data, \
+            _tigon_get_response_status, \
             _tigon_parse_tql, \
             _tigon_run_query, \
             _tigon_plan_query \

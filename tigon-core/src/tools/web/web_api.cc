@@ -32,18 +32,18 @@ using namespace tigon;
 void WebAPI::Response::reset() {
     statusCode = proto::StatusCode::Success;
     errorMessage.clear();
-    if (!!data & !dataLeaked) {
-        session.releaseBuffer(data);
+    if (!!buffer && !bufferLeaked) {
+        session.releaseBuffer(buffer);
     }
-    data = nullptr;
-    dataLeaked = false;
+    buffer = nullptr;
+    bufferLeaked = false;
 }
 
 /// Request succeeded
-void WebAPI::Response::requestSucceeded(Buffer* d) {
+void WebAPI::Response::requestSucceeded(Buffer* b) {
     reset();
     statusCode = proto::StatusCode::Success;
-    data = d;
+    buffer = b;
 }
 
 void WebAPI::Response::requestFailed(proto::StatusCode status, std::string err) {
@@ -54,7 +54,7 @@ void WebAPI::Response::requestFailed(proto::StatusCode status, std::string err) 
 
 /// Constructor
 WebAPI::Response::Response(WebAPI::Session &session)
-    : session(session), statusCode(), errorMessage(), data(nullptr), dataLeaked(false) {}
+    : session(session), statusCode(), errorMessage(), buffer(nullptr), bufferLeaked(false) {}
 
 /// Destructor
 WebAPI::Response::~Response() { reset(); }
@@ -374,6 +374,9 @@ void WebAPI::Session::planQuery(std::string_view text) {
                 }
             }
         }
+
+        spdlog::debug("operatorChildOffsets " + std::to_string(operatorChildOffsets.size()));
+        spdlog::debug("operatorChildren " + std::to_string(operatorChildren.size()));
 
         // Write children
         uint64_t *writer;

@@ -132,6 +132,8 @@ class Explorer extends React.Component<IExplorerProps> {
         .then(async function(text: string) {
             let session = await ctrl.core.createSession(); // TODO
 
+            text = text.replace("run", "");
+
             // let result = await ctrl.core.runQuery(session, text);
             // let d = new Model.QueryResultDataSource(result);
             // self.props.setExplorerDataSource(d);

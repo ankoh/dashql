@@ -38,6 +38,10 @@ WebAPI::Session *tigon_create_session() { return &instance->createSession(); }
 /// End a session
 void tigon_end_session(WebAPI::Session *session) { instance->endSession(session); }
 
+/// Get a buffer pointer
+void* tigon_get_buffer_data(tigon::WebAPI::Buffer* buffer) {
+    return (!!buffer) ? buffer->getData() : 0;
+}
 /// Get a buffer size
 int tigon_get_buffer_size(tigon::WebAPI::Buffer* buffer) {
     return (!!buffer) ? buffer->getSize() : 0;
@@ -55,7 +59,7 @@ const char *tigon_get_response_error_message(WebAPI::Session *session) {
 }
 
 /// Get the response data
-WebAPI::Buffer *tigon_get_response_data(WebAPI::Session *session) { return session->getResponseData(); }
+WebAPI::Buffer *tigon_get_response_buffer(WebAPI::Session *session) { return session->getResponseBuffer(); }
 
 /// Parse tql
 void tigon_parse_tql(WebAPI::Session *session, const char *text) { session->parseTQL(text); }

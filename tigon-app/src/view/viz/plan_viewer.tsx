@@ -23,7 +23,7 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
             let graph = new dagre.graphlib.Graph();
             graph.setGraph({});
 
-            let buffer = this.props.plan.plan.getBuffer();
+            let buffer = this.props.plan.buffer.getReader();
             let opCount = buffer.operatorTypesLength();
             let ofsCount = buffer.operatorChildOffsetsLength();
             let childCount = buffer.operatorChildrenLength();
@@ -32,9 +32,6 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
             let getOpChild = function(index: number) {
                 return (buffer.operatorChildOffsets(index) || flatbuffers.Long.ZERO).toFloat64();
             };
-
-            console.log("opCount " + opCount);
-            console.log("opChildOffsets " + ofsCount);
 
             // Create nodes
             for (let oid = 0; oid < opCount; oid += 1) {

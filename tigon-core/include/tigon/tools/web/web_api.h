@@ -47,10 +47,10 @@ class WebAPI {
         proto::StatusCode statusCode;
         /// The error message (if any)
         std::string errorMessage;
-        /// The data (if any)
-        Buffer* data;
+        /// The buffer (if any)
+        Buffer* buffer;
         /// Leaked the data?
-        bool dataLeaked;
+        bool bufferLeaked;
 
         /// Reset the reponse
         void reset();
@@ -70,9 +70,9 @@ class WebAPI {
         /// Get the error
         auto& getError() const { return errorMessage; }
         /// Get the data
-        Buffer* getData() {
-            dataLeaked = !!data;
-            return data;
+        Buffer* getBuffer() {
+            bufferLeaked = !!buffer;
+            return buffer;
         }
     };
 
@@ -108,7 +108,7 @@ class WebAPI {
         /// Get the response error
         auto& getResponseErrorMessage() { return response.getError(); }
         /// Get the response data
-        auto* getResponseData() { return response.getData(); }
+        auto* getResponseBuffer() { return response.getBuffer(); }
 
         /// Parse TQL
         void parseTQL(std::string_view text);

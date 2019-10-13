@@ -3,14 +3,14 @@ import * as ctrl from '../ctrl';
 
 // A query plan
 export class QueryPlan {
-    plan: ctrl.CoreBuffer<proto.QueryPlan>;
+    buffer: ctrl.CoreBuffer<proto.QueryPlan>;
 
     // Constructor
-    constructor(plan: ctrl.CoreBuffer<proto.QueryPlan>) {
-        this.plan = plan;
+    constructor(buffer: ctrl.CoreBuffer<proto.QueryPlan>) {
+        this.buffer = buffer;
     }
 
     public destroy() {
-        this.plan.destroy();
+        this.buffer.destroy();
     }
 };
