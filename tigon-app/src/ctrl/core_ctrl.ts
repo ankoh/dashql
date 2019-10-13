@@ -137,9 +137,6 @@ export class CoreController {
         let u8B = new Uint8Array(this.core.HEAPU8.subarray(bData, bData + bSize));
         let fB = new flatbuffers.ByteBuffer(u8B);
         let reader = proto.QueryPlan.getRootAsQueryPlan(fB);
-        console.log("bData: " + bData);
-        console.log("bSize: " + bSize);
-        console.log("childOffsets: " + reader.operatorChildOffsetsLength());
         let plan = new CoreBuffer<proto.QueryPlan>(this.core, session, buffer, reader);
         return Promise.resolve(plan);
     }

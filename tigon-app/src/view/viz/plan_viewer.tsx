@@ -20,8 +20,9 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
     // Component did mount to the dom
     public componentDidMount() {
         if (this.container.current != null) {
-            let graph = new dagre.graphlib.Graph();
-            graph.setGraph({});
+            let graph = new dagre.graphlib.Graph()
+                .setGraph({})
+                .setDefaultEdgeLabel(function() { return {}; });
 
             let buffer = this.props.plan.buffer.getReader();
             let opCount = buffer.operatorTypesLength();
@@ -29,31 +30,32 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
             let childCount = buffer.operatorChildrenLength();
 
             // Get operator child
-            let getOpChild = function(index: number) {
+            let getChildOffset = function(index: number) {
                 return (buffer.operatorChildOffsets(index) || flatbuffers.Long.ZERO).toFloat64();
+            };
+            let getChild = function(index: number) {
+                return (buffer.operatorChildren(index) || flatbuffers.Long.ZERO).toFloat64();
             };
 
             // Create nodes
             for (let oid = 0; oid < opCount; oid += 1) {
-                console.log("Node: " + String(oid));
-                graph.setNode(String(oid), { width: 100, height: 48 })
+                graph.setNode(String(oid), { label: String(oid), width: 100, height: 48 })
             }
 
             // Create edges
             for (let oid = 0; oid < opCount; oid += 1) {
-                let begin = getOpChild(oid);
-                let end = (oid + 1 === ofsCount) ? getOpChild(oid + 1) : childCount;
+                let begin = getChildOffset(oid);
+                let end = (oid + 1 < ofsCount) ? getChildOffset(oid + 1) : childCount;
                 for (let cid = begin; cid < end; cid += 1) {
-                    graph.setEdge(String(oid), String(cid));
+                    graph.setEdge(String(oid), String(getChild(cid)));
                 }
             }
 
             dagre.layout(graph);
 
-            // TODO(ankoh): Get rid of the any cast at some point (d3 <-> dagre)
+            // // // TODO(ankoh): Get rid of the any cast at some point (d3 <-> dagre)
             let render = new dagreD3.render() as any;
-            let svg = d3.select(this.container.current);
-            render(svg, graph);
+            render(d3.select(this.container.current), graph);
         }
     }
 
