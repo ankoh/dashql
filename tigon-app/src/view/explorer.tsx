@@ -123,28 +123,40 @@ class Explorer extends React.Component<IExplorerProps> {
         );
     }
 
+    protected async evalTermInput(text: string) {
+        let ctrl = this.props.appContext.ctrl;
+        let session = await ctrl.core.createSession(); // TODO
+
+        text = text.replace("run", "");
+
+        // let result = await ctrl.core.runQuery(session, text);
+        // let d = new Model.QueryResultDataSource(result);
+        // self.props.setExplorerDataSource(d);
+
+        let plan = await ctrl.core.planQuery(session, text);
+        let p = new Model.QueryPlan(plan);
+        this.props.setExplorerPlan(p);
+    }
+
+    protected async runTermEvalLoop(text: string | null = null) {
+        let ctrl = this.props.appContext.ctrl;
+
+        // Handle terminal input
+        if (text != null) {
+            await this.evalTermInput(text)
+        }
+
+        // Schedule next read
+        ctrl.terminal.read("> ",  "   ",)
+            .then(this.runTermEvalLoop.bind(this))
+            .catch(function(text: string) {
+                ctrl.terminal.printLine("exception: " + text);
+            });       
+    }
+
     // Component did mount to the dom
     public componentDidMount() {
-        let ctrl = this.props.appContext.ctrl;
-        let self = this;
-        ctrl.terminal.read("> ", "   ",)
-        .then(async function(text: string) {
-            let session = await ctrl.core.createSession(); // TODO
-
-            text = text.replace("run", "");
-
-            // let result = await ctrl.core.runQuery(session, text);
-            // let d = new Model.QueryResultDataSource(result);
-            // self.props.setExplorerDataSource(d);
-
-            let plan = await ctrl.core.planQuery(session, text);
-            let p = new Model.QueryPlan(plan);
-            self.props.setExplorerPlan(p);
-        })
-        .catch(function(text: string) {
-            ctrl.terminal.printLine("exception: " + text);
-        });
-
+        this.runTermEvalLoop();
     }
 }
 
