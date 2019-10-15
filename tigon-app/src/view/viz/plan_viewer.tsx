@@ -7,7 +7,7 @@ import * as dagre from 'dagre';
 import * as dagreD3 from 'dagre-d3';
 
 interface IPlanViewerProps {
-    plan: Model.QueryPlan;
+    plan: Model.QueryPlan | null;
 }
 
 export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
@@ -60,69 +60,87 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
         return operatorTypeNames[type];
     }
 
+    public renderPlan() {
+        let graph = new dagre.graphlib.Graph()
+            .setGraph({
+                ranksep: 20,
+                nodesep: 8,
+                edgesep: 8,
+                rankdir: 'LR',
+            })
+            .setDefaultEdgeLabel(function() { return {}; });
+
+        let buffer = this.props.plan!.buffer.getReader();
+        let opCount = buffer.operatorTypesLength();
+        let ofsCount = buffer.operatorChildOffsetsLength();
+        let childCount = buffer.operatorChildrenLength();
+
+        // Get operator child
+        let getChildOffset = function(index: number) {
+            return (buffer.operatorChildOffsets(index) || flatbuffers.Long.ZERO).toFloat64();
+        };
+        let getChild = function(index: number) {
+            return (buffer.operatorChildren(index) || flatbuffers.Long.ZERO).toFloat64();
+        };
+
+        // Create nodes
+        for (let oid = 0; oid < opCount; oid += 1) {
+            let name = this.getOperatorName(buffer.operatorTypes(oid) || 0);
+            graph.setNode(String(oid), {
+                label: name,
+                width: 4 + name.length * 8,
+                height: 12,
+                rx: 3,
+                ry: 3,
+            })
+        }
+
+        // Create edges
+        for (let oid = 0; oid < opCount; oid += 1) {
+            let begin = getChildOffset(oid);
+            let end = (oid + 1 < ofsCount) ? getChildOffset(oid + 1) : childCount;
+            for (let cid = begin; cid < end; cid += 1) {
+                graph.setEdge(String(oid), String(getChild(cid)), {
+                    arrowhead: "undirected",
+                });
+            }
+        }
+
+        // Compute the graph layout
+        dagre.layout(graph);
+
+        // Render the graph
+        let render = new dagreD3.render() as any;
+        let element = d3.select(this.container.current);
+        render(element, graph);
+    }
+
     /// Component did mount to the dom
     public componentDidMount() {
         if (this.container.current != null) {
-            let graph = new dagre.graphlib.Graph()
-                .setGraph({
-                    ranksep: 20,
-                    nodesep: 8,
-                    edgesep: 8,
-                    rankdir: 'LR',
-                })
-                .setDefaultEdgeLabel(function() { return {}; });
-
-            let buffer = this.props.plan.buffer.getReader();
-            let opCount = buffer.operatorTypesLength();
-            let ofsCount = buffer.operatorChildOffsetsLength();
-            let childCount = buffer.operatorChildrenLength();
-
-            // Get operator child
-            let getChildOffset = function(index: number) {
-                return (buffer.operatorChildOffsets(index) || flatbuffers.Long.ZERO).toFloat64();
-            };
-            let getChild = function(index: number) {
-                return (buffer.operatorChildren(index) || flatbuffers.Long.ZERO).toFloat64();
-            };
-
-            // Create nodes
-            for (let oid = 0; oid < opCount; oid += 1) {
-                let name = this.getOperatorName(buffer.operatorTypes(oid) || 0);
-                graph.setNode(String(oid), {
-                    label: name,
-                    width: 4 + name.length * 8,
-                    height: 12,
-                    rx: 3,
-                    ry: 3,
-                })
+            if (this.props.plan != null) {
+                this.renderPlan();
             }
+        }
+    }
 
-            // Create edges
-            for (let oid = 0; oid < opCount; oid += 1) {
-                let begin = getChildOffset(oid);
-                let end = (oid + 1 < ofsCount) ? getChildOffset(oid + 1) : childCount;
-                for (let cid = begin; cid < end; cid += 1) {
-                    graph.setEdge(String(oid), String(getChild(cid)), {
-                        arrowhead: "undirected",
-                    });
-                }
+    /// Component received new props
+    public componentDidUpdate() {
+        if (this.container.current != null) {
+            if (this.props.plan != null) {
+                this.renderPlan();
             }
-
-            // Compute the graph layout
-            dagre.layout(graph);
-
-            // Render the graph
-            let render = new dagreD3.render() as any;
-            let element = d3.select(this.container.current);
-            render(element, graph);
         }
     }
 
     public render() {
         return (
             <div className="plan_viewer">
-                <svg ref={this.container} className="plan_viewer_graph">
-                </svg>       
+                {
+                    this.props.plan &&
+                    <svg ref={this.container} className="plan_viewer_graph">
+                    </svg>       
+                }
             </div>
         );
     }

@@ -39,7 +39,6 @@ class Explorer extends React.Component<IExplorerProps> {
                     </div>   
                 }
                 {
-                    this.props.plan &&
                     <div className="explorer_viewer_output">
                         <PlanViewer plan={this.props.plan} />
                     </div>
