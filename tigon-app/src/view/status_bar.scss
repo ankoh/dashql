@@ -13,7 +13,7 @@
 
 }
 
-.statusbar-right {
+.statusbar_right {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -23,7 +23,7 @@
     padding: 4px 0px;
 }
 
-.statusbar-bean {
+.statusbar_bean {
     display: flex;
     flex-direction: row;
     height: 100%;
@@ -45,30 +45,14 @@
     }
 }
 
-.statusbar-logstats-active {
+.statusbar_logstats_active {
     background-color: rgb(254, 80, 94);
 }
 
-.statusbar-logviewer {
+.statusbar_logviewer {
     position: absolute;
     top: -300px;
     right: 0px;
     width: 600px;
     height: 300px;
-}
-
-.StatusBar-LogStat-Name {
-    padding-left: 4px;
-    padding-right: 4px;
-}
-
-.StatusBar-LogStat-Icon {
-    width: 13px;
-    height: 13px;
-}
-
-.StatusBar-Left {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
 }

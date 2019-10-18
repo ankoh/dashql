@@ -27,25 +27,25 @@ export class StatusBar extends React.Component<IStatusBarProps, IStatusBarState>
         return (
             <div className="statusbar">
                 <div />
-                <div className="statusbar-right">
-                    <div className="statusbar-bean">
+                <div className="statusbar_right">
+                    <div className="statusbar_bean">
                         <b>0&nbsp;</b>&nbsp;tasks
                     </div>
-                    <div className="statusbar-bean">
+                    <div className="statusbar_bean">
                         <b>0&nbsp;</b>&nbsp;tables
                     </div>
-                    <div className="statusbar-bean">
+                    <div className="statusbar_bean">
                         <b>0&nbsp;B</b>&nbsp;cached
                     </div>
                     <div
-                        className={'statusbar-bean' + (this.state.logsOpen ? ' statusbar-logstats-active' : '')}
+                        className={'statusbar_bean' + (this.state.logsOpen ? ' statusbar_logstats_active' : '')}
                         onClick={this.toggleLogViewer}
                     >
                         <b>{this.props.logWarnings}</b>&nbsp;warnings
                     </div>
                     {
                         this.state.logsOpen && (
-                        <div className="statusbar-logviewer">
+                        <div className="statusbar_logviewer">
                             <LogViewer close={this.toggleLogViewer} />
                         </div>
                         )
