@@ -13,17 +13,21 @@
 
 .navbar-logo {
     width: 100%;
-    padding: 8px 0px 8px 0px;
+    padding: 8px 0px 16px 0px;
+    border-radius: 0px 0px 3px 0px;
+    margin-bottom: 4px;
 
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+
+    background-color: $logo_background_color;
 }
 
 .navbar-logo img {
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
 }
 
 .navbar-tabs {
