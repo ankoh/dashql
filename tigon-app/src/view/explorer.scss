@@ -12,11 +12,13 @@
 }
 
 .explorer_viewer_output_container {
+    padding: 0px 8px 4px 8px;
 }
 
 .explorer_viewer_output {
     box-sizing: border-box;
     border-radius: $card_border_radius;
+    height: 200px;
 }
 
 .explorer_viewer_controls {

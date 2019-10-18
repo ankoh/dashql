@@ -8,11 +8,11 @@
     @include button;
 
     background-color: $button_background;
-    color: rgb(0, 0, 0);
+    color: $button_foreground;
 
     &:hover, &.active {
-        background-color: rgb(0, 0, 0);
-        border: 1px solid rgb(0, 0, 0);
+        background-color: $button_foreground;
+        border: 1px solid $button_foreground;
         color: rgb(255, 255, 255);
     }
 }
@@ -20,13 +20,13 @@
 @mixin button-action {
     @include button;
 
-    background-color: rgb(0, 95, 223);
+    background-color: $action_background;
     color: rgb(255, 255, 255);
+    border: 1px solid $action_background;
 
     &:hover, &.active {
-        background-color: rgb(0, 95, 223);
-        border: 1px solid rgb(0, 95, 223);
-        color: rgb(255, 255, 255);
+        background-color: $action_background;
+        border: 1px solid $action_background;
     }
 }
 
@@ -39,21 +39,21 @@
     align-items: center;
 
     background-color: $button_background;
-    color: rgb(0, 0, 0);
+    color: $button_foreground;
 
     .icon {
         path {
-            fill: rgb(0, 0, 0);
+            fill: $button_foreground;
         }
 
         circle {
-            fill: rgb(0, 0, 0);
+            fill: $button_foreground;
         }
     }
 
     &:hover, &.active {
-        background-color: rgb(0, 0, 0);
-        border: 1px solid rgb(0, 0, 0);
+        background-color: $button_foreground;
+        border: 1px solid $button_foreground;
         color: rgb(255, 255, 255);
 
         .icon {
@@ -78,17 +78,17 @@
 
     .icon {
         path {
-            fill: rgb(255, 255, 255);
+            fill: $action_foreground;
         }
 
         circle {
-            fill: rgb(255, 255, 255);
+            fill: $action_foreground;
         }
     }
 
-    &:hover, &.active {
-        background-color: $button_color_action_active;
-        border: 1px solid $button_color_action_active;
-        color: rgb(255, 255, 255);
+    &:hover {
+        background-color: $action_background;
+        border: 1px solid $action_background;
+        color: $action_foreground;
     }
 }
