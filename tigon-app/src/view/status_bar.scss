@@ -6,7 +6,7 @@
     flex-direction: row;
     justify-content: space-between;
 
-    color: rgb(0, 0, 0);
+    color: $status_color;
 
     font-weight: 400;
     font-size: 9pt;
@@ -20,12 +20,10 @@
 
     background-color: $status_background;
     border-radius: $card_border_radius;
-    padding: 8px 4px;
+    padding: 4px 0px;
 }
 
 .statusbar-bean {
-    @include button-toggle;
-
     display: flex;
     flex-direction: row;
     height: 100%;
@@ -37,6 +35,14 @@
 
     font-size: 12px;
     line-height: 20px;
+
+    border-radius: $button_border_radius;
+    box-sizing: border-box;
+
+    &:hover, &.active {
+        background-color: $status_bean_toggle_bg;
+        color: $status_bean_toggle_color;
+    }
 }
 
 .statusbar-logstats-active {
