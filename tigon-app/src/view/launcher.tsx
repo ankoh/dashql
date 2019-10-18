@@ -10,7 +10,15 @@ interface ILauncherProps {
 
 class Launcher extends React.Component<ILauncherProps> {
     public render() {
-        return <div />;
+        return (
+            <div className="launcher">
+                <div className="launcher_container">
+                    <div className="launcher_logo">
+                        <img src="/img/logo_600.png" alt="Logo" />
+                    </div>
+                </div>
+            </div>
+        );
     }
 }
 

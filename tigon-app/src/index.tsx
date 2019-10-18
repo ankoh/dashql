@@ -20,7 +20,6 @@ const appContext: IAppContext = {
 
 ReactDOM.render(
     <ReduxProvider store={store}>
-        <div id="background" />
         <AppContextProvider value={appContext}>
             <Router />
         </AppContextProvider>

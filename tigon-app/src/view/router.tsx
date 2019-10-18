@@ -24,6 +24,7 @@ class Router extends React.Component<IRouterProps> {
             case Model.RootView.EXPLORER:
                 return (
                     <div className="router">
+                        <div className="router_background_grid" />
                         <NavigationBar />
                         <div className="router_page_container">
                             <div className="router_page">
