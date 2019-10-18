@@ -2,6 +2,7 @@ import * as React from 'react';
 import Explorer from './explorer';
 import NavigationBar from './navigation_bar';
 import StatusBar from './status_bar';
+import Launcher from './launcher';
 import * as Model from '../model';
 import { connect } from 'react-redux';
 
@@ -14,6 +15,12 @@ interface IRouterProps {
 class Router extends React.Component<IRouterProps> {
     public render() {
         switch (this.props.rootView) {
+            case Model.RootView.LAUNCHER:
+                return (
+                    <div className="router">
+                        <Launcher />
+                    </div>
+                );
             case Model.RootView.EXPLORER:
                 return (
                     <div className="router">

@@ -9,9 +9,10 @@ import * as proto from '../proto';
 
 // A view
 export enum RootView {
-    EXPLORER = 0,
-    WORKBOOK = 1,
-    LIBRARY = 2,
+    LAUNCHER = 0,
+    EXPLORER = 1,
+    WORKBOOK = 2,
+    LIBRARY = 3,
 }
 
 // A connection protocol
@@ -185,11 +186,24 @@ export class HTTPCacheEntry extends CacheEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Launch Progress
+// ---------------------------------------------------------------------------
+
+export class LaunchProgress {
+    public config_loaded: boolean = false;
+    public core_instantiated: boolean = false;
+    public version_checked: boolean = false;
+}
+
+// ---------------------------------------------------------------------------
 // Root state type
 // ---------------------------------------------------------------------------
 
 // A root state
 export class RootState {
+    /// The launch progress
+    public launchProgress: LaunchProgress;
+
     // The app config
     public appConfig: AppConfig | null;
     // The app config load is pending
@@ -220,6 +234,7 @@ export class RootState {
 
     // Constructor
     constructor() {
+        this.launchProgress = new LaunchProgress();
         this.appConfig = null;
         this.appConfigLoadPending = true;
         this.serverConfigs = Immutable.Map<string, ServerConfig>();
