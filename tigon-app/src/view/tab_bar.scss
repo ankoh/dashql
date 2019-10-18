@@ -2,15 +2,16 @@
 
 .tabbar {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
     height: 100%;
-    padding: 4px;
+    padding: 4px 8px;
+    box-sizing: border-box;
 }
 
 .tabbar_tab_container {
     height: auto;
-    width: 100%;
-    padding: 4px;
+    padding: 4px 8px;
     box-sizing: border-box;
 }
 
@@ -20,8 +21,8 @@
     position: relative;
 
     font-weight: 400;
-    font-size: 14px;
-    padding: 3px 0px;
+    font-size: 13px;
+    padding: 2px 8px;
 }
 
 .tabbar_tab_name {

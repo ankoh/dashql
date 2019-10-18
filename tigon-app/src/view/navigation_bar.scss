@@ -2,19 +2,18 @@
 
 .navbar {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     height: 100%;
-    width: 100%;
 
     background-color: $card_background_color;
-    border-right: $status_border;
+    border-bottom: $status_border;
     color: rgb(0, 0, 0);
 }
 
 .navbar-logo {
-    width: 100%;
-    padding: 8px 0px 12px 0px;
-    border-radius: 0px 0px 3px 0px;
+    width: 48px;
+
+    padding: 0px 8px 0px 8px;
 
     display: flex;
     flex-direction: column;
@@ -25,8 +24,8 @@
 }
 
 .navbar-logo img {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
 }
 
 .navbar-tabs {

@@ -14,8 +14,9 @@ $status_border: 1px solid $background_line_color;
 
 $button_border_radius: 3px;
 $button_color_action_active: rgb(0, 95, 223);
+$button_background: rgb(228, 228, 228);
 
-$border_color: rgb(228, 228, 228);
+$border_color: rgba(228, 228, 228, 1);
 $border_default: 1px solid $border_color;
 
 @import './theme/buttons.scss';
