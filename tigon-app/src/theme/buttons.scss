@@ -1,6 +1,5 @@
 @mixin button {
     border-radius: $button_border_radius;
-    border: $border_default;
     box-sizing: border-box;
 }
 
@@ -10,23 +9,14 @@
     background-color: $button_background;
     color: $button_foreground;
 
-    &:hover, &.active {
-        background-color: $button_foreground;
-        border: 1px solid $button_foreground;
-        color: rgb(255, 255, 255);
-    }
-}
-
-@mixin button-action {
-    @include button;
-
-    background-color: $action_background;
-    color: rgb(255, 255, 255);
-    border: 1px solid $action_background;
+    border-style: solid;
+    border-width: 1px;
+    border-color: transparent transparent $button_border_color transparent;
 
     &:hover, &.active {
-        background-color: $action_background;
-        border: 1px solid $action_background;
+        background-color: $button_toggle_background;
+        border: 1px solid $button_toggle_background;
+        color: $button_toggle_foreground;
     }
 }
 
@@ -37,6 +27,10 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
+
+    border-style: solid;
+    border-width: 1px;
+    border-color: transparent transparent $button_border_color transparent;
 
     background-color: $button_background;
     color: $button_foreground;
@@ -52,20 +46,28 @@
     }
 
     &:hover, &.active {
-        background-color: $button_foreground;
-        border: 1px solid $button_foreground;
-        color: rgb(255, 255, 255);
+        background-color: $button_toggle_background;
+        border: 1px solid $button_toggle_background;
+        color: $button_toggle_foreground;
 
         .icon {
             path {
-                fill: rgb(255, 255, 255);
+                fill: $button_toggle_foreground;
             }
 
             circle {
-                fill: rgb(255, 255, 255);
+                fill: $button_toggle_foreground;
             }
         }
     }
+}
+
+@mixin button-action {
+    @include button;
+
+    background-color: $action_background;
+    color: rgb(255, 255, 255);
+    border: 1px solid $action_background;
 }
 
 @mixin iconbutton-action {
@@ -84,11 +86,5 @@
         circle {
             fill: $action_foreground;
         }
-    }
-
-    &:hover {
-        background-color: $action_background;
-        border: 1px solid $action_background;
-        color: $action_foreground;
     }
 }
