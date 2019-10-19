@@ -101,7 +101,7 @@ class Launcher extends React.Component<ILauncherProps, ILauncherState> {
                         Tigon Analytics
                     </div>
                     <div className="launcher_build">
-                        Build: <b>f90db02</b>
+                        Build: <span className="launcher_build_commit">f90db02</span>
                     </div>
                     {this.renderProgress()}
                 </div>

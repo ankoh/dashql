@@ -32,7 +32,12 @@
 }
 
 .launcher_build {
-    font-size: 13px;
+    margin-top: 2px;
+}
+
+.launcher_build_commit {
+    color: $theme_color_3;
+    font-weight: 600;
 }
 
 .launcher_spinner {
