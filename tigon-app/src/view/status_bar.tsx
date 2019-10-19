@@ -1,60 +1,74 @@
 import './status_bar.scss';
 import * as React from 'react';
 import * as Model from '../model';
-import LogViewer from './log_viewer';
 import { connect } from 'react-redux';
+import { RectangleWaveSpinner } from './spinners';
 
 interface IStatusBarProps {
     logWarnings: number;
 }
 
 interface IStatusBarState {
-    logsOpen: boolean;
+    spinnerActive: boolean;
+    listVisible: boolean;
 }
 
 export class StatusBar extends React.Component<IStatusBarProps, IStatusBarState> {
     constructor(props: IStatusBarProps) {
         super(props);
         this.state = {
-            logsOpen: false
+            listVisible: false,
+            spinnerActive: true,
         };
-        this.toggleLogViewer = this.toggleLogViewer.bind(this);
     }
 
-    public render() {
+    /// Render a single list entry
+    public renderListEntry(label: String, value: number, unit: String | null = null) {
         return (
-            <div className="statusbar">
-                <div />
-                <div className="statusbar_right">
-                    <div className="statusbar_bean">
-                        <b>0&nbsp;</b>&nbsp;tasks
-                    </div>
-                    <div className="statusbar_bean">
-                        <b>0&nbsp;</b>&nbsp;tables
-                    </div>
-                    <div className="statusbar_bean">
-                        <b>0&nbsp;B</b>&nbsp;cached
-                    </div>
-                    <div
-                        className={'statusbar_bean' + (this.state.logsOpen ? ' statusbar_logstats_active' : '')}
-                        onClick={this.toggleLogViewer}
-                    >
-                        <b>{this.props.logWarnings}</b>&nbsp;warnings
-                    </div>
-                    {
-                        this.state.logsOpen && (
-                        <div className="statusbar_logviewer">
-                            <LogViewer close={this.toggleLogViewer} />
-                        </div>
-                        )
-                    }
-                </div>
+            <div className="statusbar_list_entry">
+                <span className="statusbar_list_entry_label">{label}</span>
+                <span className="statusbar_list_entry_value">{value}</span>
+                {
+                    unit &&
+                    <span className="statusbar_list_entry_unit">{unit}</span>
+                }
             </div>
         );
     }
 
-    protected toggleLogViewer() {
-        this.setState((s) => ({ ...s, logsOpen: !s.logsOpen }));
+    /// Render list
+    public renderList() {
+        return (
+            <div className="statusbar_list">
+                {this.renderListEntry("tasks", 0)}
+                {this.renderListEntry("tables", 0)}
+                {this.renderListEntry("cached", 0, "B")}
+                {this.renderListEntry("warnings", 0)}
+            </div>
+        );
+    }
+
+    /// Render spinner
+    public renderSpinner() {
+        return (
+            <div className="statusbar_spinner" onClick={this.toggleList.bind(this)}>
+                <RectangleWaveSpinner active={this.state.spinnerActive} />
+            </div>
+        );
+    }
+
+    /// Render the status bar
+    public render() {
+        return (
+            <div className="statusbar">
+                {this.state.listVisible && this.renderList()}
+                {this.renderSpinner()}
+            </div>
+        );
+    }
+
+    protected toggleList() {
+        this.setState((s) => ({ ...s, listVisible: !s.listVisible }));
     }
 }
 

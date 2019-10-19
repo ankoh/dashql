@@ -2,37 +2,43 @@
 
 .statusbar {
     position: relative;
+
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-end;
 
     color: $status_color;
 
     font-weight: 400;
     font-size: 9pt;
-
 }
 
-.statusbar_right {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-
+.statusbar_spinner {
     background-color: $status_background;
     border-radius: $card_border_radius;
-    padding: 4px 0px;
+
+    padding: 4px 8px;
 }
 
-.statusbar_bean {
+.statusbar_spinner > .rectangle_wave_spinner {
+    width: 40px;
+    height: 20px;
+}
+
+.statusbar_list {
+    background-color: $status_background;
+    border-radius: $card_border_radius;
+    margin-bottom: 8px;
+    padding: 2px;
+}
+
+.statusbar_list_entry {
     display: flex;
     flex-direction: row;
-    height: 100%;
+    justify-content: space-between;
 
-    padding-left: 8px;
-    padding-right: 8px;
-    margin-left: 4px;
-    margin-right: 4px;
-
+    padding: 0px 4px;
+    margin: 4px 4px;
     font-size: 12px;
     line-height: 20px;
 
@@ -40,19 +46,21 @@
     box-sizing: border-box;
 
     &:hover, &.active {
-        background-color: $status_bean_toggle_bg;
-        color: $status_bean_toggle_color;
+        background-color: $status_list_toggle_bg;
+        color: $status_list_toggle_color;
     }
 }
 
-.statusbar_logstats_active {
-    background-color: rgb(254, 80, 94);
+.statusbar_list_entry_label {
+    font-weight: 500;
+    flex: 1;
 }
 
-.statusbar_logviewer {
-    position: absolute;
-    top: -300px;
-    right: 0px;
-    width: 600px;
-    height: 300px;
+.statusbar_list_entry_value {
+    margin-left: 16px;
+}
+
+.statusbar_list_entry_unit {
+    margin-left: 2px;
+    font-weight: 500;
 }

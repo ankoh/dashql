@@ -106,7 +106,7 @@ class Launcher extends React.Component<ILauncherProps, ILauncherState> {
                     {this.renderProgress()}
                 </div>
                 <div className="launcher_spinner">
-                    <RectangleWaveSpinner />
+                    <RectangleWaveSpinner active={true} />
                 </div>
             </div>
         );

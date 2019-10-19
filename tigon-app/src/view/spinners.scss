@@ -47,16 +47,23 @@
 .rectangle_wave_spinner {
     display: flex;
     flex-direction: row;
+    align-items: center;
+
+    > div {
+        flex: 1 0 auto;
+        margin: 0px 3%;
+        border-radius: 3px;
+        height: 40%;
+    }
+
+    &.active > div {
+        height: 100% !important;
+        -webkit-animation: rectangle_wave_spinner_stretch 1.2s infinite ease-in-out;
+        animation: rectangle_wave_spinner_stretch 1.2s infinite ease-in-out;
+    }
 }
 
 .rectangle_wave_spinner > div {
-    flex: 1 0 auto;
-    margin: 0px 3%;
-    height: 100%;
-    border-radius: 3px;
-
-    -webkit-animation: rectangle_wave_spinner_stretch 1.2s infinite ease-in-out;
-    animation: rectangle_wave_spinner_stretch 1.2s infinite ease-in-out;
 }
 
 .rectangle_wave_spinner_rect_2 {

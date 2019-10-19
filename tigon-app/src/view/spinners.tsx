@@ -1,6 +1,6 @@
 import * as React from 'react';
 import classNames from 'classnames';
-import './spinners.css';
+import './spinners.scss';
 
 export class FillingBoxSpinner extends React.PureComponent<{ counter: number }> {
     public render() {
@@ -42,6 +42,7 @@ export class PulsingCircleSpinner extends React.PureComponent<{ counter: number 
 
 interface IRectangleWaveSpinnerProps {
     color?: string;
+    active: boolean;
 }
 
 export class RectangleWaveSpinner extends React.PureComponent<IRectangleWaveSpinnerProps> {
@@ -50,7 +51,7 @@ export class RectangleWaveSpinner extends React.PureComponent<IRectangleWaveSpin
             backgroundColor: this.props.color || "white"
         };
         return (
-            <div className="rectangle_wave_spinner">
+            <div className={classNames("rectangle_wave_spinner", this.props.active ? "active" : "")}>
                 <div className="rectangle_wave_spinner_rect_1" style={rectStyle} />
                 <div className="rectangle_wave_spinner_rect_2" style={rectStyle} />
                 <div className="rectangle_wave_spinner_rect_3" style={rectStyle} />
