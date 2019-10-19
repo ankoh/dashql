@@ -467,7 +467,7 @@ export function WarningIcon(props: IIconProps) {
         </svg>);
 }
 
-export function ErrorIcon(props: IIconProps) {
+export function StatusWarningIcon(props: IIconProps) {
     return (
         <svg
             className="icon"
@@ -880,6 +880,74 @@ export function PlanIcon(props: IIconProps) {
                 fillRule="evenodd"
             >
                 <path d="M8,4.99980749 C8,4.44762906 8.45303631,4 8.99703014,4 L15.0029699,4 C15.5536144,4 16,4.44371665 16,4.99980749 L16,8.00019251 C16,8.55237094 15.5469637,9 15.0029699,9 L8.99703014,9 C8.4463856,9 8,8.55628335 8,8.00019251 L8,4.99980749 Z M2,15.9998075 C2,15.4476291 2.45303631,15 2.99703014,15 L9.00296986,15 C9.5536144,15 10,15.4437166 10,15.9998075 L10,19.0001925 C10,19.5523709 9.54696369,20 9.00296986,20 L2.99703014,20 C2.4463856,20 2,19.5562834 2,19.0001925 L2,15.9998075 Z M14,15.9998075 C14,15.4476291 14.4530363,15 14.9970301,15 L21.0029699,15 C21.5536144,15 22,15.4437166 22,15.9998075 L22,19.0001925 C22,19.5523709 21.5469637,20 21.0029699,20 L14.9970301,20 C14.4463856,20 14,19.5562834 14,19.0001925 L14,15.9998075 Z M11,13 L6,13 L6,14.0189261 L5,14.0189261 L5,12 L10,12 L10,9.99680278 L11,9.99680278 L11,13 Z M14,9.99680278 L14,12 L19,12 L19,14.0189261 L18,14.0189261 L18,13 L13,13 L13,9.99680278 L14,9.99680278 Z" />
+            </g>
+        </svg>);
+}
+
+export function StatusScheduledIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2ZM12.5,7L11,7L11,13L16.25,16.15L17,14.92L12.5,12.25L12.5,7Z"/>
+            </g>
+        </svg>);
+}
+
+export function StatusSucceededIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2ZM10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/>
+            </g>
+        </svg>);
+}
+
+export function StatusFailedIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/>
+            </g>
+        </svg>);
+}
+
+export function StatusRunningIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
             </g>
         </svg>);
 }

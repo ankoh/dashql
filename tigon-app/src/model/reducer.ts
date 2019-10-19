@@ -44,16 +44,7 @@ export function reducer(state: State.RootState = new State.RootState(), a: RootA
         case ActionType.CONFIGURE_APP: 
             return {
                 ...state,
-                appConfig: a.payload,
-                serverConfigs: state.serverConfigs.withMutations((mutableConfigs) => {
-                    if (!a.payload.knownServers) { return; }
-                    a.payload.knownServers.forEach(ks => {
-                        const k = State.ServerConfig.buildKey(ks);
-                        if (!mutableConfigs.has(k)) {
-                            mutableConfigs.set(k, ks);
-                        }
-                    });
-                })
+                appSettings: a.payload,
             };
         case ActionType.NAVIGATE_ROOT: return { ...state, rootView: a.payload };
         case ActionType.OTHER: return state;

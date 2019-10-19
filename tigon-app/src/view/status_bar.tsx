@@ -5,8 +5,6 @@ import LogViewer from './log_viewer';
 import { connect } from 'react-redux';
 
 interface IStatusBarProps {
-    serverConfig: Model.ServerConfig | null;
-    serverInfo: Model.ServerInfo | null;
     logWarnings: number;
 }
 
@@ -62,12 +60,8 @@ export class StatusBar extends React.Component<IStatusBarProps, IStatusBarState>
 
 // Map state to props
 function mapStateToProps(state: Model.RootState) {
-    const serverConfig = (state.selectedServer && state.serverConfigs.get(state.selectedServer)) || null;
-    const serverInfo = (state.selectedServer && state.serverInfos.get(state.selectedServer)) || null;
     return {
         logWarnings: state.logWarnings,
-        serverConfig,
-        serverInfo,
     };
 }
 // Map llvm explorer dispatchs

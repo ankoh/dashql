@@ -19,7 +19,7 @@ export enum ActionType {
 // ---------------------------------------------------------------------------
 
 export type RootAction =
-    | Action<ActionType.CONFIGURE_APP, State.AppConfig>
+    | Action<ActionType.CONFIGURE_APP, State.AppSettings>
     | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
     | Action<ActionType.SET_EXPLORER_DATA_SOURCE, Model.DataSource>
@@ -52,8 +52,8 @@ export function navigateRoot(view: State.RootView): RootAction {
     return createAction<ActionType.NAVIGATE_ROOT, State.RootView>(ActionType.NAVIGATE_ROOT, view);
 }
 
-export function configureApp(config: State.AppConfig): RootAction {
-    return createAction<ActionType.CONFIGURE_APP, State.AppConfig>(ActionType.CONFIGURE_APP, config);
+export function configureApp(config: State.AppSettings): RootAction {
+    return createAction<ActionType.CONFIGURE_APP, State.AppSettings>(ActionType.CONFIGURE_APP, config);
 }
 
 export function setExplorerDataSource(d: Model.DataSource): RootAction {

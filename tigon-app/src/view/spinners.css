@@ -1,65 +1,5 @@
 /* -------------------------------------------------------------------- */
 
-.FillingBoxSpinner {
-    min-width: 8px;
-    min-height: 8px;
-}
-
-.FillingBoxSpinner-Outline {
-    /* Center in the spinner for rotation */
-    position: relative;
-    height: 100%;
-    width: 100%;
-    border: 1px solid rgb(255, 255, 255);
-    box-sizing: border-box;
-}
-
-.FillingBoxSpinner-Box {
-    /* Variable height fill */
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    height: 100%;
-    background-color: rgb(255, 255, 255);
-}
-
-.FillingBoxSpinner-State-0 {
-    animation: FillingBoxSpinner-Rotation 1.2s ease;
-}
-.FillingBoxSpinner-State-0 > .FillingBoxSpinner-Box {
-    width: 100%;
-    animation: FillingBoxSpinner-Fill 1.2s linear;
-}
-
-.FillingBoxSpinner-State-1 {
-    animation: FillingBoxSpinner-Rotation 1.2s ease;
-}
-.FillingBoxSpinner-State-1 > .FillingBoxSpinner-Box {
-    width: 0;
-    animation: FillingBoxSpinner-Clear 1.2s linear;
-}
-
-@keyframes FillingBoxSpinner-Rotation {
-    0%      { transform: rotate(0deg); }
-    50%     { transform: rotate(90deg); }
-    100%    { transform: rotate(90deg); }
-}
-
-@keyframes FillingBoxSpinner-Fill {
-    0%      { width: 0; }
-    50%     { width: 0; }
-    100%    { width: 100%; }
-}
-
-@keyframes FillingBoxSpinner-Clear {
-    0%      { width: 100%; }
-    50%     { width: 100%; }
-    100%    { width: 0; }
-}
-
-/* -------------------------------------------------------------------- */
-
 .PulsingCircleSpinner {
     min-width: 8px;
     min-height: 8px;
@@ -104,46 +44,47 @@
 
 /* -------------------------------------------------------------------- */
 
-.RectangleWaveSpinner {
+.rectangle_wave_spinner {
     display: flex;
     flex-direction: row;
 }
 
-.RectangleWaveSpinner > div {
+.rectangle_wave_spinner > div {
     flex: 1 0 auto;
     margin: 0px 3%;
     height: 100%;
+    border-radius: 3px;
 
-    -webkit-animation: RectangleWaveSpinner-Stretch 1.2s infinite ease-in-out;
-    animation: RectangleWaveSpinner-Stretch 1.2s infinite ease-in-out;
+    -webkit-animation: rectangle_wave_spinner_stretch 1.2s infinite ease-in-out;
+    animation: rectangle_wave_spinner_stretch 1.2s infinite ease-in-out;
 }
 
-.RectangleWaveSpinner-Rect-2 {
+.rectangle_wave_spinner_rect_2 {
     -webkit-animation-delay: -1.1s !important;
     animation-delay: -1.1s !important;
 }
 
-.RectangleWaveSpinner-Rect-3 {
+.rectangle_wave_spinner_rect_3 {
     -webkit-animation-delay: -1.0s !important;
     animation-delay: -1.0s !important;
 }
 
-.RectangleWaveSpinner-Rect-4 {
+.rectangle_wave_spinner_rect_4 {
     -webkit-animation-delay: -0.9s !important;
     animation-delay: -0.9s !important;
 }
 
-.RectangleWaveSpinner-Rect-5 {
+.rectangle_wave_spinner_rect_5 {
     -webkit-animation-delay: -0.8s !important;
     animation-delay: -0.8s !important;
 }
 
-@-webkit-keyframes RectangleWaveSpinner-Stretch {
+@-webkit-keyframes rectangle_wave_spinner_stretch {
     0%, 40%, 100% { -webkit-transform: scaleY(0.4) }
     20% { -webkit-transform: scaleY(1.0) }
 }
 
-@keyframes RectangleWaveSpinner-Stretch {
+@keyframes rectangle_wave_spinner_stretch {
     0%, 40%, 100% {
         transform: scaleY(0.4);
         -webkit-transform: scaleY(0.4);

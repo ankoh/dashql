@@ -50,12 +50,12 @@ export class RectangleWaveSpinner extends React.PureComponent<IRectangleWaveSpin
             backgroundColor: this.props.color || "white"
         };
         return (
-            <div className="RectangleWaveSpinner">
-                <div className="RectangleWaveSpinner-Rect-1" style={rectStyle} />
-                <div className="RectangleWaveSpinner-Rect-2" style={rectStyle} />
-                <div className="RectangleWaveSpinner-Rect-3" style={rectStyle} />
-                <div className="RectangleWaveSpinner-Rect-4" style={rectStyle} />
-                <div className="RectangleWaveSpinner-Rect-5" style={rectStyle} />
+            <div className="rectangle_wave_spinner">
+                <div className="rectangle_wave_spinner_rect_1" style={rectStyle} />
+                <div className="rectangle_wave_spinner_rect_2" style={rectStyle} />
+                <div className="rectangle_wave_spinner_rect_3" style={rectStyle} />
+                <div className="rectangle_wave_spinner_rect_4" style={rectStyle} />
+                <div className="rectangle_wave_spinner_rect_5" style={rectStyle} />
             </div>
         );
     }

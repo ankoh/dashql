@@ -64,8 +64,8 @@ export enum TaskStatus {
 // ---------------------------------------------------------------------------
 
 // An application config
-export class AppConfig {
-    public knownServers?: ServerConfig[]
+export class AppSettings {
+    public knownServers?: ServerSettings[]
 }
 
 // A parameter of a data source
@@ -97,8 +97,8 @@ export class ConnectionInfo {
 }
 
 // The server configuration
-export class ServerConfig {
-    public static buildKey(config: ServerConfig) {
+export class ServerSettings {
+    public static buildKey(config: ServerSettings) {
         return `${config.protocol}|${config.connection.host}|${config.connection.port}`;
     }
 
@@ -189,10 +189,18 @@ export class HTTPCacheEntry extends CacheEntry {
 // Launch Progress
 // ---------------------------------------------------------------------------
 
+export enum LaunchProgressStatus {
+    PENDING = 0,
+    STARTED = 1,
+    COMPLETED = 2,
+    FAILED = 3,
+    WARNING = 4,
+}
+
 export class LaunchProgress {
-    public config_loaded: boolean = false;
-    public core_instantiated: boolean = false;
-    public version_checked: boolean = false;
+    public app_configured: LaunchProgressStatus = LaunchProgressStatus.COMPLETED;
+    public core_instantiated: LaunchProgressStatus = LaunchProgressStatus.STARTED;
+    public version_checked: LaunchProgressStatus = LaunchProgressStatus.PENDING;
 }
 
 // ---------------------------------------------------------------------------
@@ -205,16 +213,9 @@ export class RootState {
     public launchProgress: LaunchProgress;
 
     // The app config
-    public appConfig: AppConfig | null;
+    public appSettings: AppSettings | null;
     // The app config load is pending
-    public appConfigLoadPending: boolean;
-
-    // The server configs
-    public serverConfigs: Immutable.Map<string, ServerConfig>;
-    // The server status
-    public serverInfos: Immutable.Map<string, ServerInfo>;
-    // The selected server
-    public selectedServer: string | null;
+    public appSettingsLoadPending: boolean;
 
     // The tasks
     public tasks: Immutable.List<Task>;
@@ -235,11 +236,8 @@ export class RootState {
     // Constructor
     constructor() {
         this.launchProgress = new LaunchProgress();
-        this.appConfig = null;
-        this.appConfigLoadPending = true;
-        this.serverConfigs = Immutable.Map<string, ServerConfig>();
-        this.serverInfos = Immutable.Map<string, ServerInfo>();
-        this.selectedServer = null;
+        this.appSettings = null;
+        this.appSettingsLoadPending = true;
         this.tasks = Immutable.List<Task>();
         this.logs = Immutable.List<LogEntry>();
         this.logWarnings = 0;
