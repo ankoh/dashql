@@ -14,7 +14,7 @@ $card_border_radius: $theme_border_radius;
 $card_border_radius_n: $card_border_radius $card_border_radius 0px 0px;
 $card_border_radius_s: 0px 0px $card_border_radius $card_border_radius;
 
-$status_background: #5B63DF;
+$status_background: $theme_color_1;
 $status_color: rgb(255, 255, 255);
 $status_border: 1px solid $background_line_color;
 $status_bean_toggle_color: $theme_color_1;
