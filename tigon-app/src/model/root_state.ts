@@ -241,7 +241,7 @@ export class RootState {
         this.tasks = Immutable.List<Task>();
         this.logs = Immutable.List<LogEntry>();
         this.logWarnings = 0;
-        this.rootView = RootView.LAUNCHER;
+        this.rootView = RootView.EXPLORER;
         this.explorerDataSource = new InlineAnyRows(
             ['Year', 'Tesla', 'Mercedes', 'Toyota', 'Volvo'],
             [

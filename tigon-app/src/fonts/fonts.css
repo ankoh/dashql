@@ -29,33 +29,3 @@
 }
 
 /* -------------------------------------------------------------------- */
-
-@font-face {
-    font-family: 'Dosis';
-    font-style: normal;
-    font-weight: 300;
-    src: url(./Dosis-Light.ttf) format('truetype');
-}
-
-@font-face {
-    font-family: 'Dosis';
-    font-style: normal;
-    font-weight: 400;
-    src: url(./Dosis-Regular.ttf) format('truetype');
-}
-
-@font-face {
-    font-family: 'Dosis';
-    font-style: normal;
-    font-weight: 500;
-    src: url(./Dosis-SemiBold.ttf) format('truetype');
-}
-
-@font-face {
-    font-family: 'Dosis';
-    font-style: normal;
-    font-weight: 700;
-    src: url(./Dosis-Bold.ttf) format('truetype');
-}
-
-/* -------------------------------------------------------------------- */
