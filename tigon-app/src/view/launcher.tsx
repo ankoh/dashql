@@ -84,8 +84,8 @@ class Launcher extends React.Component<ILauncherProps, ILauncherState> {
         return (
             <div className="launcher_progress">
                 {this.renderProgressStep("Configure application", this.props.progress.app_configured)}
-                {this.renderProgressStep("Compile core module", this.props.progress.core_instantiated)}
                 {this.renderProgressStep("Check build version", this.props.progress.version_checked)}
+                {this.renderProgressStep("Compile core module", this.props.progress.core_instantiated)}
             </div>
         );
     }

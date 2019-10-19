@@ -199,8 +199,8 @@ export enum LaunchProgressStatus {
 
 export class LaunchProgress {
     public app_configured: LaunchProgressStatus = LaunchProgressStatus.COMPLETED;
+    public version_checked: LaunchProgressStatus = LaunchProgressStatus.STARTED;
     public core_instantiated: LaunchProgressStatus = LaunchProgressStatus.STARTED;
-    public version_checked: LaunchProgressStatus = LaunchProgressStatus.PENDING;
 }
 
 // ---------------------------------------------------------------------------
