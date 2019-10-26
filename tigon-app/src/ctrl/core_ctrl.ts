@@ -3,6 +3,8 @@ import { flatbuffers } from 'flatbuffers';
 
 import proto2 from 'tigon-proto';
 
+type LogicalOperatorType = proto2.web_api.LogicalOperatorType;
+
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
 
