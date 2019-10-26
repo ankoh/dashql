@@ -3,3 +3,9 @@ domain tigon.proto
 package rpath
 
 struct RPathArraySlice {}
+
+struct RPathArrayIndexes {}
+
+struct RPathChildMember {}
+
+struct RPathDescendantMember {}

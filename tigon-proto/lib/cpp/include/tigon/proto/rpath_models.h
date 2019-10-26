@@ -269,3 +269,768 @@ public:
 
 } // namespace rpath
 } // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::rpath::RPathArrayIndexes field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::rpath::RPathArrayIndexes>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 2; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::rpath::RPathArrayIndexes& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::rpath::RPathArrayIndexes& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::rpath::RPathArrayIndexes& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::rpath::RPathArrayIndexes& fbe_value) noexcept
+    {
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace rpath {
+
+// Fast Binary Encoding RPathArrayIndexes model
+template <class TBuffer>
+class RPathArrayIndexesModel : public FBE::Model<TBuffer>
+{
+public:
+    RPathArrayIndexesModel() : model(this->buffer(), 4) {}
+    RPathArrayIndexesModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::rpath::RPathArrayIndexes>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::rpath::RPathArrayIndexes& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::rpath::RPathArrayIndexes& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::rpath::RPathArrayIndexes> model;
+};
+
+} // namespace rpath
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::rpath::RPathChildMember field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::rpath::RPathChildMember>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 3; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::rpath::RPathChildMember& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::rpath::RPathChildMember& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::rpath::RPathChildMember& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::rpath::RPathChildMember& fbe_value) noexcept
+    {
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace rpath {
+
+// Fast Binary Encoding RPathChildMember model
+template <class TBuffer>
+class RPathChildMemberModel : public FBE::Model<TBuffer>
+{
+public:
+    RPathChildMemberModel() : model(this->buffer(), 4) {}
+    RPathChildMemberModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::rpath::RPathChildMember>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::rpath::RPathChildMember& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::rpath::RPathChildMember& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::rpath::RPathChildMember> model;
+};
+
+} // namespace rpath
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::rpath::RPathDescendantMember field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::rpath::RPathDescendantMember>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 4; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::rpath::RPathDescendantMember& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::rpath::RPathDescendantMember& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::rpath::RPathDescendantMember& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::rpath::RPathDescendantMember& fbe_value) noexcept
+    {
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace rpath {
+
+// Fast Binary Encoding RPathDescendantMember model
+template <class TBuffer>
+class RPathDescendantMemberModel : public FBE::Model<TBuffer>
+{
+public:
+    RPathDescendantMemberModel() : model(this->buffer(), 4) {}
+    RPathDescendantMemberModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::rpath::RPathDescendantMember>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::rpath::RPathDescendantMember& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::rpath::RPathDescendantMember& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::rpath::RPathDescendantMember> model;
+};
+
+} // namespace rpath
+} // namespace FBE

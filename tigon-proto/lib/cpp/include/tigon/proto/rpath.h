@@ -101,3 +101,240 @@ struct hash<rpath::RPathArraySlice>
 };
 
 } // namespace std
+
+namespace rpath {
+
+struct RPathArrayIndexes
+{
+
+    size_t fbe_type() const noexcept { return 2; }
+
+    RPathArrayIndexes()
+    {}
+    RPathArrayIndexes(const RPathArrayIndexes& other) = default;
+    RPathArrayIndexes(RPathArrayIndexes&& other) = default;
+    ~RPathArrayIndexes() = default;
+
+    RPathArrayIndexes& operator=(const RPathArrayIndexes& other) = default;
+    RPathArrayIndexes& operator=(RPathArrayIndexes&& other) = default;
+
+    bool operator==(const RPathArrayIndexes& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const RPathArrayIndexes& other) const noexcept { return !operator==(other); }
+    bool operator<(const RPathArrayIndexes& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const RPathArrayIndexes& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const RPathArrayIndexes& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const RPathArrayIndexes& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const RPathArrayIndexes& value);
+
+    void swap(RPathArrayIndexes& other) noexcept
+    {
+        using std::swap;
+    }
+
+    friend void swap(RPathArrayIndexes& value1, RPathArrayIndexes& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const RPathArrayIndexes& value)
+{
+    stream << "RPathArrayIndexes(";
+    stream << ")";
+    return stream;
+}
+
+} // namespace rpath
+
+namespace std {
+
+template<>
+struct hash<rpath::RPathArrayIndexes>
+{
+    typedef rpath::RPathArrayIndexes argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace rpath {
+
+struct RPathChildMember
+{
+
+    size_t fbe_type() const noexcept { return 3; }
+
+    RPathChildMember()
+    {}
+    RPathChildMember(const RPathChildMember& other) = default;
+    RPathChildMember(RPathChildMember&& other) = default;
+    ~RPathChildMember() = default;
+
+    RPathChildMember& operator=(const RPathChildMember& other) = default;
+    RPathChildMember& operator=(RPathChildMember&& other) = default;
+
+    bool operator==(const RPathChildMember& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const RPathChildMember& other) const noexcept { return !operator==(other); }
+    bool operator<(const RPathChildMember& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const RPathChildMember& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const RPathChildMember& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const RPathChildMember& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const RPathChildMember& value);
+
+    void swap(RPathChildMember& other) noexcept
+    {
+        using std::swap;
+    }
+
+    friend void swap(RPathChildMember& value1, RPathChildMember& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const RPathChildMember& value)
+{
+    stream << "RPathChildMember(";
+    stream << ")";
+    return stream;
+}
+
+} // namespace rpath
+
+namespace std {
+
+template<>
+struct hash<rpath::RPathChildMember>
+{
+    typedef rpath::RPathChildMember argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace rpath {
+
+struct RPathDescendantMember
+{
+
+    size_t fbe_type() const noexcept { return 4; }
+
+    RPathDescendantMember()
+    {}
+    RPathDescendantMember(const RPathDescendantMember& other) = default;
+    RPathDescendantMember(RPathDescendantMember&& other) = default;
+    ~RPathDescendantMember() = default;
+
+    RPathDescendantMember& operator=(const RPathDescendantMember& other) = default;
+    RPathDescendantMember& operator=(RPathDescendantMember&& other) = default;
+
+    bool operator==(const RPathDescendantMember& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const RPathDescendantMember& other) const noexcept { return !operator==(other); }
+    bool operator<(const RPathDescendantMember& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const RPathDescendantMember& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const RPathDescendantMember& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const RPathDescendantMember& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const RPathDescendantMember& value);
+
+    void swap(RPathDescendantMember& other) noexcept
+    {
+        using std::swap;
+    }
+
+    friend void swap(RPathDescendantMember& value1, RPathDescendantMember& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const RPathDescendantMember& value)
+{
+    stream << "RPathDescendantMember(";
+    stream << ")";
+    return stream;
+}
+
+} // namespace rpath
+
+namespace std {
+
+template<>
+struct hash<rpath::RPathDescendantMember>
+{
+    typedef rpath::RPathDescendantMember argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
