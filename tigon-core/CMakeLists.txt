@@ -3,7 +3,7 @@
 # (c) 2019 Andre Kohn
 # ---------------------------------------------------------------------------
 
-project(tigon)
+project("Tigon")
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 17)
