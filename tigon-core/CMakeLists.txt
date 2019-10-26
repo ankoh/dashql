@@ -50,9 +50,8 @@ if (NOT BISON_FOUND)
 endif()
 
 # ---------------------------------------------------------------------------
-# Include cmake
+# CMake includes
 
-# Include cmake lists
 include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/duckdb.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/flatbuffers.cmake")
@@ -60,6 +59,15 @@ include("${CMAKE_SOURCE_DIR}/third_party/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/cwcsv.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/spdlog.cmake")
+
+
+# ---------------------------------------------------------------------------
+# Proto project
+
+add_subdirectory(
+    "${CMAKE_SOURCE_DIR}/../tigon-proto/lib/cpp"
+    "${CMAKE_BINARY_DIR}/proto"
+)
 
 # ---------------------------------------------------------------------------
 # Headers
@@ -83,6 +91,7 @@ include("${CMAKE_SOURCE_DIR}/src/parser/rpath/local.cmake")
 include("${CMAKE_SOURCE_DIR}/src/parser/tql/local.cmake")
 
 target_link_libraries(tigon
+    tigon_proto
     tigon_rpath
     tigon_tql
     duckdb
