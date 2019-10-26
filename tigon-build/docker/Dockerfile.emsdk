@@ -1,0 +1,33 @@
+FROM ubuntu:19.10
+
+RUN apt-get update -qq \
+    && apt-get install -y build-essential cmake ninja-build clang curl python bison flex \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/emsdk \
+    && cd /opt/emsdk \
+    && curl -L 'https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz' | tar xvzf - \
+    && cd emsdk-portable \
+    && ./emsdk update \
+    && ./emsdk install latest \
+    && ./emsdk activate latest \
+    && /bin/bash ./emsdk_env.sh \
+    && rm -rf ./emscripten/tag-*/tests \
+    && rm -rf ./emscripten/tag-*/site \
+    && rm -rf ./emscripten/tag-*/docs \
+    && rm -rf ./zips \
+    && find . -name "*.o" -exec rm {} \; \
+    && find . -name "*.a" -exec rm {} \; \
+    && find . -name "*.tmp" -exec rm {} \;
+
+SHELL ["/bin/bash", "-c"]
+RUN source /opt/emsdk/emsdk-portable/emsdk_env.sh \
+    && echo "PATH=$PATH" >> /opt/env.sh \
+    && echo "EMSDK=$EMSDK" >> /opt/env.sh \
+    && echo "EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
+    && echo "EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
+    && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
+    && chmod +x /opt/entrypoint.sh
+
+ENTRYPOINT ["/opt/entrypoint.sh"]
