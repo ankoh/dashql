@@ -15,6 +15,7 @@
 #include <utility>
 #include <variant>
 #include <vector>
+#include <optional>
 
 #include "flatbuffers/flatbuffers.h"
 #include "tigon/proto/tql_generated.h"

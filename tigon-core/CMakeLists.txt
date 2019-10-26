@@ -12,13 +12,9 @@ set(CMAKE_CXX_FLAGS -std=c++17)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
 
 # ---------------------------------------------------------------------------
-# Homebrew (only relevant on macOS)
-
-find_program(BREW_BIN brew)
-
-# ---------------------------------------------------------------------------
 # Emscripten module path
 
+# Set module path.
 # Otherwise TestBigEndian fails in Snappy and Brotli builds.
 # https://github.com/emscripten-core/emscripten/issues/400
 if(DEFINED ENV{EMSDK})
@@ -37,6 +33,7 @@ find_package(Threads REQUIRED)
 # In the case where we cannot find a system-wide installation, look for
 # homebrew and ask for its bison installation.
 if(NOT BISON_FOUND)
+    find_program(BREW_BIN brew)
     if (BREW_BIN)
         execute_process(COMMAND ${BREW_BIN} --prefix bison
                         OUTPUT_VARIABLE BISON_PREFIX

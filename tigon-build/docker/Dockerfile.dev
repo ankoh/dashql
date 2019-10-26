@@ -1,7 +1,11 @@
 FROM ubuntu:19.10
 
 RUN apt-get update -qq \
-    && apt-get install -y build-essential cmake ninja-build clang curl python bison flex \
+    && apt-get install -y \
+        build-essential git \
+        cmake ninja-build clang clang-tidy curl python \
+        bison flex \
+        openjdk-14-jdk \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,3 +35,4 @@ RUN source /opt/emsdk/emsdk-portable/emsdk_env.sh \
     && chmod +x /opt/entrypoint.sh
 
 ENTRYPOINT ["/opt/entrypoint.sh"]
+WORKDIR /wd

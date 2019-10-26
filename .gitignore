@@ -1,4 +1,5 @@
 /build
 /.ccls-cache
+/.emscripten_cache
 
 compile_commands.json
