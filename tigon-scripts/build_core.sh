@@ -21,6 +21,8 @@ APP_LIB_DIR="${APP_SOURCE_DIR}/public/lib"
     && { echo "[ OK  ] Test command: emmake"; } \
     || { echo "[ ERR ] Test command: emmake"; exit 1; }
 
+set -x
+
 mkdir -p ${CORE_BUILD_DIR}
 cd ${CORE_BUILD_DIR}
 

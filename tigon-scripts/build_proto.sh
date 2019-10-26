@@ -13,6 +13,8 @@ PROTO_JS_OUT_DIR="${PROTO_JS_LIB_DIR}/src/proto"
     && { echo "[ OK  ] Command: fbec"; } \
     || { echo "[ ERR ] Command: fbec"; exit 1; }
 
+set -x
+
 rm ${PROTO_CPP_OUT_DIR}/*
 rm ${PROTO_JS_OUT_DIR}/*
 

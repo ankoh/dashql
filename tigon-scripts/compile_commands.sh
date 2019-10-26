@@ -9,6 +9,8 @@ CORE_BUILD_DIR="${PROJECT_ROOT}/tigon-core/build/debug"
     && { echo "[ OK  ] Command: cmake"; } \
     || { echo "[ ERR ] Command: cmake"; exit 1; }
 
+set -x
+
 mkdir -p ${CORE_BUILD_DIR}
 
 cmake \
