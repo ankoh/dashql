@@ -1,0 +1,5 @@
+domain tigon.proto
+
+package rpath
+
+struct RPathArraySlice {}

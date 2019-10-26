@@ -1,0 +1,19 @@
+domain tigon.proto
+
+package web_api
+
+// The raw data types
+enum RawTypeID: byte {
+    INVALID = 0;    // bool
+    BOOLEAN = 1;    // int8
+    TINYINT = 2;    // int16
+    SMALLINT = 3;   // int32
+    INTEGER = 4;    // int64
+    BIGINT = 5;     // int64
+    HASH = 6;       // uint64
+    POINTER = 7;    // uint64
+    FLOAT = 8;      // float32
+    DOUBLE = 9;     // float64
+    VARCHAR = 10;   // string
+    VARBINARY = 11; // [ubyte]
+}

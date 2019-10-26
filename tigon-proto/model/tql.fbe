@@ -1,0 +1,13 @@
+domain tigon.proto
+
+package tql
+
+// A TQL type
+enum TQLType: byte {
+    INTEGER = 0;
+    FLOAT = 1;
+    TEXT = 2;
+    DATE = 3;
+    DATETIME = 4;
+    TIME = 5;
+}
