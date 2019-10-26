@@ -64,23 +64,23 @@ class TQLType {
    * @returns {!string} Enum value string
    */
   toString () {
-    if (this.value === TQLType.INTEGER.value) {
-      return 'INTEGER'
+    if (this.value === TQLType.Integer.value) {
+      return 'Integer'
     }
-    if (this.value === TQLType.FLOAT.value) {
-      return 'FLOAT'
+    if (this.value === TQLType.Float.value) {
+      return 'Float'
     }
-    if (this.value === TQLType.TEXT.value) {
-      return 'TEXT'
+    if (this.value === TQLType.Text.value) {
+      return 'Text'
     }
-    if (this.value === TQLType.DATE.value) {
-      return 'DATE'
+    if (this.value === TQLType.Date.value) {
+      return 'Date'
     }
-    if (this.value === TQLType.DATETIME.value) {
-      return 'DATETIME'
+    if (this.value === TQLType.DateTime.value) {
+      return 'DateTime'
     }
-    if (this.value === TQLType.TIME.value) {
-      return 'TIME'
+    if (this.value === TQLType.Time.value) {
+      return 'Time'
     }
     return '<unknown>'
   }
@@ -114,17 +114,17 @@ class TQLType {
 }
 
 // noinspection PointlessArithmeticExpressionJS
-TQLType.INTEGER = new TQLType(0 + 0)
+TQLType.Integer = new TQLType(0 + 0)
 // noinspection PointlessArithmeticExpressionJS
-TQLType.FLOAT = new TQLType(1 + 0)
+TQLType.Float = new TQLType(1 + 0)
 // noinspection PointlessArithmeticExpressionJS
-TQLType.TEXT = new TQLType(2 + 0)
+TQLType.Text = new TQLType(2 + 0)
 // noinspection PointlessArithmeticExpressionJS
-TQLType.DATE = new TQLType(3 + 0)
+TQLType.Date = new TQLType(3 + 0)
 // noinspection PointlessArithmeticExpressionJS
-TQLType.DATETIME = new TQLType(4 + 0)
+TQLType.DateTime = new TQLType(4 + 0)
 // noinspection PointlessArithmeticExpressionJS
-TQLType.TIME = new TQLType(5 + 0)
+TQLType.Time = new TQLType(5 + 0)
 
 exports.TQLType = TQLType
 
@@ -171,3 +171,9937 @@ class FieldModelTQLType extends fbe.FieldModel {
 }
 
 exports.FieldModelTQLType = FieldModelTQLType
+
+/**
+ * TQLHTTPMethod enum
+ */
+class TQLHTTPMethod {
+  /**
+   * Initialize enum with a given value
+   * @param {TQLHTTPMethod|number|Int64|UInt64=} value Enum value, defaults is 0
+   * @constructor
+   */
+  constructor (value = 0) {
+    if (value instanceof TQLHTTPMethod) {
+      this.value = value.value
+    } else {
+      this.value = value
+    }
+  }
+
+  /**
+   * Is this enum equal to other one?
+   * @this {!TQLHTTPMethod}
+   * @param {!TQLHTTPMethod} other Other enum
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLHTTPMethod)) {
+      throw new TypeError('Instance of TQLHTTPMethod is required!')
+    }
+    return this.value === other.value
+  }
+
+  /**
+   * Get enum value
+   * @this {!TQLHTTPMethod}
+   * @returns {!number|!Int64|!UInt64} Enum value
+   */
+  valueOf () {
+    return this.value
+  }
+
+  /**
+   * Convert enum to string
+   * @this {!TQLHTTPMethod}
+   * @returns {!string} Enum value string
+   */
+  toString () {
+    if (this.value === TQLHTTPMethod.Get.value) {
+      return 'Get'
+    }
+    if (this.value === TQLHTTPMethod.Put.value) {
+      return 'Put'
+    }
+    if (this.value === TQLHTTPMethod.Post.value) {
+      return 'Post'
+    }
+    return '<unknown>'
+  }
+
+  /**
+   * Inspect enum
+   * @this {!TQLHTTPMethod}
+   * @returns {!string} Enum value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert enum to JSON
+   * @this {!TQLHTTPMethod}
+   * @returns {!number} Enum value for JSON
+   */
+  toJSON () {
+    return this.value
+  }
+
+  /**
+   * Create enum from object value
+   * @param {!number} other Object value
+   * @returns {!TQLHTTPMethod} Created enum
+   */
+  static fromObject (other) {
+    return new TQLHTTPMethod(other)
+  }
+}
+
+// noinspection PointlessArithmeticExpressionJS
+TQLHTTPMethod.Get = new TQLHTTPMethod(0 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLHTTPMethod.Put = new TQLHTTPMethod(1 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLHTTPMethod.Post = new TQLHTTPMethod(2 + 0)
+
+exports.TQLHTTPMethod = TQLHTTPMethod
+
+/**
+ * Fast Binary Encoding TQLHTTPMethod field model
+ */
+class FieldModelTQLHTTPMethod extends fbe.FieldModel {
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLHTTPMethod}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 1
+  }
+
+  /**
+   * Get the value
+   * @this {!FieldModelTQLHTTPMethod}
+   * @param {TQLHTTPMethod=} defaults Default value, defaults is new TQLHTTPMethod()
+   * @returns {!TQLHTTPMethod} Result value
+   */
+  get (defaults = new TQLHTTPMethod()) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return defaults
+    }
+
+    return new TQLHTTPMethod(this.readByte(this.fbeOffset))
+  }
+
+  /**
+   * Set the value
+   * @this {!FieldModelTQLHTTPMethod}
+   * @param {!TQLHTTPMethod} value Value
+   */
+  set (value) {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return
+    }
+
+    this.writeByte(this.fbeOffset, value.value)
+  }
+}
+
+exports.FieldModelTQLHTTPMethod = FieldModelTQLHTTPMethod
+
+/**
+ * TQLDisplayType enum
+ */
+class TQLDisplayType {
+  /**
+   * Initialize enum with a given value
+   * @param {TQLDisplayType|number|Int64|UInt64=} value Enum value, defaults is 0
+   * @constructor
+   */
+  constructor (value = 0) {
+    if (value instanceof TQLDisplayType) {
+      this.value = value.value
+    } else {
+      this.value = value
+    }
+  }
+
+  /**
+   * Is this enum equal to other one?
+   * @this {!TQLDisplayType}
+   * @param {!TQLDisplayType} other Other enum
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayType)) {
+      throw new TypeError('Instance of TQLDisplayType is required!')
+    }
+    return this.value === other.value
+  }
+
+  /**
+   * Get enum value
+   * @this {!TQLDisplayType}
+   * @returns {!number|!Int64|!UInt64} Enum value
+   */
+  valueOf () {
+    return this.value
+  }
+
+  /**
+   * Convert enum to string
+   * @this {!TQLDisplayType}
+   * @returns {!string} Enum value string
+   */
+  toString () {
+    if (this.value === TQLDisplayType.Area.value) {
+      return 'Area'
+    }
+    if (this.value === TQLDisplayType.Bar.value) {
+      return 'Bar'
+    }
+    if (this.value === TQLDisplayType.Box.value) {
+      return 'Box'
+    }
+    if (this.value === TQLDisplayType.Bubble.value) {
+      return 'Bubble'
+    }
+    if (this.value === TQLDisplayType.Grid.value) {
+      return 'Grid'
+    }
+    if (this.value === TQLDisplayType.Histogram.value) {
+      return 'Histogram'
+    }
+    if (this.value === TQLDisplayType.Line.value) {
+      return 'Line'
+    }
+    if (this.value === TQLDisplayType.Number.value) {
+      return 'Number'
+    }
+    if (this.value === TQLDisplayType.Pie.value) {
+      return 'Pie'
+    }
+    if (this.value === TQLDisplayType.Point.value) {
+      return 'Point'
+    }
+    if (this.value === TQLDisplayType.Scatter.value) {
+      return 'Scatter'
+    }
+    if (this.value === TQLDisplayType.Table.value) {
+      return 'Table'
+    }
+    if (this.value === TQLDisplayType.Text.value) {
+      return 'Text'
+    }
+    return '<unknown>'
+  }
+
+  /**
+   * Inspect enum
+   * @this {!TQLDisplayType}
+   * @returns {!string} Enum value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert enum to JSON
+   * @this {!TQLDisplayType}
+   * @returns {!number} Enum value for JSON
+   */
+  toJSON () {
+    return this.value
+  }
+
+  /**
+   * Create enum from object value
+   * @param {!number} other Object value
+   * @returns {!TQLDisplayType} Created enum
+   */
+  static fromObject (other) {
+    return new TQLDisplayType(other)
+  }
+}
+
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Area = new TQLDisplayType(0 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Bar = new TQLDisplayType(1 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Box = new TQLDisplayType(2 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Bubble = new TQLDisplayType(3 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Grid = new TQLDisplayType(4 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Histogram = new TQLDisplayType(5 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Line = new TQLDisplayType(6 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Number = new TQLDisplayType(7 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Pie = new TQLDisplayType(8 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Point = new TQLDisplayType(9 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Scatter = new TQLDisplayType(10 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Table = new TQLDisplayType(11 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayType.Text = new TQLDisplayType(12 + 0)
+
+exports.TQLDisplayType = TQLDisplayType
+
+/**
+ * Fast Binary Encoding TQLDisplayType field model
+ */
+class FieldModelTQLDisplayType extends fbe.FieldModel {
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayType}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 1
+  }
+
+  /**
+   * Get the value
+   * @this {!FieldModelTQLDisplayType}
+   * @param {TQLDisplayType=} defaults Default value, defaults is new TQLDisplayType()
+   * @returns {!TQLDisplayType} Result value
+   */
+  get (defaults = new TQLDisplayType()) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return defaults
+    }
+
+    return new TQLDisplayType(this.readByte(this.fbeOffset))
+  }
+
+  /**
+   * Set the value
+   * @this {!FieldModelTQLDisplayType}
+   * @param {!TQLDisplayType} value Value
+   */
+  set (value) {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return
+    }
+
+    this.writeByte(this.fbeOffset, value.value)
+  }
+}
+
+exports.FieldModelTQLDisplayType = FieldModelTQLDisplayType
+
+/**
+ * TQLDisplayLengthUnit enum
+ */
+class TQLDisplayLengthUnit {
+  /**
+   * Initialize enum with a given value
+   * @param {TQLDisplayLengthUnit|number|Int64|UInt64=} value Enum value, defaults is 0
+   * @constructor
+   */
+  constructor (value = 0) {
+    if (value instanceof TQLDisplayLengthUnit) {
+      this.value = value.value
+    } else {
+      this.value = value
+    }
+  }
+
+  /**
+   * Is this enum equal to other one?
+   * @this {!TQLDisplayLengthUnit}
+   * @param {!TQLDisplayLengthUnit} other Other enum
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayLengthUnit)) {
+      throw new TypeError('Instance of TQLDisplayLengthUnit is required!')
+    }
+    return this.value === other.value
+  }
+
+  /**
+   * Get enum value
+   * @this {!TQLDisplayLengthUnit}
+   * @returns {!number|!Int64|!UInt64} Enum value
+   */
+  valueOf () {
+    return this.value
+  }
+
+  /**
+   * Convert enum to string
+   * @this {!TQLDisplayLengthUnit}
+   * @returns {!string} Enum value string
+   */
+  toString () {
+    if (this.value === TQLDisplayLengthUnit.Span.value) {
+      return 'Span'
+    }
+    if (this.value === TQLDisplayLengthUnit.Pixel.value) {
+      return 'Pixel'
+    }
+    if (this.value === TQLDisplayLengthUnit.Percent.value) {
+      return 'Percent'
+    }
+    return '<unknown>'
+  }
+
+  /**
+   * Inspect enum
+   * @this {!TQLDisplayLengthUnit}
+   * @returns {!string} Enum value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert enum to JSON
+   * @this {!TQLDisplayLengthUnit}
+   * @returns {!number} Enum value for JSON
+   */
+  toJSON () {
+    return this.value
+  }
+
+  /**
+   * Create enum from object value
+   * @param {!number} other Object value
+   * @returns {!TQLDisplayLengthUnit} Created enum
+   */
+  static fromObject (other) {
+    return new TQLDisplayLengthUnit(other)
+  }
+}
+
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayLengthUnit.Span = new TQLDisplayLengthUnit(0 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayLengthUnit.Pixel = new TQLDisplayLengthUnit(1 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayLengthUnit.Percent = new TQLDisplayLengthUnit(2 + 0)
+
+exports.TQLDisplayLengthUnit = TQLDisplayLengthUnit
+
+/**
+ * Fast Binary Encoding TQLDisplayLengthUnit field model
+ */
+class FieldModelTQLDisplayLengthUnit extends fbe.FieldModel {
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayLengthUnit}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 1
+  }
+
+  /**
+   * Get the value
+   * @this {!FieldModelTQLDisplayLengthUnit}
+   * @param {TQLDisplayLengthUnit=} defaults Default value, defaults is new TQLDisplayLengthUnit()
+   * @returns {!TQLDisplayLengthUnit} Result value
+   */
+  get (defaults = new TQLDisplayLengthUnit()) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return defaults
+    }
+
+    return new TQLDisplayLengthUnit(this.readByte(this.fbeOffset))
+  }
+
+  /**
+   * Set the value
+   * @this {!FieldModelTQLDisplayLengthUnit}
+   * @param {!TQLDisplayLengthUnit} value Value
+   */
+  set (value) {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return
+    }
+
+    this.writeByte(this.fbeOffset, value.value)
+  }
+}
+
+exports.FieldModelTQLDisplayLengthUnit = FieldModelTQLDisplayLengthUnit
+
+/**
+ * TQLDisplayAxisScale enum
+ */
+class TQLDisplayAxisScale {
+  /**
+   * Initialize enum with a given value
+   * @param {TQLDisplayAxisScale|number|Int64|UInt64=} value Enum value, defaults is 0
+   * @constructor
+   */
+  constructor (value = 0) {
+    if (value instanceof TQLDisplayAxisScale) {
+      this.value = value.value
+    } else {
+      this.value = value
+    }
+  }
+
+  /**
+   * Is this enum equal to other one?
+   * @this {!TQLDisplayAxisScale}
+   * @param {!TQLDisplayAxisScale} other Other enum
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayAxisScale)) {
+      throw new TypeError('Instance of TQLDisplayAxisScale is required!')
+    }
+    return this.value === other.value
+  }
+
+  /**
+   * Get enum value
+   * @this {!TQLDisplayAxisScale}
+   * @returns {!number|!Int64|!UInt64} Enum value
+   */
+  valueOf () {
+    return this.value
+  }
+
+  /**
+   * Convert enum to string
+   * @this {!TQLDisplayAxisScale}
+   * @returns {!string} Enum value string
+   */
+  toString () {
+    if (this.value === TQLDisplayAxisScale.Linear.value) {
+      return 'Linear'
+    }
+    if (this.value === TQLDisplayAxisScale.Logarithmic.value) {
+      return 'Logarithmic'
+    }
+    return '<unknown>'
+  }
+
+  /**
+   * Inspect enum
+   * @this {!TQLDisplayAxisScale}
+   * @returns {!string} Enum value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert enum to JSON
+   * @this {!TQLDisplayAxisScale}
+   * @returns {!number} Enum value for JSON
+   */
+  toJSON () {
+    return this.value
+  }
+
+  /**
+   * Create enum from object value
+   * @param {!number} other Object value
+   * @returns {!TQLDisplayAxisScale} Created enum
+   */
+  static fromObject (other) {
+    return new TQLDisplayAxisScale(other)
+  }
+}
+
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayAxisScale.Linear = new TQLDisplayAxisScale(0 + 0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayAxisScale.Logarithmic = new TQLDisplayAxisScale(1 + 0)
+
+exports.TQLDisplayAxisScale = TQLDisplayAxisScale
+
+/**
+ * Fast Binary Encoding TQLDisplayAxisScale field model
+ */
+class FieldModelTQLDisplayAxisScale extends fbe.FieldModel {
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayAxisScale}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 1
+  }
+
+  /**
+   * Get the value
+   * @this {!FieldModelTQLDisplayAxisScale}
+   * @param {TQLDisplayAxisScale=} defaults Default value, defaults is new TQLDisplayAxisScale()
+   * @returns {!TQLDisplayAxisScale} Result value
+   */
+  get (defaults = new TQLDisplayAxisScale()) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return defaults
+    }
+
+    return new TQLDisplayAxisScale(this.readByte(this.fbeOffset))
+  }
+
+  /**
+   * Set the value
+   * @this {!FieldModelTQLDisplayAxisScale}
+   * @param {!TQLDisplayAxisScale} value Value
+   */
+  set (value) {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return
+    }
+
+    this.writeByte(this.fbeOffset, value.value)
+  }
+}
+
+exports.FieldModelTQLDisplayAxisScale = FieldModelTQLDisplayAxisScale
+
+/**
+ * TQLDisplayTypeFlag flags
+ */
+class TQLDisplayTypeFlag {
+  /**
+   * Initialize flags with a given value
+   * @param {TQLDisplayTypeFlag|number|Int64|UInt64=} value Flags value, defaults is 0
+   * @constructor
+   */
+  constructor (value = 0) {
+    if (value instanceof TQLDisplayTypeFlag) {
+      this.value = value.value
+    } else {
+      this.value = value
+    }
+  }
+
+  /**
+   * Check for the given flags set state
+   * @this {!TQLDisplayTypeFlag}
+   * @param {!TQLDisplayTypeFlag|!number|!Int64|!UInt64} flags Flags
+   * @returns {!boolean} Flags set state
+   */
+  hasFlags (flags) {
+    if (flags instanceof TQLDisplayTypeFlag) {
+      flags = flags.value
+    }
+    return ((this.value & flags) !== 0) && ((this.value & flags) === flags)
+  }
+
+  /**
+   * Set the given flags
+   * @this {!TQLDisplayTypeFlag}
+   * @param {!TQLDisplayTypeFlag|!number|!Int64|!UInt64} flags Flags
+   */
+  setFlags (flags) {
+    if (flags instanceof TQLDisplayTypeFlag) {
+      flags = flags.value
+    }
+    this.value |= flags
+    return this
+  }
+
+  /**
+   * Remove the given flags
+   * @this {!TQLDisplayTypeFlag}
+   * @param {!TQLDisplayTypeFlag|!number|!Int64|!UInt64} flags Flags
+   */
+  removeFlags (flags) {
+    if (flags instanceof TQLDisplayTypeFlag) {
+      flags = flags.value
+    }
+    this.value &= ~flags
+    return this
+  }
+
+  /**
+   * Is this flags equal to other one?
+   * @this {!TQLDisplayTypeFlag}
+   * @param {!TQLDisplayTypeFlag} other Other flags
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayTypeFlag)) {
+      throw new TypeError('Instance of TQLDisplayTypeFlag is required!')
+    }
+    return this.value === other.value
+  }
+
+  /**
+   * Get flags value
+   * @this {!TQLDisplayTypeFlag}
+   * @returns {!number|!Int64|!UInt64} Flags value
+   */
+  valueOf () {
+    return this.value
+  }
+
+  /**
+   * Convert flags to string
+   * @this {!TQLDisplayTypeFlag}
+   * @returns {!string} Flags value string
+   */
+  toString () {
+    let result = ''
+    let first = true
+    if ((this.value & TQLDisplayTypeFlag.None.value) && ((this.value & TQLDisplayTypeFlag.None.value) === TQLDisplayTypeFlag.None.value)) {
+      result += (first ? '' : '|') + 'None'
+      // noinspection JSUnusedAssignment
+      first = false
+    }
+    if ((this.value & TQLDisplayTypeFlag.Horizontal.value) && ((this.value & TQLDisplayTypeFlag.Horizontal.value) === TQLDisplayTypeFlag.Horizontal.value)) {
+      result += (first ? '' : '|') + 'Horizontal'
+      // noinspection JSUnusedAssignment
+      first = false
+    }
+    if ((this.value & TQLDisplayTypeFlag.Vertical.value) && ((this.value & TQLDisplayTypeFlag.Vertical.value) === TQLDisplayTypeFlag.Vertical.value)) {
+      result += (first ? '' : '|') + 'Vertical'
+      // noinspection JSUnusedAssignment
+      first = false
+    }
+    if ((this.value & TQLDisplayTypeFlag.Stacked.value) && ((this.value & TQLDisplayTypeFlag.Stacked.value) === TQLDisplayTypeFlag.Stacked.value)) {
+      result += (first ? '' : '|') + 'Stacked'
+      // noinspection JSUnusedAssignment
+      first = false
+    }
+    return result
+  }
+
+  /**
+   * Inspect flags
+   * @this {!TQLDisplayTypeFlag}
+   * @returns {!string} Flags value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert flags to JSON
+   * @this {!TQLDisplayTypeFlag}
+   * @returns {!number} Flags value for JSON
+   */
+  toJSON () {
+    return this.value
+  }
+
+  /**
+   * Create flags from number flags representation
+   * @param {!number} flags Number flags representation
+   * @returns {!TQLDisplayTypeFlag} Created flags
+   */
+  static fromFlags (flags) {
+    return new TQLDisplayTypeFlag(flags)
+  }
+
+  /**
+   * Create flags from object value
+   * @param {!number} other Object value
+   * @returns {!TQLDisplayTypeFlag} Created flags
+   */
+  static fromObject (other) {
+    return new TQLDisplayTypeFlag(other)
+  }
+}
+
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayTypeFlag.None = new TQLDisplayTypeFlag(0)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayTypeFlag.Horizontal = new TQLDisplayTypeFlag(1)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayTypeFlag.Vertical = new TQLDisplayTypeFlag(2)
+// noinspection PointlessArithmeticExpressionJS
+TQLDisplayTypeFlag.Stacked = new TQLDisplayTypeFlag(4)
+
+exports.TQLDisplayTypeFlag = TQLDisplayTypeFlag
+
+/**
+ * Fast Binary Encoding TQLDisplayTypeFlag field model
+ */
+class FieldModelTQLDisplayTypeFlag extends fbe.FieldModel {
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayTypeFlag}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 2
+  }
+
+  /**
+   * Get the value
+   * @this {!FieldModelTQLDisplayTypeFlag}
+   * @param {TQLDisplayTypeFlag=} defaults Default value, defaults is new TQLDisplayTypeFlag()
+   * @returns {!TQLDisplayTypeFlag} Result value
+   */
+  get (defaults = new TQLDisplayTypeFlag()) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return defaults
+    }
+
+    return new TQLDisplayTypeFlag(this.readUInt16(this.fbeOffset))
+  }
+
+  /**
+   * Set the value
+   * @this {!FieldModelTQLDisplayTypeFlag}
+   * @param {!TQLDisplayTypeFlag} value Value
+   */
+  set (value) {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return
+    }
+
+    this.writeUInt16(this.fbeOffset, value.value)
+  }
+}
+
+exports.FieldModelTQLDisplayTypeFlag = FieldModelTQLDisplayTypeFlag
+
+/**
+ * TQLQueryStatement struct
+ */
+class TQLQueryStatement {
+  /**
+   * Initialize struct
+   * @param {!string=} query_text
+   * @constructor
+   */
+  constructor (argquery_text = '') {
+    this.query_text = argquery_text
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLQueryStatement}
+   * @param {!TQLQueryStatement} other Other struct
+   * @returns {!TQLQueryStatement} This struct
+   */
+  copy (other) {
+    if (other.query_text != null) {
+      this.query_text = other.query_text
+    } else {
+      this.query_text = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLQueryStatement}
+   * @returns {!TQLQueryStatement} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLQueryStatementModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLQueryStatementModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLQueryStatement}
+   * @param {!TQLQueryStatement} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLQueryStatement)) {
+      throw new TypeError('Instance of TQLQueryStatement is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLQueryStatement}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLQueryStatement('
+    result += 'query_text='
+    if (this.query_text != null) {
+      result += '"' + this.query_text.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLQueryStatement}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLQueryStatement}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      query_text: ((this.query_text != null) ? this.query_text : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLQueryStatement.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLQueryStatement} other Object value
+   * @returns {!TQLQueryStatement} Created struct
+   */
+  static fromObject (other) {
+    return new TQLQueryStatement().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLQueryStatement}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLQueryStatement.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLQueryStatement}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 1
+  }
+}
+
+exports.TQLQueryStatement = TQLQueryStatement
+
+/**
+ * Fast Binary Encoding TQLQueryStatement field model
+ */
+class FieldModelTQLQueryStatement extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._query_text = new fbe.FieldModelString(buffer, 4 + 4)
+  }
+
+  /**
+   * Get the query_text field model
+   * @this {!FieldModelTQLQueryStatement}
+   * @returns {!fbe.FieldModelString} query_text field model
+   */
+  get query_text () {
+    return this._query_text
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLQueryStatement}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLQueryStatement}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.query_text.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLQueryStatement}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.query_text.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLQueryStatement}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLQueryStatement.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLQueryStatement}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 1
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLQueryStatement}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLQueryStatement}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.query_text.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.query_text.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.query_text.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLQueryStatement}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLQueryStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLQueryStatement}
+   * @param {!TQLQueryStatement} fbeValue Default value, defaults is new TQLQueryStatement()
+   * @returns {!TQLQueryStatement} TQLQueryStatement value
+   */
+  get (fbeValue = new TQLQueryStatement()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLQueryStatement}
+   * @param {!TQLQueryStatement} fbeValue TQLQueryStatement value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.query_text.fbeSize) <= fbeStructSize) {
+      fbeValue.query_text = this.query_text.get()
+    } else {
+      fbeValue.query_text = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.query_text.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLQueryStatement}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLQueryStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLQueryStatement}
+   * @param {!TQLQueryStatement} fbeValue TQLQueryStatement value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLQueryStatement}
+   * @param {TQLQueryStatement} fbeValue TQLQueryStatement value
+   */
+  setFields (fbeValue) {
+    this.query_text.set(fbeValue.query_text)
+  }
+}
+
+exports.FieldModelTQLQueryStatement = FieldModelTQLQueryStatement
+
+/**
+ * Fast Binary Encoding TQLQueryStatement model
+ */
+class TQLQueryStatementModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLQueryStatement(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLQueryStatement model
+   * @this {!TQLQueryStatementModel}
+   * @returns {!FieldModelTQLQueryStatement} model TQLQueryStatement model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLQueryStatementModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLQueryStatementModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLQueryStatementModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLQueryStatementModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLQueryStatement.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLQueryStatementModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLQueryStatementModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLQueryStatementModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLQueryStatementModel}
+   * @param {!TQLQueryStatement} value TQLQueryStatement value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLQueryStatementModel}
+   * @param {!TQLQueryStatement} value TQLQueryStatement value, defaults is new TQLQueryStatement()
+   * @return {!object} Deserialized TQLQueryStatement value and its size
+   */
+  deserialize (value = new TQLQueryStatement()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLQueryStatement(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLQueryStatement(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLQueryStatementModel}
+   * @param {!number} prev Previous TQLQueryStatement model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLQueryStatementModel = TQLQueryStatementModel
+
+/**
+ * TQLParameterDeclaration struct
+ */
+class TQLParameterDeclaration {
+  /**
+   * Initialize struct
+   * @param {!string=} parameter_name
+   * @param {!TQLType=} parameter_type
+   * @param {!number=} default_value_i64
+   * @param {!float64=} default_value_f64
+   * @param {!string=} default_value_str
+   * @constructor
+   */
+  constructor (argparameter_name = '', argparameter_type = new TQLType(), argdefault_value_i64 = new Int64(0, 0), argdefault_value_f64 = new float64(), argdefault_value_str = '') {
+    this.parameter_name = argparameter_name
+    this.parameter_type = argparameter_type
+    this.default_value_i64 = argdefault_value_i64
+    this.default_value_f64 = argdefault_value_f64
+    this.default_value_str = argdefault_value_str
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLParameterDeclaration}
+   * @param {!TQLParameterDeclaration} other Other struct
+   * @returns {!TQLParameterDeclaration} This struct
+   */
+  copy (other) {
+    if (other.parameter_name != null) {
+      this.parameter_name = other.parameter_name
+    } else {
+      this.parameter_name = undefined
+    }
+    if (other.parameter_type != null) {
+      this.parameter_type = TQLType.fromObject(other.parameter_type)
+    } else {
+      this.parameter_type = undefined
+    }
+    if (other.default_value_i64 != null) {
+      this.default_value_i64 = Int64.fromNumber(other.default_value_i64)
+    } else {
+      this.default_value_i64 = undefined
+    }
+    if (other.default_value_f64 != null) {
+      this.default_value_f64 = float64.fromObject(other.default_value_f64)
+    } else {
+      this.default_value_f64 = undefined
+    }
+    if (other.default_value_str != null) {
+      this.default_value_str = other.default_value_str
+    } else {
+      this.default_value_str = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLParameterDeclaration}
+   * @returns {!TQLParameterDeclaration} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLParameterDeclarationModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLParameterDeclarationModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLParameterDeclaration}
+   * @param {!TQLParameterDeclaration} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLParameterDeclaration)) {
+      throw new TypeError('Instance of TQLParameterDeclaration is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLParameterDeclaration}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLParameterDeclaration('
+    result += 'parameter_name='
+    if (this.parameter_name != null) {
+      result += '"' + this.parameter_name.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',parameter_type='
+    result += this.parameter_type.toString()
+    result += ',default_value_i64='
+    result += this.default_value_i64.toString()
+    result += ',default_value_f64='
+    result += this.default_value_f64.toString()
+    result += ',default_value_str='
+    if (this.default_value_str != null) {
+      result += '"' + this.default_value_str.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLParameterDeclaration}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLParameterDeclaration}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      parameter_name: ((this.parameter_name != null) ? this.parameter_name : null),
+      parameter_type: ((this.parameter_type != null) ? this.parameter_type : null),
+      default_value_i64: ((this.default_value_i64 != null) ? this.default_value_i64.toNumber() : null),
+      default_value_f64: ((this.default_value_f64 != null) ? this.default_value_f64 : null),
+      default_value_str: ((this.default_value_str != null) ? this.default_value_str : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLParameterDeclaration.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLParameterDeclaration} other Object value
+   * @returns {!TQLParameterDeclaration} Created struct
+   */
+  static fromObject (other) {
+    return new TQLParameterDeclaration().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLParameterDeclaration}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLParameterDeclaration.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLParameterDeclaration}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 2
+  }
+}
+
+exports.TQLParameterDeclaration = TQLParameterDeclaration
+
+/**
+ * Fast Binary Encoding TQLParameterDeclaration field model
+ */
+class FieldModelTQLParameterDeclaration extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._parameter_name = new fbe.FieldModelString(buffer, 4 + 4)
+    this._parameter_type = new FieldModelTQLType(buffer, this._parameter_name.fbeOffset + this._parameter_name.fbeSize)
+    this._default_value_i64 = new fbe.FieldModelInt64(buffer, this._parameter_type.fbeOffset + this._parameter_type.fbeSize)
+    this._default_value_f64 = new FieldModelfloat64(buffer, this._default_value_i64.fbeOffset + this._default_value_i64.fbeSize)
+    this._default_value_str = new fbe.FieldModelString(buffer, this._default_value_f64.fbeOffset + this._default_value_f64.fbeSize)
+  }
+
+  /**
+   * Get the parameter_name field model
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!fbe.FieldModelString} parameter_name field model
+   */
+  get parameter_name () {
+    return this._parameter_name
+  }
+
+  /**
+   * Get the parameter_type field model
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!FieldModelTQLType} parameter_type field model
+   */
+  get parameter_type () {
+    return this._parameter_type
+  }
+
+  /**
+   * Get the default_value_i64 field model
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!fbe.FieldModelInt64} default_value_i64 field model
+   */
+  get default_value_i64 () {
+    return this._default_value_i64
+  }
+
+  /**
+   * Get the default_value_f64 field model
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!FieldModelfloat64} default_value_f64 field model
+   */
+  get default_value_f64 () {
+    return this._default_value_f64
+  }
+
+  /**
+   * Get the default_value_str field model
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!fbe.FieldModelString} default_value_str field model
+   */
+  get default_value_str () {
+    return this._default_value_str
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.parameter_name.fbeSize + this.parameter_type.fbeSize + this.default_value_i64.fbeSize + this.default_value_f64.fbeSize + this.default_value_str.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.parameter_name.fbeExtra + this.parameter_type.fbeExtra + this.default_value_i64.fbeExtra + this.default_value_f64.fbeExtra + this.default_value_str.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLParameterDeclaration.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 2
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.parameter_name.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.parameter_name.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.parameter_name.fbeSize
+
+    if ((fbeCurrentSize + this.parameter_type.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.parameter_type.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.parameter_type.fbeSize
+
+    if ((fbeCurrentSize + this.default_value_i64.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.default_value_i64.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.default_value_i64.fbeSize
+
+    if ((fbeCurrentSize + this.default_value_f64.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.default_value_f64.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.default_value_f64.fbeSize
+
+    if ((fbeCurrentSize + this.default_value_str.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.default_value_str.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.default_value_str.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @param {!TQLParameterDeclaration} fbeValue Default value, defaults is new TQLParameterDeclaration()
+   * @returns {!TQLParameterDeclaration} TQLParameterDeclaration value
+   */
+  get (fbeValue = new TQLParameterDeclaration()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @param {!TQLParameterDeclaration} fbeValue TQLParameterDeclaration value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.parameter_name.fbeSize) <= fbeStructSize) {
+      fbeValue.parameter_name = this.parameter_name.get()
+    } else {
+      fbeValue.parameter_name = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.parameter_name.fbeSize
+
+    if ((fbeCurrentSize + this.parameter_type.fbeSize) <= fbeStructSize) {
+      fbeValue.parameter_type = this.parameter_type.get()
+    } else {
+      fbeValue.parameter_type = new TQLType()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.parameter_type.fbeSize
+
+    if ((fbeCurrentSize + this.default_value_i64.fbeSize) <= fbeStructSize) {
+      fbeValue.default_value_i64 = this.default_value_i64.get()
+    } else {
+      fbeValue.default_value_i64 = new Int64(0, 0)
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.default_value_i64.fbeSize
+
+    if ((fbeCurrentSize + this.default_value_f64.fbeSize) <= fbeStructSize) {
+      fbeValue.default_value_f64 = this.default_value_f64.get()
+    } else {
+      fbeValue.default_value_f64 = new float64()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.default_value_f64.fbeSize
+
+    if ((fbeCurrentSize + this.default_value_str.fbeSize) <= fbeStructSize) {
+      fbeValue.default_value_str = this.default_value_str.get()
+    } else {
+      fbeValue.default_value_str = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.default_value_str.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @param {!TQLParameterDeclaration} fbeValue TQLParameterDeclaration value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLParameterDeclaration}
+   * @param {TQLParameterDeclaration} fbeValue TQLParameterDeclaration value
+   */
+  setFields (fbeValue) {
+    this.parameter_name.set(fbeValue.parameter_name)
+    this.parameter_type.set(fbeValue.parameter_type)
+    this.default_value_i64.set(fbeValue.default_value_i64)
+    this.default_value_f64.set(fbeValue.default_value_f64)
+    this.default_value_str.set(fbeValue.default_value_str)
+  }
+}
+
+exports.FieldModelTQLParameterDeclaration = FieldModelTQLParameterDeclaration
+
+/**
+ * Fast Binary Encoding TQLParameterDeclaration model
+ */
+class TQLParameterDeclarationModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLParameterDeclaration(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLParameterDeclaration model
+   * @this {!TQLParameterDeclarationModel}
+   * @returns {!FieldModelTQLParameterDeclaration} model TQLParameterDeclaration model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLParameterDeclarationModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLParameterDeclarationModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLParameterDeclarationModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLParameterDeclarationModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLParameterDeclaration.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLParameterDeclarationModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLParameterDeclarationModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLParameterDeclarationModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLParameterDeclarationModel}
+   * @param {!TQLParameterDeclaration} value TQLParameterDeclaration value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLParameterDeclarationModel}
+   * @param {!TQLParameterDeclaration} value TQLParameterDeclaration value, defaults is new TQLParameterDeclaration()
+   * @return {!object} Deserialized TQLParameterDeclaration value and its size
+   */
+  deserialize (value = new TQLParameterDeclaration()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLParameterDeclaration(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLParameterDeclaration(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLParameterDeclarationModel}
+   * @param {!number} prev Previous TQLParameterDeclaration model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLParameterDeclarationModel = TQLParameterDeclarationModel
+
+/**
+ * TQLHTTPLoadStatement struct
+ */
+class TQLHTTPLoadStatement {
+  /**
+   * Initialize struct
+   * @param {!string=} data_name
+   * @param {!string=} http_url
+   * @param {!TQLHTTPMethod=} http_method
+   * @constructor
+   */
+  constructor (argdata_name = '', arghttp_url = '', arghttp_method = new TQLHTTPMethod()) {
+    this.data_name = argdata_name
+    this.http_url = arghttp_url
+    this.http_method = arghttp_method
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLHTTPLoadStatement}
+   * @param {!TQLHTTPLoadStatement} other Other struct
+   * @returns {!TQLHTTPLoadStatement} This struct
+   */
+  copy (other) {
+    if (other.data_name != null) {
+      this.data_name = other.data_name
+    } else {
+      this.data_name = undefined
+    }
+    if (other.http_url != null) {
+      this.http_url = other.http_url
+    } else {
+      this.http_url = undefined
+    }
+    if (other.http_method != null) {
+      this.http_method = TQLHTTPMethod.fromObject(other.http_method)
+    } else {
+      this.http_method = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLHTTPLoadStatement}
+   * @returns {!TQLHTTPLoadStatement} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLHTTPLoadStatementModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLHTTPLoadStatementModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLHTTPLoadStatement}
+   * @param {!TQLHTTPLoadStatement} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLHTTPLoadStatement)) {
+      throw new TypeError('Instance of TQLHTTPLoadStatement is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLHTTPLoadStatement}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLHTTPLoadStatement('
+    result += 'data_name='
+    if (this.data_name != null) {
+      result += '"' + this.data_name.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',http_url='
+    if (this.http_url != null) {
+      result += '"' + this.http_url.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',http_method='
+    result += this.http_method.toString()
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLHTTPLoadStatement}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLHTTPLoadStatement}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      data_name: ((this.data_name != null) ? this.data_name : null),
+      http_url: ((this.http_url != null) ? this.http_url : null),
+      http_method: ((this.http_method != null) ? this.http_method : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLHTTPLoadStatement.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLHTTPLoadStatement} other Object value
+   * @returns {!TQLHTTPLoadStatement} Created struct
+   */
+  static fromObject (other) {
+    return new TQLHTTPLoadStatement().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLHTTPLoadStatement}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLHTTPLoadStatement.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLHTTPLoadStatement}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 3
+  }
+}
+
+exports.TQLHTTPLoadStatement = TQLHTTPLoadStatement
+
+/**
+ * Fast Binary Encoding TQLHTTPLoadStatement field model
+ */
+class FieldModelTQLHTTPLoadStatement extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._data_name = new fbe.FieldModelString(buffer, 4 + 4)
+    this._http_url = new fbe.FieldModelString(buffer, this._data_name.fbeOffset + this._data_name.fbeSize)
+    this._http_method = new FieldModelTQLHTTPMethod(buffer, this._http_url.fbeOffset + this._http_url.fbeSize)
+  }
+
+  /**
+   * Get the data_name field model
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @returns {!fbe.FieldModelString} data_name field model
+   */
+  get data_name () {
+    return this._data_name
+  }
+
+  /**
+   * Get the http_url field model
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @returns {!fbe.FieldModelString} http_url field model
+   */
+  get http_url () {
+    return this._http_url
+  }
+
+  /**
+   * Get the http_method field model
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @returns {!FieldModelTQLHTTPMethod} http_method field model
+   */
+  get http_method () {
+    return this._http_method
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.data_name.fbeSize + this.http_url.fbeSize + this.http_method.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.data_name.fbeExtra + this.http_url.fbeExtra + this.http_method.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLHTTPLoadStatement.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 3
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.data_name.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.data_name.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.data_name.fbeSize
+
+    if ((fbeCurrentSize + this.http_url.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.http_url.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.http_url.fbeSize
+
+    if ((fbeCurrentSize + this.http_method.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.http_method.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.http_method.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @param {!TQLHTTPLoadStatement} fbeValue Default value, defaults is new TQLHTTPLoadStatement()
+   * @returns {!TQLHTTPLoadStatement} TQLHTTPLoadStatement value
+   */
+  get (fbeValue = new TQLHTTPLoadStatement()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @param {!TQLHTTPLoadStatement} fbeValue TQLHTTPLoadStatement value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.data_name.fbeSize) <= fbeStructSize) {
+      fbeValue.data_name = this.data_name.get()
+    } else {
+      fbeValue.data_name = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.data_name.fbeSize
+
+    if ((fbeCurrentSize + this.http_url.fbeSize) <= fbeStructSize) {
+      fbeValue.http_url = this.http_url.get()
+    } else {
+      fbeValue.http_url = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.http_url.fbeSize
+
+    if ((fbeCurrentSize + this.http_method.fbeSize) <= fbeStructSize) {
+      fbeValue.http_method = this.http_method.get()
+    } else {
+      fbeValue.http_method = new TQLHTTPMethod()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.http_method.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @param {!TQLHTTPLoadStatement} fbeValue TQLHTTPLoadStatement value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLHTTPLoadStatement}
+   * @param {TQLHTTPLoadStatement} fbeValue TQLHTTPLoadStatement value
+   */
+  setFields (fbeValue) {
+    this.data_name.set(fbeValue.data_name)
+    this.http_url.set(fbeValue.http_url)
+    this.http_method.set(fbeValue.http_method)
+  }
+}
+
+exports.FieldModelTQLHTTPLoadStatement = FieldModelTQLHTTPLoadStatement
+
+/**
+ * Fast Binary Encoding TQLHTTPLoadStatement model
+ */
+class TQLHTTPLoadStatementModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLHTTPLoadStatement(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLHTTPLoadStatement model
+   * @this {!TQLHTTPLoadStatementModel}
+   * @returns {!FieldModelTQLHTTPLoadStatement} model TQLHTTPLoadStatement model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLHTTPLoadStatementModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLHTTPLoadStatementModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLHTTPLoadStatementModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLHTTPLoadStatementModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLHTTPLoadStatement.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLHTTPLoadStatementModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLHTTPLoadStatementModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLHTTPLoadStatementModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLHTTPLoadStatementModel}
+   * @param {!TQLHTTPLoadStatement} value TQLHTTPLoadStatement value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLHTTPLoadStatementModel}
+   * @param {!TQLHTTPLoadStatement} value TQLHTTPLoadStatement value, defaults is new TQLHTTPLoadStatement()
+   * @return {!object} Deserialized TQLHTTPLoadStatement value and its size
+   */
+  deserialize (value = new TQLHTTPLoadStatement()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLHTTPLoadStatement(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLHTTPLoadStatement(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLHTTPLoadStatementModel}
+   * @param {!number} prev Previous TQLHTTPLoadStatement model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLHTTPLoadStatementModel = TQLHTTPLoadStatementModel
+
+/**
+ * TQLFileLoadStatement struct
+ */
+class TQLFileLoadStatement {
+  /**
+   * Initialize struct
+   * @param {!string=} data_name
+   * @constructor
+   */
+  constructor (argdata_name = '') {
+    this.data_name = argdata_name
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLFileLoadStatement}
+   * @param {!TQLFileLoadStatement} other Other struct
+   * @returns {!TQLFileLoadStatement} This struct
+   */
+  copy (other) {
+    if (other.data_name != null) {
+      this.data_name = other.data_name
+    } else {
+      this.data_name = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLFileLoadStatement}
+   * @returns {!TQLFileLoadStatement} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLFileLoadStatementModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLFileLoadStatementModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLFileLoadStatement}
+   * @param {!TQLFileLoadStatement} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLFileLoadStatement)) {
+      throw new TypeError('Instance of TQLFileLoadStatement is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLFileLoadStatement}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLFileLoadStatement('
+    result += 'data_name='
+    if (this.data_name != null) {
+      result += '"' + this.data_name.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLFileLoadStatement}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLFileLoadStatement}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      data_name: ((this.data_name != null) ? this.data_name : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLFileLoadStatement.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLFileLoadStatement} other Object value
+   * @returns {!TQLFileLoadStatement} Created struct
+   */
+  static fromObject (other) {
+    return new TQLFileLoadStatement().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLFileLoadStatement}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLFileLoadStatement.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLFileLoadStatement}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 4
+  }
+}
+
+exports.TQLFileLoadStatement = TQLFileLoadStatement
+
+/**
+ * Fast Binary Encoding TQLFileLoadStatement field model
+ */
+class FieldModelTQLFileLoadStatement extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._data_name = new fbe.FieldModelString(buffer, 4 + 4)
+  }
+
+  /**
+   * Get the data_name field model
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @returns {!fbe.FieldModelString} data_name field model
+   */
+  get data_name () {
+    return this._data_name
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.data_name.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.data_name.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLFileLoadStatement.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 4
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.data_name.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.data_name.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.data_name.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @param {!TQLFileLoadStatement} fbeValue Default value, defaults is new TQLFileLoadStatement()
+   * @returns {!TQLFileLoadStatement} TQLFileLoadStatement value
+   */
+  get (fbeValue = new TQLFileLoadStatement()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @param {!TQLFileLoadStatement} fbeValue TQLFileLoadStatement value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.data_name.fbeSize) <= fbeStructSize) {
+      fbeValue.data_name = this.data_name.get()
+    } else {
+      fbeValue.data_name = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.data_name.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @param {!TQLFileLoadStatement} fbeValue TQLFileLoadStatement value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLFileLoadStatement}
+   * @param {TQLFileLoadStatement} fbeValue TQLFileLoadStatement value
+   */
+  setFields (fbeValue) {
+    this.data_name.set(fbeValue.data_name)
+  }
+}
+
+exports.FieldModelTQLFileLoadStatement = FieldModelTQLFileLoadStatement
+
+/**
+ * Fast Binary Encoding TQLFileLoadStatement model
+ */
+class TQLFileLoadStatementModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLFileLoadStatement(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLFileLoadStatement model
+   * @this {!TQLFileLoadStatementModel}
+   * @returns {!FieldModelTQLFileLoadStatement} model TQLFileLoadStatement model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLFileLoadStatementModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLFileLoadStatementModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLFileLoadStatementModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLFileLoadStatementModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLFileLoadStatement.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLFileLoadStatementModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLFileLoadStatementModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLFileLoadStatementModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLFileLoadStatementModel}
+   * @param {!TQLFileLoadStatement} value TQLFileLoadStatement value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLFileLoadStatementModel}
+   * @param {!TQLFileLoadStatement} value TQLFileLoadStatement value, defaults is new TQLFileLoadStatement()
+   * @return {!object} Deserialized TQLFileLoadStatement value and its size
+   */
+  deserialize (value = new TQLFileLoadStatement()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLFileLoadStatement(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLFileLoadStatement(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLFileLoadStatementModel}
+   * @param {!number} prev Previous TQLFileLoadStatement model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLFileLoadStatementModel = TQLFileLoadStatementModel
+
+/**
+ * TQLJSONExtractStatement struct
+ */
+class TQLJSONExtractStatement {
+  /**
+   * Initialize struct
+   * @param {!string=} data_name
+   * @param {!string=} extract_name
+   * @constructor
+   */
+  constructor (argdata_name = '', argextract_name = '') {
+    this.data_name = argdata_name
+    this.extract_name = argextract_name
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLJSONExtractStatement}
+   * @param {!TQLJSONExtractStatement} other Other struct
+   * @returns {!TQLJSONExtractStatement} This struct
+   */
+  copy (other) {
+    if (other.data_name != null) {
+      this.data_name = other.data_name
+    } else {
+      this.data_name = undefined
+    }
+    if (other.extract_name != null) {
+      this.extract_name = other.extract_name
+    } else {
+      this.extract_name = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLJSONExtractStatement}
+   * @returns {!TQLJSONExtractStatement} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLJSONExtractStatementModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLJSONExtractStatementModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLJSONExtractStatement}
+   * @param {!TQLJSONExtractStatement} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLJSONExtractStatement)) {
+      throw new TypeError('Instance of TQLJSONExtractStatement is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLJSONExtractStatement}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLJSONExtractStatement('
+    result += 'data_name='
+    if (this.data_name != null) {
+      result += '"' + this.data_name.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',extract_name='
+    if (this.extract_name != null) {
+      result += '"' + this.extract_name.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLJSONExtractStatement}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLJSONExtractStatement}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      data_name: ((this.data_name != null) ? this.data_name : null),
+      extract_name: ((this.extract_name != null) ? this.extract_name : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLJSONExtractStatement.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLJSONExtractStatement} other Object value
+   * @returns {!TQLJSONExtractStatement} Created struct
+   */
+  static fromObject (other) {
+    return new TQLJSONExtractStatement().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLJSONExtractStatement}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLJSONExtractStatement.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLJSONExtractStatement}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 5
+  }
+}
+
+exports.TQLJSONExtractStatement = TQLJSONExtractStatement
+
+/**
+ * Fast Binary Encoding TQLJSONExtractStatement field model
+ */
+class FieldModelTQLJSONExtractStatement extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._data_name = new fbe.FieldModelString(buffer, 4 + 4)
+    this._extract_name = new fbe.FieldModelString(buffer, this._data_name.fbeOffset + this._data_name.fbeSize)
+  }
+
+  /**
+   * Get the data_name field model
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @returns {!fbe.FieldModelString} data_name field model
+   */
+  get data_name () {
+    return this._data_name
+  }
+
+  /**
+   * Get the extract_name field model
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @returns {!fbe.FieldModelString} extract_name field model
+   */
+  get extract_name () {
+    return this._extract_name
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.data_name.fbeSize + this.extract_name.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.data_name.fbeExtra + this.extract_name.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLJSONExtractStatement.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 5
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.data_name.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.data_name.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.data_name.fbeSize
+
+    if ((fbeCurrentSize + this.extract_name.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.extract_name.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.extract_name.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @param {!TQLJSONExtractStatement} fbeValue Default value, defaults is new TQLJSONExtractStatement()
+   * @returns {!TQLJSONExtractStatement} TQLJSONExtractStatement value
+   */
+  get (fbeValue = new TQLJSONExtractStatement()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @param {!TQLJSONExtractStatement} fbeValue TQLJSONExtractStatement value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.data_name.fbeSize) <= fbeStructSize) {
+      fbeValue.data_name = this.data_name.get()
+    } else {
+      fbeValue.data_name = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.data_name.fbeSize
+
+    if ((fbeCurrentSize + this.extract_name.fbeSize) <= fbeStructSize) {
+      fbeValue.extract_name = this.extract_name.get()
+    } else {
+      fbeValue.extract_name = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.extract_name.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @param {!TQLJSONExtractStatement} fbeValue TQLJSONExtractStatement value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLJSONExtractStatement}
+   * @param {TQLJSONExtractStatement} fbeValue TQLJSONExtractStatement value
+   */
+  setFields (fbeValue) {
+    this.data_name.set(fbeValue.data_name)
+    this.extract_name.set(fbeValue.extract_name)
+  }
+}
+
+exports.FieldModelTQLJSONExtractStatement = FieldModelTQLJSONExtractStatement
+
+/**
+ * Fast Binary Encoding TQLJSONExtractStatement model
+ */
+class TQLJSONExtractStatementModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLJSONExtractStatement(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLJSONExtractStatement model
+   * @this {!TQLJSONExtractStatementModel}
+   * @returns {!FieldModelTQLJSONExtractStatement} model TQLJSONExtractStatement model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLJSONExtractStatementModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLJSONExtractStatementModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLJSONExtractStatementModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLJSONExtractStatementModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLJSONExtractStatement.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLJSONExtractStatementModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLJSONExtractStatementModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLJSONExtractStatementModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLJSONExtractStatementModel}
+   * @param {!TQLJSONExtractStatement} value TQLJSONExtractStatement value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLJSONExtractStatementModel}
+   * @param {!TQLJSONExtractStatement} value TQLJSONExtractStatement value, defaults is new TQLJSONExtractStatement()
+   * @return {!object} Deserialized TQLJSONExtractStatement value and its size
+   */
+  deserialize (value = new TQLJSONExtractStatement()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLJSONExtractStatement(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLJSONExtractStatement(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLJSONExtractStatementModel}
+   * @param {!number} prev Previous TQLJSONExtractStatement model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLJSONExtractStatementModel = TQLJSONExtractStatementModel
+
+/**
+ * TQLCSVColumn struct
+ */
+class TQLCSVColumn {
+  /**
+   * Initialize struct
+   * @param {!string=} column_name
+   * @param {!TQLType=} column_type
+   * @param {!string=} source_name
+   * @param {!number=} source_index
+   * @constructor
+   */
+  constructor (argcolumn_name = '', argcolumn_type = new TQLType(), argsource_name = '', argsource_index = 0) {
+    this.column_name = argcolumn_name
+    this.column_type = argcolumn_type
+    this.source_name = argsource_name
+    this.source_index = argsource_index
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLCSVColumn}
+   * @param {!TQLCSVColumn} other Other struct
+   * @returns {!TQLCSVColumn} This struct
+   */
+  copy (other) {
+    if (other.column_name != null) {
+      this.column_name = other.column_name
+    } else {
+      this.column_name = undefined
+    }
+    if (other.column_type != null) {
+      this.column_type = TQLType.fromObject(other.column_type)
+    } else {
+      this.column_type = undefined
+    }
+    if (other.source_name != null) {
+      this.source_name = other.source_name
+    } else {
+      this.source_name = undefined
+    }
+    if (other.source_index != null) {
+      this.source_index = other.source_index
+    } else {
+      this.source_index = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLCSVColumn}
+   * @returns {!TQLCSVColumn} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLCSVColumnModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLCSVColumnModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLCSVColumn}
+   * @param {!TQLCSVColumn} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLCSVColumn)) {
+      throw new TypeError('Instance of TQLCSVColumn is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLCSVColumn}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLCSVColumn('
+    result += 'column_name='
+    if (this.column_name != null) {
+      result += '"' + this.column_name.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',column_type='
+    result += this.column_type.toString()
+    result += ',source_name='
+    if (this.source_name != null) {
+      result += '"' + this.source_name.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',source_index='
+    result += this.source_index.toString()
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLCSVColumn}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLCSVColumn}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      column_name: ((this.column_name != null) ? this.column_name : null),
+      column_type: ((this.column_type != null) ? this.column_type : null),
+      source_name: ((this.source_name != null) ? this.source_name : null),
+      source_index: ((this.source_index != null) ? this.source_index : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLCSVColumn.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLCSVColumn} other Object value
+   * @returns {!TQLCSVColumn} Created struct
+   */
+  static fromObject (other) {
+    return new TQLCSVColumn().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLCSVColumn}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLCSVColumn.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLCSVColumn}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 6
+  }
+}
+
+exports.TQLCSVColumn = TQLCSVColumn
+
+/**
+ * Fast Binary Encoding TQLCSVColumn field model
+ */
+class FieldModelTQLCSVColumn extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._column_name = new fbe.FieldModelString(buffer, 4 + 4)
+    this._column_type = new FieldModelTQLType(buffer, this._column_name.fbeOffset + this._column_name.fbeSize)
+    this._source_name = new fbe.FieldModelString(buffer, this._column_type.fbeOffset + this._column_type.fbeSize)
+    this._source_index = new fbe.FieldModelInt32(buffer, this._source_name.fbeOffset + this._source_name.fbeSize)
+  }
+
+  /**
+   * Get the column_name field model
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!fbe.FieldModelString} column_name field model
+   */
+  get column_name () {
+    return this._column_name
+  }
+
+  /**
+   * Get the column_type field model
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!FieldModelTQLType} column_type field model
+   */
+  get column_type () {
+    return this._column_type
+  }
+
+  /**
+   * Get the source_name field model
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!fbe.FieldModelString} source_name field model
+   */
+  get source_name () {
+    return this._source_name
+  }
+
+  /**
+   * Get the source_index field model
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!fbe.FieldModelInt32} source_index field model
+   */
+  get source_index () {
+    return this._source_index
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.column_name.fbeSize + this.column_type.fbeSize + this.source_name.fbeSize + this.source_index.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.column_name.fbeExtra + this.column_type.fbeExtra + this.source_name.fbeExtra + this.source_index.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLCSVColumn.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 6
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLCSVColumn}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLCSVColumn}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.column_name.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.column_name.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column_name.fbeSize
+
+    if ((fbeCurrentSize + this.column_type.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.column_type.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column_type.fbeSize
+
+    if ((fbeCurrentSize + this.source_name.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.source_name.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.source_name.fbeSize
+
+    if ((fbeCurrentSize + this.source_index.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.source_index.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.source_index.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLCSVColumn}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLCSVColumn}
+   * @param {!TQLCSVColumn} fbeValue Default value, defaults is new TQLCSVColumn()
+   * @returns {!TQLCSVColumn} TQLCSVColumn value
+   */
+  get (fbeValue = new TQLCSVColumn()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLCSVColumn}
+   * @param {!TQLCSVColumn} fbeValue TQLCSVColumn value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.column_name.fbeSize) <= fbeStructSize) {
+      fbeValue.column_name = this.column_name.get()
+    } else {
+      fbeValue.column_name = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column_name.fbeSize
+
+    if ((fbeCurrentSize + this.column_type.fbeSize) <= fbeStructSize) {
+      fbeValue.column_type = this.column_type.get()
+    } else {
+      fbeValue.column_type = new TQLType()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column_type.fbeSize
+
+    if ((fbeCurrentSize + this.source_name.fbeSize) <= fbeStructSize) {
+      fbeValue.source_name = this.source_name.get()
+    } else {
+      fbeValue.source_name = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.source_name.fbeSize
+
+    if ((fbeCurrentSize + this.source_index.fbeSize) <= fbeStructSize) {
+      fbeValue.source_index = this.source_index.get()
+    } else {
+      fbeValue.source_index = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.source_index.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLCSVColumn}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLCSVColumn}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLCSVColumn}
+   * @param {!TQLCSVColumn} fbeValue TQLCSVColumn value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLCSVColumn}
+   * @param {TQLCSVColumn} fbeValue TQLCSVColumn value
+   */
+  setFields (fbeValue) {
+    this.column_name.set(fbeValue.column_name)
+    this.column_type.set(fbeValue.column_type)
+    this.source_name.set(fbeValue.source_name)
+    this.source_index.set(fbeValue.source_index)
+  }
+}
+
+exports.FieldModelTQLCSVColumn = FieldModelTQLCSVColumn
+
+/**
+ * Fast Binary Encoding TQLCSVColumn model
+ */
+class TQLCSVColumnModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLCSVColumn(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLCSVColumn model
+   * @this {!TQLCSVColumnModel}
+   * @returns {!FieldModelTQLCSVColumn} model TQLCSVColumn model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLCSVColumnModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLCSVColumnModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLCSVColumnModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLCSVColumnModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLCSVColumn.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLCSVColumnModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLCSVColumnModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLCSVColumnModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLCSVColumnModel}
+   * @param {!TQLCSVColumn} value TQLCSVColumn value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLCSVColumnModel}
+   * @param {!TQLCSVColumn} value TQLCSVColumn value, defaults is new TQLCSVColumn()
+   * @return {!object} Deserialized TQLCSVColumn value and its size
+   */
+  deserialize (value = new TQLCSVColumn()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLCSVColumn(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLCSVColumn(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLCSVColumnModel}
+   * @param {!number} prev Previous TQLCSVColumn model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLCSVColumnModel = TQLCSVColumnModel
+
+/**
+ * TQLCSVExtractStatement struct
+ */
+class TQLCSVExtractStatement {
+  /**
+   * Initialize struct
+   * @param {!string=} data_name
+   * @param {!string=} extract_name
+   * @param {!Array=} columns
+   * @constructor
+   */
+  constructor (argdata_name = '', argextract_name = '', argcolumns = []) {
+    this.data_name = argdata_name
+    this.extract_name = argextract_name
+    this.columns = argcolumns
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLCSVExtractStatement}
+   * @param {!TQLCSVExtractStatement} other Other struct
+   * @returns {!TQLCSVExtractStatement} This struct
+   */
+  copy (other) {
+    if (other.data_name != null) {
+      this.data_name = other.data_name
+    } else {
+      this.data_name = undefined
+    }
+    if (other.extract_name != null) {
+      this.extract_name = other.extract_name
+    } else {
+      this.extract_name = undefined
+    }
+    if (other.columns != null) {
+      this.columns = []
+      for (let item of other.columns) {
+        if (item != null) {
+          let tempItem
+          tempItem = TQLCSVColumn.fromObject(item)
+          this.columns.push(tempItem)
+        } else {
+          this.columns.push(undefined)
+        }
+      }
+    } else {
+      this.columns = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLCSVExtractStatement}
+   * @returns {!TQLCSVExtractStatement} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLCSVExtractStatementModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLCSVExtractStatementModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLCSVExtractStatement}
+   * @param {!TQLCSVExtractStatement} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLCSVExtractStatement)) {
+      throw new TypeError('Instance of TQLCSVExtractStatement is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLCSVExtractStatement}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLCSVExtractStatement('
+    result += 'data_name='
+    if (this.data_name != null) {
+      result += '"' + this.data_name.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',extract_name='
+    if (this.extract_name != null) {
+      result += '"' + this.extract_name.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',columns='
+    if (this.columns != null) {
+      let first = true
+      result += '[' + this.columns.length + ']['
+      for (let item of this.columns) {
+        result += first ? '' : ','
+        result += item.toString()
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLCSVExtractStatement}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLCSVExtractStatement}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      data_name: ((this.data_name != null) ? this.data_name : null),
+      extract_name: ((this.extract_name != null) ? this.extract_name : null),
+      columns: ((this.columns != null) ? Array.from(this.columns, item => ((item != null) ? item : null)) : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLCSVExtractStatement.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLCSVExtractStatement} other Object value
+   * @returns {!TQLCSVExtractStatement} Created struct
+   */
+  static fromObject (other) {
+    return new TQLCSVExtractStatement().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLCSVExtractStatement}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLCSVExtractStatement.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLCSVExtractStatement}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 7
+  }
+}
+
+exports.TQLCSVExtractStatement = TQLCSVExtractStatement
+
+/**
+ * Fast Binary Encoding TQLCSVExtractStatement field model
+ */
+class FieldModelTQLCSVExtractStatement extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._data_name = new fbe.FieldModelString(buffer, 4 + 4)
+    this._extract_name = new fbe.FieldModelString(buffer, this._data_name.fbeOffset + this._data_name.fbeSize)
+    this._columns = new fbe.FieldModelVector(new FieldModelTQLCSVColumn(buffer, this._extract_name.fbeOffset + this._extract_name.fbeSize), buffer, this._extract_name.fbeOffset + this._extract_name.fbeSize)
+  }
+
+  /**
+   * Get the data_name field model
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @returns {!fbe.FieldModelString} data_name field model
+   */
+  get data_name () {
+    return this._data_name
+  }
+
+  /**
+   * Get the extract_name field model
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @returns {!fbe.FieldModelString} extract_name field model
+   */
+  get extract_name () {
+    return this._extract_name
+  }
+
+  /**
+   * Get the columns field model
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @returns {!fbe.FieldModelVector} columns field model
+   */
+  get columns () {
+    return this._columns
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.data_name.fbeSize + this.extract_name.fbeSize + this.columns.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.data_name.fbeExtra + this.extract_name.fbeExtra + this.columns.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLCSVExtractStatement.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 7
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.data_name.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.data_name.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.data_name.fbeSize
+
+    if ((fbeCurrentSize + this.extract_name.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.extract_name.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.extract_name.fbeSize
+
+    if ((fbeCurrentSize + this.columns.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.columns.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.columns.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @param {!TQLCSVExtractStatement} fbeValue Default value, defaults is new TQLCSVExtractStatement()
+   * @returns {!TQLCSVExtractStatement} TQLCSVExtractStatement value
+   */
+  get (fbeValue = new TQLCSVExtractStatement()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @param {!TQLCSVExtractStatement} fbeValue TQLCSVExtractStatement value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.data_name.fbeSize) <= fbeStructSize) {
+      fbeValue.data_name = this.data_name.get()
+    } else {
+      fbeValue.data_name = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.data_name.fbeSize
+
+    if ((fbeCurrentSize + this.extract_name.fbeSize) <= fbeStructSize) {
+      fbeValue.extract_name = this.extract_name.get()
+    } else {
+      fbeValue.extract_name = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.extract_name.fbeSize
+
+    if ((fbeCurrentSize + this.columns.fbeSize) <= fbeStructSize) {
+      this.columns.get(fbeValue.columns)
+    } else {
+      fbeValue.columns.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.columns.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @param {!TQLCSVExtractStatement} fbeValue TQLCSVExtractStatement value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLCSVExtractStatement}
+   * @param {TQLCSVExtractStatement} fbeValue TQLCSVExtractStatement value
+   */
+  setFields (fbeValue) {
+    this.data_name.set(fbeValue.data_name)
+    this.extract_name.set(fbeValue.extract_name)
+    this.columns.set(fbeValue.columns)
+  }
+}
+
+exports.FieldModelTQLCSVExtractStatement = FieldModelTQLCSVExtractStatement
+
+/**
+ * Fast Binary Encoding TQLCSVExtractStatement model
+ */
+class TQLCSVExtractStatementModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLCSVExtractStatement(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLCSVExtractStatement model
+   * @this {!TQLCSVExtractStatementModel}
+   * @returns {!FieldModelTQLCSVExtractStatement} model TQLCSVExtractStatement model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLCSVExtractStatementModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLCSVExtractStatementModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLCSVExtractStatementModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLCSVExtractStatementModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLCSVExtractStatement.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLCSVExtractStatementModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLCSVExtractStatementModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLCSVExtractStatementModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLCSVExtractStatementModel}
+   * @param {!TQLCSVExtractStatement} value TQLCSVExtractStatement value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLCSVExtractStatementModel}
+   * @param {!TQLCSVExtractStatement} value TQLCSVExtractStatement value, defaults is new TQLCSVExtractStatement()
+   * @return {!object} Deserialized TQLCSVExtractStatement value and its size
+   */
+  deserialize (value = new TQLCSVExtractStatement()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLCSVExtractStatement(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLCSVExtractStatement(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLCSVExtractStatementModel}
+   * @param {!number} prev Previous TQLCSVExtractStatement model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLCSVExtractStatementModel = TQLCSVExtractStatementModel
+
+/**
+ * TQLDisplayColor struct
+ */
+class TQLDisplayColor {
+  /**
+   * Initialize struct
+   * @param {!number=} red
+   * @param {!number=} green
+   * @param {!number=} blue
+   * @constructor
+   */
+  constructor (argred = 0, arggreen = 0, argblue = 0) {
+    this.red = argred
+    this.green = arggreen
+    this.blue = argblue
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLDisplayColor}
+   * @param {!TQLDisplayColor} other Other struct
+   * @returns {!TQLDisplayColor} This struct
+   */
+  copy (other) {
+    if (other.red != null) {
+      this.red = other.red
+    } else {
+      this.red = undefined
+    }
+    if (other.green != null) {
+      this.green = other.green
+    } else {
+      this.green = undefined
+    }
+    if (other.blue != null) {
+      this.blue = other.blue
+    } else {
+      this.blue = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLDisplayColor}
+   * @returns {!TQLDisplayColor} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLDisplayColorModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLDisplayColorModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLDisplayColor}
+   * @param {!TQLDisplayColor} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayColor)) {
+      throw new TypeError('Instance of TQLDisplayColor is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLDisplayColor}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLDisplayColor('
+    result += 'red='
+    result += this.red.toString()
+    result += ',green='
+    result += this.green.toString()
+    result += ',blue='
+    result += this.blue.toString()
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLDisplayColor}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLDisplayColor}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      red: ((this.red != null) ? this.red : null),
+      green: ((this.green != null) ? this.green : null),
+      blue: ((this.blue != null) ? this.blue : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLDisplayColor.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLDisplayColor} other Object value
+   * @returns {!TQLDisplayColor} Created struct
+   */
+  static fromObject (other) {
+    return new TQLDisplayColor().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLDisplayColor}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLDisplayColor.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLDisplayColor}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 8
+  }
+}
+
+exports.TQLDisplayColor = TQLDisplayColor
+
+/**
+ * Fast Binary Encoding TQLDisplayColor field model
+ */
+class FieldModelTQLDisplayColor extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._red = new fbe.FieldModelUInt8(buffer, 4 + 4)
+    this._green = new fbe.FieldModelUInt8(buffer, this._red.fbeOffset + this._red.fbeSize)
+    this._blue = new fbe.FieldModelUInt8(buffer, this._green.fbeOffset + this._green.fbeSize)
+  }
+
+  /**
+   * Get the red field model
+   * @this {!FieldModelTQLDisplayColor}
+   * @returns {!fbe.FieldModelUInt8} red field model
+   */
+  get red () {
+    return this._red
+  }
+
+  /**
+   * Get the green field model
+   * @this {!FieldModelTQLDisplayColor}
+   * @returns {!fbe.FieldModelUInt8} green field model
+   */
+  get green () {
+    return this._green
+  }
+
+  /**
+   * Get the blue field model
+   * @this {!FieldModelTQLDisplayColor}
+   * @returns {!fbe.FieldModelUInt8} blue field model
+   */
+  get blue () {
+    return this._blue
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayColor}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLDisplayColor}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.red.fbeSize + this.green.fbeSize + this.blue.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLDisplayColor}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.red.fbeExtra + this.green.fbeExtra + this.blue.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLDisplayColor}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLDisplayColor.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLDisplayColor}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 8
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLDisplayColor}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLDisplayColor}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.red.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.red.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.red.fbeSize
+
+    if ((fbeCurrentSize + this.green.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.green.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.green.fbeSize
+
+    if ((fbeCurrentSize + this.blue.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.blue.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.blue.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayColor}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLDisplayColor}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLDisplayColor}
+   * @param {!TQLDisplayColor} fbeValue Default value, defaults is new TQLDisplayColor()
+   * @returns {!TQLDisplayColor} TQLDisplayColor value
+   */
+  get (fbeValue = new TQLDisplayColor()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLDisplayColor}
+   * @param {!TQLDisplayColor} fbeValue TQLDisplayColor value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.red.fbeSize) <= fbeStructSize) {
+      fbeValue.red = this.red.get()
+    } else {
+      fbeValue.red = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.red.fbeSize
+
+    if ((fbeCurrentSize + this.green.fbeSize) <= fbeStructSize) {
+      fbeValue.green = this.green.get()
+    } else {
+      fbeValue.green = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.green.fbeSize
+
+    if ((fbeCurrentSize + this.blue.fbeSize) <= fbeStructSize) {
+      fbeValue.blue = this.blue.get()
+    } else {
+      fbeValue.blue = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.blue.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayColor}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLDisplayColor}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLDisplayColor}
+   * @param {!TQLDisplayColor} fbeValue TQLDisplayColor value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLDisplayColor}
+   * @param {TQLDisplayColor} fbeValue TQLDisplayColor value
+   */
+  setFields (fbeValue) {
+    this.red.set(fbeValue.red)
+    this.green.set(fbeValue.green)
+    this.blue.set(fbeValue.blue)
+  }
+}
+
+exports.FieldModelTQLDisplayColor = FieldModelTQLDisplayColor
+
+/**
+ * Fast Binary Encoding TQLDisplayColor model
+ */
+class TQLDisplayColorModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLDisplayColor(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLDisplayColor model
+   * @this {!TQLDisplayColorModel}
+   * @returns {!FieldModelTQLDisplayColor} model TQLDisplayColor model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLDisplayColorModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLDisplayColorModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLDisplayColorModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLDisplayColorModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLDisplayColor.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLDisplayColorModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLDisplayColorModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLDisplayColorModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLDisplayColorModel}
+   * @param {!TQLDisplayColor} value TQLDisplayColor value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLDisplayColorModel}
+   * @param {!TQLDisplayColor} value TQLDisplayColor value, defaults is new TQLDisplayColor()
+   * @return {!object} Deserialized TQLDisplayColor value and its size
+   */
+  deserialize (value = new TQLDisplayColor()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLDisplayColor(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLDisplayColor(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLDisplayColorModel}
+   * @param {!number} prev Previous TQLDisplayColor model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLDisplayColorModel = TQLDisplayColorModel
+
+/**
+ * TQLDisplayColorPalette struct
+ */
+class TQLDisplayColorPalette {
+  /**
+   * Initialize struct
+   * @param {!string=} color_target
+   * @param {!Array=} palette
+   * @constructor
+   */
+  constructor (argcolor_target = '', argpalette = []) {
+    this.color_target = argcolor_target
+    this.palette = argpalette
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLDisplayColorPalette}
+   * @param {!TQLDisplayColorPalette} other Other struct
+   * @returns {!TQLDisplayColorPalette} This struct
+   */
+  copy (other) {
+    if (other.color_target != null) {
+      this.color_target = other.color_target
+    } else {
+      this.color_target = undefined
+    }
+    if (other.palette != null) {
+      this.palette = []
+      for (let item of other.palette) {
+        if (item != null) {
+          let tempItem
+          tempItem = TQLDisplayColor.fromObject(item)
+          this.palette.push(tempItem)
+        } else {
+          this.palette.push(undefined)
+        }
+      }
+    } else {
+      this.palette = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLDisplayColorPalette}
+   * @returns {!TQLDisplayColorPalette} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLDisplayColorPaletteModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLDisplayColorPaletteModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLDisplayColorPalette}
+   * @param {!TQLDisplayColorPalette} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayColorPalette)) {
+      throw new TypeError('Instance of TQLDisplayColorPalette is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLDisplayColorPalette}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLDisplayColorPalette('
+    result += 'color_target='
+    if (this.color_target != null) {
+      result += '"' + this.color_target.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',palette='
+    if (this.palette != null) {
+      let first = true
+      result += '[' + this.palette.length + ']['
+      for (let item of this.palette) {
+        result += first ? '' : ','
+        result += item.toString()
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLDisplayColorPalette}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLDisplayColorPalette}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      color_target: ((this.color_target != null) ? this.color_target : null),
+      palette: ((this.palette != null) ? Array.from(this.palette, item => ((item != null) ? item : null)) : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLDisplayColorPalette.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLDisplayColorPalette} other Object value
+   * @returns {!TQLDisplayColorPalette} Created struct
+   */
+  static fromObject (other) {
+    return new TQLDisplayColorPalette().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLDisplayColorPalette}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLDisplayColorPalette.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLDisplayColorPalette}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 9
+  }
+}
+
+exports.TQLDisplayColorPalette = TQLDisplayColorPalette
+
+/**
+ * Fast Binary Encoding TQLDisplayColorPalette field model
+ */
+class FieldModelTQLDisplayColorPalette extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._color_target = new fbe.FieldModelString(buffer, 4 + 4)
+    this._palette = new fbe.FieldModelVector(new FieldModelTQLDisplayColor(buffer, this._color_target.fbeOffset + this._color_target.fbeSize), buffer, this._color_target.fbeOffset + this._color_target.fbeSize)
+  }
+
+  /**
+   * Get the color_target field model
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @returns {!fbe.FieldModelString} color_target field model
+   */
+  get color_target () {
+    return this._color_target
+  }
+
+  /**
+   * Get the palette field model
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @returns {!fbe.FieldModelVector} palette field model
+   */
+  get palette () {
+    return this._palette
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.color_target.fbeSize + this.palette.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.color_target.fbeExtra + this.palette.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLDisplayColorPalette.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 9
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.color_target.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.color_target.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.color_target.fbeSize
+
+    if ((fbeCurrentSize + this.palette.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.palette.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.palette.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @param {!TQLDisplayColorPalette} fbeValue Default value, defaults is new TQLDisplayColorPalette()
+   * @returns {!TQLDisplayColorPalette} TQLDisplayColorPalette value
+   */
+  get (fbeValue = new TQLDisplayColorPalette()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @param {!TQLDisplayColorPalette} fbeValue TQLDisplayColorPalette value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.color_target.fbeSize) <= fbeStructSize) {
+      fbeValue.color_target = this.color_target.get()
+    } else {
+      fbeValue.color_target = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.color_target.fbeSize
+
+    if ((fbeCurrentSize + this.palette.fbeSize) <= fbeStructSize) {
+      this.palette.get(fbeValue.palette)
+    } else {
+      fbeValue.palette.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.palette.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @param {!TQLDisplayColorPalette} fbeValue TQLDisplayColorPalette value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLDisplayColorPalette}
+   * @param {TQLDisplayColorPalette} fbeValue TQLDisplayColorPalette value
+   */
+  setFields (fbeValue) {
+    this.color_target.set(fbeValue.color_target)
+    this.palette.set(fbeValue.palette)
+  }
+}
+
+exports.FieldModelTQLDisplayColorPalette = FieldModelTQLDisplayColorPalette
+
+/**
+ * Fast Binary Encoding TQLDisplayColorPalette model
+ */
+class TQLDisplayColorPaletteModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLDisplayColorPalette(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLDisplayColorPalette model
+   * @this {!TQLDisplayColorPaletteModel}
+   * @returns {!FieldModelTQLDisplayColorPalette} model TQLDisplayColorPalette model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLDisplayColorPaletteModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLDisplayColorPaletteModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLDisplayColorPaletteModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLDisplayColorPaletteModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLDisplayColorPalette.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLDisplayColorPaletteModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLDisplayColorPaletteModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLDisplayColorPaletteModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLDisplayColorPaletteModel}
+   * @param {!TQLDisplayColorPalette} value TQLDisplayColorPalette value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLDisplayColorPaletteModel}
+   * @param {!TQLDisplayColorPalette} value TQLDisplayColorPalette value, defaults is new TQLDisplayColorPalette()
+   * @return {!object} Deserialized TQLDisplayColorPalette value and its size
+   */
+  deserialize (value = new TQLDisplayColorPalette()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLDisplayColorPalette(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLDisplayColorPalette(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLDisplayColorPaletteModel}
+   * @param {!number} prev Previous TQLDisplayColorPalette model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLDisplayColorPaletteModel = TQLDisplayColorPaletteModel
+
+/**
+ * TQLDisplayLengthValue struct
+ */
+class TQLDisplayLengthValue {
+  /**
+   * Initialize struct
+   * @param {!float64=} value
+   * @param {!TQLDisplayLengthUnit=} unit
+   * @constructor
+   */
+  constructor (argvalue = new float64(), argunit = new TQLDisplayLengthUnit()) {
+    this.value = argvalue
+    this.unit = argunit
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLDisplayLengthValue}
+   * @param {!TQLDisplayLengthValue} other Other struct
+   * @returns {!TQLDisplayLengthValue} This struct
+   */
+  copy (other) {
+    if (other.value != null) {
+      this.value = float64.fromObject(other.value)
+    } else {
+      this.value = undefined
+    }
+    if (other.unit != null) {
+      this.unit = TQLDisplayLengthUnit.fromObject(other.unit)
+    } else {
+      this.unit = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLDisplayLengthValue}
+   * @returns {!TQLDisplayLengthValue} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLDisplayLengthValueModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLDisplayLengthValueModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLDisplayLengthValue}
+   * @param {!TQLDisplayLengthValue} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayLengthValue)) {
+      throw new TypeError('Instance of TQLDisplayLengthValue is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLDisplayLengthValue}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLDisplayLengthValue('
+    result += 'value='
+    result += this.value.toString()
+    result += ',unit='
+    result += this.unit.toString()
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLDisplayLengthValue}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLDisplayLengthValue}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      value: ((this.value != null) ? this.value : null),
+      unit: ((this.unit != null) ? this.unit : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLDisplayLengthValue.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLDisplayLengthValue} other Object value
+   * @returns {!TQLDisplayLengthValue} Created struct
+   */
+  static fromObject (other) {
+    return new TQLDisplayLengthValue().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLDisplayLengthValue}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLDisplayLengthValue.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLDisplayLengthValue}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 10
+  }
+}
+
+exports.TQLDisplayLengthValue = TQLDisplayLengthValue
+
+/**
+ * Fast Binary Encoding TQLDisplayLengthValue field model
+ */
+class FieldModelTQLDisplayLengthValue extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._value = new FieldModelfloat64(buffer, 4 + 4)
+    this._unit = new FieldModelTQLDisplayLengthUnit(buffer, this._value.fbeOffset + this._value.fbeSize)
+  }
+
+  /**
+   * Get the value field model
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @returns {!FieldModelfloat64} value field model
+   */
+  get value () {
+    return this._value
+  }
+
+  /**
+   * Get the unit field model
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @returns {!FieldModelTQLDisplayLengthUnit} unit field model
+   */
+  get unit () {
+    return this._unit
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.value.fbeSize + this.unit.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.value.fbeExtra + this.unit.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLDisplayLengthValue.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 10
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.value.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.value.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.value.fbeSize
+
+    if ((fbeCurrentSize + this.unit.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.unit.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.unit.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @param {!TQLDisplayLengthValue} fbeValue Default value, defaults is new TQLDisplayLengthValue()
+   * @returns {!TQLDisplayLengthValue} TQLDisplayLengthValue value
+   */
+  get (fbeValue = new TQLDisplayLengthValue()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @param {!TQLDisplayLengthValue} fbeValue TQLDisplayLengthValue value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.value.fbeSize) <= fbeStructSize) {
+      fbeValue.value = this.value.get()
+    } else {
+      fbeValue.value = new float64()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.value.fbeSize
+
+    if ((fbeCurrentSize + this.unit.fbeSize) <= fbeStructSize) {
+      fbeValue.unit = this.unit.get()
+    } else {
+      fbeValue.unit = new TQLDisplayLengthUnit()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.unit.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @param {!TQLDisplayLengthValue} fbeValue TQLDisplayLengthValue value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLDisplayLengthValue}
+   * @param {TQLDisplayLengthValue} fbeValue TQLDisplayLengthValue value
+   */
+  setFields (fbeValue) {
+    this.value.set(fbeValue.value)
+    this.unit.set(fbeValue.unit)
+  }
+}
+
+exports.FieldModelTQLDisplayLengthValue = FieldModelTQLDisplayLengthValue
+
+/**
+ * Fast Binary Encoding TQLDisplayLengthValue model
+ */
+class TQLDisplayLengthValueModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLDisplayLengthValue(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLDisplayLengthValue model
+   * @this {!TQLDisplayLengthValueModel}
+   * @returns {!FieldModelTQLDisplayLengthValue} model TQLDisplayLengthValue model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLDisplayLengthValueModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLDisplayLengthValueModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLDisplayLengthValueModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLDisplayLengthValueModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLDisplayLengthValue.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLDisplayLengthValueModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLDisplayLengthValueModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLDisplayLengthValueModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLDisplayLengthValueModel}
+   * @param {!TQLDisplayLengthValue} value TQLDisplayLengthValue value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLDisplayLengthValueModel}
+   * @param {!TQLDisplayLengthValue} value TQLDisplayLengthValue value, defaults is new TQLDisplayLengthValue()
+   * @return {!object} Deserialized TQLDisplayLengthValue value and its size
+   */
+  deserialize (value = new TQLDisplayLengthValue()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLDisplayLengthValue(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLDisplayLengthValue(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLDisplayLengthValueModel}
+   * @param {!number} prev Previous TQLDisplayLengthValue model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLDisplayLengthValueModel = TQLDisplayLengthValueModel
+
+/**
+ * TQLDisplayLength struct
+ */
+class TQLDisplayLength {
+  /**
+   * Initialize struct
+   * @param {!TQLDisplayLengthValue=} small
+   * @param {!TQLDisplayLengthValue=} medium
+   * @param {!TQLDisplayLengthValue=} large
+   * @param {!TQLDisplayLengthValue=} extra_large
+   * @constructor
+   */
+  constructor (argsmall = new TQLDisplayLengthValue(), argmedium = new TQLDisplayLengthValue(), arglarge = new TQLDisplayLengthValue(), argextra_large = new TQLDisplayLengthValue()) {
+    this.small = argsmall
+    this.medium = argmedium
+    this.large = arglarge
+    this.extra_large = argextra_large
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLDisplayLength}
+   * @param {!TQLDisplayLength} other Other struct
+   * @returns {!TQLDisplayLength} This struct
+   */
+  copy (other) {
+    if (other.small != null) {
+      this.small = TQLDisplayLengthValue.fromObject(other.small)
+    } else {
+      this.small = undefined
+    }
+    if (other.medium != null) {
+      this.medium = TQLDisplayLengthValue.fromObject(other.medium)
+    } else {
+      this.medium = undefined
+    }
+    if (other.large != null) {
+      this.large = TQLDisplayLengthValue.fromObject(other.large)
+    } else {
+      this.large = undefined
+    }
+    if (other.extra_large != null) {
+      this.extra_large = TQLDisplayLengthValue.fromObject(other.extra_large)
+    } else {
+      this.extra_large = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLDisplayLength}
+   * @returns {!TQLDisplayLength} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLDisplayLengthModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLDisplayLengthModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLDisplayLength}
+   * @param {!TQLDisplayLength} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayLength)) {
+      throw new TypeError('Instance of TQLDisplayLength is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLDisplayLength}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLDisplayLength('
+    result += 'small='
+    result += this.small.toString()
+    result += ',medium='
+    result += this.medium.toString()
+    result += ',large='
+    result += this.large.toString()
+    result += ',extra_large='
+    result += this.extra_large.toString()
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLDisplayLength}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLDisplayLength}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      small: ((this.small != null) ? this.small : null),
+      medium: ((this.medium != null) ? this.medium : null),
+      large: ((this.large != null) ? this.large : null),
+      extra_large: ((this.extra_large != null) ? this.extra_large : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLDisplayLength.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLDisplayLength} other Object value
+   * @returns {!TQLDisplayLength} Created struct
+   */
+  static fromObject (other) {
+    return new TQLDisplayLength().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLDisplayLength}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLDisplayLength.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLDisplayLength}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 11
+  }
+}
+
+exports.TQLDisplayLength = TQLDisplayLength
+
+/**
+ * Fast Binary Encoding TQLDisplayLength field model
+ */
+class FieldModelTQLDisplayLength extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._small = new FieldModelTQLDisplayLengthValue(buffer, 4 + 4)
+    this._medium = new FieldModelTQLDisplayLengthValue(buffer, this._small.fbeOffset + this._small.fbeSize)
+    this._large = new FieldModelTQLDisplayLengthValue(buffer, this._medium.fbeOffset + this._medium.fbeSize)
+    this._extra_large = new FieldModelTQLDisplayLengthValue(buffer, this._large.fbeOffset + this._large.fbeSize)
+  }
+
+  /**
+   * Get the small field model
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!FieldModelTQLDisplayLengthValue} small field model
+   */
+  get small () {
+    return this._small
+  }
+
+  /**
+   * Get the medium field model
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!FieldModelTQLDisplayLengthValue} medium field model
+   */
+  get medium () {
+    return this._medium
+  }
+
+  /**
+   * Get the large field model
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!FieldModelTQLDisplayLengthValue} large field model
+   */
+  get large () {
+    return this._large
+  }
+
+  /**
+   * Get the extra_large field model
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!FieldModelTQLDisplayLengthValue} extra_large field model
+   */
+  get extra_large () {
+    return this._extra_large
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.small.fbeSize + this.medium.fbeSize + this.large.fbeSize + this.extra_large.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.small.fbeExtra + this.medium.fbeExtra + this.large.fbeExtra + this.extra_large.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLDisplayLength.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 11
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLDisplayLength}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLDisplayLength}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.small.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.small.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.small.fbeSize
+
+    if ((fbeCurrentSize + this.medium.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.medium.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.medium.fbeSize
+
+    if ((fbeCurrentSize + this.large.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.large.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.large.fbeSize
+
+    if ((fbeCurrentSize + this.extra_large.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.extra_large.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.extra_large.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLDisplayLength}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLDisplayLength}
+   * @param {!TQLDisplayLength} fbeValue Default value, defaults is new TQLDisplayLength()
+   * @returns {!TQLDisplayLength} TQLDisplayLength value
+   */
+  get (fbeValue = new TQLDisplayLength()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLDisplayLength}
+   * @param {!TQLDisplayLength} fbeValue TQLDisplayLength value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.small.fbeSize) <= fbeStructSize) {
+      fbeValue.small = this.small.get()
+    } else {
+      fbeValue.small = new TQLDisplayLengthValue()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.small.fbeSize
+
+    if ((fbeCurrentSize + this.medium.fbeSize) <= fbeStructSize) {
+      fbeValue.medium = this.medium.get()
+    } else {
+      fbeValue.medium = new TQLDisplayLengthValue()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.medium.fbeSize
+
+    if ((fbeCurrentSize + this.large.fbeSize) <= fbeStructSize) {
+      fbeValue.large = this.large.get()
+    } else {
+      fbeValue.large = new TQLDisplayLengthValue()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.large.fbeSize
+
+    if ((fbeCurrentSize + this.extra_large.fbeSize) <= fbeStructSize) {
+      fbeValue.extra_large = this.extra_large.get()
+    } else {
+      fbeValue.extra_large = new TQLDisplayLengthValue()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.extra_large.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayLength}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLDisplayLength}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLDisplayLength}
+   * @param {!TQLDisplayLength} fbeValue TQLDisplayLength value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLDisplayLength}
+   * @param {TQLDisplayLength} fbeValue TQLDisplayLength value
+   */
+  setFields (fbeValue) {
+    this.small.set(fbeValue.small)
+    this.medium.set(fbeValue.medium)
+    this.large.set(fbeValue.large)
+    this.extra_large.set(fbeValue.extra_large)
+  }
+}
+
+exports.FieldModelTQLDisplayLength = FieldModelTQLDisplayLength
+
+/**
+ * Fast Binary Encoding TQLDisplayLength model
+ */
+class TQLDisplayLengthModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLDisplayLength(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLDisplayLength model
+   * @this {!TQLDisplayLengthModel}
+   * @returns {!FieldModelTQLDisplayLength} model TQLDisplayLength model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLDisplayLengthModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLDisplayLengthModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLDisplayLengthModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLDisplayLengthModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLDisplayLength.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLDisplayLengthModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLDisplayLengthModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLDisplayLengthModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLDisplayLengthModel}
+   * @param {!TQLDisplayLength} value TQLDisplayLength value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLDisplayLengthModel}
+   * @param {!TQLDisplayLength} value TQLDisplayLength value, defaults is new TQLDisplayLength()
+   * @return {!object} Deserialized TQLDisplayLength value and its size
+   */
+  deserialize (value = new TQLDisplayLength()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLDisplayLength(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLDisplayLength(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLDisplayLengthModel}
+   * @param {!number} prev Previous TQLDisplayLength model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLDisplayLengthModel = TQLDisplayLengthModel
+
+/**
+ * TQLDisplayLayout struct
+ */
+class TQLDisplayLayout {
+  /**
+   * Initialize struct
+   * @param {!TQLDisplayLength=} width
+   * @param {!TQLDisplayLength=} height
+   * @constructor
+   */
+  constructor (argwidth = new TQLDisplayLength(), argheight = new TQLDisplayLength()) {
+    this.width = argwidth
+    this.height = argheight
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLDisplayLayout}
+   * @param {!TQLDisplayLayout} other Other struct
+   * @returns {!TQLDisplayLayout} This struct
+   */
+  copy (other) {
+    if (other.width != null) {
+      this.width = TQLDisplayLength.fromObject(other.width)
+    } else {
+      this.width = undefined
+    }
+    if (other.height != null) {
+      this.height = TQLDisplayLength.fromObject(other.height)
+    } else {
+      this.height = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLDisplayLayout}
+   * @returns {!TQLDisplayLayout} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLDisplayLayoutModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLDisplayLayoutModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLDisplayLayout}
+   * @param {!TQLDisplayLayout} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayLayout)) {
+      throw new TypeError('Instance of TQLDisplayLayout is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLDisplayLayout}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLDisplayLayout('
+    result += 'width='
+    result += this.width.toString()
+    result += ',height='
+    result += this.height.toString()
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLDisplayLayout}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLDisplayLayout}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      width: ((this.width != null) ? this.width : null),
+      height: ((this.height != null) ? this.height : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLDisplayLayout.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLDisplayLayout} other Object value
+   * @returns {!TQLDisplayLayout} Created struct
+   */
+  static fromObject (other) {
+    return new TQLDisplayLayout().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLDisplayLayout}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLDisplayLayout.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLDisplayLayout}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 12
+  }
+}
+
+exports.TQLDisplayLayout = TQLDisplayLayout
+
+/**
+ * Fast Binary Encoding TQLDisplayLayout field model
+ */
+class FieldModelTQLDisplayLayout extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._width = new FieldModelTQLDisplayLength(buffer, 4 + 4)
+    this._height = new FieldModelTQLDisplayLength(buffer, this._width.fbeOffset + this._width.fbeSize)
+  }
+
+  /**
+   * Get the width field model
+   * @this {!FieldModelTQLDisplayLayout}
+   * @returns {!FieldModelTQLDisplayLength} width field model
+   */
+  get width () {
+    return this._width
+  }
+
+  /**
+   * Get the height field model
+   * @this {!FieldModelTQLDisplayLayout}
+   * @returns {!FieldModelTQLDisplayLength} height field model
+   */
+  get height () {
+    return this._height
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayLayout}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLDisplayLayout}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.width.fbeSize + this.height.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLDisplayLayout}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.width.fbeExtra + this.height.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLDisplayLayout}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLDisplayLayout.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLDisplayLayout}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 12
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLDisplayLayout}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLDisplayLayout}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.width.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.width.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.width.fbeSize
+
+    if ((fbeCurrentSize + this.height.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.height.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.height.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayLayout}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLDisplayLayout}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLDisplayLayout}
+   * @param {!TQLDisplayLayout} fbeValue Default value, defaults is new TQLDisplayLayout()
+   * @returns {!TQLDisplayLayout} TQLDisplayLayout value
+   */
+  get (fbeValue = new TQLDisplayLayout()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLDisplayLayout}
+   * @param {!TQLDisplayLayout} fbeValue TQLDisplayLayout value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.width.fbeSize) <= fbeStructSize) {
+      fbeValue.width = this.width.get()
+    } else {
+      fbeValue.width = new TQLDisplayLength()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.width.fbeSize
+
+    if ((fbeCurrentSize + this.height.fbeSize) <= fbeStructSize) {
+      fbeValue.height = this.height.get()
+    } else {
+      fbeValue.height = new TQLDisplayLength()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.height.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayLayout}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLDisplayLayout}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLDisplayLayout}
+   * @param {!TQLDisplayLayout} fbeValue TQLDisplayLayout value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLDisplayLayout}
+   * @param {TQLDisplayLayout} fbeValue TQLDisplayLayout value
+   */
+  setFields (fbeValue) {
+    this.width.set(fbeValue.width)
+    this.height.set(fbeValue.height)
+  }
+}
+
+exports.FieldModelTQLDisplayLayout = FieldModelTQLDisplayLayout
+
+/**
+ * Fast Binary Encoding TQLDisplayLayout model
+ */
+class TQLDisplayLayoutModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLDisplayLayout(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLDisplayLayout model
+   * @this {!TQLDisplayLayoutModel}
+   * @returns {!FieldModelTQLDisplayLayout} model TQLDisplayLayout model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLDisplayLayoutModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLDisplayLayoutModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLDisplayLayoutModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLDisplayLayoutModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLDisplayLayout.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLDisplayLayoutModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLDisplayLayoutModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLDisplayLayoutModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLDisplayLayoutModel}
+   * @param {!TQLDisplayLayout} value TQLDisplayLayout value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLDisplayLayoutModel}
+   * @param {!TQLDisplayLayout} value TQLDisplayLayout value, defaults is new TQLDisplayLayout()
+   * @return {!object} Deserialized TQLDisplayLayout value and its size
+   */
+  deserialize (value = new TQLDisplayLayout()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLDisplayLayout(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLDisplayLayout(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLDisplayLayoutModel}
+   * @param {!number} prev Previous TQLDisplayLayout model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLDisplayLayoutModel = TQLDisplayLayoutModel
+
+/**
+ * TQLDisplayAxis struct
+ */
+class TQLDisplayAxis {
+  /**
+   * Initialize struct
+   * @param {!string=} column
+   * @param {!TQLDisplayAxisScale=} scale
+   * @constructor
+   */
+  constructor (argcolumn = '', argscale = new TQLDisplayAxisScale()) {
+    this.column = argcolumn
+    this.scale = argscale
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLDisplayAxis}
+   * @param {!TQLDisplayAxis} other Other struct
+   * @returns {!TQLDisplayAxis} This struct
+   */
+  copy (other) {
+    if (other.column != null) {
+      this.column = other.column
+    } else {
+      this.column = undefined
+    }
+    if (other.scale != null) {
+      this.scale = TQLDisplayAxisScale.fromObject(other.scale)
+    } else {
+      this.scale = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLDisplayAxis}
+   * @returns {!TQLDisplayAxis} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLDisplayAxisModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLDisplayAxisModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLDisplayAxis}
+   * @param {!TQLDisplayAxis} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayAxis)) {
+      throw new TypeError('Instance of TQLDisplayAxis is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLDisplayAxis}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLDisplayAxis('
+    result += 'column='
+    if (this.column != null) {
+      result += '"' + this.column.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',scale='
+    result += this.scale.toString()
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLDisplayAxis}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLDisplayAxis}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      column: ((this.column != null) ? this.column : null),
+      scale: ((this.scale != null) ? this.scale : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLDisplayAxis.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLDisplayAxis} other Object value
+   * @returns {!TQLDisplayAxis} Created struct
+   */
+  static fromObject (other) {
+    return new TQLDisplayAxis().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLDisplayAxis}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLDisplayAxis.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLDisplayAxis}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 13
+  }
+}
+
+exports.TQLDisplayAxis = TQLDisplayAxis
+
+/**
+ * Fast Binary Encoding TQLDisplayAxis field model
+ */
+class FieldModelTQLDisplayAxis extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._column = new fbe.FieldModelString(buffer, 4 + 4)
+    this._scale = new FieldModelTQLDisplayAxisScale(buffer, this._column.fbeOffset + this._column.fbeSize)
+  }
+
+  /**
+   * Get the column field model
+   * @this {!FieldModelTQLDisplayAxis}
+   * @returns {!fbe.FieldModelString} column field model
+   */
+  get column () {
+    return this._column
+  }
+
+  /**
+   * Get the scale field model
+   * @this {!FieldModelTQLDisplayAxis}
+   * @returns {!FieldModelTQLDisplayAxisScale} scale field model
+   */
+  get scale () {
+    return this._scale
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayAxis}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLDisplayAxis}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.column.fbeSize + this.scale.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLDisplayAxis}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.column.fbeExtra + this.scale.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLDisplayAxis}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLDisplayAxis.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLDisplayAxis}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 13
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLDisplayAxis}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLDisplayAxis}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.column.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.column.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column.fbeSize
+
+    if ((fbeCurrentSize + this.scale.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.scale.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.scale.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayAxis}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLDisplayAxis}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLDisplayAxis}
+   * @param {!TQLDisplayAxis} fbeValue Default value, defaults is new TQLDisplayAxis()
+   * @returns {!TQLDisplayAxis} TQLDisplayAxis value
+   */
+  get (fbeValue = new TQLDisplayAxis()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLDisplayAxis}
+   * @param {!TQLDisplayAxis} fbeValue TQLDisplayAxis value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.column.fbeSize) <= fbeStructSize) {
+      fbeValue.column = this.column.get()
+    } else {
+      fbeValue.column = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column.fbeSize
+
+    if ((fbeCurrentSize + this.scale.fbeSize) <= fbeStructSize) {
+      fbeValue.scale = this.scale.get()
+    } else {
+      fbeValue.scale = new TQLDisplayAxisScale()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.scale.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayAxis}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLDisplayAxis}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLDisplayAxis}
+   * @param {!TQLDisplayAxis} fbeValue TQLDisplayAxis value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLDisplayAxis}
+   * @param {TQLDisplayAxis} fbeValue TQLDisplayAxis value
+   */
+  setFields (fbeValue) {
+    this.column.set(fbeValue.column)
+    this.scale.set(fbeValue.scale)
+  }
+}
+
+exports.FieldModelTQLDisplayAxis = FieldModelTQLDisplayAxis
+
+/**
+ * Fast Binary Encoding TQLDisplayAxis model
+ */
+class TQLDisplayAxisModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLDisplayAxis(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLDisplayAxis model
+   * @this {!TQLDisplayAxisModel}
+   * @returns {!FieldModelTQLDisplayAxis} model TQLDisplayAxis model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLDisplayAxisModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLDisplayAxisModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLDisplayAxisModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLDisplayAxisModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLDisplayAxis.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLDisplayAxisModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLDisplayAxisModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLDisplayAxisModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLDisplayAxisModel}
+   * @param {!TQLDisplayAxis} value TQLDisplayAxis value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLDisplayAxisModel}
+   * @param {!TQLDisplayAxis} value TQLDisplayAxis value, defaults is new TQLDisplayAxis()
+   * @return {!object} Deserialized TQLDisplayAxis value and its size
+   */
+  deserialize (value = new TQLDisplayAxis()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLDisplayAxis(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLDisplayAxis(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLDisplayAxisModel}
+   * @param {!number} prev Previous TQLDisplayAxis model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLDisplayAxisModel = TQLDisplayAxisModel
+
+/**
+ * TQLDisplayAxes struct
+ */
+class TQLDisplayAxes {
+  /**
+   * Initialize struct
+   * @param {!TQLDisplayAxis=} x
+   * @param {!TQLDisplayAxis=} y
+   * @constructor
+   */
+  constructor (argx = new TQLDisplayAxis(), argy = new TQLDisplayAxis()) {
+    this.x = argx
+    this.y = argy
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLDisplayAxes}
+   * @param {!TQLDisplayAxes} other Other struct
+   * @returns {!TQLDisplayAxes} This struct
+   */
+  copy (other) {
+    if (other.x != null) {
+      this.x = TQLDisplayAxis.fromObject(other.x)
+    } else {
+      this.x = undefined
+    }
+    if (other.y != null) {
+      this.y = TQLDisplayAxis.fromObject(other.y)
+    } else {
+      this.y = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLDisplayAxes}
+   * @returns {!TQLDisplayAxes} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLDisplayAxesModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLDisplayAxesModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLDisplayAxes}
+   * @param {!TQLDisplayAxes} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayAxes)) {
+      throw new TypeError('Instance of TQLDisplayAxes is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLDisplayAxes}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLDisplayAxes('
+    result += 'x='
+    result += this.x.toString()
+    result += ',y='
+    result += this.y.toString()
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLDisplayAxes}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLDisplayAxes}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      x: ((this.x != null) ? this.x : null),
+      y: ((this.y != null) ? this.y : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLDisplayAxes.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLDisplayAxes} other Object value
+   * @returns {!TQLDisplayAxes} Created struct
+   */
+  static fromObject (other) {
+    return new TQLDisplayAxes().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLDisplayAxes}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLDisplayAxes.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLDisplayAxes}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 14
+  }
+}
+
+exports.TQLDisplayAxes = TQLDisplayAxes
+
+/**
+ * Fast Binary Encoding TQLDisplayAxes field model
+ */
+class FieldModelTQLDisplayAxes extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._x = new FieldModelTQLDisplayAxis(buffer, 4 + 4)
+    this._y = new FieldModelTQLDisplayAxis(buffer, this._x.fbeOffset + this._x.fbeSize)
+  }
+
+  /**
+   * Get the x field model
+   * @this {!FieldModelTQLDisplayAxes}
+   * @returns {!FieldModelTQLDisplayAxis} x field model
+   */
+  get x () {
+    return this._x
+  }
+
+  /**
+   * Get the y field model
+   * @this {!FieldModelTQLDisplayAxes}
+   * @returns {!FieldModelTQLDisplayAxis} y field model
+   */
+  get y () {
+    return this._y
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayAxes}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLDisplayAxes}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.x.fbeSize + this.y.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLDisplayAxes}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.x.fbeExtra + this.y.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLDisplayAxes}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLDisplayAxes.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLDisplayAxes}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 14
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLDisplayAxes}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLDisplayAxes}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.x.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.x.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.x.fbeSize
+
+    if ((fbeCurrentSize + this.y.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.y.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.y.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayAxes}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLDisplayAxes}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLDisplayAxes}
+   * @param {!TQLDisplayAxes} fbeValue Default value, defaults is new TQLDisplayAxes()
+   * @returns {!TQLDisplayAxes} TQLDisplayAxes value
+   */
+  get (fbeValue = new TQLDisplayAxes()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLDisplayAxes}
+   * @param {!TQLDisplayAxes} fbeValue TQLDisplayAxes value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.x.fbeSize) <= fbeStructSize) {
+      fbeValue.x = this.x.get()
+    } else {
+      fbeValue.x = new TQLDisplayAxis()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.x.fbeSize
+
+    if ((fbeCurrentSize + this.y.fbeSize) <= fbeStructSize) {
+      fbeValue.y = this.y.get()
+    } else {
+      fbeValue.y = new TQLDisplayAxis()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.y.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayAxes}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLDisplayAxes}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLDisplayAxes}
+   * @param {!TQLDisplayAxes} fbeValue TQLDisplayAxes value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLDisplayAxes}
+   * @param {TQLDisplayAxes} fbeValue TQLDisplayAxes value
+   */
+  setFields (fbeValue) {
+    this.x.set(fbeValue.x)
+    this.y.set(fbeValue.y)
+  }
+}
+
+exports.FieldModelTQLDisplayAxes = FieldModelTQLDisplayAxes
+
+/**
+ * Fast Binary Encoding TQLDisplayAxes model
+ */
+class TQLDisplayAxesModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLDisplayAxes(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLDisplayAxes model
+   * @this {!TQLDisplayAxesModel}
+   * @returns {!FieldModelTQLDisplayAxes} model TQLDisplayAxes model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLDisplayAxesModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLDisplayAxesModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLDisplayAxesModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLDisplayAxesModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLDisplayAxes.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLDisplayAxesModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLDisplayAxesModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLDisplayAxesModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLDisplayAxesModel}
+   * @param {!TQLDisplayAxes} value TQLDisplayAxes value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLDisplayAxesModel}
+   * @param {!TQLDisplayAxes} value TQLDisplayAxes value, defaults is new TQLDisplayAxes()
+   * @return {!object} Deserialized TQLDisplayAxes value and its size
+   */
+  deserialize (value = new TQLDisplayAxes()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLDisplayAxes(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLDisplayAxes(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLDisplayAxesModel}
+   * @param {!number} prev Previous TQLDisplayAxes model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLDisplayAxesModel = TQLDisplayAxesModel
+
+/**
+ * TQLDisplayStatement struct
+ */
+class TQLDisplayStatement {
+  /**
+   * Initialize struct
+   * @param {!string=} display_name
+   * @param {!TQLDisplayType=} display_type
+   * @param {!number=} display_type_flags
+   * @param {!TQLDisplayLayout=} layout
+   * @param {!TQLDisplayColor=} color
+   * @param {!TQLDisplayAxes=} axes
+   * @constructor
+   */
+  constructor (argdisplay_name = '', argdisplay_type = new TQLDisplayType(), argdisplay_type_flags = 0, arglayout = new TQLDisplayLayout(), argcolor = new TQLDisplayColor(), argaxes = new TQLDisplayAxes()) {
+    this.display_name = argdisplay_name
+    this.display_type = argdisplay_type
+    this.display_type_flags = argdisplay_type_flags
+    this.layout = arglayout
+    this.color = argcolor
+    this.axes = argaxes
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!TQLDisplayStatement}
+   * @param {!TQLDisplayStatement} other Other struct
+   * @returns {!TQLDisplayStatement} This struct
+   */
+  copy (other) {
+    if (other.display_name != null) {
+      this.display_name = other.display_name
+    } else {
+      this.display_name = undefined
+    }
+    if (other.display_type != null) {
+      this.display_type = TQLDisplayType.fromObject(other.display_type)
+    } else {
+      this.display_type = undefined
+    }
+    if (other.display_type_flags != null) {
+      this.display_type_flags = other.display_type_flags
+    } else {
+      this.display_type_flags = undefined
+    }
+    if (other.layout != null) {
+      this.layout = TQLDisplayLayout.fromObject(other.layout)
+    } else {
+      this.layout = undefined
+    }
+    if (other.color != null) {
+      this.color = TQLDisplayColor.fromObject(other.color)
+    } else {
+      this.color = undefined
+    }
+    if (other.axes != null) {
+      this.axes = TQLDisplayAxes.fromObject(other.axes)
+    } else {
+      this.axes = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!TQLDisplayStatement}
+   * @returns {!TQLDisplayStatement} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new TQLDisplayStatementModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new TQLDisplayStatementModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!TQLDisplayStatement}
+   * @param {!TQLDisplayStatement} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof TQLDisplayStatement)) {
+      throw new TypeError('Instance of TQLDisplayStatement is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!TQLDisplayStatement}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'TQLDisplayStatement('
+    result += 'display_name='
+    if (this.display_name != null) {
+      result += '"' + this.display_name.toString() + '"'
+    } else {
+      result += 'null'
+    }
+    result += ',display_type='
+    result += this.display_type.toString()
+    result += ',display_type_flags='
+    result += this.display_type_flags.toString()
+    result += ',layout='
+    result += this.layout.toString()
+    result += ',color='
+    result += this.color.toString()
+    result += ',axes='
+    result += this.axes.toString()
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!TQLDisplayStatement}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!TQLDisplayStatement}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      display_name: ((this.display_name != null) ? this.display_name : null),
+      display_type: ((this.display_type != null) ? this.display_type : null),
+      display_type_flags: ((this.display_type_flags != null) ? this.display_type_flags : null),
+      layout: ((this.layout != null) ? this.layout : null),
+      color: ((this.color != null) ? this.color : null),
+      axes: ((this.axes != null) ? this.axes : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return TQLDisplayStatement.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!TQLDisplayStatement} other Object value
+   * @returns {!TQLDisplayStatement} Created struct
+   */
+  static fromObject (other) {
+    return new TQLDisplayStatement().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!TQLDisplayStatement}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return TQLDisplayStatement.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!TQLDisplayStatement}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 15
+  }
+}
+
+exports.TQLDisplayStatement = TQLDisplayStatement
+
+/**
+ * Fast Binary Encoding TQLDisplayStatement field model
+ */
+class FieldModelTQLDisplayStatement extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._display_name = new fbe.FieldModelString(buffer, 4 + 4)
+    this._display_type = new FieldModelTQLDisplayType(buffer, this._display_name.fbeOffset + this._display_name.fbeSize)
+    this._display_type_flags = new fbe.FieldModelUInt16(buffer, this._display_type.fbeOffset + this._display_type.fbeSize)
+    this._layout = new FieldModelTQLDisplayLayout(buffer, this._display_type_flags.fbeOffset + this._display_type_flags.fbeSize)
+    this._color = new FieldModelTQLDisplayColor(buffer, this._layout.fbeOffset + this._layout.fbeSize)
+    this._axes = new FieldModelTQLDisplayAxes(buffer, this._color.fbeOffset + this._color.fbeSize)
+  }
+
+  /**
+   * Get the display_name field model
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!fbe.FieldModelString} display_name field model
+   */
+  get display_name () {
+    return this._display_name
+  }
+
+  /**
+   * Get the display_type field model
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!FieldModelTQLDisplayType} display_type field model
+   */
+  get display_type () {
+    return this._display_type
+  }
+
+  /**
+   * Get the display_type_flags field model
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!fbe.FieldModelUInt16} display_type_flags field model
+   */
+  get display_type_flags () {
+    return this._display_type_flags
+  }
+
+  /**
+   * Get the layout field model
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!FieldModelTQLDisplayLayout} layout field model
+   */
+  get layout () {
+    return this._layout
+  }
+
+  /**
+   * Get the color field model
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!FieldModelTQLDisplayColor} color field model
+   */
+  get color () {
+    return this._color
+  }
+
+  /**
+   * Get the axes field model
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!FieldModelTQLDisplayAxes} axes field model
+   */
+  get axes () {
+    return this._axes
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.display_name.fbeSize + this.display_type.fbeSize + this.display_type_flags.fbeSize + this.layout.fbeSize + this.color.fbeSize + this.axes.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.display_name.fbeExtra + this.display_type.fbeExtra + this.display_type_flags.fbeExtra + this.layout.fbeExtra + this.color.fbeExtra + this.axes.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelTQLDisplayStatement.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 15
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelTQLDisplayStatement}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelTQLDisplayStatement}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.display_name.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.display_name.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.display_name.fbeSize
+
+    if ((fbeCurrentSize + this.display_type.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.display_type.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.display_type.fbeSize
+
+    if ((fbeCurrentSize + this.display_type_flags.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.display_type_flags.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.display_type_flags.fbeSize
+
+    if ((fbeCurrentSize + this.layout.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.layout.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.layout.fbeSize
+
+    if ((fbeCurrentSize + this.color.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.color.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.color.fbeSize
+
+    if ((fbeCurrentSize + this.axes.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.axes.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.axes.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelTQLDisplayStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelTQLDisplayStatement}
+   * @param {!TQLDisplayStatement} fbeValue Default value, defaults is new TQLDisplayStatement()
+   * @returns {!TQLDisplayStatement} TQLDisplayStatement value
+   */
+  get (fbeValue = new TQLDisplayStatement()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelTQLDisplayStatement}
+   * @param {!TQLDisplayStatement} fbeValue TQLDisplayStatement value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.display_name.fbeSize) <= fbeStructSize) {
+      fbeValue.display_name = this.display_name.get()
+    } else {
+      fbeValue.display_name = ''
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.display_name.fbeSize
+
+    if ((fbeCurrentSize + this.display_type.fbeSize) <= fbeStructSize) {
+      fbeValue.display_type = this.display_type.get()
+    } else {
+      fbeValue.display_type = new TQLDisplayType()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.display_type.fbeSize
+
+    if ((fbeCurrentSize + this.display_type_flags.fbeSize) <= fbeStructSize) {
+      fbeValue.display_type_flags = this.display_type_flags.get()
+    } else {
+      fbeValue.display_type_flags = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.display_type_flags.fbeSize
+
+    if ((fbeCurrentSize + this.layout.fbeSize) <= fbeStructSize) {
+      fbeValue.layout = this.layout.get()
+    } else {
+      fbeValue.layout = new TQLDisplayLayout()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.layout.fbeSize
+
+    if ((fbeCurrentSize + this.color.fbeSize) <= fbeStructSize) {
+      fbeValue.color = this.color.get()
+    } else {
+      fbeValue.color = new TQLDisplayColor()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.color.fbeSize
+
+    if ((fbeCurrentSize + this.axes.fbeSize) <= fbeStructSize) {
+      fbeValue.axes = this.axes.get()
+    } else {
+      fbeValue.axes = new TQLDisplayAxes()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.axes.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelTQLDisplayStatement}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelTQLDisplayStatement}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelTQLDisplayStatement}
+   * @param {!TQLDisplayStatement} fbeValue TQLDisplayStatement value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelTQLDisplayStatement}
+   * @param {TQLDisplayStatement} fbeValue TQLDisplayStatement value
+   */
+  setFields (fbeValue) {
+    this.display_name.set(fbeValue.display_name)
+    this.display_type.set(fbeValue.display_type)
+    this.display_type_flags.set(fbeValue.display_type_flags)
+    this.layout.set(fbeValue.layout)
+    this.color.set(fbeValue.color)
+    this.axes.set(fbeValue.axes)
+  }
+}
+
+exports.FieldModelTQLDisplayStatement = FieldModelTQLDisplayStatement
+
+/**
+ * Fast Binary Encoding TQLDisplayStatement model
+ */
+class TQLDisplayStatementModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelTQLDisplayStatement(this.buffer, 4)
+  }
+
+  /**
+   * Get the TQLDisplayStatement model
+   * @this {!TQLDisplayStatementModel}
+   * @returns {!FieldModelTQLDisplayStatement} model TQLDisplayStatement model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!TQLDisplayStatementModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!TQLDisplayStatementModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return TQLDisplayStatementModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!TQLDisplayStatementModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelTQLDisplayStatement.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!TQLDisplayStatementModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!TQLDisplayStatementModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!TQLDisplayStatementModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!TQLDisplayStatementModel}
+   * @param {!TQLDisplayStatement} value TQLDisplayStatement value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!TQLDisplayStatementModel}
+   * @param {!TQLDisplayStatement} value TQLDisplayStatement value, defaults is new TQLDisplayStatement()
+   * @return {!object} Deserialized TQLDisplayStatement value and its size
+   */
+  deserialize (value = new TQLDisplayStatement()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new TQLDisplayStatement(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new TQLDisplayStatement(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!TQLDisplayStatementModel}
+   * @param {!number} prev Previous TQLDisplayStatement model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.TQLDisplayStatementModel = TQLDisplayStatementModel

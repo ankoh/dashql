@@ -27,25 +27,1610 @@ namespace tql {
 
 enum class TQLType : uint8_t
 {
-    INTEGER = (uint8_t)0u,
-    FLOAT = (uint8_t)1u,
-    TEXT = (uint8_t)2u,
-    DATE = (uint8_t)3u,
-    DATETIME = (uint8_t)4u,
-    TIME = (uint8_t)5u,
+    Integer = (uint8_t)0u,
+    Float = (uint8_t)1u,
+    Text = (uint8_t)2u,
+    Date = (uint8_t)3u,
+    DateTime = (uint8_t)4u,
+    Time = (uint8_t)5u,
 };
 
 template <class TOutputStream>
 inline TOutputStream& operator<<(TOutputStream& stream, TQLType value)
 {
-    if (value == TQLType::INTEGER) { stream << "INTEGER"; return stream; }
-    if (value == TQLType::FLOAT) { stream << "FLOAT"; return stream; }
-    if (value == TQLType::TEXT) { stream << "TEXT"; return stream; }
-    if (value == TQLType::DATE) { stream << "DATE"; return stream; }
-    if (value == TQLType::DATETIME) { stream << "DATETIME"; return stream; }
-    if (value == TQLType::TIME) { stream << "TIME"; return stream; }
+    if (value == TQLType::Integer) { stream << "Integer"; return stream; }
+    if (value == TQLType::Float) { stream << "Float"; return stream; }
+    if (value == TQLType::Text) { stream << "Text"; return stream; }
+    if (value == TQLType::Date) { stream << "Date"; return stream; }
+    if (value == TQLType::DateTime) { stream << "DateTime"; return stream; }
+    if (value == TQLType::Time) { stream << "Time"; return stream; }
     stream << "<unknown>";
     return stream;
 }
 
 } // namespace tql
+
+namespace tql {
+
+enum class TQLHTTPMethod : uint8_t
+{
+    Get = (uint8_t)0u,
+    Put = (uint8_t)1u,
+    Post = (uint8_t)2u,
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, TQLHTTPMethod value)
+{
+    if (value == TQLHTTPMethod::Get) { stream << "Get"; return stream; }
+    if (value == TQLHTTPMethod::Put) { stream << "Put"; return stream; }
+    if (value == TQLHTTPMethod::Post) { stream << "Post"; return stream; }
+    stream << "<unknown>";
+    return stream;
+}
+
+} // namespace tql
+
+namespace tql {
+
+enum class TQLDisplayType : uint8_t
+{
+    Area = (uint8_t)0u,
+    Bar = (uint8_t)1u,
+    Box = (uint8_t)2u,
+    Bubble = (uint8_t)3u,
+    Grid = (uint8_t)4u,
+    Histogram = (uint8_t)5u,
+    Line = (uint8_t)6u,
+    Number = (uint8_t)7u,
+    Pie = (uint8_t)8u,
+    Point = (uint8_t)9u,
+    Scatter = (uint8_t)10u,
+    Table = (uint8_t)11u,
+    Text = (uint8_t)12u,
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, TQLDisplayType value)
+{
+    if (value == TQLDisplayType::Area) { stream << "Area"; return stream; }
+    if (value == TQLDisplayType::Bar) { stream << "Bar"; return stream; }
+    if (value == TQLDisplayType::Box) { stream << "Box"; return stream; }
+    if (value == TQLDisplayType::Bubble) { stream << "Bubble"; return stream; }
+    if (value == TQLDisplayType::Grid) { stream << "Grid"; return stream; }
+    if (value == TQLDisplayType::Histogram) { stream << "Histogram"; return stream; }
+    if (value == TQLDisplayType::Line) { stream << "Line"; return stream; }
+    if (value == TQLDisplayType::Number) { stream << "Number"; return stream; }
+    if (value == TQLDisplayType::Pie) { stream << "Pie"; return stream; }
+    if (value == TQLDisplayType::Point) { stream << "Point"; return stream; }
+    if (value == TQLDisplayType::Scatter) { stream << "Scatter"; return stream; }
+    if (value == TQLDisplayType::Table) { stream << "Table"; return stream; }
+    if (value == TQLDisplayType::Text) { stream << "Text"; return stream; }
+    stream << "<unknown>";
+    return stream;
+}
+
+} // namespace tql
+
+namespace tql {
+
+enum class TQLDisplayLengthUnit : uint8_t
+{
+    Span = (uint8_t)0u,
+    Pixel = (uint8_t)1u,
+    Percent = (uint8_t)2u,
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, TQLDisplayLengthUnit value)
+{
+    if (value == TQLDisplayLengthUnit::Span) { stream << "Span"; return stream; }
+    if (value == TQLDisplayLengthUnit::Pixel) { stream << "Pixel"; return stream; }
+    if (value == TQLDisplayLengthUnit::Percent) { stream << "Percent"; return stream; }
+    stream << "<unknown>";
+    return stream;
+}
+
+} // namespace tql
+
+namespace tql {
+
+enum class TQLDisplayAxisScale : uint8_t
+{
+    Linear = (uint8_t)0u,
+    Logarithmic = (uint8_t)1u,
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, TQLDisplayAxisScale value)
+{
+    if (value == TQLDisplayAxisScale::Linear) { stream << "Linear"; return stream; }
+    if (value == TQLDisplayAxisScale::Logarithmic) { stream << "Logarithmic"; return stream; }
+    stream << "<unknown>";
+    return stream;
+}
+
+} // namespace tql
+
+namespace tql {
+
+enum class TQLDisplayTypeFlag : uint16_t
+{
+    None = (uint16_t)0u,
+    Horizontal = (uint16_t)1u,
+    Vertical = (uint16_t)2u,
+    Stacked = (uint16_t)4u,
+};
+FBE_ENUM_FLAGS(TQLDisplayTypeFlag)
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, TQLDisplayTypeFlag value)
+{
+    bool first = true;
+    if ((value & TQLDisplayTypeFlag::None) && ((value & TQLDisplayTypeFlag::None) == TQLDisplayTypeFlag::None))
+    {
+        stream << (first ? "" : "|") << "None";
+        first = false;
+    }
+    if ((value & TQLDisplayTypeFlag::Horizontal) && ((value & TQLDisplayTypeFlag::Horizontal) == TQLDisplayTypeFlag::Horizontal))
+    {
+        stream << (first ? "" : "|") << "Horizontal";
+        first = false;
+    }
+    if ((value & TQLDisplayTypeFlag::Vertical) && ((value & TQLDisplayTypeFlag::Vertical) == TQLDisplayTypeFlag::Vertical))
+    {
+        stream << (first ? "" : "|") << "Vertical";
+        first = false;
+    }
+    if ((value & TQLDisplayTypeFlag::Stacked) && ((value & TQLDisplayTypeFlag::Stacked) == TQLDisplayTypeFlag::Stacked))
+    {
+        stream << (first ? "" : "|") << "Stacked";
+        first = false;
+    }
+    return stream;
+}
+
+} // namespace tql
+
+namespace tql {
+
+struct TQLQueryStatement
+{
+    std::string query_text;
+
+    size_t fbe_type() const noexcept { return 1; }
+
+    TQLQueryStatement()
+        : query_text()
+    {}
+    explicit TQLQueryStatement(const std::string& arg_query_text)
+        : query_text(arg_query_text)
+    {}
+    TQLQueryStatement(const TQLQueryStatement& other) = default;
+    TQLQueryStatement(TQLQueryStatement&& other) = default;
+    ~TQLQueryStatement() = default;
+
+    TQLQueryStatement& operator=(const TQLQueryStatement& other) = default;
+    TQLQueryStatement& operator=(TQLQueryStatement&& other) = default;
+
+    bool operator==(const TQLQueryStatement& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLQueryStatement& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLQueryStatement& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLQueryStatement& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLQueryStatement& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLQueryStatement& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLQueryStatement& value);
+
+    void swap(TQLQueryStatement& other) noexcept
+    {
+        using std::swap;
+        swap(query_text, other.query_text);
+    }
+
+    friend void swap(TQLQueryStatement& value1, TQLQueryStatement& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLQueryStatement& value)
+{
+    stream << "TQLQueryStatement(";
+    stream << "query_text="; stream << "\"" << value.query_text << "\"";
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLQueryStatement>
+{
+    typedef tql::TQLQueryStatement argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLParameterDeclaration
+{
+    std::string parameter_name;
+    ::tql::TQLType parameter_type;
+    int64_t default_value_i64;
+    ::tql::float64 default_value_f64;
+    std::string default_value_str;
+
+    size_t fbe_type() const noexcept { return 2; }
+
+    TQLParameterDeclaration()
+        : parameter_name()
+        , parameter_type()
+        , default_value_i64((int64_t)0ll)
+        , default_value_f64()
+        , default_value_str()
+    {}
+    TQLParameterDeclaration(const std::string& arg_parameter_name, const ::tql::TQLType& arg_parameter_type, int64_t arg_default_value_i64, const ::tql::float64& arg_default_value_f64, const std::string& arg_default_value_str)
+        : parameter_name(arg_parameter_name)
+        , parameter_type(arg_parameter_type)
+        , default_value_i64(arg_default_value_i64)
+        , default_value_f64(arg_default_value_f64)
+        , default_value_str(arg_default_value_str)
+    {}
+    TQLParameterDeclaration(const TQLParameterDeclaration& other) = default;
+    TQLParameterDeclaration(TQLParameterDeclaration&& other) = default;
+    ~TQLParameterDeclaration() = default;
+
+    TQLParameterDeclaration& operator=(const TQLParameterDeclaration& other) = default;
+    TQLParameterDeclaration& operator=(TQLParameterDeclaration&& other) = default;
+
+    bool operator==(const TQLParameterDeclaration& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLParameterDeclaration& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLParameterDeclaration& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLParameterDeclaration& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLParameterDeclaration& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLParameterDeclaration& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLParameterDeclaration& value);
+
+    void swap(TQLParameterDeclaration& other) noexcept
+    {
+        using std::swap;
+        swap(parameter_name, other.parameter_name);
+        swap(parameter_type, other.parameter_type);
+        swap(default_value_i64, other.default_value_i64);
+        swap(default_value_f64, other.default_value_f64);
+        swap(default_value_str, other.default_value_str);
+    }
+
+    friend void swap(TQLParameterDeclaration& value1, TQLParameterDeclaration& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLParameterDeclaration& value)
+{
+    stream << "TQLParameterDeclaration(";
+    stream << "parameter_name="; stream << "\"" << value.parameter_name << "\"";
+    stream << ",parameter_type="; stream << value.parameter_type;
+    stream << ",default_value_i64="; stream << value.default_value_i64;
+    stream << ",default_value_f64="; stream << value.default_value_f64;
+    stream << ",default_value_str="; stream << "\"" << value.default_value_str << "\"";
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLParameterDeclaration>
+{
+    typedef tql::TQLParameterDeclaration argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLHTTPLoadStatement
+{
+    std::string data_name;
+    std::string http_url;
+    ::tql::TQLHTTPMethod http_method;
+
+    size_t fbe_type() const noexcept { return 3; }
+
+    TQLHTTPLoadStatement()
+        : data_name()
+        , http_url()
+        , http_method()
+    {}
+    TQLHTTPLoadStatement(const std::string& arg_data_name, const std::string& arg_http_url, const ::tql::TQLHTTPMethod& arg_http_method)
+        : data_name(arg_data_name)
+        , http_url(arg_http_url)
+        , http_method(arg_http_method)
+    {}
+    TQLHTTPLoadStatement(const TQLHTTPLoadStatement& other) = default;
+    TQLHTTPLoadStatement(TQLHTTPLoadStatement&& other) = default;
+    ~TQLHTTPLoadStatement() = default;
+
+    TQLHTTPLoadStatement& operator=(const TQLHTTPLoadStatement& other) = default;
+    TQLHTTPLoadStatement& operator=(TQLHTTPLoadStatement&& other) = default;
+
+    bool operator==(const TQLHTTPLoadStatement& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLHTTPLoadStatement& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLHTTPLoadStatement& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLHTTPLoadStatement& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLHTTPLoadStatement& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLHTTPLoadStatement& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLHTTPLoadStatement& value);
+
+    void swap(TQLHTTPLoadStatement& other) noexcept
+    {
+        using std::swap;
+        swap(data_name, other.data_name);
+        swap(http_url, other.http_url);
+        swap(http_method, other.http_method);
+    }
+
+    friend void swap(TQLHTTPLoadStatement& value1, TQLHTTPLoadStatement& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLHTTPLoadStatement& value)
+{
+    stream << "TQLHTTPLoadStatement(";
+    stream << "data_name="; stream << "\"" << value.data_name << "\"";
+    stream << ",http_url="; stream << "\"" << value.http_url << "\"";
+    stream << ",http_method="; stream << value.http_method;
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLHTTPLoadStatement>
+{
+    typedef tql::TQLHTTPLoadStatement argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLFileLoadStatement
+{
+    std::string data_name;
+
+    size_t fbe_type() const noexcept { return 4; }
+
+    TQLFileLoadStatement()
+        : data_name()
+    {}
+    explicit TQLFileLoadStatement(const std::string& arg_data_name)
+        : data_name(arg_data_name)
+    {}
+    TQLFileLoadStatement(const TQLFileLoadStatement& other) = default;
+    TQLFileLoadStatement(TQLFileLoadStatement&& other) = default;
+    ~TQLFileLoadStatement() = default;
+
+    TQLFileLoadStatement& operator=(const TQLFileLoadStatement& other) = default;
+    TQLFileLoadStatement& operator=(TQLFileLoadStatement&& other) = default;
+
+    bool operator==(const TQLFileLoadStatement& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLFileLoadStatement& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLFileLoadStatement& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLFileLoadStatement& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLFileLoadStatement& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLFileLoadStatement& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLFileLoadStatement& value);
+
+    void swap(TQLFileLoadStatement& other) noexcept
+    {
+        using std::swap;
+        swap(data_name, other.data_name);
+    }
+
+    friend void swap(TQLFileLoadStatement& value1, TQLFileLoadStatement& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLFileLoadStatement& value)
+{
+    stream << "TQLFileLoadStatement(";
+    stream << "data_name="; stream << "\"" << value.data_name << "\"";
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLFileLoadStatement>
+{
+    typedef tql::TQLFileLoadStatement argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLJSONExtractStatement
+{
+    std::string data_name;
+    std::string extract_name;
+
+    size_t fbe_type() const noexcept { return 5; }
+
+    TQLJSONExtractStatement()
+        : data_name()
+        , extract_name()
+    {}
+    TQLJSONExtractStatement(const std::string& arg_data_name, const std::string& arg_extract_name)
+        : data_name(arg_data_name)
+        , extract_name(arg_extract_name)
+    {}
+    TQLJSONExtractStatement(const TQLJSONExtractStatement& other) = default;
+    TQLJSONExtractStatement(TQLJSONExtractStatement&& other) = default;
+    ~TQLJSONExtractStatement() = default;
+
+    TQLJSONExtractStatement& operator=(const TQLJSONExtractStatement& other) = default;
+    TQLJSONExtractStatement& operator=(TQLJSONExtractStatement&& other) = default;
+
+    bool operator==(const TQLJSONExtractStatement& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLJSONExtractStatement& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLJSONExtractStatement& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLJSONExtractStatement& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLJSONExtractStatement& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLJSONExtractStatement& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLJSONExtractStatement& value);
+
+    void swap(TQLJSONExtractStatement& other) noexcept
+    {
+        using std::swap;
+        swap(data_name, other.data_name);
+        swap(extract_name, other.extract_name);
+    }
+
+    friend void swap(TQLJSONExtractStatement& value1, TQLJSONExtractStatement& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLJSONExtractStatement& value)
+{
+    stream << "TQLJSONExtractStatement(";
+    stream << "data_name="; stream << "\"" << value.data_name << "\"";
+    stream << ",extract_name="; stream << "\"" << value.extract_name << "\"";
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLJSONExtractStatement>
+{
+    typedef tql::TQLJSONExtractStatement argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLCSVColumn
+{
+    std::string column_name;
+    ::tql::TQLType column_type;
+    std::string source_name;
+    int32_t source_index;
+
+    size_t fbe_type() const noexcept { return 6; }
+
+    TQLCSVColumn()
+        : column_name()
+        , column_type()
+        , source_name()
+        , source_index((int32_t)0ll)
+    {}
+    TQLCSVColumn(const std::string& arg_column_name, const ::tql::TQLType& arg_column_type, const std::string& arg_source_name, int32_t arg_source_index)
+        : column_name(arg_column_name)
+        , column_type(arg_column_type)
+        , source_name(arg_source_name)
+        , source_index(arg_source_index)
+    {}
+    TQLCSVColumn(const TQLCSVColumn& other) = default;
+    TQLCSVColumn(TQLCSVColumn&& other) = default;
+    ~TQLCSVColumn() = default;
+
+    TQLCSVColumn& operator=(const TQLCSVColumn& other) = default;
+    TQLCSVColumn& operator=(TQLCSVColumn&& other) = default;
+
+    bool operator==(const TQLCSVColumn& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLCSVColumn& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLCSVColumn& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLCSVColumn& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLCSVColumn& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLCSVColumn& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLCSVColumn& value);
+
+    void swap(TQLCSVColumn& other) noexcept
+    {
+        using std::swap;
+        swap(column_name, other.column_name);
+        swap(column_type, other.column_type);
+        swap(source_name, other.source_name);
+        swap(source_index, other.source_index);
+    }
+
+    friend void swap(TQLCSVColumn& value1, TQLCSVColumn& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLCSVColumn& value)
+{
+    stream << "TQLCSVColumn(";
+    stream << "column_name="; stream << "\"" << value.column_name << "\"";
+    stream << ",column_type="; stream << value.column_type;
+    stream << ",source_name="; stream << "\"" << value.source_name << "\"";
+    stream << ",source_index="; stream << value.source_index;
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLCSVColumn>
+{
+    typedef tql::TQLCSVColumn argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLCSVExtractStatement
+{
+    std::string data_name;
+    std::string extract_name;
+    std::vector<::tql::TQLCSVColumn> columns;
+
+    size_t fbe_type() const noexcept { return 7; }
+
+    TQLCSVExtractStatement()
+        : data_name()
+        , extract_name()
+        , columns()
+    {}
+    TQLCSVExtractStatement(const std::string& arg_data_name, const std::string& arg_extract_name, const std::vector<::tql::TQLCSVColumn>& arg_columns)
+        : data_name(arg_data_name)
+        , extract_name(arg_extract_name)
+        , columns(arg_columns)
+    {}
+    TQLCSVExtractStatement(const TQLCSVExtractStatement& other) = default;
+    TQLCSVExtractStatement(TQLCSVExtractStatement&& other) = default;
+    ~TQLCSVExtractStatement() = default;
+
+    TQLCSVExtractStatement& operator=(const TQLCSVExtractStatement& other) = default;
+    TQLCSVExtractStatement& operator=(TQLCSVExtractStatement&& other) = default;
+
+    bool operator==(const TQLCSVExtractStatement& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLCSVExtractStatement& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLCSVExtractStatement& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLCSVExtractStatement& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLCSVExtractStatement& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLCSVExtractStatement& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLCSVExtractStatement& value);
+
+    void swap(TQLCSVExtractStatement& other) noexcept
+    {
+        using std::swap;
+        swap(data_name, other.data_name);
+        swap(extract_name, other.extract_name);
+        swap(columns, other.columns);
+    }
+
+    friend void swap(TQLCSVExtractStatement& value1, TQLCSVExtractStatement& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLCSVExtractStatement& value)
+{
+    stream << "TQLCSVExtractStatement(";
+    stream << "data_name="; stream << "\"" << value.data_name << "\"";
+    stream << ",extract_name="; stream << "\"" << value.extract_name << "\"";
+    {
+        bool first = true;
+        stream << ",columns=[" << value.columns.size() << "][";
+        for (const auto& it : value.columns)
+        {
+            stream << std::string(first ? "" : ",") << it;
+            first = false;
+        }
+        stream << "]";
+    }
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLCSVExtractStatement>
+{
+    typedef tql::TQLCSVExtractStatement argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLDisplayColor
+{
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+
+    size_t fbe_type() const noexcept { return 8; }
+
+    TQLDisplayColor()
+        : red((uint8_t)0u)
+        , green((uint8_t)0u)
+        , blue((uint8_t)0u)
+    {}
+    TQLDisplayColor(uint8_t arg_red, uint8_t arg_green, uint8_t arg_blue)
+        : red(arg_red)
+        , green(arg_green)
+        , blue(arg_blue)
+    {}
+    TQLDisplayColor(const TQLDisplayColor& other) = default;
+    TQLDisplayColor(TQLDisplayColor&& other) = default;
+    ~TQLDisplayColor() = default;
+
+    TQLDisplayColor& operator=(const TQLDisplayColor& other) = default;
+    TQLDisplayColor& operator=(TQLDisplayColor&& other) = default;
+
+    bool operator==(const TQLDisplayColor& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLDisplayColor& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLDisplayColor& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLDisplayColor& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLDisplayColor& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLDisplayColor& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayColor& value);
+
+    void swap(TQLDisplayColor& other) noexcept
+    {
+        using std::swap;
+        swap(red, other.red);
+        swap(green, other.green);
+        swap(blue, other.blue);
+    }
+
+    friend void swap(TQLDisplayColor& value1, TQLDisplayColor& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayColor& value)
+{
+    stream << "TQLDisplayColor(";
+    stream << "red="; stream << (int)value.red;
+    stream << ",green="; stream << (int)value.green;
+    stream << ",blue="; stream << (int)value.blue;
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLDisplayColor>
+{
+    typedef tql::TQLDisplayColor argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLDisplayColorPalette
+{
+    std::string color_target;
+    std::vector<::tql::TQLDisplayColor> palette;
+
+    size_t fbe_type() const noexcept { return 9; }
+
+    TQLDisplayColorPalette()
+        : color_target()
+        , palette()
+    {}
+    TQLDisplayColorPalette(const std::string& arg_color_target, const std::vector<::tql::TQLDisplayColor>& arg_palette)
+        : color_target(arg_color_target)
+        , palette(arg_palette)
+    {}
+    TQLDisplayColorPalette(const TQLDisplayColorPalette& other) = default;
+    TQLDisplayColorPalette(TQLDisplayColorPalette&& other) = default;
+    ~TQLDisplayColorPalette() = default;
+
+    TQLDisplayColorPalette& operator=(const TQLDisplayColorPalette& other) = default;
+    TQLDisplayColorPalette& operator=(TQLDisplayColorPalette&& other) = default;
+
+    bool operator==(const TQLDisplayColorPalette& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLDisplayColorPalette& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLDisplayColorPalette& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLDisplayColorPalette& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLDisplayColorPalette& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLDisplayColorPalette& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayColorPalette& value);
+
+    void swap(TQLDisplayColorPalette& other) noexcept
+    {
+        using std::swap;
+        swap(color_target, other.color_target);
+        swap(palette, other.palette);
+    }
+
+    friend void swap(TQLDisplayColorPalette& value1, TQLDisplayColorPalette& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayColorPalette& value)
+{
+    stream << "TQLDisplayColorPalette(";
+    stream << "color_target="; stream << "\"" << value.color_target << "\"";
+    {
+        bool first = true;
+        stream << ",palette=[" << value.palette.size() << "][";
+        for (const auto& it : value.palette)
+        {
+            stream << std::string(first ? "" : ",") << it;
+            first = false;
+        }
+        stream << "]";
+    }
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLDisplayColorPalette>
+{
+    typedef tql::TQLDisplayColorPalette argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLDisplayLengthValue
+{
+    ::tql::float64 value;
+    ::tql::TQLDisplayLengthUnit unit;
+
+    size_t fbe_type() const noexcept { return 10; }
+
+    TQLDisplayLengthValue()
+        : value()
+        , unit()
+    {}
+    TQLDisplayLengthValue(const ::tql::float64& arg_value, const ::tql::TQLDisplayLengthUnit& arg_unit)
+        : value(arg_value)
+        , unit(arg_unit)
+    {}
+    TQLDisplayLengthValue(const TQLDisplayLengthValue& other) = default;
+    TQLDisplayLengthValue(TQLDisplayLengthValue&& other) = default;
+    ~TQLDisplayLengthValue() = default;
+
+    TQLDisplayLengthValue& operator=(const TQLDisplayLengthValue& other) = default;
+    TQLDisplayLengthValue& operator=(TQLDisplayLengthValue&& other) = default;
+
+    bool operator==(const TQLDisplayLengthValue& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLDisplayLengthValue& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLDisplayLengthValue& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLDisplayLengthValue& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLDisplayLengthValue& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLDisplayLengthValue& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayLengthValue& value);
+
+    void swap(TQLDisplayLengthValue& other) noexcept
+    {
+        using std::swap;
+        swap(value, other.value);
+        swap(unit, other.unit);
+    }
+
+    friend void swap(TQLDisplayLengthValue& value1, TQLDisplayLengthValue& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayLengthValue& value)
+{
+    stream << "TQLDisplayLengthValue(";
+    stream << "value="; stream << value.value;
+    stream << ",unit="; stream << value.unit;
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLDisplayLengthValue>
+{
+    typedef tql::TQLDisplayLengthValue argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLDisplayLength
+{
+    ::tql::TQLDisplayLengthValue small;
+    ::tql::TQLDisplayLengthValue medium;
+    ::tql::TQLDisplayLengthValue large;
+    ::tql::TQLDisplayLengthValue extra_large;
+
+    size_t fbe_type() const noexcept { return 11; }
+
+    TQLDisplayLength()
+        : small()
+        , medium()
+        , large()
+        , extra_large()
+    {}
+    TQLDisplayLength(const ::tql::TQLDisplayLengthValue& arg_small, const ::tql::TQLDisplayLengthValue& arg_medium, const ::tql::TQLDisplayLengthValue& arg_large, const ::tql::TQLDisplayLengthValue& arg_extra_large)
+        : small(arg_small)
+        , medium(arg_medium)
+        , large(arg_large)
+        , extra_large(arg_extra_large)
+    {}
+    TQLDisplayLength(const TQLDisplayLength& other) = default;
+    TQLDisplayLength(TQLDisplayLength&& other) = default;
+    ~TQLDisplayLength() = default;
+
+    TQLDisplayLength& operator=(const TQLDisplayLength& other) = default;
+    TQLDisplayLength& operator=(TQLDisplayLength&& other) = default;
+
+    bool operator==(const TQLDisplayLength& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLDisplayLength& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLDisplayLength& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLDisplayLength& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLDisplayLength& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLDisplayLength& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayLength& value);
+
+    void swap(TQLDisplayLength& other) noexcept
+    {
+        using std::swap;
+        swap(small, other.small);
+        swap(medium, other.medium);
+        swap(large, other.large);
+        swap(extra_large, other.extra_large);
+    }
+
+    friend void swap(TQLDisplayLength& value1, TQLDisplayLength& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayLength& value)
+{
+    stream << "TQLDisplayLength(";
+    stream << "small="; stream << value.small;
+    stream << ",medium="; stream << value.medium;
+    stream << ",large="; stream << value.large;
+    stream << ",extra_large="; stream << value.extra_large;
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLDisplayLength>
+{
+    typedef tql::TQLDisplayLength argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLDisplayLayout
+{
+    ::tql::TQLDisplayLength width;
+    ::tql::TQLDisplayLength height;
+
+    size_t fbe_type() const noexcept { return 12; }
+
+    TQLDisplayLayout()
+        : width()
+        , height()
+    {}
+    TQLDisplayLayout(const ::tql::TQLDisplayLength& arg_width, const ::tql::TQLDisplayLength& arg_height)
+        : width(arg_width)
+        , height(arg_height)
+    {}
+    TQLDisplayLayout(const TQLDisplayLayout& other) = default;
+    TQLDisplayLayout(TQLDisplayLayout&& other) = default;
+    ~TQLDisplayLayout() = default;
+
+    TQLDisplayLayout& operator=(const TQLDisplayLayout& other) = default;
+    TQLDisplayLayout& operator=(TQLDisplayLayout&& other) = default;
+
+    bool operator==(const TQLDisplayLayout& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLDisplayLayout& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLDisplayLayout& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLDisplayLayout& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLDisplayLayout& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLDisplayLayout& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayLayout& value);
+
+    void swap(TQLDisplayLayout& other) noexcept
+    {
+        using std::swap;
+        swap(width, other.width);
+        swap(height, other.height);
+    }
+
+    friend void swap(TQLDisplayLayout& value1, TQLDisplayLayout& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayLayout& value)
+{
+    stream << "TQLDisplayLayout(";
+    stream << "width="; stream << value.width;
+    stream << ",height="; stream << value.height;
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLDisplayLayout>
+{
+    typedef tql::TQLDisplayLayout argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLDisplayAxis
+{
+    std::string column;
+    ::tql::TQLDisplayAxisScale scale;
+
+    size_t fbe_type() const noexcept { return 13; }
+
+    TQLDisplayAxis()
+        : column()
+        , scale()
+    {}
+    TQLDisplayAxis(const std::string& arg_column, const ::tql::TQLDisplayAxisScale& arg_scale)
+        : column(arg_column)
+        , scale(arg_scale)
+    {}
+    TQLDisplayAxis(const TQLDisplayAxis& other) = default;
+    TQLDisplayAxis(TQLDisplayAxis&& other) = default;
+    ~TQLDisplayAxis() = default;
+
+    TQLDisplayAxis& operator=(const TQLDisplayAxis& other) = default;
+    TQLDisplayAxis& operator=(TQLDisplayAxis&& other) = default;
+
+    bool operator==(const TQLDisplayAxis& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLDisplayAxis& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLDisplayAxis& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLDisplayAxis& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLDisplayAxis& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLDisplayAxis& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayAxis& value);
+
+    void swap(TQLDisplayAxis& other) noexcept
+    {
+        using std::swap;
+        swap(column, other.column);
+        swap(scale, other.scale);
+    }
+
+    friend void swap(TQLDisplayAxis& value1, TQLDisplayAxis& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayAxis& value)
+{
+    stream << "TQLDisplayAxis(";
+    stream << "column="; stream << "\"" << value.column << "\"";
+    stream << ",scale="; stream << value.scale;
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLDisplayAxis>
+{
+    typedef tql::TQLDisplayAxis argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLDisplayAxes
+{
+    ::tql::TQLDisplayAxis x;
+    ::tql::TQLDisplayAxis y;
+
+    size_t fbe_type() const noexcept { return 14; }
+
+    TQLDisplayAxes()
+        : x()
+        , y()
+    {}
+    TQLDisplayAxes(const ::tql::TQLDisplayAxis& arg_x, const ::tql::TQLDisplayAxis& arg_y)
+        : x(arg_x)
+        , y(arg_y)
+    {}
+    TQLDisplayAxes(const TQLDisplayAxes& other) = default;
+    TQLDisplayAxes(TQLDisplayAxes&& other) = default;
+    ~TQLDisplayAxes() = default;
+
+    TQLDisplayAxes& operator=(const TQLDisplayAxes& other) = default;
+    TQLDisplayAxes& operator=(TQLDisplayAxes&& other) = default;
+
+    bool operator==(const TQLDisplayAxes& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLDisplayAxes& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLDisplayAxes& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLDisplayAxes& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLDisplayAxes& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLDisplayAxes& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayAxes& value);
+
+    void swap(TQLDisplayAxes& other) noexcept
+    {
+        using std::swap;
+        swap(x, other.x);
+        swap(y, other.y);
+    }
+
+    friend void swap(TQLDisplayAxes& value1, TQLDisplayAxes& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayAxes& value)
+{
+    stream << "TQLDisplayAxes(";
+    stream << "x="; stream << value.x;
+    stream << ",y="; stream << value.y;
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLDisplayAxes>
+{
+    typedef tql::TQLDisplayAxes argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std
+
+namespace tql {
+
+struct TQLDisplayStatement
+{
+    std::string display_name;
+    ::tql::TQLDisplayType display_type;
+    uint16_t display_type_flags;
+    ::tql::TQLDisplayLayout layout;
+    ::tql::TQLDisplayColor color;
+    ::tql::TQLDisplayAxes axes;
+
+    size_t fbe_type() const noexcept { return 15; }
+
+    TQLDisplayStatement()
+        : display_name()
+        , display_type()
+        , display_type_flags((uint16_t)0u)
+        , layout()
+        , color()
+        , axes()
+    {}
+    TQLDisplayStatement(const std::string& arg_display_name, const ::tql::TQLDisplayType& arg_display_type, uint16_t arg_display_type_flags, const ::tql::TQLDisplayLayout& arg_layout, const ::tql::TQLDisplayColor& arg_color, const ::tql::TQLDisplayAxes& arg_axes)
+        : display_name(arg_display_name)
+        , display_type(arg_display_type)
+        , display_type_flags(arg_display_type_flags)
+        , layout(arg_layout)
+        , color(arg_color)
+        , axes(arg_axes)
+    {}
+    TQLDisplayStatement(const TQLDisplayStatement& other) = default;
+    TQLDisplayStatement(TQLDisplayStatement&& other) = default;
+    ~TQLDisplayStatement() = default;
+
+    TQLDisplayStatement& operator=(const TQLDisplayStatement& other) = default;
+    TQLDisplayStatement& operator=(TQLDisplayStatement&& other) = default;
+
+    bool operator==(const TQLDisplayStatement& other) const noexcept
+    {
+        return (
+            true
+            );
+    }
+    bool operator!=(const TQLDisplayStatement& other) const noexcept { return !operator==(other); }
+    bool operator<(const TQLDisplayStatement& other) const noexcept
+    {
+        return false;
+    }
+    bool operator<=(const TQLDisplayStatement& other) const noexcept { return operator<(other) || operator==(other); }
+    bool operator>(const TQLDisplayStatement& other) const noexcept { return !operator<=(other); }
+    bool operator>=(const TQLDisplayStatement& other) const noexcept { return !operator<(other); }
+
+    std::string string() const
+    {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    template <class TOutputStream>
+    friend TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayStatement& value);
+
+    void swap(TQLDisplayStatement& other) noexcept
+    {
+        using std::swap;
+        swap(display_name, other.display_name);
+        swap(display_type, other.display_type);
+        swap(display_type_flags, other.display_type_flags);
+        swap(layout, other.layout);
+        swap(color, other.color);
+        swap(axes, other.axes);
+    }
+
+    friend void swap(TQLDisplayStatement& value1, TQLDisplayStatement& value2) noexcept
+    {
+        value1.swap(value2);
+    }
+};
+
+template <class TOutputStream>
+inline TOutputStream& operator<<(TOutputStream& stream, const TQLDisplayStatement& value)
+{
+    stream << "TQLDisplayStatement(";
+    stream << "display_name="; stream << "\"" << value.display_name << "\"";
+    stream << ",display_type="; stream << value.display_type;
+    stream << ",display_type_flags="; stream << value.display_type_flags;
+    stream << ",layout="; stream << value.layout;
+    stream << ",color="; stream << value.color;
+    stream << ",axes="; stream << value.axes;
+    stream << ")";
+    return stream;
+}
+
+} // namespace tql
+
+namespace std {
+
+template<>
+struct hash<tql::TQLDisplayStatement>
+{
+    typedef tql::TQLDisplayStatement argument_type;
+    typedef size_t result_type;
+
+    result_type operator () (const argument_type& value) const
+    {
+        result_type result = 17;
+        return result;
+    }
+};
+
+} // namespace std

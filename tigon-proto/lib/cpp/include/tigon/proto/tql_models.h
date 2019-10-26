@@ -26,3 +26,4647 @@ public:
 };
 
 } // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLHTTPMethod field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLHTTPMethod> : public FieldModelBase<TBuffer, ::tql::TQLHTTPMethod, uint8_t>
+{
+public:
+    using FieldModelBase<TBuffer, ::tql::TQLHTTPMethod, uint8_t>::FieldModelBase;
+};
+
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayType field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayType> : public FieldModelBase<TBuffer, ::tql::TQLDisplayType, uint8_t>
+{
+public:
+    using FieldModelBase<TBuffer, ::tql::TQLDisplayType, uint8_t>::FieldModelBase;
+};
+
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayLengthUnit field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayLengthUnit> : public FieldModelBase<TBuffer, ::tql::TQLDisplayLengthUnit, uint8_t>
+{
+public:
+    using FieldModelBase<TBuffer, ::tql::TQLDisplayLengthUnit, uint8_t>::FieldModelBase;
+};
+
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayAxisScale field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayAxisScale> : public FieldModelBase<TBuffer, ::tql::TQLDisplayAxisScale, uint8_t>
+{
+public:
+    using FieldModelBase<TBuffer, ::tql::TQLDisplayAxisScale, uint8_t>::FieldModelBase;
+};
+
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayTypeFlag field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayTypeFlag> : public FieldModelBase<TBuffer, ::tql::TQLDisplayTypeFlag, uint16_t>
+{
+public:
+    using FieldModelBase<TBuffer, ::tql::TQLDisplayTypeFlag, uint16_t>::FieldModelBase;
+};
+
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLQueryStatement field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLQueryStatement>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , query_text(buffer, 4 + 4)
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + query_text.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + query_text.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 1; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + query_text.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!query_text.verify())
+            return false;
+        fbe_current_size += query_text.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLQueryStatement& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLQueryStatement& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + query_text.fbe_size()) <= fbe_struct_size)
+            query_text.get(fbe_value.query_text);
+        else
+            fbe_value.query_text = "";
+        fbe_current_size += query_text.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLQueryStatement& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLQueryStatement& fbe_value) noexcept
+    {
+        query_text.set(fbe_value.query_text);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, std::string> query_text;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLQueryStatement model
+template <class TBuffer>
+class TQLQueryStatementModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLQueryStatementModel() : model(this->buffer(), 4) {}
+    TQLQueryStatementModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLQueryStatement>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLQueryStatement& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLQueryStatement& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLQueryStatement> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLParameterDeclaration field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLParameterDeclaration>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , parameter_name(buffer, 4 + 4)
+        , parameter_type(buffer, parameter_name.fbe_offset() + parameter_name.fbe_size())
+        , default_value_i64(buffer, parameter_type.fbe_offset() + parameter_type.fbe_size())
+        , default_value_f64(buffer, default_value_i64.fbe_offset() + default_value_i64.fbe_size())
+        , default_value_str(buffer, default_value_f64.fbe_offset() + default_value_f64.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + parameter_name.fbe_size()
+            + parameter_type.fbe_size()
+            + default_value_i64.fbe_size()
+            + default_value_f64.fbe_size()
+            + default_value_str.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + parameter_name.fbe_extra()
+            + parameter_type.fbe_extra()
+            + default_value_i64.fbe_extra()
+            + default_value_f64.fbe_extra()
+            + default_value_str.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 2; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + parameter_name.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!parameter_name.verify())
+            return false;
+        fbe_current_size += parameter_name.fbe_size();
+
+        if ((fbe_current_size + parameter_type.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!parameter_type.verify())
+            return false;
+        fbe_current_size += parameter_type.fbe_size();
+
+        if ((fbe_current_size + default_value_i64.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!default_value_i64.verify())
+            return false;
+        fbe_current_size += default_value_i64.fbe_size();
+
+        if ((fbe_current_size + default_value_f64.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!default_value_f64.verify())
+            return false;
+        fbe_current_size += default_value_f64.fbe_size();
+
+        if ((fbe_current_size + default_value_str.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!default_value_str.verify())
+            return false;
+        fbe_current_size += default_value_str.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLParameterDeclaration& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLParameterDeclaration& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + parameter_name.fbe_size()) <= fbe_struct_size)
+            parameter_name.get(fbe_value.parameter_name);
+        else
+            fbe_value.parameter_name = "";
+        fbe_current_size += parameter_name.fbe_size();
+
+        if ((fbe_current_size + parameter_type.fbe_size()) <= fbe_struct_size)
+            parameter_type.get(fbe_value.parameter_type);
+        else
+            fbe_value.parameter_type = ::tql::TQLType();
+        fbe_current_size += parameter_type.fbe_size();
+
+        if ((fbe_current_size + default_value_i64.fbe_size()) <= fbe_struct_size)
+            default_value_i64.get(fbe_value.default_value_i64);
+        else
+            fbe_value.default_value_i64 = (int64_t)0ll;
+        fbe_current_size += default_value_i64.fbe_size();
+
+        if ((fbe_current_size + default_value_f64.fbe_size()) <= fbe_struct_size)
+            default_value_f64.get(fbe_value.default_value_f64);
+        else
+            fbe_value.default_value_f64 = ::tql::float64();
+        fbe_current_size += default_value_f64.fbe_size();
+
+        if ((fbe_current_size + default_value_str.fbe_size()) <= fbe_struct_size)
+            default_value_str.get(fbe_value.default_value_str);
+        else
+            fbe_value.default_value_str = "";
+        fbe_current_size += default_value_str.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLParameterDeclaration& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLParameterDeclaration& fbe_value) noexcept
+    {
+        parameter_name.set(fbe_value.parameter_name);
+        parameter_type.set(fbe_value.parameter_type);
+        default_value_i64.set(fbe_value.default_value_i64);
+        default_value_f64.set(fbe_value.default_value_f64);
+        default_value_str.set(fbe_value.default_value_str);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, std::string> parameter_name;
+    FieldModel<TBuffer, ::tql::TQLType> parameter_type;
+    FieldModel<TBuffer, int64_t> default_value_i64;
+    FieldModel<TBuffer, ::tql::float64> default_value_f64;
+    FieldModel<TBuffer, std::string> default_value_str;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLParameterDeclaration model
+template <class TBuffer>
+class TQLParameterDeclarationModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLParameterDeclarationModel() : model(this->buffer(), 4) {}
+    TQLParameterDeclarationModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLParameterDeclaration>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLParameterDeclaration& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLParameterDeclaration& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLParameterDeclaration> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLHTTPLoadStatement field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLHTTPLoadStatement>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , data_name(buffer, 4 + 4)
+        , http_url(buffer, data_name.fbe_offset() + data_name.fbe_size())
+        , http_method(buffer, http_url.fbe_offset() + http_url.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + data_name.fbe_size()
+            + http_url.fbe_size()
+            + http_method.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + data_name.fbe_extra()
+            + http_url.fbe_extra()
+            + http_method.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 3; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + data_name.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!data_name.verify())
+            return false;
+        fbe_current_size += data_name.fbe_size();
+
+        if ((fbe_current_size + http_url.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!http_url.verify())
+            return false;
+        fbe_current_size += http_url.fbe_size();
+
+        if ((fbe_current_size + http_method.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!http_method.verify())
+            return false;
+        fbe_current_size += http_method.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLHTTPLoadStatement& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLHTTPLoadStatement& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + data_name.fbe_size()) <= fbe_struct_size)
+            data_name.get(fbe_value.data_name);
+        else
+            fbe_value.data_name = "";
+        fbe_current_size += data_name.fbe_size();
+
+        if ((fbe_current_size + http_url.fbe_size()) <= fbe_struct_size)
+            http_url.get(fbe_value.http_url);
+        else
+            fbe_value.http_url = "";
+        fbe_current_size += http_url.fbe_size();
+
+        if ((fbe_current_size + http_method.fbe_size()) <= fbe_struct_size)
+            http_method.get(fbe_value.http_method);
+        else
+            fbe_value.http_method = ::tql::TQLHTTPMethod();
+        fbe_current_size += http_method.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLHTTPLoadStatement& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLHTTPLoadStatement& fbe_value) noexcept
+    {
+        data_name.set(fbe_value.data_name);
+        http_url.set(fbe_value.http_url);
+        http_method.set(fbe_value.http_method);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, std::string> data_name;
+    FieldModel<TBuffer, std::string> http_url;
+    FieldModel<TBuffer, ::tql::TQLHTTPMethod> http_method;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLHTTPLoadStatement model
+template <class TBuffer>
+class TQLHTTPLoadStatementModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLHTTPLoadStatementModel() : model(this->buffer(), 4) {}
+    TQLHTTPLoadStatementModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLHTTPLoadStatement>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLHTTPLoadStatement& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLHTTPLoadStatement& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLHTTPLoadStatement> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLFileLoadStatement field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLFileLoadStatement>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , data_name(buffer, 4 + 4)
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + data_name.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + data_name.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 4; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + data_name.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!data_name.verify())
+            return false;
+        fbe_current_size += data_name.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLFileLoadStatement& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLFileLoadStatement& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + data_name.fbe_size()) <= fbe_struct_size)
+            data_name.get(fbe_value.data_name);
+        else
+            fbe_value.data_name = "";
+        fbe_current_size += data_name.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLFileLoadStatement& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLFileLoadStatement& fbe_value) noexcept
+    {
+        data_name.set(fbe_value.data_name);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, std::string> data_name;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLFileLoadStatement model
+template <class TBuffer>
+class TQLFileLoadStatementModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLFileLoadStatementModel() : model(this->buffer(), 4) {}
+    TQLFileLoadStatementModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLFileLoadStatement>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLFileLoadStatement& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLFileLoadStatement& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLFileLoadStatement> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLJSONExtractStatement field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLJSONExtractStatement>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , data_name(buffer, 4 + 4)
+        , extract_name(buffer, data_name.fbe_offset() + data_name.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + data_name.fbe_size()
+            + extract_name.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + data_name.fbe_extra()
+            + extract_name.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 5; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + data_name.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!data_name.verify())
+            return false;
+        fbe_current_size += data_name.fbe_size();
+
+        if ((fbe_current_size + extract_name.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!extract_name.verify())
+            return false;
+        fbe_current_size += extract_name.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLJSONExtractStatement& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLJSONExtractStatement& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + data_name.fbe_size()) <= fbe_struct_size)
+            data_name.get(fbe_value.data_name);
+        else
+            fbe_value.data_name = "";
+        fbe_current_size += data_name.fbe_size();
+
+        if ((fbe_current_size + extract_name.fbe_size()) <= fbe_struct_size)
+            extract_name.get(fbe_value.extract_name);
+        else
+            fbe_value.extract_name = "";
+        fbe_current_size += extract_name.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLJSONExtractStatement& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLJSONExtractStatement& fbe_value) noexcept
+    {
+        data_name.set(fbe_value.data_name);
+        extract_name.set(fbe_value.extract_name);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, std::string> data_name;
+    FieldModel<TBuffer, std::string> extract_name;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLJSONExtractStatement model
+template <class TBuffer>
+class TQLJSONExtractStatementModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLJSONExtractStatementModel() : model(this->buffer(), 4) {}
+    TQLJSONExtractStatementModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLJSONExtractStatement>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLJSONExtractStatement& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLJSONExtractStatement& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLJSONExtractStatement> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLCSVColumn field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLCSVColumn>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , column_name(buffer, 4 + 4)
+        , column_type(buffer, column_name.fbe_offset() + column_name.fbe_size())
+        , source_name(buffer, column_type.fbe_offset() + column_type.fbe_size())
+        , source_index(buffer, source_name.fbe_offset() + source_name.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + column_name.fbe_size()
+            + column_type.fbe_size()
+            + source_name.fbe_size()
+            + source_index.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + column_name.fbe_extra()
+            + column_type.fbe_extra()
+            + source_name.fbe_extra()
+            + source_index.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 6; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + column_name.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!column_name.verify())
+            return false;
+        fbe_current_size += column_name.fbe_size();
+
+        if ((fbe_current_size + column_type.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!column_type.verify())
+            return false;
+        fbe_current_size += column_type.fbe_size();
+
+        if ((fbe_current_size + source_name.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!source_name.verify())
+            return false;
+        fbe_current_size += source_name.fbe_size();
+
+        if ((fbe_current_size + source_index.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!source_index.verify())
+            return false;
+        fbe_current_size += source_index.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLCSVColumn& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLCSVColumn& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + column_name.fbe_size()) <= fbe_struct_size)
+            column_name.get(fbe_value.column_name);
+        else
+            fbe_value.column_name = "";
+        fbe_current_size += column_name.fbe_size();
+
+        if ((fbe_current_size + column_type.fbe_size()) <= fbe_struct_size)
+            column_type.get(fbe_value.column_type);
+        else
+            fbe_value.column_type = ::tql::TQLType();
+        fbe_current_size += column_type.fbe_size();
+
+        if ((fbe_current_size + source_name.fbe_size()) <= fbe_struct_size)
+            source_name.get(fbe_value.source_name);
+        else
+            fbe_value.source_name = "";
+        fbe_current_size += source_name.fbe_size();
+
+        if ((fbe_current_size + source_index.fbe_size()) <= fbe_struct_size)
+            source_index.get(fbe_value.source_index);
+        else
+            fbe_value.source_index = (int32_t)0ll;
+        fbe_current_size += source_index.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLCSVColumn& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLCSVColumn& fbe_value) noexcept
+    {
+        column_name.set(fbe_value.column_name);
+        column_type.set(fbe_value.column_type);
+        source_name.set(fbe_value.source_name);
+        source_index.set(fbe_value.source_index);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, std::string> column_name;
+    FieldModel<TBuffer, ::tql::TQLType> column_type;
+    FieldModel<TBuffer, std::string> source_name;
+    FieldModel<TBuffer, int32_t> source_index;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLCSVColumn model
+template <class TBuffer>
+class TQLCSVColumnModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLCSVColumnModel() : model(this->buffer(), 4) {}
+    TQLCSVColumnModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLCSVColumn>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLCSVColumn& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLCSVColumn& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLCSVColumn> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLCSVExtractStatement field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLCSVExtractStatement>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , data_name(buffer, 4 + 4)
+        , extract_name(buffer, data_name.fbe_offset() + data_name.fbe_size())
+        , columns(buffer, extract_name.fbe_offset() + extract_name.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + data_name.fbe_size()
+            + extract_name.fbe_size()
+            + columns.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + data_name.fbe_extra()
+            + extract_name.fbe_extra()
+            + columns.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 7; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + data_name.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!data_name.verify())
+            return false;
+        fbe_current_size += data_name.fbe_size();
+
+        if ((fbe_current_size + extract_name.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!extract_name.verify())
+            return false;
+        fbe_current_size += extract_name.fbe_size();
+
+        if ((fbe_current_size + columns.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!columns.verify())
+            return false;
+        fbe_current_size += columns.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLCSVExtractStatement& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLCSVExtractStatement& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + data_name.fbe_size()) <= fbe_struct_size)
+            data_name.get(fbe_value.data_name);
+        else
+            fbe_value.data_name = "";
+        fbe_current_size += data_name.fbe_size();
+
+        if ((fbe_current_size + extract_name.fbe_size()) <= fbe_struct_size)
+            extract_name.get(fbe_value.extract_name);
+        else
+            fbe_value.extract_name = "";
+        fbe_current_size += extract_name.fbe_size();
+
+        if ((fbe_current_size + columns.fbe_size()) <= fbe_struct_size)
+            columns.get(fbe_value.columns);
+        else
+            fbe_value.columns.clear();
+        fbe_current_size += columns.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLCSVExtractStatement& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLCSVExtractStatement& fbe_value) noexcept
+    {
+        data_name.set(fbe_value.data_name);
+        extract_name.set(fbe_value.extract_name);
+        columns.set(fbe_value.columns);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, std::string> data_name;
+    FieldModel<TBuffer, std::string> extract_name;
+    FieldModelVector<TBuffer, ::tql::TQLCSVColumn> columns;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLCSVExtractStatement model
+template <class TBuffer>
+class TQLCSVExtractStatementModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLCSVExtractStatementModel() : model(this->buffer(), 4) {}
+    TQLCSVExtractStatementModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLCSVExtractStatement>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLCSVExtractStatement& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLCSVExtractStatement& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLCSVExtractStatement> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayColor field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayColor>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , red(buffer, 4 + 4)
+        , green(buffer, red.fbe_offset() + red.fbe_size())
+        , blue(buffer, green.fbe_offset() + green.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + red.fbe_size()
+            + green.fbe_size()
+            + blue.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + red.fbe_extra()
+            + green.fbe_extra()
+            + blue.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 8; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + red.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!red.verify())
+            return false;
+        fbe_current_size += red.fbe_size();
+
+        if ((fbe_current_size + green.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!green.verify())
+            return false;
+        fbe_current_size += green.fbe_size();
+
+        if ((fbe_current_size + blue.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!blue.verify())
+            return false;
+        fbe_current_size += blue.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLDisplayColor& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLDisplayColor& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + red.fbe_size()) <= fbe_struct_size)
+            red.get(fbe_value.red);
+        else
+            fbe_value.red = (uint8_t)0u;
+        fbe_current_size += red.fbe_size();
+
+        if ((fbe_current_size + green.fbe_size()) <= fbe_struct_size)
+            green.get(fbe_value.green);
+        else
+            fbe_value.green = (uint8_t)0u;
+        fbe_current_size += green.fbe_size();
+
+        if ((fbe_current_size + blue.fbe_size()) <= fbe_struct_size)
+            blue.get(fbe_value.blue);
+        else
+            fbe_value.blue = (uint8_t)0u;
+        fbe_current_size += blue.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLDisplayColor& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLDisplayColor& fbe_value) noexcept
+    {
+        red.set(fbe_value.red);
+        green.set(fbe_value.green);
+        blue.set(fbe_value.blue);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, uint8_t> red;
+    FieldModel<TBuffer, uint8_t> green;
+    FieldModel<TBuffer, uint8_t> blue;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLDisplayColor model
+template <class TBuffer>
+class TQLDisplayColorModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLDisplayColorModel() : model(this->buffer(), 4) {}
+    TQLDisplayColorModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLDisplayColor>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLDisplayColor& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLDisplayColor& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayColor> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayColorPalette field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayColorPalette>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , color_target(buffer, 4 + 4)
+        , palette(buffer, color_target.fbe_offset() + color_target.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + color_target.fbe_size()
+            + palette.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + color_target.fbe_extra()
+            + palette.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 9; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + color_target.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!color_target.verify())
+            return false;
+        fbe_current_size += color_target.fbe_size();
+
+        if ((fbe_current_size + palette.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!palette.verify())
+            return false;
+        fbe_current_size += palette.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLDisplayColorPalette& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLDisplayColorPalette& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + color_target.fbe_size()) <= fbe_struct_size)
+            color_target.get(fbe_value.color_target);
+        else
+            fbe_value.color_target = "";
+        fbe_current_size += color_target.fbe_size();
+
+        if ((fbe_current_size + palette.fbe_size()) <= fbe_struct_size)
+            palette.get(fbe_value.palette);
+        else
+            fbe_value.palette.clear();
+        fbe_current_size += palette.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLDisplayColorPalette& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLDisplayColorPalette& fbe_value) noexcept
+    {
+        color_target.set(fbe_value.color_target);
+        palette.set(fbe_value.palette);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, std::string> color_target;
+    FieldModelVector<TBuffer, ::tql::TQLDisplayColor> palette;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLDisplayColorPalette model
+template <class TBuffer>
+class TQLDisplayColorPaletteModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLDisplayColorPaletteModel() : model(this->buffer(), 4) {}
+    TQLDisplayColorPaletteModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLDisplayColorPalette>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLDisplayColorPalette& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLDisplayColorPalette& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayColorPalette> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayLengthValue field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayLengthValue>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , value(buffer, 4 + 4)
+        , unit(buffer, value.fbe_offset() + value.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + value.fbe_size()
+            + unit.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + value.fbe_extra()
+            + unit.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 10; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + value.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!value.verify())
+            return false;
+        fbe_current_size += value.fbe_size();
+
+        if ((fbe_current_size + unit.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!unit.verify())
+            return false;
+        fbe_current_size += unit.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLDisplayLengthValue& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLDisplayLengthValue& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + value.fbe_size()) <= fbe_struct_size)
+            value.get(fbe_value.value);
+        else
+            fbe_value.value = ::tql::float64();
+        fbe_current_size += value.fbe_size();
+
+        if ((fbe_current_size + unit.fbe_size()) <= fbe_struct_size)
+            unit.get(fbe_value.unit);
+        else
+            fbe_value.unit = ::tql::TQLDisplayLengthUnit();
+        fbe_current_size += unit.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLDisplayLengthValue& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLDisplayLengthValue& fbe_value) noexcept
+    {
+        value.set(fbe_value.value);
+        unit.set(fbe_value.unit);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, ::tql::float64> value;
+    FieldModel<TBuffer, ::tql::TQLDisplayLengthUnit> unit;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLDisplayLengthValue model
+template <class TBuffer>
+class TQLDisplayLengthValueModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLDisplayLengthValueModel() : model(this->buffer(), 4) {}
+    TQLDisplayLengthValueModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLDisplayLengthValue>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLDisplayLengthValue& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLDisplayLengthValue& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayLengthValue> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayLength field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayLength>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , small(buffer, 4 + 4)
+        , medium(buffer, small.fbe_offset() + small.fbe_size())
+        , large(buffer, medium.fbe_offset() + medium.fbe_size())
+        , extra_large(buffer, large.fbe_offset() + large.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + small.fbe_size()
+            + medium.fbe_size()
+            + large.fbe_size()
+            + extra_large.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + small.fbe_extra()
+            + medium.fbe_extra()
+            + large.fbe_extra()
+            + extra_large.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 11; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + small.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!small.verify())
+            return false;
+        fbe_current_size += small.fbe_size();
+
+        if ((fbe_current_size + medium.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!medium.verify())
+            return false;
+        fbe_current_size += medium.fbe_size();
+
+        if ((fbe_current_size + large.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!large.verify())
+            return false;
+        fbe_current_size += large.fbe_size();
+
+        if ((fbe_current_size + extra_large.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!extra_large.verify())
+            return false;
+        fbe_current_size += extra_large.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLDisplayLength& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLDisplayLength& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + small.fbe_size()) <= fbe_struct_size)
+            small.get(fbe_value.small);
+        else
+            fbe_value.small = ::tql::TQLDisplayLengthValue();
+        fbe_current_size += small.fbe_size();
+
+        if ((fbe_current_size + medium.fbe_size()) <= fbe_struct_size)
+            medium.get(fbe_value.medium);
+        else
+            fbe_value.medium = ::tql::TQLDisplayLengthValue();
+        fbe_current_size += medium.fbe_size();
+
+        if ((fbe_current_size + large.fbe_size()) <= fbe_struct_size)
+            large.get(fbe_value.large);
+        else
+            fbe_value.large = ::tql::TQLDisplayLengthValue();
+        fbe_current_size += large.fbe_size();
+
+        if ((fbe_current_size + extra_large.fbe_size()) <= fbe_struct_size)
+            extra_large.get(fbe_value.extra_large);
+        else
+            fbe_value.extra_large = ::tql::TQLDisplayLengthValue();
+        fbe_current_size += extra_large.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLDisplayLength& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLDisplayLength& fbe_value) noexcept
+    {
+        small.set(fbe_value.small);
+        medium.set(fbe_value.medium);
+        large.set(fbe_value.large);
+        extra_large.set(fbe_value.extra_large);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayLengthValue> small;
+    FieldModel<TBuffer, ::tql::TQLDisplayLengthValue> medium;
+    FieldModel<TBuffer, ::tql::TQLDisplayLengthValue> large;
+    FieldModel<TBuffer, ::tql::TQLDisplayLengthValue> extra_large;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLDisplayLength model
+template <class TBuffer>
+class TQLDisplayLengthModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLDisplayLengthModel() : model(this->buffer(), 4) {}
+    TQLDisplayLengthModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLDisplayLength>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLDisplayLength& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLDisplayLength& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayLength> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayLayout field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayLayout>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , width(buffer, 4 + 4)
+        , height(buffer, width.fbe_offset() + width.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + width.fbe_size()
+            + height.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + width.fbe_extra()
+            + height.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 12; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + width.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!width.verify())
+            return false;
+        fbe_current_size += width.fbe_size();
+
+        if ((fbe_current_size + height.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!height.verify())
+            return false;
+        fbe_current_size += height.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLDisplayLayout& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLDisplayLayout& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + width.fbe_size()) <= fbe_struct_size)
+            width.get(fbe_value.width);
+        else
+            fbe_value.width = ::tql::TQLDisplayLength();
+        fbe_current_size += width.fbe_size();
+
+        if ((fbe_current_size + height.fbe_size()) <= fbe_struct_size)
+            height.get(fbe_value.height);
+        else
+            fbe_value.height = ::tql::TQLDisplayLength();
+        fbe_current_size += height.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLDisplayLayout& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLDisplayLayout& fbe_value) noexcept
+    {
+        width.set(fbe_value.width);
+        height.set(fbe_value.height);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayLength> width;
+    FieldModel<TBuffer, ::tql::TQLDisplayLength> height;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLDisplayLayout model
+template <class TBuffer>
+class TQLDisplayLayoutModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLDisplayLayoutModel() : model(this->buffer(), 4) {}
+    TQLDisplayLayoutModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLDisplayLayout>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLDisplayLayout& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLDisplayLayout& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayLayout> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayAxis field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayAxis>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , column(buffer, 4 + 4)
+        , scale(buffer, column.fbe_offset() + column.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + column.fbe_size()
+            + scale.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + column.fbe_extra()
+            + scale.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 13; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + column.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!column.verify())
+            return false;
+        fbe_current_size += column.fbe_size();
+
+        if ((fbe_current_size + scale.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!scale.verify())
+            return false;
+        fbe_current_size += scale.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLDisplayAxis& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLDisplayAxis& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + column.fbe_size()) <= fbe_struct_size)
+            column.get(fbe_value.column);
+        else
+            fbe_value.column = "";
+        fbe_current_size += column.fbe_size();
+
+        if ((fbe_current_size + scale.fbe_size()) <= fbe_struct_size)
+            scale.get(fbe_value.scale);
+        else
+            fbe_value.scale = ::tql::TQLDisplayAxisScale();
+        fbe_current_size += scale.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLDisplayAxis& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLDisplayAxis& fbe_value) noexcept
+    {
+        column.set(fbe_value.column);
+        scale.set(fbe_value.scale);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, std::string> column;
+    FieldModel<TBuffer, ::tql::TQLDisplayAxisScale> scale;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLDisplayAxis model
+template <class TBuffer>
+class TQLDisplayAxisModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLDisplayAxisModel() : model(this->buffer(), 4) {}
+    TQLDisplayAxisModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLDisplayAxis>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLDisplayAxis& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLDisplayAxis& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayAxis> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayAxes field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayAxes>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , x(buffer, 4 + 4)
+        , y(buffer, x.fbe_offset() + x.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + x.fbe_size()
+            + y.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + x.fbe_extra()
+            + y.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 14; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + x.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!x.verify())
+            return false;
+        fbe_current_size += x.fbe_size();
+
+        if ((fbe_current_size + y.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!y.verify())
+            return false;
+        fbe_current_size += y.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLDisplayAxes& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLDisplayAxes& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + x.fbe_size()) <= fbe_struct_size)
+            x.get(fbe_value.x);
+        else
+            fbe_value.x = ::tql::TQLDisplayAxis();
+        fbe_current_size += x.fbe_size();
+
+        if ((fbe_current_size + y.fbe_size()) <= fbe_struct_size)
+            y.get(fbe_value.y);
+        else
+            fbe_value.y = ::tql::TQLDisplayAxis();
+        fbe_current_size += y.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLDisplayAxes& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLDisplayAxes& fbe_value) noexcept
+    {
+        x.set(fbe_value.x);
+        y.set(fbe_value.y);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayAxis> x;
+    FieldModel<TBuffer, ::tql::TQLDisplayAxis> y;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLDisplayAxes model
+template <class TBuffer>
+class TQLDisplayAxesModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLDisplayAxesModel() : model(this->buffer(), 4) {}
+    TQLDisplayAxesModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLDisplayAxes>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLDisplayAxes& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLDisplayAxes& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayAxes> model;
+};
+
+} // namespace tql
+} // namespace FBE
+
+namespace FBE {
+
+// Fast Binary Encoding ::tql::TQLDisplayStatement field model
+template <class TBuffer>
+class FieldModel<TBuffer, ::tql::TQLDisplayStatement>
+{
+public:
+    FieldModel(TBuffer& buffer, size_t offset) noexcept : _buffer(buffer), _offset(offset)
+        , display_name(buffer, 4 + 4)
+        , display_type(buffer, display_name.fbe_offset() + display_name.fbe_size())
+        , display_type_flags(buffer, display_type.fbe_offset() + display_type.fbe_size())
+        , layout(buffer, display_type_flags.fbe_offset() + display_type_flags.fbe_size())
+        , color(buffer, layout.fbe_offset() + layout.fbe_size())
+        , axes(buffer, color.fbe_offset() + color.fbe_size())
+    {}
+
+    // Get the field offset
+    size_t fbe_offset() const noexcept { return _offset; }
+    // Get the field size
+    size_t fbe_size() const noexcept { return 4; }
+    // Get the field body size
+    size_t fbe_body() const noexcept
+    {
+        size_t fbe_result = 4 + 4
+            + display_name.fbe_size()
+            + display_type.fbe_size()
+            + display_type_flags.fbe_size()
+            + layout.fbe_size()
+            + color.fbe_size()
+            + axes.fbe_size()
+            ;
+        return fbe_result;
+    }
+    // Get the field extra size
+    size_t fbe_extra() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4) > _buffer.size()))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+
+        size_t fbe_result = fbe_body()
+            + display_name.fbe_extra()
+            + display_type.fbe_extra()
+            + display_type_flags.fbe_extra()
+            + layout.fbe_extra()
+            + color.fbe_extra()
+            + axes.fbe_extra()
+            ;
+
+        _buffer.unshift(fbe_struct_offset);
+
+        return fbe_result;
+    }
+    // Get the field type
+    static constexpr size_t fbe_type() noexcept { return 15; }
+
+    // Shift the current field offset
+    void fbe_shift(size_t size) noexcept { _offset += size; }
+    // Unshift the current field offset
+    void fbe_unshift(size_t size) noexcept { _offset -= size; }
+
+    // Check if the struct value is valid
+    bool verify(bool fbe_verify_type = true) const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return true;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return false;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        if (fbe_struct_size < (4 + 4))
+            return false;
+
+        uint32_t fbe_struct_type = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4));
+        if (fbe_verify_type && (fbe_struct_type != fbe_type()))
+            return false;
+
+        _buffer.shift(fbe_struct_offset);
+        bool fbe_result = verify_fields(fbe_struct_size);
+        _buffer.unshift(fbe_struct_offset);
+        return fbe_result;
+    }
+
+    // Check if the struct fields are valid
+    bool verify_fields(size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + display_name.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!display_name.verify())
+            return false;
+        fbe_current_size += display_name.fbe_size();
+
+        if ((fbe_current_size + display_type.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!display_type.verify())
+            return false;
+        fbe_current_size += display_type.fbe_size();
+
+        if ((fbe_current_size + display_type_flags.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!display_type_flags.verify())
+            return false;
+        fbe_current_size += display_type_flags.fbe_size();
+
+        if ((fbe_current_size + layout.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!layout.verify())
+            return false;
+        fbe_current_size += layout.fbe_size();
+
+        if ((fbe_current_size + color.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!color.verify())
+            return false;
+        fbe_current_size += color.fbe_size();
+
+        if ((fbe_current_size + axes.fbe_size()) > fbe_struct_size)
+            return true;
+        if (!axes.verify())
+            return false;
+        fbe_current_size += axes.fbe_size();
+
+        return true;
+    }
+
+    // Get the struct value (begin phase)
+    size_t get_begin() const noexcept
+    {
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_offset = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset()));
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + 4 + 4) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + 4 + 4) > _buffer.size()))
+            return 0;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset));
+        assert((fbe_struct_size >= (4 + 4)) && "Model is broken!");
+        if (fbe_struct_size < (4 + 4))
+            return 0;
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Get the struct value (end phase)
+    void get_end(size_t fbe_begin) const noexcept
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Get the struct value
+    void get(::tql::TQLDisplayStatement& fbe_value) const noexcept
+    {
+        size_t fbe_begin = get_begin();
+        if (fbe_begin == 0)
+            return;
+
+        uint32_t fbe_struct_size = *((const uint32_t*)(_buffer.data() + _buffer.offset()));
+        get_fields(fbe_value, fbe_struct_size);
+        get_end(fbe_begin);
+    }
+
+    // Get the struct fields values
+    void get_fields(::tql::TQLDisplayStatement& fbe_value, size_t fbe_struct_size) const noexcept
+    {
+        size_t fbe_current_size = 4 + 4;
+
+        if ((fbe_current_size + display_name.fbe_size()) <= fbe_struct_size)
+            display_name.get(fbe_value.display_name);
+        else
+            fbe_value.display_name = "";
+        fbe_current_size += display_name.fbe_size();
+
+        if ((fbe_current_size + display_type.fbe_size()) <= fbe_struct_size)
+            display_type.get(fbe_value.display_type);
+        else
+            fbe_value.display_type = ::tql::TQLDisplayType();
+        fbe_current_size += display_type.fbe_size();
+
+        if ((fbe_current_size + display_type_flags.fbe_size()) <= fbe_struct_size)
+            display_type_flags.get(fbe_value.display_type_flags);
+        else
+            fbe_value.display_type_flags = (uint16_t)0u;
+        fbe_current_size += display_type_flags.fbe_size();
+
+        if ((fbe_current_size + layout.fbe_size()) <= fbe_struct_size)
+            layout.get(fbe_value.layout);
+        else
+            fbe_value.layout = ::tql::TQLDisplayLayout();
+        fbe_current_size += layout.fbe_size();
+
+        if ((fbe_current_size + color.fbe_size()) <= fbe_struct_size)
+            color.get(fbe_value.color);
+        else
+            fbe_value.color = ::tql::TQLDisplayColor();
+        fbe_current_size += color.fbe_size();
+
+        if ((fbe_current_size + axes.fbe_size()) <= fbe_struct_size)
+            axes.get(fbe_value.axes);
+        else
+            fbe_value.axes = ::tql::TQLDisplayAxes();
+        fbe_current_size += axes.fbe_size();
+    }
+
+    // Set the struct value (begin phase)
+    size_t set_begin()
+    {
+        assert(((_buffer.offset() + fbe_offset() + fbe_size()) <= _buffer.size()) && "Model is broken!");
+        if ((_buffer.offset() + fbe_offset() + fbe_size()) > _buffer.size())
+            return 0;
+
+        uint32_t fbe_struct_size = (uint32_t)fbe_body();
+        uint32_t fbe_struct_offset = (uint32_t)(_buffer.allocate(fbe_struct_size) - _buffer.offset());
+        assert(((fbe_struct_offset > 0) && ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) <= _buffer.size())) && "Model is broken!");
+        if ((fbe_struct_offset == 0) || ((_buffer.offset() + fbe_struct_offset + fbe_struct_size) > _buffer.size()))
+            return 0;
+
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_offset())) = fbe_struct_offset;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset)) = fbe_struct_size;
+        *((uint32_t*)(_buffer.data() + _buffer.offset() + fbe_struct_offset + 4)) = (uint32_t)fbe_type();
+
+        _buffer.shift(fbe_struct_offset);
+        return fbe_struct_offset;
+    }
+
+    // Set the struct value (end phase)
+    void set_end(size_t fbe_begin)
+    {
+        _buffer.unshift(fbe_begin);
+    }
+
+    // Set the struct value
+    void set(const ::tql::TQLDisplayStatement& fbe_value) noexcept
+    {
+        size_t fbe_begin = set_begin();
+        if (fbe_begin == 0)
+            return;
+
+        set_fields(fbe_value);
+        set_end(fbe_begin);
+    }
+
+    // Set the struct fields values
+    void set_fields(const ::tql::TQLDisplayStatement& fbe_value) noexcept
+    {
+        display_name.set(fbe_value.display_name);
+        display_type.set(fbe_value.display_type);
+        display_type_flags.set(fbe_value.display_type_flags);
+        layout.set(fbe_value.layout);
+        color.set(fbe_value.color);
+        axes.set(fbe_value.axes);
+    }
+
+private:
+    TBuffer& _buffer;
+    size_t _offset;
+
+public:
+    FieldModel<TBuffer, std::string> display_name;
+    FieldModel<TBuffer, ::tql::TQLDisplayType> display_type;
+    FieldModel<TBuffer, uint16_t> display_type_flags;
+    FieldModel<TBuffer, ::tql::TQLDisplayLayout> layout;
+    FieldModel<TBuffer, ::tql::TQLDisplayColor> color;
+    FieldModel<TBuffer, ::tql::TQLDisplayAxes> axes;
+};
+
+} // namespace FBE
+
+namespace FBE {
+namespace tql {
+
+// Fast Binary Encoding TQLDisplayStatement model
+template <class TBuffer>
+class TQLDisplayStatementModel : public FBE::Model<TBuffer>
+{
+public:
+    TQLDisplayStatementModel() : model(this->buffer(), 4) {}
+    TQLDisplayStatementModel(const std::shared_ptr<TBuffer>& buffer) : FBE::Model<TBuffer>(buffer), model(this->buffer(), 4) {}
+
+    // Get the model size
+    size_t fbe_size() const noexcept { return model.fbe_size() + model.fbe_extra(); }
+    // Get the model type
+    static constexpr size_t fbe_type() noexcept { return FieldModel<TBuffer, ::tql::TQLDisplayStatement>::fbe_type(); }
+
+    // Check if the struct value is valid
+    bool verify()
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return false;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        if (fbe_full_size < model.fbe_size())
+            return false;
+
+        return model.verify();
+    }
+
+    // Create a new model (begin phase)
+    size_t create_begin()
+    {
+        size_t fbe_begin = this->buffer().allocate(4 + model.fbe_size());
+        return fbe_begin;
+    }
+
+    // Create a new model (end phase)
+    size_t create_end(size_t fbe_begin)
+    {
+        size_t fbe_end = this->buffer().size();
+        uint32_t fbe_full_size = (uint32_t)(fbe_end - fbe_begin);
+        *((uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4)) = fbe_full_size;
+        return fbe_full_size;
+    }
+
+    // Serialize the struct value
+    size_t serialize(const ::tql::TQLDisplayStatement& value)
+    {
+        size_t fbe_begin = create_begin();
+        model.set(value);
+        size_t fbe_full_size = create_end(fbe_begin);
+        return fbe_full_size;
+    }
+
+    // Deserialize the struct value
+    size_t deserialize(::tql::TQLDisplayStatement& value) const noexcept
+    {
+        if ((this->buffer().offset() + model.fbe_offset() - 4) > this->buffer().size())
+            return 0;
+
+        uint32_t fbe_full_size = *((const uint32_t*)(this->buffer().data() + this->buffer().offset() + model.fbe_offset() - 4));
+        assert((fbe_full_size >= model.fbe_size()) && "Model is broken!");
+        if (fbe_full_size < model.fbe_size())
+            return 0;
+
+        model.get(value);
+        return fbe_full_size;
+    }
+
+    // Move to the next struct value
+    void next(size_t prev) noexcept
+    {
+        model.fbe_shift(prev);
+    }
+
+public:
+    FieldModel<TBuffer, ::tql::TQLDisplayStatement> model;
+};
+
+} // namespace tql
+} // namespace FBE

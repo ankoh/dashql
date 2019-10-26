@@ -84,17 +84,17 @@ enum LogicalOperatorType: uint8 {
     UNION = 23,
     EXCEPT = 24,
     INTERSECT = 25,
-    
+
     // Updates
     INSERT = 26,
     DELETE = 27,
     UPDATE = 28,
     CREATE_TABLE = 29,
     CREATE_INDEX = 30,
-    
+
     // Explain
     EXPLAIN = 31,
-    
+
     // Helpers
     PRUNE_COLUMNS = 32,
     PREPARE = 33,

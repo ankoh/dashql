@@ -11,3 +11,151 @@ enum TQLType: byte {
     DateTime = 4;
     Time = 5;
 }
+
+/// A query statement
+struct TQLQueryStatement {
+    string query_text;
+}
+
+/// A parameter declaration
+struct TQLParameterDeclaration {
+    string parameter_name;
+    TQLType parameter_type;
+    int64 default_value_i64;
+    float64 default_value_f64;
+    string default_value_str;
+}
+
+/// A http method
+enum TQLHTTPMethod: byte {
+    Get = 0;
+    Put = 1;
+    Post = 2;
+}
+
+/// A http load statment
+struct TQLHTTPLoadStatement {
+    string data_name;
+    string http_url;
+    TQLHTTPMethod http_method;
+}
+
+/// A file load statement
+struct TQLFileLoadStatement {
+    string data_name;
+}
+
+
+/// A json extractor
+struct TQLJSONExtractStatement {
+    string data_name;
+    string extract_name;
+}
+
+/// A csv column
+struct TQLCSVColumn {
+    string column_name;
+    TQLType column_type;
+    string source_name;
+    int32 source_index;
+}
+
+/// A csv extractor
+struct TQLCSVExtractStatement {
+    string data_name;
+    string extract_name;
+    TQLCSVColumn[] columns;
+}
+
+/// An display type
+enum TQLDisplayType: byte {
+    Area = 0;
+    Bar = 1;
+    Box = 2;
+    Bubble = 3;
+    Grid = 4;
+    Histogram = 5;
+    Line = 6;
+    Number = 7;
+    Pie = 8;
+    Point = 9;
+    Scatter = 10;
+    Table = 11;
+    Text = 12;
+}
+
+/// A display type
+flags TQLDisplayTypeFlag: uint16 {
+    None = 0;
+    Horizontal = 1;
+    Vertical = 2;
+    Stacked = 4;
+}
+
+/// A display color
+struct TQLDisplayColor {
+    uint8 red;
+    uint8 green;
+    uint8 blue;
+}
+
+/// A display color palette
+struct TQLDisplayColorPalette {
+    string color_target;
+    TQLDisplayColor[] palette;
+}
+
+/// A display length unit
+enum TQLDisplayLengthUnit: byte {
+    Span = 0;
+    Pixel = 1;
+    Percent = 2;
+}
+
+/// A display length value
+struct TQLDisplayLengthValue {
+    float64 value;
+    TQLDisplayLengthUnit unit;
+}
+
+/// A display length
+struct TQLDisplayLength {
+    TQLDisplayLengthValue small;
+    TQLDisplayLengthValue medium;
+    TQLDisplayLengthValue large;
+    TQLDisplayLengthValue extra_large;
+}
+
+/// A display layout
+struct TQLDisplayLayout {
+    TQLDisplayLength width;
+    TQLDisplayLength height;
+}
+
+/// A display axis sclae
+enum TQLDisplayAxisScale: byte {
+    Linear = 0;
+    Logarithmic = 1;
+}
+
+/// A display axis
+struct TQLDisplayAxis {
+    string column;
+    TQLDisplayAxisScale scale;
+}
+
+/// Display axes
+struct TQLDisplayAxes {
+    TQLDisplayAxis x;
+    TQLDisplayAxis y;
+}
+
+/// A display statement
+struct TQLDisplayStatement {
+    string display_name;
+    TQLDisplayType display_type;
+    uint16 display_type_flags;
+    TQLDisplayLayout layout;
+    TQLDisplayColor color;
+    TQLDisplayAxes axes;
+}
