@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "tigon-proto": "file:../tigon-proto/lib/js",
     "classnames": "^2.2.6",
     "d3": "^4.13.0",
     "dagre-d3": "^0.6.3",

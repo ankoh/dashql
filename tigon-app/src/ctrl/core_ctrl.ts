@@ -1,6 +1,8 @@
 import * as proto from '../proto';
 import { flatbuffers } from 'flatbuffers';
 
+import proto2 from 'tigon-proto';
+
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
 

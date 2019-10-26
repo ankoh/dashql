@@ -7,7 +7,7 @@ PROTO_MODEL_DIR="${PROTO_DIR}/model"
 PROTO_CPP_LIB_DIR="${PROTO_DIR}/lib/cpp"
 PROTO_CPP_OUT_DIR="${PROTO_CPP_LIB_DIR}/include/tigon/proto"
 PROTO_JS_LIB_DIR="${PROTO_DIR}/lib/js"
-PROTO_JS_OUT_DIR="${PROTO_JS_LIB_DIR}/src"
+PROTO_JS_OUT_DIR="${PROTO_JS_LIB_DIR}/src/proto"
 
 [ -x "$(command -v fbec)" ] \
     && { echo "[ OK  ] Command: fbec"; } \
