@@ -64,41 +64,41 @@ class RawTypeID {
    * @returns {!string} Enum value string
    */
   toString () {
-    if (this.value === RawTypeID.INVALID.value) {
-      return 'INVALID'
+    if (this.value === RawTypeID.Invalid.value) {
+      return 'Invalid'
     }
-    if (this.value === RawTypeID.BOOLEAN.value) {
-      return 'BOOLEAN'
+    if (this.value === RawTypeID.Boolean.value) {
+      return 'Boolean'
     }
-    if (this.value === RawTypeID.TINYINT.value) {
-      return 'TINYINT'
+    if (this.value === RawTypeID.TinyInt.value) {
+      return 'TinyInt'
     }
-    if (this.value === RawTypeID.SMALLINT.value) {
-      return 'SMALLINT'
+    if (this.value === RawTypeID.SmallInt.value) {
+      return 'SmallInt'
     }
-    if (this.value === RawTypeID.INTEGER.value) {
-      return 'INTEGER'
+    if (this.value === RawTypeID.Integer.value) {
+      return 'Integer'
     }
-    if (this.value === RawTypeID.BIGINT.value) {
-      return 'BIGINT'
+    if (this.value === RawTypeID.BigInt.value) {
+      return 'BigInt'
     }
-    if (this.value === RawTypeID.HASH.value) {
-      return 'HASH'
+    if (this.value === RawTypeID.Hash.value) {
+      return 'Hash'
     }
-    if (this.value === RawTypeID.POINTER.value) {
-      return 'POINTER'
+    if (this.value === RawTypeID.Pointer.value) {
+      return 'Pointer'
     }
-    if (this.value === RawTypeID.FLOAT.value) {
-      return 'FLOAT'
+    if (this.value === RawTypeID.Float.value) {
+      return 'Float'
     }
-    if (this.value === RawTypeID.DOUBLE.value) {
-      return 'DOUBLE'
+    if (this.value === RawTypeID.Double.value) {
+      return 'Double'
     }
-    if (this.value === RawTypeID.VARCHAR.value) {
-      return 'VARCHAR'
+    if (this.value === RawTypeID.VarChar.value) {
+      return 'VarChar'
     }
-    if (this.value === RawTypeID.VARBINARY.value) {
-      return 'VARBINARY'
+    if (this.value === RawTypeID.VarBinary.value) {
+      return 'VarBinary'
     }
     return '<unknown>'
   }
@@ -132,29 +132,29 @@ class RawTypeID {
 }
 
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.INVALID = new RawTypeID(0 + 0)
+RawTypeID.Invalid = new RawTypeID(0 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.BOOLEAN = new RawTypeID(1 + 0)
+RawTypeID.Boolean = new RawTypeID(1 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.TINYINT = new RawTypeID(2 + 0)
+RawTypeID.TinyInt = new RawTypeID(2 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.SMALLINT = new RawTypeID(3 + 0)
+RawTypeID.SmallInt = new RawTypeID(3 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.INTEGER = new RawTypeID(4 + 0)
+RawTypeID.Integer = new RawTypeID(4 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.BIGINT = new RawTypeID(5 + 0)
+RawTypeID.BigInt = new RawTypeID(5 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.HASH = new RawTypeID(6 + 0)
+RawTypeID.Hash = new RawTypeID(6 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.POINTER = new RawTypeID(7 + 0)
+RawTypeID.Pointer = new RawTypeID(7 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.FLOAT = new RawTypeID(8 + 0)
+RawTypeID.Float = new RawTypeID(8 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.DOUBLE = new RawTypeID(9 + 0)
+RawTypeID.Double = new RawTypeID(9 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.VARCHAR = new RawTypeID(10 + 0)
+RawTypeID.VarChar = new RawTypeID(10 + 0)
 // noinspection PointlessArithmeticExpressionJS
-RawTypeID.VARBINARY = new RawTypeID(11 + 0)
+RawTypeID.VarBinary = new RawTypeID(11 + 0)
 
 exports.RawTypeID = RawTypeID
 
@@ -201,3 +201,3997 @@ class FieldModelRawTypeID extends fbe.FieldModel {
 }
 
 exports.FieldModelRawTypeID = FieldModelRawTypeID
+
+/**
+ * SQLTypeID enum
+ */
+class SQLTypeID {
+  /**
+   * Initialize enum with a given value
+   * @param {SQLTypeID|number|Int64|UInt64=} value Enum value, defaults is 0
+   * @constructor
+   */
+  constructor (value = 0) {
+    if (value instanceof SQLTypeID) {
+      this.value = value.value
+    } else {
+      this.value = value
+    }
+  }
+
+  /**
+   * Is this enum equal to other one?
+   * @this {!SQLTypeID}
+   * @param {!SQLTypeID} other Other enum
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof SQLTypeID)) {
+      throw new TypeError('Instance of SQLTypeID is required!')
+    }
+    return this.value === other.value
+  }
+
+  /**
+   * Get enum value
+   * @this {!SQLTypeID}
+   * @returns {!number|!Int64|!UInt64} Enum value
+   */
+  valueOf () {
+    return this.value
+  }
+
+  /**
+   * Convert enum to string
+   * @this {!SQLTypeID}
+   * @returns {!string} Enum value string
+   */
+  toString () {
+    if (this.value === SQLTypeID.Invalid.value) {
+      return 'Invalid'
+    }
+    if (this.value === SQLTypeID.SQLNull.value) {
+      return 'SQLNull'
+    }
+    if (this.value === SQLTypeID.Boolean.value) {
+      return 'Boolean'
+    }
+    if (this.value === SQLTypeID.TinyInt.value) {
+      return 'TinyInt'
+    }
+    if (this.value === SQLTypeID.SmallInt.value) {
+      return 'SmallInt'
+    }
+    if (this.value === SQLTypeID.Integer.value) {
+      return 'Integer'
+    }
+    if (this.value === SQLTypeID.BigInt.value) {
+      return 'BigInt'
+    }
+    if (this.value === SQLTypeID.Date.value) {
+      return 'Date'
+    }
+    if (this.value === SQLTypeID.Timestamp.value) {
+      return 'Timestamp'
+    }
+    if (this.value === SQLTypeID.Real.value) {
+      return 'Real'
+    }
+    if (this.value === SQLTypeID.Double.value) {
+      return 'Double'
+    }
+    if (this.value === SQLTypeID.Float.value) {
+      return 'Float'
+    }
+    if (this.value === SQLTypeID.Decimal.value) {
+      return 'Decimal'
+    }
+    if (this.value === SQLTypeID.Char.value) {
+      return 'Char'
+    }
+    if (this.value === SQLTypeID.VarChar.value) {
+      return 'VarChar'
+    }
+    if (this.value === SQLTypeID.VarBinary.value) {
+      return 'VarBinary'
+    }
+    return '<unknown>'
+  }
+
+  /**
+   * Inspect enum
+   * @this {!SQLTypeID}
+   * @returns {!string} Enum value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert enum to JSON
+   * @this {!SQLTypeID}
+   * @returns {!number} Enum value for JSON
+   */
+  toJSON () {
+    return this.value
+  }
+
+  /**
+   * Create enum from object value
+   * @param {!number} other Object value
+   * @returns {!SQLTypeID} Created enum
+   */
+  static fromObject (other) {
+    return new SQLTypeID(other)
+  }
+}
+
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.Invalid = new SQLTypeID(0 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.SQLNull = new SQLTypeID(1 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.Boolean = new SQLTypeID(2 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.TinyInt = new SQLTypeID(3 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.SmallInt = new SQLTypeID(4 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.Integer = new SQLTypeID(5 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.BigInt = new SQLTypeID(6 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.Date = new SQLTypeID(7 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.Timestamp = new SQLTypeID(8 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.Real = new SQLTypeID(9 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.Double = new SQLTypeID(10 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.Float = new SQLTypeID(11 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.Decimal = new SQLTypeID(12 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.Char = new SQLTypeID(13 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.VarChar = new SQLTypeID(14 + 0)
+// noinspection PointlessArithmeticExpressionJS
+SQLTypeID.VarBinary = new SQLTypeID(15 + 0)
+
+exports.SQLTypeID = SQLTypeID
+
+/**
+ * Fast Binary Encoding SQLTypeID field model
+ */
+class FieldModelSQLTypeID extends fbe.FieldModel {
+  /**
+   * Get the field size
+   * @this {!FieldModelSQLTypeID}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 1
+  }
+
+  /**
+   * Get the value
+   * @this {!FieldModelSQLTypeID}
+   * @param {SQLTypeID=} defaults Default value, defaults is new SQLTypeID()
+   * @returns {!SQLTypeID} Result value
+   */
+  get (defaults = new SQLTypeID()) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return defaults
+    }
+
+    return new SQLTypeID(this.readByte(this.fbeOffset))
+  }
+
+  /**
+   * Set the value
+   * @this {!FieldModelSQLTypeID}
+   * @param {!SQLTypeID} value Value
+   */
+  set (value) {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return
+    }
+
+    this.writeByte(this.fbeOffset, value.value)
+  }
+}
+
+exports.FieldModelSQLTypeID = FieldModelSQLTypeID
+
+/**
+ * StatusCode enum
+ */
+class StatusCode {
+  /**
+   * Initialize enum with a given value
+   * @param {StatusCode|number|Int64|UInt64=} value Enum value, defaults is 0
+   * @constructor
+   */
+  constructor (value = 0) {
+    if (value instanceof StatusCode) {
+      this.value = value.value
+    } else {
+      this.value = value
+    }
+  }
+
+  /**
+   * Is this enum equal to other one?
+   * @this {!StatusCode}
+   * @param {!StatusCode} other Other enum
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof StatusCode)) {
+      throw new TypeError('Instance of StatusCode is required!')
+    }
+    return this.value === other.value
+  }
+
+  /**
+   * Get enum value
+   * @this {!StatusCode}
+   * @returns {!number|!Int64|!UInt64} Enum value
+   */
+  valueOf () {
+    return this.value
+  }
+
+  /**
+   * Convert enum to string
+   * @this {!StatusCode}
+   * @returns {!string} Enum value string
+   */
+  toString () {
+    if (this.value === StatusCode.Success.value) {
+      return 'Success'
+    }
+    if (this.value === StatusCode.GenericError.value) {
+      return 'GenericError'
+    }
+    return '<unknown>'
+  }
+
+  /**
+   * Inspect enum
+   * @this {!StatusCode}
+   * @returns {!string} Enum value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert enum to JSON
+   * @this {!StatusCode}
+   * @returns {!number} Enum value for JSON
+   */
+  toJSON () {
+    return this.value
+  }
+
+  /**
+   * Create enum from object value
+   * @param {!number} other Object value
+   * @returns {!StatusCode} Created enum
+   */
+  static fromObject (other) {
+    return new StatusCode(other)
+  }
+}
+
+// noinspection PointlessArithmeticExpressionJS
+StatusCode.Success = new StatusCode(0 + 0)
+// noinspection PointlessArithmeticExpressionJS
+StatusCode.GenericError = new StatusCode(1 + 0)
+
+exports.StatusCode = StatusCode
+
+/**
+ * Fast Binary Encoding StatusCode field model
+ */
+class FieldModelStatusCode extends fbe.FieldModel {
+  /**
+   * Get the field size
+   * @this {!FieldModelStatusCode}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 1
+  }
+
+  /**
+   * Get the value
+   * @this {!FieldModelStatusCode}
+   * @param {StatusCode=} defaults Default value, defaults is new StatusCode()
+   * @returns {!StatusCode} Result value
+   */
+  get (defaults = new StatusCode()) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return defaults
+    }
+
+    return new StatusCode(this.readByte(this.fbeOffset))
+  }
+
+  /**
+   * Set the value
+   * @this {!FieldModelStatusCode}
+   * @param {!StatusCode} value Value
+   */
+  set (value) {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return
+    }
+
+    this.writeByte(this.fbeOffset, value.value)
+  }
+}
+
+exports.FieldModelStatusCode = FieldModelStatusCode
+
+/**
+ * LogicalOperatorType enum
+ */
+class LogicalOperatorType {
+  /**
+   * Initialize enum with a given value
+   * @param {LogicalOperatorType|number|Int64|UInt64=} value Enum value, defaults is 0
+   * @constructor
+   */
+  constructor (value = 0) {
+    if (value instanceof LogicalOperatorType) {
+      this.value = value.value
+    } else {
+      this.value = value
+    }
+  }
+
+  /**
+   * Is this enum equal to other one?
+   * @this {!LogicalOperatorType}
+   * @param {!LogicalOperatorType} other Other enum
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof LogicalOperatorType)) {
+      throw new TypeError('Instance of LogicalOperatorType is required!')
+    }
+    return this.value === other.value
+  }
+
+  /**
+   * Get enum value
+   * @this {!LogicalOperatorType}
+   * @returns {!number|!Int64|!UInt64} Enum value
+   */
+  valueOf () {
+    return this.value
+  }
+
+  /**
+   * Convert enum to string
+   * @this {!LogicalOperatorType}
+   * @returns {!string} Enum value string
+   */
+  toString () {
+    if (this.value === LogicalOperatorType.Invalid.value) {
+      return 'Invalid'
+    }
+    if (this.value === LogicalOperatorType.Projection.value) {
+      return 'Projection'
+    }
+    if (this.value === LogicalOperatorType.Filter.value) {
+      return 'Filter'
+    }
+    if (this.value === LogicalOperatorType.AggregateAndGroupBy.value) {
+      return 'AggregateAndGroupBy'
+    }
+    if (this.value === LogicalOperatorType.Window.value) {
+      return 'Window'
+    }
+    if (this.value === LogicalOperatorType.Limit.value) {
+      return 'Limit'
+    }
+    if (this.value === LogicalOperatorType.OrderBy.value) {
+      return 'OrderBy'
+    }
+    if (this.value === LogicalOperatorType.CopyFromFile.value) {
+      return 'CopyFromFile'
+    }
+    if (this.value === LogicalOperatorType.CopyToFile.value) {
+      return 'CopyToFile'
+    }
+    if (this.value === LogicalOperatorType.Distinct.value) {
+      return 'Distinct'
+    }
+    if (this.value === LogicalOperatorType.IndexScan.value) {
+      return 'IndexScan'
+    }
+    if (this.value === LogicalOperatorType.Get.value) {
+      return 'Get'
+    }
+    if (this.value === LogicalOperatorType.ChunkGet.value) {
+      return 'ChunkGet'
+    }
+    if (this.value === LogicalOperatorType.DelimGet.value) {
+      return 'DelimGet'
+    }
+    if (this.value === LogicalOperatorType.ExpressionGet.value) {
+      return 'ExpressionGet'
+    }
+    if (this.value === LogicalOperatorType.TableFunction.value) {
+      return 'TableFunction'
+    }
+    if (this.value === LogicalOperatorType.SubQuery.value) {
+      return 'SubQuery'
+    }
+    if (this.value === LogicalOperatorType.EmptyResult.value) {
+      return 'EmptyResult'
+    }
+    if (this.value === LogicalOperatorType.Join.value) {
+      return 'Join'
+    }
+    if (this.value === LogicalOperatorType.DelimJoin.value) {
+      return 'DelimJoin'
+    }
+    if (this.value === LogicalOperatorType.ComparisonJoin.value) {
+      return 'ComparisonJoin'
+    }
+    if (this.value === LogicalOperatorType.AnyJoin.value) {
+      return 'AnyJoin'
+    }
+    if (this.value === LogicalOperatorType.CrossProduct.value) {
+      return 'CrossProduct'
+    }
+    if (this.value === LogicalOperatorType.Union.value) {
+      return 'Union'
+    }
+    if (this.value === LogicalOperatorType.Except.value) {
+      return 'Except'
+    }
+    if (this.value === LogicalOperatorType.Intersect.value) {
+      return 'Intersect'
+    }
+    if (this.value === LogicalOperatorType.Insert.value) {
+      return 'Insert'
+    }
+    if (this.value === LogicalOperatorType.Delete.value) {
+      return 'Delete'
+    }
+    if (this.value === LogicalOperatorType.Update.value) {
+      return 'Update'
+    }
+    if (this.value === LogicalOperatorType.CreateTable.value) {
+      return 'CreateTable'
+    }
+    if (this.value === LogicalOperatorType.CreateIndex.value) {
+      return 'CreateIndex'
+    }
+    if (this.value === LogicalOperatorType.Explain.value) {
+      return 'Explain'
+    }
+    if (this.value === LogicalOperatorType.PruneColumns.value) {
+      return 'PruneColumns'
+    }
+    if (this.value === LogicalOperatorType.Prepare.value) {
+      return 'Prepare'
+    }
+    if (this.value === LogicalOperatorType.Execute.value) {
+      return 'Execute'
+    }
+    return '<unknown>'
+  }
+
+  /**
+   * Inspect enum
+   * @this {!LogicalOperatorType}
+   * @returns {!string} Enum value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert enum to JSON
+   * @this {!LogicalOperatorType}
+   * @returns {!number} Enum value for JSON
+   */
+  toJSON () {
+    return this.value
+  }
+
+  /**
+   * Create enum from object value
+   * @param {!number} other Object value
+   * @returns {!LogicalOperatorType} Created enum
+   */
+  static fromObject (other) {
+    return new LogicalOperatorType(other)
+  }
+}
+
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Invalid = new LogicalOperatorType(0 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Projection = new LogicalOperatorType(1 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Filter = new LogicalOperatorType(2 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.AggregateAndGroupBy = new LogicalOperatorType(3 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Window = new LogicalOperatorType(4 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Limit = new LogicalOperatorType(5 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.OrderBy = new LogicalOperatorType(6 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.CopyFromFile = new LogicalOperatorType(7 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.CopyToFile = new LogicalOperatorType(8 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Distinct = new LogicalOperatorType(9 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.IndexScan = new LogicalOperatorType(10 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Get = new LogicalOperatorType(11 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.ChunkGet = new LogicalOperatorType(12 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.DelimGet = new LogicalOperatorType(13 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.ExpressionGet = new LogicalOperatorType(14 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.TableFunction = new LogicalOperatorType(15 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.SubQuery = new LogicalOperatorType(16 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.EmptyResult = new LogicalOperatorType(17 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Join = new LogicalOperatorType(18 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.DelimJoin = new LogicalOperatorType(19 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.ComparisonJoin = new LogicalOperatorType(20 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.AnyJoin = new LogicalOperatorType(21 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.CrossProduct = new LogicalOperatorType(22 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Union = new LogicalOperatorType(23 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Except = new LogicalOperatorType(24 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Intersect = new LogicalOperatorType(25 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Insert = new LogicalOperatorType(26 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Delete = new LogicalOperatorType(27 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Update = new LogicalOperatorType(28 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.CreateTable = new LogicalOperatorType(29 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.CreateIndex = new LogicalOperatorType(30 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Explain = new LogicalOperatorType(31 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.PruneColumns = new LogicalOperatorType(32 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Prepare = new LogicalOperatorType(33 + 0)
+// noinspection PointlessArithmeticExpressionJS
+LogicalOperatorType.Execute = new LogicalOperatorType(34 + 0)
+
+exports.LogicalOperatorType = LogicalOperatorType
+
+/**
+ * Fast Binary Encoding LogicalOperatorType field model
+ */
+class FieldModelLogicalOperatorType extends fbe.FieldModel {
+  /**
+   * Get the field size
+   * @this {!FieldModelLogicalOperatorType}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 1
+  }
+
+  /**
+   * Get the value
+   * @this {!FieldModelLogicalOperatorType}
+   * @param {LogicalOperatorType=} defaults Default value, defaults is new LogicalOperatorType()
+   * @returns {!LogicalOperatorType} Result value
+   */
+  get (defaults = new LogicalOperatorType()) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return defaults
+    }
+
+    return new LogicalOperatorType(this.readByte(this.fbeOffset))
+  }
+
+  /**
+   * Set the value
+   * @this {!FieldModelLogicalOperatorType}
+   * @param {!LogicalOperatorType} value Value
+   */
+  set (value) {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return
+    }
+
+    this.writeByte(this.fbeOffset, value.value)
+  }
+}
+
+exports.FieldModelLogicalOperatorType = FieldModelLogicalOperatorType
+
+/**
+ * SQLType struct
+ */
+class SQLType {
+  /**
+   * Initialize struct
+   * @param {!SQLTypeID=} type_id
+   * @param {!number=} width
+   * @param {!number=} scale
+   * @constructor
+   */
+  constructor (argtype_id = new SQLTypeID(), argwidth = 0, argscale = 0) {
+    this.type_id = argtype_id
+    this.width = argwidth
+    this.scale = argscale
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!SQLType}
+   * @param {!SQLType} other Other struct
+   * @returns {!SQLType} This struct
+   */
+  copy (other) {
+    if (other.type_id != null) {
+      this.type_id = SQLTypeID.fromObject(other.type_id)
+    } else {
+      this.type_id = undefined
+    }
+    if (other.width != null) {
+      this.width = other.width
+    } else {
+      this.width = undefined
+    }
+    if (other.scale != null) {
+      this.scale = other.scale
+    } else {
+      this.scale = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!SQLType}
+   * @returns {!SQLType} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new SQLTypeModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new SQLTypeModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!SQLType}
+   * @param {!SQLType} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof SQLType)) {
+      throw new TypeError('Instance of SQLType is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!SQLType}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'SQLType('
+    result += 'type_id='
+    result += this.type_id.toString()
+    result += ',width='
+    result += this.width.toString()
+    result += ',scale='
+    result += this.scale.toString()
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!SQLType}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!SQLType}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      type_id: ((this.type_id != null) ? this.type_id : null),
+      width: ((this.width != null) ? this.width : null),
+      scale: ((this.scale != null) ? this.scale : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return SQLType.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!SQLType} other Object value
+   * @returns {!SQLType} Created struct
+   */
+  static fromObject (other) {
+    return new SQLType().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!SQLType}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return SQLType.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!SQLType}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 1
+  }
+}
+
+exports.SQLType = SQLType
+
+/**
+ * Fast Binary Encoding SQLType field model
+ */
+class FieldModelSQLType extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._type_id = new FieldModelSQLTypeID(buffer, 4 + 4)
+    this._width = new fbe.FieldModelUInt16(buffer, this._type_id.fbeOffset + this._type_id.fbeSize)
+    this._scale = new fbe.FieldModelUInt8(buffer, this._width.fbeOffset + this._width.fbeSize)
+  }
+
+  /**
+   * Get the type_id field model
+   * @this {!FieldModelSQLType}
+   * @returns {!FieldModelSQLTypeID} type_id field model
+   */
+  get type_id () {
+    return this._type_id
+  }
+
+  /**
+   * Get the width field model
+   * @this {!FieldModelSQLType}
+   * @returns {!fbe.FieldModelUInt16} width field model
+   */
+  get width () {
+    return this._width
+  }
+
+  /**
+   * Get the scale field model
+   * @this {!FieldModelSQLType}
+   * @returns {!fbe.FieldModelUInt8} scale field model
+   */
+  get scale () {
+    return this._scale
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelSQLType}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelSQLType}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.type_id.fbeSize + this.width.fbeSize + this.scale.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelSQLType}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.type_id.fbeExtra + this.width.fbeExtra + this.scale.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelSQLType}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelSQLType.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelSQLType}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 1
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelSQLType}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelSQLType}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.type_id.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.type_id.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.type_id.fbeSize
+
+    if ((fbeCurrentSize + this.width.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.width.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.width.fbeSize
+
+    if ((fbeCurrentSize + this.scale.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.scale.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.scale.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelSQLType}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelSQLType}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelSQLType}
+   * @param {!SQLType} fbeValue Default value, defaults is new SQLType()
+   * @returns {!SQLType} SQLType value
+   */
+  get (fbeValue = new SQLType()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelSQLType}
+   * @param {!SQLType} fbeValue SQLType value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.type_id.fbeSize) <= fbeStructSize) {
+      fbeValue.type_id = this.type_id.get()
+    } else {
+      fbeValue.type_id = new SQLTypeID()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.type_id.fbeSize
+
+    if ((fbeCurrentSize + this.width.fbeSize) <= fbeStructSize) {
+      fbeValue.width = this.width.get()
+    } else {
+      fbeValue.width = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.width.fbeSize
+
+    if ((fbeCurrentSize + this.scale.fbeSize) <= fbeStructSize) {
+      fbeValue.scale = this.scale.get()
+    } else {
+      fbeValue.scale = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.scale.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelSQLType}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelSQLType}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelSQLType}
+   * @param {!SQLType} fbeValue SQLType value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelSQLType}
+   * @param {SQLType} fbeValue SQLType value
+   */
+  setFields (fbeValue) {
+    this.type_id.set(fbeValue.type_id)
+    this.width.set(fbeValue.width)
+    this.scale.set(fbeValue.scale)
+  }
+}
+
+exports.FieldModelSQLType = FieldModelSQLType
+
+/**
+ * Fast Binary Encoding SQLType model
+ */
+class SQLTypeModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelSQLType(this.buffer, 4)
+  }
+
+  /**
+   * Get the SQLType model
+   * @this {!SQLTypeModel}
+   * @returns {!FieldModelSQLType} model SQLType model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!SQLTypeModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!SQLTypeModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return SQLTypeModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!SQLTypeModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelSQLType.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!SQLTypeModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!SQLTypeModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!SQLTypeModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!SQLTypeModel}
+   * @param {!SQLType} value SQLType value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!SQLTypeModel}
+   * @param {!SQLType} value SQLType value, defaults is new SQLType()
+   * @return {!object} Deserialized SQLType value and its size
+   */
+  deserialize (value = new SQLType()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new SQLType(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new SQLType(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!SQLTypeModel}
+   * @param {!number} prev Previous SQLType model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.SQLTypeModel = SQLTypeModel
+
+/**
+ * QueryPlan struct
+ */
+class QueryPlan {
+  /**
+   * Initialize struct
+   * @param {!Array=} operator_children
+   * @param {!Array=} operator_child_offsets
+   * @param {!Array=} operator_types
+   * @constructor
+   */
+  constructor (argoperator_children = [], argoperator_child_offsets = [], argoperator_types = []) {
+    this.operator_children = argoperator_children
+    this.operator_child_offsets = argoperator_child_offsets
+    this.operator_types = argoperator_types
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!QueryPlan}
+   * @param {!QueryPlan} other Other struct
+   * @returns {!QueryPlan} This struct
+   */
+  copy (other) {
+    if (other.operator_children != null) {
+      this.operator_children = []
+      for (let item of other.operator_children) {
+        if (item != null) {
+          let tempItem
+          tempItem = UInt64.fromNumber(item)
+          this.operator_children.push(tempItem)
+        } else {
+          this.operator_children.push(undefined)
+        }
+      }
+    } else {
+      this.operator_children = undefined
+    }
+    if (other.operator_child_offsets != null) {
+      this.operator_child_offsets = []
+      for (let item of other.operator_child_offsets) {
+        if (item != null) {
+          let tempItem
+          tempItem = UInt64.fromNumber(item)
+          this.operator_child_offsets.push(tempItem)
+        } else {
+          this.operator_child_offsets.push(undefined)
+        }
+      }
+    } else {
+      this.operator_child_offsets = undefined
+    }
+    if (other.operator_types != null) {
+      this.operator_types = []
+      for (let item of other.operator_types) {
+        if (item != null) {
+          let tempItem
+          tempItem = LogicalOperatorType.fromObject(item)
+          this.operator_types.push(tempItem)
+        } else {
+          this.operator_types.push(undefined)
+        }
+      }
+    } else {
+      this.operator_types = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!QueryPlan}
+   * @returns {!QueryPlan} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new QueryPlanModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new QueryPlanModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!QueryPlan}
+   * @param {!QueryPlan} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof QueryPlan)) {
+      throw new TypeError('Instance of QueryPlan is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!QueryPlan}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'QueryPlan('
+    result += 'operator_children='
+    if (this.operator_children != null) {
+      let first = true
+      result += '[' + this.operator_children.length + ']['
+      for (let item of this.operator_children) {
+        result += first ? '' : ','
+        result += item.toString()
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ',operator_child_offsets='
+    if (this.operator_child_offsets != null) {
+      let first = true
+      result += '[' + this.operator_child_offsets.length + ']['
+      for (let item of this.operator_child_offsets) {
+        result += first ? '' : ','
+        result += item.toString()
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ',operator_types='
+    if (this.operator_types != null) {
+      let first = true
+      result += '[' + this.operator_types.length + ']['
+      for (let item of this.operator_types) {
+        result += first ? '' : ','
+        result += item.toString()
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!QueryPlan}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!QueryPlan}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      operator_children: ((this.operator_children != null) ? Array.from(this.operator_children, item => ((item != null) ? item.toNumber() : null)) : null),
+      operator_child_offsets: ((this.operator_child_offsets != null) ? Array.from(this.operator_child_offsets, item => ((item != null) ? item.toNumber() : null)) : null),
+      operator_types: ((this.operator_types != null) ? Array.from(this.operator_types, item => ((item != null) ? item : null)) : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return QueryPlan.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!QueryPlan} other Object value
+   * @returns {!QueryPlan} Created struct
+   */
+  static fromObject (other) {
+    return new QueryPlan().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!QueryPlan}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return QueryPlan.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!QueryPlan}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 2
+  }
+}
+
+exports.QueryPlan = QueryPlan
+
+/**
+ * Fast Binary Encoding QueryPlan field model
+ */
+class FieldModelQueryPlan extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._operator_children = new fbe.FieldModelVector(new fbe.FieldModelUInt64(buffer, 4 + 4), buffer, 4 + 4)
+    this._operator_child_offsets = new fbe.FieldModelVector(new fbe.FieldModelUInt64(buffer, this._operator_children.fbeOffset + this._operator_children.fbeSize), buffer, this._operator_children.fbeOffset + this._operator_children.fbeSize)
+    this._operator_types = new fbe.FieldModelVector(new FieldModelLogicalOperatorType(buffer, this._operator_child_offsets.fbeOffset + this._operator_child_offsets.fbeSize), buffer, this._operator_child_offsets.fbeOffset + this._operator_child_offsets.fbeSize)
+  }
+
+  /**
+   * Get the operator_children field model
+   * @this {!FieldModelQueryPlan}
+   * @returns {!fbe.FieldModelVector} operator_children field model
+   */
+  get operator_children () {
+    return this._operator_children
+  }
+
+  /**
+   * Get the operator_child_offsets field model
+   * @this {!FieldModelQueryPlan}
+   * @returns {!fbe.FieldModelVector} operator_child_offsets field model
+   */
+  get operator_child_offsets () {
+    return this._operator_child_offsets
+  }
+
+  /**
+   * Get the operator_types field model
+   * @this {!FieldModelQueryPlan}
+   * @returns {!fbe.FieldModelVector} operator_types field model
+   */
+  get operator_types () {
+    return this._operator_types
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelQueryPlan}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelQueryPlan}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.operator_children.fbeSize + this.operator_child_offsets.fbeSize + this.operator_types.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelQueryPlan}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.operator_children.fbeExtra + this.operator_child_offsets.fbeExtra + this.operator_types.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelQueryPlan}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelQueryPlan.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelQueryPlan}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 2
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelQueryPlan}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelQueryPlan}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.operator_children.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.operator_children.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.operator_children.fbeSize
+
+    if ((fbeCurrentSize + this.operator_child_offsets.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.operator_child_offsets.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.operator_child_offsets.fbeSize
+
+    if ((fbeCurrentSize + this.operator_types.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.operator_types.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.operator_types.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelQueryPlan}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelQueryPlan}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelQueryPlan}
+   * @param {!QueryPlan} fbeValue Default value, defaults is new QueryPlan()
+   * @returns {!QueryPlan} QueryPlan value
+   */
+  get (fbeValue = new QueryPlan()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelQueryPlan}
+   * @param {!QueryPlan} fbeValue QueryPlan value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.operator_children.fbeSize) <= fbeStructSize) {
+      this.operator_children.get(fbeValue.operator_children)
+    } else {
+      fbeValue.operator_children.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.operator_children.fbeSize
+
+    if ((fbeCurrentSize + this.operator_child_offsets.fbeSize) <= fbeStructSize) {
+      this.operator_child_offsets.get(fbeValue.operator_child_offsets)
+    } else {
+      fbeValue.operator_child_offsets.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.operator_child_offsets.fbeSize
+
+    if ((fbeCurrentSize + this.operator_types.fbeSize) <= fbeStructSize) {
+      this.operator_types.get(fbeValue.operator_types)
+    } else {
+      fbeValue.operator_types.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.operator_types.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelQueryPlan}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelQueryPlan}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelQueryPlan}
+   * @param {!QueryPlan} fbeValue QueryPlan value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelQueryPlan}
+   * @param {QueryPlan} fbeValue QueryPlan value
+   */
+  setFields (fbeValue) {
+    this.operator_children.set(fbeValue.operator_children)
+    this.operator_child_offsets.set(fbeValue.operator_child_offsets)
+    this.operator_types.set(fbeValue.operator_types)
+  }
+}
+
+exports.FieldModelQueryPlan = FieldModelQueryPlan
+
+/**
+ * Fast Binary Encoding QueryPlan model
+ */
+class QueryPlanModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelQueryPlan(this.buffer, 4)
+  }
+
+  /**
+   * Get the QueryPlan model
+   * @this {!QueryPlanModel}
+   * @returns {!FieldModelQueryPlan} model QueryPlan model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!QueryPlanModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!QueryPlanModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return QueryPlanModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!QueryPlanModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelQueryPlan.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!QueryPlanModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!QueryPlanModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!QueryPlanModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!QueryPlanModel}
+   * @param {!QueryPlan} value QueryPlan value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!QueryPlanModel}
+   * @param {!QueryPlan} value QueryPlan value, defaults is new QueryPlan()
+   * @return {!object} Deserialized QueryPlan value and its size
+   */
+  deserialize (value = new QueryPlan()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new QueryPlan(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new QueryPlan(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!QueryPlanModel}
+   * @param {!number} prev Previous QueryPlan model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.QueryPlanModel = QueryPlanModel
+
+/**
+ * QueryResultColumn struct
+ */
+class QueryResultColumn {
+  /**
+   * Initialize struct
+   * @param {!RawTypeID=} type_id
+   * @param {!Array=} null_mask
+   * @param {!Array=} fixed_length_data
+   * @param {!Array=} string_data
+   * @constructor
+   */
+  constructor (argtype_id = new RawTypeID(), argnull_mask = [], argfixed_length_data = [], argstring_data = []) {
+    this.type_id = argtype_id
+    this.null_mask = argnull_mask
+    this.fixed_length_data = argfixed_length_data
+    this.string_data = argstring_data
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!QueryResultColumn}
+   * @param {!QueryResultColumn} other Other struct
+   * @returns {!QueryResultColumn} This struct
+   */
+  copy (other) {
+    if (other.type_id != null) {
+      this.type_id = RawTypeID.fromObject(other.type_id)
+    } else {
+      this.type_id = undefined
+    }
+    if (other.null_mask != null) {
+      this.null_mask = []
+      for (let item of other.null_mask) {
+        if (item != null) {
+          let tempItem
+          tempItem = item
+          this.null_mask.push(tempItem)
+        } else {
+          this.null_mask.push(undefined)
+        }
+      }
+    } else {
+      this.null_mask = undefined
+    }
+    if (other.fixed_length_data != null) {
+      this.fixed_length_data = []
+      for (let item of other.fixed_length_data) {
+        if (item != null) {
+          let tempItem
+          tempItem = ubyte.fromObject(item)
+          this.fixed_length_data.push(tempItem)
+        } else {
+          this.fixed_length_data.push(undefined)
+        }
+      }
+    } else {
+      this.fixed_length_data = undefined
+    }
+    if (other.string_data != null) {
+      this.string_data = []
+      for (let item of other.string_data) {
+        if (item != null) {
+          let tempItem
+          tempItem = item
+          this.string_data.push(tempItem)
+        } else {
+          this.string_data.push(undefined)
+        }
+      }
+    } else {
+      this.string_data = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!QueryResultColumn}
+   * @returns {!QueryResultColumn} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new QueryResultColumnModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new QueryResultColumnModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!QueryResultColumn}
+   * @param {!QueryResultColumn} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof QueryResultColumn)) {
+      throw new TypeError('Instance of QueryResultColumn is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!QueryResultColumn}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'QueryResultColumn('
+    result += 'type_id='
+    result += this.type_id.toString()
+    result += ',null_mask='
+    if (this.null_mask != null) {
+      let first = true
+      result += '[' + this.null_mask.length + ']['
+      for (let item of this.null_mask) {
+        result += first ? '' : ','
+        result += item ? 'true' : 'false'
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ',fixed_length_data='
+    if (this.fixed_length_data != null) {
+      let first = true
+      result += '[' + this.fixed_length_data.length + ']['
+      for (let item of this.fixed_length_data) {
+        result += first ? '' : ','
+        result += item.toString()
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ',string_data='
+    if (this.string_data != null) {
+      let first = true
+      result += '[' + this.string_data.length + ']['
+      for (let item of this.string_data) {
+        if (item != null) {
+          result += first ? '' : ','
+          result += '"' + item.toString() + '"'
+        } else {
+          result += first ? '' : ','
+          result += 'null'
+        }
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!QueryResultColumn}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!QueryResultColumn}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      type_id: ((this.type_id != null) ? this.type_id : null),
+      null_mask: ((this.null_mask != null) ? Array.from(this.null_mask, item => ((item != null) ? item : null)) : null),
+      fixed_length_data: ((this.fixed_length_data != null) ? Array.from(this.fixed_length_data, item => ((item != null) ? item : null)) : null),
+      string_data: ((this.string_data != null) ? Array.from(this.string_data, item => ((item != null) ? item : null)) : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return QueryResultColumn.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!QueryResultColumn} other Object value
+   * @returns {!QueryResultColumn} Created struct
+   */
+  static fromObject (other) {
+    return new QueryResultColumn().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!QueryResultColumn}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return QueryResultColumn.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!QueryResultColumn}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 3
+  }
+}
+
+exports.QueryResultColumn = QueryResultColumn
+
+/**
+ * Fast Binary Encoding QueryResultColumn field model
+ */
+class FieldModelQueryResultColumn extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._type_id = new FieldModelRawTypeID(buffer, 4 + 4)
+    this._null_mask = new fbe.FieldModelVector(new fbe.FieldModelBool(buffer, this._type_id.fbeOffset + this._type_id.fbeSize), buffer, this._type_id.fbeOffset + this._type_id.fbeSize)
+    this._fixed_length_data = new fbe.FieldModelVector(new FieldModelubyte(buffer, this._null_mask.fbeOffset + this._null_mask.fbeSize), buffer, this._null_mask.fbeOffset + this._null_mask.fbeSize)
+    this._string_data = new fbe.FieldModelVector(new fbe.FieldModelString(buffer, this._fixed_length_data.fbeOffset + this._fixed_length_data.fbeSize), buffer, this._fixed_length_data.fbeOffset + this._fixed_length_data.fbeSize)
+  }
+
+  /**
+   * Get the type_id field model
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!FieldModelRawTypeID} type_id field model
+   */
+  get type_id () {
+    return this._type_id
+  }
+
+  /**
+   * Get the null_mask field model
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!fbe.FieldModelVector} null_mask field model
+   */
+  get null_mask () {
+    return this._null_mask
+  }
+
+  /**
+   * Get the fixed_length_data field model
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!fbe.FieldModelVector} fixed_length_data field model
+   */
+  get fixed_length_data () {
+    return this._fixed_length_data
+  }
+
+  /**
+   * Get the string_data field model
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!fbe.FieldModelVector} string_data field model
+   */
+  get string_data () {
+    return this._string_data
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.type_id.fbeSize + this.null_mask.fbeSize + this.fixed_length_data.fbeSize + this.string_data.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.type_id.fbeExtra + this.null_mask.fbeExtra + this.fixed_length_data.fbeExtra + this.string_data.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelQueryResultColumn.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 3
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelQueryResultColumn}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelQueryResultColumn}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.type_id.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.type_id.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.type_id.fbeSize
+
+    if ((fbeCurrentSize + this.null_mask.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.null_mask.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.null_mask.fbeSize
+
+    if ((fbeCurrentSize + this.fixed_length_data.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.fixed_length_data.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.fixed_length_data.fbeSize
+
+    if ((fbeCurrentSize + this.string_data.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.string_data.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.string_data.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelQueryResultColumn}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelQueryResultColumn}
+   * @param {!QueryResultColumn} fbeValue Default value, defaults is new QueryResultColumn()
+   * @returns {!QueryResultColumn} QueryResultColumn value
+   */
+  get (fbeValue = new QueryResultColumn()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelQueryResultColumn}
+   * @param {!QueryResultColumn} fbeValue QueryResultColumn value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.type_id.fbeSize) <= fbeStructSize) {
+      fbeValue.type_id = this.type_id.get()
+    } else {
+      fbeValue.type_id = new RawTypeID()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.type_id.fbeSize
+
+    if ((fbeCurrentSize + this.null_mask.fbeSize) <= fbeStructSize) {
+      this.null_mask.get(fbeValue.null_mask)
+    } else {
+      fbeValue.null_mask.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.null_mask.fbeSize
+
+    if ((fbeCurrentSize + this.fixed_length_data.fbeSize) <= fbeStructSize) {
+      this.fixed_length_data.get(fbeValue.fixed_length_data)
+    } else {
+      fbeValue.fixed_length_data.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.fixed_length_data.fbeSize
+
+    if ((fbeCurrentSize + this.string_data.fbeSize) <= fbeStructSize) {
+      this.string_data.get(fbeValue.string_data)
+    } else {
+      fbeValue.string_data.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.string_data.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelQueryResultColumn}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelQueryResultColumn}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelQueryResultColumn}
+   * @param {!QueryResultColumn} fbeValue QueryResultColumn value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelQueryResultColumn}
+   * @param {QueryResultColumn} fbeValue QueryResultColumn value
+   */
+  setFields (fbeValue) {
+    this.type_id.set(fbeValue.type_id)
+    this.null_mask.set(fbeValue.null_mask)
+    this.fixed_length_data.set(fbeValue.fixed_length_data)
+    this.string_data.set(fbeValue.string_data)
+  }
+}
+
+exports.FieldModelQueryResultColumn = FieldModelQueryResultColumn
+
+/**
+ * Fast Binary Encoding QueryResultColumn model
+ */
+class QueryResultColumnModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelQueryResultColumn(this.buffer, 4)
+  }
+
+  /**
+   * Get the QueryResultColumn model
+   * @this {!QueryResultColumnModel}
+   * @returns {!FieldModelQueryResultColumn} model QueryResultColumn model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!QueryResultColumnModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!QueryResultColumnModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return QueryResultColumnModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!QueryResultColumnModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelQueryResultColumn.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!QueryResultColumnModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!QueryResultColumnModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!QueryResultColumnModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!QueryResultColumnModel}
+   * @param {!QueryResultColumn} value QueryResultColumn value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!QueryResultColumnModel}
+   * @param {!QueryResultColumn} value QueryResultColumn value, defaults is new QueryResultColumn()
+   * @return {!object} Deserialized QueryResultColumn value and its size
+   */
+  deserialize (value = new QueryResultColumn()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new QueryResultColumn(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new QueryResultColumn(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!QueryResultColumnModel}
+   * @param {!number} prev Previous QueryResultColumn model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.QueryResultColumnModel = QueryResultColumnModel
+
+/**
+ * QueryResultChunk struct
+ */
+class QueryResultChunk {
+  /**
+   * Initialize struct
+   * @param {!Array=} columns
+   * @constructor
+   */
+  constructor (argcolumns = []) {
+    this.columns = argcolumns
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!QueryResultChunk}
+   * @param {!QueryResultChunk} other Other struct
+   * @returns {!QueryResultChunk} This struct
+   */
+  copy (other) {
+    if (other.columns != null) {
+      this.columns = []
+      for (let item of other.columns) {
+        if (item != null) {
+          let tempItem
+          tempItem = QueryResultColumn.fromObject(item)
+          this.columns.push(tempItem)
+        } else {
+          this.columns.push(undefined)
+        }
+      }
+    } else {
+      this.columns = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!QueryResultChunk}
+   * @returns {!QueryResultChunk} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new QueryResultChunkModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new QueryResultChunkModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!QueryResultChunk}
+   * @param {!QueryResultChunk} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof QueryResultChunk)) {
+      throw new TypeError('Instance of QueryResultChunk is required!')
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!QueryResultChunk}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'QueryResultChunk('
+    result += 'columns='
+    if (this.columns != null) {
+      let first = true
+      result += '[' + this.columns.length + ']['
+      for (let item of this.columns) {
+        result += first ? '' : ','
+        result += item.toString()
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!QueryResultChunk}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!QueryResultChunk}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      columns: ((this.columns != null) ? Array.from(this.columns, item => ((item != null) ? item : null)) : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return QueryResultChunk.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!QueryResultChunk} other Object value
+   * @returns {!QueryResultChunk} Created struct
+   */
+  static fromObject (other) {
+    return new QueryResultChunk().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!QueryResultChunk}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return QueryResultChunk.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!QueryResultChunk}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 4
+  }
+}
+
+exports.QueryResultChunk = QueryResultChunk
+
+/**
+ * Fast Binary Encoding QueryResultChunk field model
+ */
+class FieldModelQueryResultChunk extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._columns = new fbe.FieldModelVector(new FieldModelQueryResultColumn(buffer, 4 + 4), buffer, 4 + 4)
+  }
+
+  /**
+   * Get the columns field model
+   * @this {!FieldModelQueryResultChunk}
+   * @returns {!fbe.FieldModelVector} columns field model
+   */
+  get columns () {
+    return this._columns
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelQueryResultChunk}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelQueryResultChunk}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.columns.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelQueryResultChunk}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.columns.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelQueryResultChunk}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelQueryResultChunk.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelQueryResultChunk}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 4
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelQueryResultChunk}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelQueryResultChunk}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.columns.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.columns.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.columns.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelQueryResultChunk}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelQueryResultChunk}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelQueryResultChunk}
+   * @param {!QueryResultChunk} fbeValue Default value, defaults is new QueryResultChunk()
+   * @returns {!QueryResultChunk} QueryResultChunk value
+   */
+  get (fbeValue = new QueryResultChunk()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelQueryResultChunk}
+   * @param {!QueryResultChunk} fbeValue QueryResultChunk value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.columns.fbeSize) <= fbeStructSize) {
+      this.columns.get(fbeValue.columns)
+    } else {
+      fbeValue.columns.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.columns.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelQueryResultChunk}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelQueryResultChunk}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelQueryResultChunk}
+   * @param {!QueryResultChunk} fbeValue QueryResultChunk value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelQueryResultChunk}
+   * @param {QueryResultChunk} fbeValue QueryResultChunk value
+   */
+  setFields (fbeValue) {
+    this.columns.set(fbeValue.columns)
+  }
+}
+
+exports.FieldModelQueryResultChunk = FieldModelQueryResultChunk
+
+/**
+ * Fast Binary Encoding QueryResultChunk model
+ */
+class QueryResultChunkModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelQueryResultChunk(this.buffer, 4)
+  }
+
+  /**
+   * Get the QueryResultChunk model
+   * @this {!QueryResultChunkModel}
+   * @returns {!FieldModelQueryResultChunk} model QueryResultChunk model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!QueryResultChunkModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!QueryResultChunkModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return QueryResultChunkModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!QueryResultChunkModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelQueryResultChunk.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!QueryResultChunkModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!QueryResultChunkModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!QueryResultChunkModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!QueryResultChunkModel}
+   * @param {!QueryResultChunk} value QueryResultChunk value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!QueryResultChunkModel}
+   * @param {!QueryResultChunk} value QueryResultChunk value, defaults is new QueryResultChunk()
+   * @return {!object} Deserialized QueryResultChunk value and its size
+   */
+  deserialize (value = new QueryResultChunk()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new QueryResultChunk(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new QueryResultChunk(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!QueryResultChunkModel}
+   * @param {!number} prev Previous QueryResultChunk model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.QueryResultChunkModel = QueryResultChunkModel
+
+/**
+ * QueryResult struct
+ */
+class QueryResult {
+  /**
+   * Initialize struct
+   * @param {!number=} query_id
+   * @param {!QueryPlan=} query_plan
+   * @param {!Array=} column_raw_types
+   * @param {!Array=} column_sql_types
+   * @param {!Array=} column_names
+   * @param {!Array=} data_chunks
+   * @constructor
+   */
+  constructor (argquery_id = new UInt64(0, 0), argquery_plan = new QueryPlan(), argcolumn_raw_types = [], argcolumn_sql_types = [], argcolumn_names = [], argdata_chunks = []) {
+    this.query_id = argquery_id
+    this.query_plan = argquery_plan
+    this.column_raw_types = argcolumn_raw_types
+    this.column_sql_types = argcolumn_sql_types
+    this.column_names = argcolumn_names
+    this.data_chunks = argdata_chunks
+  }
+
+  /**
+   * Copy struct (shallow copy)
+   * @this {!QueryResult}
+   * @param {!QueryResult} other Other struct
+   * @returns {!QueryResult} This struct
+   */
+  copy (other) {
+    if (other.query_id != null) {
+      this.query_id = UInt64.fromNumber(other.query_id)
+    } else {
+      this.query_id = undefined
+    }
+    if (other.query_plan != null) {
+      this.query_plan = QueryPlan.fromObject(other.query_plan)
+    } else {
+      this.query_plan = undefined
+    }
+    if (other.column_raw_types != null) {
+      this.column_raw_types = []
+      for (let item of other.column_raw_types) {
+        if (item != null) {
+          let tempItem
+          tempItem = RawTypeID.fromObject(item)
+          this.column_raw_types.push(tempItem)
+        } else {
+          this.column_raw_types.push(undefined)
+        }
+      }
+    } else {
+      this.column_raw_types = undefined
+    }
+    if (other.column_sql_types != null) {
+      this.column_sql_types = []
+      for (let item of other.column_sql_types) {
+        if (item != null) {
+          let tempItem
+          tempItem = SQLType.fromObject(item)
+          this.column_sql_types.push(tempItem)
+        } else {
+          this.column_sql_types.push(undefined)
+        }
+      }
+    } else {
+      this.column_sql_types = undefined
+    }
+    if (other.column_names != null) {
+      this.column_names = []
+      for (let item of other.column_names) {
+        if (item != null) {
+          let tempItem
+          tempItem = item
+          this.column_names.push(tempItem)
+        } else {
+          this.column_names.push(undefined)
+        }
+      }
+    } else {
+      this.column_names = undefined
+    }
+    if (other.data_chunks != null) {
+      this.data_chunks = []
+      for (let item of other.data_chunks) {
+        if (item != null) {
+          let tempItem
+          tempItem = QueryResultChunk.fromObject(item)
+          this.data_chunks.push(tempItem)
+        } else {
+          this.data_chunks.push(undefined)
+        }
+      }
+    } else {
+      this.data_chunks = undefined
+    }
+    return this
+  }
+
+  /**
+   * Clone struct (deep clone)
+   * @this {!QueryResult}
+   * @returns {!QueryResult} Cloned struct
+   */
+  clone () {
+    // Serialize the struct to the FBE stream
+    let writer = new QueryResultModel(new fbe.WriteBuffer())
+    writer.serialize(this)
+
+    // Deserialize the struct from the FBE stream
+    let reader = new QueryResultModel(new fbe.ReadBuffer())
+    reader.attachBuffer(writer.buffer)
+    return reader.deserialize().value
+  }
+
+  /**
+   * Is this struct equal to other one?
+   * @this {!QueryResult}
+   * @param {!QueryResult} other Other struct
+   * @returns {boolean} Equal result
+   */
+  eq (other) {
+    if (!(other instanceof QueryResult)) {
+      throw new TypeError('Instance of QueryResult is required!')
+    }
+    // noinspection RedundantIfStatementJS
+    if (this.query_id !== other.query_id) {
+      return false
+    }
+    return true
+  }
+
+  /**
+   * Convert struct to string
+   * @this {!QueryResult}
+   * @returns {!string} Struct value string
+   */
+  toString () {
+    let result = ''
+    result += 'QueryResult('
+    result += 'query_id='
+    result += this.query_id.toString()
+    result += ',query_plan='
+    result += this.query_plan.toString()
+    result += ',column_raw_types='
+    if (this.column_raw_types != null) {
+      let first = true
+      result += '[' + this.column_raw_types.length + ']['
+      for (let item of this.column_raw_types) {
+        result += first ? '' : ','
+        result += item.toString()
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ',column_sql_types='
+    if (this.column_sql_types != null) {
+      let first = true
+      result += '[' + this.column_sql_types.length + ']['
+      for (let item of this.column_sql_types) {
+        result += first ? '' : ','
+        result += item.toString()
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ',column_names='
+    if (this.column_names != null) {
+      let first = true
+      result += '[' + this.column_names.length + ']['
+      for (let item of this.column_names) {
+        if (item != null) {
+          result += first ? '' : ','
+          result += '"' + item.toString() + '"'
+        } else {
+          result += first ? '' : ','
+          result += 'null'
+        }
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ',data_chunks='
+    if (this.data_chunks != null) {
+      let first = true
+      result += '[' + this.data_chunks.length + ']['
+      for (let item of this.data_chunks) {
+        result += first ? '' : ','
+        result += item.toString()
+        first = false
+      }
+      result += ']'
+    } else {
+      result += '[0][]'
+    }
+    result += ')'
+    return result
+  }
+
+  /**
+   * Inspect struct
+   * @this {!QueryResult}
+   * @returns {!string} Struct value string
+   */
+  [util.inspect.custom] () {
+    return this.toString()
+  }
+
+  /**
+   * Convert struct to JSON
+   * @this {!QueryResult}
+   * @returns {!object} Struct value for JSON
+   */
+  toJSON () {
+    return {
+      query_id: ((this.query_id != null) ? this.query_id.toNumber() : null),
+      query_plan: ((this.query_plan != null) ? this.query_plan : null),
+      column_raw_types: ((this.column_raw_types != null) ? Array.from(this.column_raw_types, item => ((item != null) ? item : null)) : null),
+      column_sql_types: ((this.column_sql_types != null) ? Array.from(this.column_sql_types, item => ((item != null) ? item : null)) : null),
+      column_names: ((this.column_names != null) ? Array.from(this.column_names, item => ((item != null) ? item : null)) : null),
+      data_chunks: ((this.data_chunks != null) ? Array.from(this.data_chunks, item => ((item != null) ? item : null)) : null)
+    }
+  }
+
+  /**
+   * Convert JSON to struct
+   * @param {!string} json JSON string
+   * @returns {!object} Struct value for JSON
+   */
+  static fromJSON (json) {
+    return QueryResult.fromObject(JSON.parse(json))
+  }
+
+  /**
+   * Create struct from object value
+   * @param {!QueryResult} other Object value
+   * @returns {!QueryResult} Created struct
+   */
+  static fromObject (other) {
+    return new QueryResult().copy(other)
+  }
+
+  /**
+   * Get the FBE type
+   * @this {!QueryResult}
+   * @returns {!number} FBE type
+   */
+  get fbeType () {
+    return QueryResult.fbeType
+  }
+
+  /**
+   * Get the FBE type (static)
+   * @this {!QueryResult}
+   * @returns {!number} FBE type
+   */
+  static get fbeType () {
+    return 5
+  }
+}
+
+exports.QueryResult = QueryResult
+
+/**
+ * Fast Binary Encoding QueryResult field model
+ */
+class FieldModelQueryResult extends fbe.FieldModel {
+  /**
+   * Initialize field model with the given buffer and offset
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Buffer
+   * @param {!number} offset Offset
+   * @constructor
+   */
+  constructor (buffer, offset) {
+    super(buffer, offset)
+    this._query_id = new fbe.FieldModelUInt64(buffer, 4 + 4)
+    this._query_plan = new FieldModelQueryPlan(buffer, this._query_id.fbeOffset + this._query_id.fbeSize)
+    this._column_raw_types = new fbe.FieldModelVector(new FieldModelRawTypeID(buffer, this._query_plan.fbeOffset + this._query_plan.fbeSize), buffer, this._query_plan.fbeOffset + this._query_plan.fbeSize)
+    this._column_sql_types = new fbe.FieldModelVector(new FieldModelSQLType(buffer, this._column_raw_types.fbeOffset + this._column_raw_types.fbeSize), buffer, this._column_raw_types.fbeOffset + this._column_raw_types.fbeSize)
+    this._column_names = new fbe.FieldModelVector(new fbe.FieldModelString(buffer, this._column_sql_types.fbeOffset + this._column_sql_types.fbeSize), buffer, this._column_sql_types.fbeOffset + this._column_sql_types.fbeSize)
+    this._data_chunks = new fbe.FieldModelVector(new FieldModelQueryResultChunk(buffer, this._column_names.fbeOffset + this._column_names.fbeSize), buffer, this._column_names.fbeOffset + this._column_names.fbeSize)
+  }
+
+  /**
+   * Get the query_id field model
+   * @this {!FieldModelQueryResult}
+   * @returns {!fbe.FieldModelUInt64} query_id field model
+   */
+  get query_id () {
+    return this._query_id
+  }
+
+  /**
+   * Get the query_plan field model
+   * @this {!FieldModelQueryResult}
+   * @returns {!FieldModelQueryPlan} query_plan field model
+   */
+  get query_plan () {
+    return this._query_plan
+  }
+
+  /**
+   * Get the column_raw_types field model
+   * @this {!FieldModelQueryResult}
+   * @returns {!fbe.FieldModelVector} column_raw_types field model
+   */
+  get column_raw_types () {
+    return this._column_raw_types
+  }
+
+  /**
+   * Get the column_sql_types field model
+   * @this {!FieldModelQueryResult}
+   * @returns {!fbe.FieldModelVector} column_sql_types field model
+   */
+  get column_sql_types () {
+    return this._column_sql_types
+  }
+
+  /**
+   * Get the column_names field model
+   * @this {!FieldModelQueryResult}
+   * @returns {!fbe.FieldModelVector} column_names field model
+   */
+  get column_names () {
+    return this._column_names
+  }
+
+  /**
+   * Get the data_chunks field model
+   * @this {!FieldModelQueryResult}
+   * @returns {!fbe.FieldModelVector} data_chunks field model
+   */
+  get data_chunks () {
+    return this._data_chunks
+  }
+
+  /**
+   * Get the field size
+   * @this {!FieldModelQueryResult}
+   * @returns {!number} Field size
+   */
+  get fbeSize () {
+    return 4
+  }
+
+  /**
+   * Get the field body size
+   * @this {!FieldModelQueryResult}
+   * @returns {!number} Field body size
+   */
+  get fbeBody () {
+    return 4 + 4 + this.query_id.fbeSize + this.query_plan.fbeSize + this.column_raw_types.fbeSize + this.column_sql_types.fbeSize + this.column_names.fbeSize + this.data_chunks.fbeSize
+  }
+
+  /**
+   * Get the field extra size
+   * @this {!FieldModelQueryResult}
+   * @returns {!number} Field extra size
+   */
+  get fbeExtra () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+
+    let fbeResult = this.fbeBody + this.query_id.fbeExtra + this.query_plan.fbeExtra + this.column_raw_types.fbeExtra + this.column_sql_types.fbeExtra + this.column_names.fbeExtra + this.data_chunks.fbeExtra
+
+    this._buffer.unshift(fbeStructOffset)
+
+    return fbeResult
+  }
+
+  /**
+   * Get the field type
+   * @this {!FieldModelQueryResult}
+   * @returns {!number} Field type
+   */
+  get fbeType () {
+    return FieldModelQueryResult.fbeType
+  }
+
+  /**
+   * Get the field type (static)
+   * @this {!FieldModelQueryResult}
+   * @returns {!number} Field type
+   */
+  static get fbeType () {
+    return 5
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!FieldModelQueryResult}
+   * @param {!boolean} fbeVerifyType Verify model type flag, defaults is true
+   * @returns {!boolean} Field model valid state
+   */
+  verify (fbeVerifyType = true) {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return true
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return false
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    if (fbeStructSize < (4 + 4)) {
+      return false
+    }
+
+    let fbeStructType = this.readUInt32(fbeStructOffset + 4)
+    if (fbeVerifyType && (fbeStructType !== this.fbeType)) {
+      return false
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    let fbeResult = this.verifyFields(fbeStructSize)
+    this._buffer.unshift(fbeStructOffset)
+    return fbeResult
+  }
+
+  /**
+   * Check if the struct fields are valid
+   * @this {!FieldModelQueryResult}
+   * @param {!number} fbeStructSize FBE struct size
+   * @returns {!boolean} Field model valid state
+   */
+  verifyFields (fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.query_id.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.query_id.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.query_id.fbeSize
+
+    if ((fbeCurrentSize + this.query_plan.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.query_plan.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.query_plan.fbeSize
+
+    if ((fbeCurrentSize + this.column_raw_types.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.column_raw_types.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column_raw_types.fbeSize
+
+    if ((fbeCurrentSize + this.column_sql_types.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.column_sql_types.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column_sql_types.fbeSize
+
+    if ((fbeCurrentSize + this.column_names.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.column_names.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column_names.fbeSize
+
+    if ((fbeCurrentSize + this.data_chunks.fbeSize) > fbeStructSize) {
+      return true
+    }
+    if (!this.data_chunks.verify()) {
+      return false
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.data_chunks.fbeSize
+
+    return true
+  }
+
+  /**
+   * Get the struct value (begin phase)
+   * @this {!FieldModelQueryResult}
+   * @returns {!number} Field model begin offset
+   */
+  getBegin () {
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructOffset = this.readUInt32(this.fbeOffset)
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + 4 + 4) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset === 0) || ((this._buffer.offset + fbeStructOffset + 4 + 4) > this._buffer.size)) {
+      return 0
+    }
+
+    let fbeStructSize = this.readUInt32(fbeStructOffset)
+    console.assert((fbeStructSize >= (4 + 4)), 'Model is broken!')
+    if (fbeStructSize < (4 + 4)) {
+      return 0
+    }
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Get the struct value (end phase)
+   * @this {!FieldModelQueryResult}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  getEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Get the struct value
+   * @this {!FieldModelQueryResult}
+   * @param {!QueryResult} fbeValue Default value, defaults is new QueryResult()
+   * @returns {!QueryResult} QueryResult value
+   */
+  get (fbeValue = new QueryResult()) {
+    let fbeBegin = this.getBegin()
+    if (fbeBegin === 0) {
+      return fbeValue
+    }
+
+    let fbeStructSize = this.readUInt32(0)
+    this.getFields(fbeValue, fbeStructSize)
+    this.getEnd(fbeBegin)
+    return fbeValue
+  }
+
+  /**
+   * Get the struct fields values
+   * @this {!FieldModelQueryResult}
+   * @param {!QueryResult} fbeValue QueryResult value
+   * @param {!number} fbeStructSize Struct size
+   */
+  getFields (fbeValue, fbeStructSize) {
+    let fbeCurrentSize = 4 + 4
+
+    if ((fbeCurrentSize + this.query_id.fbeSize) <= fbeStructSize) {
+      fbeValue.query_id = this.query_id.get()
+    } else {
+      fbeValue.query_id = new UInt64(0, 0)
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.query_id.fbeSize
+
+    if ((fbeCurrentSize + this.query_plan.fbeSize) <= fbeStructSize) {
+      fbeValue.query_plan = this.query_plan.get()
+    } else {
+      fbeValue.query_plan = new QueryPlan()
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.query_plan.fbeSize
+
+    if ((fbeCurrentSize + this.column_raw_types.fbeSize) <= fbeStructSize) {
+      this.column_raw_types.get(fbeValue.column_raw_types)
+    } else {
+      fbeValue.column_raw_types.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column_raw_types.fbeSize
+
+    if ((fbeCurrentSize + this.column_sql_types.fbeSize) <= fbeStructSize) {
+      this.column_sql_types.get(fbeValue.column_sql_types)
+    } else {
+      fbeValue.column_sql_types.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column_sql_types.fbeSize
+
+    if ((fbeCurrentSize + this.column_names.fbeSize) <= fbeStructSize) {
+      this.column_names.get(fbeValue.column_names)
+    } else {
+      fbeValue.column_names.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.column_names.fbeSize
+
+    if ((fbeCurrentSize + this.data_chunks.fbeSize) <= fbeStructSize) {
+      this.data_chunks.get(fbeValue.data_chunks)
+    } else {
+      fbeValue.data_chunks.length = 0
+    }
+    // noinspection JSUnusedAssignment
+    fbeCurrentSize += this.data_chunks.fbeSize
+  }
+
+  /**
+   * Set the struct value (begin phase)
+   * @this {!FieldModelQueryResult}
+   * @returns {!number} Field model begin offset
+   */
+  setBegin () {
+    console.assert(((this._buffer.offset + this.fbeOffset + this.fbeSize) <= this._buffer.size), 'Model is broken!')
+    if ((this._buffer.offset + this.fbeOffset + this.fbeSize) > this._buffer.size) {
+      return 0
+    }
+
+    let fbeStructSize = this.fbeBody
+    let fbeStructOffset = this._buffer.allocate(fbeStructSize) - this._buffer.offset
+    console.assert((fbeStructOffset > 0) && ((this._buffer.offset + fbeStructOffset + fbeStructSize) <= this._buffer.size), 'Model is broken!')
+    if ((fbeStructOffset <= 0) || ((this._buffer.offset + fbeStructOffset + fbeStructSize) > this._buffer.size)) {
+      return 0
+    }
+
+    this.writeUInt32(this.fbeOffset, fbeStructOffset)
+    this.writeUInt32(fbeStructOffset, fbeStructSize)
+    this.writeUInt32(fbeStructOffset + 4, this.fbeType)
+
+    this._buffer.shift(fbeStructOffset)
+    return fbeStructOffset
+  }
+
+  /**
+   * Set the struct value (end phase)
+   * @this {!FieldModelQueryResult}
+   * @param {!number} fbeBegin Field model begin offset
+   */
+  setEnd (fbeBegin) {
+    this._buffer.unshift(fbeBegin)
+  }
+
+  /**
+   * Set the struct value
+   * @this {!FieldModelQueryResult}
+   * @param {!QueryResult} fbeValue QueryResult value
+   */
+  set (fbeValue) {
+    let fbeBegin = this.setBegin()
+    if (fbeBegin === 0) {
+      return
+    }
+
+    this.setFields(fbeValue)
+    this.setEnd(fbeBegin)
+  }
+
+  /**
+   * Set the struct fields values
+   * @this {!FieldModelQueryResult}
+   * @param {QueryResult} fbeValue QueryResult value
+   */
+  setFields (fbeValue) {
+    this.query_id.set(fbeValue.query_id)
+    this.query_plan.set(fbeValue.query_plan)
+    this.column_raw_types.set(fbeValue.column_raw_types)
+    this.column_sql_types.set(fbeValue.column_sql_types)
+    this.column_names.set(fbeValue.column_names)
+    this.data_chunks.set(fbeValue.data_chunks)
+  }
+}
+
+exports.FieldModelQueryResult = FieldModelQueryResult
+
+/**
+ * Fast Binary Encoding QueryResult model
+ */
+class QueryResultModel extends fbe.Model {
+  /**
+   * Initialize model with the given buffer
+   * @param {!fbe.ReadBuffer|!fbe.WriteBuffer} buffer Read/Write buffer, defaults is new fbe.WriteBuffer()
+   * @constructor
+   */
+  constructor (buffer = new fbe.WriteBuffer()) {
+    super(buffer)
+    this._model = new FieldModelQueryResult(this.buffer, 4)
+  }
+
+  /**
+   * Get the QueryResult model
+   * @this {!QueryResultModel}
+   * @returns {!FieldModelQueryResult} model QueryResult model
+   */
+  get model () {
+    return this._model
+  }
+
+  /**
+   * Get the model size
+   * @this {!QueryResultModel}
+   * @returns {!number} Model size
+   */
+  get fbeSize () {
+    return this.model.fbeSize + this.model.fbeExtra
+  }
+
+  /**
+   * Get the model type
+   * @this {!QueryResultModel}
+   * @returns {!number} Model type
+   */
+  get fbeType () {
+    return QueryResultModel.fbeType
+  }
+
+  /**
+   * Get the model type (static)
+   * @this {!QueryResultModel}
+   * @returns {!number} Model type
+   */
+  static get fbeType () {
+    return FieldModelQueryResult.fbeType
+  }
+
+  /**
+   * Check if the struct value is valid
+   * @this {!QueryResultModel}
+   * @returns {!boolean} Model valid state
+   */
+  verify () {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return false
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    if (fbeFullSize < this.model.fbeSize) {
+      return false
+    }
+
+    return this.model.verify()
+  }
+
+  /**
+   * Create a new model (begin phase)
+   * @this {!QueryResultModel}
+   * @returns {!number} Model begin offset
+   */
+  createBegin () {
+    return this.buffer.allocate(4 + this.model.fbeSize)
+  }
+
+  /**
+   * Create a new model (end phase)
+   * @this {!QueryResultModel}
+   * @param {!number} fbeBegin Model begin offset
+   */
+  createEnd (fbeBegin) {
+    let fbeEnd = this.buffer.size
+    let fbeFullSize = fbeEnd - fbeBegin
+    this.writeUInt32(this.model.fbeOffset - 4, fbeFullSize)
+    return fbeFullSize
+  }
+
+  /**
+   * Serialize the struct value
+   * @this {!QueryResultModel}
+   * @param {!QueryResult} value QueryResult value
+   * @return {!number} Model begin offset
+   */
+  serialize (value) {
+    let fbeBegin = this.createBegin()
+    this.model.set(value)
+    return this.createEnd(fbeBegin)
+  }
+
+  /**
+   * Deserialize the struct value
+   * @this {!QueryResultModel}
+   * @param {!QueryResult} value QueryResult value, defaults is new QueryResult()
+   * @return {!object} Deserialized QueryResult value and its size
+   */
+  deserialize (value = new QueryResult()) {
+    if ((this.buffer.offset + this.model.fbeOffset - 4) > this.buffer.size) {
+      return { value: new QueryResult(), size: 0 }
+    }
+
+    let fbeFullSize = this.readUInt32(this.model.fbeOffset - 4)
+    console.assert((fbeFullSize >= this.model.fbeSize), 'Model is broken!')
+    if (fbeFullSize < this.model.fbeSize) {
+      return { value: new QueryResult(), size: 0 }
+    }
+
+    this.model.get(value)
+    return { value: value, size: fbeFullSize }
+  }
+
+  /**
+   * Move to the next struct value
+   * @this {!QueryResultModel}
+   * @param {!number} prev Previous QueryResult model size
+   */
+  next (prev) {
+    this.model.fbeShift(prev)
+  }
+}
+
+exports.QueryResultModel = QueryResultModel

@@ -13,16 +13,19 @@ PROTO_JS_OUT_DIR="${PROTO_JS_LIB_DIR}/src"
     && { echo "[ OK  ] Command: fbec"; } \
     || { echo "[ ERR ] Command: fbec"; exit 1; }
 
+rm ${PROTO_CPP_OUT_DIR}/*
+rm ${PROTO_JS_OUT_DIR}/*
+
 for PROTO_FILE in ${PROTO_MODEL_DIR}/*.fbe; do
-    fbec --cpp \
+    fbec -q --cpp \
         --input=${PROTO_FILE} \
         --output=${PROTO_CPP_OUT_DIR} \
         && { echo "[ OK  ] ${PROTO_FILE}: C++"; } \
         || { echo "[ ERR ] ${PROTO_FILE}: C++"; exit 1; }
 
-    fbec --javascript \
+    fbec -q --javascript \
         --input=${PROTO_FILE} \
         --output=${PROTO_JS_OUT_DIR} \
-        && { echo "[ OK  ] ${PROTO_FILE}: C++"; } \
-        || { echo "[ ERR ] ${PROTO_FILE}: C++"; exit 1; }
+        && { echo "[ OK  ] ${PROTO_FILE}: JS"; } \
+        || { echo "[ ERR ] ${PROTO_FILE}: JS"; exit 1; }
 done
