@@ -102,7 +102,10 @@ add_executable(tigon_web
 target_link_libraries(tigon_web tigon)
 
 if(EMSCRIPTEN)
+    # -s SAFE_HEAP=1
+    # -s ASSERTIONS=1
     set_target_properties(tigon_web PROPERTIES LINK_FLAGS " \
+        -s ASSERTIONS=1 \
         -s MODULARIZE=1 \
         -s EXPORT_NAME=TigonCore \
         -s EXPORTED_FUNCTIONS='[ \

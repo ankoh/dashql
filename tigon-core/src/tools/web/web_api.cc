@@ -70,7 +70,7 @@ WebAPI::Response::~Response() {
 
 /// Constructor
 WebAPI::Session::Session(std::shared_ptr<duckdb::DuckDB> database)
-    : database(std::move(database)), nextQueryID(), buffers(), response(*this) {}
+    : database(std::move(database)), buffers(), response(*this), nextQueryID() {}
 
 /// Destructor
 WebAPI::Session::~Session() {}
@@ -175,7 +175,6 @@ void WebAPI::Session::runQuery(std::string_view text) {
     spdlog::info("run query '{}'", text);
 
     auto queryID = allocateQueryID();
-
     // Create a new connection
     duckdb::Connection conn{*database};
     // Send the query to the existing database

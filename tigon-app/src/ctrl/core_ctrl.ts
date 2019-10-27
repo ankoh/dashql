@@ -70,6 +70,8 @@ export class CoreController {
                     console.log(text);
                 },
                 onRuntimeInitialized: function() {
+                },
+                postRun: function() {
                     resolve();
                 },
             });
@@ -101,10 +103,10 @@ export class CoreController {
 
         // Read the response
         // XXX: wasm64 will break here.
-        let status = this.core.HEAPU32[(response >> 3) + 0] as proto.web_api.StatusCode;
-        let error = this.core.HEAPU32[(response >> 3) + 8];
-        let data = this.core.HEAPU32[(response >> 3) + 16];
-        let dataSize = this.core.HEAPU32[(response >> 3) + 24];
+        let status = this.core.HEAPU32[(response >> 2) + 0] as proto.web_api.StatusCode;
+        let error = this.core.HEAPU32[(response >> 2) + 8];
+        let data = this.core.HEAPU32[(response >> 2) + 16];
+        let dataSize = this.core.HEAPU32[(response >> 2) + 24];
 
         // Restore the stack
         this.core.stackRestore(stackPointer);
@@ -128,6 +130,7 @@ export class CoreController {
     // Run a query
     public async runQuery(session: number, text: string): Promise<CoreBuffer<proto.web_api.QueryResult>> {
         await this.waitUntilReady();
+
         // Call the core function
         let [status, error, data, dataSize] = this.callSRet('tigon_run_query', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.Success) {

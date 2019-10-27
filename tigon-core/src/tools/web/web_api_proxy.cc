@@ -55,7 +55,7 @@ void tigon_parse_tql(WebAPI::Response::Packed* response, WebAPI::Session *sessio
     session->writePackedResponse(*response);
 }
 /// Run a query
-void tigon_run_query(WebAPI::Response::Packed* response, WebAPI::Session *session, const char *text) {
+void tigon_run_query(WebAPI::Response::Packed* response, WebAPI::Session* session, const char *text) {
     session->runQuery(text);
     session->writePackedResponse(*response);
 }
