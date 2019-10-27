@@ -1,9 +1,5 @@
-import * as proto from '../proto';
+import * as proto from 'tigon-proto';
 import { flatbuffers } from 'flatbuffers';
-
-import proto2 from 'tigon-proto';
-
-type LogicalOperatorType = proto2.web_api.LogicalOperatorType;
 
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
@@ -100,13 +96,13 @@ export class CoreController {
     }
 
     // Run a query
-    public async runQuery(session: number, text: string): Promise<CoreBuffer<proto.QueryResult>> {
+    public async runQuery(session: number, text: string): Promise<CoreBuffer<proto.web_api.QueryResult>> {
         await this.waitUntilReady();
         this.core.ccall('tigon_run_query', 'void', ['number', 'string'], [session, text]);
 
         // Did the query fail?
         let status = this.core.ccall('tigon_get_response_status', 'number', ['number'], [session]);
-        if (status !== proto.StatusCode.Success) {
+        if (status !== proto.web_api.StatusCode.Success) {
             let error = this.core.ccall('tigon_get_response_error_message', 'string', ['number'], [session]);
             return Promise.reject(new Error(error));
         }
@@ -117,19 +113,19 @@ export class CoreController {
         let bSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [buffer]);
         let u8B = new Uint8Array(this.core.HEAPU8.subarray(bData, bData + bSize));
         let fB = new flatbuffers.ByteBuffer(u8B);
-        let reader = proto.QueryResult.getRootAsQueryResult(fB);
-        let result = new CoreBuffer<proto.QueryResult>(this.core, session, buffer, reader);
+        let reader = proto.web_api.QueryResult.getRootAsQueryResult(fB);
+        let result = new CoreBuffer<proto.web_api.QueryResult>(this.core, session, buffer, reader);
         return Promise.resolve(result);
     }
 
     // Plan a query
-    public async planQuery(session: number, text: string): Promise<CoreBuffer<proto.QueryPlan>> {
+    public async planQuery(session: number, text: string): Promise<CoreBuffer<proto.web_api.QueryPlan>> {
         await this.waitUntilReady();
         this.core.ccall('tigon_plan_query', 'void', ['number', 'string'], [session, text]);
 
         // Did the query fail?
         let status = this.core.ccall('tigon_get_response_status', 'number', ['number'], [session]);
-        if (status !== proto.StatusCode.Success) {
+        if (status !== proto.web_api.StatusCode.Success) {
             let error = this.core.ccall('tigon_get_response_error_message', 'string', ['number'], [session]);
             return Promise.reject(new Error(error));
         }
@@ -140,8 +136,8 @@ export class CoreController {
         let bSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [buffer]);
         let u8B = new Uint8Array(this.core.HEAPU8.subarray(bData, bData + bSize));
         let fB = new flatbuffers.ByteBuffer(u8B);
-        let reader = proto.QueryPlan.getRootAsQueryPlan(fB);
-        let plan = new CoreBuffer<proto.QueryPlan>(this.core, session, buffer, reader);
+        let reader = proto.web_api.QueryPlan.getRootAsQueryPlan(fB);
+        let plan = new CoreBuffer<proto.web_api.QueryPlan>(this.core, session, buffer, reader);
         return Promise.resolve(plan);
     }
 };

@@ -5,6 +5,8 @@
 
 #include "tigon/tools/web/web_api.h"
 
+#include "tigon/proto/web_api.h"
+
 #include "duckdb.hpp"
 #include "common/vector_operations/vector_operations.hpp"
 #include "main/client_context.hpp"
@@ -17,6 +19,7 @@
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/proto/tql_generated.h"
 #include "tigon/proto/web_api_generated.h"
+
 
 #include <cstdio>
 #include <memory>

@@ -2,11 +2,22 @@
   "name": "tigon-proto",
   "version": "0.0.1",
   "description": "",
-  "main": "src/index.js",
-  "typings" : "src/index.d.ts",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepare": "npm run build",
+    "build": "tsc"
   },
+  "files": [
+    "lib"
+  ],
   "author": "",
-  "license": ""
+  "license": "",
+  "devDependencies": {
+    "@types/flatbuffers": "^1.9.1",
+    "typescript": "^3.6.4"
+  },
+  "dependencies": {
+    "flatbuffers": "^1.11.0"
+  }
 }

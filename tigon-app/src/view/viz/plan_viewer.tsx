@@ -1,5 +1,5 @@
 import './plan_viewer.scss';
-import * as proto from '../../proto';
+import * as proto from 'tigon-proto';
 import * as React from 'react';
 import * as Model from '../../model';
 import * as d3 from 'd3';
@@ -19,7 +19,7 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
     }
 
     /// Get an operator name
-    private getOperatorName(type: proto.LogicalOperatorType) {
+    private getOperatorName(type: proto.web_api.LogicalOperatorType) {
         var operatorTypeNames = [
             "INVALID",
             "PROJECTION",

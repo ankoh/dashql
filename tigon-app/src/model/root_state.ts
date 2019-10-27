@@ -1,7 +1,7 @@
 import * as Immutable from 'immutable';
 import { DataSource, InlineAnyRows } from './data_source';
 import { QueryPlan } from './query_plan';
-import * as proto from '../proto';
+import * as proto from 'tigon-proto';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -171,7 +171,7 @@ export class CacheEntry {
 
 // A http request
 export class HTTPRequest {
-    public method: proto.TQLHTTPMethod = proto.TQLHTTPMethod.GET;
+    public method: proto.tql.TQLHTTPMethod = proto.tql.TQLHTTPMethod.GET;
     public url: string = "";
 }
 
