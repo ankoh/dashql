@@ -3,7 +3,7 @@
 # (c) 2019 Andre Kohn
 # ---------------------------------------------------------------------------
 
-project(tigon_proto VERSION 0.1)
+project(tigon_proto)
 cmake_minimum_required(VERSION 3.10)
 
 include(GNUInstallDirs)

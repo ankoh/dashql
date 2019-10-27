@@ -3,25 +3,21 @@
 # (c) 2019 Andre Kohn
 # ---------------------------------------------------------------------------
 
-project("Tigon")
+# Use project versions
+# cmake --help-policy CMP0048
+if (POLICY CMP0048)
+    cmake_policy(SET CMP0048 NEW)
+endif (POLICY CMP0048)
+
+# ---------------------------------------------------------------------------
+
+project("Tigon" VERSION 0.1)
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -std=c++17)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
-
-# ---------------------------------------------------------------------------
-# Emscripten module path
-
-# Set module path.
-# Otherwise TestBigEndian fails in Snappy and Brotli builds.
-# https://github.com/emscripten-core/emscripten/issues/400
-if(DEFINED ENV{EMSDK})
-    set(EMSDK $ENV{EMSDK})
-    message(STATUS "EMSDK: ${EMSDK}/fastcomp/emscripten")
-    set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${EMSDK}/fastcomp/emscripten/cmake/Modules")
-endif()
 
 # ---------------------------------------------------------------------------
 # Bison
@@ -105,11 +101,11 @@ add_executable(tigon_web
 
 target_link_libraries(tigon_web tigon)
 
-if(DEFINED ENV{EMSDK})
-    set_target_properties(tigon_web PROPERTIES LINK_FLAGS "\
+if(EMSCRIPTEN)
+    set_target_properties(tigon_web PROPERTIES LINK_FLAGS " \
         -s MODULARIZE=1 \
         -s EXPORT_NAME=TigonCore \
-        -s EXPORTED_FUNCTIONS='[\
+        -s EXPORTED_FUNCTIONS='[ \
             _main, \
             _tigon_create_session, \
             _tigon_end_session, \
