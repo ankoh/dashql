@@ -29,8 +29,8 @@ enum class RPathComponent : uint8_t {
   MAX = RPathDescendantMember
 };
 
-inline RPathComponent (&EnumValuesRPathComponent())[5] {
-  static RPathComponent values[] = {
+inline const RPathComponent (&EnumValuesRPathComponent())[5] {
+  static const RPathComponent values[] = {
     RPathComponent::NONE,
     RPathComponent::RPathArraySlice,
     RPathComponent::RPathArrayIndexes,
@@ -40,8 +40,8 @@ inline RPathComponent (&EnumValuesRPathComponent())[5] {
   return values;
 }
 
-inline const char **EnumNamesRPathComponent() {
-  static const char *names[] = {
+inline const char * const *EnumNamesRPathComponent() {
+  static const char * const names[6] = {
     "NONE",
     "RPathArraySlice",
     "RPathArrayIndexes",
@@ -53,7 +53,8 @@ inline const char **EnumNamesRPathComponent() {
 }
 
 inline const char *EnumNameRPathComponent(RPathComponent e) {
-  const size_t index = static_cast<int>(e);
+  if (e < RPathComponent::NONE || e > RPathComponent::RPathDescendantMember) return "";
+  const size_t index = static_cast<size_t>(e);
   return EnumNamesRPathComponent()[index];
 }
 
@@ -61,19 +62,19 @@ template<typename T> struct RPathComponentTraits {
   static const RPathComponent enum_value = RPathComponent::NONE;
 };
 
-template<> struct RPathComponentTraits<RPathArraySlice> {
+template<> struct RPathComponentTraits<tigon::proto::RPathArraySlice> {
   static const RPathComponent enum_value = RPathComponent::RPathArraySlice;
 };
 
-template<> struct RPathComponentTraits<RPathArrayIndexes> {
+template<> struct RPathComponentTraits<tigon::proto::RPathArrayIndexes> {
   static const RPathComponent enum_value = RPathComponent::RPathArrayIndexes;
 };
 
-template<> struct RPathComponentTraits<RPathChildMember> {
+template<> struct RPathComponentTraits<tigon::proto::RPathChildMember> {
   static const RPathComponent enum_value = RPathComponent::RPathChildMember;
 };
 
-template<> struct RPathComponentTraits<RPathDescendantMember> {
+template<> struct RPathComponentTraits<tigon::proto::RPathDescendantMember> {
   static const RPathComponent enum_value = RPathComponent::RPathDescendantMember;
 };
 
@@ -193,7 +194,7 @@ inline flatbuffers::Offset<RPathDescendantMember> CreateRPathDescendantMember(
 }
 
 struct RPath FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COMPONENTS_TYPE = 4,
     VT_COMPONENTS = 6
   };
@@ -206,9 +207,9 @@ struct RPath FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_COMPONENTS_TYPE) &&
-           verifier.Verify(components_type()) &&
+           verifier.VerifyVector(components_type()) &&
            VerifyOffset(verifier, VT_COMPONENTS) &&
-           verifier.Verify(components()) &&
+           verifier.VerifyVector(components()) &&
            VerifyRPathComponentVector(verifier, components(), components_type()) &&
            verifier.EndTable();
   }
@@ -249,10 +250,12 @@ inline flatbuffers::Offset<RPath> CreateRPathDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<uint8_t> *components_type = nullptr,
     const std::vector<flatbuffers::Offset<void>> *components = nullptr) {
+  auto components_type__ = components_type ? _fbb.CreateVector<uint8_t>(*components_type) : 0;
+  auto components__ = components ? _fbb.CreateVector<flatbuffers::Offset<void>>(*components) : 0;
   return tigon::proto::CreateRPath(
       _fbb,
-      components_type ? _fbb.CreateVector<uint8_t>(*components_type) : 0,
-      components ? _fbb.CreateVector<flatbuffers::Offset<void>>(*components) : 0);
+      components_type__,
+      components__);
 }
 
 inline bool VerifyRPathComponent(flatbuffers::Verifier &verifier, const void *obj, RPathComponent type) {
@@ -261,19 +264,19 @@ inline bool VerifyRPathComponent(flatbuffers::Verifier &verifier, const void *ob
       return true;
     }
     case RPathComponent::RPathArraySlice: {
-      auto ptr = reinterpret_cast<const RPathArraySlice *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathArraySlice *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case RPathComponent::RPathArrayIndexes: {
-      auto ptr = reinterpret_cast<const RPathArrayIndexes *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathArrayIndexes *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case RPathComponent::RPathChildMember: {
-      auto ptr = reinterpret_cast<const RPathChildMember *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathChildMember *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case RPathComponent::RPathDescendantMember: {
-      auto ptr = reinterpret_cast<const RPathDescendantMember *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathDescendantMember *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;
@@ -281,6 +284,7 @@ inline bool VerifyRPathComponent(flatbuffers::Verifier &verifier, const void *ob
 }
 
 inline bool VerifyRPathComponentVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+  if (!values || !types) return !values && !types;
   if (values->size() != types->size()) return false;
   for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
     if (!VerifyRPathComponent(
