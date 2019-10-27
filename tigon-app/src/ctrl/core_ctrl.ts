@@ -89,10 +89,10 @@ export class CoreController {
     // Call a core function with packed response buffer
     protected callSRet(funcName: string, argTypes: Array<string>, args: Array<any>): [proto.web_api.StatusCode, number, number, number] {
         // Save the stack
-        var stackPointer = this.core.Runtime.stackSave();
+        var stackPointer = this.core.stackSave();
 
         // Allocate the packed response buffer
-        var response = this.core.allocate(4 * 8, 'i8', Module.ALLOC_STACK);
+        var response = this.core.allocate(4 * 8, 'i8', this.core.ALLOC_STACK);
         argTypes.unshift('number');
         args.unshift(response);
 
@@ -101,13 +101,13 @@ export class CoreController {
 
         // Read the response
         // XXX: wasm64 will break here.
-        let status = Module.HEAPU32[(response >> 3) + 0] as proto.web_api.StatusCode;
-        let error = Module.HEAPU32[(response >> 3) + 8];
-        let data = Module.HEAPU32[(response >> 3) + 16];
-        let dataSize = Module.HEAPU32[(response >> 3) + 24];
+        let status = this.core.HEAPU32[(response >> 3) + 0] as proto.web_api.StatusCode;
+        let error = this.core.HEAPU32[(response >> 3) + 8];
+        let data = this.core.HEAPU32[(response >> 3) + 16];
+        let dataSize = this.core.HEAPU32[(response >> 3) + 24];
 
         // Restore the stack
-        this.core.Runtime.stackRestore(stackPointer);
+        this.core.stackRestore(stackPointer);
         return [status, error, data, dataSize];
     }
 

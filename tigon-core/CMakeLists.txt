@@ -114,7 +114,7 @@ if(EMSCRIPTEN)
             _tigon_run_query, \
             _tigon_plan_query \
         ]' \
-        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
+        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\"]' \
     ")
 endif()
 
