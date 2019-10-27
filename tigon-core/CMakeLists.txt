@@ -102,6 +102,8 @@ add_executable(tigon_web
 target_link_libraries(tigon_web tigon)
 
 if(EMSCRIPTEN)
+    # SAFE_HEAP breaks duckdb 0.1
+    # SAFE_HEAP and ASSERTIONS break duckdb 0.1.1
     # -s SAFE_HEAP=1
     # -s ASSERTIONS=1
     set_target_properties(tigon_web PROPERTIES LINK_FLAGS " \

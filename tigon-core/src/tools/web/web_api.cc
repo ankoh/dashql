@@ -281,6 +281,8 @@ void WebAPI::Session::runQuery(std::string_view text) {
     resultBuilder.add_data_chunks(dataChunks);
     auto queryResult = resultBuilder.Finish();
 
+    spdlog::info("query successful");
+
     // Finish the flatbuffer
     builder.Finish(queryResult);
     // Mark as successfull
