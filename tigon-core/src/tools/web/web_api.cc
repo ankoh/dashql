@@ -172,6 +172,8 @@ static fb::Offset<proto::QueryResultColumn> writeStringResultColumn(fb::FlatBuff
 
 /// Run a query
 void WebAPI::Session::runQuery(std::string_view text) {
+    spdlog::info("run query '{}'", text);
+
     auto queryID = allocateQueryID();
 
     // Create a new connection
