@@ -18,10 +18,11 @@ ExternalProject_Add(
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL}
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     INSTALL_COMMAND ""
-    BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} duckdb_static miniz re2 hyperloglog pg_query
+    BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -j${CMAKE_BUILD_PARALLEL_LEVEL} duckdb_static miniz re2 hyperloglog pg_query
     BUILD_BYPRODUCTS
         <BINARY_DIR>/src/libduckdb_static.a
         <BINARY_DIR>/third_party/hyperloglog/libhyperloglog.a

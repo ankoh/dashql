@@ -20,6 +20,13 @@ set(CMAKE_CXX_FLAGS -std=c++17)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
 
 # ---------------------------------------------------------------------------
+# Parallelism
+
+include(ProcessorCount)
+ProcessorCount(NPROCS)
+set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
+
+# ---------------------------------------------------------------------------
 # Bison
 
 find_package(BISON 3.3 REQUIRED)
