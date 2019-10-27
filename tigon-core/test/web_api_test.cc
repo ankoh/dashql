@@ -49,13 +49,13 @@ TEST(WebAPITest, ExplainQuery) {
 
     {
         session.planQuery("SELECT 1;");
-        ASSERT_EQ(session.getResponseStatus(), proto::StatusCode::Success);
+
+        auto& response = session.getResponse();
+        ASSERT_EQ(response.getStatus(), proto::StatusCode::Success);
 
         // Get the query plan
-        auto* responseBuffer = session.getResponseBuffer();
-        auto* responseData = responseBuffer->getData();
+        auto* responseData = std::get<0>(response.getData());
         auto* queryPlan = flatbuffers::GetRoot<proto::QueryPlan>(responseData);
-        ASSERT_NE(responseBuffer, nullptr);
         ASSERT_NE(responseData, nullptr);
         ASSERT_NE(queryPlan, nullptr);
 
@@ -83,13 +83,13 @@ TEST(WebAPITest, ExplainQuery) {
             FROM r1, r2
             WHERE a = c;
         )RAW");
-        ASSERT_EQ(session.getResponseStatus(), proto::StatusCode::Success);
+
+        auto& response = session.getResponse();
+        ASSERT_EQ(response.getStatus(), proto::StatusCode::Success);
 
         // Get the plan
-        auto* responseBuffer = session.getResponseBuffer();
-        auto* responseData = responseBuffer->getData();
+        auto* responseData = std::get<0>(response.getData());
         auto* queryPlan = flatbuffers::GetRoot<proto::QueryPlan>(responseData);
-        ASSERT_NE(responseBuffer, nullptr);
         ASSERT_NE(responseData, nullptr);
         ASSERT_NE(queryPlan, nullptr);
 

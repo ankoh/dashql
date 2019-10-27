@@ -32,35 +32,45 @@ namespace fb = flatbuffers;
 using namespace tigon;
 
 /// Reset the response
-void WebAPI::Response::reset() {
-    statusCode = proto::StatusCode::Success;
-    errorMessage.clear();
-    if (!!buffer && !bufferLeaked) {
-        session.releaseBuffer(buffer);
+void WebAPI::Response::clear() {
+    status_code = proto::StatusCode::Success;
+    error.clear();
+    if (dataLeaked) {
+        session.releaseBuffer(std::get<0>(data));
     }
-    buffer = nullptr;
-    bufferLeaked = false;
+    data = {nullptr, 0};
+    dataLeaked = false;
+}
+
+/// Write the packed response
+void WebAPI::Response::writePacked(WebAPI::Response::Packed& packed) {
+    packed.error = error.data();
+    packed.data = std::get<0>(data);
+    packed.data_size = std::get<1>(data);
+    packed.status_code = static_cast<uint32_t>(status_code);
 }
 
 /// Request succeeded
-void WebAPI::Response::requestSucceeded(Buffer* b) {
-    reset();
-    statusCode = proto::StatusCode::Success;
-    buffer = b;
+void WebAPI::Response::requestSucceeded(fb::DetachedBuffer buffer) {
+    clear();
+    data = session.registerBuffer(std::move(buffer));
+    status_code = proto::StatusCode::Success;
 }
 
 void WebAPI::Response::requestFailed(proto::StatusCode status, std::string err) {
-    reset();
-    statusCode = status;
-    errorMessage = move(err);
+    clear();
+    status_code = status;
+    error = move(err);
 }
 
 /// Constructor
 WebAPI::Response::Response(WebAPI::Session &session)
-    : session(session), statusCode(), errorMessage(), buffer(nullptr), bufferLeaked(false) {}
+    : session(session), status_code(), error(), data({nullptr, 0}) {}
 
-/// Destructor
-WebAPI::Response::~Response() { reset(); }
+/// Constructor
+WebAPI::Response::~Response() {
+    clear();
+}
 
 /// Constructor
 WebAPI::Session::Session(std::shared_ptr<duckdb::DuckDB> database)
@@ -69,16 +79,26 @@ WebAPI::Session::Session(std::shared_ptr<duckdb::DuckDB> database)
 /// Destructor
 WebAPI::Session::~Session() {}
 
+/// Write the packed response
+void WebAPI::Session::writePackedResponse(Response::Packed& packed) {
+    response.writePacked(packed);
+}
+
+/// Keep the response data
+void WebAPI::Session::keepResponseData() {
+    response.keepData();
+}
+
 /// Register a buffer
-WebAPI::Buffer *WebAPI::Session::registerBuffer(flatbuffers::DetachedBuffer detached) {
-    auto buffer = std::make_unique<WebAPI::Buffer>(std::move(detached));
-    auto bufferPtr = buffer.get();
-    buffers.insert({bufferPtr, move(buffer)});
-    return bufferPtr;
+std::pair<void*, size_t> WebAPI::Session::registerBuffer(flatbuffers::DetachedBuffer detached) {
+    auto dataPtr = detached.data();
+    auto dataSize = detached.size();
+    buffers.insert({dataPtr, std::move(detached)});
+    return {dataPtr, dataSize};
 }
 
 /// Release a buffer
-void WebAPI::Session::releaseBuffer(WebAPI::Buffer *buffer) { buffers.erase(buffer); }
+void WebAPI::Session::releaseBuffer(void* data) { buffers.erase(data); }
 
 template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
 template<class... Ts> overload(Ts...) -> overload<Ts...>;
@@ -271,10 +291,8 @@ void WebAPI::Session::runQuery(std::string_view text) {
 
     // Finish the flatbuffer
     builder.Finish(queryResult);
-    auto buffer = registerBuffer(builder.Release());
-
     // Mark as successfull
-    response.requestSucceeded(buffer);
+    response.requestSucceeded(builder.Release());
 }
 
 /// Plan a sql statement
@@ -404,10 +422,8 @@ void WebAPI::Session::planQuery(std::string_view text) {
 
     // Finish the flatbuffer
     builder.Finish(plan);
-    auto buffer = registerBuffer(builder.Release());
-
     // Mark as successfull
-    response.requestSucceeded(buffer);
+    response.requestSucceeded(builder.Release());
 }
 
 /// Constructor

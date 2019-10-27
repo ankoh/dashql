@@ -21,41 +21,38 @@ class WebAPI {
   public:
     class Session;
 
-    /// A buffer
-    class Buffer {
-        /// The detached flatbuffer
-        flatbuffers::DetachedBuffer detachedBuffer;
-
-      public:
-        /// Constructor
-        Buffer(flatbuffers::DetachedBuffer b) : detachedBuffer(std::move(b)) {}
-        /// Get the data
-        uint8_t *getData() { return detachedBuffer.data(); }
-        /// Get the size
-        uint32_t getSize() { return detachedBuffer.size(); }
-    };
-
     /// A response
     class Response {
         friend class Session;
+
+        public:
+        /// The return type
+        struct Packed {
+            /// The error string (if any)
+            const char* error;
+            /// The data ptr (if any)
+            void* data;
+            /// The data size
+            uint32_t data_size;
+            /// The status code
+            uint32_t status_code;
+        } __attribute((packed));
 
         protected:
         /// The session
         Session& session;
 
         /// The status code
-        proto::StatusCode statusCode;
-        /// The error message (if any)
-        std::string errorMessage;
-        /// The buffer (if any)
-        Buffer* buffer;
-        /// Leaked the data?
-        bool bufferLeaked;
+        proto::StatusCode status_code;
+        /// The error (if any)
+        std::string error;
+        /// The data (if any)
+        std::pair<void*, size_t> data;
+        /// Keep the data alive?
+        bool dataLeaked;
 
-        /// Reset the reponse
-        void reset();
         /// Request succeeded
-        void requestSucceeded(Buffer* data);
+        void requestSucceeded(flatbuffers::DetachedBuffer buffer);
         /// Request failed
         void requestFailed(proto::StatusCode status, std::string error);
 
@@ -65,34 +62,39 @@ class WebAPI {
         /// Destructor
         ~Response();
 
-        /// Get the status
-        auto getStatus() const { return statusCode; }
-        /// Get the error
-        auto& getError() const { return errorMessage; }
-        /// Get the data
-        Buffer* getBuffer() {
-            bufferLeaked = !!buffer;
-            return buffer;
-        }
+        /// Get the status code
+        auto getStatus() { return status_code; }
+        /// Get the error (if any)
+        auto& getError() { return error; }
+        /// Get the data (if any)
+        auto& getData() { return data; }
+
+        /// Clear the response
+        void clear();
+        /// Keep the data
+        void keepData() { dataLeaked = true; }
+        /// Write packed
+        void writePacked(Packed& buffer);
     };
 
     /// A session
     class Session {
+        friend class Response;
+
         protected:
         /// The database
         std::shared_ptr<duckdb::DuckDB> database;
-
-        /// The next query id
-        uint64_t nextQueryID;
         /// The buffers linked to this session
-        std::unordered_map<Buffer*, std::unique_ptr<Buffer>> buffers;
+        std::unordered_map<void*, flatbuffers::DetachedBuffer> buffers;
         /// The (last) response
         Response response;
+        /// The next query id
+        uint64_t nextQueryID;
 
+        /// Register a buffer
+        std::pair<void*, size_t> registerBuffer(flatbuffers::DetachedBuffer buffer);
         /// Allocate a query id
         uint64_t allocateQueryID() { return ++nextQueryID; }
-        /// Register a buffer
-        Buffer* registerBuffer(flatbuffers::DetachedBuffer buffer);
 
         public:
         /// Constructor
@@ -100,15 +102,14 @@ class WebAPI {
         /// Destructor
         ~Session();
 
+        /// Get the response
+        auto& getResponse() { return response; }
+        /// Write the response
+        void writePackedResponse(Response::Packed& packed);
+        /// Keep the response
+        void keepResponseData();
         /// Release a buffer
-        void releaseBuffer(Buffer* buffer);
-
-        /// Get the response status
-        auto getResponseStatus() { return response.getStatus(); }
-        /// Get the response error
-        auto& getResponseErrorMessage() { return response.getError(); }
-        /// Get the response data
-        auto* getResponseBuffer() { return response.getBuffer(); }
+        void releaseBuffer(void* buffer);
 
         /// Parse TQL
         void parseTQL(std::string_view text);
@@ -116,9 +117,6 @@ class WebAPI {
         void runQuery(std::string_view text);
         /// Plan SQL query
         void planQuery(std::string_view text);
-
-        /// Extract parquet file
-        void extractParquet(const uint8_t* buffer, uint32_t bufferSize);
     };
 
   protected:
