@@ -5,7 +5,7 @@
 
 #include "tigon/tools/web/web_api.h"
 
-#include "tigon/proto/web_api.h"
+#include "tigon/proto/web_api_generated.h"
 
 #include "duckdb.hpp"
 #include "common/vector_operations/vector_operations.hpp"
