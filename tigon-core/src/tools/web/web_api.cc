@@ -40,7 +40,7 @@ void WebAPI::Response::clear() {
 
 /// Write the packed response
 void WebAPI::Response::writePacked(WebAPI::Response::Packed& packed) {
-    packed.error = reinterpret_cast<uintptr_t>(error.data());
+    packed.error = error.empty() ? 0 : reinterpret_cast<uintptr_t>(error.data());
     packed.data = reinterpret_cast<uintptr_t>(std::get<0>(data));
     packed.data_size = std::get<1>(data);
     packed.status_code = static_cast<uint32_t>(status_code);

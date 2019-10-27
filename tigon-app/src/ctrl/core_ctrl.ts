@@ -104,9 +104,14 @@ export class CoreController {
         // Read the response
         // XXX: wasm64 will break here.
         let status = this.core.HEAPU32[(response >> 2) + 0] as proto.web_api.StatusCode;
-        let error = this.core.HEAPU32[(response >> 2) + 8];
-        let data = this.core.HEAPU32[(response >> 2) + 16];
-        let dataSize = this.core.HEAPU32[(response >> 2) + 24];
+        let error = this.core.HEAPU32[(response >> 2) + 2];
+        let data = this.core.HEAPU32[(response >> 2) + 4];
+        let dataSize = this.core.HEAPU32[(response >> 2) + 6];
+
+        console.log(status);
+        console.log(error);
+        console.log(data);
+        console.log(dataSize);
 
         // Restore the stack
         this.core.stackRestore(stackPointer);
