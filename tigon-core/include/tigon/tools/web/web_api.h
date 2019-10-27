@@ -28,14 +28,14 @@ class WebAPI {
         public:
         /// The return type
         struct Packed {
-            /// The error string (if any)
-            const char* error;
-            /// The data ptr (if any)
-            void* data;
-            /// The data size
-            uint32_t data_size;
             /// The status code
-            uint32_t status_code;
+            uint64_t status_code;
+            /// The error string (if any)
+            uint64_t error;
+            /// The data ptr (if any)
+            uint64_t data;
+            /// The data size
+            uint64_t data_size;
         } __attribute((packed));
 
         protected:
@@ -48,8 +48,6 @@ class WebAPI {
         std::string error;
         /// The data (if any)
         std::pair<void*, size_t> data;
-        /// Keep the data alive?
-        bool dataLeaked;
 
         /// Request succeeded
         void requestSucceeded(flatbuffers::DetachedBuffer buffer);
@@ -71,8 +69,6 @@ class WebAPI {
 
         /// Clear the response
         void clear();
-        /// Keep the data
-        void keepData() { dataLeaked = true; }
         /// Write packed
         void writePacked(Packed& buffer);
     };
@@ -106,8 +102,6 @@ class WebAPI {
         auto& getResponse() { return response; }
         /// Write the response
         void writePackedResponse(Response::Packed& packed);
-        /// Keep the response
-        void keepResponseData();
         /// Release a buffer
         void releaseBuffer(void* buffer);
 

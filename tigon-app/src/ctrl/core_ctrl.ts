@@ -8,29 +8,34 @@ declare function TigonCore(args: any): any;
 // ALL methods that transitively depend on the core MUST be asynchronous.
 // This will be crucial if we ever want to move the core to a web worker.
 
+
 // A core result
 export class CoreBuffer<ProtoBuffer> {
     protected core: any;
     protected session: number;
-    protected buffer: number;
-    protected bufferReader: ProtoBuffer;
+    protected data: number;
+    protected dataSize: number;
+    protected createReader: (b: flatbuffers.ByteBuffer) => ProtoBuffer;
 
     // Constructor
-    constructor(core: any, session: number, buffer: number, bufferReader: ProtoBuffer) {
+    constructor(core: any, session: number, data: number, dataSize: number, createReader: (b: flatbuffers.ByteBuffer) => ProtoBuffer) {
         this.core = core;
         this.session = session;
-        this.buffer = buffer;
-        this.bufferReader = bufferReader;
+        this.data = data;
+        this.dataSize = dataSize;
+        this.createReader = createReader;
     }
 
     // Get the result
-    public getReader(): ProtoBuffer {
-        return this.bufferReader;
+    public getReader() {
+        let u8B = new Uint8Array(this.core.HEAPU8.subarray(this.data, this.data + this.dataSize));
+        let fB = new flatbuffers.ByteBuffer(u8B);
+        return this.createReader(fB);
     }
 
     // Destroy a query result
     public destroy(): Promise<void> {
-        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [this.session, this.buffer]);
+        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [this.session, this.data]);
         return Promise.resolve();
     }
 };
@@ -81,6 +86,31 @@ export class CoreController {
         }
     }
 
+    // Call a core function with packed response buffer
+    protected callSRet(funcName: string, argTypes: Array<string>, args: Array<any>): [proto.web_api.StatusCode, number, number, number] {
+        // Save the stack
+        var stackPointer = this.core.Runtime.stackSave();
+
+        // Allocate the packed response buffer
+        var response = this.core.allocate(4 * 8, 'i8', Module.ALLOC_STACK);
+        argTypes.unshift('number');
+        args.unshift(response);
+
+        // Do the call
+        this.core.ccall(funcName, 'void', argTypes, args);
+
+        // Read the response
+        // XXX: wasm64 will break here.
+        let status = Module.HEAPU32[(response >> 3) + 0] as proto.web_api.StatusCode;
+        let error = Module.HEAPU32[(response >> 3) + 8];
+        let data = Module.HEAPU32[(response >> 3) + 16];
+        let dataSize = Module.HEAPU32[(response >> 3) + 24];
+
+        // Restore the stack
+        this.core.Runtime.stackRestore(stackPointer);
+        return [status, error, data, dataSize];
+    }
+
     // Create a session 
     public async createSession(): Promise<number> {
         await this.waitUntilReady();
@@ -98,46 +128,26 @@ export class CoreController {
     // Run a query
     public async runQuery(session: number, text: string): Promise<CoreBuffer<proto.web_api.QueryResult>> {
         await this.waitUntilReady();
-        this.core.ccall('tigon_run_query', 'void', ['number', 'string'], [session, text]);
-
-        // Did the query fail?
-        let status = this.core.ccall('tigon_get_response_status', 'number', ['number'], [session]);
+        // Call the core function
+        let [status, error, data, dataSize] = this.callSRet('tigon_run_query', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.Success) {
-            let error = this.core.ccall('tigon_get_response_error_message', 'string', ['number'], [session]);
-            return Promise.reject(new Error(error));
+            return Promise.reject(new Error(""));
         }
-
-        // Get result buffer
-        let buffer = this.core.ccall('tigon_get_response_buffer', 'number', ['number'], [session]);
-        let bData = this.core.ccall('tigon_get_buffer_data', 'number', ['number'], [buffer]);
-        let bSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [buffer]);
-        let u8B = new Uint8Array(this.core.HEAPU8.subarray(bData, bData + bSize));
-        let fB = new flatbuffers.ByteBuffer(u8B);
-        let reader = proto.web_api.QueryResult.getRootAsQueryResult(fB);
-        let result = new CoreBuffer<proto.web_api.QueryResult>(this.core, session, buffer, reader);
-        return Promise.resolve(result);
+        // Get the buffer
+        let buffer = new CoreBuffer(this.core, session, data, dataSize, proto.web_api.QueryResult.getRootAsQueryResult);
+        return Promise.resolve(buffer);
     }
 
     // Plan a query
     public async planQuery(session: number, text: string): Promise<CoreBuffer<proto.web_api.QueryPlan>> {
         await this.waitUntilReady();
-        this.core.ccall('tigon_plan_query', 'void', ['number', 'string'], [session, text]);
-
-        // Did the query fail?
-        let status = this.core.ccall('tigon_get_response_status', 'number', ['number'], [session]);
+        // Call the core function
+        let [status, error, data, dataSize] = this.callSRet('tigon_plan_query', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.Success) {
-            let error = this.core.ccall('tigon_get_response_error_message', 'string', ['number'], [session]);
-            return Promise.reject(new Error(error));
+            return Promise.reject(new Error(""));
         }
-
-        // Get plan buffer
-        let buffer = this.core.ccall('tigon_get_response_buffer', 'number', ['number'], [session]);
-        let bData = this.core.ccall('tigon_get_buffer_data', 'number', ['number'], [buffer]);
-        let bSize = this.core.ccall('tigon_get_buffer_size', 'number', ['number'], [buffer]);
-        let u8B = new Uint8Array(this.core.HEAPU8.subarray(bData, bData + bSize));
-        let fB = new flatbuffers.ByteBuffer(u8B);
-        let reader = proto.web_api.QueryPlan.getRootAsQueryPlan(fB);
-        let plan = new CoreBuffer<proto.web_api.QueryPlan>(this.core, session, buffer, reader);
-        return Promise.resolve(plan);
+        // Get the buffer
+        let buffer = new CoreBuffer(this.core, session, data, dataSize, proto.web_api.QueryPlan.getRootAsQueryPlan);
+        return Promise.resolve(buffer);
     }
 };

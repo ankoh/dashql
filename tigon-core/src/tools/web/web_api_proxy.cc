@@ -44,10 +44,6 @@ void tigon_end_session(WebAPI::Session *session) {
     instance->endSession(session);
 }
 
-/// Keep the response buffer alive
-void tigon_keep_response_buffer(WebAPI::Session *session) {
-    session->keepResponseData();
-}
 /// Release a buffer
 void tigon_release_buffer(WebAPI::Session *session, void* buffer) {
     session->releaseBuffer(buffer);

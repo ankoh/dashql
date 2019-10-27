@@ -35,17 +35,13 @@ using namespace tigon;
 void WebAPI::Response::clear() {
     status_code = proto::StatusCode::Success;
     error.clear();
-    if (dataLeaked) {
-        session.releaseBuffer(std::get<0>(data));
-    }
     data = {nullptr, 0};
-    dataLeaked = false;
 }
 
 /// Write the packed response
 void WebAPI::Response::writePacked(WebAPI::Response::Packed& packed) {
-    packed.error = error.data();
-    packed.data = std::get<0>(data);
+    packed.error = reinterpret_cast<uintptr_t>(error.data());
+    packed.data = reinterpret_cast<uintptr_t>(std::get<0>(data));
     packed.data_size = std::get<1>(data);
     packed.status_code = static_cast<uint32_t>(status_code);
 }
@@ -82,11 +78,6 @@ WebAPI::Session::~Session() {}
 /// Write the packed response
 void WebAPI::Session::writePackedResponse(Response::Packed& packed) {
     response.writePacked(packed);
-}
-
-/// Keep the response data
-void WebAPI::Session::keepResponseData() {
-    response.keepData();
 }
 
 /// Register a buffer

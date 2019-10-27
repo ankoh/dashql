@@ -113,7 +113,6 @@ if(DEFINED ENV{EMSDK})
             _main, \
             _tigon_create_session, \
             _tigon_end_session, \
-            _tigon_keep_response_buffer, \
             _tigon_release_buffer, \
             _tigon_parse_tql, \
             _tigon_run_query, \
