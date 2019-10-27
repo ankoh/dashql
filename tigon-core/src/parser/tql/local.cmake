@@ -18,19 +18,13 @@ set(TQL_SYNTAX ${CMAKE_SOURCE_DIR}/src/parser/tql/tql_syntax.cc)
 set(TQL_CC ${TQL_SCANNER_OUT} ${TQL_PARSER_OUT} ${TQL_COMPILER} ${TQL_PARSE_CONTEXT} ${TQL_SEMANTIC} ${TQL_SYNTAX})
 set(TQL_CC_LINTING ${TQL_COMPILER} ${TQL_PARSE_CONTEXT} ${TQL_SEMANA})
 
-if(NOT EXISTS ${TQL_PARSER_OUT})
-    file(WRITE ${TQL_PARSER_OUT} "")
-endif()
-if(NOT EXISTS ${TQL_PARSER_HEADER_OUT})
-    file(WRITE ${TQL_PARSER_HEADER_OUT} "")
-endif()
-if(NOT EXISTS ${TQL_SCANNER_OUT})
-    file(WRITE ${TQL_SCANNER_OUT} "")
-endif()
+IF(NOT EXISTS ${CMAKE_BINARY_DIR}/include/tigon/parser/tql/)
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include/tigon/parser/tql/)
+ENDIF()
 
 # Generate parser & scanner
-add_custom_target(
-    tigon_tql_parser
+add_custom_command(
+    OUTPUT ${TQL_SCANNER_OUT} ${TQL_PARSER_OUT} ${TQL_PARSER_HEADER_OUT}
     COMMAND ${BISON_EXECUTABLE}
         --defines=${TQL_PARSER_HEADER_OUT}
         --output=${TQL_PARSER_OUT}
@@ -46,7 +40,6 @@ add_custom_target(
 )
 
 add_library(tigon_tql ${TQL_CC})
-add_dependencies(tigon_tql tigon_tql_parser)
 target_include_directories(tigon_tql PRIVATE ${CMAKE_BINARY_DIR}/include)
 target_link_libraries(tigon_tql flatbuffers)
 set_property(TARGET tigon_tql PROPERTY CXX_STANDARD 17)
@@ -56,5 +49,4 @@ set_property(TARGET tigon_tql PROPERTY CXX_STANDARD 17)
 # ---------------------------------------------------------------------------
 
 add_clang_tidy_target(lint_parser_tql "${TQL_CC_LINTING}")
-add_dependencies(lint_parser_tql tigon_tql_parser)
 list(APPEND lint_targets lint_parser_tql)
