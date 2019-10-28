@@ -16,7 +16,7 @@ export abstract class CoreBuffer<ProtoBuffer> {
     }
 
     // Release the buffer
-    public destroy(): Promise<void> {
+    public release(): Promise<void> {
         this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [this.session, this.data]);
         return Promise.resolve();
     }
