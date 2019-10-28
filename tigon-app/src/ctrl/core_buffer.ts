@@ -21,30 +21,31 @@ export abstract class CoreBuffer<ProtoBuffer> {
         return Promise.resolve();
     }
 
+    // Get root as
+    protected abstract getRoot(buffer: flatbuffers.ByteBuffer): ProtoBuffer;
+
     // Get the reader
-    abstract getReader(): ProtoBuffer;
+    public getReader(): ProtoBuffer {
+        let u8B = new Uint8Array(this.core.HEAPU8.subarray(this.data, this.data + this.dataSize));
+        let fB = new flatbuffers.ByteBuffer(u8B);
+        return this.getRoot(fB);
+    }
 };
 
 export class TQLProgramBuffer extends CoreBuffer<proto.tql.TQLProgram> {
-    public getReader() {
-        let u8B = new Uint8Array(this.core.HEAPU8.subarray(this.data, this.data + this.dataSize));
-        let fB = new flatbuffers.ByteBuffer(u8B);
-        return proto.tql.TQLProgram.getRootAsTQLProgram(fB);
+    public getRoot(buffer: flatbuffers.ByteBuffer) {
+        return proto.tql.TQLProgram.getRootAsTQLProgram(buffer);
     }
 }
 
 export class QueryResultBuffer extends CoreBuffer<proto.web_api.QueryResult> {
-    public getReader() {
-        let u8B = new Uint8Array(this.core.HEAPU8.subarray(this.data, this.data + this.dataSize));
-        let fB = new flatbuffers.ByteBuffer(u8B);
-        return proto.web_api.QueryResult.getRootAsQueryResult(fB);
+    public getRoot(buffer: flatbuffers.ByteBuffer) {
+        return proto.web_api.QueryResult.getRootAsQueryResult(buffer);
     }
 }
 
 export class QueryPlanBuffer extends CoreBuffer<proto.web_api.QueryPlan> {
-    public getReader() {
-        let u8B = new Uint8Array(this.core.HEAPU8.subarray(this.data, this.data + this.dataSize));
-        let fB = new flatbuffers.ByteBuffer(u8B);
-        return proto.web_api.QueryPlan.getRootAsQueryPlan(fB);
+    public getRoot(buffer: flatbuffers.ByteBuffer) {
+        return proto.web_api.QueryPlan.getRootAsQueryPlan(buffer);
     }
 }
