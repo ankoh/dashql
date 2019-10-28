@@ -1,5 +1,5 @@
 import * as proto from 'tigon-proto';
-import { flatbuffers } from 'flatbuffers';
+import { CoreBuffer, QueryPlanBuffer, QueryResultBuffer } from './core_buffer';
 
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
@@ -7,38 +7,6 @@ declare function TigonCore(args: any): any;
 // IMPORTANT:
 // ALL methods that transitively depend on the core MUST be asynchronous.
 // This will be crucial if we ever want to move the core to a web worker.
-
-
-// A core result
-export class CoreBuffer<ProtoBuffer> {
-    protected core: any;
-    protected session: number;
-    protected data: number;
-    protected dataSize: number;
-    protected createReader: (b: flatbuffers.ByteBuffer) => ProtoBuffer;
-
-    // Constructor
-    constructor(core: any, session: number, data: number, dataSize: number, createReader: (b: flatbuffers.ByteBuffer) => ProtoBuffer) {
-        this.core = core;
-        this.session = session;
-        this.data = data;
-        this.dataSize = dataSize;
-        this.createReader = createReader;
-    }
-
-    // Get the result
-    public getReader() {
-        let u8B = new Uint8Array(this.core.HEAPU8.subarray(this.data, this.data + this.dataSize));
-        let fB = new flatbuffers.ByteBuffer(u8B);
-        return this.createReader(fB);
-    }
-
-    // Destroy a query result
-    public destroy(): Promise<void> {
-        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [this.session, this.data]);
-        return Promise.resolve();
-    }
-};
 
 // The core controller
 export class CoreController {
@@ -142,20 +110,21 @@ export class CoreController {
             return Promise.reject(new Error(""));
         }
         // Get the buffer
-        let buffer = new CoreBuffer(this.core, session, data, dataSize, proto.web_api.QueryResult.getRootAsQueryResult);
+        let buffer = new QueryResultBuffer(this.core, session, data, dataSize);
         return Promise.resolve(buffer);
     }
 
     // Plan a query
     public async planQuery(session: number, text: string): Promise<CoreBuffer<proto.web_api.QueryPlan>> {
         await this.waitUntilReady();
+
         // Call the core function
         let [status, error, data, dataSize] = this.callSRet('tigon_plan_query', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.Success) {
             return Promise.reject(new Error(""));
         }
         // Get the buffer
-        let buffer = new CoreBuffer(this.core, session, data, dataSize, proto.web_api.QueryPlan.getRootAsQueryPlan);
+        let buffer = new QueryPlanBuffer(this.core, session, data, dataSize);
         return Promise.resolve(buffer);
     }
 };

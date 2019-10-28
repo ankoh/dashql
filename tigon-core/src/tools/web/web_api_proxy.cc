@@ -65,4 +65,8 @@ void tigon_plan_query(WebAPI::Response::Packed* response, WebAPI::Session *sessi
     session->writePackedResponse(*response);
 }
 
+/// Extract data
+void tigon_extract(WebAPI::Response::Packed* response, WebAPI::Session* session, void* tql_program, unsigned tql_statement, void* data) {
+}
+
 }
