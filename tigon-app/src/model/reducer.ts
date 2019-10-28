@@ -27,7 +27,7 @@ export function reducer(state: State.RootState = new State.RootState(), a: RootA
             };
         case ActionType.SET_EXPLORER_DATA_SOURCE:
             if (state.explorerDataSource) {
-                state.explorerDataSource.destroy();
+                state.explorerDataSource.release();
             }
             return {
                 ...state,
@@ -35,7 +35,7 @@ export function reducer(state: State.RootState = new State.RootState(), a: RootA
             };
         case ActionType.SET_EXPLORER_PLAN:
             if (state.explorerPlan) {
-                state.explorerPlan.destroy();
+                state.explorerPlan.release();
             }
             return {
                 ...state,

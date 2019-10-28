@@ -25,6 +25,14 @@ export abstract class CoreBuffer<ProtoBuffer> {
     abstract getReader(): ProtoBuffer;
 };
 
+export class TQLProgramBuffer extends CoreBuffer<proto.tql.TQLProgram> {
+    public getReader() {
+        let u8B = new Uint8Array(this.core.HEAPU8.subarray(this.data, this.data + this.dataSize));
+        let fB = new flatbuffers.ByteBuffer(u8B);
+        return proto.tql.TQLProgram.getRootAsTQLProgram(fB);
+    }
+}
+
 export class QueryResultBuffer extends CoreBuffer<proto.web_api.QueryResult> {
     public getReader() {
         let u8B = new Uint8Array(this.core.HEAPU8.subarray(this.data, this.data + this.dataSize));

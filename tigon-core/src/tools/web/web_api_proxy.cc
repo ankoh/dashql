@@ -66,7 +66,8 @@ void tigon_plan_query(WebAPI::Response::Packed* response, WebAPI::Session *sessi
 }
 
 /// Extract data
-void tigon_extract(WebAPI::Response::Packed* response, WebAPI::Session* session, void* tql_program, unsigned tql_statement, void* data) {
+void tigon_extract_data(WebAPI::Response::Packed* response, WebAPI::Session* session, void* tql_program, unsigned tql_statement, void* data) {
+    spdlog::info("extract data");
 }
 
 }

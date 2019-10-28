@@ -32,7 +32,7 @@ export class DataSource {
         this.timestamp = Date.now();
     }
 
-    public destroy() {}
+    public release() {}
 
     public getColumn(index: number): Column {
         return this.columns[index];
@@ -156,8 +156,8 @@ export class QueryResultDataSource extends DataSource {
         }
     }
 
-    public destroy() {
-        this.result.destroy();
+    public release() {
+        this.result.release();
     }
 
     // Find a chunk

@@ -124,7 +124,8 @@ if(EMSCRIPTEN)
             _tigon_release_buffer, \
             _tigon_parse_tql, \
             _tigon_run_query, \
-            _tigon_plan_query \
+            _tigon_plan_query, \
+            _tigon_extract_data \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\"]' \
     ")

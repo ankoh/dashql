@@ -1,5 +1,5 @@
 import * as proto from 'tigon-proto';
-import { CoreBuffer, QueryPlanBuffer, QueryResultBuffer } from './core_buffer';
+import { CoreBuffer, TQLProgramBuffer, QueryPlanBuffer, QueryResultBuffer } from './core_buffer';
 
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
@@ -98,6 +98,20 @@ export class CoreController {
         await this.waitUntilReady();
         this.core.ccall('tigon_end_session', 'void', ['number'], [session]);
         return Promise.resolve();
+    }
+
+    // Parse TQL
+    public async parseTQL(session: number, text: string): Promise<CoreBuffer<proto.tql.TQLProgram>> {
+        await this.waitUntilReady();
+
+        // Call the core function
+        let [status, error, data, dataSize] = this.callSRet('tigon_parse_tql', ['number', 'string'], [session, text]);
+        if (status !== proto.web_api.StatusCode.Success) {
+            return Promise.reject(new Error(""));
+        }
+        // Get the buffer
+        let buffer = new TQLProgramBuffer(this.core, session, data, dataSize);
+        return Promise.resolve(buffer);
     }
 
     // Run a query

@@ -10,7 +10,7 @@ export class QueryPlan {
         this.buffer = buffer;
     }
 
-    public destroy() {
-        this.buffer.destroy();
+    public release() {
+        this.buffer.release();
     }
 };
