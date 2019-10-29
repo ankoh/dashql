@@ -26,6 +26,9 @@ describe("controller/core", () => {
         test("run SELECT 1;", async () => {
             let session = await sharedCore.createSession();
             let result = await sharedCore.parseTQL(session, "run SELECT 1;");
+            let program = result.getReader();
+
+            expect(program.statementsLength()).toEqual(1);
 
             result.release();
             await sharedCore.endSession(session);
