@@ -172,8 +172,6 @@ static fb::Offset<proto::QueryResultColumn> writeStringResultColumn(fb::FlatBuff
 
 /// Run a query
 void WebAPI::Session::runQuery(std::string_view text) {
-    spdlog::info("run query '{}'", text);
-
     auto queryID = allocateQueryID();
     // Create a new connection
     duckdb::Connection conn{*database};
@@ -281,8 +279,6 @@ void WebAPI::Session::runQuery(std::string_view text) {
     resultBuilder.add_data_chunks(dataChunks);
     auto queryResult = resultBuilder.Finish();
 
-    spdlog::info("query successful");
-
     // Finish the flatbuffer
     builder.Finish(queryResult);
     // Mark as successfull
@@ -291,8 +287,6 @@ void WebAPI::Session::runQuery(std::string_view text) {
 
 /// Plan a sql statement
 void WebAPI::Session::planQuery(std::string_view text) {
-    spdlog::debug("planning '{}'", text);
-
     // Parse the statements
     duckdb::Connection conn{*database};
     duckdb::Parser parser(*conn.context);

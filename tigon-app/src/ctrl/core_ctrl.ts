@@ -76,11 +76,6 @@ export class CoreController {
         let data = this.core.HEAPU32[(response >> 2) + 4];
         let dataSize = this.core.HEAPU32[(response >> 2) + 6];
 
-        console.log(status);
-        console.log(error);
-        console.log(data);
-        console.log(dataSize);
-
         // Restore the stack
         this.core.stackRestore(stackPointer);
         return [status, error, data, dataSize];

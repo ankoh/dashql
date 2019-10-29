@@ -22,11 +22,23 @@ beforeAll(async () => {
 });
 
 describe("controller/core", () => {
-    test("runQuery 'SELECT 1;'", async () => {
-        let session = await sharedCore.createSession();
-        let result = await sharedCore.runQuery(session, "SELECT 1;");
+    describe("parseTQL", () => {
+        test("run SELECT 1;", async () => {
+            let session = await sharedCore.createSession();
+            let result = await sharedCore.parseTQL(session, "run SELECT 1;");
 
-        result.release();
-        await sharedCore.endSession(session);
+            result.release();
+            await sharedCore.endSession(session);
+        });
+    });
+
+    describe("runQuery", () => {
+        test("SELECT 1;", async () => {
+            let session = await sharedCore.createSession();
+            let result = await sharedCore.runQuery(session, "SELECT 1;");
+
+            result.release();
+            await sharedCore.endSession(session);
+        });
     });
 });
