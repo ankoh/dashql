@@ -84,6 +84,7 @@ add_library(tigon
     ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
     ${CMAKE_SOURCE_DIR}/src/extract/json_extract.cc
     ${CMAKE_SOURCE_DIR}/src/parser/sql/sql_parser.cc
+    ${CMAKE_SOURCE_DIR}/src/proto/duckdb_codec.cc
     ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
 )
 
