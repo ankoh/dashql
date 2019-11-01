@@ -71,7 +71,7 @@ inline const TQLType (&EnumValuesTQLType())[6] {
 }
 
 inline const char * const *EnumNamesTQLType() {
-  static const char * const names[7] = {
+  static const char * const names[] = {
     "INTEGER",
     "FLOAT",
     "TEXT",
@@ -108,7 +108,7 @@ inline const TQLHTTPMethod (&EnumValuesTQLHTTPMethod())[3] {
 }
 
 inline const char * const *EnumNamesTQLHTTPMethod() {
-  static const char * const names[4] = {
+  static const char * const names[] = {
     "GET",
     "PUT",
     "POST",
@@ -142,7 +142,7 @@ inline const TQLLoadMethod (&EnumValuesTQLLoadMethod())[3] {
 }
 
 inline const char * const *EnumNamesTQLLoadMethod() {
-  static const char * const names[4] = {
+  static const char * const names[] = {
     "NONE",
     "TQLHTTPLoadMethod",
     "TQLFileLoadMethod",
@@ -161,11 +161,11 @@ template<typename T> struct TQLLoadMethodTraits {
   static const TQLLoadMethod enum_value = TQLLoadMethod::NONE;
 };
 
-template<> struct TQLLoadMethodTraits<tigon::proto::TQLHTTPLoadMethod> {
+template<> struct TQLLoadMethodTraits<TQLHTTPLoadMethod> {
   static const TQLLoadMethod enum_value = TQLLoadMethod::TQLHTTPLoadMethod;
 };
 
-template<> struct TQLLoadMethodTraits<tigon::proto::TQLFileLoadMethod> {
+template<> struct TQLLoadMethodTraits<TQLFileLoadMethod> {
   static const TQLLoadMethod enum_value = TQLLoadMethod::TQLFileLoadMethod;
 };
 
@@ -193,7 +193,7 @@ inline const TQLExtractMethod (&EnumValuesTQLExtractMethod())[4] {
 }
 
 inline const char * const *EnumNamesTQLExtractMethod() {
-  static const char * const names[5] = {
+  static const char * const names[] = {
     "NONE",
     "TQLJSONExtract",
     "TQLCSVExtract",
@@ -213,15 +213,15 @@ template<typename T> struct TQLExtractMethodTraits {
   static const TQLExtractMethod enum_value = TQLExtractMethod::NONE;
 };
 
-template<> struct TQLExtractMethodTraits<tigon::proto::TQLJSONExtract> {
+template<> struct TQLExtractMethodTraits<TQLJSONExtract> {
   static const TQLExtractMethod enum_value = TQLExtractMethod::TQLJSONExtract;
 };
 
-template<> struct TQLExtractMethodTraits<tigon::proto::TQLCSVExtract> {
+template<> struct TQLExtractMethodTraits<TQLCSVExtract> {
   static const TQLExtractMethod enum_value = TQLExtractMethod::TQLCSVExtract;
 };
 
-template<> struct TQLExtractMethodTraits<tigon::proto::TQLParquetExtractor> {
+template<> struct TQLExtractMethodTraits<TQLParquetExtractor> {
   static const TQLExtractMethod enum_value = TQLExtractMethod::TQLParquetExtractor;
 };
 
@@ -267,7 +267,7 @@ inline const TQLDisplayType (&EnumValuesTQLDisplayType())[13] {
 }
 
 inline const char * const *EnumNamesTQLDisplayType() {
-  static const char * const names[14] = {
+  static const char * const names[] = {
     "Area",
     "Bar",
     "Box",
@@ -313,7 +313,7 @@ inline const TQLDisplayTypeFlag (&EnumValuesTQLDisplayTypeFlag())[4] {
 }
 
 inline const char * const *EnumNamesTQLDisplayTypeFlag() {
-  static const char * const names[6] = {
+  static const char * const names[] = {
     "None",
     "Horizontal",
     "Vertical",
@@ -349,7 +349,7 @@ inline const TQLDisplayLengthUnit (&EnumValuesTQLDisplayLengthUnit())[3] {
 }
 
 inline const char * const *EnumNamesTQLDisplayLengthUnit() {
-  static const char * const names[4] = {
+  static const char * const names[] = {
     "Span",
     "Pixel",
     "Percent",
@@ -381,7 +381,7 @@ inline const TQLDisplayAxisScale (&EnumValuesTQLDisplayAxisScale())[2] {
 }
 
 inline const char * const *EnumNamesTQLDisplayAxisScale() {
-  static const char * const names[3] = {
+  static const char * const names[] = {
     "Linear",
     "Logarithmic",
     nullptr
@@ -420,7 +420,7 @@ inline const TQLStatement (&EnumValuesTQLStatement())[6] {
 }
 
 inline const char * const *EnumNamesTQLStatement() {
-  static const char * const names[7] = {
+  static const char * const names[] = {
     "NONE",
     "TQLDisplayStatement",
     "TQLExtractStatement",
@@ -442,23 +442,23 @@ template<typename T> struct TQLStatementTraits {
   static const TQLStatement enum_value = TQLStatement::NONE;
 };
 
-template<> struct TQLStatementTraits<tigon::proto::TQLDisplayStatement> {
+template<> struct TQLStatementTraits<TQLDisplayStatement> {
   static const TQLStatement enum_value = TQLStatement::TQLDisplayStatement;
 };
 
-template<> struct TQLStatementTraits<tigon::proto::TQLExtractStatement> {
+template<> struct TQLStatementTraits<TQLExtractStatement> {
   static const TQLStatement enum_value = TQLStatement::TQLExtractStatement;
 };
 
-template<> struct TQLStatementTraits<tigon::proto::TQLLoadStatement> {
+template<> struct TQLStatementTraits<TQLLoadStatement> {
   static const TQLStatement enum_value = TQLStatement::TQLLoadStatement;
 };
 
-template<> struct TQLStatementTraits<tigon::proto::TQLParameterDeclaration> {
+template<> struct TQLStatementTraits<TQLParameterDeclaration> {
   static const TQLStatement enum_value = TQLStatement::TQLParameterDeclaration;
 };
 
-template<> struct TQLStatementTraits<tigon::proto::TQLQueryStatement> {
+template<> struct TQLStatementTraits<TQLQueryStatement> {
   static const TQLStatement enum_value = TQLStatement::TQLQueryStatement;
 };
 
@@ -504,7 +504,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) TQLDisplayLengthValue FLATBUFFERS_FINAL_C
   TQLDisplayLengthValue() {
     memset(static_cast<void *>(this), 0, sizeof(TQLDisplayLengthValue));
   }
-  TQLDisplayLengthValue(double _value, tigon::proto::TQLDisplayLengthUnit _unit)
+  TQLDisplayLengthValue(double _value, TQLDisplayLengthUnit _unit)
       : value_(flatbuffers::EndianScalar(_value)),
         unit_(flatbuffers::EndianScalar(static_cast<uint8_t>(_unit))),
         padding0__(0),
@@ -515,8 +515,8 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) TQLDisplayLengthValue FLATBUFFERS_FINAL_C
   double value() const {
     return flatbuffers::EndianScalar(value_);
   }
-  tigon::proto::TQLDisplayLengthUnit unit() const {
-    return static_cast<tigon::proto::TQLDisplayLengthUnit>(flatbuffers::EndianScalar(unit_));
+  TQLDisplayLengthUnit unit() const {
+    return static_cast<TQLDisplayLengthUnit>(flatbuffers::EndianScalar(unit_));
   }
 };
 FLATBUFFERS_STRUCT_END(TQLDisplayLengthValue, 16);
@@ -584,8 +584,8 @@ struct TQLParameterDeclaration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Ta
   const flatbuffers::String *parameter_name() const {
     return GetPointer<const flatbuffers::String *>(VT_PARAMETER_NAME);
   }
-  tigon::proto::TQLType parameter_type() const {
-    return static_cast<tigon::proto::TQLType>(GetField<uint8_t>(VT_PARAMETER_TYPE, 0));
+  TQLType parameter_type() const {
+    return static_cast<TQLType>(GetField<uint8_t>(VT_PARAMETER_TYPE, 0));
   }
   int64_t default_value_i64() const {
     return GetField<int64_t>(VT_DEFAULT_VALUE_I64, 0);
@@ -615,7 +615,7 @@ struct TQLParameterDeclarationBuilder {
   void add_parameter_name(flatbuffers::Offset<flatbuffers::String> parameter_name) {
     fbb_.AddOffset(TQLParameterDeclaration::VT_PARAMETER_NAME, parameter_name);
   }
-  void add_parameter_type(tigon::proto::TQLType parameter_type) {
+  void add_parameter_type(TQLType parameter_type) {
     fbb_.AddElement<uint8_t>(TQLParameterDeclaration::VT_PARAMETER_TYPE, static_cast<uint8_t>(parameter_type), 0);
   }
   void add_default_value_i64(int64_t default_value_i64) {
@@ -642,7 +642,7 @@ struct TQLParameterDeclarationBuilder {
 inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclaration(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> parameter_name = 0,
-    tigon::proto::TQLType parameter_type = tigon::proto::TQLType::INTEGER,
+    TQLType parameter_type = TQLType::INTEGER,
     int64_t default_value_i64 = 0,
     double default_value_f64 = 0.0,
     flatbuffers::Offset<flatbuffers::String> default_value_str = 0) {
@@ -658,7 +658,7 @@ inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclaratio
 inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclarationDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *parameter_name = nullptr,
-    tigon::proto::TQLType parameter_type = tigon::proto::TQLType::INTEGER,
+    TQLType parameter_type = TQLType::INTEGER,
     int64_t default_value_i64 = 0,
     double default_value_f64 = 0.0,
     const char *default_value_str = nullptr) {
@@ -682,8 +682,8 @@ struct TQLHTTPLoadMethod FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *http_url() const {
     return GetPointer<const flatbuffers::String *>(VT_HTTP_URL);
   }
-  tigon::proto::TQLHTTPMethod http_method() const {
-    return static_cast<tigon::proto::TQLHTTPMethod>(GetField<uint8_t>(VT_HTTP_METHOD, 0));
+  TQLHTTPMethod http_method() const {
+    return static_cast<TQLHTTPMethod>(GetField<uint8_t>(VT_HTTP_METHOD, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -700,7 +700,7 @@ struct TQLHTTPLoadMethodBuilder {
   void add_http_url(flatbuffers::Offset<flatbuffers::String> http_url) {
     fbb_.AddOffset(TQLHTTPLoadMethod::VT_HTTP_URL, http_url);
   }
-  void add_http_method(tigon::proto::TQLHTTPMethod http_method) {
+  void add_http_method(TQLHTTPMethod http_method) {
     fbb_.AddElement<uint8_t>(TQLHTTPLoadMethod::VT_HTTP_METHOD, static_cast<uint8_t>(http_method), 0);
   }
   explicit TQLHTTPLoadMethodBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -718,7 +718,7 @@ struct TQLHTTPLoadMethodBuilder {
 inline flatbuffers::Offset<TQLHTTPLoadMethod> CreateTQLHTTPLoadMethod(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> http_url = 0,
-    tigon::proto::TQLHTTPMethod http_method = tigon::proto::TQLHTTPMethod::GET) {
+    TQLHTTPMethod http_method = TQLHTTPMethod::GET) {
   TQLHTTPLoadMethodBuilder builder_(_fbb);
   builder_.add_http_url(http_url);
   builder_.add_http_method(http_method);
@@ -728,7 +728,7 @@ inline flatbuffers::Offset<TQLHTTPLoadMethod> CreateTQLHTTPLoadMethod(
 inline flatbuffers::Offset<TQLHTTPLoadMethod> CreateTQLHTTPLoadMethodDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *http_url = nullptr,
-    tigon::proto::TQLHTTPMethod http_method = tigon::proto::TQLHTTPMethod::GET) {
+    TQLHTTPMethod http_method = TQLHTTPMethod::GET) {
   auto http_url__ = http_url ? _fbb.CreateString(http_url) : 0;
   return tigon::proto::CreateTQLHTTPLoadMethod(
       _fbb,
@@ -775,18 +775,18 @@ struct TQLLoadStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *data_name() const {
     return GetPointer<const flatbuffers::String *>(VT_DATA_NAME);
   }
-  tigon::proto::TQLLoadMethod load_method_type() const {
-    return static_cast<tigon::proto::TQLLoadMethod>(GetField<uint8_t>(VT_LOAD_METHOD_TYPE, 0));
+  TQLLoadMethod load_method_type() const {
+    return static_cast<TQLLoadMethod>(GetField<uint8_t>(VT_LOAD_METHOD_TYPE, 0));
   }
   const void *load_method() const {
     return GetPointer<const void *>(VT_LOAD_METHOD);
   }
   template<typename T> const T *load_method_as() const;
-  const tigon::proto::TQLHTTPLoadMethod *load_method_as_TQLHTTPLoadMethod() const {
-    return load_method_type() == tigon::proto::TQLLoadMethod::TQLHTTPLoadMethod ? static_cast<const tigon::proto::TQLHTTPLoadMethod *>(load_method()) : nullptr;
+  const TQLHTTPLoadMethod *load_method_as_TQLHTTPLoadMethod() const {
+    return load_method_type() == TQLLoadMethod::TQLHTTPLoadMethod ? static_cast<const TQLHTTPLoadMethod *>(load_method()) : nullptr;
   }
-  const tigon::proto::TQLFileLoadMethod *load_method_as_TQLFileLoadMethod() const {
-    return load_method_type() == tigon::proto::TQLLoadMethod::TQLFileLoadMethod ? static_cast<const tigon::proto::TQLFileLoadMethod *>(load_method()) : nullptr;
+  const TQLFileLoadMethod *load_method_as_TQLFileLoadMethod() const {
+    return load_method_type() == TQLLoadMethod::TQLFileLoadMethod ? static_cast<const TQLFileLoadMethod *>(load_method()) : nullptr;
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -799,11 +799,11 @@ struct TQLLoadStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-template<> inline const tigon::proto::TQLHTTPLoadMethod *TQLLoadStatement::load_method_as<tigon::proto::TQLHTTPLoadMethod>() const {
+template<> inline const TQLHTTPLoadMethod *TQLLoadStatement::load_method_as<TQLHTTPLoadMethod>() const {
   return load_method_as_TQLHTTPLoadMethod();
 }
 
-template<> inline const tigon::proto::TQLFileLoadMethod *TQLLoadStatement::load_method_as<tigon::proto::TQLFileLoadMethod>() const {
+template<> inline const TQLFileLoadMethod *TQLLoadStatement::load_method_as<TQLFileLoadMethod>() const {
   return load_method_as_TQLFileLoadMethod();
 }
 
@@ -813,7 +813,7 @@ struct TQLLoadStatementBuilder {
   void add_data_name(flatbuffers::Offset<flatbuffers::String> data_name) {
     fbb_.AddOffset(TQLLoadStatement::VT_DATA_NAME, data_name);
   }
-  void add_load_method_type(tigon::proto::TQLLoadMethod load_method_type) {
+  void add_load_method_type(TQLLoadMethod load_method_type) {
     fbb_.AddElement<uint8_t>(TQLLoadStatement::VT_LOAD_METHOD_TYPE, static_cast<uint8_t>(load_method_type), 0);
   }
   void add_load_method(flatbuffers::Offset<void> load_method) {
@@ -834,7 +834,7 @@ struct TQLLoadStatementBuilder {
 inline flatbuffers::Offset<TQLLoadStatement> CreateTQLLoadStatement(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> data_name = 0,
-    tigon::proto::TQLLoadMethod load_method_type = tigon::proto::TQLLoadMethod::NONE,
+    TQLLoadMethod load_method_type = TQLLoadMethod::NONE,
     flatbuffers::Offset<void> load_method = 0) {
   TQLLoadStatementBuilder builder_(_fbb);
   builder_.add_load_method(load_method);
@@ -846,7 +846,7 @@ inline flatbuffers::Offset<TQLLoadStatement> CreateTQLLoadStatement(
 inline flatbuffers::Offset<TQLLoadStatement> CreateTQLLoadStatementDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *data_name = nullptr,
-    tigon::proto::TQLLoadMethod load_method_type = tigon::proto::TQLLoadMethod::NONE,
+    TQLLoadMethod load_method_type = TQLLoadMethod::NONE,
     flatbuffers::Offset<void> load_method = 0) {
   auto data_name__ = data_name ? _fbb.CreateString(data_name) : 0;
   return tigon::proto::CreateTQLLoadStatement(
@@ -896,8 +896,8 @@ struct TQLCSVColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *column_name() const {
     return GetPointer<const flatbuffers::String *>(VT_COLUMN_NAME);
   }
-  tigon::proto::TQLType column_type() const {
-    return static_cast<tigon::proto::TQLType>(GetField<uint8_t>(VT_COLUMN_TYPE, 0));
+  TQLType column_type() const {
+    return static_cast<TQLType>(GetField<uint8_t>(VT_COLUMN_TYPE, 0));
   }
   const flatbuffers::String *source_name() const {
     return GetPointer<const flatbuffers::String *>(VT_SOURCE_NAME);
@@ -923,7 +923,7 @@ struct TQLCSVColumnBuilder {
   void add_column_name(flatbuffers::Offset<flatbuffers::String> column_name) {
     fbb_.AddOffset(TQLCSVColumn::VT_COLUMN_NAME, column_name);
   }
-  void add_column_type(tigon::proto::TQLType column_type) {
+  void add_column_type(TQLType column_type) {
     fbb_.AddElement<uint8_t>(TQLCSVColumn::VT_COLUMN_TYPE, static_cast<uint8_t>(column_type), 0);
   }
   void add_source_name(flatbuffers::Offset<flatbuffers::String> source_name) {
@@ -947,7 +947,7 @@ struct TQLCSVColumnBuilder {
 inline flatbuffers::Offset<TQLCSVColumn> CreateTQLCSVColumn(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> column_name = 0,
-    tigon::proto::TQLType column_type = tigon::proto::TQLType::INTEGER,
+    TQLType column_type = TQLType::INTEGER,
     flatbuffers::Offset<flatbuffers::String> source_name = 0,
     int32_t source_index = 0) {
   TQLCSVColumnBuilder builder_(_fbb);
@@ -961,7 +961,7 @@ inline flatbuffers::Offset<TQLCSVColumn> CreateTQLCSVColumn(
 inline flatbuffers::Offset<TQLCSVColumn> CreateTQLCSVColumnDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *column_name = nullptr,
-    tigon::proto::TQLType column_type = tigon::proto::TQLType::INTEGER,
+    TQLType column_type = TQLType::INTEGER,
     const char *source_name = nullptr,
     int32_t source_index = 0) {
   auto column_name__ = column_name ? _fbb.CreateString(column_name) : 0;
@@ -979,8 +979,8 @@ struct TQLCSVExtract FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLUMNS = 4
   };
-  const flatbuffers::Vector<flatbuffers::Offset<tigon::proto::TQLCSVColumn>> *columns() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<tigon::proto::TQLCSVColumn>> *>(VT_COLUMNS);
+  const flatbuffers::Vector<flatbuffers::Offset<TQLCSVColumn>> *columns() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TQLCSVColumn>> *>(VT_COLUMNS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -994,7 +994,7 @@ struct TQLCSVExtract FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct TQLCSVExtractBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_columns(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tigon::proto::TQLCSVColumn>>> columns) {
+  void add_columns(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TQLCSVColumn>>> columns) {
     fbb_.AddOffset(TQLCSVExtract::VT_COLUMNS, columns);
   }
   explicit TQLCSVExtractBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1011,7 +1011,7 @@ struct TQLCSVExtractBuilder {
 
 inline flatbuffers::Offset<TQLCSVExtract> CreateTQLCSVExtract(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tigon::proto::TQLCSVColumn>>> columns = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TQLCSVColumn>>> columns = 0) {
   TQLCSVExtractBuilder builder_(_fbb);
   builder_.add_columns(columns);
   return builder_.Finish();
@@ -1019,8 +1019,8 @@ inline flatbuffers::Offset<TQLCSVExtract> CreateTQLCSVExtract(
 
 inline flatbuffers::Offset<TQLCSVExtract> CreateTQLCSVExtractDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<tigon::proto::TQLCSVColumn>> *columns = nullptr) {
-  auto columns__ = columns ? _fbb.CreateVector<flatbuffers::Offset<tigon::proto::TQLCSVColumn>>(*columns) : 0;
+    const std::vector<flatbuffers::Offset<TQLCSVColumn>> *columns = nullptr) {
+  auto columns__ = columns ? _fbb.CreateVector<flatbuffers::Offset<TQLCSVColumn>>(*columns) : 0;
   return tigon::proto::CreateTQLCSVExtract(
       _fbb,
       columns__);
@@ -1066,21 +1066,21 @@ struct TQLExtractStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   const flatbuffers::String *extract_name() const {
     return GetPointer<const flatbuffers::String *>(VT_EXTRACT_NAME);
   }
-  tigon::proto::TQLExtractMethod extract_method_type() const {
-    return static_cast<tigon::proto::TQLExtractMethod>(GetField<uint8_t>(VT_EXTRACT_METHOD_TYPE, 0));
+  TQLExtractMethod extract_method_type() const {
+    return static_cast<TQLExtractMethod>(GetField<uint8_t>(VT_EXTRACT_METHOD_TYPE, 0));
   }
   const void *extract_method() const {
     return GetPointer<const void *>(VT_EXTRACT_METHOD);
   }
   template<typename T> const T *extract_method_as() const;
-  const tigon::proto::TQLJSONExtract *extract_method_as_TQLJSONExtract() const {
-    return extract_method_type() == tigon::proto::TQLExtractMethod::TQLJSONExtract ? static_cast<const tigon::proto::TQLJSONExtract *>(extract_method()) : nullptr;
+  const TQLJSONExtract *extract_method_as_TQLJSONExtract() const {
+    return extract_method_type() == TQLExtractMethod::TQLJSONExtract ? static_cast<const TQLJSONExtract *>(extract_method()) : nullptr;
   }
-  const tigon::proto::TQLCSVExtract *extract_method_as_TQLCSVExtract() const {
-    return extract_method_type() == tigon::proto::TQLExtractMethod::TQLCSVExtract ? static_cast<const tigon::proto::TQLCSVExtract *>(extract_method()) : nullptr;
+  const TQLCSVExtract *extract_method_as_TQLCSVExtract() const {
+    return extract_method_type() == TQLExtractMethod::TQLCSVExtract ? static_cast<const TQLCSVExtract *>(extract_method()) : nullptr;
   }
-  const tigon::proto::TQLParquetExtractor *extract_method_as_TQLParquetExtractor() const {
-    return extract_method_type() == tigon::proto::TQLExtractMethod::TQLParquetExtractor ? static_cast<const tigon::proto::TQLParquetExtractor *>(extract_method()) : nullptr;
+  const TQLParquetExtractor *extract_method_as_TQLParquetExtractor() const {
+    return extract_method_type() == TQLExtractMethod::TQLParquetExtractor ? static_cast<const TQLParquetExtractor *>(extract_method()) : nullptr;
   }
   const flatbuffers::String *data_name() const {
     return GetPointer<const flatbuffers::String *>(VT_DATA_NAME);
@@ -1098,15 +1098,15 @@ struct TQLExtractStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   }
 };
 
-template<> inline const tigon::proto::TQLJSONExtract *TQLExtractStatement::extract_method_as<tigon::proto::TQLJSONExtract>() const {
+template<> inline const TQLJSONExtract *TQLExtractStatement::extract_method_as<TQLJSONExtract>() const {
   return extract_method_as_TQLJSONExtract();
 }
 
-template<> inline const tigon::proto::TQLCSVExtract *TQLExtractStatement::extract_method_as<tigon::proto::TQLCSVExtract>() const {
+template<> inline const TQLCSVExtract *TQLExtractStatement::extract_method_as<TQLCSVExtract>() const {
   return extract_method_as_TQLCSVExtract();
 }
 
-template<> inline const tigon::proto::TQLParquetExtractor *TQLExtractStatement::extract_method_as<tigon::proto::TQLParquetExtractor>() const {
+template<> inline const TQLParquetExtractor *TQLExtractStatement::extract_method_as<TQLParquetExtractor>() const {
   return extract_method_as_TQLParquetExtractor();
 }
 
@@ -1116,7 +1116,7 @@ struct TQLExtractStatementBuilder {
   void add_extract_name(flatbuffers::Offset<flatbuffers::String> extract_name) {
     fbb_.AddOffset(TQLExtractStatement::VT_EXTRACT_NAME, extract_name);
   }
-  void add_extract_method_type(tigon::proto::TQLExtractMethod extract_method_type) {
+  void add_extract_method_type(TQLExtractMethod extract_method_type) {
     fbb_.AddElement<uint8_t>(TQLExtractStatement::VT_EXTRACT_METHOD_TYPE, static_cast<uint8_t>(extract_method_type), 0);
   }
   void add_extract_method(flatbuffers::Offset<void> extract_method) {
@@ -1140,7 +1140,7 @@ struct TQLExtractStatementBuilder {
 inline flatbuffers::Offset<TQLExtractStatement> CreateTQLExtractStatement(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> extract_name = 0,
-    tigon::proto::TQLExtractMethod extract_method_type = tigon::proto::TQLExtractMethod::NONE,
+    TQLExtractMethod extract_method_type = TQLExtractMethod::NONE,
     flatbuffers::Offset<void> extract_method = 0,
     flatbuffers::Offset<flatbuffers::String> data_name = 0) {
   TQLExtractStatementBuilder builder_(_fbb);
@@ -1154,7 +1154,7 @@ inline flatbuffers::Offset<TQLExtractStatement> CreateTQLExtractStatement(
 inline flatbuffers::Offset<TQLExtractStatement> CreateTQLExtractStatementDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *extract_name = nullptr,
-    tigon::proto::TQLExtractMethod extract_method_type = tigon::proto::TQLExtractMethod::NONE,
+    TQLExtractMethod extract_method_type = TQLExtractMethod::NONE,
     flatbuffers::Offset<void> extract_method = 0,
     const char *data_name = nullptr) {
   auto extract_name__ = extract_name ? _fbb.CreateString(extract_name) : 0;
@@ -1176,8 +1176,8 @@ struct TQLDisplayColorPalette FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tab
   const flatbuffers::String *color_target() const {
     return GetPointer<const flatbuffers::String *>(VT_COLOR_TARGET);
   }
-  const flatbuffers::Vector<const tigon::proto::TQLDisplayColor *> *palette() const {
-    return GetPointer<const flatbuffers::Vector<const tigon::proto::TQLDisplayColor *> *>(VT_PALETTE);
+  const flatbuffers::Vector<const TQLDisplayColor *> *palette() const {
+    return GetPointer<const flatbuffers::Vector<const TQLDisplayColor *> *>(VT_PALETTE);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1195,7 +1195,7 @@ struct TQLDisplayColorPaletteBuilder {
   void add_color_target(flatbuffers::Offset<flatbuffers::String> color_target) {
     fbb_.AddOffset(TQLDisplayColorPalette::VT_COLOR_TARGET, color_target);
   }
-  void add_palette(flatbuffers::Offset<flatbuffers::Vector<const tigon::proto::TQLDisplayColor *>> palette) {
+  void add_palette(flatbuffers::Offset<flatbuffers::Vector<const TQLDisplayColor *>> palette) {
     fbb_.AddOffset(TQLDisplayColorPalette::VT_PALETTE, palette);
   }
   explicit TQLDisplayColorPaletteBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1213,7 +1213,7 @@ struct TQLDisplayColorPaletteBuilder {
 inline flatbuffers::Offset<TQLDisplayColorPalette> CreateTQLDisplayColorPalette(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> color_target = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const tigon::proto::TQLDisplayColor *>> palette = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<const TQLDisplayColor *>> palette = 0) {
   TQLDisplayColorPaletteBuilder builder_(_fbb);
   builder_.add_palette(palette);
   builder_.add_color_target(color_target);
@@ -1223,9 +1223,9 @@ inline flatbuffers::Offset<TQLDisplayColorPalette> CreateTQLDisplayColorPalette(
 inline flatbuffers::Offset<TQLDisplayColorPalette> CreateTQLDisplayColorPaletteDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *color_target = nullptr,
-    const std::vector<tigon::proto::TQLDisplayColor> *palette = nullptr) {
+    const std::vector<TQLDisplayColor> *palette = nullptr) {
   auto color_target__ = color_target ? _fbb.CreateString(color_target) : 0;
-  auto palette__ = palette ? _fbb.CreateVectorOfStructs<tigon::proto::TQLDisplayColor>(*palette) : 0;
+  auto palette__ = palette ? _fbb.CreateVectorOfStructs<TQLDisplayColor>(*palette) : 0;
   return tigon::proto::CreateTQLDisplayColorPalette(
       _fbb,
       color_target__,
@@ -1240,24 +1240,24 @@ struct TQLDisplayLength FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LARGE = 8,
     VT_EXTRA_LARGE = 10
   };
-  const tigon::proto::TQLDisplayLengthValue *small() const {
-    return GetStruct<const tigon::proto::TQLDisplayLengthValue *>(VT_SMALL);
+  const TQLDisplayLengthValue *small() const {
+    return GetStruct<const TQLDisplayLengthValue *>(VT_SMALL);
   }
-  const tigon::proto::TQLDisplayLengthValue *medium() const {
-    return GetStruct<const tigon::proto::TQLDisplayLengthValue *>(VT_MEDIUM);
+  const TQLDisplayLengthValue *medium() const {
+    return GetStruct<const TQLDisplayLengthValue *>(VT_MEDIUM);
   }
-  const tigon::proto::TQLDisplayLengthValue *large() const {
-    return GetStruct<const tigon::proto::TQLDisplayLengthValue *>(VT_LARGE);
+  const TQLDisplayLengthValue *large() const {
+    return GetStruct<const TQLDisplayLengthValue *>(VT_LARGE);
   }
-  const tigon::proto::TQLDisplayLengthValue *extra_large() const {
-    return GetStruct<const tigon::proto::TQLDisplayLengthValue *>(VT_EXTRA_LARGE);
+  const TQLDisplayLengthValue *extra_large() const {
+    return GetStruct<const TQLDisplayLengthValue *>(VT_EXTRA_LARGE);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<tigon::proto::TQLDisplayLengthValue>(verifier, VT_SMALL) &&
-           VerifyField<tigon::proto::TQLDisplayLengthValue>(verifier, VT_MEDIUM) &&
-           VerifyField<tigon::proto::TQLDisplayLengthValue>(verifier, VT_LARGE) &&
-           VerifyField<tigon::proto::TQLDisplayLengthValue>(verifier, VT_EXTRA_LARGE) &&
+           VerifyField<TQLDisplayLengthValue>(verifier, VT_SMALL) &&
+           VerifyField<TQLDisplayLengthValue>(verifier, VT_MEDIUM) &&
+           VerifyField<TQLDisplayLengthValue>(verifier, VT_LARGE) &&
+           VerifyField<TQLDisplayLengthValue>(verifier, VT_EXTRA_LARGE) &&
            verifier.EndTable();
   }
 };
@@ -1265,16 +1265,16 @@ struct TQLDisplayLength FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct TQLDisplayLengthBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_small(const tigon::proto::TQLDisplayLengthValue *small) {
+  void add_small(const TQLDisplayLengthValue *small) {
     fbb_.AddStruct(TQLDisplayLength::VT_SMALL, small);
   }
-  void add_medium(const tigon::proto::TQLDisplayLengthValue *medium) {
+  void add_medium(const TQLDisplayLengthValue *medium) {
     fbb_.AddStruct(TQLDisplayLength::VT_MEDIUM, medium);
   }
-  void add_large(const tigon::proto::TQLDisplayLengthValue *large) {
+  void add_large(const TQLDisplayLengthValue *large) {
     fbb_.AddStruct(TQLDisplayLength::VT_LARGE, large);
   }
-  void add_extra_large(const tigon::proto::TQLDisplayLengthValue *extra_large) {
+  void add_extra_large(const TQLDisplayLengthValue *extra_large) {
     fbb_.AddStruct(TQLDisplayLength::VT_EXTRA_LARGE, extra_large);
   }
   explicit TQLDisplayLengthBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1291,10 +1291,10 @@ struct TQLDisplayLengthBuilder {
 
 inline flatbuffers::Offset<TQLDisplayLength> CreateTQLDisplayLength(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const tigon::proto::TQLDisplayLengthValue *small = 0,
-    const tigon::proto::TQLDisplayLengthValue *medium = 0,
-    const tigon::proto::TQLDisplayLengthValue *large = 0,
-    const tigon::proto::TQLDisplayLengthValue *extra_large = 0) {
+    const TQLDisplayLengthValue *small = 0,
+    const TQLDisplayLengthValue *medium = 0,
+    const TQLDisplayLengthValue *large = 0,
+    const TQLDisplayLengthValue *extra_large = 0) {
   TQLDisplayLengthBuilder builder_(_fbb);
   builder_.add_extra_large(extra_large);
   builder_.add_large(large);
@@ -1309,11 +1309,11 @@ struct TQLDisplayLayout FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_WIDTH = 4,
     VT_HEIGHT = 6
   };
-  const tigon::proto::TQLDisplayLength *width() const {
-    return GetPointer<const tigon::proto::TQLDisplayLength *>(VT_WIDTH);
+  const TQLDisplayLength *width() const {
+    return GetPointer<const TQLDisplayLength *>(VT_WIDTH);
   }
-  const tigon::proto::TQLDisplayLength *height() const {
-    return GetPointer<const tigon::proto::TQLDisplayLength *>(VT_HEIGHT);
+  const TQLDisplayLength *height() const {
+    return GetPointer<const TQLDisplayLength *>(VT_HEIGHT);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1328,10 +1328,10 @@ struct TQLDisplayLayout FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct TQLDisplayLayoutBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_width(flatbuffers::Offset<tigon::proto::TQLDisplayLength> width) {
+  void add_width(flatbuffers::Offset<TQLDisplayLength> width) {
     fbb_.AddOffset(TQLDisplayLayout::VT_WIDTH, width);
   }
-  void add_height(flatbuffers::Offset<tigon::proto::TQLDisplayLength> height) {
+  void add_height(flatbuffers::Offset<TQLDisplayLength> height) {
     fbb_.AddOffset(TQLDisplayLayout::VT_HEIGHT, height);
   }
   explicit TQLDisplayLayoutBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1348,8 +1348,8 @@ struct TQLDisplayLayoutBuilder {
 
 inline flatbuffers::Offset<TQLDisplayLayout> CreateTQLDisplayLayout(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<tigon::proto::TQLDisplayLength> width = 0,
-    flatbuffers::Offset<tigon::proto::TQLDisplayLength> height = 0) {
+    flatbuffers::Offset<TQLDisplayLength> width = 0,
+    flatbuffers::Offset<TQLDisplayLength> height = 0) {
   TQLDisplayLayoutBuilder builder_(_fbb);
   builder_.add_height(height);
   builder_.add_width(width);
@@ -1365,8 +1365,8 @@ struct TQLDisplayAxis FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *column() const {
     return GetPointer<const flatbuffers::String *>(VT_COLUMN);
   }
-  tigon::proto::TQLDisplayAxisScale scale() const {
-    return static_cast<tigon::proto::TQLDisplayAxisScale>(GetField<uint8_t>(VT_SCALE, 0));
+  TQLDisplayAxisScale scale() const {
+    return static_cast<TQLDisplayAxisScale>(GetField<uint8_t>(VT_SCALE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1383,7 +1383,7 @@ struct TQLDisplayAxisBuilder {
   void add_column(flatbuffers::Offset<flatbuffers::String> column) {
     fbb_.AddOffset(TQLDisplayAxis::VT_COLUMN, column);
   }
-  void add_scale(tigon::proto::TQLDisplayAxisScale scale) {
+  void add_scale(TQLDisplayAxisScale scale) {
     fbb_.AddElement<uint8_t>(TQLDisplayAxis::VT_SCALE, static_cast<uint8_t>(scale), 0);
   }
   explicit TQLDisplayAxisBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1401,7 +1401,7 @@ struct TQLDisplayAxisBuilder {
 inline flatbuffers::Offset<TQLDisplayAxis> CreateTQLDisplayAxis(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> column = 0,
-    tigon::proto::TQLDisplayAxisScale scale = tigon::proto::TQLDisplayAxisScale::Linear) {
+    TQLDisplayAxisScale scale = TQLDisplayAxisScale::Linear) {
   TQLDisplayAxisBuilder builder_(_fbb);
   builder_.add_column(column);
   builder_.add_scale(scale);
@@ -1411,7 +1411,7 @@ inline flatbuffers::Offset<TQLDisplayAxis> CreateTQLDisplayAxis(
 inline flatbuffers::Offset<TQLDisplayAxis> CreateTQLDisplayAxisDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *column = nullptr,
-    tigon::proto::TQLDisplayAxisScale scale = tigon::proto::TQLDisplayAxisScale::Linear) {
+    TQLDisplayAxisScale scale = TQLDisplayAxisScale::Linear) {
   auto column__ = column ? _fbb.CreateString(column) : 0;
   return tigon::proto::CreateTQLDisplayAxis(
       _fbb,
@@ -1425,11 +1425,11 @@ struct TQLDisplayAxes FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_X = 4,
     VT_Y = 6
   };
-  const tigon::proto::TQLDisplayAxis *x() const {
-    return GetPointer<const tigon::proto::TQLDisplayAxis *>(VT_X);
+  const TQLDisplayAxis *x() const {
+    return GetPointer<const TQLDisplayAxis *>(VT_X);
   }
-  const tigon::proto::TQLDisplayAxis *y() const {
-    return GetPointer<const tigon::proto::TQLDisplayAxis *>(VT_Y);
+  const TQLDisplayAxis *y() const {
+    return GetPointer<const TQLDisplayAxis *>(VT_Y);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1444,10 +1444,10 @@ struct TQLDisplayAxes FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct TQLDisplayAxesBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_x(flatbuffers::Offset<tigon::proto::TQLDisplayAxis> x) {
+  void add_x(flatbuffers::Offset<TQLDisplayAxis> x) {
     fbb_.AddOffset(TQLDisplayAxes::VT_X, x);
   }
-  void add_y(flatbuffers::Offset<tigon::proto::TQLDisplayAxis> y) {
+  void add_y(flatbuffers::Offset<TQLDisplayAxis> y) {
     fbb_.AddOffset(TQLDisplayAxes::VT_Y, y);
   }
   explicit TQLDisplayAxesBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1464,8 +1464,8 @@ struct TQLDisplayAxesBuilder {
 
 inline flatbuffers::Offset<TQLDisplayAxes> CreateTQLDisplayAxes(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<tigon::proto::TQLDisplayAxis> x = 0,
-    flatbuffers::Offset<tigon::proto::TQLDisplayAxis> y = 0) {
+    flatbuffers::Offset<TQLDisplayAxis> x = 0,
+    flatbuffers::Offset<TQLDisplayAxis> y = 0) {
   TQLDisplayAxesBuilder builder_(_fbb);
   builder_.add_y(y);
   builder_.add_x(x);
@@ -1485,20 +1485,20 @@ struct TQLDisplayStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   const flatbuffers::String *display_name() const {
     return GetPointer<const flatbuffers::String *>(VT_DISPLAY_NAME);
   }
-  tigon::proto::TQLDisplayType display_type() const {
-    return static_cast<tigon::proto::TQLDisplayType>(GetField<uint8_t>(VT_DISPLAY_TYPE, 0));
+  TQLDisplayType display_type() const {
+    return static_cast<TQLDisplayType>(GetField<uint8_t>(VT_DISPLAY_TYPE, 0));
   }
   uint16_t display_type_flags() const {
     return GetField<uint16_t>(VT_DISPLAY_TYPE_FLAGS, 0);
   }
-  const tigon::proto::TQLDisplayLayout *layout() const {
-    return GetPointer<const tigon::proto::TQLDisplayLayout *>(VT_LAYOUT);
+  const TQLDisplayLayout *layout() const {
+    return GetPointer<const TQLDisplayLayout *>(VT_LAYOUT);
   }
-  const tigon::proto::TQLDisplayColor *color() const {
-    return GetStruct<const tigon::proto::TQLDisplayColor *>(VT_COLOR);
+  const TQLDisplayColor *color() const {
+    return GetStruct<const TQLDisplayColor *>(VT_COLOR);
   }
-  const tigon::proto::TQLDisplayAxes *axes() const {
-    return GetPointer<const tigon::proto::TQLDisplayAxes *>(VT_AXES);
+  const TQLDisplayAxes *axes() const {
+    return GetPointer<const TQLDisplayAxes *>(VT_AXES);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1508,7 +1508,7 @@ struct TQLDisplayStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
            VerifyField<uint16_t>(verifier, VT_DISPLAY_TYPE_FLAGS) &&
            VerifyOffset(verifier, VT_LAYOUT) &&
            verifier.VerifyTable(layout()) &&
-           VerifyField<tigon::proto::TQLDisplayColor>(verifier, VT_COLOR) &&
+           VerifyField<TQLDisplayColor>(verifier, VT_COLOR) &&
            VerifyOffset(verifier, VT_AXES) &&
            verifier.VerifyTable(axes()) &&
            verifier.EndTable();
@@ -1521,19 +1521,19 @@ struct TQLDisplayStatementBuilder {
   void add_display_name(flatbuffers::Offset<flatbuffers::String> display_name) {
     fbb_.AddOffset(TQLDisplayStatement::VT_DISPLAY_NAME, display_name);
   }
-  void add_display_type(tigon::proto::TQLDisplayType display_type) {
+  void add_display_type(TQLDisplayType display_type) {
     fbb_.AddElement<uint8_t>(TQLDisplayStatement::VT_DISPLAY_TYPE, static_cast<uint8_t>(display_type), 0);
   }
   void add_display_type_flags(uint16_t display_type_flags) {
     fbb_.AddElement<uint16_t>(TQLDisplayStatement::VT_DISPLAY_TYPE_FLAGS, display_type_flags, 0);
   }
-  void add_layout(flatbuffers::Offset<tigon::proto::TQLDisplayLayout> layout) {
+  void add_layout(flatbuffers::Offset<TQLDisplayLayout> layout) {
     fbb_.AddOffset(TQLDisplayStatement::VT_LAYOUT, layout);
   }
-  void add_color(const tigon::proto::TQLDisplayColor *color) {
+  void add_color(const TQLDisplayColor *color) {
     fbb_.AddStruct(TQLDisplayStatement::VT_COLOR, color);
   }
-  void add_axes(flatbuffers::Offset<tigon::proto::TQLDisplayAxes> axes) {
+  void add_axes(flatbuffers::Offset<TQLDisplayAxes> axes) {
     fbb_.AddOffset(TQLDisplayStatement::VT_AXES, axes);
   }
   explicit TQLDisplayStatementBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1551,11 +1551,11 @@ struct TQLDisplayStatementBuilder {
 inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatement(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> display_name = 0,
-    tigon::proto::TQLDisplayType display_type = tigon::proto::TQLDisplayType::Area,
+    TQLDisplayType display_type = TQLDisplayType::Area,
     uint16_t display_type_flags = 0,
-    flatbuffers::Offset<tigon::proto::TQLDisplayLayout> layout = 0,
-    const tigon::proto::TQLDisplayColor *color = 0,
-    flatbuffers::Offset<tigon::proto::TQLDisplayAxes> axes = 0) {
+    flatbuffers::Offset<TQLDisplayLayout> layout = 0,
+    const TQLDisplayColor *color = 0,
+    flatbuffers::Offset<TQLDisplayAxes> axes = 0) {
   TQLDisplayStatementBuilder builder_(_fbb);
   builder_.add_axes(axes);
   builder_.add_color(color);
@@ -1569,11 +1569,11 @@ inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatement(
 inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatementDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *display_name = nullptr,
-    tigon::proto::TQLDisplayType display_type = tigon::proto::TQLDisplayType::Area,
+    TQLDisplayType display_type = TQLDisplayType::Area,
     uint16_t display_type_flags = 0,
-    flatbuffers::Offset<tigon::proto::TQLDisplayLayout> layout = 0,
-    const tigon::proto::TQLDisplayColor *color = 0,
-    flatbuffers::Offset<tigon::proto::TQLDisplayAxes> axes = 0) {
+    flatbuffers::Offset<TQLDisplayLayout> layout = 0,
+    const TQLDisplayColor *color = 0,
+    flatbuffers::Offset<TQLDisplayAxes> axes = 0) {
   auto display_name__ = display_name ? _fbb.CreateString(display_name) : 0;
   return tigon::proto::CreateTQLDisplayStatement(
       _fbb,
@@ -1657,11 +1657,11 @@ inline bool VerifyTQLLoadMethod(flatbuffers::Verifier &verifier, const void *obj
       return true;
     }
     case TQLLoadMethod::TQLHTTPLoadMethod: {
-      auto ptr = reinterpret_cast<const tigon::proto::TQLHTTPLoadMethod *>(obj);
+      auto ptr = reinterpret_cast<const TQLHTTPLoadMethod *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case TQLLoadMethod::TQLFileLoadMethod: {
-      auto ptr = reinterpret_cast<const tigon::proto::TQLFileLoadMethod *>(obj);
+      auto ptr = reinterpret_cast<const TQLFileLoadMethod *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;
@@ -1686,15 +1686,15 @@ inline bool VerifyTQLExtractMethod(flatbuffers::Verifier &verifier, const void *
       return true;
     }
     case TQLExtractMethod::TQLJSONExtract: {
-      auto ptr = reinterpret_cast<const tigon::proto::TQLJSONExtract *>(obj);
+      auto ptr = reinterpret_cast<const TQLJSONExtract *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case TQLExtractMethod::TQLCSVExtract: {
-      auto ptr = reinterpret_cast<const tigon::proto::TQLCSVExtract *>(obj);
+      auto ptr = reinterpret_cast<const TQLCSVExtract *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case TQLExtractMethod::TQLParquetExtractor: {
-      auto ptr = reinterpret_cast<const tigon::proto::TQLParquetExtractor *>(obj);
+      auto ptr = reinterpret_cast<const TQLParquetExtractor *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;
@@ -1719,23 +1719,23 @@ inline bool VerifyTQLStatement(flatbuffers::Verifier &verifier, const void *obj,
       return true;
     }
     case TQLStatement::TQLDisplayStatement: {
-      auto ptr = reinterpret_cast<const tigon::proto::TQLDisplayStatement *>(obj);
+      auto ptr = reinterpret_cast<const TQLDisplayStatement *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case TQLStatement::TQLExtractStatement: {
-      auto ptr = reinterpret_cast<const tigon::proto::TQLExtractStatement *>(obj);
+      auto ptr = reinterpret_cast<const TQLExtractStatement *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case TQLStatement::TQLLoadStatement: {
-      auto ptr = reinterpret_cast<const tigon::proto::TQLLoadStatement *>(obj);
+      auto ptr = reinterpret_cast<const TQLLoadStatement *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case TQLStatement::TQLParameterDeclaration: {
-      auto ptr = reinterpret_cast<const tigon::proto::TQLParameterDeclaration *>(obj);
+      auto ptr = reinterpret_cast<const TQLParameterDeclaration *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case TQLStatement::TQLQueryStatement: {
-      auto ptr = reinterpret_cast<const tigon::proto::TQLQueryStatement *>(obj);
+      auto ptr = reinterpret_cast<const TQLQueryStatement *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;

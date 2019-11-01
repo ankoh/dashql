@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/tools/web/web_api.h"
-#include "tigon/proto/web_api_generated.h"
+#include "tigon/proto/duckdb_generated.h"
 #include <gtest/gtest.h>
 #include <sstream>
 

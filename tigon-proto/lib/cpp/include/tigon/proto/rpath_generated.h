@@ -41,7 +41,7 @@ inline const RPathComponent (&EnumValuesRPathComponent())[5] {
 }
 
 inline const char * const *EnumNamesRPathComponent() {
-  static const char * const names[6] = {
+  static const char * const names[] = {
     "NONE",
     "RPathArraySlice",
     "RPathArrayIndexes",
@@ -62,19 +62,19 @@ template<typename T> struct RPathComponentTraits {
   static const RPathComponent enum_value = RPathComponent::NONE;
 };
 
-template<> struct RPathComponentTraits<tigon::proto::RPathArraySlice> {
+template<> struct RPathComponentTraits<RPathArraySlice> {
   static const RPathComponent enum_value = RPathComponent::RPathArraySlice;
 };
 
-template<> struct RPathComponentTraits<tigon::proto::RPathArrayIndexes> {
+template<> struct RPathComponentTraits<RPathArrayIndexes> {
   static const RPathComponent enum_value = RPathComponent::RPathArrayIndexes;
 };
 
-template<> struct RPathComponentTraits<tigon::proto::RPathChildMember> {
+template<> struct RPathComponentTraits<RPathChildMember> {
   static const RPathComponent enum_value = RPathComponent::RPathChildMember;
 };
 
-template<> struct RPathComponentTraits<tigon::proto::RPathDescendantMember> {
+template<> struct RPathComponentTraits<RPathDescendantMember> {
   static const RPathComponent enum_value = RPathComponent::RPathDescendantMember;
 };
 
@@ -264,19 +264,19 @@ inline bool VerifyRPathComponent(flatbuffers::Verifier &verifier, const void *ob
       return true;
     }
     case RPathComponent::RPathArraySlice: {
-      auto ptr = reinterpret_cast<const tigon::proto::RPathArraySlice *>(obj);
+      auto ptr = reinterpret_cast<const RPathArraySlice *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case RPathComponent::RPathArrayIndexes: {
-      auto ptr = reinterpret_cast<const tigon::proto::RPathArrayIndexes *>(obj);
+      auto ptr = reinterpret_cast<const RPathArrayIndexes *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case RPathComponent::RPathChildMember: {
-      auto ptr = reinterpret_cast<const tigon::proto::RPathChildMember *>(obj);
+      auto ptr = reinterpret_cast<const RPathChildMember *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case RPathComponent::RPathDescendantMember: {
-      auto ptr = reinterpret_cast<const tigon::proto::RPathDescendantMember *>(obj);
+      auto ptr = reinterpret_cast<const RPathDescendantMember *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return false;

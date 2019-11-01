@@ -41,15 +41,6 @@ static getRootAsRPathArraySlice(bb:flatbuffers.ByteBuffer, obj?:RPathArraySlice)
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param RPathArraySlice= obj
- * @returns RPathArraySlice
- */
-static getSizePrefixedRootAsRPathArraySlice(bb:flatbuffers.ByteBuffer, obj?:RPathArraySlice):RPathArraySlice {
-  return (obj || new RPathArraySlice).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param flatbuffers.Builder builder
  */
 static startRPathArraySlice(builder:flatbuffers.Builder) {
@@ -94,15 +85,6 @@ __init(i:number, bb:flatbuffers.ByteBuffer):RPathArrayIndexes {
  * @returns RPathArrayIndexes
  */
 static getRootAsRPathArrayIndexes(bb:flatbuffers.ByteBuffer, obj?:RPathArrayIndexes):RPathArrayIndexes {
-  return (obj || new RPathArrayIndexes).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param RPathArrayIndexes= obj
- * @returns RPathArrayIndexes
- */
-static getSizePrefixedRootAsRPathArrayIndexes(bb:flatbuffers.ByteBuffer, obj?:RPathArrayIndexes):RPathArrayIndexes {
   return (obj || new RPathArrayIndexes).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -155,15 +137,6 @@ static getRootAsRPathChildMember(bb:flatbuffers.ByteBuffer, obj?:RPathChildMembe
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param RPathChildMember= obj
- * @returns RPathChildMember
- */
-static getSizePrefixedRootAsRPathChildMember(bb:flatbuffers.ByteBuffer, obj?:RPathChildMember):RPathChildMember {
-  return (obj || new RPathChildMember).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param flatbuffers.Builder builder
  */
 static startRPathChildMember(builder:flatbuffers.Builder) {
@@ -212,15 +185,6 @@ static getRootAsRPathDescendantMember(bb:flatbuffers.ByteBuffer, obj?:RPathDesce
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param RPathDescendantMember= obj
- * @returns RPathDescendantMember
- */
-static getSizePrefixedRootAsRPathDescendantMember(bb:flatbuffers.ByteBuffer, obj?:RPathDescendantMember):RPathDescendantMember {
-  return (obj || new RPathDescendantMember).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param flatbuffers.Builder builder
  */
 static startRPathDescendantMember(builder:flatbuffers.Builder) {
@@ -265,15 +229,6 @@ __init(i:number, bb:flatbuffers.ByteBuffer):RPath {
  * @returns RPath
  */
 static getRootAsRPath(bb:flatbuffers.ByteBuffer, obj?:RPath):RPath {
-  return (obj || new RPath).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param RPath= obj
- * @returns RPath
- */
-static getSizePrefixedRootAsRPath(bb:flatbuffers.ByteBuffer, obj?:RPath):RPath {
   return (obj || new RPath).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 

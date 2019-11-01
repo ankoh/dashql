@@ -146,15 +146,6 @@ static getRootAsTQLQueryStatement(bb:flatbuffers.ByteBuffer, obj?:TQLQueryStatem
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLQueryStatement= obj
- * @returns TQLQueryStatement
- */
-static getSizePrefixedRootAsTQLQueryStatement(bb:flatbuffers.ByteBuffer, obj?:TQLQueryStatement):TQLQueryStatement {
-  return (obj || new TQLQueryStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
@@ -221,15 +212,6 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLParameterDeclaration {
  * @returns TQLParameterDeclaration
  */
 static getRootAsTQLParameterDeclaration(bb:flatbuffers.ByteBuffer, obj?:TQLParameterDeclaration):TQLParameterDeclaration {
-  return (obj || new TQLParameterDeclaration).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLParameterDeclaration= obj
- * @returns TQLParameterDeclaration
- */
-static getSizePrefixedRootAsTQLParameterDeclaration(bb:flatbuffers.ByteBuffer, obj?:TQLParameterDeclaration):TQLParameterDeclaration {
   return (obj || new TQLParameterDeclaration).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -375,15 +357,6 @@ static getRootAsTQLHTTPLoadMethod(bb:flatbuffers.ByteBuffer, obj?:TQLHTTPLoadMet
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLHTTPLoadMethod= obj
- * @returns TQLHTTPLoadMethod
- */
-static getSizePrefixedRootAsTQLHTTPLoadMethod(bb:flatbuffers.ByteBuffer, obj?:TQLHTTPLoadMethod):TQLHTTPLoadMethod {
-  return (obj || new TQLHTTPLoadMethod).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
@@ -471,15 +444,6 @@ static getRootAsTQLFileLoadMethod(bb:flatbuffers.ByteBuffer, obj?:TQLFileLoadMet
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLFileLoadMethod= obj
- * @returns TQLFileLoadMethod
- */
-static getSizePrefixedRootAsTQLFileLoadMethod(bb:flatbuffers.ByteBuffer, obj?:TQLFileLoadMethod):TQLFileLoadMethod {
-  return (obj || new TQLFileLoadMethod).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param flatbuffers.Builder builder
  */
 static startTQLFileLoadMethod(builder:flatbuffers.Builder) {
@@ -526,15 +490,6 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLLoadStatement {
  * @returns TQLLoadStatement
  */
 static getRootAsTQLLoadStatement(bb:flatbuffers.ByteBuffer, obj?:TQLLoadStatement):TQLLoadStatement {
-  return (obj || new TQLLoadStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLLoadStatement= obj
- * @returns TQLLoadStatement
- */
-static getSizePrefixedRootAsTQLLoadStatement(bb:flatbuffers.ByteBuffer, obj?:TQLLoadStatement):TQLLoadStatement {
   return (obj || new TQLLoadStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -644,15 +599,6 @@ static getRootAsTQLJSONExtract(bb:flatbuffers.ByteBuffer, obj?:TQLJSONExtract):T
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLJSONExtract= obj
- * @returns TQLJSONExtract
- */
-static getSizePrefixedRootAsTQLJSONExtract(bb:flatbuffers.ByteBuffer, obj?:TQLJSONExtract):TQLJSONExtract {
-  return (obj || new TQLJSONExtract).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param flatbuffers.Builder builder
  */
 static startTQLJSONExtract(builder:flatbuffers.Builder) {
@@ -699,15 +645,6 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLCSVColumn {
  * @returns TQLCSVColumn
  */
 static getRootAsTQLCSVColumn(bb:flatbuffers.ByteBuffer, obj?:TQLCSVColumn):TQLCSVColumn {
-  return (obj || new TQLCSVColumn).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLCSVColumn= obj
- * @returns TQLCSVColumn
- */
-static getSizePrefixedRootAsTQLCSVColumn(bb:flatbuffers.ByteBuffer, obj?:TQLCSVColumn):TQLCSVColumn {
   return (obj || new TQLCSVColumn).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -836,15 +773,6 @@ static getRootAsTQLCSVExtract(bb:flatbuffers.ByteBuffer, obj?:TQLCSVExtract):TQL
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLCSVExtract= obj
- * @returns TQLCSVExtract
- */
-static getSizePrefixedRootAsTQLCSVExtract(bb:flatbuffers.ByteBuffer, obj?:TQLCSVExtract):TQLCSVExtract {
-  return (obj || new TQLCSVExtract).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param number index
  * @param TQLCSVColumn= obj
  * @returns TQLCSVColumn
@@ -943,15 +871,6 @@ static getRootAsTQLParquetExtractor(bb:flatbuffers.ByteBuffer, obj?:TQLParquetEx
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLParquetExtractor= obj
- * @returns TQLParquetExtractor
- */
-static getSizePrefixedRootAsTQLParquetExtractor(bb:flatbuffers.ByteBuffer, obj?:TQLParquetExtractor):TQLParquetExtractor {
-  return (obj || new TQLParquetExtractor).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param flatbuffers.Builder builder
  */
 static startTQLParquetExtractor(builder:flatbuffers.Builder) {
@@ -998,15 +917,6 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLExtractStatement {
  * @returns TQLExtractStatement
  */
 static getRootAsTQLExtractStatement(bb:flatbuffers.ByteBuffer, obj?:TQLExtractStatement):TQLExtractStatement {
-  return (obj || new TQLExtractStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLExtractStatement= obj
- * @returns TQLExtractStatement
- */
-static getSizePrefixedRootAsTQLExtractStatement(bb:flatbuffers.ByteBuffer, obj?:TQLExtractStatement):TQLExtractStatement {
   return (obj || new TQLExtractStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -1193,15 +1103,6 @@ static getRootAsTQLDisplayColorPalette(bb:flatbuffers.ByteBuffer, obj?:TQLDispla
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayColorPalette= obj
- * @returns TQLDisplayColorPalette
- */
-static getSizePrefixedRootAsTQLDisplayColorPalette(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayColorPalette):TQLDisplayColorPalette {
-  return (obj || new TQLDisplayColorPalette).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
@@ -1356,15 +1257,6 @@ static getRootAsTQLDisplayLength(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayLengt
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayLength= obj
- * @returns TQLDisplayLength
- */
-static getSizePrefixedRootAsTQLDisplayLength(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayLength):TQLDisplayLength {
-  return (obj || new TQLDisplayLength).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param TQLDisplayLengthValue= obj
  * @returns TQLDisplayLengthValue|null
  */
@@ -1487,15 +1379,6 @@ static getRootAsTQLDisplayLayout(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayLayou
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayLayout= obj
- * @returns TQLDisplayLayout
- */
-static getSizePrefixedRootAsTQLDisplayLayout(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayLayout):TQLDisplayLayout {
-  return (obj || new TQLDisplayLayout).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param TQLDisplayLength= obj
  * @returns TQLDisplayLength|null
  */
@@ -1578,15 +1461,6 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayAxis {
  * @returns TQLDisplayAxis
  */
 static getRootAsTQLDisplayAxis(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayAxis):TQLDisplayAxis {
-  return (obj || new TQLDisplayAxis).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayAxis= obj
- * @returns TQLDisplayAxis
- */
-static getSizePrefixedRootAsTQLDisplayAxis(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayAxis):TQLDisplayAxis {
   return (obj || new TQLDisplayAxis).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -1678,15 +1552,6 @@ static getRootAsTQLDisplayAxes(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayAxes):T
 };
 
 /**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayAxes= obj
- * @returns TQLDisplayAxes
- */
-static getSizePrefixedRootAsTQLDisplayAxes(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayAxes):TQLDisplayAxes {
-  return (obj || new TQLDisplayAxes).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
  * @param TQLDisplayAxis= obj
  * @returns TQLDisplayAxis|null
  */
@@ -1769,15 +1634,6 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayStatement {
  * @returns TQLDisplayStatement
  */
 static getRootAsTQLDisplayStatement(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayStatement):TQLDisplayStatement {
-  return (obj || new TQLDisplayStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayStatement= obj
- * @returns TQLDisplayStatement
- */
-static getSizePrefixedRootAsTQLDisplayStatement(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayStatement):TQLDisplayStatement {
   return (obj || new TQLDisplayStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -1936,15 +1792,6 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLProgram {
  * @returns TQLProgram
  */
 static getRootAsTQLProgram(bb:flatbuffers.ByteBuffer, obj?:TQLProgram):TQLProgram {
-  return (obj || new TQLProgram).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param TQLProgram= obj
- * @returns TQLProgram
- */
-static getSizePrefixedRootAsTQLProgram(bb:flatbuffers.ByteBuffer, obj?:TQLProgram):TQLProgram {
   return (obj || new TQLProgram).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 

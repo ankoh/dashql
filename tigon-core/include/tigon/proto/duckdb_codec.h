@@ -9,7 +9,7 @@
 #include "duckdb.hpp"
 
 #include "flatbuffers/flatbuffers.h"
-#include "tigon/proto/web_api_generated.h"
+#include "tigon/proto/duckdb_generated.h"
 
 namespace tigon {
 namespace proto {
