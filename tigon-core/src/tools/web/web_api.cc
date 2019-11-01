@@ -16,6 +16,7 @@
 #include "flatbuffers/flatbuffers.h"
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/proto/duckdb_codec.h"
+#include "tigon/proto/tql_codec.h"
 #include "tigon/proto/tql_generated.h"
 #include "tigon/proto/web_api_generated.h"
 #include "tigon/common/text_view_stream.h"
@@ -101,56 +102,19 @@ void WebAPI::Session::parseTQL(std::string_view text) {
 
     // Create the buffer builder
     fb::FlatBufferBuilder builder{1024};
+    auto programOfs = proto::writeTQLProgram(builder, program);
 
-    // Encode statements
-    std::vector<uint8_t> statementTypes;
-    std::vector<flatbuffers::Offset<void>> statements;
-
-    for (auto& statement: program.statements) {
-        std::visit(overload {
-            // Display statement
-            [&](std::unique_ptr<tql::DisplayStatement>& display) {
-            },
-
-            // Extract statement
-            [&](std::unique_ptr<tql::ExtractStatement>& display) {
-            },
-
-            // Load statement
-            [&](std::unique_ptr<tql::LoadStatement>& display) {
-            },
-
-            // Parameter declaration
-            [&](std::unique_ptr<tql::ParameterDeclaration>& display) {
-            },
-
-            // SQL statement
-            [&](std::unique_ptr<tql::SQLStatement>& display) {
-                auto text = builder.CreateString(display->text.data(), display->text.length());
-                auto statement = proto::CreateTQLQueryStatement(builder, text);
-                statements.push_back(statement.Union());
-                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLQueryStatement));
-            }
-        }, statement);
-    }
-
-    // Encode the program
-    auto statementTypesOfs = builder.CreateVector(statementTypes);
-    auto statementsOfs = builder.CreateVector(statements);
-    auto programOfs = proto::CreateTQLProgram(builder, statementTypesOfs, statementsOfs);
-
-    // Finish the flatbuffer
+    // Return buffer
     builder.Finish(programOfs);
-    // Mark as successfull
     response.requestSucceeded(builder.Release());
 }
 
 /// Run a query
 void WebAPI::Session::runQuery(std::string_view text) {
     auto queryID = allocateQueryID();
+
     // Create a new connection
     duckdb::Connection conn{*database};
-    // Send the query to the existing database
     auto result = conn.SendQuery(std::string{text});
 
     // Query failed?
@@ -161,7 +125,7 @@ void WebAPI::Session::runQuery(std::string_view text) {
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
-    auto queryResultOfs = writeQueryResult(builder, *result, queryID);
+    auto queryResultOfs = proto::writeQueryResult(builder, *result, queryID);
 
     // Return buffer
     builder.Finish(queryResultOfs);
@@ -191,7 +155,7 @@ void WebAPI::Session::planQuery(std::string_view text) {
 
     // Write the plan buffer
     fb::FlatBufferBuilder builder{1024};
-    auto planOfs = writeQueryPlan(builder, *planner.plan);
+    auto planOfs = proto::writeQueryPlan(builder, *planner.plan);
 
     // Return buffer
     builder.Finish(planOfs);

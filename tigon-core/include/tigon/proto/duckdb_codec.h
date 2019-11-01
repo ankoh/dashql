@@ -9,10 +9,10 @@
 #include "duckdb.hpp"
 
 #include "flatbuffers/flatbuffers.h"
-#include "tigon/proto/tql_generated.h"
 #include "tigon/proto/web_api_generated.h"
 
 namespace tigon {
+namespace proto {
 
 /// Map an operator type
 proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type);
@@ -22,6 +22,7 @@ flatbuffers::Offset<proto::QueryResult> writeQueryResult(flatbuffers::FlatBuffer
 /// Write the query plan
 flatbuffers::Offset<proto::QueryPlan> writeQueryPlan(flatbuffers::FlatBufferBuilder& builder, duckdb::LogicalOperator& plan);
 
+} // namespace proto
 } // namespace tigon
 
 #endif // INCLUDE_TIGON_PROTO_DUCKDB_CODEC_H_

@@ -9,6 +9,7 @@
 namespace fb = flatbuffers;
 
 namespace tigon {
+namespace proto {
 
 #define LOGICAL_OPERATOR_TYPES \
     X(INVALID) \
@@ -291,4 +292,5 @@ fb::Offset<proto::QueryPlan> writeQueryPlan(fb::FlatBufferBuilder& builder, duck
     return planBuilder.Finish();
 }
 
-}
+}  // namespace proto
+}  // namespace tigon
