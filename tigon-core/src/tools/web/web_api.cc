@@ -5,8 +5,6 @@
 
 #include "tigon/tools/web/web_api.h"
 
-#include "tigon/proto/web_api_generated.h"
-
 #include "duckdb.hpp"
 #include "common/vector_operations/vector_operations.hpp"
 #include "main/client_context.hpp"
@@ -19,7 +17,8 @@
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/proto/tql_generated.h"
 #include "tigon/proto/web_api_generated.h"
-
+#include "tigon/common/text_view_stream.h"
+#include "tigon/common/variant.h"
 
 #include <cstdio>
 #include <memory>
@@ -91,18 +90,20 @@ std::pair<void*, size_t> WebAPI::Session::registerBuffer(flatbuffers::DetachedBu
 /// Release a buffer
 void WebAPI::Session::releaseBuffer(void* data) { buffers.erase(data); }
 
-template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
-template<class... Ts> overload(Ts...) -> overload<Ts...>;
-
 /// Parse TQL
 void WebAPI::Session::parseTQL(std::string_view text) {
-    // Create input stream
-    std::istringstream in;
-    in.rdbuf()->pubsetbuf(const_cast<char*>(text.data()), text.length());
+    ITextViewStream in(text);
 
     // Parse statement
     tql::ParseContext ctx;
     auto program = ctx.Parse(in);
+
+    // Create the buffer builder
+    fb::FlatBufferBuilder builder{1024};
+
+    // Encode statements
+    std::vector<uint8_t> statementTypes;
+    std::vector<flatbuffers::Offset<void>> statements;
 
     for (auto& statement: program.statements) {
         std::visit(overload {
@@ -124,11 +125,23 @@ void WebAPI::Session::parseTQL(std::string_view text) {
 
             // SQL statement
             [&](std::unique_ptr<tql::SQLStatement>& display) {
+                auto text = builder.CreateString(display->text.data(), display->text.length());
+                auto statement = proto::CreateTQLQueryStatement(builder, text);
+                statements.push_back(statement.Union());
+                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLQueryStatement));
             }
         }, statement);
     }
 
-    // TODO now generate the flatbuffer for the program
+    // Encode the program
+    auto statementTypesOfs = builder.CreateVector(statementTypes);
+    auto statementsOfs = builder.CreateVector(statements);
+    auto programOfs = proto::CreateTQLProgram(builder, statementTypesOfs, statementsOfs);
+
+    // Finish the flatbuffer
+    builder.Finish(programOfs);
+    // Mark as successfull
+    response.requestSucceeded(builder.Release());
 }
 
 /// Write a fixed-length result column
@@ -342,6 +355,47 @@ void WebAPI::Session::planQuery(std::string_view text) {
         uint8_t *writer;
         operatorTypeVector = builder.CreateUninitializedVector<uint8_t>(operators.size(), &writer);
         for (size_t i = 0; i < operators.size(); ++i) {
+            using D = duckdb::LogicalOperatorType;
+            using P = proto::LogicalOperatorType;
+            P protoType;
+            switch (operators[i]->type) {
+                case D::INVALID: protoType = P::INVALID;
+                case D::PROJECTION: protoType = P::PROJECTION;
+                case D::FILTER: protoType = P::FILTER;
+                case D::AGGREGATE_AND_GROUP_BY: protoType = P::AGGREGATE_AND_GROUP_BY;
+                case D::WINDOW: protoType = P::WINDOW;
+                case D::LIMIT: protoType = P::LIMIT;
+                case D::ORDER_BY: protoType = P::ORDER_BY;
+                case D::TOP_N: protoType = P::TOP_N;
+                case D::COPY_FROM_FILE: protoType = P::COPY_FROM_FILE;
+                case D::COPY_TO_FILE: protoType = P::COPY_TO_FILE;
+                case D::DISTINCT: protoType = P::DISTINCT;
+                case D::INDEX_SCAN: protoType = P::INDEX_SCAN;
+                case D::GET: protoType = P::GET;
+                case D::CHUNK_GET: protoType = P::CHUNK_GET;
+                case D::DELIM_GET: protoType = P::DELIM_GET;
+                case D::EXPRESSION_GET: protoType = P::EXPRESSION_GET;
+                case D::TABLE_FUNCTION: protoType = P::TABLE_FUNCTION;
+                case D::SUBQUERY: protoType = P::SUBQUERY;
+                case D::EMPTY_RESULT: protoType = P::EMPTY_RESULT;
+                case D::JOIN: protoType = P::JOIN;
+                case D::DELIM_JOIN: protoType = P::DELIM_JOIN;
+                case D::COMPARISON_JOIN: protoType = P::COMPARISON_JOIN;
+                case D::ANY_JOIN: protoType = P::ANY_JOIN;
+                case D::CROSS_PRODUCT: protoType = P::CROSS_PRODUCT;
+                case D::UNION: protoType = P::UNION;
+                case D::EXCEPT: protoType = P::EXCEPT;
+                case D::INTERSECT: protoType = P::INTERSECT;
+                case D::INSERT: protoType = P::INSERT;
+                case D::DELETE: protoType = P::DELETE;
+                case D::UPDATE: protoType = P::UPDATE;
+                case D::CREATE_TABLE: protoType = P::CREATE_TABLE;
+                case D::CREATE_INDEX: protoType = P::CREATE_INDEX;
+                case D::EXPLAIN: protoType = P::EXPLAIN;
+                case D::PRUNE_COLUMNS: protoType = P::PRUNE_COLUMNS;
+                case D::PREPARE: protoType = P::PREPARE;
+                case D::EXECUTE: protoType = P::EXECUTE;
+            };
             writer[i] = static_cast<uint8_t>(operators[i]->type);
         }
     }
@@ -383,9 +437,6 @@ void WebAPI::Session::planQuery(std::string_view text) {
                 }
             }
         }
-
-        spdlog::debug("operatorChildOffsets " + std::to_string(operatorChildOffsets.size()));
-        spdlog::debug("operatorChildren " + std::to_string(operatorChildren.size()));
 
         // Write children
         uint64_t *writer;

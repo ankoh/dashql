@@ -16,7 +16,8 @@ TEST(TQLTest, ParameterDeclaration) {
         declare parameter days as integer;
     )RAW"};
     ParseContext ctx;
-    ctx.Parse(in);
+    auto program = ctx.Parse(in);
+    ASSERT_EQ(program.statements.size(), 1);
 }
 
 TEST(TQLTest, LoadHTTP) {
@@ -27,7 +28,8 @@ TEST(TQLTest, LoadHTTP) {
         );
     )RAW"};
     ParseContext ctx;
-    ctx.Parse(in);
+    auto program = ctx.Parse(in);
+    ASSERT_EQ(program.statements.size(), 1);
 }
 
 TEST(TQLTest, ExtractJsonPath) {
@@ -35,7 +37,8 @@ TEST(TQLTest, ExtractJsonPath) {
         extract weather_data from raw_data using json ();
     )RAW"};
     ParseContext ctx;
-    ctx.Parse(in);
+    auto program = ctx.Parse(in);
+    ASSERT_EQ(program.statements.size(), 1);
 }
 
 TEST(TQLTest, DisplayLineChart) {
@@ -74,7 +77,17 @@ TEST(TQLTest, DisplayLineChart) {
         );
     )RAW"};
     ParseContext ctx;
-    ctx.Parse(in);
+    auto program = ctx.Parse(in);
+    ASSERT_EQ(program.statements.size(), 1);
+}
+
+TEST(TQLTest, Query1) {
+    std::stringstream in{R"RAW(
+        select 1;
+    )RAW"};
+    ParseContext ctx;
+    auto program = ctx.Parse(in);
+    ASSERT_EQ(program.statements.size(), 1);
 }
 
 } // namespace

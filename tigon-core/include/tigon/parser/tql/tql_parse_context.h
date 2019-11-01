@@ -29,6 +29,8 @@ class ParseContext {
     bool trace_scanning;
     /// Trace the parsing
     bool trace_parsing;
+    /// The statements
+    std::vector<Statement> statements;
 
     /// The cached values
     std::tuple<
@@ -69,6 +71,9 @@ class ParseContext {
     void Error(uint32_t line, uint32_t column, const std::string &err);
     /// Throw an error
     void Error(const std::string &m);
+
+    /// Define a statement
+    void DefineStatement(Statement statement);
 };
 
 } // namespace tql

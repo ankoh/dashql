@@ -14,19 +14,21 @@ using namespace tigon::tql;
 using D = tigon::tql::DisplayStatement;
 
 ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
-    : trace_scanning(trace_scanning), trace_parsing(trace_parsing) {}
+    : trace_scanning(trace_scanning), trace_parsing(trace_parsing), statements() {}
 
 ParseContext::~ParseContext() {}
 
 Program ParseContext::Parse(std::istream &in) {
     beginScan(in);
-    tigon::tql::Parser parser(*this);
-    parser.set_debug_level(trace_parsing);
-    parser.parse();
+    {
+        tigon::tql::Parser parser(*this);
+        parser.set_debug_level(trace_parsing);
+        parser.parse();
+    }
     endScan();
-
-    // TODO
-    return {};
+    return Program {
+        std::move(statements)
+    };
 }
 
 // Yield an error
@@ -37,4 +39,9 @@ void ParseContext::Error(uint32_t line, uint32_t column, const std::string &err)
     std::stringstream ss;
     ss << "[" << line << ":" << column << "] " << err;
     throw TQLParseError(ss.str());
+}
+
+/// Define a statement
+void ParseContext::DefineStatement(Statement statement) {
+    statements.push_back(move(statement));
 }

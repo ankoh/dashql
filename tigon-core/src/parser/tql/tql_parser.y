@@ -133,15 +133,14 @@ using std::vector;
 %type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
 %type <std::vector<DisplayStatement::RGBColor>> display_color_list;
 %type <std::vector<DisplayStatement::RGBColor>> opt_display_color_list;
-%type <std::vector<Statement>> statement_list;
 
 %%
 
 %start statement_list;
 
 statement_list:
-    statement_list statement SEMICOLON  { $$ = move($1); $$.push_back(move($2)); }
- |  %empty                              { $$ = vector<Statement>{}; }
+    statement_list statement SEMICOLON  { ctx.DefineStatement(move($2)); }
+ |  %empty
     ;
 
 statement:

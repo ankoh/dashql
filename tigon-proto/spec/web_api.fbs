@@ -53,52 +53,53 @@ enum StatusCode: uint8 {
 // duckdb: common/enums/logical_operator_type.hpp
 enum LogicalOperatorType: uint8 {
     INVALID = 0,
-    PROJECTION = 1,
-    FILTER = 2,
-    AGGREGATE_AND_GROUP_BY = 3,
-    WINDOW = 4,
-    LIMIT = 5,
-    ORDER_BY = 6,
-    COPY_FROM_FILE = 7,
-    COPY_TO_FILE = 8,
-    DISTINCT = 9,
-    INDEX_SCAN = 10,
+    PROJECTION,
+    FILTER,
+    AGGREGATE_AND_GROUP_BY,
+    WINDOW,
+    LIMIT,
+    ORDER_BY,
+    TOP_N,
+    COPY_FROM_FILE,
+    COPY_TO_FILE,
+    DISTINCT,
+    INDEX_SCAN,
 
     // Data sources
-    GET = 11,
-    CHUNK_GET = 12,
-    DELIM_GET = 13,
-    EXPRESSION_GET = 14,
-    TABLE_FUNCTION = 15,
-    SUBQUERY = 16,
-    EMPTY_RESULT = 17,
+    GET,
+    CHUNK_GET,
+    DELIM_GET,
+    EXPRESSION_GET,
+    TABLE_FUNCTION,
+    SUBQUERY,
+    EMPTY_RESULT,
 
     // Joins
-    JOIN = 18,
-    DELIM_JOIN = 19,
-    COMPARISON_JOIN = 20,
-    ANY_JOIN = 21,
-    CROSS_PRODUCT = 22,
+    JOIN,
+    DELIM_JOIN,
+    COMPARISON_JOIN,
+    ANY_JOIN,
+    CROSS_PRODUCT,
 
     // SetOps
-    UNION = 23,
-    EXCEPT = 24,
-    INTERSECT = 25,
+    UNION,
+    EXCEPT,
+    INTERSECT,
 
     // Updates
-    INSERT = 26,
-    DELETE = 27,
-    UPDATE = 28,
-    CREATE_TABLE = 29,
-    CREATE_INDEX = 30,
+    INSERT,
+    DELETE,
+    UPDATE,
+    CREATE_TABLE,
+    CREATE_INDEX,
 
     // Explain
-    EXPLAIN = 31,
+    EXPLAIN,
 
     // Helpers
-    PRUNE_COLUMNS = 32,
-    PREPARE = 33,
-    EXECUTE = 34
+    PRUNE_COLUMNS,
+    PREPARE,
+    EXECUTE
 }
 
 // A query plan

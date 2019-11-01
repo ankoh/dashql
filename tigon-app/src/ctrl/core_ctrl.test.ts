@@ -23,9 +23,9 @@ beforeAll(async () => {
 
 describe("controller/core", () => {
     describe("parseTQL", () => {
-        test("run SELECT 1;", async () => {
+        test("SELECT 1;", async () => {
             let session = await sharedCore.createSession();
-            let result = await sharedCore.parseTQL(session, "run SELECT 1;");
+            let result = await sharedCore.parseTQL(session, "SELECT 1;");
             let program = result.getReader();
 
             expect(program.statementsLength()).toEqual(1);
