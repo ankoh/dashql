@@ -103,18 +103,18 @@ target_link_libraries(tigon
 # ---------------------------------------------------------------------------
 # Web API
 
-add_executable(tigon_web
+add_executable(tigon_core
     ${CMAKE_SOURCE_DIR}/src/tools/web/web_api_proxy.cc
 )
 
-target_link_libraries(tigon_web tigon)
+target_link_libraries(tigon_core tigon)
 
 if(EMSCRIPTEN)
     # SAFE_HEAP breaks duckdb 0.1
     # SAFE_HEAP and ASSERTIONS break duckdb 0.1.1
     # -s SAFE_HEAP=1
     # -s ASSERTIONS=1
-    set_target_properties(tigon_web PROPERTIES LINK_FLAGS " \
+    set_target_properties(tigon_core PROPERTIES LINK_FLAGS " \
         -s ASSERTIONS=1 \
         -s MODULARIZE=1 \
         -s EXPORT_NAME=TigonCore \

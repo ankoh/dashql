@@ -22,6 +22,6 @@ ${EMCONFIGURE} cmake \
 ${EMMAKE} make \
     -C/wd/tigon-core/build/emscripten \
     -j$(nproc) \
-    tigon_web
+    tigon_core
 
-cp ${CORE_SOURCE_DIR}/build/emscripten/tigon_web.{wasm,js} ${APP_LIB_DIR}
+cp ${CORE_SOURCE_DIR}/build/emscripten/tigon_core.{wasm,js} ${APP_LIB_DIR}

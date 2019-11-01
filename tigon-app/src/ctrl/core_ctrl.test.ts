@@ -1,7 +1,7 @@
 import { CoreController } from './core_ctrl';
 import * as fs from 'fs';
 import * as path from 'path';
-import TigonWeb from '../../public/lib/tigon_web';
+import TigonCore from '../../public/lib/tigon_core';
 
 // The core loader
 let coreLoader: (args: any) => any;
@@ -10,10 +10,10 @@ let sharedCore: CoreController;
 
 beforeAll(async () => {
     // Create the core ladder
-    let modulePath = path.resolve(__dirname, '../../public/lib/tigon_web.wasm');
+    let modulePath = path.resolve(__dirname, '../../public/lib/tigon_core.wasm');
     let moduleBinary = await fs.promises.readFile(modulePath);
     coreLoader = (args: any) => {
-        return TigonWeb({ ...args, wasmBinary: moduleBinary });
+        return TigonCore({ ...args, wasmBinary: moduleBinary });
     };
 
     // Share a controller between multiple tests
