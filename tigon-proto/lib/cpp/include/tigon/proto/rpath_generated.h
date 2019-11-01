@@ -10,14 +10,30 @@ namespace tigon {
 namespace proto {
 
 struct RPathArraySlice;
+struct RPathArraySliceT;
 
 struct RPathArrayIndexes;
+struct RPathArrayIndexesT;
 
 struct RPathChildMember;
+struct RPathChildMemberT;
 
 struct RPathDescendantMember;
+struct RPathDescendantMemberT;
 
 struct RPath;
+struct RPathT;
+
+bool operator==(const RPathArraySliceT &lhs, const RPathArraySliceT &rhs);
+bool operator!=(const RPathArraySliceT &lhs, const RPathArraySliceT &rhs);
+bool operator==(const RPathArrayIndexesT &lhs, const RPathArrayIndexesT &rhs);
+bool operator!=(const RPathArrayIndexesT &lhs, const RPathArrayIndexesT &rhs);
+bool operator==(const RPathChildMemberT &lhs, const RPathChildMemberT &rhs);
+bool operator!=(const RPathChildMemberT &lhs, const RPathChildMemberT &rhs);
+bool operator==(const RPathDescendantMemberT &lhs, const RPathDescendantMemberT &rhs);
+bool operator!=(const RPathDescendantMemberT &lhs, const RPathDescendantMemberT &rhs);
+bool operator==(const RPathT &lhs, const RPathT &rhs);
+bool operator!=(const RPathT &lhs, const RPathT &rhs);
 
 inline const flatbuffers::TypeTable *RPathArraySliceTypeTable();
 
@@ -88,17 +104,141 @@ template<> struct RPathComponentTraits<RPathDescendantMember> {
   static const RPathComponent enum_value = RPathComponent::RPathDescendantMember;
 };
 
+struct RPathComponentUnion {
+  RPathComponent type;
+  void *value;
+
+  RPathComponentUnion() : type(RPathComponent::NONE), value(nullptr) {}
+  RPathComponentUnion(RPathComponentUnion&& u) FLATBUFFERS_NOEXCEPT :
+    type(RPathComponent::NONE), value(nullptr)
+    { std::swap(type, u.type); std::swap(value, u.value); }
+  RPathComponentUnion(const RPathComponentUnion &) FLATBUFFERS_NOEXCEPT;
+  RPathComponentUnion &operator=(const RPathComponentUnion &u) FLATBUFFERS_NOEXCEPT
+    { RPathComponentUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
+  RPathComponentUnion &operator=(RPathComponentUnion &&u) FLATBUFFERS_NOEXCEPT
+    { std::swap(type, u.type); std::swap(value, u.value); return *this; }
+  ~RPathComponentUnion() { Reset(); }
+
+  void Reset();
+
+#ifndef FLATBUFFERS_CPP98_STL
+  template <typename T>
+  void Set(T&& val) {
+    using RT = typename std::remove_reference<T>::type;
+    Reset();
+    type = RPathComponentTraits<typename RT::TableType>::enum_value;
+    if (type != RPathComponent::NONE) {
+      value = new RT(std::forward<T>(val));
+    }
+  }
+#endif  // FLATBUFFERS_CPP98_STL
+
+  static void *UnPack(const void *obj, RPathComponent type, const flatbuffers::resolver_function_t *resolver);
+  flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
+
+  RPathArraySliceT *AsRPathArraySlice() {
+    return type == RPathComponent::RPathArraySlice ?
+      reinterpret_cast<RPathArraySliceT *>(value) : nullptr;
+  }
+  const RPathArraySliceT *AsRPathArraySlice() const {
+    return type == RPathComponent::RPathArraySlice ?
+      reinterpret_cast<const RPathArraySliceT *>(value) : nullptr;
+  }
+  RPathArrayIndexesT *AsRPathArrayIndexes() {
+    return type == RPathComponent::RPathArrayIndexes ?
+      reinterpret_cast<RPathArrayIndexesT *>(value) : nullptr;
+  }
+  const RPathArrayIndexesT *AsRPathArrayIndexes() const {
+    return type == RPathComponent::RPathArrayIndexes ?
+      reinterpret_cast<const RPathArrayIndexesT *>(value) : nullptr;
+  }
+  RPathChildMemberT *AsRPathChildMember() {
+    return type == RPathComponent::RPathChildMember ?
+      reinterpret_cast<RPathChildMemberT *>(value) : nullptr;
+  }
+  const RPathChildMemberT *AsRPathChildMember() const {
+    return type == RPathComponent::RPathChildMember ?
+      reinterpret_cast<const RPathChildMemberT *>(value) : nullptr;
+  }
+  RPathDescendantMemberT *AsRPathDescendantMember() {
+    return type == RPathComponent::RPathDescendantMember ?
+      reinterpret_cast<RPathDescendantMemberT *>(value) : nullptr;
+  }
+  const RPathDescendantMemberT *AsRPathDescendantMember() const {
+    return type == RPathComponent::RPathDescendantMember ?
+      reinterpret_cast<const RPathDescendantMemberT *>(value) : nullptr;
+  }
+};
+
+
+inline bool operator==(const RPathComponentUnion &lhs, const RPathComponentUnion &rhs) {
+  if (lhs.type != rhs.type) return false;
+  switch (lhs.type) {
+    case RPathComponent::NONE: {
+      return true;
+    }
+    case RPathComponent::RPathArraySlice: {
+      return *(reinterpret_cast<const RPathArraySliceT *>(lhs.value)) ==
+             *(reinterpret_cast<const RPathArraySliceT *>(rhs.value));
+    }
+    case RPathComponent::RPathArrayIndexes: {
+      return *(reinterpret_cast<const RPathArrayIndexesT *>(lhs.value)) ==
+             *(reinterpret_cast<const RPathArrayIndexesT *>(rhs.value));
+    }
+    case RPathComponent::RPathChildMember: {
+      return *(reinterpret_cast<const RPathChildMemberT *>(lhs.value)) ==
+             *(reinterpret_cast<const RPathChildMemberT *>(rhs.value));
+    }
+    case RPathComponent::RPathDescendantMember: {
+      return *(reinterpret_cast<const RPathDescendantMemberT *>(lhs.value)) ==
+             *(reinterpret_cast<const RPathDescendantMemberT *>(rhs.value));
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+inline bool operator!=(const RPathComponentUnion &lhs, const RPathComponentUnion &rhs) {
+    return !(lhs == rhs);
+}
+
 bool VerifyRPathComponent(flatbuffers::Verifier &verifier, const void *obj, RPathComponent type);
 bool VerifyRPathComponentVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
+struct RPathArraySliceT : public flatbuffers::NativeTable {
+  typedef RPathArraySlice TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RPathArraySliceT";
+  }
+  RPathArraySliceT() {
+  }
+};
+
+inline bool operator==(const RPathArraySliceT &, const RPathArraySliceT &) {
+  return true;
+}
+
+inline bool operator!=(const RPathArraySliceT &lhs, const RPathArraySliceT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 struct RPathArraySlice FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef RPathArraySliceT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return RPathArraySliceTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RPathArraySlice";
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
+  RPathArraySliceT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(RPathArraySliceT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<RPathArraySlice> Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathArraySliceT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct RPathArraySliceBuilder {
@@ -122,14 +262,41 @@ inline flatbuffers::Offset<RPathArraySlice> CreateRPathArraySlice(
   return builder_.Finish();
 }
 
+flatbuffers::Offset<RPathArraySlice> CreateRPathArraySlice(flatbuffers::FlatBufferBuilder &_fbb, const RPathArraySliceT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct RPathArrayIndexesT : public flatbuffers::NativeTable {
+  typedef RPathArrayIndexes TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RPathArrayIndexesT";
+  }
+  RPathArrayIndexesT() {
+  }
+};
+
+inline bool operator==(const RPathArrayIndexesT &, const RPathArrayIndexesT &) {
+  return true;
+}
+
+inline bool operator!=(const RPathArrayIndexesT &lhs, const RPathArrayIndexesT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 struct RPathArrayIndexes FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef RPathArrayIndexesT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return RPathArrayIndexesTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RPathArrayIndexes";
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
+  RPathArrayIndexesT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(RPathArrayIndexesT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<RPathArrayIndexes> Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathArrayIndexesT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct RPathArrayIndexesBuilder {
@@ -153,14 +320,41 @@ inline flatbuffers::Offset<RPathArrayIndexes> CreateRPathArrayIndexes(
   return builder_.Finish();
 }
 
+flatbuffers::Offset<RPathArrayIndexes> CreateRPathArrayIndexes(flatbuffers::FlatBufferBuilder &_fbb, const RPathArrayIndexesT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct RPathChildMemberT : public flatbuffers::NativeTable {
+  typedef RPathChildMember TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RPathChildMemberT";
+  }
+  RPathChildMemberT() {
+  }
+};
+
+inline bool operator==(const RPathChildMemberT &, const RPathChildMemberT &) {
+  return true;
+}
+
+inline bool operator!=(const RPathChildMemberT &lhs, const RPathChildMemberT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 struct RPathChildMember FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef RPathChildMemberT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return RPathChildMemberTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RPathChildMember";
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
+  RPathChildMemberT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(RPathChildMemberT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<RPathChildMember> Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathChildMemberT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct RPathChildMemberBuilder {
@@ -184,14 +378,41 @@ inline flatbuffers::Offset<RPathChildMember> CreateRPathChildMember(
   return builder_.Finish();
 }
 
+flatbuffers::Offset<RPathChildMember> CreateRPathChildMember(flatbuffers::FlatBufferBuilder &_fbb, const RPathChildMemberT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct RPathDescendantMemberT : public flatbuffers::NativeTable {
+  typedef RPathDescendantMember TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RPathDescendantMemberT";
+  }
+  RPathDescendantMemberT() {
+  }
+};
+
+inline bool operator==(const RPathDescendantMemberT &, const RPathDescendantMemberT &) {
+  return true;
+}
+
+inline bool operator!=(const RPathDescendantMemberT &lhs, const RPathDescendantMemberT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 struct RPathDescendantMember FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef RPathDescendantMemberT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return RPathDescendantMemberTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RPathDescendantMember";
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
+  RPathDescendantMemberT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(RPathDescendantMemberT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<RPathDescendantMember> Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathDescendantMemberT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct RPathDescendantMemberBuilder {
@@ -215,9 +436,35 @@ inline flatbuffers::Offset<RPathDescendantMember> CreateRPathDescendantMember(
   return builder_.Finish();
 }
 
+flatbuffers::Offset<RPathDescendantMember> CreateRPathDescendantMember(flatbuffers::FlatBufferBuilder &_fbb, const RPathDescendantMemberT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct RPathT : public flatbuffers::NativeTable {
+  typedef RPath TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RPathT";
+  }
+  std::vector<RPathComponentUnion> components;
+  RPathT() {
+  }
+};
+
+inline bool operator==(const RPathT &lhs, const RPathT &rhs) {
+  return
+      (lhs.components == rhs.components);
+}
+
+inline bool operator!=(const RPathT &lhs, const RPathT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 struct RPath FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef RPathT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return RPathTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RPath";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COMPONENTS_TYPE = 4,
@@ -238,6 +485,9 @@ struct RPath FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyRPathComponentVector(verifier, components(), components_type()) &&
            verifier.EndTable();
   }
+  RPathT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(RPathT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<RPath> Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct RPathBuilder {
@@ -283,6 +533,129 @@ inline flatbuffers::Offset<RPath> CreateRPathDirect(
       components__);
 }
 
+flatbuffers::Offset<RPath> CreateRPath(flatbuffers::FlatBufferBuilder &_fbb, const RPathT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+inline RPathArraySliceT *RPathArraySlice::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new RPathArraySliceT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void RPathArraySlice::UnPackTo(RPathArraySliceT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<RPathArraySlice> RPathArraySlice::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathArraySliceT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateRPathArraySlice(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<RPathArraySlice> CreateRPathArraySlice(flatbuffers::FlatBufferBuilder &_fbb, const RPathArraySliceT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const RPathArraySliceT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return tigon::proto::CreateRPathArraySlice(
+      _fbb);
+}
+
+inline RPathArrayIndexesT *RPathArrayIndexes::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new RPathArrayIndexesT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void RPathArrayIndexes::UnPackTo(RPathArrayIndexesT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<RPathArrayIndexes> RPathArrayIndexes::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathArrayIndexesT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateRPathArrayIndexes(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<RPathArrayIndexes> CreateRPathArrayIndexes(flatbuffers::FlatBufferBuilder &_fbb, const RPathArrayIndexesT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const RPathArrayIndexesT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return tigon::proto::CreateRPathArrayIndexes(
+      _fbb);
+}
+
+inline RPathChildMemberT *RPathChildMember::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new RPathChildMemberT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void RPathChildMember::UnPackTo(RPathChildMemberT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<RPathChildMember> RPathChildMember::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathChildMemberT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateRPathChildMember(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<RPathChildMember> CreateRPathChildMember(flatbuffers::FlatBufferBuilder &_fbb, const RPathChildMemberT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const RPathChildMemberT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return tigon::proto::CreateRPathChildMember(
+      _fbb);
+}
+
+inline RPathDescendantMemberT *RPathDescendantMember::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new RPathDescendantMemberT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void RPathDescendantMember::UnPackTo(RPathDescendantMemberT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<RPathDescendantMember> RPathDescendantMember::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathDescendantMemberT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateRPathDescendantMember(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<RPathDescendantMember> CreateRPathDescendantMember(flatbuffers::FlatBufferBuilder &_fbb, const RPathDescendantMemberT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const RPathDescendantMemberT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return tigon::proto::CreateRPathDescendantMember(
+      _fbb);
+}
+
+inline RPathT *RPath::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new RPathT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void RPath::UnPackTo(RPathT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = components_type(); if (_e) { _o->components.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->components[_i].type = static_cast<RPathComponent>(_e->Get(_i)); } } };
+  { auto _e = components(); if (_e) { _o->components.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->components[_i].value = RPathComponentUnion::UnPack(_e->Get(_i), components_type()->GetEnum<RPathComponent>(_i), _resolver); } } };
+}
+
+inline flatbuffers::Offset<RPath> RPath::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateRPath(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<RPath> CreateRPath(flatbuffers::FlatBufferBuilder &_fbb, const RPathT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const RPathT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _components_type = _o->components.size() ? _fbb.CreateVector<uint8_t>(_o->components.size(), [](size_t i, _VectorArgs *__va) { return static_cast<uint8_t>(__va->__o->components[i].type); }, &_va) : 0;
+  auto _components = _o->components.size() ? _fbb.CreateVector<flatbuffers::Offset<void>>(_o->components.size(), [](size_t i, _VectorArgs *__va) { return __va->__o->components[i].Pack(*__va->__fbb, __va->__rehasher); }, &_va) : 0;
+  return tigon::proto::CreateRPath(
+      _fbb,
+      _components_type,
+      _components);
+}
+
 inline bool VerifyRPathComponent(flatbuffers::Verifier &verifier, const void *obj, RPathComponent type) {
   switch (type) {
     case RPathComponent::NONE: {
@@ -318,6 +691,101 @@ inline bool VerifyRPathComponentVector(flatbuffers::Verifier &verifier, const fl
     }
   }
   return true;
+}
+
+inline void *RPathComponentUnion::UnPack(const void *obj, RPathComponent type, const flatbuffers::resolver_function_t *resolver) {
+  switch (type) {
+    case RPathComponent::RPathArraySlice: {
+      auto ptr = reinterpret_cast<const RPathArraySlice *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case RPathComponent::RPathArrayIndexes: {
+      auto ptr = reinterpret_cast<const RPathArrayIndexes *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case RPathComponent::RPathChildMember: {
+      auto ptr = reinterpret_cast<const RPathChildMember *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case RPathComponent::RPathDescendantMember: {
+      auto ptr = reinterpret_cast<const RPathDescendantMember *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    default: return nullptr;
+  }
+}
+
+inline flatbuffers::Offset<void> RPathComponentUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
+  switch (type) {
+    case RPathComponent::RPathArraySlice: {
+      auto ptr = reinterpret_cast<const RPathArraySliceT *>(value);
+      return CreateRPathArraySlice(_fbb, ptr, _rehasher).Union();
+    }
+    case RPathComponent::RPathArrayIndexes: {
+      auto ptr = reinterpret_cast<const RPathArrayIndexesT *>(value);
+      return CreateRPathArrayIndexes(_fbb, ptr, _rehasher).Union();
+    }
+    case RPathComponent::RPathChildMember: {
+      auto ptr = reinterpret_cast<const RPathChildMemberT *>(value);
+      return CreateRPathChildMember(_fbb, ptr, _rehasher).Union();
+    }
+    case RPathComponent::RPathDescendantMember: {
+      auto ptr = reinterpret_cast<const RPathDescendantMemberT *>(value);
+      return CreateRPathDescendantMember(_fbb, ptr, _rehasher).Union();
+    }
+    default: return 0;
+  }
+}
+
+inline RPathComponentUnion::RPathComponentUnion(const RPathComponentUnion &u) FLATBUFFERS_NOEXCEPT : type(u.type), value(nullptr) {
+  switch (type) {
+    case RPathComponent::RPathArraySlice: {
+      value = new RPathArraySliceT(*reinterpret_cast<RPathArraySliceT *>(u.value));
+      break;
+    }
+    case RPathComponent::RPathArrayIndexes: {
+      value = new RPathArrayIndexesT(*reinterpret_cast<RPathArrayIndexesT *>(u.value));
+      break;
+    }
+    case RPathComponent::RPathChildMember: {
+      value = new RPathChildMemberT(*reinterpret_cast<RPathChildMemberT *>(u.value));
+      break;
+    }
+    case RPathComponent::RPathDescendantMember: {
+      value = new RPathDescendantMemberT(*reinterpret_cast<RPathDescendantMemberT *>(u.value));
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+inline void RPathComponentUnion::Reset() {
+  switch (type) {
+    case RPathComponent::RPathArraySlice: {
+      auto ptr = reinterpret_cast<RPathArraySliceT *>(value);
+      delete ptr;
+      break;
+    }
+    case RPathComponent::RPathArrayIndexes: {
+      auto ptr = reinterpret_cast<RPathArrayIndexesT *>(value);
+      delete ptr;
+      break;
+    }
+    case RPathComponent::RPathChildMember: {
+      auto ptr = reinterpret_cast<RPathChildMemberT *>(value);
+      delete ptr;
+      break;
+    }
+    case RPathComponent::RPathDescendantMember: {
+      auto ptr = reinterpret_cast<RPathDescendantMemberT *>(value);
+      delete ptr;
+      break;
+    }
+    default: break;
+  }
+  value = nullptr;
+  type = RPathComponent::NONE;
 }
 
 inline const flatbuffers::TypeTable *RPathComponentTypeTable() {

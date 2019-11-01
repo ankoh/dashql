@@ -10,42 +10,98 @@ namespace tigon {
 namespace proto {
 
 struct TQLQueryStatement;
+struct TQLQueryStatementT;
 
 struct TQLParameterDeclaration;
+struct TQLParameterDeclarationT;
 
 struct TQLHTTPLoadMethod;
+struct TQLHTTPLoadMethodT;
 
 struct TQLFileLoadMethod;
+struct TQLFileLoadMethodT;
 
 struct TQLLoadStatement;
+struct TQLLoadStatementT;
 
 struct TQLJSONExtract;
+struct TQLJSONExtractT;
 
 struct TQLCSVColumn;
+struct TQLCSVColumnT;
 
 struct TQLCSVExtract;
+struct TQLCSVExtractT;
 
 struct TQLParquetExtractor;
+struct TQLParquetExtractorT;
 
 struct TQLExtractStatement;
+struct TQLExtractStatementT;
 
 struct TQLDisplayColor;
 
 struct TQLDisplayColorPalette;
+struct TQLDisplayColorPaletteT;
 
 struct TQLDisplayLengthValue;
 
 struct TQLDisplayLength;
+struct TQLDisplayLengthT;
 
 struct TQLDisplayLayout;
+struct TQLDisplayLayoutT;
 
 struct TQLDisplayAxis;
+struct TQLDisplayAxisT;
 
 struct TQLDisplayAxes;
+struct TQLDisplayAxesT;
 
 struct TQLDisplayStatement;
+struct TQLDisplayStatementT;
 
 struct TQLProgram;
+struct TQLProgramT;
+
+bool operator==(const TQLQueryStatementT &lhs, const TQLQueryStatementT &rhs);
+bool operator!=(const TQLQueryStatementT &lhs, const TQLQueryStatementT &rhs);
+bool operator==(const TQLParameterDeclarationT &lhs, const TQLParameterDeclarationT &rhs);
+bool operator!=(const TQLParameterDeclarationT &lhs, const TQLParameterDeclarationT &rhs);
+bool operator==(const TQLHTTPLoadMethodT &lhs, const TQLHTTPLoadMethodT &rhs);
+bool operator!=(const TQLHTTPLoadMethodT &lhs, const TQLHTTPLoadMethodT &rhs);
+bool operator==(const TQLFileLoadMethodT &lhs, const TQLFileLoadMethodT &rhs);
+bool operator!=(const TQLFileLoadMethodT &lhs, const TQLFileLoadMethodT &rhs);
+bool operator==(const TQLLoadStatementT &lhs, const TQLLoadStatementT &rhs);
+bool operator!=(const TQLLoadStatementT &lhs, const TQLLoadStatementT &rhs);
+bool operator==(const TQLJSONExtractT &lhs, const TQLJSONExtractT &rhs);
+bool operator!=(const TQLJSONExtractT &lhs, const TQLJSONExtractT &rhs);
+bool operator==(const TQLCSVColumnT &lhs, const TQLCSVColumnT &rhs);
+bool operator!=(const TQLCSVColumnT &lhs, const TQLCSVColumnT &rhs);
+bool operator==(const TQLCSVExtractT &lhs, const TQLCSVExtractT &rhs);
+bool operator!=(const TQLCSVExtractT &lhs, const TQLCSVExtractT &rhs);
+bool operator==(const TQLParquetExtractorT &lhs, const TQLParquetExtractorT &rhs);
+bool operator!=(const TQLParquetExtractorT &lhs, const TQLParquetExtractorT &rhs);
+bool operator==(const TQLExtractStatementT &lhs, const TQLExtractStatementT &rhs);
+bool operator!=(const TQLExtractStatementT &lhs, const TQLExtractStatementT &rhs);
+bool operator==(const TQLDisplayColor &lhs, const TQLDisplayColor &rhs);
+bool operator!=(const TQLDisplayColor &lhs, const TQLDisplayColor &rhs);
+bool operator==(const TQLDisplayColorPaletteT &lhs, const TQLDisplayColorPaletteT &rhs);
+bool operator!=(const TQLDisplayColorPaletteT &lhs, const TQLDisplayColorPaletteT &rhs);
+bool operator==(const TQLDisplayLengthValue &lhs, const TQLDisplayLengthValue &rhs);
+bool operator!=(const TQLDisplayLengthValue &lhs, const TQLDisplayLengthValue &rhs);
+bool operator==(const TQLDisplayLengthT &lhs, const TQLDisplayLengthT &rhs);
+bool operator!=(const TQLDisplayLengthT &lhs, const TQLDisplayLengthT &rhs);
+bool operator==(const TQLDisplayLayoutT &lhs, const TQLDisplayLayoutT &rhs);
+bool operator!=(const TQLDisplayLayoutT &lhs, const TQLDisplayLayoutT &rhs);
+bool operator==(const TQLDisplayAxisT &lhs, const TQLDisplayAxisT &rhs);
+bool operator!=(const TQLDisplayAxisT &lhs, const TQLDisplayAxisT &rhs);
+bool operator==(const TQLDisplayAxesT &lhs, const TQLDisplayAxesT &rhs);
+bool operator!=(const TQLDisplayAxesT &lhs, const TQLDisplayAxesT &rhs);
+bool operator==(const TQLDisplayStatementT &lhs, const TQLDisplayStatementT &rhs);
+bool operator!=(const TQLDisplayStatementT &lhs, const TQLDisplayStatementT &rhs);
+bool operator==(const TQLProgramT &lhs, const TQLProgramT &rhs);
+bool operator!=(const TQLProgramT &lhs, const TQLProgramT &rhs);
 
 inline const flatbuffers::TypeTable *TQLQueryStatementTypeTable();
 
@@ -207,6 +263,81 @@ template<> struct TQLLoadMethodTraits<TQLFileLoadMethod> {
   static const TQLLoadMethod enum_value = TQLLoadMethod::TQLFileLoadMethod;
 };
 
+struct TQLLoadMethodUnion {
+  TQLLoadMethod type;
+  void *value;
+
+  TQLLoadMethodUnion() : type(TQLLoadMethod::NONE), value(nullptr) {}
+  TQLLoadMethodUnion(TQLLoadMethodUnion&& u) FLATBUFFERS_NOEXCEPT :
+    type(TQLLoadMethod::NONE), value(nullptr)
+    { std::swap(type, u.type); std::swap(value, u.value); }
+  TQLLoadMethodUnion(const TQLLoadMethodUnion &) FLATBUFFERS_NOEXCEPT;
+  TQLLoadMethodUnion &operator=(const TQLLoadMethodUnion &u) FLATBUFFERS_NOEXCEPT
+    { TQLLoadMethodUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
+  TQLLoadMethodUnion &operator=(TQLLoadMethodUnion &&u) FLATBUFFERS_NOEXCEPT
+    { std::swap(type, u.type); std::swap(value, u.value); return *this; }
+  ~TQLLoadMethodUnion() { Reset(); }
+
+  void Reset();
+
+#ifndef FLATBUFFERS_CPP98_STL
+  template <typename T>
+  void Set(T&& val) {
+    using RT = typename std::remove_reference<T>::type;
+    Reset();
+    type = TQLLoadMethodTraits<typename RT::TableType>::enum_value;
+    if (type != TQLLoadMethod::NONE) {
+      value = new RT(std::forward<T>(val));
+    }
+  }
+#endif  // FLATBUFFERS_CPP98_STL
+
+  static void *UnPack(const void *obj, TQLLoadMethod type, const flatbuffers::resolver_function_t *resolver);
+  flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
+
+  TQLHTTPLoadMethodT *AsTQLHTTPLoadMethod() {
+    return type == TQLLoadMethod::TQLHTTPLoadMethod ?
+      reinterpret_cast<TQLHTTPLoadMethodT *>(value) : nullptr;
+  }
+  const TQLHTTPLoadMethodT *AsTQLHTTPLoadMethod() const {
+    return type == TQLLoadMethod::TQLHTTPLoadMethod ?
+      reinterpret_cast<const TQLHTTPLoadMethodT *>(value) : nullptr;
+  }
+  TQLFileLoadMethodT *AsTQLFileLoadMethod() {
+    return type == TQLLoadMethod::TQLFileLoadMethod ?
+      reinterpret_cast<TQLFileLoadMethodT *>(value) : nullptr;
+  }
+  const TQLFileLoadMethodT *AsTQLFileLoadMethod() const {
+    return type == TQLLoadMethod::TQLFileLoadMethod ?
+      reinterpret_cast<const TQLFileLoadMethodT *>(value) : nullptr;
+  }
+};
+
+
+inline bool operator==(const TQLLoadMethodUnion &lhs, const TQLLoadMethodUnion &rhs) {
+  if (lhs.type != rhs.type) return false;
+  switch (lhs.type) {
+    case TQLLoadMethod::NONE: {
+      return true;
+    }
+    case TQLLoadMethod::TQLHTTPLoadMethod: {
+      return *(reinterpret_cast<const TQLHTTPLoadMethodT *>(lhs.value)) ==
+             *(reinterpret_cast<const TQLHTTPLoadMethodT *>(rhs.value));
+    }
+    case TQLLoadMethod::TQLFileLoadMethod: {
+      return *(reinterpret_cast<const TQLFileLoadMethodT *>(lhs.value)) ==
+             *(reinterpret_cast<const TQLFileLoadMethodT *>(rhs.value));
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+inline bool operator!=(const TQLLoadMethodUnion &lhs, const TQLLoadMethodUnion &rhs) {
+    return !(lhs == rhs);
+}
+
 bool VerifyTQLLoadMethod(flatbuffers::Verifier &verifier, const void *obj, TQLLoadMethod type);
 bool VerifyTQLLoadMethodVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
@@ -262,6 +393,93 @@ template<> struct TQLExtractMethodTraits<TQLCSVExtract> {
 template<> struct TQLExtractMethodTraits<TQLParquetExtractor> {
   static const TQLExtractMethod enum_value = TQLExtractMethod::TQLParquetExtractor;
 };
+
+struct TQLExtractMethodUnion {
+  TQLExtractMethod type;
+  void *value;
+
+  TQLExtractMethodUnion() : type(TQLExtractMethod::NONE), value(nullptr) {}
+  TQLExtractMethodUnion(TQLExtractMethodUnion&& u) FLATBUFFERS_NOEXCEPT :
+    type(TQLExtractMethod::NONE), value(nullptr)
+    { std::swap(type, u.type); std::swap(value, u.value); }
+  TQLExtractMethodUnion(const TQLExtractMethodUnion &) FLATBUFFERS_NOEXCEPT;
+  TQLExtractMethodUnion &operator=(const TQLExtractMethodUnion &u) FLATBUFFERS_NOEXCEPT
+    { TQLExtractMethodUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
+  TQLExtractMethodUnion &operator=(TQLExtractMethodUnion &&u) FLATBUFFERS_NOEXCEPT
+    { std::swap(type, u.type); std::swap(value, u.value); return *this; }
+  ~TQLExtractMethodUnion() { Reset(); }
+
+  void Reset();
+
+#ifndef FLATBUFFERS_CPP98_STL
+  template <typename T>
+  void Set(T&& val) {
+    using RT = typename std::remove_reference<T>::type;
+    Reset();
+    type = TQLExtractMethodTraits<typename RT::TableType>::enum_value;
+    if (type != TQLExtractMethod::NONE) {
+      value = new RT(std::forward<T>(val));
+    }
+  }
+#endif  // FLATBUFFERS_CPP98_STL
+
+  static void *UnPack(const void *obj, TQLExtractMethod type, const flatbuffers::resolver_function_t *resolver);
+  flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
+
+  TQLJSONExtractT *AsTQLJSONExtract() {
+    return type == TQLExtractMethod::TQLJSONExtract ?
+      reinterpret_cast<TQLJSONExtractT *>(value) : nullptr;
+  }
+  const TQLJSONExtractT *AsTQLJSONExtract() const {
+    return type == TQLExtractMethod::TQLJSONExtract ?
+      reinterpret_cast<const TQLJSONExtractT *>(value) : nullptr;
+  }
+  TQLCSVExtractT *AsTQLCSVExtract() {
+    return type == TQLExtractMethod::TQLCSVExtract ?
+      reinterpret_cast<TQLCSVExtractT *>(value) : nullptr;
+  }
+  const TQLCSVExtractT *AsTQLCSVExtract() const {
+    return type == TQLExtractMethod::TQLCSVExtract ?
+      reinterpret_cast<const TQLCSVExtractT *>(value) : nullptr;
+  }
+  TQLParquetExtractorT *AsTQLParquetExtractor() {
+    return type == TQLExtractMethod::TQLParquetExtractor ?
+      reinterpret_cast<TQLParquetExtractorT *>(value) : nullptr;
+  }
+  const TQLParquetExtractorT *AsTQLParquetExtractor() const {
+    return type == TQLExtractMethod::TQLParquetExtractor ?
+      reinterpret_cast<const TQLParquetExtractorT *>(value) : nullptr;
+  }
+};
+
+
+inline bool operator==(const TQLExtractMethodUnion &lhs, const TQLExtractMethodUnion &rhs) {
+  if (lhs.type != rhs.type) return false;
+  switch (lhs.type) {
+    case TQLExtractMethod::NONE: {
+      return true;
+    }
+    case TQLExtractMethod::TQLJSONExtract: {
+      return *(reinterpret_cast<const TQLJSONExtractT *>(lhs.value)) ==
+             *(reinterpret_cast<const TQLJSONExtractT *>(rhs.value));
+    }
+    case TQLExtractMethod::TQLCSVExtract: {
+      return *(reinterpret_cast<const TQLCSVExtractT *>(lhs.value)) ==
+             *(reinterpret_cast<const TQLCSVExtractT *>(rhs.value));
+    }
+    case TQLExtractMethod::TQLParquetExtractor: {
+      return *(reinterpret_cast<const TQLParquetExtractorT *>(lhs.value)) ==
+             *(reinterpret_cast<const TQLParquetExtractorT *>(rhs.value));
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+inline bool operator!=(const TQLExtractMethodUnion &lhs, const TQLExtractMethodUnion &rhs) {
+    return !(lhs == rhs);
+}
 
 bool VerifyTQLExtractMethod(flatbuffers::Verifier &verifier, const void *obj, TQLExtractMethod type);
 bool VerifyTQLExtractMethodVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
@@ -500,6 +718,117 @@ template<> struct TQLStatementTraits<TQLQueryStatement> {
   static const TQLStatement enum_value = TQLStatement::TQLQueryStatement;
 };
 
+struct TQLStatementUnion {
+  TQLStatement type;
+  void *value;
+
+  TQLStatementUnion() : type(TQLStatement::NONE), value(nullptr) {}
+  TQLStatementUnion(TQLStatementUnion&& u) FLATBUFFERS_NOEXCEPT :
+    type(TQLStatement::NONE), value(nullptr)
+    { std::swap(type, u.type); std::swap(value, u.value); }
+  TQLStatementUnion(const TQLStatementUnion &) FLATBUFFERS_NOEXCEPT;
+  TQLStatementUnion &operator=(const TQLStatementUnion &u) FLATBUFFERS_NOEXCEPT
+    { TQLStatementUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
+  TQLStatementUnion &operator=(TQLStatementUnion &&u) FLATBUFFERS_NOEXCEPT
+    { std::swap(type, u.type); std::swap(value, u.value); return *this; }
+  ~TQLStatementUnion() { Reset(); }
+
+  void Reset();
+
+#ifndef FLATBUFFERS_CPP98_STL
+  template <typename T>
+  void Set(T&& val) {
+    using RT = typename std::remove_reference<T>::type;
+    Reset();
+    type = TQLStatementTraits<typename RT::TableType>::enum_value;
+    if (type != TQLStatement::NONE) {
+      value = new RT(std::forward<T>(val));
+    }
+  }
+#endif  // FLATBUFFERS_CPP98_STL
+
+  static void *UnPack(const void *obj, TQLStatement type, const flatbuffers::resolver_function_t *resolver);
+  flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
+
+  TQLDisplayStatementT *AsTQLDisplayStatement() {
+    return type == TQLStatement::TQLDisplayStatement ?
+      reinterpret_cast<TQLDisplayStatementT *>(value) : nullptr;
+  }
+  const TQLDisplayStatementT *AsTQLDisplayStatement() const {
+    return type == TQLStatement::TQLDisplayStatement ?
+      reinterpret_cast<const TQLDisplayStatementT *>(value) : nullptr;
+  }
+  TQLExtractStatementT *AsTQLExtractStatement() {
+    return type == TQLStatement::TQLExtractStatement ?
+      reinterpret_cast<TQLExtractStatementT *>(value) : nullptr;
+  }
+  const TQLExtractStatementT *AsTQLExtractStatement() const {
+    return type == TQLStatement::TQLExtractStatement ?
+      reinterpret_cast<const TQLExtractStatementT *>(value) : nullptr;
+  }
+  TQLLoadStatementT *AsTQLLoadStatement() {
+    return type == TQLStatement::TQLLoadStatement ?
+      reinterpret_cast<TQLLoadStatementT *>(value) : nullptr;
+  }
+  const TQLLoadStatementT *AsTQLLoadStatement() const {
+    return type == TQLStatement::TQLLoadStatement ?
+      reinterpret_cast<const TQLLoadStatementT *>(value) : nullptr;
+  }
+  TQLParameterDeclarationT *AsTQLParameterDeclaration() {
+    return type == TQLStatement::TQLParameterDeclaration ?
+      reinterpret_cast<TQLParameterDeclarationT *>(value) : nullptr;
+  }
+  const TQLParameterDeclarationT *AsTQLParameterDeclaration() const {
+    return type == TQLStatement::TQLParameterDeclaration ?
+      reinterpret_cast<const TQLParameterDeclarationT *>(value) : nullptr;
+  }
+  TQLQueryStatementT *AsTQLQueryStatement() {
+    return type == TQLStatement::TQLQueryStatement ?
+      reinterpret_cast<TQLQueryStatementT *>(value) : nullptr;
+  }
+  const TQLQueryStatementT *AsTQLQueryStatement() const {
+    return type == TQLStatement::TQLQueryStatement ?
+      reinterpret_cast<const TQLQueryStatementT *>(value) : nullptr;
+  }
+};
+
+
+inline bool operator==(const TQLStatementUnion &lhs, const TQLStatementUnion &rhs) {
+  if (lhs.type != rhs.type) return false;
+  switch (lhs.type) {
+    case TQLStatement::NONE: {
+      return true;
+    }
+    case TQLStatement::TQLDisplayStatement: {
+      return *(reinterpret_cast<const TQLDisplayStatementT *>(lhs.value)) ==
+             *(reinterpret_cast<const TQLDisplayStatementT *>(rhs.value));
+    }
+    case TQLStatement::TQLExtractStatement: {
+      return *(reinterpret_cast<const TQLExtractStatementT *>(lhs.value)) ==
+             *(reinterpret_cast<const TQLExtractStatementT *>(rhs.value));
+    }
+    case TQLStatement::TQLLoadStatement: {
+      return *(reinterpret_cast<const TQLLoadStatementT *>(lhs.value)) ==
+             *(reinterpret_cast<const TQLLoadStatementT *>(rhs.value));
+    }
+    case TQLStatement::TQLParameterDeclaration: {
+      return *(reinterpret_cast<const TQLParameterDeclarationT *>(lhs.value)) ==
+             *(reinterpret_cast<const TQLParameterDeclarationT *>(rhs.value));
+    }
+    case TQLStatement::TQLQueryStatement: {
+      return *(reinterpret_cast<const TQLQueryStatementT *>(lhs.value)) ==
+             *(reinterpret_cast<const TQLQueryStatementT *>(rhs.value));
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+inline bool operator!=(const TQLStatementUnion &lhs, const TQLStatementUnion &rhs) {
+    return !(lhs == rhs);
+}
+
 bool VerifyTQLStatement(flatbuffers::Verifier &verifier, const void *obj, TQLStatement type);
 bool VerifyTQLStatementVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
@@ -513,6 +842,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(1) TQLDisplayColor FLATBUFFERS_FINAL_CLASS {
  public:
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLDisplayColorTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayColor";
   }
   TQLDisplayColor() {
     memset(static_cast<void *>(this), 0, sizeof(TQLDisplayColor));
@@ -534,6 +866,18 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(1) TQLDisplayColor FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(TQLDisplayColor, 3);
 
+inline bool operator==(const TQLDisplayColor &lhs, const TQLDisplayColor &rhs) {
+  return
+      (lhs.red() == rhs.red()) &&
+      (lhs.green() == rhs.green()) &&
+      (lhs.blue() == rhs.blue());
+}
+
+inline bool operator!=(const TQLDisplayColor &lhs, const TQLDisplayColor &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A display length value
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) TQLDisplayLengthValue FLATBUFFERS_FINAL_CLASS {
  private:
@@ -544,6 +888,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) TQLDisplayLengthValue FLATBUFFERS_FINAL_C
  public:
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLDisplayLengthValueTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayLengthValue";
   }
   TQLDisplayLengthValue() {
     memset(static_cast<void *>(this), 0, sizeof(TQLDisplayLengthValue));
@@ -565,10 +912,45 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) TQLDisplayLengthValue FLATBUFFERS_FINAL_C
 };
 FLATBUFFERS_STRUCT_END(TQLDisplayLengthValue, 16);
 
+inline bool operator==(const TQLDisplayLengthValue &lhs, const TQLDisplayLengthValue &rhs) {
+  return
+      (lhs.value() == rhs.value()) &&
+      (lhs.unit() == rhs.unit());
+}
+
+inline bool operator!=(const TQLDisplayLengthValue &lhs, const TQLDisplayLengthValue &rhs) {
+    return !(lhs == rhs);
+}
+
+
+struct TQLQueryStatementT : public flatbuffers::NativeTable {
+  typedef TQLQueryStatement TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLQueryStatementT";
+  }
+  std::string query_text;
+  TQLQueryStatementT() {
+  }
+};
+
+inline bool operator==(const TQLQueryStatementT &lhs, const TQLQueryStatementT &rhs) {
+  return
+      (lhs.query_text == rhs.query_text);
+}
+
+inline bool operator!=(const TQLQueryStatementT &lhs, const TQLQueryStatementT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A query statement
 struct TQLQueryStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLQueryStatementT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLQueryStatementTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLQueryStatement";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_QUERY_TEXT = 4
@@ -582,6 +964,9 @@ struct TQLQueryStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(query_text()) &&
            verifier.EndTable();
   }
+  TQLQueryStatementT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLQueryStatementT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLQueryStatement> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLQueryStatementT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLQueryStatementBuilder {
@@ -619,10 +1004,47 @@ inline flatbuffers::Offset<TQLQueryStatement> CreateTQLQueryStatementDirect(
       query_text__);
 }
 
+flatbuffers::Offset<TQLQueryStatement> CreateTQLQueryStatement(flatbuffers::FlatBufferBuilder &_fbb, const TQLQueryStatementT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLParameterDeclarationT : public flatbuffers::NativeTable {
+  typedef TQLParameterDeclaration TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLParameterDeclarationT";
+  }
+  std::string parameter_name;
+  TQLType parameter_type;
+  int64_t default_value_i64;
+  double default_value_f64;
+  std::string default_value_str;
+  TQLParameterDeclarationT()
+      : parameter_type(TQLType::INTEGER),
+        default_value_i64(0),
+        default_value_f64(0.0) {
+  }
+};
+
+inline bool operator==(const TQLParameterDeclarationT &lhs, const TQLParameterDeclarationT &rhs) {
+  return
+      (lhs.parameter_name == rhs.parameter_name) &&
+      (lhs.parameter_type == rhs.parameter_type) &&
+      (lhs.default_value_i64 == rhs.default_value_i64) &&
+      (lhs.default_value_f64 == rhs.default_value_f64) &&
+      (lhs.default_value_str == rhs.default_value_str);
+}
+
+inline bool operator!=(const TQLParameterDeclarationT &lhs, const TQLParameterDeclarationT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A parameter declaration
 struct TQLParameterDeclaration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLParameterDeclarationT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLParameterDeclarationTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLParameterDeclaration";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_PARAMETER_NAME = 4,
@@ -657,6 +1079,9 @@ struct TQLParameterDeclaration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Ta
            verifier.VerifyString(default_value_str()) &&
            verifier.EndTable();
   }
+  TQLParameterDeclarationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLParameterDeclarationT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLParameterDeclaration> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLParameterDeclarationT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLParameterDeclarationBuilder {
@@ -723,10 +1148,39 @@ inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclaratio
       default_value_str__);
 }
 
+flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclaration(flatbuffers::FlatBufferBuilder &_fbb, const TQLParameterDeclarationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLHTTPLoadMethodT : public flatbuffers::NativeTable {
+  typedef TQLHTTPLoadMethod TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLHTTPLoadMethodT";
+  }
+  std::string http_url;
+  TQLHTTPMethod http_method;
+  TQLHTTPLoadMethodT()
+      : http_method(TQLHTTPMethod::GET) {
+  }
+};
+
+inline bool operator==(const TQLHTTPLoadMethodT &lhs, const TQLHTTPLoadMethodT &rhs) {
+  return
+      (lhs.http_url == rhs.http_url) &&
+      (lhs.http_method == rhs.http_method);
+}
+
+inline bool operator!=(const TQLHTTPLoadMethodT &lhs, const TQLHTTPLoadMethodT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A http loader
 struct TQLHTTPLoadMethod FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLHTTPLoadMethodT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLHTTPLoadMethodTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLHTTPLoadMethod";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_HTTP_URL = 4,
@@ -745,6 +1199,9 @@ struct TQLHTTPLoadMethod FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_HTTP_METHOD) &&
            verifier.EndTable();
   }
+  TQLHTTPLoadMethodT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLHTTPLoadMethodT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLHTTPLoadMethod> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLHTTPLoadMethodT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLHTTPLoadMethodBuilder {
@@ -789,15 +1246,42 @@ inline flatbuffers::Offset<TQLHTTPLoadMethod> CreateTQLHTTPLoadMethodDirect(
       http_method);
 }
 
+flatbuffers::Offset<TQLHTTPLoadMethod> CreateTQLHTTPLoadMethod(flatbuffers::FlatBufferBuilder &_fbb, const TQLHTTPLoadMethodT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLFileLoadMethodT : public flatbuffers::NativeTable {
+  typedef TQLFileLoadMethod TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLFileLoadMethodT";
+  }
+  TQLFileLoadMethodT() {
+  }
+};
+
+inline bool operator==(const TQLFileLoadMethodT &, const TQLFileLoadMethodT &) {
+  return true;
+}
+
+inline bool operator!=(const TQLFileLoadMethodT &lhs, const TQLFileLoadMethodT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A file loader
 struct TQLFileLoadMethod FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLFileLoadMethodT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLFileLoadMethodTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLFileLoadMethod";
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
+  TQLFileLoadMethodT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLFileLoadMethodT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLFileLoadMethod> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLFileLoadMethodT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLFileLoadMethodBuilder {
@@ -821,10 +1305,38 @@ inline flatbuffers::Offset<TQLFileLoadMethod> CreateTQLFileLoadMethod(
   return builder_.Finish();
 }
 
+flatbuffers::Offset<TQLFileLoadMethod> CreateTQLFileLoadMethod(flatbuffers::FlatBufferBuilder &_fbb, const TQLFileLoadMethodT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLLoadStatementT : public flatbuffers::NativeTable {
+  typedef TQLLoadStatement TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLLoadStatementT";
+  }
+  std::string data_name;
+  TQLLoadMethodUnion load_method;
+  TQLLoadStatementT() {
+  }
+};
+
+inline bool operator==(const TQLLoadStatementT &lhs, const TQLLoadStatementT &rhs) {
+  return
+      (lhs.data_name == rhs.data_name) &&
+      (lhs.load_method == rhs.load_method);
+}
+
+inline bool operator!=(const TQLLoadStatementT &lhs, const TQLLoadStatementT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A load statement
 struct TQLLoadStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLLoadStatementT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLLoadStatementTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLLoadStatement";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_DATA_NAME = 4,
@@ -856,6 +1368,9 @@ struct TQLLoadStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyTQLLoadMethod(verifier, load_method(), load_method_type()) &&
            verifier.EndTable();
   }
+  TQLLoadStatementT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLLoadStatementT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLLoadStatement> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLLoadStatementT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 template<> inline const TQLHTTPLoadMethod *TQLLoadStatement::load_method_as<TQLHTTPLoadMethod>() const {
@@ -915,15 +1430,42 @@ inline flatbuffers::Offset<TQLLoadStatement> CreateTQLLoadStatementDirect(
       load_method);
 }
 
+flatbuffers::Offset<TQLLoadStatement> CreateTQLLoadStatement(flatbuffers::FlatBufferBuilder &_fbb, const TQLLoadStatementT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLJSONExtractT : public flatbuffers::NativeTable {
+  typedef TQLJSONExtract TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLJSONExtractT";
+  }
+  TQLJSONExtractT() {
+  }
+};
+
+inline bool operator==(const TQLJSONExtractT &, const TQLJSONExtractT &) {
+  return true;
+}
+
+inline bool operator!=(const TQLJSONExtractT &lhs, const TQLJSONExtractT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A json extractor
 struct TQLJSONExtract FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLJSONExtractT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLJSONExtractTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLJSONExtract";
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
+  TQLJSONExtractT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLJSONExtractT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLJSONExtract> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLJSONExtractT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLJSONExtractBuilder {
@@ -947,10 +1489,44 @@ inline flatbuffers::Offset<TQLJSONExtract> CreateTQLJSONExtract(
   return builder_.Finish();
 }
 
+flatbuffers::Offset<TQLJSONExtract> CreateTQLJSONExtract(flatbuffers::FlatBufferBuilder &_fbb, const TQLJSONExtractT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLCSVColumnT : public flatbuffers::NativeTable {
+  typedef TQLCSVColumn TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLCSVColumnT";
+  }
+  std::string column_name;
+  TQLType column_type;
+  std::string source_name;
+  int32_t source_index;
+  TQLCSVColumnT()
+      : column_type(TQLType::INTEGER),
+        source_index(0) {
+  }
+};
+
+inline bool operator==(const TQLCSVColumnT &lhs, const TQLCSVColumnT &rhs) {
+  return
+      (lhs.column_name == rhs.column_name) &&
+      (lhs.column_type == rhs.column_type) &&
+      (lhs.source_name == rhs.source_name) &&
+      (lhs.source_index == rhs.source_index);
+}
+
+inline bool operator!=(const TQLCSVColumnT &lhs, const TQLCSVColumnT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A csv column
 struct TQLCSVColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLCSVColumnT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLCSVColumnTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLCSVColumn";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLUMN_NAME = 4,
@@ -980,6 +1556,9 @@ struct TQLCSVColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_SOURCE_INDEX) &&
            verifier.EndTable();
   }
+  TQLCSVColumnT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLCSVColumnT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLCSVColumn> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLCSVColumnT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLCSVColumnBuilder {
@@ -1039,10 +1618,36 @@ inline flatbuffers::Offset<TQLCSVColumn> CreateTQLCSVColumnDirect(
       source_index);
 }
 
+flatbuffers::Offset<TQLCSVColumn> CreateTQLCSVColumn(flatbuffers::FlatBufferBuilder &_fbb, const TQLCSVColumnT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLCSVExtractT : public flatbuffers::NativeTable {
+  typedef TQLCSVExtract TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLCSVExtractT";
+  }
+  std::vector<std::unique_ptr<TQLCSVColumnT>> columns;
+  TQLCSVExtractT() {
+  }
+};
+
+inline bool operator==(const TQLCSVExtractT &lhs, const TQLCSVExtractT &rhs) {
+  return
+      (lhs.columns == rhs.columns);
+}
+
+inline bool operator!=(const TQLCSVExtractT &lhs, const TQLCSVExtractT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A csv extractor
 struct TQLCSVExtract FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLCSVExtractT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLCSVExtractTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLCSVExtract";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLUMNS = 4
@@ -1057,6 +1662,9 @@ struct TQLCSVExtract FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(columns()) &&
            verifier.EndTable();
   }
+  TQLCSVExtractT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLCSVExtractT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLCSVExtract> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLCSVExtractT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLCSVExtractBuilder {
@@ -1094,15 +1702,42 @@ inline flatbuffers::Offset<TQLCSVExtract> CreateTQLCSVExtractDirect(
       columns__);
 }
 
+flatbuffers::Offset<TQLCSVExtract> CreateTQLCSVExtract(flatbuffers::FlatBufferBuilder &_fbb, const TQLCSVExtractT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLParquetExtractorT : public flatbuffers::NativeTable {
+  typedef TQLParquetExtractor TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLParquetExtractorT";
+  }
+  TQLParquetExtractorT() {
+  }
+};
+
+inline bool operator==(const TQLParquetExtractorT &, const TQLParquetExtractorT &) {
+  return true;
+}
+
+inline bool operator!=(const TQLParquetExtractorT &lhs, const TQLParquetExtractorT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A parquet extractor
 struct TQLParquetExtractor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLParquetExtractorT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLParquetExtractorTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLParquetExtractor";
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
+  TQLParquetExtractorT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLParquetExtractorT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLParquetExtractor> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLParquetExtractorT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLParquetExtractorBuilder {
@@ -1126,10 +1761,40 @@ inline flatbuffers::Offset<TQLParquetExtractor> CreateTQLParquetExtractor(
   return builder_.Finish();
 }
 
+flatbuffers::Offset<TQLParquetExtractor> CreateTQLParquetExtractor(flatbuffers::FlatBufferBuilder &_fbb, const TQLParquetExtractorT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLExtractStatementT : public flatbuffers::NativeTable {
+  typedef TQLExtractStatement TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLExtractStatementT";
+  }
+  std::string extract_name;
+  TQLExtractMethodUnion extract_method;
+  std::string data_name;
+  TQLExtractStatementT() {
+  }
+};
+
+inline bool operator==(const TQLExtractStatementT &lhs, const TQLExtractStatementT &rhs) {
+  return
+      (lhs.extract_name == rhs.extract_name) &&
+      (lhs.extract_method == rhs.extract_method) &&
+      (lhs.data_name == rhs.data_name);
+}
+
+inline bool operator!=(const TQLExtractStatementT &lhs, const TQLExtractStatementT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// An extract statement
 struct TQLExtractStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLExtractStatementT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLExtractStatementTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLExtractStatement";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_EXTRACT_NAME = 4,
@@ -1170,6 +1835,9 @@ struct TQLExtractStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
            verifier.VerifyString(data_name()) &&
            verifier.EndTable();
   }
+  TQLExtractStatementT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLExtractStatementT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLExtractStatement> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLExtractStatementT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 template<> inline const TQLJSONExtract *TQLExtractStatement::extract_method_as<TQLJSONExtract>() const {
@@ -1241,10 +1909,38 @@ inline flatbuffers::Offset<TQLExtractStatement> CreateTQLExtractStatementDirect(
       data_name__);
 }
 
+flatbuffers::Offset<TQLExtractStatement> CreateTQLExtractStatement(flatbuffers::FlatBufferBuilder &_fbb, const TQLExtractStatementT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLDisplayColorPaletteT : public flatbuffers::NativeTable {
+  typedef TQLDisplayColorPalette TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayColorPaletteT";
+  }
+  std::string color_target;
+  std::vector<TQLDisplayColor> palette;
+  TQLDisplayColorPaletteT() {
+  }
+};
+
+inline bool operator==(const TQLDisplayColorPaletteT &lhs, const TQLDisplayColorPaletteT &rhs) {
+  return
+      (lhs.color_target == rhs.color_target) &&
+      (lhs.palette == rhs.palette);
+}
+
+inline bool operator!=(const TQLDisplayColorPaletteT &lhs, const TQLDisplayColorPaletteT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A display color palette
 struct TQLDisplayColorPalette FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLDisplayColorPaletteT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLDisplayColorPaletteTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayColorPalette";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLOR_TARGET = 4,
@@ -1264,6 +1960,9 @@ struct TQLDisplayColorPalette FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tab
            verifier.VerifyVector(palette()) &&
            verifier.EndTable();
   }
+  TQLDisplayColorPaletteT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLDisplayColorPaletteT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLDisplayColorPalette> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayColorPaletteT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLDisplayColorPaletteBuilder {
@@ -1309,10 +2008,42 @@ inline flatbuffers::Offset<TQLDisplayColorPalette> CreateTQLDisplayColorPaletteD
       palette__);
 }
 
+flatbuffers::Offset<TQLDisplayColorPalette> CreateTQLDisplayColorPalette(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayColorPaletteT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLDisplayLengthT : public flatbuffers::NativeTable {
+  typedef TQLDisplayLength TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayLengthT";
+  }
+  std::unique_ptr<TQLDisplayLengthValue> small;
+  std::unique_ptr<TQLDisplayLengthValue> medium;
+  std::unique_ptr<TQLDisplayLengthValue> large;
+  std::unique_ptr<TQLDisplayLengthValue> extra_large;
+  TQLDisplayLengthT() {
+  }
+};
+
+inline bool operator==(const TQLDisplayLengthT &lhs, const TQLDisplayLengthT &rhs) {
+  return
+      (lhs.small == rhs.small) &&
+      (lhs.medium == rhs.medium) &&
+      (lhs.large == rhs.large) &&
+      (lhs.extra_large == rhs.extra_large);
+}
+
+inline bool operator!=(const TQLDisplayLengthT &lhs, const TQLDisplayLengthT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A display length
 struct TQLDisplayLength FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLDisplayLengthT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLDisplayLengthTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayLength";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SMALL = 4,
@@ -1340,6 +2071,9 @@ struct TQLDisplayLength FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<TQLDisplayLengthValue>(verifier, VT_EXTRA_LARGE) &&
            verifier.EndTable();
   }
+  TQLDisplayLengthT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLDisplayLengthT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLDisplayLength> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayLengthT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLDisplayLengthBuilder {
@@ -1383,10 +2117,38 @@ inline flatbuffers::Offset<TQLDisplayLength> CreateTQLDisplayLength(
   return builder_.Finish();
 }
 
+flatbuffers::Offset<TQLDisplayLength> CreateTQLDisplayLength(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayLengthT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLDisplayLayoutT : public flatbuffers::NativeTable {
+  typedef TQLDisplayLayout TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayLayoutT";
+  }
+  std::unique_ptr<TQLDisplayLengthT> width;
+  std::unique_ptr<TQLDisplayLengthT> height;
+  TQLDisplayLayoutT() {
+  }
+};
+
+inline bool operator==(const TQLDisplayLayoutT &lhs, const TQLDisplayLayoutT &rhs) {
+  return
+      (lhs.width == rhs.width) &&
+      (lhs.height == rhs.height);
+}
+
+inline bool operator!=(const TQLDisplayLayoutT &lhs, const TQLDisplayLayoutT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A display layout
 struct TQLDisplayLayout FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLDisplayLayoutT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLDisplayLayoutTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayLayout";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_WIDTH = 4,
@@ -1406,6 +2168,9 @@ struct TQLDisplayLayout FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyTable(height()) &&
            verifier.EndTable();
   }
+  TQLDisplayLayoutT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLDisplayLayoutT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLDisplayLayout> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayLayoutT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLDisplayLayoutBuilder {
@@ -1439,10 +2204,39 @@ inline flatbuffers::Offset<TQLDisplayLayout> CreateTQLDisplayLayout(
   return builder_.Finish();
 }
 
+flatbuffers::Offset<TQLDisplayLayout> CreateTQLDisplayLayout(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayLayoutT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLDisplayAxisT : public flatbuffers::NativeTable {
+  typedef TQLDisplayAxis TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayAxisT";
+  }
+  std::string column;
+  TQLDisplayAxisScale scale;
+  TQLDisplayAxisT()
+      : scale(TQLDisplayAxisScale::Linear) {
+  }
+};
+
+inline bool operator==(const TQLDisplayAxisT &lhs, const TQLDisplayAxisT &rhs) {
+  return
+      (lhs.column == rhs.column) &&
+      (lhs.scale == rhs.scale);
+}
+
+inline bool operator!=(const TQLDisplayAxisT &lhs, const TQLDisplayAxisT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A display axis
 struct TQLDisplayAxis FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLDisplayAxisT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLDisplayAxisTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayAxis";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLUMN = 4,
@@ -1461,6 +2255,9 @@ struct TQLDisplayAxis FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_SCALE) &&
            verifier.EndTable();
   }
+  TQLDisplayAxisT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLDisplayAxisT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLDisplayAxis> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayAxisT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLDisplayAxisBuilder {
@@ -1505,10 +2302,38 @@ inline flatbuffers::Offset<TQLDisplayAxis> CreateTQLDisplayAxisDirect(
       scale);
 }
 
+flatbuffers::Offset<TQLDisplayAxis> CreateTQLDisplayAxis(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayAxisT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLDisplayAxesT : public flatbuffers::NativeTable {
+  typedef TQLDisplayAxes TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayAxesT";
+  }
+  std::unique_ptr<TQLDisplayAxisT> x;
+  std::unique_ptr<TQLDisplayAxisT> y;
+  TQLDisplayAxesT() {
+  }
+};
+
+inline bool operator==(const TQLDisplayAxesT &lhs, const TQLDisplayAxesT &rhs) {
+  return
+      (lhs.x == rhs.x) &&
+      (lhs.y == rhs.y);
+}
+
+inline bool operator!=(const TQLDisplayAxesT &lhs, const TQLDisplayAxesT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// Display axes
 struct TQLDisplayAxes FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLDisplayAxesT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLDisplayAxesTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayAxes";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_X = 4,
@@ -1528,6 +2353,9 @@ struct TQLDisplayAxes FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyTable(y()) &&
            verifier.EndTable();
   }
+  TQLDisplayAxesT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLDisplayAxesT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLDisplayAxes> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayAxesT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLDisplayAxesBuilder {
@@ -1561,10 +2389,48 @@ inline flatbuffers::Offset<TQLDisplayAxes> CreateTQLDisplayAxes(
   return builder_.Finish();
 }
 
+flatbuffers::Offset<TQLDisplayAxes> CreateTQLDisplayAxes(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayAxesT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLDisplayStatementT : public flatbuffers::NativeTable {
+  typedef TQLDisplayStatement TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayStatementT";
+  }
+  std::string display_name;
+  TQLDisplayType display_type;
+  uint16_t display_type_flags;
+  std::unique_ptr<TQLDisplayLayoutT> layout;
+  std::unique_ptr<TQLDisplayColor> color;
+  std::unique_ptr<TQLDisplayAxesT> axes;
+  TQLDisplayStatementT()
+      : display_type(TQLDisplayType::Area),
+        display_type_flags(0) {
+  }
+};
+
+inline bool operator==(const TQLDisplayStatementT &lhs, const TQLDisplayStatementT &rhs) {
+  return
+      (lhs.display_name == rhs.display_name) &&
+      (lhs.display_type == rhs.display_type) &&
+      (lhs.display_type_flags == rhs.display_type_flags) &&
+      (lhs.layout == rhs.layout) &&
+      (lhs.color == rhs.color) &&
+      (lhs.axes == rhs.axes);
+}
+
+inline bool operator!=(const TQLDisplayStatementT &lhs, const TQLDisplayStatementT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A display statement
 struct TQLDisplayStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLDisplayStatementT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLDisplayStatementTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLDisplayStatement";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_DISPLAY_NAME = 4,
@@ -1605,6 +2471,9 @@ struct TQLDisplayStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
            verifier.VerifyTable(axes()) &&
            verifier.EndTable();
   }
+  TQLDisplayStatementT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLDisplayStatementT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLDisplayStatement> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayStatementT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLDisplayStatementBuilder {
@@ -1677,10 +2546,36 @@ inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatementDirect(
       axes);
 }
 
+flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatement(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayStatementT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TQLProgramT : public flatbuffers::NativeTable {
+  typedef TQLProgram TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLProgramT";
+  }
+  std::vector<TQLStatementUnion> statements;
+  TQLProgramT() {
+  }
+};
+
+inline bool operator==(const TQLProgramT &lhs, const TQLProgramT &rhs) {
+  return
+      (lhs.statements == rhs.statements);
+}
+
+inline bool operator!=(const TQLProgramT &lhs, const TQLProgramT &rhs) {
+    return !(lhs == rhs);
+}
+
+
 /// A TQL program
 struct TQLProgram FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLProgramT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return TQLProgramTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.TQLProgram";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_STATEMENTS_TYPE = 4,
@@ -1701,6 +2596,9 @@ struct TQLProgram FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyTQLStatementVector(verifier, statements(), statements_type()) &&
            verifier.EndTable();
   }
+  TQLProgramT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLProgramT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLProgram> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLProgramT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct TQLProgramBuilder {
@@ -1746,6 +2644,519 @@ inline flatbuffers::Offset<TQLProgram> CreateTQLProgramDirect(
       statements__);
 }
 
+flatbuffers::Offset<TQLProgram> CreateTQLProgram(flatbuffers::FlatBufferBuilder &_fbb, const TQLProgramT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+inline TQLQueryStatementT *TQLQueryStatement::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLQueryStatementT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLQueryStatement::UnPackTo(TQLQueryStatementT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = query_text(); if (_e) _o->query_text = _e->str(); };
+}
+
+inline flatbuffers::Offset<TQLQueryStatement> TQLQueryStatement::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLQueryStatementT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLQueryStatement(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLQueryStatement> CreateTQLQueryStatement(flatbuffers::FlatBufferBuilder &_fbb, const TQLQueryStatementT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLQueryStatementT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _query_text = _o->query_text.empty() ? 0 : _fbb.CreateString(_o->query_text);
+  return tigon::proto::CreateTQLQueryStatement(
+      _fbb,
+      _query_text);
+}
+
+inline TQLParameterDeclarationT *TQLParameterDeclaration::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLParameterDeclarationT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLParameterDeclaration::UnPackTo(TQLParameterDeclarationT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = parameter_name(); if (_e) _o->parameter_name = _e->str(); };
+  { auto _e = parameter_type(); _o->parameter_type = _e; };
+  { auto _e = default_value_i64(); _o->default_value_i64 = _e; };
+  { auto _e = default_value_f64(); _o->default_value_f64 = _e; };
+  { auto _e = default_value_str(); if (_e) _o->default_value_str = _e->str(); };
+}
+
+inline flatbuffers::Offset<TQLParameterDeclaration> TQLParameterDeclaration::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLParameterDeclarationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLParameterDeclaration(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclaration(flatbuffers::FlatBufferBuilder &_fbb, const TQLParameterDeclarationT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLParameterDeclarationT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _parameter_name = _o->parameter_name.empty() ? 0 : _fbb.CreateString(_o->parameter_name);
+  auto _parameter_type = _o->parameter_type;
+  auto _default_value_i64 = _o->default_value_i64;
+  auto _default_value_f64 = _o->default_value_f64;
+  auto _default_value_str = _o->default_value_str.empty() ? 0 : _fbb.CreateString(_o->default_value_str);
+  return tigon::proto::CreateTQLParameterDeclaration(
+      _fbb,
+      _parameter_name,
+      _parameter_type,
+      _default_value_i64,
+      _default_value_f64,
+      _default_value_str);
+}
+
+inline TQLHTTPLoadMethodT *TQLHTTPLoadMethod::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLHTTPLoadMethodT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLHTTPLoadMethod::UnPackTo(TQLHTTPLoadMethodT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = http_url(); if (_e) _o->http_url = _e->str(); };
+  { auto _e = http_method(); _o->http_method = _e; };
+}
+
+inline flatbuffers::Offset<TQLHTTPLoadMethod> TQLHTTPLoadMethod::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLHTTPLoadMethodT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLHTTPLoadMethod(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLHTTPLoadMethod> CreateTQLHTTPLoadMethod(flatbuffers::FlatBufferBuilder &_fbb, const TQLHTTPLoadMethodT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLHTTPLoadMethodT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _http_url = _o->http_url.empty() ? 0 : _fbb.CreateString(_o->http_url);
+  auto _http_method = _o->http_method;
+  return tigon::proto::CreateTQLHTTPLoadMethod(
+      _fbb,
+      _http_url,
+      _http_method);
+}
+
+inline TQLFileLoadMethodT *TQLFileLoadMethod::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLFileLoadMethodT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLFileLoadMethod::UnPackTo(TQLFileLoadMethodT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<TQLFileLoadMethod> TQLFileLoadMethod::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLFileLoadMethodT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLFileLoadMethod(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLFileLoadMethod> CreateTQLFileLoadMethod(flatbuffers::FlatBufferBuilder &_fbb, const TQLFileLoadMethodT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLFileLoadMethodT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return tigon::proto::CreateTQLFileLoadMethod(
+      _fbb);
+}
+
+inline TQLLoadStatementT *TQLLoadStatement::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLLoadStatementT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLLoadStatement::UnPackTo(TQLLoadStatementT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = data_name(); if (_e) _o->data_name = _e->str(); };
+  { auto _e = load_method_type(); _o->load_method.type = _e; };
+  { auto _e = load_method(); if (_e) _o->load_method.value = TQLLoadMethodUnion::UnPack(_e, load_method_type(), _resolver); };
+}
+
+inline flatbuffers::Offset<TQLLoadStatement> TQLLoadStatement::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLLoadStatementT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLLoadStatement(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLLoadStatement> CreateTQLLoadStatement(flatbuffers::FlatBufferBuilder &_fbb, const TQLLoadStatementT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLLoadStatementT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _data_name = _o->data_name.empty() ? 0 : _fbb.CreateString(_o->data_name);
+  auto _load_method_type = _o->load_method.type;
+  auto _load_method = _o->load_method.Pack(_fbb);
+  return tigon::proto::CreateTQLLoadStatement(
+      _fbb,
+      _data_name,
+      _load_method_type,
+      _load_method);
+}
+
+inline TQLJSONExtractT *TQLJSONExtract::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLJSONExtractT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLJSONExtract::UnPackTo(TQLJSONExtractT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<TQLJSONExtract> TQLJSONExtract::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLJSONExtractT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLJSONExtract(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLJSONExtract> CreateTQLJSONExtract(flatbuffers::FlatBufferBuilder &_fbb, const TQLJSONExtractT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLJSONExtractT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return tigon::proto::CreateTQLJSONExtract(
+      _fbb);
+}
+
+inline TQLCSVColumnT *TQLCSVColumn::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLCSVColumnT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLCSVColumn::UnPackTo(TQLCSVColumnT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = column_name(); if (_e) _o->column_name = _e->str(); };
+  { auto _e = column_type(); _o->column_type = _e; };
+  { auto _e = source_name(); if (_e) _o->source_name = _e->str(); };
+  { auto _e = source_index(); _o->source_index = _e; };
+}
+
+inline flatbuffers::Offset<TQLCSVColumn> TQLCSVColumn::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLCSVColumnT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLCSVColumn(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLCSVColumn> CreateTQLCSVColumn(flatbuffers::FlatBufferBuilder &_fbb, const TQLCSVColumnT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLCSVColumnT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _column_name = _o->column_name.empty() ? 0 : _fbb.CreateString(_o->column_name);
+  auto _column_type = _o->column_type;
+  auto _source_name = _o->source_name.empty() ? 0 : _fbb.CreateString(_o->source_name);
+  auto _source_index = _o->source_index;
+  return tigon::proto::CreateTQLCSVColumn(
+      _fbb,
+      _column_name,
+      _column_type,
+      _source_name,
+      _source_index);
+}
+
+inline TQLCSVExtractT *TQLCSVExtract::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLCSVExtractT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLCSVExtract::UnPackTo(TQLCSVExtractT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = columns(); if (_e) { _o->columns.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->columns[_i] = std::unique_ptr<TQLCSVColumnT>(_e->Get(_i)->UnPack(_resolver)); } } };
+}
+
+inline flatbuffers::Offset<TQLCSVExtract> TQLCSVExtract::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLCSVExtractT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLCSVExtract(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLCSVExtract> CreateTQLCSVExtract(flatbuffers::FlatBufferBuilder &_fbb, const TQLCSVExtractT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLCSVExtractT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _columns = _o->columns.size() ? _fbb.CreateVector<flatbuffers::Offset<TQLCSVColumn>> (_o->columns.size(), [](size_t i, _VectorArgs *__va) { return CreateTQLCSVColumn(*__va->__fbb, __va->__o->columns[i].get(), __va->__rehasher); }, &_va ) : 0;
+  return tigon::proto::CreateTQLCSVExtract(
+      _fbb,
+      _columns);
+}
+
+inline TQLParquetExtractorT *TQLParquetExtractor::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLParquetExtractorT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLParquetExtractor::UnPackTo(TQLParquetExtractorT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<TQLParquetExtractor> TQLParquetExtractor::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLParquetExtractorT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLParquetExtractor(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLParquetExtractor> CreateTQLParquetExtractor(flatbuffers::FlatBufferBuilder &_fbb, const TQLParquetExtractorT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLParquetExtractorT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return tigon::proto::CreateTQLParquetExtractor(
+      _fbb);
+}
+
+inline TQLExtractStatementT *TQLExtractStatement::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLExtractStatementT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLExtractStatement::UnPackTo(TQLExtractStatementT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = extract_name(); if (_e) _o->extract_name = _e->str(); };
+  { auto _e = extract_method_type(); _o->extract_method.type = _e; };
+  { auto _e = extract_method(); if (_e) _o->extract_method.value = TQLExtractMethodUnion::UnPack(_e, extract_method_type(), _resolver); };
+  { auto _e = data_name(); if (_e) _o->data_name = _e->str(); };
+}
+
+inline flatbuffers::Offset<TQLExtractStatement> TQLExtractStatement::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLExtractStatementT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLExtractStatement(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLExtractStatement> CreateTQLExtractStatement(flatbuffers::FlatBufferBuilder &_fbb, const TQLExtractStatementT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLExtractStatementT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _extract_name = _o->extract_name.empty() ? 0 : _fbb.CreateString(_o->extract_name);
+  auto _extract_method_type = _o->extract_method.type;
+  auto _extract_method = _o->extract_method.Pack(_fbb);
+  auto _data_name = _o->data_name.empty() ? 0 : _fbb.CreateString(_o->data_name);
+  return tigon::proto::CreateTQLExtractStatement(
+      _fbb,
+      _extract_name,
+      _extract_method_type,
+      _extract_method,
+      _data_name);
+}
+
+inline TQLDisplayColorPaletteT *TQLDisplayColorPalette::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLDisplayColorPaletteT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLDisplayColorPalette::UnPackTo(TQLDisplayColorPaletteT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = color_target(); if (_e) _o->color_target = _e->str(); };
+  { auto _e = palette(); if (_e) { _o->palette.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->palette[_i] = *_e->Get(_i); } } };
+}
+
+inline flatbuffers::Offset<TQLDisplayColorPalette> TQLDisplayColorPalette::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayColorPaletteT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLDisplayColorPalette(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLDisplayColorPalette> CreateTQLDisplayColorPalette(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayColorPaletteT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLDisplayColorPaletteT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _color_target = _o->color_target.empty() ? 0 : _fbb.CreateString(_o->color_target);
+  auto _palette = _o->palette.size() ? _fbb.CreateVectorOfStructs(_o->palette) : 0;
+  return tigon::proto::CreateTQLDisplayColorPalette(
+      _fbb,
+      _color_target,
+      _palette);
+}
+
+inline TQLDisplayLengthT *TQLDisplayLength::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLDisplayLengthT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLDisplayLength::UnPackTo(TQLDisplayLengthT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = small(); if (_e) _o->small = std::unique_ptr<TQLDisplayLengthValue>(new TQLDisplayLengthValue(*_e)); };
+  { auto _e = medium(); if (_e) _o->medium = std::unique_ptr<TQLDisplayLengthValue>(new TQLDisplayLengthValue(*_e)); };
+  { auto _e = large(); if (_e) _o->large = std::unique_ptr<TQLDisplayLengthValue>(new TQLDisplayLengthValue(*_e)); };
+  { auto _e = extra_large(); if (_e) _o->extra_large = std::unique_ptr<TQLDisplayLengthValue>(new TQLDisplayLengthValue(*_e)); };
+}
+
+inline flatbuffers::Offset<TQLDisplayLength> TQLDisplayLength::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayLengthT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLDisplayLength(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLDisplayLength> CreateTQLDisplayLength(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayLengthT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLDisplayLengthT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _small = _o->small ? _o->small.get() : 0;
+  auto _medium = _o->medium ? _o->medium.get() : 0;
+  auto _large = _o->large ? _o->large.get() : 0;
+  auto _extra_large = _o->extra_large ? _o->extra_large.get() : 0;
+  return tigon::proto::CreateTQLDisplayLength(
+      _fbb,
+      _small,
+      _medium,
+      _large,
+      _extra_large);
+}
+
+inline TQLDisplayLayoutT *TQLDisplayLayout::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLDisplayLayoutT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLDisplayLayout::UnPackTo(TQLDisplayLayoutT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = width(); if (_e) _o->width = std::unique_ptr<TQLDisplayLengthT>(_e->UnPack(_resolver)); };
+  { auto _e = height(); if (_e) _o->height = std::unique_ptr<TQLDisplayLengthT>(_e->UnPack(_resolver)); };
+}
+
+inline flatbuffers::Offset<TQLDisplayLayout> TQLDisplayLayout::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayLayoutT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLDisplayLayout(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLDisplayLayout> CreateTQLDisplayLayout(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayLayoutT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLDisplayLayoutT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _width = _o->width ? CreateTQLDisplayLength(_fbb, _o->width.get(), _rehasher) : 0;
+  auto _height = _o->height ? CreateTQLDisplayLength(_fbb, _o->height.get(), _rehasher) : 0;
+  return tigon::proto::CreateTQLDisplayLayout(
+      _fbb,
+      _width,
+      _height);
+}
+
+inline TQLDisplayAxisT *TQLDisplayAxis::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLDisplayAxisT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLDisplayAxis::UnPackTo(TQLDisplayAxisT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = column(); if (_e) _o->column = _e->str(); };
+  { auto _e = scale(); _o->scale = _e; };
+}
+
+inline flatbuffers::Offset<TQLDisplayAxis> TQLDisplayAxis::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayAxisT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLDisplayAxis(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLDisplayAxis> CreateTQLDisplayAxis(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayAxisT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLDisplayAxisT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _column = _o->column.empty() ? 0 : _fbb.CreateString(_o->column);
+  auto _scale = _o->scale;
+  return tigon::proto::CreateTQLDisplayAxis(
+      _fbb,
+      _column,
+      _scale);
+}
+
+inline TQLDisplayAxesT *TQLDisplayAxes::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLDisplayAxesT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLDisplayAxes::UnPackTo(TQLDisplayAxesT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = x(); if (_e) _o->x = std::unique_ptr<TQLDisplayAxisT>(_e->UnPack(_resolver)); };
+  { auto _e = y(); if (_e) _o->y = std::unique_ptr<TQLDisplayAxisT>(_e->UnPack(_resolver)); };
+}
+
+inline flatbuffers::Offset<TQLDisplayAxes> TQLDisplayAxes::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayAxesT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLDisplayAxes(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLDisplayAxes> CreateTQLDisplayAxes(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayAxesT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLDisplayAxesT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _x = _o->x ? CreateTQLDisplayAxis(_fbb, _o->x.get(), _rehasher) : 0;
+  auto _y = _o->y ? CreateTQLDisplayAxis(_fbb, _o->y.get(), _rehasher) : 0;
+  return tigon::proto::CreateTQLDisplayAxes(
+      _fbb,
+      _x,
+      _y);
+}
+
+inline TQLDisplayStatementT *TQLDisplayStatement::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLDisplayStatementT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLDisplayStatement::UnPackTo(TQLDisplayStatementT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = display_name(); if (_e) _o->display_name = _e->str(); };
+  { auto _e = display_type(); _o->display_type = _e; };
+  { auto _e = display_type_flags(); _o->display_type_flags = _e; };
+  { auto _e = layout(); if (_e) _o->layout = std::unique_ptr<TQLDisplayLayoutT>(_e->UnPack(_resolver)); };
+  { auto _e = color(); if (_e) _o->color = std::unique_ptr<TQLDisplayColor>(new TQLDisplayColor(*_e)); };
+  { auto _e = axes(); if (_e) _o->axes = std::unique_ptr<TQLDisplayAxesT>(_e->UnPack(_resolver)); };
+}
+
+inline flatbuffers::Offset<TQLDisplayStatement> TQLDisplayStatement::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayStatementT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLDisplayStatement(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatement(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayStatementT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLDisplayStatementT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _display_name = _o->display_name.empty() ? 0 : _fbb.CreateString(_o->display_name);
+  auto _display_type = _o->display_type;
+  auto _display_type_flags = _o->display_type_flags;
+  auto _layout = _o->layout ? CreateTQLDisplayLayout(_fbb, _o->layout.get(), _rehasher) : 0;
+  auto _color = _o->color ? _o->color.get() : 0;
+  auto _axes = _o->axes ? CreateTQLDisplayAxes(_fbb, _o->axes.get(), _rehasher) : 0;
+  return tigon::proto::CreateTQLDisplayStatement(
+      _fbb,
+      _display_name,
+      _display_type,
+      _display_type_flags,
+      _layout,
+      _color,
+      _axes);
+}
+
+inline TQLProgramT *TQLProgram::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLProgramT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void TQLProgram::UnPackTo(TQLProgramT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = statements_type(); if (_e) { _o->statements.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->statements[_i].type = static_cast<TQLStatement>(_e->Get(_i)); } } };
+  { auto _e = statements(); if (_e) { _o->statements.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->statements[_i].value = TQLStatementUnion::UnPack(_e->Get(_i), statements_type()->GetEnum<TQLStatement>(_i), _resolver); } } };
+}
+
+inline flatbuffers::Offset<TQLProgram> TQLProgram::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLProgramT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLProgram(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TQLProgram> CreateTQLProgram(flatbuffers::FlatBufferBuilder &_fbb, const TQLProgramT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLProgramT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _statements_type = _o->statements.size() ? _fbb.CreateVector<uint8_t>(_o->statements.size(), [](size_t i, _VectorArgs *__va) { return static_cast<uint8_t>(__va->__o->statements[i].type); }, &_va) : 0;
+  auto _statements = _o->statements.size() ? _fbb.CreateVector<flatbuffers::Offset<void>>(_o->statements.size(), [](size_t i, _VectorArgs *__va) { return __va->__o->statements[i].Pack(*__va->__fbb, __va->__rehasher); }, &_va) : 0;
+  return tigon::proto::CreateTQLProgram(
+      _fbb,
+      _statements_type,
+      _statements);
+}
+
 inline bool VerifyTQLLoadMethod(flatbuffers::Verifier &verifier, const void *obj, TQLLoadMethod type) {
   switch (type) {
     case TQLLoadMethod::NONE: {
@@ -1773,6 +3184,67 @@ inline bool VerifyTQLLoadMethodVector(flatbuffers::Verifier &verifier, const fla
     }
   }
   return true;
+}
+
+inline void *TQLLoadMethodUnion::UnPack(const void *obj, TQLLoadMethod type, const flatbuffers::resolver_function_t *resolver) {
+  switch (type) {
+    case TQLLoadMethod::TQLHTTPLoadMethod: {
+      auto ptr = reinterpret_cast<const TQLHTTPLoadMethod *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case TQLLoadMethod::TQLFileLoadMethod: {
+      auto ptr = reinterpret_cast<const TQLFileLoadMethod *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    default: return nullptr;
+  }
+}
+
+inline flatbuffers::Offset<void> TQLLoadMethodUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
+  switch (type) {
+    case TQLLoadMethod::TQLHTTPLoadMethod: {
+      auto ptr = reinterpret_cast<const TQLHTTPLoadMethodT *>(value);
+      return CreateTQLHTTPLoadMethod(_fbb, ptr, _rehasher).Union();
+    }
+    case TQLLoadMethod::TQLFileLoadMethod: {
+      auto ptr = reinterpret_cast<const TQLFileLoadMethodT *>(value);
+      return CreateTQLFileLoadMethod(_fbb, ptr, _rehasher).Union();
+    }
+    default: return 0;
+  }
+}
+
+inline TQLLoadMethodUnion::TQLLoadMethodUnion(const TQLLoadMethodUnion &u) FLATBUFFERS_NOEXCEPT : type(u.type), value(nullptr) {
+  switch (type) {
+    case TQLLoadMethod::TQLHTTPLoadMethod: {
+      value = new TQLHTTPLoadMethodT(*reinterpret_cast<TQLHTTPLoadMethodT *>(u.value));
+      break;
+    }
+    case TQLLoadMethod::TQLFileLoadMethod: {
+      value = new TQLFileLoadMethodT(*reinterpret_cast<TQLFileLoadMethodT *>(u.value));
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+inline void TQLLoadMethodUnion::Reset() {
+  switch (type) {
+    case TQLLoadMethod::TQLHTTPLoadMethod: {
+      auto ptr = reinterpret_cast<TQLHTTPLoadMethodT *>(value);
+      delete ptr;
+      break;
+    }
+    case TQLLoadMethod::TQLFileLoadMethod: {
+      auto ptr = reinterpret_cast<TQLFileLoadMethodT *>(value);
+      delete ptr;
+      break;
+    }
+    default: break;
+  }
+  value = nullptr;
+  type = TQLLoadMethod::NONE;
 }
 
 inline bool VerifyTQLExtractMethod(flatbuffers::Verifier &verifier, const void *obj, TQLExtractMethod type) {
@@ -1806,6 +3278,84 @@ inline bool VerifyTQLExtractMethodVector(flatbuffers::Verifier &verifier, const 
     }
   }
   return true;
+}
+
+inline void *TQLExtractMethodUnion::UnPack(const void *obj, TQLExtractMethod type, const flatbuffers::resolver_function_t *resolver) {
+  switch (type) {
+    case TQLExtractMethod::TQLJSONExtract: {
+      auto ptr = reinterpret_cast<const TQLJSONExtract *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case TQLExtractMethod::TQLCSVExtract: {
+      auto ptr = reinterpret_cast<const TQLCSVExtract *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case TQLExtractMethod::TQLParquetExtractor: {
+      auto ptr = reinterpret_cast<const TQLParquetExtractor *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    default: return nullptr;
+  }
+}
+
+inline flatbuffers::Offset<void> TQLExtractMethodUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
+  switch (type) {
+    case TQLExtractMethod::TQLJSONExtract: {
+      auto ptr = reinterpret_cast<const TQLJSONExtractT *>(value);
+      return CreateTQLJSONExtract(_fbb, ptr, _rehasher).Union();
+    }
+    case TQLExtractMethod::TQLCSVExtract: {
+      auto ptr = reinterpret_cast<const TQLCSVExtractT *>(value);
+      return CreateTQLCSVExtract(_fbb, ptr, _rehasher).Union();
+    }
+    case TQLExtractMethod::TQLParquetExtractor: {
+      auto ptr = reinterpret_cast<const TQLParquetExtractorT *>(value);
+      return CreateTQLParquetExtractor(_fbb, ptr, _rehasher).Union();
+    }
+    default: return 0;
+  }
+}
+
+inline TQLExtractMethodUnion::TQLExtractMethodUnion(const TQLExtractMethodUnion &u) FLATBUFFERS_NOEXCEPT : type(u.type), value(nullptr) {
+  switch (type) {
+    case TQLExtractMethod::TQLJSONExtract: {
+      value = new TQLJSONExtractT(*reinterpret_cast<TQLJSONExtractT *>(u.value));
+      break;
+    }
+    case TQLExtractMethod::TQLCSVExtract: {
+      FLATBUFFERS_ASSERT(false);  // TQLCSVExtractT not copyable.
+      break;
+    }
+    case TQLExtractMethod::TQLParquetExtractor: {
+      value = new TQLParquetExtractorT(*reinterpret_cast<TQLParquetExtractorT *>(u.value));
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+inline void TQLExtractMethodUnion::Reset() {
+  switch (type) {
+    case TQLExtractMethod::TQLJSONExtract: {
+      auto ptr = reinterpret_cast<TQLJSONExtractT *>(value);
+      delete ptr;
+      break;
+    }
+    case TQLExtractMethod::TQLCSVExtract: {
+      auto ptr = reinterpret_cast<TQLCSVExtractT *>(value);
+      delete ptr;
+      break;
+    }
+    case TQLExtractMethod::TQLParquetExtractor: {
+      auto ptr = reinterpret_cast<TQLParquetExtractorT *>(value);
+      delete ptr;
+      break;
+    }
+    default: break;
+  }
+  value = nullptr;
+  type = TQLExtractMethod::NONE;
 }
 
 inline bool VerifyTQLStatement(flatbuffers::Verifier &verifier, const void *obj, TQLStatement type) {
@@ -1847,6 +3397,118 @@ inline bool VerifyTQLStatementVector(flatbuffers::Verifier &verifier, const flat
     }
   }
   return true;
+}
+
+inline void *TQLStatementUnion::UnPack(const void *obj, TQLStatement type, const flatbuffers::resolver_function_t *resolver) {
+  switch (type) {
+    case TQLStatement::TQLDisplayStatement: {
+      auto ptr = reinterpret_cast<const TQLDisplayStatement *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case TQLStatement::TQLExtractStatement: {
+      auto ptr = reinterpret_cast<const TQLExtractStatement *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case TQLStatement::TQLLoadStatement: {
+      auto ptr = reinterpret_cast<const TQLLoadStatement *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case TQLStatement::TQLParameterDeclaration: {
+      auto ptr = reinterpret_cast<const TQLParameterDeclaration *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case TQLStatement::TQLQueryStatement: {
+      auto ptr = reinterpret_cast<const TQLQueryStatement *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    default: return nullptr;
+  }
+}
+
+inline flatbuffers::Offset<void> TQLStatementUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
+  switch (type) {
+    case TQLStatement::TQLDisplayStatement: {
+      auto ptr = reinterpret_cast<const TQLDisplayStatementT *>(value);
+      return CreateTQLDisplayStatement(_fbb, ptr, _rehasher).Union();
+    }
+    case TQLStatement::TQLExtractStatement: {
+      auto ptr = reinterpret_cast<const TQLExtractStatementT *>(value);
+      return CreateTQLExtractStatement(_fbb, ptr, _rehasher).Union();
+    }
+    case TQLStatement::TQLLoadStatement: {
+      auto ptr = reinterpret_cast<const TQLLoadStatementT *>(value);
+      return CreateTQLLoadStatement(_fbb, ptr, _rehasher).Union();
+    }
+    case TQLStatement::TQLParameterDeclaration: {
+      auto ptr = reinterpret_cast<const TQLParameterDeclarationT *>(value);
+      return CreateTQLParameterDeclaration(_fbb, ptr, _rehasher).Union();
+    }
+    case TQLStatement::TQLQueryStatement: {
+      auto ptr = reinterpret_cast<const TQLQueryStatementT *>(value);
+      return CreateTQLQueryStatement(_fbb, ptr, _rehasher).Union();
+    }
+    default: return 0;
+  }
+}
+
+inline TQLStatementUnion::TQLStatementUnion(const TQLStatementUnion &u) FLATBUFFERS_NOEXCEPT : type(u.type), value(nullptr) {
+  switch (type) {
+    case TQLStatement::TQLDisplayStatement: {
+      FLATBUFFERS_ASSERT(false);  // TQLDisplayStatementT not copyable.
+      break;
+    }
+    case TQLStatement::TQLExtractStatement: {
+      value = new TQLExtractStatementT(*reinterpret_cast<TQLExtractStatementT *>(u.value));
+      break;
+    }
+    case TQLStatement::TQLLoadStatement: {
+      value = new TQLLoadStatementT(*reinterpret_cast<TQLLoadStatementT *>(u.value));
+      break;
+    }
+    case TQLStatement::TQLParameterDeclaration: {
+      value = new TQLParameterDeclarationT(*reinterpret_cast<TQLParameterDeclarationT *>(u.value));
+      break;
+    }
+    case TQLStatement::TQLQueryStatement: {
+      value = new TQLQueryStatementT(*reinterpret_cast<TQLQueryStatementT *>(u.value));
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+inline void TQLStatementUnion::Reset() {
+  switch (type) {
+    case TQLStatement::TQLDisplayStatement: {
+      auto ptr = reinterpret_cast<TQLDisplayStatementT *>(value);
+      delete ptr;
+      break;
+    }
+    case TQLStatement::TQLExtractStatement: {
+      auto ptr = reinterpret_cast<TQLExtractStatementT *>(value);
+      delete ptr;
+      break;
+    }
+    case TQLStatement::TQLLoadStatement: {
+      auto ptr = reinterpret_cast<TQLLoadStatementT *>(value);
+      delete ptr;
+      break;
+    }
+    case TQLStatement::TQLParameterDeclaration: {
+      auto ptr = reinterpret_cast<TQLParameterDeclarationT *>(value);
+      delete ptr;
+      break;
+    }
+    case TQLStatement::TQLQueryStatement: {
+      auto ptr = reinterpret_cast<TQLQueryStatementT *>(value);
+      delete ptr;
+      break;
+    }
+    default: break;
+  }
+  value = nullptr;
+  type = TQLStatement::NONE;
 }
 
 inline const flatbuffers::TypeTable *TQLTypeTypeTable() {

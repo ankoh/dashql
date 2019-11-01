@@ -6,6 +6,7 @@
 
 #include "flatbuffers/flatbuffers.h"
 
+
 namespace tigon {
 namespace proto {
 

@@ -23,7 +23,10 @@ for PROTO_FILE in ${PROTO_SPEC_DIR}/*; do
     JS_PROTO_OUT="${JS_PROTO_DIR}/${PROTO_FILE_NAME}_generated.ts"
     JS_PROTO_TMP="${TMP}/${PROTO_FILE_NAME}.ts"
 
-    ${FLATC} -I ${PROTO_DIR} -o ${CPP_PROTO_DIR} ${PROTO_FILE} --cpp --no-prefix --scoped-enums --reflect-types --reflect-names \
+    ${FLATC} -I ${PROTO_DIR} -o ${CPP_PROTO_DIR} ${PROTO_FILE} --cpp \
+            --no-prefix --scoped-enums \
+            --reflect-types --reflect-names \
+            --gen-object-api --gen-name-strings --gen-compare \
         && { echo "[ OK  ] ${PROTO_FILE}: C++"; } \
         || { echo "[ ERR ] ${PROTO_FILE}: C++"; exit 1; }
 
