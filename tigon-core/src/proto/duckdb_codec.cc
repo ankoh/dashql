@@ -10,7 +10,7 @@ namespace fb = flatbuffers;
 
 namespace tigon {
 
-#define LIST \
+#define LOGICAL_OPERATOR_TYPES \
     X(INVALID) \
     X(PROJECTION) \
     X(FILTER) \
@@ -53,7 +53,7 @@ proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
     using P = proto::LogicalOperatorType;
     switch (type) {
 #define X(NAME) case duckdb::LogicalOperatorType::NAME: return proto::LogicalOperatorType::NAME;
-    LIST
+    LOGICAL_OPERATOR_TYPES
 #undef X
     };
     return proto::LogicalOperatorType::INVALID;
@@ -95,7 +95,7 @@ static fb::Offset<proto::QueryResultColumn> writeStringResultColumn(fb::FlatBuff
     return c.Finish();
 }
 
-/// Write the query result chunks
+/// Write the query result
 fb::Offset<proto::QueryResult> writeQueryResult(fb::FlatBufferBuilder& builder, duckdb::QueryResult& result, uint64_t queryID) {
 
     // Fetch result rows and immediately write them into a flatbuffer
@@ -194,7 +194,7 @@ fb::Offset<proto::QueryResult> writeQueryResult(fb::FlatBufferBuilder& builder, 
     return resultBuilder.Finish();
 }
 
-/// Write the query result
+/// Write the query plan
 fb::Offset<proto::QueryPlan> writeQueryPlan(fb::FlatBufferBuilder& builder, duckdb::LogicalOperator& plan) {
     // Remember the children
     std::vector<duckdb::LogicalOperator*> operators;
