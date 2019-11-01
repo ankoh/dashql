@@ -14,6 +14,8 @@
 #include "spdlog/spdlog.h"
 
 #include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/minireflect.h"
+
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/proto/duckdb_codec.h"
 #include "tigon/proto/tql_codec.h"
@@ -160,6 +162,16 @@ void WebAPI::Session::planQuery(std::string_view text) {
     // Return buffer
     builder.Finish(planOfs);
     response.requestSucceeded(builder.Release());
+}
+
+/// Format TQL
+void WebAPI::Session::formatTQLProgram(void* tql_program) {
+    flatbuffers::FlatBufferToString(static_cast<uint8_t*>(tql_program), proto::TQLProgramTypeTable());
+
+}
+
+/// Format a query plan
+void WebAPI::Session::formatQueryPlan(void* query_plan) {
 }
 
 /// Constructor

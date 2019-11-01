@@ -47,6 +47,44 @@ struct TQLDisplayStatement;
 
 struct TQLProgram;
 
+inline const flatbuffers::TypeTable *TQLQueryStatementTypeTable();
+
+inline const flatbuffers::TypeTable *TQLParameterDeclarationTypeTable();
+
+inline const flatbuffers::TypeTable *TQLHTTPLoadMethodTypeTable();
+
+inline const flatbuffers::TypeTable *TQLFileLoadMethodTypeTable();
+
+inline const flatbuffers::TypeTable *TQLLoadStatementTypeTable();
+
+inline const flatbuffers::TypeTable *TQLJSONExtractTypeTable();
+
+inline const flatbuffers::TypeTable *TQLCSVColumnTypeTable();
+
+inline const flatbuffers::TypeTable *TQLCSVExtractTypeTable();
+
+inline const flatbuffers::TypeTable *TQLParquetExtractorTypeTable();
+
+inline const flatbuffers::TypeTable *TQLExtractStatementTypeTable();
+
+inline const flatbuffers::TypeTable *TQLDisplayColorTypeTable();
+
+inline const flatbuffers::TypeTable *TQLDisplayColorPaletteTypeTable();
+
+inline const flatbuffers::TypeTable *TQLDisplayLengthValueTypeTable();
+
+inline const flatbuffers::TypeTable *TQLDisplayLengthTypeTable();
+
+inline const flatbuffers::TypeTable *TQLDisplayLayoutTypeTable();
+
+inline const flatbuffers::TypeTable *TQLDisplayAxisTypeTable();
+
+inline const flatbuffers::TypeTable *TQLDisplayAxesTypeTable();
+
+inline const flatbuffers::TypeTable *TQLDisplayStatementTypeTable();
+
+inline const flatbuffers::TypeTable *TQLProgramTypeTable();
+
 enum class TQLType : uint8_t {
   INTEGER = 0,
   FLOAT = 1,
@@ -473,6 +511,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(1) TQLDisplayColor FLATBUFFERS_FINAL_CLASS {
   uint8_t blue_;
 
  public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLDisplayColorTypeTable();
+  }
   TQLDisplayColor() {
     memset(static_cast<void *>(this), 0, sizeof(TQLDisplayColor));
   }
@@ -501,6 +542,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) TQLDisplayLengthValue FLATBUFFERS_FINAL_C
   int8_t padding0__;  int16_t padding1__;  int32_t padding2__;
 
  public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLDisplayLengthValueTypeTable();
+  }
   TQLDisplayLengthValue() {
     memset(static_cast<void *>(this), 0, sizeof(TQLDisplayLengthValue));
   }
@@ -523,6 +567,9 @@ FLATBUFFERS_STRUCT_END(TQLDisplayLengthValue, 16);
 
 /// A query statement
 struct TQLQueryStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLQueryStatementTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_QUERY_TEXT = 4
   };
@@ -574,6 +621,9 @@ inline flatbuffers::Offset<TQLQueryStatement> CreateTQLQueryStatementDirect(
 
 /// A parameter declaration
 struct TQLParameterDeclaration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLParameterDeclarationTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_PARAMETER_NAME = 4,
     VT_PARAMETER_TYPE = 6,
@@ -675,6 +725,9 @@ inline flatbuffers::Offset<TQLParameterDeclaration> CreateTQLParameterDeclaratio
 
 /// A http loader
 struct TQLHTTPLoadMethod FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLHTTPLoadMethodTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_HTTP_URL = 4,
     VT_HTTP_METHOD = 6
@@ -738,6 +791,9 @@ inline flatbuffers::Offset<TQLHTTPLoadMethod> CreateTQLHTTPLoadMethodDirect(
 
 /// A file loader
 struct TQLFileLoadMethod FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLFileLoadMethodTypeTable();
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -767,6 +823,9 @@ inline flatbuffers::Offset<TQLFileLoadMethod> CreateTQLFileLoadMethod(
 
 /// A load statement
 struct TQLLoadStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLLoadStatementTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_DATA_NAME = 4,
     VT_LOAD_METHOD_TYPE = 6,
@@ -858,6 +917,9 @@ inline flatbuffers::Offset<TQLLoadStatement> CreateTQLLoadStatementDirect(
 
 /// A json extractor
 struct TQLJSONExtract FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLJSONExtractTypeTable();
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -887,6 +949,9 @@ inline flatbuffers::Offset<TQLJSONExtract> CreateTQLJSONExtract(
 
 /// A csv column
 struct TQLCSVColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLCSVColumnTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLUMN_NAME = 4,
     VT_COLUMN_TYPE = 6,
@@ -976,6 +1041,9 @@ inline flatbuffers::Offset<TQLCSVColumn> CreateTQLCSVColumnDirect(
 
 /// A csv extractor
 struct TQLCSVExtract FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLCSVExtractTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLUMNS = 4
   };
@@ -1028,6 +1096,9 @@ inline flatbuffers::Offset<TQLCSVExtract> CreateTQLCSVExtractDirect(
 
 /// A parquet extractor
 struct TQLParquetExtractor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLParquetExtractorTypeTable();
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -1057,6 +1128,9 @@ inline flatbuffers::Offset<TQLParquetExtractor> CreateTQLParquetExtractor(
 
 /// An extract statement
 struct TQLExtractStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLExtractStatementTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_EXTRACT_NAME = 4,
     VT_EXTRACT_METHOD_TYPE = 6,
@@ -1169,6 +1243,9 @@ inline flatbuffers::Offset<TQLExtractStatement> CreateTQLExtractStatementDirect(
 
 /// A display color palette
 struct TQLDisplayColorPalette FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLDisplayColorPaletteTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLOR_TARGET = 4,
     VT_PALETTE = 6
@@ -1234,6 +1311,9 @@ inline flatbuffers::Offset<TQLDisplayColorPalette> CreateTQLDisplayColorPaletteD
 
 /// A display length
 struct TQLDisplayLength FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLDisplayLengthTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SMALL = 4,
     VT_MEDIUM = 6,
@@ -1305,6 +1385,9 @@ inline flatbuffers::Offset<TQLDisplayLength> CreateTQLDisplayLength(
 
 /// A display layout
 struct TQLDisplayLayout FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLDisplayLayoutTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_WIDTH = 4,
     VT_HEIGHT = 6
@@ -1358,6 +1441,9 @@ inline flatbuffers::Offset<TQLDisplayLayout> CreateTQLDisplayLayout(
 
 /// A display axis
 struct TQLDisplayAxis FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLDisplayAxisTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLUMN = 4,
     VT_SCALE = 6
@@ -1421,6 +1507,9 @@ inline flatbuffers::Offset<TQLDisplayAxis> CreateTQLDisplayAxisDirect(
 
 /// Display axes
 struct TQLDisplayAxes FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLDisplayAxesTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_X = 4,
     VT_Y = 6
@@ -1474,6 +1563,9 @@ inline flatbuffers::Offset<TQLDisplayAxes> CreateTQLDisplayAxes(
 
 /// A display statement
 struct TQLDisplayStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLDisplayStatementTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_DISPLAY_NAME = 4,
     VT_DISPLAY_TYPE = 6,
@@ -1587,6 +1679,9 @@ inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatementDirect(
 
 /// A TQL program
 struct TQLProgram FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return TQLProgramTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_STATEMENTS_TYPE = 4,
     VT_STATEMENTS = 6
@@ -1752,6 +1847,562 @@ inline bool VerifyTQLStatementVector(flatbuffers::Verifier &verifier, const flat
     }
   }
   return true;
+}
+
+inline const flatbuffers::TypeTable *TQLTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLTypeTypeTable
+  };
+  static const char * const names[] = {
+    "INTEGER",
+    "FLOAT",
+    "TEXT",
+    "DATE",
+    "DATETIME",
+    "TIME"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 6, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLHTTPMethodTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLHTTPMethodTypeTable
+  };
+  static const char * const names[] = {
+    "GET",
+    "PUT",
+    "POST"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLLoadMethodTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 0, -1 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLHTTPLoadMethodTypeTable,
+    TQLFileLoadMethodTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "TQLHTTPLoadMethod",
+    "TQLFileLoadMethod"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_UNION, 3, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLExtractMethodTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 0, -1 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 1 },
+    { flatbuffers::ET_SEQUENCE, 0, 2 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLJSONExtractTypeTable,
+    TQLCSVExtractTypeTable,
+    TQLParquetExtractorTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "TQLJSONExtract",
+    "TQLCSVExtract",
+    "TQLParquetExtractor"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_UNION, 4, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayTypeTypeTable
+  };
+  static const char * const names[] = {
+    "Area",
+    "Bar",
+    "Box",
+    "Bubble",
+    "Grid",
+    "Histogram",
+    "Line",
+    "Number",
+    "Pie",
+    "Point",
+    "Scatter",
+    "Table",
+    "Text"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 13, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayTypeFlagTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayTypeFlagTypeTable
+  };
+  static const int64_t values[] = { 0, 1, 2, 4 };
+  static const char * const names[] = {
+    "None",
+    "Horizontal",
+    "Vertical",
+    "Stacked"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 4, type_codes, type_refs, values, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayLengthUnitTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayLengthUnitTypeTable
+  };
+  static const char * const names[] = {
+    "Span",
+    "Pixel",
+    "Percent"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayAxisScaleTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayAxisScaleTypeTable
+  };
+  static const char * const names[] = {
+    "Linear",
+    "Logarithmic"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLStatementTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 0, -1 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 1 },
+    { flatbuffers::ET_SEQUENCE, 0, 2 },
+    { flatbuffers::ET_SEQUENCE, 0, 3 },
+    { flatbuffers::ET_SEQUENCE, 0, 4 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayStatementTypeTable,
+    TQLExtractStatementTypeTable,
+    TQLLoadStatementTypeTable,
+    TQLParameterDeclarationTypeTable,
+    TQLQueryStatementTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "TQLDisplayStatement",
+    "TQLExtractStatement",
+    "TQLLoadStatement",
+    "TQLParameterDeclaration",
+    "TQLQueryStatement"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_UNION, 6, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLQueryStatementTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 }
+  };
+  static const char * const names[] = {
+    "query_text"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLParameterDeclarationTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_LONG, 0, -1 },
+    { flatbuffers::ET_DOUBLE, 0, -1 },
+    { flatbuffers::ET_STRING, 0, -1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLTypeTypeTable
+  };
+  static const char * const names[] = {
+    "parameter_name",
+    "parameter_type",
+    "default_value_i64",
+    "default_value_f64",
+    "default_value_str"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 5, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLHTTPLoadMethodTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLHTTPMethodTypeTable
+  };
+  static const char * const names[] = {
+    "http_url",
+    "http_method"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 2, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLFileLoadMethodTypeTable() {
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 0, nullptr, nullptr, nullptr, nullptr
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLLoadStatementTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_UTYPE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLLoadMethodTypeTable
+  };
+  static const char * const names[] = {
+    "data_name",
+    "load_method_type",
+    "load_method"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLJSONExtractTypeTable() {
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 0, nullptr, nullptr, nullptr, nullptr
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLCSVColumnTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_INT, 0, -1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLTypeTypeTable
+  };
+  static const char * const names[] = {
+    "column_name",
+    "column_type",
+    "source_name",
+    "source_index"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 4, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLCSVExtractTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 1, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLCSVColumnTypeTable
+  };
+  static const char * const names[] = {
+    "columns"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 1, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLParquetExtractorTypeTable() {
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 0, nullptr, nullptr, nullptr, nullptr
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLExtractStatementTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_UTYPE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_STRING, 0, -1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLExtractMethodTypeTable
+  };
+  static const char * const names[] = {
+    "extract_name",
+    "extract_method_type",
+    "extract_method",
+    "data_name"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 4, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayColorTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, -1 },
+    { flatbuffers::ET_UCHAR, 0, -1 },
+    { flatbuffers::ET_UCHAR, 0, -1 }
+  };
+  static const int64_t values[] = { 0, 1, 2, 3 };
+  static const char * const names[] = {
+    "red",
+    "green",
+    "blue"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_STRUCT, 3, type_codes, nullptr, values, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayColorPaletteTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_SEQUENCE, 1, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayColorTypeTable
+  };
+  static const char * const names[] = {
+    "color_target",
+    "palette"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 2, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayLengthValueTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_DOUBLE, 0, -1 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayLengthUnitTypeTable
+  };
+  static const int64_t values[] = { 0, 8, 16 };
+  static const char * const names[] = {
+    "value",
+    "unit"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_STRUCT, 2, type_codes, type_refs, values, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayLengthTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayLengthValueTypeTable
+  };
+  static const char * const names[] = {
+    "small",
+    "medium",
+    "large",
+    "extra_large"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 4, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayLayoutTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayLengthTypeTable
+  };
+  static const char * const names[] = {
+    "width",
+    "height"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 2, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayAxisTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayAxisScaleTypeTable
+  };
+  static const char * const names[] = {
+    "column",
+    "scale"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 2, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayAxesTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayAxisTypeTable
+  };
+  static const char * const names[] = {
+    "x",
+    "y"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 2, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLDisplayStatementTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, -1 },
+    { flatbuffers::ET_SEQUENCE, 0, 1 },
+    { flatbuffers::ET_SEQUENCE, 0, 2 },
+    { flatbuffers::ET_SEQUENCE, 0, 3 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLDisplayTypeTypeTable,
+    TQLDisplayLayoutTypeTable,
+    TQLDisplayColorTypeTable,
+    TQLDisplayAxesTypeTable
+  };
+  static const char * const names[] = {
+    "display_name",
+    "display_type",
+    "display_type_flags",
+    "layout",
+    "color",
+    "axes"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 6, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TQLProgramTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UTYPE, 1, 0 },
+    { flatbuffers::ET_SEQUENCE, 1, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    TQLStatementTypeTable
+  };
+  static const char * const names[] = {
+    "statements_type",
+    "statements"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 2, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
 }
 
 }  // namespace proto

@@ -39,6 +39,24 @@ inline const char *EnumNameStatusCode(StatusCode e) {
   return EnumNamesStatusCode()[index];
 }
 
+inline const flatbuffers::TypeTable *StatusCodeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    StatusCodeTypeTable
+  };
+  static const char * const names[] = {
+    "Success",
+    "GenericError"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
 }  // namespace proto
 }  // namespace tigon
 

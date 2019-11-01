@@ -19,6 +19,16 @@ struct QueryResultChunk;
 
 struct QueryResult;
 
+inline const flatbuffers::TypeTable *SQLTypeTypeTable();
+
+inline const flatbuffers::TypeTable *QueryPlanTypeTable();
+
+inline const flatbuffers::TypeTable *QueryResultColumnTypeTable();
+
+inline const flatbuffers::TypeTable *QueryResultChunkTypeTable();
+
+inline const flatbuffers::TypeTable *QueryResultTypeTable();
+
 enum class RawTypeID : uint8_t {
   INVALID = 0,
   BOOLEAN = 1,
@@ -292,6 +302,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) SQLType FLATBUFFERS_FINAL_CLASS {
   int8_t padding1__;
 
  public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return SQLTypeTypeTable();
+  }
   SQLType() {
     memset(static_cast<void *>(this), 0, sizeof(SQLType));
   }
@@ -317,6 +330,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) SQLType FLATBUFFERS_FINAL_CLASS {
 FLATBUFFERS_STRUCT_END(SQLType, 6);
 
 struct QueryPlan FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return QueryPlanTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_OPERATOR_CHILDREN = 4,
     VT_OPERATOR_CHILD_OFFSETS = 6,
@@ -395,6 +411,9 @@ inline flatbuffers::Offset<QueryPlan> CreateQueryPlanDirect(
 }
 
 struct QueryResultColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return QueryResultColumnTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TYPE_ID = 4,
     VT_NULL_MASK = 6,
@@ -486,6 +505,9 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumnDirect(
 }
 
 struct QueryResultChunk FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return QueryResultChunkTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLUMNS = 4
   };
@@ -537,6 +559,9 @@ inline flatbuffers::Offset<QueryResultChunk> CreateQueryResultChunkDirect(
 }
 
 struct QueryResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return QueryResultTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_QUERY_ID = 4,
     VT_QUERY_PLAN = 6,
@@ -653,6 +678,284 @@ inline flatbuffers::Offset<QueryResult> CreateQueryResultDirect(
       column_sql_types__,
       column_names__,
       data_chunks__);
+}
+
+inline const flatbuffers::TypeTable *RawTypeIDTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    RawTypeIDTypeTable
+  };
+  static const char * const names[] = {
+    "INVALID",
+    "BOOLEAN",
+    "TINYINT",
+    "SMALLINT",
+    "INTEGER",
+    "BIGINT",
+    "HASH",
+    "POINTER",
+    "FLOAT",
+    "DOUBLE",
+    "VARCHAR",
+    "VARBINARY"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 12, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *SQLTypeIDTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    SQLTypeIDTypeTable
+  };
+  static const char * const names[] = {
+    "INVALID",
+    "SQLNULL",
+    "BOOLEAN",
+    "TINYINT",
+    "SMALLINT",
+    "INTEGER",
+    "BIGINT",
+    "DATE",
+    "TIMESTAMP",
+    "REAL",
+    "DOUBLE",
+    "FLOAT",
+    "DECIMAL",
+    "CHAR",
+    "VARCHAR",
+    "VARBINARY"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 16, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *LogicalOperatorTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    LogicalOperatorTypeTypeTable
+  };
+  static const char * const names[] = {
+    "INVALID",
+    "PROJECTION",
+    "FILTER",
+    "AGGREGATE_AND_GROUP_BY",
+    "WINDOW",
+    "LIMIT",
+    "ORDER_BY",
+    "TOP_N",
+    "COPY_FROM_FILE",
+    "COPY_TO_FILE",
+    "DISTINCT",
+    "INDEX_SCAN",
+    "GET",
+    "CHUNK_GET",
+    "DELIM_GET",
+    "EXPRESSION_GET",
+    "TABLE_FUNCTION",
+    "SUBQUERY",
+    "EMPTY_RESULT",
+    "JOIN",
+    "DELIM_JOIN",
+    "COMPARISON_JOIN",
+    "ANY_JOIN",
+    "CROSS_PRODUCT",
+    "UNION",
+    "EXCEPT",
+    "INTERSECT",
+    "INSERT",
+    "DELETE",
+    "UPDATE",
+    "CREATE_TABLE",
+    "CREATE_INDEX",
+    "EXPLAIN",
+    "PRUNE_COLUMNS",
+    "PREPARE",
+    "EXECUTE"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 36, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *SQLTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, -1 },
+    { flatbuffers::ET_UCHAR, 0, -1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    SQLTypeIDTypeTable
+  };
+  static const int64_t values[] = { 0, 2, 4, 6 };
+  static const char * const names[] = {
+    "type_id",
+    "width",
+    "scale"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_STRUCT, 3, type_codes, type_refs, values, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *QueryPlanTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_ULONG, 1, -1 },
+    { flatbuffers::ET_ULONG, 1, -1 },
+    { flatbuffers::ET_UCHAR, 1, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    LogicalOperatorTypeTypeTable
+  };
+  static const char * const names[] = {
+    "operator_children",
+    "operator_child_offsets",
+    "operator_types"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *QueryResultColumnTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_BOOL, 1, -1 },
+    { flatbuffers::ET_UCHAR, 1, -1 },
+    { flatbuffers::ET_STRING, 1, -1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    RawTypeIDTypeTable
+  };
+  static const char * const names[] = {
+    "type_id",
+    "null_mask",
+    "fixed_length_data",
+    "string_data"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 4, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *QueryResultChunkTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 1, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    QueryResultColumnTypeTable
+  };
+  static const char * const names[] = {
+    "columns"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 1, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *QueryResultTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_ULONG, 0, -1 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_UCHAR, 1, 1 },
+    { flatbuffers::ET_SEQUENCE, 1, 2 },
+    { flatbuffers::ET_STRING, 1, -1 },
+    { flatbuffers::ET_SEQUENCE, 1, 3 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    QueryPlanTypeTable,
+    RawTypeIDTypeTable,
+    SQLTypeTypeTable,
+    QueryResultChunkTypeTable
+  };
+  static const char * const names[] = {
+    "query_id",
+    "query_plan",
+    "column_raw_types",
+    "column_sql_types",
+    "column_names",
+    "data_chunks"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 6, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
 }
 
 }  // namespace proto

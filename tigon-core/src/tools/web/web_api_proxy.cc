@@ -6,8 +6,11 @@
 #include "tigon/tools/web/web_api.h"
 #include "tigon/proto/web_api_generated.h"
 
+#include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/idl.h"
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_sinks.h"
+
 #include <iostream>
 
 namespace fb = flatbuffers;
@@ -63,6 +66,14 @@ void tigon_run_query(WebAPI::Response::Packed* response, WebAPI::Session* sessio
 void tigon_plan_query(WebAPI::Response::Packed* response, WebAPI::Session *session, const char* text) {
     session->planQuery(text);
     session->writePackedResponse(*response);
+}
+
+/// Export tql program
+void tigon_format_tql_program(WebAPI::Response::Packed* response, WebAPI::Session* session, void* tql_program) {
+}
+/// Format query plan
+void tigon_format_query_plan(WebAPI::Response::Packed* response, WebAPI::Session* session, void* query_plan) {
+    // Export query plan as json
 }
 
 /// Extract data

@@ -18,17 +18,17 @@ for PROTO_FILE in ${PROTO_SPEC_DIR}/*; do
 
     PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
     PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
-    PROTO_TMP="${TMP}/${PROTO_FILE_NAME}.fbs"
+    FBS_TMP="${TMP}/${PROTO_FILE_NAME}.fbs"
 
     JS_PROTO_OUT="${JS_PROTO_DIR}/${PROTO_FILE_NAME}_generated.ts"
     JS_PROTO_TMP="${TMP}/${PROTO_FILE_NAME}.ts"
 
-    ${FLATC} -I ${PROTO_DIR} -o ${CPP_PROTO_DIR} ${PROTO_FILE} --cpp --no-prefix --scoped-enums \
+    ${FLATC} -I ${PROTO_DIR} -o ${CPP_PROTO_DIR} ${PROTO_FILE} --cpp --no-prefix --scoped-enums --reflect-types --reflect-names \
         && { echo "[ OK  ] ${PROTO_FILE}: C++"; } \
         || { echo "[ ERR ] ${PROTO_FILE}: C++"; exit 1; }
 
-    sed -e "s/^namespace.*$//g" ${PROTO_FILE} > ${PROTO_TMP} \
-        && ${FLATC} -I ${PROTO_SPEC_DIR} -o ${JS_PROTO_DIR} ${PROTO_TMP} --ts --no-fb-import \
+    sed -e "s/^namespace.*$//g" ${PROTO_FILE} > ${FBS_TMP} \
+        && ${FLATC} -I ${PROTO_SPEC_DIR} -o ${JS_PROTO_DIR} ${FBS_TMP} --ts --no-fb-import \
         && mv ${JS_PROTO_OUT} ${JS_PROTO_TMP} \
         && echo "/* eslint-disable */" > ${JS_PROTO_OUT} \
         && echo "import { flatbuffers } from \"flatbuffers\";" >> ${JS_PROTO_OUT} \
@@ -36,6 +36,6 @@ for PROTO_FILE in ${PROTO_SPEC_DIR}/*; do
         && { echo "[ OK  ] ${PROTO_FILE}: Typescript"; } \
         || { echo "[ ERR ] ${PROTO_FILE}: Typescript"; exit 1; }
 
-    rm -r ${PROTO_TMP}
+    rm -r ${TMP}
 done
 

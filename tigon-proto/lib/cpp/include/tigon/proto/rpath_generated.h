@@ -19,6 +19,16 @@ struct RPathDescendantMember;
 
 struct RPath;
 
+inline const flatbuffers::TypeTable *RPathArraySliceTypeTable();
+
+inline const flatbuffers::TypeTable *RPathArrayIndexesTypeTable();
+
+inline const flatbuffers::TypeTable *RPathChildMemberTypeTable();
+
+inline const flatbuffers::TypeTable *RPathDescendantMemberTypeTable();
+
+inline const flatbuffers::TypeTable *RPathTypeTable();
+
 enum class RPathComponent : uint8_t {
   NONE = 0,
   RPathArraySlice = 1,
@@ -82,6 +92,9 @@ bool VerifyRPathComponent(flatbuffers::Verifier &verifier, const void *obj, RPat
 bool VerifyRPathComponentVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
 struct RPathArraySlice FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return RPathArraySliceTypeTable();
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -110,6 +123,9 @@ inline flatbuffers::Offset<RPathArraySlice> CreateRPathArraySlice(
 }
 
 struct RPathArrayIndexes FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return RPathArrayIndexesTypeTable();
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -138,6 +154,9 @@ inline flatbuffers::Offset<RPathArrayIndexes> CreateRPathArrayIndexes(
 }
 
 struct RPathChildMember FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return RPathChildMemberTypeTable();
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -166,6 +185,9 @@ inline flatbuffers::Offset<RPathChildMember> CreateRPathChildMember(
 }
 
 struct RPathDescendantMember FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return RPathDescendantMemberTypeTable();
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
@@ -194,6 +216,9 @@ inline flatbuffers::Offset<RPathDescendantMember> CreateRPathDescendantMember(
 }
 
 struct RPath FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return RPathTypeTable();
+  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COMPONENTS_TYPE = 4,
     VT_COMPONENTS = 6
@@ -293,6 +318,79 @@ inline bool VerifyRPathComponentVector(flatbuffers::Verifier &verifier, const fl
     }
   }
   return true;
+}
+
+inline const flatbuffers::TypeTable *RPathComponentTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 0, -1 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 1 },
+    { flatbuffers::ET_SEQUENCE, 0, 2 },
+    { flatbuffers::ET_SEQUENCE, 0, 3 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    RPathArraySliceTypeTable,
+    RPathArrayIndexesTypeTable,
+    RPathChildMemberTypeTable,
+    RPathDescendantMemberTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "RPathArraySlice",
+    "RPathArrayIndexes",
+    "RPathChildMember",
+    "RPathDescendantMember"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_UNION, 5, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *RPathArraySliceTypeTable() {
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 0, nullptr, nullptr, nullptr, nullptr
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *RPathArrayIndexesTypeTable() {
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 0, nullptr, nullptr, nullptr, nullptr
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *RPathChildMemberTypeTable() {
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 0, nullptr, nullptr, nullptr, nullptr
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *RPathDescendantMemberTypeTable() {
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 0, nullptr, nullptr, nullptr, nullptr
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *RPathTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UTYPE, 1, 0 },
+    { flatbuffers::ET_SEQUENCE, 1, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    RPathComponentTypeTable
+  };
+  static const char * const names[] = {
+    "components_type",
+    "components"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 2, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
 }
 
 }  // namespace proto
