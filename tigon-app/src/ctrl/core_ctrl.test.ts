@@ -6,7 +6,7 @@ import TigonCore from '../../public/lib/tigon_core';
 // The core loader
 let coreLoader: (args: any) => any;
 // The shared core
-let sharedCore: CoreController;
+let core: CoreController;
 
 beforeAll(async () => {
     // Create the core ladder
@@ -17,8 +17,8 @@ beforeAll(async () => {
     };
 
     // Share a controller between multiple tests
-    sharedCore = new CoreController(coreLoader);
-    await sharedCore.init();
+    core = new CoreController(coreLoader);
+    await core.init();
 });
 
 let test_tql_parser_id = 0;
@@ -26,13 +26,13 @@ let test_tql_parser_id = 0;
 // Test a tql program
 function test_tql_parser(text: string, expected: any) {
     test("test_" + test_tql_parser_id++, async () => {
-        let session = await sharedCore.createSession();
-        let program = await sharedCore.parseTQL(session, text);
-        let fmt = await sharedCore.formatTQLProgram(session, program.getData());
+        let session = await core.createSession();
+        let program = await core.parseTQL(session, text);
+        let fmt = await core.formatTQLProgram(session, program.getData());
         expect(JSON.parse(fmt.getReader().text() || "")).toEqual(expected);
         fmt.release();
         program.release();
-        await sharedCore.endSession(session);
+        await core.endSession(session);
     });
 }
 
@@ -66,11 +66,11 @@ describe("controller/core", () => {
 
     describe("query execution", () => {
         test("SELECT 1;", async () => {
-            let session = await sharedCore.createSession();
-            let result = await sharedCore.runQuery(session, "SELECT 1;");
+            let session = await core.createSession();
+            let result = await core.runQuery(session, "SELECT 1;");
 
             result.release();
-            await sharedCore.endSession(session);
+            await core.endSession(session);
         });
     });
 });
