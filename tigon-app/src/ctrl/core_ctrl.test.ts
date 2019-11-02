@@ -37,7 +37,7 @@ function test_tql_parser(text: string, expected: any) {
 }
 
 describe("controller/core", () => {
-    describe("parseTQL", () => {
+    describe("tql parsing", () => {
         test_tql_parser("", {
             "statements_type": [],
             "statements": []
@@ -64,7 +64,7 @@ describe("controller/core", () => {
         });
     });
 
-    describe("runQuery", () => {
+    describe("query execution", () => {
         test("SELECT 1;", async () => {
             let session = await sharedCore.createSession();
             let result = await sharedCore.runQuery(session, "SELECT 1;");
