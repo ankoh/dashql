@@ -49,3 +49,15 @@ export class QueryPlanBuffer extends CoreBuffer<proto.web_api.QueryPlan> {
         return proto.web_api.QueryPlan.getRootAsQueryPlan(buffer);
     }
 }
+
+export class FormattedTQLProgram extends CoreBuffer<proto.tql.FormattedTQLProgram> {
+    public getRoot(buffer: flatbuffers.ByteBuffer) {
+        return proto.tql.FormattedTQLProgram.getRootAsFormattedTQLProgram(buffer);
+    }
+}
+
+export class FormattedQueryPlan extends CoreBuffer<proto.web_api.FormattedQueryPlan> {
+    public getRoot(buffer: flatbuffers.ByteBuffer) {
+        return proto.tql.FormattedQueryPlan.getRootAsFormattedQueryPlan(buffer);
+    }
+}
