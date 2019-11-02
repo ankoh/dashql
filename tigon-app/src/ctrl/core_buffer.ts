@@ -30,6 +30,9 @@ export abstract class CoreBuffer<ProtoBuffer> {
         let fB = new flatbuffers.ByteBuffer(u8B);
         return this.getRoot(fB);
     }
+
+    // Get the data
+    public getData(): number { return this.data; }
 };
 
 export class TQLProgramBuffer extends CoreBuffer<proto.tql.TQLProgram> {
@@ -38,15 +41,15 @@ export class TQLProgramBuffer extends CoreBuffer<proto.tql.TQLProgram> {
     }
 }
 
-export class QueryResultBuffer extends CoreBuffer<proto.web_api.QueryResult> {
+export class QueryResultBuffer extends CoreBuffer<proto.duckdb.QueryResult> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.web_api.QueryResult.getRootAsQueryResult(buffer);
+        return proto.duckdb.QueryResult.getRootAsQueryResult(buffer);
     }
 }
 
-export class QueryPlanBuffer extends CoreBuffer<proto.web_api.QueryPlan> {
+export class QueryPlanBuffer extends CoreBuffer<proto.duckdb.QueryPlan> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.web_api.QueryPlan.getRootAsQueryPlan(buffer);
+        return proto.duckdb.QueryPlan.getRootAsQueryPlan(buffer);
     }
 }
 
@@ -56,8 +59,8 @@ export class FormattedTQLProgram extends CoreBuffer<proto.tql.FormattedTQLProgra
     }
 }
 
-export class FormattedQueryPlan extends CoreBuffer<proto.web_api.FormattedQueryPlan> {
+export class FormattedQueryPlan extends CoreBuffer<proto.duckdb.FormattedQueryPlan> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.tql.FormattedQueryPlan.getRootAsFormattedQueryPlan(buffer);
+        return proto.duckdb.FormattedQueryPlan.getRootAsFormattedQueryPlan(buffer);
     }
 }

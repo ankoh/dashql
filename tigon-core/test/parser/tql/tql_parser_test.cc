@@ -12,37 +12,37 @@ using namespace tigon::tql;
 namespace {
 
 TEST(TQLTest, ParameterDeclaration) {
-    std::stringstream in{R"RAW(
+    auto in = R"RAW(
         declare parameter days as integer;
-    )RAW"};
+    )RAW";
     ParseContext ctx;
     auto program = ctx.Parse(in);
     ASSERT_EQ(program.statements.size(), 1);
 }
 
 TEST(TQLTest, LoadHTTP) {
-    std::stringstream in{R"RAW(
+    auto in = R"RAW(
         load raw_data from http (
             url = 'http://www.google.com',
             method = get
         );
-    )RAW"};
+    )RAW";
     ParseContext ctx;
     auto program = ctx.Parse(in);
     ASSERT_EQ(program.statements.size(), 1);
 }
 
 TEST(TQLTest, ExtractJsonPath) {
-    std::stringstream in{R"RAW(
+    auto in = R"RAW(
         extract weather_data from raw_data using json ();
-    )RAW"};
+    )RAW";
     ParseContext ctx;
     auto program = ctx.Parse(in);
     ASSERT_EQ(program.statements.size(), 1);
 }
 
 TEST(TQLTest, DisplayLineChart) {
-    std::stringstream in{R"RAW(
+    auto in = R"RAW(
         display wheather_data using line chart (
             layout = (
                 width = (
@@ -75,16 +75,16 @@ TEST(TQLTest, DisplayLineChart) {
                 ]
             )
         );
-    )RAW"};
+    )RAW";
     ParseContext ctx;
     auto program = ctx.Parse(in);
     ASSERT_EQ(program.statements.size(), 1);
 }
 
 TEST(TQLTest, Query1) {
-    std::stringstream in{R"RAW(
+    auto in = R"RAW(
         select 1;
-    )RAW"};
+    )RAW";
     ParseContext ctx;
     auto program = ctx.Parse(in);
     ASSERT_EQ(program.statements.size(), 1);

@@ -28,8 +28,15 @@ namespace tql {
 
 // The location of the current token
 extern tigon::tql::location loc;
-// The input stream of the scanner
-extern std::istream *in;
+// The input string view
+extern std::string_view in;
+// The reader offset
+extern size_t reader_offset;
+// The parser offset
+extern size_t parser_offset;
+
+// Get the token text
+inline std::string_view getTokenText() { return in.substr(parser_offset - yyleng, yyleng); }
 
 }  // namespace tql
 }  // namespace tigon
@@ -46,15 +53,10 @@ using namespace tigon::tql;
 
 // Declare the yylex function
 #define YY_DECL Parser::symbol_type yylex(ParseContext& ctx)
-// Configure the scanner to use istreams
-#define YY_INPUT(buffer, result, max_size)  \
-    result = 0; \
-    while (true) { \
-        int c = in->get(); \
-        if (in->eof()) break; \
-        buffer[result++] = c; \
-        if (result == max_size || c == '\n') break; \
-    }
+// Configure the scanner to use string views
+#define YY_INPUT(buffer, bytes_read, max_bytes) \
+    bytes_read = in.copy(buffer, max_bytes, reader_offset); \
+    reader_offset += bytes_read;
 %}
 
 %{
@@ -80,7 +82,7 @@ using namespace tigon::tql;
 %{
 // Code run each time a token is matched.
 // We just update the location of the token.
-#define YY_USER_ACTION  { loc.columns(yyleng); }
+#define YY_USER_ACTION  { loc.columns(yyleng); parser_offset += yyleng; }
 %}
 
 %%
@@ -88,7 +90,7 @@ using namespace tigon::tql;
 %{
 // Code runs each time yylex is called.
 // Set the beginning of the token to the end of the previous token.
-loc.step ();
+loc.step();
 %}
 
 ";"                 { return Parser::make_SEMICOLON(loc); }
@@ -162,10 +164,10 @@ loc.step ();
 "xl"                { return Parser::make_XL(loc); }
 "y"                 { return Parser::make_Y(loc); }
 
-select[^;]*         { return Parser::make_SQL_SELECT(yytext, loc); }
-with[^;]*           { return Parser::make_SQL_WITH(yytext, loc); }
-[a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER_LITERAL(yytext, loc); }
-'[^']*'             { return Parser::make_STRING_LITERAL(yytext, loc); }
+select[^;]*         { return Parser::make_SQL_SELECT(getTokenText(), loc); }
+with[^;]*           { return Parser::make_SQL_WITH(getTokenText(), loc); }
+[a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER_LITERAL(getTokenText(), loc); }
+'[^']*'             { return Parser::make_STRING_LITERAL(getTokenText(), loc); }
 [0-9]+              {
                         uint32_t value = 0;
                         try {
@@ -179,7 +181,7 @@ with[^;]*           { return Parser::make_SQL_WITH(yytext, loc); }
                     }
 
 [ \t]+              { loc.step(); }
-\n                  { loc.lines (yyleng); loc.step (); }
+\n                  { loc.lines(1); loc.step(); }
 
 <<EOF>>             { return Parser::make_EOF(loc); }
 .                   { ctx.Error(loc.begin.line, loc.begin.column, "invalid character"); }
@@ -190,19 +192,27 @@ with[^;]*           { return Parser::make_SQL_WITH(yytext, loc); }
 // Code
 // ---------------------------------------------------------------------------------------------------
 
-// The input stream
+// The input location
 tigon::tql::location tigon::tql::loc;
-// The input stream of the scanner
-std::istream *tigon::tql::in = nullptr;
+// The input view of the scanner
+std::string_view tigon::tql::in;
+// The reader offset
+size_t tigon::tql::reader_offset;
+// The parser offset
+size_t tigon::tql::parser_offset;
 
 // Begin a scan
-void tigon::tql::ParseContext::beginScan(std::istream &is) {
+void tigon::tql::ParseContext::beginScan(std::string_view s) {
     yy_flex_debug = trace_scanning;
-    in = &is;
+    in = s;
+    reader_offset = 0;
+    parser_offset = 0;
 }
 
 // End a scan
 void tigon::tql::ParseContext::endScan() {
-    in = nullptr;
+    in = {};
+    reader_offset = 0;
+    parser_offset = 0;
 }
 

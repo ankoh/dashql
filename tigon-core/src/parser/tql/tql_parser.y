@@ -35,10 +35,10 @@ using std::move;
 using std::vector;
 }
 
-%token <std::string_view>   SQL_SELECT          "sql_select"
-%token <std::string_view>   SQL_WITH            "sql_with"
-%token <std::string_view>   IDENTIFIER_LITERAL  "identifier_literal"
-%token <std::string_view>   STRING_LITERAL      "string_literal"
+%token <std::string_view>    SQL_SELECT          "sql_select"
+%token <std::string_view>    SQL_WITH            "sql_with"
+%token <std::string_view>    IDENTIFIER_LITERAL  "identifier_literal"
+%token <std::string_view>    STRING_LITERAL      "string_literal"
 %token <uint32_t>           HEX_COLOR_LITERAL   "hex_color_literal"
 %token <int>                INTEGER_LITERAL     "integer_literal"
 
@@ -148,7 +148,7 @@ statement:
  |  display_statement     { $$ = Statement { move($1) }; }
  |  load_statement        { $$ = Statement { move($1) }; }
  |  parameter_declaration { $$ = Statement { move($1) }; }
- |  sql_statement         { $$ = Statement { std::make_unique<SQLStatement>() }; }
+ |  sql_statement         { $$ = Statement { std::make_unique<SQLStatement>(move($1)) }; }
     ;
 
 parameter_declaration:

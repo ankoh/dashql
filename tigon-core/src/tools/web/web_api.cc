@@ -96,11 +96,9 @@ void WebAPI::Session::releaseBuffer(void* data) { buffers.erase(data); }
 
 /// Parse TQL
 void WebAPI::Session::parseTQL(std::string_view text) {
-    ITextViewStream in(text);
-
     // Parse statement
     tql::ParseContext ctx;
-    auto program = ctx.Parse(in);
+    auto program = ctx.Parse(text);
 
     // Create the buffer builder
     fb::FlatBufferBuilder builder{1024};
@@ -186,6 +184,8 @@ void WebAPI::Session::formatQueryPlan(void* query_plan) {
     fb::FlatBufferBuilder builder{txt.size() + 100};
     auto txtOfs = builder.CreateString(txt);
     auto planOfs = proto::CreateFormattedQueryPlan(builder, txtOfs);
+
+    std::cout << txt << std::endl;
 
     // Return buffer
     builder.Finish(planOfs);

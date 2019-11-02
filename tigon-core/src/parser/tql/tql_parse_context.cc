@@ -18,7 +18,7 @@ ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
 
 ParseContext::~ParseContext() {}
 
-Program ParseContext::Parse(std::istream &in) {
+Program ParseContext::Parse(std::string_view in) {
     beginScan(in);
     {
         tigon::tql::Parser parser(*this);

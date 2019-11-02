@@ -30,6 +30,10 @@ enum class Type { Integer, Float, Text, Date, DateTime, Time };
 struct SQLStatement {
     /// The sql text
     std::string_view text;
+
+    /// Constructor
+    SQLStatement(std::string_view text)
+        : text(text) {}
 };
 
 /// A parameter declaration

@@ -32,21 +32,21 @@ using std::move;
 using std::vector;
 }
 
-%token <std::string_view>   IDENTIFIER_LITERAL  "identifier_literal"
-%token <int>                INTEGER_LITERAL     "integer_literal"
+%token <std::string>    IDENTIFIER_LITERAL  "identifier_literal"
+%token <int>            INTEGER_LITERAL     "integer_literal"
 
-%token INTEGER              "integer"
-%token LSB                  "left_square_bracket"
-%token RSB                  "right_square_bracket"
-%token STAR                 "star"
+%token INTEGER          "integer"
+%token LSB              "left_square_bracket"
+%token RSB              "right_square_bracket"
+%token STAR             "star"
 
-%token COLON                "colon"
-%token COMMA                "comma"
-%token DOLLAR               "dollar"
-%token DOT                  "dot"
-%token DOT_DOT              "two_dots"
+%token COLON            "colon"
+%token COMMA            "comma"
+%token DOLLAR           "dollar"
+%token DOT              "dot"
+%token DOT_DOT          "two_dots"
 
-%token EOF 0                "eof"
+%token EOF 0            "eof"
 
 %%
 
