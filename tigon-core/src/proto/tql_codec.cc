@@ -5,6 +5,7 @@
 
 #include "tigon/proto/tql_codec.h"
 #include "tigon/common/variant.h"
+#include "flatbuffers/minireflect.h"
 
 namespace fb = flatbuffers;
 

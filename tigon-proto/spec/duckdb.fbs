@@ -103,6 +103,11 @@ table QueryPlan {
     operator_types: [LogicalOperatorType];
 }
 
+/// A formatted query plan
+table FormattedQueryPlan {
+    text: string;
+}
+
 // A column of a query result
 table QueryResultColumn {
     type_id: RawTypeID;

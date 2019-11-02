@@ -5,5 +5,3 @@ enum StatusCode: uint8 {
     SUCCESS = 0,
     ERROR = 1,
 }
-
-

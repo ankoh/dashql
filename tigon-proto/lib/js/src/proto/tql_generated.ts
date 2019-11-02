@@ -1919,3 +1919,73 @@ static createTQLProgram(builder:flatbuffers.Builder, statementsTypeOffset:flatbu
   return TQLProgram.endTQLProgram(builder);
 }
 }
+/**
+ * A formatted TQL program
+ *
+ * @constructor
+ */
+export class FormattedTQLProgram {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns FormattedTQLProgram
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):FormattedTQLProgram {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param FormattedTQLProgram= obj
+ * @returns FormattedTQLProgram
+ */
+static getRootAsFormattedTQLProgram(bb:flatbuffers.ByteBuffer, obj?:FormattedTQLProgram):FormattedTQLProgram {
+  return (obj || new FormattedTQLProgram).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+text():string|null
+text(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+text(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startFormattedTQLProgram(builder:flatbuffers.Builder) {
+  builder.startObject(1);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset textOffset
+ */
+static addText(builder:flatbuffers.Builder, textOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, textOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endFormattedTQLProgram(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+static createFormattedTQLProgram(builder:flatbuffers.Builder, textOffset:flatbuffers.Offset):flatbuffers.Offset {
+  FormattedTQLProgram.startFormattedTQLProgram(builder);
+  FormattedTQLProgram.addText(builder, textOffset);
+  return FormattedTQLProgram.endFormattedTQLProgram(builder);
+}
+}

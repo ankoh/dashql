@@ -70,10 +70,13 @@ void tigon_plan_query(WebAPI::Response::Packed* response, WebAPI::Session *sessi
 
 /// Export tql program
 void tigon_format_tql_program(WebAPI::Response::Packed* response, WebAPI::Session* session, void* tql_program) {
+    session->formatTQLProgram(tql_program);
+    session->writePackedResponse(*response);
 }
 /// Format query plan
 void tigon_format_query_plan(WebAPI::Response::Packed* response, WebAPI::Session* session, void* query_plan) {
-    // Export query plan as json
+    session->formatQueryPlan(query_plan);
+    session->writePackedResponse(*response);
 }
 
 /// Extract data

@@ -166,12 +166,30 @@ void WebAPI::Session::planQuery(std::string_view text) {
 
 /// Format TQL
 void WebAPI::Session::formatTQLProgram(void* tql_program) {
-    flatbuffers::FlatBufferToString(static_cast<uint8_t*>(tql_program), proto::TQLProgramTypeTable());
+    auto txt = flatbuffers::FlatBufferToString(static_cast<uint8_t*>(tql_program), proto::TQLProgramTypeTable());
 
+    // Encode the tql program
+    fb::FlatBufferBuilder builder{txt.size()};
+    auto txtOfs = builder.CreateString(txt);
+    auto fmtOfs = proto::CreateFormattedTQLProgram(builder, txtOfs);
+
+    // Return buffer
+    builder.Finish(fmtOfs);
+    response.requestSucceeded(builder.Release());
 }
 
 /// Format a query plan
 void WebAPI::Session::formatQueryPlan(void* query_plan) {
+    auto txt = flatbuffers::FlatBufferToString(static_cast<uint8_t*>(query_plan), proto::QueryPlanTypeTable());
+
+    // Encode the query plan
+    fb::FlatBufferBuilder builder{txt.size()};
+    auto txtOfs = builder.CreateString(txt);
+    auto planOfs = proto::CreateFormattedQueryPlan(builder, txtOfs);
+
+    // Return buffer
+    builder.Finish(planOfs);
+    response.requestSucceeded(builder.Release());
 }
 
 /// Constructor

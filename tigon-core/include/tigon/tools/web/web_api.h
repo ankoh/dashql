@@ -10,6 +10,8 @@
 #include "duckdb.hpp"
 #include "flatbuffers/flatbuffers.h"
 #include "tigon/proto/web_api_generated.h"
+#include "tigon/proto/tql_generated.h"
+#include "tigon/proto/duckdb_generated.h"
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
