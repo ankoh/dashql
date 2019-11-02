@@ -21,9 +21,11 @@ beforeAll(async () => {
     await sharedCore.init();
 });
 
+let test_tql_parser_id = 0;
+
 // Test a tql program
 function test_tql_parser(text: string, expected: any) {
-    test(text, async () => {
+    test("test_" + test_tql_parser_id++, async () => {
         let session = await sharedCore.createSession();
         let program = await sharedCore.parseTQL(session, text);
         let fmt = await sharedCore.formatTQLProgram(session, program.getData());
@@ -36,7 +38,9 @@ function test_tql_parser(text: string, expected: any) {
 
 describe("controller/core", () => {
     describe("parseTQL", () => {
-        test_tql_parser("SELECT 1;", {
+        test_tql_parser(`
+            SELECT 1;
+        `, {
             "statements_type": [
                 "TQLQueryStatement"
             ],
