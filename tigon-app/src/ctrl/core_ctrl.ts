@@ -1,5 +1,5 @@
 import * as proto from 'tigon-proto';
-import { CoreBuffer, TQLProgramBuffer, QueryPlanBuffer, QueryResultBuffer, FormattedQueryPlan, FormattedTQLProgram } from './core_buffer';
+import { CoreBuffer, TQLProgramBuffer, QueryPlanBuffer, QueryResultBuffer, FormattedTextBuffer } from './core_buffer';
 
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
@@ -126,22 +126,22 @@ export class CoreController {
     }
 
     // Format the tql program
-    public async formatTQLProgram(session: number, program: number): Promise<CoreBuffer<proto.tql.FormattedTQLProgram>> {
+    public async formatTQLProgram(session: number, program: number): Promise<CoreBuffer<proto.web_api.FormattedText>> {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet('tigon_format_tql_program', ['number', 'number'], [session, program]);
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             return Promise.reject(new Error(""));
         }
-        return Promise.resolve(new FormattedTQLProgram(this.core, session, data, dataSize));
+        return Promise.resolve(new FormattedTextBuffer(this.core, session, data, dataSize));
     }
 
-    // Format the tql program
-    public async formatQueryPlan(session: number, plan: number): Promise<CoreBuffer<proto.duckdb.FormattedQueryPlan>> {
+    // Format the query plan
+    public async formatQueryPlan(session: number, plan: number): Promise<CoreBuffer<proto.web_api.FormattedText>> {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet('tigon_format_query_plan', ['number', 'number'], [session, plan]);
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             return Promise.reject(new Error(""));
         }
-        return Promise.resolve(new FormattedQueryPlan(this.core, session, data, dataSize));
+        return Promise.resolve(new FormattedTextBuffer(this.core, session, data, dataSize));
     }
 };

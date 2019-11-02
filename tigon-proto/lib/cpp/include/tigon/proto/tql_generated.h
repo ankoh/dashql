@@ -64,9 +64,6 @@ struct TQLDisplayStatementT;
 struct TQLProgram;
 struct TQLProgramT;
 
-struct FormattedTQLProgram;
-struct FormattedTQLProgramT;
-
 bool operator==(const TQLQueryStatementT &lhs, const TQLQueryStatementT &rhs);
 bool operator!=(const TQLQueryStatementT &lhs, const TQLQueryStatementT &rhs);
 bool operator==(const TQLParameterDeclarationT &lhs, const TQLParameterDeclarationT &rhs);
@@ -105,8 +102,6 @@ bool operator==(const TQLDisplayStatementT &lhs, const TQLDisplayStatementT &rhs
 bool operator!=(const TQLDisplayStatementT &lhs, const TQLDisplayStatementT &rhs);
 bool operator==(const TQLProgramT &lhs, const TQLProgramT &rhs);
 bool operator!=(const TQLProgramT &lhs, const TQLProgramT &rhs);
-bool operator==(const FormattedTQLProgramT &lhs, const FormattedTQLProgramT &rhs);
-bool operator!=(const FormattedTQLProgramT &lhs, const FormattedTQLProgramT &rhs);
 
 inline const flatbuffers::TypeTable *TQLQueryStatementTypeTable();
 
@@ -145,8 +140,6 @@ inline const flatbuffers::TypeTable *TQLDisplayAxesTypeTable();
 inline const flatbuffers::TypeTable *TQLDisplayStatementTypeTable();
 
 inline const flatbuffers::TypeTable *TQLProgramTypeTable();
-
-inline const flatbuffers::TypeTable *FormattedTQLProgramTypeTable();
 
 enum class TQLType : uint8_t {
   INTEGER = 0,
@@ -2653,89 +2646,6 @@ inline flatbuffers::Offset<TQLProgram> CreateTQLProgramDirect(
 
 flatbuffers::Offset<TQLProgram> CreateTQLProgram(flatbuffers::FlatBufferBuilder &_fbb, const TQLProgramT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct FormattedTQLProgramT : public flatbuffers::NativeTable {
-  typedef FormattedTQLProgram TableType;
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "tigon.proto.FormattedTQLProgramT";
-  }
-  std::string text;
-  FormattedTQLProgramT() {
-  }
-};
-
-inline bool operator==(const FormattedTQLProgramT &lhs, const FormattedTQLProgramT &rhs) {
-  return
-      (lhs.text == rhs.text);
-}
-
-inline bool operator!=(const FormattedTQLProgramT &lhs, const FormattedTQLProgramT &rhs) {
-    return !(lhs == rhs);
-}
-
-
-/// A formatted TQL program
-struct FormattedTQLProgram FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef FormattedTQLProgramT NativeTableType;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return FormattedTQLProgramTypeTable();
-  }
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "tigon.proto.FormattedTQLProgram";
-  }
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_TEXT = 4
-  };
-  const flatbuffers::String *text() const {
-    return GetPointer<const flatbuffers::String *>(VT_TEXT);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_TEXT) &&
-           verifier.VerifyString(text()) &&
-           verifier.EndTable();
-  }
-  FormattedTQLProgramT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(FormattedTQLProgramT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<FormattedTQLProgram> Pack(flatbuffers::FlatBufferBuilder &_fbb, const FormattedTQLProgramT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct FormattedTQLProgramBuilder {
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_text(flatbuffers::Offset<flatbuffers::String> text) {
-    fbb_.AddOffset(FormattedTQLProgram::VT_TEXT, text);
-  }
-  explicit FormattedTQLProgramBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  FormattedTQLProgramBuilder &operator=(const FormattedTQLProgramBuilder &);
-  flatbuffers::Offset<FormattedTQLProgram> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<FormattedTQLProgram>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<FormattedTQLProgram> CreateFormattedTQLProgram(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> text = 0) {
-  FormattedTQLProgramBuilder builder_(_fbb);
-  builder_.add_text(text);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<FormattedTQLProgram> CreateFormattedTQLProgramDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *text = nullptr) {
-  auto text__ = text ? _fbb.CreateString(text) : 0;
-  return tigon::proto::CreateFormattedTQLProgram(
-      _fbb,
-      text__);
-}
-
-flatbuffers::Offset<FormattedTQLProgram> CreateFormattedTQLProgram(flatbuffers::FlatBufferBuilder &_fbb, const FormattedTQLProgramT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
 inline TQLQueryStatementT *TQLQueryStatement::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new TQLQueryStatementT();
   UnPackTo(_o, _resolver);
@@ -3245,32 +3155,6 @@ inline flatbuffers::Offset<TQLProgram> CreateTQLProgram(flatbuffers::FlatBufferB
       _fbb,
       _statements_type,
       _statements);
-}
-
-inline FormattedTQLProgramT *FormattedTQLProgram::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = new FormattedTQLProgramT();
-  UnPackTo(_o, _resolver);
-  return _o;
-}
-
-inline void FormattedTQLProgram::UnPackTo(FormattedTQLProgramT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = text(); if (_e) _o->text = _e->str(); };
-}
-
-inline flatbuffers::Offset<FormattedTQLProgram> FormattedTQLProgram::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FormattedTQLProgramT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateFormattedTQLProgram(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<FormattedTQLProgram> CreateFormattedTQLProgram(flatbuffers::FlatBufferBuilder &_fbb, const FormattedTQLProgramT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const FormattedTQLProgramT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _text = _o->text.empty() ? 0 : _fbb.CreateString(_o->text);
-  return tigon::proto::CreateFormattedTQLProgram(
-      _fbb,
-      _text);
 }
 
 inline bool VerifyTQLLoadMethod(flatbuffers::Verifier &verifier, const void *obj, TQLLoadMethod type) {
@@ -4179,19 +4063,6 @@ inline const flatbuffers::TypeTable *TQLProgramTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_TABLE, 2, type_codes, type_refs, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *FormattedTQLProgramTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_STRING, 0, -1 }
-  };
-  static const char * const names[] = {
-    "text"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
   };
   return &tt;
 }

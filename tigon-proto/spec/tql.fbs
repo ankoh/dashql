@@ -193,8 +193,3 @@ union TQLStatement {
 table TQLProgram {
     statements: [TQLStatement];
 }
-
-/// A formatted TQL program
-table FormattedTQLProgram {
-    text: string;
-}

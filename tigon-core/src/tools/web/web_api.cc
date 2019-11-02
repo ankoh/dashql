@@ -166,12 +166,11 @@ void WebAPI::Session::formatTQLProgram(void* tql_program) {
     auto txt = proto::writeJSON(tql_program, *proto::TQLProgramTypeTable());
 
     // Encode the tql program
-    fb::FlatBufferBuilder builder{txt.size() + 100};
+    fb::FlatBufferBuilder builder{txt.size() + 16};
     auto txtOfs = builder.CreateString(txt);
-    auto fmtOfs = proto::CreateFormattedTQLProgram(builder, txtOfs);
 
     // Return buffer
-    builder.Finish(fmtOfs);
+    builder.Finish(txtOfs);
     response.requestSucceeded(builder.Release());
 }
 
@@ -180,14 +179,11 @@ void WebAPI::Session::formatQueryPlan(void* query_plan) {
     auto txt = proto::writeJSON(query_plan, *proto::QueryPlanTypeTable());
 
     // Encode the query plan
-    fb::FlatBufferBuilder builder{txt.size() + 100};
+    fb::FlatBufferBuilder builder{txt.size() + 16};
     auto txtOfs = builder.CreateString(txt);
-    auto planOfs = proto::CreateFormattedQueryPlan(builder, txtOfs);
-
-    std::cout << txt << std::endl;
 
     // Return buffer
-    builder.Finish(planOfs);
+    builder.Finish(txtOfs);
     response.requestSucceeded(builder.Release());
 }
 

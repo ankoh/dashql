@@ -14,9 +14,6 @@ struct SQLType;
 struct QueryPlan;
 struct QueryPlanT;
 
-struct FormattedQueryPlan;
-struct FormattedQueryPlanT;
-
 struct QueryResultColumn;
 struct QueryResultColumnT;
 
@@ -30,8 +27,6 @@ bool operator==(const SQLType &lhs, const SQLType &rhs);
 bool operator!=(const SQLType &lhs, const SQLType &rhs);
 bool operator==(const QueryPlanT &lhs, const QueryPlanT &rhs);
 bool operator!=(const QueryPlanT &lhs, const QueryPlanT &rhs);
-bool operator==(const FormattedQueryPlanT &lhs, const FormattedQueryPlanT &rhs);
-bool operator!=(const FormattedQueryPlanT &lhs, const FormattedQueryPlanT &rhs);
 bool operator==(const QueryResultColumnT &lhs, const QueryResultColumnT &rhs);
 bool operator!=(const QueryResultColumnT &lhs, const QueryResultColumnT &rhs);
 bool operator==(const QueryResultChunkT &lhs, const QueryResultChunkT &rhs);
@@ -42,8 +37,6 @@ bool operator!=(const QueryResultT &lhs, const QueryResultT &rhs);
 inline const flatbuffers::TypeTable *SQLTypeTypeTable();
 
 inline const flatbuffers::TypeTable *QueryPlanTypeTable();
-
-inline const flatbuffers::TypeTable *FormattedQueryPlanTypeTable();
 
 inline const flatbuffers::TypeTable *QueryResultColumnTypeTable();
 
@@ -480,89 +473,6 @@ inline flatbuffers::Offset<QueryPlan> CreateQueryPlanDirect(
 
 flatbuffers::Offset<QueryPlan> CreateQueryPlan(flatbuffers::FlatBufferBuilder &_fbb, const QueryPlanT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct FormattedQueryPlanT : public flatbuffers::NativeTable {
-  typedef FormattedQueryPlan TableType;
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "tigon.proto.FormattedQueryPlanT";
-  }
-  std::string text;
-  FormattedQueryPlanT() {
-  }
-};
-
-inline bool operator==(const FormattedQueryPlanT &lhs, const FormattedQueryPlanT &rhs) {
-  return
-      (lhs.text == rhs.text);
-}
-
-inline bool operator!=(const FormattedQueryPlanT &lhs, const FormattedQueryPlanT &rhs) {
-    return !(lhs == rhs);
-}
-
-
-/// A formatted query plan
-struct FormattedQueryPlan FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef FormattedQueryPlanT NativeTableType;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return FormattedQueryPlanTypeTable();
-  }
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "tigon.proto.FormattedQueryPlan";
-  }
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_TEXT = 4
-  };
-  const flatbuffers::String *text() const {
-    return GetPointer<const flatbuffers::String *>(VT_TEXT);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_TEXT) &&
-           verifier.VerifyString(text()) &&
-           verifier.EndTable();
-  }
-  FormattedQueryPlanT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(FormattedQueryPlanT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<FormattedQueryPlan> Pack(flatbuffers::FlatBufferBuilder &_fbb, const FormattedQueryPlanT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct FormattedQueryPlanBuilder {
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_text(flatbuffers::Offset<flatbuffers::String> text) {
-    fbb_.AddOffset(FormattedQueryPlan::VT_TEXT, text);
-  }
-  explicit FormattedQueryPlanBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  FormattedQueryPlanBuilder &operator=(const FormattedQueryPlanBuilder &);
-  flatbuffers::Offset<FormattedQueryPlan> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<FormattedQueryPlan>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<FormattedQueryPlan> CreateFormattedQueryPlan(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> text = 0) {
-  FormattedQueryPlanBuilder builder_(_fbb);
-  builder_.add_text(text);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<FormattedQueryPlan> CreateFormattedQueryPlanDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *text = nullptr) {
-  auto text__ = text ? _fbb.CreateString(text) : 0;
-  return tigon::proto::CreateFormattedQueryPlan(
-      _fbb,
-      text__);
-}
-
-flatbuffers::Offset<FormattedQueryPlan> CreateFormattedQueryPlan(flatbuffers::FlatBufferBuilder &_fbb, const FormattedQueryPlanT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
 struct QueryResultColumnT : public flatbuffers::NativeTable {
   typedef QueryResultColumn TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
@@ -970,32 +880,6 @@ inline flatbuffers::Offset<QueryPlan> CreateQueryPlan(flatbuffers::FlatBufferBui
       _operator_types);
 }
 
-inline FormattedQueryPlanT *FormattedQueryPlan::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = new FormattedQueryPlanT();
-  UnPackTo(_o, _resolver);
-  return _o;
-}
-
-inline void FormattedQueryPlan::UnPackTo(FormattedQueryPlanT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = text(); if (_e) _o->text = _e->str(); };
-}
-
-inline flatbuffers::Offset<FormattedQueryPlan> FormattedQueryPlan::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FormattedQueryPlanT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateFormattedQueryPlan(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<FormattedQueryPlan> CreateFormattedQueryPlan(flatbuffers::FlatBufferBuilder &_fbb, const FormattedQueryPlanT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const FormattedQueryPlanT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _text = _o->text.empty() ? 0 : _fbb.CreateString(_o->text);
-  return tigon::proto::CreateFormattedQueryPlan(
-      _fbb,
-      _text);
-}
-
 inline QueryResultColumnT *QueryResultColumn::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new QueryResultColumnT();
   UnPackTo(_o, _resolver);
@@ -1305,19 +1189,6 @@ inline const flatbuffers::TypeTable *QueryPlanTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *FormattedQueryPlanTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_STRING, 0, -1 }
-  };
-  static const char * const names[] = {
-    "text"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
   };
   return &tt;
 }

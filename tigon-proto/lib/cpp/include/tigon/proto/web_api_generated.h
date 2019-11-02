@@ -6,9 +6,16 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-
 namespace tigon {
 namespace proto {
+
+struct FormattedText;
+struct FormattedTextT;
+
+bool operator==(const FormattedTextT &lhs, const FormattedTextT &rhs);
+bool operator!=(const FormattedTextT &lhs, const FormattedTextT &rhs);
+
+inline const flatbuffers::TypeTable *FormattedTextTypeTable();
 
 enum class StatusCode : uint8_t {
   SUCCESS = 0,
@@ -40,6 +47,115 @@ inline const char *EnumNameStatusCode(StatusCode e) {
   return EnumNamesStatusCode()[index];
 }
 
+struct FormattedTextT : public flatbuffers::NativeTable {
+  typedef FormattedText TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.FormattedTextT";
+  }
+  std::string text;
+  FormattedTextT() {
+  }
+};
+
+inline bool operator==(const FormattedTextT &lhs, const FormattedTextT &rhs) {
+  return
+      (lhs.text == rhs.text);
+}
+
+inline bool operator!=(const FormattedTextT &lhs, const FormattedTextT &rhs) {
+    return !(lhs == rhs);
+}
+
+
+/// A formatted text
+struct FormattedText FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef FormattedTextT NativeTableType;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return FormattedTextTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.FormattedText";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_TEXT = 4
+  };
+  const flatbuffers::String *text() const {
+    return GetPointer<const flatbuffers::String *>(VT_TEXT);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_TEXT) &&
+           verifier.VerifyString(text()) &&
+           verifier.EndTable();
+  }
+  FormattedTextT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(FormattedTextT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<FormattedText> Pack(flatbuffers::FlatBufferBuilder &_fbb, const FormattedTextT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct FormattedTextBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_text(flatbuffers::Offset<flatbuffers::String> text) {
+    fbb_.AddOffset(FormattedText::VT_TEXT, text);
+  }
+  explicit FormattedTextBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  FormattedTextBuilder &operator=(const FormattedTextBuilder &);
+  flatbuffers::Offset<FormattedText> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<FormattedText>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<FormattedText> CreateFormattedText(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> text = 0) {
+  FormattedTextBuilder builder_(_fbb);
+  builder_.add_text(text);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<FormattedText> CreateFormattedTextDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *text = nullptr) {
+  auto text__ = text ? _fbb.CreateString(text) : 0;
+  return tigon::proto::CreateFormattedText(
+      _fbb,
+      text__);
+}
+
+flatbuffers::Offset<FormattedText> CreateFormattedText(flatbuffers::FlatBufferBuilder &_fbb, const FormattedTextT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+inline FormattedTextT *FormattedText::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new FormattedTextT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void FormattedText::UnPackTo(FormattedTextT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = text(); if (_e) _o->text = _e->str(); };
+}
+
+inline flatbuffers::Offset<FormattedText> FormattedText::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FormattedTextT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateFormattedText(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<FormattedText> CreateFormattedText(flatbuffers::FlatBufferBuilder &_fbb, const FormattedTextT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const FormattedTextT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _text = _o->text.empty() ? 0 : _fbb.CreateString(_o->text);
+  return tigon::proto::CreateFormattedText(
+      _fbb,
+      _text);
+}
+
 inline const flatbuffers::TypeTable *StatusCodeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -54,6 +170,19 @@ inline const flatbuffers::TypeTable *StatusCodeTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *FormattedTextTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 }
+  };
+  static const char * const names[] = {
+    "text"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
   };
   return &tt;
 }

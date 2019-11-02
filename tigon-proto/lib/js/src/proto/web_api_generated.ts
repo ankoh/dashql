@@ -10,3 +10,73 @@ export enum StatusCode{
   ERROR= 1
 };
 
+/**
+ * A formatted text
+ *
+ * @constructor
+ */
+export class FormattedText {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns FormattedText
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):FormattedText {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param FormattedText= obj
+ * @returns FormattedText
+ */
+static getRootAsFormattedText(bb:flatbuffers.ByteBuffer, obj?:FormattedText):FormattedText {
+  return (obj || new FormattedText).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+text():string|null
+text(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+text(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startFormattedText(builder:flatbuffers.Builder) {
+  builder.startObject(1);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset textOffset
+ */
+static addText(builder:flatbuffers.Builder, textOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, textOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endFormattedText(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+static createFormattedText(builder:flatbuffers.Builder, textOffset:flatbuffers.Offset):flatbuffers.Offset {
+  FormattedText.startFormattedText(builder);
+  FormattedText.addText(builder, textOffset);
+  return FormattedText.endFormattedText(builder);
+}
+}

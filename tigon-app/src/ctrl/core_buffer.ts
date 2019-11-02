@@ -53,14 +53,8 @@ export class QueryPlanBuffer extends CoreBuffer<proto.duckdb.QueryPlan> {
     }
 }
 
-export class FormattedTQLProgram extends CoreBuffer<proto.tql.FormattedTQLProgram> {
+export class FormattedTextBuffer extends CoreBuffer<proto.web_api.FormattedText> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.tql.FormattedTQLProgram.getRootAsFormattedTQLProgram(buffer);
-    }
-}
-
-export class FormattedQueryPlan extends CoreBuffer<proto.duckdb.FormattedQueryPlan> {
-    public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.duckdb.FormattedQueryPlan.getRootAsFormattedQueryPlan(buffer);
+        return proto.web_api.FormattedText.getRootAsFormattedText(buffer);
     }
 }
