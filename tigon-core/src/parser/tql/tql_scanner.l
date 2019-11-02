@@ -13,7 +13,7 @@
 #include <climits>
 #include <cstdlib>
 #include <string>
-#include <istream>
+#include <string_view>
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/parser/tql/tql_parser.h"
 

@@ -13,7 +13,7 @@
 #include <climits>
 #include <cstdlib>
 #include <string>
-#include <istream>
+#include <string_view>
 #include "tigon/parser/rpath/rpath_parse_context.h"
 #include "tigon/parser/rpath/rpath_parser.h"
 
@@ -28,8 +28,12 @@ namespace rpath {
 
 // The location of the current token
 extern tigon::rpath::location loc;
-// The input stream of the scanner
-extern std::istream *in;
+// The input string view
+extern std::string_view in;
+// The reader offset
+extern size_t reader_offset;
+// The parser offset
+extern size_t parser_offset;
 
 }  // namespace rpath
 }  // namespace tigon
@@ -46,15 +50,10 @@ using namespace tigon::rpath;
 
 // Declare the yylex function
 #define YY_DECL Parser::symbol_type yylex(ParseContext& ctx)
-// Configure the scanner to use istreams
-#define YY_INPUT(buffer, result, max_size)  \
-    result = 0; \
-    while (true) { \
-        int c = in->get(); \
-        if (in->eof()) break; \
-        buffer[result++] = c; \
-        if (result == max_size || c == '\n') break; \
-    }
+// Configure the scanner to use string views
+#define YY_INPUT(buffer, bytes_read, max_bytes) \
+    bytes_read = in.copy(buffer, max_bytes, reader_offset); \
+    reader_offset += bytes_read;
 %}
 
 %{
@@ -114,7 +113,7 @@ loc.step ();
                     }
 
 [ \t]+              { loc.step(); }
-\n                  { loc.lines (yyleng); loc.step (); }
+\n                  { loc.lines (1); loc.step(); }
 
 <<EOF>>             { return Parser::make_EOF(loc); }
 .                   { ctx.Error(loc.begin.line, loc.begin.column, "invalid character"); }
@@ -127,17 +126,25 @@ loc.step ();
 
 // The input stream
 tigon::rpath::location tigon::rpath::loc;
-// The input stream of the scanner
-std::istream *tigon::rpath::in = nullptr;
+// The input view of the scanner
+std::string_view tigon::rpath::in;
+// The reader offset
+size_t tigon::rpath::reader_offset;
+// The parser offset
+size_t tigon::rpath::parser_offset;
 
 // Begin a scan
-void tigon::rpath::ParseContext::beginScan(std::istream &is) {
+void tigon::rpath::ParseContext::beginScan(std::string_view s) {
     yy_flex_debug = trace_scanning;
-    in = &is;
+    in = s;
+    reader_offset = 0;
+    parser_offset = 0;
 }
 
 // End a scan
 void tigon::rpath::ParseContext::endScan() {
-    in = nullptr;
+    in = {};
+    reader_offset = 0;
+    parser_offset = 0;
 }
 

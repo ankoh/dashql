@@ -31,7 +31,7 @@ class ParseContext {
     bool trace_parsing;
 
     /// Begin a scan
-    void beginScan(std::istream &in);
+    void beginScan(std::string_view in);
     /// End a scan
     void endScan();
 
@@ -42,7 +42,7 @@ class ParseContext {
     virtual ~ParseContext();
 
     /// Parse an istream
-    std::unique_ptr<RPath> Parse(std::istream &in);
+    std::unique_ptr<RPath> Parse(std::string_view in);
 
     /// Throw an error
     void Error(uint32_t line, uint32_t column, const std::string &err);

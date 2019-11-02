@@ -17,11 +17,13 @@ ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
 
 ParseContext::~ParseContext() {}
 
-std::unique_ptr<RPath> ParseContext::Parse(std::istream &in) {
+std::unique_ptr<RPath> ParseContext::Parse(std::string_view in) {
     beginScan(in);
-    tigon::rpath::Parser parser(*this);
-    parser.set_debug_level(trace_parsing);
-    parser.parse();
+    {
+        tigon::rpath::Parser parser(*this);
+        parser.set_debug_level(trace_parsing);
+        parser.parse();
+    }
     endScan();
 
     // TODO
