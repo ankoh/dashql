@@ -36,41 +36,39 @@ function test_tql_parser(text: string, expected: any) {
     });
 }
 
-describe("controller/core", () => {
-    describe("tql parsing", () => {
-        test_tql_parser("", {
-            "statements_type": [],
-            "statements": []
-        });
-
-        test_tql_parser(`
-            SELECT 1;
-        `, {
-            "statements_type": [ "TQLQueryStatement" ],
-            "statements": [
-                { "query_text": "SELECT 1" }
-            ]
-        });
-
-        test_tql_parser(`
-            SELECT 1;
-            SELECT 1 + 2;
-        `, {
-            "statements_type": [ "TQLQueryStatement", "TQLQueryStatement" ],
-            "statements": [
-                { "query_text": "SELECT 1" },
-                { "query_text": "SELECT 1 + 2" }
-            ]
-        });
+describe("tql parsing", () => {
+    test_tql_parser("", {
+        "statements_type": [],
+        "statements": []
     });
 
-    describe("query execution", () => {
-        test("SELECT 1;", async () => {
-            let session = await core.createSession();
-            let result = await core.runQuery(session, "SELECT 1;");
+    test_tql_parser(`
+        SELECT 1;
+    `, {
+        "statements_type": [ "TQLQueryStatement" ],
+        "statements": [
+            { "query_text": "SELECT 1" }
+        ]
+    });
 
-            result.release();
-            await core.endSession(session);
-        });
+    test_tql_parser(`
+        SELECT 1;
+        SELECT 1 + 2;
+    `, {
+        "statements_type": [ "TQLQueryStatement", "TQLQueryStatement" ],
+        "statements": [
+            { "query_text": "SELECT 1" },
+            { "query_text": "SELECT 1 + 2" }
+        ]
+    });
+});
+
+describe("query execution", () => {
+    test("SELECT 1;", async () => {
+        let session = await core.createSession();
+        let result = await core.runQuery(session, "SELECT 1;");
+
+        result.release();
+        await core.endSession(session);
     });
 });
