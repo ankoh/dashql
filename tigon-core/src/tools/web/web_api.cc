@@ -14,14 +14,13 @@
 #include "spdlog/spdlog.h"
 
 #include "flatbuffers/flatbuffers.h"
-#include "flatbuffers/minireflect.h"
 
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/proto/duckdb_codec.h"
+#include "tigon/proto/json_conversion.h"
 #include "tigon/proto/tql_codec.h"
 #include "tigon/proto/tql_generated.h"
 #include "tigon/proto/web_api_generated.h"
-#include "tigon/common/text_view_stream.h"
 #include "tigon/common/variant.h"
 
 #include <cstdio>
@@ -164,7 +163,7 @@ void WebAPI::Session::planQuery(std::string_view text) {
 
 /// Format TQL
 void WebAPI::Session::formatTQLProgram(void* tql_program) {
-    auto txt = flatbuffers::FlatBufferToString(static_cast<uint8_t*>(tql_program), proto::TQLProgramTypeTable());
+    auto txt = proto::writeJSON(tql_program, *proto::TQLProgramTypeTable());
 
     // Encode the tql program
     fb::FlatBufferBuilder builder{txt.size() + 100};
@@ -178,7 +177,7 @@ void WebAPI::Session::formatTQLProgram(void* tql_program) {
 
 /// Format a query plan
 void WebAPI::Session::formatQueryPlan(void* query_plan) {
-    auto txt = flatbuffers::FlatBufferToString(static_cast<uint8_t*>(query_plan), proto::QueryPlanTypeTable());
+    auto txt = proto::writeJSON(query_plan, *proto::QueryPlanTypeTable());
 
     // Encode the query plan
     fb::FlatBufferBuilder builder{txt.size() + 100};

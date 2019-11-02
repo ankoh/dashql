@@ -5,3 +5,7 @@ enum StatusCode: uint8 {
     SUCCESS = 0,
     ERROR = 1,
 }
+
+table FormattedFlatbuffer {
+    text: string;
+}
