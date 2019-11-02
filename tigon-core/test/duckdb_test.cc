@@ -51,7 +51,7 @@ TEST(WebAPITest, ExplainQuery) {
         session.planQuery("SELECT 1;");
 
         auto& response = session.getResponse();
-        ASSERT_EQ(response.getStatus(), proto::StatusCode::Success);
+        ASSERT_EQ(response.getStatus(), proto::StatusCode::SUCCESS);
 
         // Get the query plan
         auto* responseData = std::get<0>(response.getData());
@@ -85,7 +85,7 @@ TEST(WebAPITest, ExplainQuery) {
         )RAW");
 
         auto& response = session.getResponse();
-        ASSERT_EQ(response.getStatus(), proto::StatusCode::Success);
+        ASSERT_EQ(response.getStatus(), proto::StatusCode::SUCCESS);
 
         // Get the plan
         auto* responseData = std::get<0>(response.getData());

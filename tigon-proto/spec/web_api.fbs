@@ -2,6 +2,8 @@ namespace tigon.proto;
 
 // The status codes
 enum StatusCode: uint8 {
-    Success = 0,
-    GenericError = 1,
+    SUCCESS = 0,
+    ERROR = 1,
 }
+
+

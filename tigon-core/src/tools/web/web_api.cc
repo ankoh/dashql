@@ -36,7 +36,7 @@ using namespace tigon;
 
 /// Reset the response
 void WebAPI::Response::clear() {
-    status_code = proto::StatusCode::Success;
+    status_code = proto::StatusCode::SUCCESS;
     error.clear();
     data = {nullptr, 0};
 }
@@ -53,7 +53,7 @@ void WebAPI::Response::writePacked(WebAPI::Response::Packed& packed) {
 void WebAPI::Response::requestSucceeded(fb::DetachedBuffer buffer) {
     clear();
     data = session.registerBuffer(std::move(buffer));
-    status_code = proto::StatusCode::Success;
+    status_code = proto::StatusCode::SUCCESS;
 }
 
 void WebAPI::Response::requestFailed(proto::StatusCode status, std::string err) {
@@ -121,7 +121,7 @@ void WebAPI::Session::runQuery(std::string_view text) {
 
     // Query failed?
     if (!result->success) {
-        response.requestFailed(proto::StatusCode::GenericError, result->error);
+        response.requestFailed(proto::StatusCode::ERROR, result->error);
         return;
     }
 

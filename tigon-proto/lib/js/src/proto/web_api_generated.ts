@@ -6,7 +6,7 @@ import { flatbuffers } from "flatbuffers";
  * @enum {number}
  */
 export enum StatusCode{
-  Success= 0,
-  GenericError= 1
+  SUCCESS= 0,
+  ERROR= 1
 };
 

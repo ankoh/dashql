@@ -11,31 +11,31 @@ namespace tigon {
 namespace proto {
 
 enum class StatusCode : uint8_t {
-  Success = 0,
-  GenericError = 1,
-  MIN = Success,
-  MAX = GenericError
+  SUCCESS = 0,
+  ERROR = 1,
+  MIN = SUCCESS,
+  MAX = ERROR
 };
 
 inline const StatusCode (&EnumValuesStatusCode())[2] {
   static const StatusCode values[] = {
-    StatusCode::Success,
-    StatusCode::GenericError
+    StatusCode::SUCCESS,
+    StatusCode::ERROR
   };
   return values;
 }
 
 inline const char * const *EnumNamesStatusCode() {
   static const char * const names[] = {
-    "Success",
-    "GenericError",
+    "SUCCESS",
+    "ERROR",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameStatusCode(StatusCode e) {
-  if (e < StatusCode::Success || e > StatusCode::GenericError) return "";
+  if (e < StatusCode::SUCCESS || e > StatusCode::ERROR) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesStatusCode()[index];
 }
@@ -49,8 +49,8 @@ inline const flatbuffers::TypeTable *StatusCodeTypeTable() {
     StatusCodeTypeTable
   };
   static const char * const names[] = {
-    "Success",
-    "GenericError"
+    "SUCCESS",
+    "ERROR"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, names
