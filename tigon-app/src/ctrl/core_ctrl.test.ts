@@ -38,16 +38,28 @@ function test_tql_parser(text: string, expected: any) {
 
 describe("controller/core", () => {
     describe("parseTQL", () => {
+        test_tql_parser("", {
+            "statements_type": [],
+            "statements": []
+        });
+
         test_tql_parser(`
             SELECT 1;
         `, {
-            "statements_type": [
-                "TQLQueryStatement"
-            ],
+            "statements_type": [ "TQLQueryStatement" ],
             "statements": [
-                {
-                    "query_text": "SELECT 1"
-                }
+                { "query_text": "SELECT 1" }
+            ]
+        });
+
+        test_tql_parser(`
+            SELECT 1;
+            SELECT 1 + 2;
+        `, {
+            "statements_type": [ "TQLQueryStatement", "TQLQueryStatement" ],
+            "statements": [
+                { "query_text": "SELECT 1" },
+                { "query_text": "SELECT 1 + 2" }
             ]
         });
     });
