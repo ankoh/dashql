@@ -25,17 +25,22 @@ describe("controller/core", () => {
     describe("parseTQL", () => {
         test("SELECT 1;", async () => {
             let session = await sharedCore.createSession();
-            let programBuffer = await sharedCore.parseTQL(session, "SELECT 1;");
-            let program = programBuffer.getReader();
-            let fmtBuffer = await sharedCore.formatTQLProgram(session, programBuffer.getData());
-            let fmt = fmtBuffer.getReader();
+            let program = await sharedCore.parseTQL(session, "SELECT 1;");
+            let fmt = await sharedCore.formatTQLProgram(session, program.getData());
 
-            console.log(fmt.text());
+            expect(JSON.parse(fmt.getReader().text() || "")).toEqual({
+                "statements_type": [
+                    "TQLQueryStatement"
+                ],
+                "statements": [
+                    {
+                        "query_text": "SELECT 1"
+                    }
+                ]
+            });
 
-            expect(program.statementsLength()).toEqual(1);
-
-            fmtBuffer.release();
-            programBuffer.release();
+            fmt.release();
+            program.release();
             await sharedCore.endSession(session);
         });
     });
