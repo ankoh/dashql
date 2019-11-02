@@ -169,7 +169,7 @@ void WebAPI::Session::formatTQLProgram(void* tql_program) {
     auto txt = flatbuffers::FlatBufferToString(static_cast<uint8_t*>(tql_program), proto::TQLProgramTypeTable());
 
     // Encode the tql program
-    fb::FlatBufferBuilder builder{txt.size()};
+    fb::FlatBufferBuilder builder{txt.size() + 100};
     auto txtOfs = builder.CreateString(txt);
     auto fmtOfs = proto::CreateFormattedTQLProgram(builder, txtOfs);
 
@@ -183,7 +183,7 @@ void WebAPI::Session::formatQueryPlan(void* query_plan) {
     auto txt = flatbuffers::FlatBufferToString(static_cast<uint8_t*>(query_plan), proto::QueryPlanTypeTable());
 
     // Encode the query plan
-    fb::FlatBufferBuilder builder{txt.size()};
+    fb::FlatBufferBuilder builder{txt.size() + 100};
     auto txtOfs = builder.CreateString(txt);
     auto planOfs = proto::CreateFormattedQueryPlan(builder, txtOfs);
 
