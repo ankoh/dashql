@@ -10,8 +10,7 @@ export class LogController {
         this.store = store;
     }
 
-    // Model the log in the redux store
-    public storeLog(level: Model.LogLevel, text: string) {
+    protected log(level: Model.LogLevel, text: string) {
         // Build log entry
         const logEntry = new Model.LogEntry();
         logEntry.level = level;
@@ -22,8 +21,7 @@ export class LogController {
         this.store.dispatch(Model.pushLogEntry(logEntry));
     }
 
-    // Model a loggable error in the redux log
-    public storeError(error: LoggableError) {
+    public logError(error: LoggableError) {
         // Build log entry
         const logEntry = new Model.LogEntry();
         logEntry.level = error.logLevel;
@@ -35,10 +33,10 @@ export class LogController {
     }
 
     // Log levels
-    public debug(text: string)      { this.storeLog(Model.LogLevel.LL_DEBUG, text); }
-    public info(text: string)       { this.storeLog(Model.LogLevel.LL_INFO, text); }
-    public warning(text: string)    { this.storeLog(Model.LogLevel.LL_WARNING, text); }
-    public error(text: string)      { this.storeLog(Model.LogLevel.LL_ERROR, text); }
+    public debug(text: string)      { this.log(Model.LogLevel.LL_DEBUG, text); }
+    public info(text: string)       { this.log(Model.LogLevel.LL_INFO, text); }
+    public warning(text: string)    { this.log(Model.LogLevel.LL_WARNING, text); }
+    public error(text: string)      { this.log(Model.LogLevel.LL_ERROR, text); }
 }
 
 export default LogController;

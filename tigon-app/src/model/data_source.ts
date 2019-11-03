@@ -66,15 +66,15 @@ export class InlineAnyRows extends DataSource {
 }
 
 export class QueryResultDataSource extends DataSource {
-    result: ctrl.CoreBuffer<proto.web_api.QueryResult>;
+    result: ctrl.CoreBuffer<proto.duckdb.QueryResult>;
     chunks: Array<{
         offset: number,
-        chunk: proto.web_api.QueryResultChunk,
+        chunk: proto.duckdb.QueryResultChunk,
     }>;
     columnData: Array<Array<DataView | null>>;
 
     // Constructor
-    constructor(result: ctrl.CoreBuffer<proto.web_api.QueryResult>) {
+    constructor(result: ctrl.CoreBuffer<proto.duckdb.QueryResult>) {
         super();
         this.result = result;
         this.chunks = [];
@@ -110,18 +110,18 @@ export class QueryResultDataSource extends DataSource {
                     this.columnData[j].push(null);
                 } else {
                     switch (rawType) {
-                        case proto.web_api.RawTypeID.INVALID:
+                        case proto.duckdb.RawTypeID.INVALID:
                             // TODO
                             break;
-                        case proto.web_api.RawTypeID.BOOLEAN:
-                        case proto.web_api.RawTypeID.TINYINT:
-                        case proto.web_api.RawTypeID.SMALLINT:
-                        case proto.web_api.RawTypeID.INTEGER:
-                        case proto.web_api.RawTypeID.BIGINT:
-                        case proto.web_api.RawTypeID.HASH:
-                        case proto.web_api.RawTypeID.POINTER:
-                        case proto.web_api.RawTypeID.FLOAT:
-                        case proto.web_api.RawTypeID.DOUBLE: {
+                        case proto.duckdb.RawTypeID.BOOLEAN:
+                        case proto.duckdb.RawTypeID.TINYINT:
+                        case proto.duckdb.RawTypeID.SMALLINT:
+                        case proto.duckdb.RawTypeID.INTEGER:
+                        case proto.duckdb.RawTypeID.BIGINT:
+                        case proto.duckdb.RawTypeID.HASH:
+                        case proto.duckdb.RawTypeID.POINTER:
+                        case proto.duckdb.RawTypeID.FLOAT:
+                        case proto.duckdb.RawTypeID.DOUBLE: {
                             let buffer = column.fixedLengthDataArray();
                             if (buffer == null) {
                                 this.columnData[j].push(null);
@@ -130,11 +130,11 @@ export class QueryResultDataSource extends DataSource {
                             }
                             break;
                         }
-                        case proto.web_api.RawTypeID.VARCHAR:
+                        case proto.duckdb.RawTypeID.VARCHAR:
                             // Push indexed buffer
                             // TODO
                             break;
-                        case proto.web_api.RawTypeID.VARBINARY:
+                        case proto.duckdb.RawTypeID.VARBINARY:
                             // TODO
                             break;
                     }
@@ -193,40 +193,40 @@ export class QueryResultDataSource extends DataSource {
 
         // Access the data
         switch (rawType) {
-            case proto.web_api.RawTypeID.INVALID:
+            case proto.duckdb.RawTypeID.INVALID:
                 // TODO
                 break;
-            case proto.web_api.RawTypeID.BOOLEAN:
+            case proto.duckdb.RawTypeID.BOOLEAN:
                 data = this.columnData[column][chunkID];
                 return data ? data.getInt8(row).toString() : "";
-            case proto.web_api.RawTypeID.TINYINT:
+            case proto.duckdb.RawTypeID.TINYINT:
                 data = this.columnData[column][chunkID];
                 return data ? data.getInt16(row).toString() : "";
-            case proto.web_api.RawTypeID.SMALLINT:
+            case proto.duckdb.RawTypeID.SMALLINT:
                 data = this.columnData[column][chunkID];
                 return data ? data.getInt32(row).toString() : "";
-            case proto.web_api.RawTypeID.INTEGER:
+            case proto.duckdb.RawTypeID.INTEGER:
                 data = this.columnData[column][chunkID];
                 return data ? data.getInt32(row).toString() : "";
-            case proto.web_api.RawTypeID.BIGINT:
+            case proto.duckdb.RawTypeID.BIGINT:
                 data = this.columnData[column][chunkID];
                 return data ? data.getBigInt64(row).toString() : "";
-            case proto.web_api.RawTypeID.HASH:
+            case proto.duckdb.RawTypeID.HASH:
                 data = this.columnData[column][chunkID];
                 return data ? data.getBigUint64(row).toString() : "";
-            case proto.web_api.RawTypeID.POINTER:
+            case proto.duckdb.RawTypeID.POINTER:
                 data = this.columnData[column][chunkID];
                 return data ? data.getBigUint64(row).toString() : "";
-            case proto.web_api.RawTypeID.FLOAT:
+            case proto.duckdb.RawTypeID.FLOAT:
                 data = this.columnData[column][chunkID];
                 return data ? data.getFloat32(row).toString() : "";
-            case proto.web_api.RawTypeID.DOUBLE:
+            case proto.duckdb.RawTypeID.DOUBLE:
                 data = this.columnData[column][chunkID];
                 return data ? data.getFloat64(row).toString() : "";
-            case proto.web_api.RawTypeID.VARCHAR:
+            case proto.duckdb.RawTypeID.VARCHAR:
                 // TODO
                 break;
-            case proto.web_api.RawTypeID.VARBINARY:
+            case proto.duckdb.RawTypeID.VARBINARY:
                 // TODO
                 break;
         }

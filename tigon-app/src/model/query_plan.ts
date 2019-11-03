@@ -3,10 +3,10 @@ import * as ctrl from '../ctrl';
 
 // A query plan
 export class QueryPlan {
-    buffer: ctrl.CoreBuffer<proto.web_api.QueryPlan>;
+    buffer: ctrl.CoreBuffer<proto.duckdb.QueryPlan>;
 
     // Constructor
-    constructor(buffer: ctrl.CoreBuffer<proto.web_api.QueryPlan>) {
+    constructor(buffer: ctrl.CoreBuffer<proto.duckdb.QueryPlan>) {
         this.buffer = buffer;
     }
 

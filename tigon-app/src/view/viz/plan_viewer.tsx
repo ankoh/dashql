@@ -19,7 +19,7 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
     }
 
     /// Get an operator name
-    private getOperatorName(type: proto.web_api.LogicalOperatorType) {
+    private getOperatorName(type: proto.duckdb.LogicalOperatorType) {
         var operatorTypeNames = [
             "INVALID",
             "PROJECTION",
