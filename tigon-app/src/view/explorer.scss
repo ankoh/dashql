@@ -18,7 +18,7 @@
 .explorer_viewer_output {
     box-sizing: border-box;
     border-radius: $card_border_radius;
-    height: 200px;
+    height: 260px;
 }
 
 .explorer_viewer_controls {
@@ -88,7 +88,7 @@
 .explorer_input {
     position: relative;
     width: 100%;
-    height: 240px;
+    height: 260px;
     background: $card_background_color;
     border-radius: $card_border_radius_s;
 }
