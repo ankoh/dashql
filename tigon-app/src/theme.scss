@@ -16,8 +16,6 @@ $background_line_color: rgb(212, 212, 212);
 
 $card_background_color: rgb(250, 250, 250);
 $card_border_radius: $theme_border_radius;
-$card_border_radius_n: $card_border_radius $card_border_radius 0px 0px;
-$card_border_radius_s: 0px 0px $card_border_radius $card_border_radius;
 $card_box_shadow: $theme_box_shadow_level_1;
 
 $status_background: $theme_color_1;
@@ -39,4 +37,92 @@ $action_foreground: rgb(255, 255, 255);
 $border_color: rgb(240, 240, 240);
 $border_default: 1px solid $border-color;
 
-@import './theme/buttons.scss';
+@mixin card {
+    border-radius: $card_border_radius;
+    background: $card_background_color;
+    box-shadow: $card_box_shadow;
+}
+
+
+@mixin button {
+    border-radius: $button_border_radius;
+    box-sizing: border-box;
+}
+
+@mixin button-toggle {
+    @include button;
+
+    background-color: $button_background;
+    color: $button_foreground;
+
+    &:hover, &.active {
+        background-color: $button_toggle_background;
+        color: $button_toggle_foreground;
+        box-shadow: $button_toggle_box_shadow;
+    }
+}
+
+@mixin iconbutton-toggle {
+    @include button;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+
+    background-color: $button_background;
+    color: $button_foreground;
+
+    .icon {
+        path {
+            fill: $button_foreground;
+        }
+
+        circle {
+            fill: $button_foreground;
+        }
+    }
+
+    &:hover, &.active {
+        background-color: $button_toggle_background;
+        color: $button_toggle_foreground;
+        box-shadow: $button_toggle_box_shadow;
+
+        .icon {
+            path {
+                fill: $button_toggle_foreground;
+            }
+
+            circle {
+                fill: $button_toggle_foreground;
+            }
+        }
+    }
+}
+
+@mixin button-action {
+    @include button;
+
+    color: rgb(255, 255, 255);
+    background-color: $action_background;
+    box-shadow: $button_toggle_box_shadow;
+}
+
+@mixin iconbutton-action {
+    @include button-action;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+
+    .icon {
+        path {
+            fill: $action_foreground;
+        }
+
+        circle {
+            fill: $action_foreground;
+        }
+    }
+}

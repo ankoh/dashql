@@ -1,10 +1,7 @@
 @import '../theme.scss';
 
 .explorer {
-    margin: px;
-    border-radius: $card_border_radius;
-    background: $card_background_color;
-    box-shadow: $card_box_shadow;
+    @include card;
 }
 
 .explorer_viewer {
@@ -46,7 +43,6 @@
 
 .explorer_viewer_action {
     @include iconbutton-action;
-
     height: 100%;
 }
 
