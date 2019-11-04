@@ -1,8 +1,10 @@
 import * as React from 'react';
 import Explorer from './explorer';
+import Launcher from './launcher';
 import NavigationBar from './navigation_bar';
 import StatusBar from './status_bar';
-import Launcher from './launcher';
+import Workbook from './workbook';
+import Library from './library';
 import * as Model from '../model';
 import { connect } from 'react-redux';
 
@@ -29,6 +31,32 @@ class Router extends React.Component<IRouterProps> {
                         <div className="router_page_container">
                             <div className="router_page">
                                 <Explorer />
+                            </div>
+                        </div>
+                        <StatusBar />
+                    </div>
+                );
+            case Model.RootView.WORKBOOK:
+                return (
+                    <div className="router">
+                        <div className="router_background_grid" />
+                        <NavigationBar />
+                        <div className="router_page_container">
+                            <div className="router_page">
+                                <Workbook />
+                            </div>
+                        </div>
+                        <StatusBar />
+                    </div>
+                );
+            case Model.RootView.LIBRARY:
+                return (
+                    <div className="router">
+                        <div className="router_background_grid" />
+                        <NavigationBar />
+                        <div className="router_page_container">
+                            <div className="router_page">
+                                <Library />
                             </div>
                         </div>
                         <StatusBar />
