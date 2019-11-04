@@ -7,10 +7,12 @@ $theme_border_radius: 6px;
 $theme_box_shadow_level_1: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
 $theme_box_shadow_level_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
 
+$navbar_box_shadow: 0 .125rem .625rem rgba(90,97,105,.12);
+
 $logo_background_color: rgb(43, 33, 86);
 
-$background_color: rgb(210, 210, 210);
-$background_line_color: rgb(202, 202, 202);
+$background_color: rgb(220, 220, 220);
+$background_line_color: rgb(212, 212, 212);
 
 $card_background_color: rgb(250, 250, 250);
 $card_border_radius: $theme_border_radius;
