@@ -2,29 +2,34 @@ $theme_color_1: rgb(43, 33, 86);
 $theme_color_2: #5B63DF;
 $theme_color_3: #48F4C1;
 
-$theme_border_radius: 3px;
+$theme_border_radius: 6px;
+
+$theme_box_shadow_level_1: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+$theme_box_shadow_level_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
 
 $logo_background_color: rgb(43, 33, 86);
 
-$background_color: rgb(200, 200, 200);
-$background_line_color: rgb(192, 192, 192);
+$background_color: rgb(210, 210, 210);
+$background_line_color: rgb(202, 202, 202);
 
-$card_background_color: rgb(235, 235, 235);
+$card_background_color: rgb(250, 250, 250);
 $card_border_radius: $theme_border_radius;
 $card_border_radius_n: $card_border_radius $card_border_radius 0px 0px;
 $card_border_radius_s: 0px 0px $card_border_radius $card_border_radius;
+$card_box_shadow: $theme_box_shadow_level_1;
 
 $status_background: $theme_color_1;
 $status_color: rgb(255, 255, 255);
 $status_list_toggle_color: $theme_color_1;
 $status_list_toggle_bg: rgb(255, 255, 255);
 
-$button_border_color: rgb(220, 220, 220);
+$button_border_color: transparent;
 $button_border_radius: $theme_border_radius;
 $button_foreground: $theme_color_1;
 $button_background: transparent;
 $button_toggle_foreground: rgb(255, 255, 255);
 $button_toggle_background: $theme_color_1;
+$button_toggle_box_shadow: $theme_box_shadow_level_2;
 
 $action_background: $theme_color_2;
 $action_foreground: rgb(255, 255, 255);

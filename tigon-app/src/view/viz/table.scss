@@ -1,11 +1,13 @@
+@import '../../theme.scss';
+
 .table {
     width: 100%;
     height: 100%;
-    border-radius: 4px;
+    border-radius: $theme_border_radius;
     box-sizing: border-box;
     overflow: hidden;
-    border: 1px solid rgb(225, 225, 225);
     background: rgba(255, 255, 255, 0.8);
+    box-shadow: $theme_box_shadow_level_2;
 }
 
 .table .ReactVirtualized__Grid {

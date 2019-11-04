@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as Model from '../../model';
 import { AutoSizer, MultiGrid, GridCellProps, Index } from 'react-virtualized';
 
-import './table.css';
+import './table.scss';
 
 // The table properties
 interface ITableProps {
@@ -156,7 +156,7 @@ class Table extends React.Component<ITableProps, ITableState> {
                                 let minWidth = 60;
                                 return (index.index === 0)
                                     ? lineNumberWidth
-                                    : Math.max(Math.min(equalWidths, maxWidth), minWidth); 
+                                    : Math.max(Math.min(equalWidths, maxWidth), minWidth) + 1; 
                             }}
                             height={height}
                             width={width}
