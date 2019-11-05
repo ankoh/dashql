@@ -4,6 +4,7 @@ import { RootAction } from './root_action';
 
 // Export things
 export * from './data_source';
+export * from './grid_layout';
 export * from './query_plan';
 export * from './reducer';
 export * from './root_action';
