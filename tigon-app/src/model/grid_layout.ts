@@ -25,13 +25,16 @@ export class GridLength {
 
 /// A grid element
 export class GridElement {
+    /// The elements
+    elementID: number;
     /// The column start
     columns: [number, number];
     /// The row start
     rows: [number, number];
 
     /// Constructor
-    constructor(columns: [number, number], rows: [number, number]) {
+    constructor(elementID: number, columns: [number, number], rows: [number, number]) {
+        this.elementID = elementID;
         this.columns = columns;
         this.rows = rows;
     }
@@ -45,11 +48,14 @@ export class GridLayout {
     rows: Array<GridLength>;
     /// The gaps
     gaps: [GridLength, GridLength] | null;
+    /// The elements
+    elements: Array<GridElement>;
 
     /// Constructor
     constructor() {
         this.columns = new Array();
         this.rows = new Array();
         this.gaps = null;
+        this.elements = new Array();
     }
 };

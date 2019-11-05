@@ -10,6 +10,7 @@ export * from './reducer';
 export * from './root_action';
 export * from './root_state';
 export * from './store';
+export * from './workbook';
 
 // The action dispatch
 export type Dispatch = (action: RootAction) => void;
