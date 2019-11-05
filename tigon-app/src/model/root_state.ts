@@ -43,20 +43,20 @@ export enum DataVizType {
     DVT_CHART = 1,
 }
 
-// A task type
+// A task status
 export enum TaskType {
-    UNDEFINED = 0,
-    LOAD_HTTP = 1,
-    EXTRACT_CSV = 2,
-    QUERY = 3,
+    GENERIC = 0,
+    FILE_LOAD = 1,
+    HTTP_LOAD = 2,
 }
 
 // A task status
 export enum TaskStatus {
     PENDING = 0,
-    QUEUED = 1,
-    STARTED = 2,
-    FINISHED =3,
+    RUNNING = 1,
+    WAITING_FOR_USER = 2,
+    FINISHED = 3,
+    ERROR = 4,
 }
 
 // ---------------------------------------------------------------------------
@@ -138,51 +138,19 @@ export class LogEntry {
     public text: string = "";
 }
 
-// A task progresss
-export class TaskProgress {
-    public created: Date | null = null;
-    public queued: Date | null = null;
-    public finished: Date | null = null;
-    public progress: number = 0.0;
-};
+export type TaskID = number;
 
 // A task
-export class Task {
-    public taskType: TaskType = TaskType.UNDEFINED;
-    public status: TaskStatus = TaskStatus.PENDING;
-    public progress: TaskProgress = new TaskProgress();
-}
-
-// An extract task
-export class CSVExtractTask extends Task {
-}
-
-// A query task
-export class QueryTask extends Task {
-}
-
-// A cache entry
-export class CacheEntry {
-}
-
-// ---------------------------------------------------------------------------
-// TQL HTTP loading
-// ---------------------------------------------------------------------------
-
-// A http request
-export class HTTPRequest {
-    public method: proto.tql.TQLHTTPMethod = proto.tql.TQLHTTPMethod.GET;
-    public url: string = "";
-}
-
-// A load task
-export class HTTPLoadTask extends Task {
-    public request: HTTPRequest = new HTTPRequest();
-}
-
-// A cache entry
-export class HTTPCacheEntry extends CacheEntry {
-    public info: HTTPRequest = new HTTPRequest();
+export class TaskInfo {
+    public taskID: TaskID = 1;
+    public title: string = "";
+    public description: string = "";
+    public statusTag: TaskStatus = TaskStatus.PENDING;
+    public statusText: string = "";
+    public error: Error | null = null;
+    public timeCreated: Date | null = null;
+    public timeQueued: Date | null = null;
+    public timeFinished: Date | null = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -218,7 +186,7 @@ export class RootState {
     public appSettingsLoadPending: boolean;
 
     // The tasks
-    public tasks: Immutable.List<Task>;
+    public tasks: Immutable.Map<number, TaskInfo>;
 
     // The log entries
     public logs: Immutable.List<LogEntry>;
@@ -238,7 +206,7 @@ export class RootState {
         this.launchProgress = new LaunchProgress();
         this.appSettings = null;
         this.appSettingsLoadPending = true;
-        this.tasks = Immutable.List<Task>();
+        this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logs = Immutable.List<LogEntry>();
         this.logWarnings = 0;
         this.rootView = RootView.EXPLORER;
