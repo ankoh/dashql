@@ -2,7 +2,7 @@ import './workbook.scss';
 import * as React from 'react';
 import * as Model from '../model';
 import { connect } from 'react-redux';
-import BarChart from './viz/bar_chart';
+import ChartViewer from './viz/chart_viewer';
 
 const data = {
     table: [
@@ -32,7 +32,7 @@ export class Workbook extends React.Component<IWorkbookProps, IWorkbookState> {
     public render() {
         return (
             <div className="workbook">
-                <BarChart data={data} actions={false} />
+                <ChartViewer />
             </div>
         );
     }
