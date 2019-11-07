@@ -3,6 +3,7 @@ import * as Model from '../../model';
 import { connect } from 'react-redux';
 import { Vega } from 'react-vega';
 import { VisualizationSpec } from 'vega-embed';
+import { AutoSizer } from 'react-virtualized';
 import './chart_viewer.scss';
 
 const data: any = {
@@ -85,6 +86,8 @@ interface IChartViewerProps {
 }
 
 interface IChartViewerState {
+    width: number;
+    height: number;
 }
 
 export class ChartViewer extends React.Component<IChartViewerProps, IChartViewerState> {
@@ -95,7 +98,11 @@ export class ChartViewer extends React.Component<IChartViewerProps, IChartViewer
     public render() {
         return (
             <div className="chart_viewer">
-                <Vega spec={spec} data={data} width={300} height={400} actions={false} />
+                <AutoSizer>
+                    {({ height, width }) => (
+                        <Vega spec={spec} data={data} actions={false} width={width} height={height} />
+                    )}
+                </AutoSizer>
             </div>
         );
     }
