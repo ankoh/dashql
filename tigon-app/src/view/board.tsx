@@ -112,31 +112,35 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
         context.font = LABEL_FONT;
         context.lineWidth = TICK_WIDTH;
         context.scale(this.state.dpr, this.state.dpr);
-        context.textAlign = "left";
         context.textBaseline = "top";
 
-        // Draw the ticks
-        context.beginPath();
-        this.state.ticks.forEach(t => {
-            context.moveTo(t.begin[0], t.begin[1]);
-            context.lineTo(t.end[0], t.end[1]);
-        });
-
-        // Draw the labels
         if (this.props.orientation == RulerOrientation.Horizontal) {
+            context.textAlign = "left";
+            context.beginPath();
+            this.state.ticks.forEach(t => {
+                context.moveTo(t.begin[0], t.begin[1]);
+                context.lineTo(t.end[0], t.end[1]);
+            });
             this.state.labels.forEach(l => {
                 context.fillText(l.text, l.position[0] + labelAdjustment, l.position[1]);
             });
+            context.stroke();
         } else {
+            context.textAlign = "right";
+            context.beginPath();
+            this.state.ticks.forEach(t => {
+                context.moveTo(t.begin[0], t.begin[1]);
+                context.lineTo(t.end[0], t.end[1]);
+            });
             this.state.labels.forEach(l => {
                 context.translate(l.position[0], l.position[1]);
                 context.rotate(-0.5 * Math.PI);
-                context.fillText(l.text, 0 + labelAdjustment, 0);
+                context.fillText(l.text, 0 - labelAdjustment, 0);
                 context.rotate(0.5 * Math.PI);
                 context.translate(-l.position[0], -l.position[1]);
             });
+            context.stroke();
         }
-        context.stroke();
     }
 
     // Draw the ruler after mount
@@ -179,6 +183,7 @@ export class Board extends React.Component<IBoardProps, {}> {
     public render() {
         return (
             <div className="board">
+                <div className="board_ruler_corner" />
                 <div className="board_ruler_top">
                     <AutoSizer>
                         {({ height, width }) => (

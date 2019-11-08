@@ -12,6 +12,15 @@
 
 $board_ruler_thickness: 28px;
 
+.board_ruler_corner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: $board_ruler_thickness;
+    height: $board_ruler_thickness;
+    background-color: rgb(255, 255, 255);
+}
+
 .board_ruler_top {
     position: absolute;
     top: 0;
