@@ -8,12 +8,12 @@ $border_color: rgb(238, 238, 238);
 
     display: grid;
     grid-template-rows: 48px auto;
-    grid-template-columns: 200px 48px auto 240px;
+    grid-template-columns: 220px 48px auto 48px 220px;
 }
 
 .explorer_topbar {
     grid-row: 1;
-    grid-column: 1 / span 4;
+    grid-column: 1 / span 5;
 
     background-color: rgb(46, 46, 46);
 }
@@ -40,11 +40,105 @@ $border_color: rgb(238, 238, 238);
     background-color: rgb(246, 246, 246);
 }
 
-.explorer_properties {
+.explorer_viztypes {
     grid-row: 2;
     grid-column: 4;
 
     border-left: 1px solid $border_color;
+
+    .explorer_viztype {
+        height: 48px;
+        width: 100%;
+        box-sizing: border-box;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+
+        .icon {
+            path {
+                fill: rgb(166, 166, 166);
+            }
+
+            circle {
+                fill: rgb(166, 166, 166);
+            }
+        }
+    }
+}
+
+.explorer_properties {
+    grid-row: 2;
+    grid-column: 5;
+
+    border-left: 1px solid $border_color;
+}
+
+.explorer_input {
+    position: fixed;
+    bottom: 24px;
+    left: calc(50% - 300px);
+
+    width: 600px;
+    height: 220px;
+
+    border: 1px solid $border_color;
+    border-radius: $theme_border_radius;
+    box-sizing: border-box;
+    box-shadow: $theme_box_shadow_level_2;
+
+    background-color: rgb(46, 46, 46);
+
+    .explorer_input_types {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        height: 24px;
+
+        display: flex;
+        flex-direction: row;
+
+        .explorer_input_type {
+            width: 32px;
+            height: 100%;
+            box-sizing: border-box;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            .icon {
+                g {
+                    fill: rgb(166, 166, 166);
+                }
+
+                path {
+                    fill: rgb(166, 166, 166);
+                }
+
+                circle {
+                    fill: rgb(166, 166, 166);
+                }
+            }
+        }
+    }
+
+    .explorer_input_terminal {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        top: 24px;
+        right: 0;
+
+        background: rgb(0, 0, 0);
+        padding: 16px;
+
+        border-radius: 0 0 $theme_border_radius $theme_border_radius;
+    }
 }
 
 

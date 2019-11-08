@@ -1,19 +1,5 @@
 @import '../theme.scss';
 
-.terminal_borderbox {
-    position: relative;
-    height: 100%;
-    width: 100%;
-
-    border-radius: $theme_border_radius;
-    box-sizing: border-box;
-
-    background: rgb(0, 0, 0);
-    padding: 16px;
-
-    box-shadow: $theme_box_shadow_level_2;
-}
-
 .terminal_container {
     position: relative;
     width: 100%;
