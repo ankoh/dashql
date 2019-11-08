@@ -7,10 +7,21 @@
 
     background-color: $navbar_background;
 
-    color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
+
+    line-height: 24px;
+    text-align: center;
 }
 
-.navbar-tabs {
+.navbar_brand {
+    font-weight: 500;
+    font-size: 13px;
+    padding: 0 12px;
+
+    background-color: rgb(43, 33, 86);
+}
+
+.navbar_tabs {
     display: flex;
     flex-direction: row;
 }
@@ -35,7 +46,5 @@
 }
 
 .navbar_tab_name {
-    line-height: 24px;
-    text-align: center;
 }
 

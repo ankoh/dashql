@@ -49,7 +49,10 @@ class NavigationBar extends React.Component<INavigationBarProps> {
     public render() {
         return (
             <div className="navbar">
-                <div className="navbar-tabs">
+                <div className="navbar_brand">
+                    Tigon
+                </div>
+                <div className="navbar_tabs">
                     <NavBarTab
                         tabView={Model.RootView.EXPLORER}
                         rootView={this.props.rootView}
