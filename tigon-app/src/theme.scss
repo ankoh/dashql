@@ -13,7 +13,13 @@ $border_color: rgb(240, 240, 240);
 $border_default: 1px solid $border-color;
 
 $logo_background_color: rgb(43, 33, 86);
+
 $navbar_box_shadow: 0 .125rem .625rem rgba(90,97,105,.12);
+$navbar_background: rgb(0, 0, 0);
+$navbar_tab_background: rgb(0, 0, 0);
+$navbar_tab_foreground: rgb(255, 255, 255);
+$navbar_tab_background_active: rgb(30, 30, 30);
+$navbar_tab_foreground_active: rgb(255, 255, 255);
 
 $card_background_color: rgb(250, 250, 250);
 $card_border_radius: $theme_border_radius;

@@ -29,9 +29,7 @@ class Router extends React.Component<IRouterProps> {
                         <div className="router_background_grid" />
                         <NavigationBar />
                         <div className="router_page_container">
-                            <div className="router_page">
-                                <Explorer />
-                            </div>
+                            <Explorer />
                         </div>
                         <StatusBar />
                     </div>
@@ -42,9 +40,7 @@ class Router extends React.Component<IRouterProps> {
                         <div className="router_background_grid" />
                         <NavigationBar />
                         <div className="router_page_container">
-                            <div className="router_page">
-                                <Workbook />
-                            </div>
+                            <Workbook />
                         </div>
                         <StatusBar />
                     </div>
@@ -55,9 +51,7 @@ class Router extends React.Component<IRouterProps> {
                         <div className="router_background_grid" />
                         <NavigationBar />
                         <div className="router_page_container">
-                            <div className="router_page">
-                                <Library />
-                            </div>
+                            <Library />
                         </div>
                         <StatusBar />
                     </div>

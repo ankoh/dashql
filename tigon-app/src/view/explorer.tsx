@@ -50,78 +50,90 @@ class Explorer extends React.Component<IExplorerProps> {
     public render() {
         return (
             <div className="explorer">
-                <div className="explorer_viewer">
-                    <div className="explorer_viewer_controls">
-                        <div className="explorer_viewer_viztypes">
-                            <div className="explorer_viewer_viztype_container">
-                                <div className="explorer_viewer_viztype">
-                                    <PlanIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
-                                </div>
-                            </div>
-                            <div className="explorer_viewer_viztype_container">
-                                <div className="explorer_viewer_viztype active">
-                                    <TableChartIcon width="20px" height="20px" fill="rgb(255, 255, 255)" />
-                                </div>
-                            </div>
-                            <div className="explorer_viewer_viztype_container">
-                                <div className="explorer_viewer_viztype">
-                                    <LineChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
-                                </div>
-                            </div>
-                            <div className="explorer_viewer_viztype_container">
-                                <div className="explorer_viewer_viztype">
-                                    <BarChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
-                                </div>
-                            </div>
-                            <div className="explorer_viewer_viztype_container">
-                                <div className="explorer_viewer_viztype">
-                                    <BubbleChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
-                                </div>
-                            </div>
-                            <div className="explorer_viewer_viztype_container">
-                                <div className="explorer_viewer_viztype">
-                                    <PieChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="explorer_viewer_Settings_container">
-                            <div className="explorer_viewer_Settings">
-                                <SettingsIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
-                            </div>
-                        </div>
-
-                        <div className="explorer_viewer_actions">
-                            <div className="explorer_viewer_action_container">
-                                <div className="explorer_viewer_action">
-                                    <SaveIcon width="20px" height="20px" fill="rgb(255, 255, 255)" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {this.renderOutput()}
-                </div>
-                <div className="explorer_input">
-                    <div className="explorer_input_tabbar">
-                        <div className="explorer_input_tab_container">
-                            <div className="explorer_input_tab active">
-                                <ConsoleIcon width="20px" height="20px" />
-                            </div>
-                        </div>
-                        <div className="explorer_input_tab_container">
-                            <div className="explorer_input_tab">
-                                <ProgramIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="explorer_input_terminal">
-                        <Terminal />
-                    </div>
-                </div>
+                <div className="explorer_topbar"></div>
+                <div className="explorer_outline"></div>
+                <div className="explorer_toolbar"></div>
+                <div className="explorer_board"></div>
+                <div className="explorer_properties"></div>
             </div>
         );
     }
+
+    // public render() {
+    //     return (
+    //         <div className="explorer">
+    //             <div className="explorer_viewer">
+    //                 <div className="explorer_viewer_controls">
+    //                     <div className="explorer_viewer_viztypes">
+    //                         <div className="explorer_viewer_viztype_container">
+    //                             <div className="explorer_viewer_viztype">
+    //                                 <PlanIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
+    //                             </div>
+    //                         </div>
+    //                         <div className="explorer_viewer_viztype_container">
+    //                             <div className="explorer_viewer_viztype active">
+    //                                 <TableChartIcon width="20px" height="20px" fill="rgb(255, 255, 255)" />
+    //                             </div>
+    //                         </div>
+    //                         <div className="explorer_viewer_viztype_container">
+    //                             <div className="explorer_viewer_viztype">
+    //                                 <LineChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
+    //                             </div>
+    //                         </div>
+    //                         <div className="explorer_viewer_viztype_container">
+    //                             <div className="explorer_viewer_viztype">
+    //                                 <BarChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
+    //                             </div>
+    //                         </div>
+    //                         <div className="explorer_viewer_viztype_container">
+    //                             <div className="explorer_viewer_viztype">
+    //                                 <BubbleChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
+    //                             </div>
+    //                         </div>
+    //                         <div className="explorer_viewer_viztype_container">
+    //                             <div className="explorer_viewer_viztype">
+    //                                 <PieChartIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
+    //                             </div>
+    //                         </div>
+    //                     </div>
+
+    //                     <div className="explorer_viewer_Settings_container">
+    //                         <div className="explorer_viewer_Settings">
+    //                             <SettingsIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
+    //                         </div>
+    //                     </div>
+
+    //                     <div className="explorer_viewer_actions">
+    //                         <div className="explorer_viewer_action_container">
+    //                             <div className="explorer_viewer_action">
+    //                                 <SaveIcon width="20px" height="20px" fill="rgb(255, 255, 255)" />
+    //                             </div>
+    //                         </div>
+    //                     </div>
+    //                 </div>
+    //                 {this.renderOutput()}
+    //             </div>
+    //             <div className="explorer_input">
+    //                 <div className="explorer_input_tabbar">
+    //                     <div className="explorer_input_tab_container">
+    //                         <div className="explorer_input_tab active">
+    //                             <ConsoleIcon width="20px" height="20px" />
+    //                         </div>
+    //                     </div>
+    //                     <div className="explorer_input_tab_container">
+    //                         <div className="explorer_input_tab">
+    //                             <ProgramIcon width="20px" height="20px" fill="rgb(0, 0, 0)" />
+    //                         </div>
+    //                     </div>
+    //                 </div>
+
+    //                 <div className="explorer_input_terminal">
+    //                     <Terminal />
+    //                 </div>
+    //             </div>
+    //         </div>
+    //     );
+    // }
 
     protected async evalTermInput(text: string) {
         let ctrl = this.props.appContext.ctrl;

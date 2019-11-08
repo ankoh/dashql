@@ -5,31 +5,37 @@
     flex-direction: row;
     height: 100%;
 
-    background-color: $card_background_color;
-    box-shadow: $navbar_box_shadow;
+    background-color: $navbar_background;
 
     color: rgb(0, 0, 0);
 }
 
-.navbar-logo {
-    width: 56px;
-
-    padding: 0px 8px 0px 8px;
-
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-
-    background-color: $logo_background_color;
-}
-
-.navbar-logo img {
-    margin-top: -4px;
-    width: 40px;
-    height: 40px;
-}
-
 .navbar-tabs {
+    display: flex;
+    flex-direction: row;
+}
+
+.navbar_tab_container {
+}
+
+.navbar_tab {
+    position: relative;
+
+    font-weight: 400;
+    font-size: 13px;
+    padding: 0px 12px;
+
+    background-color: $navbar_tab_background;
+    color: $navbar_tab_foreground;
+
+    &:hover, &.active {
+        background-color: $navbar_tab_background_active;
+        color: $navbar_tab_foreground_active;
+    }
+}
+
+.navbar_tab_name {
+    line-height: 24px;
+    text-align: center;
 }
 
