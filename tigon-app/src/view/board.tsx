@@ -208,6 +208,9 @@ export class Board extends React.Component<IBoardProps, {}> {
                         )}
                     </AutoSizer>
                 </div>
+                <div className="board_children">
+                    {this.props.children}
+                </div>
             </div>
         );
     }

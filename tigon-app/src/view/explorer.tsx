@@ -62,15 +62,16 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className="explorer_toolbar"></div>
 
                 <div className="explorer_board">
-                    <Board scaleFactor={1.0} />
-                    <div className="explorer_input_toggle">
-                        <div className="explorer_input_type">
-                            <ConsoleIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                    <Board scaleFactor={1.0}>
+                        <div className="explorer_input_toggle">
+                            <div className="explorer_input_type">
+                                <ConsoleIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                            </div>
+                            <div className="explorer_input_type">
+                                <ProgramIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                            </div>
                         </div>
-                        <div className="explorer_input_type">
-                            <ProgramIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
-                        </div>
-                    </div>
+                    </Board>
                 </div>
 
                 <div className="explorer_viztypes">
