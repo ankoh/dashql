@@ -30,6 +30,39 @@ $border_color: rgb(238, 238, 238);
     grid-column: 2;
 
     border-right: 1px solid $border_color;
+
+
+    .explorer_tools_extract {
+        border-top: 1px solid $border_color;
+    }
+
+    .explorer_tools_load {
+        border-top: 1px solid $border_color;
+    }
+
+    .explorer_tool {
+        height: 48px;
+        width: 100%;
+        box-sizing: border-box;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+        font-size: 10px;
+        font-weight: 600;
+        color: rgb(166, 166, 166);
+
+        .icon {
+            path {
+                fill: rgb(166, 166, 166);
+            }
+            circle {
+                fill: rgb(166, 166, 166);
+            }
+        }
+    }
 }
 
 .explorer_board {

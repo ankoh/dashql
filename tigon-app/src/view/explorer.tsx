@@ -59,7 +59,25 @@ class Explorer extends React.Component<IExplorerProps> {
         return (
             <div className="explorer"> <div className="explorer_topbar"></div>
                 <div className="explorer_outline"></div>
-                <div className="explorer_toolbar"></div>
+
+                <div className="explorer_toolbar">
+                    <div className="explorer_tools_load">
+                        <div className="explorer_tool">
+                            FILE
+                        </div>
+                        <div className="explorer_tool">
+                            HTTP
+                        </div>
+                    </div>
+                    <div className="explorer_tools_extract">
+                        <div className="explorer_tool">
+                            JSON
+                        </div>
+                        <div className="explorer_tool">
+                            CSV
+                        </div>
+                    </div>
+                </div>
 
                 <div className="explorer_board">
                     <Board scaleFactor={1.0}>
