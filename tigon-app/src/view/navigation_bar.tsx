@@ -50,7 +50,7 @@ class NavigationBar extends React.Component<INavigationBarProps> {
         return (
             <div className="navbar">
                 <div className="navbar_brand">
-                    Tigon
+                    TIGON
                 </div>
                 <div className="navbar_tabs">
                     <NavBarTab
