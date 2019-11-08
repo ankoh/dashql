@@ -4,6 +4,7 @@ import { IAppContext, withAppContext } from '../app_context';
 import Table from './viz/table';
 import PlanViewer from './viz/plan_viewer';
 import Terminal from './terminal';
+import Board from './board';
 import './explorer.scss';
 import {
     BarChartIcon,
@@ -61,7 +62,7 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className="explorer_toolbar"></div>
 
                 <div className="explorer_board">
-
+                    <Board scaleFactor={1.0} />
                     <div className="explorer_input_toggle">
                         <div className="explorer_input_type">
                             <ConsoleIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />

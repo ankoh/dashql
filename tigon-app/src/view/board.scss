@@ -1,0 +1,45 @@
+@import '../theme.scss';
+
+.board {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+}
+
+$board_ruler_thickness: 28px;
+
+.board_ruler_top {
+    position: absolute;
+    top: 0;
+    left: $board_ruler_thickness;
+    right: 0;
+    width: calc(100% - $board_ruler_thickness);
+    height: $board_ruler_thickness;
+    background-color: rgb(255, 255, 255);
+    border-bottom: 1px solid $border_color;
+}
+
+.board_ruler_left {
+    position: absolute;
+    top: $board_ruler_thickness;
+    left: 0;
+    bottom: 0;
+    width: $board_ruler_thickness;
+    height: calc(100% - $board_ruler_thickness);
+    background-color: rgb(255, 255, 255);
+    border-right: 1px solid $border_color;
+}
+
+.board_ruler {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+}
