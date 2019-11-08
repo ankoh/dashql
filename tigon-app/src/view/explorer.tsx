@@ -21,8 +21,10 @@ import { connect } from 'react-redux';
 
 const VIZTYPE_ICON_WIDTH = "20px";
 const VIZTYPE_ICON_HEIGHT = "20px";
-const INPUTTYPE_ICON_WIDTH = "16px";
-const INPUTTYPE_ICON_HEIGHT = "16px";
+const INPUT_HEADER_ICON_WIDTH = "16px";
+const INPUT_HEADER_ICON_HEIGHT = "16px";
+const INPUT_TOGGLE_ICON_WIDTH = "20px";
+const INPUT_TOGGLE_ICON_HEIGHT = "20px";
 
 interface IExplorerProps {
     appContext: IAppContext;
@@ -57,7 +59,19 @@ class Explorer extends React.Component<IExplorerProps> {
             <div className="explorer"> <div className="explorer_topbar"></div>
                 <div className="explorer_outline"></div>
                 <div className="explorer_toolbar"></div>
-                <div className="explorer_board"></div>
+
+                <div className="explorer_board">
+
+                    <div className="explorer_input_toggles">
+                        <div className="explorer_input_toggle">
+                            <ConsoleIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                        </div>
+                        <div className="explorer_input_toggle">
+                            <ProgramIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                        </div>
+                    </div>
+                </div>
+
                 <div className="explorer_viztypes">
                     <div className="explorer_viztype">
                         <PlanIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
@@ -82,9 +96,9 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className="explorer_properties"></div>
 
                 <div className="explorer_input">
-                    <div className="explorer_input_types">
-                        <div className="explorer_input_type active">
-                            <ConsoleIcon width={INPUTTYPE_ICON_WIDTH} height={INPUTTYPE_ICON_HEIGHT} />
+                    <div className="explorer_input_header">
+                        <div className="explorer_input_type">
+                            <ConsoleIcon width={INPUT_HEADER_ICON_WIDTH} height={INPUT_HEADER_ICON_HEIGHT} />
                         </div>
                     </div>
                     <div className="explorer_input_terminal">
