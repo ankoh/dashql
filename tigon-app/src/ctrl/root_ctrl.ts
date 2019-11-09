@@ -33,10 +33,23 @@ export class RootController {
         this.workerTimer = null;
     }
 
+    // XXX Load the test environment
+    async loadTestEnv() {
+        await this.core.waitUntilReady();
+        let session = await this.core.createSession();
+        let tql = await this.core.parseTQL(session, `
+            SELECT * FROM region, nation;
+        `);
+        this.store.dispatch(Model.setTransientTQLProgram(tql));
+    }
+
     // Init the controller
-    public init(): Promise<void> {
+    public async init(): Promise<void> {
         this.core.init();
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
+
+        await this.loadTestEnv();
+
         return Promise.resolve();
     }
 

@@ -1,5 +1,6 @@
 import * as State from "./root_state";
 import * as Model from "../model";
+import * as proto from 'tigon-proto';
 
 // ---------------------------------------------------------------------------
 // The action type
@@ -9,8 +10,7 @@ export enum ActionType {
     CONFIGURE_APP               = 'CONFIGURE_APP',
     NAVIGATE_ROOT               = 'NAVIGATE_ROOT',
     PUSH_LOG_ENTRY              = 'PUSH_LOG_ENTRY',
-    SET_EXPLORER_DATA_SOURCE    = 'SET_EXPLORER_DATA_SOURCE',
-    SET_EXPLORER_PLAN           = 'SET_EXPLORER_PLAN',
+    SET_TRANSIENT_TQL_PROGRAM   = 'SET_TRANSIENT_TQL_PROGRAM',
     OTHER                       = 'OTHER',
 }
 
@@ -22,6 +22,7 @@ export type RootAction =
     | Action<ActionType.CONFIGURE_APP, State.AppSettings>
     | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
+    | Action<ActionType.SET_TRANSIENT_TQL_PROGRAM, Model.CoreBuffer<proto.tql.TQLProgram>>
     | Action<ActionType.OTHER, {}>;
 
 // ---------------------------------------------------------------------------
@@ -52,4 +53,8 @@ export function navigateRoot(view: State.RootView): RootAction {
 
 export function configureApp(config: State.AppSettings): RootAction {
     return createAction<ActionType.CONFIGURE_APP, State.AppSettings>(ActionType.CONFIGURE_APP, config);
+}
+
+export function setTransientTQLProgram(program: Model.CoreBuffer<proto.tql.TQLProgram>): RootAction {
+    return createAction<ActionType.SET_TRANSIENT_TQL_PROGRAM, Model.CoreBuffer<proto.tql.TQLProgram>>(ActionType.SET_TRANSIENT_TQL_PROGRAM, program);
 }

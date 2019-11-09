@@ -1,11 +1,33 @@
 import { compose, createStore as createReduxStore } from 'redux';
 import * as Model from './';
 
+function actionSanitizer(a: Model.RootAction) {
+    switch (a.type) {
+        case Model.ActionType.SET_TRANSIENT_TQL_PROGRAM: 
+            return { ...a, payload: '<CORE>' };
+        default:
+            return a;
+    }
+}
+
+function stateSanitizer(s: Model.RootState) {
+    return {
+        ...s,
+        transientTQLProgram: '<CORE>',
+        transientQueryResults: '<CORE>',
+        transientQueryPlans: '<CORE>',
+    };
+}
+
 /* tslint:disable */
 const windowIfDefined = typeof window === 'undefined' ? null : window as any;
 let composeEnhancers = compose;
 if (windowIfDefined && typeof windowIfDefined.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ === 'function') {
-    composeEnhancers = windowIfDefined.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__({serialize: true}) || compose;
+    composeEnhancers = windowIfDefined.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__({
+        serialize: false,
+        stateSanitizer: stateSanitizer,
+        actionSanitizer: actionSanitizer,
+    }) || compose;
 }
 const enhancer = composeEnhancers();
 /* tslint:enable */
