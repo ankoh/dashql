@@ -7,7 +7,7 @@ import './board.scss';
 const TICK_COLOR = "rgb(200, 200, 200)";
 const TICK_WIDTH = 1;
 const LABEL_COLOR = "rgb(180, 180, 180)";
-const LABEL_FONT = "9px Open Sans";
+const LABEL_FONT = "9px arial";
 
 enum RulerOrientation {
     Horizontal,
