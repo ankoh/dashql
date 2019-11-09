@@ -29,8 +29,8 @@ const TOOL_ICON_WIDTH = "20px";
 const TOOL_ICON_HEIGHT = "20px";
 const INPUT_HEADER_ICON_WIDTH = "16px";
 const INPUT_HEADER_ICON_HEIGHT = "16px";
-const INPUT_TOGGLE_ICON_WIDTH = "20px";
-const INPUT_TOGGLE_ICON_HEIGHT = "20px";
+const INPUT_TOGGLE_ICON_WIDTH = "16px";
+const INPUT_TOGGLE_ICON_HEIGHT = "16px";
 
 interface IExplorerProps {
     appContext: IAppContext;
@@ -83,7 +83,7 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className="explorer_board">
                     <Board scaleFactor={1.0}>
                         <div className="explorer_input_toggle">
-                            <div className="explorer_input_type">
+                            <div className="explorer_input_type border_right">
                                 <ConsoleIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
                             </div>
                             <div className="explorer_input_type">
@@ -103,19 +103,20 @@ class Explorer extends React.Component<IExplorerProps> {
                     <div className="explorer_viztype">
                         <TableChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                     </div>
-                    <div className="explorer_viztype">
-                        <LineChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                    <div className="explorer_viztypes_vega">
+                        <div className="explorer_viztype">
+                            <LineChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        </div>
+                        <div className="explorer_viztype">
+                            <BarChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        </div>
+                        <div className="explorer_viztype">
+                            <ScatterChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        </div>
+                        <div className="explorer_viztype">
+                            <ArcChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        </div>
                     </div>
-                    <div className="explorer_viztype">
-                        <BarChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
-                    </div>
-                    <div className="explorer_viztype">
-                        <ScatterChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
-                    </div>
-                    <div className="explorer_viztype">
-                        <ArcChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
-                    </div>
-
                 </div>
                 <div className="explorer_properties"></div>
 
