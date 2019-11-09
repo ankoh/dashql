@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as Model from '../model';
+import * as Model from '../../model';
 import { connect } from 'react-redux';
 import { AutoSizer } from 'react-virtualized';
 import './board.scss';

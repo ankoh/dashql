@@ -1,11 +1,11 @@
 import * as React from 'react';
-import * as Model from '../model';
+import * as Model from '../../model';
 import { connect } from 'react-redux';
 
 import 'xterm/css/xterm.css';
 import './terminal.scss';
 
-import { IAppContext, withAppContext } from '../app_context';
+import { IAppContext, withAppContext } from '../../app_context';
 
 // The terminal props
 interface ITerminalProps {
@@ -54,11 +54,11 @@ class Terminal extends React.Component<ITerminalProps> {
     }
 }
 
-function mapStateToProps(state: Model.RootState) {
+function mapStateToProps(_state: Model.RootState) {
     return {
     };
 }
-function mapDispatchToProps(dispatch: Model.Dispatch) {
+function mapDispatchToProps(_dispatch: Model.Dispatch) {
     return {
     };
 }
