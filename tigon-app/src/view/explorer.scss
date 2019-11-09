@@ -27,6 +27,8 @@ $border_color: rgb(238, 238, 238);
     display: flex;
     flex-direction: column;
 
+    background-color: rgb(250, 250, 250);
+
     .explorer_outline_header {
         background-color: rgb(255, 255, 255);
         font-size: 12px;
@@ -41,11 +43,6 @@ $border_color: rgb(238, 238, 238);
     }
 
     .explorer_outline_section {
-        background-color: rgb(245, 245, 245);
-
-        &.last_section {
-            flex: 1;
-        }
     }
 
     .explorer_outline_section_header {
@@ -155,13 +152,31 @@ $border_color: rgb(238, 238, 238);
     grid-column: 5;
 
     border-left: 1px solid $border_color;
+
+    display: flex;
+    flex-direction: column;
+
+    background-color: rgb(250, 250, 250);
+
+    .explorer_properties_header {
+        background-color: rgb(255, 255, 255);
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 32px;
+        height: 32px;
+        padding: 0 12px;
+
+        color: rgb(120, 120, 120);
+
+        border-bottom: 1px solid $border_color;
+    }
 }
 
 .explorer_input_toggle {
     position: absolute;
     right: 24px;
     bottom: 16px;
-    height: 32px;
+    height: 40px;
 
     background-color: rgb(255, 255, 255);
     border: 1px solid $border_color;

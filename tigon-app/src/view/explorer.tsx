@@ -31,8 +31,8 @@ const TOOL_ICON_WIDTH = "20px";
 const TOOL_ICON_HEIGHT = "20px";
 const INPUT_HEADER_ICON_WIDTH = "16px";
 const INPUT_HEADER_ICON_HEIGHT = "16px";
-const INPUT_TOGGLE_ICON_WIDTH = "16px";
-const INPUT_TOGGLE_ICON_HEIGHT = "16px";
+const INPUT_TOGGLE_ICON_WIDTH = "20px";
+const INPUT_TOGGLE_ICON_HEIGHT = "20px";
 
 interface IExplorerProps {
     appContext: IAppContext;
@@ -68,7 +68,7 @@ class Explorer extends React.Component<IExplorerProps> {
                             Query Statements
                         </div>
                     </div>
-                    <div className="explorer_outline_section last_section">
+                    <div className="explorer_outline_section">
                         <div className="explorer_outline_section_header">
                             Display Statements
                         </div>
@@ -128,7 +128,12 @@ class Explorer extends React.Component<IExplorerProps> {
                         </div>
                     </div>
                 </div>
-                <div className="explorer_properties"></div>
+
+                <div className="explorer_properties">
+                    <div className="explorer_properties_header">
+                        Visualization
+                    </div>
+                </div>
 
                 <div className="explorer_input">
                     <div className="explorer_input_header">
