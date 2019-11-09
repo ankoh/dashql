@@ -44,9 +44,38 @@ class Explorer extends React.Component<IExplorerProps> {
     public render() {
         return (
             <div className="explorer"> <div className="explorer_topbar"></div>
-                <div className="explorer_outline"></div>
+                <div className="explorer_outline">
+                    <div className="explorer_outline_section">
+                        <div className="explorer_outline_section_header">
+                            Parameter Declarations
+                        </div>
+                    </div>
+                    <div className="explorer_outline_section">
+                        <div className="explorer_outline_section_header">
+                            Load Statements
+                        </div>
+                    </div>
+                    <div className="explorer_outline_section">
+                        <div className="explorer_outline_section_header">
+                            Extract Statements
+                        </div>
+                    </div>
+                    <div className="explorer_outline_section">
+                        <div className="explorer_outline_section_header">
+                            Query Statements
+                        </div>
+                    </div>
+                    <div className="explorer_outline_section">
+                        <div className="explorer_outline_section_header">
+                            Display Statements
+                        </div>
+                    </div>
+                </div>
 
                 <div className="explorer_toolbar">
+                    <div className="explorer_tool">
+                        <VariableIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                    </div>
                     <div className="explorer_tool">
                         <FileDocumentBoxPlusIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
@@ -55,9 +84,6 @@ class Explorer extends React.Component<IExplorerProps> {
                     </div>
                     <div className="explorer_tool">
                         <DatabaseSearchIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
-                    </div>
-                    <div className="explorer_tool">
-                        <VariableIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
                 </div>
 

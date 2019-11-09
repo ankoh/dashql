@@ -3,6 +3,7 @@ import { CoreBuffer } from '../model';
 import { LogController } from './log_ctrl';
 import { TaskID, Task, TaskQueue } from './task_queue';
 
+// Get the statement type
 function getStatementType<T extends flatbuffers.Table>(s: T): proto.tql.TQLStatement {
     return s instanceof proto.tql.TQLQueryStatement ? proto.tql.TQLStatement.TQLQueryStatement :
         s instanceof proto.tql.TQLDisplayStatement ? proto.tql.TQLStatement.TQLDisplayStatement :
