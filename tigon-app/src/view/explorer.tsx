@@ -45,6 +45,9 @@ class Explorer extends React.Component<IExplorerProps> {
         return (
             <div className="explorer"> <div className="explorer_topbar"></div>
                 <div className="explorer_outline">
+                    <div className="explorer_outline_header">
+                        TQL Program
+                    </div>
                     <div className="explorer_outline_section">
                         <div className="explorer_outline_section_header">
                             Parameter Declarations
@@ -65,7 +68,7 @@ class Explorer extends React.Component<IExplorerProps> {
                             Query Statements
                         </div>
                     </div>
-                    <div className="explorer_outline_section">
+                    <div className="explorer_outline_section last_section">
                         <div className="explorer_outline_section_header">
                             Display Statements
                         </div>
