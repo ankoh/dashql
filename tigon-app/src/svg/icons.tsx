@@ -141,10 +141,8 @@ export function ConsoleIcon(props: IIconProps) {
             <g
                 fill={props.fill || '#ffffff'}
                 fillRule="evenodd"
-                transform="translate(3.000000, 7.000000)"
             >
-                <polygon points="0 0 3.03703704 5 0 10 3 10 6 5 3 0" />
-                <polygon points="9 8 9 10 18 10 18 8" />
+                <path d="M13,19V16H21V19H13M8.5,13L2.47,7H6.71L11.67,11.95C12.25,12.54 12.25,13.5 11.67,14.07L6.74,19H2.5L8.5,13Z" />
             </g>
         </svg>);
 }
@@ -408,6 +406,24 @@ export function TextCardIcon(props: IIconProps) {
                 fillRule="evenodd"
             >
                 <path d="M20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20M5,13V15H16V13H5M5,9V11H19V9H5Z" />
+            </g>
+        </svg>);
+
+}
+
+export function CodeIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M14.6,16.6L19.2,12L14.6,7.4L16,6L22,12L16,18L14.6,16.6M9.4,16.6L4.8,12L9.4,7.4L8,6L2,12L8,18L9.4,16.6Z" />
             </g>
         </svg>);
 
