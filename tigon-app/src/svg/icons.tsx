@@ -6,22 +6,6 @@ interface IIconProps {
     fill?: string;
 }
 
-export function DeleteIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <path
-                d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
-                fill={props.fill || '#ffffff'}
-                fillRule="nonzero"
-            />
-        </svg>);
-}
-
 export function TableChartIcon(props: IIconProps) {
     return (
         <svg
@@ -30,8 +14,7 @@ export function TableChartIcon(props: IIconProps) {
             height={props.height || '24px'}
             viewBox="0 0 24 24"
         >
-            <path
-                d="M10 10.02h5V21h-5zM17 21h3c1.1 0 2-.9 2-2v-9h-5v11zm3-18H5c-1.1 0-2 .9-2 2v3h19V5c0-1.1-.9-2-2-2zM3 19c0 1.1.9 2 2 2h3V10H3v9z"
+            <path d="M4,3H20A2,2 0 0,1 22,5V20A2,2 0 0,1 20,22H4A2,2 0 0,1 2,20V5A2,2 0 0,1 4,3M4,7V10H8V7H4M10,7V10H14V7H10M20,10V7H16V10H20M4,12V15H8V12H4M4,20H8V17H4V20M10,12V15H14V12H10M10,20H14V17H10V20M20,20V17H16V20H20M20,12H16V15H20V12Z"
                 fill={props.fill || '#ffffff'}
                 fillRule="nonzero"
             />
@@ -46,8 +29,7 @@ export function BarChartIcon(props: IIconProps) {
             height={props.height || '24px'}
             viewBox="0 0 24 24"
         >
-            <path
-                d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"
+            <path d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"
                 fill={props.fill || '#ffffff'}
                 fillRule="nonzero"
             />
@@ -62,14 +44,14 @@ export function LineChartIcon(props: IIconProps) {
             height={props.height || '24px'}
             viewBox="0 0 24 24"
         >
-            <path clipPath="url(#b)" d="M23 8c0 1.1-.9 2-2 2-.18 0-.35-.02-.51-.07l-3.56 3.55c.05.16.07.34.07.52 0 1.1-.9 2-2 2s-2-.9-2-2c0-.18.02-.36.07-.52l-2.55-2.55c-.16.05-.34.07-.52.07s-.36-.02-.52-.07l-4.55 4.56c.05.16.07.33.07.51 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.18 0 .35.02.51.07l4.56-4.55C8.02 9.36 8 9.18 8 9c0-1.1.9-2 2-2s2 .9 2 2c0 .18-.02.36-.07.52l2.55 2.55c.16-.05.34-.07.52-.07s.36.02.52.07l3.55-3.56C19.02 8.35 19 8.18 19 8c0-1.1.9-2 2-2s2 .9 2 2z"
+            <path d="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z"
                     fill={props.fill || '#ffffff'}
                     fillRule="nonzero"
             />
         </svg>);
 }
 
-export function BubbleChartIcon(props: IIconProps) {
+export function ScatterChartIcon(props: IIconProps) {
     return (
         <svg
             className="icon"
@@ -81,9 +63,7 @@ export function BubbleChartIcon(props: IIconProps) {
                 fill={props.fill || '#ffffff'}
                 fillRule="evenodd"
             >
-                <circle cx="7.2" cy="14.4" r="3.2" />
-                <circle cx="14.8" cy="18" r="2" />
-                <circle cx="15.2" cy="8.8" r="4.8" />
+                <path d="M2,2H4V20H22V22H2V2M9,10A3,3 0 0,1 12,13A3,3 0 0,1 9,16A3,3 0 0,1 6,13A3,3 0 0,1 9,10M13,2A3,3 0 0,1 16,5A3,3 0 0,1 13,8A3,3 0 0,1 10,5A3,3 0 0,1 13,2M18,12A3,3 0 0,1 21,15A3,3 0 0,1 18,18A3,3 0 0,1 15,15A3,3 0 0,1 18,12Z" />
             </g>
         </svg>);
 }
@@ -109,7 +89,7 @@ export function InsertChartIcon(props: IIconProps) {
         </svg>);
 }
 
-export function PieChartIcon(props: IIconProps) {
+export function ArcChartIcon(props: IIconProps) {
     return (
         <svg
             className="icon"
@@ -121,8 +101,7 @@ export function PieChartIcon(props: IIconProps) {
                 fill="none"
                 fillRule="evenodd"
             >
-                <path
-                    d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"
+                <path d="M16.18,19.6L14.17,16.12C15.15,15.4 15.83,14.28 15.97,13H20C19.83,15.76 18.35,18.16 16.18,19.6M13,7.03V3C17.3,3.26 20.74,6.7 21,11H16.97C16.74,8.91 15.09,7.26 13,7.03M7,12.5C7,13.14 7.13,13.75 7.38,14.3L3.9,16.31C3.32,15.16 3,13.87 3,12.5C3,7.97 6.54,4.27 11,4V8.03C8.75,8.28 7,10.18 7,12.5M11.5,21C8.53,21 5.92,19.5 4.4,17.18L7.88,15.17C8.7,16.28 10,17 11.5,17C12.14,17 12.75,16.87 13.3,16.62L15.31,20.1C14.16,20.68 12.87,21 11.5,21Z" />
                     fill={props.fill || '#ffffff'}
                     fillRule="nonzero"
                 />
@@ -151,282 +130,6 @@ export function CloseIcon(props: IIconProps) {
         </svg>);
 }
 
-export function ServerIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function LinkOffIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M17 7h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.43-.98 2.63-2.31 2.98l1.46 1.46C20.88 15.61 22 13.95 22 12c0-2.76-2.24-5-5-5zm-1 4h-2.19l2 2H16zM2 4.27l3.11 3.11C3.29 8.12 2 9.91 2 12c0 2.76 2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1 0-1.59 1.21-2.9 2.76-3.07L8.73 11H8v2h2.73L13 15.27V17h1.73l4.01 4L20 19.74 3.27 3 2 4.27z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function PlayIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M8 5v14l11-7z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function StopIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M6 6h12v12H6z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-
-export function ClearIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function ClearAllIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M5 13h14v-2H5v2zm-2 4h14v-2H3v2zM7 7v2h14V7H7z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function SaveIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function SaveAltIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function ImportExportIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M9 3L5 6.99h3V14h2V6.99h3L9 3zm7 14.01V10h-2v7.01h-3L15 21l4-3.99h-3z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function UndoIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function SettingBackupRestoreIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M14 12c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2zm-2-9c-4.97 0-9 4.03-9 9H0l4 4 4-4H5c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.51 0-2.91-.49-4.06-1.3l-1.42 1.44C8.04 20.3 9.94 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-export function DNSIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
-            </g>
-        </svg>);
-}
-
-interface IProgramIIconProps {
-    width?: string;
-    height?: string;
-    fill?: string;
-    stroke?: string;
-}
-
-export function ProgramIcon(props: IProgramIIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/>
-            </g>
-        </svg>);
-}
-
 export function ConsoleIcon(props: IIconProps) {
     return (
         <svg
@@ -442,27 +145,6 @@ export function ConsoleIcon(props: IIconProps) {
             >
                 <polygon points="0 0 3.03703704 5 0 10 3 10 6 5 3 0" />
                 <polygon points="9 8 9 10 18 10 18 8" />
-            </g>
-        </svg>);
-}
-
-export function WarningIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill="none"
-                fillRule="evenodd"
-            >
-                <path
-                    d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"
-                    fill={props.fill || '#ffffff'}
-                    fillRule="nonzero"
-                />
             </g>
         </svg>);
 }
@@ -488,351 +170,6 @@ export function StatusWarningIcon(props: IIconProps) {
         </svg>);
 }
 
-export function ZoomOutIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z"/>
-            </g>
-        </svg>);
-}
-
-export function FullscreenIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-            </g>
-
-        </svg>);
-}
-
-export function MoveIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/>
-            </g>
-
-        </svg>);
-}
-
-export function CardinalityIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M 7,20.41 5.59,19 9,15.59 10.41,17 Z M 16.5,8 H 13 v 5.59 L 18.41,19 17,20.41 l -6,-6 V 8 H 7.5 L 12,3.5 Z" />
-            </g>
-
-        </svg>);
-}
-
-export function MoreHIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-            </g>
-
-        </svg>);
-}
-
-export function LinkIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
-            </g>
-        </svg>);
-}
-
-export function ScrollTopIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="m 7.205,18.205 4.59,-4.59 4.59,4.59 1.41,-1.41 -6,-6 -6,6 z M 5.795,7.795 v -2 h 12 v 2 z" />
-            </g>
-        </svg>);
-}
-
-export function ScrollBottomIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="m 7.205,5.795 4.59,4.59 4.59,-4.59 1.41,1.41 -6,6 -6,-6 z m -1.41,10.41 v 2 h 12 v -2 z" />
-            </g>
-        </svg>);
-}
-
-export function ScrollUpIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/>
-            </g>
-        </svg>);
-}
-
-export function ScrollDownIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/>
-            </g>
-        </svg>);
-}
-
-export function LaptopIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
-            </g>
-        </svg>);
-}
-
-export function ArrowBackIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-            </g>
-        </svg>);
-}
-
-export function ArrowBackIosIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M11.67 3.87L9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12z" />
-            </g>
-        </svg>);
-}
-
-export function ArrowForwardIosIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M5.88 4.12L13.76 12l-7.88 7.88L8 22l10-10L8 2z" />
-            </g>
-        </svg>);
-}
-
-export function DataTransferIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z"/>
-            </g>
-        </svg>);
-}
-
-export function DataTransferCircleIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <circle cx="12" cy="19" r="2"/>
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM6.5 9L10 5.5 13.5 9H11v4H9V9H6.5zm11 6L14 18.5 10.5 15H13v-4h2v4h2.5z"/>
-            </g>
-        </svg>);
-}
-
-export function GlobeWireframeIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/>
-            </g>
-        </svg>);
-}
-
-export function GlobeIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-            </g>
-        </svg>);
-}
-
-export function FireIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/>
-            </g>
-        </svg>);
-}
-
-export function AddIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-            </g>
-        </svg>);
-}
-
 export function SettingsIcon(props: IIconProps) {
     return (
         <svg
@@ -846,23 +183,6 @@ export function SettingsIcon(props: IIconProps) {
                 fillRule="evenodd"
             >
                 <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
-            </g>
-        </svg>);
-}
-
-export function EditIcon(props: IIconProps) {
-    return (
-        <svg
-            className="icon"
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="evenodd"
-            >
-                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
             </g>
         </svg>);
 }
@@ -950,4 +270,162 @@ export function StatusRunningIcon(props: IIconProps) {
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
             </g>
         </svg>);
+}
+
+export function DatabaseSearchIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M18.68,12.32C16.92,10.56 14.07,10.57 12.32,12.33C10.56,14.09 10.56,16.94 12.32,18.69C13.81,20.17 16.11,20.43 17.89,19.32L21,22.39L22.39,21L19.3,17.89C20.43,16.12 20.17,13.8 18.68,12.32M17.27,17.27C16.29,18.25 14.71,18.24 13.73,17.27C12.76,16.29 12.76,14.71 13.74,13.73C14.71,12.76 16.29,12.76 17.27,13.73C18.24,14.71 18.24,16.29 17.27,17.27M10.9,20.1C10.25,19.44 9.74,18.65 9.42,17.78C6.27,17.25 4,15.76 4,14V17C4,19.21 7.58,21 12,21V21C11.6,20.74 11.23,20.44 10.9,20.1M4,9V12C4,13.68 6.07,15.12 9,15.7C9,15.63 9,15.57 9,15.5C9,14.57 9.2,13.65 9.58,12.81C6.34,12.3 4,10.79 4,9M12,3C7.58,3 4,4.79 4,7C4,9 7,10.68 10.85,11H10.9C12.1,9.74 13.76,9 15.5,9C16.41,9 17.31,9.19 18.14,9.56C19.17,9.09 19.87,8.12 20,7C20,4.79 16.42,3 12,3Z" />
+            </g>k
+        </svg>);
+}
+
+export function DatabaseImportIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M12,3C8.59,3 5.69,4.07 4.54,5.57L9.79,10.82C10.5,10.93 11.22,11 12,11C16.42,11 20,9.21 20,7C20,4.79 16.42,3 12,3M3.92,7.08L2.5,8.5L5,11H0V13H5L2.5,15.5L3.92,16.92L8.84,12M20,9C20,11.21 16.42,13 12,13C11.34,13 10.7,12.95 10.09,12.87L7.62,15.34C8.88,15.75 10.38,16 12,16C16.42,16 20,14.21 20,12M20,14C20,16.21 16.42,18 12,18C9.72,18 7.67,17.5 6.21,16.75L4.53,18.43C5.68,19.93 8.59,21 12,21C16.42,21 20,19.21 20,17" />
+            </g>
+        </svg>);
+}
+
+export function FileDocumentBoxPlusIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M17,14H19V17H22V19H19V22H17V19H14V17H17V14M12,17V15H7V17H12M17,11H7V13H14.69C13.07,14.07 12,15.91 12,18C12,19.09 12.29,20.12 12.8,21H5C3.89,21 3,20.1 3,19V5C3,3.89 3.89,3 5,3H19A2,2 0 0,1 21,5V12.8C20.12,12.29 19.09,12 18,12L17,12.08V11M17,9V7H7V9H17Z" />
+            </g>
+        </svg>);
+
+}
+
+export function FileDownloadIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M14,2H6C4.89,2 4,2.89 4,4V20C4,21.11 4.89,22 6,22H18C19.11,22 20,21.11 20,20V8L14,2M12,19L8,15H10.5V12H13.5V15H16L12,19M13,9V3.5L18.5,9H13Z" />
+            </g>
+        </svg>);
+
+}
+
+export function FileUploadIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M13.5,16V19H10.5V16H8L12,12L16,16H13.5M13,9V3.5L18.5,9H13Z" />
+            </g>
+        </svg>);
+}
+
+export function CursorIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M13.64,21.97C13.14,22.21 12.54,22 12.31,21.5L10.13,16.76L7.62,18.78C7.45,18.92 7.24,19 7,19A1,1 0 0,1 6,18V3A1,1 0 0,1 7,2C7.24,2 7.47,2.09 7.64,2.23L7.65,2.22L19.14,11.86C19.57,12.22 19.62,12.85 19.27,13.27C19.12,13.45 18.91,13.57 18.7,13.61L15.54,14.23L17.74,18.96C18,19.46 17.76,20.05 17.26,20.28L13.64,21.97Z" />
+            </g>
+        </svg>);
+
+}
+
+export function VariableIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3M7.4 18C5.9 16.5 5 14.3 5 12S5.9 7.5 7.4 6L9 6.7C7.7 7.9 7 9.9 7 12S7.7 16.1 9 17.3L7.4 18M12.7 15L11.9 13L10.5 15H9L11.3 11.9L10 9H11.3L12.1 11L13.5 9H15L12.8 12L14.1 15H12.7M16.6 18L15 17.3C16.3 16 17 14.1 17 12S16.3 7.9 15 6.7L16.6 6C18.1 7.5 19 9.7 19 12S18.1 16.5 16.6 18Z" />
+            </g>
+        </svg>);
+
+}
+
+export function TextCardIcon(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+                <path d="M20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20M5,13V15H16V13H5M5,9V11H19V9H5Z" />
+            </g>
+        </svg>);
+
+}
+
+export function IconTemplate(props: IIconProps) {
+    return (
+        <svg
+            className="icon"
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="evenodd"
+            >
+            </g>
+        </svg>);
+
 }

@@ -8,20 +8,24 @@ import Board from './board';
 import './explorer.scss';
 import {
     BarChartIcon,
-    BubbleChartIcon,
+    ScatterChartIcon,
     ConsoleIcon,
     LineChartIcon,
-    PieChartIcon,
+    ArcChartIcon,
     PlanIcon,
-    ProgramIcon,
-    SaveIcon,
-    SettingsIcon,
+    DatabaseSearchIcon,
+    DatabaseImportIcon,
     TableChartIcon,
+    FileDocumentBoxPlusIcon,
+    VariableIcon,
+    TextCardIcon,
 } from '../svg/icons';
 import { connect } from 'react-redux';
 
 const VIZTYPE_ICON_WIDTH = "20px";
 const VIZTYPE_ICON_HEIGHT = "20px";
+const TOOL_ICON_WIDTH = "20px";
+const TOOL_ICON_HEIGHT = "20px";
 const INPUT_HEADER_ICON_WIDTH = "16px";
 const INPUT_HEADER_ICON_HEIGHT = "16px";
 const INPUT_TOGGLE_ICON_WIDTH = "20px";
@@ -61,21 +65,17 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className="explorer_outline"></div>
 
                 <div className="explorer_toolbar">
-                    <div className="explorer_tools_load">
-                        <div className="explorer_tool">
-                            FILE
-                        </div>
-                        <div className="explorer_tool">
-                            HTTP
-                        </div>
+                    <div className="explorer_tool">
+                        <FileDocumentBoxPlusIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
-                    <div className="explorer_tools_extract">
-                        <div className="explorer_tool">
-                            JSON
-                        </div>
-                        <div className="explorer_tool">
-                            CSV
-                        </div>
+                    <div className="explorer_tool">
+                        <DatabaseImportIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                    </div>
+                    <div className="explorer_tool">
+                        <DatabaseSearchIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                    </div>
+                    <div className="explorer_tool">
+                        <VariableIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
                 </div>
 
@@ -86,7 +86,6 @@ class Explorer extends React.Component<IExplorerProps> {
                                 <ConsoleIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
                             </div>
                             <div className="explorer_input_type">
-                                <ProgramIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
                             </div>
                         </div>
                     </Board>
@@ -95,6 +94,9 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className="explorer_viztypes">
                     <div className="explorer_viztype">
                         <PlanIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                    </div>
+                    <div className="explorer_viztype">
+                        <TextCardIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                     </div>
                     <div className="explorer_viztype">
                         <TableChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
@@ -106,10 +108,10 @@ class Explorer extends React.Component<IExplorerProps> {
                         <BarChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                     </div>
                     <div className="explorer_viztype">
-                        <BubbleChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        <ScatterChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                     </div>
                     <div className="explorer_viztype">
-                        <PieChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        <ArcChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                     </div>
 
                 </div>

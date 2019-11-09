@@ -31,6 +31,9 @@ $border_color: rgb(238, 238, 238);
 
     border-right: 1px solid $border_color;
 
+    .explorer_tools_query {
+        border-top: 1px solid $border_color;
+    }
 
     .explorer_tools_extract {
         border-top: 1px solid $border_color;
@@ -61,6 +64,10 @@ $border_color: rgb(238, 238, 238);
             circle {
                 fill: rgb(166, 166, 166);
             }
+        }
+
+        &.small_font {
+            font-size: 9px!important;
         }
     }
 }
