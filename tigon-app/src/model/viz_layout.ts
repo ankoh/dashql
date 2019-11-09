@@ -41,7 +41,7 @@ export class GridElement {
 };
 
 /// A grid layout
-export class GridLayout {
+export class VizLayout {
     /// The columns
     columns: Array<GridLength>;
     /// The rows

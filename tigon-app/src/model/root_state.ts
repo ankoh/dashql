@@ -1,7 +1,8 @@
 import * as Immutable from 'immutable';
-import { DataSource, InlineAnyRows } from './data_source';
-import { QueryPlan } from './query_plan';
+import * as ctrl from '../ctrl';
 import * as proto from 'tigon-proto';
+import { Viz } from './viz';
+import { VizLayout } from './viz_layout.ts';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -15,32 +16,13 @@ export enum RootView {
     LIBRARY = 3,
 }
 
-// A connection protocol
-export enum ConnectionProtocol {
-    CP_HTTP = "http",
-    CP_HTTPS = "https"
-}
-
-// A connection status
-export enum ConnectionStatus {
-    CS_UNDEFINED = 0,
-    CS_CONNECTED = 1,
-    CS_DISCONNECTED = 2,
-}
-
 // A log level
 export enum LogLevel {
-    LL_UNDEFINED = 0,
-    LL_DEBUG = 1,
-    LL_INFO = 2,
-    LL_WARNING = 3,
-    LL_ERROR = 4,
-}
-
-// A data viz type
-export enum DataVizType {
-    DVT_TABLE = 0,
-    DVT_CHART = 1,
+    UNDEFINED = 0,
+    DEBUG = 1,
+    INFO = 2,
+    WARNING = 3,
+    ERROR = 4,
 }
 
 // A task status
@@ -65,76 +47,12 @@ export enum TaskStatus {
 
 // An application config
 export class AppSettings {
-    public knownServers?: ServerSettings[]
 }
-
-// A parameter of a data source
-export class QueryParameter {
-    public title: string = "";
-    public variable: string = "";
-    public defaultValue: string = "";
-}
-
-// A option of a data source
-export class QueryOption {
-    public key: string = "";
-    public value: string = "";
-}
-
-// A data source
-export class Query {
-    public id?: number;
-    public name?: string;
-    public template: string[] = [];
-    public parameters: QueryParameter[] = [];
-    public options: QueryOption[] = [];
-}
-
-// The server connection info
-export class ConnectionInfo {
-    public host: string = "";
-    public port: number = 8000;
-}
-
-// The server configuration
-export class ServerSettings {
-    public static buildKey(config: ServerSettings) {
-        return `${config.protocol}|${config.connection.host}|${config.connection.port}`;
-    }
-
-    public protocol: ConnectionProtocol = ConnectionProtocol.CP_HTTP;
-    public connection: ConnectionInfo = new ConnectionInfo();
-    public queries: Query[] = [];
-}
-
-// The server status
-export class ServerInfo {
-    public version: string = "";
-    public lastUpdate: number = 0;
-    public connectionFailures: number = 0;
-    public connectionStatus: ConnectionStatus = ConnectionStatus.CS_UNDEFINED;
-    public connectionHeartbeat: number = -1;
-}
-
-// A data source result column
-export class QueryResultColumn {
-    public columnName: string = "";
-    public columnType: string = "";
-    public data: any[] = [];
-}
-
-// A data source result
-export class QueryResult {
-    public columns: QueryResultColumn[] = [];
-    public compilationTime: number = 0;
-    public executionTime: number = 0;
-    public resultCount: number = 0;
-};
 
 // The log entry
 export class LogEntry {
     public timestamp: Date = new Date();
-    public level: LogLevel = LogLevel.LL_UNDEFINED;
+    public level: LogLevel = LogLevel.UNDEFINED;
     public text: string = "";
 }
 
@@ -196,10 +114,16 @@ export class RootState {
     // The root view
     public rootView: RootView;
 
-    // The explorer data source
-    public explorerDataSource: DataSource | null;
-    // The explorer plan
-    public explorerPlan: QueryPlan | null;
+    // The transient TQL program (if any)
+    public transientTQLProgram: ctrl.CoreBuffer<proto.tql.TQLProgram> | null;
+    // The transient viz layout (if any)
+    public transientVizLayout: VizLayout | null;
+    // The transient vizzes (if any)
+    public transientVizzes: Immutable.List<Viz>;
+    // The transient query results (if any)
+    public transientQueryResults: Immutable.List<ctrl.CoreBuffer<proto.duckdb.QueryResult>>;
+    // The transient query plans (if any)
+    public transientQueryPlans: Immutable.List<ctrl.CoreBuffer<proto.duckdb.QueryPlan>>;
 
     // Constructor
     constructor() {
@@ -210,15 +134,11 @@ export class RootState {
         this.logs = Immutable.List<LogEntry>();
         this.logWarnings = 0;
         this.rootView = RootView.EXPLORER;
-        this.explorerDataSource = new InlineAnyRows(
-            ['Year', 'Tesla', 'Mercedes', 'Toyota', 'Volvo'],
-            [
-                '2019', 10, 11, 12, 13,
-                '2020', 20, 11, 14, 13,
-                '2021', 30, 15, 12, 13
-            ],
-        );
-        this.explorerPlan = null;
+        this.transientTQLProgram = null;
+        this.transientVizLayout = null;
+        this.transientVizzes = Immutable.List();
+        this.transientQueryResults = Immutable.List();
+        this.transientQueryPlans = Immutable.List();
         return;
     }
 }

@@ -1,6 +1,6 @@
 import { VisualizationSpec } from 'vega-embed';
 
-export class DataViz {
+export class Viz {
     spec: VisualizationSpec | null;
 
     constructor() {
