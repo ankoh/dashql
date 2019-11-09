@@ -123,6 +123,9 @@ export class RootState {
     // The transient query plans (if any)
     public transientQueryPlans: Immutable.List<CoreBuffer<proto.duckdb.QueryPlan>>;
 
+    // The focused viz
+    public focusedViz: number | null;
+
     // Constructor
     constructor() {
         this.launchProgress = new LaunchProgress();
@@ -136,6 +139,7 @@ export class RootState {
         this.transientVizzes = Immutable.List();
         this.transientQueryResults = Immutable.List();
         this.transientQueryPlans = Immutable.List();
+        this.focusedViz = null;
         return;
     }
 }
