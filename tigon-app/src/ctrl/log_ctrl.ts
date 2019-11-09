@@ -33,10 +33,10 @@ export class LogController {
     }
 
     // Log levels
-    public debug(text: string)      { this.log(Model.LogLevel.LL_DEBUG, text); }
-    public info(text: string)       { this.log(Model.LogLevel.LL_INFO, text); }
-    public warning(text: string)    { this.log(Model.LogLevel.LL_WARNING, text); }
-    public error(text: string)      { this.log(Model.LogLevel.LL_ERROR, text); }
+    public debug(text: string)      { this.log(Model.LogLevel.DEBUG, text); }
+    public info(text: string)       { this.log(Model.LogLevel.INFO, text); }
+    public warning(text: string)    { this.log(Model.LogLevel.WARNING, text); }
+    public error(text: string)      { this.log(Model.LogLevel.ERROR, text); }
 }
 
 export default LogController;

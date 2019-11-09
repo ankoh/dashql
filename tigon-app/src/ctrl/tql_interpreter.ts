@@ -1,5 +1,5 @@
 import * as proto from 'tigon-proto';
-import { CoreBuffer } from './core_buffer';
+import { CoreBuffer } from '../model';
 import { LogController } from './log_ctrl';
 import { TaskID, Task, TaskQueue } from './task_queue';
 

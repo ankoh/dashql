@@ -7,7 +7,7 @@ import * as dagre from 'dagre';
 import * as dagreD3 from 'dagre-d3';
 
 interface IPlanViewerProps {
-    plan: Model.QueryPlan | null;
+    plan: Model.CoreBuffer<proto.duckdb.QueryPlan> | null;
 }
 
 export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
@@ -70,7 +70,7 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
             })
             .setDefaultEdgeLabel(function() { return {}; });
 
-        let buffer = this.props.plan!.buffer.getReader();
+        let buffer = this.props.plan!.getReader();
         let opCount = buffer.operatorTypesLength();
         let ofsCount = buffer.operatorChildOffsetsLength();
         let childCount = buffer.operatorChildrenLength();

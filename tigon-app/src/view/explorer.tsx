@@ -1,5 +1,7 @@
+import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as Model from '../model';
+import * as proto from 'tigon-proto';
 import { IAppContext, withAppContext } from '../app_context';
 import Table from './viz/table';
 import PlanViewer from './viz/plan_viewer';
@@ -34,32 +36,11 @@ const INPUT_TOGGLE_ICON_HEIGHT = "16px";
 
 interface IExplorerProps {
     appContext: IAppContext;
-    dataSource: Model.DataSource | null;
-    plan: Model.QueryPlan | null;
-
-    setExplorerDataSource: (d: Model.DataSource) => void;
-    setExplorerPlan: (d: Model.QueryPlan) => void;
+    queryResults: Immutable.List<Model.CoreBuffer<proto.duckdb.QueryResult>>;
+    queryPlans: Immutable.List<Model.CoreBuffer<proto.duckdb.QueryPlan>>;
 }
 
 class Explorer extends React.Component<IExplorerProps> {
-    public renderOutput() {
-        return (
-            <div className="explorer_viewer_output_container">
-                {
-                    <div className="explorer_viewer_output">
-                        <Table data={this.props.dataSource || new Model.DataSource()} />
-                    </div>   
-                }
-                {
-                    false &&
-                    <div className="explorer_viewer_output">
-                        <PlanViewer plan={this.props.plan} />
-                    </div>
-                }
-            </div>
-        );
-    }
-
     public render() {
         return (
             <div className="explorer"> <div className="explorer_topbar"></div>
@@ -144,9 +125,9 @@ class Explorer extends React.Component<IExplorerProps> {
         // let d = new Model.QueryResultDataSource(result);
         // self.props.setExplorerDataSource(d);
 
-        let plan = await ctrl.core.planQuery(session, text);
-        let p = new Model.QueryPlan(plan);
-        this.props.setExplorerPlan(p);
+        //        let plan = await ctrl.core.planQuery(session, text);
+        //        let p = new Model.QueryPlan(plan);
+        //        this.props.setExplorerPlan(p);
     }
 
     protected async runTermEvalLoop(text: string | null = null) {
@@ -173,15 +154,13 @@ class Explorer extends React.Component<IExplorerProps> {
 
 function mapStateToExplorerProps(state: Model.RootState) {
     return {
-        dataSource: state.explorerDataSource,
-        plan: state.explorerPlan,
+        queryResults: state.transientQueryResults,
+        queryPlans: state.transientQueryPlans,
     };
 }
 
 function mapDispatchToExplorerProps(dispatch: Model.Dispatch) {
     return {
-        setExplorerDataSource: (d: Model.DataSource) => { dispatch(Model.setExplorerDataSource(d)); },
-        setExplorerPlan: (p: Model.QueryPlan) => { dispatch(Model.setExplorerPlan(p)); },
     };
 }
 

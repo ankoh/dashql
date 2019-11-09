@@ -20,7 +20,7 @@ export class ErrorBase extends Error {
 export class LoggableError extends ErrorBase {
     public logLevel: Model.LogLevel;
     public message: string;
-    constructor(message: string, logLevel: Model.LogLevel = Model.LogLevel.LL_WARNING) {
+    constructor(message: string, logLevel: Model.LogLevel = Model.LogLevel.WARNING) {
         super(message);
         this.logLevel = logLevel;
         this.message = message;
@@ -30,7 +30,7 @@ export class LoggableError extends ErrorBase {
 // An error with a http status code
 export class HTTPStatusError extends LoggableError {
     protected statusCode: number;
-    constructor(statusCode: number, logLevel: Model.LogLevel = Model.LogLevel.LL_WARNING) {
+    constructor(statusCode: number, logLevel: Model.LogLevel = Model.LogLevel.WARNING) {
         super(String(statusCode));
         this.statusCode = statusCode;
     }

@@ -1,5 +1,5 @@
 import * as proto from 'tigon-proto';
-import { CoreBuffer, TQLProgramBuffer, QueryPlanBuffer, QueryResultBuffer, FormattedTextBuffer } from './core_buffer';
+import { CoreBuffer, TQLProgramBuffer, QueryPlanBuffer, QueryResultBuffer, FormattedTextBuffer } from '../model';
 
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;

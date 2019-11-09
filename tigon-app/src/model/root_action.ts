@@ -22,8 +22,6 @@ export type RootAction =
     | Action<ActionType.CONFIGURE_APP, State.AppSettings>
     | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
-    | Action<ActionType.SET_EXPLORER_DATA_SOURCE, Model.DataSource>
-    | Action<ActionType.SET_EXPLORER_PLAN, Model.QueryPlan>
     | Action<ActionType.OTHER, {}>;
 
 // ---------------------------------------------------------------------------
@@ -54,12 +52,4 @@ export function navigateRoot(view: State.RootView): RootAction {
 
 export function configureApp(config: State.AppSettings): RootAction {
     return createAction<ActionType.CONFIGURE_APP, State.AppSettings>(ActionType.CONFIGURE_APP, config);
-}
-
-export function setExplorerDataSource(d: Model.DataSource): RootAction {
-    return createAction<ActionType.SET_EXPLORER_DATA_SOURCE, Model.DataSource>(ActionType.SET_EXPLORER_DATA_SOURCE, d);
-}
-
-export function setExplorerPlan(p: Model.QueryPlan): RootAction {
-    return createAction<ActionType.SET_EXPLORER_PLAN, Model.QueryPlan>(ActionType.SET_EXPLORER_PLAN, p);
 }

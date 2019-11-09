@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import { RectangleWaveSpinner } from './spinners';
 
 interface IStatusBarProps {
-    logWarnings: number;
 }
 
 interface IStatusBarState {
@@ -75,7 +74,6 @@ export class StatusBar extends React.Component<IStatusBarProps, IStatusBarState>
 // Map state to props
 function mapStateToProps(state: Model.RootState) {
     return {
-        logWarnings: state.logWarnings,
     };
 }
 // Map llvm explorer dispatchs

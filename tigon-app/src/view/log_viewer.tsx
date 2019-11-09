@@ -7,11 +7,11 @@ import { CloseIcon } from '../svg/icons';
 import { connect } from 'react-redux';
 
 const levelNames = new Map<Model.LogLevel, string>([
-    [Model.LogLevel.LL_UNDEFINED, 'UNDEFINED'],
-    [Model.LogLevel.LL_DEBUG, 'DEBUG'],
-    [Model.LogLevel.LL_INFO, 'INFO'],
-    [Model.LogLevel.LL_WARNING, 'WARNING'],
-    [Model.LogLevel.LL_ERROR, 'ERROR'],
+    [Model.LogLevel.UNDEFINED, 'UNDEFINED'],
+    [Model.LogLevel.DEBUG, 'DEBUG'],
+    [Model.LogLevel.INFO, 'INFO'],
+    [Model.LogLevel.WARNING, 'WARNING'],
+    [Model.LogLevel.ERROR, 'ERROR'],
 ]);
 
 function dts(date: Date) {

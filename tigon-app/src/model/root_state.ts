@@ -1,8 +1,8 @@
 import * as Immutable from 'immutable';
-import * as ctrl from '../ctrl';
 import * as proto from 'tigon-proto';
+import { CoreBuffer } from './core_buffer';
 import { Viz } from './viz';
-import { VizLayout } from './viz_layout.ts';
+import { VizLayout } from './viz_layout';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -95,6 +95,9 @@ export class LaunchProgress {
 
 // A root state
 export class RootState {
+    // The root view
+    public rootView: RootView;
+
     /// The launch progress
     public launchProgress: LaunchProgress;
 
@@ -108,22 +111,17 @@ export class RootState {
 
     // The log entries
     public logs: Immutable.List<LogEntry>;
-    // The warnings
-    public logWarnings: number;
-
-    // The root view
-    public rootView: RootView;
 
     // The transient TQL program (if any)
-    public transientTQLProgram: ctrl.CoreBuffer<proto.tql.TQLProgram> | null;
+    public transientTQLProgram: CoreBuffer<proto.tql.TQLProgram> | null;
     // The transient viz layout (if any)
     public transientVizLayout: VizLayout | null;
     // The transient vizzes (if any)
     public transientVizzes: Immutable.List<Viz>;
     // The transient query results (if any)
-    public transientQueryResults: Immutable.List<ctrl.CoreBuffer<proto.duckdb.QueryResult>>;
+    public transientQueryResults: Immutable.List<CoreBuffer<proto.duckdb.QueryResult>>;
     // The transient query plans (if any)
-    public transientQueryPlans: Immutable.List<ctrl.CoreBuffer<proto.duckdb.QueryPlan>>;
+    public transientQueryPlans: Immutable.List<CoreBuffer<proto.duckdb.QueryPlan>>;
 
     // Constructor
     constructor() {
@@ -132,7 +130,6 @@ export class RootState {
         this.appSettingsLoadPending = true;
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logs = Immutable.List<LogEntry>();
-        this.logWarnings = 0;
         this.rootView = RootView.EXPLORER;
         this.transientTQLProgram = null;
         this.transientVizLayout = null;
