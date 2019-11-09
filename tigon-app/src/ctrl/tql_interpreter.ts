@@ -40,15 +40,15 @@ export class TQLInterpreter {
     }
 
     // Iterate over statements of a certain type
-    public static forEachStatement<T extends flatbuffers.Table>(program: CoreBuffer<proto.tql.TQLProgram>, obj: T, fn: (o: T) => void) {
+    public static forEachStatement<T extends flatbuffers.Table>(program: CoreBuffer<proto.tql.TQLProgram>, obj: T, fn: (i: number, o: T) => void) {
         let reader = program.getReader();
         let filteredType = getStatementType(obj);
         for (let i = 0; i < reader.statementsLength(); ++i) {
             if (reader.statementsType(i)! != filteredType) {
                 continue;
             }
-            reader.statements(i, obj);
-            fn(obj);
+            let o = reader.statements(i, obj)!;
+            fn(i, o);
         }
     }
 }
