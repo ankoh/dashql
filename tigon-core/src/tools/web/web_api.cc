@@ -168,9 +168,10 @@ void WebAPI::Session::formatTQLProgram(void* tql_program) {
     // Encode the tql program
     fb::FlatBufferBuilder builder{txt.size() + 16};
     auto txtOfs = builder.CreateString(txt);
+    auto txtBuf = proto::CreateFormattedText(builder, txtOfs);
 
     // Return buffer
-    builder.Finish(txtOfs);
+    builder.Finish(txtBuf);
     response.requestSucceeded(builder.Release());
 }
 
@@ -181,9 +182,10 @@ void WebAPI::Session::formatQueryPlan(void* query_plan) {
     // Encode the query plan
     fb::FlatBufferBuilder builder{txt.size() + 16};
     auto txtOfs = builder.CreateString(txt);
+    auto txtBuf = proto::CreateFormattedText(builder, txtOfs);
 
     // Return buffer
-    builder.Finish(txtOfs);
+    builder.Finish(txtBuf);
     response.requestSucceeded(builder.Release());
 }
 
