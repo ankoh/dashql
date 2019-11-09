@@ -32,11 +32,11 @@ export class TQLInterpreter {
     }
 
     // Evaluate a single statement
-    public async evalStatement(program: CoreBuffer<proto.tql.TQLProgram>, statement: number) {
+    public async evalStatement(_program: CoreBuffer<proto.tql.TQLProgram>, _statement: number) {
     }
 
     // Evaluate a program
-    public async eval(program: CoreBuffer<proto.tql.TQLProgram>) {
+    public async eval(_program: CoreBuffer<proto.tql.TQLProgram>) {
     }
 
     // Iterate over statements of a certain type

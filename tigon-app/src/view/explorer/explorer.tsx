@@ -1,12 +1,12 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
-import * as Model from '../model';
+import * as Model from '../../model';
 import * as proto from 'tigon-proto';
-import { IAppContext, withAppContext } from '../app_context';
-import Table from './viz/table';
-import PlanViewer from './viz/plan_viewer';
-import Terminal from './terminal';
-import Board from './board';
+import { IAppContext, withAppContext } from '../../app_context';
+// import Table from '../viz/table';
+// import PlanViewer from '../viz/plan_viewer';
+import Terminal from '../terminal';
+import Board from '../board';
 import './explorer.scss';
 import {
     BarChartIcon,
@@ -22,7 +22,7 @@ import {
     VariableIcon,
     TextCardIcon,
     CodeIcon,
-} from '../svg/icons';
+} from '../../svg/icons';
 import { connect } from 'react-redux';
 
 const VIZTYPE_ICON_WIDTH = "20px";
