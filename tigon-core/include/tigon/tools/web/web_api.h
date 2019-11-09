@@ -6,8 +6,8 @@
 #ifndef INCLUDE_TIGON_TOOLS_WEB_WEB_API_H_
 #define INCLUDE_TIGON_TOOLS_WEB_WEB_API_H_
 
-#include "common/vector_operations/vector_operations.hpp"
 #include "duckdb.hpp"
+#include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "flatbuffers/flatbuffers.h"
 #include "tigon/proto/web_api_generated.h"
 #include "tigon/proto/tql_generated.h"

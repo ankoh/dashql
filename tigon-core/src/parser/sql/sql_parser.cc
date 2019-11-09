@@ -3,10 +3,10 @@
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
-#include "main/client_context.hpp"
-#include "parser/parser.hpp"
-#include "planner/planner.hpp"
 #include "duckdb.hpp"
+#include "duckdb/main/client_context.hpp"
+#include "duckdb/parser/parser.hpp"
+#include "duckdb/planner/planner.hpp"
 #include <string_view>
 
 using namespace std;

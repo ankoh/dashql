@@ -117,6 +117,7 @@ if(EMSCRIPTEN)
     # -s SAFE_HEAP=1
     # -s ASSERTIONS=1
     set_target_properties(tigon_core PROPERTIES LINK_FLAGS " \
+        -s ALLOW_MEMORY_GROWTH=1 \
         -s ASSERTIONS=1 \
         -s MODULARIZE=1 \
         -s EXPORT_NAME=TigonCore \

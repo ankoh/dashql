@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/proto/duckdb_codec.h"
-#include "common/vector_operations/vector_operations.hpp"
+#include "duckdb/common/vector_operations/vector_operations.hpp"
 
 namespace fb = flatbuffers;
 

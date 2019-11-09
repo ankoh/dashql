@@ -6,10 +6,10 @@
 #include "tigon/tools/web/web_api.h"
 
 #include "duckdb.hpp"
-#include "common/vector_operations/vector_operations.hpp"
-#include "main/client_context.hpp"
-#include "parser/parser.hpp"
-#include "planner/planner.hpp"
+#include "duckdb/common/vector_operations/vector_operations.hpp"
+#include "duckdb/main/client_context.hpp"
+#include "duckdb/parser/parser.hpp"
+#include "duckdb/planner/planner.hpp"
 
 #include "spdlog/spdlog.h"
 
