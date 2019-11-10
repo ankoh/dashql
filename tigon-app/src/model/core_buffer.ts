@@ -35,9 +35,9 @@ export abstract class CoreBuffer<ProtoBuffer> {
     public getData(): number { return this.data; }
 };
 
-export class TQLProgramBuffer extends CoreBuffer<proto.tql.TQLProgram> {
+export class TQLModuleBuffer extends CoreBuffer<proto.tql.TQLModule> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.tql.TQLProgram.getRootAsTQLProgram(buffer);
+        return proto.tql.TQLModule.getRootAsTQLModule(buffer);
     }
 }
 

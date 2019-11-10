@@ -10,7 +10,7 @@ export enum ActionType {
     CONFIGURE_APP               = 'CONFIGURE_APP',
     NAVIGATE_ROOT               = 'NAVIGATE_ROOT',
     PUSH_LOG_ENTRY              = 'PUSH_LOG_ENTRY',
-    SET_TRANSIENT_TQL_PROGRAM   = 'SET_TRANSIENT_TQL_PROGRAM',
+    SET_TRANSIENT_TQL_MODULE    = 'SET_TRANSIENT_TQL_MODULE',
     OTHER                       = 'OTHER',
 }
 
@@ -22,7 +22,7 @@ export type RootAction =
     | Action<ActionType.CONFIGURE_APP, State.AppSettings>
     | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
-    | Action<ActionType.SET_TRANSIENT_TQL_PROGRAM, Model.CoreBuffer<proto.tql.TQLProgram>>
+    | Action<ActionType.SET_TRANSIENT_TQL_MODULE, Model.CoreBuffer<proto.tql.TQLModule>>
     | Action<ActionType.OTHER, {}>;
 
 // ---------------------------------------------------------------------------
@@ -55,6 +55,6 @@ export function configureApp(config: State.AppSettings): RootAction {
     return createAction<ActionType.CONFIGURE_APP, State.AppSettings>(ActionType.CONFIGURE_APP, config);
 }
 
-export function setTransientTQLProgram(program: Model.CoreBuffer<proto.tql.TQLProgram>): RootAction {
-    return createAction<ActionType.SET_TRANSIENT_TQL_PROGRAM, Model.CoreBuffer<proto.tql.TQLProgram>>(ActionType.SET_TRANSIENT_TQL_PROGRAM, program);
+export function setTransientTQLModule(module: Model.CoreBuffer<proto.tql.TQLModule>): RootAction {
+    return createAction<ActionType.SET_TRANSIENT_TQL_MODULE, Model.CoreBuffer<proto.tql.TQLModule>>(ActionType.SET_TRANSIENT_TQL_MODULE, module);
 }

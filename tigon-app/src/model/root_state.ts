@@ -112,8 +112,8 @@ export class RootState {
     // The log entries
     public logs: Immutable.List<LogEntry>;
 
-    // The transient TQL program (if any)
-    public transientTQLProgram: CoreBuffer<proto.tql.TQLProgram> | null;
+    // The transient TQL module (if any)
+    public transientTQLModule: CoreBuffer<proto.tql.TQLModule> | null;
     // The transient viz layout (if any)
     public transientVizLayout: VizLayout | null;
     // The transient vizzes (if any)
@@ -134,7 +134,7 @@ export class RootState {
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logs = Immutable.List<LogEntry>();
         this.rootView = RootView.EXPLORER;
-        this.transientTQLProgram = null;
+        this.transientTQLModule = null;
         this.transientVizLayout = null;
         this.transientVizzes = Immutable.List();
         this.transientQueryResults = Immutable.List();

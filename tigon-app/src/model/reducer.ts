@@ -1,5 +1,4 @@
-import * as State from './root_state';
-import { ActionType, RootAction } from './root_action';
+import * as State from './root_state'; import { ActionType, RootAction } from './root_action';
 
 const MAX_LOG_SIZE = 100;
 
@@ -23,13 +22,13 @@ export function reducer(state: State.RootState = new State.RootState(), a: RootA
                 appSettings: a.payload,
             };
         case ActionType.NAVIGATE_ROOT: return { ...state, rootView: a.payload };
-        case ActionType.SET_TRANSIENT_TQL_PROGRAM: {
-            if (state.transientTQLProgram) {
-                state.transientTQLProgram.release();
+        case ActionType.SET_TRANSIENT_TQL_MODULE: {
+            if (state.transientTQLModule) {
+                state.transientTQLModule.release();
             }
             return {
                 ...state,
-                transientTQLProgram: a.payload
+                transientTQLModule: a.payload
             }
         };
         case ActionType.OTHER: return state;

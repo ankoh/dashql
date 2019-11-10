@@ -3,7 +3,7 @@ import * as Model from './';
 
 function actionSanitizer(a: Model.RootAction) {
     switch (a.type) {
-        case Model.ActionType.SET_TRANSIENT_TQL_PROGRAM: 
+        case Model.ActionType.SET_TRANSIENT_TQL_MODULE: 
             return { ...a, payload: '<CORE>' };
         default:
             return a;
@@ -13,7 +13,7 @@ function actionSanitizer(a: Model.RootAction) {
 function stateSanitizer(s: Model.RootState) {
     return {
         ...s,
-        transientTQLProgram: '<CORE>',
+        transientTQLModule: '<CORE>',
         transientQueryResults: '<CORE>',
         transientQueryPlans: '<CORE>',
     };

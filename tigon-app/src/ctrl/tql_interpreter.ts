@@ -16,7 +16,6 @@ function getStatementType<T extends flatbuffers.Table>(s: T): proto.tql.TQLState
 
 export class TQLInterpreter {
     protected log: LogController;
-    protected program: CoreBuffer<proto.tql.TQLProgram> | null;
 
     protected queuedTasks: TaskQueue;
     protected activeTasks: Array<Task>;
@@ -25,23 +24,22 @@ export class TQLInterpreter {
     // Constructor
     constructor(log: LogController) {
         this.log = log;
-        this.program = null;
         this.queuedTasks = new TaskQueue();
         this.activeTasks = new Array();
         this.requiredFor = new Map();
     }
 
     // Evaluate a single statement
-    public async evalStatement(_program: CoreBuffer<proto.tql.TQLProgram>, _statement: number) {
+    public async evalStatement(_module: CoreBuffer<proto.tql.TQLModule>, _statement: number) {
     }
 
     // Evaluate a program
-    public async eval(_program: CoreBuffer<proto.tql.TQLProgram>) {
+    public async eval(_module: CoreBuffer<proto.tql.TQLModule>) {
     }
 
     // Iterate over statements of a certain type
-    public static forEachStatement<T extends flatbuffers.Table>(program: CoreBuffer<proto.tql.TQLProgram>, obj: T, fn: (i: number, o: T) => void) {
-        let reader = program.getReader();
+    public static forEachStatement<T extends flatbuffers.Table>(module: CoreBuffer<proto.tql.TQLModule>, obj: T, fn: (i: number, o: T) => void) {
+        let reader = module.getReader();
         let filteredType = getStatementType(obj);
         for (let i = 0; i < reader.statementsLength(); ++i) {
             if (reader.statementsType(i)! != filteredType) {
