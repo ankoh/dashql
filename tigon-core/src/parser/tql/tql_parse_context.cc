@@ -18,7 +18,7 @@ ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
 
 ParseContext::~ParseContext() {}
 
-Program ParseContext::Parse(std::string_view in) {
+Module ParseContext::Parse(std::string_view in) {
     beginScan(in);
     {
         tigon::tql::Parser parser(*this);
@@ -26,7 +26,7 @@ Program ParseContext::Parse(std::string_view in) {
         parser.parse();
     }
     endScan();
-    return Program {
+    return Module {
         std::move(statements)
     };
 }

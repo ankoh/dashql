@@ -13,12 +13,12 @@ namespace tigon {
 namespace proto {
 
 /// Write the tql program
-flatbuffers::Offset<proto::TQLProgram> writeTQLProgram(flatbuffers::FlatBufferBuilder& builder, tql::Program& program) {
+flatbuffers::Offset<proto::TQLModule> writeTQLModule(flatbuffers::FlatBufferBuilder& builder, tql::Module& module) {
     // Encode statements
     std::vector<uint8_t> statementTypes;
     std::vector<flatbuffers::Offset<void>> statements;
 
-    for (auto& statement: program.statements) {
+    for (auto& statement: module.statements) {
         std::visit(overload {
             // Display statement
             [&](std::unique_ptr<tql::DisplayStatement>& display) {
@@ -49,7 +49,7 @@ flatbuffers::Offset<proto::TQLProgram> writeTQLProgram(flatbuffers::FlatBufferBu
     // Encode the program
     auto statementTypesOfs = builder.CreateVector(statementTypes);
     auto statementsOfs = builder.CreateVector(statements);
-    return proto::CreateTQLProgram(builder, statementTypesOfs, statementsOfs);
+    return proto::CreateTQLModule(builder, statementTypesOfs, statementsOfs);
 }
 
 }  // namespace proto

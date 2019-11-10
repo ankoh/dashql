@@ -97,14 +97,14 @@ void WebAPI::Session::releaseBuffer(void* data) { buffers.erase(data); }
 void WebAPI::Session::parseTQL(std::string_view text) {
     // Parse statement
     tql::ParseContext ctx;
-    auto program = ctx.Parse(text);
+    auto module = ctx.Parse(text);
 
     // Create the buffer builder
     fb::FlatBufferBuilder builder{1024};
-    auto programOfs = proto::writeTQLProgram(builder, program);
+    auto moduleOfs = proto::writeTQLModule(builder, module);
 
     // Return buffer
-    builder.Finish(programOfs);
+    builder.Finish(moduleOfs);
     response.requestSucceeded(builder.Release());
 }
 
@@ -162,10 +162,10 @@ void WebAPI::Session::planQuery(std::string_view text) {
 }
 
 /// Format TQL
-void WebAPI::Session::formatTQLProgram(void* tql_program) {
-    auto txt = proto::writeJSON(tql_program, *proto::TQLProgramTypeTable());
+void WebAPI::Session::formatTQLModule(void* tql_module) {
+    auto txt = proto::writeJSON(tql_module, *proto::TQLModuleTypeTable());
 
-    // Encode the tql program
+    // Encode the tql module
     fb::FlatBufferBuilder builder{txt.size() + 16};
     auto txtOfs = builder.CreateString(txt);
     auto txtBuf = proto::CreateFormattedText(builder, txtOfs);

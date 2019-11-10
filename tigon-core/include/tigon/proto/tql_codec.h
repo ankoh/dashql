@@ -16,7 +16,7 @@ namespace tigon {
 namespace proto {
 
 /// Write the tql program
-flatbuffers::Offset<proto::TQLProgram> writeTQLProgram(flatbuffers::FlatBufferBuilder& builder, tql::Program& program);
+flatbuffers::Offset<proto::TQLModule> writeTQLModule(flatbuffers::FlatBufferBuilder& builder, tql::Module& module);
 
 } // namespace proto
 } // namespace tigon

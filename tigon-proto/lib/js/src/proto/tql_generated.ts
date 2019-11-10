@@ -1767,20 +1767,20 @@ static createTQLDisplayStatement(builder:flatbuffers.Builder, displayNameOffset:
 }
 }
 /**
- * A TQL program
+ * A TQL module
  *
  * @constructor
  */
-export class TQLProgram {
+export class TQLModule {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLProgram
+ * @returns TQLModule
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLProgram {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLModule {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -1788,11 +1788,11 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLProgram {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLProgram= obj
- * @returns TQLProgram
+ * @param TQLModule= obj
+ * @returns TQLModule
  */
-static getRootAsTQLProgram(bb:flatbuffers.ByteBuffer, obj?:TQLProgram):TQLProgram {
-  return (obj || new TQLProgram).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLModule(bb:flatbuffers.ByteBuffer, obj?:TQLModule):TQLModule {
+  return (obj || new TQLModule).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
 /**
@@ -1841,7 +1841,7 @@ statementsLength():number {
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLProgram(builder:flatbuffers.Builder) {
+static startTQLModule(builder:flatbuffers.Builder) {
   builder.startObject(2);
 };
 
@@ -1907,15 +1907,15 @@ static startStatementsVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLProgram(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLModule(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLProgram(builder:flatbuffers.Builder, statementsTypeOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset):flatbuffers.Offset {
-  TQLProgram.startTQLProgram(builder);
-  TQLProgram.addStatementsType(builder, statementsTypeOffset);
-  TQLProgram.addStatements(builder, statementsOffset);
-  return TQLProgram.endTQLProgram(builder);
+static createTQLModule(builder:flatbuffers.Builder, statementsTypeOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset):flatbuffers.Offset {
+  TQLModule.startTQLModule(builder);
+  TQLModule.addStatementsType(builder, statementsTypeOffset);
+  TQLModule.addStatements(builder, statementsOffset);
+  return TQLModule.endTQLModule(builder);
 }
 }

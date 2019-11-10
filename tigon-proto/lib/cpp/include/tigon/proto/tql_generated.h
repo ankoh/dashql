@@ -61,8 +61,8 @@ struct TQLDisplayAxesT;
 struct TQLDisplayStatement;
 struct TQLDisplayStatementT;
 
-struct TQLProgram;
-struct TQLProgramT;
+struct TQLModule;
+struct TQLModuleT;
 
 bool operator==(const TQLQueryStatementT &lhs, const TQLQueryStatementT &rhs);
 bool operator!=(const TQLQueryStatementT &lhs, const TQLQueryStatementT &rhs);
@@ -100,8 +100,8 @@ bool operator==(const TQLDisplayAxesT &lhs, const TQLDisplayAxesT &rhs);
 bool operator!=(const TQLDisplayAxesT &lhs, const TQLDisplayAxesT &rhs);
 bool operator==(const TQLDisplayStatementT &lhs, const TQLDisplayStatementT &rhs);
 bool operator!=(const TQLDisplayStatementT &lhs, const TQLDisplayStatementT &rhs);
-bool operator==(const TQLProgramT &lhs, const TQLProgramT &rhs);
-bool operator!=(const TQLProgramT &lhs, const TQLProgramT &rhs);
+bool operator==(const TQLModuleT &lhs, const TQLModuleT &rhs);
+bool operator!=(const TQLModuleT &lhs, const TQLModuleT &rhs);
 
 inline const flatbuffers::TypeTable *TQLQueryStatementTypeTable();
 
@@ -139,7 +139,7 @@ inline const flatbuffers::TypeTable *TQLDisplayAxesTypeTable();
 
 inline const flatbuffers::TypeTable *TQLDisplayStatementTypeTable();
 
-inline const flatbuffers::TypeTable *TQLProgramTypeTable();
+inline const flatbuffers::TypeTable *TQLModuleTypeTable();
 
 enum class TQLType : uint8_t {
   INTEGER = 0,
@@ -2548,34 +2548,34 @@ inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatementDirect(
 
 flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatement(flatbuffers::FlatBufferBuilder &_fbb, const TQLDisplayStatementT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct TQLProgramT : public flatbuffers::NativeTable {
-  typedef TQLProgram TableType;
+struct TQLModuleT : public flatbuffers::NativeTable {
+  typedef TQLModule TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "tigon.proto.TQLProgramT";
+    return "tigon.proto.TQLModuleT";
   }
   std::vector<TQLStatementUnion> statements;
-  TQLProgramT() {
+  TQLModuleT() {
   }
 };
 
-inline bool operator==(const TQLProgramT &lhs, const TQLProgramT &rhs) {
+inline bool operator==(const TQLModuleT &lhs, const TQLModuleT &rhs) {
   return
       (lhs.statements == rhs.statements);
 }
 
-inline bool operator!=(const TQLProgramT &lhs, const TQLProgramT &rhs) {
+inline bool operator!=(const TQLModuleT &lhs, const TQLModuleT &rhs) {
     return !(lhs == rhs);
 }
 
 
-/// A TQL program
-struct TQLProgram FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef TQLProgramT NativeTableType;
+/// A TQL module
+struct TQLModule FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TQLModuleT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return TQLProgramTypeTable();
+    return TQLModuleTypeTable();
   }
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "tigon.proto.TQLProgram";
+    return "tigon.proto.TQLModule";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_STATEMENTS_TYPE = 4,
@@ -2596,55 +2596,55 @@ struct TQLProgram FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyTQLStatementVector(verifier, statements(), statements_type()) &&
            verifier.EndTable();
   }
-  TQLProgramT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(TQLProgramT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<TQLProgram> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLProgramT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  TQLModuleT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TQLModuleT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TQLModule> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLModuleT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct TQLProgramBuilder {
+struct TQLModuleBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_statements_type(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> statements_type) {
-    fbb_.AddOffset(TQLProgram::VT_STATEMENTS_TYPE, statements_type);
+    fbb_.AddOffset(TQLModule::VT_STATEMENTS_TYPE, statements_type);
   }
   void add_statements(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> statements) {
-    fbb_.AddOffset(TQLProgram::VT_STATEMENTS, statements);
+    fbb_.AddOffset(TQLModule::VT_STATEMENTS, statements);
   }
-  explicit TQLProgramBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit TQLModuleBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  TQLProgramBuilder &operator=(const TQLProgramBuilder &);
-  flatbuffers::Offset<TQLProgram> Finish() {
+  TQLModuleBuilder &operator=(const TQLModuleBuilder &);
+  flatbuffers::Offset<TQLModule> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<TQLProgram>(end);
+    auto o = flatbuffers::Offset<TQLModule>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<TQLProgram> CreateTQLProgram(
+inline flatbuffers::Offset<TQLModule> CreateTQLModule(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> statements_type = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> statements = 0) {
-  TQLProgramBuilder builder_(_fbb);
+  TQLModuleBuilder builder_(_fbb);
   builder_.add_statements(statements);
   builder_.add_statements_type(statements_type);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<TQLProgram> CreateTQLProgramDirect(
+inline flatbuffers::Offset<TQLModule> CreateTQLModuleDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<uint8_t> *statements_type = nullptr,
     const std::vector<flatbuffers::Offset<void>> *statements = nullptr) {
   auto statements_type__ = statements_type ? _fbb.CreateVector<uint8_t>(*statements_type) : 0;
   auto statements__ = statements ? _fbb.CreateVector<flatbuffers::Offset<void>>(*statements) : 0;
-  return tigon::proto::CreateTQLProgram(
+  return tigon::proto::CreateTQLModule(
       _fbb,
       statements_type__,
       statements__);
 }
 
-flatbuffers::Offset<TQLProgram> CreateTQLProgram(flatbuffers::FlatBufferBuilder &_fbb, const TQLProgramT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<TQLModule> CreateTQLModule(flatbuffers::FlatBufferBuilder &_fbb, const TQLModuleT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 inline TQLQueryStatementT *TQLQueryStatement::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new TQLQueryStatementT();
@@ -3128,30 +3128,30 @@ inline flatbuffers::Offset<TQLDisplayStatement> CreateTQLDisplayStatement(flatbu
       _axes);
 }
 
-inline TQLProgramT *TQLProgram::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = new TQLProgramT();
+inline TQLModuleT *TQLModule::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new TQLModuleT();
   UnPackTo(_o, _resolver);
   return _o;
 }
 
-inline void TQLProgram::UnPackTo(TQLProgramT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void TQLModule::UnPackTo(TQLModuleT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = statements_type(); if (_e) { _o->statements.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->statements[_i].type = static_cast<TQLStatement>(_e->Get(_i)); } } };
   { auto _e = statements(); if (_e) { _o->statements.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->statements[_i].value = TQLStatementUnion::UnPack(_e->Get(_i), statements_type()->GetEnum<TQLStatement>(_i), _resolver); } } };
 }
 
-inline flatbuffers::Offset<TQLProgram> TQLProgram::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLProgramT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateTQLProgram(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<TQLModule> TQLModule::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TQLModuleT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTQLModule(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<TQLProgram> CreateTQLProgram(flatbuffers::FlatBufferBuilder &_fbb, const TQLProgramT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<TQLModule> CreateTQLModule(flatbuffers::FlatBufferBuilder &_fbb, const TQLModuleT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLProgramT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLModuleT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _statements_type = _o->statements.size() ? _fbb.CreateVector<uint8_t>(_o->statements.size(), [](size_t i, _VectorArgs *__va) { return static_cast<uint8_t>(__va->__o->statements[i].type); }, &_va) : 0;
   auto _statements = _o->statements.size() ? _fbb.CreateVector<flatbuffers::Offset<void>>(_o->statements.size(), [](size_t i, _VectorArgs *__va) { return __va->__o->statements[i].Pack(*__va->__fbb, __va->__rehasher); }, &_va) : 0;
-  return tigon::proto::CreateTQLProgram(
+  return tigon::proto::CreateTQLModule(
       _fbb,
       _statements_type,
       _statements);
@@ -4049,7 +4049,7 @@ inline const flatbuffers::TypeTable *TQLDisplayStatementTypeTable() {
   return &tt;
 }
 
-inline const flatbuffers::TypeTable *TQLProgramTypeTable() {
+inline const flatbuffers::TypeTable *TQLModuleTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UTYPE, 1, 0 },
     { flatbuffers::ET_SEQUENCE, 1, 0 }

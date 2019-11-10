@@ -65,7 +65,7 @@ class ParseContext {
     virtual ~ParseContext();
 
     /// Parse an istream
-    Program Parse(std::string_view in);
+    Module Parse(std::string_view in);
 
     /// Throw an error
     void Error(uint32_t line, uint32_t column, const std::string &err);

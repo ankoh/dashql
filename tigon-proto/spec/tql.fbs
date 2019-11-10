@@ -189,7 +189,7 @@ union TQLStatement {
     TQLQueryStatement
 }
 
-/// A TQL program
-table TQLProgram {
+/// A TQL module
+table TQLModule {
     statements: [TQLStatement];
 }

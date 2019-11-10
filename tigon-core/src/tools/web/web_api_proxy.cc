@@ -69,8 +69,8 @@ void tigon_plan_query(WebAPI::Response::Packed* response, WebAPI::Session *sessi
 }
 
 /// Export tql program
-void tigon_format_tql_program(WebAPI::Response::Packed* response, WebAPI::Session* session, void* tql_program) {
-    session->formatTQLProgram(tql_program);
+void tigon_format_tql_module(WebAPI::Response::Packed* response, WebAPI::Session* session, void* tql_module) {
+    session->formatTQLModule(tql_module);
     session->writePackedResponse(*response);
 }
 /// Format query plan
@@ -80,7 +80,7 @@ void tigon_format_query_plan(WebAPI::Response::Packed* response, WebAPI::Session
 }
 
 /// Extract data
-void tigon_extract_data(WebAPI::Response::Packed* response, WebAPI::Session* session, void* tql_program, unsigned tql_statement, void* data) {
+void tigon_extract_data(WebAPI::Response::Packed* response, WebAPI::Session* session, void* tql_module, unsigned tql_statement, void* data) {
     spdlog::info("extract data");
 }
 

@@ -312,8 +312,8 @@ using Statement = std::variant<
     std::unique_ptr<SQLStatement>
 >;
 
-/// A program
-struct Program {
+/// A module
+struct Module {
     /// The statements
     std::vector<Statement> statements;
 };

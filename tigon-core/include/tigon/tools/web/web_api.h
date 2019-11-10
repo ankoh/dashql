@@ -114,8 +114,8 @@ class WebAPI {
         /// Plan SQL query
         void planQuery(std::string_view text);
 
-        /// Format a TQL program
-        void formatTQLProgram(void* tql_program);
+        /// Format a TQL module
+        void formatTQLModule(void* tql_module);
         /// Format a query plan
         void formatQueryPlan(void* query_plan);
     };
