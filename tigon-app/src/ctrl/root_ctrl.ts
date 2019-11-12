@@ -38,6 +38,15 @@ export class RootController {
         await this.core.waitUntilReady();
         let session = await this.core.createSession();
         let tql = await this.core.parseTQL(session, `
+            DECLARE PARAMETER days AS INTEGER;
+
+            LOAD raw_data FROM http (
+                url = 'http://www.google.com',
+                method = get
+            );
+
+            EXTRACT weather_data FROM raw_data USING json ();
+
             SELECT * FROM region, nation;
         `);
         this.store.dispatch(Model.pushTransientTQLModule(tql));

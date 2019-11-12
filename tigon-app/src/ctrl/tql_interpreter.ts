@@ -1,3 +1,4 @@
+import * as Immutable from 'immutable';
 import * as proto from 'tigon-proto';
 import { CoreBuffer } from '../model';
 import { LogController } from './log_ctrl';
@@ -37,7 +38,7 @@ export class TQLInterpreter {
     public async eval(_module: CoreBuffer<proto.tql.TQLModule>) {
     }
 
-    // Iterate over statements of a certain type
+    // Iterate over statements
     public static forEachStatement<T extends flatbuffers.Table>(module: CoreBuffer<proto.tql.TQLModule>, obj: T, fn: (i: number, o: T) => void) {
         let reader = module.getReader();
         let filteredType = getStatementType(obj);
@@ -48,6 +49,14 @@ export class TQLInterpreter {
             let o = reader.statements(i, obj)!;
             fn(i, o);
         }
+    }
+
+    // Map statements in module list
+    public static mapStatementsInModuleList<T extends flatbuffers.Table, V>(list: Immutable.List<CoreBuffer<proto.tql.TQLModule>>, obj: T, fn: (i: number, o: T) => V): Array<V> {
+        let i = 0;
+        let r = new Array<V>();
+        list.forEach(m => this.forEachStatement(m, obj, (_, o) => r.push(fn(i++, o))));
+        return r;
     }
 }
 
