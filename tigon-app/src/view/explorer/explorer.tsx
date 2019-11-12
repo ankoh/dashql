@@ -70,7 +70,7 @@ function ExplorerOutline(props: { modules: Immutable.List<Model.CoreBuffer<proto
             <div className="explorer_outline_header">
                 TQL Program
             </div>
-            <ExplorerOutlineSection title="Parameter Declarations" count={0} />
+            <ExplorerOutlineSection title="Parameters" count={0} />
             <ExplorerOutlineSection title="Load Statements" count={0} />
             <ExplorerOutlineSection title="Extract Statements" count={0} />
             <ExplorerOutlineSection title="Query Statements" count={queryEntries.length}>
