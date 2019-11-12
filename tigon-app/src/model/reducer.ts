@@ -22,13 +22,10 @@ export function reducer(state: State.RootState = new State.RootState(), a: RootA
                 appSettings: a.payload,
             };
         case ActionType.NAVIGATE_ROOT: return { ...state, rootView: a.payload };
-        case ActionType.SET_TRANSIENT_TQL_MODULE: {
-            if (state.transientTQLModule) {
-                state.transientTQLModule.release();
-            }
+        case ActionType.PUSH_TRANSIENT_TQL_MODULE: {
             return {
                 ...state,
-                transientTQLModule: a.payload
+                transientTQLModules: state.transientTQLModules.push(a.payload)
             }
         };
         case ActionType.OTHER: return state;

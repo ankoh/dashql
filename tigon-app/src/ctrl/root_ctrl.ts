@@ -40,7 +40,7 @@ export class RootController {
         let tql = await this.core.parseTQL(session, `
             SELECT * FROM region, nation;
         `);
-        this.store.dispatch(Model.setTransientTQLModule(tql));
+        this.store.dispatch(Model.pushTransientTQLModule(tql));
     }
 
     // Init the controller

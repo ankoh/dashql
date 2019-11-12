@@ -3,7 +3,7 @@ import * as Model from './';
 
 function actionSanitizer(a: Model.RootAction) {
     switch (a.type) {
-        case Model.ActionType.SET_TRANSIENT_TQL_MODULE: 
+        case Model.ActionType.PUSH_TRANSIENT_TQL_MODULE: 
             return { ...a, payload: '<CORE>' };
         default:
             return a;
