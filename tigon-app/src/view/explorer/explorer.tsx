@@ -22,6 +22,7 @@ import {
     TextCardIcon,
     CodeIcon,
 } from '../../svg/icons';
+import classNames from 'classnames';
 import { connect } from 'react-redux';
 
 const VIZTYPE_ICON_WIDTH = "20px";
@@ -40,33 +41,42 @@ interface IExplorerProps {
     queryPlans: Immutable.List<Model.CoreBuffer<proto.duckdb.QueryPlan>>;
 }
 
-function ExplorerOutlineSection(props: { title: string, children?: React.ReactNode }) {
+function ExplorerOutlineSection(props: { title: string, count: number, children?: React.ReactNodeArray }) {
     return (
         <div className="explorer_outline_section">
-            <div className="explorer_outline_section_header">
+            <div className={classNames("explorer_outline_section_header", {
+                "with_children": props.children && props.children.length > 0
+            })} />
+            <div className="explorer_outline_section_title">
                 {props.title}
             </div>
-            {props.children}
+            <div className="explorer_outline_section_badge">
+                {props.count}
+            </div>
+            <div className="explorer_outline_section_entries">
+                {props.children}
+            </div>
         </div>
     );
 }
 
 function ExplorerOutline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>> }) {
     let query = new proto.tql.TQLQueryStatement();
+    let queryEntries = TQLInterpreter.mapStatementsInModuleList(props.modules, query, (i, _q) => 
+        <div key={i} className="explorer_outline_query">foo</div>
+    );
     return (
         <div className="explorer_outline">
             <div className="explorer_outline_header">
                 TQL Program
             </div>
-            <ExplorerOutlineSection title="Parameter Declarations" />
-            <ExplorerOutlineSection title="Load Statements" />
-            <ExplorerOutlineSection title="Extract Statements" />
-            <ExplorerOutlineSection title="Query Statements">
-                {TQLInterpreter.mapStatementsInModuleList(props.modules, query, (i, _q) => 
-                    <div key={i} className="explorer_outline_query">foo</div>
-                )}
+            <ExplorerOutlineSection title="Parameter Declarations" count={0} />
+            <ExplorerOutlineSection title="Load Statements" count={0} />
+            <ExplorerOutlineSection title="Extract Statements" count={0} />
+            <ExplorerOutlineSection title="Query Statements" count={queryEntries.length}>
+                {queryEntries}
             </ExplorerOutlineSection>
-            <ExplorerOutlineSection title="Display Statements" />
+            <ExplorerOutlineSection title="Display Statements" count={0} />
         </div>
     );
 }

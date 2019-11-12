@@ -48,6 +48,8 @@ export class RootController {
             EXTRACT weather_data FROM raw_data USING json ();
 
             SELECT * FROM region, nation;
+
+            SELECT * FROM region, nation;
         `);
         this.store.dispatch(Model.pushTransientTQLModule(tql));
     }
