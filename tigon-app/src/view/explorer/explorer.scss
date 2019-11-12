@@ -40,7 +40,7 @@ $border_color: rgb(238, 238, 238);
 
     .explorer_outline_section {
         display: grid;
-        grid-template-rows: 32px auto;
+        grid-template-rows: auto;
         grid-template-columns: 20px auto 48px;
 
         border-bottom: 1px solid $border_color;
@@ -90,7 +90,7 @@ $border_color: rgb(238, 238, 238);
 
         border-top: 1px solid $border_color;
         padding-left: 8px;
-        line-height: 24px;
+        line-height: 32px;
         color: rgb(120, 120, 120);
     }
 }
