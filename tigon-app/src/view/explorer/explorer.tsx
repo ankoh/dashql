@@ -4,8 +4,6 @@ import * as Model from '../../model';
 import * as proto from 'tigon-proto';
 import { TQLInterpreter } from '../../ctrl';
 import { IAppContext, withAppContext } from '../../app_context';
-// import Table from '../viz/table';
-// import PlanViewer from '../viz/plan_viewer';
 import Terminal from './terminal';
 import Board from './board';
 import './explorer.scss';
