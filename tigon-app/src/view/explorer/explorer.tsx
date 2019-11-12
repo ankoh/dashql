@@ -42,39 +42,76 @@ interface IExplorerProps {
 }
 
 class Explorer extends React.Component<IExplorerProps> {
+
+    protected renderTQLDisplayStatements() {
+        return (
+            <div className="explorer_outline_section">
+                <div className="explorer_outline_section_header">
+                    Display Statements
+                </div>
+            </div>
+        );
+    }
+
+    protected renderTQLQueryStatements() {
+        return (
+            <div className="explorer_outline_section">
+                <div className="explorer_outline_section_header">
+                    Query Statements
+                </div>
+            </div>
+        );
+    }
+
+    protected renderTQLExtractStatements() {
+        return (
+            <div className="explorer_outline_section">
+                <div className="explorer_outline_section_header">
+                    Extract Statements
+                </div>
+            </div>
+        );
+    }
+
+    protected renderTQLLoadStatements() {
+        return (
+            <div className="explorer_outline_section">
+                <div className="explorer_outline_section_header">
+                    Load Statements
+                </div>
+            </div>
+        );
+    }
+
+    protected renderTQLParameterDeclarations() {
+        return (
+            <div className="explorer_outline_section">
+                <div className="explorer_outline_section_header">
+                    Parameter Declarations
+                </div>
+            </div>
+        );
+    }
+
+    protected renderOutline() {
+        return (
+            <div className="explorer_outline">
+                <div className="explorer_outline_header">
+                    TQL Program
+                </div>
+                {this.renderTQLParameterDeclarations()}
+                {this.renderTQLLoadStatements()}
+                {this.renderTQLExtractStatements()}
+                {this.renderTQLQueryStatements()}
+                {this.renderTQLDisplayStatements()}
+            </div>
+        );
+    }
+
     public render() {
         return (
             <div className="explorer"> <div className="explorer_topbar"></div>
-                <div className="explorer_outline">
-                    <div className="explorer_outline_header">
-                        TQL Program
-                    </div>
-                    <div className="explorer_outline_section">
-                        <div className="explorer_outline_section_header">
-                            Parameter Declarations
-                        </div>
-                    </div>
-                    <div className="explorer_outline_section">
-                        <div className="explorer_outline_section_header">
-                            Load Statements
-                        </div>
-                    </div>
-                    <div className="explorer_outline_section">
-                        <div className="explorer_outline_section_header">
-                            Extract Statements
-                        </div>
-                    </div>
-                    <div className="explorer_outline_section">
-                        <div className="explorer_outline_section_header">
-                            Query Statements
-                        </div>
-                    </div>
-                    <div className="explorer_outline_section">
-                        <div className="explorer_outline_section_header">
-                            Display Statements
-                        </div>
-                    </div>
-                </div>
+                {this.renderOutline()}
 
                 <div className="explorer_toolbar">
                     <div className="explorer_tool">
