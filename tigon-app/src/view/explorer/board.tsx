@@ -4,9 +4,9 @@ import { connect } from 'react-redux';
 import { AutoSizer } from 'react-virtualized';
 import './board.scss';
 
-const TICK_COLOR = "rgb(200, 200, 200)";
+const TICK_COLOR = "rgb(180, 180, 180)";
 const TICK_WIDTH = 1;
-const LABEL_COLOR = "rgb(180, 180, 180)";
+const LABEL_COLOR = "rgb(140, 140, 140)";
 const LABEL_FONT = "9px arial";
 
 enum RulerOrientation {
