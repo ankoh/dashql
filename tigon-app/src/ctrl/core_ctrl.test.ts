@@ -28,7 +28,7 @@ function test_tql_parser(text: string, expected: any) {
     test("test_" + test_tql_parser_id++, async () => {
         let session = await core.createSession();
         let program = await core.parseTQL(session, text);
-        let fmt = await core.formatTQLProgram(session, program.getData());
+        let fmt = await core.formatTQLModule(session, program.getData());
         expect(JSON.parse(fmt.getReader().text() || "{}")).toEqual(expected);
         fmt.release();
         program.release();
