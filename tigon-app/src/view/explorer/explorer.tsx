@@ -36,6 +36,7 @@ const INPUT_TOGGLE_ICON_HEIGHT = "20px";
 
 interface IExplorerProps {
     appContext: IAppContext;
+    tqlModules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>>;
     queryResults: Immutable.List<Model.CoreBuffer<proto.duckdb.QueryResult>>;
     queryPlans: Immutable.List<Model.CoreBuffer<proto.duckdb.QueryPlan>>;
 }
@@ -188,12 +189,13 @@ class Explorer extends React.Component<IExplorerProps> {
 
 function mapStateToExplorerProps(state: Model.RootState) {
     return {
+        tqlModules: state.transientTQLModules,
         queryResults: state.transientQueryResults,
         queryPlans: state.transientQueryPlans,
     };
 }
 
-function mapDispatchToExplorerProps(dispatch: Model.Dispatch) {
+function mapDispatchToExplorerProps(_dispatch: Model.Dispatch) {
     return {
     };
 }
