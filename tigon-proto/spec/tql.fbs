@@ -12,6 +12,7 @@ enum TQLType: uint8 {
 
 /// A query statement
 table TQLQueryStatement {
+    query_name: string;
     query_text: string;
 }
 

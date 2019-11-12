@@ -149,10 +149,21 @@ static getRootAsTQLQueryStatement(bb:flatbuffers.ByteBuffer, obj?:TQLQueryStatem
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
+queryName():string|null
+queryName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+queryName(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
 queryText():string|null
 queryText(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
 queryText(optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
+  var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
 
@@ -160,7 +171,15 @@ queryText(optionalEncoding?:any):string|Uint8Array|null {
  * @param flatbuffers.Builder builder
  */
 static startTQLQueryStatement(builder:flatbuffers.Builder) {
-  builder.startObject(1);
+  builder.startObject(2);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset queryNameOffset
+ */
+static addQueryName(builder:flatbuffers.Builder, queryNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, queryNameOffset, 0);
 };
 
 /**
@@ -168,7 +187,7 @@ static startTQLQueryStatement(builder:flatbuffers.Builder) {
  * @param flatbuffers.Offset queryTextOffset
  */
 static addQueryText(builder:flatbuffers.Builder, queryTextOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, queryTextOffset, 0);
+  builder.addFieldOffset(1, queryTextOffset, 0);
 };
 
 /**
@@ -180,8 +199,9 @@ static endTQLQueryStatement(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createTQLQueryStatement(builder:flatbuffers.Builder, queryTextOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createTQLQueryStatement(builder:flatbuffers.Builder, queryNameOffset:flatbuffers.Offset, queryTextOffset:flatbuffers.Offset):flatbuffers.Offset {
   TQLQueryStatement.startTQLQueryStatement(builder);
+  TQLQueryStatement.addQueryName(builder, queryNameOffset);
   TQLQueryStatement.addQueryText(builder, queryTextOffset);
   return TQLQueryStatement.endTQLQueryStatement(builder);
 }

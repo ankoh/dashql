@@ -928,6 +928,7 @@ struct TQLQueryStatementT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "tigon.proto.TQLQueryStatementT";
   }
+  std::string query_name;
   std::string query_text;
   TQLQueryStatementT() {
   }
@@ -935,6 +936,7 @@ struct TQLQueryStatementT : public flatbuffers::NativeTable {
 
 inline bool operator==(const TQLQueryStatementT &lhs, const TQLQueryStatementT &rhs) {
   return
+      (lhs.query_name == rhs.query_name) &&
       (lhs.query_text == rhs.query_text);
 }
 
@@ -953,13 +955,19 @@ struct TQLQueryStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return "tigon.proto.TQLQueryStatement";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_QUERY_TEXT = 4
+    VT_QUERY_NAME = 4,
+    VT_QUERY_TEXT = 6
   };
+  const flatbuffers::String *query_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_QUERY_NAME);
+  }
   const flatbuffers::String *query_text() const {
     return GetPointer<const flatbuffers::String *>(VT_QUERY_TEXT);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_QUERY_NAME) &&
+           verifier.VerifyString(query_name()) &&
            VerifyOffset(verifier, VT_QUERY_TEXT) &&
            verifier.VerifyString(query_text()) &&
            verifier.EndTable();
@@ -972,6 +980,9 @@ struct TQLQueryStatement FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct TQLQueryStatementBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_query_name(flatbuffers::Offset<flatbuffers::String> query_name) {
+    fbb_.AddOffset(TQLQueryStatement::VT_QUERY_NAME, query_name);
+  }
   void add_query_text(flatbuffers::Offset<flatbuffers::String> query_text) {
     fbb_.AddOffset(TQLQueryStatement::VT_QUERY_TEXT, query_text);
   }
@@ -989,18 +1000,23 @@ struct TQLQueryStatementBuilder {
 
 inline flatbuffers::Offset<TQLQueryStatement> CreateTQLQueryStatement(
     flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> query_name = 0,
     flatbuffers::Offset<flatbuffers::String> query_text = 0) {
   TQLQueryStatementBuilder builder_(_fbb);
   builder_.add_query_text(query_text);
+  builder_.add_query_name(query_name);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<TQLQueryStatement> CreateTQLQueryStatementDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
+    const char *query_name = nullptr,
     const char *query_text = nullptr) {
+  auto query_name__ = query_name ? _fbb.CreateString(query_name) : 0;
   auto query_text__ = query_text ? _fbb.CreateString(query_text) : 0;
   return tigon::proto::CreateTQLQueryStatement(
       _fbb,
+      query_name__,
       query_text__);
 }
 
@@ -2655,6 +2671,7 @@ inline TQLQueryStatementT *TQLQueryStatement::UnPack(const flatbuffers::resolver
 inline void TQLQueryStatement::UnPackTo(TQLQueryStatementT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = query_name(); if (_e) _o->query_name = _e->str(); };
   { auto _e = query_text(); if (_e) _o->query_text = _e->str(); };
 }
 
@@ -2666,9 +2683,11 @@ inline flatbuffers::Offset<TQLQueryStatement> CreateTQLQueryStatement(flatbuffer
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TQLQueryStatementT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _query_name = _o->query_name.empty() ? 0 : _fbb.CreateString(_o->query_name);
   auto _query_text = _o->query_text.empty() ? 0 : _fbb.CreateString(_o->query_text);
   return tigon::proto::CreateTQLQueryStatement(
       _fbb,
+      _query_name,
       _query_text);
 }
 
@@ -3735,13 +3754,15 @@ inline const flatbuffers::TypeTable *TQLStatementTypeTable() {
 
 inline const flatbuffers::TypeTable *TQLQueryStatementTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 },
     { flatbuffers::ET_STRING, 0, -1 }
   };
   static const char * const names[] = {
+    "query_name",
     "query_text"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
+    flatbuffers::ST_TABLE, 2, type_codes, nullptr, nullptr, names
   };
   return &tt;
 }
