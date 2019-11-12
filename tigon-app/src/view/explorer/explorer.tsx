@@ -62,7 +62,9 @@ function ExplorerOutline(props: { modules: Immutable.List<Model.CoreBuffer<proto
             <ExplorerOutlineSection title="Load Statements" />
             <ExplorerOutlineSection title="Extract Statements" />
             <ExplorerOutlineSection title="Query Statements">
-                {TQLInterpreter.mapStatementsInModuleList(props.modules, query, (_i, _q) => <div>foo</div>)}
+                {TQLInterpreter.mapStatementsInModuleList(props.modules, query, (i, _q) => 
+                    <div key={i}>foo</div>
+                )}
             </ExplorerOutlineSection>
             <ExplorerOutlineSection title="Display Statements" />
         </div>
