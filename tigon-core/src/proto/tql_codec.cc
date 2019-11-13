@@ -39,8 +39,9 @@ flatbuffers::Offset<proto::TQLModule> writeTQLModule(flatbuffers::FlatBufferBuil
             // SQL statement
             [&](std::unique_ptr<tql::SQLStatement>& display) {
                 auto text = builder.CreateString(display->text.data(), display->text.length());
-                auto statement = proto::CreateTQLQueryStatement(builder, text);
-                statements.push_back(statement.Union());
+                proto::TQLQueryStatementBuilder stmtBuilder{builder};
+                stmtBuilder.add_query_text(text);
+                statements.push_back(stmtBuilder.Finish().Union());
                 statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLQueryStatement));
             }
         }, statement);
