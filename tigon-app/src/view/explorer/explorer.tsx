@@ -8,19 +8,20 @@ import Terminal from './terminal';
 import Board from './board';
 import './explorer.scss';
 import {
-    BarChartIcon,
-    ScatterChartIcon,
-    ConsoleIcon,
-    LineChartIcon,
     ArcChartIcon,
-    PlanIcon,
-    DatabaseSearchIcon,
-    DatabaseImportIcon,
-    TableChartIcon,
-    FileDocumentBoxPlusIcon,
-    VariableIcon,
-    TextCardIcon,
+    BarChartIcon,
     CodeIcon,
+    ConsoleIcon,
+    DatabaseImportIcon,
+    DatabaseSearchIcon,
+    FileDocumentBoxPlusIcon,
+    LineChartIcon,
+    PlanIcon,
+    ResetIcon,
+    ScatterChartIcon,
+    TableChartIcon,
+    TextCardIcon,
+    VariableIcon,
 } from '../../svg/icons';
 import classNames from 'classnames';
 import { connect } from 'react-redux';
@@ -29,6 +30,8 @@ const VIZTYPE_ICON_WIDTH = "20px";
 const VIZTYPE_ICON_HEIGHT = "20px";
 const TOOL_ICON_WIDTH = "20px";
 const TOOL_ICON_HEIGHT = "20px";
+const TOPBAR_ICON_WIDTH = "24px";
+const TOPBAR_ICON_HEIGHT = "24px";
 const INPUT_HEADER_ICON_WIDTH = "16px";
 const INPUT_HEADER_ICON_HEIGHT = "16px";
 const INPUT_TOGGLE_ICON_WIDTH = "20px";
@@ -85,7 +88,13 @@ class Explorer extends React.Component<IExplorerProps> {
 
     public render() {
         return (
-            <div className="explorer"> <div className="explorer_topbar"></div>
+            <div className="explorer">
+                <div className="explorer_topbar">
+                    <div className="explorer_topbar_action">
+                        <ResetIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                    </div>
+                </div>
+
                 <ExplorerOutline modules={this.props.tqlModules} />
 
                 <div className="explorer_toolbar">

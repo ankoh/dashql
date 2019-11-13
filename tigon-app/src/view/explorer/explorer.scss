@@ -16,6 +16,17 @@ $border_color: rgb(238, 238, 238);
     grid-column: 1 / span 5;
 
     background-color: rgb(46, 46, 46);
+
+    .explorer_topbar_action {
+        width: 48px;
+        height: 48px;
+
+        display: grid;
+        .icon {
+            justify-self: center;
+            align-self: center;
+        }
+    }
 }
 
 .explorer_outline {
@@ -118,16 +129,14 @@ $border_color: rgb(238, 238, 238);
         width: 100%;
         box-sizing: border-box;
 
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-
         font-size: 10px;
         font-weight: 600;
         color: rgb(166, 166, 166);
 
+        display: grid;
         .icon {
+            justify-self: center;
+            align-self: center;
             path {
                 fill: rgb(166, 166, 166);
             }
@@ -167,13 +176,10 @@ $border_color: rgb(238, 238, 238);
         width: 100%;
         box-sizing: border-box;
 
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-
-
+        display: grid;
         .icon {
+            justify-self: center;
+            align-self: center;
             path {
                 fill: rgb(166, 166, 166);
             }
@@ -232,12 +238,10 @@ $border_color: rgb(238, 238, 238);
         height: 100%;
         box-sizing: border-box;
 
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-
+        display: grid;
         .icon {
+            justify-self: center;
+            align-self: center;
             g {
                 fill: rgb(166, 166, 166);
             }
@@ -282,12 +286,10 @@ $border_color: rgb(238, 238, 238);
             height: 100%;
             box-sizing: border-box;
 
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-
+            display: grid;
             .icon {
+                justify-self: center;
+                align-self: center;
                 g {
                     fill: rgb(166, 166, 166);
                 }
