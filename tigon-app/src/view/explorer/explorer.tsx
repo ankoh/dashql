@@ -19,6 +19,8 @@ import {
     DatabaseSearchIcon,
     ResponsiveIcon,
     FileDocumentBoxPlusIcon,
+    GitHubFaceIcon,
+    VariableIcon,
     DocumentDownloadIcon,
     LineChartIcon,
     LogIcon,
@@ -28,7 +30,7 @@ import {
     TableChartIcon,
     TaskListIcon,
     TextCardIcon,
-    VariableIcon,
+    VariableBoxIcon,
 } from '../../svg/icons';
 import classNames from 'classnames';
 import { connect } from 'react-redux';
@@ -102,6 +104,9 @@ class Explorer extends React.Component<IExplorerProps> {
                             <AddIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                         <div className="explorer_topbar_action">
+                            <VariableIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                        <div className="explorer_topbar_action">
                             <RefreshIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                     </div>
@@ -131,13 +136,19 @@ class Explorer extends React.Component<IExplorerProps> {
 
                         </div>
                     </div>
+                    <div className="explorer_topbar_actionset">
+                        <div className="explorer_topbar_action">
+                            <GitHubFaceIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+
+                        </div>
+                    </div>
                 </div>
 
                 <ExplorerOutline modules={this.props.tqlModules} />
 
                 <div className="explorer_toolbar">
                     <div className="explorer_tool">
-                        <VariableIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                        <VariableBoxIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
                     <div className="explorer_tool">
                         <FileDocumentBoxPlusIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />

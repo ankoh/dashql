@@ -18,7 +18,7 @@ $border_color: rgb(238, 238, 238);
     background-color: rgb(46, 46, 46);
 
     display: grid;
-    grid-template-columns: 268px auto 220px 96px;
+    grid-template-columns: 268px auto calc(2 * 48px) 172px 48px;
 
     .explorer_topbar_actionset {
         display: flex;
