@@ -8,18 +8,25 @@ import Terminal from './terminal';
 import Board from './board';
 import './explorer.scss';
 import {
+    AddIcon,
     ArcChartIcon,
     BarChartIcon,
+    CloudUploadIcon,
     CodeIcon,
     ConsoleIcon,
+    DatabaseIcon,
     DatabaseImportIcon,
     DatabaseSearchIcon,
+    ResponsiveIcon,
     FileDocumentBoxPlusIcon,
+    DocumentDownloadIcon,
     LineChartIcon,
+    LogIcon,
     PlanIcon,
-    ResetIcon,
+    RefreshIcon,
     ScatterChartIcon,
     TableChartIcon,
+    TaskListIcon,
     TextCardIcon,
     VariableIcon,
 } from '../../svg/icons';
@@ -30,8 +37,8 @@ const VIZTYPE_ICON_WIDTH = "20px";
 const VIZTYPE_ICON_HEIGHT = "20px";
 const TOOL_ICON_WIDTH = "20px";
 const TOOL_ICON_HEIGHT = "20px";
-const TOPBAR_ICON_WIDTH = "24px";
-const TOPBAR_ICON_HEIGHT = "24px";
+const TOPBAR_ICON_WIDTH = "20px";
+const TOPBAR_ICON_HEIGHT = "20px";
 const INPUT_HEADER_ICON_WIDTH = "16px";
 const INPUT_HEADER_ICON_HEIGHT = "16px";
 const INPUT_TOGGLE_ICON_WIDTH = "20px";
@@ -90,8 +97,39 @@ class Explorer extends React.Component<IExplorerProps> {
         return (
             <div className="explorer">
                 <div className="explorer_topbar">
-                    <div className="explorer_topbar_action">
-                        <ResetIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                    <div className="explorer_topbar_actionset">
+                        <div className="explorer_topbar_action">
+                            <AddIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                        <div className="explorer_topbar_action">
+                            <RefreshIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                    </div>
+                    <div className="explorer_topbar_actionset">
+                        <div className="explorer_topbar_action">
+                            <DatabaseIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                        <div className="explorer_topbar_action">
+                            <TaskListIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                        <div className="explorer_topbar_action">
+                            <LogIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                    </div>
+                    <div className="explorer_topbar_actionset">
+                        <div className="explorer_topbar_action">
+                            <ResponsiveIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                    </div>
+                    <div className="explorer_topbar_actionset">
+                        <div className="explorer_topbar_action">
+                            <DocumentDownloadIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+
+                        </div>
+                        <div className="explorer_topbar_action">
+                            <CloudUploadIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+
+                        </div>
                     </div>
                 </div>
 

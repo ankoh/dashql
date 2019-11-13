@@ -17,6 +17,14 @@ $border_color: rgb(238, 238, 238);
 
     background-color: rgb(46, 46, 46);
 
+    display: grid;
+    grid-template-columns: 268px auto 220px 96px;
+
+    .explorer_topbar_actionset {
+        display: flex;
+        flex-direction: row;
+    }
+
     .explorer_topbar_action {
         width: 48px;
         height: 48px;
