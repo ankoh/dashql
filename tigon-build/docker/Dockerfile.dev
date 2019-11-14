@@ -11,9 +11,8 @@ RUN apt-get update -qq \
 
 RUN mkdir -p /opt/emsdk \
     && cd /opt/emsdk \
-    && curl -L 'https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz' | tar xvzf - \
-    && cd emsdk-portable \
-    && ./emsdk update \
+    && git clone https://github.com/emscripten-core/emsdk.git . \
+    && git checkout a5082b232617c762cb65832429f896c838df2483 \
     && ./emsdk install latest \
     && ./emsdk activate latest \
     && /bin/bash ./emsdk_env.sh \
@@ -26,7 +25,7 @@ RUN mkdir -p /opt/emsdk \
     && find . -name "*.tmp" -exec rm {} \;
 
 SHELL ["/bin/bash", "-c"]
-RUN source /opt/emsdk/emsdk-portable/emsdk_env.sh \
+RUN source /opt/emsdk/emsdk_env.sh \
     && echo "PATH=$PATH" >> /opt/env.sh \
     && echo "EMSDK=$EMSDK" >> /opt/env.sh \
     && echo "EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
