@@ -73,21 +73,27 @@ function ExplorerOutlineSection(props: { title: string, count: number, children?
 }
 
 function ExplorerOutline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>> }) {
-    let query = new proto.tql.TQLQueryStatement();
-    let queryEntries = TQLInterpreter.mapStatementsInModuleList(props.modules, query, (i, q) => 
-        <div key={i} className="explorer_outline_query">{q.queryName()}</div>
+    let query = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLQueryStatement(), (i, s) => 
+        <div key={i} className="explorer_outline_section_entry">{s.queryName()}</div>
+    );
+    let param = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLParameterDeclaration(), (i, s) => 
+        <div key={i} className="explorer_outline_section_entry">{s.parameterName()}</div>
+    );
+    let extract = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLExtractStatement(), (i, s) => 
+        <div key={i} className="explorer_outline_section_entry">{s.extractName()}</div>
+    );
+    let load = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLLoadStatement(), (i, s) => 
+        <div key={i} className="explorer_outline_section_entry">{s.dataName()}</div>
     );
     return (
         <div className="explorer_outline">
             <div className="explorer_outline_header">
                 TQL Program
             </div>
-            <ExplorerOutlineSection title="Parameters" count={0} />
-            <ExplorerOutlineSection title="Load Statements" count={0} />
-            <ExplorerOutlineSection title="Extract Statements" count={0} />
-            <ExplorerOutlineSection title="Query Statements" count={queryEntries.length}>
-                {queryEntries}
-            </ExplorerOutlineSection>
+            <ExplorerOutlineSection title="Parameters" count={param.length}>{param}</ExplorerOutlineSection>
+            <ExplorerOutlineSection title="Load Statements" count={load.length}>{load}</ExplorerOutlineSection>
+            <ExplorerOutlineSection title="Extract Statements" count={extract.length}>{extract}</ExplorerOutlineSection>
+            <ExplorerOutlineSection title="Query Statements" count={query.length}>{query}</ExplorerOutlineSection>
             <ExplorerOutlineSection title="Display Statements" count={0} />
         </div>
     );

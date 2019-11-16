@@ -101,15 +101,15 @@ $topbar_background: rgb(46, 46, 46);
             grid-row: 2;
             grid-column: 2 / span 2;
         }
-    }
 
-    .explorer_outline_query {
-        &:first-child { border-top: none; }
+        .explorer_outline_section_entry {
+            &:first-child { border-top: none; }
 
-        border-top: 1px solid $border_color;
-        padding-left: 8px;
-        line-height: 32px;
-        color: rgb(120, 120, 120);
+            border-top: 1px solid $border_color;
+            padding-left: 8px;
+            line-height: 32px;
+            color: rgb(120, 120, 120);
+        }
     }
 }
 

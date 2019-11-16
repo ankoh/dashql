@@ -156,7 +156,7 @@ statement:
 
 parameter_declaration:
     DECLARE PARAMETER identifier opt_as type {
-        auto& p = ctx.cached<P>();
+        auto& p = ctx.cached<ParameterDeclaration>();
         p->name = $3;
         p->type = $5;
         $$ = move(p);
@@ -194,15 +194,19 @@ sql_literal:
 
 load_statement:
     LOAD identifier FROM load_method {
-        auto& l = ctx.cached<L>();
+        auto& l = ctx.cached<LoadStatement>();
         l->name = $2;
         $$ = move(l);
     }
     ;
 
 load_method:
-    HTTP LRB load_method_http_field_list RRB { ctx.cached<L>()->method = move(ctx.cached<L::HTTPLoader>()); }
-  | FILE { ctx.cached<L>()->method = move(ctx.cached<L::FileLoader>()); }
+    HTTP LRB load_method_http_field_list RRB {
+        ctx.cached<LoadStatement>()->method = move(ctx.cached<LoadStatement::HTTPLoader>());
+    }
+  | FILE {
+        ctx.cached<LoadStatement>()->method = move(ctx.cached<LoadStatement::FileLoader>());
+    }
     ;
 
 load_method_http_field_list:
@@ -211,8 +215,8 @@ load_method_http_field_list:
     ;
 
 load_method_http_field:
-    METHOD EQUAL http_method { ctx.cached<L::HTTPLoader>()->method = $3; }
-  | URL EQUAL STRING_LITERAL { ctx.cached<L::HTTPLoader>()->url = $3; }
+    METHOD EQUAL http_method { ctx.cached<LoadStatement::HTTPLoader>()->method = $3; }
+  | URL EQUAL STRING_LITERAL { ctx.cached<LoadStatement::HTTPLoader>()->url = $3; }
     ;
 
 http_method:
@@ -223,7 +227,7 @@ http_method:
 
 extract_statement:
     EXTRACT identifier FROM identifier USING extract_method {
-        auto& e = ctx.cached<E>();
+        auto& e = ctx.cached<ExtractStatement>();
         e->name = $2;
         e->source = $4;
         $$ = move(e);
@@ -238,7 +242,7 @@ extract_method:
 
 display_statement:
     DISPLAY identifier USING display_method_prefix_list display_method {
-        auto& d = ctx.cached<D>();
+        auto& d = ctx.cached<DisplayStatement>();
         d->target = $2;
         d->type = $5;
         $$ = move(d);
@@ -247,7 +251,7 @@ display_statement:
 
 display_method_prefix_list:
     display_method_prefix_list display_method_prefix {
-        ctx.cached<D>()->type_flags |= static_cast<uint64_t>($2);
+        ctx.cached<DisplayStatement>()->type_flags |= static_cast<uint64_t>($2);
     }
  |  %empty
     ;
@@ -307,8 +311,11 @@ display_axes:
     ;
 
 display_axes_field:
-    X EQUAL LRB display_axis RRB { ctx.cached<D>()->axes.x = move(ctx.cached<D::Axis>()); }
- |  Y EQUAL LRB display_axis RRB { ctx.cached<D>()->axes.y = move(ctx.cached<D::Axis>()); }
+    X EQUAL LRB display_axis RRB {
+        ctx.cached<DisplayStatement>()->axes.x = move(ctx.cached<DisplayStatement::Axis>());   }
+ |  Y EQUAL LRB display_axis RRB {
+        ctx.cached<DisplayStatement>()->axes.y = move(ctx.cached<DisplayStatement::Axis>());
+    }
     ;
 
 display_axis:
@@ -317,8 +324,12 @@ display_axis:
     ;
 
 display_axis_field:
-    COLUMN EQUAL identifier        { ctx.cached<D::Axis>()->column = move($3); }
- |  SCALE EQUAL display_axis_scale { ctx.cached<D::Axis>()->scale = move($3); }
+    COLUMN EQUAL identifier {
+        ctx.cached<DisplayStatement::Axis>()->column = move($3);
+    }
+ |  SCALE EQUAL display_axis_scale {
+        ctx.cached<DisplayStatement::Axis>()->scale = move($3);
+    }
     ;
 
 display_axis_scale:
@@ -332,8 +343,12 @@ display_color:
     ;
 
 display_color_field:
-    COLUMN EQUAL identifier                      { ctx.cached<D>()->color.column = move($3); }
- |  PALETTE EQUAL LSB opt_display_color_list RSB { ctx.cached<D>()->color.palette = move($4); }
+    COLUMN EQUAL identifier {
+        ctx.cached<DisplayStatement>()->color.column = move($3);
+    }
+ |  PALETTE EQUAL LSB opt_display_color_list RSB {
+        ctx.cached<DisplayStatement>()->color.palette = move($4);
+    }
     ;
 
 opt_display_color_list:
@@ -363,8 +378,12 @@ display_layout:
     ;
 
 display_layout_field:
-    WIDTH EQUAL LRB display_layout_length RRB  { ctx.cached<D>()->layout.width = move(ctx.cached<D::LayoutLength>()); }
- |  HEIGHT EQUAL LRB display_layout_length RRB { ctx.cached<D>()->layout.height = move(ctx.cached<D::LayoutLength>()); }
+    WIDTH EQUAL LRB display_layout_length RRB  {
+        ctx.cached<DisplayStatement>()->layout.width = move(ctx.cached<DisplayStatement::LayoutLength>());
+    }
+ |  HEIGHT EQUAL LRB display_layout_length RRB {
+        ctx.cached<DisplayStatement>()->layout.height = move(ctx.cached<DisplayStatement::LayoutLength>());
+    }
     ;
 
 display_size_class:
@@ -377,10 +396,10 @@ display_size_class:
 
 display_layout_length:
     display_layout_length COMMA display_layout_length_field {
-        ctx.cached<D::LayoutLength>()->set(get<0>($3), get<1>($3), get<2>($3));
+        ctx.cached<DisplayStatement::LayoutLength>()->set(get<0>($3), get<1>($3), get<2>($3));
     }
  |  display_layout_length_field {
-        ctx.cached<D::LayoutLength>()->set(get<0>($1), get<1>($1), get<2>($1));
+        ctx.cached<DisplayStatement::LayoutLength>()->set(get<0>($1), get<1>($1), get<2>($1));
     }
     ;
 
