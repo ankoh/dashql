@@ -74,8 +74,8 @@ function ExplorerOutlineSection(props: { title: string, count: number, children?
 
 function ExplorerOutline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>> }) {
     let query = new proto.tql.TQLQueryStatement();
-    let queryEntries = TQLInterpreter.mapStatementsInModuleList(props.modules, query, (i, _q) => 
-        <div key={i} className="explorer_outline_query">foo</div>
+    let queryEntries = TQLInterpreter.mapStatementsInModuleList(props.modules, query, (i, q) => 
+        <div key={i} className="explorer_outline_query">{q.queryName()}</div>
     );
     return (
         <div className="explorer_outline">

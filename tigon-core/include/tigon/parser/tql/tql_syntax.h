@@ -28,12 +28,14 @@ enum class Type { Integer, Float, Text, Date, DateTime, Time };
 
 /// A raw sql statement
 struct SQLStatement {
+    /// The name (if any)
+    std::string_view name;
     /// The sql text
     std::string_view text;
 
     /// Constructor
-    SQLStatement(std::string_view text)
-        : text(text) {}
+    SQLStatement(std::string_view name, std::string_view text)
+        : name(name), text(text) {}
 };
 
 /// A parameter declaration

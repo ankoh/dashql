@@ -35,10 +35,10 @@ using std::move;
 using std::vector;
 }
 
-%token <std::string_view>    SQL_SELECT          "sql_select"
-%token <std::string_view>    SQL_WITH            "sql_with"
-%token <std::string_view>    IDENTIFIER_LITERAL  "identifier_literal"
-%token <std::string_view>    STRING_LITERAL      "string_literal"
+%token <std::string_view>   SQL_SELECT          "sql_select"
+%token <std::string_view>   SQL_WITH            "sql_with"
+%token <std::string_view>   IDENTIFIER_LITERAL  "identifier_literal"
+%token <std::string_view>   STRING_LITERAL      "string_literal"
 %token <uint32_t>           HEX_COLOR_LITERAL   "hex_color_literal"
 %token <int>                INTEGER_LITERAL     "integer_literal"
 
@@ -126,11 +126,12 @@ using std::vector;
 %type <Statement> statement;
 %type <Type> type;
 %type <std::string_view> identifier;
-%type <std::string_view> sql_statement;
+%type <std::string_view> sql_literal;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
 %type <std::unique_ptr<DisplayStatement>> display_statement;
 %type <std::unique_ptr<LoadStatement>> load_statement;
 %type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
+%type <std::unique_ptr<SQLStatement>> sql_statement;
 %type <std::vector<DisplayStatement::RGBColor>> display_color_list;
 %type <std::vector<DisplayStatement::RGBColor>> opt_display_color_list;
 
@@ -144,11 +145,11 @@ statement_list:
     ;
 
 statement:
-    extract_statement     { $$ = Statement { std::make_unique<ExtractStatement>() }; }
- |  display_statement     { $$ = Statement { move($1) }; }
- |  load_statement        { $$ = Statement { move($1) }; }
- |  parameter_declaration { $$ = Statement { move($1) }; }
- |  sql_statement         { $$ = Statement { std::make_unique<SQLStatement>(move($1)) }; }
+    extract_statement       { $$ = Statement { std::make_unique<ExtractStatement>() }; }
+ |  display_statement       { $$ = Statement { move($1) }; }
+ |  load_statement          { $$ = Statement { move($1) }; }
+ |  parameter_declaration   { $$ = Statement { move($1) }; }
+ |  sql_statement           { $$ = Statement { move($1) }; }
     ;
 
 parameter_declaration:
@@ -180,6 +181,11 @@ type:
     ;
 
 sql_statement:
+    IDENTIFIER_LITERAL sql_literal  { $$ = std::make_unique<SQLStatement>($1, $2); }
+ |  sql_literal                     { $$ = std::make_unique<SQLStatement>(std::string_view(), $1); }
+    ;
+
+sql_literal:
     SQL_SELECT { $$ = $1; }
  |  SQL_WITH   { $$ = $1; }
     ;
