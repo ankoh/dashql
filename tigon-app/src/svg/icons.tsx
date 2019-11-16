@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 interface IIconProps {
+    className?: string;
     width?: string;
     height?: string;
     fill?: string;
@@ -9,7 +10,7 @@ interface IIconProps {
 export function TableChartIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -24,7 +25,7 @@ export function TableChartIcon(props: IIconProps) {
 export function BarChartIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -39,7 +40,7 @@ export function BarChartIcon(props: IIconProps) {
 export function LineChartIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -54,7 +55,7 @@ export function LineChartIcon(props: IIconProps) {
 export function ScatterChartIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -71,7 +72,7 @@ export function ScatterChartIcon(props: IIconProps) {
 export function InsertChartIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -92,7 +93,7 @@ export function InsertChartIcon(props: IIconProps) {
 export function ArcChartIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -112,7 +113,7 @@ export function ArcChartIcon(props: IIconProps) {
 export function CloseIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -133,7 +134,7 @@ export function CloseIcon(props: IIconProps) {
 export function ConsoleIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -150,7 +151,7 @@ export function ConsoleIcon(props: IIconProps) {
 export function StatusWarningIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -171,7 +172,7 @@ export function StatusWarningIcon(props: IIconProps) {
 export function SettingsIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -188,7 +189,7 @@ export function SettingsIcon(props: IIconProps) {
 export function PlanIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -205,7 +206,7 @@ export function PlanIcon(props: IIconProps) {
 export function StatusScheduledIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -222,7 +223,7 @@ export function StatusScheduledIcon(props: IIconProps) {
 export function StatusSucceededIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -239,7 +240,7 @@ export function StatusSucceededIcon(props: IIconProps) {
 export function StatusFailedIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -256,7 +257,7 @@ export function StatusFailedIcon(props: IIconProps) {
 export function StatusRunningIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -273,7 +274,7 @@ export function StatusRunningIcon(props: IIconProps) {
 export function DatabaseSearchIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -290,7 +291,7 @@ export function DatabaseSearchIcon(props: IIconProps) {
 export function DatabaseImportIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -307,7 +308,7 @@ export function DatabaseImportIcon(props: IIconProps) {
 export function FileDocumentBoxPlusIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -325,7 +326,7 @@ export function FileDocumentBoxPlusIcon(props: IIconProps) {
 export function FileDownloadIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -343,7 +344,7 @@ export function FileDownloadIcon(props: IIconProps) {
 export function FileUploadIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -360,7 +361,7 @@ export function FileUploadIcon(props: IIconProps) {
 export function CursorIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -378,7 +379,7 @@ export function CursorIcon(props: IIconProps) {
 export function VariableBoxIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -396,7 +397,7 @@ export function VariableBoxIcon(props: IIconProps) {
 export function TextCardIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -414,7 +415,7 @@ export function TextCardIcon(props: IIconProps) {
 export function CodeIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -432,7 +433,7 @@ export function CodeIcon(props: IIconProps) {
 export function RefreshIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -449,7 +450,7 @@ export function RefreshIcon(props: IIconProps) {
 export function CloudUploadIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -466,7 +467,7 @@ export function CloudUploadIcon(props: IIconProps) {
 export function DocumentDownloadIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -484,7 +485,7 @@ export function DocumentDownloadIcon(props: IIconProps) {
 export function ShareIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -501,7 +502,7 @@ export function ShareIcon(props: IIconProps) {
 export function AddIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -518,7 +519,7 @@ export function AddIcon(props: IIconProps) {
 export function ResponsiveIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -535,7 +536,7 @@ export function ResponsiveIcon(props: IIconProps) {
 export function RulerIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -552,7 +553,7 @@ export function RulerIcon(props: IIconProps) {
 export function DatabaseIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -569,7 +570,7 @@ export function DatabaseIcon(props: IIconProps) {
 export function LogIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -586,7 +587,7 @@ export function LogIcon(props: IIconProps) {
 export function TaskListIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -603,7 +604,7 @@ export function TaskListIcon(props: IIconProps) {
 export function GitHubFaceIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -620,7 +621,7 @@ export function GitHubFaceIcon(props: IIconProps) {
 export function VariableIcon(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
@@ -637,7 +638,7 @@ export function VariableIcon(props: IIconProps) {
 export function IconTemplate(props: IIconProps) {
     return (
         <svg
-            className="icon"
+            className={props.className || "icon"}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"

@@ -6,7 +6,7 @@ import { TQLInterpreter } from '../../ctrl';
 import { IAppContext, withAppContext } from '../../app_context';
 import Terminal from './terminal';
 import Board from './board';
-import './explorer.scss';
+import s from './explorer.module.scss';
 import {
     AddIcon,
     ArcChartIcon,
@@ -32,7 +32,7 @@ import {
     TextCardIcon,
     VariableBoxIcon,
 } from '../../svg/icons';
-import classNames from 'classnames';
+import cN from 'classnames';
 import { connect } from 'react-redux';
 
 const VIZTYPE_ICON_WIDTH = "20px";
@@ -46,7 +46,7 @@ const INPUT_HEADER_ICON_HEIGHT = "16px";
 const INPUT_TOGGLE_ICON_WIDTH = "20px";
 const INPUT_TOGGLE_ICON_HEIGHT = "20px";
 
-interface IExplorerProps {
+interface IEExplorerorerProps {
     appContext: IAppContext;
     tqlModules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>>;
     queryResults: Immutable.List<Model.CoreBuffer<proto.duckdb.QueryResult>>;
@@ -55,17 +55,17 @@ interface IExplorerProps {
 
 function Section(props: { title: string, count: number, children?: React.ReactNodeArray }) {
     return (
-        <div className="section">
-            <div className={classNames("header", {
-                "with_children": props.children && props.children.length > 0
+        <div className={s.outline_section}>
+            <div className={cN(s.outline_section_header, {
+                [s.with_children]: props.children && props.children.length > 0
             })} />
-            <div className="title">
+            <div className={s.outline_section_title}>
                 {props.title}
             </div>
-            <div className="badge">
+            <div className={s.outline_section_badge}>
                 {props.count}
             </div>
-            <div className="entries">
+            <div className={s.outline_section_entries}>
                 {props.children}
             </div>
         </div>
@@ -74,7 +74,7 @@ function Section(props: { title: string, count: number, children?: React.ReactNo
 
 function SectionEntry(props: { name: string, description: string }) {
     return (
-        <div className="entry">
+        <div className={s.outline_section_entry}>
             {props.name}
         </div>       
     );
@@ -94,8 +94,8 @@ function Outline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQL
         <SectionEntry key={i} name={s.dataName() || "-"} description={""} />
     );
     return (
-        <div className="explorer_outline">
-            <div className="header">
+        <div className={s.outline}>
+            <div className={s.outline_header}>
                 TQL Program
             </div>
             <Section title="Parameters" count={param.length}>{param}</Section>
@@ -107,52 +107,52 @@ function Outline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQL
     );
 }
 
-class Explorer extends React.Component<IExplorerProps> {
+class EExplorerorer extends React.Component<IEExplorerorerProps> {
 
     public render() {
         return (
-            <div className="explorer">
-                <div className="explorer_topbar">
-                    <div className="actionset">
-                        <div className="action">
-                            <AddIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+            <div className={s.explorer}>
+                <div className={s.topbar}>
+                    <div className={s.topbar_actionset}>
+                        <div className={s.topbar_action}>
+                            <AddIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
-                        <div className="action">
-                            <RefreshIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-                        </div>
-                    </div>
-                    <div className="actionset">
-                        <div className="action">
-                            <RulerIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-                        </div>
-                        <div className="action">
-                            <ResponsiveIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        <div className={s.topbar_action}>
+                            <RefreshIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                     </div>
-                    <div className="actionset">
-                        <div className="action">
-                            <DatabaseIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                    <div className={s.topbar_actionset}>
+                        <div className={s.topbar_action}>
+                            <RulerIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
-                        <div className="action">
-                            <TaskListIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-                        </div>
-                        <div className="action">
-                            <LogIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        <div className={s.topbar_action}>
+                            <ResponsiveIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                     </div>
-                    <div className="actionset">
-                        <div className="action">
-                            <DocumentDownloadIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                    <div className={s.topbar_actionset}>
+                        <div className={s.topbar_action}>
+                            <DatabaseIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                        <div className={s.topbar_action}>
+                            <TaskListIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                        <div className={s.topbar_action}>
+                            <LogIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                    </div>
+                    <div className={s.topbar_actionset}>
+                        <div className={s.topbar_action}>
+                            <DocumentDownloadIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
 
                         </div>
-                        <div className="action">
-                            <CloudUploadIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        <div className={s.topbar_action}>
+                            <CloudUploadIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
 
                         </div>
                     </div>
-                    <div className="actionset">
-                        <div className="action">
-                            <GitHubFaceIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                    <div className={s.topbar_actionset}>
+                        <div className={s.topbar_action}>
+                            <GitHubFaceIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
 
                         </div>
                     </div>
@@ -160,72 +160,72 @@ class Explorer extends React.Component<IExplorerProps> {
 
                 <Outline modules={this.props.tqlModules} />
 
-                <div className="explorer_toolbar">
-                    <div className="tool">
-                        <VariableBoxIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                <div className={s.toolbar}>
+                    <div className={s.toolbar_tool}>
+                        <VariableBoxIcon className={s.toolbar_icon} width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
-                    <div className="tool">
-                        <FileDocumentBoxPlusIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                    <div className={s.toolbar_tool}>
+                        <FileDocumentBoxPlusIcon className={s.toolbar_icon} width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
-                    <div className="tool">
-                        <DatabaseImportIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                    <div className={s.toolbar_tool}>
+                        <DatabaseImportIcon className={s.toolbar_icon} width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
-                    <div className="tool">
-                        <DatabaseSearchIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                    <div className={s.toolbar_tool}>
+                        <DatabaseSearchIcon className={s.toolbar_icon} width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
                 </div>
 
-                <div className="explorer_board">
+                <div className={s.board}>
                     <Board scaleFactor={1.0}>
                     </Board>
-                    <div className="explorer_input">
-                        <div className="explorer_input_header">
-                            <div className="explorer_input_type">
-                                <ConsoleIcon width={INPUT_HEADER_ICON_WIDTH} height={INPUT_HEADER_ICON_HEIGHT} />
+                    <div className={s.input}>
+                        <div className={s.input_header}>
+                            <div className={s.input_type}>
+                                <ConsoleIcon className={s.input_icon} width={INPUT_HEADER_ICON_WIDTH} height={INPUT_HEADER_ICON_HEIGHT} />
                             </div>
                         </div>
-                        <div className="explorer_input_terminal">
+                        <div className={s.input_terminal}>
                             <Terminal />
                         </div>
                     </div>
-                    <div className="explorer_input_toggle expanded">
-                        <div className="explorer_input_type border_right active">
-                            <ConsoleIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                    <div className={cN(s.input_toggle, s.expanded)}>
+                        <div className={cN(s.input_toggle_type, s.border_right)}>
+                            <ConsoleIcon className={s.input_toggle_icon} width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
                         </div>
-                        <div className="explorer_input_type">
-                            <CodeIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="explorer_viztypes">
-                    <div className="viztype">
-                        <PlanIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
-                    </div>
-                    <div className="viztype">
-                        <TextCardIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
-                    </div>
-                    <div className="viztype">
-                        <TableChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
-                    </div>
-                    <div className="viztypes_vega">
-                        <div className="viztype">
-                            <LineChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
-                        </div>
-                        <div className="viztype">
-                            <BarChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
-                        </div>
-                        <div className="viztype">
-                            <ScatterChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
-                        </div>
-                        <div className="viztype">
-                            <ArcChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        <div className={s.input_toggle_type}>
+                            <CodeIcon className={s.input_toggle_icon} width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
                         </div>
                     </div>
                 </div>
 
-                <div className="explorer_properties">
-                    <div className="header">
+                <div className={s.viztypes}>
+                    <div className={s.viztypes_viztype}>
+                        <PlanIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                    </div>
+                    <div className={s.viztypes_viztype}>
+                        <TextCardIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                    </div>
+                    <div className={s.viztypes_viztype}>
+                        <TableChartIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                    </div>
+                    <div className={s.viztypes_vega}>
+                        <div className={s.viztypes_viztype}>
+                            <LineChartIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        </div>
+                        <div className={s.viztypes_viztype}>
+                            <BarChartIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        </div>
+                        <div className={s.viztypes_viztype}>
+                            <ScatterChartIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        </div>
+                        <div className={s.viztypes_viztype}>
+                            <ArcChartIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        </div>
+                    </div>
+                </div>
+
+                <div className={s.properties}>
+                    <div className={s.properties_header}>
                         Visualization
                     </div>
                 </div>
@@ -283,5 +283,5 @@ function mapDispatchToExplorerProps(_dispatch: Model.Dispatch) {
     };
 }
 
-export default withAppContext(connect(mapStateToExplorerProps, mapDispatchToExplorerProps)(Explorer));
+export default withAppContext(connect(mapStateToExplorerProps, mapDispatchToExplorerProps)(EExplorerorer));
 
