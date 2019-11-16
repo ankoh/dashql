@@ -1,4 +1,3 @@
-import './library.scss';
 import * as React from 'react';
 import * as Model from '../model';
 import { connect } from 'react-redux';
