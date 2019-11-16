@@ -3,7 +3,7 @@ import * as Model from '../model';
 import { connect } from 'react-redux';
 import classNames from 'classnames';
 
-import './navigation_bar.scss';
+import s from './navigation_bar.module.scss';
 
 interface INavigationBarProps {
     rootView: Model.RootView;
@@ -32,12 +32,12 @@ function NavBarTab(props: INavBarTabProps) {
             break;
     }
     return (
-        <div className="navbar_tab_container">
+        <div className={s.navbar_tab_container}>
             <div
-                className={classNames("navbar_tab", isActive ? " active" : "")}
+                className={classNames(s.navbar_tab, isActive ? s.active : "")}
                 onClick={()=>{ props.onViewChanged(props.tabView); }}
             >
-                <div className="navbar_tab_name">
+                <div className={s.navbar_tab_name}>
                     {tabName}
                 </div>
             </div>
@@ -48,11 +48,11 @@ function NavBarTab(props: INavBarTabProps) {
 class NavigationBar extends React.Component<INavigationBarProps> {
     public render() {
         return (
-            <div className="navbar">
-                <div className="navbar_brand">
+            <div className={s.navbar}>
+                <div className={s.navbar_brand}>
                     TIGON
                 </div>
-                <div className="navbar_tabs">
+                <div className={s.navbar_tabs}>
                     <NavBarTab
                         tabView={Model.RootView.EXPLORER}
                         rootView={this.props.rootView}

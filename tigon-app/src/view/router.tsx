@@ -7,7 +7,7 @@ import Library from './library';
 import * as Model from '../model';
 import { connect } from 'react-redux';
 
-import './router.scss';
+import s from './router.module.scss';
 
 interface IRouterProps {
     rootView: Model.RootView;
@@ -18,36 +18,33 @@ class Router extends React.Component<IRouterProps> {
         switch (this.props.rootView) {
             case Model.RootView.LAUNCHER:
                 return (
-                    <div className="router">
+                    <div className={s.router}>
                         <Launcher />
                     </div>
                 );
             case Model.RootView.EXPLORER:
                 return (
-                    <div className="router">
-                        <div className="router_background_grid" />
+                    <div className={s.router}>
                         <NavigationBar />
-                        <div className="router_page_container">
+                        <div className={s.router_page_container}>
                             <Explorer />
                         </div>
                     </div>
                 );
             case Model.RootView.WORKBOOK:
                 return (
-                    <div className="router">
-                        <div className="router_background_grid" />
+                    <div className={s.router}>
                         <NavigationBar />
-                        <div className="router_page_container">
+                        <div className={s.router_page_container}>
                             <Workbook />
                         </div>
                     </div>
                 );
             case Model.RootView.LIBRARY:
                 return (
-                    <div className="router">
-                        <div className="router_background_grid" />
+                    <div className={s.router}>
                         <NavigationBar />
-                        <div className="router_page_container">
+                        <div className={s.router_page_container}>
                             <Library />
                         </div>
                     </div>
@@ -63,7 +60,7 @@ function mapStateToProps(state: Model.RootState) {
         rootView: state.rootView
     };
 }
-function mapDispatchToProps(dispatch: Model.Dispatch) {
+function mapDispatchToProps(_dispatch: Model.Dispatch) {
     return {};
 }
 

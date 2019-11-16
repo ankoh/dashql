@@ -10,7 +10,7 @@ import {
     StatusSucceededIcon,
 } from '../svg/icons';
 
-import './launcher.scss';
+import './launcher.raw.scss';
 
 interface ILauncherProps {
     progress: Model.LaunchProgress;

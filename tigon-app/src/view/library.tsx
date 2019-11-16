@@ -16,18 +16,17 @@ export class Library extends React.Component<ILibraryProps, ILibraryState> {
 
     public render() {
         return (
-            <div className="library">
-            </div>
+            <div />
         );
     }
 }
 
-function mapStateToProps(state: Model.RootState) {
+function mapStateToProps(_state: Model.RootState) {
     return {
     };
 }
 
-function mapDispatchToProps(dispatch: Model.RootState) {
+function mapDispatchToProps(_dispatch: Model.RootState) {
     return {};
 }
 
