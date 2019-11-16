@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as Model from '../../model';
 import { connect } from 'react-redux';
 import { AutoSizer } from 'react-virtualized';
-import './board.scss';
+import s from './board.module.scss';
 
 const TICK_COLOR = "rgb(180, 180, 180)";
 const TICK_WIDTH = 1;
@@ -166,7 +166,7 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
 
     render() {
         return (
-            <canvas className="board_ruler" ref={this.canvas} />
+            <canvas className={s.board_ruler} ref={this.canvas} />
         );
     }
 };
@@ -182,9 +182,9 @@ export class Board extends React.Component<IBoardProps, {}> {
 
     public render() {
         return (
-            <div className="board">
-                <div className="board_ruler_corner" />
-                <div className="board_ruler_top">
+            <div className={s.board}>
+                <div className={s.board_ruler_corner} />
+                <div className={s.board_ruler_top}>
                     <AutoSizer>
                         {({ height, width }) => (
                             <Ruler
@@ -196,7 +196,7 @@ export class Board extends React.Component<IBoardProps, {}> {
                         )}
                     </AutoSizer>
                 </div>
-                <div className="board_ruler_left">
+                <div className={s.board_ruler_left}>
                     <AutoSizer>
                         {({ height, width }) => (
                             <Ruler
@@ -208,7 +208,7 @@ export class Board extends React.Component<IBoardProps, {}> {
                         )}
                     </AutoSizer>
                 </div>
-                <div className="board_children">
+                <div className={s.board_children}>
                     {this.props.children}
                 </div>
             </div>

@@ -3,7 +3,7 @@ import * as Model from '../../model';
 import { connect } from 'react-redux';
 
 import 'xterm/css/xterm.css';
-import './terminal.scss';
+import './terminal.raw.scss';
 
 import { IAppContext, withAppContext } from '../../app_context';
 
