@@ -37,6 +37,7 @@ class ParseContext {
         std::unique_ptr<DisplayStatement::Axis>,
         std::unique_ptr<DisplayStatement::LayoutLength>,
         std::unique_ptr<DisplayStatement>,
+        std::unique_ptr<ExtractStatement>,
         std::unique_ptr<LoadStatement::FileLoader>,
         std::unique_ptr<LoadStatement::HTTPLoader>,
         std::unique_ptr<LoadStatement>,

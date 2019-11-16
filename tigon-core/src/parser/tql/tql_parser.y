@@ -28,6 +28,7 @@
 tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 
 using D = tigon::tql::DisplayStatement;
+using E = tigon::tql::ExtractStatement;
 using L = tigon::tql::LoadStatement;
 using P = tigon::tql::ParameterDeclaration;
 using std::get;
@@ -129,6 +130,7 @@ using std::vector;
 %type <std::string_view> sql_literal;
 %type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
 %type <std::unique_ptr<DisplayStatement>> display_statement;
+%type <std::unique_ptr<ExtractStatement>> extract_statement;
 %type <std::unique_ptr<LoadStatement>> load_statement;
 %type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
 %type <std::unique_ptr<SQLStatement>> sql_statement;
@@ -145,7 +147,7 @@ statement_list:
     ;
 
 statement:
-    extract_statement       { $$ = Statement { std::make_unique<ExtractStatement>() }; }
+    extract_statement       { $$ = Statement { move($1) }; }
  |  display_statement       { $$ = Statement { move($1) }; }
  |  load_statement          { $$ = Statement { move($1) }; }
  |  parameter_declaration   { $$ = Statement { move($1) }; }
@@ -220,7 +222,12 @@ http_method:
     ;
 
 extract_statement:
-    EXTRACT identifier FROM identifier USING extract_method
+    EXTRACT identifier FROM identifier USING extract_method {
+        auto& e = ctx.cached<E>();
+        e->name = $2;
+        e->source = $4;
+        $$ = move(e);
+    }
     ;
 
 extract_method:

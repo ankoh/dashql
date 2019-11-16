@@ -34,15 +34,33 @@ flatbuffers::Offset<proto::TQLModule> writeTQLModule(flatbuffers::FlatBufferBuil
             },
 
             // Extract statement
-            [&](std::unique_ptr<tql::ExtractStatement>& display) {
+            [&](std::unique_ptr<tql::ExtractStatement>& extract) {
+                auto name = builder.CreateString(extract->name.data(), extract->name.length());
+                proto::TQLExtractStatementBuilder stmtBuilder{builder};
+                stmtBuilder.add_extract_name(name);
+                // TODO extract method
+                statements.push_back(stmtBuilder.Finish().Union());
+                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLExtractStatement));
             },
 
             // Load statement
-            [&](std::unique_ptr<tql::LoadStatement>& display) {
+            [&](std::unique_ptr<tql::LoadStatement>& load) {
+                auto name = builder.CreateString(load->name.data(), load->name.length());
+                proto::TQLLoadStatementBuilder stmtBuilder{builder};
+                stmtBuilder.add_data_name(name);
+                // TODO load method
+                statements.push_back(stmtBuilder.Finish().Union());
+                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLLoadStatement));
             },
 
             // Parameter declaration
-            [&](std::unique_ptr<tql::ParameterDeclaration>& display) {
+            [&](std::unique_ptr<tql::ParameterDeclaration>& param) {
+                auto name = builder.CreateString(param->name.data(), param->name.length());
+                proto::TQLParameterDeclarationBuilder stmtBuilder{builder};
+                stmtBuilder.add_parameter_name(name);
+                // TODO load method
+                statements.push_back(stmtBuilder.Finish().Union());
+                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLParameterDeclaration));
             },
 
             // SQL statement
