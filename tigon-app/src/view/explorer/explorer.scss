@@ -19,7 +19,7 @@ $topbar_background: rgb(46, 46, 46);
     background-color: $topbar_background;
 
     display: grid;
-    grid-template-columns: 268px auto calc(2 * 48px) 172px 48px;
+    grid-template-columns: calc(220px + 48px) auto calc(4 * 48px) calc(220px - 48px) 48px;
 
     .explorer_topbar_actionset {
         display: flex;

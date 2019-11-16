@@ -17,15 +17,15 @@ import {
     DatabaseIcon,
     DatabaseImportIcon,
     DatabaseSearchIcon,
-    ResponsiveIcon,
+    DocumentDownloadIcon,
     FileDocumentBoxPlusIcon,
     GitHubFaceIcon,
-    VariableIcon,
-    DocumentDownloadIcon,
     LineChartIcon,
     LogIcon,
     PlanIcon,
     RefreshIcon,
+    ResponsiveIcon,
+    RulerIcon,
     ScatterChartIcon,
     TableChartIcon,
     TaskListIcon,
@@ -104,10 +104,15 @@ class Explorer extends React.Component<IExplorerProps> {
                             <AddIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                         <div className="explorer_topbar_action">
-                            <VariableIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                            <RefreshIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                        </div>
+                    </div>
+                    <div className="explorer_topbar_actionset">
+                        <div className="explorer_topbar_action">
+                            <ResponsiveIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                         <div className="explorer_topbar_action">
-                            <RefreshIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                            <RulerIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                     </div>
                     <div className="explorer_topbar_actionset">
@@ -119,11 +124,6 @@ class Explorer extends React.Component<IExplorerProps> {
                         </div>
                         <div className="explorer_topbar_action">
                             <LogIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-                        </div>
-                    </div>
-                    <div className="explorer_topbar_actionset">
-                        <div className="explorer_topbar_action">
-                            <ResponsiveIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                     </div>
                     <div className="explorer_topbar_actionset">
