@@ -115,10 +115,10 @@ class Explorer extends React.Component<IExplorerProps> {
                     </div>
                     <div className="explorer_topbar_actionset">
                         <div className="explorer_topbar_action">
-                            <ResponsiveIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                            <RulerIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                         <div className="explorer_topbar_action">
-                            <RulerIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                            <ResponsiveIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                     </div>
                     <div className="explorer_topbar_actionset">
