@@ -23,7 +23,7 @@ ExternalProject_Add(
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS <BINARY_DIR>/libgtest.a
+    BUILD_BYPRODUCTS <BINARY_DIR>/lib/libgtest.a
 )
 
 # Build gmock
@@ -42,14 +42,14 @@ ExternalProject_Add(
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS <BINARY_DIR>/libgmock.a
+    BUILD_BYPRODUCTS <BINARY_DIR>/lib/libgmock.a
 )
 
 # Prepare gtest
 ExternalProject_Get_Property(gtest_ep source_dir)
 set(GTEST_INCLUDE_DIR ${source_dir}/include)
 ExternalProject_Get_Property(gtest_ep binary_dir)
-set(GTEST_LIBRARY_PATH ${binary_dir}/libgtest.a)
+set(GTEST_LIBRARY_PATH ${binary_dir}/lib/libgtest.a)
 file(MAKE_DIRECTORY ${GTEST_INCLUDE_DIR})
 add_library(gtest STATIC IMPORTED)
 set_property(TARGET gtest PROPERTY IMPORTED_LOCATION ${GTEST_LIBRARY_PATH})
@@ -59,7 +59,7 @@ set_property(TARGET gtest APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_
 ExternalProject_Get_Property(gmock_ep source_dir)
 set(GMOCK_INCLUDE_DIR ${source_dir}/include)
 ExternalProject_Get_Property(gmock_ep binary_dir)
-set(GMOCK_LIBRARY_PATH ${binary_dir}/libgmock.a)
+set(GMOCK_LIBRARY_PATH ${binary_dir}/lib/libgmock.a)
 file(MAKE_DIRECTORY ${GMOCK_INCLUDE_DIR})
 add_library(gmock STATIC IMPORTED)
 set_property(TARGET gmock PROPERTY IMPORTED_LOCATION ${GMOCK_LIBRARY_PATH})

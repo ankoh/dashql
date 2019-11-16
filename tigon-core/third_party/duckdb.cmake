@@ -22,6 +22,7 @@ ExternalProject_Add(
         -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DLEAN=ON
+        -DWITH_THREADS=OFF
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -j${CMAKE_BUILD_PARALLEL_LEVEL} duckdb_static miniz re2 hyperloglog pg_query
