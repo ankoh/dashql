@@ -53,48 +53,56 @@ interface IExplorerProps {
     queryPlans: Immutable.List<Model.CoreBuffer<proto.duckdb.QueryPlan>>;
 }
 
-function ExplorerOutlineSection(props: { title: string, count: number, children?: React.ReactNodeArray }) {
+function Section(props: { title: string, count: number, children?: React.ReactNodeArray }) {
     return (
-        <div className="explorer_outline_section">
-            <div className={classNames("explorer_outline_section_header", {
+        <div className="section">
+            <div className={classNames("header", {
                 "with_children": props.children && props.children.length > 0
             })} />
-            <div className="explorer_outline_section_title">
+            <div className="title">
                 {props.title}
             </div>
-            <div className="explorer_outline_section_badge">
+            <div className="badge">
                 {props.count}
             </div>
-            <div className="explorer_outline_section_entries">
+            <div className="entries">
                 {props.children}
             </div>
         </div>
     );
 }
 
-function ExplorerOutline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>> }) {
+function SectionEntry(props: { name: string, description: string }) {
+    return (
+        <div className="entry">
+            {props.name}
+        </div>       
+    );
+}
+
+function Outline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>> }) {
     let query = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLQueryStatement(), (i, s) => 
-        <div key={i} className="explorer_outline_section_entry">{s.queryName()}</div>
+        <SectionEntry key={i} name={s.queryName() || "-"} description={""} />
     );
     let param = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLParameterDeclaration(), (i, s) => 
-        <div key={i} className="explorer_outline_section_entry">{s.parameterName()}</div>
+        <SectionEntry key={i} name={s.parameterName() || "-"} description={""} />
     );
     let extract = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLExtractStatement(), (i, s) => 
-        <div key={i} className="explorer_outline_section_entry">{s.extractName()}</div>
+        <SectionEntry key={i} name={s.extractName() || "-"} description={""} />
     );
     let load = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLLoadStatement(), (i, s) => 
-        <div key={i} className="explorer_outline_section_entry">{s.dataName()}</div>
+        <SectionEntry key={i} name={s.dataName() || "-"} description={""} />
     );
     return (
         <div className="explorer_outline">
-            <div className="explorer_outline_header">
+            <div className="header">
                 TQL Program
             </div>
-            <ExplorerOutlineSection title="Parameters" count={param.length}>{param}</ExplorerOutlineSection>
-            <ExplorerOutlineSection title="Load Statements" count={load.length}>{load}</ExplorerOutlineSection>
-            <ExplorerOutlineSection title="Extract Statements" count={extract.length}>{extract}</ExplorerOutlineSection>
-            <ExplorerOutlineSection title="Query Statements" count={query.length}>{query}</ExplorerOutlineSection>
-            <ExplorerOutlineSection title="Display Statements" count={0} />
+            <Section title="Parameters" count={param.length}>{param}</Section>
+            <Section title="Load Statements" count={load.length}>{load}</Section>
+            <Section title="Extract Statements" count={extract.length}>{extract}</Section>
+            <Section title="Query Statements" count={query.length}>{query}</Section>
+            <Section title="Display Statements" count={0} />
         </div>
     );
 }
@@ -105,64 +113,64 @@ class Explorer extends React.Component<IExplorerProps> {
         return (
             <div className="explorer">
                 <div className="explorer_topbar">
-                    <div className="explorer_topbar_actionset">
-                        <div className="explorer_topbar_action">
+                    <div className="actionset">
+                        <div className="action">
                             <AddIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
-                        <div className="explorer_topbar_action">
+                        <div className="action">
                             <RefreshIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                     </div>
-                    <div className="explorer_topbar_actionset">
-                        <div className="explorer_topbar_action">
+                    <div className="actionset">
+                        <div className="action">
                             <RulerIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
-                        <div className="explorer_topbar_action">
+                        <div className="action">
                             <ResponsiveIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                     </div>
-                    <div className="explorer_topbar_actionset">
-                        <div className="explorer_topbar_action">
+                    <div className="actionset">
+                        <div className="action">
                             <DatabaseIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
-                        <div className="explorer_topbar_action">
+                        <div className="action">
                             <TaskListIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
-                        <div className="explorer_topbar_action">
+                        <div className="action">
                             <LogIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                     </div>
-                    <div className="explorer_topbar_actionset">
-                        <div className="explorer_topbar_action">
+                    <div className="actionset">
+                        <div className="action">
                             <DocumentDownloadIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
 
                         </div>
-                        <div className="explorer_topbar_action">
+                        <div className="action">
                             <CloudUploadIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
 
                         </div>
                     </div>
-                    <div className="explorer_topbar_actionset">
-                        <div className="explorer_topbar_action">
+                    <div className="actionset">
+                        <div className="action">
                             <GitHubFaceIcon width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
 
                         </div>
                     </div>
                 </div>
 
-                <ExplorerOutline modules={this.props.tqlModules} />
+                <Outline modules={this.props.tqlModules} />
 
                 <div className="explorer_toolbar">
-                    <div className="explorer_tool">
+                    <div className="tool">
                         <VariableBoxIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
-                    <div className="explorer_tool">
+                    <div className="tool">
                         <FileDocumentBoxPlusIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
-                    <div className="explorer_tool">
+                    <div className="tool">
                         <DatabaseImportIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
-                    <div className="explorer_tool">
+                    <div className="tool">
                         <DatabaseSearchIcon width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
                     </div>
                 </div>
@@ -191,33 +199,33 @@ class Explorer extends React.Component<IExplorerProps> {
                 </div>
 
                 <div className="explorer_viztypes">
-                    <div className="explorer_viztype">
+                    <div className="viztype">
                         <PlanIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                     </div>
-                    <div className="explorer_viztype">
+                    <div className="viztype">
                         <TextCardIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                     </div>
-                    <div className="explorer_viztype">
+                    <div className="viztype">
                         <TableChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                     </div>
-                    <div className="explorer_viztypes_vega">
-                        <div className="explorer_viztype">
+                    <div className="viztypes_vega">
+                        <div className="viztype">
                             <LineChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                         </div>
-                        <div className="explorer_viztype">
+                        <div className="viztype">
                             <BarChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                         </div>
-                        <div className="explorer_viztype">
+                        <div className="viztype">
                             <ScatterChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                         </div>
-                        <div className="explorer_viztype">
+                        <div className="viztype">
                             <ArcChartIcon width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
                         </div>
                     </div>
                 </div>
 
                 <div className="explorer_properties">
-                    <div className="explorer_properties_header">
+                    <div className="header">
                         Visualization
                     </div>
                 </div>
