@@ -163,15 +163,25 @@ class Explorer extends React.Component<IExplorerProps> {
 
                 <div className="explorer_board">
                     <Board scaleFactor={1.0}>
-                        <div className="explorer_input_toggle">
-                            <div className="explorer_input_type border_right">
-                                <ConsoleIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
-                            </div>
+                    </Board>
+                    <div className="explorer_input">
+                        <div className="explorer_input_header">
                             <div className="explorer_input_type">
-                                <CodeIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                                <ConsoleIcon width={INPUT_HEADER_ICON_WIDTH} height={INPUT_HEADER_ICON_HEIGHT} />
                             </div>
                         </div>
-                    </Board>
+                        <div className="explorer_input_terminal">
+                            <Terminal />
+                        </div>
+                    </div>
+                    <div className="explorer_input_toggle expanded">
+                        <div className="explorer_input_type border_right active">
+                            <ConsoleIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                        </div>
+                        <div className="explorer_input_type">
+                            <CodeIcon width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="explorer_viztypes">
@@ -203,17 +213,6 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className="explorer_properties">
                     <div className="explorer_properties_header">
                         Visualization
-                    </div>
-                </div>
-
-                <div className="explorer_input">
-                    <div className="explorer_input_header">
-                        <div className="explorer_input_type">
-                            <ConsoleIcon width={INPUT_HEADER_ICON_WIDTH} height={INPUT_HEADER_ICON_HEIGHT} />
-                        </div>
-                    </div>
-                    <div className="explorer_input_terminal">
-                        <Terminal />
                     </div>
                 </div>
             </div>

@@ -2,7 +2,6 @@ import * as React from 'react';
 import Explorer from './explorer';
 import Launcher from './launcher';
 import NavigationBar from './navigation_bar';
-import StatusBar from './status_bar';
 import Workbook from './workbook';
 import Library from './library';
 import * as Model from '../model';
@@ -31,7 +30,6 @@ class Router extends React.Component<IRouterProps> {
                         <div className="router_page_container">
                             <Explorer />
                         </div>
-                        <StatusBar />
                     </div>
                 );
             case Model.RootView.WORKBOOK:
@@ -42,7 +40,6 @@ class Router extends React.Component<IRouterProps> {
                         <div className="router_page_container">
                             <Workbook />
                         </div>
-                        <StatusBar />
                     </div>
                 );
             case Model.RootView.LIBRARY:
@@ -53,7 +50,6 @@ class Router extends React.Component<IRouterProps> {
                         <div className="router_page_container">
                             <Library />
                         </div>
-                        <StatusBar />
                     </div>
                 );
             default:
