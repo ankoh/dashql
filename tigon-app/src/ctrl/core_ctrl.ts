@@ -116,7 +116,7 @@ export class CoreController {
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             return Promise.reject(new Error(""));
         }
-        return Promise.resolve(new TQLModuleBuffer(this.core, session, data, dataSize));
+        return new TQLModuleBuffer(this.core, session, data, dataSize);
     }
 
     // Run a query
@@ -126,7 +126,7 @@ export class CoreController {
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             return Promise.reject(new Error(""));
         }
-        return Promise.resolve(new QueryResultBuffer(this.core, session, data, dataSize));
+        return new QueryResultBuffer(this.core, session, data, dataSize);
     }
 
     // Plan a query
@@ -136,7 +136,7 @@ export class CoreController {
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             return Promise.reject(new Error(""));
         }
-        return Promise.resolve(new QueryPlanBuffer(this.core, session, data, dataSize));
+        return new QueryPlanBuffer(this.core, session, data, dataSize);
     }
 
     // Format the tql module
@@ -146,7 +146,7 @@ export class CoreController {
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             return Promise.reject(new Error(""));
         }
-        return Promise.resolve(new FormattedTextBuffer(this.core, session, data, dataSize));
+        return new FormattedTextBuffer(this.core, session, data, dataSize);
     }
 
     // Format the query plan
@@ -156,6 +156,6 @@ export class CoreController {
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             return Promise.reject(new Error(""));
         }
-        return Promise.resolve(new FormattedTextBuffer(this.core, session, data, dataSize));
+        return new FormattedTextBuffer(this.core, session, data, dataSize);
     }
 };
