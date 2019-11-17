@@ -2,6 +2,7 @@ import * as Model from '../model';
 import * as proto from 'tigon-proto';
 import { CoreController } from './core_ctrl';
 import { LogController } from './log_ctrl';
+import { flatbuffers } from 'flatbuffers';
 
 export class DemoController {
     protected store: Model.ReduxStore;
@@ -14,7 +15,7 @@ export class DemoController {
         this.log = log;
     }
 
-    async loadModule1() {
+    async init() {
         await this.core.waitUntilReady();
         let session = await this.core.createSession();
         let tql = await this.core.parseTQL(session, `
@@ -34,19 +35,32 @@ export class DemoController {
             VIZ temp_weekly_bar FROM temp_weekly USING BAR CHART;
         `);
         this.store.dispatch(Model.pushTransientTQLModule(tql));
-    }
 
-    async loadResult1() {
-        await this.core.waitUntilReady();
-        let session = await this.core.createSession();
+        // Build a query result
+        let q1Res = new QueryResultWriter();
+        q1Res.addNumericColumn("col1", proto.duckdb.SQLTypeID.INTEGER, [
+            1, 2, 3, 4, 5, 6, 7, 8, 9
+        ]);
+        q1Res.addNumericColumn("col2", proto.duckdb.SQLTypeID.INTEGER, [
+            10, 11, 12, 13, 14, 15, 16, 17, 18, 19
+        ]);
+
+        // Encode the query result
+        let q1ResBuilder = new flatbuffers.Builder();
+        let q1ResOfs = q1Res.write(q1ResBuilder);
+        q1ResBuilder.finish(q1ResOfs);
+        let [q1ResPtr, q1ResSize] = await this.core.copyFlatBuffer(session, q1ResBuilder.dataBuffer());
+        let q1ResBuffer = new Model.QueryResultBuffer(this.core, session, q1ResPtr, q1ResSize);
+
+        
     }
 };
 
-export class QueryResultBuilder {
-    columnData: Array<Array<string> | Array<number>>;
-    columnRawTypes: Array<proto.duckdb.RawTypeID>;
-    columnSQLTypes: Array<proto.duckdb.SQLTypeID>;
-    columnNames: Array<string>;
+export class QueryResultWriter {
+    protected columnData: Array<Array<string> | Array<number>>;
+    protected columnRawTypes: Array<proto.duckdb.RawTypeID>;
+    protected columnSQLTypes: Array<proto.duckdb.SQLTypeID>;
+    protected columnNames: Array<string>;
 
     constructor() {
         this.columnData = new Array();
@@ -57,13 +71,27 @@ export class QueryResultBuilder {
 
     public addNumericColumn(name: string, sqlType: proto.duckdb.SQLTypeID, rows: Array<number>) {
         switch (sqlType) {
-            case proto.duckdb.SQLTypeID.BIGINT: this.columnRawTypes.push(proto.duckdb.RawTypeID.BIGINT);
-            case proto.duckdb.SQLTypeID.BOOLEAN: this.columnRawTypes.push(proto.duckdb.RawTypeID.BOOLEAN);
-            case proto.duckdb.SQLTypeID.DOUBLE: this.columnRawTypes.push(proto.duckdb.RawTypeID.DOUBLE);
-            case proto.duckdb.SQLTypeID.FLOAT: this.columnRawTypes.push(proto.duckdb.RawTypeID.FLOAT);
-            case proto.duckdb.SQLTypeID.INTEGER: this.columnRawTypes.push(proto.duckdb.RawTypeID.INTEGER);
-            case proto.duckdb.SQLTypeID.SMALLINT: this.columnRawTypes.push(proto.duckdb.RawTypeID.SMALLINT);
-            case proto.duckdb.SQLTypeID.TINYINT: this.columnRawTypes.push(proto.duckdb.RawTypeID.TINYINT);
+            case proto.duckdb.SQLTypeID.BIGINT:
+                this.columnRawTypes.push(proto.duckdb.RawTypeID.BIGINT);
+                break;
+            case proto.duckdb.SQLTypeID.BOOLEAN:
+                this.columnRawTypes.push(proto.duckdb.RawTypeID.BOOLEAN);
+                break;
+            case proto.duckdb.SQLTypeID.DOUBLE:
+                this.columnRawTypes.push(proto.duckdb.RawTypeID.DOUBLE);
+                break;
+            case proto.duckdb.SQLTypeID.FLOAT:
+                this.columnRawTypes.push(proto.duckdb.RawTypeID.FLOAT);
+                break;
+            case proto.duckdb.SQLTypeID.INTEGER:
+                this.columnRawTypes.push(proto.duckdb.RawTypeID.INTEGER);
+                break;
+            case proto.duckdb.SQLTypeID.SMALLINT:
+                this.columnRawTypes.push(proto.duckdb.RawTypeID.SMALLINT);
+                break;
+            case proto.duckdb.SQLTypeID.TINYINT:
+                this.columnRawTypes.push(proto.duckdb.RawTypeID.TINYINT);
+                break;
             // TODO
         }
         this.columnSQLTypes.push(sqlType);

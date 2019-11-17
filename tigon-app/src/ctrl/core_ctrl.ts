@@ -1,5 +1,5 @@
 import * as proto from 'tigon-proto';
-import { CoreBuffer, TQLModuleBuffer, QueryPlanBuffer, QueryResultBuffer, FormattedTextBuffer, RawDataBuffer } from '../model';
+import { CoreBuffer, TQLModuleBuffer, QueryPlanBuffer, QueryResultBuffer, FormattedTextBuffer } from '../model';
 
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
@@ -95,15 +95,18 @@ export class CoreController {
         return Promise.resolve();
     }
 
-    // Register a buffer
-    public async registerBuffer(session: number, buffer: flatbuffers.ByteBuffer): Promise<CoreBuffer<proto.web_api.RawData>> {
-        let length = buffer.bytes().length - buffer.position();
-        let bufferMem = buffer.bytes().subarray(buffer.position());
-        var heapPtr = this.core.allocate(length, 'i8', this.core.ALLOC_HEAP); 
-        let heapMem = this.core.HEAPU8.subarray(heapPtr, heapPtr + length);
-        heapMem.set(bufferMem);
-        this.core.ccall('tigon_register_buffer', 'void', ['number', 'number'], [heapPtr, length]);
-        return Promise.resolve(new RawDataBuffer(this.core, session, heapPtr, length));
+    // Copy a flatbuffer
+    public async copyFlatBuffer(session: number, buffer: flatbuffers.ByteBuffer): Promise<[number, number]> {
+        return this.copyBuffer(session, buffer.bytes().subarray(buffer.position()));
+    }
+
+    // Copy a buffer
+    public async copyBuffer(session: number, buffer: Uint8Array): Promise<[number, number]> {
+        var ptr = this.core.allocate(buffer.length, 'i8', this.core.ALLOC_NORMAL); 
+        let mem = this.core.HEAPU8.subarray(ptr, ptr + buffer.length);
+        mem.set(buffer);
+        this.core.ccall('tigon_register_buffer', 'void', ['number', 'number', 'number'], [session, ptr, buffer.length]);
+        return [ptr, buffer.length];
     }
 
     // Parse TQL

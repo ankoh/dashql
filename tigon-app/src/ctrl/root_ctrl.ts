@@ -40,7 +40,7 @@ export class RootController {
 
     // XXX Load the test environment
     async loadTestEnv() {
-        await this.demo.loadModule1();
+        await this.demo.init();
     }
 
     // Init the controller

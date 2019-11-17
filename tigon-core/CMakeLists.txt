@@ -124,8 +124,10 @@ if(EMSCRIPTEN)
         -s EXPORT_NAME=TigonCore \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
+            _malloc, \
             _tigon_create_session, \
             _tigon_end_session, \
+            _tigon_register_buffer, \
             _tigon_release_buffer, \
             _tigon_parse_tql, \
             _tigon_run_query, \
@@ -134,7 +136,7 @@ if(EMSCRIPTEN)
             _tigon_format_query_plan, \
             _tigon_extract_data \
         ]' \
-        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\"]' \
+        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
     ")
 endif()
 
