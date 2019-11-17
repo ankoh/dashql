@@ -46,7 +46,7 @@ const INPUT_HEADER_ICON_HEIGHT = "16px";
 const INPUT_TOGGLE_ICON_WIDTH = "20px";
 const INPUT_TOGGLE_ICON_HEIGHT = "20px";
 
-interface IEExplorerorerProps {
+interface IExplorerProps {
     appContext: IAppContext;
     tqlModules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>>;
     queryResults: Immutable.List<Model.CoreBuffer<proto.duckdb.QueryResult>>;
@@ -110,7 +110,7 @@ function Outline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQL
     );
 }
 
-class EExplorerorer extends React.Component<IEExplorerorerProps> {
+class EExplorerorer extends React.Component<IExplorerProps> {
 
     public render() {
         return (
@@ -229,7 +229,7 @@ class EExplorerorer extends React.Component<IEExplorerorerProps> {
 
                 <div className={s.properties}>
                     <div className={s.properties_header}>
-                        Visualization
+                        Viz Properties
                     </div>
                 </div>
             </div>
