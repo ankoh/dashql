@@ -31,6 +31,12 @@ flatbuffers::Offset<proto::TQLModule> writeTQLModule(flatbuffers::FlatBufferBuil
         std::visit(overload {
             // Viz statement
             [&](std::unique_ptr<tql::VizStatement>& viz) {
+                auto name = builder.CreateString(viz->name.data(), viz->name.length());
+                proto::TQLVizStatementBuilder stmtBuilder{builder};
+                stmtBuilder.add_viz_name(name);
+                // TODO viz fields
+                statements.push_back(stmtBuilder.Finish().Union());
+                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLVizStatement));
             },
 
             // Extract statement

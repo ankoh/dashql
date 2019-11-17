@@ -40,16 +40,18 @@ export class RootController {
         let tql = await this.core.parseTQL(session, `
             DECLARE PARAMETER days AS INTEGER;
 
-            LOAD raw_data FROM http (
+            LOAD whether_api_data FROM http (
                 url = 'http://www.google.com',
                 method = get
             );
 
-            EXTRACT weather_data FROM raw_data USING json ();
+            EXTRACT weather_data FROM whether_api_data USING json ();
 
-            SELECT * FROM region, nation;
+            QUERY temp_weekly AS SELECT * FROM region, nation;
 
-            SELECT * FROM region, nation;
+            QUERY rain_weekly AS SELECT * FROM region, nation;
+
+            VIZ temp_weekly_bar FROM temp_weekly USING BAR CHART;
         `);
         this.store.dispatch(Model.pushTransientTQLModule(tql));
     }

@@ -94,7 +94,7 @@ function Outline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQL
         <SectionEntry key={i} name={s.dataName() || "-"} description={""} />
     );
     let viz = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLVizStatement(), (i, s) => 
-        <SectionEntry key={i} name={"-"} description={""} />
+        <SectionEntry key={i} name={s.vizName() || "-"} description={""} />
     );
     return (
         <div className={s.outline}>
