@@ -3,6 +3,7 @@ import { CacheController } from './cache_ctrl';
 import { CoreController } from './core_ctrl';
 import { LogController } from './log_ctrl';
 import { TerminalController } from './terminal_ctrl';
+import { DemoController } from './demo_ctrl';
 
 // The worker interval
 const workerIntervalMS = 400;
@@ -20,6 +21,9 @@ export class RootController {
     // The terminal
     public terminal: TerminalController;
 
+    // The demo
+    public demo: DemoController;
+
     // The worker timeout
     protected workerTimer: number | null;
 
@@ -30,30 +34,13 @@ export class RootController {
         this.core = new CoreController();
         this.cache = new CacheController();
         this.terminal = new TerminalController();
+        this.demo = new DemoController(this.store, this.core, this.log);
         this.workerTimer = null;
     }
 
     // XXX Load the test environment
     async loadTestEnv() {
-        await this.core.waitUntilReady();
-        let session = await this.core.createSession();
-        let tql = await this.core.parseTQL(session, `
-            DECLARE PARAMETER days AS INTEGER;
-
-            LOAD whether_api_data FROM http (
-                url = 'http://www.google.com',
-                method = get
-            );
-
-            EXTRACT weather_data FROM whether_api_data USING json ();
-
-            QUERY temp_weekly AS SELECT * FROM region, nation;
-
-            QUERY rain_weekly AS SELECT * FROM region, nation;
-
-            VIZ temp_weekly_bar FROM temp_weekly USING BAR CHART;
-        `);
-        this.store.dispatch(Model.pushTransientTQLModule(tql));
+        await this.demo.loadTestModule();
     }
 
     // Init the controller
