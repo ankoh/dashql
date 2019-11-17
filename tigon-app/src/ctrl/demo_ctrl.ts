@@ -44,50 +44,106 @@ export class DemoController {
         
     }
 
-    async writeQueryResultColumn(builder: flatbuffers.Builder, typeID: proto.duckdb.RawTypeID, rows: [number]) {
-        proto.duckdb.QueryResultColumn.startQueryResultColumn(builder);
-        proto.duckdb.QueryResultColumn.addTypeId(builder, typeID);
+    async writeNumericColumn(builder: flatbuffers.Builder, typeID: proto.duckdb.RawTypeID, rows: [number]): Promise<flatbuffers.Offset> {
+        // Encode the null mask
         let nullMask = new Array<boolean>();
         nullMask.length = rows.length;
         nullMask.fill(true);
-        proto.duckdb.QueryResultColumn.createNullMaskVector(builder, nullMask);
+        let nullMaskOfs = proto.duckdb.QueryResultColumn.createNullMaskVector(builder, nullMask);
+
+        // Encode the rows
+        let rowOfs: flatbuffers.Offset | null = null;
         switch (typeID) {
             case proto.duckdb.RawTypeID.BOOLEAN:
-                proto.duckdb.QueryResultColumn.createRowsI16Vector(builder, rows);
+                rowOfs = proto.duckdb.QueryResultColumn.createRowsU8Vector(builder, rows);
                 break;
             case proto.duckdb.RawTypeID.TINYINT:
-                proto.duckdb.QueryResultColumn.createRowsI16Vector(builder, rows);
+                rowOfs = proto.duckdb.QueryResultColumn.createRowsI16Vector(builder, rows);
                 break;
             case proto.duckdb.RawTypeID.SMALLINT:
-                proto.duckdb.QueryResultColumn.createRowsI32Vector(builder, rows);
+                rowOfs = proto.duckdb.QueryResultColumn.createRowsI32Vector(builder, rows);
                 break;
             case proto.duckdb.RawTypeID.INTEGER: {
                 let buffer = rows.map(row => new flatbuffers.Long(row, 0));
-                proto.duckdb.QueryResultColumn.createRowsI64Vector(builder, buffer);
+                rowOfs = proto.duckdb.QueryResultColumn.createRowsI64Vector(builder, buffer);
                 break;
             }
             case proto.duckdb.RawTypeID.BIGINT: {
                 let buffer = rows.map(row => new flatbuffers.Long(row, 0));
-                proto.duckdb.QueryResultColumn.createRowsI64Vector(builder, buffer);
+                rowOfs = proto.duckdb.QueryResultColumn.createRowsI64Vector(builder, buffer);
                 break;
             }
             case proto.duckdb.RawTypeID.HASH: {
                 let buffer = rows.map(row => new flatbuffers.Long(row, 0));
-                proto.duckdb.QueryResultColumn.createRowsU64Vector(builder, buffer);
+                rowOfs = proto.duckdb.QueryResultColumn.createRowsU64Vector(builder, buffer);
                 break;
             }
             case proto.duckdb.RawTypeID.POINTER: {
                 let buffer = rows.map(row => new flatbuffers.Long(row, 0));
-                proto.duckdb.QueryResultColumn.createRowsU64Vector(builder, buffer);
+                rowOfs = proto.duckdb.QueryResultColumn.createRowsU64Vector(builder, buffer);
                 break;
             }
             case proto.duckdb.RawTypeID.FLOAT:
-                proto.duckdb.QueryResultColumn.createRowsF32Vector(builder, rows);
+                rowOfs = proto.duckdb.QueryResultColumn.createRowsF32Vector(builder, rows);
                 break;
             case proto.duckdb.RawTypeID.DOUBLE:
-                proto.duckdb.QueryResultColumn.createRowsF64Vector(builder, rows);
+                rowOfs = proto.duckdb.QueryResultColumn.createRowsF64Vector(builder, rows);
                 break;
         }
+
+        // Encode the result column
+        proto.duckdb.QueryResultColumn.startQueryResultColumn(builder);
+        proto.duckdb.QueryResultColumn.addTypeId(builder, typeID);
+        proto.duckdb.QueryResultColumn.addNullMask(builder, nullMaskOfs);
+        switch (typeID) {
+            case proto.duckdb.RawTypeID.BOOLEAN:
+                proto.duckdb.QueryResultColumn.addRowsU8(builder, rowOfs!);
+                break;
+            case proto.duckdb.RawTypeID.TINYINT:
+                proto.duckdb.QueryResultColumn.addRowsI16(builder, rowOfs!);
+                break;
+            case proto.duckdb.RawTypeID.SMALLINT:
+                proto.duckdb.QueryResultColumn.addRowsI32(builder, rowOfs!);
+                break;
+            case proto.duckdb.RawTypeID.INTEGER:
+                proto.duckdb.QueryResultColumn.addRowsI64(builder, rowOfs!);
+                break;
+            case proto.duckdb.RawTypeID.BIGINT:
+                proto.duckdb.QueryResultColumn.addRowsI64(builder, rowOfs!);
+                break;
+            case proto.duckdb.RawTypeID.HASH:
+                proto.duckdb.QueryResultColumn.addRowsU64(builder, rowOfs!);
+                break;
+            case proto.duckdb.RawTypeID.POINTER:
+                proto.duckdb.QueryResultColumn.addRowsU64(builder, rowOfs!);
+                break;
+            case proto.duckdb.RawTypeID.FLOAT:
+                proto.duckdb.QueryResultColumn.addRowsF32(builder, rowOfs!);
+                break;
+            case proto.duckdb.RawTypeID.DOUBLE:
+                proto.duckdb.QueryResultColumn.addRowsF64(builder, rowOfs!);
+                break;
+        }
+        return proto.duckdb.QueryResultColumn.endQueryResultColumn(builder);
+    }
+
+    async writeVarCharColumn(builder: flatbuffers.Builder, rows: [string]): Promise<flatbuffers.Offset> {
+        // Encode the null mask
+        let nullMask = new Array<boolean>();
+        nullMask.length = rows.length;
+        nullMask.fill(true);
+        let nullMaskOfs = proto.duckdb.QueryResultColumn.createNullMaskVector(builder, nullMask);
+
+        // Encode the rows
+        let strings = rows.map(row => builder.createString(row));
+        let rowsOfs = proto.duckdb.QueryResultColumn.createRowsStringVector(builder, strings);
+
+        // Encode the result column
+        proto.duckdb.QueryResultColumn.startQueryResultColumn(builder);
+        proto.duckdb.QueryResultColumn.addTypeId(builder, proto.duckdb.RawTypeID.VARCHAR);
+        proto.duckdb.QueryResultColumn.addNullMask(builder, nullMaskOfs);
+        proto.duckdb.QueryResultColumn.addRowsString(builder, rowsOfs);
+        return proto.duckdb.QueryResultColumn.endQueryResultColumn(builder);
     }
 
     async loadTestQueryResults() {
