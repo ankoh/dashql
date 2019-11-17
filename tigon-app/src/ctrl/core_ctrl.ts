@@ -1,5 +1,5 @@
 import * as proto from 'tigon-proto';
-import { CoreBuffer, TQLModuleBuffer, QueryPlanBuffer, QueryResultBuffer, FormattedTextBuffer } from '../model';
+import { CoreBuffer, TQLModuleBuffer, QueryPlanBuffer, QueryResultBuffer, FormattedTextBuffer, RawDataBuffer } from '../model';
 
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
@@ -93,6 +93,17 @@ export class CoreController {
         await this.waitUntilReady();
         this.core.ccall('tigon_end_session', 'void', ['number'], [session]);
         return Promise.resolve();
+    }
+
+    // Register a buffer
+    public async registerBuffer(session: number, buffer: flatbuffers.ByteBuffer): Promise<CoreBuffer<proto.web_api.RawData>> {
+        let length = buffer.bytes().length - buffer.position();
+        let bufferMem = buffer.bytes().subarray(buffer.position());
+        var heapPtr = this.core.allocate(length, 'i8', this.core.ALLOC_HEAP); 
+        let heapMem = this.core.HEAPU8.subarray(heapPtr, heapPtr + length);
+        heapMem.set(bufferMem);
+        this.core.ccall('tigon_register_buffer', 'void', ['number', 'number'], [heapPtr, length]);
+        return Promise.resolve(new RawDataBuffer(this.core, session, heapPtr, length));
     }
 
     // Parse TQL

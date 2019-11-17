@@ -9,6 +9,7 @@
 #include "duckdb.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "flatbuffers/flatbuffers.h"
+#include "tigon/common/span.h"
 #include "tigon/proto/web_api_generated.h"
 #include "tigon/proto/tql_generated.h"
 #include "tigon/proto/duckdb_generated.h"
@@ -75,6 +76,32 @@ class WebAPI {
         void writePacked(Packed& buffer);
     };
 
+    // An adopted buffer
+    class AdoptedBuffer {
+        /// The bytes
+        nonstd::span<std::byte> bytes;
+
+        public:
+        // Constructor
+        AdoptedBuffer(nonstd::span<std::byte> s)
+            : bytes(s) {}
+        // Destructor
+        ~AdoptedBuffer() { delete bytes.data(); }
+        // Move construction
+        AdoptedBuffer(AdoptedBuffer&& other)
+            : bytes(other.bytes) {}
+        // Delete the copy constructor
+        AdoptedBuffer(const AdoptedBuffer& other) = delete;
+        // Move assignment
+        AdoptedBuffer& operator=(AdoptedBuffer&& other) {
+            delete bytes.data();
+            bytes = std::move(other.bytes);
+            return *this;
+        }
+        // Delete the copy assignment
+        AdoptedBuffer& operator=(const AdoptedBuffer& other) = delete;
+    };
+
     /// A session
     class Session {
         friend class Response;
@@ -82,15 +109,15 @@ class WebAPI {
         protected:
         /// The database
         std::shared_ptr<duckdb::DuckDB> database;
-        /// The buffers linked to this session
-        std::unordered_map<void*, flatbuffers::DetachedBuffer> buffers;
+        /// The detached flatbuffers owned by this session
+        std::unordered_map<void*, flatbuffers::DetachedBuffer> detachedBuffers;
+        /// The adopted buffers owned by this session
+        std::unordered_map<void*, AdoptedBuffer> adoptedBuffers;
         /// The (last) response
         Response response;
         /// The next query id
         uint64_t nextQueryID;
 
-        /// Register a buffer
-        std::pair<void*, size_t> registerBuffer(flatbuffers::DetachedBuffer buffer);
         /// Allocate a query id
         uint64_t allocateQueryID() { return ++nextQueryID; }
 
@@ -104,6 +131,10 @@ class WebAPI {
         auto& getResponse() { return response; }
         /// Write the response
         void writePackedResponse(Response::Packed& packed);
+        /// Register a detached flatbuffer buffer
+        std::pair<void*, size_t> registerBuffer(flatbuffers::DetachedBuffer buffer);
+        /// Register a raw buffer
+        std::pair<void*, size_t> registerBuffer(nonstd::span<std::byte> buffer);
         /// Release a buffer
         void releaseBuffer(void* buffer);
 

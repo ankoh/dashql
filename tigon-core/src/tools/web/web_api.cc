@@ -72,7 +72,7 @@ WebAPI::Response::~Response() {
 
 /// Constructor
 WebAPI::Session::Session(std::shared_ptr<duckdb::DuckDB> database)
-    : database(std::move(database)), buffers(), response(*this), nextQueryID() {}
+    : database(std::move(database)), detachedBuffers(), adoptedBuffers(), response(*this), nextQueryID() {}
 
 /// Destructor
 WebAPI::Session::~Session() {}
@@ -86,12 +86,23 @@ void WebAPI::Session::writePackedResponse(Response::Packed& packed) {
 std::pair<void*, size_t> WebAPI::Session::registerBuffer(flatbuffers::DetachedBuffer detached) {
     auto dataPtr = detached.data();
     auto dataSize = detached.size();
-    buffers.insert({dataPtr, std::move(detached)});
+    detachedBuffers.insert({dataPtr, std::move(detached)});
+    return {dataPtr, dataSize};
+}
+
+/// Register a buffer
+std::pair<void*, size_t> WebAPI::Session::registerBuffer(nonstd::span<std::byte> bytes) {
+    auto dataPtr = bytes.data();
+    auto dataSize = bytes.size();
+    adoptedBuffers.insert({dataPtr, AdoptedBuffer{bytes}});
     return {dataPtr, dataSize};
 }
 
 /// Release a buffer
-void WebAPI::Session::releaseBuffer(void* data) { buffers.erase(data); }
+void WebAPI::Session::releaseBuffer(void* data) {
+    detachedBuffers.erase(data);
+    adoptedBuffers.erase(data);
+}
 
 /// Parse TQL
 void WebAPI::Session::parseTQL(std::string_view text) {

@@ -14,7 +14,7 @@ export class DemoController {
         this.log = log;
     }
 
-    async loadTestModule() {
+    async loadModule1() {
         await this.core.waitUntilReady();
         let session = await this.core.createSession();
         let tql = await this.core.parseTQL(session, `
@@ -34,6 +34,11 @@ export class DemoController {
             VIZ temp_weekly_bar FROM temp_weekly USING BAR CHART;
         `);
         this.store.dispatch(Model.pushTransientTQLModule(tql));
+    }
+
+    async loadResult1() {
+        await this.core.waitUntilReady();
+        let session = await this.core.createSession();
     }
 };
 
@@ -105,10 +110,10 @@ export class QueryResultBuilder {
 
         // Encode result
         proto.duckdb.QueryResult.startQueryResult(builder);
-        proto.duckdb.QueryResult.addDataChunks(builder, chunksOfs);
         proto.duckdb.QueryResult.addColumnNames(builder, namesOfs);
-        proto.duckdb.QueryResult.addColumnRawTypes(builder, rawTypesOfs);
         proto.duckdb.QueryResult.addColumnSqlTypes(builder, sqlTypesOfs);
+        proto.duckdb.QueryResult.addColumnRawTypes(builder, rawTypesOfs);
+        proto.duckdb.QueryResult.addDataChunks(builder, chunksOfs);
         return proto.duckdb.QueryResult.endQueryResult(builder);
     }
 

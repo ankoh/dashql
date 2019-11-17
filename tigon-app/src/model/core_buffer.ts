@@ -35,6 +35,12 @@ export abstract class CoreBuffer<ProtoBuffer> {
     public getData(): number { return this.data; }
 };
 
+export class RawDataBuffer extends CoreBuffer<proto.web_api.RawData> {
+    public getRoot(buffer: flatbuffers.ByteBuffer) {
+        return proto.web_api.RawData.getRootAsRawData(buffer);
+    }
+}
+
 export class TQLModuleBuffer extends CoreBuffer<proto.tql.TQLModule> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
         return proto.tql.TQLModule.getRootAsTQLModule(buffer);

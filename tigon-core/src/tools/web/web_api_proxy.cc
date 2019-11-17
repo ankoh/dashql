@@ -48,6 +48,10 @@ void tigon_end_session(WebAPI::Session *session) {
 }
 
 /// Release a buffer
+void tigon_register_buffer(WebAPI::Session *session, void* buffer, unsigned buffer_length) {
+    session->registerBuffer(nonstd::span{static_cast<std::byte*>(buffer), static_cast<long>(buffer_length)});
+}
+/// Release a buffer
 void tigon_release_buffer(WebAPI::Session *session, void* buffer) {
     session->releaseBuffer(buffer);
 }
