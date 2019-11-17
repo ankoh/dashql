@@ -420,7 +420,7 @@ nullMaskArray():Int8Array|null {
  * @param number index
  * @returns number
  */
-fixedLengthData(index: number):number|null {
+rowsU8(index: number):number|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index) : 0;
 };
@@ -428,7 +428,7 @@ fixedLengthData(index: number):number|null {
 /**
  * @returns number
  */
-fixedLengthDataLength():number {
+rowsU8Length():number {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
@@ -436,9 +436,168 @@ fixedLengthDataLength():number {
 /**
  * @returns Uint8Array
  */
-fixedLengthDataArray():Uint8Array|null {
+rowsU8Array():Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+};
+
+/**
+ * @param number index
+ * @returns number
+ */
+rowsI16(index: number):number|null {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.readInt16(this.bb!.__vector(this.bb_pos + offset) + index * 2) : 0;
+};
+
+/**
+ * @returns number
+ */
+rowsI16Length():number {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns Int16Array
+ */
+rowsI16Array():Int16Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? new Int16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+};
+
+/**
+ * @param number index
+ * @returns number
+ */
+rowsU16(index: number):number|null {
+  var offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.readUint16(this.bb!.__vector(this.bb_pos + offset) + index * 2) : 0;
+};
+
+/**
+ * @returns number
+ */
+rowsU16Length():number {
+  var offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns Uint16Array
+ */
+rowsU16Array():Uint16Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+};
+
+/**
+ * @param number index
+ * @returns number
+ */
+rowsI32(index: number):number|null {
+  var offset = this.bb!.__offset(this.bb_pos, 14);
+  return offset ? this.bb!.readInt32(this.bb!.__vector(this.bb_pos + offset) + index * 4) : 0;
+};
+
+/**
+ * @returns number
+ */
+rowsI32Length():number {
+  var offset = this.bb!.__offset(this.bb_pos, 14);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns Int32Array
+ */
+rowsI32Array():Int32Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 14);
+  return offset ? new Int32Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+};
+
+/**
+ * @param number index
+ * @returns flatbuffers.Long
+ */
+rowsI64(index: number):flatbuffers.Long|null {
+  var offset = this.bb!.__offset(this.bb_pos, 16);
+  return offset ? this.bb!.readInt64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : this.bb!.createLong(0, 0);
+};
+
+/**
+ * @returns number
+ */
+rowsI64Length():number {
+  var offset = this.bb!.__offset(this.bb_pos, 16);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number index
+ * @returns flatbuffers.Long
+ */
+rowsU64(index: number):flatbuffers.Long|null {
+  var offset = this.bb!.__offset(this.bb_pos, 18);
+  return offset ? this.bb!.readUint64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : this.bb!.createLong(0, 0);
+};
+
+/**
+ * @returns number
+ */
+rowsU64Length():number {
+  var offset = this.bb!.__offset(this.bb_pos, 18);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number index
+ * @returns number
+ */
+rowsF32(index: number):number|null {
+  var offset = this.bb!.__offset(this.bb_pos, 20);
+  return offset ? this.bb!.readFloat32(this.bb!.__vector(this.bb_pos + offset) + index * 4) : 0;
+};
+
+/**
+ * @returns number
+ */
+rowsF32Length():number {
+  var offset = this.bb!.__offset(this.bb_pos, 20);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns Float32Array
+ */
+rowsF32Array():Float32Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 20);
+  return offset ? new Float32Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+};
+
+/**
+ * @param number index
+ * @returns number
+ */
+rowsF64(index: number):number|null {
+  var offset = this.bb!.__offset(this.bb_pos, 22);
+  return offset ? this.bb!.readFloat64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : 0;
+};
+
+/**
+ * @returns number
+ */
+rowsF64Length():number {
+  var offset = this.bb!.__offset(this.bb_pos, 22);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns Float64Array
+ */
+rowsF64Array():Float64Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 22);
+  return offset ? new Float64Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
 
 /**
@@ -446,18 +605,18 @@ fixedLengthDataArray():Uint8Array|null {
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array
  */
-stringData(index: number):string
-stringData(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
-stringData(index: number,optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+rowsString(index: number):string
+rowsString(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
+rowsString(index: number,optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 24);
   return offset ? this.bb!.__string(this.bb!.__vector(this.bb_pos + offset) + index * 4, optionalEncoding) : null;
 };
 
 /**
  * @returns number
  */
-stringDataLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+rowsStringLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 24);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -465,7 +624,7 @@ stringDataLength():number {
  * @param flatbuffers.Builder builder
  */
 static startQueryResultColumn(builder:flatbuffers.Builder) {
-  builder.startObject(4);
+  builder.startObject(11);
 };
 
 /**
@@ -507,10 +666,10 @@ static startNullMaskVector(builder:flatbuffers.Builder, numElems:number) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset fixedLengthDataOffset
+ * @param flatbuffers.Offset rowsU8Offset
  */
-static addFixedLengthData(builder:flatbuffers.Builder, fixedLengthDataOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, fixedLengthDataOffset, 0);
+static addRowsU8(builder:flatbuffers.Builder, rowsU8Offset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, rowsU8Offset, 0);
 };
 
 /**
@@ -518,7 +677,7 @@ static addFixedLengthData(builder:flatbuffers.Builder, fixedLengthDataOffset:fla
  * @param Array.<number> data
  * @returns flatbuffers.Offset
  */
-static createFixedLengthDataVector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
+static createRowsU8Vector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
   builder.startVector(1, data.length, 1);
   for (var i = data.length - 1; i >= 0; i--) {
     builder.addInt8(data[i]);
@@ -530,16 +689,219 @@ static createFixedLengthDataVector(builder:flatbuffers.Builder, data:number[] | 
  * @param flatbuffers.Builder builder
  * @param number numElems
  */
-static startFixedLengthDataVector(builder:flatbuffers.Builder, numElems:number) {
+static startRowsU8Vector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(1, numElems, 1);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset stringDataOffset
+ * @param flatbuffers.Offset rowsI16Offset
  */
-static addStringData(builder:flatbuffers.Builder, stringDataOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, stringDataOffset, 0);
+static addRowsI16(builder:flatbuffers.Builder, rowsI16Offset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, rowsI16Offset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<number> data
+ * @returns flatbuffers.Offset
+ */
+static createRowsI16Vector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
+  builder.startVector(2, data.length, 2);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addInt16(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startRowsI16Vector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(2, numElems, 2);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset rowsU16Offset
+ */
+static addRowsU16(builder:flatbuffers.Builder, rowsU16Offset:flatbuffers.Offset) {
+  builder.addFieldOffset(4, rowsU16Offset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<number> data
+ * @returns flatbuffers.Offset
+ */
+static createRowsU16Vector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
+  builder.startVector(2, data.length, 2);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addInt16(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startRowsU16Vector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(2, numElems, 2);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset rowsI32Offset
+ */
+static addRowsI32(builder:flatbuffers.Builder, rowsI32Offset:flatbuffers.Offset) {
+  builder.addFieldOffset(5, rowsI32Offset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<number> data
+ * @returns flatbuffers.Offset
+ */
+static createRowsI32Vector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addInt32(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startRowsI32Vector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset rowsI64Offset
+ */
+static addRowsI64(builder:flatbuffers.Builder, rowsI64Offset:flatbuffers.Offset) {
+  builder.addFieldOffset(6, rowsI64Offset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<flatbuffers.Long> data
+ * @returns flatbuffers.Offset
+ */
+static createRowsI64Vector(builder:flatbuffers.Builder, data:flatbuffers.Long[]):flatbuffers.Offset {
+  builder.startVector(8, data.length, 8);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addInt64(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startRowsI64Vector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(8, numElems, 8);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset rowsU64Offset
+ */
+static addRowsU64(builder:flatbuffers.Builder, rowsU64Offset:flatbuffers.Offset) {
+  builder.addFieldOffset(7, rowsU64Offset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<flatbuffers.Long> data
+ * @returns flatbuffers.Offset
+ */
+static createRowsU64Vector(builder:flatbuffers.Builder, data:flatbuffers.Long[]):flatbuffers.Offset {
+  builder.startVector(8, data.length, 8);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addInt64(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startRowsU64Vector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(8, numElems, 8);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset rowsF32Offset
+ */
+static addRowsF32(builder:flatbuffers.Builder, rowsF32Offset:flatbuffers.Offset) {
+  builder.addFieldOffset(8, rowsF32Offset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<number> data
+ * @returns flatbuffers.Offset
+ */
+static createRowsF32Vector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addFloat32(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startRowsF32Vector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset rowsF64Offset
+ */
+static addRowsF64(builder:flatbuffers.Builder, rowsF64Offset:flatbuffers.Offset) {
+  builder.addFieldOffset(9, rowsF64Offset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<number> data
+ * @returns flatbuffers.Offset
+ */
+static createRowsF64Vector(builder:flatbuffers.Builder, data:number[] | Uint8Array):flatbuffers.Offset {
+  builder.startVector(8, data.length, 8);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addFloat64(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startRowsF64Vector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(8, numElems, 8);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset rowsStringOffset
+ */
+static addRowsString(builder:flatbuffers.Builder, rowsStringOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(10, rowsStringOffset, 0);
 };
 
 /**
@@ -547,7 +909,7 @@ static addStringData(builder:flatbuffers.Builder, stringDataOffset:flatbuffers.O
  * @param Array.<flatbuffers.Offset> data
  * @returns flatbuffers.Offset
  */
-static createStringDataVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+static createRowsStringVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
   builder.startVector(4, data.length, 4);
   for (var i = data.length - 1; i >= 0; i--) {
     builder.addOffset(data[i]);
@@ -559,7 +921,7 @@ static createStringDataVector(builder:flatbuffers.Builder, data:flatbuffers.Offs
  * @param flatbuffers.Builder builder
  * @param number numElems
  */
-static startStringDataVector(builder:flatbuffers.Builder, numElems:number) {
+static startRowsStringVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
 };
 
@@ -572,12 +934,19 @@ static endQueryResultColumn(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createQueryResultColumn(builder:flatbuffers.Builder, typeId:RawTypeID, nullMaskOffset:flatbuffers.Offset, fixedLengthDataOffset:flatbuffers.Offset, stringDataOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createQueryResultColumn(builder:flatbuffers.Builder, typeId:RawTypeID, nullMaskOffset:flatbuffers.Offset, rowsU8Offset:flatbuffers.Offset, rowsI16Offset:flatbuffers.Offset, rowsU16Offset:flatbuffers.Offset, rowsI32Offset:flatbuffers.Offset, rowsI64Offset:flatbuffers.Offset, rowsU64Offset:flatbuffers.Offset, rowsF32Offset:flatbuffers.Offset, rowsF64Offset:flatbuffers.Offset, rowsStringOffset:flatbuffers.Offset):flatbuffers.Offset {
   QueryResultColumn.startQueryResultColumn(builder);
   QueryResultColumn.addTypeId(builder, typeId);
   QueryResultColumn.addNullMask(builder, nullMaskOffset);
-  QueryResultColumn.addFixedLengthData(builder, fixedLengthDataOffset);
-  QueryResultColumn.addStringData(builder, stringDataOffset);
+  QueryResultColumn.addRowsU8(builder, rowsU8Offset);
+  QueryResultColumn.addRowsI16(builder, rowsI16Offset);
+  QueryResultColumn.addRowsU16(builder, rowsU16Offset);
+  QueryResultColumn.addRowsI32(builder, rowsI32Offset);
+  QueryResultColumn.addRowsI64(builder, rowsI64Offset);
+  QueryResultColumn.addRowsU64(builder, rowsU64Offset);
+  QueryResultColumn.addRowsF32(builder, rowsF32Offset);
+  QueryResultColumn.addRowsF64(builder, rowsF64Offset);
+  QueryResultColumn.addRowsString(builder, rowsStringOffset);
   return QueryResultColumn.endQueryResultColumn(builder);
 }
 }

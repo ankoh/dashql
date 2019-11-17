@@ -36,6 +36,16 @@ export class DemoController {
         this.store.dispatch(Model.pushTransientTQLModule(tql));
     }
 
+    async encodeFixedLengthQueryResultColumn() {
+        // type_id: RawTypeID;
+        // null_mask: [bool];
+        // fixed_length_data: [ubyte];
+        // string_data: [string];
+        
+    }
+
     async loadTestQueryResults() {
+        let builder = new flatbuffers.Builder();
+        let queryResult = proto.duckdb.QueryResult.startQueryResult(builder);
     }
 };

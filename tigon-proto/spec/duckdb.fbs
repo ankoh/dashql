@@ -107,8 +107,15 @@ table QueryPlan {
 table QueryResultColumn {
     type_id: RawTypeID;
     null_mask: [bool];
-    fixed_length_data: [ubyte];
-    string_data: [string];
+    rows_u8: [ubyte];
+    rows_i16: [short];
+    rows_u16: [ushort];
+    rows_i32: [int];
+    rows_i64: [long];
+    rows_u64: [ulong];
+    rows_f32: [float];
+    rows_f64: [double];
+    rows_string: [string];
 }
 
 // A data chunk

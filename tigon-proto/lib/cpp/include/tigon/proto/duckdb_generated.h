@@ -480,8 +480,15 @@ struct QueryResultColumnT : public flatbuffers::NativeTable {
   }
   tigon::proto::RawTypeID type_id;
   std::vector<bool> null_mask;
-  std::vector<uint8_t> fixed_length_data;
-  std::vector<std::string> string_data;
+  std::vector<uint8_t> rows_u8;
+  std::vector<int16_t> rows_i16;
+  std::vector<uint16_t> rows_u16;
+  std::vector<int32_t> rows_i32;
+  std::vector<int64_t> rows_i64;
+  std::vector<uint64_t> rows_u64;
+  std::vector<float> rows_f32;
+  std::vector<double> rows_f64;
+  std::vector<std::string> rows_string;
   QueryResultColumnT()
       : type_id(tigon::proto::RawTypeID::INVALID) {
   }
@@ -491,8 +498,15 @@ inline bool operator==(const QueryResultColumnT &lhs, const QueryResultColumnT &
   return
       (lhs.type_id == rhs.type_id) &&
       (lhs.null_mask == rhs.null_mask) &&
-      (lhs.fixed_length_data == rhs.fixed_length_data) &&
-      (lhs.string_data == rhs.string_data);
+      (lhs.rows_u8 == rhs.rows_u8) &&
+      (lhs.rows_i16 == rhs.rows_i16) &&
+      (lhs.rows_u16 == rhs.rows_u16) &&
+      (lhs.rows_i32 == rhs.rows_i32) &&
+      (lhs.rows_i64 == rhs.rows_i64) &&
+      (lhs.rows_u64 == rhs.rows_u64) &&
+      (lhs.rows_f32 == rhs.rows_f32) &&
+      (lhs.rows_f64 == rhs.rows_f64) &&
+      (lhs.rows_string == rhs.rows_string);
 }
 
 inline bool operator!=(const QueryResultColumnT &lhs, const QueryResultColumnT &rhs) {
@@ -511,8 +525,15 @@ struct QueryResultColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TYPE_ID = 4,
     VT_NULL_MASK = 6,
-    VT_FIXED_LENGTH_DATA = 8,
-    VT_STRING_DATA = 10
+    VT_ROWS_U8 = 8,
+    VT_ROWS_I16 = 10,
+    VT_ROWS_U16 = 12,
+    VT_ROWS_I32 = 14,
+    VT_ROWS_I64 = 16,
+    VT_ROWS_U64 = 18,
+    VT_ROWS_F32 = 20,
+    VT_ROWS_F64 = 22,
+    VT_ROWS_STRING = 24
   };
   tigon::proto::RawTypeID type_id() const {
     return static_cast<tigon::proto::RawTypeID>(GetField<uint8_t>(VT_TYPE_ID, 0));
@@ -520,22 +541,57 @@ struct QueryResultColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<uint8_t> *null_mask() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_NULL_MASK);
   }
-  const flatbuffers::Vector<uint8_t> *fixed_length_data() const {
-    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_FIXED_LENGTH_DATA);
+  const flatbuffers::Vector<uint8_t> *rows_u8() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_ROWS_U8);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *string_data() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_STRING_DATA);
+  const flatbuffers::Vector<int16_t> *rows_i16() const {
+    return GetPointer<const flatbuffers::Vector<int16_t> *>(VT_ROWS_I16);
+  }
+  const flatbuffers::Vector<uint16_t> *rows_u16() const {
+    return GetPointer<const flatbuffers::Vector<uint16_t> *>(VT_ROWS_U16);
+  }
+  const flatbuffers::Vector<int32_t> *rows_i32() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ROWS_I32);
+  }
+  const flatbuffers::Vector<int64_t> *rows_i64() const {
+    return GetPointer<const flatbuffers::Vector<int64_t> *>(VT_ROWS_I64);
+  }
+  const flatbuffers::Vector<uint64_t> *rows_u64() const {
+    return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_ROWS_U64);
+  }
+  const flatbuffers::Vector<float> *rows_f32() const {
+    return GetPointer<const flatbuffers::Vector<float> *>(VT_ROWS_F32);
+  }
+  const flatbuffers::Vector<double> *rows_f64() const {
+    return GetPointer<const flatbuffers::Vector<double> *>(VT_ROWS_F64);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *rows_string() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_ROWS_STRING);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_TYPE_ID) &&
            VerifyOffset(verifier, VT_NULL_MASK) &&
            verifier.VerifyVector(null_mask()) &&
-           VerifyOffset(verifier, VT_FIXED_LENGTH_DATA) &&
-           verifier.VerifyVector(fixed_length_data()) &&
-           VerifyOffset(verifier, VT_STRING_DATA) &&
-           verifier.VerifyVector(string_data()) &&
-           verifier.VerifyVectorOfStrings(string_data()) &&
+           VerifyOffset(verifier, VT_ROWS_U8) &&
+           verifier.VerifyVector(rows_u8()) &&
+           VerifyOffset(verifier, VT_ROWS_I16) &&
+           verifier.VerifyVector(rows_i16()) &&
+           VerifyOffset(verifier, VT_ROWS_U16) &&
+           verifier.VerifyVector(rows_u16()) &&
+           VerifyOffset(verifier, VT_ROWS_I32) &&
+           verifier.VerifyVector(rows_i32()) &&
+           VerifyOffset(verifier, VT_ROWS_I64) &&
+           verifier.VerifyVector(rows_i64()) &&
+           VerifyOffset(verifier, VT_ROWS_U64) &&
+           verifier.VerifyVector(rows_u64()) &&
+           VerifyOffset(verifier, VT_ROWS_F32) &&
+           verifier.VerifyVector(rows_f32()) &&
+           VerifyOffset(verifier, VT_ROWS_F64) &&
+           verifier.VerifyVector(rows_f64()) &&
+           VerifyOffset(verifier, VT_ROWS_STRING) &&
+           verifier.VerifyVector(rows_string()) &&
+           verifier.VerifyVectorOfStrings(rows_string()) &&
            verifier.EndTable();
   }
   QueryResultColumnT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -552,11 +608,32 @@ struct QueryResultColumnBuilder {
   void add_null_mask(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> null_mask) {
     fbb_.AddOffset(QueryResultColumn::VT_NULL_MASK, null_mask);
   }
-  void add_fixed_length_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> fixed_length_data) {
-    fbb_.AddOffset(QueryResultColumn::VT_FIXED_LENGTH_DATA, fixed_length_data);
+  void add_rows_u8(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> rows_u8) {
+    fbb_.AddOffset(QueryResultColumn::VT_ROWS_U8, rows_u8);
   }
-  void add_string_data(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> string_data) {
-    fbb_.AddOffset(QueryResultColumn::VT_STRING_DATA, string_data);
+  void add_rows_i16(flatbuffers::Offset<flatbuffers::Vector<int16_t>> rows_i16) {
+    fbb_.AddOffset(QueryResultColumn::VT_ROWS_I16, rows_i16);
+  }
+  void add_rows_u16(flatbuffers::Offset<flatbuffers::Vector<uint16_t>> rows_u16) {
+    fbb_.AddOffset(QueryResultColumn::VT_ROWS_U16, rows_u16);
+  }
+  void add_rows_i32(flatbuffers::Offset<flatbuffers::Vector<int32_t>> rows_i32) {
+    fbb_.AddOffset(QueryResultColumn::VT_ROWS_I32, rows_i32);
+  }
+  void add_rows_i64(flatbuffers::Offset<flatbuffers::Vector<int64_t>> rows_i64) {
+    fbb_.AddOffset(QueryResultColumn::VT_ROWS_I64, rows_i64);
+  }
+  void add_rows_u64(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> rows_u64) {
+    fbb_.AddOffset(QueryResultColumn::VT_ROWS_U64, rows_u64);
+  }
+  void add_rows_f32(flatbuffers::Offset<flatbuffers::Vector<float>> rows_f32) {
+    fbb_.AddOffset(QueryResultColumn::VT_ROWS_F32, rows_f32);
+  }
+  void add_rows_f64(flatbuffers::Offset<flatbuffers::Vector<double>> rows_f64) {
+    fbb_.AddOffset(QueryResultColumn::VT_ROWS_F64, rows_f64);
+  }
+  void add_rows_string(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> rows_string) {
+    fbb_.AddOffset(QueryResultColumn::VT_ROWS_STRING, rows_string);
   }
   explicit QueryResultColumnBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -574,11 +651,25 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumn(
     flatbuffers::FlatBufferBuilder &_fbb,
     tigon::proto::RawTypeID type_id = tigon::proto::RawTypeID::INVALID,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> null_mask = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> fixed_length_data = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> string_data = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> rows_u8 = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int16_t>> rows_i16 = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint16_t>> rows_u16 = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> rows_i32 = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int64_t>> rows_i64 = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint64_t>> rows_u64 = 0,
+    flatbuffers::Offset<flatbuffers::Vector<float>> rows_f32 = 0,
+    flatbuffers::Offset<flatbuffers::Vector<double>> rows_f64 = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> rows_string = 0) {
   QueryResultColumnBuilder builder_(_fbb);
-  builder_.add_string_data(string_data);
-  builder_.add_fixed_length_data(fixed_length_data);
+  builder_.add_rows_string(rows_string);
+  builder_.add_rows_f64(rows_f64);
+  builder_.add_rows_f32(rows_f32);
+  builder_.add_rows_u64(rows_u64);
+  builder_.add_rows_i64(rows_i64);
+  builder_.add_rows_i32(rows_i32);
+  builder_.add_rows_u16(rows_u16);
+  builder_.add_rows_i16(rows_i16);
+  builder_.add_rows_u8(rows_u8);
   builder_.add_null_mask(null_mask);
   builder_.add_type_id(type_id);
   return builder_.Finish();
@@ -588,17 +679,38 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumnDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     tigon::proto::RawTypeID type_id = tigon::proto::RawTypeID::INVALID,
     const std::vector<uint8_t> *null_mask = nullptr,
-    const std::vector<uint8_t> *fixed_length_data = nullptr,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *string_data = nullptr) {
+    const std::vector<uint8_t> *rows_u8 = nullptr,
+    const std::vector<int16_t> *rows_i16 = nullptr,
+    const std::vector<uint16_t> *rows_u16 = nullptr,
+    const std::vector<int32_t> *rows_i32 = nullptr,
+    const std::vector<int64_t> *rows_i64 = nullptr,
+    const std::vector<uint64_t> *rows_u64 = nullptr,
+    const std::vector<float> *rows_f32 = nullptr,
+    const std::vector<double> *rows_f64 = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *rows_string = nullptr) {
   auto null_mask__ = null_mask ? _fbb.CreateVector<uint8_t>(*null_mask) : 0;
-  auto fixed_length_data__ = fixed_length_data ? _fbb.CreateVector<uint8_t>(*fixed_length_data) : 0;
-  auto string_data__ = string_data ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*string_data) : 0;
+  auto rows_u8__ = rows_u8 ? _fbb.CreateVector<uint8_t>(*rows_u8) : 0;
+  auto rows_i16__ = rows_i16 ? _fbb.CreateVector<int16_t>(*rows_i16) : 0;
+  auto rows_u16__ = rows_u16 ? _fbb.CreateVector<uint16_t>(*rows_u16) : 0;
+  auto rows_i32__ = rows_i32 ? _fbb.CreateVector<int32_t>(*rows_i32) : 0;
+  auto rows_i64__ = rows_i64 ? _fbb.CreateVector<int64_t>(*rows_i64) : 0;
+  auto rows_u64__ = rows_u64 ? _fbb.CreateVector<uint64_t>(*rows_u64) : 0;
+  auto rows_f32__ = rows_f32 ? _fbb.CreateVector<float>(*rows_f32) : 0;
+  auto rows_f64__ = rows_f64 ? _fbb.CreateVector<double>(*rows_f64) : 0;
+  auto rows_string__ = rows_string ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*rows_string) : 0;
   return tigon::proto::CreateQueryResultColumn(
       _fbb,
       type_id,
       null_mask__,
-      fixed_length_data__,
-      string_data__);
+      rows_u8__,
+      rows_i16__,
+      rows_u16__,
+      rows_i32__,
+      rows_i64__,
+      rows_u64__,
+      rows_f32__,
+      rows_f64__,
+      rows_string__);
 }
 
 flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumn(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultColumnT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -891,8 +1003,15 @@ inline void QueryResultColumn::UnPackTo(QueryResultColumnT *_o, const flatbuffer
   (void)_resolver;
   { auto _e = type_id(); _o->type_id = _e; }
   { auto _e = null_mask(); if (_e) { _o->null_mask.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->null_mask[_i] = _e->Get(_i) != 0; } } }
-  { auto _e = fixed_length_data(); if (_e) { _o->fixed_length_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->fixed_length_data[_i] = _e->Get(_i); } } }
-  { auto _e = string_data(); if (_e) { _o->string_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->string_data[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = rows_u8(); if (_e) { _o->rows_u8.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_u8[_i] = _e->Get(_i); } } }
+  { auto _e = rows_i16(); if (_e) { _o->rows_i16.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_i16[_i] = _e->Get(_i); } } }
+  { auto _e = rows_u16(); if (_e) { _o->rows_u16.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_u16[_i] = _e->Get(_i); } } }
+  { auto _e = rows_i32(); if (_e) { _o->rows_i32.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_i32[_i] = _e->Get(_i); } } }
+  { auto _e = rows_i64(); if (_e) { _o->rows_i64.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_i64[_i] = _e->Get(_i); } } }
+  { auto _e = rows_u64(); if (_e) { _o->rows_u64.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_u64[_i] = _e->Get(_i); } } }
+  { auto _e = rows_f32(); if (_e) { _o->rows_f32.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_f32[_i] = _e->Get(_i); } } }
+  { auto _e = rows_f64(); if (_e) { _o->rows_f64.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_f64[_i] = _e->Get(_i); } } }
+  { auto _e = rows_string(); if (_e) { _o->rows_string.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_string[_i] = _e->Get(_i)->str(); } } }
 }
 
 inline flatbuffers::Offset<QueryResultColumn> QueryResultColumn::Pack(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultColumnT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -905,14 +1024,28 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumn(flatbuffer
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const QueryResultColumnT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _type_id = _o->type_id;
   auto _null_mask = _o->null_mask.size() ? _fbb.CreateVector(_o->null_mask) : 0;
-  auto _fixed_length_data = _o->fixed_length_data.size() ? _fbb.CreateVector(_o->fixed_length_data) : 0;
-  auto _string_data = _o->string_data.size() ? _fbb.CreateVectorOfStrings(_o->string_data) : 0;
+  auto _rows_u8 = _o->rows_u8.size() ? _fbb.CreateVector(_o->rows_u8) : 0;
+  auto _rows_i16 = _o->rows_i16.size() ? _fbb.CreateVector(_o->rows_i16) : 0;
+  auto _rows_u16 = _o->rows_u16.size() ? _fbb.CreateVector(_o->rows_u16) : 0;
+  auto _rows_i32 = _o->rows_i32.size() ? _fbb.CreateVector(_o->rows_i32) : 0;
+  auto _rows_i64 = _o->rows_i64.size() ? _fbb.CreateVector(_o->rows_i64) : 0;
+  auto _rows_u64 = _o->rows_u64.size() ? _fbb.CreateVector(_o->rows_u64) : 0;
+  auto _rows_f32 = _o->rows_f32.size() ? _fbb.CreateVector(_o->rows_f32) : 0;
+  auto _rows_f64 = _o->rows_f64.size() ? _fbb.CreateVector(_o->rows_f64) : 0;
+  auto _rows_string = _o->rows_string.size() ? _fbb.CreateVectorOfStrings(_o->rows_string) : 0;
   return tigon::proto::CreateQueryResultColumn(
       _fbb,
       _type_id,
       _null_mask,
-      _fixed_length_data,
-      _string_data);
+      _rows_u8,
+      _rows_i16,
+      _rows_u16,
+      _rows_i32,
+      _rows_i64,
+      _rows_u64,
+      _rows_f32,
+      _rows_f64,
+      _rows_string);
 }
 
 inline QueryResultChunkT *QueryResultChunk::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -1198,6 +1331,13 @@ inline const flatbuffers::TypeTable *QueryResultColumnTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_BOOL, 1, -1 },
     { flatbuffers::ET_UCHAR, 1, -1 },
+    { flatbuffers::ET_SHORT, 1, -1 },
+    { flatbuffers::ET_USHORT, 1, -1 },
+    { flatbuffers::ET_INT, 1, -1 },
+    { flatbuffers::ET_LONG, 1, -1 },
+    { flatbuffers::ET_ULONG, 1, -1 },
+    { flatbuffers::ET_FLOAT, 1, -1 },
+    { flatbuffers::ET_DOUBLE, 1, -1 },
     { flatbuffers::ET_STRING, 1, -1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1206,11 +1346,18 @@ inline const flatbuffers::TypeTable *QueryResultColumnTypeTable() {
   static const char * const names[] = {
     "type_id",
     "null_mask",
-    "fixed_length_data",
-    "string_data"
+    "rows_u8",
+    "rows_i16",
+    "rows_u16",
+    "rows_i32",
+    "rows_i64",
+    "rows_u64",
+    "rows_f32",
+    "rows_f64",
+    "rows_string"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 4, type_codes, type_refs, nullptr, names
+    flatbuffers::ST_TABLE, 11, type_codes, type_refs, nullptr, names
   };
   return &tt;
 }

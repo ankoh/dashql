@@ -65,9 +65,9 @@ proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
 template <typename T>
 static fb::Offset<proto::QueryResultColumn> writeFixedLengthResultColumn(fb::FlatBufferBuilder &builder, duckdb::Vector &vec) {
     uint8_t *nullmask;
-    uint8_t *data;
+    T *data;
     auto n = builder.CreateUninitializedVector(vec.count, &nullmask);
-    auto d = builder.CreateUninitializedVector(vec.count, sizeof(T), &data);
+    auto d = builder.CreateUninitializedVector(vec.count, &data);
     duckdb::VectorOperations::Exec(vec.sel_vector, 0, [&](duckdb::index_t i, duckdb::index_t k) {
         nullmask[k] = vec.nullmask[i];
         reinterpret_cast<T *>(data)[k] = vec.data[i];
@@ -75,7 +75,23 @@ static fb::Offset<proto::QueryResultColumn> writeFixedLengthResultColumn(fb::Fla
     proto::QueryResultColumnBuilder c{builder};
     c.add_type_id(static_cast<proto::RawTypeID>(vec.type));
     c.add_null_mask(n);
-    c.add_fixed_length_data(d);
+    if constexpr (std::is_same_v<T, uint8_t>) {
+        c.add_rows_u8(d);
+    } else if constexpr (std::is_same_v<T, uint16_t>) {
+        c.add_rows_u16(d);
+    } else if constexpr (std::is_same_v<T, int16_t>) {
+        c.add_rows_i16(d);
+    } else if constexpr (std::is_same_v<T, int32_t>) {
+        c.add_rows_i32(d);
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+        c.add_rows_u64(d);
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+        c.add_rows_i64(d);
+    } else if constexpr (std::is_same_v<T, float>) {
+        c.add_rows_f32(d);
+    } else if constexpr (std::is_same_v<T, double>) {
+        c.add_rows_f64(d);
+    }
     return c.Finish();
 }
 
@@ -92,7 +108,7 @@ static fb::Offset<proto::QueryResultColumn> writeStringResultColumn(fb::FlatBuff
     proto::QueryResultColumnBuilder c{builder};
     c.add_type_id(static_cast<proto::RawTypeID>(vec.type));
     c.add_null_mask(n);
-    c.add_string_data({builder.EndVector(vec.count)});
+    c.add_rows_string({builder.EndVector(vec.count)});
     return c.Finish();
 }
 
@@ -115,7 +131,7 @@ fb::Offset<proto::QueryResult> writeQueryResult(fb::FlatBufferBuilder& builder, 
                 // TODO
                 break;
             case duckdb::TypeId::BOOLEAN:
-                column = writeFixedLengthResultColumn<bool>(builder, vec);
+                column = writeFixedLengthResultColumn<int8_t>(builder, vec);
                 break;
             case duckdb::TypeId::TINYINT:
                 column = writeFixedLengthResultColumn<int16_t>(builder, vec);
