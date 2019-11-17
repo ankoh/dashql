@@ -49,8 +49,6 @@ const INPUT_TOGGLE_ICON_HEIGHT = "20px";
 interface IExplorerProps {
     appContext: IAppContext;
     tqlModules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>>;
-    queryResults: Immutable.List<Model.CoreBuffer<proto.duckdb.QueryResult>>;
-    queryPlans: Immutable.List<Model.CoreBuffer<proto.duckdb.QueryPlan>>;
 }
 
 function Section(props: { title: string, count: number, children?: React.ReactNodeArray }) {
@@ -110,7 +108,7 @@ function Outline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQL
     );
 }
 
-class EExplorerorer extends React.Component<IExplorerProps> {
+class Explorer extends React.Component<IExplorerProps> {
 
     public render() {
         return (
@@ -286,5 +284,5 @@ function mapDispatchToExplorerProps(_dispatch: Model.Dispatch) {
     };
 }
 
-export default withAppContext(connect(mapStateToExplorerProps, mapDispatchToExplorerProps)(EExplorerorer));
+export default withAppContext(connect(mapStateToExplorerProps, mapDispatchToExplorerProps)(Explorer));
 

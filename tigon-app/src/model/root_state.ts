@@ -118,10 +118,12 @@ export class RootState {
     public transientVizLayout: VizLayout | null;
     // The transient vizzes (if any)
     public transientVizzes: Immutable.List<Viz>;
+        // The transient data buffers (if any)
+    public transientDataBuffers: Immutable.Map<string, CoreBuffer<proto.web_api.RawData>>;
     // The transient query results (if any)
-    public transientQueryResults: Immutable.List<CoreBuffer<proto.duckdb.QueryResult>>;
+    public transientQueryResults: Immutable.Map<string, CoreBuffer<proto.duckdb.QueryResult>>;
     // The transient query plans (if any)
-    public transientQueryPlans: Immutable.List<CoreBuffer<proto.duckdb.QueryPlan>>;
+    public transientQueryPlans: Immutable.Map<string, CoreBuffer<proto.duckdb.QueryPlan>>;
 
     // The focused viz
     public focusedViz: number | null;
@@ -137,8 +139,9 @@ export class RootState {
         this.transientTQLModules = Immutable.List();
         this.transientVizLayout = null;
         this.transientVizzes = Immutable.List();
-        this.transientQueryResults = Immutable.List();
-        this.transientQueryPlans = Immutable.List();
+        this.transientQueryResults = Immutable.Map();
+        this.transientQueryPlans = Immutable.Map();
+        this.transientDataBuffers = Immutable.Map();
         this.focusedViz = null;
         return;
     }

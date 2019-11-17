@@ -10,3 +10,8 @@ enum StatusCode: uint8 {
 table FormattedText {
     text: string;
 }
+
+/// A raw data buffer
+table RawData {
+    data: [ubyte];
+}

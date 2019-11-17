@@ -12,10 +12,17 @@ namespace proto {
 struct FormattedText;
 struct FormattedTextT;
 
+struct RawData;
+struct RawDataT;
+
 bool operator==(const FormattedTextT &lhs, const FormattedTextT &rhs);
 bool operator!=(const FormattedTextT &lhs, const FormattedTextT &rhs);
+bool operator==(const RawDataT &lhs, const RawDataT &rhs);
+bool operator!=(const RawDataT &lhs, const RawDataT &rhs);
 
 inline const flatbuffers::TypeTable *FormattedTextTypeTable();
+
+inline const flatbuffers::TypeTable *RawDataTypeTable();
 
 enum class StatusCode : uint8_t {
   SUCCESS = 0,
@@ -130,6 +137,89 @@ inline flatbuffers::Offset<FormattedText> CreateFormattedTextDirect(
 
 flatbuffers::Offset<FormattedText> CreateFormattedText(flatbuffers::FlatBufferBuilder &_fbb, const FormattedTextT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct RawDataT : public flatbuffers::NativeTable {
+  typedef RawData TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RawDataT";
+  }
+  std::vector<uint8_t> data;
+  RawDataT() {
+  }
+};
+
+inline bool operator==(const RawDataT &lhs, const RawDataT &rhs) {
+  return
+      (lhs.data == rhs.data);
+}
+
+inline bool operator!=(const RawDataT &lhs, const RawDataT &rhs) {
+    return !(lhs == rhs);
+}
+
+
+/// A raw data buffer
+struct RawData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef RawDataT NativeTableType;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return RawDataTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "tigon.proto.RawData";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_DATA = 4
+  };
+  const flatbuffers::Vector<uint8_t> *data() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_DATA);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_DATA) &&
+           verifier.VerifyVector(data()) &&
+           verifier.EndTable();
+  }
+  RawDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(RawDataT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<RawData> Pack(flatbuffers::FlatBufferBuilder &_fbb, const RawDataT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct RawDataBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
+    fbb_.AddOffset(RawData::VT_DATA, data);
+  }
+  explicit RawDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  RawDataBuilder &operator=(const RawDataBuilder &);
+  flatbuffers::Offset<RawData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<RawData>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<RawData> CreateRawData(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
+  RawDataBuilder builder_(_fbb);
+  builder_.add_data(data);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<RawData> CreateRawDataDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<uint8_t> *data = nullptr) {
+  auto data__ = data ? _fbb.CreateVector<uint8_t>(*data) : 0;
+  return tigon::proto::CreateRawData(
+      _fbb,
+      data__);
+}
+
+flatbuffers::Offset<RawData> CreateRawData(flatbuffers::FlatBufferBuilder &_fbb, const RawDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 inline FormattedTextT *FormattedText::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new FormattedTextT();
   UnPackTo(_o, _resolver);
@@ -156,6 +246,32 @@ inline flatbuffers::Offset<FormattedText> CreateFormattedText(flatbuffers::FlatB
       _text);
 }
 
+inline RawDataT *RawData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new RawDataT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void RawData::UnPackTo(RawDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = data(); if (_e) { _o->data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data[_i] = _e->Get(_i); } } }
+}
+
+inline flatbuffers::Offset<RawData> RawData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RawDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateRawData(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<RawData> CreateRawData(flatbuffers::FlatBufferBuilder &_fbb, const RawDataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const RawDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _data = _o->data.size() ? _fbb.CreateVector(_o->data) : 0;
+  return tigon::proto::CreateRawData(
+      _fbb,
+      _data);
+}
+
 inline const flatbuffers::TypeTable *StatusCodeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -180,6 +296,19 @@ inline const flatbuffers::TypeTable *FormattedTextTypeTable() {
   };
   static const char * const names[] = {
     "text"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *RawDataTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 1, -1 }
+  };
+  static const char * const names[] = {
+    "data"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
