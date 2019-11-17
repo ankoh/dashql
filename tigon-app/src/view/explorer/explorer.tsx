@@ -10,6 +10,7 @@ import s from './explorer.module.scss';
 import {
     AddIcon,
     ArcChartIcon,
+    AspectRatioIcon,
     BarChartIcon,
     CloudUploadIcon,
     CodeIcon,
@@ -24,7 +25,6 @@ import {
     LogIcon,
     PlanIcon,
     RefreshIcon,
-    ResponsiveIcon,
     RulerIcon,
     ScatterChartIcon,
     TableChartIcon,
@@ -129,7 +129,7 @@ class EExplorerorer extends React.Component<IExplorerProps> {
                             <RulerIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                         <div className={s.topbar_action}>
-                            <ResponsiveIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                            <AspectRatioIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
                         </div>
                     </div>
                     <div className={s.topbar_actionset}>

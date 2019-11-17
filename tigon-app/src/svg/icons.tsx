@@ -516,7 +516,7 @@ export function AddIcon(props: IIconProps) {
         </svg>);
 }
 
-export function ResponsiveIcon(props: IIconProps) {
+export function AspectRatioIcon(props: IIconProps) {
     return (
         <svg
             className={props.className || "icon"}
@@ -528,7 +528,7 @@ export function ResponsiveIcon(props: IIconProps) {
                 fill={props.fill || '#ffffff'}
                 fillRule="evenodd"
             >
-                <path d="M4,6V16H9V12A2,2 0 0,1 11,10H16A2,2 0 0,1 18,12V16H20V6H4M0,20V18H4A2,2 0 0,1 2,16V6A2,2 0 0,1 4,4H20A2,2 0 0,1 22,6V16A2,2 0 0,1 20,18H24V20H18V20C18,21.11 17.1,22 16,22H11A2,2 0 0,1 9,20H9L0,20M11.5,20A0.5,0.5 0 0,0 11,20.5A0.5,0.5 0 0,0 11.5,21A0.5,0.5 0 0,0 12,20.5A0.5,0.5 0 0,0 11.5,20M15.5,20A0.5,0.5 0 0,0 15,20.5A0.5,0.5 0 0,0 15.5,21A0.5,0.5 0 0,0 16,20.5A0.5,0.5 0 0,0 15.5,20M13,20V21H14V20H13M11,12V19H16V12H11Z" />
+                <path d="M19,12H17V15H14V17H19V12M7,9H10V7H5V12H7V9M21,3H3A2,2 0 0,0 1,5V19A2,2 0 0,0 3,21H21A2,2 0 0,0 23,19V5A2,2 0 0,0 21,3M21,19H3V5H21V19Z" />
             </g>
         </svg>);
 }
