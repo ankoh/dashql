@@ -35,16 +35,78 @@ export class DemoController {
         `);
         this.store.dispatch(Model.pushTransientTQLModule(tql));
     }
+};
 
-    async encodeFixedLengthQueryResultColumn() {
-        // type_id: RawTypeID;
-        // null_mask: [bool];
-        // fixed_length_data: [ubyte];
-        // string_data: [string];
-        
+export class QueryResultBuilder {
+    columnData: Array<Array<string> | Array<number>>;
+    columnRawTypes: Array<proto.duckdb.RawTypeID>;
+    columnSQLTypes: Array<proto.duckdb.SQLTypeID>;
+    columnNames: Array<string>;
+
+    constructor() {
+        this.columnData = new Array();
+        this.columnRawTypes = new Array();
+        this.columnSQLTypes = new Array();
+        this.columnNames = new Array();
     }
 
-    async writeNumericColumn(builder: flatbuffers.Builder, typeID: proto.duckdb.RawTypeID, rows: [number]): Promise<flatbuffers.Offset> {
+    public addNumericColumn(name: string, sqlType: proto.duckdb.SQLTypeID, rows: Array<number>) {
+        switch (sqlType) {
+            case proto.duckdb.SQLTypeID.BIGINT: this.columnRawTypes.push(proto.duckdb.RawTypeID.BIGINT);
+            case proto.duckdb.SQLTypeID.BOOLEAN: this.columnRawTypes.push(proto.duckdb.RawTypeID.BOOLEAN);
+            case proto.duckdb.SQLTypeID.DOUBLE: this.columnRawTypes.push(proto.duckdb.RawTypeID.DOUBLE);
+            case proto.duckdb.SQLTypeID.FLOAT: this.columnRawTypes.push(proto.duckdb.RawTypeID.FLOAT);
+            case proto.duckdb.SQLTypeID.INTEGER: this.columnRawTypes.push(proto.duckdb.RawTypeID.INTEGER);
+            case proto.duckdb.SQLTypeID.SMALLINT: this.columnRawTypes.push(proto.duckdb.RawTypeID.SMALLINT);
+            case proto.duckdb.SQLTypeID.TINYINT: this.columnRawTypes.push(proto.duckdb.RawTypeID.TINYINT);
+            // TODO
+        }
+        this.columnSQLTypes.push(sqlType);
+        this.columnData.push(rows);
+        this.columnNames.push(name);
+    }
+
+    public addVarcharColumn(name: string, rows: Array<string>) {
+        this.columnSQLTypes.push(proto.duckdb.SQLTypeID.VARCHAR);
+        this.columnRawTypes.push(proto.duckdb.RawTypeID.VARCHAR);
+        this.columnData.push(rows);
+        this.columnNames.push(name);
+    }
+
+    public write(builder: flatbuffers.Builder): flatbuffers.Offset {
+        // Encode columns
+        let columns = new Array<flatbuffers.Offset>();
+        for (let i = 0; i < this.columnRawTypes.length; ++i) {
+            if (this.columnRawTypes[i] == proto.duckdb.RawTypeID.VARCHAR) {
+                columns.push(this.writeVarCharColumn(builder, this.columnData[i] as Array<string>))
+            } else {
+                columns.push(this.writeNumericColumn(builder, this.columnRawTypes[i], this.columnData[i] as Array<number>))
+            }
+        }
+        let columnsOfs = proto.duckdb.QueryResultChunk.createColumnsVector(builder, columns);
+
+        // Encode chunk
+        proto.duckdb.QueryResultChunk.startQueryResultChunk(builder);
+        proto.duckdb.QueryResultChunk.addColumns(builder, columnsOfs);
+        let chunkOfs = proto.duckdb.QueryResultChunk.endQueryResultChunk(builder);
+        let chunksOfs = proto.duckdb.QueryResult.createDataChunksVector(builder, [chunkOfs]);
+
+        // Encode names
+        let names = this.columnNames.map(n => builder.createString(n));
+        let namesOfs = proto.duckdb.QueryResult.createColumnNamesVector(builder, names);
+        let rawTypesOfs = proto.duckdb.QueryResult.createColumnRawTypesVector(builder, this.columnRawTypes);
+
+        // TODO encode sql types
+
+        // Encode result
+        proto.duckdb.QueryResult.startQueryResult(builder);
+        proto.duckdb.QueryResult.addDataChunks(builder, chunksOfs);
+        proto.duckdb.QueryResult.addColumnNames(builder, namesOfs);
+        proto.duckdb.QueryResult.addColumnRawTypes(builder, rawTypesOfs);
+        return proto.duckdb.QueryResult.endQueryResult(builder);
+    }
+
+    protected writeNumericColumn(builder: flatbuffers.Builder, typeID: proto.duckdb.RawTypeID, rows: Array<number>): flatbuffers.Offset {
         // Encode the null mask
         let nullMask = new Array<boolean>();
         nullMask.length = rows.length;
@@ -127,7 +189,7 @@ export class DemoController {
         return proto.duckdb.QueryResultColumn.endQueryResultColumn(builder);
     }
 
-    async writeVarCharColumn(builder: flatbuffers.Builder, rows: [string]): Promise<flatbuffers.Offset> {
+    protected writeVarCharColumn(builder: flatbuffers.Builder, rows: Array<string>): flatbuffers.Offset {
         // Encode the null mask
         let nullMask = new Array<boolean>();
         nullMask.length = rows.length;
@@ -144,8 +206,5 @@ export class DemoController {
         proto.duckdb.QueryResultColumn.addNullMask(builder, nullMaskOfs);
         proto.duckdb.QueryResultColumn.addRowsString(builder, rowsOfs);
         return proto.duckdb.QueryResultColumn.endQueryResultColumn(builder);
-    }
-
-    async loadTestQueryResults() {
     }
 };
