@@ -97,6 +97,7 @@ using std::vector;
 %token POST                 "post"
 %token PUT                  "put"
 %token PX                   "px"
+%token QUERY                "query"
 %token RGB                  "rgb"
 %token SCALE                "scale"
 %token SCATTER              "scatter"
@@ -187,8 +188,8 @@ type:
     ;
 
 sql_statement:
-    IDENTIFIER_LITERAL sql_literal  { $$ = std::make_unique<SQLStatement>($1, $2); }
- |  sql_literal                     { $$ = std::make_unique<SQLStatement>(std::string_view(), $1); }
+    QUERY identifier AS sql_literal     { $$ = std::make_unique<SQLStatement>($2, $4); }
+ |  sql_literal                         { $$ = std::make_unique<SQLStatement>(std::string_view(), $1); }
     ;
 
 sql_literal:

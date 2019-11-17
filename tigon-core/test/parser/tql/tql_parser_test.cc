@@ -41,7 +41,7 @@ TEST(TQLTest, ExtractJsonPath) {
     ASSERT_EQ(module.statements.size(), 1);
 }
 
-TEST(TQLTest, PlotLineChart) {
+TEST(TQLTest, VizLineChart) {
     auto in = R"RAW(
         visualize whether_data_line from wheather_data using line chart (
             layout = (
@@ -84,6 +84,15 @@ TEST(TQLTest, PlotLineChart) {
 TEST(TQLTest, Query1) {
     auto in = R"RAW(
         select 1;
+    )RAW";
+    ParseContext ctx;
+    auto module = ctx.Parse(in);
+    ASSERT_EQ(module.statements.size(), 1);
+}
+
+TEST(TQLTest, Query2) {
+    auto in = R"RAW(
+        query foo as select 1;
     )RAW";
     ParseContext ctx;
     auto module = ctx.Parse(in);

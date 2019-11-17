@@ -147,6 +147,7 @@ loc.step();
 "post"              { return Parser::make_POST(loc); }
 "put"               { return Parser::make_PUT(loc); }
 "px"                { return Parser::make_PX(loc); }
+"query"             { return Parser::make_QUERY(loc); }
 "rgb"               { return Parser::make_RGB(loc); }
 "scale"             { return Parser::make_SCALE(loc); }
 "scatter"           { return Parser::make_SCATTER(loc); }
