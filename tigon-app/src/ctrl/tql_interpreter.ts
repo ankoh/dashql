@@ -6,12 +6,12 @@ import { TaskID, Task, TaskQueue } from './task_queue';
 
 // Get the statement type
 function getStatementType<T extends flatbuffers.Table>(s: T): proto.tql.TQLStatement {
-    return s instanceof proto.tql.TQLQueryStatement ? proto.tql.TQLStatement.TQLQueryStatement :
-        s instanceof proto.tql.TQLVizStatement ? proto.tql.TQLStatement.TQLVizStatement :
-        s instanceof proto.tql.TQLExtractStatement ? proto.tql.TQLStatement.TQLExtractStatement :
+    return s instanceof proto.tql.TQLExtractStatement ? proto.tql.TQLStatement.TQLExtractStatement :
         s instanceof proto.tql.TQLLoadStatement ? proto.tql.TQLStatement.TQLLoadStatement :
-        s instanceof proto.tql.TQLParameterDeclaration ? proto.tql.TQLStatement.TQLParameterDeclaration
-        : proto.tql.TQLStatement.NONE;
+        s instanceof proto.tql.TQLParameterDeclaration ? proto.tql.TQLStatement.TQLParameterDeclaration :
+        s instanceof proto.tql.TQLQueryStatement ? proto.tql.TQLStatement.TQLQueryStatement :
+        s instanceof proto.tql.TQLVizStatement ? proto.tql.TQLStatement.TQLVizStatement :
+        proto.tql.TQLStatement.NONE;
 }
 
 
