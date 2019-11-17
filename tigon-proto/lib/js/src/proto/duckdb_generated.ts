@@ -169,6 +169,15 @@ static getRootAsQueryPlan(bb:flatbuffers.ByteBuffer, obj?:QueryPlan):QueryPlan {
 };
 
 /**
+ * @param flatbuffers.ByteBuffer bb
+ * @param QueryPlan= obj
+ * @returns QueryPlan
+ */
+static getSizePrefixedRootAsQueryPlan(bb:flatbuffers.ByteBuffer, obj?:QueryPlan):QueryPlan {
+  return (obj || new QueryPlan).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
  * @param number index
  * @returns flatbuffers.Long
  */
@@ -362,6 +371,15 @@ __init(i:number, bb:flatbuffers.ByteBuffer):QueryResultColumn {
  * @returns QueryResultColumn
  */
 static getRootAsQueryResultColumn(bb:flatbuffers.ByteBuffer, obj?:QueryResultColumn):QueryResultColumn {
+  return (obj || new QueryResultColumn).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param QueryResultColumn= obj
+ * @returns QueryResultColumn
+ */
+static getSizePrefixedRootAsQueryResultColumn(bb:flatbuffers.ByteBuffer, obj?:QueryResultColumn):QueryResultColumn {
   return (obj || new QueryResultColumn).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -591,6 +609,15 @@ static getRootAsQueryResultChunk(bb:flatbuffers.ByteBuffer, obj?:QueryResultChun
 };
 
 /**
+ * @param flatbuffers.ByteBuffer bb
+ * @param QueryResultChunk= obj
+ * @returns QueryResultChunk
+ */
+static getSizePrefixedRootAsQueryResultChunk(bb:flatbuffers.ByteBuffer, obj?:QueryResultChunk):QueryResultChunk {
+  return (obj || new QueryResultChunk).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
  * @param number index
  * @param QueryResultColumn= obj
  * @returns QueryResultColumn
@@ -683,6 +710,15 @@ __init(i:number, bb:flatbuffers.ByteBuffer):QueryResult {
  * @returns QueryResult
  */
 static getRootAsQueryResult(bb:flatbuffers.ByteBuffer, obj?:QueryResult):QueryResult {
+  return (obj || new QueryResult).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param QueryResult= obj
+ * @returns QueryResult
+ */
+static getSizePrefixedRootAsQueryResult(bb:flatbuffers.ByteBuffer, obj?:QueryResult):QueryResult {
   return (obj || new QueryResult).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 

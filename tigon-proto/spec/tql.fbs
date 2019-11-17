@@ -89,7 +89,7 @@ table TQLExtractStatement {
 }
 
 /// An display type
-enum TQLDisplayType: uint8 {
+enum TQLVizType: uint8 {
     Area = 0,
     Bar = 1,
     Box = 2,
@@ -106,7 +106,7 @@ enum TQLDisplayType: uint8 {
 }
 
 /// A display type
-enum TQLDisplayTypeFlag: uint16 {
+enum TQLVizTypeFlag: uint16 {
     None = 0,
     Horizontal = 1,
     Vertical = 2,
@@ -114,76 +114,77 @@ enum TQLDisplayTypeFlag: uint16 {
 }
 
 /// A display color
-struct TQLDisplayColor {
+struct TQLVizColor {
     red: uint8;
     green: uint8;
     blue: uint8;
 }
 
 /// A display color palette
-table TQLDisplayColorPalette {
+table TQLVizColorPalette {
     color_target: string;
-    palette: [TQLDisplayColor];
+    palette: [TQLVizColor];
 }
 
 /// A display length unit
-enum TQLDisplayLengthUnit: uint8 {
+enum TQLVizLengthUnit: uint8 {
     Span = 0,
     Pixel = 1,
     Percent = 2,
 }
 
 /// A display length value
-struct TQLDisplayLengthValue {
+struct TQLVizLengthValue {
     value: float64;
-    unit: TQLDisplayLengthUnit;
+    unit: TQLVizLengthUnit;
 }
 
 /// A display length
-table TQLDisplayLength {
-    small: TQLDisplayLengthValue;
-    medium: TQLDisplayLengthValue;
-    large: TQLDisplayLengthValue;
-    extra_large: TQLDisplayLengthValue;
+table TQLVizLength {
+    small: TQLVizLengthValue;
+    medium: TQLVizLengthValue;
+    large: TQLVizLengthValue;
+    extra_large: TQLVizLengthValue;
 }
 
 /// A display layout
-table TQLDisplayLayout {
-    width: TQLDisplayLength;
-    height: TQLDisplayLength;
+table TQLVizLayout {
+    width: TQLVizLength;
+    height: TQLVizLength;
 }
 
 /// A display axis sclae
-enum TQLDisplayAxisScale: uint8 {
+enum TQLVizAxisScale: uint8 {
     Linear = 0,
     Logarithmic = 1,
 }
 
 /// A display axis
-table TQLDisplayAxis {
+table TQLVizAxis {
     column: string;
-    scale: TQLDisplayAxisScale;
+    scale: TQLVizAxisScale;
 }
 
-/// Display axes
-table TQLDisplayAxes {
-    x: TQLDisplayAxis;
-    y: TQLDisplayAxis;
+/// Viz axes
+table TQLVizAxes {
+    x: TQLVizAxis;
+    y: TQLVizAxis;
 }
 
 /// A display statement
-table TQLDisplayStatement {
-    display_name: string;
-    display_type: TQLDisplayType;
-    display_type_flags: uint16;
-    layout: TQLDisplayLayout;
-    color: TQLDisplayColor;
-    axes: TQLDisplayAxes;
+table TQLVizStatement {
+    viz_name: string;
+    viz_type: TQLVizType;
+    viz_type_flags: uint16;
+    query_name: string;
+    layout: TQLVizLayout;
+    color: TQLVizColor;
+    axes: TQLVizAxes;
 }
 
 /// A TQL statement
 union TQLStatement {
-    TQLDisplayStatement,
+    TQLVizStatement,
     TQLExtractStatement,
     TQLLoadStatement,
     TQLParameterDeclaration,

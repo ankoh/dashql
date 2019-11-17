@@ -121,7 +121,7 @@ struct ExtractStatement {
     ExtractMethod method;
 };
 
-struct DisplayStatement {
+struct VizStatement {
     /// A type
     enum class Type {
         Area,
@@ -167,7 +167,7 @@ struct DisplayStatement {
             blue(static_cast<uint8_t>((rgb >> 16) & 0xFF)) {}
     };
 
-    /// A display color
+    /// A plot color
     struct Color {
         /// The column
         std::string_view column;
@@ -291,6 +291,8 @@ struct DisplayStatement {
         std::unique_ptr<Axis> y;
     };
 
+    /// The name
+    std::string_view name;
     /// The target
     std::string_view target;
     /// The type
@@ -307,7 +309,7 @@ struct DisplayStatement {
 
 /// A statement
 using Statement = std::variant<
-    std::unique_ptr<DisplayStatement>,
+    std::unique_ptr<VizStatement>,
     std::unique_ptr<ExtractStatement>,
     std::unique_ptr<LoadStatement>,
     std::unique_ptr<ParameterDeclaration>,
@@ -328,7 +330,7 @@ struct FlatBufferWriter {
 };
 
 // Template classes
-template <> struct FlatBufferWriter<DisplayStatement>;
+template <> struct FlatBufferWriter<VizStatement>;
 template <> struct FlatBufferWriter<ExtractStatement>;
 template <> struct FlatBufferWriter<LoadStatement>;
 template <> struct FlatBufferWriter<ParameterDeclaration>;

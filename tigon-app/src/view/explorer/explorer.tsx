@@ -93,6 +93,9 @@ function Outline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQL
     let load = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLLoadStatement(), (i, s) => 
         <SectionEntry key={i} name={s.dataName() || "-"} description={""} />
     );
+    let viz = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLVizStatement(), (i, s) => 
+        <SectionEntry key={i} name={"-"} description={""} />
+    );
     return (
         <div className={s.outline}>
             <div className={s.outline_header}>
@@ -102,7 +105,7 @@ function Outline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQL
             <Section title="Load Statements" count={load.length}>{load}</Section>
             <Section title="Extract Statements" count={extract.length}>{extract}</Section>
             <Section title="Query Statements" count={query.length}>{query}</Section>
-            <Section title="Display Statements" count={0} />
+            <Section title="Viz Statements" count={viz.length}>{viz}</Section>
         </div>
     );
 }

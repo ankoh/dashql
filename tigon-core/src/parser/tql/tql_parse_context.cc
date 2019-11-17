@@ -11,7 +11,6 @@
 #include <unordered_set>
 
 using namespace tigon::tql;
-using D = tigon::tql::DisplayStatement;
 
 ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
     : trace_scanning(trace_scanning), trace_parsing(trace_parsing), statements() {}

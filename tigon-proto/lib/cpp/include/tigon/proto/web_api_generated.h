@@ -33,7 +33,7 @@ inline const StatusCode (&EnumValuesStatusCode())[2] {
 }
 
 inline const char * const *EnumNamesStatusCode() {
-  static const char * const names[] = {
+  static const char * const names[3] = {
     "SUCCESS",
     "ERROR",
     nullptr
@@ -139,7 +139,7 @@ inline FormattedTextT *FormattedText::UnPack(const flatbuffers::resolver_functio
 inline void FormattedText::UnPackTo(FormattedTextT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = text(); if (_e) _o->text = _e->str(); };
+  { auto _e = text(); if (_e) _o->text = _e->str(); }
 }
 
 inline flatbuffers::Offset<FormattedText> FormattedText::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FormattedTextT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -162,7 +162,7 @@ inline const flatbuffers::TypeTable *StatusCodeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    StatusCodeTypeTable
+    tigon::proto::StatusCodeTypeTable
   };
   static const char * const names[] = {
     "SUCCESS",

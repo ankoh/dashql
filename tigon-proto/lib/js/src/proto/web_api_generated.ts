@@ -40,6 +40,15 @@ static getRootAsFormattedText(bb:flatbuffers.ByteBuffer, obj?:FormattedText):For
 };
 
 /**
+ * @param flatbuffers.ByteBuffer bb
+ * @param FormattedText= obj
+ * @returns FormattedText
+ */
+static getSizePrefixedRootAsFormattedText(bb:flatbuffers.ByteBuffer, obj?:FormattedText):FormattedText {
+  return (obj || new FormattedText).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */

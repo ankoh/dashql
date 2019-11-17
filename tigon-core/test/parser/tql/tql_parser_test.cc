@@ -41,9 +41,9 @@ TEST(TQLTest, ExtractJsonPath) {
     ASSERT_EQ(module.statements.size(), 1);
 }
 
-TEST(TQLTest, DisplayLineChart) {
+TEST(TQLTest, PlotLineChart) {
     auto in = R"RAW(
-        display wheather_data using line chart (
+        visualize whether_data_line from wheather_data using line chart (
             layout = (
                 width = (
                     * = 8,

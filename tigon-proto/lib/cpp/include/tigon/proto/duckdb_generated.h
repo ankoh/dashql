@@ -80,7 +80,7 @@ inline const RawTypeID (&EnumValuesRawTypeID())[12] {
 }
 
 inline const char * const *EnumNamesRawTypeID() {
-  static const char * const names[] = {
+  static const char * const names[13] = {
     "INVALID",
     "BOOLEAN",
     "TINYINT",
@@ -148,7 +148,7 @@ inline const SQLTypeID (&EnumValuesSQLTypeID())[16] {
 }
 
 inline const char * const *EnumNamesSQLTypeID() {
-  static const char * const names[] = {
+  static const char * const names[17] = {
     "INVALID",
     "SQLNULL",
     "BOOLEAN",
@@ -260,7 +260,7 @@ inline const LogicalOperatorType (&EnumValuesLogicalOperatorType())[36] {
 }
 
 inline const char * const *EnumNamesLogicalOperatorType() {
-  static const char * const names[] = {
+  static const char * const names[37] = {
     "INVALID",
     "PROJECTION",
     "FILTER",
@@ -326,7 +326,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) SQLType FLATBUFFERS_FINAL_CLASS {
   SQLType() {
     memset(static_cast<void *>(this), 0, sizeof(SQLType));
   }
-  SQLType(SQLTypeID _type_id, uint16_t _width, uint8_t _scale)
+  SQLType(tigon::proto::SQLTypeID _type_id, uint16_t _width, uint8_t _scale)
       : type_id_(flatbuffers::EndianScalar(static_cast<uint8_t>(_type_id))),
         padding0__(0),
         width_(flatbuffers::EndianScalar(_width)),
@@ -335,8 +335,8 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) SQLType FLATBUFFERS_FINAL_CLASS {
     (void)padding0__;
     (void)padding1__;
   }
-  SQLTypeID type_id() const {
-    return static_cast<SQLTypeID>(flatbuffers::EndianScalar(type_id_));
+  tigon::proto::SQLTypeID type_id() const {
+    return static_cast<tigon::proto::SQLTypeID>(flatbuffers::EndianScalar(type_id_));
   }
   uint16_t width() const {
     return flatbuffers::EndianScalar(width_);
@@ -366,7 +366,7 @@ struct QueryPlanT : public flatbuffers::NativeTable {
   }
   std::vector<uint64_t> operator_children;
   std::vector<uint64_t> operator_child_offsets;
-  std::vector<LogicalOperatorType> operator_types;
+  std::vector<tigon::proto::LogicalOperatorType> operator_types;
   QueryPlanT() {
   }
 };
@@ -478,12 +478,12 @@ struct QueryResultColumnT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "tigon.proto.QueryResultColumnT";
   }
-  RawTypeID type_id;
+  tigon::proto::RawTypeID type_id;
   std::vector<bool> null_mask;
   std::vector<uint8_t> fixed_length_data;
   std::vector<std::string> string_data;
   QueryResultColumnT()
-      : type_id(RawTypeID::INVALID) {
+      : type_id(tigon::proto::RawTypeID::INVALID) {
   }
 };
 
@@ -514,8 +514,8 @@ struct QueryResultColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_FIXED_LENGTH_DATA = 8,
     VT_STRING_DATA = 10
   };
-  RawTypeID type_id() const {
-    return static_cast<RawTypeID>(GetField<uint8_t>(VT_TYPE_ID, 0));
+  tigon::proto::RawTypeID type_id() const {
+    return static_cast<tigon::proto::RawTypeID>(GetField<uint8_t>(VT_TYPE_ID, 0));
   }
   const flatbuffers::Vector<uint8_t> *null_mask() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_NULL_MASK);
@@ -546,7 +546,7 @@ struct QueryResultColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct QueryResultColumnBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_type_id(RawTypeID type_id) {
+  void add_type_id(tigon::proto::RawTypeID type_id) {
     fbb_.AddElement<uint8_t>(QueryResultColumn::VT_TYPE_ID, static_cast<uint8_t>(type_id), 0);
   }
   void add_null_mask(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> null_mask) {
@@ -572,7 +572,7 @@ struct QueryResultColumnBuilder {
 
 inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumn(
     flatbuffers::FlatBufferBuilder &_fbb,
-    RawTypeID type_id = RawTypeID::INVALID,
+    tigon::proto::RawTypeID type_id = tigon::proto::RawTypeID::INVALID,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> null_mask = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> fixed_length_data = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> string_data = 0) {
@@ -586,7 +586,7 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumn(
 
 inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumnDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    RawTypeID type_id = RawTypeID::INVALID,
+    tigon::proto::RawTypeID type_id = tigon::proto::RawTypeID::INVALID,
     const std::vector<uint8_t> *null_mask = nullptr,
     const std::vector<uint8_t> *fixed_length_data = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *string_data = nullptr) {
@@ -608,7 +608,7 @@ struct QueryResultChunkT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "tigon.proto.QueryResultChunkT";
   }
-  std::vector<std::unique_ptr<QueryResultColumnT>> columns;
+  std::vector<std::unique_ptr<tigon::proto::QueryResultColumnT>> columns;
   QueryResultChunkT() {
   }
 };
@@ -634,8 +634,8 @@ struct QueryResultChunk FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_COLUMNS = 4
   };
-  const flatbuffers::Vector<flatbuffers::Offset<QueryResultColumn>> *columns() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<QueryResultColumn>> *>(VT_COLUMNS);
+  const flatbuffers::Vector<flatbuffers::Offset<tigon::proto::QueryResultColumn>> *columns() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<tigon::proto::QueryResultColumn>> *>(VT_COLUMNS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -652,7 +652,7 @@ struct QueryResultChunk FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct QueryResultChunkBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_columns(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<QueryResultColumn>>> columns) {
+  void add_columns(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tigon::proto::QueryResultColumn>>> columns) {
     fbb_.AddOffset(QueryResultChunk::VT_COLUMNS, columns);
   }
   explicit QueryResultChunkBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -669,7 +669,7 @@ struct QueryResultChunkBuilder {
 
 inline flatbuffers::Offset<QueryResultChunk> CreateQueryResultChunk(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<QueryResultColumn>>> columns = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tigon::proto::QueryResultColumn>>> columns = 0) {
   QueryResultChunkBuilder builder_(_fbb);
   builder_.add_columns(columns);
   return builder_.Finish();
@@ -677,8 +677,8 @@ inline flatbuffers::Offset<QueryResultChunk> CreateQueryResultChunk(
 
 inline flatbuffers::Offset<QueryResultChunk> CreateQueryResultChunkDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<QueryResultColumn>> *columns = nullptr) {
-  auto columns__ = columns ? _fbb.CreateVector<flatbuffers::Offset<QueryResultColumn>>(*columns) : 0;
+    const std::vector<flatbuffers::Offset<tigon::proto::QueryResultColumn>> *columns = nullptr) {
+  auto columns__ = columns ? _fbb.CreateVector<flatbuffers::Offset<tigon::proto::QueryResultColumn>>(*columns) : 0;
   return tigon::proto::CreateQueryResultChunk(
       _fbb,
       columns__);
@@ -692,11 +692,11 @@ struct QueryResultT : public flatbuffers::NativeTable {
     return "tigon.proto.QueryResultT";
   }
   uint64_t query_id;
-  std::unique_ptr<QueryPlanT> query_plan;
-  std::vector<RawTypeID> column_raw_types;
-  std::vector<SQLType> column_sql_types;
+  std::unique_ptr<tigon::proto::QueryPlanT> query_plan;
+  std::vector<tigon::proto::RawTypeID> column_raw_types;
+  std::vector<tigon::proto::SQLType> column_sql_types;
   std::vector<std::string> column_names;
-  std::vector<std::unique_ptr<QueryResultChunkT>> data_chunks;
+  std::vector<std::unique_ptr<tigon::proto::QueryResultChunkT>> data_chunks;
   QueryResultT()
       : query_id(0) {
   }
@@ -736,20 +736,20 @@ struct QueryResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   uint64_t query_id() const {
     return GetField<uint64_t>(VT_QUERY_ID, 0);
   }
-  const QueryPlan *query_plan() const {
-    return GetPointer<const QueryPlan *>(VT_QUERY_PLAN);
+  const tigon::proto::QueryPlan *query_plan() const {
+    return GetPointer<const tigon::proto::QueryPlan *>(VT_QUERY_PLAN);
   }
   const flatbuffers::Vector<uint8_t> *column_raw_types() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_COLUMN_RAW_TYPES);
   }
-  const flatbuffers::Vector<const SQLType *> *column_sql_types() const {
-    return GetPointer<const flatbuffers::Vector<const SQLType *> *>(VT_COLUMN_SQL_TYPES);
+  const flatbuffers::Vector<const tigon::proto::SQLType *> *column_sql_types() const {
+    return GetPointer<const flatbuffers::Vector<const tigon::proto::SQLType *> *>(VT_COLUMN_SQL_TYPES);
   }
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *column_names() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_COLUMN_NAMES);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<QueryResultChunk>> *data_chunks() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<QueryResultChunk>> *>(VT_DATA_CHUNKS);
+  const flatbuffers::Vector<flatbuffers::Offset<tigon::proto::QueryResultChunk>> *data_chunks() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<tigon::proto::QueryResultChunk>> *>(VT_DATA_CHUNKS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -779,19 +779,19 @@ struct QueryResultBuilder {
   void add_query_id(uint64_t query_id) {
     fbb_.AddElement<uint64_t>(QueryResult::VT_QUERY_ID, query_id, 0);
   }
-  void add_query_plan(flatbuffers::Offset<QueryPlan> query_plan) {
+  void add_query_plan(flatbuffers::Offset<tigon::proto::QueryPlan> query_plan) {
     fbb_.AddOffset(QueryResult::VT_QUERY_PLAN, query_plan);
   }
   void add_column_raw_types(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> column_raw_types) {
     fbb_.AddOffset(QueryResult::VT_COLUMN_RAW_TYPES, column_raw_types);
   }
-  void add_column_sql_types(flatbuffers::Offset<flatbuffers::Vector<const SQLType *>> column_sql_types) {
+  void add_column_sql_types(flatbuffers::Offset<flatbuffers::Vector<const tigon::proto::SQLType *>> column_sql_types) {
     fbb_.AddOffset(QueryResult::VT_COLUMN_SQL_TYPES, column_sql_types);
   }
   void add_column_names(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> column_names) {
     fbb_.AddOffset(QueryResult::VT_COLUMN_NAMES, column_names);
   }
-  void add_data_chunks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<QueryResultChunk>>> data_chunks) {
+  void add_data_chunks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tigon::proto::QueryResultChunk>>> data_chunks) {
     fbb_.AddOffset(QueryResult::VT_DATA_CHUNKS, data_chunks);
   }
   explicit QueryResultBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -809,11 +809,11 @@ struct QueryResultBuilder {
 inline flatbuffers::Offset<QueryResult> CreateQueryResult(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t query_id = 0,
-    flatbuffers::Offset<QueryPlan> query_plan = 0,
+    flatbuffers::Offset<tigon::proto::QueryPlan> query_plan = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> column_raw_types = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const SQLType *>> column_sql_types = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const tigon::proto::SQLType *>> column_sql_types = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> column_names = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<QueryResultChunk>>> data_chunks = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tigon::proto::QueryResultChunk>>> data_chunks = 0) {
   QueryResultBuilder builder_(_fbb);
   builder_.add_query_id(query_id);
   builder_.add_data_chunks(data_chunks);
@@ -827,15 +827,15 @@ inline flatbuffers::Offset<QueryResult> CreateQueryResult(
 inline flatbuffers::Offset<QueryResult> CreateQueryResultDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t query_id = 0,
-    flatbuffers::Offset<QueryPlan> query_plan = 0,
+    flatbuffers::Offset<tigon::proto::QueryPlan> query_plan = 0,
     const std::vector<uint8_t> *column_raw_types = nullptr,
-    const std::vector<SQLType> *column_sql_types = nullptr,
+    const std::vector<tigon::proto::SQLType> *column_sql_types = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *column_names = nullptr,
-    const std::vector<flatbuffers::Offset<QueryResultChunk>> *data_chunks = nullptr) {
+    const std::vector<flatbuffers::Offset<tigon::proto::QueryResultChunk>> *data_chunks = nullptr) {
   auto column_raw_types__ = column_raw_types ? _fbb.CreateVector<uint8_t>(*column_raw_types) : 0;
-  auto column_sql_types__ = column_sql_types ? _fbb.CreateVectorOfStructs<SQLType>(*column_sql_types) : 0;
+  auto column_sql_types__ = column_sql_types ? _fbb.CreateVectorOfStructs<tigon::proto::SQLType>(*column_sql_types) : 0;
   auto column_names__ = column_names ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*column_names) : 0;
-  auto data_chunks__ = data_chunks ? _fbb.CreateVector<flatbuffers::Offset<QueryResultChunk>>(*data_chunks) : 0;
+  auto data_chunks__ = data_chunks ? _fbb.CreateVector<flatbuffers::Offset<tigon::proto::QueryResultChunk>>(*data_chunks) : 0;
   return tigon::proto::CreateQueryResult(
       _fbb,
       query_id,
@@ -857,9 +857,9 @@ inline QueryPlanT *QueryPlan::UnPack(const flatbuffers::resolver_function_t *_re
 inline void QueryPlan::UnPackTo(QueryPlanT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = operator_children(); if (_e) { _o->operator_children.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->operator_children[_i] = _e->Get(_i); } } };
-  { auto _e = operator_child_offsets(); if (_e) { _o->operator_child_offsets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->operator_child_offsets[_i] = _e->Get(_i); } } };
-  { auto _e = operator_types(); if (_e) { _o->operator_types.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->operator_types[_i] = static_cast<LogicalOperatorType>(_e->Get(_i)); } } };
+  { auto _e = operator_children(); if (_e) { _o->operator_children.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->operator_children[_i] = _e->Get(_i); } } }
+  { auto _e = operator_child_offsets(); if (_e) { _o->operator_child_offsets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->operator_child_offsets[_i] = _e->Get(_i); } } }
+  { auto _e = operator_types(); if (_e) { _o->operator_types.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->operator_types[_i] = static_cast<tigon::proto::LogicalOperatorType>(_e->Get(_i)); } } }
 }
 
 inline flatbuffers::Offset<QueryPlan> QueryPlan::Pack(flatbuffers::FlatBufferBuilder &_fbb, const QueryPlanT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -889,10 +889,10 @@ inline QueryResultColumnT *QueryResultColumn::UnPack(const flatbuffers::resolver
 inline void QueryResultColumn::UnPackTo(QueryResultColumnT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = type_id(); _o->type_id = _e; };
-  { auto _e = null_mask(); if (_e) { _o->null_mask.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->null_mask[_i] = _e->Get(_i) != 0; } } };
-  { auto _e = fixed_length_data(); if (_e) { _o->fixed_length_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->fixed_length_data[_i] = _e->Get(_i); } } };
-  { auto _e = string_data(); if (_e) { _o->string_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->string_data[_i] = _e->Get(_i)->str(); } } };
+  { auto _e = type_id(); _o->type_id = _e; }
+  { auto _e = null_mask(); if (_e) { _o->null_mask.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->null_mask[_i] = _e->Get(_i) != 0; } } }
+  { auto _e = fixed_length_data(); if (_e) { _o->fixed_length_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->fixed_length_data[_i] = _e->Get(_i); } } }
+  { auto _e = string_data(); if (_e) { _o->string_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->string_data[_i] = _e->Get(_i)->str(); } } }
 }
 
 inline flatbuffers::Offset<QueryResultColumn> QueryResultColumn::Pack(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultColumnT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -924,7 +924,7 @@ inline QueryResultChunkT *QueryResultChunk::UnPack(const flatbuffers::resolver_f
 inline void QueryResultChunk::UnPackTo(QueryResultChunkT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = columns(); if (_e) { _o->columns.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->columns[_i] = std::unique_ptr<QueryResultColumnT>(_e->Get(_i)->UnPack(_resolver)); } } };
+  { auto _e = columns(); if (_e) { _o->columns.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->columns[_i] = std::unique_ptr<tigon::proto::QueryResultColumnT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<QueryResultChunk> QueryResultChunk::Pack(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultChunkT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -935,7 +935,7 @@ inline flatbuffers::Offset<QueryResultChunk> CreateQueryResultChunk(flatbuffers:
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const QueryResultChunkT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _columns = _o->columns.size() ? _fbb.CreateVector<flatbuffers::Offset<QueryResultColumn>> (_o->columns.size(), [](size_t i, _VectorArgs *__va) { return CreateQueryResultColumn(*__va->__fbb, __va->__o->columns[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _columns = _o->columns.size() ? _fbb.CreateVector<flatbuffers::Offset<tigon::proto::QueryResultColumn>> (_o->columns.size(), [](size_t i, _VectorArgs *__va) { return CreateQueryResultColumn(*__va->__fbb, __va->__o->columns[i].get(), __va->__rehasher); }, &_va ) : 0;
   return tigon::proto::CreateQueryResultChunk(
       _fbb,
       _columns);
@@ -950,12 +950,12 @@ inline QueryResultT *QueryResult::UnPack(const flatbuffers::resolver_function_t 
 inline void QueryResult::UnPackTo(QueryResultT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = query_id(); _o->query_id = _e; };
-  { auto _e = query_plan(); if (_e) _o->query_plan = std::unique_ptr<QueryPlanT>(_e->UnPack(_resolver)); };
-  { auto _e = column_raw_types(); if (_e) { _o->column_raw_types.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->column_raw_types[_i] = static_cast<RawTypeID>(_e->Get(_i)); } } };
-  { auto _e = column_sql_types(); if (_e) { _o->column_sql_types.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->column_sql_types[_i] = *_e->Get(_i); } } };
-  { auto _e = column_names(); if (_e) { _o->column_names.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->column_names[_i] = _e->Get(_i)->str(); } } };
-  { auto _e = data_chunks(); if (_e) { _o->data_chunks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data_chunks[_i] = std::unique_ptr<QueryResultChunkT>(_e->Get(_i)->UnPack(_resolver)); } } };
+  { auto _e = query_id(); _o->query_id = _e; }
+  { auto _e = query_plan(); if (_e) _o->query_plan = std::unique_ptr<tigon::proto::QueryPlanT>(_e->UnPack(_resolver)); }
+  { auto _e = column_raw_types(); if (_e) { _o->column_raw_types.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->column_raw_types[_i] = static_cast<tigon::proto::RawTypeID>(_e->Get(_i)); } } }
+  { auto _e = column_sql_types(); if (_e) { _o->column_sql_types.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->column_sql_types[_i] = *_e->Get(_i); } } }
+  { auto _e = column_names(); if (_e) { _o->column_names.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->column_names[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = data_chunks(); if (_e) { _o->data_chunks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data_chunks[_i] = std::unique_ptr<tigon::proto::QueryResultChunkT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<QueryResult> QueryResult::Pack(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -971,7 +971,7 @@ inline flatbuffers::Offset<QueryResult> CreateQueryResult(flatbuffers::FlatBuffe
   auto _column_raw_types = _o->column_raw_types.size() ? _fbb.CreateVectorScalarCast<uint8_t>(flatbuffers::data(_o->column_raw_types), _o->column_raw_types.size()) : 0;
   auto _column_sql_types = _o->column_sql_types.size() ? _fbb.CreateVectorOfStructs(_o->column_sql_types) : 0;
   auto _column_names = _o->column_names.size() ? _fbb.CreateVectorOfStrings(_o->column_names) : 0;
-  auto _data_chunks = _o->data_chunks.size() ? _fbb.CreateVector<flatbuffers::Offset<QueryResultChunk>> (_o->data_chunks.size(), [](size_t i, _VectorArgs *__va) { return CreateQueryResultChunk(*__va->__fbb, __va->__o->data_chunks[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _data_chunks = _o->data_chunks.size() ? _fbb.CreateVector<flatbuffers::Offset<tigon::proto::QueryResultChunk>> (_o->data_chunks.size(), [](size_t i, _VectorArgs *__va) { return CreateQueryResultChunk(*__va->__fbb, __va->__o->data_chunks[i].get(), __va->__rehasher); }, &_va ) : 0;
   return tigon::proto::CreateQueryResult(
       _fbb,
       _query_id,
@@ -998,7 +998,7 @@ inline const flatbuffers::TypeTable *RawTypeIDTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    RawTypeIDTypeTable
+    tigon::proto::RawTypeIDTypeTable
   };
   static const char * const names[] = {
     "INVALID",
@@ -1040,7 +1040,7 @@ inline const flatbuffers::TypeTable *SQLTypeIDTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    SQLTypeIDTypeTable
+    tigon::proto::SQLTypeIDTypeTable
   };
   static const char * const names[] = {
     "INVALID",
@@ -1106,7 +1106,7 @@ inline const flatbuffers::TypeTable *LogicalOperatorTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    LogicalOperatorTypeTypeTable
+    tigon::proto::LogicalOperatorTypeTypeTable
   };
   static const char * const names[] = {
     "INVALID",
@@ -1159,7 +1159,7 @@ inline const flatbuffers::TypeTable *SQLTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, -1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    SQLTypeIDTypeTable
+    tigon::proto::SQLTypeIDTypeTable
   };
   static const int64_t values[] = { 0, 2, 4, 6 };
   static const char * const names[] = {
@@ -1180,7 +1180,7 @@ inline const flatbuffers::TypeTable *QueryPlanTypeTable() {
     { flatbuffers::ET_UCHAR, 1, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    LogicalOperatorTypeTypeTable
+    tigon::proto::LogicalOperatorTypeTypeTable
   };
   static const char * const names[] = {
     "operator_children",
@@ -1201,7 +1201,7 @@ inline const flatbuffers::TypeTable *QueryResultColumnTypeTable() {
     { flatbuffers::ET_STRING, 1, -1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    RawTypeIDTypeTable
+    tigon::proto::RawTypeIDTypeTable
   };
   static const char * const names[] = {
     "type_id",
@@ -1220,7 +1220,7 @@ inline const flatbuffers::TypeTable *QueryResultChunkTypeTable() {
     { flatbuffers::ET_SEQUENCE, 1, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    QueryResultColumnTypeTable
+    tigon::proto::QueryResultColumnTypeTable
   };
   static const char * const names[] = {
     "columns"
@@ -1241,10 +1241,10 @@ inline const flatbuffers::TypeTable *QueryResultTypeTable() {
     { flatbuffers::ET_SEQUENCE, 1, 3 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    QueryPlanTypeTable,
-    RawTypeIDTypeTable,
-    SQLTypeTypeTable,
-    QueryResultChunkTypeTable
+    tigon::proto::QueryPlanTypeTable,
+    tigon::proto::RawTypeIDTypeTable,
+    tigon::proto::SQLTypeTypeTable,
+    tigon::proto::QueryResultChunkTypeTable
   };
   static const char * const names[] = {
     "query_id",

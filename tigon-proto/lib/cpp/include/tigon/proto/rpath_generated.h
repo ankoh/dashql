@@ -67,7 +67,7 @@ inline const RPathComponent (&EnumValuesRPathComponent())[5] {
 }
 
 inline const char * const *EnumNamesRPathComponent() {
-  static const char * const names[] = {
+  static const char * const names[6] = {
     "NONE",
     "RPathArraySlice",
     "RPathArrayIndexes",
@@ -88,19 +88,19 @@ template<typename T> struct RPathComponentTraits {
   static const RPathComponent enum_value = RPathComponent::NONE;
 };
 
-template<> struct RPathComponentTraits<RPathArraySlice> {
+template<> struct RPathComponentTraits<tigon::proto::RPathArraySlice> {
   static const RPathComponent enum_value = RPathComponent::RPathArraySlice;
 };
 
-template<> struct RPathComponentTraits<RPathArrayIndexes> {
+template<> struct RPathComponentTraits<tigon::proto::RPathArrayIndexes> {
   static const RPathComponent enum_value = RPathComponent::RPathArrayIndexes;
 };
 
-template<> struct RPathComponentTraits<RPathChildMember> {
+template<> struct RPathComponentTraits<tigon::proto::RPathChildMember> {
   static const RPathComponent enum_value = RPathComponent::RPathChildMember;
 };
 
-template<> struct RPathComponentTraits<RPathDescendantMember> {
+template<> struct RPathComponentTraits<tigon::proto::RPathDescendantMember> {
   static const RPathComponent enum_value = RPathComponent::RPathDescendantMember;
 };
 
@@ -136,37 +136,37 @@ struct RPathComponentUnion {
   static void *UnPack(const void *obj, RPathComponent type, const flatbuffers::resolver_function_t *resolver);
   flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
 
-  RPathArraySliceT *AsRPathArraySlice() {
+  tigon::proto::RPathArraySliceT *AsRPathArraySlice() {
     return type == RPathComponent::RPathArraySlice ?
-      reinterpret_cast<RPathArraySliceT *>(value) : nullptr;
+      reinterpret_cast<tigon::proto::RPathArraySliceT *>(value) : nullptr;
   }
-  const RPathArraySliceT *AsRPathArraySlice() const {
+  const tigon::proto::RPathArraySliceT *AsRPathArraySlice() const {
     return type == RPathComponent::RPathArraySlice ?
-      reinterpret_cast<const RPathArraySliceT *>(value) : nullptr;
+      reinterpret_cast<const tigon::proto::RPathArraySliceT *>(value) : nullptr;
   }
-  RPathArrayIndexesT *AsRPathArrayIndexes() {
+  tigon::proto::RPathArrayIndexesT *AsRPathArrayIndexes() {
     return type == RPathComponent::RPathArrayIndexes ?
-      reinterpret_cast<RPathArrayIndexesT *>(value) : nullptr;
+      reinterpret_cast<tigon::proto::RPathArrayIndexesT *>(value) : nullptr;
   }
-  const RPathArrayIndexesT *AsRPathArrayIndexes() const {
+  const tigon::proto::RPathArrayIndexesT *AsRPathArrayIndexes() const {
     return type == RPathComponent::RPathArrayIndexes ?
-      reinterpret_cast<const RPathArrayIndexesT *>(value) : nullptr;
+      reinterpret_cast<const tigon::proto::RPathArrayIndexesT *>(value) : nullptr;
   }
-  RPathChildMemberT *AsRPathChildMember() {
+  tigon::proto::RPathChildMemberT *AsRPathChildMember() {
     return type == RPathComponent::RPathChildMember ?
-      reinterpret_cast<RPathChildMemberT *>(value) : nullptr;
+      reinterpret_cast<tigon::proto::RPathChildMemberT *>(value) : nullptr;
   }
-  const RPathChildMemberT *AsRPathChildMember() const {
+  const tigon::proto::RPathChildMemberT *AsRPathChildMember() const {
     return type == RPathComponent::RPathChildMember ?
-      reinterpret_cast<const RPathChildMemberT *>(value) : nullptr;
+      reinterpret_cast<const tigon::proto::RPathChildMemberT *>(value) : nullptr;
   }
-  RPathDescendantMemberT *AsRPathDescendantMember() {
+  tigon::proto::RPathDescendantMemberT *AsRPathDescendantMember() {
     return type == RPathComponent::RPathDescendantMember ?
-      reinterpret_cast<RPathDescendantMemberT *>(value) : nullptr;
+      reinterpret_cast<tigon::proto::RPathDescendantMemberT *>(value) : nullptr;
   }
-  const RPathDescendantMemberT *AsRPathDescendantMember() const {
+  const tigon::proto::RPathDescendantMemberT *AsRPathDescendantMember() const {
     return type == RPathComponent::RPathDescendantMember ?
-      reinterpret_cast<const RPathDescendantMemberT *>(value) : nullptr;
+      reinterpret_cast<const tigon::proto::RPathDescendantMemberT *>(value) : nullptr;
   }
 };
 
@@ -178,20 +178,20 @@ inline bool operator==(const RPathComponentUnion &lhs, const RPathComponentUnion
       return true;
     }
     case RPathComponent::RPathArraySlice: {
-      return *(reinterpret_cast<const RPathArraySliceT *>(lhs.value)) ==
-             *(reinterpret_cast<const RPathArraySliceT *>(rhs.value));
+      return *(reinterpret_cast<const tigon::proto::RPathArraySliceT *>(lhs.value)) ==
+             *(reinterpret_cast<const tigon::proto::RPathArraySliceT *>(rhs.value));
     }
     case RPathComponent::RPathArrayIndexes: {
-      return *(reinterpret_cast<const RPathArrayIndexesT *>(lhs.value)) ==
-             *(reinterpret_cast<const RPathArrayIndexesT *>(rhs.value));
+      return *(reinterpret_cast<const tigon::proto::RPathArrayIndexesT *>(lhs.value)) ==
+             *(reinterpret_cast<const tigon::proto::RPathArrayIndexesT *>(rhs.value));
     }
     case RPathComponent::RPathChildMember: {
-      return *(reinterpret_cast<const RPathChildMemberT *>(lhs.value)) ==
-             *(reinterpret_cast<const RPathChildMemberT *>(rhs.value));
+      return *(reinterpret_cast<const tigon::proto::RPathChildMemberT *>(lhs.value)) ==
+             *(reinterpret_cast<const tigon::proto::RPathChildMemberT *>(rhs.value));
     }
     case RPathComponent::RPathDescendantMember: {
-      return *(reinterpret_cast<const RPathDescendantMemberT *>(lhs.value)) ==
-             *(reinterpret_cast<const RPathDescendantMemberT *>(rhs.value));
+      return *(reinterpret_cast<const tigon::proto::RPathDescendantMemberT *>(lhs.value)) ==
+             *(reinterpret_cast<const tigon::proto::RPathDescendantMemberT *>(rhs.value));
     }
     default: {
       return false;
@@ -636,8 +636,8 @@ inline RPathT *RPath::UnPack(const flatbuffers::resolver_function_t *_resolver) 
 inline void RPath::UnPackTo(RPathT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = components_type(); if (_e) { _o->components.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->components[_i].type = static_cast<RPathComponent>(_e->Get(_i)); } } };
-  { auto _e = components(); if (_e) { _o->components.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->components[_i].value = RPathComponentUnion::UnPack(_e->Get(_i), components_type()->GetEnum<RPathComponent>(_i), _resolver); } } };
+  { auto _e = components_type(); if (_e) { _o->components.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->components[_i].type = static_cast<tigon::proto::RPathComponent>(_e->Get(_i)); } } }
+  { auto _e = components(); if (_e) { _o->components.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->components[_i].value = RPathComponentUnion::UnPack(_e->Get(_i), components_type()->GetEnum<RPathComponent>(_i), _resolver); } } }
 }
 
 inline flatbuffers::Offset<RPath> RPath::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RPathT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -662,22 +662,22 @@ inline bool VerifyRPathComponent(flatbuffers::Verifier &verifier, const void *ob
       return true;
     }
     case RPathComponent::RPathArraySlice: {
-      auto ptr = reinterpret_cast<const RPathArraySlice *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathArraySlice *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case RPathComponent::RPathArrayIndexes: {
-      auto ptr = reinterpret_cast<const RPathArrayIndexes *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathArrayIndexes *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case RPathComponent::RPathChildMember: {
-      auto ptr = reinterpret_cast<const RPathChildMember *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathChildMember *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case RPathComponent::RPathDescendantMember: {
-      auto ptr = reinterpret_cast<const RPathDescendantMember *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathDescendantMember *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    default: return false;
+    default: return true;
   }
 }
 
@@ -696,19 +696,19 @@ inline bool VerifyRPathComponentVector(flatbuffers::Verifier &verifier, const fl
 inline void *RPathComponentUnion::UnPack(const void *obj, RPathComponent type, const flatbuffers::resolver_function_t *resolver) {
   switch (type) {
     case RPathComponent::RPathArraySlice: {
-      auto ptr = reinterpret_cast<const RPathArraySlice *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathArraySlice *>(obj);
       return ptr->UnPack(resolver);
     }
     case RPathComponent::RPathArrayIndexes: {
-      auto ptr = reinterpret_cast<const RPathArrayIndexes *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathArrayIndexes *>(obj);
       return ptr->UnPack(resolver);
     }
     case RPathComponent::RPathChildMember: {
-      auto ptr = reinterpret_cast<const RPathChildMember *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathChildMember *>(obj);
       return ptr->UnPack(resolver);
     }
     case RPathComponent::RPathDescendantMember: {
-      auto ptr = reinterpret_cast<const RPathDescendantMember *>(obj);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathDescendantMember *>(obj);
       return ptr->UnPack(resolver);
     }
     default: return nullptr;
@@ -718,19 +718,19 @@ inline void *RPathComponentUnion::UnPack(const void *obj, RPathComponent type, c
 inline flatbuffers::Offset<void> RPathComponentUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
   switch (type) {
     case RPathComponent::RPathArraySlice: {
-      auto ptr = reinterpret_cast<const RPathArraySliceT *>(value);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathArraySliceT *>(value);
       return CreateRPathArraySlice(_fbb, ptr, _rehasher).Union();
     }
     case RPathComponent::RPathArrayIndexes: {
-      auto ptr = reinterpret_cast<const RPathArrayIndexesT *>(value);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathArrayIndexesT *>(value);
       return CreateRPathArrayIndexes(_fbb, ptr, _rehasher).Union();
     }
     case RPathComponent::RPathChildMember: {
-      auto ptr = reinterpret_cast<const RPathChildMemberT *>(value);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathChildMemberT *>(value);
       return CreateRPathChildMember(_fbb, ptr, _rehasher).Union();
     }
     case RPathComponent::RPathDescendantMember: {
-      auto ptr = reinterpret_cast<const RPathDescendantMemberT *>(value);
+      auto ptr = reinterpret_cast<const tigon::proto::RPathDescendantMemberT *>(value);
       return CreateRPathDescendantMember(_fbb, ptr, _rehasher).Union();
     }
     default: return 0;
@@ -740,19 +740,19 @@ inline flatbuffers::Offset<void> RPathComponentUnion::Pack(flatbuffers::FlatBuff
 inline RPathComponentUnion::RPathComponentUnion(const RPathComponentUnion &u) FLATBUFFERS_NOEXCEPT : type(u.type), value(nullptr) {
   switch (type) {
     case RPathComponent::RPathArraySlice: {
-      value = new RPathArraySliceT(*reinterpret_cast<RPathArraySliceT *>(u.value));
+      value = new tigon::proto::RPathArraySliceT(*reinterpret_cast<tigon::proto::RPathArraySliceT *>(u.value));
       break;
     }
     case RPathComponent::RPathArrayIndexes: {
-      value = new RPathArrayIndexesT(*reinterpret_cast<RPathArrayIndexesT *>(u.value));
+      value = new tigon::proto::RPathArrayIndexesT(*reinterpret_cast<tigon::proto::RPathArrayIndexesT *>(u.value));
       break;
     }
     case RPathComponent::RPathChildMember: {
-      value = new RPathChildMemberT(*reinterpret_cast<RPathChildMemberT *>(u.value));
+      value = new tigon::proto::RPathChildMemberT(*reinterpret_cast<tigon::proto::RPathChildMemberT *>(u.value));
       break;
     }
     case RPathComponent::RPathDescendantMember: {
-      value = new RPathDescendantMemberT(*reinterpret_cast<RPathDescendantMemberT *>(u.value));
+      value = new tigon::proto::RPathDescendantMemberT(*reinterpret_cast<tigon::proto::RPathDescendantMemberT *>(u.value));
       break;
     }
     default:
@@ -763,22 +763,22 @@ inline RPathComponentUnion::RPathComponentUnion(const RPathComponentUnion &u) FL
 inline void RPathComponentUnion::Reset() {
   switch (type) {
     case RPathComponent::RPathArraySlice: {
-      auto ptr = reinterpret_cast<RPathArraySliceT *>(value);
+      auto ptr = reinterpret_cast<tigon::proto::RPathArraySliceT *>(value);
       delete ptr;
       break;
     }
     case RPathComponent::RPathArrayIndexes: {
-      auto ptr = reinterpret_cast<RPathArrayIndexesT *>(value);
+      auto ptr = reinterpret_cast<tigon::proto::RPathArrayIndexesT *>(value);
       delete ptr;
       break;
     }
     case RPathComponent::RPathChildMember: {
-      auto ptr = reinterpret_cast<RPathChildMemberT *>(value);
+      auto ptr = reinterpret_cast<tigon::proto::RPathChildMemberT *>(value);
       delete ptr;
       break;
     }
     case RPathComponent::RPathDescendantMember: {
-      auto ptr = reinterpret_cast<RPathDescendantMemberT *>(value);
+      auto ptr = reinterpret_cast<tigon::proto::RPathDescendantMemberT *>(value);
       delete ptr;
       break;
     }
@@ -797,10 +797,10 @@ inline const flatbuffers::TypeTable *RPathComponentTypeTable() {
     { flatbuffers::ET_SEQUENCE, 0, 3 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    RPathArraySliceTypeTable,
-    RPathArrayIndexesTypeTable,
-    RPathChildMemberTypeTable,
-    RPathDescendantMemberTypeTable
+    tigon::proto::RPathArraySliceTypeTable,
+    tigon::proto::RPathArrayIndexesTypeTable,
+    tigon::proto::RPathChildMemberTypeTable,
+    tigon::proto::RPathDescendantMemberTypeTable
   };
   static const char * const names[] = {
     "NONE",
@@ -849,7 +849,7 @@ inline const flatbuffers::TypeTable *RPathTypeTable() {
     { flatbuffers::ET_SEQUENCE, 1, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    RPathComponentTypeTable
+    tigon::proto::RPathComponentTypeTable
   };
   static const char * const names[] = {
     "components_type",

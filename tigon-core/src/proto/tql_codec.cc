@@ -29,8 +29,8 @@ flatbuffers::Offset<proto::TQLModule> writeTQLModule(flatbuffers::FlatBufferBuil
 
     for (auto& statement: module.statements) {
         std::visit(overload {
-            // Display statement
-            [&](std::unique_ptr<tql::DisplayStatement>& display) {
+            // Viz statement
+            [&](std::unique_ptr<tql::VizStatement>& viz) {
             },
 
             // Extract statement

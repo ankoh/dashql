@@ -53,7 +53,7 @@ export enum TQLExtractMethod{
  *
  * @enum {number}
  */
-export enum TQLDisplayType{
+export enum TQLVizType{
   Area= 0,
   Bar= 1,
   Box= 2,
@@ -74,7 +74,7 @@ export enum TQLDisplayType{
  *
  * @enum {number}
  */
-export enum TQLDisplayTypeFlag{
+export enum TQLVizTypeFlag{
   None= 0,
   Horizontal= 1,
   Vertical= 2,
@@ -86,7 +86,7 @@ export enum TQLDisplayTypeFlag{
  *
  * @enum {number}
  */
-export enum TQLDisplayLengthUnit{
+export enum TQLVizLengthUnit{
   Span= 0,
   Pixel= 1,
   Percent= 2
@@ -97,7 +97,7 @@ export enum TQLDisplayLengthUnit{
  *
  * @enum {number}
  */
-export enum TQLDisplayAxisScale{
+export enum TQLVizAxisScale{
   Linear= 0,
   Logarithmic= 1
 };
@@ -109,7 +109,7 @@ export enum TQLDisplayAxisScale{
  */
 export enum TQLStatement{
   NONE= 0,
-  TQLDisplayStatement= 1,
+  TQLVizStatement= 1,
   TQLExtractStatement= 2,
   TQLLoadStatement= 3,
   TQLParameterDeclaration= 4,
@@ -142,6 +142,15 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLQueryStatement {
  * @returns TQLQueryStatement
  */
 static getRootAsTQLQueryStatement(bb:flatbuffers.ByteBuffer, obj?:TQLQueryStatement):TQLQueryStatement {
+  return (obj || new TQLQueryStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLQueryStatement= obj
+ * @returns TQLQueryStatement
+ */
+static getSizePrefixedRootAsTQLQueryStatement(bb:flatbuffers.ByteBuffer, obj?:TQLQueryStatement):TQLQueryStatement {
   return (obj || new TQLQueryStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -232,6 +241,15 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLParameterDeclaration {
  * @returns TQLParameterDeclaration
  */
 static getRootAsTQLParameterDeclaration(bb:flatbuffers.ByteBuffer, obj?:TQLParameterDeclaration):TQLParameterDeclaration {
+  return (obj || new TQLParameterDeclaration).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLParameterDeclaration= obj
+ * @returns TQLParameterDeclaration
+ */
+static getSizePrefixedRootAsTQLParameterDeclaration(bb:flatbuffers.ByteBuffer, obj?:TQLParameterDeclaration):TQLParameterDeclaration {
   return (obj || new TQLParameterDeclaration).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -377,6 +395,15 @@ static getRootAsTQLHTTPLoadMethod(bb:flatbuffers.ByteBuffer, obj?:TQLHTTPLoadMet
 };
 
 /**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLHTTPLoadMethod= obj
+ * @returns TQLHTTPLoadMethod
+ */
+static getSizePrefixedRootAsTQLHTTPLoadMethod(bb:flatbuffers.ByteBuffer, obj?:TQLHTTPLoadMethod):TQLHTTPLoadMethod {
+  return (obj || new TQLHTTPLoadMethod).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
@@ -464,6 +491,15 @@ static getRootAsTQLFileLoadMethod(bb:flatbuffers.ByteBuffer, obj?:TQLFileLoadMet
 };
 
 /**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLFileLoadMethod= obj
+ * @returns TQLFileLoadMethod
+ */
+static getSizePrefixedRootAsTQLFileLoadMethod(bb:flatbuffers.ByteBuffer, obj?:TQLFileLoadMethod):TQLFileLoadMethod {
+  return (obj || new TQLFileLoadMethod).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startTQLFileLoadMethod(builder:flatbuffers.Builder) {
@@ -510,6 +546,15 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLLoadStatement {
  * @returns TQLLoadStatement
  */
 static getRootAsTQLLoadStatement(bb:flatbuffers.ByteBuffer, obj?:TQLLoadStatement):TQLLoadStatement {
+  return (obj || new TQLLoadStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLLoadStatement= obj
+ * @returns TQLLoadStatement
+ */
+static getSizePrefixedRootAsTQLLoadStatement(bb:flatbuffers.ByteBuffer, obj?:TQLLoadStatement):TQLLoadStatement {
   return (obj || new TQLLoadStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -619,6 +664,15 @@ static getRootAsTQLJSONExtract(bb:flatbuffers.ByteBuffer, obj?:TQLJSONExtract):T
 };
 
 /**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLJSONExtract= obj
+ * @returns TQLJSONExtract
+ */
+static getSizePrefixedRootAsTQLJSONExtract(bb:flatbuffers.ByteBuffer, obj?:TQLJSONExtract):TQLJSONExtract {
+  return (obj || new TQLJSONExtract).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startTQLJSONExtract(builder:flatbuffers.Builder) {
@@ -665,6 +719,15 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLCSVColumn {
  * @returns TQLCSVColumn
  */
 static getRootAsTQLCSVColumn(bb:flatbuffers.ByteBuffer, obj?:TQLCSVColumn):TQLCSVColumn {
+  return (obj || new TQLCSVColumn).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLCSVColumn= obj
+ * @returns TQLCSVColumn
+ */
+static getSizePrefixedRootAsTQLCSVColumn(bb:flatbuffers.ByteBuffer, obj?:TQLCSVColumn):TQLCSVColumn {
   return (obj || new TQLCSVColumn).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -793,6 +856,15 @@ static getRootAsTQLCSVExtract(bb:flatbuffers.ByteBuffer, obj?:TQLCSVExtract):TQL
 };
 
 /**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLCSVExtract= obj
+ * @returns TQLCSVExtract
+ */
+static getSizePrefixedRootAsTQLCSVExtract(bb:flatbuffers.ByteBuffer, obj?:TQLCSVExtract):TQLCSVExtract {
+  return (obj || new TQLCSVExtract).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
  * @param number index
  * @param TQLCSVColumn= obj
  * @returns TQLCSVColumn
@@ -891,6 +963,15 @@ static getRootAsTQLParquetExtractor(bb:flatbuffers.ByteBuffer, obj?:TQLParquetEx
 };
 
 /**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLParquetExtractor= obj
+ * @returns TQLParquetExtractor
+ */
+static getSizePrefixedRootAsTQLParquetExtractor(bb:flatbuffers.ByteBuffer, obj?:TQLParquetExtractor):TQLParquetExtractor {
+  return (obj || new TQLParquetExtractor).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startTQLParquetExtractor(builder:flatbuffers.Builder) {
@@ -937,6 +1018,15 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLExtractStatement {
  * @returns TQLExtractStatement
  */
 static getRootAsTQLExtractStatement(bb:flatbuffers.ByteBuffer, obj?:TQLExtractStatement):TQLExtractStatement {
+  return (obj || new TQLExtractStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLExtractStatement= obj
+ * @returns TQLExtractStatement
+ */
+static getSizePrefixedRootAsTQLExtractStatement(bb:flatbuffers.ByteBuffer, obj?:TQLExtractStatement):TQLExtractStatement {
   return (obj || new TQLExtractStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
@@ -1041,16 +1131,16 @@ static createTQLExtractStatement(builder:flatbuffers.Builder, extractNameOffset:
  *
  * @constructor
  */
-export class TQLDisplayColor {
+export class TQLVizColor {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLDisplayColor
+ * @returns TQLVizColor
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayColor {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLVizColor {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -1084,7 +1174,7 @@ blue():number {
  * @param number blue
  * @returns flatbuffers.Offset
  */
-static createTQLDisplayColor(builder:flatbuffers.Builder, red: number, green: number, blue: number):flatbuffers.Offset {
+static createTQLVizColor(builder:flatbuffers.Builder, red: number, green: number, blue: number):flatbuffers.Offset {
   builder.prep(1, 3);
   builder.writeInt8(blue);
   builder.writeInt8(green);
@@ -1098,16 +1188,16 @@ static createTQLDisplayColor(builder:flatbuffers.Builder, red: number, green: nu
  *
  * @constructor
  */
-export class TQLDisplayColorPalette {
+export class TQLVizColorPalette {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLDisplayColorPalette
+ * @returns TQLVizColorPalette
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayColorPalette {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLVizColorPalette {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -1115,11 +1205,20 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayColorPalette {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayColorPalette= obj
- * @returns TQLDisplayColorPalette
+ * @param TQLVizColorPalette= obj
+ * @returns TQLVizColorPalette
  */
-static getRootAsTQLDisplayColorPalette(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayColorPalette):TQLDisplayColorPalette {
-  return (obj || new TQLDisplayColorPalette).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLVizColorPalette(bb:flatbuffers.ByteBuffer, obj?:TQLVizColorPalette):TQLVizColorPalette {
+  return (obj || new TQLVizColorPalette).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLVizColorPalette= obj
+ * @returns TQLVizColorPalette
+ */
+static getSizePrefixedRootAsTQLVizColorPalette(bb:flatbuffers.ByteBuffer, obj?:TQLVizColorPalette):TQLVizColorPalette {
+  return (obj || new TQLVizColorPalette).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
 /**
@@ -1135,12 +1234,12 @@ colorTarget(optionalEncoding?:any):string|Uint8Array|null {
 
 /**
  * @param number index
- * @param TQLDisplayColor= obj
- * @returns TQLDisplayColor
+ * @param TQLVizColor= obj
+ * @returns TQLVizColor
  */
-palette(index: number, obj?:TQLDisplayColor):TQLDisplayColor|null {
+palette(index: number, obj?:TQLVizColor):TQLVizColor|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? (obj || new TQLDisplayColor).__init(this.bb!.__vector(this.bb_pos + offset) + index * 3, this.bb!) : null;
+  return offset ? (obj || new TQLVizColor).__init(this.bb!.__vector(this.bb_pos + offset) + index * 3, this.bb!) : null;
 };
 
 /**
@@ -1154,7 +1253,7 @@ paletteLength():number {
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLDisplayColorPalette(builder:flatbuffers.Builder) {
+static startTQLVizColorPalette(builder:flatbuffers.Builder) {
   builder.startObject(2);
 };
 
@@ -1186,16 +1285,16 @@ static startPaletteVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLDisplayColorPalette(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLVizColorPalette(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLDisplayColorPalette(builder:flatbuffers.Builder, colorTargetOffset:flatbuffers.Offset, paletteOffset:flatbuffers.Offset):flatbuffers.Offset {
-  TQLDisplayColorPalette.startTQLDisplayColorPalette(builder);
-  TQLDisplayColorPalette.addColorTarget(builder, colorTargetOffset);
-  TQLDisplayColorPalette.addPalette(builder, paletteOffset);
-  return TQLDisplayColorPalette.endTQLDisplayColorPalette(builder);
+static createTQLVizColorPalette(builder:flatbuffers.Builder, colorTargetOffset:flatbuffers.Offset, paletteOffset:flatbuffers.Offset):flatbuffers.Offset {
+  TQLVizColorPalette.startTQLVizColorPalette(builder);
+  TQLVizColorPalette.addColorTarget(builder, colorTargetOffset);
+  TQLVizColorPalette.addPalette(builder, paletteOffset);
+  return TQLVizColorPalette.endTQLVizColorPalette(builder);
 }
 }
 /**
@@ -1203,16 +1302,16 @@ static createTQLDisplayColorPalette(builder:flatbuffers.Builder, colorTargetOffs
  *
  * @constructor
  */
-export class TQLDisplayLengthValue {
+export class TQLVizLengthValue {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLDisplayLengthValue
+ * @returns TQLVizLengthValue
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayLengthValue {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLVizLengthValue {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -1226,19 +1325,19 @@ value():number {
 };
 
 /**
- * @returns TQLDisplayLengthUnit
+ * @returns TQLVizLengthUnit
  */
-unit():TQLDisplayLengthUnit {
+unit():TQLVizLengthUnit {
   return /**  */ (this.bb!.readUint8(this.bb_pos + 8));
 };
 
 /**
  * @param flatbuffers.Builder builder
  * @param number value
- * @param TQLDisplayLengthUnit unit
+ * @param TQLVizLengthUnit unit
  * @returns flatbuffers.Offset
  */
-static createTQLDisplayLengthValue(builder:flatbuffers.Builder, value: number, unit: TQLDisplayLengthUnit):flatbuffers.Offset {
+static createTQLVizLengthValue(builder:flatbuffers.Builder, value: number, unit: TQLVizLengthUnit):flatbuffers.Offset {
   builder.prep(8, 16);
   builder.pad(7);
   builder.writeInt8(unit);
@@ -1252,16 +1351,16 @@ static createTQLDisplayLengthValue(builder:flatbuffers.Builder, value: number, u
  *
  * @constructor
  */
-export class TQLDisplayLength {
+export class TQLVizLength {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLDisplayLength
+ * @returns TQLVizLength
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayLength {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLVizLength {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -1269,53 +1368,62 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayLength {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayLength= obj
- * @returns TQLDisplayLength
+ * @param TQLVizLength= obj
+ * @returns TQLVizLength
  */
-static getRootAsTQLDisplayLength(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayLength):TQLDisplayLength {
-  return (obj || new TQLDisplayLength).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLVizLength(bb:flatbuffers.ByteBuffer, obj?:TQLVizLength):TQLVizLength {
+  return (obj || new TQLVizLength).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
 /**
- * @param TQLDisplayLengthValue= obj
- * @returns TQLDisplayLengthValue|null
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLVizLength= obj
+ * @returns TQLVizLength
  */
-small(obj?:TQLDisplayLengthValue):TQLDisplayLengthValue|null {
+static getSizePrefixedRootAsTQLVizLength(bb:flatbuffers.ByteBuffer, obj?:TQLVizLength):TQLVizLength {
+  return (obj || new TQLVizLength).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param TQLVizLengthValue= obj
+ * @returns TQLVizLengthValue|null
+ */
+small(obj?:TQLVizLengthValue):TQLVizLengthValue|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new TQLDisplayLengthValue).__init(this.bb_pos + offset, this.bb!) : null;
+  return offset ? (obj || new TQLVizLengthValue).__init(this.bb_pos + offset, this.bb!) : null;
 };
 
 /**
- * @param TQLDisplayLengthValue= obj
- * @returns TQLDisplayLengthValue|null
+ * @param TQLVizLengthValue= obj
+ * @returns TQLVizLengthValue|null
  */
-medium(obj?:TQLDisplayLengthValue):TQLDisplayLengthValue|null {
+medium(obj?:TQLVizLengthValue):TQLVizLengthValue|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? (obj || new TQLDisplayLengthValue).__init(this.bb_pos + offset, this.bb!) : null;
+  return offset ? (obj || new TQLVizLengthValue).__init(this.bb_pos + offset, this.bb!) : null;
 };
 
 /**
- * @param TQLDisplayLengthValue= obj
- * @returns TQLDisplayLengthValue|null
+ * @param TQLVizLengthValue= obj
+ * @returns TQLVizLengthValue|null
  */
-large(obj?:TQLDisplayLengthValue):TQLDisplayLengthValue|null {
+large(obj?:TQLVizLengthValue):TQLVizLengthValue|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? (obj || new TQLDisplayLengthValue).__init(this.bb_pos + offset, this.bb!) : null;
+  return offset ? (obj || new TQLVizLengthValue).__init(this.bb_pos + offset, this.bb!) : null;
 };
 
 /**
- * @param TQLDisplayLengthValue= obj
- * @returns TQLDisplayLengthValue|null
+ * @param TQLVizLengthValue= obj
+ * @returns TQLVizLengthValue|null
  */
-extraLarge(obj?:TQLDisplayLengthValue):TQLDisplayLengthValue|null {
+extraLarge(obj?:TQLVizLengthValue):TQLVizLengthValue|null {
   var offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? (obj || new TQLDisplayLengthValue).__init(this.bb_pos + offset, this.bb!) : null;
+  return offset ? (obj || new TQLVizLengthValue).__init(this.bb_pos + offset, this.bb!) : null;
 };
 
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLDisplayLength(builder:flatbuffers.Builder) {
+static startTQLVizLength(builder:flatbuffers.Builder) {
   builder.startObject(4);
 };
 
@@ -1355,18 +1463,18 @@ static addExtraLarge(builder:flatbuffers.Builder, extraLargeOffset:flatbuffers.O
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLDisplayLength(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLVizLength(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLDisplayLength(builder:flatbuffers.Builder, smallOffset:flatbuffers.Offset, mediumOffset:flatbuffers.Offset, largeOffset:flatbuffers.Offset, extraLargeOffset:flatbuffers.Offset):flatbuffers.Offset {
-  TQLDisplayLength.startTQLDisplayLength(builder);
-  TQLDisplayLength.addSmall(builder, smallOffset);
-  TQLDisplayLength.addMedium(builder, mediumOffset);
-  TQLDisplayLength.addLarge(builder, largeOffset);
-  TQLDisplayLength.addExtraLarge(builder, extraLargeOffset);
-  return TQLDisplayLength.endTQLDisplayLength(builder);
+static createTQLVizLength(builder:flatbuffers.Builder, smallOffset:flatbuffers.Offset, mediumOffset:flatbuffers.Offset, largeOffset:flatbuffers.Offset, extraLargeOffset:flatbuffers.Offset):flatbuffers.Offset {
+  TQLVizLength.startTQLVizLength(builder);
+  TQLVizLength.addSmall(builder, smallOffset);
+  TQLVizLength.addMedium(builder, mediumOffset);
+  TQLVizLength.addLarge(builder, largeOffset);
+  TQLVizLength.addExtraLarge(builder, extraLargeOffset);
+  return TQLVizLength.endTQLVizLength(builder);
 }
 }
 /**
@@ -1374,16 +1482,16 @@ static createTQLDisplayLength(builder:flatbuffers.Builder, smallOffset:flatbuffe
  *
  * @constructor
  */
-export class TQLDisplayLayout {
+export class TQLVizLayout {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLDisplayLayout
+ * @returns TQLVizLayout
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayLayout {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLVizLayout {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -1391,35 +1499,44 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayLayout {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayLayout= obj
- * @returns TQLDisplayLayout
+ * @param TQLVizLayout= obj
+ * @returns TQLVizLayout
  */
-static getRootAsTQLDisplayLayout(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayLayout):TQLDisplayLayout {
-  return (obj || new TQLDisplayLayout).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLVizLayout(bb:flatbuffers.ByteBuffer, obj?:TQLVizLayout):TQLVizLayout {
+  return (obj || new TQLVizLayout).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
 /**
- * @param TQLDisplayLength= obj
- * @returns TQLDisplayLength|null
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLVizLayout= obj
+ * @returns TQLVizLayout
  */
-width(obj?:TQLDisplayLength):TQLDisplayLength|null {
+static getSizePrefixedRootAsTQLVizLayout(bb:flatbuffers.ByteBuffer, obj?:TQLVizLayout):TQLVizLayout {
+  return (obj || new TQLVizLayout).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param TQLVizLength= obj
+ * @returns TQLVizLength|null
+ */
+width(obj?:TQLVizLength):TQLVizLength|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new TQLDisplayLength).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? (obj || new TQLVizLength).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
 
 /**
- * @param TQLDisplayLength= obj
- * @returns TQLDisplayLength|null
+ * @param TQLVizLength= obj
+ * @returns TQLVizLength|null
  */
-height(obj?:TQLDisplayLength):TQLDisplayLength|null {
+height(obj?:TQLVizLength):TQLVizLength|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? (obj || new TQLDisplayLength).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? (obj || new TQLVizLength).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
 
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLDisplayLayout(builder:flatbuffers.Builder) {
+static startTQLVizLayout(builder:flatbuffers.Builder) {
   builder.startObject(2);
 };
 
@@ -1443,16 +1560,16 @@ static addHeight(builder:flatbuffers.Builder, heightOffset:flatbuffers.Offset) {
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLDisplayLayout(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLVizLayout(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLDisplayLayout(builder:flatbuffers.Builder, widthOffset:flatbuffers.Offset, heightOffset:flatbuffers.Offset):flatbuffers.Offset {
-  TQLDisplayLayout.startTQLDisplayLayout(builder);
-  TQLDisplayLayout.addWidth(builder, widthOffset);
-  TQLDisplayLayout.addHeight(builder, heightOffset);
-  return TQLDisplayLayout.endTQLDisplayLayout(builder);
+static createTQLVizLayout(builder:flatbuffers.Builder, widthOffset:flatbuffers.Offset, heightOffset:flatbuffers.Offset):flatbuffers.Offset {
+  TQLVizLayout.startTQLVizLayout(builder);
+  TQLVizLayout.addWidth(builder, widthOffset);
+  TQLVizLayout.addHeight(builder, heightOffset);
+  return TQLVizLayout.endTQLVizLayout(builder);
 }
 }
 /**
@@ -1460,16 +1577,16 @@ static createTQLDisplayLayout(builder:flatbuffers.Builder, widthOffset:flatbuffe
  *
  * @constructor
  */
-export class TQLDisplayAxis {
+export class TQLVizAxis {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLDisplayAxis
+ * @returns TQLVizAxis
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayAxis {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLVizAxis {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -1477,11 +1594,20 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayAxis {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayAxis= obj
- * @returns TQLDisplayAxis
+ * @param TQLVizAxis= obj
+ * @returns TQLVizAxis
  */
-static getRootAsTQLDisplayAxis(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayAxis):TQLDisplayAxis {
-  return (obj || new TQLDisplayAxis).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLVizAxis(bb:flatbuffers.ByteBuffer, obj?:TQLVizAxis):TQLVizAxis {
+  return (obj || new TQLVizAxis).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLVizAxis= obj
+ * @returns TQLVizAxis
+ */
+static getSizePrefixedRootAsTQLVizAxis(bb:flatbuffers.ByteBuffer, obj?:TQLVizAxis):TQLVizAxis {
+  return (obj || new TQLVizAxis).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
 /**
@@ -1496,17 +1622,17 @@ column(optionalEncoding?:any):string|Uint8Array|null {
 };
 
 /**
- * @returns TQLDisplayAxisScale
+ * @returns TQLVizAxisScale
  */
-scale():TQLDisplayAxisScale {
+scale():TQLVizAxisScale {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLDisplayAxisScale.Linear;
+  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLVizAxisScale.Linear;
 };
 
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLDisplayAxis(builder:flatbuffers.Builder) {
+static startTQLVizAxis(builder:flatbuffers.Builder) {
   builder.startObject(2);
 };
 
@@ -1520,43 +1646,43 @@ static addColumn(builder:flatbuffers.Builder, columnOffset:flatbuffers.Offset) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param TQLDisplayAxisScale scale
+ * @param TQLVizAxisScale scale
  */
-static addScale(builder:flatbuffers.Builder, scale:TQLDisplayAxisScale) {
-  builder.addFieldInt8(1, scale, TQLDisplayAxisScale.Linear);
+static addScale(builder:flatbuffers.Builder, scale:TQLVizAxisScale) {
+  builder.addFieldInt8(1, scale, TQLVizAxisScale.Linear);
 };
 
 /**
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLDisplayAxis(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLVizAxis(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLDisplayAxis(builder:flatbuffers.Builder, columnOffset:flatbuffers.Offset, scale:TQLDisplayAxisScale):flatbuffers.Offset {
-  TQLDisplayAxis.startTQLDisplayAxis(builder);
-  TQLDisplayAxis.addColumn(builder, columnOffset);
-  TQLDisplayAxis.addScale(builder, scale);
-  return TQLDisplayAxis.endTQLDisplayAxis(builder);
+static createTQLVizAxis(builder:flatbuffers.Builder, columnOffset:flatbuffers.Offset, scale:TQLVizAxisScale):flatbuffers.Offset {
+  TQLVizAxis.startTQLVizAxis(builder);
+  TQLVizAxis.addColumn(builder, columnOffset);
+  TQLVizAxis.addScale(builder, scale);
+  return TQLVizAxis.endTQLVizAxis(builder);
 }
 }
 /**
- * Display axes
+ * Viz axes
  *
  * @constructor
  */
-export class TQLDisplayAxes {
+export class TQLVizAxes {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLDisplayAxes
+ * @returns TQLVizAxes
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayAxes {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLVizAxes {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -1564,35 +1690,44 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayAxes {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayAxes= obj
- * @returns TQLDisplayAxes
+ * @param TQLVizAxes= obj
+ * @returns TQLVizAxes
  */
-static getRootAsTQLDisplayAxes(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayAxes):TQLDisplayAxes {
-  return (obj || new TQLDisplayAxes).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLVizAxes(bb:flatbuffers.ByteBuffer, obj?:TQLVizAxes):TQLVizAxes {
+  return (obj || new TQLVizAxes).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
 /**
- * @param TQLDisplayAxis= obj
- * @returns TQLDisplayAxis|null
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLVizAxes= obj
+ * @returns TQLVizAxes
  */
-x(obj?:TQLDisplayAxis):TQLDisplayAxis|null {
+static getSizePrefixedRootAsTQLVizAxes(bb:flatbuffers.ByteBuffer, obj?:TQLVizAxes):TQLVizAxes {
+  return (obj || new TQLVizAxes).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param TQLVizAxis= obj
+ * @returns TQLVizAxis|null
+ */
+x(obj?:TQLVizAxis):TQLVizAxis|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new TQLDisplayAxis).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? (obj || new TQLVizAxis).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
 
 /**
- * @param TQLDisplayAxis= obj
- * @returns TQLDisplayAxis|null
+ * @param TQLVizAxis= obj
+ * @returns TQLVizAxis|null
  */
-y(obj?:TQLDisplayAxis):TQLDisplayAxis|null {
+y(obj?:TQLVizAxis):TQLVizAxis|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? (obj || new TQLDisplayAxis).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? (obj || new TQLVizAxis).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
 
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLDisplayAxes(builder:flatbuffers.Builder) {
+static startTQLVizAxes(builder:flatbuffers.Builder) {
   builder.startObject(2);
 };
 
@@ -1616,16 +1751,16 @@ static addY(builder:flatbuffers.Builder, yOffset:flatbuffers.Offset) {
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLDisplayAxes(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLVizAxes(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLDisplayAxes(builder:flatbuffers.Builder, xOffset:flatbuffers.Offset, yOffset:flatbuffers.Offset):flatbuffers.Offset {
-  TQLDisplayAxes.startTQLDisplayAxes(builder);
-  TQLDisplayAxes.addX(builder, xOffset);
-  TQLDisplayAxes.addY(builder, yOffset);
-  return TQLDisplayAxes.endTQLDisplayAxes(builder);
+static createTQLVizAxes(builder:flatbuffers.Builder, xOffset:flatbuffers.Offset, yOffset:flatbuffers.Offset):flatbuffers.Offset {
+  TQLVizAxes.startTQLVizAxes(builder);
+  TQLVizAxes.addX(builder, xOffset);
+  TQLVizAxes.addY(builder, yOffset);
+  return TQLVizAxes.endTQLVizAxes(builder);
 }
 }
 /**
@@ -1633,16 +1768,16 @@ static createTQLDisplayAxes(builder:flatbuffers.Builder, xOffset:flatbuffers.Off
  *
  * @constructor
  */
-export class TQLDisplayStatement {
+export class TQLVizStatement {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns TQLDisplayStatement
+ * @returns TQLVizStatement
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayStatement {
+__init(i:number, bb:flatbuffers.ByteBuffer):TQLVizStatement {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -1650,96 +1785,124 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLDisplayStatement {
 
 /**
  * @param flatbuffers.ByteBuffer bb
- * @param TQLDisplayStatement= obj
- * @returns TQLDisplayStatement
+ * @param TQLVizStatement= obj
+ * @returns TQLVizStatement
  */
-static getRootAsTQLDisplayStatement(bb:flatbuffers.ByteBuffer, obj?:TQLDisplayStatement):TQLDisplayStatement {
-  return (obj || new TQLDisplayStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+static getRootAsTQLVizStatement(bb:flatbuffers.ByteBuffer, obj?:TQLVizStatement):TQLVizStatement {
+  return (obj || new TQLVizStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLVizStatement= obj
+ * @returns TQLVizStatement
+ */
+static getSizePrefixedRootAsTQLVizStatement(bb:flatbuffers.ByteBuffer, obj?:TQLVizStatement):TQLVizStatement {
+  return (obj || new TQLVizStatement).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 
 /**
  * @param flatbuffers.Encoding= optionalEncoding
  * @returns string|Uint8Array|null
  */
-displayName():string|null
-displayName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
-displayName(optionalEncoding?:any):string|Uint8Array|null {
+vizName():string|null
+vizName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+vizName(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
 
 /**
- * @returns TQLDisplayType
+ * @returns TQLVizType
  */
-displayType():TQLDisplayType {
+vizType():TQLVizType {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLDisplayType.Area;
+  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : TQLVizType.Area;
 };
 
 /**
  * @returns number
  */
-displayTypeFlags():number {
+vizTypeFlags():number {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 };
 
 /**
- * @param TQLDisplayLayout= obj
- * @returns TQLDisplayLayout|null
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
  */
-layout(obj?:TQLDisplayLayout):TQLDisplayLayout|null {
+queryName():string|null
+queryName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+queryName(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? (obj || new TQLDisplayLayout).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
 
 /**
- * @param TQLDisplayColor= obj
- * @returns TQLDisplayColor|null
+ * @param TQLVizLayout= obj
+ * @returns TQLVizLayout|null
  */
-color(obj?:TQLDisplayColor):TQLDisplayColor|null {
+layout(obj?:TQLVizLayout):TQLVizLayout|null {
   var offset = this.bb!.__offset(this.bb_pos, 12);
-  return offset ? (obj || new TQLDisplayColor).__init(this.bb_pos + offset, this.bb!) : null;
+  return offset ? (obj || new TQLVizLayout).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
 
 /**
- * @param TQLDisplayAxes= obj
- * @returns TQLDisplayAxes|null
+ * @param TQLVizColor= obj
+ * @returns TQLVizColor|null
  */
-axes(obj?:TQLDisplayAxes):TQLDisplayAxes|null {
+color(obj?:TQLVizColor):TQLVizColor|null {
   var offset = this.bb!.__offset(this.bb_pos, 14);
-  return offset ? (obj || new TQLDisplayAxes).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? (obj || new TQLVizColor).__init(this.bb_pos + offset, this.bb!) : null;
+};
+
+/**
+ * @param TQLVizAxes= obj
+ * @returns TQLVizAxes|null
+ */
+axes(obj?:TQLVizAxes):TQLVizAxes|null {
+  var offset = this.bb!.__offset(this.bb_pos, 16);
+  return offset ? (obj || new TQLVizAxes).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
 
 /**
  * @param flatbuffers.Builder builder
  */
-static startTQLDisplayStatement(builder:flatbuffers.Builder) {
-  builder.startObject(6);
+static startTQLVizStatement(builder:flatbuffers.Builder) {
+  builder.startObject(7);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset displayNameOffset
+ * @param flatbuffers.Offset vizNameOffset
  */
-static addDisplayName(builder:flatbuffers.Builder, displayNameOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, displayNameOffset, 0);
+static addVizName(builder:flatbuffers.Builder, vizNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, vizNameOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param TQLDisplayType displayType
+ * @param TQLVizType vizType
  */
-static addDisplayType(builder:flatbuffers.Builder, displayType:TQLDisplayType) {
-  builder.addFieldInt8(1, displayType, TQLDisplayType.Area);
+static addVizType(builder:flatbuffers.Builder, vizType:TQLVizType) {
+  builder.addFieldInt8(1, vizType, TQLVizType.Area);
 };
 
 /**
  * @param flatbuffers.Builder builder
- * @param number displayTypeFlags
+ * @param number vizTypeFlags
  */
-static addDisplayTypeFlags(builder:flatbuffers.Builder, displayTypeFlags:number) {
-  builder.addFieldInt16(2, displayTypeFlags, 0);
+static addVizTypeFlags(builder:flatbuffers.Builder, vizTypeFlags:number) {
+  builder.addFieldInt16(2, vizTypeFlags, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset queryNameOffset
+ */
+static addQueryName(builder:flatbuffers.Builder, queryNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, queryNameOffset, 0);
 };
 
 /**
@@ -1747,7 +1910,7 @@ static addDisplayTypeFlags(builder:flatbuffers.Builder, displayTypeFlags:number)
  * @param flatbuffers.Offset layoutOffset
  */
 static addLayout(builder:flatbuffers.Builder, layoutOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, layoutOffset, 0);
+  builder.addFieldOffset(4, layoutOffset, 0);
 };
 
 /**
@@ -1755,7 +1918,7 @@ static addLayout(builder:flatbuffers.Builder, layoutOffset:flatbuffers.Offset) {
  * @param flatbuffers.Offset colorOffset
  */
 static addColor(builder:flatbuffers.Builder, colorOffset:flatbuffers.Offset) {
-  builder.addFieldStruct(4, colorOffset, 0);
+  builder.addFieldStruct(5, colorOffset, 0);
 };
 
 /**
@@ -1763,27 +1926,28 @@ static addColor(builder:flatbuffers.Builder, colorOffset:flatbuffers.Offset) {
  * @param flatbuffers.Offset axesOffset
  */
 static addAxes(builder:flatbuffers.Builder, axesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(5, axesOffset, 0);
+  builder.addFieldOffset(6, axesOffset, 0);
 };
 
 /**
  * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
-static endTQLDisplayStatement(builder:flatbuffers.Builder):flatbuffers.Offset {
+static endTQLVizStatement(builder:flatbuffers.Builder):flatbuffers.Offset {
   var offset = builder.endObject();
   return offset;
 };
 
-static createTQLDisplayStatement(builder:flatbuffers.Builder, displayNameOffset:flatbuffers.Offset, displayType:TQLDisplayType, displayTypeFlags:number, layoutOffset:flatbuffers.Offset, colorOffset:flatbuffers.Offset, axesOffset:flatbuffers.Offset):flatbuffers.Offset {
-  TQLDisplayStatement.startTQLDisplayStatement(builder);
-  TQLDisplayStatement.addDisplayName(builder, displayNameOffset);
-  TQLDisplayStatement.addDisplayType(builder, displayType);
-  TQLDisplayStatement.addDisplayTypeFlags(builder, displayTypeFlags);
-  TQLDisplayStatement.addLayout(builder, layoutOffset);
-  TQLDisplayStatement.addColor(builder, colorOffset);
-  TQLDisplayStatement.addAxes(builder, axesOffset);
-  return TQLDisplayStatement.endTQLDisplayStatement(builder);
+static createTQLVizStatement(builder:flatbuffers.Builder, vizNameOffset:flatbuffers.Offset, vizType:TQLVizType, vizTypeFlags:number, queryNameOffset:flatbuffers.Offset, layoutOffset:flatbuffers.Offset, colorOffset:flatbuffers.Offset, axesOffset:flatbuffers.Offset):flatbuffers.Offset {
+  TQLVizStatement.startTQLVizStatement(builder);
+  TQLVizStatement.addVizName(builder, vizNameOffset);
+  TQLVizStatement.addVizType(builder, vizType);
+  TQLVizStatement.addVizTypeFlags(builder, vizTypeFlags);
+  TQLVizStatement.addQueryName(builder, queryNameOffset);
+  TQLVizStatement.addLayout(builder, layoutOffset);
+  TQLVizStatement.addColor(builder, colorOffset);
+  TQLVizStatement.addAxes(builder, axesOffset);
+  return TQLVizStatement.endTQLVizStatement(builder);
 }
 }
 /**
@@ -1812,6 +1976,15 @@ __init(i:number, bb:flatbuffers.ByteBuffer):TQLModule {
  * @returns TQLModule
  */
 static getRootAsTQLModule(bb:flatbuffers.ByteBuffer, obj?:TQLModule):TQLModule {
+  return (obj || new TQLModule).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param TQLModule= obj
+ * @returns TQLModule
+ */
+static getSizePrefixedRootAsTQLModule(bb:flatbuffers.ByteBuffer, obj?:TQLModule):TQLModule {
   return (obj || new TQLModule).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 };
 

@@ -27,10 +27,10 @@
 %code {
 tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
 
-using D = tigon::tql::DisplayStatement;
-using E = tigon::tql::ExtractStatement;
-using L = tigon::tql::LoadStatement;
-using P = tigon::tql::ParameterDeclaration;
+using Extract = tigon::tql::LoadStatement;
+using Load = tigon::tql::LoadStatement;
+using Param = tigon::tql::ParameterDeclaration;
+using Viz = tigon::tql::VizStatement;
 using std::get;
 using std::move;
 using std::vector;
@@ -65,7 +65,6 @@ using std::vector;
 %token DATE                 "date"
 %token DATETIME             "datetime"
 %token DECLARE              "declare"
-%token DISPLAY              "display"
 %token EXTRACT              "extract"
 %token FIELD                "field"
 %token FILE                 "file"
@@ -101,6 +100,7 @@ using std::vector;
 %token RGB                  "rgb"
 %token SCALE                "scale"
 %token SCATTER              "scatter"
+%token SHOW                 "show"
 %token SM                   "sm"
 %token STACKED              "stacked"
 %token TABLE                "table"
@@ -109,6 +109,10 @@ using std::vector;
 %token URL                  "url"
 %token USING                "using"
 %token VERTICAL             "vertical"
+%token VIS                  "vis"
+%token VISUALISE            "visualise"
+%token VISUALIZE            "visualize"
+%token VIZ                  "viz"
 %token WIDTH                "width"
 %token X                    "x"
 %token XL                   "xl"
@@ -116,26 +120,26 @@ using std::vector;
 
 %token EOF 0                "eof"
 
-%type <DisplayStatement::AxisScale> display_axis_scale;
-%type <DisplayStatement::LengthUnit> display_layout_unit;
-%type <DisplayStatement::LengthUnit> opt_display_layout_unit;
-%type <DisplayStatement::RGBColor> display_color_value;
-%type <DisplayStatement::SizeClass> display_size_class;
-%type <DisplayStatement::Type> display_method;
-%type <DisplayStatement::TypeFlag> display_method_prefix;
+%type <VizStatement::AxisScale> viz_axis_scale;
+%type <VizStatement::LengthUnit> viz_layout_unit;
+%type <VizStatement::LengthUnit> opt_viz_layout_unit;
+%type <VizStatement::RGBColor> viz_color_value;
+%type <VizStatement::SizeClass> viz_size_class;
+%type <VizStatement::Type> viz_method;
+%type <VizStatement::TypeFlag> viz_method_prefix;
 %type <LoadStatement::HTTPLoader::Method> http_method;
 %type <Statement> statement;
 %type <Type> type;
 %type <std::string_view> identifier;
 %type <std::string_view> sql_literal;
-%type <std::tuple<DisplayStatement::SizeClass, uint32_t, DisplayStatement::LengthUnit>> display_layout_length_field;
-%type <std::unique_ptr<DisplayStatement>> display_statement;
+%type <std::tuple<VizStatement::SizeClass, uint32_t, VizStatement::LengthUnit>> viz_layout_length_field;
+%type <std::unique_ptr<VizStatement>> viz_statement;
 %type <std::unique_ptr<ExtractStatement>> extract_statement;
 %type <std::unique_ptr<LoadStatement>> load_statement;
 %type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
 %type <std::unique_ptr<SQLStatement>> sql_statement;
-%type <std::vector<DisplayStatement::RGBColor>> display_color_list;
-%type <std::vector<DisplayStatement::RGBColor>> opt_display_color_list;
+%type <std::vector<VizStatement::RGBColor>> viz_color_list;
+%type <std::vector<VizStatement::RGBColor>> opt_viz_color_list;
 
 %%
 
@@ -148,7 +152,7 @@ statement_list:
 
 statement:
     extract_statement       { $$ = Statement { move($1) }; }
- |  display_statement       { $$ = Statement { move($1) }; }
+ |  viz_statement          { $$ = Statement { move($1) }; }
  |  load_statement          { $$ = Statement { move($1) }; }
  |  parameter_declaration   { $$ = Statement { move($1) }; }
  |  sql_statement           { $$ = Statement { move($1) }; }
@@ -220,9 +224,9 @@ load_method_http_field:
     ;
 
 http_method:
-    GET  { $$ = L::HTTPLoader::Method::Get; }
- |  PUT  { $$ = L::HTTPLoader::Method::Put; }
- |  POST { $$ = L::HTTPLoader::Method::Post; }
+    GET  { $$ = Load::HTTPLoader::Method::Get; }
+ |  PUT  { $$ = Load::HTTPLoader::Method::Put; }
+ |  POST { $$ = Load::HTTPLoader::Method::Post; }
     ;
 
 extract_statement:
@@ -240,47 +244,56 @@ extract_method:
   | PARQUET LRB RRB
     ;
 
-display_statement:
-    DISPLAY identifier USING display_method_prefix_list display_method {
-        auto& d = ctx.cached<DisplayStatement>();
-        d->target = $2;
-        d->type = $5;
+viz_statement:
+    viz_statement_prefix identifier FROM identifier USING viz_method_prefix_list viz_method {
+        auto& d = ctx.cached<VizStatement>();
+        d->name = $2;
+        d->target = $4;
+        d->type = $7;
         $$ = move(d);
     }
     ;
 
-display_method_prefix_list:
-    display_method_prefix_list display_method_prefix {
-        ctx.cached<DisplayStatement>()->type_flags |= static_cast<uint64_t>($2);
+viz_statement_prefix:
+    VIZ
+  | VIS
+  | VISUALISE
+  | VISUALIZE
+  | SHOW
+    ;
+
+viz_method_prefix_list:
+    viz_method_prefix_list viz_method_prefix {
+        ctx.cached<VizStatement>()->type_flags |= static_cast<uint64_t>($2);
     }
  |  %empty
     ;
 
-display_method_prefix:
-    HORIZONTAL { $$ = D::TypeFlag::Horizontal; }
- |  VERTICAL   { $$ = D::TypeFlag::Vertical; }
- |  STACKED    { $$ = D::TypeFlag::Stacked; }
+viz_method_prefix:
+    HORIZONTAL { $$ = Viz::TypeFlag::Horizontal; }
+ |  VERTICAL   { $$ = Viz::TypeFlag::Vertical; }
+ |  STACKED    { $$ = Viz::TypeFlag::Stacked; }
     ;
 
-display_method:
-    AREA opt_plot opt_display_fields      { $$ = D::Type::Area; }
- |  BAR opt_plot opt_display_fields       { $$ = D::Type::Bar; }
- |  BOX opt_plot opt_display_fields       { $$ = D::Type::Box; }
- |  BUBBLE opt_plot opt_display_fields    { $$ = D::Type::Bubble; }
- |  GRID opt_display_fields               { $$ = D::Type::Grid; }
- |  HISTOGRAM opt_plot opt_display_fields { $$ = D::Type::Histogram; }
- |  LINE opt_plot opt_display_fields      { $$ = D::Type::Line; }
- |  NUMBER opt_field opt_display_fields   { $$ = D::Type::Number; }
- |  PIE opt_plot opt_display_fields       { $$ = D::Type::Pie; }
- |  POINT opt_plot opt_display_fields     { $$ = D::Type::Point; }
- |  SCATTER opt_plot opt_display_fields   { $$ = D::Type::Scatter; }
- |  TABLE opt_display_fields              { $$ = D::Type::Table; }
- |  TEXT opt_field opt_display_fields     { $$ = D::Type::Text; }
+viz_method:
+    AREA opt_chart opt_viz_fields       { $$ = Viz::Type::Area; }
+ |  BAR opt_chart opt_viz_fields        { $$ = Viz::Type::Bar; }
+ |  BOX opt_chart opt_viz_fields        { $$ = Viz::Type::Box; }
+ |  BUBBLE opt_chart opt_viz_fields     { $$ = Viz::Type::Bubble; }
+ |  GRID opt_viz_fields                 { $$ = Viz::Type::Grid; }
+ |  HISTOGRAM opt_chart opt_viz_fields  { $$ = Viz::Type::Histogram; }
+ |  LINE opt_chart opt_viz_fields       { $$ = Viz::Type::Line; }
+ |  NUMBER opt_field opt_viz_fields     { $$ = Viz::Type::Number; }
+ |  PIE opt_chart opt_viz_fields        { $$ = Viz::Type::Pie; }
+ |  POINT opt_chart opt_viz_fields      { $$ = Viz::Type::Point; }
+ |  SCATTER opt_chart opt_viz_fields    { $$ = Viz::Type::Scatter; }
+ |  TABLE opt_viz_fields                { $$ = Viz::Type::Table; }
+ |  TEXT opt_chart opt_viz_fields       { $$ = Viz::Type::Text; }
     ;
 
-opt_plot:
-    PLOT
- |  CHART
+opt_chart:
+    CHART
+ |  VIZ
  |  %empty
     ;
 
@@ -289,132 +302,132 @@ opt_field:
  |  %empty
     ;
 
-opt_display_fields:
-    LRB display_fields RRB
+opt_viz_fields:
+    LRB viz_fields RRB
  |  %empty
     ;
 
-display_fields:
-    display_fields COMMA display_field
- |  display_field
+viz_fields:
+    viz_fields COMMA viz_field
+ |  viz_field
     ;
 
-display_field:
-    AXES EQUAL LRB display_axes RRB
- |  COLOR EQUAL LRB display_color RRB
- |  LAYOUT EQUAL LRB display_layout RRB
+viz_field:
+    AXES EQUAL LRB viz_axes RRB
+ |  COLOR EQUAL LRB viz_color RRB
+ |  LAYOUT EQUAL LRB viz_layout RRB
     ;
 
-display_axes:
-    display_axes COMMA display_axes_field
- |  display_axes_field
+viz_axes:
+    viz_axes COMMA viz_axes_field
+ |  viz_axes_field
     ;
 
-display_axes_field:
-    X EQUAL LRB display_axis RRB {
-        ctx.cached<DisplayStatement>()->axes.x = move(ctx.cached<DisplayStatement::Axis>());   }
- |  Y EQUAL LRB display_axis RRB {
-        ctx.cached<DisplayStatement>()->axes.y = move(ctx.cached<DisplayStatement::Axis>());
+viz_axes_field:
+    X EQUAL LRB viz_axis RRB {
+        ctx.cached<VizStatement>()->axes.x = move(ctx.cached<VizStatement::Axis>());   }
+ |  Y EQUAL LRB viz_axis RRB {
+        ctx.cached<VizStatement>()->axes.y = move(ctx.cached<VizStatement::Axis>());
     }
     ;
 
-display_axis:
-    display_axis COMMA display_axis_field
- |  display_axis_field
+viz_axis:
+    viz_axis COMMA viz_axis_field
+ |  viz_axis_field
     ;
 
-display_axis_field:
+viz_axis_field:
     COLUMN EQUAL identifier {
-        ctx.cached<DisplayStatement::Axis>()->column = move($3);
+        ctx.cached<VizStatement::Axis>()->column = move($3);
     }
- |  SCALE EQUAL display_axis_scale {
-        ctx.cached<DisplayStatement::Axis>()->scale = move($3);
+ |  SCALE EQUAL viz_axis_scale {
+        ctx.cached<VizStatement::Axis>()->scale = move($3);
     }
     ;
 
-display_axis_scale:
-    LINEAR { $$ = D::AxisScale::Linear; }
- |  LOG    { $$ = D::AxisScale::Logarithmic; }
+viz_axis_scale:
+    LINEAR { $$ = Viz::AxisScale::Linear; }
+ |  LOG    { $$ = Viz::AxisScale::Logarithmic; }
     ;
 
-display_color:
-    display_color COMMA display_color_field
- |  display_color_field
+viz_color:
+    viz_color COMMA viz_color_field
+ |  viz_color_field
     ;
 
-display_color_field:
+viz_color_field:
     COLUMN EQUAL identifier {
-        ctx.cached<DisplayStatement>()->color.column = move($3);
+        ctx.cached<VizStatement>()->color.column = move($3);
     }
- |  PALETTE EQUAL LSB opt_display_color_list RSB {
-        ctx.cached<DisplayStatement>()->color.palette = move($4);
+ |  PALETTE EQUAL LSB opt_viz_color_list RSB {
+        ctx.cached<VizStatement>()->color.palette = move($4);
     }
     ;
 
-opt_display_color_list:
-    display_color_list  { $$ = move($1); }
- |  %empty              { $$ = vector<D::RGBColor>(); }
+opt_viz_color_list:
+    viz_color_list  { $$ = move($1); }
+ |  %empty              { $$ = vector<Viz::RGBColor>(); }
     ;
 
-display_color_list:
-    display_color_list COMMA display_color_value { $1.push_back($3); $$ = move($1); }
- |  display_color_value                          { $$ = vector<D::RGBColor>{$1}; }
+viz_color_list:
+    viz_color_list COMMA viz_color_value { $1.push_back($3); $$ = move($1); }
+ |  viz_color_value                          { $$ = vector<Viz::RGBColor>{$1}; }
     ;
 
-display_color_value:
+viz_color_value:
     RGB LRB INTEGER_LITERAL COMMA INTEGER_LITERAL COMMA INTEGER_LITERAL RRB {
-        $$ = D::RGBColor{
+        $$ = Viz::RGBColor{
             static_cast<uint8_t>($3),
             static_cast<uint8_t>($5),
             static_cast<uint8_t>($7)
         };
     }
- |  HEX_COLOR_LITERAL { $$ = D::RGBColor{$1}; }
+ |  HEX_COLOR_LITERAL { $$ = Viz::RGBColor{$1}; }
     ;
 
-display_layout:
-    display_layout COMMA display_layout_field
- |  display_layout_field
+viz_layout:
+    viz_layout COMMA viz_layout_field
+ |  viz_layout_field
     ;
 
-display_layout_field:
-    WIDTH EQUAL LRB display_layout_length RRB  {
-        ctx.cached<DisplayStatement>()->layout.width = move(ctx.cached<DisplayStatement::LayoutLength>());
+viz_layout_field:
+    WIDTH EQUAL LRB viz_layout_length RRB  {
+        ctx.cached<VizStatement>()->layout.width = move(ctx.cached<VizStatement::LayoutLength>());
     }
- |  HEIGHT EQUAL LRB display_layout_length RRB {
-        ctx.cached<DisplayStatement>()->layout.height = move(ctx.cached<DisplayStatement::LayoutLength>());
-    }
-    ;
-
-display_size_class:
-    STAR { $$ = D::SizeClass::Wildcard; }
- |  SM   { $$ = D::SizeClass::Small; }
- |  MD   { $$ = D::SizeClass::Medium; }
- |  LG   { $$ = D::SizeClass::Large; }
- |  XL   { $$ = D::SizeClass::ExtraLarge; }
-    ;
-
-display_layout_length:
-    display_layout_length COMMA display_layout_length_field {
-        ctx.cached<DisplayStatement::LayoutLength>()->set(get<0>($3), get<1>($3), get<2>($3));
-    }
- |  display_layout_length_field {
-        ctx.cached<DisplayStatement::LayoutLength>()->set(get<0>($1), get<1>($1), get<2>($1));
+ |  HEIGHT EQUAL LRB viz_layout_length RRB {
+        ctx.cached<VizStatement>()->layout.height = move(ctx.cached<VizStatement::LayoutLength>());
     }
     ;
 
-display_layout_length_field:
-    display_size_class EQUAL INTEGER_LITERAL opt_display_layout_unit { $$ = {$1, $3, $4}; }
+viz_size_class:
+    STAR { $$ = Viz::SizeClass::Wildcard; }
+ |  SM   { $$ = Viz::SizeClass::Small; }
+ |  MD   { $$ = Viz::SizeClass::Medium; }
+ |  LG   { $$ = Viz::SizeClass::Large; }
+ |  XL   { $$ = Viz::SizeClass::ExtraLarge; }
     ;
 
-opt_display_layout_unit:
-    display_layout_unit { $$ = $1; }
- |  %empty              { $$ = D::LengthUnit::Span; }
+viz_layout_length:
+    viz_layout_length COMMA viz_layout_length_field {
+        ctx.cached<VizStatement::LayoutLength>()->set(get<0>($3), get<1>($3), get<2>($3));
+    }
+ |  viz_layout_length_field {
+        ctx.cached<VizStatement::LayoutLength>()->set(get<0>($1), get<1>($1), get<2>($1));
+    }
     ;
 
-display_layout_unit:
-    PERCENT { $$ = D::LengthUnit::Percent; }
- |  PX      { $$ = D::LengthUnit::Pixel; }
+viz_layout_length_field:
+    viz_size_class EQUAL INTEGER_LITERAL opt_viz_layout_unit { $$ = {$1, $3, $4}; }
+    ;
+
+opt_viz_layout_unit:
+    viz_layout_unit { $$ = $1; }
+ |  %empty              { $$ = Viz::LengthUnit::Span; }
+    ;
+
+viz_layout_unit:
+    PERCENT { $$ = Viz::LengthUnit::Percent; }
+ |  PX      { $$ = Viz::LengthUnit::Pixel; }
     ;
 
 %%
