@@ -172,7 +172,10 @@ loc.step();
 select[^;]*         { return Parser::make_SQL_SELECT(getTokenText(), loc); }
 with[^;]*           { return Parser::make_SQL_WITH(getTokenText(), loc); }
 [a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER_LITERAL(getTokenText(), loc); }
-'[^']*'             { return Parser::make_STRING_LITERAL(getTokenText(), loc); }
+['"][^'"]*['"]      {
+                        auto text = getTokenText();
+                        return Parser::make_STRING_LITERAL(text.substr(1, text.size() - 2), loc);
+                    }
 [0-9]+              {
                         uint32_t value = 0;
                         try {

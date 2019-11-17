@@ -43,22 +43,22 @@ describe("tql parsing", () => {
     });
 
     test_tql_parser(`
-        SELECT 1;
+        query foo as SELECT 1;
     `, {
         "statements_type": [ "TQLQueryStatement" ],
         "statements": [
-            { "query_text": "SELECT 1" }
+            { "query_name": "foo", "query_text": "SELECT 1" }
         ]
     });
 
     test_tql_parser(`
-        SELECT 1;
-        SELECT 1 + 2;
+        query "foo" as SELECT 1;
+        query "bar" as SELECT 1 + 2;
     `, {
         "statements_type": [ "TQLQueryStatement", "TQLQueryStatement" ],
         "statements": [
-            { "query_text": "SELECT 1" },
-            { "query_text": "SELECT 1 + 2" }
+            { "query_name": "foo", "query_text": "SELECT 1" },
+            { "query_name": "bar", "query_text": "SELECT 1 + 2" }
         ]
     });
 });

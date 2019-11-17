@@ -92,7 +92,7 @@ TEST(TQLTest, Query1) {
 
 TEST(TQLTest, Query2) {
     auto in = R"RAW(
-        query foo as select 1;
+        query "foo" as select 1;
     )RAW";
     ParseContext ctx;
     auto module = ctx.Parse(in);
