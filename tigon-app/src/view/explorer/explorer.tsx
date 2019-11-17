@@ -105,7 +105,7 @@ function Outline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQL
             <Section title="Load Statements" count={load.length}>{load}</Section>
             <Section title="Extract Statements" count={extract.length}>{extract}</Section>
             <Section title="Query Statements" count={query.length}>{query}</Section>
-            <Section title="Viz Statements" count={viz.length}>{viz}</Section>
+            <Section title="Vizualizations" count={viz.length}>{viz}</Section>
         </div>
     );
 }
@@ -229,7 +229,7 @@ class EExplorerorer extends React.Component<IExplorerProps> {
 
                 <div className={s.properties}>
                     <div className={s.properties_header}>
-                        Viz Properties
+                        Properties
                     </div>
                 </div>
             </div>
