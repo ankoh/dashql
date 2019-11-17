@@ -96,13 +96,19 @@ export class QueryResultBuilder {
         let namesOfs = proto.duckdb.QueryResult.createColumnNamesVector(builder, names);
         let rawTypesOfs = proto.duckdb.QueryResult.createColumnRawTypesVector(builder, this.columnRawTypes);
 
-        // TODO encode sql types
+        // Encode sql types
+        proto.duckdb.QueryResult.startColumnRawTypesVector(builder, this.columnSQLTypes.length);
+        for (let i = 0; i < this.columnSQLTypes.length; ++i) {
+            proto.duckdb.SQLType.createSQLType(builder, this.columnSQLTypes[i], 0, 0);
+        }
+        let sqlTypesOfs = builder.endVector();
 
         // Encode result
         proto.duckdb.QueryResult.startQueryResult(builder);
         proto.duckdb.QueryResult.addDataChunks(builder, chunksOfs);
         proto.duckdb.QueryResult.addColumnNames(builder, namesOfs);
         proto.duckdb.QueryResult.addColumnRawTypes(builder, rawTypesOfs);
+        proto.duckdb.QueryResult.addColumnSqlTypes(builder, sqlTypesOfs);
         return proto.duckdb.QueryResult.endQueryResult(builder);
     }
 
