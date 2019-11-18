@@ -10,7 +10,8 @@ export enum ActionType {
     CONFIGURE_APP               = 'CONFIGURE_APP',
     NAVIGATE_ROOT               = 'NAVIGATE_ROOT',
     PUSH_LOG_ENTRY              = 'PUSH_LOG_ENTRY',
-    PUSH_TRANSIENT_TQL_MODULE    = 'SET_TRANSIENT_TQL_MODULE',
+    PUSH_TRANSIENT_TQL_MODULE   = 'PUSH_TRANSIENT_TQL_MODULE',
+    SET_TRANSIENT_QUERY_RESULT  = 'SET_TRANSIENT_QUERY_RESULT',
     OTHER                       = 'OTHER',
 }
 
@@ -23,6 +24,7 @@ export type RootAction =
     | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
     | Action<ActionType.PUSH_TRANSIENT_TQL_MODULE, Model.CoreBuffer<proto.tql.TQLModule>>
+    | Action<ActionType.SET_TRANSIENT_QUERY_RESULT, [string, Model.CoreBuffer<proto.duckdb.QueryResult>]>
     | Action<ActionType.OTHER, {}>;
 
 // ---------------------------------------------------------------------------
@@ -57,4 +59,8 @@ export function configureApp(config: State.AppSettings): RootAction {
 
 export function pushTransientTQLModule(module: Model.CoreBuffer<proto.tql.TQLModule>): RootAction {
     return createAction<ActionType.PUSH_TRANSIENT_TQL_MODULE, Model.CoreBuffer<proto.tql.TQLModule>>(ActionType.PUSH_TRANSIENT_TQL_MODULE, module);
+}
+
+export function setTransientQueryResult(key: string, result: Model.CoreBuffer<proto.duckdb.QueryResult>): RootAction {
+    return createAction<ActionType.SET_TRANSIENT_QUERY_RESULT, [string, Model.CoreBuffer<proto.duckdb.QueryResult>]>(ActionType.SET_TRANSIENT_QUERY_RESULT, [key, result]);
 }

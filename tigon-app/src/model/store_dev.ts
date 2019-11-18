@@ -5,6 +5,8 @@ function actionSanitizer(a: Model.RootAction) {
     switch (a.type) {
         case Model.ActionType.PUSH_TRANSIENT_TQL_MODULE: 
             return { ...a, payload: '<CORE>' };
+        case Model.ActionType.SET_TRANSIENT_QUERY_RESULT: 
+            return { ...a, payload: '<CORE>' };
         default:
             return a;
     }
@@ -13,7 +15,8 @@ function actionSanitizer(a: Model.RootAction) {
 function stateSanitizer(s: Model.RootState) {
     return {
         ...s,
-        transientTQLModule: '<CORE>',
+        transientTQLModules: '<CORE>',
+        transientDataBuffers: '<CORE>',
         transientQueryResults: '<CORE>',
         transientQueryPlans: '<CORE>',
     };

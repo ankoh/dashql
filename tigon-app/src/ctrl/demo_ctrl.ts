@@ -52,7 +52,8 @@ export class DemoController {
         let [q1ResPtr, q1ResSize] = await this.core.copyFlatBuffer(session, q1ResBuilder.dataBuffer());
         let q1ResBuffer = new Model.QueryResultBuffer(this.core, session, q1ResPtr, q1ResSize);
 
-        
+        // Store the result buffer
+        this.store.dispatch(Model.setTransientQueryResult("temp_weekly", q1ResBuffer));       
     }
 };
 
