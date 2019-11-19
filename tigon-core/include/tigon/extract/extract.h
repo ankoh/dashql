@@ -8,7 +8,7 @@
 
 #include "duckdb.hpp"
 #include "tigon/common/span.h"
-#include "tigon/proto/tql_generated.h"
+#include "tigon/proto/tql.pb.h"
 
 namespace tigon {
 

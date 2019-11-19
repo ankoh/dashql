@@ -16,4 +16,4 @@ add_library(tigon_proto STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include/tigon/proto/web_api.pb.c
 )
 target_include_directories(tigon_proto INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(tigon_proto INTERFACE nanopb)
+target_link_libraries(tigon_proto nanopb)
