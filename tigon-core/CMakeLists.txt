@@ -53,13 +53,13 @@ endif()
 # CMake includes
 
 include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/duckdb.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/flatbuffers.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/googletest.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/rapidjson.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/cwcsv.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/spdlog.cmake")
-include("${CMAKE_SOURCE_DIR}/third_party/nanopb.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/cwcsv.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/nanopb.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 
 
 # ---------------------------------------------------------------------------

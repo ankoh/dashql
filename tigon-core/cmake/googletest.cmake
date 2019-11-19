@@ -10,8 +10,8 @@ find_package(Threads REQUIRED)
 # Build gtest
 ExternalProject_Add(
     gtest_ep
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/googletest/googletest"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/gtest"
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/googletest/googletest"
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
         -DCMAKE_CXX_STANDARD=17
@@ -29,8 +29,8 @@ ExternalProject_Add(
 # Build gmock
 ExternalProject_Add(
     gmock_ep
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/googletest/googlemock"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/gmock"
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/googletest/googlemock"
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
         -DCMAKE_CXX_STANDARD=17

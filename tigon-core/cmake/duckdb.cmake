@@ -7,12 +7,11 @@ include(ExternalProject)
 
 ExternalProject_Add(
     duckdb_ep
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/duckdb"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/duckdb"
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/duckdb"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/duckdb/install"
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
-        -DCMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_CXX_FLAGS=-std=c++17
@@ -22,7 +21,6 @@ ExternalProject_Add(
         -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DLEAN=ON
-        -DWITH_THREADS=OFF
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -j${CMAKE_BUILD_PARALLEL_LEVEL} duckdb_static miniz re2 hyperloglog pg_query

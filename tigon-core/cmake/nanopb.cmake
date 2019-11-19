@@ -5,10 +5,10 @@
 
 include(ExternalProject)
 
-# Flatbuffers library
+# NanoPB library
 ExternalProject_Add(
     nanopb_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/nanopb"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/nanopb"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/nanopb"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/nanopb/install"
     CMAKE_ARGS
