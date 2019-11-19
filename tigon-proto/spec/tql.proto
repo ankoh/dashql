@@ -169,7 +169,7 @@ message VizStatement {
     VizAxes axes = 7;
 }
 
-/// A  statement
+/// A statement union
 message StatementUnion {
     oneof statement {
         VizStatement viz = 1;
@@ -180,7 +180,7 @@ message StatementUnion {
     }
 }
 
-/// A  module
+/// A tql module
 message Module {
     repeated StatementUnion statements = 1;
 }
