@@ -1,0 +1,186 @@
+syntax = "proto3";
+
+import "nanopb.proto";
+
+package tigon.proto.tql;
+
+// A  type
+enum Type {
+    INTEGER = 0;
+    FLOAT = 1;
+    TEXT = 2;
+    DATE = 3;
+    DATETIME = 4;
+    TIME = 5;
+}
+
+/// A query statement
+message QueryStatement {
+    string query_name = 1;
+    string query_text = 2;
+}
+
+/// A parameter declaration
+message ParameterDeclaration { 
+    option (nanopb_msgopt).no_unions = true;
+
+    string parameter_name = 1;
+    Type parameter_type = 2;
+    oneof default_value {
+        int32 value_i32 = 3;
+        int64 value_i64 = 4;
+        double value_f64 = 5;
+        string value_str = 6;
+    }
+}
+
+/// A http method
+enum HTTPMethod {
+    GET = 0;
+    PUT = 1;
+    POST = 2;
+}
+
+/// A http loader
+message HTTPLoadMethod {
+    string http_url = 1;
+    HTTPMethod http_method = 2;
+}
+
+/// A file loader
+message FileLoadMethod {}
+
+/// A load statement
+message LoadStatement {
+    string data_name = 1;
+    oneof load_method {
+        HTTPLoadMethod http = 2;
+        FileLoadMethod file = 3;
+    }
+}
+
+/// A json extractor
+message JSONExtract {
+}
+
+/// A csv column
+message CSVColumn {
+    string column_name = 1;
+    Type column_type = 2;
+    string source_name = 3;
+    int32 source_index = 4;
+}
+
+/// A csv extractor
+message CSVExtract {
+    repeated CSVColumn columns = 1;
+}
+
+/// An extract method
+message ExtractMethod {
+}
+
+/// An extract statement
+message ExtractStatement {
+    string extract_name = 1;
+    string data_name = 2;
+    oneof method {
+        JSONExtract json = 3;
+        CSVExtract csv = 4;
+    }
+}
+
+/// An display type
+enum VizType {
+    VIZ_AREA = 0;
+    VIZ_BAR = 1;
+    VIZ_BOX = 2;
+    VIZ_BUBBLE = 3;
+    VIZ_GRID = 4;
+    VIZ_HISTOGRAM = 5;
+    VIZ_LINE = 6;
+    VIZ_NUMBER = 7;
+    VIZ_PIE = 8;
+    VIZ_POINT = 9;
+    VIZ_SCATTER = 10;
+    VIZ_TABLE = 11;
+    VIZ_TEXT = 12;
+}
+
+/// A display color palette
+message VizColorPalette {
+    string color_target = 1;
+    repeated fixed32 palette = 2;
+}
+
+/// A display length unit
+enum VizLengthUnit {
+    SPAN = 0;
+    PIXEL = 1;
+    PERCENT = 2;
+}
+
+/// A display length value
+message VizLengthValue {
+    double value = 1;
+    VizLengthUnit unit = 2;
+}
+
+/// A display length
+message VizLength {
+    VizLengthValue small = 1;
+    VizLengthValue medium = 2;
+    VizLengthValue large = 3;
+    VizLengthValue extra_large = 4;
+}
+
+/// A display layout
+message VizLayout {
+    VizLength width = 1;
+    VizLength height = 2;
+}
+
+/// A display axis sclae
+enum VizAxisScale {
+    Linear = 0;
+    Logarithmic = 1;
+}
+
+/// A display axis
+message VizAxis {
+    string column = 1;
+    VizAxisScale scale = 2;
+}
+
+/// Viz axes
+message VizAxes {
+    VizAxis x = 1;
+    VizAxis y = 2;
+}
+
+/// A display statement
+message VizStatement {
+    string viz_name = 1;
+    VizType viz_type = 2;
+    fixed32 viz_type_flags = 3;
+    string query_name = 4;
+    VizLayout layout = 5;
+    fixed32 color = 6;
+    VizAxes axes = 7;
+}
+
+/// A  statement
+message StatementUnion {
+    oneof statement {
+        VizStatement viz = 1;
+        ExtractStatement extract = 2;
+        LoadStatement load = 3;
+        ParameterDeclaration parameter = 4;
+        QueryStatement query = 5;
+    }
+}
+
+/// A  module
+message Module {
+    repeated StatementUnion statements = 1;
+}

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package tigon.proto.web_api;
+
+// A status code
+enum StatusCode {
+    SUCCESS = 0;
+    ERROR = 1;
+}
+
+/// A formatted text
+message FormattedText {
+    string text = 1;
+}
+
+/// A raw data buffer
+message RawData {
+    bytes data = 1;
+}

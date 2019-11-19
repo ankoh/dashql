@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package tigon.proto.duckdb;
+
+// The raw data types
+enum RawTypeID {
+    RAW_INVALID = 0;
+    RAW_BOOLEAN = 1;
+    RAW_TINYINT = 2;
+    RAW_SMALLINT = 3;
+    RAW_INTEGER = 4;
+    RAW_BIGINT = 5;
+    RAW_HASH = 6;
+    RAW_POINTER = 7;
+    RAW_FLOAT = 8;
+    RAW_DOUBLE = 9;
+    RAW_VARCHAR = 10;
+    RAW_VARBINARY = 11;
+}
+
+// The sql data types
+enum SQLTypeID {
+    SQL_INVALID = 0;
+    SQL_NULL = 1;
+    SQL_BOOLEAN = 2;
+    SQL_TINYINT = 3;
+    SQL_SMALLINT = 4;
+    SQL_INTEGER = 5;
+    SQL_BIGINT = 6;
+    SQL_DATE = 7;
+    SQL_TIMESTAMP = 8;
+    SQL_REAL = 9;
+    SQL_DOUBLE = 10;
+    SQL_FLOAT = 11;
+    SQL_DECIMAL = 12;
+    SQL_CHAR = 13;
+    SQL_VARCHAR = 14;
+    SQL_VARBINARY = 15;
+}
+
+// A sql type
+message SQLType {
+    SQLTypeID type_id = 1;
+    uint32 width = 2;
+    uint32 scale = 3;
+}
+
+// The logical operator types
+// duckdb: common/enums/logical_operator_type.hpp
+enum LogicalOperatorType {
+    OP_INVALID = 0;
+    OP_PROJECTION = 1;
+    OP_FILTER = 2;
+    OP_AGGREGATE_AND_GROUP_BY = 3;
+    OP_WINDOW = 4;
+    OP_LIMIT = 5;
+    OP_ORDER_BY = 6;
+    OP_TOP_N = 7;
+    OP_COPY_FROM_FILE = 8;
+    OP_COPY_TO_FILE = 9;
+    OP_DISTINCT = 10;
+    OP_INDEX_SCAN = 11;
+
+    // Data sources
+    OP_GET = 12;
+    OP_CHUNK_GET = 13;
+    OP_DELIM_GET = 14;
+    OP_EXPRESSION_GET = 15;
+    OP_TABLE_FUNCTION = 16;
+    OP_SUBQUERY = 17;
+    OP_EMPTY_RESULT = 18;
+
+    // Joins
+    OP_JOIN = 19;
+    OP_DELIM_JOIN = 20;
+    OP_COMPARISON_JOIN = 21;
+    OP_ANY_JOIN = 22;
+    OP_CROSS_PRODUCT = 23;
+
+    // SetOps
+    OP_UNION = 24;
+    OP_EXCEPT = 25;
+    OP_INTERSECT = 26;
+
+    // Updates
+    OP_INSERT = 27;
+    OP_DELETE = 28;
+    OP_UPDATE = 29;
+    OP_CREATE_TABLE = 30;
+    OP_CREATE_INDEX = 31;
+
+    // Explain
+    OP_EXPLAIN = 32;
+
+    // Helpers
+    OP_PRUNE_COLUMNS = 33;
+    OP_PREPARE = 34;
+    OP_EXECUTE = 35;
+}
+
+// A query plan
+message QueryPlan {
+    repeated uint64 operator_children = 1;
+    repeated uint64 operator_child_offsets = 2;
+    repeated LogicalOperatorType operator_types = 3;
+}
+
+// A column of a query result
+message QueryResultColumn {
+    RawTypeID type_id = 1;
+    repeated bool null_mask = 2;
+    repeated int32 rows_i32 = 3;
+    repeated uint32 rows_u32 = 4;
+    repeated int64 rows_i64 = 5;
+    repeated uint64 rows_u64 = 6;
+    repeated float rows_f32 = 7;
+    repeated double rows_f64 = 8;
+    repeated string rows_str = 9;
+}
+
+// A data chunk
+message QueryResultChunk {
+    repeated QueryResultColumn columns = 1;
+}
+
+// A query result
+message QueryResult {
+    uint32 query_id = 1;
+    QueryPlan query_plan = 2;
+    repeated RawTypeID column_raw_types = 3;
+    repeated SQLType column_sql_types = 4;
+    repeated string column_names = 5;
+    repeated QueryResultChunk data_chunks = 6;
+}

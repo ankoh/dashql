@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package tigon.proto.rpath;
+
+message ArraySlice {}
+message ArrayIndexes {}
+message ChildMember {}
+message DescendantMember {}
+
+message ComponentUnion {
+    oneof component {
+        ArraySlice arraySlice = 1;
+        ArrayIndexes arrayIndexes = 2;
+        ChildMember childMember = 3;
+        DescendantMember descendantMember = 4;
+    }
+}
+
+message Path {
+    repeated ComponentUnion components = 1;
+}
