@@ -16,6 +16,3 @@
 [submodule "tigon-core/third_party/nanopb"]
 	path = submodules/nanopb
 	url = https://github.com/nanopb/nanopb
-[submodule "submodules/ts-protoc-gen"]
-	path = submodules/ts-protoc-gen
-	url = https://github.com/improbable-eng/ts-protoc-gen
