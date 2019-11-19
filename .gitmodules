@@ -13,3 +13,6 @@
 [submodule "tigon-core/third_party/spdlog"]
 	path = tigon-core/third_party/spdlog
     url = https://github.com/gabime/spdlog
+[submodule "tigon-core/third_party/nanopb"]
+	path = tigon-core/third_party/nanopb
+	url = https://github.com/nanopb/nanopb

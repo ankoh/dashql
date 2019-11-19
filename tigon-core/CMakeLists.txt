@@ -59,6 +59,7 @@ include("${CMAKE_SOURCE_DIR}/third_party/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/cwcsv.cmake")
 include("${CMAKE_SOURCE_DIR}/third_party/spdlog.cmake")
+include("${CMAKE_SOURCE_DIR}/third_party/nanopb.cmake")
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +99,8 @@ target_link_libraries(tigon
     tigon_rpath
     tigon_tql
     duckdb
-    rapidjson cwcsv spdlog
+    nanopb rapidjson cwcsv
+    spdlog
     Threads::Threads
 )
 
