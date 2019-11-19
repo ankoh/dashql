@@ -8,6 +8,8 @@ PROTO_BUILD_DIR="${PROTO_DIR}/build"
 
 NANOPB_SOURCE_DIR="${PROJECT_ROOT}/submodules/nanopb"
 NANOPB_INCLUDE_DIR="${NANOPB_SOURCE_DIR}/generator/proto"
+NANOPB_PROTOLIB_DIR="${NANOPB_SOURCE_DIR}/generator/proto/";
+NANOPB_PROTOLIB_SCRIPT="${NANOPB_PROTOLIB_DIR}/nanopb_pb2.py";
 NANOPB_PLUGIN="${NANOPB_SOURCE_DIR}/generator/protoc-gen-nanopb"
 
 TSPROTOC_BUILD_DIR="${PROTO_BUILD_DIR}/ts-protoc-gen/"
@@ -25,12 +27,22 @@ ${PROTOC} --version \
 if [ -x "$(command -v ${TSPROTOC_PLUGIN})" ]; then
     echo "[ OK  ] Command: protoc-gen-ts"
 else
-    echo "[ NPM ] Command: protoc-gen-ts"
+    echo "[ GEN ] Command: protoc-gen-ts"
     mkdir -p ${TSPROTOC_BUILD_DIR} \
         && cd ${TSPROTOC_BUILD_DIR} \
         && npm install ts-protoc-gen@next \
         && { echo "[ OK  ] Command: protoc-gen-ts"; } \
         || { echo "[ ERR ] Command: protoc-gen-ts"; exit 1; }
+fi
+
+if [ -f ${NANOPB_PROTOLIB_SCRIPT} ]; then
+    echo "[ OK  ] Proto: nanopb"
+else
+    echo "[ GEN ] Proto: nanopb"
+    cd ${NANOPB_PROTOLIB_DIR} \
+        && make \
+        && { echo "[ OK  ] Proto: nanopb"; } \
+        || { echo "[ ERR ] Proto: nanopb"; exit 1; }
 fi
 
 for PROTO_FILE in ${PROTO_SPEC_DIR}/*; do
