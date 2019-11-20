@@ -67,7 +67,7 @@ export namespace DescendantMember {
   }
 }
 
-export class ComponentUnion extends jspb.Message {
+export class Component extends jspb.Message {
   hasArrayslice(): boolean;
   clearArrayslice(): void;
   getArrayslice(): ArraySlice | undefined;
@@ -88,18 +88,18 @@ export class ComponentUnion extends jspb.Message {
   getDescendantmember(): DescendantMember | undefined;
   setDescendantmember(value?: DescendantMember): void;
 
-  getComponentCase(): ComponentUnion.ComponentCase;
+  getComponentCase(): Component.ComponentCase;
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): ComponentUnion.AsObject;
-  static toObject(includeInstance: boolean, msg: ComponentUnion): ComponentUnion.AsObject;
+  toObject(includeInstance?: boolean): Component.AsObject;
+  static toObject(includeInstance: boolean, msg: Component): Component.AsObject;
   static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
   static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: ComponentUnion, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): ComponentUnion;
-  static deserializeBinaryFromReader(message: ComponentUnion, reader: jspb.BinaryReader): ComponentUnion;
+  static serializeBinaryToWriter(message: Component, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Component;
+  static deserializeBinaryFromReader(message: Component, reader: jspb.BinaryReader): Component;
 }
 
-export namespace ComponentUnion {
+export namespace Component {
   export type AsObject = {
     arrayslice?: ArraySlice.AsObject,
     arrayindexes?: ArrayIndexes.AsObject,
@@ -118,9 +118,9 @@ export namespace ComponentUnion {
 
 export class Path extends jspb.Message {
   clearComponentsList(): void;
-  getComponentsList(): Array<ComponentUnion>;
-  setComponentsList(value: Array<ComponentUnion>): void;
-  addComponents(value?: ComponentUnion, index?: number): ComponentUnion;
+  getComponentsList(): Array<Component>;
+  setComponentsList(value: Array<Component>): void;
+  addComponents(value?: Component, index?: number): Component;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Path.AsObject;
@@ -134,7 +134,7 @@ export class Path extends jspb.Message {
 
 export namespace Path {
   export type AsObject = {
-    componentsList: Array<ComponentUnion.AsObject>,
+    componentsList: Array<Component.AsObject>,
   }
 }
 

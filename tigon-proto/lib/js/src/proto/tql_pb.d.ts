@@ -2,7 +2,6 @@
 // file: tql.proto
 
 import * as jspb from "google-protobuf";
-import * as nanopb_pb from "./nanopb_pb";
 
 export class QueryStatement extends jspb.Message {
   getQueryName(): string;
@@ -511,7 +510,7 @@ export namespace VizStatement {
   }
 }
 
-export class StatementUnion extends jspb.Message {
+export class Statement extends jspb.Message {
   hasViz(): boolean;
   clearViz(): void;
   getViz(): VizStatement | undefined;
@@ -537,18 +536,18 @@ export class StatementUnion extends jspb.Message {
   getQuery(): QueryStatement | undefined;
   setQuery(value?: QueryStatement): void;
 
-  getStatementCase(): StatementUnion.StatementCase;
+  getStatementCase(): Statement.StatementCase;
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): StatementUnion.AsObject;
-  static toObject(includeInstance: boolean, msg: StatementUnion): StatementUnion.AsObject;
+  toObject(includeInstance?: boolean): Statement.AsObject;
+  static toObject(includeInstance: boolean, msg: Statement): Statement.AsObject;
   static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
   static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: StatementUnion, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): StatementUnion;
-  static deserializeBinaryFromReader(message: StatementUnion, reader: jspb.BinaryReader): StatementUnion;
+  static serializeBinaryToWriter(message: Statement, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Statement;
+  static deserializeBinaryFromReader(message: Statement, reader: jspb.BinaryReader): Statement;
 }
 
-export namespace StatementUnion {
+export namespace Statement {
   export type AsObject = {
     viz?: VizStatement.AsObject,
     extract?: ExtractStatement.AsObject,
@@ -569,9 +568,9 @@ export namespace StatementUnion {
 
 export class Module extends jspb.Message {
   clearStatementsList(): void;
-  getStatementsList(): Array<StatementUnion>;
-  setStatementsList(value: Array<StatementUnion>): void;
-  addStatements(value?: StatementUnion, index?: number): StatementUnion;
+  getStatementsList(): Array<Statement>;
+  setStatementsList(value: Array<Statement>): void;
+  addStatements(value?: Statement, index?: number): Statement;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Module.AsObject;
@@ -585,7 +584,7 @@ export class Module extends jspb.Message {
 
 export namespace Module {
   export type AsObject = {
-    statementsList: Array<StatementUnion.AsObject>,
+    statementsList: Array<Statement.AsObject>,
   }
 }
 

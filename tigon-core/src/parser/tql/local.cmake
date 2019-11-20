@@ -41,7 +41,7 @@ add_custom_command(
 
 add_library(tigon_tql ${TQL_CC})
 target_include_directories(tigon_tql PRIVATE ${CMAKE_BINARY_DIR}/include)
-target_link_libraries(tigon_tql tigon_proto flatbuffers)
+target_link_libraries(tigon_tql flatbuffers)
 set_property(TARGET tigon_tql PROPERTY CXX_STANDARD 17)
 
 # ---------------------------------------------------------------------------

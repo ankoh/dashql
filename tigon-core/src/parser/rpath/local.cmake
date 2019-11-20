@@ -40,7 +40,7 @@ add_custom_command(
 
 add_library(tigon_rpath ${RPATH_CC})
 target_include_directories(tigon_rpath PRIVATE ${CMAKE_BINARY_DIR}/include)
-target_link_libraries(tigon_rpath tigon_proto flatbuffers)
+target_link_libraries(tigon_rpath flatbuffers)
 set_property(TARGET tigon_rpath PROPERTY CXX_STANDARD 17)
 
 # ---------------------------------------------------------------------------

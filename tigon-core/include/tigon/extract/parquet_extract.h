@@ -10,19 +10,6 @@
 
 namespace tigon {
 
-class ParquetExtract: public Extract {
-    public:
-    /// Constructor
-    ParquetExtract(duckdb::Connection& conn, proto::TQLExtractStatement& stmt);
-    /// Destructor
-    ~ParquetExtract() = default;
-
-    /// Prepare the database
-    void prepare() override;
-    /// Read a buffer into the extract
-    void read(nonstd::span<std::byte> buffer) override;
-};
-
 
 } // namespace tigon
 

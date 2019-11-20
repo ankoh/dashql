@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+option optimize_for = LITE_RUNTIME;
+
 package tigon.proto.web_api;
 
 // A status code

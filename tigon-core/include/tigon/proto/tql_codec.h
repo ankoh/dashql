@@ -8,9 +8,8 @@
 
 #include "duckdb.hpp"
 
-#include "flatbuffers/flatbuffers.h"
 #include "tigon/parser/tql/tql_syntax.h"
-#include "tigon/proto/tql_generated.h"
+#include "tigon/proto/tql.pb.h"
 
 namespace tigon {
 namespace proto {

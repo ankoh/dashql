@@ -17,9 +17,6 @@
 #include <vector>
 #include <optional>
 
-#include "flatbuffers/flatbuffers.h"
-#include "tigon/proto/tql_generated.h"
-
 namespace tigon {
 namespace tql {
 
@@ -321,20 +318,6 @@ struct Module {
     /// The statements
     std::vector<Statement> statements;
 };
-
-/// A flatbuffer writer
-template <typename T>
-struct FlatBufferWriter {
-    /// Encode a statement as flatbuffer
-    static flatbuffers::Offset<void> write(T& target, flatbuffers::FlatBufferBuilder& builder);
-};
-
-// Template classes
-template <> struct FlatBufferWriter<VizStatement>;
-template <> struct FlatBufferWriter<ExtractStatement>;
-template <> struct FlatBufferWriter<LoadStatement>;
-template <> struct FlatBufferWriter<ParameterDeclaration>;
-template <> struct FlatBufferWriter<SQLStatement>;
 
 } // namespace tql
 } // namespace tigon

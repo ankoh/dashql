@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+option optimize_for = LITE_RUNTIME;
+
 package tigon.proto.rpath;
 
 message ArraySlice {}
@@ -7,7 +9,7 @@ message ArrayIndexes {}
 message ChildMember {}
 message DescendantMember {}
 
-message ComponentUnion {
+message Component {
     oneof component {
         ArraySlice arraySlice = 1;
         ArrayIndexes arrayIndexes = 2;
@@ -17,5 +19,5 @@ message ComponentUnion {
 }
 
 message Path {
-    repeated ComponentUnion components = 1;
+    repeated Component components = 1;
 }

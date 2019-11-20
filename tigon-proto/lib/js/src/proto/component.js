@@ -8,8 +8,8 @@
  */
 // GENERATED CODE -- DO NOT EDIT!
 
-goog.provide('proto.tigon.proto.rpath.ComponentUnion');
-goog.provide('proto.tigon.proto.rpath.ComponentUnion.ComponentCase');
+goog.provide('proto.tigon.proto.rpath.Component');
+goog.provide('proto.tigon.proto.rpath.Component.ComponentCase');
 
 goog.require('jspb.BinaryReader');
 goog.require('jspb.BinaryWriter');
@@ -29,16 +29,16 @@ goog.require('proto.tigon.proto.rpath.DescendantMember');
  * @extends {jspb.Message}
  * @constructor
  */
-proto.tigon.proto.rpath.ComponentUnion = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.tigon.proto.rpath.ComponentUnion.oneofGroups_);
+proto.tigon.proto.rpath.Component = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.tigon.proto.rpath.Component.oneofGroups_);
 };
-goog.inherits(proto.tigon.proto.rpath.ComponentUnion, jspb.Message);
+goog.inherits(proto.tigon.proto.rpath.Component, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
   /**
    * @public
    * @override
    */
-  proto.tigon.proto.rpath.ComponentUnion.displayName = 'proto.tigon.proto.rpath.ComponentUnion';
+  proto.tigon.proto.rpath.Component.displayName = 'proto.tigon.proto.rpath.Component';
 }
 
 /**
@@ -49,12 +49,12 @@ if (goog.DEBUG && !COMPILED) {
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.tigon.proto.rpath.ComponentUnion.oneofGroups_ = [[1,2,3,4]];
+proto.tigon.proto.rpath.Component.oneofGroups_ = [[1,2,3,4]];
 
 /**
  * @enum {number}
  */
-proto.tigon.proto.rpath.ComponentUnion.ComponentCase = {
+proto.tigon.proto.rpath.Component.ComponentCase = {
   COMPONENT_NOT_SET: 0,
   ARRAYSLICE: 1,
   ARRAYINDEXES: 2,
@@ -63,10 +63,10 @@ proto.tigon.proto.rpath.ComponentUnion.ComponentCase = {
 };
 
 /**
- * @return {proto.tigon.proto.rpath.ComponentUnion.ComponentCase}
+ * @return {proto.tigon.proto.rpath.Component.ComponentCase}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.getComponentCase = function() {
-  return /** @type {proto.tigon.proto.rpath.ComponentUnion.ComponentCase} */(jspb.Message.computeOneofCase(this, proto.tigon.proto.rpath.ComponentUnion.oneofGroups_[0]));
+proto.tigon.proto.rpath.Component.prototype.getComponentCase = function() {
+  return /** @type {proto.tigon.proto.rpath.Component.ComponentCase} */(jspb.Message.computeOneofCase(this, proto.tigon.proto.rpath.Component.oneofGroups_[0]));
 };
 
 
@@ -84,8 +84,8 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  *     http://goto/soy-param-migration
  * @return {!Object}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.toObject = function(opt_includeInstance) {
-  return proto.tigon.proto.rpath.ComponentUnion.toObject(opt_includeInstance, this);
+proto.tigon.proto.rpath.Component.prototype.toObject = function(opt_includeInstance) {
+  return proto.tigon.proto.rpath.Component.toObject(opt_includeInstance, this);
 };
 
 
@@ -94,11 +94,11 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.toObject = function(opt_include
  * @param {boolean|undefined} includeInstance Deprecated. Whether to include
  *     the JSPB instance for transitional soy proto support:
  *     http://goto/soy-param-migration
- * @param {!proto.tigon.proto.rpath.ComponentUnion} msg The msg instance to transform.
+ * @param {!proto.tigon.proto.rpath.Component} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.tigon.proto.rpath.ComponentUnion.toObject = function(includeInstance, msg) {
+proto.tigon.proto.rpath.Component.toObject = function(includeInstance, msg) {
   var f, obj = {
     arrayslice: (f = msg.getArrayslice()) && proto.tigon.proto.rpath.ArraySlice.toObject(includeInstance, f),
     arrayindexes: (f = msg.getArrayindexes()) && proto.tigon.proto.rpath.ArrayIndexes.toObject(includeInstance, f),
@@ -117,23 +117,23 @@ proto.tigon.proto.rpath.ComponentUnion.toObject = function(includeInstance, msg)
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
- * @return {!proto.tigon.proto.rpath.ComponentUnion}
+ * @return {!proto.tigon.proto.rpath.Component}
  */
-proto.tigon.proto.rpath.ComponentUnion.deserializeBinary = function(bytes) {
+proto.tigon.proto.rpath.Component.deserializeBinary = function(bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.tigon.proto.rpath.ComponentUnion;
-  return proto.tigon.proto.rpath.ComponentUnion.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.tigon.proto.rpath.Component;
+  return proto.tigon.proto.rpath.Component.deserializeBinaryFromReader(msg, reader);
 };
 
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
  * given reader into the given message object.
- * @param {!proto.tigon.proto.rpath.ComponentUnion} msg The message object to deserialize into.
+ * @param {!proto.tigon.proto.rpath.Component} msg The message object to deserialize into.
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
- * @return {!proto.tigon.proto.rpath.ComponentUnion}
+ * @return {!proto.tigon.proto.rpath.Component}
  */
-proto.tigon.proto.rpath.ComponentUnion.deserializeBinaryFromReader = function(msg, reader) {
+proto.tigon.proto.rpath.Component.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
@@ -173,9 +173,9 @@ proto.tigon.proto.rpath.ComponentUnion.deserializeBinaryFromReader = function(ms
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.serializeBinary = function() {
+proto.tigon.proto.rpath.Component.prototype.serializeBinary = function() {
   var writer = new jspb.BinaryWriter();
-  proto.tigon.proto.rpath.ComponentUnion.serializeBinaryToWriter(this, writer);
+  proto.tigon.proto.rpath.Component.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
 
@@ -183,11 +183,11 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.serializeBinary = function() {
 /**
  * Serializes the given message to binary data (in protobuf wire
  * format), writing to the given BinaryWriter.
- * @param {!proto.tigon.proto.rpath.ComponentUnion} message
+ * @param {!proto.tigon.proto.rpath.Component} message
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.tigon.proto.rpath.ComponentUnion.serializeBinaryToWriter = function(message, writer) {
+proto.tigon.proto.rpath.Component.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
   f = message.getArrayslice();
   if (f != null) {
@@ -228,7 +228,7 @@ proto.tigon.proto.rpath.ComponentUnion.serializeBinaryToWriter = function(messag
  * optional ArraySlice arraySlice = 1;
  * @return {?proto.tigon.proto.rpath.ArraySlice}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.getArrayslice = function() {
+proto.tigon.proto.rpath.Component.prototype.getArrayslice = function() {
   return /** @type{?proto.tigon.proto.rpath.ArraySlice} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.rpath.ArraySlice, 1));
 };
@@ -236,18 +236,18 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.getArrayslice = function() {
 
 /**
  * @param {?proto.tigon.proto.rpath.ArraySlice|undefined} value
- * @return {!proto.tigon.proto.rpath.ComponentUnion} returns this
+ * @return {!proto.tigon.proto.rpath.Component} returns this
 */
-proto.tigon.proto.rpath.ComponentUnion.prototype.setArrayslice = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 1, proto.tigon.proto.rpath.ComponentUnion.oneofGroups_[0], value);
+proto.tigon.proto.rpath.Component.prototype.setArrayslice = function(value) {
+  return jspb.Message.setOneofWrapperField(this, 1, proto.tigon.proto.rpath.Component.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the message field making it undefined.
- * @return {!proto.tigon.proto.rpath.ComponentUnion} returns this
+ * @return {!proto.tigon.proto.rpath.Component} returns this
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.clearArrayslice = function() {
+proto.tigon.proto.rpath.Component.prototype.clearArrayslice = function() {
   return this.setArrayslice(undefined);
 };
 
@@ -256,7 +256,7 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.clearArrayslice = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.hasArrayslice = function() {
+proto.tigon.proto.rpath.Component.prototype.hasArrayslice = function() {
   return jspb.Message.getField(this, 1) != null;
 };
 
@@ -265,7 +265,7 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.hasArrayslice = function() {
  * optional ArrayIndexes arrayIndexes = 2;
  * @return {?proto.tigon.proto.rpath.ArrayIndexes}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.getArrayindexes = function() {
+proto.tigon.proto.rpath.Component.prototype.getArrayindexes = function() {
   return /** @type{?proto.tigon.proto.rpath.ArrayIndexes} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.rpath.ArrayIndexes, 2));
 };
@@ -273,18 +273,18 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.getArrayindexes = function() {
 
 /**
  * @param {?proto.tigon.proto.rpath.ArrayIndexes|undefined} value
- * @return {!proto.tigon.proto.rpath.ComponentUnion} returns this
+ * @return {!proto.tigon.proto.rpath.Component} returns this
 */
-proto.tigon.proto.rpath.ComponentUnion.prototype.setArrayindexes = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 2, proto.tigon.proto.rpath.ComponentUnion.oneofGroups_[0], value);
+proto.tigon.proto.rpath.Component.prototype.setArrayindexes = function(value) {
+  return jspb.Message.setOneofWrapperField(this, 2, proto.tigon.proto.rpath.Component.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the message field making it undefined.
- * @return {!proto.tigon.proto.rpath.ComponentUnion} returns this
+ * @return {!proto.tigon.proto.rpath.Component} returns this
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.clearArrayindexes = function() {
+proto.tigon.proto.rpath.Component.prototype.clearArrayindexes = function() {
   return this.setArrayindexes(undefined);
 };
 
@@ -293,7 +293,7 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.clearArrayindexes = function() 
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.hasArrayindexes = function() {
+proto.tigon.proto.rpath.Component.prototype.hasArrayindexes = function() {
   return jspb.Message.getField(this, 2) != null;
 };
 
@@ -302,7 +302,7 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.hasArrayindexes = function() {
  * optional ChildMember childMember = 3;
  * @return {?proto.tigon.proto.rpath.ChildMember}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.getChildmember = function() {
+proto.tigon.proto.rpath.Component.prototype.getChildmember = function() {
   return /** @type{?proto.tigon.proto.rpath.ChildMember} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.rpath.ChildMember, 3));
 };
@@ -310,18 +310,18 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.getChildmember = function() {
 
 /**
  * @param {?proto.tigon.proto.rpath.ChildMember|undefined} value
- * @return {!proto.tigon.proto.rpath.ComponentUnion} returns this
+ * @return {!proto.tigon.proto.rpath.Component} returns this
 */
-proto.tigon.proto.rpath.ComponentUnion.prototype.setChildmember = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 3, proto.tigon.proto.rpath.ComponentUnion.oneofGroups_[0], value);
+proto.tigon.proto.rpath.Component.prototype.setChildmember = function(value) {
+  return jspb.Message.setOneofWrapperField(this, 3, proto.tigon.proto.rpath.Component.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the message field making it undefined.
- * @return {!proto.tigon.proto.rpath.ComponentUnion} returns this
+ * @return {!proto.tigon.proto.rpath.Component} returns this
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.clearChildmember = function() {
+proto.tigon.proto.rpath.Component.prototype.clearChildmember = function() {
   return this.setChildmember(undefined);
 };
 
@@ -330,7 +330,7 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.clearChildmember = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.hasChildmember = function() {
+proto.tigon.proto.rpath.Component.prototype.hasChildmember = function() {
   return jspb.Message.getField(this, 3) != null;
 };
 
@@ -339,7 +339,7 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.hasChildmember = function() {
  * optional DescendantMember descendantMember = 4;
  * @return {?proto.tigon.proto.rpath.DescendantMember}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.getDescendantmember = function() {
+proto.tigon.proto.rpath.Component.prototype.getDescendantmember = function() {
   return /** @type{?proto.tigon.proto.rpath.DescendantMember} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.rpath.DescendantMember, 4));
 };
@@ -347,18 +347,18 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.getDescendantmember = function(
 
 /**
  * @param {?proto.tigon.proto.rpath.DescendantMember|undefined} value
- * @return {!proto.tigon.proto.rpath.ComponentUnion} returns this
+ * @return {!proto.tigon.proto.rpath.Component} returns this
 */
-proto.tigon.proto.rpath.ComponentUnion.prototype.setDescendantmember = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 4, proto.tigon.proto.rpath.ComponentUnion.oneofGroups_[0], value);
+proto.tigon.proto.rpath.Component.prototype.setDescendantmember = function(value) {
+  return jspb.Message.setOneofWrapperField(this, 4, proto.tigon.proto.rpath.Component.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the message field making it undefined.
- * @return {!proto.tigon.proto.rpath.ComponentUnion} returns this
+ * @return {!proto.tigon.proto.rpath.Component} returns this
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.clearDescendantmember = function() {
+proto.tigon.proto.rpath.Component.prototype.clearDescendantmember = function() {
   return this.setDescendantmember(undefined);
 };
 
@@ -367,7 +367,7 @@ proto.tigon.proto.rpath.ComponentUnion.prototype.clearDescendantmember = functio
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.rpath.ComponentUnion.prototype.hasDescendantmember = function() {
+proto.tigon.proto.rpath.Component.prototype.hasDescendantmember = function() {
   return jspb.Message.getField(this, 4) != null;
 };
 

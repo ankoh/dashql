@@ -6,6 +6,3 @@
 #include "tigon/extract/json_extract.h"
 
 using namespace tigon;
-
-void JSONExtract::read(nonstd::span<std::byte> buffer) {
-}

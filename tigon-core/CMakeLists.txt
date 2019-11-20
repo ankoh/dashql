@@ -14,6 +14,7 @@ endif (POLICY CMP0048)
 project("Tigon" VERSION 0.1)
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -std=c++17)
@@ -57,7 +58,7 @@ include("${CMAKE_SOURCE_DIR}/cmake/cwcsv.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/nanopb.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/protobuf.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 
@@ -85,9 +86,9 @@ add_library(tigon
     ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
     ${CMAKE_SOURCE_DIR}/src/extract/json_extract.cc
     ${CMAKE_SOURCE_DIR}/src/parser/sql/sql_parser.cc
-    ${CMAKE_SOURCE_DIR}/src/proto/duckdb_codec.cc
-    ${CMAKE_SOURCE_DIR}/src/proto/tql_codec.cc
-    ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
+    #     ${CMAKE_SOURCE_DIR}/src/proto/duckdb_codec.cc
+    #     ${CMAKE_SOURCE_DIR}/src/proto/tql_codec.cc
+    #     ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
 )
 
 include("${CMAKE_SOURCE_DIR}/src/parser/rpath/local.cmake")
@@ -98,7 +99,7 @@ target_link_libraries(tigon
     tigon_rpath
     tigon_tql
     duckdb
-    nanopb rapidjson cwcsv
+    protobuf rapidjson cwcsv
     spdlog
     Threads::Threads
 )
@@ -125,17 +126,7 @@ if(EMSCRIPTEN)
         -s EXPORT_NAME=TigonCore \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
-            _malloc, \
-            _tigon_create_session, \
-            _tigon_end_session, \
-            _tigon_register_buffer, \
-            _tigon_release_buffer, \
-            _tigon_parse_tql, \
-            _tigon_run_query, \
-            _tigon_plan_query, \
-            _tigon_format_tql_module, \
-            _tigon_format_query_plan, \
-            _tigon_extract_data \
+            _malloc \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
     ")
@@ -146,8 +137,8 @@ endif()
 
 add_executable(tester
     ${CMAKE_SOURCE_DIR}/test/tester.cc
-    ${CMAKE_SOURCE_DIR}/test/duckdb_test.cc
-    ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc
+    #    ${CMAKE_SOURCE_DIR}/test/duckdb_test.cc
+    #    ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc
 )
 target_link_libraries(tester tigon gtest gmock Threads::Threads)
 

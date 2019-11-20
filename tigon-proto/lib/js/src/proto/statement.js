@@ -8,8 +8,8 @@
  */
 // GENERATED CODE -- DO NOT EDIT!
 
-goog.provide('proto.tigon.proto.tql.StatementUnion');
-goog.provide('proto.tigon.proto.tql.StatementUnion.StatementCase');
+goog.provide('proto.tigon.proto.tql.Statement');
+goog.provide('proto.tigon.proto.tql.Statement.StatementCase');
 
 goog.require('jspb.BinaryReader');
 goog.require('jspb.BinaryWriter');
@@ -30,16 +30,16 @@ goog.require('proto.tigon.proto.tql.VizStatement');
  * @extends {jspb.Message}
  * @constructor
  */
-proto.tigon.proto.tql.StatementUnion = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.tigon.proto.tql.StatementUnion.oneofGroups_);
+proto.tigon.proto.tql.Statement = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.tigon.proto.tql.Statement.oneofGroups_);
 };
-goog.inherits(proto.tigon.proto.tql.StatementUnion, jspb.Message);
+goog.inherits(proto.tigon.proto.tql.Statement, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
   /**
    * @public
    * @override
    */
-  proto.tigon.proto.tql.StatementUnion.displayName = 'proto.tigon.proto.tql.StatementUnion';
+  proto.tigon.proto.tql.Statement.displayName = 'proto.tigon.proto.tql.Statement';
 }
 
 /**
@@ -50,12 +50,12 @@ if (goog.DEBUG && !COMPILED) {
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.tigon.proto.tql.StatementUnion.oneofGroups_ = [[1,2,3,4,5]];
+proto.tigon.proto.tql.Statement.oneofGroups_ = [[1,2,3,4,5]];
 
 /**
  * @enum {number}
  */
-proto.tigon.proto.tql.StatementUnion.StatementCase = {
+proto.tigon.proto.tql.Statement.StatementCase = {
   STATEMENT_NOT_SET: 0,
   VIZ: 1,
   EXTRACT: 2,
@@ -65,10 +65,10 @@ proto.tigon.proto.tql.StatementUnion.StatementCase = {
 };
 
 /**
- * @return {proto.tigon.proto.tql.StatementUnion.StatementCase}
+ * @return {proto.tigon.proto.tql.Statement.StatementCase}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.getStatementCase = function() {
-  return /** @type {proto.tigon.proto.tql.StatementUnion.StatementCase} */(jspb.Message.computeOneofCase(this, proto.tigon.proto.tql.StatementUnion.oneofGroups_[0]));
+proto.tigon.proto.tql.Statement.prototype.getStatementCase = function() {
+  return /** @type {proto.tigon.proto.tql.Statement.StatementCase} */(jspb.Message.computeOneofCase(this, proto.tigon.proto.tql.Statement.oneofGroups_[0]));
 };
 
 
@@ -86,8 +86,8 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  *     http://goto/soy-param-migration
  * @return {!Object}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.toObject = function(opt_includeInstance) {
-  return proto.tigon.proto.tql.StatementUnion.toObject(opt_includeInstance, this);
+proto.tigon.proto.tql.Statement.prototype.toObject = function(opt_includeInstance) {
+  return proto.tigon.proto.tql.Statement.toObject(opt_includeInstance, this);
 };
 
 
@@ -96,11 +96,11 @@ proto.tigon.proto.tql.StatementUnion.prototype.toObject = function(opt_includeIn
  * @param {boolean|undefined} includeInstance Deprecated. Whether to include
  *     the JSPB instance for transitional soy proto support:
  *     http://goto/soy-param-migration
- * @param {!proto.tigon.proto.tql.StatementUnion} msg The msg instance to transform.
+ * @param {!proto.tigon.proto.tql.Statement} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.tigon.proto.tql.StatementUnion.toObject = function(includeInstance, msg) {
+proto.tigon.proto.tql.Statement.toObject = function(includeInstance, msg) {
   var f, obj = {
     viz: (f = msg.getViz()) && proto.tigon.proto.tql.VizStatement.toObject(includeInstance, f),
     extract: (f = msg.getExtract()) && proto.tigon.proto.tql.ExtractStatement.toObject(includeInstance, f),
@@ -120,23 +120,23 @@ proto.tigon.proto.tql.StatementUnion.toObject = function(includeInstance, msg) {
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
- * @return {!proto.tigon.proto.tql.StatementUnion}
+ * @return {!proto.tigon.proto.tql.Statement}
  */
-proto.tigon.proto.tql.StatementUnion.deserializeBinary = function(bytes) {
+proto.tigon.proto.tql.Statement.deserializeBinary = function(bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.tigon.proto.tql.StatementUnion;
-  return proto.tigon.proto.tql.StatementUnion.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.tigon.proto.tql.Statement;
+  return proto.tigon.proto.tql.Statement.deserializeBinaryFromReader(msg, reader);
 };
 
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
  * given reader into the given message object.
- * @param {!proto.tigon.proto.tql.StatementUnion} msg The message object to deserialize into.
+ * @param {!proto.tigon.proto.tql.Statement} msg The message object to deserialize into.
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
- * @return {!proto.tigon.proto.tql.StatementUnion}
+ * @return {!proto.tigon.proto.tql.Statement}
  */
-proto.tigon.proto.tql.StatementUnion.deserializeBinaryFromReader = function(msg, reader) {
+proto.tigon.proto.tql.Statement.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
@@ -181,9 +181,9 @@ proto.tigon.proto.tql.StatementUnion.deserializeBinaryFromReader = function(msg,
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.serializeBinary = function() {
+proto.tigon.proto.tql.Statement.prototype.serializeBinary = function() {
   var writer = new jspb.BinaryWriter();
-  proto.tigon.proto.tql.StatementUnion.serializeBinaryToWriter(this, writer);
+  proto.tigon.proto.tql.Statement.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
 
@@ -191,11 +191,11 @@ proto.tigon.proto.tql.StatementUnion.prototype.serializeBinary = function() {
 /**
  * Serializes the given message to binary data (in protobuf wire
  * format), writing to the given BinaryWriter.
- * @param {!proto.tigon.proto.tql.StatementUnion} message
+ * @param {!proto.tigon.proto.tql.Statement} message
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.tigon.proto.tql.StatementUnion.serializeBinaryToWriter = function(message, writer) {
+proto.tigon.proto.tql.Statement.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
   f = message.getViz();
   if (f != null) {
@@ -244,7 +244,7 @@ proto.tigon.proto.tql.StatementUnion.serializeBinaryToWriter = function(message,
  * optional VizStatement viz = 1;
  * @return {?proto.tigon.proto.tql.VizStatement}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.getViz = function() {
+proto.tigon.proto.tql.Statement.prototype.getViz = function() {
   return /** @type{?proto.tigon.proto.tql.VizStatement} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizStatement, 1));
 };
@@ -252,18 +252,18 @@ proto.tigon.proto.tql.StatementUnion.prototype.getViz = function() {
 
 /**
  * @param {?proto.tigon.proto.tql.VizStatement|undefined} value
- * @return {!proto.tigon.proto.tql.StatementUnion} returns this
+ * @return {!proto.tigon.proto.tql.Statement} returns this
 */
-proto.tigon.proto.tql.StatementUnion.prototype.setViz = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 1, proto.tigon.proto.tql.StatementUnion.oneofGroups_[0], value);
+proto.tigon.proto.tql.Statement.prototype.setViz = function(value) {
+  return jspb.Message.setOneofWrapperField(this, 1, proto.tigon.proto.tql.Statement.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the message field making it undefined.
- * @return {!proto.tigon.proto.tql.StatementUnion} returns this
+ * @return {!proto.tigon.proto.tql.Statement} returns this
  */
-proto.tigon.proto.tql.StatementUnion.prototype.clearViz = function() {
+proto.tigon.proto.tql.Statement.prototype.clearViz = function() {
   return this.setViz(undefined);
 };
 
@@ -272,7 +272,7 @@ proto.tigon.proto.tql.StatementUnion.prototype.clearViz = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.hasViz = function() {
+proto.tigon.proto.tql.Statement.prototype.hasViz = function() {
   return jspb.Message.getField(this, 1) != null;
 };
 
@@ -281,7 +281,7 @@ proto.tigon.proto.tql.StatementUnion.prototype.hasViz = function() {
  * optional ExtractStatement extract = 2;
  * @return {?proto.tigon.proto.tql.ExtractStatement}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.getExtract = function() {
+proto.tigon.proto.tql.Statement.prototype.getExtract = function() {
   return /** @type{?proto.tigon.proto.tql.ExtractStatement} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.tql.ExtractStatement, 2));
 };
@@ -289,18 +289,18 @@ proto.tigon.proto.tql.StatementUnion.prototype.getExtract = function() {
 
 /**
  * @param {?proto.tigon.proto.tql.ExtractStatement|undefined} value
- * @return {!proto.tigon.proto.tql.StatementUnion} returns this
+ * @return {!proto.tigon.proto.tql.Statement} returns this
 */
-proto.tigon.proto.tql.StatementUnion.prototype.setExtract = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 2, proto.tigon.proto.tql.StatementUnion.oneofGroups_[0], value);
+proto.tigon.proto.tql.Statement.prototype.setExtract = function(value) {
+  return jspb.Message.setOneofWrapperField(this, 2, proto.tigon.proto.tql.Statement.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the message field making it undefined.
- * @return {!proto.tigon.proto.tql.StatementUnion} returns this
+ * @return {!proto.tigon.proto.tql.Statement} returns this
  */
-proto.tigon.proto.tql.StatementUnion.prototype.clearExtract = function() {
+proto.tigon.proto.tql.Statement.prototype.clearExtract = function() {
   return this.setExtract(undefined);
 };
 
@@ -309,7 +309,7 @@ proto.tigon.proto.tql.StatementUnion.prototype.clearExtract = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.hasExtract = function() {
+proto.tigon.proto.tql.Statement.prototype.hasExtract = function() {
   return jspb.Message.getField(this, 2) != null;
 };
 
@@ -318,7 +318,7 @@ proto.tigon.proto.tql.StatementUnion.prototype.hasExtract = function() {
  * optional LoadStatement load = 3;
  * @return {?proto.tigon.proto.tql.LoadStatement}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.getLoad = function() {
+proto.tigon.proto.tql.Statement.prototype.getLoad = function() {
   return /** @type{?proto.tigon.proto.tql.LoadStatement} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.tql.LoadStatement, 3));
 };
@@ -326,18 +326,18 @@ proto.tigon.proto.tql.StatementUnion.prototype.getLoad = function() {
 
 /**
  * @param {?proto.tigon.proto.tql.LoadStatement|undefined} value
- * @return {!proto.tigon.proto.tql.StatementUnion} returns this
+ * @return {!proto.tigon.proto.tql.Statement} returns this
 */
-proto.tigon.proto.tql.StatementUnion.prototype.setLoad = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 3, proto.tigon.proto.tql.StatementUnion.oneofGroups_[0], value);
+proto.tigon.proto.tql.Statement.prototype.setLoad = function(value) {
+  return jspb.Message.setOneofWrapperField(this, 3, proto.tigon.proto.tql.Statement.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the message field making it undefined.
- * @return {!proto.tigon.proto.tql.StatementUnion} returns this
+ * @return {!proto.tigon.proto.tql.Statement} returns this
  */
-proto.tigon.proto.tql.StatementUnion.prototype.clearLoad = function() {
+proto.tigon.proto.tql.Statement.prototype.clearLoad = function() {
   return this.setLoad(undefined);
 };
 
@@ -346,7 +346,7 @@ proto.tigon.proto.tql.StatementUnion.prototype.clearLoad = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.hasLoad = function() {
+proto.tigon.proto.tql.Statement.prototype.hasLoad = function() {
   return jspb.Message.getField(this, 3) != null;
 };
 
@@ -355,7 +355,7 @@ proto.tigon.proto.tql.StatementUnion.prototype.hasLoad = function() {
  * optional ParameterDeclaration parameter = 4;
  * @return {?proto.tigon.proto.tql.ParameterDeclaration}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.getParameter = function() {
+proto.tigon.proto.tql.Statement.prototype.getParameter = function() {
   return /** @type{?proto.tigon.proto.tql.ParameterDeclaration} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.tql.ParameterDeclaration, 4));
 };
@@ -363,18 +363,18 @@ proto.tigon.proto.tql.StatementUnion.prototype.getParameter = function() {
 
 /**
  * @param {?proto.tigon.proto.tql.ParameterDeclaration|undefined} value
- * @return {!proto.tigon.proto.tql.StatementUnion} returns this
+ * @return {!proto.tigon.proto.tql.Statement} returns this
 */
-proto.tigon.proto.tql.StatementUnion.prototype.setParameter = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 4, proto.tigon.proto.tql.StatementUnion.oneofGroups_[0], value);
+proto.tigon.proto.tql.Statement.prototype.setParameter = function(value) {
+  return jspb.Message.setOneofWrapperField(this, 4, proto.tigon.proto.tql.Statement.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the message field making it undefined.
- * @return {!proto.tigon.proto.tql.StatementUnion} returns this
+ * @return {!proto.tigon.proto.tql.Statement} returns this
  */
-proto.tigon.proto.tql.StatementUnion.prototype.clearParameter = function() {
+proto.tigon.proto.tql.Statement.prototype.clearParameter = function() {
   return this.setParameter(undefined);
 };
 
@@ -383,7 +383,7 @@ proto.tigon.proto.tql.StatementUnion.prototype.clearParameter = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.hasParameter = function() {
+proto.tigon.proto.tql.Statement.prototype.hasParameter = function() {
   return jspb.Message.getField(this, 4) != null;
 };
 
@@ -392,7 +392,7 @@ proto.tigon.proto.tql.StatementUnion.prototype.hasParameter = function() {
  * optional QueryStatement query = 5;
  * @return {?proto.tigon.proto.tql.QueryStatement}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.getQuery = function() {
+proto.tigon.proto.tql.Statement.prototype.getQuery = function() {
   return /** @type{?proto.tigon.proto.tql.QueryStatement} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.tql.QueryStatement, 5));
 };
@@ -400,18 +400,18 @@ proto.tigon.proto.tql.StatementUnion.prototype.getQuery = function() {
 
 /**
  * @param {?proto.tigon.proto.tql.QueryStatement|undefined} value
- * @return {!proto.tigon.proto.tql.StatementUnion} returns this
+ * @return {!proto.tigon.proto.tql.Statement} returns this
 */
-proto.tigon.proto.tql.StatementUnion.prototype.setQuery = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 5, proto.tigon.proto.tql.StatementUnion.oneofGroups_[0], value);
+proto.tigon.proto.tql.Statement.prototype.setQuery = function(value) {
+  return jspb.Message.setOneofWrapperField(this, 5, proto.tigon.proto.tql.Statement.oneofGroups_[0], value);
 };
 
 
 /**
  * Clears the message field making it undefined.
- * @return {!proto.tigon.proto.tql.StatementUnion} returns this
+ * @return {!proto.tigon.proto.tql.Statement} returns this
  */
-proto.tigon.proto.tql.StatementUnion.prototype.clearQuery = function() {
+proto.tigon.proto.tql.Statement.prototype.clearQuery = function() {
   return this.setQuery(undefined);
 };
 
@@ -420,7 +420,7 @@ proto.tigon.proto.tql.StatementUnion.prototype.clearQuery = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.tql.StatementUnion.prototype.hasQuery = function() {
+proto.tigon.proto.tql.Statement.prototype.hasQuery = function() {
   return jspb.Message.getField(this, 5) != null;
 };
 

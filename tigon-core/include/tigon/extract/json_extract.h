@@ -10,18 +10,6 @@
 
 namespace tigon {
 
-class JSONExtract: public Extract {
-    public:
-    /// Constructor
-    JSONExtract(duckdb::Connection& conn, proto::TQLExtractStatement& stmt);
-    /// Destructor
-    ~JSONExtract() = default;
-
-    /// Prepare the database
-    void prepare() override;
-    /// Read a buffer into the extract
-    void read(nonstd::span<std::byte> buffer) override;
-};
 
 } // namespace tigon
 

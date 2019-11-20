@@ -45,6 +45,8 @@ set_property(TARGET flatbuffers APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${
 
 add_dependencies(flatbuffers flatbuffers_ep)
 
+if(NOT EMSCRIPTEN)
+
 # Flatc (bypass emscripten toolchain)
 ExternalProject_Add(
     flatc_ep
@@ -74,3 +76,5 @@ ExternalProject_Add(
 
 ExternalProject_Get_Property(flatc_ep install_dir)
 set(FLATC ${install_dir}/bin/flatc)
+
+endif()

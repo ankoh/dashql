@@ -5,20 +5,13 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 PROTO_DIR="${PROJECT_ROOT}/tigon-proto"
 PROTO_SPEC_DIR="${PROTO_DIR}/spec"
 PROTO_BUILD_DIR="${PROTO_DIR}/build"
-
-NANOPB_SOURCE_DIR="${PROJECT_ROOT}/submodules/nanopb"
-NANOPB_INCLUDE_DIR="${NANOPB_SOURCE_DIR}/generator/proto"
-NANOPB_PROTOLIB_DIR="${NANOPB_SOURCE_DIR}/generator/proto/";
-NANOPB_PROTOLIB_SCRIPT="${NANOPB_PROTOLIB_DIR}/nanopb_pb2.py";
-NANOPB_PLUGIN="${NANOPB_SOURCE_DIR}/generator/protoc-gen-nanopb"
+PROTOC="${PROJECT_ROOT}/tigon-core/build/debug/third_party/protoc/install/bin/protoc"
 
 TSPROTOC_BUILD_DIR="${PROTO_BUILD_DIR}/ts-protoc-gen/"
 TSPROTOC_PLUGIN="${TSPROTOC_BUILD_DIR}/node_modules/.bin/protoc-gen-ts"
 
 CPP_PROTO_DIR="${PROTO_DIR}/lib/cpp/include/tigon/proto"
 JS_PROTO_DIR="${PROTO_DIR}/lib/js/src/proto"
-
-PROTOC="protoc"
 
 ${PROTOC} --version \
     && { echo "[ OK  ] Command: protoc"; } \
@@ -35,23 +28,11 @@ else
         || { echo "[ ERR ] Command: protoc-gen-ts"; exit 1; }
 fi
 
-if [ -f ${NANOPB_PROTOLIB_SCRIPT} ]; then
-    echo "[ OK  ] Proto: nanopb"
-else
-    echo "[ GEN ] Proto: nanopb"
-    cd ${NANOPB_PROTOLIB_DIR} \
-        && make \
-        && { echo "[ OK  ] Proto: nanopb"; } \
-        || { echo "[ ERR ] Proto: nanopb"; exit 1; }
-fi
-
 for PROTO_FILE in ${PROTO_SPEC_DIR}/*; do
     ${PROTOC} \
         -I ${PROTO_SPEC_DIR} \
-        -I ${NANOPB_INCLUDE_DIR} \
-        --plugin=protoc-gen-nanopb=${NANOPB_PLUGIN} \
         --plugin=protoc-gen-ts=${TSPROTOC_PLUGIN} \
-        --nanopb_out=${CPP_PROTO_DIR} \
+        --cpp_out=${CPP_PROTO_DIR} \
         --js_out=${JS_PROTO_DIR} \
         --ts_out=${JS_PROTO_DIR} \
         ${PROTO_FILE} \

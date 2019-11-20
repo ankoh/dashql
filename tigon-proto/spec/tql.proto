@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "nanopb.proto";
+option optimize_for = LITE_RUNTIME;
 
 package tigon.proto.tql;
 
@@ -22,8 +22,6 @@ message QueryStatement {
 
 /// A parameter declaration
 message ParameterDeclaration { 
-    option (nanopb_msgopt).no_unions = true;
-
     string parameter_name = 1;
     Type parameter_type = 2;
     oneof default_value {
@@ -170,7 +168,7 @@ message VizStatement {
 }
 
 /// A statement union
-message StatementUnion {
+message Statement {
     oneof statement {
         VizStatement viz = 1;
         ExtractStatement extract = 2;
@@ -182,5 +180,5 @@ message StatementUnion {
 
 /// A tql module
 message Module {
-    repeated StatementUnion statements = 1;
+    repeated Statement statements = 1;
 }
