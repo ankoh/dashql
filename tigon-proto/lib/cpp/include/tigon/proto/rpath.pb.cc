@@ -156,6 +156,13 @@ ArraySlice::ArraySlice()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.rpath.ArraySlice)
 }
+ArraySlice::ArraySlice(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.rpath.ArraySlice)
+}
 ArraySlice::ArraySlice(const ArraySlice& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
@@ -172,8 +179,15 @@ ArraySlice::~ArraySlice() {
 }
 
 void ArraySlice::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void ArraySlice::ArenaDtor(void* object) {
+  ArraySlice* _this = reinterpret_cast< ArraySlice* >(object);
+  (void)_this;
+}
+void ArraySlice::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void ArraySlice::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -194,6 +208,7 @@ void ArraySlice::Clear() {
 
 const char* ArraySlice::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -297,6 +312,13 @@ ArrayIndexes::ArrayIndexes()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.rpath.ArrayIndexes)
 }
+ArrayIndexes::ArrayIndexes(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.rpath.ArrayIndexes)
+}
 ArrayIndexes::ArrayIndexes(const ArrayIndexes& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
@@ -313,8 +335,15 @@ ArrayIndexes::~ArrayIndexes() {
 }
 
 void ArrayIndexes::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void ArrayIndexes::ArenaDtor(void* object) {
+  ArrayIndexes* _this = reinterpret_cast< ArrayIndexes* >(object);
+  (void)_this;
+}
+void ArrayIndexes::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void ArrayIndexes::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -335,6 +364,7 @@ void ArrayIndexes::Clear() {
 
 const char* ArrayIndexes::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -438,6 +468,13 @@ ChildMember::ChildMember()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.rpath.ChildMember)
 }
+ChildMember::ChildMember(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.rpath.ChildMember)
+}
 ChildMember::ChildMember(const ChildMember& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
@@ -454,8 +491,15 @@ ChildMember::~ChildMember() {
 }
 
 void ChildMember::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void ChildMember::ArenaDtor(void* object) {
+  ChildMember* _this = reinterpret_cast< ChildMember* >(object);
+  (void)_this;
+}
+void ChildMember::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void ChildMember::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -476,6 +520,7 @@ void ChildMember::Clear() {
 
 const char* ChildMember::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -579,6 +624,13 @@ DescendantMember::DescendantMember()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.rpath.DescendantMember)
 }
+DescendantMember::DescendantMember(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.rpath.DescendantMember)
+}
 DescendantMember::DescendantMember(const DescendantMember& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
@@ -595,8 +647,15 @@ DescendantMember::~DescendantMember() {
 }
 
 void DescendantMember::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void DescendantMember::ArenaDtor(void* object) {
+  DescendantMember* _this = reinterpret_cast< DescendantMember* >(object);
+  (void)_this;
+}
+void DescendantMember::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void DescendantMember::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -617,6 +676,7 @@ void DescendantMember::Clear() {
 
 const char* DescendantMember::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -739,7 +799,8 @@ void Component::set_allocated_arrayslice(::tigon::proto::rpath::ArraySlice* arra
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_component();
   if (arrayslice) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(arrayslice);
     if (message_arena != submessage_arena) {
       arrayslice = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, arrayslice, submessage_arena);
@@ -753,7 +814,8 @@ void Component::set_allocated_arrayindexes(::tigon::proto::rpath::ArrayIndexes* 
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_component();
   if (arrayindexes) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(arrayindexes);
     if (message_arena != submessage_arena) {
       arrayindexes = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, arrayindexes, submessage_arena);
@@ -767,7 +829,8 @@ void Component::set_allocated_childmember(::tigon::proto::rpath::ChildMember* ch
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_component();
   if (childmember) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(childmember);
     if (message_arena != submessage_arena) {
       childmember = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, childmember, submessage_arena);
@@ -781,7 +844,8 @@ void Component::set_allocated_descendantmember(::tigon::proto::rpath::Descendant
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_component();
   if (descendantmember) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(descendantmember);
     if (message_arena != submessage_arena) {
       descendantmember = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, descendantmember, submessage_arena);
@@ -795,6 +859,13 @@ Component::Component()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.rpath.Component)
+}
+Component::Component(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.rpath.Component)
 }
 Component::Component(const Component& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
@@ -836,11 +907,18 @@ Component::~Component() {
 }
 
 void Component::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (has_component()) {
     clear_component();
   }
 }
 
+void Component::ArenaDtor(void* object) {
+  Component* _this = reinterpret_cast< Component* >(object);
+  (void)_this;
+}
+void Component::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void Component::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -854,19 +932,27 @@ void Component::clear_component() {
 // @@protoc_insertion_point(one_of_clear_start:tigon.proto.rpath.Component)
   switch (component_case()) {
     case kArraySlice: {
-      delete component_.arrayslice_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete component_.arrayslice_;
+      }
       break;
     }
     case kArrayIndexes: {
-      delete component_.arrayindexes_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete component_.arrayindexes_;
+      }
       break;
     }
     case kChildMember: {
-      delete component_.childmember_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete component_.childmember_;
+      }
       break;
     }
     case kDescendantMember: {
-      delete component_.descendantmember_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete component_.descendantmember_;
+      }
       break;
     }
     case COMPONENT_NOT_SET: {
@@ -889,6 +975,7 @@ void Component::Clear() {
 
 const char* Component::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -1109,6 +1196,14 @@ Path::Path()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.rpath.Path)
 }
+Path::Path(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena),
+  components_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.rpath.Path)
+}
 Path::Path(const Path& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr),
@@ -1127,8 +1222,15 @@ Path::~Path() {
 }
 
 void Path::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void Path::ArenaDtor(void* object) {
+  Path* _this = reinterpret_cast< Path* >(object);
+  (void)_this;
+}
+void Path::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void Path::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -1150,6 +1252,7 @@ void Path::Clear() {
 
 const char* Path::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -1276,22 +1379,22 @@ std::string Path::GetTypeName() const {
 }  // namespace tigon
 PROTOBUF_NAMESPACE_OPEN
 template<> PROTOBUF_NOINLINE ::tigon::proto::rpath::ArraySlice* Arena::CreateMaybeMessage< ::tigon::proto::rpath::ArraySlice >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::rpath::ArraySlice >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::rpath::ArraySlice >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::rpath::ArrayIndexes* Arena::CreateMaybeMessage< ::tigon::proto::rpath::ArrayIndexes >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::rpath::ArrayIndexes >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::rpath::ArrayIndexes >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::rpath::ChildMember* Arena::CreateMaybeMessage< ::tigon::proto::rpath::ChildMember >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::rpath::ChildMember >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::rpath::ChildMember >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::rpath::DescendantMember* Arena::CreateMaybeMessage< ::tigon::proto::rpath::DescendantMember >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::rpath::DescendantMember >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::rpath::DescendantMember >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::rpath::Component* Arena::CreateMaybeMessage< ::tigon::proto::rpath::Component >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::rpath::Component >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::rpath::Component >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::rpath::Path* Arena::CreateMaybeMessage< ::tigon::proto::rpath::Path >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::rpath::Path >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::rpath::Path >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

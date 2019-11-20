@@ -19,8 +19,8 @@
 #include "tigon/proto/duckdb_codec.h"
 #include "tigon/proto/json_conversion.h"
 #include "tigon/proto/tql_codec.h"
-#include "tigon/proto/tql_generated.h"
-#include "tigon/proto/web_api_generated.h"
+#include "tigon/proto/tql.pb.h"
+#include "tigon/proto/web_api.pb.h"
 #include "tigon/common/variant.h"
 
 #include <cstdio>

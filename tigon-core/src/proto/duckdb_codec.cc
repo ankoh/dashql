@@ -6,10 +6,9 @@
 #include "tigon/proto/duckdb_codec.h"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 
-namespace fb = flatbuffers;
+namespace protobuf = google::protobuf;
 
 namespace tigon {
-namespace proto {
 
 #define LOGICAL_OPERATOR_TYPES \
     X(INVALID) \
@@ -49,174 +48,25 @@ namespace proto {
     X(PREPARE) \
     X(EXECUTE)
 
-proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
+static proto::duckdb::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
     using D = duckdb::LogicalOperatorType;
-    using P = proto::LogicalOperatorType;
+    using P = proto::duckdb::LogicalOperatorType;
     switch (type) {
-#define X(NAME) case duckdb::LogicalOperatorType::NAME: return proto::LogicalOperatorType::NAME;
+#define X(NAME) case D::NAME: return P::OP_##NAME;
     LOGICAL_OPERATOR_TYPES
 #undef X
     };
-    return proto::LogicalOperatorType::INVALID;
-}
-
-
-/// Write a fixed-length result column
-template <typename T>
-static fb::Offset<proto::QueryResultColumn> writeFixedLengthResultColumn(fb::FlatBufferBuilder &builder, duckdb::Vector &vec) {
-    uint8_t *nullmask;
-    T *data;
-    auto n = builder.CreateUninitializedVector(vec.count, &nullmask);
-    auto d = builder.CreateUninitializedVector(vec.count, &data);
-    duckdb::VectorOperations::Exec(vec.sel_vector, 0, [&](duckdb::index_t i, duckdb::index_t k) {
-        nullmask[k] = vec.nullmask[i];
-        reinterpret_cast<T *>(data)[k] = vec.data[i];
-    }, 0);
-    proto::QueryResultColumnBuilder c{builder};
-    c.add_type_id(static_cast<proto::RawTypeID>(vec.type));
-    c.add_null_mask(n);
-    if constexpr (std::is_same_v<T, uint8_t>) {
-        c.add_rows_u8(d);
-    } else if constexpr (std::is_same_v<T, uint16_t>) {
-        c.add_rows_u16(d);
-    } else if constexpr (std::is_same_v<T, int16_t>) {
-        c.add_rows_i16(d);
-    } else if constexpr (std::is_same_v<T, int32_t>) {
-        c.add_rows_i32(d);
-    } else if constexpr (std::is_same_v<T, uint64_t>) {
-        c.add_rows_u64(d);
-    } else if constexpr (std::is_same_v<T, int64_t>) {
-        c.add_rows_i64(d);
-    } else if constexpr (std::is_same_v<T, float>) {
-        c.add_rows_f32(d);
-    } else if constexpr (std::is_same_v<T, double>) {
-        c.add_rows_f64(d);
-    }
-    return c.Finish();
-}
-
-/// Write a string result column
-static fb::Offset<proto::QueryResultColumn> writeStringResultColumn(fb::FlatBufferBuilder &builder, duckdb::Vector &vec) {
-    uint8_t *nullmask;
-    auto n = builder.CreateUninitializedVector(vec.count, &nullmask);
-    builder.StartVector(vec.count, sizeof(fb::Offset<fb::String>));
-    auto **source = reinterpret_cast<const char **>(vec.data);
-    for (size_t i = 0; i < vec.count; ++i) {
-        nullmask[i] = source[i] == nullptr;
-        builder.PushElement(builder.CreateString(source[i]));
-    }
-    proto::QueryResultColumnBuilder c{builder};
-    c.add_type_id(static_cast<proto::RawTypeID>(vec.type));
-    c.add_null_mask(n);
-    c.add_rows_string({builder.EndVector(vec.count)});
-    return c.Finish();
-}
-
-/// Write the query result
-fb::Offset<proto::QueryResult> writeQueryResult(fb::FlatBufferBuilder& builder, duckdb::QueryResult& result, uint64_t queryID) {
-
-    // Fetch result rows and immediately write them into a flatbuffer
-    std::vector<fb::Offset<proto::QueryResultChunk>> chunks;
-    for (auto chunk = result.Fetch(); !!chunk && chunk->size() > 0; chunk = result.Fetch()) {
-        // Write chunk columns
-        std::vector<fb::Offset<proto::QueryResultColumn>> columns;
-        for (size_t v = 0; v < chunk->column_count; ++v) {
-            auto &vec = chunk->GetVector(v);
-
-            // Write result column
-            fb::Offset<proto::QueryResultColumn> column;
-            switch (vec.type) {
-            case duckdb::TypeId::INVALID:
-            case duckdb::TypeId::VARBINARY:
-                // TODO
-                break;
-            case duckdb::TypeId::BOOLEAN:
-                column = writeFixedLengthResultColumn<int8_t>(builder, vec);
-                break;
-            case duckdb::TypeId::TINYINT:
-                column = writeFixedLengthResultColumn<int16_t>(builder, vec);
-                break;
-            case duckdb::TypeId::SMALLINT:
-                column = writeFixedLengthResultColumn<int32_t>(builder, vec);
-                break;
-            case duckdb::TypeId::INTEGER:
-                column = writeFixedLengthResultColumn<int64_t>(builder, vec);
-                break;
-            case duckdb::TypeId::BIGINT:
-                column = writeFixedLengthResultColumn<int64_t>(builder, vec);
-                break;
-            case duckdb::TypeId::POINTER:
-                column = writeFixedLengthResultColumn<uint64_t>(builder, vec);
-                break;
-            case duckdb::TypeId::HASH:
-                column = writeFixedLengthResultColumn<uint64_t>(builder, vec);
-                break;
-            case duckdb::TypeId::FLOAT:
-                column = writeFixedLengthResultColumn<float>(builder, vec);
-                break;
-            case duckdb::TypeId::DOUBLE:
-                column = writeFixedLengthResultColumn<double>(builder, vec);
-                break;
-            case duckdb::TypeId::VARCHAR:
-                column = writeStringResultColumn(builder, vec);
-                break;
-            }
-
-            // Push new chunk column
-            columns.push_back(column);
-        }
-        auto columnOffset = builder.CreateVector(columns);
-
-        // Build result chunk
-        proto::QueryResultChunkBuilder chunkBuilder{builder};
-        chunkBuilder.add_columns(columnOffset);
-        chunks.push_back(chunkBuilder.Finish());
-    }
-    auto dataChunks = builder.CreateVector(chunks);
-
-    // Write column types
-    fb::Offset<fb::Vector<uint8_t>> columnRawTypes;
-    {
-        uint8_t *writer;
-        columnRawTypes = builder.CreateUninitializedVector<uint8_t>(result.types.size(), &writer);
-        for (size_t i = 0; i < result.types.size(); ++i) {
-            writer[i] = static_cast<uint8_t>(result.types[i]);
-        }
-    }
-
-    // Write column sql types
-    fb::Offset<fb::Vector<const proto::SQLType *>> columnSQLTypes;
-    {
-        proto::SQLType *writer;
-        columnSQLTypes = builder.CreateUninitializedVectorOfStructs<proto::SQLType>(result.sql_types.size(), &writer);
-        for (size_t i = 0; i < result.sql_types.size(); ++i) {
-            writer[i] = proto::SQLType{
-                static_cast<proto::SQLTypeID>(result.sql_types[i].id),
-                result.sql_types[i].width,
-                result.sql_types[i].scale
-            };
-        }
-    }
-
-    // Write column names
-    auto columnNames = builder.CreateVectorOfStrings(result.names);
-
-    // Write the query result
-    proto::QueryResultBuilder resultBuilder{builder};
-    resultBuilder.add_query_id(queryID);
-    resultBuilder.add_column_names(columnNames);
-    resultBuilder.add_column_raw_types(columnRawTypes);
-    resultBuilder.add_column_sql_types(columnSQLTypes);
-    resultBuilder.add_data_chunks(dataChunks);
-    return resultBuilder.Finish();
+    return P::OP_INVALID;
 }
 
 /// Write the query plan
-fb::Offset<proto::QueryPlan> writeQueryPlan(fb::FlatBufferBuilder& builder, duckdb::LogicalOperator& plan) {
+proto::duckdb::QueryPlan* encodeQueryPlan(protobuf::Arena& arena, duckdb::LogicalOperator& planRoot) {
+    auto* plan = protobuf::Arena::CreateMessage<proto::duckdb::QueryPlan>(&arena);
+
     // Remember the children
     std::vector<duckdb::LogicalOperator*> operators;
     std::vector<std::tuple<size_t, size_t>> operatorChildEdges;
-    operators.push_back(&plan);
+    operators.push_back(&planRoot);
 
     // Traverse the plan
     std::vector<size_t> dfsStack;
@@ -233,80 +83,192 @@ fb::Offset<proto::QueryPlan> writeQueryPlan(fb::FlatBufferBuilder& builder, duck
             dfsStack.push_back(childID);
             operatorChildEdges.push_back({targetID, childID});
         }
-    }
-
-    fb::Offset<fb::Vector<uint8_t>> operatorTypeVector;
-    fb::Offset<fb::Vector<uint64_t>> operatorChildVector;
-    fb::Offset<fb::Vector<uint64_t>> operatorChildOffsetVector;
+    } 
 
     // Write operator types
-    {
-        uint8_t *writer;
-        operatorTypeVector = builder.CreateUninitializedVector<uint8_t>(operators.size(), &writer);
-        for (size_t i = 0; i < operators.size(); ++i) {
-            writer[i] = static_cast<uint8_t>(mapOperatorType(operators[i]->type));
+    auto* opTypes = plan->mutable_operator_types();
+    opTypes->Reserve(operators.size());
+    for (size_t i = 0; i < operators.size(); ++i) {
+        opTypes->Add(static_cast<uint8_t>(mapOperatorType(operators[i]->type)));
+    }
+
+    // Encode children 
+    auto* opChildren = plan->mutable_operator_children();
+    auto* opChildOffsets = plan->mutable_operator_child_offsets();
+    opChildOffsets->Reserve(operators.size());
+    std::sort(operatorChildEdges.begin(), operatorChildEdges.end(), [&](auto& l, auto& r) {
+        return std::get<0>(l) < std::get<0>(r);
+    });
+
+    auto edgeIter = operatorChildEdges.begin();
+    for (auto oid = 0; oid < operators.size(); ++oid) {
+        opChildOffsets->Add(opChildren->size());
+
+        // Reached end?
+        if (edgeIter == operatorChildEdges.end()) {
+            continue;
+        }
+
+        // At parent of next edge?
+        auto& [parent, child] = *edgeIter;
+        if (oid != parent) {
+            continue;
+        }
+
+        // Store children 
+        opChildren->Add(child);
+        edgeIter++;
+        for (; edgeIter != operatorChildEdges.end(); ++edgeIter) {
+            auto& [nextParent, nextChild] = *edgeIter;
+            if (oid != nextParent) {
+                break;
+            } else {
+                opChildren->Add(nextChild);
+            }
         }
     }
 
-    // Write the children
-    {
-        // Encode children 
-        std::vector<size_t> operatorChildren;
-        std::vector<size_t> operatorChildOffsets;
-        std::sort(operatorChildEdges.begin(), operatorChildEdges.end(), [&](auto& l, auto& r) {
-            return std::get<0>(l) < std::get<0>(r);
-        });
-        operatorChildOffsets.resize(operators.size(), 0);
+    return plan;
+}
+  
+/// Write a fixed-length res column
+template <typename DUCKDB_TYPE, typename PROTO_TYPE>
+static void encodeNumericColumn(protobuf::Arena& arena, proto::duckdb::QueryResultColumn* column, duckdb::Vector &vec) {
+    // Create column
+    column->set_type_id(static_cast<proto::duckdb::RawTypeID>(vec.type));
 
-        auto edgeIter = operatorChildEdges.begin();
-        for (auto oid = 0; oid < operators.size(); ++oid) {
-            operatorChildOffsets[oid] = operatorChildren.size();
+    // Create nullmask buffer
+    auto* nullmask = column->mutable_null_mask();
+    nullmask->Reserve(vec.count);
 
-            // Reached end?
-            if (edgeIter == operatorChildEdges.end()) {
-                continue;
-            }
-
-            // At parent of next edge?
-            auto& [parent, child] = *edgeIter;
-            if (oid != parent) {
-                continue;
-            }
-
-            // Store children 
-            operatorChildren.push_back(child);
-            edgeIter++;
-            for (; edgeIter != operatorChildEdges.end(); ++edgeIter) {
-                auto& [nextParent, nextChild] = *edgeIter;
-                if (oid != nextParent) {
-                    break;
-                } else {
-                    operatorChildren.push_back(nextChild);
-                }
-            }
-        }
-
-        // Write children
-        uint64_t *writer;
-        operatorChildVector = builder.CreateUninitializedVector<uint64_t>(operatorChildren.size(), &writer);
-        for (size_t i = 0; i < operatorChildren.size(); ++i) {
-            writer[i] = static_cast<size_t>(operatorChildren[i]);
-        }
-
-        // Write child offsets
-        operatorChildOffsetVector = builder.CreateUninitializedVector<uint64_t>(operatorChildOffsets.size(), &writer);
-        for (size_t i = 0; i < operatorChildOffsets.size(); ++i) {
-            writer[i] = static_cast<size_t>(operatorChildOffsets[i]);
-        }
+    // Create data buffer
+    protobuf::RepeatedField<PROTO_TYPE>* data;
+    if constexpr (std::is_same_v<PROTO_TYPE, int32_t>) {
+        data = column->mutable_rows_i32();
+    } else if constexpr (std::is_same_v<PROTO_TYPE, uint32_t>) {
+        data = column->mutable_rows_u32();
+    } else if constexpr (std::is_same_v<PROTO_TYPE, int64_t>) {
+        data = column->mutable_rows_i64();
+    } else if constexpr (std::is_same_v<PROTO_TYPE, uint64_t>) {
+        data = column->mutable_rows_u64();
+    } else if constexpr (std::is_same_v<PROTO_TYPE, float>) {
+        data = column->mutable_rows_f32();
+    } else if constexpr (std::is_same_v<PROTO_TYPE, double>) {
+        data = column->mutable_rows_f64();
+    } else {
+        return;
     }
+    data->Reserve(vec.count);
 
-    // Write the query result
-    proto::QueryPlanBuilder planBuilder{builder};
-    planBuilder.add_operator_types(operatorTypeVector);
-    planBuilder.add_operator_children(operatorChildVector);
-    planBuilder.add_operator_child_offsets(operatorChildOffsetVector);
-    return planBuilder.Finish();
+    // Run the vector operations
+    duckdb::VectorOperations::Exec(vec.sel_vector, 0, [&](duckdb::index_t i, duckdb::index_t k) {
+        nullmask->Add(vec.nullmask[i]);
+        data->Add(reinterpret_cast<DUCKDB_TYPE*>(vec.data)[i]);
+    }, 0);
 }
 
-}  // namespace proto
+/// Write a fixed-length res column
+static void encodeStringColumn(protobuf::Arena& arena, proto::duckdb::QueryResultColumn* column, duckdb::Vector &vec) {
+    column->set_type_id(static_cast<proto::duckdb::RawTypeID>(vec.type));
+
+    // Create nullmask buffer
+    auto* nullmask = column->mutable_null_mask();
+    nullmask->Reserve(vec.count);
+
+    // Create data buffer
+    auto data = column->mutable_rows_str();
+    data->Reserve(vec.count);
+
+    // Run the vector operations
+    duckdb::VectorOperations::Exec(vec.sel_vector, 0, [&](duckdb::index_t i, duckdb::index_t k) {
+        nullmask->Add(vec.nullmask[i]);
+        auto s = reinterpret_cast<char**>(vec.data)[i];
+        data->AddAllocated(protobuf::Arena::Create<std::string>(&arena, s));
+    }, 0);
+}
+
+/// Write the query result
+proto::duckdb::QueryResult* encodeQueryResult(protobuf::Arena& arena, duckdb::QueryResult& queryResult, uint64_t queryID) {
+    auto* res = protobuf::Arena::CreateMessage<proto::duckdb::QueryResult>(&arena);
+    auto* chunks = res->mutable_data_chunks();
+    res->set_query_id(queryID);
+
+    // Fetch res rows and immediately write them into a flatbuffer
+    for (auto c = queryResult.Fetch(); !!c && c->size() > 0; c = queryResult.Fetch()) {
+        // Build res chunk
+        auto* chunk = chunks->Add();
+        auto* cols = chunk->mutable_columns();
+        cols->Reserve(c->column_count);
+
+        // Write chunk cols
+        for (size_t v = 0; v < c->column_count; ++v) {
+            auto &vec = c->GetVector(v);
+            auto* column = cols->Add();
+            switch (vec.type) {
+            case duckdb::TypeId::INVALID:
+            case duckdb::TypeId::VARBINARY:
+                // TODO
+                break;
+            case duckdb::TypeId::BOOLEAN:
+                encodeNumericColumn<int8_t, int32_t>(arena, column, vec);
+                break;
+            case duckdb::TypeId::TINYINT:
+                encodeNumericColumn<int16_t, int32_t>(arena, column, vec);
+                break;
+            case duckdb::TypeId::SMALLINT:
+                encodeNumericColumn<int32_t, int32_t>(arena, column, vec);
+                break;
+            case duckdb::TypeId::INTEGER:
+                encodeNumericColumn<int64_t, int64_t>(arena, column, vec);
+                break;
+            case duckdb::TypeId::BIGINT:
+                encodeNumericColumn<int64_t, int64_t>(arena, column, vec);
+                break;
+            case duckdb::TypeId::POINTER:
+                encodeNumericColumn<uint64_t, uint64_t>(arena, column, vec);
+                break;
+            case duckdb::TypeId::HASH:
+                encodeNumericColumn<uint64_t, uint64_t>(arena, column, vec);
+                break;
+            case duckdb::TypeId::FLOAT:
+                encodeNumericColumn<float, float>(arena, column, vec);
+                break;
+            case duckdb::TypeId::DOUBLE:
+                encodeNumericColumn<double, double>(arena, column, vec);
+                break;
+            case duckdb::TypeId::VARCHAR:
+                encodeStringColumn(arena, column, vec);
+                break;
+            }
+        }
+    }
+
+    // Write column types
+    auto* rawTypes = res->mutable_column_raw_types();
+    rawTypes->Reserve(queryResult.types.size());
+    for (size_t i = 0; i < queryResult.types.size(); ++i) {
+        rawTypes->Add(static_cast<uint8_t>(queryResult.types[i]));
+    }
+
+    // Write column sql types
+    auto* sqlTypes = res->mutable_column_sql_types();
+    sqlTypes->Reserve(queryResult.sql_types.size());
+    for (size_t i = 0; i < queryResult.sql_types.size(); ++i) {
+        auto* sqlType = sqlTypes->Add();
+        sqlType->set_type_id(static_cast<proto::duckdb::SQLTypeID>(queryResult.sql_types[i].id));
+        sqlType->set_width(queryResult.sql_types[i].width);
+        sqlType->set_scale(queryResult.sql_types[i].scale);
+    }
+    
+    // Write column names
+    auto* names = res->mutable_column_names();
+    names->Reserve(queryResult.names.size());
+    for (auto& name: queryResult.names) {
+        names->AddAllocated(protobuf::Arena::Create<std::string>(&arena, name));
+    }
+
+    // Return result
+    return res;
+}
+
 }  // namespace tigon

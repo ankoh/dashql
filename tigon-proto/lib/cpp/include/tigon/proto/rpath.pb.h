@@ -114,6 +114,12 @@ class ArraySlice :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const ArraySlice& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -129,6 +135,15 @@ class ArraySlice :
   }
   inline void Swap(ArraySlice* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ArraySlice* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -164,12 +179,17 @@ class ArraySlice :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.rpath.ArraySlice";
   }
+  protected:
+  explicit ArraySlice(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -184,6 +204,9 @@ class ArraySlice :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_rpath_2eproto;
 };
@@ -214,6 +237,12 @@ class ArrayIndexes :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const ArrayIndexes& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -229,6 +258,15 @@ class ArrayIndexes :
   }
   inline void Swap(ArrayIndexes* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ArrayIndexes* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -264,12 +302,17 @@ class ArrayIndexes :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.rpath.ArrayIndexes";
   }
+  protected:
+  explicit ArrayIndexes(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -284,6 +327,9 @@ class ArrayIndexes :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_rpath_2eproto;
 };
@@ -314,6 +360,12 @@ class ChildMember :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const ChildMember& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -329,6 +381,15 @@ class ChildMember :
   }
   inline void Swap(ChildMember* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ChildMember* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -364,12 +425,17 @@ class ChildMember :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.rpath.ChildMember";
   }
+  protected:
+  explicit ChildMember(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -384,6 +450,9 @@ class ChildMember :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_rpath_2eproto;
 };
@@ -414,6 +483,12 @@ class DescendantMember :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const DescendantMember& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -429,6 +504,15 @@ class DescendantMember :
   }
   inline void Swap(DescendantMember* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DescendantMember* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -464,12 +548,17 @@ class DescendantMember :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.rpath.DescendantMember";
   }
+  protected:
+  explicit DescendantMember(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -484,6 +573,9 @@ class DescendantMember :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_rpath_2eproto;
 };
@@ -514,6 +606,12 @@ class Component :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const Component& default_instance();
 
   enum ComponentCase {
@@ -537,6 +635,15 @@ class Component :
   }
   inline void Swap(Component* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Component* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -572,12 +679,17 @@ class Component :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.rpath.Component";
   }
+  protected:
+  explicit Component(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -607,6 +719,9 @@ class Component :
   const ::tigon::proto::rpath::ArraySlice& _internal_arrayslice() const;
   ::tigon::proto::rpath::ArraySlice* _internal_mutable_arrayslice();
   public:
+  void unsafe_arena_set_allocated_arrayslice(
+      ::tigon::proto::rpath::ArraySlice* arrayslice);
+  ::tigon::proto::rpath::ArraySlice* unsafe_arena_release_arrayslice();
 
   // .tigon.proto.rpath.ArrayIndexes arrayIndexes = 2;
   bool has_arrayindexes() const;
@@ -622,6 +737,9 @@ class Component :
   const ::tigon::proto::rpath::ArrayIndexes& _internal_arrayindexes() const;
   ::tigon::proto::rpath::ArrayIndexes* _internal_mutable_arrayindexes();
   public:
+  void unsafe_arena_set_allocated_arrayindexes(
+      ::tigon::proto::rpath::ArrayIndexes* arrayindexes);
+  ::tigon::proto::rpath::ArrayIndexes* unsafe_arena_release_arrayindexes();
 
   // .tigon.proto.rpath.ChildMember childMember = 3;
   bool has_childmember() const;
@@ -637,6 +755,9 @@ class Component :
   const ::tigon::proto::rpath::ChildMember& _internal_childmember() const;
   ::tigon::proto::rpath::ChildMember* _internal_mutable_childmember();
   public:
+  void unsafe_arena_set_allocated_childmember(
+      ::tigon::proto::rpath::ChildMember* childmember);
+  ::tigon::proto::rpath::ChildMember* unsafe_arena_release_childmember();
 
   // .tigon.proto.rpath.DescendantMember descendantMember = 4;
   bool has_descendantmember() const;
@@ -652,6 +773,9 @@ class Component :
   const ::tigon::proto::rpath::DescendantMember& _internal_descendantmember() const;
   ::tigon::proto::rpath::DescendantMember* _internal_mutable_descendantmember();
   public:
+  void unsafe_arena_set_allocated_descendantmember(
+      ::tigon::proto::rpath::DescendantMember* descendantmember);
+  ::tigon::proto::rpath::DescendantMember* unsafe_arena_release_descendantmember();
 
   void clear_component();
   ComponentCase component_case() const;
@@ -667,6 +791,9 @@ class Component :
   inline void clear_has_component();
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   union ComponentUnion {
     ComponentUnion() {}
     ::tigon::proto::rpath::ArraySlice* arrayslice_;
@@ -706,6 +833,12 @@ class Path :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const Path& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -721,6 +854,15 @@ class Path :
   }
   inline void Swap(Path* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Path* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -756,12 +898,17 @@ class Path :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.rpath.Path";
   }
+  protected:
+  explicit Path(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -797,6 +944,9 @@ class Path :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::rpath::Component > components_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_rpath_2eproto;
@@ -840,7 +990,9 @@ inline void Component::set_has_arrayslice() {
 }
 inline void Component::clear_arrayslice() {
   if (_internal_has_arrayslice()) {
-    delete component_.arrayslice_;
+    if (GetArenaNoVirtual() == nullptr) {
+      delete component_.arrayslice_;
+    }
     clear_has_component();
   }
 }
@@ -849,6 +1001,9 @@ inline ::tigon::proto::rpath::ArraySlice* Component::release_arrayslice() {
   if (has_arrayslice()) {
     clear_has_component();
       ::tigon::proto::rpath::ArraySlice* temp = component_.arrayslice_;
+    if (GetArenaNoVirtual() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
     component_.arrayslice_ = nullptr;
     return temp;
   } else {
@@ -863,6 +1018,25 @@ inline const ::tigon::proto::rpath::ArraySlice& Component::_internal_arrayslice(
 inline const ::tigon::proto::rpath::ArraySlice& Component::arrayslice() const {
   // @@protoc_insertion_point(field_get:tigon.proto.rpath.Component.arraySlice)
   return _internal_arrayslice();
+}
+inline ::tigon::proto::rpath::ArraySlice* Component::unsafe_arena_release_arrayslice() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.rpath.Component.arraySlice)
+  if (has_arrayslice()) {
+    clear_has_component();
+    ::tigon::proto::rpath::ArraySlice* temp = component_.arrayslice_;
+    component_.arrayslice_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void Component::unsafe_arena_set_allocated_arrayslice(::tigon::proto::rpath::ArraySlice* arrayslice) {
+  clear_component();
+  if (arrayslice) {
+    set_has_arrayslice();
+    component_.arrayslice_ = arrayslice;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.rpath.Component.arraySlice)
 }
 inline ::tigon::proto::rpath::ArraySlice* Component::_internal_mutable_arrayslice() {
   if (!_internal_has_arrayslice()) {
@@ -890,7 +1064,9 @@ inline void Component::set_has_arrayindexes() {
 }
 inline void Component::clear_arrayindexes() {
   if (_internal_has_arrayindexes()) {
-    delete component_.arrayindexes_;
+    if (GetArenaNoVirtual() == nullptr) {
+      delete component_.arrayindexes_;
+    }
     clear_has_component();
   }
 }
@@ -899,6 +1075,9 @@ inline ::tigon::proto::rpath::ArrayIndexes* Component::release_arrayindexes() {
   if (has_arrayindexes()) {
     clear_has_component();
       ::tigon::proto::rpath::ArrayIndexes* temp = component_.arrayindexes_;
+    if (GetArenaNoVirtual() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
     component_.arrayindexes_ = nullptr;
     return temp;
   } else {
@@ -913,6 +1092,25 @@ inline const ::tigon::proto::rpath::ArrayIndexes& Component::_internal_arrayinde
 inline const ::tigon::proto::rpath::ArrayIndexes& Component::arrayindexes() const {
   // @@protoc_insertion_point(field_get:tigon.proto.rpath.Component.arrayIndexes)
   return _internal_arrayindexes();
+}
+inline ::tigon::proto::rpath::ArrayIndexes* Component::unsafe_arena_release_arrayindexes() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.rpath.Component.arrayIndexes)
+  if (has_arrayindexes()) {
+    clear_has_component();
+    ::tigon::proto::rpath::ArrayIndexes* temp = component_.arrayindexes_;
+    component_.arrayindexes_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void Component::unsafe_arena_set_allocated_arrayindexes(::tigon::proto::rpath::ArrayIndexes* arrayindexes) {
+  clear_component();
+  if (arrayindexes) {
+    set_has_arrayindexes();
+    component_.arrayindexes_ = arrayindexes;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.rpath.Component.arrayIndexes)
 }
 inline ::tigon::proto::rpath::ArrayIndexes* Component::_internal_mutable_arrayindexes() {
   if (!_internal_has_arrayindexes()) {
@@ -940,7 +1138,9 @@ inline void Component::set_has_childmember() {
 }
 inline void Component::clear_childmember() {
   if (_internal_has_childmember()) {
-    delete component_.childmember_;
+    if (GetArenaNoVirtual() == nullptr) {
+      delete component_.childmember_;
+    }
     clear_has_component();
   }
 }
@@ -949,6 +1149,9 @@ inline ::tigon::proto::rpath::ChildMember* Component::release_childmember() {
   if (has_childmember()) {
     clear_has_component();
       ::tigon::proto::rpath::ChildMember* temp = component_.childmember_;
+    if (GetArenaNoVirtual() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
     component_.childmember_ = nullptr;
     return temp;
   } else {
@@ -963,6 +1166,25 @@ inline const ::tigon::proto::rpath::ChildMember& Component::_internal_childmembe
 inline const ::tigon::proto::rpath::ChildMember& Component::childmember() const {
   // @@protoc_insertion_point(field_get:tigon.proto.rpath.Component.childMember)
   return _internal_childmember();
+}
+inline ::tigon::proto::rpath::ChildMember* Component::unsafe_arena_release_childmember() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.rpath.Component.childMember)
+  if (has_childmember()) {
+    clear_has_component();
+    ::tigon::proto::rpath::ChildMember* temp = component_.childmember_;
+    component_.childmember_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void Component::unsafe_arena_set_allocated_childmember(::tigon::proto::rpath::ChildMember* childmember) {
+  clear_component();
+  if (childmember) {
+    set_has_childmember();
+    component_.childmember_ = childmember;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.rpath.Component.childMember)
 }
 inline ::tigon::proto::rpath::ChildMember* Component::_internal_mutable_childmember() {
   if (!_internal_has_childmember()) {
@@ -990,7 +1212,9 @@ inline void Component::set_has_descendantmember() {
 }
 inline void Component::clear_descendantmember() {
   if (_internal_has_descendantmember()) {
-    delete component_.descendantmember_;
+    if (GetArenaNoVirtual() == nullptr) {
+      delete component_.descendantmember_;
+    }
     clear_has_component();
   }
 }
@@ -999,6 +1223,9 @@ inline ::tigon::proto::rpath::DescendantMember* Component::release_descendantmem
   if (has_descendantmember()) {
     clear_has_component();
       ::tigon::proto::rpath::DescendantMember* temp = component_.descendantmember_;
+    if (GetArenaNoVirtual() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
     component_.descendantmember_ = nullptr;
     return temp;
   } else {
@@ -1013,6 +1240,25 @@ inline const ::tigon::proto::rpath::DescendantMember& Component::_internal_desce
 inline const ::tigon::proto::rpath::DescendantMember& Component::descendantmember() const {
   // @@protoc_insertion_point(field_get:tigon.proto.rpath.Component.descendantMember)
   return _internal_descendantmember();
+}
+inline ::tigon::proto::rpath::DescendantMember* Component::unsafe_arena_release_descendantmember() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.rpath.Component.descendantMember)
+  if (has_descendantmember()) {
+    clear_has_component();
+    ::tigon::proto::rpath::DescendantMember* temp = component_.descendantmember_;
+    component_.descendantmember_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void Component::unsafe_arena_set_allocated_descendantmember(::tigon::proto::rpath::DescendantMember* descendantmember) {
+  clear_component();
+  if (descendantmember) {
+    set_has_descendantmember();
+    component_.descendantmember_ = descendantmember;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.rpath.Component.descendantMember)
 }
 inline ::tigon::proto::rpath::DescendantMember* Component::_internal_mutable_descendantmember() {
   if (!_internal_has_descendantmember()) {

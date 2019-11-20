@@ -10,6 +10,9 @@
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "flatbuffers/flatbuffers.h"
 #include "tigon/common/span.h"
+#include "tigon/proto/duckdb.pb.h"
+#include "tigon/proto/tql.pb.h"
+#include "tigon/proto/web_api.pb.h"
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -43,7 +46,7 @@ class WebAPI {
         Session& session;
 
         /// The status code
-        _tigon_proto_web_api_StatusCode status_code;
+        tigon::proto::web_api::StatusCode status_code;
         /// The error (if any)
         std::string error;
         /// The data (if any)
@@ -52,7 +55,7 @@ class WebAPI {
         /// Request succeeded
         void requestSucceeded(flatbuffers::DetachedBuffer buffer);
         /// Request failed
-        void requestFailed(_tigon_proto_web_api_StatusCode status, std::string error);
+        void requestFailed(tigon::proto::web_api::StatusCode status, std::string error);
 
         public:
         /// Constructor

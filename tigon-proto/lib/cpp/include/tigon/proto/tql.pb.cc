@@ -744,17 +744,26 @@ QueryStatement::QueryStatement()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.QueryStatement)
 }
+QueryStatement::QueryStatement(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.QueryStatement)
+}
 QueryStatement::QueryStatement(const QueryStatement& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   query_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_query_name().empty()) {
-    query_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.query_name_);
+    query_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_query_name(),
+      GetArenaNoVirtual());
   }
   query_text_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_query_text().empty()) {
-    query_text_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.query_text_);
+    query_text_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_query_text(),
+      GetArenaNoVirtual());
   }
   // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.QueryStatement)
 }
@@ -771,10 +780,17 @@ QueryStatement::~QueryStatement() {
 }
 
 void QueryStatement::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   query_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   query_text_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
+void QueryStatement::ArenaDtor(void* object) {
+  QueryStatement* _this = reinterpret_cast< QueryStatement* >(object);
+  (void)_this;
+}
+void QueryStatement::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void QueryStatement::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -790,13 +806,14 @@ void QueryStatement::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  query_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  query_text_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  query_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  query_text_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   _internal_metadata_.Clear();
 }
 
 const char* QueryStatement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -914,12 +931,10 @@ void QueryStatement::MergeFrom(const QueryStatement& from) {
   (void) cached_has_bits;
 
   if (from.query_name().size() > 0) {
-
-    query_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.query_name_);
+    _internal_set_query_name(from._internal_query_name());
   }
   if (from.query_text().size() > 0) {
-
-    query_text_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.query_text_);
+    _internal_set_query_text(from._internal_query_text());
   }
 }
 
@@ -961,13 +976,21 @@ ParameterDeclaration::ParameterDeclaration()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.ParameterDeclaration)
 }
+ParameterDeclaration::ParameterDeclaration(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.ParameterDeclaration)
+}
 ParameterDeclaration::ParameterDeclaration(const ParameterDeclaration& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   parameter_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_parameter_name().empty()) {
-    parameter_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.parameter_name_);
+    parameter_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_parameter_name(),
+      GetArenaNoVirtual());
   }
   parameter_type_ = from.parameter_type_;
   clear_has_default_value();
@@ -1008,12 +1031,19 @@ ParameterDeclaration::~ParameterDeclaration() {
 }
 
 void ParameterDeclaration::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   parameter_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (has_default_value()) {
     clear_default_value();
   }
 }
 
+void ParameterDeclaration::ArenaDtor(void* object) {
+  ParameterDeclaration* _this = reinterpret_cast< ParameterDeclaration* >(object);
+  (void)_this;
+}
+void ParameterDeclaration::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void ParameterDeclaration::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -1039,7 +1069,8 @@ void ParameterDeclaration::clear_default_value() {
       break;
     }
     case kValueStr: {
-      default_value_.value_str_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+      default_value_.value_str_.Destroy(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+          GetArenaNoVirtual());
       break;
     }
     case DEFAULT_VALUE_NOT_SET: {
@@ -1056,7 +1087,7 @@ void ParameterDeclaration::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  parameter_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  parameter_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   parameter_type_ = 0;
   clear_default_value();
   _internal_metadata_.Clear();
@@ -1064,6 +1095,7 @@ void ParameterDeclaration::Clear() {
 
 const char* ParameterDeclaration::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -1265,8 +1297,7 @@ void ParameterDeclaration::MergeFrom(const ParameterDeclaration& from) {
   (void) cached_has_bits;
 
   if (from.parameter_name().size() > 0) {
-
-    parameter_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.parameter_name_);
+    _internal_set_parameter_name(from._internal_parameter_name());
   }
   if (from.parameter_type() != 0) {
     _internal_set_parameter_type(from._internal_parameter_type());
@@ -1333,13 +1364,21 @@ HTTPLoadMethod::HTTPLoadMethod()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.HTTPLoadMethod)
 }
+HTTPLoadMethod::HTTPLoadMethod(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.HTTPLoadMethod)
+}
 HTTPLoadMethod::HTTPLoadMethod(const HTTPLoadMethod& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   http_url_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_http_url().empty()) {
-    http_url_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.http_url_);
+    http_url_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_http_url(),
+      GetArenaNoVirtual());
   }
   http_method_ = from.http_method_;
   // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.HTTPLoadMethod)
@@ -1357,9 +1396,16 @@ HTTPLoadMethod::~HTTPLoadMethod() {
 }
 
 void HTTPLoadMethod::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   http_url_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
+void HTTPLoadMethod::ArenaDtor(void* object) {
+  HTTPLoadMethod* _this = reinterpret_cast< HTTPLoadMethod* >(object);
+  (void)_this;
+}
+void HTTPLoadMethod::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void HTTPLoadMethod::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -1375,13 +1421,14 @@ void HTTPLoadMethod::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  http_url_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  http_url_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   http_method_ = 0;
   _internal_metadata_.Clear();
 }
 
 const char* HTTPLoadMethod::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -1496,8 +1543,7 @@ void HTTPLoadMethod::MergeFrom(const HTTPLoadMethod& from) {
   (void) cached_has_bits;
 
   if (from.http_url().size() > 0) {
-
-    http_url_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.http_url_);
+    _internal_set_http_url(from._internal_http_url());
   }
   if (from.http_method() != 0) {
     _internal_set_http_method(from._internal_http_method());
@@ -1541,6 +1587,13 @@ FileLoadMethod::FileLoadMethod()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.FileLoadMethod)
 }
+FileLoadMethod::FileLoadMethod(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.FileLoadMethod)
+}
 FileLoadMethod::FileLoadMethod(const FileLoadMethod& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
@@ -1557,8 +1610,15 @@ FileLoadMethod::~FileLoadMethod() {
 }
 
 void FileLoadMethod::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void FileLoadMethod::ArenaDtor(void* object) {
+  FileLoadMethod* _this = reinterpret_cast< FileLoadMethod* >(object);
+  (void)_this;
+}
+void FileLoadMethod::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void FileLoadMethod::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -1579,6 +1639,7 @@ void FileLoadMethod::Clear() {
 
 const char* FileLoadMethod::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -1691,7 +1752,8 @@ void LoadStatement::set_allocated_http(::tigon::proto::tql::HTTPLoadMethod* http
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_load_method();
   if (http) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(http);
     if (message_arena != submessage_arena) {
       http = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, http, submessage_arena);
@@ -1705,7 +1767,8 @@ void LoadStatement::set_allocated_file(::tigon::proto::tql::FileLoadMethod* file
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_load_method();
   if (file) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(file);
     if (message_arena != submessage_arena) {
       file = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, file, submessage_arena);
@@ -1720,13 +1783,21 @@ LoadStatement::LoadStatement()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.LoadStatement)
 }
+LoadStatement::LoadStatement(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.LoadStatement)
+}
 LoadStatement::LoadStatement(const LoadStatement& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   data_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_data_name().empty()) {
-    data_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.data_name_);
+    data_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_data_name(),
+      GetArenaNoVirtual());
   }
   clear_has_load_method();
   switch (from.load_method_case()) {
@@ -1757,12 +1828,19 @@ LoadStatement::~LoadStatement() {
 }
 
 void LoadStatement::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   data_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (has_load_method()) {
     clear_load_method();
   }
 }
 
+void LoadStatement::ArenaDtor(void* object) {
+  LoadStatement* _this = reinterpret_cast< LoadStatement* >(object);
+  (void)_this;
+}
+void LoadStatement::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void LoadStatement::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -1776,11 +1854,15 @@ void LoadStatement::clear_load_method() {
 // @@protoc_insertion_point(one_of_clear_start:tigon.proto.tql.LoadStatement)
   switch (load_method_case()) {
     case kHttp: {
-      delete load_method_.http_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete load_method_.http_;
+      }
       break;
     }
     case kFile: {
-      delete load_method_.file_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete load_method_.file_;
+      }
       break;
     }
     case LOAD_METHOD_NOT_SET: {
@@ -1797,13 +1879,14 @@ void LoadStatement::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  data_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  data_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   clear_load_method();
   _internal_metadata_.Clear();
 }
 
 const char* LoadStatement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -1946,8 +2029,7 @@ void LoadStatement::MergeFrom(const LoadStatement& from) {
   (void) cached_has_bits;
 
   if (from.data_name().size() > 0) {
-
-    data_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.data_name_);
+    _internal_set_data_name(from._internal_data_name());
   }
   switch (from.load_method_case()) {
     case kHttp: {
@@ -2002,6 +2084,13 @@ JSONExtract::JSONExtract()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.JSONExtract)
 }
+JSONExtract::JSONExtract(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.JSONExtract)
+}
 JSONExtract::JSONExtract(const JSONExtract& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
@@ -2018,8 +2107,15 @@ JSONExtract::~JSONExtract() {
 }
 
 void JSONExtract::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void JSONExtract::ArenaDtor(void* object) {
+  JSONExtract* _this = reinterpret_cast< JSONExtract* >(object);
+  (void)_this;
+}
+void JSONExtract::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void JSONExtract::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -2040,6 +2136,7 @@ void JSONExtract::Clear() {
 
 const char* JSONExtract::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -2143,17 +2240,26 @@ CSVColumn::CSVColumn()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.CSVColumn)
 }
+CSVColumn::CSVColumn(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.CSVColumn)
+}
 CSVColumn::CSVColumn(const CSVColumn& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   column_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_column_name().empty()) {
-    column_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.column_name_);
+    column_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_column_name(),
+      GetArenaNoVirtual());
   }
   source_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_source_name().empty()) {
-    source_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.source_name_);
+    source_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_source_name(),
+      GetArenaNoVirtual());
   }
   ::memcpy(&column_type_, &from.column_type_,
     static_cast<size_t>(reinterpret_cast<char*>(&source_index_) -
@@ -2176,10 +2282,17 @@ CSVColumn::~CSVColumn() {
 }
 
 void CSVColumn::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   column_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   source_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
+void CSVColumn::ArenaDtor(void* object) {
+  CSVColumn* _this = reinterpret_cast< CSVColumn* >(object);
+  (void)_this;
+}
+void CSVColumn::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void CSVColumn::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -2195,8 +2308,8 @@ void CSVColumn::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  column_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  source_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  column_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  source_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   ::memset(&column_type_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&source_index_) -
       reinterpret_cast<char*>(&column_type_)) + sizeof(source_index_));
@@ -2205,6 +2318,7 @@ void CSVColumn::Clear() {
 
 const char* CSVColumn::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -2363,12 +2477,10 @@ void CSVColumn::MergeFrom(const CSVColumn& from) {
   (void) cached_has_bits;
 
   if (from.column_name().size() > 0) {
-
-    column_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.column_name_);
+    _internal_set_column_name(from._internal_column_name());
   }
   if (from.source_name().size() > 0) {
-
-    source_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.source_name_);
+    _internal_set_source_name(from._internal_source_name());
   }
   if (from.column_type() != 0) {
     _internal_set_column_type(from._internal_column_type());
@@ -2418,6 +2530,14 @@ CSVExtract::CSVExtract()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.CSVExtract)
 }
+CSVExtract::CSVExtract(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena),
+  columns_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.CSVExtract)
+}
 CSVExtract::CSVExtract(const CSVExtract& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr),
@@ -2436,8 +2556,15 @@ CSVExtract::~CSVExtract() {
 }
 
 void CSVExtract::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void CSVExtract::ArenaDtor(void* object) {
+  CSVExtract* _this = reinterpret_cast< CSVExtract* >(object);
+  (void)_this;
+}
+void CSVExtract::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void CSVExtract::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -2459,6 +2586,7 @@ void CSVExtract::Clear() {
 
 const char* CSVExtract::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -2592,6 +2720,13 @@ ExtractMethod::ExtractMethod()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.ExtractMethod)
 }
+ExtractMethod::ExtractMethod(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.ExtractMethod)
+}
 ExtractMethod::ExtractMethod(const ExtractMethod& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
@@ -2608,8 +2743,15 @@ ExtractMethod::~ExtractMethod() {
 }
 
 void ExtractMethod::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void ExtractMethod::ArenaDtor(void* object) {
+  ExtractMethod* _this = reinterpret_cast< ExtractMethod* >(object);
+  (void)_this;
+}
+void ExtractMethod::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void ExtractMethod::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -2630,6 +2772,7 @@ void ExtractMethod::Clear() {
 
 const char* ExtractMethod::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -2742,7 +2885,8 @@ void ExtractStatement::set_allocated_json(::tigon::proto::tql::JSONExtract* json
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_method();
   if (json) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(json);
     if (message_arena != submessage_arena) {
       json = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, json, submessage_arena);
@@ -2756,7 +2900,8 @@ void ExtractStatement::set_allocated_csv(::tigon::proto::tql::CSVExtract* csv) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_method();
   if (csv) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(csv);
     if (message_arena != submessage_arena) {
       csv = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, csv, submessage_arena);
@@ -2771,17 +2916,26 @@ ExtractStatement::ExtractStatement()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.ExtractStatement)
 }
+ExtractStatement::ExtractStatement(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.ExtractStatement)
+}
 ExtractStatement::ExtractStatement(const ExtractStatement& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   extract_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_extract_name().empty()) {
-    extract_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.extract_name_);
+    extract_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_extract_name(),
+      GetArenaNoVirtual());
   }
   data_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_data_name().empty()) {
-    data_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.data_name_);
+    data_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_data_name(),
+      GetArenaNoVirtual());
   }
   clear_has_method();
   switch (from.method_case()) {
@@ -2813,6 +2967,7 @@ ExtractStatement::~ExtractStatement() {
 }
 
 void ExtractStatement::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   extract_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   data_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (has_method()) {
@@ -2820,6 +2975,12 @@ void ExtractStatement::SharedDtor() {
   }
 }
 
+void ExtractStatement::ArenaDtor(void* object) {
+  ExtractStatement* _this = reinterpret_cast< ExtractStatement* >(object);
+  (void)_this;
+}
+void ExtractStatement::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void ExtractStatement::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -2833,11 +2994,15 @@ void ExtractStatement::clear_method() {
 // @@protoc_insertion_point(one_of_clear_start:tigon.proto.tql.ExtractStatement)
   switch (method_case()) {
     case kJson: {
-      delete method_.json_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete method_.json_;
+      }
       break;
     }
     case kCsv: {
-      delete method_.csv_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete method_.csv_;
+      }
       break;
     }
     case METHOD_NOT_SET: {
@@ -2854,14 +3019,15 @@ void ExtractStatement::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  extract_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  data_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  extract_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  data_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   clear_method();
   _internal_metadata_.Clear();
 }
 
 const char* ExtractStatement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -3028,12 +3194,10 @@ void ExtractStatement::MergeFrom(const ExtractStatement& from) {
   (void) cached_has_bits;
 
   if (from.extract_name().size() > 0) {
-
-    extract_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.extract_name_);
+    _internal_set_extract_name(from._internal_extract_name());
   }
   if (from.data_name().size() > 0) {
-
-    data_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.data_name_);
+    _internal_set_data_name(from._internal_data_name());
   }
   switch (from.method_case()) {
     case kJson: {
@@ -3090,6 +3254,14 @@ VizColorPalette::VizColorPalette()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.VizColorPalette)
 }
+VizColorPalette::VizColorPalette(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena),
+  palette_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizColorPalette)
+}
 VizColorPalette::VizColorPalette(const VizColorPalette& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr),
@@ -3097,7 +3269,8 @@ VizColorPalette::VizColorPalette(const VizColorPalette& from)
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   color_target_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_color_target().empty()) {
-    color_target_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.color_target_);
+    color_target_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_color_target(),
+      GetArenaNoVirtual());
   }
   // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizColorPalette)
 }
@@ -3113,9 +3286,16 @@ VizColorPalette::~VizColorPalette() {
 }
 
 void VizColorPalette::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   color_target_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
+void VizColorPalette::ArenaDtor(void* object) {
+  VizColorPalette* _this = reinterpret_cast< VizColorPalette* >(object);
+  (void)_this;
+}
+void VizColorPalette::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void VizColorPalette::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -3132,12 +3312,13 @@ void VizColorPalette::Clear() {
   (void) cached_has_bits;
 
   palette_.Clear();
-  color_target_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  color_target_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   _internal_metadata_.Clear();
 }
 
 const char* VizColorPalette::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -3262,8 +3443,7 @@ void VizColorPalette::MergeFrom(const VizColorPalette& from) {
 
   palette_.MergeFrom(from.palette_);
   if (from.color_target().size() > 0) {
-
-    color_target_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.color_target_);
+    _internal_set_color_target(from._internal_color_target());
   }
 }
 
@@ -3304,6 +3484,13 @@ VizLengthValue::VizLengthValue()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.VizLengthValue)
 }
+VizLengthValue::VizLengthValue(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizLengthValue)
+}
 VizLengthValue::VizLengthValue(const VizLengthValue& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
@@ -3326,8 +3513,15 @@ VizLengthValue::~VizLengthValue() {
 }
 
 void VizLengthValue::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void VizLengthValue::ArenaDtor(void* object) {
+  VizLengthValue* _this = reinterpret_cast< VizLengthValue* >(object);
+  (void)_this;
+}
+void VizLengthValue::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void VizLengthValue::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -3351,6 +3545,7 @@ void VizLengthValue::Clear() {
 
 const char* VizLengthValue::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -3525,10 +3720,69 @@ const ::tigon::proto::tql::VizLengthValue&
 VizLength::_Internal::extra_large(const VizLength* msg) {
   return *msg->extra_large_;
 }
+void VizLength::unsafe_arena_set_allocated_small(
+    ::tigon::proto::tql::VizLengthValue* small) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete small_;
+  }
+  small_ = small;
+  if (small) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.small)
+}
+void VizLength::unsafe_arena_set_allocated_medium(
+    ::tigon::proto::tql::VizLengthValue* medium) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete medium_;
+  }
+  medium_ = medium;
+  if (medium) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.medium)
+}
+void VizLength::unsafe_arena_set_allocated_large(
+    ::tigon::proto::tql::VizLengthValue* large) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete large_;
+  }
+  large_ = large;
+  if (large) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.large)
+}
+void VizLength::unsafe_arena_set_allocated_extra_large(
+    ::tigon::proto::tql::VizLengthValue* extra_large) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete extra_large_;
+  }
+  extra_large_ = extra_large;
+  if (extra_large) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.extra_large)
+}
 VizLength::VizLength()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.VizLength)
+}
+VizLength::VizLength(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizLength)
 }
 VizLength::VizLength(const VizLength& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
@@ -3570,12 +3824,19 @@ VizLength::~VizLength() {
 }
 
 void VizLength::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete small_;
   if (this != internal_default_instance()) delete medium_;
   if (this != internal_default_instance()) delete large_;
   if (this != internal_default_instance()) delete extra_large_;
 }
 
+void VizLength::ArenaDtor(void* object) {
+  VizLength* _this = reinterpret_cast< VizLength* >(object);
+  (void)_this;
+}
+void VizLength::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void VizLength::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -3612,6 +3873,7 @@ void VizLength::Clear() {
 
 const char* VizLength::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -3829,10 +4091,43 @@ const ::tigon::proto::tql::VizLength&
 VizLayout::_Internal::height(const VizLayout* msg) {
   return *msg->height_;
 }
+void VizLayout::unsafe_arena_set_allocated_width(
+    ::tigon::proto::tql::VizLength* width) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete width_;
+  }
+  width_ = width;
+  if (width) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLayout.width)
+}
+void VizLayout::unsafe_arena_set_allocated_height(
+    ::tigon::proto::tql::VizLength* height) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete height_;
+  }
+  height_ = height;
+  if (height) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLayout.height)
+}
 VizLayout::VizLayout()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.VizLayout)
+}
+VizLayout::VizLayout(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizLayout)
 }
 VizLayout::VizLayout(const VizLayout& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
@@ -3864,10 +4159,17 @@ VizLayout::~VizLayout() {
 }
 
 void VizLayout::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete width_;
   if (this != internal_default_instance()) delete height_;
 }
 
+void VizLayout::ArenaDtor(void* object) {
+  VizLayout* _this = reinterpret_cast< VizLayout* >(object);
+  (void)_this;
+}
+void VizLayout::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void VizLayout::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -3896,6 +4198,7 @@ void VizLayout::Clear() {
 
 const char* VizLayout::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -4052,13 +4355,21 @@ VizAxis::VizAxis()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.VizAxis)
 }
+VizAxis::VizAxis(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizAxis)
+}
 VizAxis::VizAxis(const VizAxis& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   column_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_column().empty()) {
-    column_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.column_);
+    column_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_column(),
+      GetArenaNoVirtual());
   }
   scale_ = from.scale_;
   // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizAxis)
@@ -4076,9 +4387,16 @@ VizAxis::~VizAxis() {
 }
 
 void VizAxis::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   column_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
+void VizAxis::ArenaDtor(void* object) {
+  VizAxis* _this = reinterpret_cast< VizAxis* >(object);
+  (void)_this;
+}
+void VizAxis::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void VizAxis::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -4094,13 +4412,14 @@ void VizAxis::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  column_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  column_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   scale_ = 0;
   _internal_metadata_.Clear();
 }
 
 const char* VizAxis::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -4215,8 +4534,7 @@ void VizAxis::MergeFrom(const VizAxis& from) {
   (void) cached_has_bits;
 
   if (from.column().size() > 0) {
-
-    column_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.column_);
+    _internal_set_column(from._internal_column());
   }
   if (from.scale() != 0) {
     _internal_set_scale(from._internal_scale());
@@ -4269,10 +4587,43 @@ const ::tigon::proto::tql::VizAxis&
 VizAxes::_Internal::y(const VizAxes* msg) {
   return *msg->y_;
 }
+void VizAxes::unsafe_arena_set_allocated_x(
+    ::tigon::proto::tql::VizAxis* x) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete x_;
+  }
+  x_ = x;
+  if (x) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizAxes.x)
+}
+void VizAxes::unsafe_arena_set_allocated_y(
+    ::tigon::proto::tql::VizAxis* y) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete y_;
+  }
+  y_ = y;
+  if (y) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizAxes.y)
+}
 VizAxes::VizAxes()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.VizAxes)
+}
+VizAxes::VizAxes(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizAxes)
 }
 VizAxes::VizAxes(const VizAxes& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
@@ -4304,10 +4655,17 @@ VizAxes::~VizAxes() {
 }
 
 void VizAxes::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete x_;
   if (this != internal_default_instance()) delete y_;
 }
 
+void VizAxes::ArenaDtor(void* object) {
+  VizAxes* _this = reinterpret_cast< VizAxes* >(object);
+  (void)_this;
+}
+void VizAxes::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void VizAxes::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -4336,6 +4694,7 @@ void VizAxes::Clear() {
 
 const char* VizAxes::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -4501,10 +4860,43 @@ const ::tigon::proto::tql::VizAxes&
 VizStatement::_Internal::axes(const VizStatement* msg) {
   return *msg->axes_;
 }
+void VizStatement::unsafe_arena_set_allocated_layout(
+    ::tigon::proto::tql::VizLayout* layout) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete layout_;
+  }
+  layout_ = layout;
+  if (layout) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.layout)
+}
+void VizStatement::unsafe_arena_set_allocated_axes(
+    ::tigon::proto::tql::VizAxes* axes) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete axes_;
+  }
+  axes_ = axes;
+  if (axes) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.axes)
+}
 VizStatement::VizStatement()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.VizStatement)
+}
+VizStatement::VizStatement(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizStatement)
 }
 VizStatement::VizStatement(const VizStatement& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
@@ -4512,11 +4904,13 @@ VizStatement::VizStatement(const VizStatement& from)
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   viz_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_viz_name().empty()) {
-    viz_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.viz_name_);
+    viz_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_viz_name(),
+      GetArenaNoVirtual());
   }
   query_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_query_name().empty()) {
-    query_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.query_name_);
+    query_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_query_name(),
+      GetArenaNoVirtual());
   }
   if (from._internal_has_layout()) {
     layout_ = new ::tigon::proto::tql::VizLayout(*from.layout_);
@@ -4549,12 +4943,19 @@ VizStatement::~VizStatement() {
 }
 
 void VizStatement::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   viz_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   query_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (this != internal_default_instance()) delete layout_;
   if (this != internal_default_instance()) delete axes_;
 }
 
+void VizStatement::ArenaDtor(void* object) {
+  VizStatement* _this = reinterpret_cast< VizStatement* >(object);
+  (void)_this;
+}
+void VizStatement::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void VizStatement::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -4570,8 +4971,8 @@ void VizStatement::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  viz_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  query_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  viz_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  query_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   if (GetArenaNoVirtual() == nullptr && layout_ != nullptr) {
     delete layout_;
   }
@@ -4588,6 +4989,7 @@ void VizStatement::Clear() {
 
 const char* VizStatement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -4806,12 +5208,10 @@ void VizStatement::MergeFrom(const VizStatement& from) {
   (void) cached_has_bits;
 
   if (from.viz_name().size() > 0) {
-
-    viz_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.viz_name_);
+    _internal_set_viz_name(from._internal_viz_name());
   }
   if (from.query_name().size() > 0) {
-
-    query_name_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.query_name_);
+    _internal_set_query_name(from._internal_query_name());
   }
   if (from.has_layout()) {
     _internal_mutable_layout()->::tigon::proto::tql::VizLayout::MergeFrom(from._internal_layout());
@@ -4897,7 +5297,8 @@ void Statement::set_allocated_viz(::tigon::proto::tql::VizStatement* viz) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_statement();
   if (viz) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(viz);
     if (message_arena != submessage_arena) {
       viz = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, viz, submessage_arena);
@@ -4911,7 +5312,8 @@ void Statement::set_allocated_extract(::tigon::proto::tql::ExtractStatement* ext
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_statement();
   if (extract) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(extract);
     if (message_arena != submessage_arena) {
       extract = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, extract, submessage_arena);
@@ -4925,7 +5327,8 @@ void Statement::set_allocated_load(::tigon::proto::tql::LoadStatement* load) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_statement();
   if (load) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(load);
     if (message_arena != submessage_arena) {
       load = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, load, submessage_arena);
@@ -4939,7 +5342,8 @@ void Statement::set_allocated_parameter(::tigon::proto::tql::ParameterDeclaratio
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_statement();
   if (parameter) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(parameter);
     if (message_arena != submessage_arena) {
       parameter = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, parameter, submessage_arena);
@@ -4953,7 +5357,8 @@ void Statement::set_allocated_query(::tigon::proto::tql::QueryStatement* query) 
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   clear_statement();
   if (query) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(query);
     if (message_arena != submessage_arena) {
       query = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, query, submessage_arena);
@@ -4967,6 +5372,13 @@ Statement::Statement()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.Statement)
+}
+Statement::Statement(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.Statement)
 }
 Statement::Statement(const Statement& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
@@ -5012,11 +5424,18 @@ Statement::~Statement() {
 }
 
 void Statement::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (has_statement()) {
     clear_statement();
   }
 }
 
+void Statement::ArenaDtor(void* object) {
+  Statement* _this = reinterpret_cast< Statement* >(object);
+  (void)_this;
+}
+void Statement::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void Statement::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -5030,23 +5449,33 @@ void Statement::clear_statement() {
 // @@protoc_insertion_point(one_of_clear_start:tigon.proto.tql.Statement)
   switch (statement_case()) {
     case kViz: {
-      delete statement_.viz_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete statement_.viz_;
+      }
       break;
     }
     case kExtract: {
-      delete statement_.extract_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete statement_.extract_;
+      }
       break;
     }
     case kLoad: {
-      delete statement_.load_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete statement_.load_;
+      }
       break;
     }
     case kParameter: {
-      delete statement_.parameter_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete statement_.parameter_;
+      }
       break;
     }
     case kQuery: {
-      delete statement_.query_;
+      if (GetArenaNoVirtual() == nullptr) {
+        delete statement_.query_;
+      }
       break;
     }
     case STATEMENT_NOT_SET: {
@@ -5069,6 +5498,7 @@ void Statement::Clear() {
 
 const char* Statement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -5315,6 +5745,14 @@ Module::Module()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.tql.Module)
 }
+Module::Module(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena),
+  statements_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.Module)
+}
 Module::Module(const Module& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr),
@@ -5333,8 +5771,15 @@ Module::~Module() {
 }
 
 void Module::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void Module::ArenaDtor(void* object) {
+  Module* _this = reinterpret_cast< Module* >(object);
+  (void)_this;
+}
+void Module::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void Module::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -5356,6 +5801,7 @@ void Module::Clear() {
 
 const char* Module::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -5482,61 +5928,61 @@ std::string Module::GetTypeName() const {
 }  // namespace tigon
 PROTOBUF_NAMESPACE_OPEN
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::QueryStatement* Arena::CreateMaybeMessage< ::tigon::proto::tql::QueryStatement >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::QueryStatement >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::QueryStatement >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::ParameterDeclaration* Arena::CreateMaybeMessage< ::tigon::proto::tql::ParameterDeclaration >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::ParameterDeclaration >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::ParameterDeclaration >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::HTTPLoadMethod* Arena::CreateMaybeMessage< ::tigon::proto::tql::HTTPLoadMethod >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::HTTPLoadMethod >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::HTTPLoadMethod >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::FileLoadMethod* Arena::CreateMaybeMessage< ::tigon::proto::tql::FileLoadMethod >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::FileLoadMethod >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::FileLoadMethod >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::LoadStatement* Arena::CreateMaybeMessage< ::tigon::proto::tql::LoadStatement >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::LoadStatement >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::LoadStatement >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::JSONExtract* Arena::CreateMaybeMessage< ::tigon::proto::tql::JSONExtract >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::JSONExtract >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::JSONExtract >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::CSVColumn* Arena::CreateMaybeMessage< ::tigon::proto::tql::CSVColumn >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::CSVColumn >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::CSVColumn >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::CSVExtract* Arena::CreateMaybeMessage< ::tigon::proto::tql::CSVExtract >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::CSVExtract >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::CSVExtract >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::ExtractMethod* Arena::CreateMaybeMessage< ::tigon::proto::tql::ExtractMethod >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::ExtractMethod >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::ExtractMethod >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::ExtractStatement* Arena::CreateMaybeMessage< ::tigon::proto::tql::ExtractStatement >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::ExtractStatement >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::ExtractStatement >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizColorPalette* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizColorPalette >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::VizColorPalette >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizColorPalette >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizLengthValue* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizLengthValue >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::VizLengthValue >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizLengthValue >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizLength* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizLength >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::VizLength >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizLength >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizLayout* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizLayout >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::VizLayout >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizLayout >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizAxis* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizAxis >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::VizAxis >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizAxis >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizAxes* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizAxes >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::VizAxes >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizAxes >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizStatement* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizStatement >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::VizStatement >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizStatement >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::Statement* Arena::CreateMaybeMessage< ::tigon::proto::tql::Statement >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::Statement >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::Statement >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::Module* Arena::CreateMaybeMessage< ::tigon::proto::tql::Module >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::tql::Module >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::Module >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

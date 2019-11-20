@@ -5,90 +5,65 @@
 
 #include "tigon/proto/tql_codec.h"
 #include "tigon/common/variant.h"
-#include "flatbuffers/minireflect.h"
 
-namespace fb = flatbuffers;
+namespace protobuf = google::protobuf;
 
 namespace tigon {
-namespace proto {
 
 namespace {
 
-std::string generateName(tql::SQLStatement& stmt) {
+auto generateName(tql::SQLStatement& stmt) {
     static unsigned id = 0;
     return "query_" + std::to_string(++id);
+}
+
+auto* createString(protobuf::Arena& arena, std::string_view text) {
+    return protobuf::Arena::Create<std::string>(&arena, text);
 }
 
 }
 
 /// Write the tql program
-flatbuffers::Offset<proto::TQLModule> writeTQLModule(flatbuffers::FlatBufferBuilder& builder, tql::Module& module) {
-    // Encode statements
-    std::vector<uint8_t> statementTypes;
-    std::vector<flatbuffers::Offset<void>> statements;
+proto::tql::Module* writeTQLModule(protobuf::Arena& arena, tql::Module& module) {
+    auto* mod = protobuf::Arena::CreateMessage<proto::tql::Module>(&arena);
+    auto* stmts = mod->mutable_statements();
 
+    // Encode statements
     for (auto& statement: module.statements) {
         std::visit(overload {
             // Viz statement
             [&](std::unique_ptr<tql::VizStatement>& viz) {
-                auto name = builder.CreateString(viz->name.data(), viz->name.length());
-                proto::TQLVizStatementBuilder stmtBuilder{builder};
-                stmtBuilder.add_viz_name(name);
-                // TODO viz fields
-                statements.push_back(stmtBuilder.Finish().Union());
-                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLVizStatement));
+                auto* v = stmts->Add()->mutable_viz();
+                v->set_allocated_viz_name(createString(arena, viz->name));
             },
 
             // Extract statement
             [&](std::unique_ptr<tql::ExtractStatement>& extract) {
-                auto name = builder.CreateString(extract->name.data(), extract->name.length());
-                proto::TQLExtractStatementBuilder stmtBuilder{builder};
-                stmtBuilder.add_extract_name(name);
-                // TODO extract method
-                statements.push_back(stmtBuilder.Finish().Union());
-                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLExtractStatement));
+                auto* e = stmts->Add()->mutable_extract();
+                e->set_allocated_data_name(createString(arena, extract->name));
             },
 
             // Load statement
             [&](std::unique_ptr<tql::LoadStatement>& load) {
-                auto name = builder.CreateString(load->name.data(), load->name.length());
-                proto::TQLLoadStatementBuilder stmtBuilder{builder};
-                stmtBuilder.add_data_name(name);
-                // TODO load method
-                statements.push_back(stmtBuilder.Finish().Union());
-                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLLoadStatement));
+                auto* l = stmts->Add()->mutable_load();
+                l->set_allocated_data_name(createString(arena, load->name));
             },
 
             // Parameter declaration
             [&](std::unique_ptr<tql::ParameterDeclaration>& param) {
-                auto name = builder.CreateString(param->name.data(), param->name.length());
-                proto::TQLParameterDeclarationBuilder stmtBuilder{builder};
-                stmtBuilder.add_parameter_name(name);
-                // TODO load method
-                statements.push_back(stmtBuilder.Finish().Union());
-                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLParameterDeclaration));
+                auto* p = stmts->Add()->mutable_parameter();
+                p->set_allocated_parameter_name(createString(arena, param->name));
             },
 
             // SQL statement
             [&](std::unique_ptr<tql::SQLStatement>& sql) {
-                auto name = sql->name.empty()
-                    ? builder.CreateString(generateName(*sql))
-                    : builder.CreateString(sql->name.data(), sql->name.length());
-                auto text = builder.CreateString(sql->text.data(), sql->text.length());
-                proto::TQLQueryStatementBuilder stmtBuilder{builder};
-                stmtBuilder.add_query_name(name);
-                stmtBuilder.add_query_text(text);
-                statements.push_back(stmtBuilder.Finish().Union());
-                statementTypes.push_back(static_cast<uint8_t>(proto::TQLStatement::TQLQueryStatement));
+                auto* q = stmts->Add()->mutable_query();
+                q->set_allocated_query_name(createString(arena, sql->name));
+                q->set_allocated_query_text(createString(arena, sql->text));
             }
         }, statement);
     }
-
-    // Encode the program
-    auto statementTypesOfs = builder.CreateVector(statementTypes);
-    auto statementsOfs = builder.CreateVector(statements);
-    return proto::CreateTQLModule(builder, statementTypesOfs, statementsOfs);
+    return mod;
 }
 
-}  // namespace proto
 }  // namespace tigon

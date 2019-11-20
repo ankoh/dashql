@@ -121,13 +121,21 @@ FormattedText::FormattedText()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.web_api.FormattedText)
 }
+FormattedText::FormattedText(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.web_api.FormattedText)
+}
 FormattedText::FormattedText(const FormattedText& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   text_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_text().empty()) {
-    text_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.text_);
+    text_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_text(),
+      GetArenaNoVirtual());
   }
   // @@protoc_insertion_point(copy_constructor:tigon.proto.web_api.FormattedText)
 }
@@ -143,9 +151,16 @@ FormattedText::~FormattedText() {
 }
 
 void FormattedText::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   text_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
+void FormattedText::ArenaDtor(void* object) {
+  FormattedText* _this = reinterpret_cast< FormattedText* >(object);
+  (void)_this;
+}
+void FormattedText::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void FormattedText::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -161,12 +176,13 @@ void FormattedText::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  text_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  text_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   _internal_metadata_.Clear();
 }
 
 const char* FormattedText::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -260,8 +276,7 @@ void FormattedText::MergeFrom(const FormattedText& from) {
   (void) cached_has_bits;
 
   if (from.text().size() > 0) {
-
-    text_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.text_);
+    _internal_set_text(from._internal_text());
   }
 }
 
@@ -301,13 +316,21 @@ RawData::RawData()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.web_api.RawData)
 }
+RawData::RawData(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.web_api.RawData)
+}
 RawData::RawData(const RawData& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   data_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (!from._internal_data().empty()) {
-    data_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.data_);
+    data_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_data(),
+      GetArenaNoVirtual());
   }
   // @@protoc_insertion_point(copy_constructor:tigon.proto.web_api.RawData)
 }
@@ -323,9 +346,16 @@ RawData::~RawData() {
 }
 
 void RawData::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   data_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
+void RawData::ArenaDtor(void* object) {
+  RawData* _this = reinterpret_cast< RawData* >(object);
+  (void)_this;
+}
+void RawData::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void RawData::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -341,12 +371,13 @@ void RawData::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  data_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  data_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   _internal_metadata_.Clear();
 }
 
 const char* RawData::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -436,8 +467,7 @@ void RawData::MergeFrom(const RawData& from) {
   (void) cached_has_bits;
 
   if (from.data().size() > 0) {
-
-    data_.AssignWithDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from.data_);
+    _internal_set_data(from._internal_data());
   }
 }
 
@@ -470,10 +500,10 @@ std::string RawData::GetTypeName() const {
 }  // namespace tigon
 PROTOBUF_NAMESPACE_OPEN
 template<> PROTOBUF_NOINLINE ::tigon::proto::web_api::FormattedText* Arena::CreateMaybeMessage< ::tigon::proto::web_api::FormattedText >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::web_api::FormattedText >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::web_api::FormattedText >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::web_api::RawData* Arena::CreateMaybeMessage< ::tigon::proto::web_api::RawData >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::web_api::RawData >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::web_api::RawData >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

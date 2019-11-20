@@ -517,6 +517,13 @@ SQLType::SQLType()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.duckdb.SQLType)
 }
+SQLType::SQLType(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.duckdb.SQLType)
+}
 SQLType::SQLType(const SQLType& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
@@ -539,8 +546,15 @@ SQLType::~SQLType() {
 }
 
 void SQLType::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void SQLType::ArenaDtor(void* object) {
+  SQLType* _this = reinterpret_cast< SQLType* >(object);
+  (void)_this;
+}
+void SQLType::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void SQLType::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -564,6 +578,7 @@ void SQLType::Clear() {
 
 const char* SQLType::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -741,6 +756,16 @@ QueryPlan::QueryPlan()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.duckdb.QueryPlan)
 }
+QueryPlan::QueryPlan(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena),
+  operator_children_(arena),
+  operator_child_offsets_(arena),
+  operator_types_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.duckdb.QueryPlan)
+}
 QueryPlan::QueryPlan(const QueryPlan& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr),
@@ -760,8 +785,15 @@ QueryPlan::~QueryPlan() {
 }
 
 void QueryPlan::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void QueryPlan::ArenaDtor(void* object) {
+  QueryPlan* _this = reinterpret_cast< QueryPlan* >(object);
+  (void)_this;
+}
+void QueryPlan::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void QueryPlan::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -785,6 +817,7 @@ void QueryPlan::Clear() {
 
 const char* QueryPlan::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -1001,6 +1034,21 @@ QueryResultColumn::QueryResultColumn()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.duckdb.QueryResultColumn)
 }
+QueryResultColumn::QueryResultColumn(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena),
+  null_mask_(arena),
+  rows_i32_(arena),
+  rows_u32_(arena),
+  rows_i64_(arena),
+  rows_u64_(arena),
+  rows_f32_(arena),
+  rows_f64_(arena),
+  rows_str_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.duckdb.QueryResultColumn)
+}
 QueryResultColumn::QueryResultColumn(const QueryResultColumn& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr),
@@ -1028,8 +1076,15 @@ QueryResultColumn::~QueryResultColumn() {
 }
 
 void QueryResultColumn::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void QueryResultColumn::ArenaDtor(void* object) {
+  QueryResultColumn* _this = reinterpret_cast< QueryResultColumn* >(object);
+  (void)_this;
+}
+void QueryResultColumn::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void QueryResultColumn::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -1059,6 +1114,7 @@ void QueryResultColumn::Clear() {
 
 const char* QueryResultColumn::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -1460,6 +1516,14 @@ QueryResultChunk::QueryResultChunk()
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.duckdb.QueryResultChunk)
 }
+QueryResultChunk::QueryResultChunk(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena),
+  columns_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.duckdb.QueryResultChunk)
+}
 QueryResultChunk::QueryResultChunk(const QueryResultChunk& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr),
@@ -1478,8 +1542,15 @@ QueryResultChunk::~QueryResultChunk() {
 }
 
 void QueryResultChunk::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
+void QueryResultChunk::ArenaDtor(void* object) {
+  QueryResultChunk* _this = reinterpret_cast< QueryResultChunk* >(object);
+  (void)_this;
+}
+void QueryResultChunk::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void QueryResultChunk::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -1501,6 +1572,7 @@ void QueryResultChunk::Clear() {
 
 const char* QueryResultChunk::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -1636,10 +1708,34 @@ const ::tigon::proto::duckdb::QueryPlan&
 QueryResult::_Internal::query_plan(const QueryResult* msg) {
   return *msg->query_plan_;
 }
+void QueryResult::unsafe_arena_set_allocated_query_plan(
+    ::tigon::proto::duckdb::QueryPlan* query_plan) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete query_plan_;
+  }
+  query_plan_ = query_plan;
+  if (query_plan) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.duckdb.QueryResult.query_plan)
+}
 QueryResult::QueryResult()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:tigon.proto.duckdb.QueryResult)
+}
+QueryResult::QueryResult(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena),
+  column_raw_types_(arena),
+  column_sql_types_(arena),
+  column_names_(arena),
+  data_chunks_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.duckdb.QueryResult)
 }
 QueryResult::QueryResult(const QueryResult& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
@@ -1671,9 +1767,16 @@ QueryResult::~QueryResult() {
 }
 
 void QueryResult::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete query_plan_;
 }
 
+void QueryResult::ArenaDtor(void* object) {
+  QueryResult* _this = reinterpret_cast< QueryResult* >(object);
+  (void)_this;
+}
+void QueryResult::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
 void QueryResult::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
@@ -1703,6 +1806,7 @@ void QueryResult::Clear() {
 
 const char* QueryResult::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
@@ -1980,19 +2084,19 @@ std::string QueryResult::GetTypeName() const {
 }  // namespace tigon
 PROTOBUF_NAMESPACE_OPEN
 template<> PROTOBUF_NOINLINE ::tigon::proto::duckdb::SQLType* Arena::CreateMaybeMessage< ::tigon::proto::duckdb::SQLType >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::duckdb::SQLType >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::duckdb::SQLType >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::duckdb::QueryPlan* Arena::CreateMaybeMessage< ::tigon::proto::duckdb::QueryPlan >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::duckdb::QueryPlan >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::duckdb::QueryPlan >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::duckdb::QueryResultColumn* Arena::CreateMaybeMessage< ::tigon::proto::duckdb::QueryResultColumn >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::duckdb::QueryResultColumn >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::duckdb::QueryResultColumn >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::duckdb::QueryResultChunk* Arena::CreateMaybeMessage< ::tigon::proto::duckdb::QueryResultChunk >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::duckdb::QueryResultChunk >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::duckdb::QueryResultChunk >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::duckdb::QueryResult* Arena::CreateMaybeMessage< ::tigon::proto::duckdb::QueryResult >(Arena* arena) {
-  return Arena::CreateInternal< ::tigon::proto::duckdb::QueryResult >(arena);
+  return Arena::CreateMessageInternal< ::tigon::proto::duckdb::QueryResult >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

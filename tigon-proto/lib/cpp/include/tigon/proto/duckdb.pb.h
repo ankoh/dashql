@@ -232,6 +232,12 @@ class SQLType :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const SQLType& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -247,6 +253,15 @@ class SQLType :
   }
   inline void Swap(SQLType* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SQLType* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -282,12 +297,17 @@ class SQLType :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.duckdb.SQLType";
   }
+  protected:
+  explicit SQLType(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -334,6 +354,9 @@ class SQLType :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   int type_id_;
   ::PROTOBUF_NAMESPACE_ID::uint32 width_;
   ::PROTOBUF_NAMESPACE_ID::uint32 scale_;
@@ -367,6 +390,12 @@ class QueryPlan :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const QueryPlan& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -382,6 +411,15 @@ class QueryPlan :
   }
   inline void Swap(QueryPlan* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(QueryPlan* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -417,12 +455,17 @@ class QueryPlan :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.duckdb.QueryPlan";
   }
+  protected:
+  explicit QueryPlan(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -503,6 +546,9 @@ class QueryPlan :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 > operator_children_;
   mutable std::atomic<int> _operator_children_cached_byte_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 > operator_child_offsets_;
@@ -539,6 +585,12 @@ class QueryResultColumn :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const QueryResultColumn& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -554,6 +606,15 @@ class QueryResultColumn :
   }
   inline void Swap(QueryResultColumn* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(QueryResultColumn* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -589,12 +650,17 @@ class QueryResultColumn :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.duckdb.QueryResultColumn";
   }
+  protected:
+  explicit QueryResultColumn(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -807,6 +873,9 @@ class QueryResultColumn :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< bool > null_mask_;
   mutable std::atomic<int> _null_mask_cached_byte_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 > rows_i32_;
@@ -853,6 +922,12 @@ class QueryResultChunk :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const QueryResultChunk& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -868,6 +943,15 @@ class QueryResultChunk :
   }
   inline void Swap(QueryResultChunk* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(QueryResultChunk* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -903,12 +987,17 @@ class QueryResultChunk :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.duckdb.QueryResultChunk";
   }
+  protected:
+  explicit QueryResultChunk(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -944,6 +1033,9 @@ class QueryResultChunk :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::QueryResultColumn > columns_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_duckdb_2eproto;
@@ -975,6 +1067,12 @@ class QueryResult :
     return *this;
   }
 
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
   static const QueryResult& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -990,6 +1088,15 @@ class QueryResult :
   }
   inline void Swap(QueryResult* other) {
     if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(QueryResult* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
   }
 
@@ -1025,12 +1132,17 @@ class QueryResult :
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
     return "tigon.proto.duckdb.QueryResult";
   }
+  protected:
+  explicit QueryResult(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
+    return _internal_metadata_.arena();
   }
   inline void* MaybeArenaPtr() const {
-    return nullptr;
+    return _internal_metadata_.raw_arena_ptr();
   }
   public:
 
@@ -1139,6 +1251,9 @@ class QueryResult :
   const ::tigon::proto::duckdb::QueryPlan& _internal_query_plan() const;
   ::tigon::proto::duckdb::QueryPlan* _internal_mutable_query_plan();
   public:
+  void unsafe_arena_set_allocated_query_plan(
+      ::tigon::proto::duckdb::QueryPlan* query_plan);
+  ::tigon::proto::duckdb::QueryPlan* unsafe_arena_release_query_plan();
 
   // uint32 query_id = 1;
   void clear_query_id();
@@ -1154,6 +1269,9 @@ class QueryResult :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField<int> column_raw_types_;
   mutable std::atomic<int> _column_raw_types_cached_byte_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::SQLType > column_sql_types_;
@@ -1893,6 +2011,13 @@ inline const ::tigon::proto::duckdb::QueryPlan& QueryResult::query_plan() const 
   return _internal_query_plan();
 }
 inline ::tigon::proto::duckdb::QueryPlan* QueryResult::release_query_plan() {
+  auto temp = unsafe_arena_release_query_plan();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::duckdb::QueryPlan* QueryResult::unsafe_arena_release_query_plan() {
   // @@protoc_insertion_point(field_release:tigon.proto.duckdb.QueryResult.query_plan)
   
   ::tigon::proto::duckdb::QueryPlan* temp = query_plan_;
@@ -1917,7 +2042,8 @@ inline void QueryResult::set_allocated_query_plan(::tigon::proto::duckdb::QueryP
     delete query_plan_;
   }
   if (query_plan) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(query_plan);
     if (message_arena != submessage_arena) {
       query_plan = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
           message_arena, query_plan, submessage_arena);
