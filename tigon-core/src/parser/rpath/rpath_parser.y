@@ -6,11 +6,12 @@
 %skeleton "lalr1.cc"
 %require "3.3"
 
-%define api.parser.class {Parser}
 %define api.namespace {tigon::rpath}
-%define api.value.type variant
+%define api.parser.class {Parser}
+%define api.prefix {rpath_}
 %define api.token.constructor
 %define api.token.prefix {RPATH_}
+%define api.value.type variant
 %define parse.assert
 %define parse.trace
 %define parse.error verbose
@@ -25,7 +26,7 @@
 }
 
 %code {
-tigon::rpath::Parser::symbol_type yylex(tigon::rpath::ParseContext& ctx);
+tigon::rpath::Parser::symbol_type rpath_lex(tigon::rpath::ParseContext& ctx);
 
 using std::get;
 using std::move;

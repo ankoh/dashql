@@ -6,11 +6,12 @@
 %skeleton "lalr1.cc"
 %require "3.3"
 
-%define api.parser.class {Parser}
 %define api.namespace {tigon::tql}
-%define api.value.type variant
+%define api.parser.class {Parser}
+%define api.prefix {tql_}
 %define api.token.constructor
 %define api.token.prefix {TQL_}
+%define api.value.type variant
 %define parse.assert
 %define parse.trace
 %define parse.error verbose
@@ -25,7 +26,7 @@
 }
 
 %code {
-tigon::tql::Parser::symbol_type yylex(tigon::tql::ParseContext& ctx);
+tigon::tql::Parser::symbol_type tql_lex(tigon::tql::ParseContext& ctx);
 
 using Extract = tigon::tql::LoadStatement;
 using Load = tigon::tql::LoadStatement;

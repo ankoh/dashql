@@ -88,7 +88,7 @@ add_library(tigon
     ${CMAKE_SOURCE_DIR}/src/parser/sql/sql_parser.cc
     ${CMAKE_SOURCE_DIR}/src/proto/duckdb_codec.cc
     ${CMAKE_SOURCE_DIR}/src/proto/tql_codec.cc
-    #     ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
+    ${CMAKE_SOURCE_DIR}/src/tools/web/web_api.cc
 )
 
 include("${CMAKE_SOURCE_DIR}/src/parser/rpath/local.cmake")
@@ -126,7 +126,15 @@ if(EMSCRIPTEN)
         -s EXPORT_NAME=TigonCore \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
-            _malloc \
+            _malloc, \
+            _tigon_create_session, \
+            _tigon_end_session, \
+            _tigon_register_buffer, \
+            _tigon_release_buffer, \
+            _tigon_parse_tql, \
+            _tigon_run_query, \
+            _tigon_plan_query, \
+            _tigon_extract_data \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
     ")

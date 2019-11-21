@@ -36,7 +36,7 @@ extern size_t reader_offset;
 extern size_t parser_offset;
 
 // Get the token text
-inline std::string_view getTokenText() { return in.substr(parser_offset - yyleng, yyleng); }
+inline std::string_view getTokenText() { return in.substr(parser_offset - tql_leng, tql_leng); }
 
 }  // namespace tql
 }  // namespace tigon
@@ -51,8 +51,8 @@ using namespace tigon::tql;
 #undef yywrap
 #define yywrap() 1
 
-// Declare the yylex function
-#define YY_DECL Parser::symbol_type yylex(ParseContext& ctx)
+// Declare the tql_lex function
+#define YY_DECL Parser::symbol_type tql_lex(tigon::tql::ParseContext& ctx)
 // Configure the scanner to use string views
 #define YY_INPUT(buffer, bytes_read, max_bytes) \
     bytes_read = in.copy(buffer, max_bytes, reader_offset); \
@@ -78,17 +78,18 @@ using namespace tigon::tql;
 %option batch
 %option debug
 %option caseless
+%option prefix="tql_"
 
 %{
 // Code run each time a token is matched.
 // We just update the location of the token.
-#define YY_USER_ACTION  { loc.columns(yyleng); parser_offset += yyleng; }
+#define YY_USER_ACTION  { loc.columns(tql_leng); parser_offset += tql_leng; }
 %}
 
 %%
 
 %{
-// Code runs each time yylex is called.
+// Code runs each time tql_lex is called.
 // Set the beginning of the token to the end of the previous token.
 loc.step();
 %}
@@ -179,7 +180,7 @@ with[^;]*           { return Parser::make_SQL_WITH(getTokenText(), loc); }
 [0-9]+              {
                         uint32_t value = 0;
                         try {
-                            value = std::stoul(yytext);
+                            value = std::stoul(tql_text);
                         } catch(const std::invalid_argument &err) {
                             ctx.Error(loc.begin.line, loc.begin.column, "integer is invalid");
                         } catch(const std::out_of_range &err) {
@@ -211,7 +212,7 @@ size_t tigon::tql::parser_offset;
 
 // Begin a scan
 void tigon::tql::ParseContext::beginScan(std::string_view s) {
-    yy_flex_debug = trace_scanning;
+    tql__flex_debug = trace_scanning;
     in = s;
     reader_offset = 0;
     parser_offset = 0;

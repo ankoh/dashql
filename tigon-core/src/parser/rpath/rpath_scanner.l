@@ -48,8 +48,8 @@ using namespace tigon::rpath;
 #undef yywrap
 #define yywrap() 1
 
-// Declare the yylex function
-#define YY_DECL Parser::symbol_type yylex(ParseContext& ctx)
+// Declare the rpath_lex function
+#define YY_DECL Parser::symbol_type rpath_lex(ParseContext& ctx)
 // Configure the scanner to use string views
 #define YY_INPUT(buffer, bytes_read, max_bytes) \
     bytes_read = in.copy(buffer, max_bytes, reader_offset); \
@@ -75,17 +75,18 @@ using namespace tigon::rpath;
 %option batch
 %option debug
 %option caseless
+%option prefix="rpath_"
 
 %{
 // Code run each time a token is matched.
 // We just update the location of the token.
-#define YY_USER_ACTION  { loc.columns(yyleng); }
+#define YY_USER_ACTION  { loc.columns(rpath_leng); }
 %}
 
 %%
 
 %{
-// Code runs each time yylex is called.
+// Code runs each time rpath_lex is called.
 // Set the beginning of the token to the end of the previous token.
 loc.step ();
 %}
@@ -99,11 +100,11 @@ loc.step ();
 ","                 { return Parser::make_COMMA(loc); }
 "$"                 { return Parser::make_DOLLAR(loc); }
 
-[a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER_LITERAL(yytext, loc); }
+[a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER_LITERAL(rpath_text, loc); }
 [0-9]+              {
                         uint32_t value = 0;
                         try {
-                            value = std::stoul(yytext);
+                            value = std::stoul(rpath_text);
                         } catch(const std::invalid_argument &err) {
                             ctx.Error(loc.begin.line, loc.begin.column, "integer is invalid");
                         } catch(const std::out_of_range &err) {
@@ -135,7 +136,7 @@ size_t tigon::rpath::parser_offset;
 
 // Begin a scan
 void tigon::rpath::ParseContext::beginScan(std::string_view s) {
-    yy_flex_debug = trace_scanning;
+    rpath__flex_debug = trace_scanning;
     in = s;
     reader_offset = 0;
     parser_offset = 0;

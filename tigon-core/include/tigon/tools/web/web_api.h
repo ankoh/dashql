@@ -8,7 +8,9 @@
 
 #include "duckdb.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
-#include "flatbuffers/flatbuffers.h"
+
+#include "google/protobuf/message_lite.h"
+#include "google/protobuf/arena.h"
 #include "tigon/common/span.h"
 #include "tigon/proto/duckdb.pb.h"
 #include "tigon/proto/tql.pb.h"
@@ -23,6 +25,32 @@ namespace tigon {
 class WebAPI {
   public:
     class Session;
+
+    /// A buffer
+    class Buffer {
+        /// The data
+        std::unique_ptr<std::byte[]> data;
+        /// The size
+        size_t size;
+        
+        public:
+        // Constructor
+        Buffer(std::unique_ptr<std::byte[]> data, size_t size)
+            : data(std::move(data)), size(size)  {}
+        // Move construction
+        Buffer(Buffer&& other)
+            : data(std::move(other.data)), size(other.size) {}
+        // Move assignment
+        Buffer& operator=(Buffer&& other) {
+            data = std::move(other.data);
+            size = std::move(other.size);
+            return *this;
+        }
+        // Get as span
+        auto asSpan() { return nonstd::span<std::byte>{data.get(), static_cast<long>(size)}; }
+        // Is empty?
+        auto isEmpty() { return data == nullptr || size == 0; }
+    };
 
     /// A response
     class Response {
@@ -50,10 +78,10 @@ class WebAPI {
         /// The error (if any)
         std::string error;
         /// The data (if any)
-        std::pair<void*, size_t> data;
+        nonstd::span<std::byte> data;
 
         /// Request succeeded
-        void requestSucceeded(flatbuffers::DetachedBuffer buffer);
+        void requestSucceeded(nonstd::span<std::byte> data);
         /// Request failed
         void requestFailed(tigon::proto::web_api::StatusCode status, std::string error);
 
@@ -72,34 +100,8 @@ class WebAPI {
 
         /// Clear the response
         void clear();
-        /// Write packed
-        void writePacked(Packed& buffer);
-    };
-
-    // An adopted buffer
-    class AdoptedBuffer {
-        /// The bytes
-        nonstd::span<std::byte> bytes;
-
-        public:
-        // Constructor
-        AdoptedBuffer(nonstd::span<std::byte> s)
-            : bytes(s) {}
-        // Destructor
-        ~AdoptedBuffer() { delete bytes.data(); }
-        // Move construction
-        AdoptedBuffer(AdoptedBuffer&& other)
-            : bytes(other.bytes) {}
-        // Delete the copy constructor
-        AdoptedBuffer(const AdoptedBuffer& other) = delete;
-        // Move assignment
-        AdoptedBuffer& operator=(AdoptedBuffer&& other) {
-            delete bytes.data();
-            bytes = std::move(other.bytes);
-            return *this;
-        }
-        // Delete the copy assignment
-        AdoptedBuffer& operator=(const AdoptedBuffer& other) = delete;
+        /// Write packed response
+        void writePacked(Packed& response);
     };
 
     /// A session
@@ -110,9 +112,7 @@ class WebAPI {
         /// The database
         std::shared_ptr<duckdb::DuckDB> database;
         /// The detached flatbuffers owned by this session
-        std::unordered_map<void*, flatbuffers::DetachedBuffer> detachedBuffers;
-        /// The adopted buffers owned by this session
-        std::unordered_map<void*, AdoptedBuffer> adoptedBuffers;
+        std::unordered_map<void*, Buffer> buffers;
         /// The (last) response
         Response response;
         /// The next query id
@@ -131,10 +131,11 @@ class WebAPI {
         auto& getResponse() { return response; }
         /// Write the response
         void writePackedResponse(Response::Packed& packed);
-        /// Register a detached flatbuffer buffer
-        std::pair<void*, size_t> registerBuffer(flatbuffers::DetachedBuffer buffer);
-        /// Register a raw buffer
-        std::pair<void*, size_t> registerBuffer(nonstd::span<std::byte> buffer);
+
+        /// Encode a message
+        nonstd::span<std::byte> serializeMessage(google::protobuf::MessageLite& msg);
+        /// Register a buffer
+        nonstd::span<std::byte> registerBuffer(Buffer buffer);
         /// Release a buffer
         void releaseBuffer(void* buffer);
 

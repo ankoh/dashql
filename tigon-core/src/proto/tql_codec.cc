@@ -9,14 +9,12 @@
 namespace protobuf = google::protobuf;
 
 namespace tigon {
-
 namespace {
 
 auto generateName(tql::SQLStatement& stmt) {
     static unsigned id = 0;
     return "query_" + std::to_string(++id);
 }
-
 auto* createString(protobuf::Arena& arena, std::string_view text) {
     return protobuf::Arena::Create<std::string>(&arena, text);
 }
@@ -24,7 +22,7 @@ auto* createString(protobuf::Arena& arena, std::string_view text) {
 }
 
 /// Write the tql program
-proto::tql::Module* writeTQLModule(protobuf::Arena& arena, tql::Module& module) {
+proto::tql::Module* encodeTQLModule(protobuf::Arena& arena, tql::Module& module) {
     auto* mod = protobuf::Arena::CreateMessage<proto::tql::Module>(&arena);
     auto* stmts = mod->mutable_statements();
 
