@@ -105,15 +105,11 @@ proto::duckdb::QueryPlan* encodeQueryPlan(protobuf::Arena& arena, duckdb::Logica
         opChildOffsets->Add(opChildren->size());
 
         // Reached end?
-        if (edgeIter == operatorChildEdges.end()) {
-            continue;
-        }
+        if (edgeIter == operatorChildEdges.end()) { continue; }
 
         // At parent of next edge?
         auto& [parent, child] = *edgeIter;
-        if (oid != parent) {
-            continue;
-        }
+        if (oid != parent) { continue; }
 
         // Store children 
         opChildren->Add(child);
@@ -183,7 +179,7 @@ static void encodeStringColumn(protobuf::Arena& arena, proto::duckdb::QueryResul
     duckdb::VectorOperations::Exec(vec.sel_vector, 0, [&](duckdb::index_t i, duckdb::index_t k) {
         nullmask->Add(vec.nullmask[i]);
         auto s = reinterpret_cast<char**>(vec.data)[i];
-        data->AddAllocated(protobuf::Arena::Create<std::string>(&arena, s));
+        data->Add()->assign(s);
     }, 0);
 }
 
@@ -264,7 +260,7 @@ proto::duckdb::QueryResult* encodeQueryResult(protobuf::Arena& arena, duckdb::Qu
     auto* names = res->mutable_column_names();
     names->Reserve(queryResult.names.size());
     for (auto& name: queryResult.names) {
-        names->AddAllocated(protobuf::Arena::Create<std::string>(&arena, name));
+        names->Add()->assign(name);
     }
 
     // Return result

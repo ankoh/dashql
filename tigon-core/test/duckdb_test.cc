@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/tools/web/web_api.h"
-#include "tigon/proto/duckdb_generated.h"
+#include "tigon/proto/duckdb.pb.h"
 #include <gtest/gtest.h>
 #include <sstream>
 
@@ -51,30 +51,29 @@ TEST(WebAPITest, ExplainQuery) {
         session.planQuery("SELECT 1;");
 
         auto& response = session.getResponse();
-        ASSERT_EQ(response.getStatus(), proto::StatusCode::SUCCESS);
+        auto responseData = response.getData();
+        ASSERT_EQ(response.getStatus(), proto::web_api::StatusCode::SUCCESS);
 
         // Get the query plan
-        auto* responseData = std::get<0>(response.getData());
-        auto* queryPlan = flatbuffers::GetRoot<proto::QueryPlan>(responseData);
-        ASSERT_NE(responseData, nullptr);
-        ASSERT_NE(queryPlan, nullptr);
+        google::protobuf::Arena arena;
+        auto* queryPlan = google::protobuf::Arena::CreateMessage<proto::duckdb::QueryPlan>(&arena);
+        ASSERT_TRUE(queryPlan->ParseFromArray(responseData.data(), responseData.size()));
 
         // Inspect the plan
-        auto* opTypes = queryPlan->operator_types();
-        auto* opChildOffsets = queryPlan->operator_child_offsets();
-        auto* opChildren = queryPlan->operator_children();
-        ASSERT_EQ(opTypes->size(), 2)
-            << accumulate(opTypes->begin(), opTypes->end(), string{}, [](auto& prev, uint8_t type) {
-                return string{prev.empty() ? "" : prev + ","} +
-                    proto::EnumNameLogicalOperatorType(static_cast<proto::LogicalOperatorType>(type));
+        auto& opTypes = queryPlan->operator_types();
+        auto& opChildOffsets = queryPlan->operator_child_offsets();
+        auto& opChildren = queryPlan->operator_children();
+        ASSERT_EQ(opTypes.size(), 2)
+            << accumulate(opTypes.begin(), opTypes.end(), string{}, [](auto& prev, uint8_t type) {
+                return string{prev.empty() ? "" : prev + ","} + proto::duckdb::LogicalOperatorType_Name(type);
             });
-        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(0), proto::LogicalOperatorType::PROJECTION);
-        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(1), proto::LogicalOperatorType::GET);
-        ASSERT_EQ(opChildOffsets->size(), 2);
-        ASSERT_EQ(opChildOffsets->Get(0), 0);
-        ASSERT_EQ(opChildOffsets->Get(1), 1);
-        ASSERT_EQ(opChildren->size(), 1);
-        ASSERT_EQ(opChildren->Get(0), 1);
+        ASSERT_EQ(opTypes.Get(0), proto::duckdb::LogicalOperatorType::OP_PROJECTION);
+        ASSERT_EQ(opTypes.Get(1), proto::duckdb::LogicalOperatorType::OP_GET);
+        ASSERT_EQ(opChildOffsets.size(), 2);
+        ASSERT_EQ(opChildOffsets.Get(0), 0);
+        ASSERT_EQ(opChildOffsets.Get(1), 1);
+        ASSERT_EQ(opChildren.size(), 1);
+        ASSERT_EQ(opChildren.Get(0), 1);
     }
 
     {
@@ -85,39 +84,38 @@ TEST(WebAPITest, ExplainQuery) {
         )RAW");
 
         auto& response = session.getResponse();
-        ASSERT_EQ(response.getStatus(), proto::StatusCode::SUCCESS);
+        auto responseData = response.getData();
+        ASSERT_EQ(response.getStatus(), proto::web_api::StatusCode::SUCCESS);
 
-        // Get the plan
-        auto* responseData = std::get<0>(response.getData());
-        auto* queryPlan = flatbuffers::GetRoot<proto::QueryPlan>(responseData);
-        ASSERT_NE(responseData, nullptr);
-        ASSERT_NE(queryPlan, nullptr);
+        // Get the query plan
+        google::protobuf::Arena arena;
+        auto* queryPlan = google::protobuf::Arena::CreateMessage<proto::duckdb::QueryPlan>(&arena);
+        ASSERT_TRUE(queryPlan->ParseFromArray(responseData.data(), responseData.size()));
 
         // Inspect the plan
-        auto* opTypes = queryPlan->operator_types();
-        auto* opChildOffsets = queryPlan->operator_child_offsets();
-        auto* opChildren = queryPlan->operator_children();
-        ASSERT_EQ(opTypes->size(), 5)
-            << accumulate(opTypes->begin(), opTypes->end(), string{}, [](auto& prev, uint8_t type) {
-                return string{prev.empty() ? "" : prev + ","} +
-                    proto::EnumNameLogicalOperatorType(static_cast<proto::LogicalOperatorType>(type));
+        auto& opTypes = queryPlan->operator_types();
+        auto& opChildOffsets = queryPlan->operator_child_offsets();
+        auto& opChildren = queryPlan->operator_children();
+        ASSERT_EQ(opTypes.size(), 5)
+            << accumulate(opTypes.begin(), opTypes.end(), string{}, [](auto& prev, uint8_t type) {
+                return string{prev.empty() ? "" : prev + ","} + proto::duckdb::LogicalOperatorType_Name(type);
             });
-        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(0), proto::LogicalOperatorType::PROJECTION);
-        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(1), proto::LogicalOperatorType::FILTER);
-        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(2), proto::LogicalOperatorType::CROSS_PRODUCT);
-        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(3), proto::LogicalOperatorType::GET);
-        ASSERT_EQ(opTypes->GetEnum<proto::LogicalOperatorType>(4), proto::LogicalOperatorType::GET);
-        ASSERT_EQ(opChildOffsets->size(), 5);
-        ASSERT_EQ(opChildOffsets->Get(0), 0);
-        ASSERT_EQ(opChildOffsets->Get(1), 1);
-        ASSERT_EQ(opChildOffsets->Get(2), 2);
-        ASSERT_EQ(opChildOffsets->Get(3), 4);
-        ASSERT_EQ(opChildOffsets->Get(4), 4);
-        ASSERT_EQ(opChildren->size(), 4);
-        ASSERT_EQ(opChildren->Get(0), 1);
-        ASSERT_EQ(opChildren->Get(1), 2);
-        ASSERT_EQ(opChildren->Get(2), 3);
-        ASSERT_EQ(opChildren->Get(3), 4);
+        ASSERT_EQ(opTypes.Get(0), proto::duckdb::LogicalOperatorType::OP_PROJECTION);
+        ASSERT_EQ(opTypes.Get(1), proto::duckdb::LogicalOperatorType::OP_FILTER);
+        ASSERT_EQ(opTypes.Get(2), proto::duckdb::LogicalOperatorType::OP_CROSS_PRODUCT);
+        ASSERT_EQ(opTypes.Get(3), proto::duckdb::LogicalOperatorType::OP_GET);
+        ASSERT_EQ(opTypes.Get(4), proto::duckdb::LogicalOperatorType::OP_GET);
+        ASSERT_EQ(opChildOffsets.size(), 5);
+        ASSERT_EQ(opChildOffsets.Get(0), 0);
+        ASSERT_EQ(opChildOffsets.Get(1), 1);
+        ASSERT_EQ(opChildOffsets.Get(2), 2);
+        ASSERT_EQ(opChildOffsets.Get(3), 4);
+        ASSERT_EQ(opChildOffsets.Get(4), 4);
+        ASSERT_EQ(opChildren.size(), 4);
+        ASSERT_EQ(opChildren.Get(0), 1);
+        ASSERT_EQ(opChildren.Get(1), 2);
+        ASSERT_EQ(opChildren.Get(2), 3);
+        ASSERT_EQ(opChildren.Get(3), 4);
     }
 }
 
