@@ -21,54 +21,46 @@ beforeAll(async () => {
     await core.init();
 });
 
-// let test_tql_parser_id = 0;
-// 
-// // Test a tql program
-// function test_tql_parser(text: string, expected: any) {
-//     test("test_" + test_tql_parser_id++, async () => {
-//         let session = await core.createSession();
-//         let program = await core.parseTQL(session, text);
-//         let fmt = await core.formatTQLModule(session, program.getData());
-//         expect(JSON.parse(fmt.getReader().text() || "{}")).toEqual(expected);
-//         fmt.release();
-//         program.release();
-//         await core.endSession(session);
-//     });
-// }
-// 
-// describe("tql parsing", () => {
-//     test_tql_parser("", {
-//         "statements_type": [],
-//         "statements": []
-//     });
-// 
-//     test_tql_parser(`
-//         query foo as SELECT 1;
-//     `, {
-//         "statements_type": [ "TQLQueryStatement" ],
-//         "statements": [
-//             { "query_name": "foo", "query_text": "SELECT 1" }
-//         ]
-//     });
-// 
-//     test_tql_parser(`
-//         query "foo" as SELECT 1;
-//         query "bar" as SELECT 1 + 2;
-//     `, {
-//         "statements_type": [ "TQLQueryStatement", "TQLQueryStatement" ],
-//         "statements": [
-//             { "query_name": "foo", "query_text": "SELECT 1" },
-//             { "query_name": "bar", "query_text": "SELECT 1 + 2" }
-//         ]
-//     });
-// });
-// 
-// describe("query execution", () => {
-//     test("SELECT 1;", async () => {
-//         let session = await core.createSession();
-//         let result = await core.runQuery(session, "SELECT 1;");
-// 
-//         result.release();
-//         await core.endSession(session);
-//     });
-// });
+let test_tql_parser_id = 0;
+
+// Test a tql program
+function test_tql_parser(text: string, expected: any) {
+    test("test_" + test_tql_parser_id++, async () => {
+        let session = await core.createSession();
+        let program = await core.parseTQL(session, text);
+        expect(program.toObject()).toEqual(expected);
+        await core.endSession(session);
+    });
+}
+
+describe("tql parsing", () => {
+    test_tql_parser("", {
+        "statementsList": [],
+    });
+
+    test_tql_parser(`
+        query foo as SELECT 1;
+    `, {
+        statementsList: [
+            { query: { queryName: "foo", queryText: "SELECT 1" } }
+        ]
+    });
+
+    test_tql_parser(`
+        query "foo" as SELECT 1;
+        query "bar" as SELECT 1 + 2;
+    `, {
+        statementsList: [
+            { query: { queryName: "foo", queryText: "SELECT 1" }},
+            { query: { queryName: "bar", queryText: "SELECT 1 + 2" }}
+        ]
+    });
+});
+
+describe("query execution", () => {
+    test("SELECT 1;", async () => {
+        let session = await core.createSession();
+        await core.runQuery(session, "SELECT 1;");
+        await core.endSession(session);
+    });
+});
