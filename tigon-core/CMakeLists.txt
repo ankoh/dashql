@@ -56,7 +56,6 @@ endif()
 include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/cwcsv.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/protobuf.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
@@ -75,7 +74,6 @@ add_subdirectory(
 # Headers
 
 include_directories(
-    "${FLATBUFFERS_INCLUDE_DIR}"
     "${CMAKE_SOURCE_DIR}/include"
 )
 

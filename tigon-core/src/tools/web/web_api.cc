@@ -13,8 +13,6 @@
 
 #include "spdlog/spdlog.h"
 
-#include "flatbuffers/flatbuffers.h"
-
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/proto/duckdb_codec.h"
 #include "tigon/proto/tql_codec.h"
@@ -29,7 +27,6 @@
 #include <string_view>
 #include <iostream>
 
-namespace fb = flatbuffers;
 using namespace tigon;
 
 /// Reset the response
