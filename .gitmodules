@@ -1,9 +1,6 @@
 [submodule "tigon-core/third_party/duckdb"]
 	path = submodules/duckdb
 	url = https://github.com/cwida/duckdb
-[submodule "tigon-core/third_party/flatbuffers"]
-	path = submodules/flatbuffers
-	url = https://github.com/google/flatbuffers
 [submodule "tigon-core/third_party/googletest"]
 	path = submodules/googletest
 	url = https://github.com/google/googletest
@@ -13,9 +10,6 @@
 [submodule "tigon-core/third_party/spdlog"]
 	path = submodules/spdlog
     url = https://github.com/gabime/spdlog
-[submodule "tigon-core/third_party/nanopb"]
-	path = submodules/nanopb
-	url = https://github.com/nanopb/nanopb
 [submodule "submodules/protobuf"]
 	path = submodules/protobuf
 	url = https://github.com/protocolbuffers/protobuf
