@@ -5,29 +5,43 @@
     width: 100%;
 }
 
-.grid_element {
+.viz {
     width: 300px;
     height: 220px;
-    background: rgb(255, 255, 255);
-    border-radius: $theme_border_radius; 
-    box-shadow: $theme_box_shadow_level_1;
-    margin: 40px;
 
     display: grid;
     grid-template-rows: 32px auto;
+    margin: 30px 50px;
 
-    &_header {
-        grid-row: 1;
-        border-bottom: 1px solid rgb(225, 225, 225);
-    }
-
-    &_title {
+    &_id {
         line-height: 32px;
-        font-size: .75em;
-        padding: 0px 8px;
+        padding: 0px 12px;
+        font-size: .7em;
+        font-weight: 500;
+        color: rgb(170, 170, 170);
     }
 
-    &_body {
-        grid-row: 2;   
+    &_card {
+        background: rgb(255, 255, 255);
+        border-radius: $theme_border_radius; 
+        box-shadow: $theme_box_shadow_level_1;
+
+        display: grid;
+        grid-template-rows: 32px auto;
+
+        &_header {
+            grid-row: 1;
+            border-bottom: 1px solid rgb(225, 225, 225);
+        }
+
+        &_title {
+            line-height: 32px;
+            font-size: .75em;
+            padding: 0px 12px;
+        }
+
+        &_body {
+            grid-row: 2;   
+        }
     }
 }

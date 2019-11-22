@@ -17,14 +17,19 @@ interface IVizGridState {
 
 function Viz(props: {statement: proto.tql.VizStatement, data: proto.duckdb.QueryResult | null}) {
     return (
-        <div key={props.statement.getVizName()} className={s.grid_element}>
-            <div className={s.grid_element_header}>
-                <div className={s.grid_element_title}>
-                    {props.statement.getVizName()}
-                </div>
+        <div key={props.statement.getVizName()} className={s.viz}>
+            <div className={s.viz_id}>
+                {props.statement.getVizName()}
             </div>
-            <div className={s.grid_element_body}>
-                {props.data ? <Table data={props.data} /> : "foo"}
+            <div className={s.viz_card}>
+                <div className={s.viz_card_header}>
+                    <div className={s.viz_card_title}>
+                        Some Cool Title
+                    </div>
+                </div>
+                <div className={s.viz_card_body}>
+                    {props.data ? <Table data={props.data} /> : "foo"}
+                </div>
             </div>
         </div>
     );
