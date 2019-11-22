@@ -91,10 +91,6 @@ interface IChartViewerState {
 }
 
 export class ChartViewer extends React.Component<IChartViewerProps, IChartViewerState> {
-    constructor(props: IChartViewerProps) {
-        super(props);
-    }
-
     public render() {
         return (
             <div className="chart_viewer">

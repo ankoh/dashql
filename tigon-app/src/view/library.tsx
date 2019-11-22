@@ -9,10 +9,6 @@ interface ILibraryState {
 }
 
 export class Library extends React.Component<ILibraryProps, ILibraryState> {
-    constructor(props: ILibraryProps) {
-        super(props);
-    }
-
     public render() {
         return (
             <div />

@@ -242,9 +242,6 @@ class Explorer extends React.Component<IExplorerProps> {
     }
 
     protected async evalTermInput(text: string) {
-        let ctrl = this.props.appContext.ctrl;
-        let session = await ctrl.core.createSession(); // TODO
-
         text = text.replace("run", "");
 
         // let result = await ctrl.core.runQuery(session, text);

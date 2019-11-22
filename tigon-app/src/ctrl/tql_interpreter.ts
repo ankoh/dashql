@@ -15,7 +15,7 @@ export class TQLInterpreter {
     constructor(log: LogController) {
         this.log = log;
         this.queuedTasks = new TaskQueue();
-        this.activeTasks = new Array();
+        this.activeTasks = [];
         this.requiredFor = new Map();
     }
 
@@ -31,7 +31,7 @@ export class TQLInterpreter {
     public static filterStatements(list: Immutable.List<proto.tql.Statement>, t: proto.tql.Statement.StatementCase, fn: (i: number, m: jspb.Message) => void) {
         let i = 0;
         list.forEach(s => {
-            if (s.getStatementCase() != t) {
+            if (s.getStatementCase() !== t) {
                 return;
             }
             switch (s.getStatementCase()) {

@@ -53,9 +53,9 @@ export class VizLayout {
 
     /// Constructor
     constructor() {
-        this.columns = new Array();
-        this.rows = new Array();
+        this.columns = [];
+        this.rows = [];
         this.gaps = null;
-        this.elements = new Array();
+        this.elements = [];
     }
 };

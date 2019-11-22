@@ -14,10 +14,6 @@ interface IVizRendererState {
 }
 
 export class VizRenderer extends React.Component<IVizRendererProps, IVizRendererState> {
-    constructor(props: IVizRendererProps) {
-        super(props);
-    }
-
     public render() {
         let vizStmts = TQLInterpreter.mapStatements(
             this.props.tqlStatements,

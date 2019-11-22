@@ -1,5 +1,4 @@
 import * as State from "./root_state";
-import * as Model from "../model";
 import * as proto from 'tigon-proto';
 
 // ---------------------------------------------------------------------------

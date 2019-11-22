@@ -113,6 +113,7 @@ export class CoreController {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet('tigon_parse_tql', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.SUCCESS) {
+            console.log(error);
             return Promise.reject(new Error(""));
         }
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
@@ -126,6 +127,7 @@ export class CoreController {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet('tigon_run_query', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.SUCCESS) {
+            console.log(error);
             return Promise.reject(new Error(""));
         }
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
@@ -139,6 +141,7 @@ export class CoreController {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet('tigon_plan_query', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.SUCCESS) {
+            console.log(error);
             return Promise.reject(new Error(""));
         }
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);

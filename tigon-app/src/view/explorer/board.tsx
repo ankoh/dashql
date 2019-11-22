@@ -70,7 +70,7 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
 
     // Layout the ruler
     layout(): [Array<Tick>, Array<Label>] {
-        if (this.props.orientation == RulerOrientation.Horizontal) {
+        if (this.props.orientation === RulerOrientation.Horizontal) {
             return this.layoutImpl(this.props.width, this.props.height, this.props.scaleFactor);
         } else {
             let [ticks, labels] = this.layoutImpl(this.props.height, this.props.width, this.props.scaleFactor);
@@ -114,7 +114,7 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
         context.scale(this.state.dpr, this.state.dpr);
         context.textBaseline = "top";
 
-        if (this.props.orientation == RulerOrientation.Horizontal) {
+        if (this.props.orientation === RulerOrientation.Horizontal) {
             context.textAlign = "left";
             context.beginPath();
             this.state.ticks.forEach(t => {
@@ -152,7 +152,7 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
 
     // Draw the ruler after update
     componentDidUpdate(prevProps: IRulerProps) {
-        if (this.props != prevProps) {
+        if (this.props !== prevProps) {
             let [ticks, labels] = this.layout();
             this.setState({
                 dpr: window.devicePixelRatio,
@@ -176,10 +176,6 @@ interface IBoardProps {
 }
 
 export class Board extends React.Component<IBoardProps, {}> {
-    constructor(props: IBoardProps) {
-        super(props);
-    }
-
     public render() {
         return (
             <div className={s.board}>
