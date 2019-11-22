@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import s from './viz_renderer.module.scss';
 
 interface IVizRendererProps {
-    tqlModules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>>;
+    tqlStatements: Immutable.List<proto.tql.Statement>;
 }
 
 interface IVizRendererState {
@@ -19,16 +19,10 @@ export class VizRenderer extends React.Component<IVizRendererProps, IVizRenderer
     }
 
     public render() {
-        let vizStmts = TQLInterpreter.mapStatementsInModuleList(
-            this.props.tqlModules,
-            new proto.tql.TQLVizStatement(),
-            (_, o) => {
-                let v = new proto.tql.TQLVizStatement();
-                v.bb = o.bb;
-                v.bb_pos = o.bb_pos;
-                return v;
-            }
-        );
+        let vizStmts = TQLInterpreter.mapStatements(
+            this.props.tqlStatements,
+            proto.tql.Statement.StatementCase.VIZ,
+            (_, v: proto.tql.VizStatement) => v);
 
         return (
             <div className={s.grid}>
@@ -42,7 +36,7 @@ export class VizRenderer extends React.Component<IVizRendererProps, IVizRenderer
 
 function mapStateToProps(state: Model.RootState) {
     return {
-        tqlModules: state.transientTQLModules
+        tqlStatements: state.transientTQLStatements
     };
 }
 
