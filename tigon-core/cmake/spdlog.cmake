@@ -4,8 +4,6 @@
 # ---------------------------------------------------------------------------
 
 include(ExternalProject)
-find_package(Git REQUIRED)
-find_package(Threads REQUIRED)
 
 ExternalProject_Add(
     spdlog_ep

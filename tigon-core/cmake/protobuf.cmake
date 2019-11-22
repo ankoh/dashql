@@ -5,7 +5,6 @@
 
 include(ExternalProject)
 
-# Protobuf library
 ExternalProject_Add(
     protobuf_ep
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/protobuf"
