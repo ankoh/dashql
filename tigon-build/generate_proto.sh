@@ -33,7 +33,7 @@ for PROTO_FILE in ${PROTO_SPEC_DIR}/*; do
         -I ${PROTO_SPEC_DIR} \
         --plugin=protoc-gen-ts=${TSPROTOC_PLUGIN} \
         --cpp_out=${CPP_PROTO_DIR} \
-        --js_out=${JS_PROTO_DIR} \
+        --js_out="import_style=commonjs,binary:${JS_PROTO_DIR}" \
         --ts_out=${JS_PROTO_DIR} \
         ${PROTO_FILE} \
         && { echo "[ OK  ] ${PROTO_FILE}"; } \
