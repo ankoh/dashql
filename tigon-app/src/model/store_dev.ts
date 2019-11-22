@@ -6,7 +6,12 @@ function actionSanitizer(a: Model.RootAction) {
 }
 
 function stateSanitizer(s: Model.RootState) {
-    return s;
+    return {
+        ...s,
+        transientTQLStatements: s.transientTQLStatements.map(v => v.toObject()),
+        transientQueryResults: s.transientQueryResults.map((v, k) => [k, v.toObject()]),
+        transientQueryPlans: s.transientQueryPlans.map((v, k) => [k, v.toObject()]),
+    };
 }
 
 /* tslint:disable */

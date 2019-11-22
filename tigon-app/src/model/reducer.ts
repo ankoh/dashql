@@ -25,6 +25,11 @@ export function reducer(state: State.RootState = new State.RootState(), a: RootA
                 ...state,
                 transientTQLStatements: state.transientTQLStatements.push(a.payload)
             };
+        case ActionType.SET_TRANSIENT_QUERY_RESULT:
+            return {
+                ...state,
+                transientQueryResults: state.transientQueryResults.set(a.payload[0], a.payload[1])
+            };
         case ActionType.OTHER: return state;
         default: return state;
     }
