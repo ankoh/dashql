@@ -89,14 +89,12 @@ nonstd::span<std::byte> WebAPI::Session::serializeMessage(google::protobuf::Mess
     msg.SerializeToArray(bytes.get(), size);
 
     // Register the buffer
-    Buffer buffer{std::move(bytes), size};
-    auto span = buffer.asSpan();
-    registerBuffer(std::move(buffer));
-    return span;
+    return registerBuffer(std::move(bytes), size);
 }
 
 /// Register a buffer
-nonstd::span<std::byte> WebAPI::Session::registerBuffer(Buffer buffer) {
+nonstd::span<std::byte> WebAPI::Session::registerBuffer(std::unique_ptr<std::byte[]> data, size_t dataSize) {
+    Buffer buffer{std::move(data), dataSize};
     auto span = buffer.asSpan();
     auto ptr = span.data();
     buffers.insert({ptr, std::move(buffer)});

@@ -23,9 +23,7 @@ namespace tigon {
 
 /// The Web API context
 class WebAPI {
-  public:
-    class Session;
-
+  protected:
     /// A buffer
     class Buffer {
         /// The data
@@ -51,6 +49,9 @@ class WebAPI {
         // Is empty?
         auto isEmpty() { return data == nullptr || size == 0; }
     };
+
+  public:
+    class Session;
 
     /// A response
     class Response {
@@ -135,7 +136,7 @@ class WebAPI {
         /// Encode a message
         nonstd::span<std::byte> serializeMessage(google::protobuf::MessageLite& msg);
         /// Register a buffer
-        nonstd::span<std::byte> registerBuffer(Buffer buffer);
+        nonstd::span<std::byte> registerBuffer(std::unique_ptr<std::byte[]> data, size_t data_size);
         /// Release a buffer
         void releaseBuffer(void* buffer);
 

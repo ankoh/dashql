@@ -47,7 +47,7 @@ void tigon_end_session(WebAPI::Session *session) {
 /// Release a buffer
 void tigon_register_buffer(WebAPI::Session *session, void* buffer_ptr, unsigned buffer_length) {
     std::unique_ptr<std::byte[]> bytes{static_cast<std::byte*>(buffer_ptr)};
-    session->registerBuffer({std::move(bytes), buffer_length});
+    session->registerBuffer(std::move(bytes), buffer_length);
 }
 
 /// Release a buffer
