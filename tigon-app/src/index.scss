@@ -3,16 +3,18 @@
 body {
     margin: 0;
     padding: 0;
-    font-family: sans-serif;
 
     -webkit-app-region:drag;
     width: 100vw;
     height: 100vh;
 
     font-family: "Open Sans";
+    font-size: 100%;
 
     overflow-x: hidden;
     overflow-y: hidden;
+
+
 }
 
 #root {

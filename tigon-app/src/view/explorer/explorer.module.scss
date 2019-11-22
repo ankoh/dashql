@@ -46,7 +46,7 @@ $topbar_background: rgb(46, 46, 46);
     grid-column: 1;
 
     border-right: 1px solid $border_color;
-    font-size: 12px;
+    font-size: .75em;
 
     &_header {
         background-color: rgb(255, 255, 255);
@@ -93,7 +93,7 @@ $topbar_background: rgb(46, 46, 46);
             justify-self: center;
             align-self: center;
 
-            font-size: 10px;
+            font-size: .75em;
             border-radius: 8px;
             background-color: $theme_color_badge;
             padding: 1px 8px;
@@ -127,7 +127,6 @@ $topbar_background: rgb(46, 46, 46);
         width: 100%;
         box-sizing: border-box;
 
-        font-size: 10px;
         font-weight: 600;
         color: rgb(166, 166, 166);
 
