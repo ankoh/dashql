@@ -6,7 +6,7 @@ import { TQLInterpreter } from '../../ctrl';
 import { IAppContext, withAppContext } from '../../app_context';
 import Terminal from './terminal';
 import Board from './board';
-import VizRenderer from './viz_renderer';
+import VizGrid from './viz_grid';
 import s from './explorer.module.scss';
 import {
     AddIcon,
@@ -184,7 +184,7 @@ class Explorer extends React.Component<IExplorerProps> {
 
                 <div className={s.board}>
                     <Board scaleFactor={1.0}>
-                        <VizRenderer />
+                        <VizGrid />
                     </Board>
                     <div className={s.input}>
                         <div className={s.input_header}>

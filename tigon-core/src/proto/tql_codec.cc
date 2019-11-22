@@ -30,6 +30,7 @@ proto::tql::Module* encodeTQLModule(protobuf::Arena& arena, tql::Module& module)
             [&](std::unique_ptr<tql::VizStatement>& viz) {
                 auto* v = stmts->Add()->mutable_viz();
                 v->set_viz_name(viz->name.data(), viz->name.size());
+                v->set_query_name(viz->target.data(), viz->target.size());
             },
 
             // Extract statement
