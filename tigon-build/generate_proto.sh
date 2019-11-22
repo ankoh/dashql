@@ -5,7 +5,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 PROTO_DIR="${PROJECT_ROOT}/tigon-proto"
 PROTO_SPEC_DIR="${PROTO_DIR}/spec"
 PROTO_BUILD_DIR="${PROTO_DIR}/build"
-PROTOC="${PROJECT_ROOT}/tigon-core/build/debug/third_party/protoc/install/bin/protoc"
+PROTOC="${PROJECT_ROOT}/tigon-build/protoc/install/bin/protoc"
 
 TSPROTOC_BUILD_DIR="${PROTO_BUILD_DIR}/ts-protoc-gen/"
 TSPROTOC_PLUGIN="${TSPROTOC_BUILD_DIR}/node_modules/.bin/protoc-gen-ts"
@@ -15,7 +15,7 @@ JS_PROTO_DIR="${PROTO_DIR}/lib/js/src/proto"
 
 ${PROTOC} --version \
     && { echo "[ OK  ] Command: protoc"; } \
-    || { echo "[ ERR ] Command: protoc"; exit 1; }
+    || { echo "[ ERR ] Command: protoc (run tigon-build/build_protoc.sh)"; exit 1; }
 
 if [ -x "$(command -v ${TSPROTOC_PLUGIN})" ]; then
     echo "[ OK  ] Command: protoc-gen-ts"

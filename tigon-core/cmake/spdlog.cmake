@@ -1,3 +1,8 @@
+# ---------------------------------------------------------------------------
+# Tigon
+# (c) 2019 Andre Kohn
+# ---------------------------------------------------------------------------
+
 include(ExternalProject)
 find_package(Git REQUIRED)
 find_package(Threads REQUIRED)
