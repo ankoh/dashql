@@ -1,14 +1,17 @@
+@import "../../theme.scss";
+
 .grid {
     height: 100%;
     width: 100%;
 }
 
 .grid_element {
-    width: 200px;
-    height: 280px;
+    width: 300px;
+    height: 220px;
     background: rgb(255, 255, 255);
-    border-radius: 8px;
-    margin: 20px;
+    border-radius: $theme_border_radius; 
+    box-shadow: $theme_box_shadow_level_1;
+    margin: 40px;
 
     display: grid;
     grid-template-rows: 32px auto;

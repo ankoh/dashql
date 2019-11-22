@@ -179,7 +179,9 @@ export class Board extends React.Component<IBoardProps, {}> {
     public render() {
         return (
             <div className={s.board}>
-                <div className={s.board_ruler_corner} />
+                <div className={s.board_children}>
+                    {this.props.children}
+                </div>
                 <div className={s.board_ruler_top}>
                     <AutoSizer>
                         {({ height, width }) => (
@@ -204,9 +206,7 @@ export class Board extends React.Component<IBoardProps, {}> {
                         )}
                     </AutoSizer>
                 </div>
-                <div className={s.board_children}>
-                    {this.props.children}
-                </div>
+                <div className={s.board_ruler_corner} />
             </div>
         );
     }

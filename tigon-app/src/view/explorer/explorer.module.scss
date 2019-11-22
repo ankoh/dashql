@@ -121,6 +121,7 @@ $topbar_background: rgb(46, 46, 46);
     grid-column: 2;
 
     border-right: 1px solid $border_color;
+    background-color: rgb(255, 255, 255);
 
     &_tool {
         height: 48px;
@@ -271,6 +272,7 @@ $topbar_background: rgb(46, 46, 46);
 
     border-radius: $theme_border_radius;
     box-sizing: border-box;
+    box-shadow: $theme_box_shadow_level_2;
 
     background-color: rgb(46, 46, 46);
 

@@ -119,6 +119,31 @@ class Explorer extends React.Component<IExplorerProps> {
     public render() {
         return (
             <div className={s.explorer}>
+
+                <div className={s.board}>
+                    <Board scaleFactor={1.0}>
+                        <VizGrid />
+                    </Board>
+                    <div className={s.input}>
+                        <div className={s.input_header}>
+                            <div className={s.input_type}>
+                                <ConsoleIcon className={s.input_icon} width={INPUT_HEADER_ICON_WIDTH} height={INPUT_HEADER_ICON_HEIGHT} />
+                            </div>
+                        </div>
+                        <div className={s.input_terminal}>
+                            <Terminal />
+                        </div>
+                    </div>
+                    <div className={cN(s.input_toggle, s.expanded)}>
+                        <div className={cN(s.input_toggle_type, s.border_right)}>
+                            <ConsoleIcon className={s.input_toggle_icon} width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                        </div>
+                        <div className={s.input_toggle_type}>
+                            <CodeIcon className={s.input_toggle_icon} width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                        </div>
+                    </div>
+                </div>
+
                 <div className={s.topbar}>
                     <div className={s.topbar_actionset}>
                         <div className={s.topbar_action}>
@@ -179,30 +204,6 @@ class Explorer extends React.Component<IExplorerProps> {
                     </div>
                     <div className={s.toolbar_tool}>
                         <DatabaseSearchIcon className={s.toolbar_icon} width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
-                    </div>
-                </div>
-
-                <div className={s.board}>
-                    <Board scaleFactor={1.0}>
-                        <VizGrid />
-                    </Board>
-                    <div className={s.input}>
-                        <div className={s.input_header}>
-                            <div className={s.input_type}>
-                                <ConsoleIcon className={s.input_icon} width={INPUT_HEADER_ICON_WIDTH} height={INPUT_HEADER_ICON_HEIGHT} />
-                            </div>
-                        </div>
-                        <div className={s.input_terminal}>
-                            <Terminal />
-                        </div>
-                    </div>
-                    <div className={cN(s.input_toggle, s.expanded)}>
-                        <div className={cN(s.input_toggle_type, s.border_right)}>
-                            <ConsoleIcon className={s.input_toggle_icon} width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
-                        </div>
-                        <div className={s.input_toggle_type}>
-                            <CodeIcon className={s.input_toggle_icon} width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
-                        </div>
                     </div>
                 </div>
 
