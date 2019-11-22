@@ -1,8 +1,9 @@
 import * as proto from 'tigon-proto';
 import * as React from 'react';
-import { AutoSizer, MultiGrid, GridCellProps, Index } from 'react-virtualized';
+import { Scrollbars } from 'react-custom-scrollbars';
+import { AutoSizer, Grid, GridCellProps, Index } from 'react-virtualized';
 
-import './table.scss';
+import s from './table.module.scss';
 
 // The table properties
 interface ITableProps {
@@ -11,12 +12,18 @@ interface ITableProps {
 
 // The table state
 interface ITableState {
-    width: number;
-    height: number;
+    scrollTop: number;
 }
 
 // The table
 export class Table extends React.Component<ITableProps, ITableState> {
+    constructor(props: ITableProps) {
+        super(props);
+        this.state = {
+            scrollTop: 0,
+        };
+    }
+
     // Only update the component if the timestamp changes
     public shouldComponentUpdate(nextProps: ITableProps, nextState: ITableState): boolean {
         if (this.state === nextState &&
@@ -115,7 +122,6 @@ export class Table extends React.Component<ITableProps, ITableState> {
                             borderRight: cellBorder,
                             lineHeight: '28px',
                             padding: '0px 8px 0px 8px',
-                            backgroundColor: 'white',
                         }}
                     >
                         foo
@@ -125,10 +131,12 @@ export class Table extends React.Component<ITableProps, ITableState> {
         }
     }
 
-    // 
-    public computeColumnWidth(index: Index, totalWidth: number): number {
-        return 42;
-        // return index ? 50: ((totalWidth - 50) / this.props.data.getColumnCount());
+    // Handle scroll event
+    protected handleScroll(event: any) {
+        this.setState({
+            ...this.state,
+            scrollTop: event.target.scrollTop
+        });
     }
 
     // Render the full table
@@ -136,29 +144,36 @@ export class Table extends React.Component<ITableProps, ITableState> {
         let rowCount = this.props.data.getRowCount();
         let colCount = this.props.data.getColumnCount();
         return (
-            <div className="table">
+            <div className={s.table}>
                 <AutoSizer>
                     {({ height, width }) => (
-                        <MultiGrid
-                            cellRenderer={this.renderCell.bind(this)}
-                            columnCount={colCount + 1}
-                            columnWidth={function(index: Index) {
-                                let lineNumberWidth = 40;
-                                let available = width - lineNumberWidth;
-                                let equalWidths = available / colCount;
-                                let maxWidth = available * 0.2;
-                                let minWidth = 56;
-                                return (index.index === 0)
-                                    ? lineNumberWidth
-                                    : Math.max(Math.min(equalWidths, maxWidth), minWidth);
-                            }}
-                            height={height}
-                            width={width}
-                            fixedRowCount={1}
-                            fixedColumnCount={1}
-                            rowCount={rowCount}
-                            rowHeight={28}
-                        />
+                        <Scrollbars
+                            style={{ height: height, width: width }}
+                            onScroll={this.handleScroll.bind(this)}
+                            className={s.table_scrollbars}
+                        >
+                            <Grid
+                                autoHeight
+                                scrollTop={this.state.scrollTop}
+                                cellRenderer={this.renderCell.bind(this)}
+                                columnCount={colCount + 1}
+                                columnWidth={function(index: Index) {
+                                    let lineNumberWidth = 40;
+                                    let available = width - lineNumberWidth;
+                                    let equalWidths = available / colCount;
+                                    let minWidth = 56;
+                                    return (index.index === 0)
+                                        ? lineNumberWidth
+                                        : Math.max(equalWidths, minWidth);
+                                }}
+                                height={height}
+                                width={width}
+                                fixedRowCount={1}
+                                fixedColumnCount={1}
+                                rowCount={rowCount}
+                                rowHeight={28}
+                            />
+                        </Scrollbars>
                     )}
                 </AutoSizer>
             </div>

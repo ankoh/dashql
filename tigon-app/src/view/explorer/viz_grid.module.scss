@@ -9,4 +9,22 @@
     background: rgb(255, 255, 255);
     border-radius: 8px;
     margin: 20px;
+
+    display: grid;
+    grid-template-rows: 32px auto;
+
+    &_header {
+        grid-row: 1;
+        border-bottom: 1px solid rgb(225, 225, 225);
+    }
+
+    &_title {
+        line-height: 32px;
+        font-size: .75em;
+        padding: 0px 8px;
+    }
+
+    &_body {
+        grid-row: 2;   
+    }
 }

@@ -7,8 +7,8 @@
     box-sizing: border-box;
     background: rgba(255, 255, 255, 0.8);
     font-size: .75em;
-}
 
-.table .ReactVirtualized__Grid {
-    outline: none;
+    &_scrollbars {
+        border-radius: 0 0 $theme_border_radius $theme_border_radius;
+    }
 }

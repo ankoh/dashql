@@ -18,8 +18,14 @@ interface IVizGridState {
 function Viz(props: {statement: proto.tql.VizStatement, data: proto.duckdb.QueryResult | null}) {
     return (
         <div key={props.statement.getVizName()} className={s.grid_element}>
-            {props.data && <Table data={props.data} />}
-            {!props.data && "foo" }
+            <div className={s.grid_element_header}>
+                <div className={s.grid_element_title}>
+                    {props.statement.getVizName()}
+                </div>
+            </div>
+            <div className={s.grid_element_body}>
+                {props.data ? <Table data={props.data} /> : "foo"}
+            </div>
         </div>
     );
 }
