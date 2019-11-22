@@ -16,10 +16,6 @@ interface IVizGridState {
 }
 
 function Viz(props: {statement: proto.tql.VizStatement, data: proto.duckdb.QueryResult | null}) {
-    let text = "-";
-    if (props.data) {
-        text = "with result";
-    }
     return (
         <div key={props.statement.getVizName()} className={s.grid_element}>
             {props.data && <Table data={props.data} />}

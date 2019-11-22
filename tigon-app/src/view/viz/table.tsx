@@ -17,11 +17,6 @@ interface ITableState {
 
 // The table
 export class Table extends React.Component<ITableProps, ITableState> {
-    // Constructor
-    constructor(props: ITableProps) {
-        super(props);
-    }
-
     // Only update the component if the timestamp changes
     public shouldComponentUpdate(nextProps: ITableProps, nextState: ITableState): boolean {
         if (this.state === nextState &&
@@ -68,7 +63,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                             borderBottom: cellBorder,
                             borderRight: cellBorder,
                             textAlign: 'center',
-                            lineHeight: '28px',
+                            lineHeight: '24px',
                         }}
                     />
                 );
@@ -83,7 +78,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                             borderBottom: cellBorder,
                             borderRight: cellBorder,
                             textAlign: 'center',
-                            lineHeight: '28px',
+                            lineHeight: '24px',
                         }}
                     >
                         {columnNames[props.columnIndex - 1]}
@@ -100,7 +95,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                             borderBottom: cellBorder,
                             borderRight: cellBorder,
                             textAlign: 'center',
-                            lineHeight: '28px',
+                            lineHeight: '24px',
                         }}
                     >
                         {props.rowIndex}
@@ -108,8 +103,8 @@ export class Table extends React.Component<ITableProps, ITableState> {
                 );
             case CellType.Data:
             {
-                let columnIndex = props.columnIndex - 1;
-                let rowIndex = props.rowIndex - 1;
+                // let columnIndex = props.columnIndex - 1;
+                // let rowIndex = props.rowIndex - 1;
                 return (
                     <div
                         key={props.key}
@@ -148,11 +143,11 @@ export class Table extends React.Component<ITableProps, ITableState> {
                             cellRenderer={this.renderCell.bind(this)}
                             columnCount={colCount + 1}
                             columnWidth={function(index: Index) {
-                                let lineNumberWidth = 48;
+                                let lineNumberWidth = 40;
                                 let available = width - lineNumberWidth;
                                 let equalWidths = available / colCount;
                                 let maxWidth = available * 0.2;
-                                let minWidth = 60;
+                                let minWidth = 56;
                                 return (index.index === 0)
                                     ? lineNumberWidth
                                     : Math.max(Math.min(equalWidths, maxWidth), minWidth);
