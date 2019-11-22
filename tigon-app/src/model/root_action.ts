@@ -7,12 +7,12 @@ import * as proto from 'tigon-proto';
 // ---------------------------------------------------------------------------
 
 export enum ActionType {
-    CONFIGURE_APP               = 'CONFIGURE_APP',
-    NAVIGATE_ROOT               = 'NAVIGATE_ROOT',
-    PUSH_LOG_ENTRY              = 'PUSH_LOG_ENTRY',
-    PUSH_TRANSIENT_TQL_MODULE   = 'PUSH_TRANSIENT_TQL_MODULE',
-    SET_TRANSIENT_QUERY_RESULT  = 'SET_TRANSIENT_QUERY_RESULT',
-    OTHER                       = 'OTHER',
+    CONFIGURE_APP                   = 'CONFIGURE_APP',
+    NAVIGATE_ROOT                   = 'NAVIGATE_ROOT',
+    PUSH_LOG_ENTRY                  = 'PUSH_LOG_ENTRY',
+    PUSH_TRANSIENT_TQL_STATEMENT    = 'PUSH_TRANSIENT_TQL_STATEMENT',
+    SET_TRANSIENT_QUERY_RESULT      = 'SET_TRANSIENT_QUERY_RESULT',
+    OTHER                           = 'OTHER',
 }
 
 // ---------------------------------------------------------------------------
@@ -23,8 +23,8 @@ export type RootAction =
     | Action<ActionType.CONFIGURE_APP, State.AppSettings>
     | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
-    | Action<ActionType.PUSH_TRANSIENT_TQL_MODULE, Model.CoreBuffer<proto.tql.TQLModule>>
-    | Action<ActionType.SET_TRANSIENT_QUERY_RESULT, [string, Model.CoreBuffer<proto.duckdb.QueryResult>]>
+    | Action<ActionType.PUSH_TRANSIENT_TQL_STATEMENT, proto.tql.Statement>
+    | Action<ActionType.SET_TRANSIENT_QUERY_RESULT, [string, proto.duckdb.QueryResult]>
     | Action<ActionType.OTHER, {}>;
 
 // ---------------------------------------------------------------------------
@@ -46,21 +46,21 @@ export function createAction<T, P>(type: T, payload: P): Action<T, P> {
 }
 
 export function pushLogEntry(log: State.LogEntry): RootAction {
-    return createAction<ActionType.PUSH_LOG_ENTRY, State.LogEntry>(ActionType.PUSH_LOG_ENTRY, log);
+    return createAction(ActionType.PUSH_LOG_ENTRY, log);
 }
 
 export function navigateRoot(view: State.RootView): RootAction {
-    return createAction<ActionType.NAVIGATE_ROOT, State.RootView>(ActionType.NAVIGATE_ROOT, view);
+    return createAction(ActionType.NAVIGATE_ROOT, view);
 }
 
 export function configureApp(config: State.AppSettings): RootAction {
-    return createAction<ActionType.CONFIGURE_APP, State.AppSettings>(ActionType.CONFIGURE_APP, config);
+    return createAction(ActionType.CONFIGURE_APP, config);
 }
 
-export function pushTransientTQLModule(module: Model.CoreBuffer<proto.tql.TQLModule>): RootAction {
-    return createAction<ActionType.PUSH_TRANSIENT_TQL_MODULE, Model.CoreBuffer<proto.tql.TQLModule>>(ActionType.PUSH_TRANSIENT_TQL_MODULE, module);
+export function pushTransientTQLStatement(stmt: proto.tql.Statement): RootAction {
+    return createAction(ActionType.PUSH_TRANSIENT_TQL_STATEMENT, stmt);
 }
 
-export function setTransientQueryResult(key: string, result: Model.CoreBuffer<proto.duckdb.QueryResult>): RootAction {
-    return createAction<ActionType.SET_TRANSIENT_QUERY_RESULT, [string, Model.CoreBuffer<proto.duckdb.QueryResult>]>(ActionType.SET_TRANSIENT_QUERY_RESULT, [key, result]);
+export function setTransientQueryResult(key: string, result: proto.duckdb.QueryResult): RootAction {
+    return createAction<ActionType.SET_TRANSIENT_QUERY_RESULT, [string, proto.duckdb.QueryResult]>(ActionType.SET_TRANSIENT_QUERY_RESULT, [key, result]);
 }

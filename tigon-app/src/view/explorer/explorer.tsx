@@ -49,7 +49,7 @@ const INPUT_TOGGLE_ICON_HEIGHT = "20px";
 
 interface IExplorerProps {
     appContext: IAppContext;
-    tqlModules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>>;
+    tqlStatements: Immutable.List<proto.tql.Statement>;
 }
 
 function Section(props: { title: string, count: number, children?: React.ReactNodeArray }) {
@@ -79,21 +79,21 @@ function SectionEntry(props: { name: string, description: string }) {
     );
 }
 
-function Outline(props: { modules: Immutable.List<Model.CoreBuffer<proto.tql.TQLModule>> }) {
-    let query = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLQueryStatement(), (i, s) => 
-        <SectionEntry key={i} name={s.queryName() || "-"} description={""} />
+function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
+    let query = TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.QUERY, (i, s: proto.tql.QueryStatement) => 
+        <SectionEntry key={i} name={s.getQueryName() || "-"} description={""} />
     );
-    let param = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLParameterDeclaration(), (i, s) => 
-        <SectionEntry key={i} name={s.parameterName() || "-"} description={""} />
+    let param = TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.PARAMETER, (i, s: proto.tql.ParameterDeclaration) =>
+        <SectionEntry key={i} name={s.getParameterName() || "-"} description={""} />
     );
-    let extract = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLExtractStatement(), (i, s) => 
-        <SectionEntry key={i} name={s.extractName() || "-"} description={""} />
+    let extract = TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.EXTRACT, (i, s: proto.tql.ExtractStatement) =>
+        <SectionEntry key={i} name={s.getExtractName() || "-"} description={""} />
     );
-    let load = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLLoadStatement(), (i, s) => 
-        <SectionEntry key={i} name={s.dataName() || "-"} description={""} />
+    let load = TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.LOAD, (i, s: proto.tql.LoadStatement) => 
+        <SectionEntry key={i} name={s.getDataName() || "-"} description={""} />
     );
-    let viz = TQLInterpreter.mapStatementsInModuleList(props.modules, new proto.tql.TQLVizStatement(), (i, s) => 
-        <SectionEntry key={i} name={s.vizName() || "-"} description={""} />
+    let viz = TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.VIZ, (i, s: proto.tql.VizStatement) => 
+        <SectionEntry key={i} name={s.getVizName() || "-"} description={""} />
     );
     return (
         <div className={s.outline}>
@@ -160,7 +160,7 @@ class Explorer extends React.Component<IExplorerProps> {
                     </div>
                 </div>
 
-                <Outline modules={this.props.tqlModules} />
+                <Outline statements={this.props.tqlStatements} />
 
                 <div className={s.toolbar}>
                     <div className={s.toolbar_tool}>
@@ -275,7 +275,7 @@ class Explorer extends React.Component<IExplorerProps> {
 
 function mapStateToExplorerProps(state: Model.RootState) {
     return {
-        tqlModules: state.transientTQLModules,
+        tqlStatements: state.transientTQLStatements,
         queryResults: state.transientQueryResults,
         queryPlans: state.transientQueryPlans,
     };

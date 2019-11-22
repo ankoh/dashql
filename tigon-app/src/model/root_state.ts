@@ -1,6 +1,5 @@
 import * as Immutable from 'immutable';
 import * as proto from 'tigon-proto';
-import { CoreBuffer } from './core_buffer';
 import { Viz } from './viz';
 import { VizLayout } from './viz_layout';
 
@@ -113,17 +112,15 @@ export class RootState {
     public logs: Immutable.List<LogEntry>;
 
     // The transient TQL module (if any)
-    public transientTQLModules: Immutable.List<CoreBuffer<proto.tql.TQLModule>>;
+    public transientTQLStatements: Immutable.List<proto.tql.Statement>;
     // The transient viz layout (if any)
     public transientVizLayout: VizLayout | null;
     // The transient vizzes (if any)
     public transientVizzes: Immutable.List<Viz>;
-        // The transient data buffers (if any)
-    public transientDataBuffers: Immutable.Map<string, CoreBuffer<proto.web_api.RawData>>;
     // The transient query results (if any)
-    public transientQueryResults: Immutable.Map<string, CoreBuffer<proto.duckdb.QueryResult>>;
+    public transientQueryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
     // The transient query plans (if any)
-    public transientQueryPlans: Immutable.Map<string, CoreBuffer<proto.duckdb.QueryPlan>>;
+    public transientQueryPlans: Immutable.Map<string, proto.duckdb.QueryPlan>;
 
     // The focused viz
     public focusedViz: number | null;
@@ -136,12 +133,11 @@ export class RootState {
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logs = Immutable.List<LogEntry>();
         this.rootView = RootView.EXPLORER;
-        this.transientTQLModules = Immutable.List();
+        this.transientTQLStatements = Immutable.List();
         this.transientVizLayout = null;
         this.transientVizzes = Immutable.List();
         this.transientQueryResults = Immutable.Map();
         this.transientQueryPlans = Immutable.Map();
-        this.transientDataBuffers = Immutable.Map();
         this.focusedViz = null;
         return;
     }

@@ -3,7 +3,6 @@ import { RootState } from './root_state';
 import { RootAction } from './root_action';
 
 // Export things
-export * from './core_buffer';
 export * from './viz';
 export * from './reducer';
 export * from './root_action';

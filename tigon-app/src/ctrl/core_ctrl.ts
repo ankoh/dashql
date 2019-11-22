@@ -1,5 +1,4 @@
 import * as proto from 'tigon-proto';
-import { CoreBuffer, TQLModuleBuffer, QueryPlanBuffer, QueryResultBuffer, FormattedTextBuffer } from '../model';
 
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
@@ -57,7 +56,7 @@ export class CoreController {
     }
 
     // Call a core function with packed response buffer
-    protected callSRet(funcName: string, argTypes: Array<string>, args: Array<any>): [proto.web_api.StatusCode, number, number, number] {
+    protected callSRet(funcName: string, argTypes: Array<string>, args: Array<any>): [number, number, number, number] {
         // Save the stack
         var stackPointer = this.core.stackSave();
 
@@ -71,7 +70,7 @@ export class CoreController {
 
         // Read the response
         // XXX: wasm64 will break here.
-        let status = this.core.HEAPU32[(response >> 2) + 0] as proto.web_api.StatusCode;
+        let status = this.core.HEAPU32[(response >> 2) + 0];
         let error = this.core.HEAPU32[(response >> 2) + 2];
         let data = this.core.HEAPU32[(response >> 2) + 4];
         let dataSize = this.core.HEAPU32[(response >> 2) + 6];
@@ -110,52 +109,41 @@ export class CoreController {
     }
 
     // Parse TQL
-    public async parseTQL(session: number, text: string): Promise<CoreBuffer<proto.tql.TQLModule>> {
+    public async parseTQL(session: number, text: string): Promise<proto.tql.Module> {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet('tigon_parse_tql', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             return Promise.reject(new Error(""));
         }
-        return new TQLModuleBuffer(this.core, session, data, dataSize);
+        let mem = this.core.HEAPU8.subarray(data, data + dataSize);
+        let msg = proto.tql.Module.deserializeBinary(mem);
+        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [session, data]);
+        return msg;
     }
 
     // Run a query
-    public async runQuery(session: number, text: string): Promise<CoreBuffer<proto.duckdb.QueryResult>> {
+    public async runQuery(session: number, text: string): Promise<proto.duckdb.QueryResult> {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet('tigon_run_query', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             return Promise.reject(new Error(""));
         }
-        return new QueryResultBuffer(this.core, session, data, dataSize);
+        let mem = this.core.HEAPU8.subarray(data, data + dataSize);
+        let msg = proto.duckdb.QueryResult.deserializeBinary(mem);
+        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [session, data]);
+        return msg;
     }
 
     // Plan a query
-    public async planQuery(session: number, text: string): Promise<CoreBuffer<proto.duckdb.QueryPlan>> {
+    public async planQuery(session: number, text: string): Promise<proto.duckdb.QueryPlan> {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet('tigon_plan_query', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             return Promise.reject(new Error(""));
         }
-        return new QueryPlanBuffer(this.core, session, data, dataSize);
-    }
-
-    // Format the tql module
-    public async formatTQLModule(session: number, module: number): Promise<CoreBuffer<proto.web_api.FormattedText>> {
-        await this.waitUntilReady();
-        let [status, error, data, dataSize] = this.callSRet('tigon_format_tql_module', ['number', 'number'], [session, module]);
-        if (status !== proto.web_api.StatusCode.SUCCESS) {
-            return Promise.reject(new Error(""));
-        }
-        return new FormattedTextBuffer(this.core, session, data, dataSize);
-    }
-
-    // Format the query plan
-    public async formatQueryPlan(session: number, plan: number): Promise<CoreBuffer<proto.web_api.FormattedText>> {
-        await this.waitUntilReady();
-        let [status, error, data, dataSize] = this.callSRet('tigon_format_query_plan', ['number', 'number'], [session, plan]);
-        if (status !== proto.web_api.StatusCode.SUCCESS) {
-            return Promise.reject(new Error(""));
-        }
-        return new FormattedTextBuffer(this.core, session, data, dataSize);
+        let mem = this.core.HEAPU8.subarray(data, data + dataSize);
+        let msg = proto.duckdb.QueryPlan.deserializeBinary(mem);
+        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [session, data]);
+        return msg;
     }
 };

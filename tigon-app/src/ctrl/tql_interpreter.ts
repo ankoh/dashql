@@ -1,19 +1,8 @@
 import * as Immutable from 'immutable';
 import * as proto from 'tigon-proto';
-import { CoreBuffer } from '../model';
 import { LogController } from './log_ctrl';
 import { TaskID, Task, TaskQueue } from './task_queue';
-
-// Get the statement type
-function getStatementType<T extends flatbuffers.Table>(s: T): proto.tql.TQLStatement {
-    return s instanceof proto.tql.TQLExtractStatement ? proto.tql.TQLStatement.TQLExtractStatement :
-        s instanceof proto.tql.TQLLoadStatement ? proto.tql.TQLStatement.TQLLoadStatement :
-        s instanceof proto.tql.TQLParameterDeclaration ? proto.tql.TQLStatement.TQLParameterDeclaration :
-        s instanceof proto.tql.TQLQueryStatement ? proto.tql.TQLStatement.TQLQueryStatement :
-        s instanceof proto.tql.TQLVizStatement ? proto.tql.TQLStatement.TQLVizStatement :
-        proto.tql.TQLStatement.NONE;
-}
-
+import * as jspb from 'google-protobuf';
 
 export class TQLInterpreter {
     protected log: LogController;
@@ -31,31 +20,43 @@ export class TQLInterpreter {
     }
 
     // Evaluate a single statement
-    public async evalStatement(_module: CoreBuffer<proto.tql.TQLModule>, _statement: number) {
+    public async evalStatement(_module: proto.tql.Module, _statement: number) {
     }
 
     // Evaluate a program
-    public async eval(_module: CoreBuffer<proto.tql.TQLModule>) {
+    public async eval(_module: proto.tql.Module) {
     }
 
-    // Iterate over statements
-    public static forEachStatement<T extends flatbuffers.Table>(module: CoreBuffer<proto.tql.TQLModule>, obj: T, fn: (i: number, o: T) => void) {
-        let reader = module.getReader();
-        let filteredType = getStatementType(obj);
-        for (let i = 0; i < reader.statementsLength(); ++i) {
-            if (reader.statementsType(i)! != filteredType) {
-                continue;
-            }
-            let o = reader.statements(i, obj)!;
-            fn(i, o);
-        }
-    }
-
-    // Map statements in module list
-    public static mapStatementsInModuleList<T extends flatbuffers.Table, V>(list: Immutable.List<CoreBuffer<proto.tql.TQLModule>>, obj: T, fn: (i: number, o: T) => V): Array<V> {
+    // Filter a statement list
+    public static filterStatements(list: Immutable.List<proto.tql.Statement>, t: proto.tql.Statement.StatementCase, fn: (i: number, m: jspb.Message) => void) {
         let i = 0;
+        list.forEach(s => {
+            if (s.getStatementCase() != t) {
+                return;
+            }
+            switch (s.getStatementCase()) {
+                case proto.tql.Statement.StatementCase.EXTRACT:
+                    fn(i++, s.getExtract()!);
+                    break;
+                case proto.tql.Statement.StatementCase.LOAD:
+                    fn(i++, s.getLoad()!);
+                    break;
+                case proto.tql.Statement.StatementCase.PARAMETER:
+                    fn(i++, s.getParameter()!);
+                    break;
+                case proto.tql.Statement.StatementCase.VIZ:
+                    fn(i++, s.getViz()!);
+                    break;
+            }
+        });
+    }
+
+    // Map a statement list
+    public static mapStatements<T extends jspb.Message, V>(list: Immutable.List<proto.tql.Statement>, t: proto.tql.Statement.StatementCase, fn: (i: number, s: T) => V): Array<V> {
         let r = new Array<V>();
-        list.forEach(m => this.forEachStatement(m, obj, (_, o) => r.push(fn(i++, o))));
+        TQLInterpreter.filterStatements(list, t, (i: number, m: jspb.Message) => {
+            r.push(fn(i, m as T));
+        });
         return r;
     }
 }
