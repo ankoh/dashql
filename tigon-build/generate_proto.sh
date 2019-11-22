@@ -40,3 +40,15 @@ for PROTO_FILE in ${PROTO_SPEC_DIR}/*; do
         || { echo "[ ERR ] ${PROTO_FILE}"; exit 1; }
 done
 
+echo "[ RUN ] Bundle js library" \
+    && cd "${PROTO_DIR}/lib/js" \
+    && npm run bundle \
+    && { echo "[ OK  ] Bundle js library"; } \
+    || { echo "[ ERR ] Bundle js library"; exit 1; }
+
+echo "[ RUN ] Install js library" \
+    && cd "${PROJECT_ROOT}/tigon-app" \
+    && npm install \
+    && { echo "[ OK  ] Install js library"; } \
+    || { echo "[ ERR ] Install js library"; exit 1; }
+

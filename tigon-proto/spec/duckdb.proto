@@ -111,7 +111,9 @@ message QueryPlan {
 // A column of a query result
 message QueryResultColumn {
     RawTypeID type_id = 1;
+
     repeated bool null_mask = 2;
+
     repeated int32 rows_i32 = 3;
     repeated uint32 rows_u32 = 4;
     repeated int64 rows_i64 = 5;
@@ -130,8 +132,11 @@ message QueryResultChunk {
 message QueryResult {
     uint32 query_id = 1;
     QueryPlan query_plan = 2;
-    repeated RawTypeID column_raw_types = 3;
-    repeated SQLType column_sql_types = 4;
-    repeated string column_names = 5;
-    repeated QueryResultChunk data_chunks = 6;
+
+    repeated string column_names = 3;
+    repeated RawTypeID column_raw_types = 4;
+    repeated SQLType column_sql_types = 5;
+
+    uint32 total_rows = 6;
+    repeated QueryResultChunk data_chunks = 7;
 }

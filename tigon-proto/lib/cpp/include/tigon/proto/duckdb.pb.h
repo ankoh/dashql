@@ -1153,49 +1153,15 @@ class QueryResult :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kColumnRawTypesFieldNumber = 3,
-    kColumnSqlTypesFieldNumber = 4,
-    kColumnNamesFieldNumber = 5,
-    kDataChunksFieldNumber = 6,
+    kColumnNamesFieldNumber = 3,
+    kColumnRawTypesFieldNumber = 4,
+    kColumnSqlTypesFieldNumber = 5,
+    kDataChunksFieldNumber = 7,
     kQueryPlanFieldNumber = 2,
     kQueryIdFieldNumber = 1,
+    kTotalRowsFieldNumber = 6,
   };
-  // repeated .tigon.proto.duckdb.RawTypeID column_raw_types = 3;
-  int column_raw_types_size() const;
-  private:
-  int _internal_column_raw_types_size() const;
-  public:
-  void clear_column_raw_types();
-  private:
-  ::tigon::proto::duckdb::RawTypeID _internal_column_raw_types(int index) const;
-  void _internal_add_column_raw_types(::tigon::proto::duckdb::RawTypeID value);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>* _internal_mutable_column_raw_types();
-  public:
-  ::tigon::proto::duckdb::RawTypeID column_raw_types(int index) const;
-  void set_column_raw_types(int index, ::tigon::proto::duckdb::RawTypeID value);
-  void add_column_raw_types(::tigon::proto::duckdb::RawTypeID value);
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>& column_raw_types() const;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>* mutable_column_raw_types();
-
-  // repeated .tigon.proto.duckdb.SQLType column_sql_types = 4;
-  int column_sql_types_size() const;
-  private:
-  int _internal_column_sql_types_size() const;
-  public:
-  void clear_column_sql_types();
-  ::tigon::proto::duckdb::SQLType* mutable_column_sql_types(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::SQLType >*
-      mutable_column_sql_types();
-  private:
-  const ::tigon::proto::duckdb::SQLType& _internal_column_sql_types(int index) const;
-  ::tigon::proto::duckdb::SQLType* _internal_add_column_sql_types();
-  public:
-  const ::tigon::proto::duckdb::SQLType& column_sql_types(int index) const;
-  ::tigon::proto::duckdb::SQLType* add_column_sql_types();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::SQLType >&
-      column_sql_types() const;
-
-  // repeated string column_names = 5;
+  // repeated string column_names = 3;
   int column_names_size() const;
   private:
   int _internal_column_names_size() const;
@@ -1219,7 +1185,42 @@ class QueryResult :
   std::string* _internal_add_column_names();
   public:
 
-  // repeated .tigon.proto.duckdb.QueryResultChunk data_chunks = 6;
+  // repeated .tigon.proto.duckdb.RawTypeID column_raw_types = 4;
+  int column_raw_types_size() const;
+  private:
+  int _internal_column_raw_types_size() const;
+  public:
+  void clear_column_raw_types();
+  private:
+  ::tigon::proto::duckdb::RawTypeID _internal_column_raw_types(int index) const;
+  void _internal_add_column_raw_types(::tigon::proto::duckdb::RawTypeID value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>* _internal_mutable_column_raw_types();
+  public:
+  ::tigon::proto::duckdb::RawTypeID column_raw_types(int index) const;
+  void set_column_raw_types(int index, ::tigon::proto::duckdb::RawTypeID value);
+  void add_column_raw_types(::tigon::proto::duckdb::RawTypeID value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>& column_raw_types() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>* mutable_column_raw_types();
+
+  // repeated .tigon.proto.duckdb.SQLType column_sql_types = 5;
+  int column_sql_types_size() const;
+  private:
+  int _internal_column_sql_types_size() const;
+  public:
+  void clear_column_sql_types();
+  ::tigon::proto::duckdb::SQLType* mutable_column_sql_types(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::SQLType >*
+      mutable_column_sql_types();
+  private:
+  const ::tigon::proto::duckdb::SQLType& _internal_column_sql_types(int index) const;
+  ::tigon::proto::duckdb::SQLType* _internal_add_column_sql_types();
+  public:
+  const ::tigon::proto::duckdb::SQLType& column_sql_types(int index) const;
+  ::tigon::proto::duckdb::SQLType* add_column_sql_types();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::SQLType >&
+      column_sql_types() const;
+
+  // repeated .tigon.proto.duckdb.QueryResultChunk data_chunks = 7;
   int data_chunks_size() const;
   private:
   int _internal_data_chunks_size() const;
@@ -1264,6 +1265,15 @@ class QueryResult :
   void _internal_set_query_id(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
+  // uint32 total_rows = 6;
+  void clear_total_rows();
+  ::PROTOBUF_NAMESPACE_ID::uint32 total_rows() const;
+  void set_total_rows(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_total_rows() const;
+  void _internal_set_total_rows(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
   // @@protoc_insertion_point(class_scope:tigon.proto.duckdb.QueryResult)
  private:
   class _Internal;
@@ -1272,13 +1282,14 @@ class QueryResult :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> column_names_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField<int> column_raw_types_;
   mutable std::atomic<int> _column_raw_types_cached_byte_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::SQLType > column_sql_types_;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> column_names_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::QueryResultChunk > data_chunks_;
   ::tigon::proto::duckdb::QueryPlan* query_plan_;
   ::PROTOBUF_NAMESPACE_ID::uint32 query_id_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 total_rows_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_duckdb_2eproto;
 };
@@ -2056,89 +2067,7 @@ inline void QueryResult::set_allocated_query_plan(::tigon::proto::duckdb::QueryP
   // @@protoc_insertion_point(field_set_allocated:tigon.proto.duckdb.QueryResult.query_plan)
 }
 
-// repeated .tigon.proto.duckdb.RawTypeID column_raw_types = 3;
-inline int QueryResult::_internal_column_raw_types_size() const {
-  return column_raw_types_.size();
-}
-inline int QueryResult::column_raw_types_size() const {
-  return _internal_column_raw_types_size();
-}
-inline void QueryResult::clear_column_raw_types() {
-  column_raw_types_.Clear();
-}
-inline ::tigon::proto::duckdb::RawTypeID QueryResult::_internal_column_raw_types(int index) const {
-  return static_cast< ::tigon::proto::duckdb::RawTypeID >(column_raw_types_.Get(index));
-}
-inline ::tigon::proto::duckdb::RawTypeID QueryResult::column_raw_types(int index) const {
-  // @@protoc_insertion_point(field_get:tigon.proto.duckdb.QueryResult.column_raw_types)
-  return _internal_column_raw_types(index);
-}
-inline void QueryResult::set_column_raw_types(int index, ::tigon::proto::duckdb::RawTypeID value) {
-  column_raw_types_.Set(index, value);
-  // @@protoc_insertion_point(field_set:tigon.proto.duckdb.QueryResult.column_raw_types)
-}
-inline void QueryResult::_internal_add_column_raw_types(::tigon::proto::duckdb::RawTypeID value) {
-  column_raw_types_.Add(value);
-}
-inline void QueryResult::add_column_raw_types(::tigon::proto::duckdb::RawTypeID value) {
-  // @@protoc_insertion_point(field_add:tigon.proto.duckdb.QueryResult.column_raw_types)
-  _internal_add_column_raw_types(value);
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>&
-QueryResult::column_raw_types() const {
-  // @@protoc_insertion_point(field_list:tigon.proto.duckdb.QueryResult.column_raw_types)
-  return column_raw_types_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>*
-QueryResult::_internal_mutable_column_raw_types() {
-  return &column_raw_types_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>*
-QueryResult::mutable_column_raw_types() {
-  // @@protoc_insertion_point(field_mutable_list:tigon.proto.duckdb.QueryResult.column_raw_types)
-  return _internal_mutable_column_raw_types();
-}
-
-// repeated .tigon.proto.duckdb.SQLType column_sql_types = 4;
-inline int QueryResult::_internal_column_sql_types_size() const {
-  return column_sql_types_.size();
-}
-inline int QueryResult::column_sql_types_size() const {
-  return _internal_column_sql_types_size();
-}
-inline void QueryResult::clear_column_sql_types() {
-  column_sql_types_.Clear();
-}
-inline ::tigon::proto::duckdb::SQLType* QueryResult::mutable_column_sql_types(int index) {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.duckdb.QueryResult.column_sql_types)
-  return column_sql_types_.Mutable(index);
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::SQLType >*
-QueryResult::mutable_column_sql_types() {
-  // @@protoc_insertion_point(field_mutable_list:tigon.proto.duckdb.QueryResult.column_sql_types)
-  return &column_sql_types_;
-}
-inline const ::tigon::proto::duckdb::SQLType& QueryResult::_internal_column_sql_types(int index) const {
-  return column_sql_types_.Get(index);
-}
-inline const ::tigon::proto::duckdb::SQLType& QueryResult::column_sql_types(int index) const {
-  // @@protoc_insertion_point(field_get:tigon.proto.duckdb.QueryResult.column_sql_types)
-  return _internal_column_sql_types(index);
-}
-inline ::tigon::proto::duckdb::SQLType* QueryResult::_internal_add_column_sql_types() {
-  return column_sql_types_.Add();
-}
-inline ::tigon::proto::duckdb::SQLType* QueryResult::add_column_sql_types() {
-  // @@protoc_insertion_point(field_add:tigon.proto.duckdb.QueryResult.column_sql_types)
-  return _internal_add_column_sql_types();
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::SQLType >&
-QueryResult::column_sql_types() const {
-  // @@protoc_insertion_point(field_list:tigon.proto.duckdb.QueryResult.column_sql_types)
-  return column_sql_types_;
-}
-
-// repeated string column_names = 5;
+// repeated string column_names = 3;
 inline int QueryResult::_internal_column_names_size() const {
   return column_names_.size();
 }
@@ -2212,7 +2141,109 @@ QueryResult::mutable_column_names() {
   return &column_names_;
 }
 
-// repeated .tigon.proto.duckdb.QueryResultChunk data_chunks = 6;
+// repeated .tigon.proto.duckdb.RawTypeID column_raw_types = 4;
+inline int QueryResult::_internal_column_raw_types_size() const {
+  return column_raw_types_.size();
+}
+inline int QueryResult::column_raw_types_size() const {
+  return _internal_column_raw_types_size();
+}
+inline void QueryResult::clear_column_raw_types() {
+  column_raw_types_.Clear();
+}
+inline ::tigon::proto::duckdb::RawTypeID QueryResult::_internal_column_raw_types(int index) const {
+  return static_cast< ::tigon::proto::duckdb::RawTypeID >(column_raw_types_.Get(index));
+}
+inline ::tigon::proto::duckdb::RawTypeID QueryResult::column_raw_types(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.duckdb.QueryResult.column_raw_types)
+  return _internal_column_raw_types(index);
+}
+inline void QueryResult::set_column_raw_types(int index, ::tigon::proto::duckdb::RawTypeID value) {
+  column_raw_types_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tigon.proto.duckdb.QueryResult.column_raw_types)
+}
+inline void QueryResult::_internal_add_column_raw_types(::tigon::proto::duckdb::RawTypeID value) {
+  column_raw_types_.Add(value);
+}
+inline void QueryResult::add_column_raw_types(::tigon::proto::duckdb::RawTypeID value) {
+  // @@protoc_insertion_point(field_add:tigon.proto.duckdb.QueryResult.column_raw_types)
+  _internal_add_column_raw_types(value);
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>&
+QueryResult::column_raw_types() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.duckdb.QueryResult.column_raw_types)
+  return column_raw_types_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>*
+QueryResult::_internal_mutable_column_raw_types() {
+  return &column_raw_types_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>*
+QueryResult::mutable_column_raw_types() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.duckdb.QueryResult.column_raw_types)
+  return _internal_mutable_column_raw_types();
+}
+
+// repeated .tigon.proto.duckdb.SQLType column_sql_types = 5;
+inline int QueryResult::_internal_column_sql_types_size() const {
+  return column_sql_types_.size();
+}
+inline int QueryResult::column_sql_types_size() const {
+  return _internal_column_sql_types_size();
+}
+inline void QueryResult::clear_column_sql_types() {
+  column_sql_types_.Clear();
+}
+inline ::tigon::proto::duckdb::SQLType* QueryResult::mutable_column_sql_types(int index) {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.duckdb.QueryResult.column_sql_types)
+  return column_sql_types_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::SQLType >*
+QueryResult::mutable_column_sql_types() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.duckdb.QueryResult.column_sql_types)
+  return &column_sql_types_;
+}
+inline const ::tigon::proto::duckdb::SQLType& QueryResult::_internal_column_sql_types(int index) const {
+  return column_sql_types_.Get(index);
+}
+inline const ::tigon::proto::duckdb::SQLType& QueryResult::column_sql_types(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.duckdb.QueryResult.column_sql_types)
+  return _internal_column_sql_types(index);
+}
+inline ::tigon::proto::duckdb::SQLType* QueryResult::_internal_add_column_sql_types() {
+  return column_sql_types_.Add();
+}
+inline ::tigon::proto::duckdb::SQLType* QueryResult::add_column_sql_types() {
+  // @@protoc_insertion_point(field_add:tigon.proto.duckdb.QueryResult.column_sql_types)
+  return _internal_add_column_sql_types();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::SQLType >&
+QueryResult::column_sql_types() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.duckdb.QueryResult.column_sql_types)
+  return column_sql_types_;
+}
+
+// uint32 total_rows = 6;
+inline void QueryResult::clear_total_rows() {
+  total_rows_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResult::_internal_total_rows() const {
+  return total_rows_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResult::total_rows() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.duckdb.QueryResult.total_rows)
+  return _internal_total_rows();
+}
+inline void QueryResult::_internal_set_total_rows(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  total_rows_ = value;
+}
+inline void QueryResult::set_total_rows(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_total_rows(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.duckdb.QueryResult.total_rows)
+}
+
+// repeated .tigon.proto.duckdb.QueryResultChunk data_chunks = 7;
 inline int QueryResult::_internal_data_chunks_size() const {
   return data_chunks_.size();
 }

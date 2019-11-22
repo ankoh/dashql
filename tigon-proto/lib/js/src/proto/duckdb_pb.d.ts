@@ -164,6 +164,11 @@ export class QueryResult extends jspb.Message {
   getQueryPlan(): QueryPlan | undefined;
   setQueryPlan(value?: QueryPlan): void;
 
+  clearColumnNamesList(): void;
+  getColumnNamesList(): Array<string>;
+  setColumnNamesList(value: Array<string>): void;
+  addColumnNames(value: string, index?: number): string;
+
   clearColumnRawTypesList(): void;
   getColumnRawTypesList(): Array<RawTypeIDMap[keyof RawTypeIDMap]>;
   setColumnRawTypesList(value: Array<RawTypeIDMap[keyof RawTypeIDMap]>): void;
@@ -174,10 +179,8 @@ export class QueryResult extends jspb.Message {
   setColumnSqlTypesList(value: Array<SQLType>): void;
   addColumnSqlTypes(value?: SQLType, index?: number): SQLType;
 
-  clearColumnNamesList(): void;
-  getColumnNamesList(): Array<string>;
-  setColumnNamesList(value: Array<string>): void;
-  addColumnNames(value: string, index?: number): string;
+  getTotalRows(): number;
+  setTotalRows(value: number): void;
 
   clearDataChunksList(): void;
   getDataChunksList(): Array<QueryResultChunk>;
@@ -198,9 +201,10 @@ export namespace QueryResult {
   export type AsObject = {
     queryId: number,
     queryPlan?: QueryPlan.AsObject,
+    columnNamesList: Array<string>,
     columnRawTypesList: Array<RawTypeIDMap[keyof RawTypeIDMap]>,
     columnSqlTypesList: Array<SQLType.AsObject>,
-    columnNamesList: Array<string>,
+    totalRows: number,
     dataChunksList: Array<QueryResultChunk.AsObject>,
   }
 }

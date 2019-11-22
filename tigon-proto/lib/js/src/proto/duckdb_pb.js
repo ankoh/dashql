@@ -1264,7 +1264,7 @@ proto.tigon.proto.duckdb.QueryResultChunk.prototype.clearColumnsList = function(
  * @private {!Array<number>}
  * @const
  */
-proto.tigon.proto.duckdb.QueryResult.repeatedFields_ = [3,4,5,6];
+proto.tigon.proto.duckdb.QueryResult.repeatedFields_ = [3,4,5,7];
 
 
 
@@ -1299,10 +1299,11 @@ proto.tigon.proto.duckdb.QueryResult.toObject = function(includeInstance, msg) {
   var f, obj = {
     queryId: jspb.Message.getFieldWithDefault(msg, 1, 0),
     queryPlan: (f = msg.getQueryPlan()) && proto.tigon.proto.duckdb.QueryPlan.toObject(includeInstance, f),
-    columnRawTypesList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
+    columnNamesList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
+    columnRawTypesList: (f = jspb.Message.getRepeatedField(msg, 4)) == null ? undefined : f,
     columnSqlTypesList: jspb.Message.toObjectList(msg.getColumnSqlTypesList(),
     proto.tigon.proto.duckdb.SQLType.toObject, includeInstance),
-    columnNamesList: (f = jspb.Message.getRepeatedField(msg, 5)) == null ? undefined : f,
+    totalRows: jspb.Message.getFieldWithDefault(msg, 6, 0),
     dataChunksList: jspb.Message.toObjectList(msg.getDataChunksList(),
     proto.tigon.proto.duckdb.QueryResultChunk.toObject, includeInstance)
   };
@@ -1351,19 +1352,23 @@ proto.tigon.proto.duckdb.QueryResult.deserializeBinaryFromReader = function(msg,
       msg.setQueryPlan(value);
       break;
     case 3:
+      var value = /** @type {string} */ (reader.readString());
+      msg.addColumnNames(value);
+      break;
+    case 4:
       var value = /** @type {!Array<!proto.tigon.proto.duckdb.RawTypeID>} */ (reader.readPackedEnum());
       msg.setColumnRawTypesList(value);
       break;
-    case 4:
+    case 5:
       var value = new proto.tigon.proto.duckdb.SQLType;
       reader.readMessage(value,proto.tigon.proto.duckdb.SQLType.deserializeBinaryFromReader);
       msg.addColumnSqlTypes(value);
       break;
-    case 5:
-      var value = /** @type {string} */ (reader.readString());
-      msg.addColumnNames(value);
-      break;
     case 6:
+      var value = /** @type {number} */ (reader.readUint32());
+      msg.setTotalRows(value);
+      break;
+    case 7:
       var value = new proto.tigon.proto.duckdb.QueryResultChunk;
       reader.readMessage(value,proto.tigon.proto.duckdb.QueryResultChunk.deserializeBinaryFromReader);
       msg.addDataChunks(value);
@@ -1412,32 +1417,39 @@ proto.tigon.proto.duckdb.QueryResult.serializeBinaryToWriter = function(message,
       proto.tigon.proto.duckdb.QueryPlan.serializeBinaryToWriter
     );
   }
+  f = message.getColumnNamesList();
+  if (f.length > 0) {
+    writer.writeRepeatedString(
+      3,
+      f
+    );
+  }
   f = message.getColumnRawTypesList();
   if (f.length > 0) {
     writer.writePackedEnum(
-      3,
+      4,
       f
     );
   }
   f = message.getColumnSqlTypesList();
   if (f.length > 0) {
     writer.writeRepeatedMessage(
-      4,
+      5,
       f,
       proto.tigon.proto.duckdb.SQLType.serializeBinaryToWriter
     );
   }
-  f = message.getColumnNamesList();
-  if (f.length > 0) {
-    writer.writeRepeatedString(
-      5,
+  f = message.getTotalRows();
+  if (f !== 0) {
+    writer.writeUint32(
+      6,
       f
     );
   }
   f = message.getDataChunksList();
   if (f.length > 0) {
     writer.writeRepeatedMessage(
-      6,
+      7,
       f,
       proto.tigon.proto.duckdb.QueryResultChunk.serializeBinaryToWriter
     );
@@ -1501,86 +1513,11 @@ proto.tigon.proto.duckdb.QueryResult.prototype.hasQueryPlan = function() {
 
 
 /**
- * repeated RawTypeID column_raw_types = 3;
- * @return {!Array<!proto.tigon.proto.duckdb.RawTypeID>}
- */
-proto.tigon.proto.duckdb.QueryResult.prototype.getColumnRawTypesList = function() {
-  return /** @type {!Array<!proto.tigon.proto.duckdb.RawTypeID>} */ (jspb.Message.getRepeatedField(this, 3));
-};
-
-
-/**
- * @param {!Array<!proto.tigon.proto.duckdb.RawTypeID>} value
- * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
- */
-proto.tigon.proto.duckdb.QueryResult.prototype.setColumnRawTypesList = function(value) {
-  return jspb.Message.setField(this, 3, value || []);
-};
-
-
-/**
- * @param {!proto.tigon.proto.duckdb.RawTypeID} value
- * @param {number=} opt_index
- * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
- */
-proto.tigon.proto.duckdb.QueryResult.prototype.addColumnRawTypes = function(value, opt_index) {
-  return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
-};
-
-
-/**
- * Clears the list making it empty but non-null.
- * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
- */
-proto.tigon.proto.duckdb.QueryResult.prototype.clearColumnRawTypesList = function() {
-  return this.setColumnRawTypesList([]);
-};
-
-
-/**
- * repeated SQLType column_sql_types = 4;
- * @return {!Array<!proto.tigon.proto.duckdb.SQLType>}
- */
-proto.tigon.proto.duckdb.QueryResult.prototype.getColumnSqlTypesList = function() {
-  return /** @type{!Array<!proto.tigon.proto.duckdb.SQLType>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.tigon.proto.duckdb.SQLType, 4));
-};
-
-
-/**
- * @param {!Array<!proto.tigon.proto.duckdb.SQLType>} value
- * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
-*/
-proto.tigon.proto.duckdb.QueryResult.prototype.setColumnSqlTypesList = function(value) {
-  return jspb.Message.setRepeatedWrapperField(this, 4, value);
-};
-
-
-/**
- * @param {!proto.tigon.proto.duckdb.SQLType=} opt_value
- * @param {number=} opt_index
- * @return {!proto.tigon.proto.duckdb.SQLType}
- */
-proto.tigon.proto.duckdb.QueryResult.prototype.addColumnSqlTypes = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 4, opt_value, proto.tigon.proto.duckdb.SQLType, opt_index);
-};
-
-
-/**
- * Clears the list making it empty but non-null.
- * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
- */
-proto.tigon.proto.duckdb.QueryResult.prototype.clearColumnSqlTypesList = function() {
-  return this.setColumnSqlTypesList([]);
-};
-
-
-/**
- * repeated string column_names = 5;
+ * repeated string column_names = 3;
  * @return {!Array<string>}
  */
 proto.tigon.proto.duckdb.QueryResult.prototype.getColumnNamesList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 5));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
 };
 
 
@@ -1589,7 +1526,7 @@ proto.tigon.proto.duckdb.QueryResult.prototype.getColumnNamesList = function() {
  * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
  */
 proto.tigon.proto.duckdb.QueryResult.prototype.setColumnNamesList = function(value) {
-  return jspb.Message.setField(this, 5, value || []);
+  return jspb.Message.setField(this, 3, value || []);
 };
 
 
@@ -1599,7 +1536,7 @@ proto.tigon.proto.duckdb.QueryResult.prototype.setColumnNamesList = function(val
  * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
  */
 proto.tigon.proto.duckdb.QueryResult.prototype.addColumnNames = function(value, opt_index) {
-  return jspb.Message.addToRepeatedField(this, 5, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
 };
 
 
@@ -1613,12 +1550,105 @@ proto.tigon.proto.duckdb.QueryResult.prototype.clearColumnNamesList = function()
 
 
 /**
- * repeated QueryResultChunk data_chunks = 6;
+ * repeated RawTypeID column_raw_types = 4;
+ * @return {!Array<!proto.tigon.proto.duckdb.RawTypeID>}
+ */
+proto.tigon.proto.duckdb.QueryResult.prototype.getColumnRawTypesList = function() {
+  return /** @type {!Array<!proto.tigon.proto.duckdb.RawTypeID>} */ (jspb.Message.getRepeatedField(this, 4));
+};
+
+
+/**
+ * @param {!Array<!proto.tigon.proto.duckdb.RawTypeID>} value
+ * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
+ */
+proto.tigon.proto.duckdb.QueryResult.prototype.setColumnRawTypesList = function(value) {
+  return jspb.Message.setField(this, 4, value || []);
+};
+
+
+/**
+ * @param {!proto.tigon.proto.duckdb.RawTypeID} value
+ * @param {number=} opt_index
+ * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
+ */
+proto.tigon.proto.duckdb.QueryResult.prototype.addColumnRawTypes = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 4, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
+ */
+proto.tigon.proto.duckdb.QueryResult.prototype.clearColumnRawTypesList = function() {
+  return this.setColumnRawTypesList([]);
+};
+
+
+/**
+ * repeated SQLType column_sql_types = 5;
+ * @return {!Array<!proto.tigon.proto.duckdb.SQLType>}
+ */
+proto.tigon.proto.duckdb.QueryResult.prototype.getColumnSqlTypesList = function() {
+  return /** @type{!Array<!proto.tigon.proto.duckdb.SQLType>} */ (
+    jspb.Message.getRepeatedWrapperField(this, proto.tigon.proto.duckdb.SQLType, 5));
+};
+
+
+/**
+ * @param {!Array<!proto.tigon.proto.duckdb.SQLType>} value
+ * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
+*/
+proto.tigon.proto.duckdb.QueryResult.prototype.setColumnSqlTypesList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 5, value);
+};
+
+
+/**
+ * @param {!proto.tigon.proto.duckdb.SQLType=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.tigon.proto.duckdb.SQLType}
+ */
+proto.tigon.proto.duckdb.QueryResult.prototype.addColumnSqlTypes = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 5, opt_value, proto.tigon.proto.duckdb.SQLType, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
+ */
+proto.tigon.proto.duckdb.QueryResult.prototype.clearColumnSqlTypesList = function() {
+  return this.setColumnSqlTypesList([]);
+};
+
+
+/**
+ * optional uint32 total_rows = 6;
+ * @return {number}
+ */
+proto.tigon.proto.duckdb.QueryResult.prototype.getTotalRows = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 6, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
+ */
+proto.tigon.proto.duckdb.QueryResult.prototype.setTotalRows = function(value) {
+  return jspb.Message.setProto3IntField(this, 6, value);
+};
+
+
+/**
+ * repeated QueryResultChunk data_chunks = 7;
  * @return {!Array<!proto.tigon.proto.duckdb.QueryResultChunk>}
  */
 proto.tigon.proto.duckdb.QueryResult.prototype.getDataChunksList = function() {
   return /** @type{!Array<!proto.tigon.proto.duckdb.QueryResultChunk>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.tigon.proto.duckdb.QueryResultChunk, 6));
+    jspb.Message.getRepeatedWrapperField(this, proto.tigon.proto.duckdb.QueryResultChunk, 7));
 };
 
 
@@ -1627,7 +1657,7 @@ proto.tigon.proto.duckdb.QueryResult.prototype.getDataChunksList = function() {
  * @return {!proto.tigon.proto.duckdb.QueryResult} returns this
 */
 proto.tigon.proto.duckdb.QueryResult.prototype.setDataChunksList = function(value) {
-  return jspb.Message.setRepeatedWrapperField(this, 6, value);
+  return jspb.Message.setRepeatedWrapperField(this, 7, value);
 };
 
 
@@ -1637,7 +1667,7 @@ proto.tigon.proto.duckdb.QueryResult.prototype.setDataChunksList = function(valu
  * @return {!proto.tigon.proto.duckdb.QueryResultChunk}
  */
 proto.tigon.proto.duckdb.QueryResult.prototype.addDataChunks = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 6, opt_value, proto.tigon.proto.duckdb.QueryResultChunk, opt_index);
+  return jspb.Message.addToRepeatedWrapperField(this, 7, opt_value, proto.tigon.proto.duckdb.QueryResultChunk, opt_index);
 };
 
 
