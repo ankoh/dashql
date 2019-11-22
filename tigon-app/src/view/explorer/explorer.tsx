@@ -52,7 +52,7 @@ interface IExplorerProps {
     tqlStatements: Immutable.List<proto.tql.Statement>;
 }
 
-function Section(props: { title: string, count: number, children?: React.ReactNodeArray }) {
+function Section(props: { title: string, children?: React.ReactNodeArray }) {
     return (
         <div className={s.outline_section}>
             <div className={cN(s.outline_section_header, {
@@ -62,7 +62,7 @@ function Section(props: { title: string, count: number, children?: React.ReactNo
                 {props.title}
             </div>
             <div className={s.outline_section_badge}>
-                {props.count}
+                {props.children ? props.children.length : 0}
             </div>
             <div className={s.outline_section_entries}>
                 {props.children}
@@ -80,31 +80,36 @@ function SectionEntry(props: { name: string, description: string }) {
 }
 
 function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
-    let query = TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.QUERY, (i, s: proto.tql.QueryStatement) => 
-        <SectionEntry key={i} name={s.getQueryName() || "-"} description={""} />
-    );
-    let param = TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.PARAMETER, (i, s: proto.tql.ParameterDeclaration) =>
-        <SectionEntry key={i} name={s.getParameterName() || "-"} description={""} />
-    );
-    let extract = TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.EXTRACT, (i, s: proto.tql.ExtractStatement) =>
-        <SectionEntry key={i} name={s.getExtractName() || "-"} description={""} />
-    );
-    let load = TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.LOAD, (i, s: proto.tql.LoadStatement) => 
-        <SectionEntry key={i} name={s.getDataName() || "-"} description={""} />
-    );
-    let viz = TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.VIZ, (i, s: proto.tql.VizStatement) => 
-        <SectionEntry key={i} name={s.getVizName() || "-"} description={""} />
-    );
     return (
         <div className={s.outline}>
             <div className={s.outline_header}>
                 TQL Program
             </div>
-            <Section title="Parameters" count={param.length}>{param}</Section>
-            <Section title="Load Statements" count={load.length}>{load}</Section>
-            <Section title="Extract Statements" count={extract.length}>{extract}</Section>
-            <Section title="Query Statements" count={query.length}>{query}</Section>
-            <Section title="Vizualizations" count={viz.length}>{viz}</Section>
+            <Section title="Parameters">
+                {TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.PARAMETER,
+                    (i, s: proto.tql.ParameterDeclaration) =>
+                        <SectionEntry key={i} name={s.getParameterName() || "-"} description={""} />)}
+            </Section>
+            <Section title="Load Statements">
+                {TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.LOAD,
+                    (i, s: proto.tql.LoadStatement) => 
+                        <SectionEntry key={i} name={s.getDataName() || "-"} description={""} />)}
+            </Section>
+            <Section title="Extract Statements">
+                {TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.EXTRACT,
+                    (i, s: proto.tql.ExtractStatement) =>
+                        <SectionEntry key={i} name={s.getExtractName() || "-"} description={""} />)}
+            </Section>
+            <Section title="Query Statements">
+                {TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.QUERY,
+                    (i, s: proto.tql.QueryStatement) => 
+                        <SectionEntry key={i} name={s.getQueryName() || "-"} description={""} />)}
+            </Section>
+            <Section title="Vizualizations">
+                {TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.VIZ,
+                    (i, s: proto.tql.VizStatement) => 
+                        <SectionEntry key={i} name={s.getVizName() || "-"} description={""} />)}
+            </Section>
         </div>
     );
 }
