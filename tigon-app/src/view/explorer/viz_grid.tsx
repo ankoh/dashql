@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as Model from '../../model';
 import * as Immutable from 'immutable';
 import * as proto from 'tigon-proto';
+import Table from '../viz/table';
 import { TQLInterpreter } from '../../ctrl';
 import { connect } from 'react-redux';
 import s from './viz_grid.module.scss';
@@ -21,7 +22,8 @@ function Viz(props: {statement: proto.tql.VizStatement, data: proto.duckdb.Query
     }
     return (
         <div key={props.statement.getVizName()} className={s.grid_element}>
-            {text}
+            {props.data && <Table data={props.data} />}
+            {!props.data && "foo" }
         </div>
     );
 }

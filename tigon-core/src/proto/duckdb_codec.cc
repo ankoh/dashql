@@ -187,10 +187,15 @@ static void encodeStringColumn(protobuf::Arena& arena, proto::duckdb::QueryResul
 proto::duckdb::QueryResult* encodeQueryResult(protobuf::Arena& arena, duckdb::QueryResult& queryResult, uint64_t queryID) {
     auto* res = protobuf::Arena::CreateMessage<proto::duckdb::QueryResult>(&arena);
     auto* chunks = res->mutable_data_chunks();
+    uint32_t rowCount = 0;
+    uint32_t colCount = 0;
     res->set_query_id(queryID);
 
     // Fetch res rows and immediately write them into a flatbuffer
     for (auto c = queryResult.Fetch(); !!c && c->size() > 0; c = queryResult.Fetch()) {
+        rowCount += c->size();
+        colCount = colCount;
+
         // Build res chunk
         auto* chunk = chunks->Add();
         auto* cols = chunk->mutable_columns();
@@ -238,6 +243,10 @@ proto::duckdb::QueryResult* encodeQueryResult(protobuf::Arena& arena, duckdb::Qu
             }
         }
     }
+
+    // Write row and column count
+    res->set_column_count(colCount);
+    res->set_row_count(rowCount);
 
     // Write column types
     auto* rawTypes = res->mutable_column_raw_types();

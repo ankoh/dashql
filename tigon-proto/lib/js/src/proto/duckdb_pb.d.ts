@@ -164,6 +164,12 @@ export class QueryResult extends jspb.Message {
   getQueryPlan(): QueryPlan | undefined;
   setQueryPlan(value?: QueryPlan): void;
 
+  getColumnCount(): number;
+  setColumnCount(value: number): void;
+
+  getRowCount(): number;
+  setRowCount(value: number): void;
+
   clearColumnNamesList(): void;
   getColumnNamesList(): Array<string>;
   setColumnNamesList(value: Array<string>): void;
@@ -178,9 +184,6 @@ export class QueryResult extends jspb.Message {
   getColumnSqlTypesList(): Array<SQLType>;
   setColumnSqlTypesList(value: Array<SQLType>): void;
   addColumnSqlTypes(value?: SQLType, index?: number): SQLType;
-
-  getTotalRows(): number;
-  setTotalRows(value: number): void;
 
   clearDataChunksList(): void;
   getDataChunksList(): Array<QueryResultChunk>;
@@ -201,10 +204,11 @@ export namespace QueryResult {
   export type AsObject = {
     queryId: number,
     queryPlan?: QueryPlan.AsObject,
+    columnCount: number,
+    rowCount: number,
     columnNamesList: Array<string>,
     columnRawTypesList: Array<RawTypeIDMap[keyof RawTypeIDMap]>,
     columnSqlTypesList: Array<SQLType.AsObject>,
-    totalRows: number,
     dataChunksList: Array<QueryResultChunk.AsObject>,
   }
 }

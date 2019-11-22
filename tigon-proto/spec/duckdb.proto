@@ -132,11 +132,11 @@ message QueryResultChunk {
 message QueryResult {
     uint32 query_id = 1;
     QueryPlan query_plan = 2;
+    uint32 column_count = 3;
+    uint32 row_count = 4;
 
-    repeated string column_names = 3;
-    repeated RawTypeID column_raw_types = 4;
-    repeated SQLType column_sql_types = 5;
-
-    uint32 total_rows = 6;
-    repeated QueryResultChunk data_chunks = 7;
+    repeated string column_names = 5;
+    repeated RawTypeID column_raw_types = 6;
+    repeated SQLType column_sql_types = 7;
+    repeated QueryResultChunk data_chunks = 8;
 }

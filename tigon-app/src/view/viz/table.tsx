@@ -1,6 +1,5 @@
 import * as proto from 'tigon-proto';
 import * as React from 'react';
-import * as Model from '../../model';
 import { AutoSizer, MultiGrid, GridCellProps, Index } from 'react-virtualized';
 
 import './table.scss';
@@ -17,7 +16,7 @@ interface ITableState {
 }
 
 // The table
-class Table extends React.Component<ITableProps, ITableState> {
+export class Table extends React.Component<ITableProps, ITableState> {
     // Constructor
     constructor(props: ITableProps) {
         super(props);
@@ -139,18 +138,19 @@ class Table extends React.Component<ITableProps, ITableState> {
 
     // Render the full table
     public render() {
-        let columnCount = this.props.data.getColumnCount();
+        let rowCount = this.props.data.getRowCount();
+        let colCount = this.props.data.getColumnCount();
         return (
             <div className="table">
                 <AutoSizer>
                     {({ height, width }) => (
                         <MultiGrid
                             cellRenderer={this.renderCell.bind(this)}
-                            columnCount={columnCount + 1}
+                            columnCount={colCount + 1}
                             columnWidth={function(index: Index) {
                                 let lineNumberWidth = 48;
                                 let available = width - lineNumberWidth;
-                                let equalWidths = available / columnCount;
+                                let equalWidths = available / colCount;
                                 let maxWidth = available * 0.2;
                                 let minWidth = 60;
                                 return (index.index === 0)
@@ -161,7 +161,7 @@ class Table extends React.Component<ITableProps, ITableState> {
                             width={width}
                             fixedRowCount={1}
                             fixedColumnCount={1}
-                            rowCount={this.props.data.getRowCount() + 1}
+                            rowCount={rowCount}
                             rowHeight={28}
                         />
                     )}
@@ -171,5 +171,4 @@ class Table extends React.Component<ITableProps, ITableState> {
     }
 }
 
-export default () => <div />;
-
+export default Table;

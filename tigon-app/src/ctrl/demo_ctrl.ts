@@ -53,13 +53,19 @@ export class DemoController {
 export class QueryResultWriter {
     protected queryResult: proto.duckdb.QueryResult;
     protected dataChunk: proto.duckdb.QueryResultChunk;
+    protected columnCount: number;
+    protected rowCount: number;
 
     constructor() {
         this.queryResult = new proto.duckdb.QueryResult();
         this.dataChunk = new proto.duckdb.QueryResultChunk();
+        this.columnCount = 0;
+        this.rowCount = 0;
     }
 
     public addNumericColumn(name: string, sqlTypeID: proto.duckdb.SQLTypeIDMap[keyof proto.duckdb.SQLTypeIDMap], rows: Array<number>) {
+        this.rowCount = rows.length;
+        this.columnCount += 1;
         let column = new proto.duckdb.QueryResultColumn();
         let sqlType = new proto.duckdb.SQLType();
         sqlType.setTypeId(sqlTypeID);
@@ -104,6 +110,8 @@ export class QueryResultWriter {
     }
 
     public addVarcharColumn(name: string, rows: Array<string>) {
+        this.rowCount = rows.length;
+        this.columnCount += 1;
         let column = new proto.duckdb.QueryResultColumn();
         column.setRowsStrList(rows);
         let nullMask = new Array<boolean>();
@@ -120,6 +128,8 @@ export class QueryResultWriter {
 
     public finish(): proto.duckdb.QueryResult {
         let queryResult = this.queryResult;
+        queryResult.setColumnCount(this.columnCount);
+        queryResult.setRowCount(this.rowCount);
         queryResult.addDataChunks(this.dataChunk);
         return queryResult;
     }
