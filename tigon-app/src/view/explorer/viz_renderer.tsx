@@ -24,10 +24,12 @@ export class VizRenderer extends React.Component<IVizRendererProps, IVizRenderer
             proto.tql.Statement.StatementCase.VIZ,
             (_, v: proto.tql.VizStatement) => v);
 
+        let i = 0;
+
         return (
             <div className={s.grid}>
                 {vizStmts.map(_v => (
-                    <div className={s.grid_element} />
+                    <div key={++i} className={s.grid_element} />
                 ))}
             </div>
         );

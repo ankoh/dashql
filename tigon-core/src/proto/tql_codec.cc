@@ -15,9 +15,6 @@ auto generateName(tql::SQLStatement& stmt) {
     static unsigned id = 0;
     return "query_" + std::to_string(++id);
 }
-auto* createString(protobuf::Arena& arena, std::string_view text) {
-    return protobuf::Arena::Create<std::string>(&arena, text);
-}
 
 }
 
@@ -32,32 +29,37 @@ proto::tql::Module* encodeTQLModule(protobuf::Arena& arena, tql::Module& module)
             // Viz statement
             [&](std::unique_ptr<tql::VizStatement>& viz) {
                 auto* v = stmts->Add()->mutable_viz();
-                v->set_allocated_viz_name(createString(arena, viz->name));
+                v->set_viz_name(viz->name.data(), viz->name.size());
             },
 
             // Extract statement
             [&](std::unique_ptr<tql::ExtractStatement>& extract) {
                 auto* e = stmts->Add()->mutable_extract();
-                e->set_allocated_data_name(createString(arena, extract->name));
+                e->set_extract_name(extract->name.data(), extract->name.size());
             },
 
             // Load statement
             [&](std::unique_ptr<tql::LoadStatement>& load) {
                 auto* l = stmts->Add()->mutable_load();
-                l->set_allocated_data_name(createString(arena, load->name));
+                l->set_data_name(load->name.data(), load->name.size());
             },
 
             // Parameter declaration
             [&](std::unique_ptr<tql::ParameterDeclaration>& param) {
                 auto* p = stmts->Add()->mutable_parameter();
-                p->set_allocated_parameter_name(createString(arena, param->name));
+                p->set_parameter_name(param->name.data(), param->name.size());
             },
 
             // SQL statement
             [&](std::unique_ptr<tql::SQLStatement>& sql) {
                 auto* q = stmts->Add()->mutable_query();
-                q->set_allocated_query_name(createString(arena, sql->name));
-                q->set_allocated_query_text(createString(arena, sql->text));
+                if (sql->name.empty() || sql->name == "") {
+                    auto name = generateName(*sql);
+                    q->set_query_name(name.data(), name.size());                   
+                } else {
+                    q->set_query_name(sql->name.data(), sql->name.size());
+                }
+                q->set_query_text(sql->text.data(), sql->text.size());
             }
         }, statement);
     }

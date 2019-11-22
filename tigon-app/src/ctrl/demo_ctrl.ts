@@ -33,6 +33,7 @@ export class DemoController {
 
             VIZ temp_weekly_bar FROM temp_weekly USING BAR CHART;
         `);
+        
         for (let stmt of tql.getStatementsList()) {
             this.store.dispatch(Model.pushTransientTQLStatement(stmt));
         }

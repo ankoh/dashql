@@ -2,24 +2,11 @@ import { compose, createStore as createReduxStore } from 'redux';
 import * as Model from './';
 
 function actionSanitizer(a: Model.RootAction) {
-    switch (a.type) {
-        case Model.ActionType.PUSH_TRANSIENT_TQL_MODULE: 
-            return { ...a, payload: '<CORE>' };
-        case Model.ActionType.SET_TRANSIENT_QUERY_RESULT: 
-            return { ...a, payload: '<CORE>' };
-        default:
-            return a;
-    }
+    return a;
 }
 
 function stateSanitizer(s: Model.RootState) {
-    return {
-        ...s,
-        transientTQLModules: '<CORE>',
-        transientDataBuffers: '<CORE>',
-        transientQueryResults: '<CORE>',
-        transientQueryPlans: '<CORE>',
-    };
+    return s;
 }
 
 /* tslint:disable */

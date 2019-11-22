@@ -1,13 +1,12 @@
 import './plan_viewer.scss';
 import * as proto from 'tigon-proto';
 import * as React from 'react';
-import * as Model from '../../model';
 import * as d3 from 'd3';
 import * as dagre from 'dagre';
 import * as dagreD3 from 'dagre-d3';
 
 interface IPlanViewerProps {
-    plan: Model.CoreBuffer<proto.duckdb.QueryPlan> | null;
+    plan: proto.duckdb.QueryPlan | null;
 }
 
 export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
@@ -19,7 +18,7 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
     }
 
     /// Get an operator name
-    private getOperatorName(type: proto.duckdb.LogicalOperatorType) {
+    private getOperatorName(type: proto.duckdb.LogicalOperatorTypeMap[keyof proto.duckdb.LogicalOperatorTypeMap]) {
         var operatorTypeNames = [
             "INVALID",
             "PROJECTION",
@@ -70,22 +69,15 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
             })
             .setDefaultEdgeLabel(function() { return {}; });
 
-        let buffer = this.props.plan!.getReader();
-        let opCount = buffer.operatorTypesLength();
-        let ofsCount = buffer.operatorChildOffsetsLength();
-        let childCount = buffer.operatorChildrenLength();
-
-        // Get operator child
-        let getChildOffset = function(index: number) {
-            return (buffer.operatorChildOffsets(index) || flatbuffers.Long.ZERO).toFloat64();
-        };
-        let getChild = function(index: number) {
-            return (buffer.operatorChildren(index) || flatbuffers.Long.ZERO).toFloat64();
-        };
+        let buffer = this.props.plan!;
+        let opTypes = buffer.getOperatorTypesList();
+        let childOffsets = buffer.getOperatorChildOffsetsList();
+        let children = buffer.getOperatorChildrenList();
+        let opCount = opTypes.length;
 
         // Create nodes
         for (let oid = 0; oid < opCount; oid += 1) {
-            let name = this.getOperatorName(buffer.operatorTypes(oid) || 0);
+            let name = this.getOperatorName(opTypes[oid] || 0);
             graph.setNode(String(oid), {
                 label: name,
                 width: 4 + name.length * 8,
@@ -97,10 +89,10 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
 
         // Create edges
         for (let oid = 0; oid < opCount; oid += 1) {
-            let begin = getChildOffset(oid);
-            let end = (oid + 1 < ofsCount) ? getChildOffset(oid + 1) : childCount;
+            let begin = childOffsets[oid];
+            let end = (oid + 1 < childOffsets.length) ? childOffsets[oid + 1] : children.length;
             for (let cid = begin; cid < end; cid += 1) {
-                graph.setEdge(String(oid), String(getChild(cid)), {
+                graph.setEdge(String(oid), String(children[cid]), {
                     arrowhead: "undirected",
                 });
             }

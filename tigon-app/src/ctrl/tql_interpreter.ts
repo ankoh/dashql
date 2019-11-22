@@ -44,6 +44,9 @@ export class TQLInterpreter {
                 case proto.tql.Statement.StatementCase.PARAMETER:
                     fn(i++, s.getParameter()!);
                     break;
+                case proto.tql.Statement.StatementCase.QUERY:
+                    fn(i++, s.getQuery()!);
+                    break;
                 case proto.tql.Statement.StatementCase.VIZ:
                     fn(i++, s.getViz()!);
                     break;
