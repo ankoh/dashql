@@ -8,6 +8,13 @@ import { TQLInterpreter } from '../../ctrl';
 import { connect } from 'react-redux';
 import s from './viz_grid.module.scss';
 
+import {
+    RefreshIcon,
+} from '../../svg/icons';
+
+const ACTION_ICON_WIDTH="16px";
+const ACTION_ICON_HEIGHT="16px";
+
 /// A grid element
 export class GridElement {
     /// The column start
@@ -92,6 +99,11 @@ function VizCard(props: {
                 <div className={s.viz_card_header}>
                     <div className={s.viz_card_title}>
                         Some Cool Title
+                    </div>
+                    <div />
+                    <div />
+                    <div className={s.viz_card_action_refresh}>
+                        <RefreshIcon className={s.viz_card_action_icon} width={ACTION_ICON_WIDTH} height={ACTION_ICON_HEIGHT} />
                     </div>
                 </div>
                 <div className={s.viz_card_body}>
