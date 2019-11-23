@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as Model from '../../model';
 import { connect } from 'react-redux';
-import { AutoSizer } from 'react-virtualized';
+import { withAutoSizer } from '../autosizer';
 import s from './board.module.scss';
 
 const TICK_COLOR = "rgb(180, 180, 180)";
@@ -171,6 +171,8 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
     }
 };
 
+const AutoSizingRuler = withAutoSizer(Ruler);
+
 interface IBoardProps {
     scaleFactor: number,
 }
@@ -183,28 +185,16 @@ export class Board extends React.Component<IBoardProps, {}> {
                     {this.props.children}
                 </div>
                 <div className={s.board_ruler_top}>
-                    <AutoSizer>
-                        {({ height, width }) => (
-                            <Ruler
-                                width={width}
-                                height={height}
-                                orientation={RulerOrientation.Horizontal}
-                                scaleFactor={this.props.scaleFactor}
-                            />
-                        )}
-                    </AutoSizer>
+                    <AutoSizingRuler
+                        orientation={RulerOrientation.Horizontal}
+                        scaleFactor={this.props.scaleFactor}
+                    />
                 </div>
                 <div className={s.board_ruler_left}>
-                    <AutoSizer>
-                        {({ height, width }) => (
-                            <Ruler
-                                width={width}
-                                height={height}
-                                orientation={RulerOrientation.Vertical}
-                                scaleFactor={this.props.scaleFactor}
-                            />
-                        )}
-                    </AutoSizer>
+                    <AutoSizingRuler
+                        orientation={RulerOrientation.Vertical}
+                        scaleFactor={this.props.scaleFactor}
+                    />
                 </div>
                 <div className={s.board_ruler_corner} />
             </div>

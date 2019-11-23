@@ -3,9 +3,27 @@ import * as Model from '../../model';
 import * as Immutable from 'immutable';
 import * as proto from 'tigon-proto';
 import Table from '../viz/table';
+import { withAutoSizer } from '../autosizer';
 import { TQLInterpreter } from '../../ctrl';
 import { connect } from 'react-redux';
 import s from './grid.module.scss';
+
+/// A grid element
+export class GridElement {
+    /// The elements
+    elementID: number;
+    /// The column start
+    columns: [number, number];
+    /// The row start
+    rows: [number, number];
+
+    /// Constructor
+    constructor(elementID: number, columns: [number, number], rows: [number, number]) {
+        this.elementID = elementID;
+        this.columns = columns;
+        this.rows = rows;
+    }
+};
 
 /// A length unit in the grid
 export enum GridLengthUnit {
@@ -32,27 +50,10 @@ export class GridLength {
     }
 };
 
-/// A grid element
-export class GridElement {
-    /// The elements
-    elementID: number;
-    /// The column start
-    columns: [number, number];
-    /// The row start
-    rows: [number, number];
-
-    /// Constructor
-    constructor(elementID: number, columns: [number, number], rows: [number, number]) {
-        this.elementID = elementID;
-        this.columns = columns;
-        this.rows = rows;
-    }
-};
-
 /// A grid layout
 export class GridLayout {
     /// The columns
-    columns: Array<GridLength>;
+    columns: number;
     /// The rows
     rows: Array<GridLength>;
     /// The gaps
@@ -62,7 +63,7 @@ export class GridLayout {
 
     /// Constructor
     constructor() {
-        this.columns = [];
+        this.columns = 12;
         this.rows = [];
         this.gaps = null;
         this.elements = [];
@@ -94,6 +95,8 @@ function VizCard(props: {statement: proto.tql.VizStatement, data: proto.duckdb.Q
 interface IVizGridProps {
     tqlStatements: Immutable.List<proto.tql.Statement>;
     queryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
+    width: number;
+    height: number;
 }
 
 /// A viz grid state
@@ -124,4 +127,7 @@ function mapStateToProps(state: Model.RootState) {
         queryResults: state.transientQueryResults,
     };
 }
-export default connect(mapStateToProps, (_dispatch) => {})(VizGrid);
+export default connect(mapStateToProps, (_dispatch) => {})(withAutoSizer(VizGrid));
+
+
+
