@@ -7,14 +7,69 @@ import { TQLInterpreter } from '../../ctrl';
 import { connect } from 'react-redux';
 import s from './grid.module.scss';
 
-interface IVizGridProps {
-    tqlStatements: Immutable.List<proto.tql.Statement>;
-    queryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
-}
+/// A length unit in the grid
+export enum GridLengthUnit {
+    FRACTIONAL,
+    PIXEL,
+    EM,
+    AUTO,
+    MIN_CONTENT,
+    MAX_CONTENT,
+    MIN_MAX
+};
 
-interface IVizGridState {
-}
+/// A grid length
+export class GridLength {
+    /// The value
+    value: number;
+    /// The unit
+    unit: GridLengthUnit;
 
+    /// Constructor
+    constructor(value: number, unit: GridLengthUnit) {
+        this.value = value;
+        this.unit = unit;
+    }
+};
+
+/// A grid element
+export class GridElement {
+    /// The elements
+    elementID: number;
+    /// The column start
+    columns: [number, number];
+    /// The row start
+    rows: [number, number];
+
+    /// Constructor
+    constructor(elementID: number, columns: [number, number], rows: [number, number]) {
+        this.elementID = elementID;
+        this.columns = columns;
+        this.rows = rows;
+    }
+};
+
+/// A grid layout
+export class GridLayout {
+    /// The columns
+    columns: Array<GridLength>;
+    /// The rows
+    rows: Array<GridLength>;
+    /// The gaps
+    gaps: [GridLength, GridLength] | null;
+    /// The elements
+    elements: Array<GridElement>;
+
+    /// Constructor
+    constructor() {
+        this.columns = [];
+        this.rows = [];
+        this.gaps = null;
+        this.elements = [];
+    }
+};
+
+/// A viz card
 function VizCard(props: {statement: proto.tql.VizStatement, data: proto.duckdb.QueryResult | null}) {
     return (
         <div key={props.statement.getVizName()} className={s.viz}>
@@ -35,6 +90,16 @@ function VizCard(props: {statement: proto.tql.VizStatement, data: proto.duckdb.Q
     );
 }
 
+/// Viz grid properties
+interface IVizGridProps {
+    tqlStatements: Immutable.List<proto.tql.Statement>;
+    queryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
+}
+
+/// A viz grid state
+interface IVizGridState {}
+
+/// A viz grid
 export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
     public render() {
         let vizStmts = TQLInterpreter.mapStatements(
@@ -52,15 +117,11 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
     }
 }
 
+/// Connect the viz grid to redux
 function mapStateToProps(state: Model.RootState) {
     return {
         tqlStatements: state.transientTQLStatements,
         queryResults: state.transientQueryResults,
     };
 }
-
-function mapDispatchToProps(_dispatch: Model.RootState) {
-    return {};
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(VizGrid);
+export default connect(mapStateToProps, (_dispatch) => {})(VizGrid);

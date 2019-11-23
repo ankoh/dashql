@@ -1,7 +1,5 @@
 import * as Immutable from 'immutable';
 import * as proto from 'tigon-proto';
-import { Viz } from './viz';
-import { VizLayout } from './viz_layout';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -113,10 +111,6 @@ export class RootState {
 
     // The transient TQL module (if any)
     public transientTQLStatements: Immutable.List<proto.tql.Statement>;
-    // The transient viz layout (if any)
-    public transientVizLayout: VizLayout | null;
-    // The transient vizzes (if any)
-    public transientVizzes: Immutable.List<Viz>;
     // The transient query results (if any)
     public transientQueryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
     // The transient query plans (if any)
@@ -134,8 +128,6 @@ export class RootState {
         this.logs = Immutable.List<LogEntry>();
         this.rootView = RootView.EXPLORER;
         this.transientTQLStatements = Immutable.List();
-        this.transientVizLayout = null;
-        this.transientVizzes = Immutable.List();
         this.transientQueryResults = Immutable.Map();
         this.transientQueryPlans = Immutable.Map();
         this.focusedViz = null;
