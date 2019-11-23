@@ -9,6 +9,8 @@ import { connect } from 'react-redux';
 import s from './viz_grid.module.scss';
 
 import {
+    DeleteIcon,
+    EditIcon,
     RefreshIcon,
 } from '../../svg/icons';
 
@@ -100,10 +102,14 @@ function VizCard(props: {
                     <div className={s.viz_card_title}>
                         Some Cool Title
                     </div>
-                    <div />
-                    <div />
                     <div className={s.viz_card_action_refresh}>
                         <RefreshIcon className={s.viz_card_action_icon} width={ACTION_ICON_WIDTH} height={ACTION_ICON_HEIGHT} />
+                    </div>
+                    <div className={s.viz_card_action_edit}>
+                        <EditIcon className={s.viz_card_action_icon} width={ACTION_ICON_WIDTH} height={ACTION_ICON_HEIGHT} />
+                    </div>
+                    <div className={s.viz_card_action_delete}>
+                        <DeleteIcon className={s.viz_card_action_icon} width={ACTION_ICON_WIDTH} height={ACTION_ICON_HEIGHT} />
                     </div>
                 </div>
                 <div className={s.viz_card_body}>

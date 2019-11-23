@@ -49,6 +49,7 @@
         }
 
         &_title {
+            grid-row: 1;
             grid-column: 1;
 
             line-height: 32px;
@@ -57,6 +58,19 @@
         }
 
         &_action_refresh {
+            grid-row: 1;
+            grid-column: 2;
+            display: grid;
+        }
+
+        &_action_edit {
+            grid-row: 1;
+            grid-column: 3;
+            display: grid;
+        }
+
+        &_action_delete {
+            grid-row: 1;
             grid-column: 4;
             display: grid;
         }
