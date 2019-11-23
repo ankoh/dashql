@@ -33,10 +33,6 @@ export class DemoController {
 
             VIZ temp_weekly_bar FROM temp_weekly USING BAR CHART;
         `);
-        
-        for (let stmt of tql.getStatementsList()) {
-            this.store.dispatch(Model.pushTransientTQLStatement(stmt));
-        }
 
         // Q1 result
         let q1Res = new QueryResultWriter();
@@ -46,6 +42,8 @@ export class DemoController {
         q1Res.addNumericColumn("col2", proto.duckdb.SQLTypeID.SQL_INTEGER, [
             10, 11, 12, 13, 14, 15, 16, 17, 18, 19
         ]);
+
+        this.store.dispatch(Model.pushTransientTQLStatements(tql.getStatementsList()));
         this.store.dispatch(Model.setTransientQueryResult("temp_weekly", q1Res.finish()));       
     }
 };

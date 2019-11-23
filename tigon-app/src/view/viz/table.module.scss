@@ -1,14 +1,14 @@
 @import '../../theme.scss';
 
-.table {
+.container {
     width: 100%;
     height: 100%;
     border-radius: $theme_border_radius;
     box-sizing: border-box;
     background: rgba(255, 255, 255, 0.8);
     font-size: .75em;
+}
 
-    &_scrollbars {
-        border-radius: 0 0 $theme_border_radius $theme_border_radius;
-    }
+.scrollbars {
+    border-radius: 0 0 $theme_border_radius $theme_border_radius;
 }

@@ -6,22 +6,27 @@ import Table from '../viz/table';
 import { withAutoSizer } from '../autosizer';
 import { TQLInterpreter } from '../../ctrl';
 import { connect } from 'react-redux';
-import s from './grid.module.scss';
+import s from './viz_grid.module.scss';
 
 /// A grid element
 export class GridElement {
-    /// The elements
-    elementID: number;
     /// The column start
     columns: [number, number];
     /// The row start
     rows: [number, number];
 
     /// Constructor
-    constructor(elementID: number, columns: [number, number], rows: [number, number]) {
-        this.elementID = elementID;
+    constructor(columns: [number, number], rows: [number, number]) {
         this.columns = columns;
         this.rows = rows;
+    }
+
+    get columnProp() : string {
+        return this.columns[0].toString() + " / " + this.columns[1].toString();
+    }
+
+    get rowProp() : string {
+        return this.rows[0].toString() + " / " + this.rows[1].toString();
     }
 };
 
@@ -58,24 +63,30 @@ export class GridLayout {
     rows: Array<GridLength>;
     /// The gaps
     gaps: [GridLength, GridLength] | null;
-    /// The elements
-    elements: Array<GridElement>;
 
     /// Constructor
     constructor() {
         this.columns = 12;
         this.rows = [];
         this.gaps = null;
-        this.elements = [];
     }
 };
 
 /// A viz card
-function VizCard(props: {statement: proto.tql.VizStatement, data: proto.duckdb.QueryResult | null}) {
+function VizCard(props: {
+    stmt: proto.tql.VizStatement,
+    data: proto.duckdb.QueryResult | null,
+    pos: GridElement
+}) {
     return (
-        <div key={props.statement.getVizName()} className={s.viz}>
+        <div className={s.viz}
+            style={{
+                gridColumn: props.pos.columnProp,
+                gridRow: props.pos.rowProp,
+            }}
+        >
             <div className={s.viz_id}>
-                {props.statement.getVizName()}
+                {props.stmt.getVizName()}
             </div>
             <div className={s.viz_card}>
                 <div className={s.viz_card_header}>
@@ -84,7 +95,7 @@ function VizCard(props: {statement: proto.tql.VizStatement, data: proto.duckdb.Q
                     </div>
                 </div>
                 <div className={s.viz_card_body}>
-                    {props.data ? <Table data={props.data} /> : "foo"}
+                    {props.data ? <Table data={props.data} /> : ""}
                 </div>
             </div>
         </div>
@@ -93,29 +104,68 @@ function VizCard(props: {statement: proto.tql.VizStatement, data: proto.duckdb.Q
 
 /// Viz grid properties
 interface IVizGridProps {
+    statements: Immutable.List<proto.tql.Statement>;
+    queryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
+
     width: number;
     height: number;
-
-    tqlStatements: Immutable.List<proto.tql.Statement>;
-    queryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
 }
 
 /// A viz grid state
-interface IVizGridState {}
+interface IVizGridState {
+    gridLayout: GridLayout;
+    vizStmts: Array<proto.tql.VizStatement>;
+    vizPositions: Array<GridElement>;
+    vizData: Array<proto.duckdb.QueryResult | null>;
+}
 
 /// A viz grid
 export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
-    public render() {
+    constructor(props: IVizGridProps) {
+        super(props);
+        this.state = VizGrid.computeState(props);
+    }
+
+    protected static computeState(props: IVizGridProps): IVizGridState {
+        // Get the viz statements
         let vizStmts = TQLInterpreter.mapStatements(
-            this.props.tqlStatements,
+            props.statements,
             proto.tql.Statement.StatementCase.VIZ,
             (_, v: proto.tql.VizStatement) => v
         );
-        let vizData = vizStmts.map((v) => this.props.queryResults.get(v.getQueryName()) || null);
+        let vizData = vizStmts.map((v) => props.queryResults.get(v.getQueryName()) || null);
 
+        // Compute the layout
+        let gridLayout = new GridLayout();
+        let vizPositions = new Array<GridElement>();
+        vizPositions.push(new GridElement([1, 4], [1, 1]));
+
+        // Return state
+        return {
+            gridLayout: gridLayout,
+            vizStmts: vizStmts,
+            vizPositions: vizPositions,
+            vizData: vizData,
+        };
+    }
+
+    public componentDidUpdate(prevProps: IVizGridProps) {
+        if (this.props.statements.equals(prevProps.statements)
+            && this.props.queryResults.equals(prevProps.queryResults)
+            && this.props.width === prevProps.width
+            && this.props.height === prevProps.height
+        ) {
+            return;
+        }
+        this.setState(VizGrid.computeState(this.props));
+    }
+
+    public render() {
         return (
-            <div className={s.grid}>
-                {vizStmts.map((s, i) => <VizCard statement={s} data={vizData[i]} />)}
+            <div className={s.container} style={{ width: this.props.width, height: this.props.height }}>
+                {this.state.vizStmts.map((s, i) =>
+                    <VizCard key={s.getVizName()} stmt={s} pos={this.state.vizPositions[i]} data={this.state.vizData[i]} />
+                )}
             </div>
         );
     }
@@ -124,8 +174,8 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 /// Connect the viz grid to redux
 function mapStateToProps(state: Model.RootState) {
     return {
-        tqlStatements: state.transientTQLStatements,
+        statements: state.transientTQLStatements,
         queryResults: state.transientQueryResults,
     };
 }
-export default connect(mapStateToProps, (_dispatch) => {})(withAutoSizer(VizGrid));
+export default connect(mapStateToProps, (_dispatch) => { return {}; })(withAutoSizer(VizGrid));

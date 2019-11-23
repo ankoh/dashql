@@ -1,13 +1,16 @@
 import * as proto from 'tigon-proto';
 import * as React from 'react';
 import { Scrollbars } from 'react-custom-scrollbars';
-import { AutoSizer, Grid, GridCellProps, Index } from 'react-virtualized';
+import { withAutoSizer } from '../autosizer';
+import { Grid, GridCellProps, Index } from 'react-virtualized';
 
 import s from './table.module.scss';
 
 // The table properties
 interface ITableProps {
     data: proto.duckdb.QueryResult;
+    width: number;
+    height: number;
 }
 
 // The table state
@@ -17,20 +20,14 @@ interface ITableState {
 
 // The table
 export class Table extends React.Component<ITableProps, ITableState> {
+    protected gridRef: React.RefObject<Grid>;
+
     constructor(props: ITableProps) {
         super(props);
         this.state = {
             scrollTop: 0,
         };
-    }
-
-    // Only update the component if the timestamp changes
-    public shouldComponentUpdate(nextProps: ITableProps, nextState: ITableState): boolean {
-        if (this.state === nextState &&
-            this.props === nextProps) {
-            return false;
-        }
-        return true;
+        this.gridRef = React.createRef();
     }
 
     // Render a single cell
@@ -139,46 +136,51 @@ export class Table extends React.Component<ITableProps, ITableState> {
         });
     }
 
+    // Compute the column width
+    protected getColumnWidth(index: Index) {
+        let lineNumberWidth = 40;
+        let available = this.props.width - lineNumberWidth;
+        let equalWidths = available / this.props.data.getColumnCount();
+        let minWidth = 56;
+        return (index.index === 0)
+            ? lineNumberWidth
+            : Math.max(equalWidths, minWidth);
+    }
+
+    public componentDidUpdate(prevProps: ITableProps) {
+        if (this.props.width !== prevProps.width || this.props.height !== prevProps.height) {
+            if (this.gridRef.current) {
+                this.gridRef.current.recomputeGridSize();
+            }
+        }
+    }
+
     // Render the full table
     public render() {
-        let rowCount = this.props.data.getRowCount();
-        let colCount = this.props.data.getColumnCount();
         return (
-            <div className={s.table}>
-                <AutoSizer>
-                    {({ height, width }) => (
-                        <Scrollbars
-                            style={{ height: height, width: width }}
-                            onScroll={this.handleScroll.bind(this)}
-                            className={s.table_scrollbars}
-                        >
-                            <Grid
-                                autoHeight
-                                scrollTop={this.state.scrollTop}
-                                cellRenderer={this.renderCell.bind(this)}
-                                columnCount={colCount + 1}
-                                columnWidth={function(index: Index) {
-                                    let lineNumberWidth = 40;
-                                    let available = width - lineNumberWidth;
-                                    let equalWidths = available / colCount;
-                                    let minWidth = 56;
-                                    return (index.index === 0)
-                                        ? lineNumberWidth
-                                        : Math.max(equalWidths, minWidth);
-                                }}
-                                height={height}
-                                width={width}
-                                fixedRowCount={1}
-                                fixedColumnCount={1}
-                                rowCount={rowCount}
-                                rowHeight={28}
-                            />
-                        </Scrollbars>
-                    )}
-                </AutoSizer>
+            <div className={s.container} style={{ height: this.props.height, width: this.props.width }}>
+                <Scrollbars
+                    style={{ height: this.props.height, width: this.props.width }}
+                    onScroll={this.handleScroll.bind(this)}
+                    className={s.scrollbars}
+                >
+                    <Grid
+                        ref={this.gridRef}
+                        autoHeight
+                        autoContainerWidth
+                        scrollTop={this.state.scrollTop}
+                        cellRenderer={this.renderCell.bind(this)}
+                        columnCount={this.props.data.getColumnCount() + 1}
+                        columnWidth={this.getColumnWidth.bind(this)}
+                        height={this.props.height}
+                        width={this.props.width}
+                        rowCount={this.props.data.getRowCount()}
+                        rowHeight={28}
+                    />
+                </Scrollbars>
             </div>
         );
     }
 }
 
-export default Table;
+export default withAutoSizer(Table);

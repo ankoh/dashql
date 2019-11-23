@@ -1,17 +1,27 @@
 @import "../../theme.scss";
 
-.grid {
+.container {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+
+    display: grid;
+    grid-template-rows: auto;
+    grid-template-columns: auto auto auto auto auto auto auto auto auto auto auto auto;
+    grid-gap: 20px 20px;
+
+    box-sizing: border-box;
+    padding: 20px 40px;
     height: 100%;
     width: 100%;
 }
 
 .viz {
-    width: 300px;
     height: 220px;
 
     display: grid;
     grid-template-rows: 32px auto;
-    margin: 30px 50px;
 
     &_id {
         line-height: 32px;
