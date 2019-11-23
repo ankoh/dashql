@@ -32,6 +32,9 @@ export class Table extends React.Component<ITableProps, ITableState> {
         this.chunkCache = 0;
     }
 
+    // TODO: extract the chunk iteration logic into a dedicated iterator.
+    // Note that we still want to preserve the concept of data chunks as we might
+    // want to stream the chunks via websockets (grpc) at some point.
     protected fmtValue(row: number, col: number): string {
         let chunks = this.props.data.getDataChunksList();
         let chunk: proto.duckdb.QueryResultChunk | null = null;
