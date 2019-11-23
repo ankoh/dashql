@@ -162,7 +162,12 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 
     public render() {
         return (
-            <div className={s.container} style={{ width: this.props.width, height: this.props.height }}>
+            <div className={s.container}
+                style={{
+                    width: this.props.width,
+                    height: this.props.height
+                }}
+            >
                 {this.state.vizStmts.map((s, i) =>
                     <VizCard key={s.getVizName()} stmt={s} pos={this.state.vizPositions[i]} data={this.state.vizData[i]} />
                 )}
