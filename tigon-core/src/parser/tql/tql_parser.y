@@ -139,7 +139,7 @@ using std::vector;
 %type <std::unique_ptr<ExtractStatement>> extract_statement;
 %type <std::unique_ptr<LoadStatement>> load_statement;
 %type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
-%type <std::unique_ptr<SQLStatement>> sql_statement;
+%type <std::unique_ptr<QueryStatement>> query_statement;
 %type <std::vector<VizStatement::RGBColor>> viz_color_list;
 %type <std::vector<VizStatement::RGBColor>> opt_viz_color_list;
 
@@ -157,13 +157,13 @@ statement:
  |  viz_statement          { $$ = Statement { move($1) }; }
  |  load_statement          { $$ = Statement { move($1) }; }
  |  parameter_declaration   { $$ = Statement { move($1) }; }
- |  sql_statement           { $$ = Statement { move($1) }; }
+ |  query_statement           { $$ = Statement { move($1) }; }
     ;
 
 parameter_declaration:
     DECLARE PARAMETER identifier opt_as type {
         auto& p = ctx.cached<ParameterDeclaration>();
-        p->name = $3;
+        p->parameter_id = $3;
         p->type = $5;
         $$ = move(p);
     }
@@ -188,9 +188,9 @@ type:
  |  TIME      { $$ = Type::Time; }
     ;
 
-sql_statement:
-    QUERY identifier AS sql_literal     { $$ = std::make_unique<SQLStatement>($2, $4); }
- |  sql_literal                         { $$ = std::make_unique<SQLStatement>(std::string_view(), $1); }
+query_statement:
+    QUERY identifier AS sql_literal     { $$ = std::make_unique<QueryStatement>($2, $4); }
+ |  sql_literal                         { $$ = std::make_unique<QueryStatement>(std::string_view(), $1); }
     ;
 
 sql_literal:
@@ -201,7 +201,7 @@ sql_literal:
 load_statement:
     LOAD identifier FROM load_method {
         auto& l = ctx.cached<LoadStatement>();
-        l->name = $2;
+        l->data_id = $2;
         $$ = move(l);
     }
     ;
@@ -234,8 +234,8 @@ http_method:
 extract_statement:
     EXTRACT identifier FROM identifier USING extract_method {
         auto& e = ctx.cached<ExtractStatement>();
-        e->name = $2;
-        e->source = $4;
+        e->extract_id = $2;
+        e->data_id = $4;
         $$ = move(e);
     }
     ;
@@ -249,8 +249,8 @@ extract_method:
 viz_statement:
     viz_statement_prefix identifier FROM identifier USING viz_method_prefix_list viz_method {
         auto& d = ctx.cached<VizStatement>();
-        d->name = $2;
-        d->target = $4;
+        d->viz_id = $2;
+        d->query_id = $4;
         d->type = $7;
         $$ = move(d);
     }

@@ -24,21 +24,21 @@ namespace tql {
 enum class Type { Integer, Float, Text, Date, DateTime, Time };
 
 /// A raw sql statement
-struct SQLStatement {
-    /// The name (if any)
-    std::string_view name;
+struct QueryStatement {
+    /// The id (if any)
+    std::string_view query_id;
     /// The sql text
     std::string_view text;
 
     /// Constructor
-    SQLStatement(std::string_view name, std::string_view text)
-        : name(name), text(text) {}
+    QueryStatement(std::string_view query_id, std::string_view text)
+        : query_id(query_id), text(text) {}
 };
 
 /// A parameter declaration
 struct ParameterDeclaration {
     /// The parameter name
-    std::string_view name;
+    std::string_view parameter_id;
     /// The type
     Type type;
 };
@@ -69,7 +69,7 @@ struct LoadStatement {
     >;
 
     /// The name
-    std::string_view name;
+    std::string_view data_id;
     /// The method
     LoadMethod method;
 };
@@ -110,10 +110,10 @@ struct ExtractStatement {
 
     using ExtractMethod = std::variant<JSONPathExtract, CSVExtract>;
 
-    /// The target
-    std::string_view name;
-    /// The source
-    std::string_view source;
+    /// The extract id
+    std::string_view extract_id;
+    /// The data id
+    std::string_view data_id;
     /// The method
     ExtractMethod method;
 };
@@ -288,10 +288,10 @@ struct VizStatement {
         std::unique_ptr<Axis> y;
     };
 
-    /// The name
-    std::string_view name;
-    /// The target
-    std::string_view target;
+    /// The viz id
+    std::string_view viz_id;
+    /// The query id
+    std::string_view query_id;
     /// The type
     Type type;
     /// The type flags
@@ -306,11 +306,11 @@ struct VizStatement {
 
 /// A statement
 using Statement = std::variant<
-    std::unique_ptr<VizStatement>,
     std::unique_ptr<ExtractStatement>,
     std::unique_ptr<LoadStatement>,
     std::unique_ptr<ParameterDeclaration>,
-    std::unique_ptr<SQLStatement>
+    std::unique_ptr<QueryStatement>,
+    std::unique_ptr<VizStatement>
 >;
 
 /// A module
