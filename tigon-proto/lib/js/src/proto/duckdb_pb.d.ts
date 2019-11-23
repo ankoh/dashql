@@ -134,6 +134,12 @@ export namespace QueryResultColumn {
 }
 
 export class QueryResultChunk extends jspb.Message {
+  getRowOffset(): number;
+  setRowOffset(value: number): void;
+
+  getRowCount(): number;
+  setRowCount(value: number): void;
+
   clearColumnsList(): void;
   getColumnsList(): Array<QueryResultColumn>;
   setColumnsList(value: Array<QueryResultColumn>): void;
@@ -151,6 +157,8 @@ export class QueryResultChunk extends jspb.Message {
 
 export namespace QueryResultChunk {
   export type AsObject = {
+    rowOffset: number,
+    rowCount: number,
     columnsList: Array<QueryResultColumn.AsObject>,
   }
 }

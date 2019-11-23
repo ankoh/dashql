@@ -1008,9 +1008,11 @@ class QueryResultChunk :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kColumnsFieldNumber = 1,
+    kColumnsFieldNumber = 3,
+    kRowOffsetFieldNumber = 1,
+    kRowCountFieldNumber = 2,
   };
-  // repeated .tigon.proto.duckdb.QueryResultColumn columns = 1;
+  // repeated .tigon.proto.duckdb.QueryResultColumn columns = 3;
   int columns_size() const;
   private:
   int _internal_columns_size() const;
@@ -1028,6 +1030,24 @@ class QueryResultChunk :
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::QueryResultColumn >&
       columns() const;
 
+  // uint32 row_offset = 1;
+  void clear_row_offset();
+  ::PROTOBUF_NAMESPACE_ID::uint32 row_offset() const;
+  void set_row_offset(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_row_offset() const;
+  void _internal_set_row_offset(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 row_count = 2;
+  void clear_row_count();
+  ::PROTOBUF_NAMESPACE_ID::uint32 row_count() const;
+  void set_row_count(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_row_count() const;
+  void _internal_set_row_count(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
   // @@protoc_insertion_point(class_scope:tigon.proto.duckdb.QueryResultChunk)
  private:
   class _Internal;
@@ -1037,6 +1057,8 @@ class QueryResultChunk :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::duckdb::QueryResultColumn > columns_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 row_offset_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 row_count_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_duckdb_2eproto;
 };
@@ -1947,7 +1969,47 @@ QueryResultColumn::mutable_rows_str() {
 
 // QueryResultChunk
 
-// repeated .tigon.proto.duckdb.QueryResultColumn columns = 1;
+// uint32 row_offset = 1;
+inline void QueryResultChunk::clear_row_offset() {
+  row_offset_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultChunk::_internal_row_offset() const {
+  return row_offset_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultChunk::row_offset() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.duckdb.QueryResultChunk.row_offset)
+  return _internal_row_offset();
+}
+inline void QueryResultChunk::_internal_set_row_offset(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  row_offset_ = value;
+}
+inline void QueryResultChunk::set_row_offset(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_row_offset(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.duckdb.QueryResultChunk.row_offset)
+}
+
+// uint32 row_count = 2;
+inline void QueryResultChunk::clear_row_count() {
+  row_count_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultChunk::_internal_row_count() const {
+  return row_count_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultChunk::row_count() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.duckdb.QueryResultChunk.row_count)
+  return _internal_row_count();
+}
+inline void QueryResultChunk::_internal_set_row_count(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  row_count_ = value;
+}
+inline void QueryResultChunk::set_row_count(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_row_count(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.duckdb.QueryResultChunk.row_count)
+}
+
+// repeated .tigon.proto.duckdb.QueryResultColumn columns = 3;
 inline int QueryResultChunk::_internal_columns_size() const {
   return columns_.size();
 }

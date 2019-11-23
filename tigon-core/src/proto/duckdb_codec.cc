@@ -193,15 +193,18 @@ proto::duckdb::QueryResult* encodeQueryResult(protobuf::Arena& arena, duckdb::Qu
 
     // Fetch res rows and immediately write them into a flatbuffer
     for (auto c = queryResult.Fetch(); !!c && c->size() > 0; c = queryResult.Fetch()) {
+        auto rowOffset = rowCount;
         rowCount += c->size();
         colCount = colCount;
 
-        // Build res chunk
+        // Add chunk
         auto* chunk = chunks->Add();
+        chunk->set_row_count(c->size());
+        chunk->set_row_offset(rowOffset);
+
+        // Write columns
         auto* cols = chunk->mutable_columns();
         cols->Reserve(c->column_count);
-
-        // Write chunk cols
         for (size_t v = 0; v < c->column_count; ++v) {
             auto &vec = c->GetVector(v);
             auto* column = cols->Add();

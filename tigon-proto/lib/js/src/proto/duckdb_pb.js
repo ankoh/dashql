@@ -1104,7 +1104,7 @@ proto.tigon.proto.duckdb.QueryResultColumn.prototype.clearRowsStrList = function
  * @private {!Array<number>}
  * @const
  */
-proto.tigon.proto.duckdb.QueryResultChunk.repeatedFields_ = [1];
+proto.tigon.proto.duckdb.QueryResultChunk.repeatedFields_ = [3];
 
 
 
@@ -1137,6 +1137,8 @@ proto.tigon.proto.duckdb.QueryResultChunk.prototype.toObject = function(opt_incl
  */
 proto.tigon.proto.duckdb.QueryResultChunk.toObject = function(includeInstance, msg) {
   var f, obj = {
+    rowOffset: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    rowCount: jspb.Message.getFieldWithDefault(msg, 2, 0),
     columnsList: jspb.Message.toObjectList(msg.getColumnsList(),
     proto.tigon.proto.duckdb.QueryResultColumn.toObject, includeInstance)
   };
@@ -1176,6 +1178,14 @@ proto.tigon.proto.duckdb.QueryResultChunk.deserializeBinaryFromReader = function
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
+      var value = /** @type {number} */ (reader.readUint32());
+      msg.setRowOffset(value);
+      break;
+    case 2:
+      var value = /** @type {number} */ (reader.readUint32());
+      msg.setRowCount(value);
+      break;
+    case 3:
       var value = new proto.tigon.proto.duckdb.QueryResultColumn;
       reader.readMessage(value,proto.tigon.proto.duckdb.QueryResultColumn.deserializeBinaryFromReader);
       msg.addColumns(value);
@@ -1209,10 +1219,24 @@ proto.tigon.proto.duckdb.QueryResultChunk.prototype.serializeBinary = function()
  */
 proto.tigon.proto.duckdb.QueryResultChunk.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
+  f = message.getRowOffset();
+  if (f !== 0) {
+    writer.writeUint32(
+      1,
+      f
+    );
+  }
+  f = message.getRowCount();
+  if (f !== 0) {
+    writer.writeUint32(
+      2,
+      f
+    );
+  }
   f = message.getColumnsList();
   if (f.length > 0) {
     writer.writeRepeatedMessage(
-      1,
+      3,
       f,
       proto.tigon.proto.duckdb.QueryResultColumn.serializeBinaryToWriter
     );
@@ -1221,12 +1245,48 @@ proto.tigon.proto.duckdb.QueryResultChunk.serializeBinaryToWriter = function(mes
 
 
 /**
- * repeated QueryResultColumn columns = 1;
+ * optional uint32 row_offset = 1;
+ * @return {number}
+ */
+proto.tigon.proto.duckdb.QueryResultChunk.prototype.getRowOffset = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.tigon.proto.duckdb.QueryResultChunk} returns this
+ */
+proto.tigon.proto.duckdb.QueryResultChunk.prototype.setRowOffset = function(value) {
+  return jspb.Message.setProto3IntField(this, 1, value);
+};
+
+
+/**
+ * optional uint32 row_count = 2;
+ * @return {number}
+ */
+proto.tigon.proto.duckdb.QueryResultChunk.prototype.getRowCount = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.tigon.proto.duckdb.QueryResultChunk} returns this
+ */
+proto.tigon.proto.duckdb.QueryResultChunk.prototype.setRowCount = function(value) {
+  return jspb.Message.setProto3IntField(this, 2, value);
+};
+
+
+/**
+ * repeated QueryResultColumn columns = 3;
  * @return {!Array<!proto.tigon.proto.duckdb.QueryResultColumn>}
  */
 proto.tigon.proto.duckdb.QueryResultChunk.prototype.getColumnsList = function() {
   return /** @type{!Array<!proto.tigon.proto.duckdb.QueryResultColumn>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.tigon.proto.duckdb.QueryResultColumn, 1));
+    jspb.Message.getRepeatedWrapperField(this, proto.tigon.proto.duckdb.QueryResultColumn, 3));
 };
 
 
@@ -1235,7 +1295,7 @@ proto.tigon.proto.duckdb.QueryResultChunk.prototype.getColumnsList = function() 
  * @return {!proto.tigon.proto.duckdb.QueryResultChunk} returns this
 */
 proto.tigon.proto.duckdb.QueryResultChunk.prototype.setColumnsList = function(value) {
-  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+  return jspb.Message.setRepeatedWrapperField(this, 3, value);
 };
 
 
@@ -1245,7 +1305,7 @@ proto.tigon.proto.duckdb.QueryResultChunk.prototype.setColumnsList = function(va
  * @return {!proto.tigon.proto.duckdb.QueryResultColumn}
  */
 proto.tigon.proto.duckdb.QueryResultChunk.prototype.addColumns = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.tigon.proto.duckdb.QueryResultColumn, opt_index);
+  return jspb.Message.addToRepeatedWrapperField(this, 3, opt_value, proto.tigon.proto.duckdb.QueryResultColumn, opt_index);
 };
 
 

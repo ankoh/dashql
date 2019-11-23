@@ -125,7 +125,9 @@ message QueryResultColumn {
 
 // A data chunk
 message QueryResultChunk {
-    repeated QueryResultColumn columns = 1;
+    uint32 row_offset = 1;
+    uint32 row_count = 2;
+    repeated QueryResultColumn columns = 3;
 }
 
 // A query result
