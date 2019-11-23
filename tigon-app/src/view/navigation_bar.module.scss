@@ -1,6 +1,6 @@
 @import '../theme.scss';
 
-.navbar {
+.container {
     display: flex;
     flex-direction: row;
 
@@ -12,22 +12,22 @@
     text-align: center;
 }
 
-.navbar_brand {
+.brand {
     font-weight: 500;
     font-size: .75em;
     padding: 0 12px;
 }
 
-.navbar_tabs {
+.tabs {
     display: flex;
     flex-direction: row;
 }
 
-.navbar_tab_container {
+.tab_container {
     display: block;
 }
 
-.navbar_tab {
+.tab {
     position: relative;
 
     font-weight: 400;
@@ -43,7 +43,7 @@
     }
 }
 
-.navbar_tab_name {
+.tab_name {
     display: block;
 }
 

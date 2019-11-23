@@ -32,12 +32,12 @@ function NavBarTab(props: INavBarTabProps) {
             break;
     }
     return (
-        <div className={s.navbar_tab_container}>
+        <div className={s.tab_container}>
             <div
-                className={classNames(s.navbar_tab, isActive ? s.active : "")}
+                className={classNames(s.tab, isActive ? s.active : "")}
                 onClick={()=>{ props.onViewChanged(props.tabView); }}
             >
-                <div className={s.navbar_tab_name}>
+                <div className={s.tab_name}>
                     {tabName}
                 </div>
             </div>
@@ -48,11 +48,11 @@ function NavBarTab(props: INavBarTabProps) {
 class NavigationBar extends React.Component<INavigationBarProps> {
     public render() {
         return (
-            <div className={s.navbar}>
-                <div className={s.navbar_brand}>
+            <div className={s.container}>
+                <div className={s.brand}>
                     TIGON
                 </div>
-                <div className={s.navbar_tabs}>
+                <div className={s.tabs}>
                     <NavBarTab
                         tabView={Model.RootView.EXPLORER}
                         rootView={this.props.rootView}
