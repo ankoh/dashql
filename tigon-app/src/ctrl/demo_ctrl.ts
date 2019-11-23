@@ -31,7 +31,9 @@ export class DemoController {
 
             QUERY rain_weekly AS SELECT * FROM region, nation;
 
-            VIZ temp_weekly_bar FROM temp_weekly USING BAR CHART;
+            VIZ temp_weekly_bar FROM temp_weekly USING BAR CHART (
+                title = "Weekly temperature"
+            );
         `);
 
         // Q1 result

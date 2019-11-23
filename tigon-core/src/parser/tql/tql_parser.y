@@ -108,6 +108,7 @@ using std::vector;
 %token TABLE                "table"
 %token TEXT                 "text"
 %token TIME                 "time"
+%token TITLE                "title"
 %token URL                  "url"
 %token USING                "using"
 %token VERTICAL             "vertical"
@@ -318,6 +319,9 @@ viz_field:
     AXES EQUAL LRB viz_axes RRB
  |  COLOR EQUAL LRB viz_color RRB
  |  LAYOUT EQUAL LRB viz_layout RRB
+ |  TITLE EQUAL identifier {
+        ctx.cached<VizStatement>()->title = $3;
+    }
     ;
 
 viz_axes:

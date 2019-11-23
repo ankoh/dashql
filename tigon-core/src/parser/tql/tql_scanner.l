@@ -158,6 +158,7 @@ loc.step();
 "table"             { return Parser::make_TABLE(loc); }
 "text"              { return Parser::make_TEXT(loc); }
 "time"              { return Parser::make_TIME(loc); }
+"title"             { return Parser::make_TITLE(loc); }
 "url"               { return Parser::make_URL(loc); }
 "using"             { return Parser::make_USING(loc); }
 "vertical"          { return Parser::make_VERTICAL(loc); }
