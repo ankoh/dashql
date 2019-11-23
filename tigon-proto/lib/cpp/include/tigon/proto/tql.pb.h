@@ -375,32 +375,32 @@ class QueryStatement :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kQueryNameFieldNumber = 1,
+    kQueryIdFieldNumber = 1,
     kQueryTextFieldNumber = 2,
   };
-  // string query_name = 1;
-  void clear_query_name();
-  const std::string& query_name() const;
-  void set_query_name(const std::string& value);
-  void set_query_name(std::string&& value);
-  void set_query_name(const char* value);
-  void set_query_name(const char* value, size_t size);
-  std::string* mutable_query_name();
-  std::string* release_query_name();
-  void set_allocated_query_name(std::string* query_name);
+  // string query_id = 1;
+  void clear_query_id();
+  const std::string& query_id() const;
+  void set_query_id(const std::string& value);
+  void set_query_id(std::string&& value);
+  void set_query_id(const char* value);
+  void set_query_id(const char* value, size_t size);
+  std::string* mutable_query_id();
+  std::string* release_query_id();
+  void set_allocated_query_id(std::string* query_id);
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  std::string* unsafe_arena_release_query_name();
+  std::string* unsafe_arena_release_query_id();
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  void unsafe_arena_set_allocated_query_name(
-      std::string* query_name);
+  void unsafe_arena_set_allocated_query_id(
+      std::string* query_id);
   private:
-  const std::string& _internal_query_name() const;
-  void _internal_set_query_name(const std::string& value);
-  std::string* _internal_mutable_query_name();
+  const std::string& _internal_query_id() const;
+  void _internal_set_query_id(const std::string& value);
+  std::string* _internal_mutable_query_id();
   public:
 
   // string query_text = 2;
@@ -436,7 +436,7 @@ class QueryStatement :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr query_name_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr query_id_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr query_text_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
@@ -562,36 +562,36 @@ class ParameterDeclaration :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kParameterNameFieldNumber = 1,
+    kParameterIdFieldNumber = 1,
     kParameterTypeFieldNumber = 2,
     kValueI32FieldNumber = 3,
     kValueI64FieldNumber = 4,
     kValueF64FieldNumber = 5,
     kValueStrFieldNumber = 6,
   };
-  // string parameter_name = 1;
-  void clear_parameter_name();
-  const std::string& parameter_name() const;
-  void set_parameter_name(const std::string& value);
-  void set_parameter_name(std::string&& value);
-  void set_parameter_name(const char* value);
-  void set_parameter_name(const char* value, size_t size);
-  std::string* mutable_parameter_name();
-  std::string* release_parameter_name();
-  void set_allocated_parameter_name(std::string* parameter_name);
+  // string parameter_id = 1;
+  void clear_parameter_id();
+  const std::string& parameter_id() const;
+  void set_parameter_id(const std::string& value);
+  void set_parameter_id(std::string&& value);
+  void set_parameter_id(const char* value);
+  void set_parameter_id(const char* value, size_t size);
+  std::string* mutable_parameter_id();
+  std::string* release_parameter_id();
+  void set_allocated_parameter_id(std::string* parameter_id);
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  std::string* unsafe_arena_release_parameter_name();
+  std::string* unsafe_arena_release_parameter_id();
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  void unsafe_arena_set_allocated_parameter_name(
-      std::string* parameter_name);
+  void unsafe_arena_set_allocated_parameter_id(
+      std::string* parameter_id);
   private:
-  const std::string& _internal_parameter_name() const;
-  void _internal_set_parameter_name(const std::string& value);
-  std::string* _internal_mutable_parameter_name();
+  const std::string& _internal_parameter_id() const;
+  void _internal_set_parameter_id(const std::string& value);
+  std::string* _internal_mutable_parameter_id();
   public:
 
   // .tigon.proto.tql.Type parameter_type = 2;
@@ -684,7 +684,7 @@ class ParameterDeclaration :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr parameter_name_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr parameter_id_;
   int parameter_type_;
   union DefaultValueUnion {
     DefaultValueUnion() {}
@@ -1103,33 +1103,33 @@ class LoadStatement :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kDataNameFieldNumber = 1,
+    kDataIdFieldNumber = 1,
     kHttpFieldNumber = 2,
     kFileFieldNumber = 3,
   };
-  // string data_name = 1;
-  void clear_data_name();
-  const std::string& data_name() const;
-  void set_data_name(const std::string& value);
-  void set_data_name(std::string&& value);
-  void set_data_name(const char* value);
-  void set_data_name(const char* value, size_t size);
-  std::string* mutable_data_name();
-  std::string* release_data_name();
-  void set_allocated_data_name(std::string* data_name);
+  // string data_id = 1;
+  void clear_data_id();
+  const std::string& data_id() const;
+  void set_data_id(const std::string& value);
+  void set_data_id(std::string&& value);
+  void set_data_id(const char* value);
+  void set_data_id(const char* value, size_t size);
+  std::string* mutable_data_id();
+  std::string* release_data_id();
+  void set_allocated_data_id(std::string* data_id);
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  std::string* unsafe_arena_release_data_name();
+  std::string* unsafe_arena_release_data_id();
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  void unsafe_arena_set_allocated_data_name(
-      std::string* data_name);
+  void unsafe_arena_set_allocated_data_id(
+      std::string* data_id);
   private:
-  const std::string& _internal_data_name() const;
-  void _internal_set_data_name(const std::string& value);
-  std::string* _internal_mutable_data_name();
+  const std::string& _internal_data_id() const;
+  void _internal_set_data_id(const std::string& value);
+  std::string* _internal_mutable_data_id();
   public:
 
   // .tigon.proto.tql.HTTPLoadMethod http = 2;
@@ -1183,7 +1183,7 @@ class LoadStatement :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr data_name_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr data_id_;
   union LoadMethodUnion {
     LoadMethodUnion() {}
     ::tigon::proto::tql::HTTPLoadMethod* http_;
@@ -1905,59 +1905,59 @@ class ExtractStatement :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kExtractNameFieldNumber = 1,
-    kDataNameFieldNumber = 2,
+    kExtractIdFieldNumber = 1,
+    kDataIdFieldNumber = 2,
     kJsonFieldNumber = 3,
     kCsvFieldNumber = 4,
   };
-  // string extract_name = 1;
-  void clear_extract_name();
-  const std::string& extract_name() const;
-  void set_extract_name(const std::string& value);
-  void set_extract_name(std::string&& value);
-  void set_extract_name(const char* value);
-  void set_extract_name(const char* value, size_t size);
-  std::string* mutable_extract_name();
-  std::string* release_extract_name();
-  void set_allocated_extract_name(std::string* extract_name);
+  // string extract_id = 1;
+  void clear_extract_id();
+  const std::string& extract_id() const;
+  void set_extract_id(const std::string& value);
+  void set_extract_id(std::string&& value);
+  void set_extract_id(const char* value);
+  void set_extract_id(const char* value, size_t size);
+  std::string* mutable_extract_id();
+  std::string* release_extract_id();
+  void set_allocated_extract_id(std::string* extract_id);
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  std::string* unsafe_arena_release_extract_name();
+  std::string* unsafe_arena_release_extract_id();
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  void unsafe_arena_set_allocated_extract_name(
-      std::string* extract_name);
+  void unsafe_arena_set_allocated_extract_id(
+      std::string* extract_id);
   private:
-  const std::string& _internal_extract_name() const;
-  void _internal_set_extract_name(const std::string& value);
-  std::string* _internal_mutable_extract_name();
+  const std::string& _internal_extract_id() const;
+  void _internal_set_extract_id(const std::string& value);
+  std::string* _internal_mutable_extract_id();
   public:
 
-  // string data_name = 2;
-  void clear_data_name();
-  const std::string& data_name() const;
-  void set_data_name(const std::string& value);
-  void set_data_name(std::string&& value);
-  void set_data_name(const char* value);
-  void set_data_name(const char* value, size_t size);
-  std::string* mutable_data_name();
-  std::string* release_data_name();
-  void set_allocated_data_name(std::string* data_name);
+  // string data_id = 2;
+  void clear_data_id();
+  const std::string& data_id() const;
+  void set_data_id(const std::string& value);
+  void set_data_id(std::string&& value);
+  void set_data_id(const char* value);
+  void set_data_id(const char* value, size_t size);
+  std::string* mutable_data_id();
+  std::string* release_data_id();
+  void set_allocated_data_id(std::string* data_id);
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  std::string* unsafe_arena_release_data_name();
+  std::string* unsafe_arena_release_data_id();
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  void unsafe_arena_set_allocated_data_name(
-      std::string* data_name);
+  void unsafe_arena_set_allocated_data_id(
+      std::string* data_id);
   private:
-  const std::string& _internal_data_name() const;
-  void _internal_set_data_name(const std::string& value);
-  std::string* _internal_mutable_data_name();
+  const std::string& _internal_data_id() const;
+  void _internal_set_data_id(const std::string& value);
+  std::string* _internal_mutable_data_id();
   public:
 
   // .tigon.proto.tql.JSONExtract json = 3;
@@ -2011,8 +2011,8 @@ class ExtractStatement :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr extract_name_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr data_name_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr extract_id_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr data_id_;
   union MethodUnion {
     MethodUnion() {}
     ::tigon::proto::tql::JSONExtract* json_;
@@ -3158,65 +3158,91 @@ class VizStatement :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kVizNameFieldNumber = 1,
-    kQueryNameFieldNumber = 4,
-    kLayoutFieldNumber = 5,
-    kAxesFieldNumber = 7,
+    kVizIdFieldNumber = 1,
+    kQueryIdFieldNumber = 4,
+    kTitleFieldNumber = 5,
+    kLayoutFieldNumber = 7,
+    kAxesFieldNumber = 9,
     kVizTypeFieldNumber = 2,
     kVizTypeFlagsFieldNumber = 3,
-    kColorFieldNumber = 6,
+    kColorFieldNumber = 8,
   };
-  // string viz_name = 1;
-  void clear_viz_name();
-  const std::string& viz_name() const;
-  void set_viz_name(const std::string& value);
-  void set_viz_name(std::string&& value);
-  void set_viz_name(const char* value);
-  void set_viz_name(const char* value, size_t size);
-  std::string* mutable_viz_name();
-  std::string* release_viz_name();
-  void set_allocated_viz_name(std::string* viz_name);
+  // string viz_id = 1;
+  void clear_viz_id();
+  const std::string& viz_id() const;
+  void set_viz_id(const std::string& value);
+  void set_viz_id(std::string&& value);
+  void set_viz_id(const char* value);
+  void set_viz_id(const char* value, size_t size);
+  std::string* mutable_viz_id();
+  std::string* release_viz_id();
+  void set_allocated_viz_id(std::string* viz_id);
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  std::string* unsafe_arena_release_viz_name();
+  std::string* unsafe_arena_release_viz_id();
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  void unsafe_arena_set_allocated_viz_name(
-      std::string* viz_name);
+  void unsafe_arena_set_allocated_viz_id(
+      std::string* viz_id);
   private:
-  const std::string& _internal_viz_name() const;
-  void _internal_set_viz_name(const std::string& value);
-  std::string* _internal_mutable_viz_name();
+  const std::string& _internal_viz_id() const;
+  void _internal_set_viz_id(const std::string& value);
+  std::string* _internal_mutable_viz_id();
   public:
 
-  // string query_name = 4;
-  void clear_query_name();
-  const std::string& query_name() const;
-  void set_query_name(const std::string& value);
-  void set_query_name(std::string&& value);
-  void set_query_name(const char* value);
-  void set_query_name(const char* value, size_t size);
-  std::string* mutable_query_name();
-  std::string* release_query_name();
-  void set_allocated_query_name(std::string* query_name);
+  // string query_id = 4;
+  void clear_query_id();
+  const std::string& query_id() const;
+  void set_query_id(const std::string& value);
+  void set_query_id(std::string&& value);
+  void set_query_id(const char* value);
+  void set_query_id(const char* value, size_t size);
+  std::string* mutable_query_id();
+  std::string* release_query_id();
+  void set_allocated_query_id(std::string* query_id);
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  std::string* unsafe_arena_release_query_name();
+  std::string* unsafe_arena_release_query_id();
   GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  void unsafe_arena_set_allocated_query_name(
-      std::string* query_name);
+  void unsafe_arena_set_allocated_query_id(
+      std::string* query_id);
   private:
-  const std::string& _internal_query_name() const;
-  void _internal_set_query_name(const std::string& value);
-  std::string* _internal_mutable_query_name();
+  const std::string& _internal_query_id() const;
+  void _internal_set_query_id(const std::string& value);
+  std::string* _internal_mutable_query_id();
   public:
 
-  // .tigon.proto.tql.VizLayout layout = 5;
+  // string title = 5;
+  void clear_title();
+  const std::string& title() const;
+  void set_title(const std::string& value);
+  void set_title(std::string&& value);
+  void set_title(const char* value);
+  void set_title(const char* value, size_t size);
+  std::string* mutable_title();
+  std::string* release_title();
+  void set_allocated_title(std::string* title);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_title();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_title(
+      std::string* title);
+  private:
+  const std::string& _internal_title() const;
+  void _internal_set_title(const std::string& value);
+  std::string* _internal_mutable_title();
+  public:
+
+  // .tigon.proto.tql.VizLayout layout = 7;
   bool has_layout() const;
   private:
   bool _internal_has_layout() const;
@@ -3234,7 +3260,7 @@ class VizStatement :
       ::tigon::proto::tql::VizLayout* layout);
   ::tigon::proto::tql::VizLayout* unsafe_arena_release_layout();
 
-  // .tigon.proto.tql.VizAxes axes = 7;
+  // .tigon.proto.tql.VizAxes axes = 9;
   bool has_axes() const;
   private:
   bool _internal_has_axes() const;
@@ -3270,7 +3296,7 @@ class VizStatement :
   void _internal_set_viz_type_flags(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
-  // fixed32 color = 6;
+  // fixed32 color = 8;
   void clear_color();
   ::PROTOBUF_NAMESPACE_ID::uint32 color() const;
   void set_color(::PROTOBUF_NAMESPACE_ID::uint32 value);
@@ -3287,8 +3313,9 @@ class VizStatement :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr viz_name_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr query_name_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr viz_id_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr query_id_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr title_;
   ::tigon::proto::tql::VizLayout* layout_;
   ::tigon::proto::tql::VizAxes* axes_;
   int viz_type_;
@@ -3702,86 +3729,86 @@ class Module :
 #endif  // __GNUC__
 // QueryStatement
 
-// string query_name = 1;
-inline void QueryStatement::clear_query_name() {
-  query_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// string query_id = 1;
+inline void QueryStatement::clear_query_id() {
+  query_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline const std::string& QueryStatement::query_name() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.QueryStatement.query_name)
-  return _internal_query_name();
+inline const std::string& QueryStatement::query_id() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.QueryStatement.query_id)
+  return _internal_query_id();
 }
-inline void QueryStatement::set_query_name(const std::string& value) {
-  _internal_set_query_name(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.QueryStatement.query_name)
+inline void QueryStatement::set_query_id(const std::string& value) {
+  _internal_set_query_id(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.QueryStatement.query_id)
 }
-inline std::string* QueryStatement::mutable_query_name() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.QueryStatement.query_name)
-  return _internal_mutable_query_name();
+inline std::string* QueryStatement::mutable_query_id() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.QueryStatement.query_id)
+  return _internal_mutable_query_id();
 }
-inline const std::string& QueryStatement::_internal_query_name() const {
-  return query_name_.Get();
+inline const std::string& QueryStatement::_internal_query_id() const {
+  return query_id_.Get();
 }
-inline void QueryStatement::_internal_set_query_name(const std::string& value) {
+inline void QueryStatement::_internal_set_query_id(const std::string& value) {
   
-  query_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
 }
-inline void QueryStatement::set_query_name(std::string&& value) {
+inline void QueryStatement::set_query_id(std::string&& value) {
   
-  query_name_.SetLite(
+  query_id_.SetLite(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.QueryStatement.query_name)
+  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.QueryStatement.query_id)
 }
-inline void QueryStatement::set_query_name(const char* value) {
+inline void QueryStatement::set_query_id(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  query_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.QueryStatement.query_name)
+  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.QueryStatement.query_id)
 }
-inline void QueryStatement::set_query_name(const char* value,
+inline void QueryStatement::set_query_id(const char* value,
     size_t size) {
   
-  query_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.QueryStatement.query_name)
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.QueryStatement.query_id)
 }
-inline std::string* QueryStatement::_internal_mutable_query_name() {
+inline std::string* QueryStatement::_internal_mutable_query_id() {
   
-  return query_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return query_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline std::string* QueryStatement::release_query_name() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.QueryStatement.query_name)
+inline std::string* QueryStatement::release_query_id() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.QueryStatement.query_id)
   
-  return query_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return query_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline void QueryStatement::set_allocated_query_name(std::string* query_name) {
-  if (query_name != nullptr) {
+inline void QueryStatement::set_allocated_query_id(std::string* query_id) {
+  if (query_id != nullptr) {
     
   } else {
     
   }
-  query_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), query_name,
+  query_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), query_id,
       GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.QueryStatement.query_name)
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.QueryStatement.query_id)
 }
-inline std::string* QueryStatement::unsafe_arena_release_query_name() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.QueryStatement.query_name)
+inline std::string* QueryStatement::unsafe_arena_release_query_id() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.QueryStatement.query_id)
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
   
-  return query_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  return query_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArenaNoVirtual());
 }
-inline void QueryStatement::unsafe_arena_set_allocated_query_name(
-    std::string* query_name) {
+inline void QueryStatement::unsafe_arena_set_allocated_query_id(
+    std::string* query_id) {
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (query_name != nullptr) {
+  if (query_id != nullptr) {
     
   } else {
     
   }
-  query_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      query_name, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.QueryStatement.query_name)
+  query_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      query_id, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.QueryStatement.query_id)
 }
 
 // string query_text = 2;
@@ -3870,86 +3897,86 @@ inline void QueryStatement::unsafe_arena_set_allocated_query_text(
 
 // ParameterDeclaration
 
-// string parameter_name = 1;
-inline void ParameterDeclaration::clear_parameter_name() {
-  parameter_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// string parameter_id = 1;
+inline void ParameterDeclaration::clear_parameter_id() {
+  parameter_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline const std::string& ParameterDeclaration::parameter_name() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.ParameterDeclaration.parameter_name)
-  return _internal_parameter_name();
+inline const std::string& ParameterDeclaration::parameter_id() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ParameterDeclaration.parameter_id)
+  return _internal_parameter_id();
 }
-inline void ParameterDeclaration::set_parameter_name(const std::string& value) {
-  _internal_set_parameter_name(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.ParameterDeclaration.parameter_name)
+inline void ParameterDeclaration::set_parameter_id(const std::string& value) {
+  _internal_set_parameter_id(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.ParameterDeclaration.parameter_id)
 }
-inline std::string* ParameterDeclaration::mutable_parameter_name() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ParameterDeclaration.parameter_name)
-  return _internal_mutable_parameter_name();
+inline std::string* ParameterDeclaration::mutable_parameter_id() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ParameterDeclaration.parameter_id)
+  return _internal_mutable_parameter_id();
 }
-inline const std::string& ParameterDeclaration::_internal_parameter_name() const {
-  return parameter_name_.Get();
+inline const std::string& ParameterDeclaration::_internal_parameter_id() const {
+  return parameter_id_.Get();
 }
-inline void ParameterDeclaration::_internal_set_parameter_name(const std::string& value) {
+inline void ParameterDeclaration::_internal_set_parameter_id(const std::string& value) {
   
-  parameter_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  parameter_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
 }
-inline void ParameterDeclaration::set_parameter_name(std::string&& value) {
+inline void ParameterDeclaration::set_parameter_id(std::string&& value) {
   
-  parameter_name_.SetLite(
+  parameter_id_.SetLite(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.ParameterDeclaration.parameter_name)
+  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.ParameterDeclaration.parameter_id)
 }
-inline void ParameterDeclaration::set_parameter_name(const char* value) {
+inline void ParameterDeclaration::set_parameter_id(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  parameter_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  parameter_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.ParameterDeclaration.parameter_name)
+  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.ParameterDeclaration.parameter_id)
 }
-inline void ParameterDeclaration::set_parameter_name(const char* value,
+inline void ParameterDeclaration::set_parameter_id(const char* value,
     size_t size) {
   
-  parameter_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  parameter_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.ParameterDeclaration.parameter_name)
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.ParameterDeclaration.parameter_id)
 }
-inline std::string* ParameterDeclaration::_internal_mutable_parameter_name() {
+inline std::string* ParameterDeclaration::_internal_mutable_parameter_id() {
   
-  return parameter_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return parameter_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline std::string* ParameterDeclaration::release_parameter_name() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.ParameterDeclaration.parameter_name)
+inline std::string* ParameterDeclaration::release_parameter_id() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ParameterDeclaration.parameter_id)
   
-  return parameter_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return parameter_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline void ParameterDeclaration::set_allocated_parameter_name(std::string* parameter_name) {
-  if (parameter_name != nullptr) {
+inline void ParameterDeclaration::set_allocated_parameter_id(std::string* parameter_id) {
+  if (parameter_id != nullptr) {
     
   } else {
     
   }
-  parameter_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), parameter_name,
+  parameter_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), parameter_id,
       GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ParameterDeclaration.parameter_name)
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ParameterDeclaration.parameter_id)
 }
-inline std::string* ParameterDeclaration::unsafe_arena_release_parameter_name() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ParameterDeclaration.parameter_name)
+inline std::string* ParameterDeclaration::unsafe_arena_release_parameter_id() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ParameterDeclaration.parameter_id)
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
   
-  return parameter_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  return parameter_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArenaNoVirtual());
 }
-inline void ParameterDeclaration::unsafe_arena_set_allocated_parameter_name(
-    std::string* parameter_name) {
+inline void ParameterDeclaration::unsafe_arena_set_allocated_parameter_id(
+    std::string* parameter_id) {
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (parameter_name != nullptr) {
+  if (parameter_id != nullptr) {
     
   } else {
     
   }
-  parameter_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      parameter_name, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterDeclaration.parameter_name)
+  parameter_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      parameter_id, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterDeclaration.parameter_id)
 }
 
 // .tigon.proto.tql.Type parameter_type = 2;
@@ -4329,86 +4356,86 @@ inline void HTTPLoadMethod::set_http_method(::tigon::proto::tql::HTTPMethod valu
 
 // LoadStatement
 
-// string data_name = 1;
-inline void LoadStatement::clear_data_name() {
-  data_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// string data_id = 1;
+inline void LoadStatement::clear_data_id() {
+  data_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline const std::string& LoadStatement::data_name() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.LoadStatement.data_name)
-  return _internal_data_name();
+inline const std::string& LoadStatement::data_id() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.LoadStatement.data_id)
+  return _internal_data_id();
 }
-inline void LoadStatement::set_data_name(const std::string& value) {
-  _internal_set_data_name(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.LoadStatement.data_name)
+inline void LoadStatement::set_data_id(const std::string& value) {
+  _internal_set_data_id(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.LoadStatement.data_id)
 }
-inline std::string* LoadStatement::mutable_data_name() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.LoadStatement.data_name)
-  return _internal_mutable_data_name();
+inline std::string* LoadStatement::mutable_data_id() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.LoadStatement.data_id)
+  return _internal_mutable_data_id();
 }
-inline const std::string& LoadStatement::_internal_data_name() const {
-  return data_name_.Get();
+inline const std::string& LoadStatement::_internal_data_id() const {
+  return data_id_.Get();
 }
-inline void LoadStatement::_internal_set_data_name(const std::string& value) {
+inline void LoadStatement::_internal_set_data_id(const std::string& value) {
   
-  data_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
 }
-inline void LoadStatement::set_data_name(std::string&& value) {
+inline void LoadStatement::set_data_id(std::string&& value) {
   
-  data_name_.SetLite(
+  data_id_.SetLite(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.LoadStatement.data_name)
+  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.LoadStatement.data_id)
 }
-inline void LoadStatement::set_data_name(const char* value) {
+inline void LoadStatement::set_data_id(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  data_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.LoadStatement.data_name)
+  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.LoadStatement.data_id)
 }
-inline void LoadStatement::set_data_name(const char* value,
+inline void LoadStatement::set_data_id(const char* value,
     size_t size) {
   
-  data_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.LoadStatement.data_name)
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.LoadStatement.data_id)
 }
-inline std::string* LoadStatement::_internal_mutable_data_name() {
+inline std::string* LoadStatement::_internal_mutable_data_id() {
   
-  return data_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return data_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline std::string* LoadStatement::release_data_name() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.LoadStatement.data_name)
+inline std::string* LoadStatement::release_data_id() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.LoadStatement.data_id)
   
-  return data_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return data_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline void LoadStatement::set_allocated_data_name(std::string* data_name) {
-  if (data_name != nullptr) {
+inline void LoadStatement::set_allocated_data_id(std::string* data_id) {
+  if (data_id != nullptr) {
     
   } else {
     
   }
-  data_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), data_name,
+  data_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), data_id,
       GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.LoadStatement.data_name)
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.LoadStatement.data_id)
 }
-inline std::string* LoadStatement::unsafe_arena_release_data_name() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.LoadStatement.data_name)
+inline std::string* LoadStatement::unsafe_arena_release_data_id() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.LoadStatement.data_id)
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
   
-  return data_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  return data_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArenaNoVirtual());
 }
-inline void LoadStatement::unsafe_arena_set_allocated_data_name(
-    std::string* data_name) {
+inline void LoadStatement::unsafe_arena_set_allocated_data_id(
+    std::string* data_id) {
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (data_name != nullptr) {
+  if (data_id != nullptr) {
     
   } else {
     
   }
-  data_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      data_name, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.LoadStatement.data_name)
+  data_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      data_id, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.LoadStatement.data_id)
 }
 
 // .tigon.proto.tql.HTTPLoadMethod http = 2;
@@ -4831,168 +4858,168 @@ CSVExtract::columns() const {
 
 // ExtractStatement
 
-// string extract_name = 1;
-inline void ExtractStatement::clear_extract_name() {
-  extract_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// string extract_id = 1;
+inline void ExtractStatement::clear_extract_id() {
+  extract_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline const std::string& ExtractStatement::extract_name() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.extract_name)
-  return _internal_extract_name();
+inline const std::string& ExtractStatement::extract_id() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.extract_id)
+  return _internal_extract_id();
 }
-inline void ExtractStatement::set_extract_name(const std::string& value) {
-  _internal_set_extract_name(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.ExtractStatement.extract_name)
+inline void ExtractStatement::set_extract_id(const std::string& value) {
+  _internal_set_extract_id(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.ExtractStatement.extract_id)
 }
-inline std::string* ExtractStatement::mutable_extract_name() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.extract_name)
-  return _internal_mutable_extract_name();
+inline std::string* ExtractStatement::mutable_extract_id() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.extract_id)
+  return _internal_mutable_extract_id();
 }
-inline const std::string& ExtractStatement::_internal_extract_name() const {
-  return extract_name_.Get();
+inline const std::string& ExtractStatement::_internal_extract_id() const {
+  return extract_id_.Get();
 }
-inline void ExtractStatement::_internal_set_extract_name(const std::string& value) {
+inline void ExtractStatement::_internal_set_extract_id(const std::string& value) {
   
-  extract_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  extract_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
 }
-inline void ExtractStatement::set_extract_name(std::string&& value) {
+inline void ExtractStatement::set_extract_id(std::string&& value) {
   
-  extract_name_.SetLite(
+  extract_id_.SetLite(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.ExtractStatement.extract_name)
+  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.ExtractStatement.extract_id)
 }
-inline void ExtractStatement::set_extract_name(const char* value) {
+inline void ExtractStatement::set_extract_id(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  extract_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  extract_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.ExtractStatement.extract_name)
+  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.ExtractStatement.extract_id)
 }
-inline void ExtractStatement::set_extract_name(const char* value,
+inline void ExtractStatement::set_extract_id(const char* value,
     size_t size) {
   
-  extract_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  extract_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.ExtractStatement.extract_name)
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.ExtractStatement.extract_id)
 }
-inline std::string* ExtractStatement::_internal_mutable_extract_name() {
+inline std::string* ExtractStatement::_internal_mutable_extract_id() {
   
-  return extract_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return extract_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline std::string* ExtractStatement::release_extract_name() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.extract_name)
+inline std::string* ExtractStatement::release_extract_id() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.extract_id)
   
-  return extract_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return extract_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline void ExtractStatement::set_allocated_extract_name(std::string* extract_name) {
-  if (extract_name != nullptr) {
+inline void ExtractStatement::set_allocated_extract_id(std::string* extract_id) {
+  if (extract_id != nullptr) {
     
   } else {
     
   }
-  extract_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), extract_name,
+  extract_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), extract_id,
       GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ExtractStatement.extract_name)
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ExtractStatement.extract_id)
 }
-inline std::string* ExtractStatement::unsafe_arena_release_extract_name() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ExtractStatement.extract_name)
+inline std::string* ExtractStatement::unsafe_arena_release_extract_id() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ExtractStatement.extract_id)
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
   
-  return extract_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  return extract_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArenaNoVirtual());
 }
-inline void ExtractStatement::unsafe_arena_set_allocated_extract_name(
-    std::string* extract_name) {
+inline void ExtractStatement::unsafe_arena_set_allocated_extract_id(
+    std::string* extract_id) {
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (extract_name != nullptr) {
+  if (extract_id != nullptr) {
     
   } else {
     
   }
-  extract_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      extract_name, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ExtractStatement.extract_name)
+  extract_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      extract_id, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ExtractStatement.extract_id)
 }
 
-// string data_name = 2;
-inline void ExtractStatement::clear_data_name() {
-  data_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// string data_id = 2;
+inline void ExtractStatement::clear_data_id() {
+  data_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline const std::string& ExtractStatement::data_name() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.data_name)
-  return _internal_data_name();
+inline const std::string& ExtractStatement::data_id() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.data_id)
+  return _internal_data_id();
 }
-inline void ExtractStatement::set_data_name(const std::string& value) {
-  _internal_set_data_name(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.ExtractStatement.data_name)
+inline void ExtractStatement::set_data_id(const std::string& value) {
+  _internal_set_data_id(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.ExtractStatement.data_id)
 }
-inline std::string* ExtractStatement::mutable_data_name() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.data_name)
-  return _internal_mutable_data_name();
+inline std::string* ExtractStatement::mutable_data_id() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.data_id)
+  return _internal_mutable_data_id();
 }
-inline const std::string& ExtractStatement::_internal_data_name() const {
-  return data_name_.Get();
+inline const std::string& ExtractStatement::_internal_data_id() const {
+  return data_id_.Get();
 }
-inline void ExtractStatement::_internal_set_data_name(const std::string& value) {
+inline void ExtractStatement::_internal_set_data_id(const std::string& value) {
   
-  data_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
 }
-inline void ExtractStatement::set_data_name(std::string&& value) {
+inline void ExtractStatement::set_data_id(std::string&& value) {
   
-  data_name_.SetLite(
+  data_id_.SetLite(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.ExtractStatement.data_name)
+  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.ExtractStatement.data_id)
 }
-inline void ExtractStatement::set_data_name(const char* value) {
+inline void ExtractStatement::set_data_id(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  data_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.ExtractStatement.data_name)
+  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.ExtractStatement.data_id)
 }
-inline void ExtractStatement::set_data_name(const char* value,
+inline void ExtractStatement::set_data_id(const char* value,
     size_t size) {
   
-  data_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.ExtractStatement.data_name)
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.ExtractStatement.data_id)
 }
-inline std::string* ExtractStatement::_internal_mutable_data_name() {
+inline std::string* ExtractStatement::_internal_mutable_data_id() {
   
-  return data_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return data_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline std::string* ExtractStatement::release_data_name() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.data_name)
+inline std::string* ExtractStatement::release_data_id() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.data_id)
   
-  return data_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return data_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline void ExtractStatement::set_allocated_data_name(std::string* data_name) {
-  if (data_name != nullptr) {
+inline void ExtractStatement::set_allocated_data_id(std::string* data_id) {
+  if (data_id != nullptr) {
     
   } else {
     
   }
-  data_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), data_name,
+  data_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), data_id,
       GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ExtractStatement.data_name)
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ExtractStatement.data_id)
 }
-inline std::string* ExtractStatement::unsafe_arena_release_data_name() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ExtractStatement.data_name)
+inline std::string* ExtractStatement::unsafe_arena_release_data_id() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ExtractStatement.data_id)
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
   
-  return data_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  return data_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArenaNoVirtual());
 }
-inline void ExtractStatement::unsafe_arena_set_allocated_data_name(
-    std::string* data_name) {
+inline void ExtractStatement::unsafe_arena_set_allocated_data_id(
+    std::string* data_id) {
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (data_name != nullptr) {
+  if (data_id != nullptr) {
     
   } else {
     
   }
-  data_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      data_name, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ExtractStatement.data_name)
+  data_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      data_id, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ExtractStatement.data_id)
 }
 
 // .tigon.proto.tql.JSONExtract json = 3;
@@ -5995,86 +6022,86 @@ inline void VizAxes::set_allocated_y(::tigon::proto::tql::VizAxis* y) {
 
 // VizStatement
 
-// string viz_name = 1;
-inline void VizStatement::clear_viz_name() {
-  viz_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// string viz_id = 1;
+inline void VizStatement::clear_viz_id() {
+  viz_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline const std::string& VizStatement::viz_name() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.viz_name)
-  return _internal_viz_name();
+inline const std::string& VizStatement::viz_id() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.viz_id)
+  return _internal_viz_id();
 }
-inline void VizStatement::set_viz_name(const std::string& value) {
-  _internal_set_viz_name(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.viz_name)
+inline void VizStatement::set_viz_id(const std::string& value) {
+  _internal_set_viz_id(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.viz_id)
 }
-inline std::string* VizStatement::mutable_viz_name() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.viz_name)
-  return _internal_mutable_viz_name();
+inline std::string* VizStatement::mutable_viz_id() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.viz_id)
+  return _internal_mutable_viz_id();
 }
-inline const std::string& VizStatement::_internal_viz_name() const {
-  return viz_name_.Get();
+inline const std::string& VizStatement::_internal_viz_id() const {
+  return viz_id_.Get();
 }
-inline void VizStatement::_internal_set_viz_name(const std::string& value) {
+inline void VizStatement::_internal_set_viz_id(const std::string& value) {
   
-  viz_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  viz_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
 }
-inline void VizStatement::set_viz_name(std::string&& value) {
+inline void VizStatement::set_viz_id(std::string&& value) {
   
-  viz_name_.SetLite(
+  viz_id_.SetLite(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.VizStatement.viz_name)
+  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.VizStatement.viz_id)
 }
-inline void VizStatement::set_viz_name(const char* value) {
+inline void VizStatement::set_viz_id(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  viz_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  viz_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.VizStatement.viz_name)
+  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.VizStatement.viz_id)
 }
-inline void VizStatement::set_viz_name(const char* value,
+inline void VizStatement::set_viz_id(const char* value,
     size_t size) {
   
-  viz_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  viz_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.VizStatement.viz_name)
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.VizStatement.viz_id)
 }
-inline std::string* VizStatement::_internal_mutable_viz_name() {
+inline std::string* VizStatement::_internal_mutable_viz_id() {
   
-  return viz_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return viz_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline std::string* VizStatement::release_viz_name() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.viz_name)
+inline std::string* VizStatement::release_viz_id() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.viz_id)
   
-  return viz_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return viz_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline void VizStatement::set_allocated_viz_name(std::string* viz_name) {
-  if (viz_name != nullptr) {
+inline void VizStatement::set_allocated_viz_id(std::string* viz_id) {
+  if (viz_id != nullptr) {
     
   } else {
     
   }
-  viz_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), viz_name,
+  viz_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), viz_id,
       GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.viz_name)
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.viz_id)
 }
-inline std::string* VizStatement::unsafe_arena_release_viz_name() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.VizStatement.viz_name)
+inline std::string* VizStatement::unsafe_arena_release_viz_id() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.VizStatement.viz_id)
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
   
-  return viz_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  return viz_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArenaNoVirtual());
 }
-inline void VizStatement::unsafe_arena_set_allocated_viz_name(
-    std::string* viz_name) {
+inline void VizStatement::unsafe_arena_set_allocated_viz_id(
+    std::string* viz_id) {
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (viz_name != nullptr) {
+  if (viz_id != nullptr) {
     
   } else {
     
   }
-  viz_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      viz_name, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.viz_name)
+  viz_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      viz_id, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.viz_id)
 }
 
 // .tigon.proto.tql.VizType viz_type = 2;
@@ -6117,89 +6144,171 @@ inline void VizStatement::set_viz_type_flags(::PROTOBUF_NAMESPACE_ID::uint32 val
   // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.viz_type_flags)
 }
 
-// string query_name = 4;
-inline void VizStatement::clear_query_name() {
-  query_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// string query_id = 4;
+inline void VizStatement::clear_query_id() {
+  query_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline const std::string& VizStatement::query_name() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.query_name)
-  return _internal_query_name();
+inline const std::string& VizStatement::query_id() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.query_id)
+  return _internal_query_id();
 }
-inline void VizStatement::set_query_name(const std::string& value) {
-  _internal_set_query_name(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.query_name)
+inline void VizStatement::set_query_id(const std::string& value) {
+  _internal_set_query_id(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.query_id)
 }
-inline std::string* VizStatement::mutable_query_name() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.query_name)
-  return _internal_mutable_query_name();
+inline std::string* VizStatement::mutable_query_id() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.query_id)
+  return _internal_mutable_query_id();
 }
-inline const std::string& VizStatement::_internal_query_name() const {
-  return query_name_.Get();
+inline const std::string& VizStatement::_internal_query_id() const {
+  return query_id_.Get();
 }
-inline void VizStatement::_internal_set_query_name(const std::string& value) {
+inline void VizStatement::_internal_set_query_id(const std::string& value) {
   
-  query_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
 }
-inline void VizStatement::set_query_name(std::string&& value) {
+inline void VizStatement::set_query_id(std::string&& value) {
   
-  query_name_.SetLite(
+  query_id_.SetLite(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.VizStatement.query_name)
+  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.VizStatement.query_id)
 }
-inline void VizStatement::set_query_name(const char* value) {
+inline void VizStatement::set_query_id(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  query_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.VizStatement.query_name)
+  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.VizStatement.query_id)
 }
-inline void VizStatement::set_query_name(const char* value,
+inline void VizStatement::set_query_id(const char* value,
     size_t size) {
   
-  query_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.VizStatement.query_name)
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.VizStatement.query_id)
 }
-inline std::string* VizStatement::_internal_mutable_query_name() {
+inline std::string* VizStatement::_internal_mutable_query_id() {
   
-  return query_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return query_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline std::string* VizStatement::release_query_name() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.query_name)
+inline std::string* VizStatement::release_query_id() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.query_id)
   
-  return query_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return query_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline void VizStatement::set_allocated_query_name(std::string* query_name) {
-  if (query_name != nullptr) {
+inline void VizStatement::set_allocated_query_id(std::string* query_id) {
+  if (query_id != nullptr) {
     
   } else {
     
   }
-  query_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), query_name,
+  query_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), query_id,
       GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.query_name)
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.query_id)
 }
-inline std::string* VizStatement::unsafe_arena_release_query_name() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.VizStatement.query_name)
+inline std::string* VizStatement::unsafe_arena_release_query_id() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.VizStatement.query_id)
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
   
-  return query_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  return query_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArenaNoVirtual());
 }
-inline void VizStatement::unsafe_arena_set_allocated_query_name(
-    std::string* query_name) {
+inline void VizStatement::unsafe_arena_set_allocated_query_id(
+    std::string* query_id) {
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (query_name != nullptr) {
+  if (query_id != nullptr) {
     
   } else {
     
   }
-  query_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      query_name, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.query_name)
+  query_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      query_id, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.query_id)
 }
 
-// .tigon.proto.tql.VizLayout layout = 5;
+// string title = 5;
+inline void VizStatement::clear_title() {
+  title_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline const std::string& VizStatement::title() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.title)
+  return _internal_title();
+}
+inline void VizStatement::set_title(const std::string& value) {
+  _internal_set_title(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.title)
+}
+inline std::string* VizStatement::mutable_title() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.title)
+  return _internal_mutable_title();
+}
+inline const std::string& VizStatement::_internal_title() const {
+  return title_.Get();
+}
+inline void VizStatement::_internal_set_title(const std::string& value) {
+  
+  title_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+}
+inline void VizStatement::set_title(std::string&& value) {
+  
+  title_.SetLite(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.VizStatement.title)
+}
+inline void VizStatement::set_title(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  title_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.VizStatement.title)
+}
+inline void VizStatement::set_title(const char* value,
+    size_t size) {
+  
+  title_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.VizStatement.title)
+}
+inline std::string* VizStatement::_internal_mutable_title() {
+  
+  return title_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline std::string* VizStatement::release_title() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.title)
+  
+  return title_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline void VizStatement::set_allocated_title(std::string* title) {
+  if (title != nullptr) {
+    
+  } else {
+    
+  }
+  title_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), title,
+      GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.title)
+}
+inline std::string* VizStatement::unsafe_arena_release_title() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.VizStatement.title)
+  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
+  
+  return title_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArenaNoVirtual());
+}
+inline void VizStatement::unsafe_arena_set_allocated_title(
+    std::string* title) {
+  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
+  if (title != nullptr) {
+    
+  } else {
+    
+  }
+  title_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      title, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.title)
+}
+
+// .tigon.proto.tql.VizLayout layout = 7;
 inline bool VizStatement::_internal_has_layout() const {
   return this != internal_default_instance() && layout_ != nullptr;
 }
@@ -6267,7 +6376,7 @@ inline void VizStatement::set_allocated_layout(::tigon::proto::tql::VizLayout* l
   // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.layout)
 }
 
-// fixed32 color = 6;
+// fixed32 color = 8;
 inline void VizStatement::clear_color() {
   color_ = 0u;
 }
@@ -6287,7 +6396,7 @@ inline void VizStatement::set_color(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.color)
 }
 
-// .tigon.proto.tql.VizAxes axes = 7;
+// .tigon.proto.tql.VizAxes axes = 9;
 inline bool VizStatement::_internal_has_axes() const {
   return this != internal_default_instance() && axes_ != nullptr;
 }

@@ -4,8 +4,8 @@
 import * as jspb from "google-protobuf";
 
 export class QueryStatement extends jspb.Message {
-  getQueryName(): string;
-  setQueryName(value: string): void;
+  getQueryId(): string;
+  setQueryId(value: string): void;
 
   getQueryText(): string;
   setQueryText(value: string): void;
@@ -22,14 +22,14 @@ export class QueryStatement extends jspb.Message {
 
 export namespace QueryStatement {
   export type AsObject = {
-    queryName: string,
+    queryId: string,
     queryText: string,
   }
 }
 
 export class ParameterDeclaration extends jspb.Message {
-  getParameterName(): string;
-  setParameterName(value: string): void;
+  getParameterId(): string;
+  setParameterId(value: string): void;
 
   getParameterType(): TypeMap[keyof TypeMap];
   setParameterType(value: TypeMap[keyof TypeMap]): void;
@@ -67,7 +67,7 @@ export class ParameterDeclaration extends jspb.Message {
 
 export namespace ParameterDeclaration {
   export type AsObject = {
-    parameterName: string,
+    parameterId: string,
     parameterType: TypeMap[keyof TypeMap],
     valueI32: number,
     valueI64: number,
@@ -125,8 +125,8 @@ export namespace FileLoadMethod {
 }
 
 export class LoadStatement extends jspb.Message {
-  getDataName(): string;
-  setDataName(value: string): void;
+  getDataId(): string;
+  setDataId(value: string): void;
 
   hasHttp(): boolean;
   clearHttp(): void;
@@ -151,7 +151,7 @@ export class LoadStatement extends jspb.Message {
 
 export namespace LoadStatement {
   export type AsObject = {
-    dataName: string,
+    dataId: string,
     http?: HTTPLoadMethod.AsObject,
     file?: FileLoadMethod.AsObject,
   }
@@ -250,11 +250,11 @@ export namespace ExtractMethod {
 }
 
 export class ExtractStatement extends jspb.Message {
-  getExtractName(): string;
-  setExtractName(value: string): void;
+  getExtractId(): string;
+  setExtractId(value: string): void;
 
-  getDataName(): string;
-  setDataName(value: string): void;
+  getDataId(): string;
+  setDataId(value: string): void;
 
   hasJson(): boolean;
   clearJson(): void;
@@ -279,8 +279,8 @@ export class ExtractStatement extends jspb.Message {
 
 export namespace ExtractStatement {
   export type AsObject = {
-    extractName: string,
-    dataName: string,
+    extractId: string,
+    dataId: string,
     json?: JSONExtract.AsObject,
     csv?: CSVExtract.AsObject,
   }
@@ -463,8 +463,8 @@ export namespace VizAxes {
 }
 
 export class VizStatement extends jspb.Message {
-  getVizName(): string;
-  setVizName(value: string): void;
+  getVizId(): string;
+  setVizId(value: string): void;
 
   getVizType(): VizTypeMap[keyof VizTypeMap];
   setVizType(value: VizTypeMap[keyof VizTypeMap]): void;
@@ -472,8 +472,11 @@ export class VizStatement extends jspb.Message {
   getVizTypeFlags(): number;
   setVizTypeFlags(value: number): void;
 
-  getQueryName(): string;
-  setQueryName(value: string): void;
+  getQueryId(): string;
+  setQueryId(value: string): void;
+
+  getTitle(): string;
+  setTitle(value: string): void;
 
   hasLayout(): boolean;
   clearLayout(): void;
@@ -500,10 +503,11 @@ export class VizStatement extends jspb.Message {
 
 export namespace VizStatement {
   export type AsObject = {
-    vizName: string,
+    vizId: string,
     vizType: VizTypeMap[keyof VizTypeMap],
     vizTypeFlags: number,
-    queryName: string,
+    queryId: string,
+    title: string,
     layout?: VizLayout.AsObject,
     color: number,
     axes?: VizAxes.AsObject,

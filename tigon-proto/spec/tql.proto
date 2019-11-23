@@ -17,13 +17,13 @@ enum Type {
 
 /// A query statement
 message QueryStatement {
-    string query_name = 1;
+    string query_id = 1;
     string query_text = 2;
 }
 
 /// A parameter declaration
 message ParameterDeclaration { 
-    string parameter_name = 1;
+    string parameter_id = 1;
     Type parameter_type = 2;
     oneof default_value {
         int32 value_i32 = 3;
@@ -51,7 +51,7 @@ message FileLoadMethod {}
 
 /// A load statement
 message LoadStatement {
-    string data_name = 1;
+    string data_id = 1;
     oneof load_method {
         HTTPLoadMethod http = 2;
         FileLoadMethod file = 3;
@@ -81,8 +81,8 @@ message ExtractMethod {
 
 /// An extract statement
 message ExtractStatement {
-    string extract_name = 1;
-    string data_name = 2;
+    string extract_id = 1;
+    string data_id = 2;
     oneof method {
         JSONExtract json = 3;
         CSVExtract csv = 4;
@@ -159,13 +159,14 @@ message VizAxes {
 
 /// A display statement
 message VizStatement {
-    string viz_name = 1;
+    string viz_id = 1;
     VizType viz_type = 2;
     fixed32 viz_type_flags = 3;
-    string query_name = 4;
-    VizLayout layout = 5;
-    fixed32 color = 6;
-    VizAxes axes = 7;
+    string query_id = 4;
+    string title = 5;
+    VizLayout layout = 7;
+    fixed32 color = 8;
+    VizAxes axes = 9;
 }
 
 /// A statement union

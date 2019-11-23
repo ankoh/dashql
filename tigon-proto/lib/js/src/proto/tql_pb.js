@@ -471,7 +471,7 @@ proto.tigon.proto.tql.QueryStatement.prototype.toObject = function(opt_includeIn
  */
 proto.tigon.proto.tql.QueryStatement.toObject = function(includeInstance, msg) {
   var f, obj = {
-    queryName: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    queryId: jspb.Message.getFieldWithDefault(msg, 1, ""),
     queryText: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
@@ -511,7 +511,7 @@ proto.tigon.proto.tql.QueryStatement.deserializeBinaryFromReader = function(msg,
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setQueryName(value);
+      msg.setQueryId(value);
       break;
     case 2:
       var value = /** @type {string} */ (reader.readString());
@@ -546,7 +546,7 @@ proto.tigon.proto.tql.QueryStatement.prototype.serializeBinary = function() {
  */
 proto.tigon.proto.tql.QueryStatement.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getQueryName();
+  f = message.getQueryId();
   if (f.length > 0) {
     writer.writeString(
       1,
@@ -564,10 +564,10 @@ proto.tigon.proto.tql.QueryStatement.serializeBinaryToWriter = function(message,
 
 
 /**
- * optional string query_name = 1;
+ * optional string query_id = 1;
  * @return {string}
  */
-proto.tigon.proto.tql.QueryStatement.prototype.getQueryName = function() {
+proto.tigon.proto.tql.QueryStatement.prototype.getQueryId = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
@@ -576,7 +576,7 @@ proto.tigon.proto.tql.QueryStatement.prototype.getQueryName = function() {
  * @param {string} value
  * @return {!proto.tigon.proto.tql.QueryStatement} returns this
  */
-proto.tigon.proto.tql.QueryStatement.prototype.setQueryName = function(value) {
+proto.tigon.proto.tql.QueryStatement.prototype.setQueryId = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
 
@@ -659,7 +659,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.toObject = function(opt_inc
  */
 proto.tigon.proto.tql.ParameterDeclaration.toObject = function(includeInstance, msg) {
   var f, obj = {
-    parameterName: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    parameterId: jspb.Message.getFieldWithDefault(msg, 1, ""),
     parameterType: jspb.Message.getFieldWithDefault(msg, 2, 0),
     valueI32: jspb.Message.getFieldWithDefault(msg, 3, 0),
     valueI64: jspb.Message.getFieldWithDefault(msg, 4, 0),
@@ -703,7 +703,7 @@ proto.tigon.proto.tql.ParameterDeclaration.deserializeBinaryFromReader = functio
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setParameterName(value);
+      msg.setParameterId(value);
       break;
     case 2:
       var value = /** @type {!proto.tigon.proto.tql.Type} */ (reader.readEnum());
@@ -754,7 +754,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.serializeBinary = function(
  */
 proto.tigon.proto.tql.ParameterDeclaration.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getParameterName();
+  f = message.getParameterId();
   if (f.length > 0) {
     writer.writeString(
       1,
@@ -800,10 +800,10 @@ proto.tigon.proto.tql.ParameterDeclaration.serializeBinaryToWriter = function(me
 
 
 /**
- * optional string parameter_name = 1;
+ * optional string parameter_id = 1;
  * @return {string}
  */
-proto.tigon.proto.tql.ParameterDeclaration.prototype.getParameterName = function() {
+proto.tigon.proto.tql.ParameterDeclaration.prototype.getParameterId = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
@@ -812,7 +812,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.getParameterName = function
  * @param {string} value
  * @return {!proto.tigon.proto.tql.ParameterDeclaration} returns this
  */
-proto.tigon.proto.tql.ParameterDeclaration.prototype.setParameterName = function(value) {
+proto.tigon.proto.tql.ParameterDeclaration.prototype.setParameterId = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
 
@@ -1298,7 +1298,7 @@ proto.tigon.proto.tql.LoadStatement.prototype.toObject = function(opt_includeIns
  */
 proto.tigon.proto.tql.LoadStatement.toObject = function(includeInstance, msg) {
   var f, obj = {
-    dataName: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    dataId: jspb.Message.getFieldWithDefault(msg, 1, ""),
     http: (f = msg.getHttp()) && proto.tigon.proto.tql.HTTPLoadMethod.toObject(includeInstance, f),
     file: (f = msg.getFile()) && proto.tigon.proto.tql.FileLoadMethod.toObject(includeInstance, f)
   };
@@ -1339,7 +1339,7 @@ proto.tigon.proto.tql.LoadStatement.deserializeBinaryFromReader = function(msg, 
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setDataName(value);
+      msg.setDataId(value);
       break;
     case 2:
       var value = new proto.tigon.proto.tql.HTTPLoadMethod;
@@ -1380,7 +1380,7 @@ proto.tigon.proto.tql.LoadStatement.prototype.serializeBinary = function() {
  */
 proto.tigon.proto.tql.LoadStatement.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getDataName();
+  f = message.getDataId();
   if (f.length > 0) {
     writer.writeString(
       1,
@@ -1407,10 +1407,10 @@ proto.tigon.proto.tql.LoadStatement.serializeBinaryToWriter = function(message, 
 
 
 /**
- * optional string data_name = 1;
+ * optional string data_id = 1;
  * @return {string}
  */
-proto.tigon.proto.tql.LoadStatement.prototype.getDataName = function() {
+proto.tigon.proto.tql.LoadStatement.prototype.getDataId = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
@@ -1419,7 +1419,7 @@ proto.tigon.proto.tql.LoadStatement.prototype.getDataName = function() {
  * @param {string} value
  * @return {!proto.tigon.proto.tql.LoadStatement} returns this
  */
-proto.tigon.proto.tql.LoadStatement.prototype.setDataName = function(value) {
+proto.tigon.proto.tql.LoadStatement.prototype.setDataId = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
 
@@ -2138,8 +2138,8 @@ proto.tigon.proto.tql.ExtractStatement.prototype.toObject = function(opt_include
  */
 proto.tigon.proto.tql.ExtractStatement.toObject = function(includeInstance, msg) {
   var f, obj = {
-    extractName: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    dataName: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    extractId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    dataId: jspb.Message.getFieldWithDefault(msg, 2, ""),
     json: (f = msg.getJson()) && proto.tigon.proto.tql.JSONExtract.toObject(includeInstance, f),
     csv: (f = msg.getCsv()) && proto.tigon.proto.tql.CSVExtract.toObject(includeInstance, f)
   };
@@ -2180,11 +2180,11 @@ proto.tigon.proto.tql.ExtractStatement.deserializeBinaryFromReader = function(ms
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setExtractName(value);
+      msg.setExtractId(value);
       break;
     case 2:
       var value = /** @type {string} */ (reader.readString());
-      msg.setDataName(value);
+      msg.setDataId(value);
       break;
     case 3:
       var value = new proto.tigon.proto.tql.JSONExtract;
@@ -2225,14 +2225,14 @@ proto.tigon.proto.tql.ExtractStatement.prototype.serializeBinary = function() {
  */
 proto.tigon.proto.tql.ExtractStatement.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getExtractName();
+  f = message.getExtractId();
   if (f.length > 0) {
     writer.writeString(
       1,
       f
     );
   }
-  f = message.getDataName();
+  f = message.getDataId();
   if (f.length > 0) {
     writer.writeString(
       2,
@@ -2259,10 +2259,10 @@ proto.tigon.proto.tql.ExtractStatement.serializeBinaryToWriter = function(messag
 
 
 /**
- * optional string extract_name = 1;
+ * optional string extract_id = 1;
  * @return {string}
  */
-proto.tigon.proto.tql.ExtractStatement.prototype.getExtractName = function() {
+proto.tigon.proto.tql.ExtractStatement.prototype.getExtractId = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
@@ -2271,16 +2271,16 @@ proto.tigon.proto.tql.ExtractStatement.prototype.getExtractName = function() {
  * @param {string} value
  * @return {!proto.tigon.proto.tql.ExtractStatement} returns this
  */
-proto.tigon.proto.tql.ExtractStatement.prototype.setExtractName = function(value) {
+proto.tigon.proto.tql.ExtractStatement.prototype.setExtractId = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
 /**
- * optional string data_name = 2;
+ * optional string data_id = 2;
  * @return {string}
  */
-proto.tigon.proto.tql.ExtractStatement.prototype.getDataName = function() {
+proto.tigon.proto.tql.ExtractStatement.prototype.getDataId = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
@@ -2289,7 +2289,7 @@ proto.tigon.proto.tql.ExtractStatement.prototype.getDataName = function() {
  * @param {string} value
  * @return {!proto.tigon.proto.tql.ExtractStatement} returns this
  */
-proto.tigon.proto.tql.ExtractStatement.prototype.setDataName = function(value) {
+proto.tigon.proto.tql.ExtractStatement.prototype.setDataId = function(value) {
   return jspb.Message.setProto3StringField(this, 2, value);
 };
 
@@ -3614,12 +3614,13 @@ proto.tigon.proto.tql.VizStatement.prototype.toObject = function(opt_includeInst
  */
 proto.tigon.proto.tql.VizStatement.toObject = function(includeInstance, msg) {
   var f, obj = {
-    vizName: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    vizId: jspb.Message.getFieldWithDefault(msg, 1, ""),
     vizType: jspb.Message.getFieldWithDefault(msg, 2, 0),
     vizTypeFlags: jspb.Message.getFieldWithDefault(msg, 3, 0),
-    queryName: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    queryId: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    title: jspb.Message.getFieldWithDefault(msg, 5, ""),
     layout: (f = msg.getLayout()) && proto.tigon.proto.tql.VizLayout.toObject(includeInstance, f),
-    color: jspb.Message.getFieldWithDefault(msg, 6, 0),
+    color: jspb.Message.getFieldWithDefault(msg, 8, 0),
     axes: (f = msg.getAxes()) && proto.tigon.proto.tql.VizAxes.toObject(includeInstance, f)
   };
 
@@ -3659,7 +3660,7 @@ proto.tigon.proto.tql.VizStatement.deserializeBinaryFromReader = function(msg, r
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setVizName(value);
+      msg.setVizId(value);
       break;
     case 2:
       var value = /** @type {!proto.tigon.proto.tql.VizType} */ (reader.readEnum());
@@ -3671,18 +3672,22 @@ proto.tigon.proto.tql.VizStatement.deserializeBinaryFromReader = function(msg, r
       break;
     case 4:
       var value = /** @type {string} */ (reader.readString());
-      msg.setQueryName(value);
+      msg.setQueryId(value);
       break;
     case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setTitle(value);
+      break;
+    case 7:
       var value = new proto.tigon.proto.tql.VizLayout;
       reader.readMessage(value,proto.tigon.proto.tql.VizLayout.deserializeBinaryFromReader);
       msg.setLayout(value);
       break;
-    case 6:
+    case 8:
       var value = /** @type {number} */ (reader.readFixed32());
       msg.setColor(value);
       break;
-    case 7:
+    case 9:
       var value = new proto.tigon.proto.tql.VizAxes;
       reader.readMessage(value,proto.tigon.proto.tql.VizAxes.deserializeBinaryFromReader);
       msg.setAxes(value);
@@ -3716,7 +3721,7 @@ proto.tigon.proto.tql.VizStatement.prototype.serializeBinary = function() {
  */
 proto.tigon.proto.tql.VizStatement.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getVizName();
+  f = message.getVizId();
   if (f.length > 0) {
     writer.writeString(
       1,
@@ -3737,17 +3742,24 @@ proto.tigon.proto.tql.VizStatement.serializeBinaryToWriter = function(message, w
       f
     );
   }
-  f = message.getQueryName();
+  f = message.getQueryId();
   if (f.length > 0) {
     writer.writeString(
       4,
       f
     );
   }
+  f = message.getTitle();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
+      f
+    );
+  }
   f = message.getLayout();
   if (f != null) {
     writer.writeMessage(
-      5,
+      7,
       f,
       proto.tigon.proto.tql.VizLayout.serializeBinaryToWriter
     );
@@ -3755,14 +3767,14 @@ proto.tigon.proto.tql.VizStatement.serializeBinaryToWriter = function(message, w
   f = message.getColor();
   if (f !== 0) {
     writer.writeFixed32(
-      6,
+      8,
       f
     );
   }
   f = message.getAxes();
   if (f != null) {
     writer.writeMessage(
-      7,
+      9,
       f,
       proto.tigon.proto.tql.VizAxes.serializeBinaryToWriter
     );
@@ -3771,10 +3783,10 @@ proto.tigon.proto.tql.VizStatement.serializeBinaryToWriter = function(message, w
 
 
 /**
- * optional string viz_name = 1;
+ * optional string viz_id = 1;
  * @return {string}
  */
-proto.tigon.proto.tql.VizStatement.prototype.getVizName = function() {
+proto.tigon.proto.tql.VizStatement.prototype.getVizId = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
@@ -3783,7 +3795,7 @@ proto.tigon.proto.tql.VizStatement.prototype.getVizName = function() {
  * @param {string} value
  * @return {!proto.tigon.proto.tql.VizStatement} returns this
  */
-proto.tigon.proto.tql.VizStatement.prototype.setVizName = function(value) {
+proto.tigon.proto.tql.VizStatement.prototype.setVizId = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
 
@@ -3825,10 +3837,10 @@ proto.tigon.proto.tql.VizStatement.prototype.setVizTypeFlags = function(value) {
 
 
 /**
- * optional string query_name = 4;
+ * optional string query_id = 4;
  * @return {string}
  */
-proto.tigon.proto.tql.VizStatement.prototype.getQueryName = function() {
+proto.tigon.proto.tql.VizStatement.prototype.getQueryId = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
 };
 
@@ -3837,18 +3849,36 @@ proto.tigon.proto.tql.VizStatement.prototype.getQueryName = function() {
  * @param {string} value
  * @return {!proto.tigon.proto.tql.VizStatement} returns this
  */
-proto.tigon.proto.tql.VizStatement.prototype.setQueryName = function(value) {
+proto.tigon.proto.tql.VizStatement.prototype.setQueryId = function(value) {
   return jspb.Message.setProto3StringField(this, 4, value);
 };
 
 
 /**
- * optional VizLayout layout = 5;
+ * optional string title = 5;
+ * @return {string}
+ */
+proto.tigon.proto.tql.VizStatement.prototype.getTitle = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.tigon.proto.tql.VizStatement} returns this
+ */
+proto.tigon.proto.tql.VizStatement.prototype.setTitle = function(value) {
+  return jspb.Message.setProto3StringField(this, 5, value);
+};
+
+
+/**
+ * optional VizLayout layout = 7;
  * @return {?proto.tigon.proto.tql.VizLayout}
  */
 proto.tigon.proto.tql.VizStatement.prototype.getLayout = function() {
   return /** @type{?proto.tigon.proto.tql.VizLayout} */ (
-    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizLayout, 5));
+    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizLayout, 7));
 };
 
 
@@ -3857,7 +3887,7 @@ proto.tigon.proto.tql.VizStatement.prototype.getLayout = function() {
  * @return {!proto.tigon.proto.tql.VizStatement} returns this
 */
 proto.tigon.proto.tql.VizStatement.prototype.setLayout = function(value) {
-  return jspb.Message.setWrapperField(this, 5, value);
+  return jspb.Message.setWrapperField(this, 7, value);
 };
 
 
@@ -3875,16 +3905,16 @@ proto.tigon.proto.tql.VizStatement.prototype.clearLayout = function() {
  * @return {boolean}
  */
 proto.tigon.proto.tql.VizStatement.prototype.hasLayout = function() {
-  return jspb.Message.getField(this, 5) != null;
+  return jspb.Message.getField(this, 7) != null;
 };
 
 
 /**
- * optional fixed32 color = 6;
+ * optional fixed32 color = 8;
  * @return {number}
  */
 proto.tigon.proto.tql.VizStatement.prototype.getColor = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 6, 0));
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 8, 0));
 };
 
 
@@ -3893,17 +3923,17 @@ proto.tigon.proto.tql.VizStatement.prototype.getColor = function() {
  * @return {!proto.tigon.proto.tql.VizStatement} returns this
  */
 proto.tigon.proto.tql.VizStatement.prototype.setColor = function(value) {
-  return jspb.Message.setProto3IntField(this, 6, value);
+  return jspb.Message.setProto3IntField(this, 8, value);
 };
 
 
 /**
- * optional VizAxes axes = 7;
+ * optional VizAxes axes = 9;
  * @return {?proto.tigon.proto.tql.VizAxes}
  */
 proto.tigon.proto.tql.VizStatement.prototype.getAxes = function() {
   return /** @type{?proto.tigon.proto.tql.VizAxes} */ (
-    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizAxes, 7));
+    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizAxes, 9));
 };
 
 
@@ -3912,7 +3942,7 @@ proto.tigon.proto.tql.VizStatement.prototype.getAxes = function() {
  * @return {!proto.tigon.proto.tql.VizStatement} returns this
 */
 proto.tigon.proto.tql.VizStatement.prototype.setAxes = function(value) {
-  return jspb.Message.setWrapperField(this, 7, value);
+  return jspb.Message.setWrapperField(this, 9, value);
 };
 
 
@@ -3930,7 +3960,7 @@ proto.tigon.proto.tql.VizStatement.prototype.clearAxes = function() {
  * @return {boolean}
  */
 proto.tigon.proto.tql.VizStatement.prototype.hasAxes = function() {
-  return jspb.Message.getField(this, 7) != null;
+  return jspb.Message.getField(this, 9) != null;
 };
 
 
