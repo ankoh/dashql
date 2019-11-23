@@ -28,7 +28,6 @@ $board_ruler_thickness: 28px;
     position: relative;
 
     background-color: rgb(255, 255, 255);
-    border-bottom: 1px solid $border_color;
 }
 
 .board_ruler_left {
@@ -38,7 +37,6 @@ $board_ruler_thickness: 28px;
     position: relative;
 
     background-color: rgb(255, 255, 255);
-    border-right: 1px solid $border_color;
 }
 
 .board_ruler {
