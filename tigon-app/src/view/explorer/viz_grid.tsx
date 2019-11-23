@@ -93,10 +93,11 @@ function VizCard(props: {statement: proto.tql.VizStatement, data: proto.duckdb.Q
 
 /// Viz grid properties
 interface IVizGridProps {
-    tqlStatements: Immutable.List<proto.tql.Statement>;
-    queryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
     width: number;
     height: number;
+
+    tqlStatements: Immutable.List<proto.tql.Statement>;
+    queryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
 }
 
 /// A viz grid state
@@ -128,6 +129,3 @@ function mapStateToProps(state: Model.RootState) {
     };
 }
 export default connect(mapStateToProps, (_dispatch) => {})(withAutoSizer(VizGrid));
-
-
-
