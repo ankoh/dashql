@@ -5,7 +5,7 @@ import * as proto from 'tigon-proto';
 import Table from '../viz/table';
 import { TQLInterpreter } from '../../ctrl';
 import { connect } from 'react-redux';
-import s from './viz_grid.module.scss';
+import s from './grid.module.scss';
 
 interface IVizGridProps {
     tqlStatements: Immutable.List<proto.tql.Statement>;
@@ -15,7 +15,7 @@ interface IVizGridProps {
 interface IVizGridState {
 }
 
-function Viz(props: {statement: proto.tql.VizStatement, data: proto.duckdb.QueryResult | null}) {
+function VizCard(props: {statement: proto.tql.VizStatement, data: proto.duckdb.QueryResult | null}) {
     return (
         <div key={props.statement.getVizName()} className={s.viz}>
             <div className={s.viz_id}>
@@ -46,7 +46,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 
         return (
             <div className={s.grid}>
-                {vizStmts.map((s, i) => <Viz statement={s} data={vizData[i]} />)}
+                {vizStmts.map((s, i) => <VizCard statement={s} data={vizData[i]} />)}
             </div>
         );
     }
