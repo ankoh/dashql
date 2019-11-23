@@ -95,7 +95,7 @@ function VizCard(props: {
             }}
         >
             <div className={s.viz_id}>
-                {props.stmt.getVizName()}
+                {props.stmt.getVizId()}
             </div>
             <div className={s.viz_card}>
                 <div className={s.viz_card_header}>
@@ -151,7 +151,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
             proto.tql.Statement.StatementCase.VIZ,
             (_, v: proto.tql.VizStatement) => v
         );
-        let vizData = vizStmts.map((v) => props.queryResults.get(v.getQueryName()) || null);
+        let vizData = vizStmts.map((v) => props.queryResults.get(v.getQueryId()) || null);
 
         // Compute the layout
         let gridLayout = new GridLayout();
@@ -187,7 +187,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
                 }}
             >
                 {this.state.vizStmts.map((s, i) =>
-                    <VizCard key={s.getVizName()} stmt={s} pos={this.state.vizPositions[i]} data={this.state.vizData[i]} />
+                    <VizCard key={s.getVizId()} stmt={s} pos={this.state.vizPositions[i]} data={this.state.vizData[i]} />
                 )}
             </div>
         );

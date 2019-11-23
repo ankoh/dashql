@@ -88,27 +88,27 @@ function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
             <Section title="Parameters">
                 {TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.PARAMETER,
                     (i, s: proto.tql.ParameterDeclaration) =>
-                        <SectionEntry key={i} name={s.getParameterName() || "-"} description={""} />)}
+                        <SectionEntry key={i} name={s.getParameterId() || "-"} description={""} />)}
             </Section>
             <Section title="Load Statements">
                 {TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.LOAD,
                     (i, s: proto.tql.LoadStatement) => 
-                        <SectionEntry key={i} name={s.getDataName() || "-"} description={""} />)}
+                        <SectionEntry key={i} name={s.getDataId() || "-"} description={""} />)}
             </Section>
             <Section title="Extract Statements">
                 {TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.EXTRACT,
                     (i, s: proto.tql.ExtractStatement) =>
-                        <SectionEntry key={i} name={s.getExtractName() || "-"} description={""} />)}
+                        <SectionEntry key={i} name={s.getExtractId() || "-"} description={""} />)}
             </Section>
             <Section title="Query Statements">
                 {TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.QUERY,
                     (i, s: proto.tql.QueryStatement) => 
-                        <SectionEntry key={i} name={s.getQueryName() || "-"} description={""} />)}
+                        <SectionEntry key={i} name={s.getQueryId() || "-"} description={""} />)}
             </Section>
             <Section title="Vizualizations">
                 {TQLInterpreter.mapStatements(props.statements, proto.tql.Statement.StatementCase.VIZ,
                     (i, s: proto.tql.VizStatement) => 
-                        <SectionEntry key={i} name={s.getVizName() || "-"} description={""} />)}
+                        <SectionEntry key={i} name={s.getVizId() || "-"} description={""} />)}
             </Section>
         </div>
     );
