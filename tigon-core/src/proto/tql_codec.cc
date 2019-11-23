@@ -11,9 +11,15 @@ namespace protobuf = google::protobuf;
 namespace tigon {
 namespace {
 
-auto generateName(tql::QueryStatement& stmt) {
+auto generateID(tql::QueryStatement& stmt) {
     static unsigned id = 0;
     return "query_" + std::to_string(++id);
+}
+
+auto generateTitle(tql::VizStatement& stmt) {
+    static unsigned id = 0;
+    auto typeName = stmt.getTypeName();
+    return std::string(typeName) + " " + std::to_string(++id);
 }
 
 }
@@ -31,6 +37,11 @@ proto::tql::Module* encodeTQLModule(protobuf::Arena& arena, tql::Module& module)
                 auto* v = stmts->Add()->mutable_viz();
                 v->set_viz_id(viz->viz_id.data(), viz->viz_id.size());
                 v->set_query_id(viz->query_id.data(), viz->query_id.size());
+                if (viz->title.empty()) {
+                    v->set_title(generateTitle(*viz));
+                } else {
+                    v->set_title(viz->title.data(), viz->title.size());
+                }
             },
 
             // Extract statement
@@ -54,9 +65,8 @@ proto::tql::Module* encodeTQLModule(protobuf::Arena& arena, tql::Module& module)
             // SQL statement
             [&](std::unique_ptr<tql::QueryStatement>& sql) {
                 auto* q = stmts->Add()->mutable_query();
-                if (sql->query_id.empty() || sql->query_id == "") {
-                    auto name = generateName(*sql);
-                    q->set_query_id(name.data(), name.size());                   
+                if (sql->query_id.empty()) {
+                    q->set_query_id(generateID(*sql));                   
                 } else {
                     q->set_query_id(sql->query_id.data(), sql->query_id.size());
                 }

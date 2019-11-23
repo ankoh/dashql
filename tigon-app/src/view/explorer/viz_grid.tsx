@@ -100,7 +100,7 @@ function VizCard(props: {
             <div className={s.viz_card}>
                 <div className={s.viz_card_header}>
                     <div className={s.viz_card_title}>
-                        Some Cool Title
+                        {props.stmt.getTitle()}
                     </div>
                     <div className={s.viz_card_action_refresh}>
                         <RefreshIcon className={s.viz_card_action_icon} width={ACTION_ICON_WIDTH} height={ACTION_ICON_HEIGHT} />

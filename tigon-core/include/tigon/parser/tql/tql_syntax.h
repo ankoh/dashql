@@ -136,6 +136,9 @@ struct VizStatement {
         Text
     };
 
+    /// Get the type name
+    const char* getTypeName();
+
     /// Type flags
     enum class TypeFlag: uint64_t {
         None = 0,
@@ -296,6 +299,8 @@ struct VizStatement {
     Type type;
     /// The type flags
     uint64_t type_flags;
+    /// The title
+    std::string_view title;
     /// The layout
     Layout layout;
     /// The color
