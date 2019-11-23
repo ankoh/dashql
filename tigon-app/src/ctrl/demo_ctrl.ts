@@ -68,34 +68,35 @@ export class QueryResultWriter {
         this.columnCount += 1;
         let column = new proto.duckdb.QueryResultColumn();
         let sqlType = new proto.duckdb.SQLType();
+        let rawType: proto.duckdb.RawTypeIDMap[keyof proto.duckdb.RawTypeIDMap] = proto.duckdb.RawTypeID.RAW_INVALID;
         sqlType.setTypeId(sqlTypeID);
         switch (sqlTypeID) {
             case proto.duckdb.SQLTypeID.SQL_BIGINT:
-                this.queryResult.addColumnRawTypes(proto.duckdb.RawTypeID.RAW_BIGINT);
+                rawType = proto.duckdb.RawTypeID.RAW_BIGINT;
                 column.setRowsU64List(rows);
                 break;
             case proto.duckdb.SQLTypeID.SQL_BOOLEAN:
-                this.queryResult.addColumnRawTypes(proto.duckdb.RawTypeID.RAW_BOOLEAN);
+                rawType = proto.duckdb.RawTypeID.RAW_BOOLEAN;
                 column.setRowsI32List(rows);
                 break;
             case proto.duckdb.SQLTypeID.SQL_FLOAT:
-                this.queryResult.addColumnRawTypes(proto.duckdb.RawTypeID.RAW_FLOAT);
+                rawType = proto.duckdb.RawTypeID.RAW_FLOAT;
                 column.setRowsF32List(rows);
                 break;
             case proto.duckdb.SQLTypeID.SQL_DOUBLE:
-                this.queryResult.addColumnRawTypes(proto.duckdb.RawTypeID.RAW_DOUBLE);
+                rawType = proto.duckdb.RawTypeID.RAW_DOUBLE;
                 column.setRowsF64List(rows);
                 break;
             case proto.duckdb.SQLTypeID.SQL_INTEGER:
-                this.queryResult.addColumnRawTypes(proto.duckdb.RawTypeID.RAW_INTEGER);
+                rawType = proto.duckdb.RawTypeID.RAW_INTEGER;
                 column.setRowsI64List(rows);
                 break;
             case proto.duckdb.SQLTypeID.SQL_SMALLINT:
-                this.queryResult.addColumnRawTypes(proto.duckdb.RawTypeID.RAW_SMALLINT);
+                rawType = proto.duckdb.RawTypeID.RAW_SMALLINT;
                 column.setRowsI32List(rows);
                 break;
             case proto.duckdb.SQLTypeID.SQL_TINYINT:
-                this.queryResult.addColumnRawTypes(proto.duckdb.RawTypeID.RAW_TINYINT);
+                rawType = proto.duckdb.RawTypeID.RAW_TINYINT;
                 column.setRowsI32List(rows);
                 break;
             // TODO
@@ -103,7 +104,9 @@ export class QueryResultWriter {
         let nullMask = new Array<boolean>();
         nullMask.length = rows.length;
         nullMask.fill(false);
+        column.setTypeId(rawType);
         column.setNullMaskList(nullMask);
+        this.queryResult.addColumnRawTypes(rawType);
         this.queryResult.addColumnNames(name);
         this.queryResult.addColumnSqlTypes(sqlType)
         this.dataChunk.addColumns(column);
@@ -128,6 +131,8 @@ export class QueryResultWriter {
 
     public finish(): proto.duckdb.QueryResult {
         let queryResult = this.queryResult;
+        this.dataChunk.setRowOffset(0);
+        this.dataChunk.setRowCount(this.rowCount);
         queryResult.setColumnCount(this.columnCount);
         queryResult.setRowCount(this.rowCount);
         queryResult.addDataChunks(this.dataChunk);

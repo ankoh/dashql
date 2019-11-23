@@ -21,6 +21,7 @@ interface ITableState {
 // The table
 export class Table extends React.Component<ITableProps, ITableState> {
     protected gridRef: React.RefObject<Grid>;
+    protected chunkCache: number;
 
     constructor(props: ITableProps) {
         super(props);
@@ -28,6 +29,92 @@ export class Table extends React.Component<ITableProps, ITableState> {
             scrollTop: 0,
         };
         this.gridRef = React.createRef();
+        this.chunkCache = 0;
+    }
+
+    protected fmtValue(row: number, col: number): string {
+        let chunks = this.props.data.getDataChunksList();
+        let chunk: proto.duckdb.QueryResultChunk | null = null;
+
+        // Compare a chunk range
+        let cmpChunkRange = (c: proto.duckdb.QueryResultChunk, row: number) => {
+            let begin = c.getRowOffset();
+            let end = c.getRowOffset() + c.getRowCount();
+            if (row >= begin && row < end) {
+                return 0;
+            } else if (row < begin) {
+                return -1;
+            } else {
+                return 1;
+            }
+        };
+
+        // Cached chunk?
+        if (this.chunkCache < chunks.length && cmpChunkRange(chunks[this.chunkCache], row) === 0) {
+            chunk = chunks[this.chunkCache];
+        }
+        if (chunk == null) {
+            let lb = 0;
+            let ub = chunks.length;
+            while (lb < ub) {
+                let mid = Math.floor((lb + ub) / 2);
+                let candidate = chunks[mid];
+                let cmp = cmpChunkRange(candidate, row);
+                if (cmp === 0) {
+                    chunk = candidate;
+                    this.chunkCache = mid;
+                    break;
+                } else if (cmp > 0) {
+                    lb = mid + 1;
+                } else {
+                    ub = mid;
+                }
+            }
+        }
+
+        // Row oob?
+        if (chunk == null) {
+            return "%ERR%"; // XXX log oob
+        }
+
+        // Column oob?
+        let columns = chunk.getColumnsList();
+        if (col > columns.length) {
+            return "%ERR%"; // XXX log oob
+        }
+        let column = columns[col];
+
+        // NULL?
+        let nullMask = column.getNullMaskList();
+        if (col <= nullMask.length && nullMask[col]) {
+            return "NULL";
+        }
+
+        switch (column.getTypeId()) {
+            case proto.duckdb.RawTypeID.RAW_BIGINT:
+                return column.getRowsI64List()[row].toString();
+            case proto.duckdb.RawTypeID.RAW_BOOLEAN:
+                return column.getRowsI32List()[row].toString();
+            case proto.duckdb.RawTypeID.RAW_DOUBLE:
+                return column.getRowsF64List()[row].toString();
+            case proto.duckdb.RawTypeID.RAW_FLOAT:
+                return column.getRowsF32List()[row].toString();
+            case proto.duckdb.RawTypeID.RAW_HASH:
+                return column.getRowsU64List()[row].toString();
+            case proto.duckdb.RawTypeID.RAW_INTEGER:
+                return column.getRowsI64List()[row].toString();
+            case proto.duckdb.RawTypeID.RAW_POINTER:
+                return column.getRowsU64List()[row].toString();
+            case proto.duckdb.RawTypeID.RAW_SMALLINT:
+                return column.getRowsI32List()[row].toString();
+            case proto.duckdb.RawTypeID.RAW_TINYINT:
+                return column.getRowsI32List()[row].toString();
+            case proto.duckdb.RawTypeID.RAW_VARBINARY:
+                break;
+            case proto.duckdb.RawTypeID.RAW_VARCHAR:
+                return column.getRowsStrList()[row].toString();
+        }
+        return "%ERR%"; // XXX log unknown
     }
 
     // Render a single cell
@@ -43,6 +130,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
         };
         let cellType = CellType.Data;
 
+        // Determine cell type
         if (props.rowIndex === 0) {
             if (props.columnIndex === 0) {
                 cellType = CellType.Anchor;
@@ -53,8 +141,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
             cellType = CellType.RowHeader
         }
 
-        let columnNames = this.props.data.getColumnNamesList();
-
+        // Render cell type
         switch (cellType) {
             case CellType.Anchor:
                 return (
@@ -85,7 +172,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                             lineHeight: '24px',
                         }}
                     >
-                        {columnNames[props.columnIndex - 1]}
+                        {this.props.data.getColumnNamesList()[props.columnIndex - 1]}
                     </div>
                 );
             case CellType.RowHeader:
@@ -106,9 +193,6 @@ export class Table extends React.Component<ITableProps, ITableState> {
                     </div>
                 );
             case CellType.Data:
-            {
-                // let columnIndex = props.columnIndex - 1;
-                // let rowIndex = props.rowIndex - 1;
                 return (
                     <div
                         key={props.key}
@@ -121,10 +205,9 @@ export class Table extends React.Component<ITableProps, ITableState> {
                             padding: '0px 8px 0px 8px',
                         }}
                     >
-                        foo
+                        {this.fmtValue(props.rowIndex - 1, props.columnIndex - 1)}
                     </div>
                 );
-            }
         }
     }
 
