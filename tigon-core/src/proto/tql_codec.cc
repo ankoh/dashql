@@ -62,6 +62,8 @@ tigon::proto::tql::VizStatement* encodeStatement(protobuf::Arena& arena, tql::Vi
         if (auto l = viz.layout.height->lg) { h->set_allocated_large(asLengthValue(*l)); }
         if (auto l = viz.layout.height->xl) { h->set_allocated_xlarge(asLengthValue(*l)); }
     }
+    v->set_allocated_layout(layout);
+
     return v;
 }
 

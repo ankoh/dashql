@@ -475,9 +475,6 @@ export class VizStatement extends jspb.Message {
   getVizType(): VizTypeMap[keyof VizTypeMap];
   setVizType(value: VizTypeMap[keyof VizTypeMap]): void;
 
-  getVizTypeFlags(): number;
-  setVizTypeFlags(value: number): void;
-
   getQueryId(): string;
   setQueryId(value: string): void;
 
@@ -488,9 +485,6 @@ export class VizStatement extends jspb.Message {
   clearLayout(): void;
   getLayout(): VizLayout | undefined;
   setLayout(value?: VizLayout): void;
-
-  getColor(): number;
-  setColor(value: number): void;
 
   hasAxes(): boolean;
   clearAxes(): void;
@@ -511,11 +505,9 @@ export namespace VizStatement {
   export type AsObject = {
     vizId: string,
     vizType: VizTypeMap[keyof VizTypeMap],
-    vizTypeFlags: number,
     queryId: string,
     title: string,
     layout?: VizLayout.AsObject,
-    color: number,
     axes?: VizAxes.AsObject,
   }
 }

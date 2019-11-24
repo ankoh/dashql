@@ -162,11 +162,9 @@ message VizAxes {
 message VizStatement {
     string viz_id = 1;
     VizType viz_type = 2;
-    fixed32 viz_type_flags = 3;
     string query_id = 4;
     string title = 5;
     VizLayout layout = 7;
-    fixed32 color = 8;
     VizAxes axes = 9;
 }
 

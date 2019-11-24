@@ -1,6 +1,7 @@
 import { CoreController } from './core_ctrl';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as proto from 'tigon-proto';
 import TigonCore from '../../public/lib/tigon_core';
 
 // The core loader
@@ -42,7 +43,7 @@ describe("tql parsing", () => {
         query foo as SELECT 1;
     `, {
         statementsList: [
-            { query: { queryName: "foo", queryText: "SELECT 1" } }
+            { query: { queryId: "foo", queryText: "SELECT 1" } }
         ]
     });
 
@@ -51,8 +52,41 @@ describe("tql parsing", () => {
         query "bar" as SELECT 1 + 2;
     `, {
         statementsList: [
-            { query: { queryName: "foo", queryText: "SELECT 1" }},
-            { query: { queryName: "bar", queryText: "SELECT 1 + 2" }}
+            { query: { queryId: "foo", queryText: "SELECT 1" }},
+            { query: { queryId: "bar", queryText: "SELECT 1 + 2" }}
+        ]
+    });
+
+    test_tql_parser(`
+        VIZ temp_weekly_table FROM temp_weekly USING TABLE (
+            title = "Weekly Temperature Data",
+            layout = (
+                width = 4,
+                height = 200px
+            )
+        );
+    `, {
+        statementsList: [
+            { viz: {
+                queryId: "temp_weekly",
+                vizId: "temp_weekly_table",
+                vizType: proto.tql.VizType.VIZ_TABLE,
+                title: "Weekly Temperature Data",
+                layout: {
+                    height: {
+                        wildcard: {
+                            value: 200,
+                            unit: proto.tql.VizLengthUnit.PIXEL,
+                        },
+                    },
+                    width: {
+                        wildcard: {
+                            value: 4,
+                            unit: proto.tql.VizLengthUnit.SPAN,
+                        },
+                    }
+                }
+            }}
         ]
     });
 });

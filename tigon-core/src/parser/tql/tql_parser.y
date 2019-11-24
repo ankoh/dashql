@@ -137,6 +137,7 @@ using std::vector;
 %type <std::string_view> sql_literal;
 %type <std::tuple<VizStatement::SizeClass, uint32_t, VizStatement::LengthUnit>> viz_layout_length_field;
 %type <std::unique_ptr<VizStatement>> viz_statement;
+%type <std::unique_ptr<VizStatement::LayoutLength>> viz_layout_length;
 %type <std::unique_ptr<ExtractStatement>> extract_statement;
 %type <std::unique_ptr<LoadStatement>> load_statement;
 %type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
@@ -318,7 +319,7 @@ viz_fields:
 viz_field:
     AXES EQUAL LRB viz_axes RRB
  |  COLOR EQUAL LRB viz_color RRB
- |  LAYOUT EQUAL LRB viz_layout RRB
+ |  LAYOUT EQUAL LRB opt_viz_layout RRB
  |  TITLE EQUAL identifier {
         ctx.cached<VizStatement>()->title = $3;
     }
@@ -372,12 +373,12 @@ viz_color_field:
 
 opt_viz_color_list:
     viz_color_list  { $$ = move($1); }
- |  %empty              { $$ = vector<Viz::RGBColor>(); }
+ |  %empty          { $$ = vector<Viz::RGBColor>(); }
     ;
 
 viz_color_list:
-    viz_color_list COMMA viz_color_value { $1.push_back($3); $$ = move($1); }
- |  viz_color_value                          { $$ = vector<Viz::RGBColor>{$1}; }
+    viz_color_list COMMA viz_color_value    { $1.push_back($3); $$ = move($1); }
+ |  viz_color_value                         { $$ = vector<Viz::RGBColor>{$1}; }
     ;
 
 viz_color_value:
@@ -391,18 +392,19 @@ viz_color_value:
  |  HEX_COLOR_LITERAL { $$ = Viz::RGBColor{$1}; }
     ;
 
+opt_viz_layout:
+    viz_layout
+ |  %empty
+    ;
+
 viz_layout:
     viz_layout COMMA viz_layout_field
  |  viz_layout_field
     ;
 
 viz_layout_field:
-    WIDTH EQUAL LRB viz_layout_length RRB  {
-        ctx.cached<VizStatement>()->layout.width = move(ctx.cached<VizStatement::LayoutLength>());
-    }
- |  HEIGHT EQUAL LRB viz_layout_length RRB {
-        ctx.cached<VizStatement>()->layout.height = move(ctx.cached<VizStatement::LayoutLength>());
-    }
+    WIDTH EQUAL viz_layout_length     { ctx.cached<VizStatement>()->layout.width = move($3); }
+ |  HEIGHT EQUAL viz_layout_length    { ctx.cached<VizStatement>()->layout.height = move($3); }
     ;
 
 viz_size_class:
@@ -414,7 +416,18 @@ viz_size_class:
     ;
 
 viz_layout_length:
-    viz_layout_length COMMA viz_layout_length_field {
+    LRB viz_layout_length_fields RRB  {
+        $$ = move(ctx.cached<VizStatement::LayoutLength>());
+    }
+ |  INTEGER_LITERAL opt_viz_layout_unit {
+        auto l = std::make_unique<VizStatement::LayoutLength>();
+        l->set(Viz::SizeClass::Wildcard, $1, $2);
+        $$ = move(l);
+    }
+    ;
+
+viz_layout_length_fields:
+    viz_layout_length_fields COMMA viz_layout_length_field {
         ctx.cached<VizStatement::LayoutLength>()->set(get<0>($3), get<1>($3), get<2>($3));
     }
  |  viz_layout_length_field {
@@ -428,7 +441,7 @@ viz_layout_length_field:
 
 opt_viz_layout_unit:
     viz_layout_unit { $$ = $1; }
- |  %empty              { $$ = Viz::LengthUnit::Span; }
+ |  %empty          { $$ = Viz::LengthUnit::Span; }
     ;
 
 viz_layout_unit:

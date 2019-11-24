@@ -3667,11 +3667,9 @@ proto.tigon.proto.tql.VizStatement.toObject = function(includeInstance, msg) {
   var f, obj = {
     vizId: jspb.Message.getFieldWithDefault(msg, 1, ""),
     vizType: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    vizTypeFlags: jspb.Message.getFieldWithDefault(msg, 3, 0),
     queryId: jspb.Message.getFieldWithDefault(msg, 4, ""),
     title: jspb.Message.getFieldWithDefault(msg, 5, ""),
     layout: (f = msg.getLayout()) && proto.tigon.proto.tql.VizLayout.toObject(includeInstance, f),
-    color: jspb.Message.getFieldWithDefault(msg, 8, 0),
     axes: (f = msg.getAxes()) && proto.tigon.proto.tql.VizAxes.toObject(includeInstance, f)
   };
 
@@ -3717,10 +3715,6 @@ proto.tigon.proto.tql.VizStatement.deserializeBinaryFromReader = function(msg, r
       var value = /** @type {!proto.tigon.proto.tql.VizType} */ (reader.readEnum());
       msg.setVizType(value);
       break;
-    case 3:
-      var value = /** @type {number} */ (reader.readFixed32());
-      msg.setVizTypeFlags(value);
-      break;
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setQueryId(value);
@@ -3733,10 +3727,6 @@ proto.tigon.proto.tql.VizStatement.deserializeBinaryFromReader = function(msg, r
       var value = new proto.tigon.proto.tql.VizLayout;
       reader.readMessage(value,proto.tigon.proto.tql.VizLayout.deserializeBinaryFromReader);
       msg.setLayout(value);
-      break;
-    case 8:
-      var value = /** @type {number} */ (reader.readFixed32());
-      msg.setColor(value);
       break;
     case 9:
       var value = new proto.tigon.proto.tql.VizAxes;
@@ -3786,13 +3776,6 @@ proto.tigon.proto.tql.VizStatement.serializeBinaryToWriter = function(message, w
       f
     );
   }
-  f = message.getVizTypeFlags();
-  if (f !== 0) {
-    writer.writeFixed32(
-      3,
-      f
-    );
-  }
   f = message.getQueryId();
   if (f.length > 0) {
     writer.writeString(
@@ -3813,13 +3796,6 @@ proto.tigon.proto.tql.VizStatement.serializeBinaryToWriter = function(message, w
       7,
       f,
       proto.tigon.proto.tql.VizLayout.serializeBinaryToWriter
-    );
-  }
-  f = message.getColor();
-  if (f !== 0) {
-    writer.writeFixed32(
-      8,
-      f
     );
   }
   f = message.getAxes();
@@ -3866,24 +3842,6 @@ proto.tigon.proto.tql.VizStatement.prototype.getVizType = function() {
  */
 proto.tigon.proto.tql.VizStatement.prototype.setVizType = function(value) {
   return jspb.Message.setProto3EnumField(this, 2, value);
-};
-
-
-/**
- * optional fixed32 viz_type_flags = 3;
- * @return {number}
- */
-proto.tigon.proto.tql.VizStatement.prototype.getVizTypeFlags = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 3, 0));
-};
-
-
-/**
- * @param {number} value
- * @return {!proto.tigon.proto.tql.VizStatement} returns this
- */
-proto.tigon.proto.tql.VizStatement.prototype.setVizTypeFlags = function(value) {
-  return jspb.Message.setProto3IntField(this, 3, value);
 };
 
 
@@ -3957,24 +3915,6 @@ proto.tigon.proto.tql.VizStatement.prototype.clearLayout = function() {
  */
 proto.tigon.proto.tql.VizStatement.prototype.hasLayout = function() {
   return jspb.Message.getField(this, 7) != null;
-};
-
-
-/**
- * optional fixed32 color = 8;
- * @return {number}
- */
-proto.tigon.proto.tql.VizStatement.prototype.getColor = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 8, 0));
-};
-
-
-/**
- * @param {number} value
- * @return {!proto.tigon.proto.tql.VizStatement} returns this
- */
-proto.tigon.proto.tql.VizStatement.prototype.setColor = function(value) {
-  return jspb.Message.setProto3IntField(this, 8, value);
 };
 
 

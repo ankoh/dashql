@@ -3184,8 +3184,6 @@ class VizStatement :
     kLayoutFieldNumber = 7,
     kAxesFieldNumber = 9,
     kVizTypeFieldNumber = 2,
-    kVizTypeFlagsFieldNumber = 3,
-    kColorFieldNumber = 8,
   };
   // string viz_id = 1;
   void clear_viz_id();
@@ -3307,24 +3305,6 @@ class VizStatement :
   void _internal_set_viz_type(::tigon::proto::tql::VizType value);
   public:
 
-  // fixed32 viz_type_flags = 3;
-  void clear_viz_type_flags();
-  ::PROTOBUF_NAMESPACE_ID::uint32 viz_type_flags() const;
-  void set_viz_type_flags(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_viz_type_flags() const;
-  void _internal_set_viz_type_flags(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  public:
-
-  // fixed32 color = 8;
-  void clear_color();
-  ::PROTOBUF_NAMESPACE_ID::uint32 color() const;
-  void set_color(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_color() const;
-  void _internal_set_color(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  public:
-
   // @@protoc_insertion_point(class_scope:tigon.proto.tql.VizStatement)
  private:
   class _Internal;
@@ -3339,8 +3319,6 @@ class VizStatement :
   ::tigon::proto::tql::VizLayout* layout_;
   ::tigon::proto::tql::VizAxes* axes_;
   int viz_type_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 viz_type_flags_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 color_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -6212,26 +6190,6 @@ inline void VizStatement::set_viz_type(::tigon::proto::tql::VizType value) {
   // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.viz_type)
 }
 
-// fixed32 viz_type_flags = 3;
-inline void VizStatement::clear_viz_type_flags() {
-  viz_type_flags_ = 0u;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizStatement::_internal_viz_type_flags() const {
-  return viz_type_flags_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizStatement::viz_type_flags() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.viz_type_flags)
-  return _internal_viz_type_flags();
-}
-inline void VizStatement::_internal_set_viz_type_flags(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  
-  viz_type_flags_ = value;
-}
-inline void VizStatement::set_viz_type_flags(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_viz_type_flags(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.viz_type_flags)
-}
-
 // string query_id = 4;
 inline void VizStatement::clear_query_id() {
   query_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
@@ -6462,26 +6420,6 @@ inline void VizStatement::set_allocated_layout(::tigon::proto::tql::VizLayout* l
   }
   layout_ = layout;
   // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.layout)
-}
-
-// fixed32 color = 8;
-inline void VizStatement::clear_color() {
-  color_ = 0u;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizStatement::_internal_color() const {
-  return color_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizStatement::color() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.color)
-  return _internal_color();
-}
-inline void VizStatement::_internal_set_color(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  
-  color_ = value;
-}
-inline void VizStatement::set_color(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_color(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.color)
 }
 
 // .tigon.proto.tql.VizAxes axes = 9;

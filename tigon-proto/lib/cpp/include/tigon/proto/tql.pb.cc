@@ -4983,9 +4983,7 @@ VizStatement::VizStatement(const VizStatement& from)
   } else {
     axes_ = nullptr;
   }
-  ::memcpy(&viz_type_, &from.viz_type_,
-    static_cast<size_t>(reinterpret_cast<char*>(&color_) -
-    reinterpret_cast<char*>(&viz_type_)) + sizeof(color_));
+  viz_type_ = from.viz_type_;
   // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizStatement)
 }
 
@@ -4995,8 +4993,8 @@ void VizStatement::SharedCtor() {
   query_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   title_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   ::memset(&layout_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&color_) -
-      reinterpret_cast<char*>(&layout_)) + sizeof(color_));
+      reinterpret_cast<char*>(&viz_type_) -
+      reinterpret_cast<char*>(&layout_)) + sizeof(viz_type_));
 }
 
 VizStatement::~VizStatement() {
@@ -5045,9 +5043,7 @@ void VizStatement::Clear() {
     delete axes_;
   }
   axes_ = nullptr;
-  ::memset(&viz_type_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&color_) -
-      reinterpret_cast<char*>(&viz_type_)) + sizeof(color_));
+  viz_type_ = 0;
   _internal_metadata_.Clear();
 }
 
@@ -5074,13 +5070,6 @@ const char* VizStatement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
           _internal_set_viz_type(static_cast<::tigon::proto::tql::VizType>(val));
         } else goto handle_unusual;
         continue;
-      // fixed32 viz_type_flags = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 29)) {
-          viz_type_flags_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<::PROTOBUF_NAMESPACE_ID::uint32>(ptr);
-          ptr += sizeof(::PROTOBUF_NAMESPACE_ID::uint32);
-        } else goto handle_unusual;
-        continue;
       // string query_id = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
@@ -5100,13 +5089,6 @@ const char* VizStatement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 58)) {
           ptr = ctx->ParseMessage(_internal_mutable_layout(), ptr);
           CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // fixed32 color = 8;
-      case 8:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 69)) {
-          color_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<::PROTOBUF_NAMESPACE_ID::uint32>(ptr);
-          ptr += sizeof(::PROTOBUF_NAMESPACE_ID::uint32);
         } else goto handle_unusual;
         continue;
       // .tigon.proto.tql.VizAxes axes = 9;
@@ -5159,12 +5141,6 @@ failure:
       2, this->_internal_viz_type(), target);
   }
 
-  // fixed32 viz_type_flags = 3;
-  if (this->viz_type_flags() != 0) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteFixed32ToArray(3, this->_internal_viz_type_flags(), target);
-  }
-
   // string query_id = 4;
   if (this->query_id().size() > 0) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
@@ -5191,12 +5167,6 @@ failure:
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessageToArray(
         7, _Internal::layout(this), target, stream);
-  }
-
-  // fixed32 color = 8;
-  if (this->color() != 0) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteFixed32ToArray(8, this->_internal_color(), target);
   }
 
   // .tigon.proto.tql.VizAxes axes = 9;
@@ -5264,16 +5234,6 @@ size_t VizStatement::ByteSizeLong() const {
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_viz_type());
   }
 
-  // fixed32 viz_type_flags = 3;
-  if (this->viz_type_flags() != 0) {
-    total_size += 1 + 4;
-  }
-
-  // fixed32 color = 8;
-  if (this->color() != 0) {
-    total_size += 1 + 4;
-  }
-
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields().size();
   }
@@ -5313,12 +5273,6 @@ void VizStatement::MergeFrom(const VizStatement& from) {
   if (from.viz_type() != 0) {
     _internal_set_viz_type(from._internal_viz_type());
   }
-  if (from.viz_type_flags() != 0) {
-    _internal_set_viz_type_flags(from._internal_viz_type_flags());
-  }
-  if (from.color() != 0) {
-    _internal_set_color(from._internal_color());
-  }
 }
 
 void VizStatement::CopyFrom(const VizStatement& from) {
@@ -5344,8 +5298,6 @@ void VizStatement::InternalSwap(VizStatement* other) {
   swap(layout_, other->layout_);
   swap(axes_, other->axes_);
   swap(viz_type_, other->viz_type_);
-  swap(viz_type_flags_, other->viz_type_flags_);
-  swap(color_, other->color_);
 }
 
 std::string VizStatement::GetTypeName() const {
