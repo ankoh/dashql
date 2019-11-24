@@ -3420,16 +3420,16 @@ VizGridArea::VizGridArea(const VizGridArea& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::memcpy(&column_begin_, &from.column_begin_,
-    static_cast<size_t>(reinterpret_cast<char*>(&row_end_) -
-    reinterpret_cast<char*>(&column_begin_)) + sizeof(row_end_));
+  ::memcpy(&width_, &from.width_,
+    static_cast<size_t>(reinterpret_cast<char*>(&y_) -
+    reinterpret_cast<char*>(&width_)) + sizeof(y_));
   // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizGridArea)
 }
 
 void VizGridArea::SharedCtor() {
-  ::memset(&column_begin_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&row_end_) -
-      reinterpret_cast<char*>(&column_begin_)) + sizeof(row_end_));
+  ::memset(&width_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&y_) -
+      reinterpret_cast<char*>(&width_)) + sizeof(y_));
 }
 
 VizGridArea::~VizGridArea() {
@@ -3462,9 +3462,9 @@ void VizGridArea::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  ::memset(&column_begin_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&row_end_) -
-      reinterpret_cast<char*>(&column_begin_)) + sizeof(row_end_));
+  ::memset(&width_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&y_) -
+      reinterpret_cast<char*>(&width_)) + sizeof(y_));
   _internal_metadata_.Clear();
 }
 
@@ -3476,31 +3476,31 @@ const char* VizGridArea::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // uint32 column_begin = 1;
+      // uint32 width = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          column_begin_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          width_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // uint32 column_end = 2;
+      // uint32 height = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
-          column_end_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          height_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // uint32 row_begin = 3;
+      // uint32 x = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
-          row_begin_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          x_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // uint32 row_end = 4;
+      // uint32 y = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
-          row_end_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          y_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -3530,28 +3530,28 @@ failure:
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // uint32 column_begin = 1;
-  if (this->column_begin() != 0) {
+  // uint32 width = 1;
+  if (this->width() != 0) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(1, this->_internal_column_begin(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(1, this->_internal_width(), target);
   }
 
-  // uint32 column_end = 2;
-  if (this->column_end() != 0) {
+  // uint32 height = 2;
+  if (this->height() != 0) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(2, this->_internal_column_end(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(2, this->_internal_height(), target);
   }
 
-  // uint32 row_begin = 3;
-  if (this->row_begin() != 0) {
+  // uint32 x = 3;
+  if (this->x() != 0) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(3, this->_internal_row_begin(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(3, this->_internal_x(), target);
   }
 
-  // uint32 row_end = 4;
-  if (this->row_end() != 0) {
+  // uint32 y = 4;
+  if (this->y() != 0) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(4, this->_internal_row_end(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(4, this->_internal_y(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -3570,32 +3570,32 @@ size_t VizGridArea::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // uint32 column_begin = 1;
-  if (this->column_begin() != 0) {
+  // uint32 width = 1;
+  if (this->width() != 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_column_begin());
+        this->_internal_width());
   }
 
-  // uint32 column_end = 2;
-  if (this->column_end() != 0) {
+  // uint32 height = 2;
+  if (this->height() != 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_column_end());
+        this->_internal_height());
   }
 
-  // uint32 row_begin = 3;
-  if (this->row_begin() != 0) {
+  // uint32 x = 3;
+  if (this->x() != 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_row_begin());
+        this->_internal_x());
   }
 
-  // uint32 row_end = 4;
-  if (this->row_end() != 0) {
+  // uint32 y = 4;
+  if (this->y() != 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_row_end());
+        this->_internal_y());
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -3619,17 +3619,17 @@ void VizGridArea::MergeFrom(const VizGridArea& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.column_begin() != 0) {
-    _internal_set_column_begin(from._internal_column_begin());
+  if (from.width() != 0) {
+    _internal_set_width(from._internal_width());
   }
-  if (from.column_end() != 0) {
-    _internal_set_column_end(from._internal_column_end());
+  if (from.height() != 0) {
+    _internal_set_height(from._internal_height());
   }
-  if (from.row_begin() != 0) {
-    _internal_set_row_begin(from._internal_row_begin());
+  if (from.x() != 0) {
+    _internal_set_x(from._internal_x());
   }
-  if (from.row_end() != 0) {
-    _internal_set_row_end(from._internal_row_end());
+  if (from.y() != 0) {
+    _internal_set_y(from._internal_y());
   }
 }
 
@@ -3647,10 +3647,10 @@ bool VizGridArea::IsInitialized() const {
 void VizGridArea::InternalSwap(VizGridArea* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
-  swap(column_begin_, other->column_begin_);
-  swap(column_end_, other->column_end_);
-  swap(row_begin_, other->row_begin_);
-  swap(row_end_, other->row_end_);
+  swap(width_, other->width_);
+  swap(height_, other->height_);
+  swap(x_, other->x_);
+  swap(y_, other->y_);
 }
 
 std::string VizGridArea::GetTypeName() const {

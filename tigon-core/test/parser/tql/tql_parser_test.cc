@@ -46,9 +46,9 @@ TEST(TQLTest, VizLineChart) {
         visualize whether_data_line from wheather_data using line chart (
             area = (
                 sm = 1,
-                md = 6,
-                lg = 11 / 13,
-                xl = 11 / 13
+                md = 3,
+                lg = 6,
+                xl = 6
             ),
             axes = (
                 x = (column = "a", scale = linear),

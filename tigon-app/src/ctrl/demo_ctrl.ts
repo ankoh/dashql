@@ -33,18 +33,12 @@ export class DemoController {
 
             VIZ temp_weekly_table FROM temp_weekly USING TABLE (
                 title = "Weekly Temperature Data",
-                layout = (
-                    width = 6,
-                    height = 200px
-                )
+                area = 6/20
             );
 
             VIZ temp_weekly_bar FROM temp_weekly USING Bar (
                 title = "Weekly Temperature",
-                layout = (
-                    width = 6,
-                    height = 200px
-                )
+                area = 6/20/6/0
             );
         `);
 

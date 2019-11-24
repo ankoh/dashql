@@ -2287,45 +2287,45 @@ class VizGridArea :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kColumnBeginFieldNumber = 1,
-    kColumnEndFieldNumber = 2,
-    kRowBeginFieldNumber = 3,
-    kRowEndFieldNumber = 4,
+    kWidthFieldNumber = 1,
+    kHeightFieldNumber = 2,
+    kXFieldNumber = 3,
+    kYFieldNumber = 4,
   };
-  // uint32 column_begin = 1;
-  void clear_column_begin();
-  ::PROTOBUF_NAMESPACE_ID::uint32 column_begin() const;
-  void set_column_begin(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  // uint32 width = 1;
+  void clear_width();
+  ::PROTOBUF_NAMESPACE_ID::uint32 width() const;
+  void set_width(::PROTOBUF_NAMESPACE_ID::uint32 value);
   private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_column_begin() const;
-  void _internal_set_column_begin(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_width() const;
+  void _internal_set_width(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
-  // uint32 column_end = 2;
-  void clear_column_end();
-  ::PROTOBUF_NAMESPACE_ID::uint32 column_end() const;
-  void set_column_end(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  // uint32 height = 2;
+  void clear_height();
+  ::PROTOBUF_NAMESPACE_ID::uint32 height() const;
+  void set_height(::PROTOBUF_NAMESPACE_ID::uint32 value);
   private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_column_end() const;
-  void _internal_set_column_end(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_height() const;
+  void _internal_set_height(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
-  // uint32 row_begin = 3;
-  void clear_row_begin();
-  ::PROTOBUF_NAMESPACE_ID::uint32 row_begin() const;
-  void set_row_begin(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  // uint32 x = 3;
+  void clear_x();
+  ::PROTOBUF_NAMESPACE_ID::uint32 x() const;
+  void set_x(::PROTOBUF_NAMESPACE_ID::uint32 value);
   private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_row_begin() const;
-  void _internal_set_row_begin(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_x() const;
+  void _internal_set_x(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
-  // uint32 row_end = 4;
-  void clear_row_end();
-  ::PROTOBUF_NAMESPACE_ID::uint32 row_end() const;
-  void set_row_end(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  // uint32 y = 4;
+  void clear_y();
+  ::PROTOBUF_NAMESPACE_ID::uint32 y() const;
+  void set_y(::PROTOBUF_NAMESPACE_ID::uint32 value);
   private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_row_end() const;
-  void _internal_set_row_end(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_y() const;
+  void _internal_set_y(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
   // @@protoc_insertion_point(class_scope:tigon.proto.tql.VizGridArea)
@@ -2336,10 +2336,10 @@ class VizGridArea :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 column_begin_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 column_end_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 row_begin_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 row_end_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 width_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 height_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 x_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 y_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -5145,84 +5145,84 @@ VizColorPalette::mutable_palette() {
 
 // VizGridArea
 
-// uint32 column_begin = 1;
-inline void VizGridArea::clear_column_begin() {
-  column_begin_ = 0u;
+// uint32 width = 1;
+inline void VizGridArea::clear_width() {
+  width_ = 0u;
 }
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::_internal_column_begin() const {
-  return column_begin_;
+inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::_internal_width() const {
+  return width_;
 }
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::column_begin() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.column_begin)
-  return _internal_column_begin();
+inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::width() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.width)
+  return _internal_width();
 }
-inline void VizGridArea::_internal_set_column_begin(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+inline void VizGridArea::_internal_set_width(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   
-  column_begin_ = value;
+  width_ = value;
 }
-inline void VizGridArea::set_column_begin(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_column_begin(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizGridArea.column_begin)
+inline void VizGridArea::set_width(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_width(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizGridArea.width)
 }
 
-// uint32 column_end = 2;
-inline void VizGridArea::clear_column_end() {
-  column_end_ = 0u;
+// uint32 height = 2;
+inline void VizGridArea::clear_height() {
+  height_ = 0u;
 }
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::_internal_column_end() const {
-  return column_end_;
+inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::_internal_height() const {
+  return height_;
 }
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::column_end() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.column_end)
-  return _internal_column_end();
+inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::height() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.height)
+  return _internal_height();
 }
-inline void VizGridArea::_internal_set_column_end(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+inline void VizGridArea::_internal_set_height(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   
-  column_end_ = value;
+  height_ = value;
 }
-inline void VizGridArea::set_column_end(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_column_end(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizGridArea.column_end)
+inline void VizGridArea::set_height(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_height(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizGridArea.height)
 }
 
-// uint32 row_begin = 3;
-inline void VizGridArea::clear_row_begin() {
-  row_begin_ = 0u;
+// uint32 x = 3;
+inline void VizGridArea::clear_x() {
+  x_ = 0u;
 }
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::_internal_row_begin() const {
-  return row_begin_;
+inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::_internal_x() const {
+  return x_;
 }
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::row_begin() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.row_begin)
-  return _internal_row_begin();
+inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::x() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.x)
+  return _internal_x();
 }
-inline void VizGridArea::_internal_set_row_begin(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+inline void VizGridArea::_internal_set_x(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   
-  row_begin_ = value;
+  x_ = value;
 }
-inline void VizGridArea::set_row_begin(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_row_begin(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizGridArea.row_begin)
+inline void VizGridArea::set_x(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_x(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizGridArea.x)
 }
 
-// uint32 row_end = 4;
-inline void VizGridArea::clear_row_end() {
-  row_end_ = 0u;
+// uint32 y = 4;
+inline void VizGridArea::clear_y() {
+  y_ = 0u;
 }
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::_internal_row_end() const {
-  return row_end_;
+inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::_internal_y() const {
+  return y_;
 }
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::row_end() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.row_end)
-  return _internal_row_end();
+inline ::PROTOBUF_NAMESPACE_ID::uint32 VizGridArea::y() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.y)
+  return _internal_y();
 }
-inline void VizGridArea::_internal_set_row_end(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+inline void VizGridArea::_internal_set_y(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   
-  row_end_ = value;
+  y_ = value;
 }
-inline void VizGridArea::set_row_end(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_row_end(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizGridArea.row_end)
+inline void VizGridArea::set_y(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_y(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizGridArea.y)
 }
 
 // -------------------------------------------------------------------

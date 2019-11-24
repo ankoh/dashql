@@ -319,17 +319,17 @@ export namespace VizColorPalette {
 }
 
 export class VizGridArea extends jspb.Message {
-  getColumnBegin(): number;
-  setColumnBegin(value: number): void;
+  getWidth(): number;
+  setWidth(value: number): void;
 
-  getColumnEnd(): number;
-  setColumnEnd(value: number): void;
+  getHeight(): number;
+  setHeight(value: number): void;
 
-  getRowBegin(): number;
-  setRowBegin(value: number): void;
+  getX(): number;
+  setX(value: number): void;
 
-  getRowEnd(): number;
-  setRowEnd(value: number): void;
+  getY(): number;
+  setY(value: number): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): VizGridArea.AsObject;
@@ -343,10 +343,10 @@ export class VizGridArea extends jspb.Message {
 
 export namespace VizGridArea {
   export type AsObject = {
-    columnBegin: number,
-    columnEnd: number,
-    rowBegin: number,
-    rowEnd: number,
+    width: number,
+    height: number,
+    x: number,
+    y: number,
   }
 }
 

@@ -175,13 +175,6 @@ struct VizStatement {
         std::vector<RGBColor> palette;
     };
 
-    /// A length unit
-    enum class LengthUnit : uint8_t {
-        Span = 0,
-        Pixel = 1,
-        Percent = 2,
-    };
-
     /// A layout class
     enum class SizeClass {
         Wildcard,
@@ -190,9 +183,6 @@ struct VizStatement {
         Large,
         ExtraLarge,
     };
-
-    /// A length value
-    using LengthValue = std::pair<uint32_t, LengthUnit> ;
 
     /// A grid area
     struct GridArea {

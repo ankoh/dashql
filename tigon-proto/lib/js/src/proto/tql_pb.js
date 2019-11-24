@@ -2563,10 +2563,10 @@ proto.tigon.proto.tql.VizGridArea.prototype.toObject = function(opt_includeInsta
  */
 proto.tigon.proto.tql.VizGridArea.toObject = function(includeInstance, msg) {
   var f, obj = {
-    columnBegin: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    columnEnd: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    rowBegin: jspb.Message.getFieldWithDefault(msg, 3, 0),
-    rowEnd: jspb.Message.getFieldWithDefault(msg, 4, 0)
+    width: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    height: jspb.Message.getFieldWithDefault(msg, 2, 0),
+    x: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    y: jspb.Message.getFieldWithDefault(msg, 4, 0)
   };
 
   if (includeInstance) {
@@ -2605,19 +2605,19 @@ proto.tigon.proto.tql.VizGridArea.deserializeBinaryFromReader = function(msg, re
     switch (field) {
     case 1:
       var value = /** @type {number} */ (reader.readUint32());
-      msg.setColumnBegin(value);
+      msg.setWidth(value);
       break;
     case 2:
       var value = /** @type {number} */ (reader.readUint32());
-      msg.setColumnEnd(value);
+      msg.setHeight(value);
       break;
     case 3:
       var value = /** @type {number} */ (reader.readUint32());
-      msg.setRowBegin(value);
+      msg.setX(value);
       break;
     case 4:
       var value = /** @type {number} */ (reader.readUint32());
-      msg.setRowEnd(value);
+      msg.setY(value);
       break;
     default:
       reader.skipField();
@@ -2648,28 +2648,28 @@ proto.tigon.proto.tql.VizGridArea.prototype.serializeBinary = function() {
  */
 proto.tigon.proto.tql.VizGridArea.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getColumnBegin();
+  f = message.getWidth();
   if (f !== 0) {
     writer.writeUint32(
       1,
       f
     );
   }
-  f = message.getColumnEnd();
+  f = message.getHeight();
   if (f !== 0) {
     writer.writeUint32(
       2,
       f
     );
   }
-  f = message.getRowBegin();
+  f = message.getX();
   if (f !== 0) {
     writer.writeUint32(
       3,
       f
     );
   }
-  f = message.getRowEnd();
+  f = message.getY();
   if (f !== 0) {
     writer.writeUint32(
       4,
@@ -2680,10 +2680,10 @@ proto.tigon.proto.tql.VizGridArea.serializeBinaryToWriter = function(message, wr
 
 
 /**
- * optional uint32 column_begin = 1;
+ * optional uint32 width = 1;
  * @return {number}
  */
-proto.tigon.proto.tql.VizGridArea.prototype.getColumnBegin = function() {
+proto.tigon.proto.tql.VizGridArea.prototype.getWidth = function() {
   return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
 };
 
@@ -2692,16 +2692,16 @@ proto.tigon.proto.tql.VizGridArea.prototype.getColumnBegin = function() {
  * @param {number} value
  * @return {!proto.tigon.proto.tql.VizGridArea} returns this
  */
-proto.tigon.proto.tql.VizGridArea.prototype.setColumnBegin = function(value) {
+proto.tigon.proto.tql.VizGridArea.prototype.setWidth = function(value) {
   return jspb.Message.setProto3IntField(this, 1, value);
 };
 
 
 /**
- * optional uint32 column_end = 2;
+ * optional uint32 height = 2;
  * @return {number}
  */
-proto.tigon.proto.tql.VizGridArea.prototype.getColumnEnd = function() {
+proto.tigon.proto.tql.VizGridArea.prototype.getHeight = function() {
   return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
 };
 
@@ -2710,16 +2710,16 @@ proto.tigon.proto.tql.VizGridArea.prototype.getColumnEnd = function() {
  * @param {number} value
  * @return {!proto.tigon.proto.tql.VizGridArea} returns this
  */
-proto.tigon.proto.tql.VizGridArea.prototype.setColumnEnd = function(value) {
+proto.tigon.proto.tql.VizGridArea.prototype.setHeight = function(value) {
   return jspb.Message.setProto3IntField(this, 2, value);
 };
 
 
 /**
- * optional uint32 row_begin = 3;
+ * optional uint32 x = 3;
  * @return {number}
  */
-proto.tigon.proto.tql.VizGridArea.prototype.getRowBegin = function() {
+proto.tigon.proto.tql.VizGridArea.prototype.getX = function() {
   return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 3, 0));
 };
 
@@ -2728,16 +2728,16 @@ proto.tigon.proto.tql.VizGridArea.prototype.getRowBegin = function() {
  * @param {number} value
  * @return {!proto.tigon.proto.tql.VizGridArea} returns this
  */
-proto.tigon.proto.tql.VizGridArea.prototype.setRowBegin = function(value) {
+proto.tigon.proto.tql.VizGridArea.prototype.setX = function(value) {
   return jspb.Message.setProto3IntField(this, 3, value);
 };
 
 
 /**
- * optional uint32 row_end = 4;
+ * optional uint32 y = 4;
  * @return {number}
  */
-proto.tigon.proto.tql.VizGridArea.prototype.getRowEnd = function() {
+proto.tigon.proto.tql.VizGridArea.prototype.getY = function() {
   return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 4, 0));
 };
 
@@ -2746,7 +2746,7 @@ proto.tigon.proto.tql.VizGridArea.prototype.getRowEnd = function() {
  * @param {number} value
  * @return {!proto.tigon.proto.tql.VizGridArea} returns this
  */
-proto.tigon.proto.tql.VizGridArea.prototype.setRowEnd = function(value) {
+proto.tigon.proto.tql.VizGridArea.prototype.setY = function(value) {
   return jspb.Message.setProto3IntField(this, 4, value);
 };
 
