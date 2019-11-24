@@ -214,7 +214,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
         let vizPositions = vizStmts.map((v) => {
             let area = pickArea(v.getArea());
             if (!area) {
-                throw "dynamic layouts not yet implemented!";
+                throw new Error("dynamic layouts not yet implemented!");
             }
             // XXX
             let width = area.getWidth() || 6;

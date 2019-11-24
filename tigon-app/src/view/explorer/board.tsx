@@ -168,7 +168,7 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
 
     render() {
         return (
-            <canvas className={s.board_ruler} ref={this.canvas} />
+            <canvas className={s.ruler} ref={this.canvas} />
         );
     }
 };
@@ -182,25 +182,25 @@ interface IBoardProps {
 export class Board extends React.Component<IBoardProps, {}> {
     public render() {
         return (
-            <div className={s.board}>
-                <div className={s.board_body}>
-                    <div className={s.board_children}>
+            <div className={s.container}>
+                <div className={s.padded_children}>
+                    <div className={s.children}>
                         <VizGrid sizeClass={Store.SizeClass.LARGE} />
                     </div>
                 </div>
-                <div className={s.board_ruler_top}>
+                <div className={s.ruler_top}>
                     <AutoSizingRuler
                         orientation={RulerOrientation.Horizontal}
                         scaleFactor={this.props.scaleFactor}
                     />
                 </div>
-                <div className={s.board_ruler_left}>
+                <div className={s.ruler_left}>
                     <AutoSizingRuler
                         orientation={RulerOrientation.Vertical}
                         scaleFactor={this.props.scaleFactor}
                     />
                 </div>
-                <div className={s.board_ruler_corner} />
+                <div className={s.ruler_corner} />
             </div>
         );
     }
