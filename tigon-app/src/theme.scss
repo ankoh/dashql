@@ -1,23 +1,15 @@
-$theme_color_1: rgb(43, 33, 86);
-$theme_color_2: #5B63DF;
-$theme_color_3: #48F4C1;
+$THEME_COLOR_1: rgb(43, 33, 86);
+$THEME_COLOR_2: #5B63DF;
+$THEME_COLOR_3: #48F4C1;
 
-$theme_color_badge: rgb(166, 166, 166);
+$THEME_COLOR_BADGE: rgb(166, 166, 166);
 
-$theme_border_radius: 6px;
-$theme_box_shadow_level_1: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
-$theme_box_shadow_level_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
+$THEME_BORDER_RADIUS: 6px;
+$THEME_BOX_SHADOW_LEVEL_1: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+$THEME_BOX_SHADOW_LEVEL_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
 
-$background_color: rgb(220, 220, 220);
-$background_line_color: rgb(212, 212, 212);
-
-$border_color: rgb(240, 240, 240);
-$border_default: 1px solid $border-color;
-
-$logo_background_color: rgb(43, 33, 86);
-
-$navbar_background: rgb(0, 0, 0);
-$navbar_tab_background: rgb(0, 0, 0);
-$navbar_tab_foreground: rgb(255, 255, 255);
-$navbar_tab_background_active: rgb(30, 30, 30);
-$navbar_tab_foreground_active: rgb(255, 255, 255);
+$NAV_BG: rgb(0, 0, 0);
+$NAV_TAB_BG: rgb(0, 0, 0);
+$NAV_TAB_BG_ACTIVE: rgb(30, 30, 30);
+$NAV_TAB_FG: rgb(255, 255, 255);
+$NAV_TAB_FG_ACTIVE: rgb(255, 255, 255);

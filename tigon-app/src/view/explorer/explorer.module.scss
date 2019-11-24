@@ -95,7 +95,7 @@ $topbar_background: rgb(46, 46, 46);
 
             font-size: .75em;
             border-radius: 8px;
-            background-color: $theme_color_badge;
+            background-color: $THEME_COLOR_BADGE;
             padding: 1px 8px;
             color: rgb(255, 255, 255);
         }
@@ -221,16 +221,16 @@ $topbar_background: rgb(46, 46, 46);
     height: 32px;
 
     background-color: rgb(0, 0, 0);
-    border-radius: $theme_border_radius;
+    border-radius: $THEME_BORDER_RADIUS;
     background-color: $topbar_background;
-    box-shadow: $theme_box_shadow_level_2;
+    box-shadow: $THEME_BOX_SHADOW_LEVEL_2;
 
 
     display: flex;
     flex-direction: row;
 
     &.expanded {
-        border-radius: $theme_border_radius 0 $theme_border_radius 0;
+        border-radius: $THEME_BORDER_RADIUS 0 $THEME_BORDER_RADIUS 0;
         box-shadow: none;
     }
 
@@ -273,9 +273,9 @@ $topbar_background: rgb(46, 46, 46);
     max-width: 800px;
     height: 220px;
 
-    border-radius: $theme_border_radius;
+    border-radius: $THEME_BORDER_RADIUS;
     box-sizing: border-box;
-    box-shadow: $theme_box_shadow_level_2;
+    box-shadow: $THEME_BOX_SHADOW_LEVEL_2;
 
     background-color: rgb(46, 46, 46);
 
@@ -324,6 +324,6 @@ $topbar_background: rgb(46, 46, 46);
         background: rgb(0, 0, 0);
         padding: 16px;
 
-        border-radius: 0 0 $theme_border_radius $theme_border_radius;
+        border-radius: 0 0 $THEME_BORDER_RADIUS $THEME_BORDER_RADIUS;
     }
 }
