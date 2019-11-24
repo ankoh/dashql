@@ -2460,12 +2460,31 @@ class VizLength :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kSmallFieldNumber = 1,
-    kMediumFieldNumber = 2,
-    kLargeFieldNumber = 3,
-    kExtraLargeFieldNumber = 4,
+    kWildcardFieldNumber = 1,
+    kSmallFieldNumber = 2,
+    kMediumFieldNumber = 3,
+    kLargeFieldNumber = 4,
+    kXlargeFieldNumber = 5,
   };
-  // .tigon.proto.tql.VizLengthValue small = 1;
+  // .tigon.proto.tql.VizLengthValue wildcard = 1;
+  bool has_wildcard() const;
+  private:
+  bool _internal_has_wildcard() const;
+  public:
+  void clear_wildcard();
+  const ::tigon::proto::tql::VizLengthValue& wildcard() const;
+  ::tigon::proto::tql::VizLengthValue* release_wildcard();
+  ::tigon::proto::tql::VizLengthValue* mutable_wildcard();
+  void set_allocated_wildcard(::tigon::proto::tql::VizLengthValue* wildcard);
+  private:
+  const ::tigon::proto::tql::VizLengthValue& _internal_wildcard() const;
+  ::tigon::proto::tql::VizLengthValue* _internal_mutable_wildcard();
+  public:
+  void unsafe_arena_set_allocated_wildcard(
+      ::tigon::proto::tql::VizLengthValue* wildcard);
+  ::tigon::proto::tql::VizLengthValue* unsafe_arena_release_wildcard();
+
+  // .tigon.proto.tql.VizLengthValue small = 2;
   bool has_small() const;
   private:
   bool _internal_has_small() const;
@@ -2483,7 +2502,7 @@ class VizLength :
       ::tigon::proto::tql::VizLengthValue* small);
   ::tigon::proto::tql::VizLengthValue* unsafe_arena_release_small();
 
-  // .tigon.proto.tql.VizLengthValue medium = 2;
+  // .tigon.proto.tql.VizLengthValue medium = 3;
   bool has_medium() const;
   private:
   bool _internal_has_medium() const;
@@ -2501,7 +2520,7 @@ class VizLength :
       ::tigon::proto::tql::VizLengthValue* medium);
   ::tigon::proto::tql::VizLengthValue* unsafe_arena_release_medium();
 
-  // .tigon.proto.tql.VizLengthValue large = 3;
+  // .tigon.proto.tql.VizLengthValue large = 4;
   bool has_large() const;
   private:
   bool _internal_has_large() const;
@@ -2519,23 +2538,23 @@ class VizLength :
       ::tigon::proto::tql::VizLengthValue* large);
   ::tigon::proto::tql::VizLengthValue* unsafe_arena_release_large();
 
-  // .tigon.proto.tql.VizLengthValue extra_large = 4;
-  bool has_extra_large() const;
+  // .tigon.proto.tql.VizLengthValue xlarge = 5;
+  bool has_xlarge() const;
   private:
-  bool _internal_has_extra_large() const;
+  bool _internal_has_xlarge() const;
   public:
-  void clear_extra_large();
-  const ::tigon::proto::tql::VizLengthValue& extra_large() const;
-  ::tigon::proto::tql::VizLengthValue* release_extra_large();
-  ::tigon::proto::tql::VizLengthValue* mutable_extra_large();
-  void set_allocated_extra_large(::tigon::proto::tql::VizLengthValue* extra_large);
+  void clear_xlarge();
+  const ::tigon::proto::tql::VizLengthValue& xlarge() const;
+  ::tigon::proto::tql::VizLengthValue* release_xlarge();
+  ::tigon::proto::tql::VizLengthValue* mutable_xlarge();
+  void set_allocated_xlarge(::tigon::proto::tql::VizLengthValue* xlarge);
   private:
-  const ::tigon::proto::tql::VizLengthValue& _internal_extra_large() const;
-  ::tigon::proto::tql::VizLengthValue* _internal_mutable_extra_large();
+  const ::tigon::proto::tql::VizLengthValue& _internal_xlarge() const;
+  ::tigon::proto::tql::VizLengthValue* _internal_mutable_xlarge();
   public:
-  void unsafe_arena_set_allocated_extra_large(
-      ::tigon::proto::tql::VizLengthValue* extra_large);
-  ::tigon::proto::tql::VizLengthValue* unsafe_arena_release_extra_large();
+  void unsafe_arena_set_allocated_xlarge(
+      ::tigon::proto::tql::VizLengthValue* xlarge);
+  ::tigon::proto::tql::VizLengthValue* unsafe_arena_release_xlarge();
 
   // @@protoc_insertion_point(class_scope:tigon.proto.tql.VizLength)
  private:
@@ -2545,10 +2564,11 @@ class VizLength :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
+  ::tigon::proto::tql::VizLengthValue* wildcard_;
   ::tigon::proto::tql::VizLengthValue* small_;
   ::tigon::proto::tql::VizLengthValue* medium_;
   ::tigon::proto::tql::VizLengthValue* large_;
-  ::tigon::proto::tql::VizLengthValue* extra_large_;
+  ::tigon::proto::tql::VizLengthValue* xlarge_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -5360,7 +5380,75 @@ inline void VizLengthValue::set_unit(::tigon::proto::tql::VizLengthUnit value) {
 
 // VizLength
 
-// .tigon.proto.tql.VizLengthValue small = 1;
+// .tigon.proto.tql.VizLengthValue wildcard = 1;
+inline bool VizLength::_internal_has_wildcard() const {
+  return this != internal_default_instance() && wildcard_ != nullptr;
+}
+inline bool VizLength::has_wildcard() const {
+  return _internal_has_wildcard();
+}
+inline void VizLength::clear_wildcard() {
+  if (GetArenaNoVirtual() == nullptr && wildcard_ != nullptr) {
+    delete wildcard_;
+  }
+  wildcard_ = nullptr;
+}
+inline const ::tigon::proto::tql::VizLengthValue& VizLength::_internal_wildcard() const {
+  const ::tigon::proto::tql::VizLengthValue* p = wildcard_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizLengthValue*>(
+      &::tigon::proto::tql::_VizLengthValue_default_instance_);
+}
+inline const ::tigon::proto::tql::VizLengthValue& VizLength::wildcard() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizLength.wildcard)
+  return _internal_wildcard();
+}
+inline ::tigon::proto::tql::VizLengthValue* VizLength::release_wildcard() {
+  auto temp = unsafe_arena_release_wildcard();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::VizLengthValue* VizLength::unsafe_arena_release_wildcard() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizLength.wildcard)
+  
+  ::tigon::proto::tql::VizLengthValue* temp = wildcard_;
+  wildcard_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::VizLengthValue* VizLength::_internal_mutable_wildcard() {
+  
+  if (wildcard_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizLengthValue>(GetArenaNoVirtual());
+    wildcard_ = p;
+  }
+  return wildcard_;
+}
+inline ::tigon::proto::tql::VizLengthValue* VizLength::mutable_wildcard() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizLength.wildcard)
+  return _internal_mutable_wildcard();
+}
+inline void VizLength::set_allocated_wildcard(::tigon::proto::tql::VizLengthValue* wildcard) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete wildcard_;
+  }
+  if (wildcard) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(wildcard);
+    if (message_arena != submessage_arena) {
+      wildcard = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, wildcard, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  wildcard_ = wildcard;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizLength.wildcard)
+}
+
+// .tigon.proto.tql.VizLengthValue small = 2;
 inline bool VizLength::_internal_has_small() const {
   return this != internal_default_instance() && small_ != nullptr;
 }
@@ -5428,7 +5516,7 @@ inline void VizLength::set_allocated_small(::tigon::proto::tql::VizLengthValue* 
   // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizLength.small)
 }
 
-// .tigon.proto.tql.VizLengthValue medium = 2;
+// .tigon.proto.tql.VizLengthValue medium = 3;
 inline bool VizLength::_internal_has_medium() const {
   return this != internal_default_instance() && medium_ != nullptr;
 }
@@ -5496,7 +5584,7 @@ inline void VizLength::set_allocated_medium(::tigon::proto::tql::VizLengthValue*
   // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizLength.medium)
 }
 
-// .tigon.proto.tql.VizLengthValue large = 3;
+// .tigon.proto.tql.VizLengthValue large = 4;
 inline bool VizLength::_internal_has_large() const {
   return this != internal_default_instance() && large_ != nullptr;
 }
@@ -5564,72 +5652,72 @@ inline void VizLength::set_allocated_large(::tigon::proto::tql::VizLengthValue* 
   // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizLength.large)
 }
 
-// .tigon.proto.tql.VizLengthValue extra_large = 4;
-inline bool VizLength::_internal_has_extra_large() const {
-  return this != internal_default_instance() && extra_large_ != nullptr;
+// .tigon.proto.tql.VizLengthValue xlarge = 5;
+inline bool VizLength::_internal_has_xlarge() const {
+  return this != internal_default_instance() && xlarge_ != nullptr;
 }
-inline bool VizLength::has_extra_large() const {
-  return _internal_has_extra_large();
+inline bool VizLength::has_xlarge() const {
+  return _internal_has_xlarge();
 }
-inline void VizLength::clear_extra_large() {
-  if (GetArenaNoVirtual() == nullptr && extra_large_ != nullptr) {
-    delete extra_large_;
+inline void VizLength::clear_xlarge() {
+  if (GetArenaNoVirtual() == nullptr && xlarge_ != nullptr) {
+    delete xlarge_;
   }
-  extra_large_ = nullptr;
+  xlarge_ = nullptr;
 }
-inline const ::tigon::proto::tql::VizLengthValue& VizLength::_internal_extra_large() const {
-  const ::tigon::proto::tql::VizLengthValue* p = extra_large_;
+inline const ::tigon::proto::tql::VizLengthValue& VizLength::_internal_xlarge() const {
+  const ::tigon::proto::tql::VizLengthValue* p = xlarge_;
   return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizLengthValue*>(
       &::tigon::proto::tql::_VizLengthValue_default_instance_);
 }
-inline const ::tigon::proto::tql::VizLengthValue& VizLength::extra_large() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizLength.extra_large)
-  return _internal_extra_large();
+inline const ::tigon::proto::tql::VizLengthValue& VizLength::xlarge() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizLength.xlarge)
+  return _internal_xlarge();
 }
-inline ::tigon::proto::tql::VizLengthValue* VizLength::release_extra_large() {
-  auto temp = unsafe_arena_release_extra_large();
+inline ::tigon::proto::tql::VizLengthValue* VizLength::release_xlarge() {
+  auto temp = unsafe_arena_release_xlarge();
   if (GetArenaNoVirtual() != nullptr) {
     temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
   }
   return temp;
 }
-inline ::tigon::proto::tql::VizLengthValue* VizLength::unsafe_arena_release_extra_large() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizLength.extra_large)
+inline ::tigon::proto::tql::VizLengthValue* VizLength::unsafe_arena_release_xlarge() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizLength.xlarge)
   
-  ::tigon::proto::tql::VizLengthValue* temp = extra_large_;
-  extra_large_ = nullptr;
+  ::tigon::proto::tql::VizLengthValue* temp = xlarge_;
+  xlarge_ = nullptr;
   return temp;
 }
-inline ::tigon::proto::tql::VizLengthValue* VizLength::_internal_mutable_extra_large() {
+inline ::tigon::proto::tql::VizLengthValue* VizLength::_internal_mutable_xlarge() {
   
-  if (extra_large_ == nullptr) {
+  if (xlarge_ == nullptr) {
     auto* p = CreateMaybeMessage<::tigon::proto::tql::VizLengthValue>(GetArenaNoVirtual());
-    extra_large_ = p;
+    xlarge_ = p;
   }
-  return extra_large_;
+  return xlarge_;
 }
-inline ::tigon::proto::tql::VizLengthValue* VizLength::mutable_extra_large() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizLength.extra_large)
-  return _internal_mutable_extra_large();
+inline ::tigon::proto::tql::VizLengthValue* VizLength::mutable_xlarge() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizLength.xlarge)
+  return _internal_mutable_xlarge();
 }
-inline void VizLength::set_allocated_extra_large(::tigon::proto::tql::VizLengthValue* extra_large) {
+inline void VizLength::set_allocated_xlarge(::tigon::proto::tql::VizLengthValue* xlarge) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   if (message_arena == nullptr) {
-    delete extra_large_;
+    delete xlarge_;
   }
-  if (extra_large) {
+  if (xlarge) {
     ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(extra_large);
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(xlarge);
     if (message_arena != submessage_arena) {
-      extra_large = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, extra_large, submessage_arena);
+      xlarge = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, xlarge, submessage_arena);
     }
     
   } else {
     
   }
-  extra_large_ = extra_large;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizLength.extra_large)
+  xlarge_ = xlarge;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizLength.xlarge)
 }
 
 // -------------------------------------------------------------------

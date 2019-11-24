@@ -121,19 +121,19 @@ struct ExtractStatement {
 struct VizStatement {
     /// A type
     enum class Type {
-        Area,
-        Bar,
-        Box,
-        Bubble,
-        Grid,
-        Histogram,
-        Line,
-        Number,
-        Pie,
-        Point,
-        Scatter,
-        Table,
-        Text
+        Area = 0,
+        Bar = 1,
+        Box = 2,
+        Bubble = 3,
+        Grid = 4,
+        Histogram = 5,
+        Line = 6,
+        Number = 7,
+        Pie = 8,
+        Point = 9,
+        Scatter = 10,
+        Table = 11,
+        Text = 12
     };
 
     /// Get the type name
@@ -192,70 +192,41 @@ struct VizStatement {
     };
 
     /// A length value
-    struct LengthValue {
-        /// The length
-        uint32_t value;
-        /// The unit
-        LengthUnit unit;
-        /// Is set?
-        bool is_set;
-
-        /// Constructor
-        LengthValue() : value(), unit(), is_set(false) {}
-
-        /// Set the value
-        void set(uint32_t v, LengthUnit u = LengthUnit::Span) {
-            value = v;
-            unit = u;
-            is_set = true;
-        }
-
-        /// Set the default value
-        void setDefault(uint32_t v, LengthUnit u = LengthUnit::Span) {
-            if (is_set)
-                return;
-            value = v;
-            unit = u;
-        }
-
-        /// Get the value
-        std::pair<uint32_t, LengthUnit> get() { return {value, unit}; }
-    };
+    using LengthValue = std::pair<uint32_t, LengthUnit> ;
 
     /// A layout length
     struct LayoutLength {
+        /// Fallback
+        std::optional<LengthValue> wildcard;
         /// Small displays
-        LengthValue sm;
+        std::optional<LengthValue> sm;
         /// Medium displays
-        LengthValue md;
+        std::optional<LengthValue> md;
         /// Large displays
-        LengthValue lg;
+        std::optional<LengthValue> lg;
         /// Extra large displays
-        LengthValue xl;
+        std::optional<LengthValue> xl;
 
         /// Constructor
-        LayoutLength() : sm(), md(), lg(), xl() {}
+        LayoutLength() : wildcard(), sm(), md(), lg(), xl() {}
 
         /// Set a value
         void set(SizeClass size, uint32_t value, LengthUnit unit) {
             switch (size) {
             case SizeClass::Wildcard:
-                sm.setDefault(value, unit);
-                md.setDefault(value, unit);
-                lg.setDefault(value, unit);
-                xl.setDefault(value, unit);
+                wildcard = {value, unit};
                 break;
             case SizeClass::Small:
-                sm.setDefault(value, unit);
+                sm = {value, unit};
                 break;
             case SizeClass::Medium:
-                md.setDefault(value, unit);
+                md = {value, unit};
                 break;
             case SizeClass::Large:
-                lg.setDefault(value, unit);
+                lg = {value, unit};
                 break;
             case SizeClass::ExtraLarge:
-                xl.setDefault(value, unit);
+                xl = {value, unit};
                 break;
             }
         }

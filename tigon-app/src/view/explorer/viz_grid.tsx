@@ -167,10 +167,10 @@ interface IVizGridState {
 export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
     constructor(props: IVizGridProps) {
         super(props);
-        this.state = VizGrid.computeState(props);
+        this.state = VizGrid.computeLayout(props);
     }
 
-    protected static computeState(props: IVizGridProps): IVizGridState {
+    protected static computeLayout(props: IVizGridProps): IVizGridState {
         // Get the viz statements
         let vizStmts = mapStatements(
             props.statements,
@@ -202,7 +202,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
         ) {
             return;
         }
-        this.setState(VizGrid.computeState(this.props));
+        this.setState(VizGrid.computeLayout(this.props));
     }
 
     public render() {

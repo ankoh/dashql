@@ -343,6 +343,11 @@ export namespace VizLengthValue {
 }
 
 export class VizLength extends jspb.Message {
+  hasWildcard(): boolean;
+  clearWildcard(): void;
+  getWildcard(): VizLengthValue | undefined;
+  setWildcard(value?: VizLengthValue): void;
+
   hasSmall(): boolean;
   clearSmall(): void;
   getSmall(): VizLengthValue | undefined;
@@ -358,10 +363,10 @@ export class VizLength extends jspb.Message {
   getLarge(): VizLengthValue | undefined;
   setLarge(value?: VizLengthValue): void;
 
-  hasExtraLarge(): boolean;
-  clearExtraLarge(): void;
-  getExtraLarge(): VizLengthValue | undefined;
-  setExtraLarge(value?: VizLengthValue): void;
+  hasXlarge(): boolean;
+  clearXlarge(): void;
+  getXlarge(): VizLengthValue | undefined;
+  setXlarge(value?: VizLengthValue): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): VizLength.AsObject;
@@ -375,10 +380,11 @@ export class VizLength extends jspb.Message {
 
 export namespace VizLength {
   export type AsObject = {
+    wildcard?: VizLengthValue.AsObject,
     small?: VizLengthValue.AsObject,
     medium?: VizLengthValue.AsObject,
     large?: VizLengthValue.AsObject,
-    extraLarge?: VizLengthValue.AsObject,
+    xlarge?: VizLengthValue.AsObject,
   }
 }
 

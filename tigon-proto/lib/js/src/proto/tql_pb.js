@@ -2746,10 +2746,11 @@ proto.tigon.proto.tql.VizLength.prototype.toObject = function(opt_includeInstanc
  */
 proto.tigon.proto.tql.VizLength.toObject = function(includeInstance, msg) {
   var f, obj = {
+    wildcard: (f = msg.getWildcard()) && proto.tigon.proto.tql.VizLengthValue.toObject(includeInstance, f),
     small: (f = msg.getSmall()) && proto.tigon.proto.tql.VizLengthValue.toObject(includeInstance, f),
     medium: (f = msg.getMedium()) && proto.tigon.proto.tql.VizLengthValue.toObject(includeInstance, f),
     large: (f = msg.getLarge()) && proto.tigon.proto.tql.VizLengthValue.toObject(includeInstance, f),
-    extraLarge: (f = msg.getExtraLarge()) && proto.tigon.proto.tql.VizLengthValue.toObject(includeInstance, f)
+    xlarge: (f = msg.getXlarge()) && proto.tigon.proto.tql.VizLengthValue.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2789,22 +2790,27 @@ proto.tigon.proto.tql.VizLength.deserializeBinaryFromReader = function(msg, read
     case 1:
       var value = new proto.tigon.proto.tql.VizLengthValue;
       reader.readMessage(value,proto.tigon.proto.tql.VizLengthValue.deserializeBinaryFromReader);
-      msg.setSmall(value);
+      msg.setWildcard(value);
       break;
     case 2:
       var value = new proto.tigon.proto.tql.VizLengthValue;
       reader.readMessage(value,proto.tigon.proto.tql.VizLengthValue.deserializeBinaryFromReader);
-      msg.setMedium(value);
+      msg.setSmall(value);
       break;
     case 3:
       var value = new proto.tigon.proto.tql.VizLengthValue;
       reader.readMessage(value,proto.tigon.proto.tql.VizLengthValue.deserializeBinaryFromReader);
-      msg.setLarge(value);
+      msg.setMedium(value);
       break;
     case 4:
       var value = new proto.tigon.proto.tql.VizLengthValue;
       reader.readMessage(value,proto.tigon.proto.tql.VizLengthValue.deserializeBinaryFromReader);
-      msg.setExtraLarge(value);
+      msg.setLarge(value);
+      break;
+    case 5:
+      var value = new proto.tigon.proto.tql.VizLengthValue;
+      reader.readMessage(value,proto.tigon.proto.tql.VizLengthValue.deserializeBinaryFromReader);
+      msg.setXlarge(value);
       break;
     default:
       reader.skipField();
@@ -2835,7 +2841,7 @@ proto.tigon.proto.tql.VizLength.prototype.serializeBinary = function() {
  */
 proto.tigon.proto.tql.VizLength.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getSmall();
+  f = message.getWildcard();
   if (f != null) {
     writer.writeMessage(
       1,
@@ -2843,7 +2849,7 @@ proto.tigon.proto.tql.VizLength.serializeBinaryToWriter = function(message, writ
       proto.tigon.proto.tql.VizLengthValue.serializeBinaryToWriter
     );
   }
-  f = message.getMedium();
+  f = message.getSmall();
   if (f != null) {
     writer.writeMessage(
       2,
@@ -2851,7 +2857,7 @@ proto.tigon.proto.tql.VizLength.serializeBinaryToWriter = function(message, writ
       proto.tigon.proto.tql.VizLengthValue.serializeBinaryToWriter
     );
   }
-  f = message.getLarge();
+  f = message.getMedium();
   if (f != null) {
     writer.writeMessage(
       3,
@@ -2859,10 +2865,18 @@ proto.tigon.proto.tql.VizLength.serializeBinaryToWriter = function(message, writ
       proto.tigon.proto.tql.VizLengthValue.serializeBinaryToWriter
     );
   }
-  f = message.getExtraLarge();
+  f = message.getLarge();
   if (f != null) {
     writer.writeMessage(
       4,
+      f,
+      proto.tigon.proto.tql.VizLengthValue.serializeBinaryToWriter
+    );
+  }
+  f = message.getXlarge();
+  if (f != null) {
+    writer.writeMessage(
+      5,
       f,
       proto.tigon.proto.tql.VizLengthValue.serializeBinaryToWriter
     );
@@ -2871,10 +2885,10 @@ proto.tigon.proto.tql.VizLength.serializeBinaryToWriter = function(message, writ
 
 
 /**
- * optional VizLengthValue small = 1;
+ * optional VizLengthValue wildcard = 1;
  * @return {?proto.tigon.proto.tql.VizLengthValue}
  */
-proto.tigon.proto.tql.VizLength.prototype.getSmall = function() {
+proto.tigon.proto.tql.VizLength.prototype.getWildcard = function() {
   return /** @type{?proto.tigon.proto.tql.VizLengthValue} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizLengthValue, 1));
 };
@@ -2884,8 +2898,45 @@ proto.tigon.proto.tql.VizLength.prototype.getSmall = function() {
  * @param {?proto.tigon.proto.tql.VizLengthValue|undefined} value
  * @return {!proto.tigon.proto.tql.VizLength} returns this
 */
-proto.tigon.proto.tql.VizLength.prototype.setSmall = function(value) {
+proto.tigon.proto.tql.VizLength.prototype.setWildcard = function(value) {
   return jspb.Message.setWrapperField(this, 1, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.tigon.proto.tql.VizLength} returns this
+ */
+proto.tigon.proto.tql.VizLength.prototype.clearWildcard = function() {
+  return this.setWildcard(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.tigon.proto.tql.VizLength.prototype.hasWildcard = function() {
+  return jspb.Message.getField(this, 1) != null;
+};
+
+
+/**
+ * optional VizLengthValue small = 2;
+ * @return {?proto.tigon.proto.tql.VizLengthValue}
+ */
+proto.tigon.proto.tql.VizLength.prototype.getSmall = function() {
+  return /** @type{?proto.tigon.proto.tql.VizLengthValue} */ (
+    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizLengthValue, 2));
+};
+
+
+/**
+ * @param {?proto.tigon.proto.tql.VizLengthValue|undefined} value
+ * @return {!proto.tigon.proto.tql.VizLength} returns this
+*/
+proto.tigon.proto.tql.VizLength.prototype.setSmall = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
 };
 
 
@@ -2903,17 +2954,17 @@ proto.tigon.proto.tql.VizLength.prototype.clearSmall = function() {
  * @return {boolean}
  */
 proto.tigon.proto.tql.VizLength.prototype.hasSmall = function() {
-  return jspb.Message.getField(this, 1) != null;
+  return jspb.Message.getField(this, 2) != null;
 };
 
 
 /**
- * optional VizLengthValue medium = 2;
+ * optional VizLengthValue medium = 3;
  * @return {?proto.tigon.proto.tql.VizLengthValue}
  */
 proto.tigon.proto.tql.VizLength.prototype.getMedium = function() {
   return /** @type{?proto.tigon.proto.tql.VizLengthValue} */ (
-    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizLengthValue, 2));
+    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizLengthValue, 3));
 };
 
 
@@ -2922,7 +2973,7 @@ proto.tigon.proto.tql.VizLength.prototype.getMedium = function() {
  * @return {!proto.tigon.proto.tql.VizLength} returns this
 */
 proto.tigon.proto.tql.VizLength.prototype.setMedium = function(value) {
-  return jspb.Message.setWrapperField(this, 2, value);
+  return jspb.Message.setWrapperField(this, 3, value);
 };
 
 
@@ -2940,17 +2991,17 @@ proto.tigon.proto.tql.VizLength.prototype.clearMedium = function() {
  * @return {boolean}
  */
 proto.tigon.proto.tql.VizLength.prototype.hasMedium = function() {
-  return jspb.Message.getField(this, 2) != null;
+  return jspb.Message.getField(this, 3) != null;
 };
 
 
 /**
- * optional VizLengthValue large = 3;
+ * optional VizLengthValue large = 4;
  * @return {?proto.tigon.proto.tql.VizLengthValue}
  */
 proto.tigon.proto.tql.VizLength.prototype.getLarge = function() {
   return /** @type{?proto.tigon.proto.tql.VizLengthValue} */ (
-    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizLengthValue, 3));
+    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizLengthValue, 4));
 };
 
 
@@ -2959,7 +3010,7 @@ proto.tigon.proto.tql.VizLength.prototype.getLarge = function() {
  * @return {!proto.tigon.proto.tql.VizLength} returns this
 */
 proto.tigon.proto.tql.VizLength.prototype.setLarge = function(value) {
-  return jspb.Message.setWrapperField(this, 3, value);
+  return jspb.Message.setWrapperField(this, 4, value);
 };
 
 
@@ -2977,17 +3028,17 @@ proto.tigon.proto.tql.VizLength.prototype.clearLarge = function() {
  * @return {boolean}
  */
 proto.tigon.proto.tql.VizLength.prototype.hasLarge = function() {
-  return jspb.Message.getField(this, 3) != null;
+  return jspb.Message.getField(this, 4) != null;
 };
 
 
 /**
- * optional VizLengthValue extra_large = 4;
+ * optional VizLengthValue xlarge = 5;
  * @return {?proto.tigon.proto.tql.VizLengthValue}
  */
-proto.tigon.proto.tql.VizLength.prototype.getExtraLarge = function() {
+proto.tigon.proto.tql.VizLength.prototype.getXlarge = function() {
   return /** @type{?proto.tigon.proto.tql.VizLengthValue} */ (
-    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizLengthValue, 4));
+    jspb.Message.getWrapperField(this, proto.tigon.proto.tql.VizLengthValue, 5));
 };
 
 
@@ -2995,8 +3046,8 @@ proto.tigon.proto.tql.VizLength.prototype.getExtraLarge = function() {
  * @param {?proto.tigon.proto.tql.VizLengthValue|undefined} value
  * @return {!proto.tigon.proto.tql.VizLength} returns this
 */
-proto.tigon.proto.tql.VizLength.prototype.setExtraLarge = function(value) {
-  return jspb.Message.setWrapperField(this, 4, value);
+proto.tigon.proto.tql.VizLength.prototype.setXlarge = function(value) {
+  return jspb.Message.setWrapperField(this, 5, value);
 };
 
 
@@ -3004,8 +3055,8 @@ proto.tigon.proto.tql.VizLength.prototype.setExtraLarge = function(value) {
  * Clears the message field making it undefined.
  * @return {!proto.tigon.proto.tql.VizLength} returns this
  */
-proto.tigon.proto.tql.VizLength.prototype.clearExtraLarge = function() {
-  return this.setExtraLarge(undefined);
+proto.tigon.proto.tql.VizLength.prototype.clearXlarge = function() {
+  return this.setXlarge(undefined);
 };
 
 
@@ -3013,8 +3064,8 @@ proto.tigon.proto.tql.VizLength.prototype.clearExtraLarge = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.tql.VizLength.prototype.hasExtraLarge = function() {
-  return jspb.Message.getField(this, 4) != null;
+proto.tigon.proto.tql.VizLength.prototype.hasXlarge = function() {
+  return jspb.Message.getField(this, 5) != null;
 };
 
 

@@ -127,10 +127,11 @@ message VizLengthValue {
 
 /// A display length
 message VizLength {
-    VizLengthValue small = 1;
-    VizLengthValue medium = 2;
-    VizLengthValue large = 3;
-    VizLengthValue extra_large = 4;
+    VizLengthValue wildcard = 1;
+    VizLengthValue small = 2;
+    VizLengthValue medium = 3;
+    VizLengthValue large = 4;
+    VizLengthValue xlarge = 5;
 }
 
 /// A display layout

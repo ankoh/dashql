@@ -3687,23 +3687,30 @@ std::string VizLengthValue::GetTypeName() const {
 // ===================================================================
 
 void VizLength::InitAsDefaultInstance() {
+  ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->wildcard_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
+      ::tigon::proto::tql::VizLengthValue::internal_default_instance());
   ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->small_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
       ::tigon::proto::tql::VizLengthValue::internal_default_instance());
   ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->medium_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
       ::tigon::proto::tql::VizLengthValue::internal_default_instance());
   ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->large_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
       ::tigon::proto::tql::VizLengthValue::internal_default_instance());
-  ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->extra_large_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
+  ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->xlarge_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
       ::tigon::proto::tql::VizLengthValue::internal_default_instance());
 }
 class VizLength::_Internal {
  public:
+  static const ::tigon::proto::tql::VizLengthValue& wildcard(const VizLength* msg);
   static const ::tigon::proto::tql::VizLengthValue& small(const VizLength* msg);
   static const ::tigon::proto::tql::VizLengthValue& medium(const VizLength* msg);
   static const ::tigon::proto::tql::VizLengthValue& large(const VizLength* msg);
-  static const ::tigon::proto::tql::VizLengthValue& extra_large(const VizLength* msg);
+  static const ::tigon::proto::tql::VizLengthValue& xlarge(const VizLength* msg);
 };
 
+const ::tigon::proto::tql::VizLengthValue&
+VizLength::_Internal::wildcard(const VizLength* msg) {
+  return *msg->wildcard_;
+}
 const ::tigon::proto::tql::VizLengthValue&
 VizLength::_Internal::small(const VizLength* msg) {
   return *msg->small_;
@@ -3717,8 +3724,21 @@ VizLength::_Internal::large(const VizLength* msg) {
   return *msg->large_;
 }
 const ::tigon::proto::tql::VizLengthValue&
-VizLength::_Internal::extra_large(const VizLength* msg) {
-  return *msg->extra_large_;
+VizLength::_Internal::xlarge(const VizLength* msg) {
+  return *msg->xlarge_;
+}
+void VizLength::unsafe_arena_set_allocated_wildcard(
+    ::tigon::proto::tql::VizLengthValue* wildcard) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete wildcard_;
+  }
+  wildcard_ = wildcard;
+  if (wildcard) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.wildcard)
 }
 void VizLength::unsafe_arena_set_allocated_small(
     ::tigon::proto::tql::VizLengthValue* small) {
@@ -3759,18 +3779,18 @@ void VizLength::unsafe_arena_set_allocated_large(
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.large)
 }
-void VizLength::unsafe_arena_set_allocated_extra_large(
-    ::tigon::proto::tql::VizLengthValue* extra_large) {
+void VizLength::unsafe_arena_set_allocated_xlarge(
+    ::tigon::proto::tql::VizLengthValue* xlarge) {
   if (GetArenaNoVirtual() == nullptr) {
-    delete extra_large_;
+    delete xlarge_;
   }
-  extra_large_ = extra_large;
-  if (extra_large) {
+  xlarge_ = xlarge;
+  if (xlarge) {
     
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.extra_large)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.xlarge)
 }
 VizLength::VizLength()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
@@ -3788,6 +3808,11 @@ VizLength::VizLength(const VizLength& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
+  if (from._internal_has_wildcard()) {
+    wildcard_ = new ::tigon::proto::tql::VizLengthValue(*from.wildcard_);
+  } else {
+    wildcard_ = nullptr;
+  }
   if (from._internal_has_small()) {
     small_ = new ::tigon::proto::tql::VizLengthValue(*from.small_);
   } else {
@@ -3803,19 +3828,19 @@ VizLength::VizLength(const VizLength& from)
   } else {
     large_ = nullptr;
   }
-  if (from._internal_has_extra_large()) {
-    extra_large_ = new ::tigon::proto::tql::VizLengthValue(*from.extra_large_);
+  if (from._internal_has_xlarge()) {
+    xlarge_ = new ::tigon::proto::tql::VizLengthValue(*from.xlarge_);
   } else {
-    extra_large_ = nullptr;
+    xlarge_ = nullptr;
   }
   // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizLength)
 }
 
 void VizLength::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_VizLength_tql_2eproto.base);
-  ::memset(&small_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&extra_large_) -
-      reinterpret_cast<char*>(&small_)) + sizeof(extra_large_));
+  ::memset(&wildcard_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&xlarge_) -
+      reinterpret_cast<char*>(&wildcard_)) + sizeof(xlarge_));
 }
 
 VizLength::~VizLength() {
@@ -3825,10 +3850,11 @@ VizLength::~VizLength() {
 
 void VizLength::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
+  if (this != internal_default_instance()) delete wildcard_;
   if (this != internal_default_instance()) delete small_;
   if (this != internal_default_instance()) delete medium_;
   if (this != internal_default_instance()) delete large_;
-  if (this != internal_default_instance()) delete extra_large_;
+  if (this != internal_default_instance()) delete xlarge_;
 }
 
 void VizLength::ArenaDtor(void* object) {
@@ -3852,6 +3878,10 @@ void VizLength::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  if (GetArenaNoVirtual() == nullptr && wildcard_ != nullptr) {
+    delete wildcard_;
+  }
+  wildcard_ = nullptr;
   if (GetArenaNoVirtual() == nullptr && small_ != nullptr) {
     delete small_;
   }
@@ -3864,10 +3894,10 @@ void VizLength::Clear() {
     delete large_;
   }
   large_ = nullptr;
-  if (GetArenaNoVirtual() == nullptr && extra_large_ != nullptr) {
-    delete extra_large_;
+  if (GetArenaNoVirtual() == nullptr && xlarge_ != nullptr) {
+    delete xlarge_;
   }
-  extra_large_ = nullptr;
+  xlarge_ = nullptr;
   _internal_metadata_.Clear();
 }
 
@@ -3879,31 +3909,38 @@ const char* VizLength::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // .tigon.proto.tql.VizLengthValue small = 1;
+      // .tigon.proto.tql.VizLengthValue wildcard = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_wildcard(), ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // .tigon.proto.tql.VizLengthValue small = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_small(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.VizLengthValue medium = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+      // .tigon.proto.tql.VizLengthValue medium = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_medium(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.VizLengthValue large = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+      // .tigon.proto.tql.VizLengthValue large = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_large(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.VizLengthValue extra_large = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
-          ptr = ctx->ParseMessage(_internal_mutable_extra_large(), ptr);
+      // .tigon.proto.tql.VizLengthValue xlarge = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 42)) {
+          ptr = ctx->ParseMessage(_internal_mutable_xlarge(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -3933,36 +3970,44 @@ failure:
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .tigon.proto.tql.VizLengthValue small = 1;
+  // .tigon.proto.tql.VizLengthValue wildcard = 1;
+  if (this->has_wildcard()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        1, _Internal::wildcard(this), target, stream);
+  }
+
+  // .tigon.proto.tql.VizLengthValue small = 2;
   if (this->has_small()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        1, _Internal::small(this), target, stream);
+        2, _Internal::small(this), target, stream);
   }
 
-  // .tigon.proto.tql.VizLengthValue medium = 2;
+  // .tigon.proto.tql.VizLengthValue medium = 3;
   if (this->has_medium()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        2, _Internal::medium(this), target, stream);
+        3, _Internal::medium(this), target, stream);
   }
 
-  // .tigon.proto.tql.VizLengthValue large = 3;
+  // .tigon.proto.tql.VizLengthValue large = 4;
   if (this->has_large()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        3, _Internal::large(this), target, stream);
+        4, _Internal::large(this), target, stream);
   }
 
-  // .tigon.proto.tql.VizLengthValue extra_large = 4;
-  if (this->has_extra_large()) {
+  // .tigon.proto.tql.VizLengthValue xlarge = 5;
+  if (this->has_xlarge()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        4, _Internal::extra_large(this), target, stream);
+        5, _Internal::xlarge(this), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -3981,32 +4026,39 @@ size_t VizLength::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .tigon.proto.tql.VizLengthValue small = 1;
+  // .tigon.proto.tql.VizLengthValue wildcard = 1;
+  if (this->has_wildcard()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *wildcard_);
+  }
+
+  // .tigon.proto.tql.VizLengthValue small = 2;
   if (this->has_small()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *small_);
   }
 
-  // .tigon.proto.tql.VizLengthValue medium = 2;
+  // .tigon.proto.tql.VizLengthValue medium = 3;
   if (this->has_medium()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *medium_);
   }
 
-  // .tigon.proto.tql.VizLengthValue large = 3;
+  // .tigon.proto.tql.VizLengthValue large = 4;
   if (this->has_large()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *large_);
   }
 
-  // .tigon.proto.tql.VizLengthValue extra_large = 4;
-  if (this->has_extra_large()) {
+  // .tigon.proto.tql.VizLengthValue xlarge = 5;
+  if (this->has_xlarge()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *extra_large_);
+        *xlarge_);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -4030,6 +4082,9 @@ void VizLength::MergeFrom(const VizLength& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
+  if (from.has_wildcard()) {
+    _internal_mutable_wildcard()->::tigon::proto::tql::VizLengthValue::MergeFrom(from._internal_wildcard());
+  }
   if (from.has_small()) {
     _internal_mutable_small()->::tigon::proto::tql::VizLengthValue::MergeFrom(from._internal_small());
   }
@@ -4039,8 +4094,8 @@ void VizLength::MergeFrom(const VizLength& from) {
   if (from.has_large()) {
     _internal_mutable_large()->::tigon::proto::tql::VizLengthValue::MergeFrom(from._internal_large());
   }
-  if (from.has_extra_large()) {
-    _internal_mutable_extra_large()->::tigon::proto::tql::VizLengthValue::MergeFrom(from._internal_extra_large());
+  if (from.has_xlarge()) {
+    _internal_mutable_xlarge()->::tigon::proto::tql::VizLengthValue::MergeFrom(from._internal_xlarge());
   }
 }
 
@@ -4058,10 +4113,11 @@ bool VizLength::IsInitialized() const {
 void VizLength::InternalSwap(VizLength* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
+  swap(wildcard_, other->wildcard_);
   swap(small_, other->small_);
   swap(medium_, other->medium_);
   swap(large_, other->large_);
-  swap(extra_large_, other->extra_large_);
+  swap(xlarge_, other->xlarge_);
 }
 
 std::string VizLength::GetTypeName() const {
