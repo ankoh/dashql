@@ -1,10 +1,13 @@
-import * as proto from 'tigon-proto';
 import * as React from 'react';
+import * as proto from 'tigon-proto';
+import s from './table.module.scss';
+import { ChunkAccess } from '../../proto/duckdb_access';
+import { Grid, GridCellProps, Index } from 'react-virtualized';
 import { Scrollbars } from 'react-custom-scrollbars';
 import { withAutoSizer } from '../autosizer';
-import { Grid, GridCellProps, Index } from 'react-virtualized';
 
-import s from './table.module.scss';
+const CELL_BORDER = '1px solid rgb(225, 225, 225)';
+const CELL_COLOR_HEADERS = 'rgb(245, 245, 245)';
 
 // The table properties
 interface ITableProps {
@@ -16,133 +19,33 @@ interface ITableProps {
 // The table state
 interface ITableState {
     scrollTop: number;
+    chunks: ChunkAccess;
 }
 
 // The table
 export class Table extends React.Component<ITableProps, ITableState> {
     protected gridRef: React.RefObject<Grid>;
-    protected chunkCache: number;
 
     constructor(props: ITableProps) {
         super(props);
         this.state = {
             scrollTop: 0,
+            chunks: new ChunkAccess(this.props.data.getDataChunksList()),
         };
         this.gridRef = React.createRef();
-        this.chunkCache = 0;
-    }
-
-    // TODO: extract the chunk iteration logic into a dedicated iterator.
-    // Note that we still want to preserve the concept of data chunks as we might
-    // want to stream the chunks via websockets (grpc) at some point.
-    protected fmtValue(row: number, col: number): string {
-        let chunks = this.props.data.getDataChunksList();
-        let chunk: proto.duckdb.QueryResultChunk | null = null;
-
-        // Compare a chunk range
-        let cmpChunkRange = (c: proto.duckdb.QueryResultChunk, row: number) => {
-            let begin = c.getRowOffset();
-            let end = c.getRowOffset() + c.getRowCount();
-            if (row >= begin && row < end) {
-                return 0;
-            } else if (row < begin) {
-                return -1;
-            } else {
-                return 1;
-            }
-        };
-
-        // Cached chunk?
-        if (this.chunkCache < chunks.length && cmpChunkRange(chunks[this.chunkCache], row) === 0) {
-            chunk = chunks[this.chunkCache];
-        }
-        if (chunk == null) {
-            let lb = 0;
-            let ub = chunks.length;
-            while (lb < ub) {
-                let mid = Math.floor((lb + ub) / 2);
-                let candidate = chunks[mid];
-                let cmp = cmpChunkRange(candidate, row);
-                if (cmp === 0) {
-                    chunk = candidate;
-                    this.chunkCache = mid;
-                    break;
-                } else if (cmp > 0) {
-                    lb = mid + 1;
-                } else {
-                    ub = mid;
-                }
-            }
-        }
-
-        // Row oob?
-        if (chunk == null) {
-            return "%ERR%"; // XXX log oob
-        }
-
-        // Column oob?
-        let columns = chunk.getColumnsList();
-        if (col > columns.length) {
-            return "%ERR%"; // XXX log oob
-        }
-        let column = columns[col];
-
-        // NULL?
-        let nullMask = column.getNullMaskList();
-        if (col <= nullMask.length && nullMask[col]) {
-            return "NULL";
-        }
-
-        switch (column.getTypeId()) {
-            case proto.duckdb.RawTypeID.RAW_BIGINT:
-                return column.getRowsI64List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_BOOLEAN:
-                return column.getRowsI32List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_DOUBLE:
-                return column.getRowsF64List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_FLOAT:
-                return column.getRowsF32List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_HASH:
-                return column.getRowsU64List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_INTEGER:
-                return column.getRowsI64List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_POINTER:
-                return column.getRowsU64List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_SMALLINT:
-                return column.getRowsI32List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_TINYINT:
-                return column.getRowsI32List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_VARBINARY:
-                break;
-            case proto.duckdb.RawTypeID.RAW_VARCHAR:
-                return column.getRowsStrList()[row].toString();
-        }
-        return "%ERR%"; // XXX log unknown
     }
 
     // Render a single cell
     public renderCell(props: GridCellProps) {
-        const cellBorder = '1px solid rgb(225, 225, 225)';
-        const fixedCellColor = 'rgb(245, 245, 245)';
-
-        enum CellType {
-            Anchor,
-            ColumnHeader,
-            RowHeader,
-            Data
-        };
-        let cellType = CellType.Data;
-
         // Determine cell type
-        if (props.rowIndex === 0) {
-            if (props.columnIndex === 0) {
-                cellType = CellType.Anchor;
-            } else {
-                cellType = CellType.ColumnHeader;
-            }
-        } else if (props.columnIndex === 0) {
-            cellType = CellType.RowHeader
-        }
+        enum CellType { Anchor, ColumnHeader, RowHeader, Data };
+        let cellType = props.rowIndex === 0
+            ? props.columnIndex === 0
+                ? CellType.Anchor
+                : CellType.ColumnHeader
+            : props.columnIndex === 0
+                ? CellType.RowHeader
+                : CellType.Data;
 
         // Render cell type
         switch (cellType) {
@@ -152,10 +55,10 @@ export class Table extends React.Component<ITableProps, ITableState> {
                         key={props.key}
                         style={{
                             ...props.style,
-                            backgroundColor: fixedCellColor,
+                            backgroundColor: CELL_COLOR_HEADERS,
                             boxSizing: 'border-box',
-                            borderBottom: cellBorder,
-                            borderRight: cellBorder,
+                            borderBottom: CELL_BORDER,
+                            borderRight: CELL_BORDER,
                             textAlign: 'center',
                             lineHeight: '24px',
                         }}
@@ -167,10 +70,10 @@ export class Table extends React.Component<ITableProps, ITableState> {
                         key={props.key}
                         style={{
                             ...props.style,
-                            backgroundColor: fixedCellColor,
+                            backgroundColor: CELL_COLOR_HEADERS,
                             boxSizing: 'border-box',
-                            borderBottom: cellBorder,
-                            borderRight: cellBorder,
+                            borderBottom: CELL_BORDER,
+                            borderRight: CELL_BORDER,
                             textAlign: 'center',
                             lineHeight: '24px',
                         }}
@@ -184,10 +87,10 @@ export class Table extends React.Component<ITableProps, ITableState> {
                         key={props.key}
                         style={{
                             ...props.style,
-                            backgroundColor: fixedCellColor,
+                            backgroundColor: CELL_COLOR_HEADERS,
                             boxSizing: 'border-box',
-                            borderBottom: cellBorder,
-                            borderRight: cellBorder,
+                            borderBottom: CELL_BORDER,
+                            borderRight: CELL_BORDER,
                             textAlign: 'center',
                             lineHeight: '24px',
                         }}
@@ -202,13 +105,13 @@ export class Table extends React.Component<ITableProps, ITableState> {
                         style={{
                             ...props.style,
                             boxSizing: 'border-box',
-                            borderBottom: cellBorder,
-                            borderRight: cellBorder,
+                            borderBottom: CELL_BORDER,
+                            borderRight: CELL_BORDER,
                             lineHeight: '28px',
                             padding: '0px 8px 0px 8px',
                         }}
                     >
-                        {this.fmtValue(props.rowIndex - 1, props.columnIndex - 1)}
+                        {this.state.chunks.fmtValue(props.rowIndex - 1, props.columnIndex - 1)}
                     </div>
                 );
         }
@@ -238,6 +141,12 @@ export class Table extends React.Component<ITableProps, ITableState> {
             if (this.gridRef.current) {
                 this.gridRef.current.recomputeGridSize();
             }
+        }
+        if (this.props.data !== prevProps.data) {
+            this.setState({
+                ...this.state,
+                chunks: new ChunkAccess(this.props.data.getDataChunksList()),
+            });
         }
     }
 
