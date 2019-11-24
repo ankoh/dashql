@@ -1,4 +1,4 @@
-import * as Model from '../model';
+import * as Store from '../store';
 
 // Inheriting from error requires a tiny hack as the Error class apparently messes up the prototype chain.
 // https://stackoverflow.com/questions/41102060/typescript-extending-error-class
@@ -18,9 +18,9 @@ export class ErrorBase extends Error {
 
 // An error that can be logged in the application log
 export class LoggableError extends ErrorBase {
-    public logLevel: Model.LogLevel;
+    public logLevel: Store.LogLevel;
     public message: string;
-    constructor(message: string, logLevel: Model.LogLevel = Model.LogLevel.WARNING) {
+    constructor(message: string, logLevel: Store.LogLevel = Store.LogLevel.WARNING) {
         super(message);
         this.logLevel = logLevel;
         this.message = message;
@@ -30,7 +30,7 @@ export class LoggableError extends ErrorBase {
 // An error with a http status code
 export class HTTPStatusError extends LoggableError {
     protected statusCode: number;
-    constructor(statusCode: number, logLevel: Model.LogLevel = Model.LogLevel.WARNING) {
+    constructor(statusCode: number, logLevel: Store.LogLevel = Store.LogLevel.WARNING) {
         super(String(statusCode));
         this.statusCode = statusCode;
     }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as Model from '../../model';
+import * as Store from '../../store';
 import { connect } from 'react-redux';
 import { Vega } from 'react-vega';
 import { VisualizationSpec } from 'vega-embed';
@@ -104,12 +104,12 @@ export class ChartViewer extends React.Component<IChartViewerProps, IChartViewer
     }
 }
 
-function mapStateToProps(state: Model.RootState) {
+function mapStateToProps(state: Store.RootState) {
     return {
     };
 }
 
-function mapDispatchToProps(dispatch: Model.RootState) {
+function mapDispatchToProps(dispatch: Store.RootState) {
     return {};
 }
 

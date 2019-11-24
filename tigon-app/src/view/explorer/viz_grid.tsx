@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as Model from '../../model';
+import * as Store from '../../store';
 import * as Immutable from 'immutable';
 import * as proto from 'tigon-proto';
 import Table from '../viz/table';
@@ -195,7 +195,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 }
 
 /// Connect the viz grid to redux
-function mapStateToProps(state: Model.RootState) {
+function mapStateToProps(state: Store.RootState) {
     return {
         statements: state.transientTQLStatements,
         queryResults: state.transientQueryResults,

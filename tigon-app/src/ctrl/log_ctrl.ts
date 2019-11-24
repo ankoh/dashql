@@ -1,42 +1,42 @@
-import * as Model from '../model';
+import * as Store from '../store';
 import { LoggableError } from '../util/error';
 
 export class LogController {
     // The store
-    public store: Model.ReduxStore;
+    public store: Store.ReduxStore;
 
     // Constructor
-    constructor(store: Model.ReduxStore) {
+    constructor(store: Store.ReduxStore) {
         this.store = store;
     }
 
-    protected log(level: Model.LogLevel, text: string) {
+    protected log(level: Store.LogLevel, text: string) {
         // Build log entry
-        const logEntry = new Model.LogEntry();
+        const logEntry = new Store.LogEntry();
         logEntry.level = level;
         logEntry.text = text;
         logEntry.timestamp = new Date();
 
-        // Model in redux store
-        this.store.dispatch(Model.pushLogEntry(logEntry));
+        // Store in redux store
+        this.store.dispatch(Store.pushLogEntry(logEntry));
     }
 
     public logError(error: LoggableError) {
         // Build log entry
-        const logEntry = new Model.LogEntry();
+        const logEntry = new Store.LogEntry();
         logEntry.level = error.logLevel;
         logEntry.text = error.message;
         logEntry.timestamp = new Date();
 
-        // Model in redux store
-        this.store.dispatch(Model.pushLogEntry(logEntry));
+        // Store in redux store
+        this.store.dispatch(Store.pushLogEntry(logEntry));
     }
 
     // Log levels
-    public debug(text: string)      { this.log(Model.LogLevel.DEBUG, text); }
-    public info(text: string)       { this.log(Model.LogLevel.INFO, text); }
-    public warning(text: string)    { this.log(Model.LogLevel.WARNING, text); }
-    public error(text: string)      { this.log(Model.LogLevel.ERROR, text); }
+    public debug(text: string)      { this.log(Store.LogLevel.DEBUG, text); }
+    public info(text: string)       { this.log(Store.LogLevel.INFO, text); }
+    public warning(text: string)    { this.log(Store.LogLevel.WARNING, text); }
+    public error(text: string)      { this.log(Store.LogLevel.ERROR, text); }
 }
 
 export default LogController;

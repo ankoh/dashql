@@ -1,14 +1,14 @@
-import * as Model from '../model';
+import * as Store from '../store';
 import * as proto from 'tigon-proto';
 import { CoreController } from './core_ctrl';
 import { LogController } from './log_ctrl';
 
 export class DemoController {
-    protected store: Model.ReduxStore;
+    protected store: Store.ReduxStore;
     protected log: LogController;
     protected core: CoreController;
 
-    constructor(store: Model.ReduxStore, core: CoreController, log: LogController) {
+    constructor(store: Store.ReduxStore, core: CoreController, log: LogController) {
         this.store = store;
         this.core = core;
         this.log = log;
@@ -45,8 +45,8 @@ export class DemoController {
             10, 11, 12, 13, 14, 15, 16, 17, 18, 19
         ]);
 
-        this.store.dispatch(Model.pushTransientTQLStatements(tql.getStatementsList()));
-        this.store.dispatch(Model.setTransientQueryResult("temp_weekly", q1Res.finish()));       
+        this.store.dispatch(Store.pushTransientTQLStatements(tql.getStatementsList()));
+        this.store.dispatch(Store.setTransientQueryResult("temp_weekly", q1Res.finish()));       
     }
 };
 

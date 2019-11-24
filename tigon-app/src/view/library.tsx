@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as Model from '../model';
+import * as Store from '../store';
 import { connect } from 'react-redux';
 
 interface ILibraryProps {
@@ -16,12 +16,12 @@ export class Library extends React.Component<ILibraryProps, ILibraryState> {
     }
 }
 
-function mapStateToProps(_state: Model.RootState) {
+function mapStateToProps(_state: Store.RootState) {
     return {
     };
 }
 
-function mapDispatchToProps(_dispatch: Model.RootState) {
+function mapDispatchToProps(_dispatch: Store.RootState) {
     return {};
 }
 

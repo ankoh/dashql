@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as Model from './model';
+import * as Store from './store';
 import Router from './view/router';
 import { AppContextProvider, IAppContext } from './app_context';
 import { Provider as ReduxProvider } from 'react-redux';
@@ -9,7 +9,7 @@ import { RootController } from './ctrl';
 import './fonts/fonts.css';
 import './index.scss';
 
-const store = Model.createStore();
+const store = Store.createStore();
 const controller = new RootController(store);
 
 controller.init();

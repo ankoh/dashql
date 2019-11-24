@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as Model from '../model';
+import * as Store from '../store';
 import { connect } from 'react-redux';
 import { RectangleWaveSpinner } from './spinners';
 import {
@@ -13,7 +13,7 @@ import {
 import './launcher.raw.scss';
 
 interface ILauncherProps {
-    progress: Model.LaunchProgress;
+    progress: Store.LaunchProgress;
 }
 
 interface ILauncherState {
@@ -40,29 +40,29 @@ class Launcher extends React.Component<ILauncherProps, ILauncherState> {
         this.loop();
     }
 
-    public renderProgressStepStatus(status: Model.LaunchProgressStatus) {
+    public renderProgressStepStatus(status: Store.LaunchProgressStatus) {
         return (
             <div className="launcher_progress_step_status">
             </div>
         );
     }
 
-    public renderProgressStep(name: String, status: Model.LaunchProgressStatus) {
+    public renderProgressStep(name: String, status: Store.LaunchProgressStatus) {
         let statusIcon: any;
         switch (status) {
-            case Model.LaunchProgressStatus.PENDING:
+            case Store.LaunchProgressStatus.PENDING:
                 statusIcon = <StatusScheduledIcon fill="#48F4C1" />;
                 break;
-            case Model.LaunchProgressStatus.COMPLETED:
+            case Store.LaunchProgressStatus.COMPLETED:
                 statusIcon = <StatusSucceededIcon fill="#48F4C1" />;
                 break;
-            case Model.LaunchProgressStatus.FAILED:
+            case Store.LaunchProgressStatus.FAILED:
                 statusIcon = <StatusFailedIcon fill="#48F4C1" />;
                 break;
-            case Model.LaunchProgressStatus.STARTED:
+            case Store.LaunchProgressStatus.STARTED:
                 statusIcon = <StatusRunningIcon fill="#48F4C1" />;
                 break;
-            case Model.LaunchProgressStatus.WARNING:
+            case Store.LaunchProgressStatus.WARNING:
                 statusIcon = <StatusWarningIcon fill="#48F4C1" />;
                 break;
             default:
@@ -113,12 +113,12 @@ class Launcher extends React.Component<ILauncherProps, ILauncherState> {
     }
 }
 
-function mapStateToProps(state: Model.RootState) {
+function mapStateToProps(state: Store.RootState) {
     return {
         progress: state.launchProgress
     };
 }
-function mapDispatchToProps(dispatch: Model.Dispatch) {
+function mapDispatchToProps(dispatch: Store.Dispatch) {
     return {};
 }
 

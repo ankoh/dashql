@@ -1,4 +1,4 @@
-import * as Model from '../model';
+import * as Store from '../store';
 import { CacheController } from './cache_ctrl';
 import { CoreController } from './core_ctrl';
 import { LogController } from './log_ctrl';
@@ -10,8 +10,8 @@ const workerIntervalMS = 400;
 
 // A controller
 export class RootController {
-    // The Model
-    public store: Model.ReduxStore;
+    // The Store
+    public store: Store.ReduxStore;
     // The logger
     public log: LogController;
     // The core
@@ -28,7 +28,7 @@ export class RootController {
     protected workerTimer: number | null;
 
     // Constructor
-    constructor(store: Model.ReduxStore) {
+    constructor(store: Store.ReduxStore) {
         this.store = store;
         this.log = new LogController(store);
         this.core = new CoreController();

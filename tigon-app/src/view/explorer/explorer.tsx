@@ -1,6 +1,6 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
-import * as Model from '../../model';
+import * as Store from '../../store';
 import * as proto from 'tigon-proto';
 import { TQLInterpreter } from '../../ctrl';
 import { IAppContext, withAppContext } from '../../app_context';
@@ -246,11 +246,11 @@ class Explorer extends React.Component<IExplorerProps> {
         text = text.replace("run", "");
 
         // let result = await ctrl.core.runQuery(session, text);
-        // let d = new Model.QueryResultDataSource(result);
+        // let d = new Store.QueryResultDataSource(result);
         // self.props.setExplorerDataSource(d);
 
         //        let plan = await ctrl.core.planQuery(session, text);
-        //        let p = new Model.QueryPlan(plan);
+        //        let p = new Store.QueryPlan(plan);
         //        this.props.setExplorerPlan(p);
     }
 
@@ -276,7 +276,7 @@ class Explorer extends React.Component<IExplorerProps> {
     }
 }
 
-function mapStateToExplorerProps(state: Model.RootState) {
+function mapStateToExplorerProps(state: Store.RootState) {
     return {
         tqlStatements: state.transientTQLStatements,
         queryResults: state.transientQueryResults,
@@ -284,7 +284,7 @@ function mapStateToExplorerProps(state: Model.RootState) {
     };
 }
 
-function mapDispatchToExplorerProps(_dispatch: Model.Dispatch) {
+function mapDispatchToExplorerProps(_dispatch: Store.Dispatch) {
     return {
     };
 }

@@ -1,33 +1,33 @@
 import * as React from 'react';
-import * as Model from '../model';
+import * as Store from '../store';
 import { connect } from 'react-redux';
 import classNames from 'classnames';
 
 import s from './navigation_bar.module.scss';
 
 interface INavigationBarProps {
-    rootView: Model.RootView;
-    navigateRoot: (view: Model.RootView) => void;
+    rootView: Store.RootView;
+    navigateRoot: (view: Store.RootView) => void;
 }
 
 
 interface INavBarTabProps {
-    rootView: Model.RootView;
-    onViewChanged: (view: Model.RootView) => void;
-    tabView: Model.RootView;
+    rootView: Store.RootView;
+    onViewChanged: (view: Store.RootView) => void;
+    tabView: Store.RootView;
 }
 
 function NavBarTab(props: INavBarTabProps) {
     const isActive = props.tabView === props.rootView;
     let tabName = "?";
     switch (props.tabView) {
-        case Model.RootView.EXPLORER:
+        case Store.RootView.EXPLORER:
             tabName = "Explorer";
             break;
-        case Model.RootView.WORKBOOK:
+        case Store.RootView.WORKBOOK:
             tabName = "Workbook";
             break;
-        case Model.RootView.LIBRARY:
+        case Store.RootView.LIBRARY:
             tabName = "Library";
             break;
     }
@@ -54,17 +54,17 @@ class NavigationBar extends React.Component<INavigationBarProps> {
                 </div>
                 <div className={s.tabs}>
                     <NavBarTab
-                        tabView={Model.RootView.EXPLORER}
+                        tabView={Store.RootView.EXPLORER}
                         rootView={this.props.rootView}
                         onViewChanged={this.props.navigateRoot}
                     />
                     <NavBarTab
-                        tabView={Model.RootView.WORKBOOK}
+                        tabView={Store.RootView.WORKBOOK}
                         rootView={this.props.rootView}
                         onViewChanged={this.props.navigateRoot}
                     />
                     <NavBarTab
-                        tabView={Model.RootView.LIBRARY}
+                        tabView={Store.RootView.LIBRARY}
                         rootView={this.props.rootView}
                         onViewChanged={this.props.navigateRoot}
                     />
@@ -74,14 +74,14 @@ class NavigationBar extends React.Component<INavigationBarProps> {
     }
 }
 
-function mapStateToProps(state: Model.RootState) {
+function mapStateToProps(state: Store.RootState) {
     return {
         rootView: state.rootView
     };
 }
-function mapDispatchToProps(dispatch: Model.Dispatch) {
+function mapDispatchToProps(dispatch: Store.Dispatch) {
     return {
-        navigateRoot: (view: Model.RootView) => { dispatch(Model.navigateRoot(view)); },
+        navigateRoot: (view: Store.RootView) => { dispatch(Store.navigateRoot(view)); },
     };
 }
 

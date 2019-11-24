@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as Model from '../../model';
+import * as Store from '../../store';
 import { connect } from 'react-redux';
 import { withAutoSizer } from '../autosizer';
 import s from './board.module.scss';
@@ -202,12 +202,12 @@ export class Board extends React.Component<IBoardProps, {}> {
     }
 }
 
-function mapStateToProps(_state: Model.RootState) {
+function mapStateToProps(_state: Store.RootState) {
     return {
     };
 }
 
-function mapDispatchToProps(_dispatch: Model.RootState) {
+function mapDispatchToProps(_dispatch: Store.RootState) {
     return {};
 }
 

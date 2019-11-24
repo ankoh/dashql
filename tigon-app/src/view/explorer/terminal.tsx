@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as Model from '../../model';
+import * as Store from '../../store';
 import { connect } from 'react-redux';
 
 import 'xterm/css/xterm.css';
@@ -54,11 +54,11 @@ class Terminal extends React.Component<ITerminalProps> {
     }
 }
 
-function mapStateToProps(_state: Model.RootState) {
+function mapStateToProps(_state: Store.RootState) {
     return {
     };
 }
-function mapDispatchToProps(_dispatch: Model.Dispatch) {
+function mapDispatchToProps(_dispatch: Store.Dispatch) {
     return {
     };
 }
