@@ -137,7 +137,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                         height={this.props.height}
                         width={this.props.width}
                         rowCount={this.props.data.getRowCount()}
-                        rowHeight={28}
+                        rowHeight={24}
                     />
                 </Scrollbars>
             </div>
