@@ -36,6 +36,7 @@ proto::tql::Module* encodeTQLModule(protobuf::Arena& arena, tql::Module& module)
             [&](std::unique_ptr<tql::VizStatement>& viz) {
                 auto* v = stmts->Add()->mutable_viz();
                 v->set_viz_id(viz->viz_id.data(), viz->viz_id.size());
+                v->set_viz_type(static_cast<proto::tql::VizType>(viz->type));
                 v->set_query_id(viz->query_id.data(), viz->query_id.size());
                 if (viz->title.empty()) {
                     v->set_title(generateTitle(*viz));

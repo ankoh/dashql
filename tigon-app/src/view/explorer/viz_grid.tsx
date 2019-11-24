@@ -3,6 +3,7 @@ import * as React from 'react';
 import * as Store from '../../store';
 import * as proto from 'tigon-proto';
 import Table from '../viz/table';
+import ChartViewer from '../viz/chart_viewer';
 import s from './viz_grid.module.scss';
 import { connect } from 'react-redux';
 import { mapStatements } from '../../proto/tql_access';
@@ -87,6 +88,31 @@ function VizCard(props: {
     data: proto.duckdb.QueryResult | null,
     pos: GridElement
 }) {
+    let viz: React.ReactElement | null = null;
+    if (props.data) {
+        console.log(props.stmt.getVizType());
+        switch (props.stmt.getVizType()) {
+            case proto.tql.VizType.VIZ_AREA:
+            case proto.tql.VizType.VIZ_BAR:
+            case proto.tql.VizType.VIZ_BOX:
+            case proto.tql.VizType.VIZ_BUBBLE:
+            case proto.tql.VizType.VIZ_GRID:
+            case proto.tql.VizType.VIZ_HISTOGRAM:
+            case proto.tql.VizType.VIZ_LINE:
+            case proto.tql.VizType.VIZ_NUMBER:
+            case proto.tql.VizType.VIZ_PIE:
+            case proto.tql.VizType.VIZ_SCATTER:
+            case proto.tql.VizType.VIZ_POINT:
+                viz = <ChartViewer />;
+                break;
+            case proto.tql.VizType.VIZ_TABLE:
+                viz = <Table data={props.data} />;
+                break;
+            case proto.tql.VizType.VIZ_TEXT:
+                break;
+        }
+    }
+
     return (
         <div className={s.viz}
             style={{
@@ -113,7 +139,7 @@ function VizCard(props: {
                     </div>
                 </div>
                 <div className={s.viz_card_body}>
-                    {props.data ? <Table data={props.data} /> : ""}
+                    {viz}
                 </div>
             </div>
         </div>
