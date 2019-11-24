@@ -154,21 +154,13 @@ interface IVizGridProps {
     statements: Immutable.List<proto.tql.Statement>;
     queryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
 
+    sizeClass: Store.SizeClass,
     width: number;
     height: number;
 }
 
-/// The size class
-enum SizeClass {
-    SMALL,
-    MEDIUM,
-    LARGE,
-    XLARGE
-}
-
 /// A viz grid state
 interface IVizGridState {
-    sizeClass: SizeClass,
     gridLayout: GridLayout;
     vizStmts: Array<proto.tql.VizStatement>;
     vizPositions: Array<GridElement>;
@@ -183,8 +175,6 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
     }
 
     protected static computeLayout(props: IVizGridProps): IVizGridState {
-        let sizeClass = SizeClass.LARGE;
-
         // Get the viz statements
         let vizStmts = mapStatements(
             props.statements,
@@ -194,22 +184,22 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
         let vizData = vizStmts.map((v) => props.queryResults.get(v.getQueryId()) || null);
 
         // Pick a length value
-        let pickLengthValue = (v: proto.tql.VizLength | undefined, sc: SizeClass) => {
+        let pickLengthValue = (v: proto.tql.VizLength | undefined) => {
             if (!v) {
                 return null;
             } 
             let lv: proto.tql.VizLengthValue | undefined;
-            switch (sc) {
-                case SizeClass.SMALL:
+            switch (props.sizeClass) {
+                case Store.SizeClass.SMALL:
                     lv = v.getSmall();
                     break;
-                case SizeClass.MEDIUM:
+                case Store.SizeClass.MEDIUM:
                     lv = v.getMedium();
                     break;
-                case SizeClass.LARGE:
+                case Store.SizeClass.LARGE:
                     lv = v.getLarge();
                     break;
-                case SizeClass.XLARGE:
+                case Store.SizeClass.XLARGE:
                     lv = v.getXlarge();
                     break;
             }
@@ -277,12 +267,12 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
             if (!layout) {
                 return allocSpan(1);
             }
-            let lengthValue = pickLengthValue(layout.getHeight(), sizeClass);
+            let lengthValue = pickLengthValue(layout.getHeight());
             let width = layout.getWidth();
             if (!width) {
-                return allocSpan(1, pickLengthValue(layout.getHeight(), sizeClass));
+                return allocSpan(1, pickLengthValue(layout.getHeight()));
             } else {
-                let widthValue = pickLengthValue(width, sizeClass);
+                let widthValue = pickLengthValue(width);
                 if (!widthValue || widthValue.getUnit() !== proto.tql.VizLengthUnit.SPAN) {
                     return allocSpan(1, lengthValue);
                 } else {
@@ -294,7 +284,6 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 
         // Return state
         return {
-            sizeClass: sizeClass,
             gridLayout: gridLayout,
             vizStmts: vizStmts,
             vizPositions: vizPositions,

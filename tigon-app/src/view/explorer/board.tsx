@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as Store from '../../store';
 import { connect } from 'react-redux';
 import { withAutoSizer } from '../autosizer';
+import VizGrid from './viz_grid';
 import s from './board.module.scss';
 
 const TICK_COLOR = "rgb(180, 180, 180)";
@@ -9,6 +10,7 @@ const TICK_WIDTH = 1;
 const LABEL_COLOR = "rgb(140, 140, 140)";
 const LABEL_FONT = "9px arial";
 
+// The ruler orientation
 enum RulerOrientation {
     Horizontal,
     Vertical
@@ -181,8 +183,10 @@ export class Board extends React.Component<IBoardProps, {}> {
     public render() {
         return (
             <div className={s.board}>
-                <div className={s.board_children}>
-                    {this.props.children}
+                <div className={s.board_body}>
+                    <div className={s.board_children}>
+                        <VizGrid sizeClass={Store.SizeClass.LARGE} />
+                    </div>
                 </div>
                 <div className={s.board_ruler_top}>
                     <AutoSizingRuler

@@ -38,6 +38,14 @@ export enum TaskStatus {
     ERROR = 4,
 }
 
+/// The size class
+export enum SizeClass {
+    SMALL,
+    MEDIUM,
+    LARGE,
+    XLARGE
+}
+
 // ---------------------------------------------------------------------------
 // State Model
 // ---------------------------------------------------------------------------
@@ -105,7 +113,6 @@ export class RootState {
 
     // The tasks
     public tasks: Immutable.Map<number, TaskInfo>;
-
     // The log entries
     public logs: Immutable.List<LogEntry>;
 

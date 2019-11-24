@@ -49,11 +49,19 @@ $board_ruler_thickness: 28px;
     height: 100%;
 }
 
-.board_children {
+.board_body {
     grid-row: 2;
     grid-column: 2;
 
     box-shadow: inset $THEME_BOX_SHADOW_LEVEL_1;
+
+    display: grid;
+    grid-template-columns: 40px auto 40px;
+    grid-template-rows: 20px auto 20px;
+}
+
+.board_children {
+    grid-area: 2 / 2 / 3 / 3;
 
     position: relative;
     width: 100%;

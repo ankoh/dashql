@@ -4,7 +4,6 @@ import * as Store from '../../store';
 import * as proto from 'tigon-proto';
 import Board from './board';
 import Terminal from './terminal';
-import VizGrid from './viz_grid';
 import cN from 'classnames';
 import s from './explorer.module.scss';
 import { IAppContext, withAppContext } from '../../app_context';
@@ -122,9 +121,7 @@ class Explorer extends React.Component<IExplorerProps> {
             <div className={s.explorer}>
 
                 <div className={s.board}>
-                    <Board scaleFactor={1.0}>
-                        <VizGrid />
-                    </Board>
+                    <Board scaleFactor={1.0} />
                     <div className={s.input}>
                         <div className={s.input_header}>
                             <div className={s.input_type}>
