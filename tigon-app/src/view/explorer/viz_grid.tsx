@@ -32,11 +32,16 @@ export class GridElement {
         this.rows = rows;
     }
 
+    /// CSS values
+    get cssColumnsBegin() { return this.columns[0] + 1; }
+    get cssColumnsEnd() { return this.columns[1] + 1; }
+    get cssRowsBegin() { return this.rows[0] + 1; }
+    get cssRowsEnd() { return this.rows[1] + 1; }
     get cssArea() : string {
-        return this.columns[0].toString()
-            + " / " + this.rows[0].toString()
-            + " / " + this.columns[1].toString()
-            + " / " + this.rows[1].toString();
+        return this.cssRowsBegin
+            + " / " + this.cssColumnsBegin
+            + " / " + this.cssRowsEnd
+            + " / " + this.cssColumnsEnd;
     }
 };
 
@@ -90,7 +95,6 @@ function VizCard(props: {
 }) {
     let viz: React.ReactElement | null = null;
     if (props.data) {
-        console.log(props.stmt.getVizType());
         switch (props.stmt.getVizType()) {
             case proto.tql.VizType.VIZ_AREA:
             case proto.tql.VizType.VIZ_BAR:
@@ -260,8 +264,11 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
             if (allocState.col + span > gridLayout.columns) {
                 allocRow();
             }
+            let colBegin = allocState.col;
+            allocState.col += span;
+            let colEnd = allocState.col;
             allocState.height = maxRowHeight(allocState.height, height);
-            return new GridElement([allocState.col, allocState.col + span], [allocState.row, allocState.col + 1]);
+            return new GridElement([colBegin, colEnd], [allocState.row, allocState.col + 1]);
         };
 
         // Compute the viz positions
@@ -283,6 +290,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
                 }
             }
         });
+        console.log(vizPositions);
 
         // Return state
         return {

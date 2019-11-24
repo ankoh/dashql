@@ -32,11 +32,19 @@ export class DemoController {
             QUERY rain_weekly AS SELECT * FROM region, nation;
 
             VIZ temp_weekly_table FROM temp_weekly USING TABLE (
-                title = "Weekly Temperature Data"
+                title = "Weekly Temperature Data",
+                layout = (
+                    width = 6,
+                    height = 200px
+                )
             );
 
             VIZ temp_weekly_bar FROM temp_weekly USING Bar (
-                title = "Weekly Temperature"
+                title = "Weekly Temperature",
+                layout = (
+                    width = 6,
+                    height = 200px
+                )
             );
         `);
 
