@@ -60,10 +60,7 @@ describe("tql parsing", () => {
     test_tql_parser(`
         VIZ temp_weekly_table FROM temp_weekly USING TABLE (
             title = "Weekly Temperature Data",
-            layout = (
-                width = 4,
-                height = 200px
-            )
+            area = 6/20/4/2
         );
     `, {
         statementsList: [
@@ -72,18 +69,12 @@ describe("tql parsing", () => {
                 vizId: "temp_weekly_table",
                 vizType: proto.tql.VizType.VIZ_TABLE,
                 title: "Weekly Temperature Data",
-                layout: {
-                    height: {
-                        wildcard: {
-                            value: 200,
-                            unit: proto.tql.VizLengthUnit.PIXEL,
-                        },
-                    },
-                    width: {
-                        wildcard: {
-                            value: 4,
-                            unit: proto.tql.VizLengthUnit.SPAN,
-                        },
+                area: {
+                    wildcard: {
+                        width: 6,
+                        height: 20,
+                        x: 4,
+                        y: 2,
                     }
                 }
             }}
