@@ -6,9 +6,6 @@ import { Grid, GridCellProps, Index } from 'react-virtualized';
 import { Scrollbars } from 'react-custom-scrollbars';
 import { withAutoSizer } from '../autosizer';
 
-const CELL_BORDER = '1px solid rgb(225, 225, 225)';
-const CELL_COLOR_HEADERS = 'rgb(245, 245, 245)';
-
 // The table properties
 interface ITableProps {
     data: proto.duckdb.QueryResult;
@@ -51,65 +48,33 @@ export class Table extends React.Component<ITableProps, ITableState> {
         switch (cellType) {
             case CellType.Anchor:
                 return (
-                    <div
-                        key={props.key}
-                        style={{
-                            ...props.style,
-                            backgroundColor: CELL_COLOR_HEADERS,
-                            boxSizing: 'border-box',
-                            borderBottom: CELL_BORDER,
-                            borderRight: CELL_BORDER,
-                            textAlign: 'center',
-                            lineHeight: '24px',
-                        }}
-                    />
+                    <div key={props.key}
+                        className={s.cell_anchor}
+                        style={{...props.style}} />
                 );
             case CellType.ColumnHeader:
                 return (
-                    <div
-                        key={props.key}
-                        style={{
-                            ...props.style,
-                            backgroundColor: CELL_COLOR_HEADERS,
-                            boxSizing: 'border-box',
-                            borderBottom: CELL_BORDER,
-                            borderRight: CELL_BORDER,
-                            textAlign: 'center',
-                            lineHeight: '24px',
-                        }}
+                    <div key={props.key}
+                        className={s.cell_header_col}
+                        style={{...props.style}}
                     >
                         {this.props.data.getColumnNamesList()[props.columnIndex - 1]}
                     </div>
                 );
             case CellType.RowHeader:
                 return (
-                    <div
-                        key={props.key}
-                        style={{
-                            ...props.style,
-                            backgroundColor: CELL_COLOR_HEADERS,
-                            boxSizing: 'border-box',
-                            borderBottom: CELL_BORDER,
-                            borderRight: CELL_BORDER,
-                            textAlign: 'center',
-                            lineHeight: '24px',
-                        }}
+                    <div key={props.key}
+                        className={s.cell_header_row}
+                        style={{...props.style}}
                     >
                         {props.rowIndex}
                     </div>
                 );
             case CellType.Data:
                 return (
-                    <div
-                        key={props.key}
-                        style={{
-                            ...props.style,
-                            boxSizing: 'border-box',
-                            borderBottom: CELL_BORDER,
-                            borderRight: CELL_BORDER,
-                            lineHeight: '28px',
-                            padding: '0px 8px 0px 8px',
-                        }}
+                    <div key={props.key}
+                        className={s.cell_data}
+                        style={{...props.style}}
                     >
                         {this.state.chunks.fmtValue(props.rowIndex - 1, props.columnIndex - 1)}
                     </div>
@@ -153,7 +118,9 @@ export class Table extends React.Component<ITableProps, ITableState> {
     // Render the full table
     public render() {
         return (
-            <div className={s.container} style={{ height: this.props.height, width: this.props.width }}>
+            <div className={s.container}
+                style={{ height: this.props.height, width: this.props.width }}
+            >
                 <Scrollbars
                     style={{ height: this.props.height, width: this.props.width }}
                     onScroll={this.handleScroll.bind(this)}

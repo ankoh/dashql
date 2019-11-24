@@ -12,3 +12,42 @@
 .scrollbars {
     border-radius: 0 0 $theme_border_radius $theme_border_radius;
 }
+
+$CELL_BORDER: 1px solid rgb(225, 225, 225);
+$CELL_COLOR_HEADERS:rgb(245, 245, 245);
+
+.cell_anchor {
+    background-color: $CELL_COLOR_HEADERS;
+    box-sizing: border-box;
+    border-bottom: $CELL_BORDER;
+    border-right: $CELL_BORDER;
+    text-align: center;
+    line-height: 24px;
+}
+
+.cell_header_col {
+    background-color: $CELL_COLOR_HEADERS;
+    box-sizing: border-box;
+    border-bottom: $CELL_BORDER;
+    border-right: $CELL_BORDER;
+    text-align: center;
+    line-height: 24px;
+}
+
+.cell_header_row {
+    background-color: $CELL_COLOR_HEADERS;
+    box-sizing: border-box;
+    border-bottom: $CELL_BORDER;
+    border-right: $CELL_BORDER;
+    text-align: center;
+    line-height: 24px;
+}
+
+.cell_data {
+    box-sizing: border-box;
+    border-bottom: $CELL_BORDER;
+    border-right: $CELL_BORDER;
+    text-align: center;
+    line-height: 24px;
+    padding: 0 8px 0 8px;
+}
