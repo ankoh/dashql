@@ -17,7 +17,6 @@ import {
 
 const ACTION_ICON_WIDTH="16px";
 const ACTION_ICON_HEIGHT="16px";
-const DEFAULT_ROW_HEIGHT = 200;
 
 /// A grid element
 export class GridElement {
@@ -184,11 +183,11 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
         let vizData = vizStmts.map((v) => props.queryResults.get(v.getQueryId()) || null);
 
         // Pick a length value
-        let pickLengthValue = (v: proto.tql.VizLength | undefined) => {
+        let pickArea = (v: proto.tql.VizResponsiveGridArea | undefined) => {
             if (!v) {
                 return null;
             } 
-            let lv: proto.tql.VizLengthValue | undefined;
+            let lv: proto.tql.VizGridArea | undefined;
             switch (props.sizeClass) {
                 case Store.SizeClass.SMALL:
                     lv = v.getSmall();
@@ -209,76 +208,20 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
             return lv || null;
         }
 
-        // Get the maximum of two row height values
-        let maxRowHeight = (a: proto.tql.VizLengthValue | null, b: proto.tql.VizLengthValue | null) => {
-            if (!a) { return b; }
-            if (!b) { return a; }
-
-            // Same length unit?
-            if (a.getUnit() === b.getUnit()) {
-                return b.getValue() > a.getValue() ? b : a;
-            }
-            // Explicit pixels always win
-            if (a.getUnit() === proto.tql.VizLengthUnit.PIXEL) { return a; }
-            if (b.getUnit() === proto.tql.VizLengthUnit.PIXEL) { return b; }
-            // Percent and spans are not supported for row heights
-            let d = new proto.tql.VizLengthValue();
-            d.setValue(100);
-            d.setUnit(proto.tql.VizLengthUnit.PIXEL);
-            return d;
-        }
-
         let gridLayout = new GridLayout();
-
-        // The allocation state
-        type AllocStateType = { row: number, col: number, height: proto.tql.VizLengthValue | null };
-        let allocState: AllocStateType = {
-            row: 0, col: 0, height: null
-        };
-
-        // Allocate a row
-        let allocRow = () => {
-            let h = allocState.height;
-            if (!h) {
-                gridLayout.rows.push(new GridLength(DEFAULT_ROW_HEIGHT, GridLengthUnit.PIXEL));
-                return;
-            }
-            gridLayout.rows.push(new GridLength(h.getValue(), GridLengthUnit.PIXEL));
-            ++allocState.row;
-            allocState.col = 0;
-            allocState.height = null;
-        };
-
-        // Allocate a span
-        let allocSpan = (span: number, height: proto.tql.VizLengthValue | null = null) => {
-            if (allocState.col + span > gridLayout.columns) {
-                allocRow();
-            }
-            let colBegin = allocState.col;
-            allocState.col += span;
-            let colEnd = allocState.col;
-            allocState.height = maxRowHeight(allocState.height, height);
-            return new GridElement([colBegin, colEnd], [allocState.row, allocState.col + 1]);
-        };
 
         // Compute the viz positions
         let vizPositions = vizStmts.map((v) => {
-            let layout = v.getLayout();
-            if (!layout) {
-                return allocSpan(1);
+            let area = pickArea(v.getArea());
+            if (!area) {
+                throw "dynamic layouts not yet implemented!";
             }
-            let lengthValue = pickLengthValue(layout.getHeight());
-            let width = layout.getWidth();
-            if (!width) {
-                return allocSpan(1, pickLengthValue(layout.getHeight()));
-            } else {
-                let widthValue = pickLengthValue(width);
-                if (!widthValue || widthValue.getUnit() !== proto.tql.VizLengthUnit.SPAN) {
-                    return allocSpan(1, lengthValue);
-                } else {
-                    return allocSpan(widthValue.getValue(), lengthValue);
-                }
-            }
+            // XXX
+            let width = area.getWidth() || 6;
+            let height = area.getHeight() || 20;
+            let x = area.getX() || 0;
+            let y = area.getY() || 0;
+            return new GridElement([x, x + width], [y, y + height]);
         });
         console.log(vizPositions);
 
