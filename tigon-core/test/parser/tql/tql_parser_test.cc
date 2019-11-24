@@ -44,31 +44,18 @@ TEST(TQLTest, ExtractJsonPath) {
 TEST(TQLTest, VizLineChart) {
     auto in = R"RAW(
         visualize whether_data_line from wheather_data using line chart (
-            layout = (
-                width = (
-                    * = 8,
-                    sm = 4,
-                    md = 6,
-                    lg = 8,
-                    xl = 8
-                ),
-                height = (
-                    * = 100px,
-                    sm = 200px
-                )
+            area = (
+                sm = 1,
+                md = 6,
+                lg = 11 / 13,
+                xl = 11 / 13
             ),
             axes = (
-                x = (
-                    column = a,
-                    scale = linear
-                ),
-                y = (
-                    column = b,
-                    scale = linear
-                )
+                x = (column = "a", scale = linear),
+                y = (column = "b", scale = linear)
             ),
             color = (
-                column = c,
+                column = "c",
                 palette = [
                     rgb(0, 0, 0),
                     rgb(0, 0, 0)

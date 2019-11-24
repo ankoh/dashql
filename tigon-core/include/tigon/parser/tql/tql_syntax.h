@@ -194,50 +194,66 @@ struct VizStatement {
     /// A length value
     using LengthValue = std::pair<uint32_t, LengthUnit> ;
 
-    /// A layout length
-    struct LayoutLength {
-        /// Fallback
-        std::optional<LengthValue> wildcard;
-        /// Small displays
-        std::optional<LengthValue> sm;
-        /// Medium displays
-        std::optional<LengthValue> md;
-        /// Large displays
-        std::optional<LengthValue> lg;
-        /// Extra large displays
-        std::optional<LengthValue> xl;
+    /// A grid area
+    struct GridArea {
+        /// The values
+        std::array<uint32_t, 4> values;
+        /// The length
+        uint32_t length;
 
         /// Constructor
-        LayoutLength() : wildcard(), sm(), md(), lg(), xl() {}
+        GridArea()
+            : values({ 0, 0, 0, 0 }), length(0) {}
+        /// Constructor
+        GridArea(uint32_t colBegin)
+            : values({ colBegin, 0, 0, 0 }), length(1) {}
 
-        /// Set a value
-        void set(SizeClass size, uint32_t value, LengthUnit unit) {
-            switch (size) {
-            case SizeClass::Wildcard:
-                wildcard = {value, unit};
-                break;
-            case SizeClass::Small:
-                sm = {value, unit};
-                break;
-            case SizeClass::Medium:
-                md = {value, unit};
-                break;
-            case SizeClass::Large:
-                lg = {value, unit};
-                break;
-            case SizeClass::ExtraLarge:
-                xl = {value, unit};
-                break;
+        /// Push a new value
+        void push(uint32_t value) {
+            if (length == 4) {
+                // XXX just ignore?
+                return;
             }
+            values[length++] = value;
         }
     };
 
-    /// A layout
-    struct Layout {
-        /// The width
-        std::unique_ptr<LayoutLength> width;
-        /// The height
-        std::unique_ptr<LayoutLength> height;
+    /// A layout length
+    struct ResponsiveGridArea {
+        /// Wildcard
+        std::optional<GridArea> wildcard;
+        /// Small displays
+        std::optional<GridArea> sm;
+        /// Medium displays
+        std::optional<GridArea> md;
+        /// Large displays
+        std::optional<GridArea> lg;
+        /// Extra large displays
+        std::optional<GridArea> xl;
+
+        /// Constructor
+        ResponsiveGridArea() : wildcard(), sm(), md(), lg(), xl() {}
+
+        /// Set a value
+        void set(SizeClass size, GridArea area) {
+            switch (size) {
+            case SizeClass::Wildcard:
+                wildcard = area;
+                break;
+            case SizeClass::Small:
+                sm = area;
+                break;
+            case SizeClass::Medium:
+                md = area;
+                break;
+            case SizeClass::Large:
+                lg = area;
+                break;
+            case SizeClass::ExtraLarge:
+                xl = area;
+                break;
+            }
+        }
     };
 
     /// The scale of an axis
@@ -272,8 +288,8 @@ struct VizStatement {
     uint64_t type_flags;
     /// The title
     std::string_view title;
-    /// The layout
-    Layout layout;
+    /// The area
+    std::unique_ptr<ResponsiveGridArea> area;
     /// The color
     Color color;
     /// The axes

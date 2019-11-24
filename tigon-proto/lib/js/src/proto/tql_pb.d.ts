@@ -318,101 +318,81 @@ export namespace VizColorPalette {
   }
 }
 
-export class VizLengthValue extends jspb.Message {
-  getValue(): number;
-  setValue(value: number): void;
+export class VizGridArea extends jspb.Message {
+  getColumnBegin(): number;
+  setColumnBegin(value: number): void;
 
-  getUnit(): VizLengthUnitMap[keyof VizLengthUnitMap];
-  setUnit(value: VizLengthUnitMap[keyof VizLengthUnitMap]): void;
+  getColumnEnd(): number;
+  setColumnEnd(value: number): void;
+
+  getRowBegin(): number;
+  setRowBegin(value: number): void;
+
+  getRowEnd(): number;
+  setRowEnd(value: number): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): VizLengthValue.AsObject;
-  static toObject(includeInstance: boolean, msg: VizLengthValue): VizLengthValue.AsObject;
+  toObject(includeInstance?: boolean): VizGridArea.AsObject;
+  static toObject(includeInstance: boolean, msg: VizGridArea): VizGridArea.AsObject;
   static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
   static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: VizLengthValue, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): VizLengthValue;
-  static deserializeBinaryFromReader(message: VizLengthValue, reader: jspb.BinaryReader): VizLengthValue;
+  static serializeBinaryToWriter(message: VizGridArea, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): VizGridArea;
+  static deserializeBinaryFromReader(message: VizGridArea, reader: jspb.BinaryReader): VizGridArea;
 }
 
-export namespace VizLengthValue {
+export namespace VizGridArea {
   export type AsObject = {
-    value: number,
-    unit: VizLengthUnitMap[keyof VizLengthUnitMap],
+    columnBegin: number,
+    columnEnd: number,
+    rowBegin: number,
+    rowEnd: number,
   }
 }
 
-export class VizLength extends jspb.Message {
+export class VizResponsiveGridArea extends jspb.Message {
   hasWildcard(): boolean;
   clearWildcard(): void;
-  getWildcard(): VizLengthValue | undefined;
-  setWildcard(value?: VizLengthValue): void;
+  getWildcard(): VizGridArea | undefined;
+  setWildcard(value?: VizGridArea): void;
 
   hasSmall(): boolean;
   clearSmall(): void;
-  getSmall(): VizLengthValue | undefined;
-  setSmall(value?: VizLengthValue): void;
+  getSmall(): VizGridArea | undefined;
+  setSmall(value?: VizGridArea): void;
 
   hasMedium(): boolean;
   clearMedium(): void;
-  getMedium(): VizLengthValue | undefined;
-  setMedium(value?: VizLengthValue): void;
+  getMedium(): VizGridArea | undefined;
+  setMedium(value?: VizGridArea): void;
 
   hasLarge(): boolean;
   clearLarge(): void;
-  getLarge(): VizLengthValue | undefined;
-  setLarge(value?: VizLengthValue): void;
+  getLarge(): VizGridArea | undefined;
+  setLarge(value?: VizGridArea): void;
 
   hasXlarge(): boolean;
   clearXlarge(): void;
-  getXlarge(): VizLengthValue | undefined;
-  setXlarge(value?: VizLengthValue): void;
+  getXlarge(): VizGridArea | undefined;
+  setXlarge(value?: VizGridArea): void;
 
   serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): VizLength.AsObject;
-  static toObject(includeInstance: boolean, msg: VizLength): VizLength.AsObject;
+  toObject(includeInstance?: boolean): VizResponsiveGridArea.AsObject;
+  static toObject(includeInstance: boolean, msg: VizResponsiveGridArea): VizResponsiveGridArea.AsObject;
   static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
   static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: VizLength, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): VizLength;
-  static deserializeBinaryFromReader(message: VizLength, reader: jspb.BinaryReader): VizLength;
+  static serializeBinaryToWriter(message: VizResponsiveGridArea, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): VizResponsiveGridArea;
+  static deserializeBinaryFromReader(message: VizResponsiveGridArea, reader: jspb.BinaryReader): VizResponsiveGridArea;
 }
 
-export namespace VizLength {
+export namespace VizResponsiveGridArea {
   export type AsObject = {
-    wildcard?: VizLengthValue.AsObject,
-    small?: VizLengthValue.AsObject,
-    medium?: VizLengthValue.AsObject,
-    large?: VizLengthValue.AsObject,
-    xlarge?: VizLengthValue.AsObject,
-  }
-}
-
-export class VizLayout extends jspb.Message {
-  hasWidth(): boolean;
-  clearWidth(): void;
-  getWidth(): VizLength | undefined;
-  setWidth(value?: VizLength): void;
-
-  hasHeight(): boolean;
-  clearHeight(): void;
-  getHeight(): VizLength | undefined;
-  setHeight(value?: VizLength): void;
-
-  serializeBinary(): Uint8Array;
-  toObject(includeInstance?: boolean): VizLayout.AsObject;
-  static toObject(includeInstance: boolean, msg: VizLayout): VizLayout.AsObject;
-  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-  static serializeBinaryToWriter(message: VizLayout, writer: jspb.BinaryWriter): void;
-  static deserializeBinary(bytes: Uint8Array): VizLayout;
-  static deserializeBinaryFromReader(message: VizLayout, reader: jspb.BinaryReader): VizLayout;
-}
-
-export namespace VizLayout {
-  export type AsObject = {
-    width?: VizLength.AsObject,
-    height?: VizLength.AsObject,
+    wildcard?: VizGridArea.AsObject,
+    small?: VizGridArea.AsObject,
+    medium?: VizGridArea.AsObject,
+    large?: VizGridArea.AsObject,
+    xlarge?: VizGridArea.AsObject,
   }
 }
 
@@ -481,10 +461,10 @@ export class VizStatement extends jspb.Message {
   getTitle(): string;
   setTitle(value: string): void;
 
-  hasLayout(): boolean;
-  clearLayout(): void;
-  getLayout(): VizLayout | undefined;
-  setLayout(value?: VizLayout): void;
+  hasArea(): boolean;
+  clearArea(): void;
+  getArea(): VizResponsiveGridArea | undefined;
+  setArea(value?: VizResponsiveGridArea): void;
 
   hasAxes(): boolean;
   clearAxes(): void;
@@ -507,7 +487,7 @@ export namespace VizStatement {
     vizType: VizTypeMap[keyof VizTypeMap],
     queryId: string,
     title: string,
-    layout?: VizLayout.AsObject,
+    area?: VizResponsiveGridArea.AsObject,
     axes?: VizAxes.AsObject,
   }
 }
@@ -626,14 +606,6 @@ export interface VizTypeMap {
 }
 
 export const VizType: VizTypeMap;
-
-export interface VizLengthUnitMap {
-  SPAN: 0;
-  PIXEL: 1;
-  PERCENT: 2;
-}
-
-export const VizLengthUnit: VizLengthUnitMap;
 
 export interface VizAxisScaleMap {
   LINEAR: 0;

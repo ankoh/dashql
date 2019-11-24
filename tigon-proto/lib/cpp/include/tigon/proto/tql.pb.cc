@@ -23,9 +23,8 @@ extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::S
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<5> scc_info_Statement_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizAxes_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_VizAxis_tql_2eproto;
-extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizLayout_tql_2eproto;
-extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizLength_tql_2eproto;
-extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_VizLengthValue_tql_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_VizGridArea_tql_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizResponsiveGridArea_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_VizStatement_tql_2eproto;
 namespace tigon {
 namespace proto {
@@ -82,18 +81,14 @@ class VizColorPaletteDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<VizColorPalette> _instance;
 } _VizColorPalette_default_instance_;
-class VizLengthValueDefaultTypeInternal {
+class VizGridAreaDefaultTypeInternal {
  public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<VizLengthValue> _instance;
-} _VizLengthValue_default_instance_;
-class VizLengthDefaultTypeInternal {
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<VizGridArea> _instance;
+} _VizGridArea_default_instance_;
+class VizResponsiveGridAreaDefaultTypeInternal {
  public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<VizLength> _instance;
-} _VizLength_default_instance_;
-class VizLayoutDefaultTypeInternal {
- public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<VizLayout> _instance;
-} _VizLayout_default_instance_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<VizResponsiveGridArea> _instance;
+} _VizResponsiveGridArea_default_instance_;
 class VizAxisDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<VizAxis> _instance;
@@ -344,49 +339,34 @@ static void InitDefaultsscc_info_VizColorPalette_tql_2eproto() {
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_VizColorPalette_tql_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_VizColorPalette_tql_2eproto}, {}};
 
-static void InitDefaultsscc_info_VizLayout_tql_2eproto() {
+static void InitDefaultsscc_info_VizGridArea_tql_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   {
-    void* ptr = &::tigon::proto::tql::_VizLayout_default_instance_;
-    new (ptr) ::tigon::proto::tql::VizLayout();
+    void* ptr = &::tigon::proto::tql::_VizGridArea_default_instance_;
+    new (ptr) ::tigon::proto::tql::VizGridArea();
     ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
   }
-  ::tigon::proto::tql::VizLayout::InitAsDefaultInstance();
+  ::tigon::proto::tql::VizGridArea::InitAsDefaultInstance();
 }
 
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizLayout_tql_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_VizLayout_tql_2eproto}, {
-      &scc_info_VizLength_tql_2eproto.base,}};
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_VizGridArea_tql_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_VizGridArea_tql_2eproto}, {}};
 
-static void InitDefaultsscc_info_VizLength_tql_2eproto() {
+static void InitDefaultsscc_info_VizResponsiveGridArea_tql_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   {
-    void* ptr = &::tigon::proto::tql::_VizLength_default_instance_;
-    new (ptr) ::tigon::proto::tql::VizLength();
+    void* ptr = &::tigon::proto::tql::_VizResponsiveGridArea_default_instance_;
+    new (ptr) ::tigon::proto::tql::VizResponsiveGridArea();
     ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
   }
-  ::tigon::proto::tql::VizLength::InitAsDefaultInstance();
+  ::tigon::proto::tql::VizResponsiveGridArea::InitAsDefaultInstance();
 }
 
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizLength_tql_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_VizLength_tql_2eproto}, {
-      &scc_info_VizLengthValue_tql_2eproto.base,}};
-
-static void InitDefaultsscc_info_VizLengthValue_tql_2eproto() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  {
-    void* ptr = &::tigon::proto::tql::_VizLengthValue_default_instance_;
-    new (ptr) ::tigon::proto::tql::VizLengthValue();
-    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::tigon::proto::tql::VizLengthValue::InitAsDefaultInstance();
-}
-
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_VizLengthValue_tql_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_VizLengthValue_tql_2eproto}, {}};
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizResponsiveGridArea_tql_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_VizResponsiveGridArea_tql_2eproto}, {
+      &scc_info_VizGridArea_tql_2eproto.base,}};
 
 static void InitDefaultsscc_info_VizStatement_tql_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -401,7 +381,7 @@ static void InitDefaultsscc_info_VizStatement_tql_2eproto() {
 
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_VizStatement_tql_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 2, 0, InitDefaultsscc_info_VizStatement_tql_2eproto}, {
-      &scc_info_VizLayout_tql_2eproto.base,
+      &scc_info_VizResponsiveGridArea_tql_2eproto.base,
       &scc_info_VizAxes_tql_2eproto.base,}};
 
 namespace tigon {
@@ -621,61 +601,6 @@ bool VizType_Parse(
       VizType_entries, 13, name, &int_value);
   if (success) {
     *value = static_cast<VizType>(int_value);
-  }
-  return success;
-}
-bool VizLengthUnit_IsValid(int value) {
-  switch (value) {
-    case 0:
-    case 1:
-    case 2:
-      return true;
-    default:
-      return false;
-  }
-}
-
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> VizLengthUnit_strings[3] = {};
-
-static const char VizLengthUnit_names[] =
-  "PERCENT"
-  "PIXEL"
-  "SPAN";
-
-static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry VizLengthUnit_entries[] = {
-  { {VizLengthUnit_names + 0, 7}, 2 },
-  { {VizLengthUnit_names + 7, 5}, 1 },
-  { {VizLengthUnit_names + 12, 4}, 0 },
-};
-
-static const int VizLengthUnit_entries_by_number[] = {
-  2, // 0 -> SPAN
-  1, // 1 -> PIXEL
-  0, // 2 -> PERCENT
-};
-
-const std::string& VizLengthUnit_Name(
-    VizLengthUnit value) {
-  static const bool dummy =
-      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
-          VizLengthUnit_entries,
-          VizLengthUnit_entries_by_number,
-          3, VizLengthUnit_strings);
-  (void) dummy;
-  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
-      VizLengthUnit_entries,
-      VizLengthUnit_entries_by_number,
-      3, value);
-  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
-                     VizLengthUnit_strings[idx].get();
-}
-bool VizLengthUnit_Parse(
-    const std::string& name, VizLengthUnit* value) {
-  int int_value;
-  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      VizLengthUnit_entries, 3, name, &int_value);
-  if (success) {
-    *value = static_cast<VizLengthUnit>(int_value);
   }
   return success;
 }
@@ -3473,77 +3398,77 @@ std::string VizColorPalette::GetTypeName() const {
 
 // ===================================================================
 
-void VizLengthValue::InitAsDefaultInstance() {
+void VizGridArea::InitAsDefaultInstance() {
 }
-class VizLengthValue::_Internal {
+class VizGridArea::_Internal {
  public:
 };
 
-VizLengthValue::VizLengthValue()
+VizGridArea::VizGridArea()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
-  // @@protoc_insertion_point(constructor:tigon.proto.tql.VizLengthValue)
+  // @@protoc_insertion_point(constructor:tigon.proto.tql.VizGridArea)
 }
-VizLengthValue::VizLengthValue(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+VizGridArea::VizGridArea(::PROTOBUF_NAMESPACE_ID::Arena* arena)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
   _internal_metadata_(arena) {
   SharedCtor();
   RegisterArenaDtor(arena);
-  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizLengthValue)
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizGridArea)
 }
-VizLengthValue::VizLengthValue(const VizLengthValue& from)
+VizGridArea::VizGridArea(const VizGridArea& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::memcpy(&value_, &from.value_,
-    static_cast<size_t>(reinterpret_cast<char*>(&unit_) -
-    reinterpret_cast<char*>(&value_)) + sizeof(unit_));
-  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizLengthValue)
+  ::memcpy(&column_begin_, &from.column_begin_,
+    static_cast<size_t>(reinterpret_cast<char*>(&row_end_) -
+    reinterpret_cast<char*>(&column_begin_)) + sizeof(row_end_));
+  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizGridArea)
 }
 
-void VizLengthValue::SharedCtor() {
-  ::memset(&value_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&unit_) -
-      reinterpret_cast<char*>(&value_)) + sizeof(unit_));
+void VizGridArea::SharedCtor() {
+  ::memset(&column_begin_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&row_end_) -
+      reinterpret_cast<char*>(&column_begin_)) + sizeof(row_end_));
 }
 
-VizLengthValue::~VizLengthValue() {
-  // @@protoc_insertion_point(destructor:tigon.proto.tql.VizLengthValue)
+VizGridArea::~VizGridArea() {
+  // @@protoc_insertion_point(destructor:tigon.proto.tql.VizGridArea)
   SharedDtor();
 }
 
-void VizLengthValue::SharedDtor() {
+void VizGridArea::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
 }
 
-void VizLengthValue::ArenaDtor(void* object) {
-  VizLengthValue* _this = reinterpret_cast< VizLengthValue* >(object);
+void VizGridArea::ArenaDtor(void* object) {
+  VizGridArea* _this = reinterpret_cast< VizGridArea* >(object);
   (void)_this;
 }
-void VizLengthValue::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+void VizGridArea::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
 }
-void VizLengthValue::SetCachedSize(int size) const {
+void VizGridArea::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
-const VizLengthValue& VizLengthValue::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_VizLengthValue_tql_2eproto.base);
+const VizGridArea& VizGridArea::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_VizGridArea_tql_2eproto.base);
   return *internal_default_instance();
 }
 
 
-void VizLengthValue::Clear() {
-// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.VizLengthValue)
+void VizGridArea::Clear() {
+// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.VizGridArea)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  ::memset(&value_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&unit_) -
-      reinterpret_cast<char*>(&value_)) + sizeof(unit_));
+  ::memset(&column_begin_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&row_end_) -
+      reinterpret_cast<char*>(&column_begin_)) + sizeof(row_end_));
   _internal_metadata_.Clear();
 }
 
-const char* VizLengthValue::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* VizGridArea::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
   ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
@@ -3551,19 +3476,32 @@ const char* VizLengthValue::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // double value = 1;
+      // uint32 column_begin = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 9)) {
-          value_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr);
-          ptr += sizeof(double);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
+          column_begin_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.VizLengthUnit unit = 2;
+      // uint32 column_end = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
-          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          column_end_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
           CHK_(ptr);
-          _internal_set_unit(static_cast<::tigon::proto::tql::VizLengthUnit>(val));
+        } else goto handle_unusual;
+        continue;
+      // uint32 row_begin = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
+          row_begin_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 row_end = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
+          row_end_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
         } else goto handle_unusual;
         continue;
       default: {
@@ -3586,50 +3524,78 @@ failure:
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* VizLengthValue::InternalSerializeWithCachedSizesToArray(
+::PROTOBUF_NAMESPACE_ID::uint8* VizGridArea::InternalSerializeWithCachedSizesToArray(
     ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.VizLengthValue)
+  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.VizGridArea)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // double value = 1;
-  if (!(this->value() <= 0 && this->value() >= 0)) {
+  // uint32 column_begin = 1;
+  if (this->column_begin() != 0) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteDoubleToArray(1, this->_internal_value(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(1, this->_internal_column_begin(), target);
   }
 
-  // .tigon.proto.tql.VizLengthUnit unit = 2;
-  if (this->unit() != 0) {
+  // uint32 column_end = 2;
+  if (this->column_end() != 0) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
-      2, this->_internal_unit(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(2, this->_internal_column_end(), target);
+  }
+
+  // uint32 row_begin = 3;
+  if (this->row_begin() != 0) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(3, this->_internal_row_begin(), target);
+  }
+
+  // uint32 row_end = 4;
+  if (this->row_end() != 0) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(4, this->_internal_row_end(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
         static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.VizLengthValue)
+  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.VizGridArea)
   return target;
 }
 
-size_t VizLengthValue::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.VizLengthValue)
+size_t VizGridArea::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.VizGridArea)
   size_t total_size = 0;
 
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // double value = 1;
-  if (!(this->value() <= 0 && this->value() >= 0)) {
-    total_size += 1 + 8;
+  // uint32 column_begin = 1;
+  if (this->column_begin() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_column_begin());
   }
 
-  // .tigon.proto.tql.VizLengthUnit unit = 2;
-  if (this->unit() != 0) {
+  // uint32 column_end = 2;
+  if (this->column_end() != 0) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_unit());
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_column_end());
+  }
+
+  // uint32 row_begin = 3;
+  if (this->row_begin() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_row_begin());
+  }
+
+  // uint32 row_end = 4;
+  if (this->row_end() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_row_end());
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -3640,95 +3606,103 @@ size_t VizLengthValue::ByteSizeLong() const {
   return total_size;
 }
 
-void VizLengthValue::CheckTypeAndMergeFrom(
+void VizGridArea::CheckTypeAndMergeFrom(
     const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
-  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const VizLengthValue*>(
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const VizGridArea*>(
       &from));
 }
 
-void VizLengthValue::MergeFrom(const VizLengthValue& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.VizLengthValue)
+void VizGridArea::MergeFrom(const VizGridArea& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.VizGridArea)
   GOOGLE_DCHECK_NE(&from, this);
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (!(from.value() <= 0 && from.value() >= 0)) {
-    _internal_set_value(from._internal_value());
+  if (from.column_begin() != 0) {
+    _internal_set_column_begin(from._internal_column_begin());
   }
-  if (from.unit() != 0) {
-    _internal_set_unit(from._internal_unit());
+  if (from.column_end() != 0) {
+    _internal_set_column_end(from._internal_column_end());
+  }
+  if (from.row_begin() != 0) {
+    _internal_set_row_begin(from._internal_row_begin());
+  }
+  if (from.row_end() != 0) {
+    _internal_set_row_end(from._internal_row_end());
   }
 }
 
-void VizLengthValue::CopyFrom(const VizLengthValue& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.VizLengthValue)
+void VizGridArea::CopyFrom(const VizGridArea& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.VizGridArea)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool VizLengthValue::IsInitialized() const {
+bool VizGridArea::IsInitialized() const {
   return true;
 }
 
-void VizLengthValue::InternalSwap(VizLengthValue* other) {
+void VizGridArea::InternalSwap(VizGridArea* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
-  swap(value_, other->value_);
-  swap(unit_, other->unit_);
+  swap(column_begin_, other->column_begin_);
+  swap(column_end_, other->column_end_);
+  swap(row_begin_, other->row_begin_);
+  swap(row_end_, other->row_end_);
 }
 
-std::string VizLengthValue::GetTypeName() const {
-  return "tigon.proto.tql.VizLengthValue";
+std::string VizGridArea::GetTypeName() const {
+  return "tigon.proto.tql.VizGridArea";
 }
 
 
 // ===================================================================
 
-void VizLength::InitAsDefaultInstance() {
-  ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->wildcard_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
-      ::tigon::proto::tql::VizLengthValue::internal_default_instance());
-  ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->small_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
-      ::tigon::proto::tql::VizLengthValue::internal_default_instance());
-  ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->medium_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
-      ::tigon::proto::tql::VizLengthValue::internal_default_instance());
-  ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->large_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
-      ::tigon::proto::tql::VizLengthValue::internal_default_instance());
-  ::tigon::proto::tql::_VizLength_default_instance_._instance.get_mutable()->xlarge_ = const_cast< ::tigon::proto::tql::VizLengthValue*>(
-      ::tigon::proto::tql::VizLengthValue::internal_default_instance());
+void VizResponsiveGridArea::InitAsDefaultInstance() {
+  ::tigon::proto::tql::_VizResponsiveGridArea_default_instance_._instance.get_mutable()->wildcard_ = const_cast< ::tigon::proto::tql::VizGridArea*>(
+      ::tigon::proto::tql::VizGridArea::internal_default_instance());
+  ::tigon::proto::tql::_VizResponsiveGridArea_default_instance_._instance.get_mutable()->small_ = const_cast< ::tigon::proto::tql::VizGridArea*>(
+      ::tigon::proto::tql::VizGridArea::internal_default_instance());
+  ::tigon::proto::tql::_VizResponsiveGridArea_default_instance_._instance.get_mutable()->medium_ = const_cast< ::tigon::proto::tql::VizGridArea*>(
+      ::tigon::proto::tql::VizGridArea::internal_default_instance());
+  ::tigon::proto::tql::_VizResponsiveGridArea_default_instance_._instance.get_mutable()->large_ = const_cast< ::tigon::proto::tql::VizGridArea*>(
+      ::tigon::proto::tql::VizGridArea::internal_default_instance());
+  ::tigon::proto::tql::_VizResponsiveGridArea_default_instance_._instance.get_mutable()->xlarge_ = const_cast< ::tigon::proto::tql::VizGridArea*>(
+      ::tigon::proto::tql::VizGridArea::internal_default_instance());
 }
-class VizLength::_Internal {
+class VizResponsiveGridArea::_Internal {
  public:
-  static const ::tigon::proto::tql::VizLengthValue& wildcard(const VizLength* msg);
-  static const ::tigon::proto::tql::VizLengthValue& small(const VizLength* msg);
-  static const ::tigon::proto::tql::VizLengthValue& medium(const VizLength* msg);
-  static const ::tigon::proto::tql::VizLengthValue& large(const VizLength* msg);
-  static const ::tigon::proto::tql::VizLengthValue& xlarge(const VizLength* msg);
+  static const ::tigon::proto::tql::VizGridArea& wildcard(const VizResponsiveGridArea* msg);
+  static const ::tigon::proto::tql::VizGridArea& small(const VizResponsiveGridArea* msg);
+  static const ::tigon::proto::tql::VizGridArea& medium(const VizResponsiveGridArea* msg);
+  static const ::tigon::proto::tql::VizGridArea& large(const VizResponsiveGridArea* msg);
+  static const ::tigon::proto::tql::VizGridArea& xlarge(const VizResponsiveGridArea* msg);
 };
 
-const ::tigon::proto::tql::VizLengthValue&
-VizLength::_Internal::wildcard(const VizLength* msg) {
+const ::tigon::proto::tql::VizGridArea&
+VizResponsiveGridArea::_Internal::wildcard(const VizResponsiveGridArea* msg) {
   return *msg->wildcard_;
 }
-const ::tigon::proto::tql::VizLengthValue&
-VizLength::_Internal::small(const VizLength* msg) {
+const ::tigon::proto::tql::VizGridArea&
+VizResponsiveGridArea::_Internal::small(const VizResponsiveGridArea* msg) {
   return *msg->small_;
 }
-const ::tigon::proto::tql::VizLengthValue&
-VizLength::_Internal::medium(const VizLength* msg) {
+const ::tigon::proto::tql::VizGridArea&
+VizResponsiveGridArea::_Internal::medium(const VizResponsiveGridArea* msg) {
   return *msg->medium_;
 }
-const ::tigon::proto::tql::VizLengthValue&
-VizLength::_Internal::large(const VizLength* msg) {
+const ::tigon::proto::tql::VizGridArea&
+VizResponsiveGridArea::_Internal::large(const VizResponsiveGridArea* msg) {
   return *msg->large_;
 }
-const ::tigon::proto::tql::VizLengthValue&
-VizLength::_Internal::xlarge(const VizLength* msg) {
+const ::tigon::proto::tql::VizGridArea&
+VizResponsiveGridArea::_Internal::xlarge(const VizResponsiveGridArea* msg) {
   return *msg->xlarge_;
 }
-void VizLength::unsafe_arena_set_allocated_wildcard(
-    ::tigon::proto::tql::VizLengthValue* wildcard) {
+void VizResponsiveGridArea::unsafe_arena_set_allocated_wildcard(
+    ::tigon::proto::tql::VizGridArea* wildcard) {
   if (GetArenaNoVirtual() == nullptr) {
     delete wildcard_;
   }
@@ -3738,10 +3712,10 @@ void VizLength::unsafe_arena_set_allocated_wildcard(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.wildcard)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizResponsiveGridArea.wildcard)
 }
-void VizLength::unsafe_arena_set_allocated_small(
-    ::tigon::proto::tql::VizLengthValue* small) {
+void VizResponsiveGridArea::unsafe_arena_set_allocated_small(
+    ::tigon::proto::tql::VizGridArea* small) {
   if (GetArenaNoVirtual() == nullptr) {
     delete small_;
   }
@@ -3751,10 +3725,10 @@ void VizLength::unsafe_arena_set_allocated_small(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.small)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizResponsiveGridArea.small)
 }
-void VizLength::unsafe_arena_set_allocated_medium(
-    ::tigon::proto::tql::VizLengthValue* medium) {
+void VizResponsiveGridArea::unsafe_arena_set_allocated_medium(
+    ::tigon::proto::tql::VizGridArea* medium) {
   if (GetArenaNoVirtual() == nullptr) {
     delete medium_;
   }
@@ -3764,10 +3738,10 @@ void VizLength::unsafe_arena_set_allocated_medium(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.medium)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizResponsiveGridArea.medium)
 }
-void VizLength::unsafe_arena_set_allocated_large(
-    ::tigon::proto::tql::VizLengthValue* large) {
+void VizResponsiveGridArea::unsafe_arena_set_allocated_large(
+    ::tigon::proto::tql::VizGridArea* large) {
   if (GetArenaNoVirtual() == nullptr) {
     delete large_;
   }
@@ -3777,10 +3751,10 @@ void VizLength::unsafe_arena_set_allocated_large(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.large)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizResponsiveGridArea.large)
 }
-void VizLength::unsafe_arena_set_allocated_xlarge(
-    ::tigon::proto::tql::VizLengthValue* xlarge) {
+void VizResponsiveGridArea::unsafe_arena_set_allocated_xlarge(
+    ::tigon::proto::tql::VizGridArea* xlarge) {
   if (GetArenaNoVirtual() == nullptr) {
     delete xlarge_;
   }
@@ -3790,65 +3764,65 @@ void VizLength::unsafe_arena_set_allocated_xlarge(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLength.xlarge)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizResponsiveGridArea.xlarge)
 }
-VizLength::VizLength()
+VizResponsiveGridArea::VizResponsiveGridArea()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
-  // @@protoc_insertion_point(constructor:tigon.proto.tql.VizLength)
+  // @@protoc_insertion_point(constructor:tigon.proto.tql.VizResponsiveGridArea)
 }
-VizLength::VizLength(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+VizResponsiveGridArea::VizResponsiveGridArea(::PROTOBUF_NAMESPACE_ID::Arena* arena)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
   _internal_metadata_(arena) {
   SharedCtor();
   RegisterArenaDtor(arena);
-  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizLength)
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizResponsiveGridArea)
 }
-VizLength::VizLength(const VizLength& from)
+VizResponsiveGridArea::VizResponsiveGridArea(const VizResponsiveGridArea& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   if (from._internal_has_wildcard()) {
-    wildcard_ = new ::tigon::proto::tql::VizLengthValue(*from.wildcard_);
+    wildcard_ = new ::tigon::proto::tql::VizGridArea(*from.wildcard_);
   } else {
     wildcard_ = nullptr;
   }
   if (from._internal_has_small()) {
-    small_ = new ::tigon::proto::tql::VizLengthValue(*from.small_);
+    small_ = new ::tigon::proto::tql::VizGridArea(*from.small_);
   } else {
     small_ = nullptr;
   }
   if (from._internal_has_medium()) {
-    medium_ = new ::tigon::proto::tql::VizLengthValue(*from.medium_);
+    medium_ = new ::tigon::proto::tql::VizGridArea(*from.medium_);
   } else {
     medium_ = nullptr;
   }
   if (from._internal_has_large()) {
-    large_ = new ::tigon::proto::tql::VizLengthValue(*from.large_);
+    large_ = new ::tigon::proto::tql::VizGridArea(*from.large_);
   } else {
     large_ = nullptr;
   }
   if (from._internal_has_xlarge()) {
-    xlarge_ = new ::tigon::proto::tql::VizLengthValue(*from.xlarge_);
+    xlarge_ = new ::tigon::proto::tql::VizGridArea(*from.xlarge_);
   } else {
     xlarge_ = nullptr;
   }
-  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizLength)
+  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizResponsiveGridArea)
 }
 
-void VizLength::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_VizLength_tql_2eproto.base);
+void VizResponsiveGridArea::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_VizResponsiveGridArea_tql_2eproto.base);
   ::memset(&wildcard_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&xlarge_) -
       reinterpret_cast<char*>(&wildcard_)) + sizeof(xlarge_));
 }
 
-VizLength::~VizLength() {
-  // @@protoc_insertion_point(destructor:tigon.proto.tql.VizLength)
+VizResponsiveGridArea::~VizResponsiveGridArea() {
+  // @@protoc_insertion_point(destructor:tigon.proto.tql.VizResponsiveGridArea)
   SharedDtor();
 }
 
-void VizLength::SharedDtor() {
+void VizResponsiveGridArea::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete wildcard_;
   if (this != internal_default_instance()) delete small_;
@@ -3857,23 +3831,23 @@ void VizLength::SharedDtor() {
   if (this != internal_default_instance()) delete xlarge_;
 }
 
-void VizLength::ArenaDtor(void* object) {
-  VizLength* _this = reinterpret_cast< VizLength* >(object);
+void VizResponsiveGridArea::ArenaDtor(void* object) {
+  VizResponsiveGridArea* _this = reinterpret_cast< VizResponsiveGridArea* >(object);
   (void)_this;
 }
-void VizLength::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+void VizResponsiveGridArea::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
 }
-void VizLength::SetCachedSize(int size) const {
+void VizResponsiveGridArea::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
-const VizLength& VizLength::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_VizLength_tql_2eproto.base);
+const VizResponsiveGridArea& VizResponsiveGridArea::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_VizResponsiveGridArea_tql_2eproto.base);
   return *internal_default_instance();
 }
 
 
-void VizLength::Clear() {
-// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.VizLength)
+void VizResponsiveGridArea::Clear() {
+// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.VizResponsiveGridArea)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -3901,7 +3875,7 @@ void VizLength::Clear() {
   _internal_metadata_.Clear();
 }
 
-const char* VizLength::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* VizResponsiveGridArea::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
   ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
@@ -3909,35 +3883,35 @@ const char* VizLength::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // .tigon.proto.tql.VizLengthValue wildcard = 1;
+      // .tigon.proto.tql.VizGridArea wildcard = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_wildcard(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.VizLengthValue small = 2;
+      // .tigon.proto.tql.VizGridArea small = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_small(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.VizLengthValue medium = 3;
+      // .tigon.proto.tql.VizGridArea medium = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_medium(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.VizLengthValue large = 4;
+      // .tigon.proto.tql.VizGridArea large = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_large(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.VizLengthValue xlarge = 5;
+      // .tigon.proto.tql.VizGridArea xlarge = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 42)) {
           ptr = ctx->ParseMessage(_internal_mutable_xlarge(), ptr);
@@ -3964,13 +3938,13 @@ failure:
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* VizLength::InternalSerializeWithCachedSizesToArray(
+::PROTOBUF_NAMESPACE_ID::uint8* VizResponsiveGridArea::InternalSerializeWithCachedSizesToArray(
     ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.VizLength)
+  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.VizResponsiveGridArea)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .tigon.proto.tql.VizLengthValue wildcard = 1;
+  // .tigon.proto.tql.VizGridArea wildcard = 1;
   if (this->has_wildcard()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
@@ -3978,7 +3952,7 @@ failure:
         1, _Internal::wildcard(this), target, stream);
   }
 
-  // .tigon.proto.tql.VizLengthValue small = 2;
+  // .tigon.proto.tql.VizGridArea small = 2;
   if (this->has_small()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
@@ -3986,7 +3960,7 @@ failure:
         2, _Internal::small(this), target, stream);
   }
 
-  // .tigon.proto.tql.VizLengthValue medium = 3;
+  // .tigon.proto.tql.VizGridArea medium = 3;
   if (this->has_medium()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
@@ -3994,7 +3968,7 @@ failure:
         3, _Internal::medium(this), target, stream);
   }
 
-  // .tigon.proto.tql.VizLengthValue large = 4;
+  // .tigon.proto.tql.VizGridArea large = 4;
   if (this->has_large()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
@@ -4002,7 +3976,7 @@ failure:
         4, _Internal::large(this), target, stream);
   }
 
-  // .tigon.proto.tql.VizLengthValue xlarge = 5;
+  // .tigon.proto.tql.VizGridArea xlarge = 5;
   if (this->has_xlarge()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
@@ -4014,47 +3988,47 @@ failure:
     target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
         static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.VizLength)
+  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.VizResponsiveGridArea)
   return target;
 }
 
-size_t VizLength::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.VizLength)
+size_t VizResponsiveGridArea::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.VizResponsiveGridArea)
   size_t total_size = 0;
 
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .tigon.proto.tql.VizLengthValue wildcard = 1;
+  // .tigon.proto.tql.VizGridArea wildcard = 1;
   if (this->has_wildcard()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *wildcard_);
   }
 
-  // .tigon.proto.tql.VizLengthValue small = 2;
+  // .tigon.proto.tql.VizGridArea small = 2;
   if (this->has_small()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *small_);
   }
 
-  // .tigon.proto.tql.VizLengthValue medium = 3;
+  // .tigon.proto.tql.VizGridArea medium = 3;
   if (this->has_medium()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *medium_);
   }
 
-  // .tigon.proto.tql.VizLengthValue large = 4;
+  // .tigon.proto.tql.VizGridArea large = 4;
   if (this->has_large()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *large_);
   }
 
-  // .tigon.proto.tql.VizLengthValue xlarge = 5;
+  // .tigon.proto.tql.VizGridArea xlarge = 5;
   if (this->has_xlarge()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -4069,48 +4043,48 @@ size_t VizLength::ByteSizeLong() const {
   return total_size;
 }
 
-void VizLength::CheckTypeAndMergeFrom(
+void VizResponsiveGridArea::CheckTypeAndMergeFrom(
     const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
-  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const VizLength*>(
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const VizResponsiveGridArea*>(
       &from));
 }
 
-void VizLength::MergeFrom(const VizLength& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.VizLength)
+void VizResponsiveGridArea::MergeFrom(const VizResponsiveGridArea& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.VizResponsiveGridArea)
   GOOGLE_DCHECK_NE(&from, this);
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from.has_wildcard()) {
-    _internal_mutable_wildcard()->::tigon::proto::tql::VizLengthValue::MergeFrom(from._internal_wildcard());
+    _internal_mutable_wildcard()->::tigon::proto::tql::VizGridArea::MergeFrom(from._internal_wildcard());
   }
   if (from.has_small()) {
-    _internal_mutable_small()->::tigon::proto::tql::VizLengthValue::MergeFrom(from._internal_small());
+    _internal_mutable_small()->::tigon::proto::tql::VizGridArea::MergeFrom(from._internal_small());
   }
   if (from.has_medium()) {
-    _internal_mutable_medium()->::tigon::proto::tql::VizLengthValue::MergeFrom(from._internal_medium());
+    _internal_mutable_medium()->::tigon::proto::tql::VizGridArea::MergeFrom(from._internal_medium());
   }
   if (from.has_large()) {
-    _internal_mutable_large()->::tigon::proto::tql::VizLengthValue::MergeFrom(from._internal_large());
+    _internal_mutable_large()->::tigon::proto::tql::VizGridArea::MergeFrom(from._internal_large());
   }
   if (from.has_xlarge()) {
-    _internal_mutable_xlarge()->::tigon::proto::tql::VizLengthValue::MergeFrom(from._internal_xlarge());
+    _internal_mutable_xlarge()->::tigon::proto::tql::VizGridArea::MergeFrom(from._internal_xlarge());
   }
 }
 
-void VizLength::CopyFrom(const VizLength& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.VizLength)
+void VizResponsiveGridArea::CopyFrom(const VizResponsiveGridArea& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.VizResponsiveGridArea)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool VizLength::IsInitialized() const {
+bool VizResponsiveGridArea::IsInitialized() const {
   return true;
 }
 
-void VizLength::InternalSwap(VizLength* other) {
+void VizResponsiveGridArea::InternalSwap(VizResponsiveGridArea* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
   swap(wildcard_, other->wildcard_);
@@ -4120,281 +4094,8 @@ void VizLength::InternalSwap(VizLength* other) {
   swap(xlarge_, other->xlarge_);
 }
 
-std::string VizLength::GetTypeName() const {
-  return "tigon.proto.tql.VizLength";
-}
-
-
-// ===================================================================
-
-void VizLayout::InitAsDefaultInstance() {
-  ::tigon::proto::tql::_VizLayout_default_instance_._instance.get_mutable()->width_ = const_cast< ::tigon::proto::tql::VizLength*>(
-      ::tigon::proto::tql::VizLength::internal_default_instance());
-  ::tigon::proto::tql::_VizLayout_default_instance_._instance.get_mutable()->height_ = const_cast< ::tigon::proto::tql::VizLength*>(
-      ::tigon::proto::tql::VizLength::internal_default_instance());
-}
-class VizLayout::_Internal {
- public:
-  static const ::tigon::proto::tql::VizLength& width(const VizLayout* msg);
-  static const ::tigon::proto::tql::VizLength& height(const VizLayout* msg);
-};
-
-const ::tigon::proto::tql::VizLength&
-VizLayout::_Internal::width(const VizLayout* msg) {
-  return *msg->width_;
-}
-const ::tigon::proto::tql::VizLength&
-VizLayout::_Internal::height(const VizLayout* msg) {
-  return *msg->height_;
-}
-void VizLayout::unsafe_arena_set_allocated_width(
-    ::tigon::proto::tql::VizLength* width) {
-  if (GetArenaNoVirtual() == nullptr) {
-    delete width_;
-  }
-  width_ = width;
-  if (width) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLayout.width)
-}
-void VizLayout::unsafe_arena_set_allocated_height(
-    ::tigon::proto::tql::VizLength* height) {
-  if (GetArenaNoVirtual() == nullptr) {
-    delete height_;
-  }
-  height_ = height;
-  if (height) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizLayout.height)
-}
-VizLayout::VizLayout()
-  : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:tigon.proto.tql.VizLayout)
-}
-VizLayout::VizLayout(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
-  _internal_metadata_(arena) {
-  SharedCtor();
-  RegisterArenaDtor(arena);
-  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.VizLayout)
-}
-VizLayout::VizLayout(const VizLayout& from)
-  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
-      _internal_metadata_(nullptr) {
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  if (from._internal_has_width()) {
-    width_ = new ::tigon::proto::tql::VizLength(*from.width_);
-  } else {
-    width_ = nullptr;
-  }
-  if (from._internal_has_height()) {
-    height_ = new ::tigon::proto::tql::VizLength(*from.height_);
-  } else {
-    height_ = nullptr;
-  }
-  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizLayout)
-}
-
-void VizLayout::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_VizLayout_tql_2eproto.base);
-  ::memset(&width_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&height_) -
-      reinterpret_cast<char*>(&width_)) + sizeof(height_));
-}
-
-VizLayout::~VizLayout() {
-  // @@protoc_insertion_point(destructor:tigon.proto.tql.VizLayout)
-  SharedDtor();
-}
-
-void VizLayout::SharedDtor() {
-  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
-  if (this != internal_default_instance()) delete width_;
-  if (this != internal_default_instance()) delete height_;
-}
-
-void VizLayout::ArenaDtor(void* object) {
-  VizLayout* _this = reinterpret_cast< VizLayout* >(object);
-  (void)_this;
-}
-void VizLayout::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
-}
-void VizLayout::SetCachedSize(int size) const {
-  _cached_size_.Set(size);
-}
-const VizLayout& VizLayout::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_VizLayout_tql_2eproto.base);
-  return *internal_default_instance();
-}
-
-
-void VizLayout::Clear() {
-// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.VizLayout)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  if (GetArenaNoVirtual() == nullptr && width_ != nullptr) {
-    delete width_;
-  }
-  width_ = nullptr;
-  if (GetArenaNoVirtual() == nullptr && height_ != nullptr) {
-    delete height_;
-  }
-  height_ = nullptr;
-  _internal_metadata_.Clear();
-}
-
-const char* VizLayout::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
-#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
-  while (!ctx->Done(&ptr)) {
-    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
-    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
-    switch (tag >> 3) {
-      // .tigon.proto.tql.VizLength width = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
-          ptr = ctx->ParseMessage(_internal_mutable_width(), ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // .tigon.proto.tql.VizLength height = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
-          ptr = ctx->ParseMessage(_internal_mutable_height(), ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag, &_internal_metadata_, ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
-    }  // switch
-  }  // while
-success:
-  return ptr;
-failure:
-  ptr = nullptr;
-  goto success;
-#undef CHK_
-}
-
-::PROTOBUF_NAMESPACE_ID::uint8* VizLayout::InternalSerializeWithCachedSizesToArray(
-    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.VizLayout)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  // .tigon.proto.tql.VizLength width = 1;
-  if (this->has_width()) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessageToArray(
-        1, _Internal::width(this), target, stream);
-  }
-
-  // .tigon.proto.tql.VizLength height = 2;
-  if (this->has_height()) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessageToArray(
-        2, _Internal::height(this), target, stream);
-  }
-
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
-        static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.VizLayout)
-  return target;
-}
-
-size_t VizLayout::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.VizLayout)
-  size_t total_size = 0;
-
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  // .tigon.proto.tql.VizLength width = 1;
-  if (this->has_width()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *width_);
-  }
-
-  // .tigon.proto.tql.VizLength height = 2;
-  if (this->has_height()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *height_);
-  }
-
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    total_size += _internal_metadata_.unknown_fields().size();
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
-}
-
-void VizLayout::CheckTypeAndMergeFrom(
-    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
-  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const VizLayout*>(
-      &from));
-}
-
-void VizLayout::MergeFrom(const VizLayout& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.VizLayout)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  if (from.has_width()) {
-    _internal_mutable_width()->::tigon::proto::tql::VizLength::MergeFrom(from._internal_width());
-  }
-  if (from.has_height()) {
-    _internal_mutable_height()->::tigon::proto::tql::VizLength::MergeFrom(from._internal_height());
-  }
-}
-
-void VizLayout::CopyFrom(const VizLayout& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.VizLayout)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool VizLayout::IsInitialized() const {
-  return true;
-}
-
-void VizLayout::InternalSwap(VizLayout* other) {
-  using std::swap;
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  swap(width_, other->width_);
-  swap(height_, other->height_);
-}
-
-std::string VizLayout::GetTypeName() const {
-  return "tigon.proto.tql.VizLayout";
+std::string VizResponsiveGridArea::GetTypeName() const {
+  return "tigon.proto.tql.VizResponsiveGridArea";
 }
 
 
@@ -4897,37 +4598,37 @@ std::string VizAxes::GetTypeName() const {
 // ===================================================================
 
 void VizStatement::InitAsDefaultInstance() {
-  ::tigon::proto::tql::_VizStatement_default_instance_._instance.get_mutable()->layout_ = const_cast< ::tigon::proto::tql::VizLayout*>(
-      ::tigon::proto::tql::VizLayout::internal_default_instance());
+  ::tigon::proto::tql::_VizStatement_default_instance_._instance.get_mutable()->area_ = const_cast< ::tigon::proto::tql::VizResponsiveGridArea*>(
+      ::tigon::proto::tql::VizResponsiveGridArea::internal_default_instance());
   ::tigon::proto::tql::_VizStatement_default_instance_._instance.get_mutable()->axes_ = const_cast< ::tigon::proto::tql::VizAxes*>(
       ::tigon::proto::tql::VizAxes::internal_default_instance());
 }
 class VizStatement::_Internal {
  public:
-  static const ::tigon::proto::tql::VizLayout& layout(const VizStatement* msg);
+  static const ::tigon::proto::tql::VizResponsiveGridArea& area(const VizStatement* msg);
   static const ::tigon::proto::tql::VizAxes& axes(const VizStatement* msg);
 };
 
-const ::tigon::proto::tql::VizLayout&
-VizStatement::_Internal::layout(const VizStatement* msg) {
-  return *msg->layout_;
+const ::tigon::proto::tql::VizResponsiveGridArea&
+VizStatement::_Internal::area(const VizStatement* msg) {
+  return *msg->area_;
 }
 const ::tigon::proto::tql::VizAxes&
 VizStatement::_Internal::axes(const VizStatement* msg) {
   return *msg->axes_;
 }
-void VizStatement::unsafe_arena_set_allocated_layout(
-    ::tigon::proto::tql::VizLayout* layout) {
+void VizStatement::unsafe_arena_set_allocated_area(
+    ::tigon::proto::tql::VizResponsiveGridArea* area) {
   if (GetArenaNoVirtual() == nullptr) {
-    delete layout_;
+    delete area_;
   }
-  layout_ = layout;
-  if (layout) {
+  area_ = area;
+  if (area) {
     
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.layout)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.area)
 }
 void VizStatement::unsafe_arena_set_allocated_axes(
     ::tigon::proto::tql::VizAxes* axes) {
@@ -4973,10 +4674,10 @@ VizStatement::VizStatement(const VizStatement& from)
     title_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_title(),
       GetArenaNoVirtual());
   }
-  if (from._internal_has_layout()) {
-    layout_ = new ::tigon::proto::tql::VizLayout(*from.layout_);
+  if (from._internal_has_area()) {
+    area_ = new ::tigon::proto::tql::VizResponsiveGridArea(*from.area_);
   } else {
-    layout_ = nullptr;
+    area_ = nullptr;
   }
   if (from._internal_has_axes()) {
     axes_ = new ::tigon::proto::tql::VizAxes(*from.axes_);
@@ -4992,9 +4693,9 @@ void VizStatement::SharedCtor() {
   viz_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   query_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   title_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  ::memset(&layout_, 0, static_cast<size_t>(
+  ::memset(&area_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&viz_type_) -
-      reinterpret_cast<char*>(&layout_)) + sizeof(viz_type_));
+      reinterpret_cast<char*>(&area_)) + sizeof(viz_type_));
 }
 
 VizStatement::~VizStatement() {
@@ -5007,7 +4708,7 @@ void VizStatement::SharedDtor() {
   viz_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   query_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   title_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  if (this != internal_default_instance()) delete layout_;
+  if (this != internal_default_instance()) delete area_;
   if (this != internal_default_instance()) delete axes_;
 }
 
@@ -5035,10 +4736,10 @@ void VizStatement::Clear() {
   viz_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   query_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   title_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-  if (GetArenaNoVirtual() == nullptr && layout_ != nullptr) {
-    delete layout_;
+  if (GetArenaNoVirtual() == nullptr && area_ != nullptr) {
+    delete area_;
   }
-  layout_ = nullptr;
+  area_ = nullptr;
   if (GetArenaNoVirtual() == nullptr && axes_ != nullptr) {
     delete axes_;
   }
@@ -5084,10 +4785,10 @@ const char* VizStatement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.VizLayout layout = 7;
+      // .tigon.proto.tql.VizResponsiveGridArea area = 7;
       case 7:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 58)) {
-          ptr = ctx->ParseMessage(_internal_mutable_layout(), ptr);
+          ptr = ctx->ParseMessage(_internal_mutable_area(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -5161,12 +4862,12 @@ failure:
         5, this->_internal_title(), target);
   }
 
-  // .tigon.proto.tql.VizLayout layout = 7;
-  if (this->has_layout()) {
+  // .tigon.proto.tql.VizResponsiveGridArea area = 7;
+  if (this->has_area()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        7, _Internal::layout(this), target, stream);
+        7, _Internal::area(this), target, stream);
   }
 
   // .tigon.proto.tql.VizAxes axes = 9;
@@ -5214,11 +4915,11 @@ size_t VizStatement::ByteSizeLong() const {
         this->_internal_title());
   }
 
-  // .tigon.proto.tql.VizLayout layout = 7;
-  if (this->has_layout()) {
+  // .tigon.proto.tql.VizResponsiveGridArea area = 7;
+  if (this->has_area()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *layout_);
+        *area_);
   }
 
   // .tigon.proto.tql.VizAxes axes = 9;
@@ -5264,8 +4965,8 @@ void VizStatement::MergeFrom(const VizStatement& from) {
   if (from.title().size() > 0) {
     _internal_set_title(from._internal_title());
   }
-  if (from.has_layout()) {
-    _internal_mutable_layout()->::tigon::proto::tql::VizLayout::MergeFrom(from._internal_layout());
+  if (from.has_area()) {
+    _internal_mutable_area()->::tigon::proto::tql::VizResponsiveGridArea::MergeFrom(from._internal_area());
   }
   if (from.has_axes()) {
     _internal_mutable_axes()->::tigon::proto::tql::VizAxes::MergeFrom(from._internal_axes());
@@ -5295,7 +4996,7 @@ void VizStatement::InternalSwap(VizStatement* other) {
     GetArenaNoVirtual());
   title_.Swap(&other->title_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
     GetArenaNoVirtual());
-  swap(layout_, other->layout_);
+  swap(area_, other->area_);
   swap(axes_, other->axes_);
   swap(viz_type_, other->viz_type_);
 }
@@ -6005,14 +5706,11 @@ template<> PROTOBUF_NOINLINE ::tigon::proto::tql::ExtractStatement* Arena::Creat
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizColorPalette* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizColorPalette >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::tql::VizColorPalette >(arena);
 }
-template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizLengthValue* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizLengthValue >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizLengthValue >(arena);
+template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizGridArea* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizGridArea >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizGridArea >(arena);
 }
-template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizLength* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizLength >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizLength >(arena);
-}
-template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizLayout* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizLayout >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizLayout >(arena);
+template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizResponsiveGridArea* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizResponsiveGridArea >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::VizResponsiveGridArea >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizAxis* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizAxis >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::tql::VizAxis >(arena);

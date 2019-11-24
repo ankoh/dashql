@@ -101,6 +101,7 @@ loc.step();
 "]"                 { return Parser::make_RSB(loc); }
 "="                 { return Parser::make_EQUAL(loc); }
 ","                 { return Parser::make_COMMA(loc); }
+"/"                 { return Parser::make_SLASH(loc); }
 "*"                 { return Parser::make_STAR(loc); }
 
 "area"              { return Parser::make_AREA(loc); }
@@ -129,7 +130,6 @@ loc.step();
 "http"              { return Parser::make_HTTP(loc); }
 "integer"           { return Parser::make_INTEGER(loc); }
 "json"              { return Parser::make_JSON(loc); }
-"layout"            { return Parser::make_LAYOUT(loc); }
 "lg"                { return Parser::make_LG(loc); }
 "line"              { return Parser::make_LINE(loc); }
 "linear"            { return Parser::make_LINEAR(loc); }

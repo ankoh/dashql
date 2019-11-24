@@ -89,7 +89,7 @@ message ExtractStatement {
     }
 }
 
-/// An display type
+/// An viz type
 enum VizType {
     VIZ_AREA = 0;
     VIZ_BAR = 1;
@@ -106,47 +106,36 @@ enum VizType {
     VIZ_TEXT = 12;
 }
 
-/// A display color palette
+/// A viz color palette
 message VizColorPalette {
     string color_target = 1;
     repeated fixed32 palette = 2;
 }
 
-/// A display length unit
-enum VizLengthUnit {
-    SPAN = 0;
-    PIXEL = 1;
-    PERCENT = 2;
+/// A viz grid area
+message VizGridArea {
+    uint32 column_begin = 1;
+    uint32 column_end = 2;
+    uint32 row_begin = 3;
+    uint32 row_end = 4;
 }
 
-/// A display length value
-message VizLengthValue {
-    double value = 1;
-    VizLengthUnit unit = 2;
+/// A viz length
+message VizResponsiveGridArea {
+    VizGridArea wildcard = 1;
+    VizGridArea small = 2;
+    VizGridArea medium = 3;
+    VizGridArea large = 4;
+    VizGridArea xlarge = 5;
 }
 
-/// A display length
-message VizLength {
-    VizLengthValue wildcard = 1;
-    VizLengthValue small = 2;
-    VizLengthValue medium = 3;
-    VizLengthValue large = 4;
-    VizLengthValue xlarge = 5;
-}
-
-/// A display layout
-message VizLayout {
-    VizLength width = 1;
-    VizLength height = 2;
-}
-
-/// A display axis sclae
+/// A viz axis sclae
 enum VizAxisScale {
     Linear = 0;
     Logarithmic = 1;
 }
 
-/// A display axis
+/// A viz axis
 message VizAxis {
     string column = 1;
     VizAxisScale scale = 2;
@@ -158,13 +147,13 @@ message VizAxes {
     VizAxis y = 2;
 }
 
-/// A display statement
+/// A viz statement
 message VizStatement {
     string viz_id = 1;
     VizType viz_type = 2;
     string query_id = 4;
     string title = 5;
-    VizLayout layout = 7;
+    VizResponsiveGridArea area = 7;
     VizAxes axes = 9;
 }
 

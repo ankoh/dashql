@@ -51,6 +51,7 @@ using std::vector;
 %token RSB                  "right_square_bracket"
 %token EQUAL                "equal"
 %token COMMA                "comma"
+%token SLASH                "slash"
 %token STAR                 "star"
 
 %token AREA                 "area"
@@ -79,7 +80,6 @@ using std::vector;
 %token HTTP                 "http"
 %token INTEGER              "integer"
 %token JSON                 "json"
-%token LAYOUT               "layout"
 %token LG                   "lg"
 %token LINE                 "line"
 %token LINEAR               "linear"
@@ -123,27 +123,25 @@ using std::vector;
 
 %token EOF 0                "eof"
 
+%type <LoadStatement::HTTPLoader::Method> http_method;
+%type <Statement> statement;
+%type <Type> type;
 %type <VizStatement::AxisScale> viz_axis_scale;
-%type <VizStatement::LengthUnit> viz_layout_unit;
-%type <VizStatement::LengthUnit> opt_viz_layout_unit;
+%type <VizStatement::GridArea> viz_area_spec;
 %type <VizStatement::RGBColor> viz_color_value;
 %type <VizStatement::SizeClass> viz_size_class;
 %type <VizStatement::Type> viz_method;
 %type <VizStatement::TypeFlag> viz_method_prefix;
-%type <LoadStatement::HTTPLoader::Method> http_method;
-%type <Statement> statement;
-%type <Type> type;
 %type <std::string_view> identifier;
 %type <std::string_view> sql_literal;
-%type <std::tuple<VizStatement::SizeClass, uint32_t, VizStatement::LengthUnit>> viz_layout_length_field;
-%type <std::unique_ptr<VizStatement>> viz_statement;
-%type <std::unique_ptr<VizStatement::LayoutLength>> viz_layout_length;
 %type <std::unique_ptr<ExtractStatement>> extract_statement;
 %type <std::unique_ptr<LoadStatement>> load_statement;
 %type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
 %type <std::unique_ptr<QueryStatement>> query_statement;
-%type <std::vector<VizStatement::RGBColor>> viz_color_list;
+%type <std::unique_ptr<VizStatement::ResponsiveGridArea>> viz_area;
+%type <std::unique_ptr<VizStatement>> viz_statement;
 %type <std::vector<VizStatement::RGBColor>> opt_viz_color_list;
+%type <std::vector<VizStatement::RGBColor>> viz_color_list;
 
 %%
 
@@ -319,7 +317,9 @@ viz_fields:
 viz_field:
     AXES EQUAL LRB viz_axes RRB
  |  COLOR EQUAL LRB viz_color RRB
- |  LAYOUT EQUAL LRB opt_viz_layout RRB
+ |  AREA EQUAL viz_area {
+        ctx.cached<VizStatement>()->area = std::move($3);
+    }
  |  TITLE EQUAL identifier {
         ctx.cached<VizStatement>()->title = $3;
     }
@@ -392,19 +392,31 @@ viz_color_value:
  |  HEX_COLOR_LITERAL { $$ = Viz::RGBColor{$1}; }
     ;
 
-opt_viz_layout:
-    viz_layout
- |  %empty
+viz_area:
+    viz_area_spec {
+        auto a = std::make_unique<VizStatement::ResponsiveGridArea>();
+        a->set(Viz::SizeClass::Wildcard, $1);
+        $$ = move(a);
+    }
+ |  LRB viz_area_responsive_list RRB {
+        $$ = move(ctx.cached<VizStatement::ResponsiveGridArea>());
+    }
     ;
 
-viz_layout:
-    viz_layout COMMA viz_layout_field
- |  viz_layout_field
+viz_area_spec:
+    INTEGER_LITERAL                         { $$ = VizStatement::GridArea($1); }
+ |  viz_area_spec SLASH INTEGER_LITERAL     { $1.push($3); $$ = $1; } 
     ;
 
-viz_layout_field:
-    WIDTH EQUAL viz_layout_length     { ctx.cached<VizStatement>()->layout.width = move($3); }
- |  HEIGHT EQUAL viz_layout_length    { ctx.cached<VizStatement>()->layout.height = move($3); }
+viz_area_responsive_list:
+    viz_area_responsive
+ |  viz_area_responsive_list COMMA viz_area_responsive
+    ;
+
+viz_area_responsive:
+    viz_size_class EQUAL viz_area_spec {
+        ctx.cached<VizStatement::ResponsiveGridArea>()->set($1, $3);
+    }
     ;
 
 viz_size_class:
@@ -413,40 +425,6 @@ viz_size_class:
  |  MD   { $$ = Viz::SizeClass::Medium; }
  |  LG   { $$ = Viz::SizeClass::Large; }
  |  XL   { $$ = Viz::SizeClass::ExtraLarge; }
-    ;
-
-viz_layout_length:
-    LRB viz_layout_length_fields RRB  {
-        $$ = move(ctx.cached<VizStatement::LayoutLength>());
-    }
- |  INTEGER_LITERAL opt_viz_layout_unit {
-        auto l = std::make_unique<VizStatement::LayoutLength>();
-        l->set(Viz::SizeClass::Wildcard, $1, $2);
-        $$ = move(l);
-    }
-    ;
-
-viz_layout_length_fields:
-    viz_layout_length_fields COMMA viz_layout_length_field {
-        ctx.cached<VizStatement::LayoutLength>()->set(get<0>($3), get<1>($3), get<2>($3));
-    }
- |  viz_layout_length_field {
-        ctx.cached<VizStatement::LayoutLength>()->set(get<0>($1), get<1>($1), get<2>($1));
-    }
-    ;
-
-viz_layout_length_field:
-    viz_size_class EQUAL INTEGER_LITERAL opt_viz_layout_unit { $$ = {$1, $3, $4}; }
-    ;
-
-opt_viz_layout_unit:
-    viz_layout_unit { $$ = $1; }
- |  %empty          { $$ = Viz::LengthUnit::Span; }
-    ;
-
-viz_layout_unit:
-    PERCENT { $$ = Viz::LengthUnit::Percent; }
- |  PX      { $$ = Viz::LengthUnit::Pixel; }
     ;
 
 %%

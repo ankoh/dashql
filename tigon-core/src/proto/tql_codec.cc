@@ -38,32 +38,24 @@ tigon::proto::tql::VizStatement* encodeStatement(protobuf::Arena& arena, tql::Vi
         v->set_title(viz.title.data(), viz.title.size());
     }
 
-    // Encode layout
-    auto* layout = protobuf::Arena::CreateMessage<proto::tql::VizLayout>(&arena);
-    auto asLengthValue = [&](tql::VizStatement::LengthValue& lv) {
-        auto m = protobuf::Arena::CreateMessage<proto::tql::VizLengthValue>(&arena);
-        m->set_value(std::get<0>(lv));
-        m->set_unit(static_cast<proto::tql::VizLengthUnit>(std::get<1>(lv)));
-        return m;
-    };
-    if (viz.layout.width) {
-        auto* w = layout->mutable_width();
-        if (auto l = viz.layout.width->wildcard) { w->set_allocated_wildcard(asLengthValue(*l)); }
-        if (auto l = viz.layout.width->sm) { w->set_allocated_small(asLengthValue(*l)); }
-        if (auto l = viz.layout.width->md) { w->set_allocated_medium(asLengthValue(*l)); }
-        if (auto l = viz.layout.width->lg) { w->set_allocated_large(asLengthValue(*l)); }
-        if (auto l = viz.layout.width->xl) { w->set_allocated_xlarge(asLengthValue(*l)); }
+    // Encode area
+    if (viz.area) {
+        auto asProtoArea = [&](tql::VizStatement::GridArea& area) {
+            auto* a = protobuf::Arena::CreateMessage<proto::tql::VizGridArea>(&arena);
+            a->set_column_begin(area.values[0]);
+            if (area.length >= 2) { a->set_column_end(area.values[1]); }
+            if (area.length >= 3) { a->set_row_begin(area.values[2]); }
+            if (area.length >= 4) { a->set_row_end(area.values[3]); }
+            return a;
+        };
+        auto* area = v->mutable_area();
+        if (auto a = viz.area->wildcard) { area->set_allocated_wildcard(asProtoArea(*a)); }
+        if (auto a = viz.area->sm) { area->set_allocated_small(asProtoArea(*a)); }
+        if (auto a = viz.area->md) { area->set_allocated_medium(asProtoArea(*a)); }
+        if (auto a = viz.area->lg) { area->set_allocated_large(asProtoArea(*a)); }
+        if (auto a = viz.area->xl) { area->set_allocated_xlarge(asProtoArea(*a)); }
+        v->set_allocated_area(area);
     }
-    if (viz.layout.height) {
-        auto* h = layout->mutable_height();
-        if (auto l = viz.layout.height->wildcard) { h->set_allocated_wildcard(asLengthValue(*l)); }
-        if (auto l = viz.layout.height->sm) { h->set_allocated_small(asLengthValue(*l)); }
-        if (auto l = viz.layout.height->md) { h->set_allocated_medium(asLengthValue(*l)); }
-        if (auto l = viz.layout.height->lg) { h->set_allocated_large(asLengthValue(*l)); }
-        if (auto l = viz.layout.height->xl) { h->set_allocated_xlarge(asLengthValue(*l)); }
-    }
-    v->set_allocated_layout(layout);
-
     return v;
 }
 
