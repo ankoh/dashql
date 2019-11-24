@@ -1,12 +1,12 @@
+import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as Store from '../../store';
-import * as Immutable from 'immutable';
 import * as proto from 'tigon-proto';
 import Table from '../viz/table';
-import { withAutoSizer } from '../autosizer';
-import { TQLInterpreter } from '../../ctrl';
-import { connect } from 'react-redux';
 import s from './viz_grid.module.scss';
+import { connect } from 'react-redux';
+import { mapStatements } from '../../proto/tql_access';
+import { withAutoSizer } from '../autosizer';
 
 import {
     DeleteIcon,
@@ -146,7 +146,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 
     protected static computeState(props: IVizGridProps): IVizGridState {
         // Get the viz statements
-        let vizStmts = TQLInterpreter.mapStatements(
+        let vizStmts = mapStatements(
             props.statements,
             proto.tql.Statement.StatementCase.VIZ,
             (_, v: proto.tql.VizStatement) => v
