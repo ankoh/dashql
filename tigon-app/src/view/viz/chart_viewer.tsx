@@ -1,9 +1,8 @@
 import * as React from 'react';
-import * as Store from '../../store';
-import { connect } from 'react-redux';
 import { Vega } from 'react-vega';
 import { VisualizationSpec } from 'vega-embed';
 import { AutoSizer } from 'react-virtualized';
+import { withAutoSizer } from '../autosizer';
 import './chart_viewer.scss';
 
 const data: any = {
@@ -25,7 +24,7 @@ const spec: VisualizationSpec = {
         contains: "padding"
     },
 
-    padding: { left: 40, right: 5, top: 5, bottom: 20 },
+    padding: { left: 40, right: 20, top: 5, bottom: 24 },
 
     scales: [
         {
@@ -83,35 +82,22 @@ const spec: VisualizationSpec = {
 
 
 interface IChartViewerProps {
+    width: number;
+    height: number;
 }
 
 interface IChartViewerState {
-    width: number;
-    height: number;
 }
 
 export class ChartViewer extends React.Component<IChartViewerProps, IChartViewerState> {
     public render() {
         return (
             <div className="chart_viewer">
-                <AutoSizer>
-                    {({ height, width }) => (
-                        <Vega spec={spec} data={data} actions={false} width={width} height={height} />
-                    )}
-                </AutoSizer>
+                <Vega spec={spec} data={data} actions={false} width={this.props.width} height={this.props.height} />
             </div>
         );
     }
 }
 
-function mapStateToProps(state: Store.RootState) {
-    return {
-    };
-}
-
-function mapDispatchToProps(dispatch: Store.RootState) {
-    return {};
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(ChartViewer);
+export default withAutoSizer(ChartViewer);
 
