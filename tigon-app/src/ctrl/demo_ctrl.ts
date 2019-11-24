@@ -32,7 +32,7 @@ export class DemoController {
             QUERY rain_weekly AS SELECT * FROM region, nation;
 
             VIZ temp_weekly_table FROM temp_weekly USING TABLE (
-                title = "Weekly temperature"
+                title = "Weekly Temperature"
             );
         `);
 
