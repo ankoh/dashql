@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Vega } from 'react-vega';
 import { VisualizationSpec } from 'vega-embed';
-import { AutoSizer } from 'react-virtualized';
 import { withAutoSizer } from '../autosizer';
 import './chart_viewer.scss';
 
