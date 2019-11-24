@@ -34,6 +34,10 @@ export class DemoController {
             VIZ temp_weekly_table FROM temp_weekly USING TABLE (
                 title = "Weekly Temperature"
             );
+
+            VIZ temp_weekly_bar FROM temp_weekly USING Bar (
+                title = "Weekly Temperature"
+            );
         `);
 
         // Q1 result

@@ -182,7 +182,8 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
         // Compute the layout
         let gridLayout = new GridLayout();
         let vizPositions = new Array<GridElement>();
-        vizPositions.push(new GridElement([1, 4], [1, 1]));
+        vizPositions.push(new GridElement([1, 6], [1, 1]));
+        vizPositions.push(new GridElement([6, 12], [1, 1]));
 
         // Return state
         return {
