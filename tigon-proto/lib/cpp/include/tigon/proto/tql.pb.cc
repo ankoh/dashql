@@ -21,9 +21,10 @@ extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::S
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_ParameterDeclaration_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_QueryStatement_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<5> scc_info_Statement_tql_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_UInt32_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizAxes_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_VizAxis_tql_2eproto;
-extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_VizGridArea_tql_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizGridArea_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizResponsiveGridArea_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_VizStatement_tql_2eproto;
 namespace tigon {
@@ -81,6 +82,10 @@ class VizColorPaletteDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<VizColorPalette> _instance;
 } _VizColorPalette_default_instance_;
+class UInt32DefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<UInt32> _instance;
+} _UInt32_default_instance_;
 class VizGridAreaDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<VizGridArea> _instance;
@@ -296,6 +301,20 @@ static void InitDefaultsscc_info_Statement_tql_2eproto() {
       &scc_info_ParameterDeclaration_tql_2eproto.base,
       &scc_info_QueryStatement_tql_2eproto.base,}};
 
+static void InitDefaultsscc_info_UInt32_tql_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::tigon::proto::tql::_UInt32_default_instance_;
+    new (ptr) ::tigon::proto::tql::UInt32();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::tigon::proto::tql::UInt32::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_UInt32_tql_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_UInt32_tql_2eproto}, {}};
+
 static void InitDefaultsscc_info_VizAxes_tql_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -350,8 +369,9 @@ static void InitDefaultsscc_info_VizGridArea_tql_2eproto() {
   ::tigon::proto::tql::VizGridArea::InitAsDefaultInstance();
 }
 
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_VizGridArea_tql_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_VizGridArea_tql_2eproto}, {}};
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizGridArea_tql_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_VizGridArea_tql_2eproto}, {
+      &scc_info_UInt32_tql_2eproto.base,}};
 
 static void InitDefaultsscc_info_VizResponsiveGridArea_tql_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -3398,12 +3418,276 @@ std::string VizColorPalette::GetTypeName() const {
 
 // ===================================================================
 
-void VizGridArea::InitAsDefaultInstance() {
+void UInt32::InitAsDefaultInstance() {
 }
-class VizGridArea::_Internal {
+class UInt32::_Internal {
  public:
 };
 
+UInt32::UInt32()
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:tigon.proto.tql.UInt32)
+}
+UInt32::UInt32(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.UInt32)
+}
+UInt32::UInt32(const UInt32& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _internal_metadata_(nullptr) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  value_ = from.value_;
+  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.UInt32)
+}
+
+void UInt32::SharedCtor() {
+  value_ = 0u;
+}
+
+UInt32::~UInt32() {
+  // @@protoc_insertion_point(destructor:tigon.proto.tql.UInt32)
+  SharedDtor();
+}
+
+void UInt32::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
+}
+
+void UInt32::ArenaDtor(void* object) {
+  UInt32* _this = reinterpret_cast< UInt32* >(object);
+  (void)_this;
+}
+void UInt32::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void UInt32::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const UInt32& UInt32::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_UInt32_tql_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void UInt32::Clear() {
+// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.UInt32)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  value_ = 0u;
+  _internal_metadata_.Clear();
+}
+
+const char* UInt32::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // uint32 value = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
+          value_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag, &_internal_metadata_, ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* UInt32::InternalSerializeWithCachedSizesToArray(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.UInt32)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint32 value = 1;
+  if (this->value() != 0) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(1, this->_internal_value(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
+        static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.UInt32)
+  return target;
+}
+
+size_t UInt32::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.UInt32)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint32 value = 1;
+  if (this->value() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+        this->_internal_value());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields().size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void UInt32::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const UInt32*>(
+      &from));
+}
+
+void UInt32::MergeFrom(const UInt32& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.UInt32)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.value() != 0) {
+    _internal_set_value(from._internal_value());
+  }
+}
+
+void UInt32::CopyFrom(const UInt32& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.UInt32)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool UInt32::IsInitialized() const {
+  return true;
+}
+
+void UInt32::InternalSwap(UInt32* other) {
+  using std::swap;
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  swap(value_, other->value_);
+}
+
+std::string UInt32::GetTypeName() const {
+  return "tigon.proto.tql.UInt32";
+}
+
+
+// ===================================================================
+
+void VizGridArea::InitAsDefaultInstance() {
+  ::tigon::proto::tql::_VizGridArea_default_instance_._instance.get_mutable()->width_ = const_cast< ::tigon::proto::tql::UInt32*>(
+      ::tigon::proto::tql::UInt32::internal_default_instance());
+  ::tigon::proto::tql::_VizGridArea_default_instance_._instance.get_mutable()->height_ = const_cast< ::tigon::proto::tql::UInt32*>(
+      ::tigon::proto::tql::UInt32::internal_default_instance());
+  ::tigon::proto::tql::_VizGridArea_default_instance_._instance.get_mutable()->x_ = const_cast< ::tigon::proto::tql::UInt32*>(
+      ::tigon::proto::tql::UInt32::internal_default_instance());
+  ::tigon::proto::tql::_VizGridArea_default_instance_._instance.get_mutable()->y_ = const_cast< ::tigon::proto::tql::UInt32*>(
+      ::tigon::proto::tql::UInt32::internal_default_instance());
+}
+class VizGridArea::_Internal {
+ public:
+  static const ::tigon::proto::tql::UInt32& width(const VizGridArea* msg);
+  static const ::tigon::proto::tql::UInt32& height(const VizGridArea* msg);
+  static const ::tigon::proto::tql::UInt32& x(const VizGridArea* msg);
+  static const ::tigon::proto::tql::UInt32& y(const VizGridArea* msg);
+};
+
+const ::tigon::proto::tql::UInt32&
+VizGridArea::_Internal::width(const VizGridArea* msg) {
+  return *msg->width_;
+}
+const ::tigon::proto::tql::UInt32&
+VizGridArea::_Internal::height(const VizGridArea* msg) {
+  return *msg->height_;
+}
+const ::tigon::proto::tql::UInt32&
+VizGridArea::_Internal::x(const VizGridArea* msg) {
+  return *msg->x_;
+}
+const ::tigon::proto::tql::UInt32&
+VizGridArea::_Internal::y(const VizGridArea* msg) {
+  return *msg->y_;
+}
+void VizGridArea::unsafe_arena_set_allocated_width(
+    ::tigon::proto::tql::UInt32* width) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete width_;
+  }
+  width_ = width;
+  if (width) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizGridArea.width)
+}
+void VizGridArea::unsafe_arena_set_allocated_height(
+    ::tigon::proto::tql::UInt32* height) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete height_;
+  }
+  height_ = height;
+  if (height) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizGridArea.height)
+}
+void VizGridArea::unsafe_arena_set_allocated_x(
+    ::tigon::proto::tql::UInt32* x) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete x_;
+  }
+  x_ = x;
+  if (x) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizGridArea.x)
+}
+void VizGridArea::unsafe_arena_set_allocated_y(
+    ::tigon::proto::tql::UInt32* y) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete y_;
+  }
+  y_ = y;
+  if (y) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizGridArea.y)
+}
 VizGridArea::VizGridArea()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
@@ -3420,13 +3704,31 @@ VizGridArea::VizGridArea(const VizGridArea& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::memcpy(&width_, &from.width_,
-    static_cast<size_t>(reinterpret_cast<char*>(&y_) -
-    reinterpret_cast<char*>(&width_)) + sizeof(y_));
+  if (from._internal_has_width()) {
+    width_ = new ::tigon::proto::tql::UInt32(*from.width_);
+  } else {
+    width_ = nullptr;
+  }
+  if (from._internal_has_height()) {
+    height_ = new ::tigon::proto::tql::UInt32(*from.height_);
+  } else {
+    height_ = nullptr;
+  }
+  if (from._internal_has_x()) {
+    x_ = new ::tigon::proto::tql::UInt32(*from.x_);
+  } else {
+    x_ = nullptr;
+  }
+  if (from._internal_has_y()) {
+    y_ = new ::tigon::proto::tql::UInt32(*from.y_);
+  } else {
+    y_ = nullptr;
+  }
   // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.VizGridArea)
 }
 
 void VizGridArea::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_VizGridArea_tql_2eproto.base);
   ::memset(&width_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&y_) -
       reinterpret_cast<char*>(&width_)) + sizeof(y_));
@@ -3439,6 +3741,10 @@ VizGridArea::~VizGridArea() {
 
 void VizGridArea::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
+  if (this != internal_default_instance()) delete width_;
+  if (this != internal_default_instance()) delete height_;
+  if (this != internal_default_instance()) delete x_;
+  if (this != internal_default_instance()) delete y_;
 }
 
 void VizGridArea::ArenaDtor(void* object) {
@@ -3462,9 +3768,22 @@ void VizGridArea::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  ::memset(&width_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&y_) -
-      reinterpret_cast<char*>(&width_)) + sizeof(y_));
+  if (GetArenaNoVirtual() == nullptr && width_ != nullptr) {
+    delete width_;
+  }
+  width_ = nullptr;
+  if (GetArenaNoVirtual() == nullptr && height_ != nullptr) {
+    delete height_;
+  }
+  height_ = nullptr;
+  if (GetArenaNoVirtual() == nullptr && x_ != nullptr) {
+    delete x_;
+  }
+  x_ = nullptr;
+  if (GetArenaNoVirtual() == nullptr && y_ != nullptr) {
+    delete y_;
+  }
+  y_ = nullptr;
   _internal_metadata_.Clear();
 }
 
@@ -3476,31 +3795,31 @@ const char* VizGridArea::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // uint32 width = 1;
+      // .tigon.proto.tql.UInt32 width = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          width_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_width(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // uint32 height = 2;
+      // .tigon.proto.tql.UInt32 height = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
-          height_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_height(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // uint32 x = 3;
+      // .tigon.proto.tql.UInt32 x = 3;
       case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
-          x_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+          ptr = ctx->ParseMessage(_internal_mutable_x(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // uint32 y = 4;
+      // .tigon.proto.tql.UInt32 y = 4;
       case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
-          y_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
+          ptr = ctx->ParseMessage(_internal_mutable_y(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -3530,28 +3849,36 @@ failure:
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // uint32 width = 1;
-  if (this->width() != 0) {
+  // .tigon.proto.tql.UInt32 width = 1;
+  if (this->has_width()) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(1, this->_internal_width(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        1, _Internal::width(this), target, stream);
   }
 
-  // uint32 height = 2;
-  if (this->height() != 0) {
+  // .tigon.proto.tql.UInt32 height = 2;
+  if (this->has_height()) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(2, this->_internal_height(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        2, _Internal::height(this), target, stream);
   }
 
-  // uint32 x = 3;
-  if (this->x() != 0) {
+  // .tigon.proto.tql.UInt32 x = 3;
+  if (this->has_x()) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(3, this->_internal_x(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        3, _Internal::x(this), target, stream);
   }
 
-  // uint32 y = 4;
-  if (this->y() != 0) {
+  // .tigon.proto.tql.UInt32 y = 4;
+  if (this->has_y()) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(4, this->_internal_y(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        4, _Internal::y(this), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -3570,32 +3897,32 @@ size_t VizGridArea::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // uint32 width = 1;
-  if (this->width() != 0) {
+  // .tigon.proto.tql.UInt32 width = 1;
+  if (this->has_width()) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_width());
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *width_);
   }
 
-  // uint32 height = 2;
-  if (this->height() != 0) {
+  // .tigon.proto.tql.UInt32 height = 2;
+  if (this->has_height()) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_height());
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *height_);
   }
 
-  // uint32 x = 3;
-  if (this->x() != 0) {
+  // .tigon.proto.tql.UInt32 x = 3;
+  if (this->has_x()) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_x());
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *x_);
   }
 
-  // uint32 y = 4;
-  if (this->y() != 0) {
+  // .tigon.proto.tql.UInt32 y = 4;
+  if (this->has_y()) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_y());
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *y_);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -3619,17 +3946,17 @@ void VizGridArea::MergeFrom(const VizGridArea& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.width() != 0) {
-    _internal_set_width(from._internal_width());
+  if (from.has_width()) {
+    _internal_mutable_width()->::tigon::proto::tql::UInt32::MergeFrom(from._internal_width());
   }
-  if (from.height() != 0) {
-    _internal_set_height(from._internal_height());
+  if (from.has_height()) {
+    _internal_mutable_height()->::tigon::proto::tql::UInt32::MergeFrom(from._internal_height());
   }
-  if (from.x() != 0) {
-    _internal_set_x(from._internal_x());
+  if (from.has_x()) {
+    _internal_mutable_x()->::tigon::proto::tql::UInt32::MergeFrom(from._internal_x());
   }
-  if (from.y() != 0) {
-    _internal_set_y(from._internal_y());
+  if (from.has_y()) {
+    _internal_mutable_y()->::tigon::proto::tql::UInt32::MergeFrom(from._internal_y());
   }
 }
 
@@ -5705,6 +6032,9 @@ template<> PROTOBUF_NOINLINE ::tigon::proto::tql::ExtractStatement* Arena::Creat
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizColorPalette* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizColorPalette >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::tql::VizColorPalette >(arena);
+}
+template<> PROTOBUF_NOINLINE ::tigon::proto::tql::UInt32* Arena::CreateMaybeMessage< ::tigon::proto::tql::UInt32 >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::UInt32 >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::VizGridArea* Arena::CreateMaybeMessage< ::tigon::proto::tql::VizGridArea >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::tql::VizGridArea >(arena);

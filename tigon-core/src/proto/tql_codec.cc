@@ -42,10 +42,10 @@ tigon::proto::tql::VizStatement* encodeStatement(protobuf::Arena& arena, tql::Vi
     if (viz.area) {
         auto asProtoArea = [&](tql::VizStatement::GridArea& area) {
             auto* a = protobuf::Arena::CreateMessage<proto::tql::VizGridArea>(&arena);
-            if (area.length >= 1) { a->set_width(area.values[0]); }
-            if (area.length >= 2) { a->set_height(area.values[1]); }
-            if (area.length >= 3) { a->set_x(area.values[2]); }
-            if (area.length >= 4) { a->set_y(area.values[3]); }
+            if (area.length >= 1) { a->mutable_width()->set_value(area.values[0]); }
+            if (area.length >= 2) { a->mutable_height()->set_value(area.values[1]); }
+            if (area.length >= 3) { a->mutable_x()->set_value(area.values[2]); }
+            if (area.length >= 4) { a->mutable_y()->set_value(area.values[3]); }
             return a;
         };
         auto* area = v->mutable_area();

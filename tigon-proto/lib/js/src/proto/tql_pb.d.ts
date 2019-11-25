@@ -318,18 +318,46 @@ export namespace VizColorPalette {
   }
 }
 
+export class UInt32 extends jspb.Message {
+  getValue(): number;
+  setValue(value: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): UInt32.AsObject;
+  static toObject(includeInstance: boolean, msg: UInt32): UInt32.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: UInt32, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): UInt32;
+  static deserializeBinaryFromReader(message: UInt32, reader: jspb.BinaryReader): UInt32;
+}
+
+export namespace UInt32 {
+  export type AsObject = {
+    value: number,
+  }
+}
+
 export class VizGridArea extends jspb.Message {
-  getWidth(): number;
-  setWidth(value: number): void;
+  hasWidth(): boolean;
+  clearWidth(): void;
+  getWidth(): UInt32 | undefined;
+  setWidth(value?: UInt32): void;
 
-  getHeight(): number;
-  setHeight(value: number): void;
+  hasHeight(): boolean;
+  clearHeight(): void;
+  getHeight(): UInt32 | undefined;
+  setHeight(value?: UInt32): void;
 
-  getX(): number;
-  setX(value: number): void;
+  hasX(): boolean;
+  clearX(): void;
+  getX(): UInt32 | undefined;
+  setX(value?: UInt32): void;
 
-  getY(): number;
-  setY(value: number): void;
+  hasY(): boolean;
+  clearY(): void;
+  getY(): UInt32 | undefined;
+  setY(value?: UInt32): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): VizGridArea.AsObject;
@@ -343,10 +371,10 @@ export class VizGridArea extends jspb.Message {
 
 export namespace VizGridArea {
   export type AsObject = {
-    width: number,
-    height: number,
-    x: number,
-    y: number,
+    width?: UInt32.AsObject,
+    height?: UInt32.AsObject,
+    x?: UInt32.AsObject,
+    y?: UInt32.AsObject,
   }
 }
 

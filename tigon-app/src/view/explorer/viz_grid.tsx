@@ -64,7 +64,7 @@ export class GridLength {
 
     /// Constructor
     constructor(value: number, unit: GridLengthUnit) {
-        this.value = value;
+        this.z = value;
         this.unit = unit;
     }
 };
@@ -210,26 +210,26 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 
         let gridLayout = new GridLayout();
 
-        // Compute the viz positions
-        let vizPositions = vizStmts.map((v) => {
-            let area = pickArea(v.getArea());
-            if (!area) {
-                throw new Error("dynamic layouts not yet implemented!");
-            }
-            // XXX
-            let width = area.getWidth() || 6;
-            let height = area.getHeight() || 20;
-            let x = area.getX() || 0;
-            let y = area.getY() || 0;
+        let vizAreas = vizStmts.map((v) => pickArea(v.getArea()));
+        let vizPositions = vizAreas.map((a) => {
+            if (!a || !a.getX() || !a.getY()) { return null; }
+            let x = a.getX()!.getValue();
+            let y = a.getY()!.getValue();
+            let width = a.getWidth() ? a.getWidth()!.getValue() : 6;
+            let height = a.getHeight() ? a.getHeight()!.getValue() : 20;
             return new GridElement([x, x + width], [y, y + height]);
         });
-        console.log(vizPositions);
+        let [maxCol, maxRow] = vizPositions.reduce((acc, elem) => {
+            return elem
+                ? [Math.max(acc[0], elem.columns[1]), Math.max(acc[1], elem.rows[1])]
+                : [acc[0], acc[1]];
+        }, [0, 0]);
 
         // Return state
         return {
             gridLayout: gridLayout,
             vizStmts: vizStmts,
-            vizPositions: vizPositions,
+            vizPositions: vizPositions.filter(v => v != null) as GridElement[],
             vizData: vizData,
         };
     }
