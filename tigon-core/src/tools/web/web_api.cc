@@ -193,7 +193,7 @@ namespace {
 // Taken from bithacks.
 // Interleave bits by Binary Magic Numbers
 // http://graphics.stanford.edu/~seander/bithacks.html
-uint32_t computeZOrder(uint16_t xIn, uint16_t yIn) {
+uint32_t computeZCurvePosition(uint16_t xIn, uint16_t yIn) {
     static const uint32_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF};
     static const uint32_t S[] = {1, 2, 4, 8};
 
@@ -219,9 +219,46 @@ uint32_t computeZOrder(uint16_t xIn, uint16_t yIn) {
     return z;
 }
 
+struct FixedGridElement {
+    uint32_t pos;
+    uint16_t width;
+    uint16_t height;
+    uint16_t x;
+    uint16_t y;
+
+    FixedGridElement(uint32_t pos, uint16_t width, uint16_t height, uint16_t x, uint16_t y)
+        : pos(pos), width(width), height(height), x(x), y(y) {}
+};
+
 }
 
 /// Compute a grid layout
 void WebAPI::computeGridLayout(nonstd::span<GridElement> elements) {
+    auto isSet = [](uint16_t v) { return v == std::numeric_limits<uint16_t>::max(); };
+
+    std::vector<FixedGridElement> fixed;
+
+    // Separate elements that have been positioned already
+    fixed.reserve(elements.size());
+    for (auto& elem: elements) {
+        if (!isSet(elem.x) || !isSet(elem.y))
+            continue;
+        auto pos = computeZCurvePosition(elem.x, elem.y);
+        fixed.emplace_back(pos, elem.width, elem.height, elem.x, elem.y);
+    }
+    std::sort(fixed.begin(), fixed.end(), [&](auto& l, auto& r) { return l.pos < r.pos; });
+
+    // For each pending element, try to allocate space starting with the right border of the left neighbor.
+    // Move a virtual rectangle over the board until we find enough free space.
+
+    // Move the rectangle to the right until we reach the end.
+    // Then move the rectangle back to 0 and increase the row.
+    // Track heights and widths to skip more than one column/row.
+    //
+    // auto top() { return ((this.z & 0b10101010) - 1 & 0b10101010) | (this.z & 0b01010101); }
+    // auto bottom() { return ((this.z | 0b01010101) + 1 & 0b10101010) | (this.z & 0b01010101); }
+    // auto left() { return ((this.z & 0b01010101) - 1 & 0b01010101) | (this.z & 0b10101010); }
+    // auto right() { return ((this.z | 0b10101010) + 1 & 0b01010101) | (this.z & 0b10101010); }
+
     (void)elements;
 }
