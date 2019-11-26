@@ -150,10 +150,10 @@ class WebAPI {
 
     /// A grid element 
     struct GridElement {
-        int32_t width;
-        int32_t height;
-        int32_t x;
-        int32_t y;
+        uint16_t width;
+        uint16_t height;
+        uint16_t x;
+        uint16_t y;
     } __attribute((packed));
 
   protected:

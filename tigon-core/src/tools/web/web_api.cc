@@ -188,6 +188,39 @@ void WebAPI::endSession(Session* session) {
     sessions.erase(session);
 }
 
+namespace {
+
+// Taken from bithacks.
+// Interleave bits by Binary Magic Numbers
+// http://graphics.stanford.edu/~seander/bithacks.html
+uint32_t computeZOrder(uint16_t xIn, uint16_t yIn) {
+    static const uint32_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF};
+    static const uint32_t S[] = {1, 2, 4, 8};
+
+    // Interleave lower 16 bits of x and y, so the bits of x
+    // are in the even positions and bits from y in the odd;
+    // z gets the resulting 32-bit Morton Number. 
+    // x and y must initially be less than 65536.
+    uint32_t x = xIn;
+    uint32_t y = yIn;
+    uint32_t z;      
+
+    x = (x | (x << S[3])) & B[3];
+    x = (x | (x << S[2])) & B[2];
+    x = (x | (x << S[1])) & B[1];
+    x = (x | (x << S[0])) & B[0];
+
+    y = (y | (y << S[3])) & B[3];
+    y = (y | (y << S[2])) & B[2];
+    y = (y | (y << S[1])) & B[1];
+    y = (y | (y << S[0])) & B[0];
+
+    z = x | (y << 1);
+    return z;
+}
+
+}
+
 /// Compute a grid layout
 void WebAPI::computeGridLayout(nonstd::span<GridElement> elements) {
     (void)elements;
