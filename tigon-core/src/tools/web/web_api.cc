@@ -187,3 +187,8 @@ WebAPI::Session& WebAPI::createSession() {
 void WebAPI::endSession(Session* session) {
     sessions.erase(session);
 }
+
+/// Compute a grid layout
+void WebAPI::computeGridLayout(nonstd::span<GridElement> elements) {
+    (void)elements;
+}

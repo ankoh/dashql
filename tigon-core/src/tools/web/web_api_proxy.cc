@@ -78,6 +78,12 @@ void tigon_extract_data(WebAPI::Response::Packed* response, WebAPI::Session* ses
     spdlog::info("extract data");
 }
 
+/// Compute a grid layout
+void tigon_compute_grid_layout(void* element_buffer, unsigned element_count) {
+    auto elements = nonstd::span<WebAPI::GridElement>(reinterpret_cast<WebAPI::GridElement*>(element_buffer), element_count);
+    WebAPI::computeGridLayout(elements);
+}
+
 }
 
 

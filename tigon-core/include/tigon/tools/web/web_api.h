@@ -146,12 +146,15 @@ class WebAPI {
         void runQuery(std::string_view text);
         /// Plan SQL query
         void planQuery(std::string_view text);
-
-        /// Format a TQL module
-        void formatTQLModule(void* tql_module);
-        /// Format a query plan
-        void formatQueryPlan(void* query_plan);
     };
+
+    /// A grid element 
+    struct GridElement {
+        int32_t width;
+        int32_t height;
+        int32_t x;
+        int32_t y;
+    } __attribute((packed));
 
   protected:
     /// The (shared) database
@@ -167,6 +170,9 @@ class WebAPI {
     Session& createSession();
     /// End a session
     void endSession(Session* session);
+
+    /// Compute a grid layout
+    static void computeGridLayout(nonstd::span<GridElement> elements);
 };
 
 } // namespace tigon

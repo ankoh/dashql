@@ -125,6 +125,7 @@ if(EMSCRIPTEN)
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
             _malloc, \
+            _free, \
             _tigon_create_session, \
             _tigon_end_session, \
             _tigon_register_buffer, \
@@ -132,7 +133,8 @@ if(EMSCRIPTEN)
             _tigon_parse_tql, \
             _tigon_run_query, \
             _tigon_plan_query, \
-            _tigon_extract_data \
+            _tigon_extract_data, \
+            _tigon_compute_grid_layout \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
     ")
