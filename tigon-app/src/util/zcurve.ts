@@ -1,4 +1,5 @@
 // https://en.wikipedia.org/wiki/Z-order_curve
+// https://stackoverflow.com/questions/12157685/z-order-curve-coordinates
 
 const TILES = 4;
 const ENTRIES_PER_TILE = 8 * 8;
