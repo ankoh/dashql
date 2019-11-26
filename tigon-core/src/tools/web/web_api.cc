@@ -221,13 +221,13 @@ uint32_t computeZCurvePosition(uint16_t xIn, uint16_t yIn) {
 
 struct FixedGridElement {
     uint32_t pos;
-    uint16_t width;
-    uint16_t height;
-    uint16_t x;
-    uint16_t y;
+    uint16_t xBegin;
+    uint16_t xEnd;
+    uint16_t yBegin;
+    uint16_t yEnd;
 
-    FixedGridElement(uint32_t pos, uint16_t width, uint16_t height, uint16_t x, uint16_t y)
-        : pos(pos), width(width), height(height), x(x), y(y) {}
+    FixedGridElement(uint32_t pos, uint16_t xBegin, uint16_t xEnd, uint16_t yBegin, uint16_t yEnd)
+        : pos(pos), xBegin(xBegin), xEnd(xEnd), yBegin(yBegin), yEnd(yEnd) {}
 };
 
 }
@@ -254,11 +254,7 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements) {
     // Move the rectangle to the right until we reach the end.
     // Then move the rectangle back to 0 and increase the row.
     // Track heights and widths to skip more than one column/row.
-    //
-    // auto top() { return ((this.z & 0b10101010) - 1 & 0b10101010) | (this.z & 0b01010101); }
-    // auto bottom() { return ((this.z | 0b01010101) + 1 & 0b10101010) | (this.z & 0b01010101); }
-    // auto left() { return ((this.z & 0b01010101) - 1 & 0b01010101) | (this.z & 0b10101010); }
-    // auto right() { return ((this.z | 0b10101010) + 1 & 0b01010101) | (this.z & 0b10101010); }
+    
 
     (void)elements;
 }
