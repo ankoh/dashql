@@ -152,8 +152,8 @@ class WebAPI {
     struct GridElement {
         uint16_t width;
         uint16_t height;
-        uint16_t x;
-        uint16_t y;
+        uint16_t offsetX;
+        uint16_t offsetY;
     } __attribute((packed));
 
   protected:

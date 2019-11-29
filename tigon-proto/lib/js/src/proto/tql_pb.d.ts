@@ -349,15 +349,15 @@ export class VizGridArea extends jspb.Message {
   getHeight(): UInt32 | undefined;
   setHeight(value?: UInt32): void;
 
-  hasX(): boolean;
-  clearX(): void;
-  getX(): UInt32 | undefined;
-  setX(value?: UInt32): void;
+  hasOffsetx(): boolean;
+  clearOffsetx(): void;
+  getOffsetx(): UInt32 | undefined;
+  setOffsetx(value?: UInt32): void;
 
-  hasY(): boolean;
-  clearY(): void;
-  getY(): UInt32 | undefined;
-  setY(value?: UInt32): void;
+  hasOffsety(): boolean;
+  clearOffsety(): void;
+  getOffsety(): UInt32 | undefined;
+  setOffsety(value?: UInt32): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): VizGridArea.AsObject;
@@ -373,8 +373,8 @@ export namespace VizGridArea {
   export type AsObject = {
     width?: UInt32.AsObject,
     height?: UInt32.AsObject,
-    x?: UInt32.AsObject,
-    y?: UInt32.AsObject,
+    offsetx?: UInt32.AsObject,
+    offsety?: UInt32.AsObject,
   }
 }
 

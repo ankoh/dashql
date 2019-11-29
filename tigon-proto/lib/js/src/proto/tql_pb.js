@@ -2717,8 +2717,8 @@ proto.tigon.proto.tql.VizGridArea.toObject = function(includeInstance, msg) {
   var f, obj = {
     width: (f = msg.getWidth()) && proto.tigon.proto.tql.UInt32.toObject(includeInstance, f),
     height: (f = msg.getHeight()) && proto.tigon.proto.tql.UInt32.toObject(includeInstance, f),
-    x: (f = msg.getX()) && proto.tigon.proto.tql.UInt32.toObject(includeInstance, f),
-    y: (f = msg.getY()) && proto.tigon.proto.tql.UInt32.toObject(includeInstance, f)
+    offsetx: (f = msg.getOffsetx()) && proto.tigon.proto.tql.UInt32.toObject(includeInstance, f),
+    offsety: (f = msg.getOffsety()) && proto.tigon.proto.tql.UInt32.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2768,12 +2768,12 @@ proto.tigon.proto.tql.VizGridArea.deserializeBinaryFromReader = function(msg, re
     case 3:
       var value = new proto.tigon.proto.tql.UInt32;
       reader.readMessage(value,proto.tigon.proto.tql.UInt32.deserializeBinaryFromReader);
-      msg.setX(value);
+      msg.setOffsetx(value);
       break;
     case 4:
       var value = new proto.tigon.proto.tql.UInt32;
       reader.readMessage(value,proto.tigon.proto.tql.UInt32.deserializeBinaryFromReader);
-      msg.setY(value);
+      msg.setOffsety(value);
       break;
     default:
       reader.skipField();
@@ -2820,7 +2820,7 @@ proto.tigon.proto.tql.VizGridArea.serializeBinaryToWriter = function(message, wr
       proto.tigon.proto.tql.UInt32.serializeBinaryToWriter
     );
   }
-  f = message.getX();
+  f = message.getOffsetx();
   if (f != null) {
     writer.writeMessage(
       3,
@@ -2828,7 +2828,7 @@ proto.tigon.proto.tql.VizGridArea.serializeBinaryToWriter = function(message, wr
       proto.tigon.proto.tql.UInt32.serializeBinaryToWriter
     );
   }
-  f = message.getY();
+  f = message.getOffsety();
   if (f != null) {
     writer.writeMessage(
       4,
@@ -2914,10 +2914,10 @@ proto.tigon.proto.tql.VizGridArea.prototype.hasHeight = function() {
 
 
 /**
- * optional UInt32 x = 3;
+ * optional UInt32 offsetX = 3;
  * @return {?proto.tigon.proto.tql.UInt32}
  */
-proto.tigon.proto.tql.VizGridArea.prototype.getX = function() {
+proto.tigon.proto.tql.VizGridArea.prototype.getOffsetx = function() {
   return /** @type{?proto.tigon.proto.tql.UInt32} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.tql.UInt32, 3));
 };
@@ -2927,7 +2927,7 @@ proto.tigon.proto.tql.VizGridArea.prototype.getX = function() {
  * @param {?proto.tigon.proto.tql.UInt32|undefined} value
  * @return {!proto.tigon.proto.tql.VizGridArea} returns this
 */
-proto.tigon.proto.tql.VizGridArea.prototype.setX = function(value) {
+proto.tigon.proto.tql.VizGridArea.prototype.setOffsetx = function(value) {
   return jspb.Message.setWrapperField(this, 3, value);
 };
 
@@ -2936,8 +2936,8 @@ proto.tigon.proto.tql.VizGridArea.prototype.setX = function(value) {
  * Clears the message field making it undefined.
  * @return {!proto.tigon.proto.tql.VizGridArea} returns this
  */
-proto.tigon.proto.tql.VizGridArea.prototype.clearX = function() {
-  return this.setX(undefined);
+proto.tigon.proto.tql.VizGridArea.prototype.clearOffsetx = function() {
+  return this.setOffsetx(undefined);
 };
 
 
@@ -2945,16 +2945,16 @@ proto.tigon.proto.tql.VizGridArea.prototype.clearX = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.tql.VizGridArea.prototype.hasX = function() {
+proto.tigon.proto.tql.VizGridArea.prototype.hasOffsetx = function() {
   return jspb.Message.getField(this, 3) != null;
 };
 
 
 /**
- * optional UInt32 y = 4;
+ * optional UInt32 offsetY = 4;
  * @return {?proto.tigon.proto.tql.UInt32}
  */
-proto.tigon.proto.tql.VizGridArea.prototype.getY = function() {
+proto.tigon.proto.tql.VizGridArea.prototype.getOffsety = function() {
   return /** @type{?proto.tigon.proto.tql.UInt32} */ (
     jspb.Message.getWrapperField(this, proto.tigon.proto.tql.UInt32, 4));
 };
@@ -2964,7 +2964,7 @@ proto.tigon.proto.tql.VizGridArea.prototype.getY = function() {
  * @param {?proto.tigon.proto.tql.UInt32|undefined} value
  * @return {!proto.tigon.proto.tql.VizGridArea} returns this
 */
-proto.tigon.proto.tql.VizGridArea.prototype.setY = function(value) {
+proto.tigon.proto.tql.VizGridArea.prototype.setOffsety = function(value) {
   return jspb.Message.setWrapperField(this, 4, value);
 };
 
@@ -2973,8 +2973,8 @@ proto.tigon.proto.tql.VizGridArea.prototype.setY = function(value) {
  * Clears the message field making it undefined.
  * @return {!proto.tigon.proto.tql.VizGridArea} returns this
  */
-proto.tigon.proto.tql.VizGridArea.prototype.clearY = function() {
-  return this.setY(undefined);
+proto.tigon.proto.tql.VizGridArea.prototype.clearOffsety = function() {
+  return this.setOffsety(undefined);
 };
 
 
@@ -2982,7 +2982,7 @@ proto.tigon.proto.tql.VizGridArea.prototype.clearY = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.tigon.proto.tql.VizGridArea.prototype.hasY = function() {
+proto.tigon.proto.tql.VizGridArea.prototype.hasOffsety = function() {
   return jspb.Message.getField(this, 4) != null;
 };
 
