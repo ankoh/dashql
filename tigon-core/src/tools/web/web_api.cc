@@ -219,42 +219,73 @@ uint32_t computeZCurvePosition(uint16_t xIn, uint16_t yIn) {
     return z;
 }
 
-struct FixedGridElement {
-    uint32_t pos;
+struct PositionedElement {
+    uint32_t zPos;
     uint16_t xBegin;
     uint16_t xEnd;
     uint16_t yBegin;
     uint16_t yEnd;
 
-    FixedGridElement(uint32_t pos, uint16_t xBegin, uint16_t xEnd, uint16_t yBegin, uint16_t yEnd)
-        : pos(pos), xBegin(xBegin), xEnd(xEnd), yBegin(yBegin), yEnd(yEnd) {}
+    PositionedElement(uint32_t zPos, uint16_t xBegin, uint16_t xEnd, uint16_t yBegin, uint16_t yEnd)
+        : zPos(zPos), xBegin(xBegin), xEnd(xEnd), yBegin(yBegin), yEnd(yEnd) {}
 };
 
 }
 
 /// Compute a grid layout
 void WebAPI::computeGridLayout(nonstd::span<GridElement> elements) {
-    auto isSet = [](uint16_t v) { return v == std::numeric_limits<uint16_t>::max(); };
+    std::vector<PositionedElement> elems;
+    size_t columnCount = 12;
+    size_t allocatedRows;
 
-    std::vector<FixedGridElement> fixed;
-
-    // Separate elements that have been positioned already
-    fixed.reserve(elements.size());
+    // Separate elements that have been elems already
+    elems.reserve(elements.size());
     for (auto& elem: elements) {
-        if (!isSet(elem.x) || !isSet(elem.y))
-            continue;
-        auto pos = computeZCurvePosition(elem.x, elem.y);
-        fixed.emplace_back(pos, elem.width, elem.height, elem.x, elem.y);
+        auto width = elem.width + elem.offsetX;
+        auto height = elem.height + elem.offsetY;
+
+        for (size_t yBegin = 0; yBegin < allocatedRows;) {
+            for (size_t xBegin = 0; xBegin + width <= columnCount;) {
+                auto xEnd = xBegin + width;
+                auto yEnd = yBegin + height;
+
+                // Search candidates
+                auto anchorNW = computeZCurvePosition(xBegin, yBegin);
+                auto anchorSE = computeZCurvePosition(xEnd, yEnd);
+                auto lb = elems.begin() + (elems.rend() - std::lower_bound(elems.rbegin(), elems.rend(), anchorNW, [](auto& e, auto v) {
+                    return e.zPos > v;
+                }));
+                auto ub = std::lower_bound(elems.begin(), elems.end(), anchorSE, [](auto& e, auto v) {
+                    return e.zPos < v;
+                });
+
+                // Check iterators
+                bool foundConflict = false;
+                auto xMax = 0, yMax = 0;
+                for (auto iter = lb; iter < ub; ++iter) {
+                    auto& candidate = *iter;
+                    auto xOverlaps = !(xEnd <= candidate.xBegin || xBegin >= candidate.xEnd);
+                    auto yOverlaps = !(yEnd <= candidate.yBegin || yBegin >= candidate.yBegin);
+                    if (xOverlaps || yOverlaps) {
+                        foundConflict = true;
+                        xMax = std::max<uint16_t>(xMax, candidate.xEnd);
+                        yMax = std::max<uint16_t>(yMax, candidate.yEnd);
+                        break;
+                    }
+                }
+
+                if (!foundConflict) {
+                    // TODO found something
+                }
+
+                // Advance iterators
+                xBegin = xMax;
+                yBegin = yMax;
+            }
+        }
+
+        // TODO adjust elements
+        // auto pos = computeZCurvePosition(elem.offsetX, elem.offsetY);
+        // elems.emplace_back(pos, elem.width, elem.height, elem.offsetX, elem.offsetY);
     }
-    std::sort(fixed.begin(), fixed.end(), [&](auto& l, auto& r) { return l.pos < r.pos; });
-
-    // For each pending element, try to allocate space starting with the right border of the left neighbor.
-    // Move a virtual rectangle over the board until we find enough free space.
-
-    // Move the rectangle to the right until we reach the end.
-    // Then move the rectangle back to 0 and increase the row.
-    // Track heights and widths to skip more than one column/row.
-    
-
-    (void)elements;
 }
