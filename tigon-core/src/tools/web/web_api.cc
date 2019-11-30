@@ -193,7 +193,7 @@ namespace {
 // Taken from bithacks.
 // Interleave bits by Binary Magic Numbers
 // http://graphics.stanford.edu/~seander/bithacks.html
-uint32_t computeZCurvePosition(uint16_t xIn, uint16_t yIn) {
+uint32_t computeZ(uint16_t xIn, uint16_t yIn) {
     static const uint32_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF};
     static const uint32_t S[] = {1, 2, 4, 8};
 
@@ -203,7 +203,7 @@ uint32_t computeZCurvePosition(uint16_t xIn, uint16_t yIn) {
     // x and y must initially be less than 65536.
     uint32_t x = xIn;
     uint32_t y = yIn;
-    uint32_t z;      
+    uint32_t z;
 
     x = (x | (x << S[3])) & B[3];
     x = (x | (x << S[2])) & B[2];
@@ -219,17 +219,6 @@ uint32_t computeZCurvePosition(uint16_t xIn, uint16_t yIn) {
     return z;
 }
 
-struct PositionedElement {
-    uint16_t xBegin;
-    uint16_t xEnd;
-    uint16_t yBegin;
-    uint16_t yEnd;
-    uint16_t lastCheck;
-
-    PositionedElement(uint16_t xBegin, uint16_t xEnd, uint16_t yBegin, uint16_t yEnd)
-        : xBegin(xBegin), xEnd(xEnd), yBegin(yBegin), yEnd(yEnd), lastCheck(0) {}
-};
-
 struct ZEntry {
     uint32_t zPos;
     uint16_t elementID;
@@ -241,13 +230,21 @@ struct ZEntry {
 }
 
 /// Compute a grid layout
-void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, uint16_t columns) {
-    // Remember positioned elements
-    std::vector<PositionedElement> positioned;
-    positioned.reserve(elements.size());
+void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, nonstd::span<GridArea> areas, uint16_t columns) {
+    // The number of positioned elements
+    uint16_t positionedElements = 0;
+    // Remember the allocated number of rows
+    uint16_t allocatedRows = 0;
+    // Maintain a logical clock to determine whether we considered an overlap already
+    uint16_t elementEpoch = 0;
+
+    // Remember the last element checks
+    std::vector<uint16_t> elementChecks;
+    elementChecks.resize(elements.size(), 0);
 
     // Remember entries in the z-index
     std::vector<ZEntry> zIndex;
+    zIndex.reserve(elements.size() * 4);
     auto addZ = [](std::vector<ZEntry>& zIndex, uint32_t zPos, uint16_t elementID) {
         auto iter = std::upper_bound(zIndex.begin(), zIndex.end(), zPos, [](auto z, auto& v) {
             return v.zPos < z;
@@ -255,31 +252,24 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, uint16_t colu
         zIndex.insert(iter, ZEntry{zPos, elementID});
     };
 
-    // Remember the allocated number of rows
-    size_t allocatedRows = 0;
-    // Maintain a logical clock to determine whether we considered an overlap already
-    uint16_t elementEpoch = 0;
-
     // Insert all the elements
     for (auto& elem: elements) {
-        auto width = elem.offsetX + elem.width;
-        auto height = elem.offsetY + elem.height;
         ++elementEpoch;
         bool elementDone = false;
 
         // Scan all the existing rows
-        for (size_t yBegin = 0; yBegin < allocatedRows && !elementDone;) {
+        for (uint16_t yBegin = 0; yBegin < allocatedRows && !elementDone;) {
             auto nextY = std::numeric_limits<uint16_t>::max();
 
-            for (size_t xBegin = 0; xBegin + width <= columns;) {
-                auto xEnd = xBegin + width;
-                auto yEnd = yBegin + height;
+            for (uint16_t xBegin = 0; xBegin + elem.width <= columns;) {
+                uint16_t xEnd = xBegin + elem.width;
+                uint16_t yEnd = yBegin + elem.height;
 
                 // Search candidates
-                auto anchorNW = computeZCurvePosition(xBegin, yBegin);
-                auto anchorNE = computeZCurvePosition(xEnd, yBegin);
-                auto anchorSE = computeZCurvePosition(xEnd, yEnd);
-                auto anchorSW = computeZCurvePosition(xBegin, yEnd);
+                auto anchorNW = computeZ(xBegin, yBegin);
+                auto anchorNE = computeZ(xEnd, yBegin);
+                auto anchorSE = computeZ(xEnd, yEnd);
+                auto anchorSW = computeZ(xBegin, yEnd);
                 auto zLB = zIndex.begin() + (zIndex.rend() - std::lower_bound(zIndex.rbegin(), zIndex.rend(), anchorNW, [](auto& e, auto v) {
                     return e.zPos > v;
                 }));
@@ -291,15 +281,15 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, uint16_t colu
                 bool foundConflict = false;
                 auto nextX = 0;
                 for (auto iter = zLB; iter < zUB; ++iter) {
-                    auto& candidate = positioned[iter->elementID];
+                    auto& candidate = areas[iter->elementID];
 
                     // Already checked?
                     // Positioned elements have multiple entries in the z-index. 
                     // We will likely see the same element multiple times in the range.
-                    if (candidate.lastCheck >= elementEpoch) {
+                    if (elementChecks[iter->elementID] >= elementEpoch) {
                         continue;
                     }
-                    candidate.lastCheck = elementEpoch;
+                    elementChecks[iter->elementID] = elementEpoch;
 
                     // Element overlaps?
                     auto xOverlaps = !(xEnd <= candidate.xBegin || xBegin >= candidate.xEnd);
@@ -313,8 +303,8 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, uint16_t colu
 
                 // No conflict? Insert the element here
                 if (!foundConflict) {
-                    auto elementID = positioned.size();
-                    positioned.emplace_back(xBegin, xEnd, yBegin, yEnd);
+                    auto elementID = positionedElements++;
+                    areas[elementID] = GridArea{xBegin, xEnd, yBegin, yEnd};
                     addZ(zIndex, anchorNW, elementID);
                     addZ(zIndex, anchorNE, elementID);
                     addZ(zIndex, anchorSE, elementID);
@@ -330,21 +320,21 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, uint16_t colu
 
         // Insert in new row, if necessary
         if (!elementDone) {
-            auto xBegin = 0;
-            auto xEnd = width;
-            auto yBegin = allocatedRows;
-            auto yEnd = yBegin + height;
-            auto anchorNW = computeZCurvePosition(xBegin, yBegin);
-            auto anchorNE = computeZCurvePosition(xEnd, yBegin);
-            auto anchorSE = computeZCurvePosition(xEnd, yEnd);
-            auto anchorSW = computeZCurvePosition(xBegin, yEnd);
-            auto elementID = positioned.size();
-            positioned.emplace_back(xBegin, xEnd, yBegin, yEnd);
+            uint16_t xBegin = 0;
+            uint16_t xEnd = elem.width;
+            uint16_t yBegin = allocatedRows;
+            uint16_t yEnd = yBegin + elem.height;
+            auto anchorNW = computeZ(xBegin, yBegin);
+            auto anchorNE = computeZ(xEnd, yBegin);
+            auto anchorSE = computeZ(xEnd, yEnd);
+            auto anchorSW = computeZ(xBegin, yEnd);
+            auto elementID = positionedElements++;
+            areas[elementID] = GridArea{xBegin, xEnd, yBegin, yEnd};
             addZ(zIndex, anchorNW, elementID);
             addZ(zIndex, anchorNE, elementID);
             addZ(zIndex, anchorSE, elementID);
             addZ(zIndex, anchorSW, elementID);
-            allocatedRows += height;
+            allocatedRows += elem.height;
         }
     }
 }

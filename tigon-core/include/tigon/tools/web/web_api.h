@@ -152,8 +152,17 @@ class WebAPI {
     struct GridElement {
         uint16_t width;
         uint16_t height;
-        uint16_t offsetX;
-        uint16_t offsetY;
+    } __attribute((packed));
+
+    /// A grid area
+    struct GridArea {
+        uint16_t xBegin;
+        uint16_t xEnd;
+        uint16_t yBegin;
+        uint16_t yEnd;
+
+        GridArea(uint16_t xBegin, uint16_t xEnd, uint16_t yBegin, uint16_t yEnd)
+            : xBegin(xBegin), xEnd(xEnd), yBegin(yBegin), yEnd(yEnd) {}
     } __attribute((packed));
 
   protected:
@@ -172,7 +181,7 @@ class WebAPI {
     void endSession(Session* session);
 
     /// Compute a grid layout
-    static void computeGridLayout(nonstd::span<GridElement> elements, uint16_t columns = 12);
+    static void computeGridLayout(nonstd::span<GridElement> elements, nonstd::span<GridArea> out, uint16_t columns = 12);
 };
 
 } // namespace tigon
