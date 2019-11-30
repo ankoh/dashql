@@ -220,72 +220,131 @@ uint32_t computeZCurvePosition(uint16_t xIn, uint16_t yIn) {
 }
 
 struct PositionedElement {
-    uint32_t zPos;
     uint16_t xBegin;
     uint16_t xEnd;
     uint16_t yBegin;
     uint16_t yEnd;
+    uint16_t lastCheck;
 
-    PositionedElement(uint32_t zPos, uint16_t xBegin, uint16_t xEnd, uint16_t yBegin, uint16_t yEnd)
-        : zPos(zPos), xBegin(xBegin), xEnd(xEnd), yBegin(yBegin), yEnd(yEnd) {}
+    PositionedElement(uint16_t xBegin, uint16_t xEnd, uint16_t yBegin, uint16_t yEnd)
+        : xBegin(xBegin), xEnd(xEnd), yBegin(yBegin), yEnd(yEnd), lastCheck(0) {}
+};
+
+struct ZEntry {
+    uint32_t zPos;
+    uint16_t elementID;
+
+    ZEntry(uint32_t zPos, uint16_t elementID)
+        : zPos(zPos), elementID(elementID) {}
 };
 
 }
 
 /// Compute a grid layout
-void WebAPI::computeGridLayout(nonstd::span<GridElement> elements) {
-    std::vector<PositionedElement> elems;
-    size_t columnCount = 12;
-    size_t allocatedRows;
+void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, uint16_t columns) {
+    // Remember positioned elements
+    std::vector<PositionedElement> positioned;
+    positioned.reserve(elements.size());
 
-    // Separate elements that have been elems already
-    elems.reserve(elements.size());
+    // Remember entries in the z-index
+    std::vector<ZEntry> zIndex;
+    auto addZ = [](std::vector<ZEntry>& zIndex, uint32_t zPos, uint16_t elementID) {
+        auto iter = std::upper_bound(zIndex.begin(), zIndex.end(), zPos, [](auto z, auto& v) {
+            return v.zPos < z;
+        });
+        zIndex.insert(iter, ZEntry{zPos, elementID});
+    };
+
+    // Remember the allocated number of rows
+    size_t allocatedRows = 0;
+    // Maintain a logical clock to determine whether we considered an overlap already
+    uint16_t elementEpoch = 0;
+
+    // Insert all the elements
     for (auto& elem: elements) {
-        auto width = elem.width + elem.offsetX;
-        auto height = elem.height + elem.offsetY;
+        auto width = elem.offsetX + elem.width;
+        auto height = elem.offsetY + elem.height;
+        ++elementEpoch;
+        bool elementDone = false;
 
-        for (size_t yBegin = 0; yBegin < allocatedRows;) {
-            for (size_t xBegin = 0; xBegin + width <= columnCount;) {
+        // Scan all the existing rows
+        for (size_t yBegin = 0; yBegin < allocatedRows && !elementDone;) {
+            auto nextY = std::numeric_limits<uint16_t>::max();
+
+            for (size_t xBegin = 0; xBegin + width <= columns;) {
                 auto xEnd = xBegin + width;
                 auto yEnd = yBegin + height;
 
                 // Search candidates
                 auto anchorNW = computeZCurvePosition(xBegin, yBegin);
+                auto anchorNE = computeZCurvePosition(xEnd, yBegin);
                 auto anchorSE = computeZCurvePosition(xEnd, yEnd);
-                auto lb = elems.begin() + (elems.rend() - std::lower_bound(elems.rbegin(), elems.rend(), anchorNW, [](auto& e, auto v) {
+                auto anchorSW = computeZCurvePosition(xBegin, yEnd);
+                auto zLB = zIndex.begin() + (zIndex.rend() - std::lower_bound(zIndex.rbegin(), zIndex.rend(), anchorNW, [](auto& e, auto v) {
                     return e.zPos > v;
                 }));
-                auto ub = std::lower_bound(elems.begin(), elems.end(), anchorSE, [](auto& e, auto v) {
+                auto zUB = std::lower_bound(zIndex.begin(), zIndex.end(), anchorSE, [](auto& e, auto v) {
                     return e.zPos < v;
                 });
 
                 // Check iterators
                 bool foundConflict = false;
-                auto xMax = 0, yMax = 0;
-                for (auto iter = lb; iter < ub; ++iter) {
-                    auto& candidate = *iter;
+                auto nextX = 0;
+                for (auto iter = zLB; iter < zUB; ++iter) {
+                    auto& candidate = positioned[iter->elementID];
+
+                    // Already checked?
+                    // Positioned elements have multiple entries in the z-index. 
+                    // We will likely see the same element multiple times in the range.
+                    if (candidate.lastCheck >= elementEpoch) {
+                        continue;
+                    }
+                    candidate.lastCheck = elementEpoch;
+
+                    // Element overlaps?
                     auto xOverlaps = !(xEnd <= candidate.xBegin || xBegin >= candidate.xEnd);
                     auto yOverlaps = !(yEnd <= candidate.yBegin || yBegin >= candidate.yBegin);
                     if (xOverlaps || yOverlaps) {
                         foundConflict = true;
-                        xMax = std::max<uint16_t>(xMax, candidate.xEnd);
-                        yMax = std::max<uint16_t>(yMax, candidate.yEnd);
-                        break;
+                        nextX = std::max<uint16_t>(nextX, candidate.xEnd);
+                        nextY = std::min<uint16_t>(nextY, candidate.yEnd);
                     }
                 }
 
+                // No conflict? Insert the element here
                 if (!foundConflict) {
-                    // TODO found something
+                    auto elementID = positioned.size();
+                    positioned.emplace_back(xBegin, xEnd, yBegin, yEnd);
+                    addZ(zIndex, anchorNW, elementID);
+                    addZ(zIndex, anchorNE, elementID);
+                    addZ(zIndex, anchorSE, elementID);
+                    addZ(zIndex, anchorSW, elementID);
+                    allocatedRows = std::max<uint16_t>(allocatedRows, yEnd);
+                    elementDone = true;
+                    break;
                 }
-
-                // Advance iterators
-                xBegin = xMax;
-                yBegin = yMax;
+                xBegin = nextX;
             }
+            yBegin = std::min<uint16_t>(nextY, yBegin + 1);
         }
 
-        // TODO adjust elements
-        // auto pos = computeZCurvePosition(elem.offsetX, elem.offsetY);
-        // elems.emplace_back(pos, elem.width, elem.height, elem.offsetX, elem.offsetY);
+        // Insert in new row, if necessary
+        if (!elementDone) {
+            auto xBegin = 0;
+            auto xEnd = width;
+            auto yBegin = allocatedRows;
+            auto yEnd = yBegin + height;
+            auto anchorNW = computeZCurvePosition(xBegin, yBegin);
+            auto anchorNE = computeZCurvePosition(xEnd, yBegin);
+            auto anchorSE = computeZCurvePosition(xEnd, yEnd);
+            auto anchorSW = computeZCurvePosition(xBegin, yEnd);
+            auto elementID = positioned.size();
+            positioned.emplace_back(xBegin, xEnd, yBegin, yEnd);
+            addZ(zIndex, anchorNW, elementID);
+            addZ(zIndex, anchorNE, elementID);
+            addZ(zIndex, anchorSE, elementID);
+            addZ(zIndex, anchorSW, elementID);
+            allocatedRows += height;
+        }
     }
 }

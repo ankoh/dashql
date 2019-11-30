@@ -172,7 +172,7 @@ class WebAPI {
     void endSession(Session* session);
 
     /// Compute a grid layout
-    static void computeGridLayout(nonstd::span<GridElement> elements);
+    static void computeGridLayout(nonstd::span<GridElement> elements, uint16_t columns = 12);
 };
 
 } // namespace tigon
