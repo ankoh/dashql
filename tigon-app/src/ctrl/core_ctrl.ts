@@ -7,6 +7,13 @@ declare function TigonCore(args: any): any;
 // ALL methods that transitively depend on the core MUST be asynchronous.
 // This will be crucial if we ever want to move the core to a web worker.
 
+export class CoreBuffer {
+    /// The number
+    protected offset: number;
+    /// The size
+    protected size: number;
+}
+
 // The core controller
 export class CoreController {
     // The function to load the core
@@ -15,6 +22,9 @@ export class CoreController {
     protected coreLoading: Promise<void> | null = null;
     // The core module
     protected core: any | null = null;
+
+    // The cached layout buffer (if any)
+    protected cachedLayoutBuffer: CoreBuffer | null = null;
 
     // Constructor
     constructor(loadCore: any | null = null) {
