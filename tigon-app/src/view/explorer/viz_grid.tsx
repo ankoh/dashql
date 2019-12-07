@@ -55,34 +55,17 @@ export enum GridLengthUnit {
     MIN_MAX
 };
 
-/// A grid length
-export class GridLength {
-    /// The value
-    value: number;
-    /// The unit
-    unit: GridLengthUnit;
-
-    /// Constructor
-    constructor(value: number, unit: GridLengthUnit) {
-        this.z = value;
-        this.unit = unit;
-    }
-};
-
 /// A grid layout
 export class GridLayout {
-    /// The columns
-    columns: number;
-    /// The rows
-    rows: Array<GridLength>;
-    /// The gaps
-    gaps: [GridLength, GridLength] | null;
+    /// The column count
+    columnCount: number;
+    /// The row height
+    rowHeight: number;
 
     /// Constructor
     constructor() {
-        this.columns = 12;
-        this.rows = [];
-        this.gaps = null;
+        this.columnCount = 12;
+        this.rowHeight = 48;
     }
 };
 
@@ -209,27 +192,17 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
         }
 
         let gridLayout = new GridLayout();
-
         let vizAreas = vizStmts.map((v) => pickArea(v.getArea()));
-        let vizPositions = vizAreas.map((a) => {
-            if (!a || !a.getX() || !a.getY()) { return null; }
-            let x = a.getX()!.getValue();
-            let y = a.getY()!.getValue();
-            let width = a.getWidth() ? a.getWidth()!.getValue() : 6;
-            let height = a.getHeight() ? a.getHeight()!.getValue() : 20;
-            return new GridElement([x, x + width], [y, y + height]);
-        });
-        let [maxCol, maxRow] = vizPositions.reduce((acc, elem) => {
-            return elem
-                ? [Math.max(acc[0], elem.columns[1]), Math.max(acc[1], elem.rows[1])]
-                : [acc[0], acc[1]];
-        }, [0, 0]);
+        // XXX compute the viz positions with the core
 
         // Return state
         return {
             gridLayout: gridLayout,
             vizStmts: vizStmts,
-            vizPositions: vizPositions.filter(v => v != null) as GridElement[],
+            vizPositions: [
+                new GridElement([0, 6], [0, 20]),
+                new GridElement([6, 12], [0, 20]),
+            ],
             vizData: vizData,
         };
     }

@@ -12,6 +12,12 @@ export class CoreBuffer {
     protected offset: number;
     /// The size
     protected size: number;
+
+    /// The constructor
+    constructor(offset: number, size: number) {
+        this.offset = offset;
+        this.size = size;
+    }
 }
 
 // The core controller
