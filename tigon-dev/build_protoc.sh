@@ -2,7 +2,7 @@
 
 PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/.."
 PROTOBUF_DIR="${PROJECT_ROOT}/submodules/protobuf"
-PROTOC_BASE_DIR="${PROJECT_ROOT}/tigon-build/protoc"
+PROTOC_BASE_DIR="${PROJECT_ROOT}/tigon-dev/protoc"
 PROTOC_BUILD_DIR="${PROTOC_BASE_DIR}/build"
 PROTOC_INSTALL_DIR="${PROTOC_BASE_DIR}/install"
 
