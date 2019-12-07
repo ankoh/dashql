@@ -253,15 +253,17 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, nonstd::span<
     };
 
     // Insert all the elements
+    uint16_t xBegin = 0;
+    uint16_t yBegin = 0;
     for (auto& elem: elements) {
         ++elementEpoch;
         bool elementDone = false;
+        auto xUB = xBegin;
+        auto yUB = std::numeric_limits<uint16_t>::max();
 
         // Scan all the existing rows
-        for (uint16_t yBegin = 0; yBegin < allocatedRows && !elementDone;) {
-            auto nextY = std::numeric_limits<uint16_t>::max();
-
-            for (uint16_t xBegin = 0; xBegin + elem.width <= columns;) {
+        for (; yBegin < allocatedRows && !elementDone; yBegin = std::min<uint16_t>(yUB, yBegin + 1), xBegin = 0, xUB = 0) {
+            for (; xBegin + elem.width <= columns; xBegin = xUB) {
                 uint16_t xEnd = xBegin + elem.width;
                 uint16_t yEnd = yBegin + elem.height;
 
@@ -279,7 +281,6 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, nonstd::span<
 
                 // Check iterators
                 bool foundConflict = false;
-                auto nextX = 0;
                 for (auto iter = zLB; iter < zUB; ++iter) {
                     auto& candidate = areas[iter->elementID];
 
@@ -296,8 +297,8 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, nonstd::span<
                     auto yOverlaps = !(yEnd <= candidate.yBegin || yBegin >= candidate.yBegin);
                     if (xOverlaps || yOverlaps) {
                         foundConflict = true;
-                        nextX = std::max<uint16_t>(nextX, candidate.xEnd);
-                        nextY = std::min<uint16_t>(nextY, candidate.yEnd);
+                        xUB = std::max<uint16_t>(xUB, candidate.xEnd);
+                        yUB = std::min<uint16_t>(yUB, candidate.yEnd);
                     }
                 }
 
@@ -313,9 +314,7 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, nonstd::span<
                     elementDone = true;
                     break;
                 }
-                xBegin = nextX;
             }
-            yBegin = std::min<uint16_t>(nextY, yBegin + 1);
         }
 
         // Insert in new row, if necessary
