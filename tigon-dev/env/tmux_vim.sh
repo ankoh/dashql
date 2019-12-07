@@ -31,8 +31,10 @@ tmux new-window -t ${SESSION}:4 -k -n "app-srv" -c "${PROJECT_ROOT}/tigon-app"
 tmux new-window -t ${SESSION}:5 -k -n "app-tests" -c "${PROJECT_ROOT}/tigon-app"
 
 tmux send -t ${SESSION}:0 "${EDITOR}" C-m
+tmux send -t ${SESSION}:0 ":NERDTreeToggle" C-m
 tmux send -t ${SESSION}:3 "nvm use ${NODE_VERSION}" C-m
 tmux send -t ${SESSION}:3 "${EDITOR}" C-m
+tmux send -t ${SESSION}:3 ":NERDTreeToggle" C-m
 tmux send -t ${SESSION}:4 "nvm use ${NODE_VERSION}" C-m
 tmux send -t ${SESSION}:5 "nvm use ${NODE_VERSION}" C-m
 
