@@ -145,7 +145,7 @@ void WebAPI::Session::runQuery(std::string_view text) {
 void WebAPI::Session::planQuery(std::string_view text) {
     // Parse the statements
     duckdb::Connection conn{*database};
-    duckdb::Parser parser(*conn.context);
+    duckdb::Parser parser;
     parser.ParseQuery(std::string(text));
 
     // Begin transaction

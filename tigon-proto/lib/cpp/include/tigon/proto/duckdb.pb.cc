@@ -354,28 +354,40 @@ bool LogicalOperatorType_IsValid(int value) {
     case 33:
     case 34:
     case 35:
+    case 36:
+    case 37:
+    case 38:
+    case 39:
+    case 40:
+    case 41:
+    case 42:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> LogicalOperatorType_strings[36] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> LogicalOperatorType_strings[43] = {};
 
 static const char LogicalOperatorType_names[] =
   "OP_AGGREGATE_AND_GROUP_BY"
+  "OP_ALTER"
   "OP_ANY_JOIN"
   "OP_CHUNK_GET"
   "OP_COMPARISON_JOIN"
   "OP_COPY_FROM_FILE"
   "OP_COPY_TO_FILE"
   "OP_CREATE_INDEX"
+  "OP_CREATE_SCHEMA"
+  "OP_CREATE_SEQUENCE"
   "OP_CREATE_TABLE"
+  "OP_CREATE_VIEW"
   "OP_CROSS_PRODUCT"
   "OP_DELETE"
   "OP_DELIM_GET"
   "OP_DELIM_JOIN"
   "OP_DISTINCT"
+  "OP_DROP"
   "OP_EMPTY_RESULT"
   "OP_EXCEPT"
   "OP_EXECUTE"
@@ -390,92 +402,108 @@ static const char LogicalOperatorType_names[] =
   "OP_JOIN"
   "OP_LIMIT"
   "OP_ORDER_BY"
+  "OP_PRAGMA"
   "OP_PREPARE"
   "OP_PROJECTION"
   "OP_PRUNE_COLUMNS"
   "OP_SUBQUERY"
   "OP_TABLE_FUNCTION"
   "OP_TOP_N"
+  "OP_TRANSACTION"
   "OP_UNION"
   "OP_UPDATE"
   "OP_WINDOW";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry LogicalOperatorType_entries[] = {
   { {LogicalOperatorType_names + 0, 25}, 3 },
-  { {LogicalOperatorType_names + 25, 11}, 22 },
-  { {LogicalOperatorType_names + 36, 12}, 13 },
-  { {LogicalOperatorType_names + 48, 18}, 21 },
-  { {LogicalOperatorType_names + 66, 17}, 8 },
-  { {LogicalOperatorType_names + 83, 15}, 9 },
-  { {LogicalOperatorType_names + 98, 15}, 31 },
-  { {LogicalOperatorType_names + 113, 15}, 30 },
-  { {LogicalOperatorType_names + 128, 16}, 23 },
-  { {LogicalOperatorType_names + 144, 9}, 28 },
-  { {LogicalOperatorType_names + 153, 12}, 14 },
-  { {LogicalOperatorType_names + 165, 13}, 20 },
-  { {LogicalOperatorType_names + 178, 11}, 10 },
-  { {LogicalOperatorType_names + 189, 15}, 18 },
-  { {LogicalOperatorType_names + 204, 9}, 25 },
-  { {LogicalOperatorType_names + 213, 10}, 35 },
-  { {LogicalOperatorType_names + 223, 10}, 32 },
-  { {LogicalOperatorType_names + 233, 17}, 15 },
-  { {LogicalOperatorType_names + 250, 9}, 2 },
-  { {LogicalOperatorType_names + 259, 6}, 12 },
-  { {LogicalOperatorType_names + 265, 13}, 11 },
-  { {LogicalOperatorType_names + 278, 9}, 27 },
-  { {LogicalOperatorType_names + 287, 12}, 26 },
-  { {LogicalOperatorType_names + 299, 10}, 0 },
-  { {LogicalOperatorType_names + 309, 7}, 19 },
-  { {LogicalOperatorType_names + 316, 8}, 5 },
-  { {LogicalOperatorType_names + 324, 11}, 6 },
-  { {LogicalOperatorType_names + 335, 10}, 34 },
-  { {LogicalOperatorType_names + 345, 13}, 1 },
-  { {LogicalOperatorType_names + 358, 16}, 33 },
-  { {LogicalOperatorType_names + 374, 11}, 17 },
-  { {LogicalOperatorType_names + 385, 17}, 16 },
-  { {LogicalOperatorType_names + 402, 8}, 7 },
-  { {LogicalOperatorType_names + 410, 8}, 24 },
-  { {LogicalOperatorType_names + 418, 9}, 29 },
-  { {LogicalOperatorType_names + 427, 9}, 4 },
+  { {LogicalOperatorType_names + 25, 8}, 30 },
+  { {LogicalOperatorType_names + 33, 11}, 22 },
+  { {LogicalOperatorType_names + 44, 12}, 13 },
+  { {LogicalOperatorType_names + 56, 18}, 21 },
+  { {LogicalOperatorType_names + 74, 17}, 8 },
+  { {LogicalOperatorType_names + 91, 15}, 9 },
+  { {LogicalOperatorType_names + 106, 15}, 32 },
+  { {LogicalOperatorType_names + 121, 16}, 35 },
+  { {LogicalOperatorType_names + 137, 18}, 33 },
+  { {LogicalOperatorType_names + 155, 15}, 31 },
+  { {LogicalOperatorType_names + 170, 14}, 34 },
+  { {LogicalOperatorType_names + 184, 16}, 23 },
+  { {LogicalOperatorType_names + 200, 9}, 28 },
+  { {LogicalOperatorType_names + 209, 12}, 14 },
+  { {LogicalOperatorType_names + 221, 13}, 20 },
+  { {LogicalOperatorType_names + 234, 11}, 10 },
+  { {LogicalOperatorType_names + 245, 7}, 36 },
+  { {LogicalOperatorType_names + 252, 15}, 18 },
+  { {LogicalOperatorType_names + 267, 9}, 25 },
+  { {LogicalOperatorType_names + 276, 10}, 42 },
+  { {LogicalOperatorType_names + 286, 10}, 39 },
+  { {LogicalOperatorType_names + 296, 17}, 15 },
+  { {LogicalOperatorType_names + 313, 9}, 2 },
+  { {LogicalOperatorType_names + 322, 6}, 12 },
+  { {LogicalOperatorType_names + 328, 13}, 11 },
+  { {LogicalOperatorType_names + 341, 9}, 27 },
+  { {LogicalOperatorType_names + 350, 12}, 26 },
+  { {LogicalOperatorType_names + 362, 10}, 0 },
+  { {LogicalOperatorType_names + 372, 7}, 19 },
+  { {LogicalOperatorType_names + 379, 8}, 5 },
+  { {LogicalOperatorType_names + 387, 11}, 6 },
+  { {LogicalOperatorType_names + 398, 9}, 37 },
+  { {LogicalOperatorType_names + 407, 10}, 41 },
+  { {LogicalOperatorType_names + 417, 13}, 1 },
+  { {LogicalOperatorType_names + 430, 16}, 40 },
+  { {LogicalOperatorType_names + 446, 11}, 17 },
+  { {LogicalOperatorType_names + 457, 17}, 16 },
+  { {LogicalOperatorType_names + 474, 8}, 7 },
+  { {LogicalOperatorType_names + 482, 14}, 38 },
+  { {LogicalOperatorType_names + 496, 8}, 24 },
+  { {LogicalOperatorType_names + 504, 9}, 29 },
+  { {LogicalOperatorType_names + 513, 9}, 4 },
 };
 
 static const int LogicalOperatorType_entries_by_number[] = {
-  23, // 0 -> OP_INVALID
-  28, // 1 -> OP_PROJECTION
-  18, // 2 -> OP_FILTER
+  28, // 0 -> OP_INVALID
+  34, // 1 -> OP_PROJECTION
+  23, // 2 -> OP_FILTER
   0, // 3 -> OP_AGGREGATE_AND_GROUP_BY
-  35, // 4 -> OP_WINDOW
-  25, // 5 -> OP_LIMIT
-  26, // 6 -> OP_ORDER_BY
-  32, // 7 -> OP_TOP_N
-  4, // 8 -> OP_COPY_FROM_FILE
-  5, // 9 -> OP_COPY_TO_FILE
-  12, // 10 -> OP_DISTINCT
-  20, // 11 -> OP_INDEX_SCAN
-  19, // 12 -> OP_GET
-  2, // 13 -> OP_CHUNK_GET
-  10, // 14 -> OP_DELIM_GET
-  17, // 15 -> OP_EXPRESSION_GET
-  31, // 16 -> OP_TABLE_FUNCTION
-  30, // 17 -> OP_SUBQUERY
-  13, // 18 -> OP_EMPTY_RESULT
-  24, // 19 -> OP_JOIN
-  11, // 20 -> OP_DELIM_JOIN
-  3, // 21 -> OP_COMPARISON_JOIN
-  1, // 22 -> OP_ANY_JOIN
-  8, // 23 -> OP_CROSS_PRODUCT
-  33, // 24 -> OP_UNION
-  14, // 25 -> OP_EXCEPT
-  22, // 26 -> OP_INTERSECT
-  21, // 27 -> OP_INSERT
-  9, // 28 -> OP_DELETE
-  34, // 29 -> OP_UPDATE
-  7, // 30 -> OP_CREATE_TABLE
-  6, // 31 -> OP_CREATE_INDEX
-  16, // 32 -> OP_EXPLAIN
-  29, // 33 -> OP_PRUNE_COLUMNS
-  27, // 34 -> OP_PREPARE
-  15, // 35 -> OP_EXECUTE
+  42, // 4 -> OP_WINDOW
+  30, // 5 -> OP_LIMIT
+  31, // 6 -> OP_ORDER_BY
+  38, // 7 -> OP_TOP_N
+  5, // 8 -> OP_COPY_FROM_FILE
+  6, // 9 -> OP_COPY_TO_FILE
+  16, // 10 -> OP_DISTINCT
+  25, // 11 -> OP_INDEX_SCAN
+  24, // 12 -> OP_GET
+  3, // 13 -> OP_CHUNK_GET
+  14, // 14 -> OP_DELIM_GET
+  22, // 15 -> OP_EXPRESSION_GET
+  37, // 16 -> OP_TABLE_FUNCTION
+  36, // 17 -> OP_SUBQUERY
+  18, // 18 -> OP_EMPTY_RESULT
+  29, // 19 -> OP_JOIN
+  15, // 20 -> OP_DELIM_JOIN
+  4, // 21 -> OP_COMPARISON_JOIN
+  2, // 22 -> OP_ANY_JOIN
+  12, // 23 -> OP_CROSS_PRODUCT
+  40, // 24 -> OP_UNION
+  19, // 25 -> OP_EXCEPT
+  27, // 26 -> OP_INTERSECT
+  26, // 27 -> OP_INSERT
+  13, // 28 -> OP_DELETE
+  41, // 29 -> OP_UPDATE
+  1, // 30 -> OP_ALTER
+  10, // 31 -> OP_CREATE_TABLE
+  7, // 32 -> OP_CREATE_INDEX
+  9, // 33 -> OP_CREATE_SEQUENCE
+  11, // 34 -> OP_CREATE_VIEW
+  8, // 35 -> OP_CREATE_SCHEMA
+  17, // 36 -> OP_DROP
+  32, // 37 -> OP_PRAGMA
+  39, // 38 -> OP_TRANSACTION
+  21, // 39 -> OP_EXPLAIN
+  35, // 40 -> OP_PRUNE_COLUMNS
+  33, // 41 -> OP_PREPARE
+  20, // 42 -> OP_EXECUTE
 };
 
 const std::string& LogicalOperatorType_Name(
@@ -484,12 +512,12 @@ const std::string& LogicalOperatorType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           LogicalOperatorType_entries,
           LogicalOperatorType_entries_by_number,
-          36, LogicalOperatorType_strings);
+          43, LogicalOperatorType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       LogicalOperatorType_entries,
       LogicalOperatorType_entries_by_number,
-      36, value);
+      43, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      LogicalOperatorType_strings[idx].get();
 }
@@ -497,7 +525,7 @@ bool LogicalOperatorType_Parse(
     const std::string& name, LogicalOperatorType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      LogicalOperatorType_entries, 36, name, &int_value);
+      LogicalOperatorType_entries, 43, name, &int_value);
   if (success) {
     *value = static_cast<LogicalOperatorType>(int_value);
   }

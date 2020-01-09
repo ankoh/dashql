@@ -4,6 +4,7 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/proto/duckdb_codec.h"
+#include "duckdb/common/enums/logical_operator_type.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 
 namespace protobuf = google::protobuf;
@@ -23,6 +24,7 @@ namespace tigon {
     X(COPY_TO_FILE) \
     X(DISTINCT) \
     X(INDEX_SCAN) \
+    \
     X(GET) \
     X(CHUNK_GET) \
     X(DELIM_GET) \
@@ -30,20 +32,33 @@ namespace tigon {
     X(TABLE_FUNCTION) \
     X(SUBQUERY) \
     X(EMPTY_RESULT) \
+    \
     X(JOIN) \
     X(DELIM_JOIN) \
     X(COMPARISON_JOIN) \
     X(ANY_JOIN) \
     X(CROSS_PRODUCT) \
+    \
     X(UNION) \
     X(EXCEPT) \
     X(INTERSECT) \
+    \
     X(INSERT) \
     X(DELETE) \
     X(UPDATE) \
+    \
+    X(ALTER) \
     X(CREATE_TABLE) \
     X(CREATE_INDEX) \
+    X(CREATE_SEQUENCE) \
+    X(CREATE_VIEW) \
+    X(CREATE_SCHEMA) \
+    X(DROP) \
+    X(PRAGMA) \
+    X(TRANSACTION) \
+    \
     X(EXPLAIN) \
+    \
     X(PRUNE_COLUMNS) \
     X(PREPARE) \
     X(EXECUTE)

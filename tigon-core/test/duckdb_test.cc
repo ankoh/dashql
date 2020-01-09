@@ -6,6 +6,7 @@
 #include "tigon/tools/web/web_api.h"
 #include "tigon/proto/duckdb.pb.h"
 #include <gtest/gtest.h>
+#include <numeric>
 #include <sstream>
 
 using namespace tigon;
@@ -64,7 +65,7 @@ TEST(WebAPITest, ExplainQuery) {
         auto& opChildOffsets = queryPlan->operator_child_offsets();
         auto& opChildren = queryPlan->operator_children();
         ASSERT_EQ(opTypes.size(), 2)
-            << accumulate(opTypes.begin(), opTypes.end(), string{}, [](auto& prev, uint8_t type) {
+            << std::accumulate(opTypes.begin(), opTypes.end(), string{}, [](auto& prev, uint8_t type) {
                 return string{prev.empty() ? "" : prev + ","} + proto::duckdb::LogicalOperatorType_Name(type);
             });
         ASSERT_EQ(opTypes.Get(0), proto::duckdb::LogicalOperatorType::OP_PROJECTION);

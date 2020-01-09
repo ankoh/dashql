@@ -6,7 +6,8 @@
 #ifndef INCLUDE_TIGON_PROTO_DUCKDB_CODEC_H_
 #define INCLUDE_TIGON_PROTO_DUCKDB_CODEC_H_
 
-#include "duckdb.hpp"
+#include "duckdb/main/query_result.hpp"
+#include "duckdb/planner/logical_operator.hpp"
 
 #include "google/protobuf/arena.h"
 #include "tigon/proto/duckdb.pb.h"
