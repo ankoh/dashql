@@ -6,7 +6,7 @@ import * as dagre from 'dagre';
 import * as dagreD3 from 'dagre-d3';
 
 interface IPlanViewerProps {
-    plan: proto.duckdb.QueryPlan | null;
+    plan: proto.engine.QueryPlan | null;
 }
 
 export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
@@ -18,7 +18,7 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
     }
 
     /// Get an operator name
-    private getOperatorName(type: proto.duckdb.LogicalOperatorTypeMap[keyof proto.duckdb.LogicalOperatorTypeMap]) {
+    private getOperatorName(type: proto.engine.LogicalOperatorTypeMap[keyof proto.engine.LogicalOperatorTypeMap]) {
         var operatorTypeNames = [
             "INVALID",
             "PROJECTION",

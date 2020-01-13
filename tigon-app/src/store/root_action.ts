@@ -23,7 +23,7 @@ export type RootAction =
     | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
     | Action<ActionType.PUSH_TRANSIENT_TQL_STATEMENTS, Array<proto.tql.Statement>>
-    | Action<ActionType.SET_TRANSIENT_QUERY_RESULT, [string, proto.duckdb.QueryResult]>
+    | Action<ActionType.SET_TRANSIENT_QUERY_RESULT, [string, proto.engine.QueryResult]>
     | Action<ActionType.OTHER, {}>;
 
 // ---------------------------------------------------------------------------
@@ -60,6 +60,6 @@ export function pushTransientTQLStatements(stmts: Array<proto.tql.Statement>): R
     return createAction(ActionType.PUSH_TRANSIENT_TQL_STATEMENTS, stmts);
 }
 
-export function setTransientQueryResult(key: string, result: proto.duckdb.QueryResult): RootAction {
-    return createAction<ActionType.SET_TRANSIENT_QUERY_RESULT, [string, proto.duckdb.QueryResult]>(ActionType.SET_TRANSIENT_QUERY_RESULT, [key, result]);
+export function setTransientQueryResult(key: string, result: proto.engine.QueryResult): RootAction {
+    return createAction<ActionType.SET_TRANSIENT_QUERY_RESULT, [string, proto.engine.QueryResult]>(ActionType.SET_TRANSIENT_QUERY_RESULT, [key, result]);
 }

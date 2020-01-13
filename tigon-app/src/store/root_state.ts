@@ -119,9 +119,9 @@ export class RootState {
     // The transient TQL module (if any)
     public transientTQLStatements: Immutable.List<proto.tql.Statement>;
     // The transient query results (if any)
-    public transientQueryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
+    public transientQueryResults: Immutable.Map<string, proto.engine.QueryResult>;
     // The transient query plans (if any)
-    public transientQueryPlans: Immutable.Map<string, proto.duckdb.QueryPlan>;
+    public transientQueryPlans: Immutable.Map<string, proto.engine.QueryPlan>;
 
     // The focused viz
     public focusedViz: number | null;

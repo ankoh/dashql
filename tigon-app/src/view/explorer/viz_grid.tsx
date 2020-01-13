@@ -72,7 +72,7 @@ export class GridLayout {
 /// A viz card
 function VizCard(props: {
     stmt: proto.tql.VizStatement,
-    data: proto.duckdb.QueryResult | null,
+    data: proto.engine.QueryResult | null,
     pos: GridElement
 }) {
     let viz: React.ReactElement | null = null;
@@ -134,7 +134,7 @@ function VizCard(props: {
 /// Viz grid properties
 interface IVizGridProps {
     statements: Immutable.List<proto.tql.Statement>;
-    queryResults: Immutable.Map<string, proto.duckdb.QueryResult>;
+    queryResults: Immutable.Map<string, proto.engine.QueryResult>;
 
     sizeClass: Store.SizeClass,
     width: number;
@@ -146,7 +146,7 @@ interface IVizGridState {
     gridLayout: GridLayout;
     vizStmts: Array<proto.tql.VizStatement>;
     vizPositions: Array<GridElement>;
-    vizData: Array<proto.duckdb.QueryResult | null>;
+    vizData: Array<proto.engine.QueryResult | null>;
 }
 
 /// A viz grid

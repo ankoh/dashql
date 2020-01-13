@@ -1,14 +1,14 @@
 import * as React from 'react';
 import * as proto from 'tigon-proto';
 import s from './table.module.scss';
-import { ChunkAccess } from '../../proto/duckdb_access';
+import { ChunkAccess } from '../../proto/engine_access';
 import { Grid, GridCellProps, Index } from 'react-virtualized';
 import { Scrollbars } from 'react-custom-scrollbars';
 import { withAutoSizer } from '../autosizer';
 
 // The table properties
 interface ITableProps {
-    data: proto.duckdb.QueryResult;
+    data: proto.engine.QueryResult;
     width: number;
     height: number;
 }

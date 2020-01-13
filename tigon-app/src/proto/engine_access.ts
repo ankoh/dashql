@@ -1,17 +1,17 @@
 import * as proto from 'tigon-proto';
 
 export class ChunkAccess {
-    chunks: Array<proto.duckdb.QueryResultChunk>;
+    chunks: Array<proto.engine.QueryResultChunk>;
     lastChunk: number;
 
     /// Constructor
-    constructor(chunks: Array<proto.duckdb.QueryResultChunk>) {
+    constructor(chunks: Array<proto.engine.QueryResultChunk>) {
         this.chunks = chunks;
         this.lastChunk = 0;
     }
 
     /// Check a chunk
-    protected cmpRange(chunk: proto.duckdb.QueryResultChunk, row: number): number {
+    protected cmpRange(chunk: proto.engine.QueryResultChunk, row: number): number {
         let begin = chunk.getRowOffset();
         let end = chunk.getRowOffset() + chunk.getRowCount();
         if (row >= begin && row < end) {
@@ -30,11 +30,11 @@ export class ChunkAccess {
     }
 
     /// Find a chunk
-    public findChunk(row: number): proto.duckdb.QueryResultChunk | null {
+    public findChunk(row: number): proto.engine.QueryResultChunk | null {
         if (this.lastChunkContainsRow(row)) {
             return this.chunks[this.lastChunk];
         }
-        let chunk: proto.duckdb.QueryResultChunk | null = null;
+        let chunk: proto.engine.QueryResultChunk | null = null;
         let lb = 0;
         let ub = this.chunks.length;
         while (lb < ub) {
@@ -74,30 +74,30 @@ export class ChunkAccess {
         if (col <= nullMask.length && nullMask[col]) {
             return "NULL";
         }
-        
+
         // Retrieve the corresponding column
         switch (column.getTypeId()) {
-            case proto.duckdb.RawTypeID.RAW_BIGINT:
+            case proto.engine.RawTypeID.RAW_BIGINT:
                 return column.getRowsI64List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_BOOLEAN:
+            case proto.engine.RawTypeID.RAW_BOOLEAN:
                 return column.getRowsI32List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_DOUBLE:
+            case proto.engine.RawTypeID.RAW_DOUBLE:
                 return column.getRowsF64List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_FLOAT:
+            case proto.engine.RawTypeID.RAW_FLOAT:
                 return column.getRowsF32List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_HASH:
+            case proto.engine.RawTypeID.RAW_HASH:
                 return column.getRowsU64List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_INTEGER:
+            case proto.engine.RawTypeID.RAW_INTEGER:
                 return column.getRowsI64List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_POINTER:
+            case proto.engine.RawTypeID.RAW_POINTER:
                 return column.getRowsU64List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_SMALLINT:
+            case proto.engine.RawTypeID.RAW_SMALLINT:
                 return column.getRowsI32List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_TINYINT:
+            case proto.engine.RawTypeID.RAW_TINYINT:
                 return column.getRowsI32List()[row].toString();
-            case proto.duckdb.RawTypeID.RAW_VARBINARY:
+            case proto.engine.RawTypeID.RAW_VARBINARY:
                 break;
-            case proto.duckdb.RawTypeID.RAW_VARCHAR:
+            case proto.engine.RawTypeID.RAW_VARCHAR:
                 return column.getRowsStrList()[row].toString();
         }
 

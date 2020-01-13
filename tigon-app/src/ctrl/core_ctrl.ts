@@ -139,7 +139,7 @@ export class CoreController {
     }
 
     // Run a query
-    public async runQuery(session: number, text: string): Promise<proto.duckdb.QueryResult> {
+    public async runQuery(session: number, text: string): Promise<proto.engine.QueryResult> {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet('tigon_run_query', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.SUCCESS) {
@@ -147,13 +147,13 @@ export class CoreController {
             return Promise.reject(new Error(""));
         }
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
-        let msg = proto.duckdb.QueryResult.deserializeBinary(mem);
+        let msg = proto.engine.QueryResult.deserializeBinary(mem);
         this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [session, data]);
         return msg;
     }
 
     // Plan a query
-    public async planQuery(session: number, text: string): Promise<proto.duckdb.QueryPlan> {
+    public async planQuery(session: number, text: string): Promise<proto.engine.QueryPlan> {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet('tigon_plan_query', ['number', 'string'], [session, text]);
         if (status !== proto.web_api.StatusCode.SUCCESS) {
@@ -161,7 +161,7 @@ export class CoreController {
             return Promise.reject(new Error(""));
         }
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
-        let msg = proto.duckdb.QueryPlan.deserializeBinary(mem);
+        let msg = proto.engine.QueryPlan.deserializeBinary(mem);
         this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [session, data]);
         return msg;
     }
