@@ -20,15 +20,15 @@ export function reducer(state: State.RootState = new State.RootState(), a: RootA
                 appSettings: a.payload,
             };
         case ActionType.NAVIGATE_ROOT: return { ...state, rootView: a.payload };
-        case ActionType.PUSH_TRANSIENT_TQL_STATEMENTS:
+        case ActionType.PUSH_TQL_STATEMENTS:
             return {
                 ...state,
-                transientTQLStatements: state.transientTQLStatements.push(...a.payload)
+                tqlStatements: state.tqlStatements.push(...a.payload)
             };
-        case ActionType.SET_TRANSIENT_QUERY_RESULT:
+        case ActionType.SET_TQL_QUERY_RESULT:
             return {
                 ...state,
-                transientQueryResults: state.transientQueryResults.set(a.payload[0], a.payload[1])
+                tqlQueryResults: state.tqlQueryResults.set(a.payload[0], a.payload[1])
             };
         case ActionType.OTHER: return state;
         default: return state;

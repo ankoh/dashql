@@ -8,9 +8,9 @@ function actionSanitizer(a: Model.RootAction) {
 function stateSanitizer(s: Model.RootState) {
     return {
         ...s,
-        transientTQLStatements: s.transientTQLStatements.map(v => v.toObject()),
-        transientQueryResults: s.transientQueryResults.map((v, k) => [k, v.toObject()]),
-        transientQueryPlans: s.transientQueryPlans.map((v, k) => [k, v.toObject()]),
+        tqlStatements: s.tqlStatements.map(v => v.toObject()),
+        tqlQueryResult: s.tqlQueryResults.map((v, k) => [k, v.toObject()]),
+        tqlQueryPlans: s.tqlQueryPlans.map((v, k) => [k, v.toObject()]),
     };
 }
 

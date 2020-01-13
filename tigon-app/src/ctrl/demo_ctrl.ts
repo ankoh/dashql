@@ -57,8 +57,8 @@ export class DemoController {
             30, 31, 32, 33, 34, 35, 36, 37, 38, 39
         ]);
 
-        this.store.dispatch(Store.pushTransientTQLStatements(tql.getStatementsList()));
-        this.store.dispatch(Store.setTransientQueryResult("temp_weekly", q1Res.finish()));       
+        this.store.dispatch(Store.pushTQLStatements(tql.getStatementsList()));
+        this.store.dispatch(Store.setTQLQueryResult("temp_weekly", q1Res.finish()));       
     }
 };
 

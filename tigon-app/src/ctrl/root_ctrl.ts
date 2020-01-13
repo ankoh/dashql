@@ -4,6 +4,7 @@ import { CoreController } from './core_ctrl';
 import { LogController } from './log_ctrl';
 import { TerminalController } from './terminal_ctrl';
 import { DemoController } from './demo_ctrl';
+import { TQLInterpreter } from './tql_interpreter';
 
 // The worker interval
 const workerIntervalMS = 400;
@@ -20,6 +21,8 @@ export class RootController {
     public cache: CacheController;
     // The terminal
     public terminal: TerminalController;
+    // The interpreter
+    public interpreter: TQLInterpreter;
 
     // The demo
     public demo: DemoController;
@@ -35,6 +38,7 @@ export class RootController {
         this.cache = new CacheController();
         this.terminal = new TerminalController();
         this.demo = new DemoController(this.store, this.core, this.log);
+        this.interpreter = new TQLInterpreter(this.store, this.core, this.log, this.cache);
         this.workerTimer = null;
     }
 

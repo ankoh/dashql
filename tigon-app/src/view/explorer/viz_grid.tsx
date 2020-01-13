@@ -237,8 +237,8 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 /// Connect the viz grid to redux
 function mapStateToProps(state: Store.RootState) {
     return {
-        statements: state.transientTQLStatements,
-        queryResults: state.transientQueryResults,
+        statements: state.tqlStatements,
+        queryResults: state.tqlQueryResults,
     };
 }
 export default connect(mapStateToProps, (_dispatch) => { return {}; })(withAutoSizer(VizGrid));

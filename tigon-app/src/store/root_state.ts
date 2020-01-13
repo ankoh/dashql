@@ -50,6 +50,20 @@ export enum SizeClass {
 // State Model
 // ---------------------------------------------------------------------------
 
+// A buffer that is stored in the core
+export class CoreBuffer {
+    /// The number
+    protected offset: number;
+    /// The size
+    protected size: number;
+
+    /// The constructor
+    constructor(offset: number, size: number) {
+        this.offset = offset;
+        this.size = size;
+    }
+}
+
 // An application config
 export class AppSettings {
 }
@@ -116,12 +130,20 @@ export class RootState {
     // The log entries
     public logs: Immutable.List<LogEntry>;
 
-    // The transient TQL module (if any)
-    public transientTQLStatements: Immutable.List<proto.tql.Statement>;
-    // The transient query results (if any)
-    public transientQueryResults: Immutable.Map<string, proto.engine.QueryResult>;
-    // The transient query plans (if any)
-    public transientQueryPlans: Immutable.Map<string, proto.engine.QueryPlan>;
+    // The TQL statements (if any)
+    public tqlStatements: Immutable.List<proto.tql.Statement>;
+    // The TQL parameters (if any)
+    public tqlParameters: Immutable.Map<string, string>;
+    // The TQL load data (if any)
+    public tqlLoadData: Immutable.Map<string, CoreBuffer>;
+    // The TQL extract data (if any)
+    public tqlExtractData: Immutable.Map<string, CoreBuffer>;
+    // The TQL query results (if any)
+    public tqlQueryResults: Immutable.Map<string, proto.engine.QueryResult>;
+    // The TQL query plans (if any)
+    public tqlQueryPlans: Immutable.Map<string, proto.engine.QueryPlan>;
+    // The TQL visualizations (if any)
+    public tqlVisualizations: Immutable.Map<string, proto.engine.QueryPlan>;
 
     // The focused viz
     public focusedViz: number | null;
@@ -134,9 +156,13 @@ export class RootState {
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logs = Immutable.List<LogEntry>();
         this.rootView = RootView.EXPLORER;
-        this.transientTQLStatements = Immutable.List();
-        this.transientQueryResults = Immutable.Map();
-        this.transientQueryPlans = Immutable.Map();
+        this.tqlStatements = Immutable.List();
+        this.tqlParameters = Immutable.Map();
+        this.tqlLoadData = Immutable.Map();
+        this.tqlExtractData = Immutable.Map();
+        this.tqlQueryResults = Immutable.Map();
+        this.tqlQueryPlans = Immutable.Map();
+        this.tqlVisualizations = Immutable.Map();
         this.focusedViz = null;
         return;
     }

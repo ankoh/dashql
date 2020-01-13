@@ -1,4 +1,5 @@
 import * as proto from 'tigon-proto';
+import * as Store from '../store';
 
 // Real devs don't need types. ¯\_(ツ)_/¯
 declare function TigonCore(args: any): any;
@@ -6,19 +7,6 @@ declare function TigonCore(args: any): any;
 // IMPORTANT:
 // ALL methods that transitively depend on the core MUST be asynchronous.
 // This will be crucial if we ever want to move the core to a web worker.
-
-export class CoreBuffer {
-    /// The number
-    protected offset: number;
-    /// The size
-    protected size: number;
-
-    /// The constructor
-    constructor(offset: number, size: number) {
-        this.offset = offset;
-        this.size = size;
-    }
-}
 
 // The core controller
 export class CoreController {
@@ -30,7 +18,7 @@ export class CoreController {
     protected core: any | null = null;
 
     // The cached layout buffer (if any)
-    protected cachedLayoutBuffer: CoreBuffer | null = null;
+    protected cachedLayoutBuffer: Store.CoreBuffer | null = null;
 
     // Constructor
     constructor(loadCore: any | null = null) {

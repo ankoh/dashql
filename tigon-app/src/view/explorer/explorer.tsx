@@ -75,7 +75,7 @@ function SectionEntry(props: { name: string, description: string }) {
     return (
         <div className={s.outline_section_entry}>
             {props.name}
-        </div>       
+        </div>
     );
 }
 
@@ -276,9 +276,9 @@ class Explorer extends React.Component<IExplorerProps> {
 
 function mapStateToExplorerProps(state: Store.RootState) {
     return {
-        tqlStatements: state.transientTQLStatements,
-        queryResults: state.transientQueryResults,
-        queryPlans: state.transientQueryPlans,
+        tqlStatements: state.tqlStatements,
+        queryResults: state.tqlQueryResults,
+        queryPlans: state.tqlQueryPlans,
     };
 }
 
