@@ -150,12 +150,12 @@ export class RootState {
 
     // Constructor
     constructor() {
+        this.rootView = RootView.EXPLORER;
         this.launchProgress = new LaunchProgress();
         this.appSettings = null;
         this.appSettingsLoadPending = true;
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logs = Immutable.List<LogEntry>();
-        this.rootView = RootView.EXPLORER;
         this.tqlStatements = Immutable.List();
         this.tqlParameters = Immutable.Map();
         this.tqlLoadData = Immutable.Map();
