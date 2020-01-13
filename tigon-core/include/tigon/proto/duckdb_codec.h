@@ -10,14 +10,14 @@
 #include "duckdb/planner/logical_operator.hpp"
 
 #include "google/protobuf/arena.h"
-#include "tigon/proto/duckdb.pb.h"
+#include "tigon/proto/engine.pb.h"
 
 namespace tigon {
 
 /// Write the query plan
-proto::duckdb::QueryPlan* encodeQueryPlan(google::protobuf::Arena& arena, duckdb::LogicalOperator& plan);
+proto::engine::QueryPlan* encodeQueryPlan(google::protobuf::Arena& arena, duckdb::LogicalOperator& plan);
 /// Write the query result
-proto::duckdb::QueryResult* encodeQueryResult(google::protobuf::Arena& arena, duckdb::QueryResult& result, uint64_t queryID);
+proto::engine::QueryResult* encodeQueryResult(google::protobuf::Arena& arena, duckdb::QueryResult& result, uint64_t queryID);
 
 } // namespace tigon
 

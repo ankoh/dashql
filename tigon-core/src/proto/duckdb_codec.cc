@@ -63,9 +63,9 @@ namespace tigon {
     X(PREPARE) \
     X(EXECUTE)
 
-static proto::duckdb::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
+static proto::engine::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
     using D = duckdb::LogicalOperatorType;
-    using P = proto::duckdb::LogicalOperatorType;
+    using P = proto::engine::LogicalOperatorType;
     switch (type) {
 #define X(NAME) case D::NAME: return P::OP_##NAME;
     LOGICAL_OPERATOR_TYPES
@@ -75,8 +75,8 @@ static proto::duckdb::LogicalOperatorType mapOperatorType(duckdb::LogicalOperato
 }
 
 /// Write the query plan
-proto::duckdb::QueryPlan* encodeQueryPlan(protobuf::Arena& arena, duckdb::LogicalOperator& planRoot) {
-    auto* plan = protobuf::Arena::CreateMessage<proto::duckdb::QueryPlan>(&arena);
+proto::engine::QueryPlan* encodeQueryPlan(protobuf::Arena& arena, duckdb::LogicalOperator& planRoot) {
+    auto* plan = protobuf::Arena::CreateMessage<proto::engine::QueryPlan>(&arena);
 
     // Remember the children
     std::vector<duckdb::LogicalOperator*> operators;
@@ -144,9 +144,9 @@ proto::duckdb::QueryPlan* encodeQueryPlan(protobuf::Arena& arena, duckdb::Logica
   
 /// Write a fixed-length res column
 template <typename DUCKDB_TYPE, typename PROTO_TYPE>
-static void encodeNumericColumn(protobuf::Arena& arena, proto::duckdb::QueryResultColumn* column, duckdb::Vector &vec) {
+static void encodeNumericColumn(protobuf::Arena& arena, proto::engine::QueryResultColumn* column, duckdb::Vector &vec) {
     // Create column
-    column->set_type_id(static_cast<proto::duckdb::RawTypeID>(vec.type));
+    column->set_type_id(static_cast<proto::engine::RawTypeID>(vec.type));
 
     // Create nullmask buffer
     auto* nullmask = column->mutable_null_mask();
@@ -179,8 +179,8 @@ static void encodeNumericColumn(protobuf::Arena& arena, proto::duckdb::QueryResu
 }
 
 /// Write a fixed-length res column
-static void encodeStringColumn(protobuf::Arena& arena, proto::duckdb::QueryResultColumn* column, duckdb::Vector &vec) {
-    column->set_type_id(static_cast<proto::duckdb::RawTypeID>(vec.type));
+static void encodeStringColumn(protobuf::Arena& arena, proto::engine::QueryResultColumn* column, duckdb::Vector &vec) {
+    column->set_type_id(static_cast<proto::engine::RawTypeID>(vec.type));
 
     // Create nullmask buffer
     auto* nullmask = column->mutable_null_mask();
@@ -199,8 +199,8 @@ static void encodeStringColumn(protobuf::Arena& arena, proto::duckdb::QueryResul
 }
 
 /// Write the query result
-proto::duckdb::QueryResult* encodeQueryResult(protobuf::Arena& arena, duckdb::QueryResult& queryResult, uint64_t queryID) {
-    auto* res = protobuf::Arena::CreateMessage<proto::duckdb::QueryResult>(&arena);
+proto::engine::QueryResult* encodeQueryResult(protobuf::Arena& arena, duckdb::QueryResult& queryResult, uint64_t queryID) {
+    auto* res = protobuf::Arena::CreateMessage<proto::engine::QueryResult>(&arena);
     auto* chunks = res->mutable_data_chunks();
     uint32_t rowCount = 0;
     uint32_t colCount = 0;
@@ -278,11 +278,11 @@ proto::duckdb::QueryResult* encodeQueryResult(protobuf::Arena& arena, duckdb::Qu
     sqlTypes->Reserve(queryResult.sql_types.size());
     for (size_t i = 0; i < queryResult.sql_types.size(); ++i) {
         auto* sqlType = sqlTypes->Add();
-        sqlType->set_type_id(static_cast<proto::duckdb::SQLTypeID>(queryResult.sql_types[i].id));
+        sqlType->set_type_id(static_cast<proto::engine::SQLTypeID>(queryResult.sql_types[i].id));
         sqlType->set_width(queryResult.sql_types[i].width);
         sqlType->set_scale(queryResult.sql_types[i].scale);
     }
-    
+
     // Write column names
     auto* names = res->mutable_column_names();
     names->Reserve(queryResult.names.size());

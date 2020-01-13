@@ -3,7 +3,7 @@ syntax = "proto3";
 option optimize_for = LITE_RUNTIME;
 option cc_enable_arenas = true;
 
-package tigon.proto.duckdb;
+package tigon.proto.engine;
 
 // The raw data types
 enum RawTypeID {

@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------
 
 #include "tigon/tools/web/web_api.h"
-#include "tigon/proto/duckdb.pb.h"
+#include "tigon/proto/engine.pb.h"
 #include <gtest/gtest.h>
 #include <numeric>
 #include <sstream>
@@ -57,7 +57,7 @@ TEST(WebAPITest, ExplainQuery) {
 
         // Get the query plan
         google::protobuf::Arena arena;
-        auto* queryPlan = google::protobuf::Arena::CreateMessage<proto::duckdb::QueryPlan>(&arena);
+        auto* queryPlan = google::protobuf::Arena::CreateMessage<proto::engine::QueryPlan>(&arena);
         ASSERT_TRUE(queryPlan->ParseFromArray(responseData.data(), responseData.size()));
 
         // Inspect the plan
@@ -66,10 +66,10 @@ TEST(WebAPITest, ExplainQuery) {
         auto& opChildren = queryPlan->operator_children();
         ASSERT_EQ(opTypes.size(), 2)
             << std::accumulate(opTypes.begin(), opTypes.end(), string{}, [](auto& prev, uint8_t type) {
-                return string{prev.empty() ? "" : prev + ","} + proto::duckdb::LogicalOperatorType_Name(type);
+                return string{prev.empty() ? "" : prev + ","} + proto::engine::LogicalOperatorType_Name(type);
             });
-        ASSERT_EQ(opTypes.Get(0), proto::duckdb::LogicalOperatorType::OP_PROJECTION);
-        ASSERT_EQ(opTypes.Get(1), proto::duckdb::LogicalOperatorType::OP_GET);
+        ASSERT_EQ(opTypes.Get(0), proto::engine::LogicalOperatorType::OP_PROJECTION);
+        ASSERT_EQ(opTypes.Get(1), proto::engine::LogicalOperatorType::OP_GET);
         ASSERT_EQ(opChildOffsets.size(), 2);
         ASSERT_EQ(opChildOffsets.Get(0), 0);
         ASSERT_EQ(opChildOffsets.Get(1), 1);
@@ -90,7 +90,7 @@ TEST(WebAPITest, ExplainQuery) {
 
         // Get the query plan
         google::protobuf::Arena arena;
-        auto* queryPlan = google::protobuf::Arena::CreateMessage<proto::duckdb::QueryPlan>(&arena);
+        auto* queryPlan = google::protobuf::Arena::CreateMessage<proto::engine::QueryPlan>(&arena);
         ASSERT_TRUE(queryPlan->ParseFromArray(responseData.data(), responseData.size()));
 
         // Inspect the plan
@@ -99,13 +99,13 @@ TEST(WebAPITest, ExplainQuery) {
         auto& opChildren = queryPlan->operator_children();
         ASSERT_EQ(opTypes.size(), 5)
             << accumulate(opTypes.begin(), opTypes.end(), string{}, [](auto& prev, uint8_t type) {
-                return string{prev.empty() ? "" : prev + ","} + proto::duckdb::LogicalOperatorType_Name(type);
+                return string{prev.empty() ? "" : prev + ","} + proto::engine::LogicalOperatorType_Name(type);
             });
-        ASSERT_EQ(opTypes.Get(0), proto::duckdb::LogicalOperatorType::OP_PROJECTION);
-        ASSERT_EQ(opTypes.Get(1), proto::duckdb::LogicalOperatorType::OP_FILTER);
-        ASSERT_EQ(opTypes.Get(2), proto::duckdb::LogicalOperatorType::OP_CROSS_PRODUCT);
-        ASSERT_EQ(opTypes.Get(3), proto::duckdb::LogicalOperatorType::OP_GET);
-        ASSERT_EQ(opTypes.Get(4), proto::duckdb::LogicalOperatorType::OP_GET);
+        ASSERT_EQ(opTypes.Get(0), proto::engine::LogicalOperatorType::OP_PROJECTION);
+        ASSERT_EQ(opTypes.Get(1), proto::engine::LogicalOperatorType::OP_FILTER);
+        ASSERT_EQ(opTypes.Get(2), proto::engine::LogicalOperatorType::OP_CROSS_PRODUCT);
+        ASSERT_EQ(opTypes.Get(3), proto::engine::LogicalOperatorType::OP_GET);
+        ASSERT_EQ(opTypes.Get(4), proto::engine::LogicalOperatorType::OP_GET);
         ASSERT_EQ(opChildOffsets.size(), 5);
         ASSERT_EQ(opChildOffsets.Get(0), 0);
         ASSERT_EQ(opChildOffsets.Get(1), 1);

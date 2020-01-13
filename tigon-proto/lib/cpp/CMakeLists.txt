@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.10)
 # Library
 
 add_library(tigon_proto STATIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/tigon/proto/duckdb.pb.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/tigon/proto/engine.pb.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/include/tigon/proto/rpath.pb.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/include/tigon/proto/tql.pb.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/include/tigon/proto/web_api.pb.cc

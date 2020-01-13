@@ -12,7 +12,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/arena.h"
 #include "tigon/common/span.h"
-#include "tigon/proto/duckdb.pb.h"
+#include "tigon/proto/engine.pb.h"
 #include "tigon/proto/tql.pb.h"
 #include "tigon/proto/web_api.pb.h"
 #include <stdexcept>
@@ -30,7 +30,7 @@ class WebAPI {
         std::unique_ptr<std::byte[]> data;
         /// The size
         size_t size;
-        
+
         public:
         // Constructor
         Buffer(std::unique_ptr<std::byte[]> data, size_t size)
