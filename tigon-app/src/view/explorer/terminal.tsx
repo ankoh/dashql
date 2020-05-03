@@ -22,14 +22,13 @@ class Terminal extends React.Component<ITerminalProps> {
         super(props);
 
         this.termContainer = React.createRef();
-        this.input = "";
+        this.input = '';
     }
 
     // Render the terminal
     public render() {
         return (
-            <div ref={this.termContainer} className="terminal_container">
-            </div>
+            <div ref={this.termContainer} className="terminal_container"></div>
         );
     }
 
@@ -44,8 +43,7 @@ class Terminal extends React.Component<ITerminalProps> {
     }
 
     // Component did update
-    public componentDidUpdate() {
-    }
+    public componentDidUpdate() {}
 
     // Component will unmount from the dom
     public componentWillUnmount() {
@@ -55,13 +53,12 @@ class Terminal extends React.Component<ITerminalProps> {
 }
 
 function mapStateToProps(_state: Store.RootState) {
-    return {
-    };
+    return {};
 }
 function mapDispatchToProps(_dispatch: Store.Dispatch) {
-    return {
-    };
+    return {};
 }
 
-export default withAppContext(connect(mapStateToProps, mapDispatchToProps)(Terminal));
-
+export default withAppContext(
+    connect(mapStateToProps, mapDispatchToProps)(Terminal),
+);

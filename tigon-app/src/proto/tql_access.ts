@@ -3,7 +3,11 @@ import * as proto from 'tigon-proto';
 import * as jspb from 'google-protobuf';
 
 // Filter a statement list
-export function filterStatements(list: Immutable.List<proto.tql.Statement>, t: proto.tql.Statement.StatementCase, fn: (i: number, m: jspb.Message) => void) {
+export function filterStatements(
+    list: Immutable.List<proto.tql.Statement>,
+    t: proto.tql.Statement.StatementCase,
+    fn: (i: number, m: jspb.Message) => void,
+) {
     let i = 0;
     list.forEach(s => {
         if (s.getStatementCase() !== t) {
@@ -30,7 +34,11 @@ export function filterStatements(list: Immutable.List<proto.tql.Statement>, t: p
 }
 
 // Map a statement list
-export function mapStatements<T extends jspb.Message, V>(list: Immutable.List<proto.tql.Statement>, t: proto.tql.Statement.StatementCase, fn: (i: number, s: T) => V): Array<V> {
+export function mapStatements<T extends jspb.Message, V>(
+    list: Immutable.List<proto.tql.Statement>,
+    t: proto.tql.Statement.StatementCase,
+    fn: (i: number, s: T) => V,
+): Array<V> {
     let r = new Array<V>();
     filterStatements(list, t, (i: number, m: jspb.Message) => {
         r.push(fn(i, m as T));

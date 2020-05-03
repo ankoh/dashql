@@ -5,15 +5,15 @@ import { withAutoSizer } from '../autosizer';
 import VizGrid from './viz_grid';
 import s from './board.module.scss';
 
-const TICK_COLOR = "rgb(180, 180, 180)";
+const TICK_COLOR = 'rgb(180, 180, 180)';
 const TICK_WIDTH = 1;
-const LABEL_COLOR = "rgb(140, 140, 140)";
-const LABEL_FONT = "9px arial";
+const LABEL_COLOR = 'rgb(140, 140, 140)';
+const LABEL_FONT = '9px arial';
 
 // The ruler orientation
 enum RulerOrientation {
     Horizontal,
-    Vertical
+    Vertical,
 }
 
 // A tick of the ruler
@@ -41,13 +41,13 @@ class Label {
     transpose() {
         this.position = [this.position[1], this.position[0]];
     }
-};
+}
 
 interface IRulerProps {
-    width: number,
-    height: number,
-    orientation: RulerOrientation,
-    scaleFactor: number,
+    width: number;
+    height: number;
+    orientation: RulerOrientation;
+    scaleFactor: number;
 }
 
 interface Iboardtate {
@@ -67,15 +67,23 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
             dpr: window.devicePixelRatio,
             ticks: ticks,
             labels: labels,
-        }
+        };
     }
 
     // Layout the ruler
     layout(): [Array<Tick>, Array<Label>] {
         if (this.props.orientation === RulerOrientation.Horizontal) {
-            return this.layoutImpl(this.props.width, this.props.height, this.props.scaleFactor);
+            return this.layoutImpl(
+                this.props.width,
+                this.props.height,
+                this.props.scaleFactor,
+            );
         } else {
-            let [ticks, labels] = this.layoutImpl(this.props.height, this.props.width, this.props.scaleFactor);
+            let [ticks, labels] = this.layoutImpl(
+                this.props.height,
+                this.props.width,
+                this.props.scaleFactor,
+            );
             ticks.forEach(t => t.transpose());
             labels.forEach(l => l.transpose());
             return [ticks, labels];
@@ -83,17 +91,36 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
     }
 
     // Layout implementation for both, the horizontal and the vertical ruler
-    layoutImpl(length: number, thickness: number, scaleFactor: number): [Array<Tick>, Array<Label>] {
+    layoutImpl(
+        length: number,
+        thickness: number,
+        scaleFactor: number,
+    ): [Array<Tick>, Array<Label>] {
         let ticks = new Array<Tick>();
         let labels = new Array<Label>();
         let stepLength = 5;
         for (let tickID = 0; tickID < length / 5; ++tickID) {
             const x = tickID * stepLength;
             if (tickID % 10 === 0) {
-                ticks.push(new Tick([x, thickness - 0.5], [x, thickness * 1 / 3 - 0.5]));
-                labels.push(new Label([x, thickness / 4 - 0.5], Math.round(x * scaleFactor).toString()))
+                ticks.push(
+                    new Tick(
+                        [x, thickness - 0.5],
+                        [x, (thickness * 1) / 3 - 0.5],
+                    ),
+                );
+                labels.push(
+                    new Label(
+                        [x, thickness / 4 - 0.5],
+                        Math.round(x * scaleFactor).toString(),
+                    ),
+                );
             } else {
-                ticks.push(new Tick([x, thickness - 0.5], [x, thickness * 2 / 3 + 0.5]));
+                ticks.push(
+                    new Tick(
+                        [x, thickness - 0.5],
+                        [x, (thickness * 2) / 3 + 0.5],
+                    ),
+                );
             }
         }
         return [ticks, labels];
@@ -108,27 +135,31 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
         canvas.height = this.props.height * this.state.dpr;
 
         // Prepare the 2D context
-        let context = canvas.getContext("2d")!;
+        let context = canvas.getContext('2d')!;
         context.strokeStyle = TICK_COLOR;
         context.fillStyle = LABEL_COLOR;
         context.font = LABEL_FONT;
         context.lineWidth = TICK_WIDTH;
         context.scale(this.state.dpr, this.state.dpr);
-        context.textBaseline = "top";
+        context.textBaseline = 'top';
 
         if (this.props.orientation === RulerOrientation.Horizontal) {
-            context.textAlign = "left";
+            context.textAlign = 'left';
             context.beginPath();
             this.state.ticks.forEach(t => {
                 context.moveTo(t.begin[0], t.begin[1]);
                 context.lineTo(t.end[0], t.end[1]);
             });
             this.state.labels.forEach(l => {
-                context.fillText(l.text, l.position[0] + labelAdjustment, l.position[1]);
+                context.fillText(
+                    l.text,
+                    l.position[0] + labelAdjustment,
+                    l.position[1],
+                );
             });
             context.stroke();
         } else {
-            context.textAlign = "right";
+            context.textAlign = 'right';
             context.beginPath();
             this.state.ticks.forEach(t => {
                 context.moveTo(t.begin[0], t.begin[1]);
@@ -167,16 +198,14 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
     }
 
     render() {
-        return (
-            <canvas className={s.ruler} ref={this.canvas} />
-        );
+        return <canvas className={s.ruler} ref={this.canvas} />;
     }
-};
+}
 
 const AutoSizingRuler = withAutoSizer(Ruler);
 
 interface IBoardProps {
-    scaleFactor: number,
+    scaleFactor: number;
 }
 
 export class Board extends React.Component<IBoardProps, {}> {
@@ -207,8 +236,7 @@ export class Board extends React.Component<IBoardProps, {}> {
 }
 
 function mapStateToProps(_state: Store.RootState) {
-    return {
-    };
+    return {};
 }
 
 function mapDispatchToProps(_dispatch: Store.RootState) {

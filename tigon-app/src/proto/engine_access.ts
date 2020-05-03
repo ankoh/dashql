@@ -11,7 +11,10 @@ export class ChunkAccess {
     }
 
     /// Check a chunk
-    protected cmpRange(chunk: proto.engine.QueryResultChunk, row: number): number {
+    protected cmpRange(
+        chunk: proto.engine.QueryResultChunk,
+        row: number,
+    ): number {
         let begin = chunk.getRowOffset();
         let end = chunk.getRowOffset() + chunk.getRowCount();
         if (row >= begin && row < end) {
@@ -25,8 +28,10 @@ export class ChunkAccess {
 
     /// Does the last chunk contain a row?
     protected lastChunkContainsRow(row: number): boolean {
-        return this.lastChunk < this.chunks.length
-            && this.cmpRange(this.chunks[this.lastChunk], row) === 0;
+        return (
+            this.lastChunk < this.chunks.length &&
+            this.cmpRange(this.chunks[this.lastChunk], row) === 0
+        );
     }
 
     /// Find a chunk
@@ -53,7 +58,7 @@ export class ChunkAccess {
         }
         return chunk;
     }
-   
+
     /// Format a value
     public fmtValue(row: number, col: number): string | null {
         // Get the chunk
@@ -72,7 +77,7 @@ export class ChunkAccess {
         let column = columns[col];
         let nullMask = column.getNullMaskList();
         if (col <= nullMask.length && nullMask[col]) {
-            return "NULL";
+            return 'NULL';
         }
 
         // Retrieve the corresponding column

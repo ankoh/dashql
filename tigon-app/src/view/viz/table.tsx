@@ -35,12 +35,18 @@ export class Table extends React.Component<ITableProps, ITableState> {
     // Render a single cell
     public renderCell(props: GridCellProps) {
         // Determine cell type
-        enum CellType { Anchor, ColumnHeader, RowHeader, Data };
-        let cellType = props.rowIndex === 0
-            ? props.columnIndex === 0
-                ? CellType.Anchor
-                : CellType.ColumnHeader
-            : props.columnIndex === 0
+        enum CellType {
+            Anchor,
+            ColumnHeader,
+            RowHeader,
+            Data,
+        }
+        let cellType =
+            props.rowIndex === 0
+                ? props.columnIndex === 0
+                    ? CellType.Anchor
+                    : CellType.ColumnHeader
+                : props.columnIndex === 0
                 ? CellType.RowHeader
                 : CellType.Data;
 
@@ -48,35 +54,47 @@ export class Table extends React.Component<ITableProps, ITableState> {
         switch (cellType) {
             case CellType.Anchor:
                 return (
-                    <div key={props.key}
+                    <div
+                        key={props.key}
                         className={s.cell_anchor}
-                        style={{...props.style}} />
+                        style={{ ...props.style }}
+                    />
                 );
             case CellType.ColumnHeader:
                 return (
-                    <div key={props.key}
+                    <div
+                        key={props.key}
                         className={s.cell_header_col}
-                        style={{...props.style}}
+                        style={{ ...props.style }}
                     >
-                        {this.props.data.getColumnNamesList()[props.columnIndex - 1]}
+                        {
+                            this.props.data.getColumnNamesList()[
+                                props.columnIndex - 1
+                            ]
+                        }
                     </div>
                 );
             case CellType.RowHeader:
                 return (
-                    <div key={props.key}
+                    <div
+                        key={props.key}
                         className={s.cell_header_row}
-                        style={{...props.style}}
+                        style={{ ...props.style }}
                     >
                         {props.rowIndex}
                     </div>
                 );
             case CellType.Data:
                 return (
-                    <div key={props.key}
+                    <div
+                        key={props.key}
                         className={s.cell_data}
-                        style={{...props.style}}
+                        style={{ ...props.style }}
                     >
-                        {this.state.chunks.fmtValue(props.rowIndex - 1, props.columnIndex - 1)}
+                        {this.state.chunks.fmtValue(
+                            props.rowIndex - 1,
+                            props.columnIndex - 1,
+                        )}
                     </div>
                 );
         }
@@ -86,7 +104,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
     protected handleScroll(event: any) {
         this.setState({
             ...this.state,
-            scrollTop: event.target.scrollTop
+            scrollTop: event.target.scrollTop,
         });
     }
 
@@ -96,13 +114,16 @@ export class Table extends React.Component<ITableProps, ITableState> {
         let available = this.props.width - lineNumberWidth;
         let equalWidths = available / this.props.data.getColumnCount();
         let minWidth = 56;
-        return (index.index === 0)
+        return index.index === 0
             ? lineNumberWidth
             : Math.max(equalWidths, minWidth);
     }
 
     public componentDidUpdate(prevProps: ITableProps) {
-        if (this.props.width !== prevProps.width || this.props.height !== prevProps.height) {
+        if (
+            this.props.width !== prevProps.width ||
+            this.props.height !== prevProps.height
+        ) {
             if (this.gridRef.current) {
                 this.gridRef.current.recomputeGridSize();
             }
@@ -118,11 +139,15 @@ export class Table extends React.Component<ITableProps, ITableState> {
     // Render the full table
     public render() {
         return (
-            <div className={s.container}
+            <div
+                className={s.container}
                 style={{ height: this.props.height, width: this.props.width }}
             >
                 <Scrollbars
-                    style={{ height: this.props.height, width: this.props.width }}
+                    style={{
+                        height: this.props.height,
+                        width: this.props.width,
+                    }}
                     onScroll={this.handleScroll.bind(this)}
                     className={s.scrollbars}
                 >

@@ -20,7 +20,10 @@ export class ErrorBase extends Error {
 export class LoggableError extends ErrorBase {
     public logLevel: Store.LogLevel;
     public message: string;
-    constructor(message: string, logLevel: Store.LogLevel = Store.LogLevel.WARNING) {
+    constructor(
+        message: string,
+        logLevel: Store.LogLevel = Store.LogLevel.WARNING,
+    ) {
         super(message);
         this.logLevel = logLevel;
         this.message = message;
@@ -30,7 +33,10 @@ export class LoggableError extends ErrorBase {
 // An error with a http status code
 export class HTTPStatusError extends LoggableError {
     protected statusCode: number;
-    constructor(statusCode: number, logLevel: Store.LogLevel = Store.LogLevel.WARNING) {
+    constructor(
+        statusCode: number,
+        logLevel: Store.LogLevel = Store.LogLevel.WARNING,
+    ) {
         super(String(statusCode));
         this.statusCode = statusCode;
     }

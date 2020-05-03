@@ -12,4 +12,3 @@ export * from './store';
 export type Dispatch = (action: RootAction) => void;
 // The store type
 export type ReduxStore = ReduxStore<RootState>;
-

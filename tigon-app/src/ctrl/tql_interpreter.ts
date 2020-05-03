@@ -16,7 +16,12 @@ export class TQLInterpreter {
     protected requiredFor: Map<TaskID, Array<TaskID>>;
 
     // Constructor
-    constructor(store: Store.ReduxStore, core: CoreController, log: LogController, cache: CacheController) {
+    constructor(
+        store: Store.ReduxStore,
+        core: CoreController,
+        log: LogController,
+        cache: CacheController,
+    ) {
         this.store = store;
         this.log = log;
         this.core = core;
@@ -27,12 +32,10 @@ export class TQLInterpreter {
     }
 
     // Evaluate a single statement
-    public async evalStatement(_module: proto.tql.Module, _statement: number) {
-    }
+    public async evalStatement(_module: proto.tql.Module, _statement: number) {}
 
     // Evaluate a program
-    public async eval(_module: proto.tql.Module) {
-    }
+    public async eval(_module: proto.tql.Module) {}
 }
 
 export default TQLInterpreter;

@@ -9,14 +9,10 @@ import { connect } from 'react-redux';
 import { mapStatements } from '../../proto/tql_access';
 import { withAutoSizer } from '../autosizer';
 
-import {
-    DeleteIcon,
-    EditIcon,
-    RefreshIcon,
-} from '../../svg/icons';
+import { DeleteIcon, EditIcon, RefreshIcon } from '../../svg/icons';
 
-const ACTION_ICON_WIDTH="16px";
-const ACTION_ICON_HEIGHT="16px";
+const ACTION_ICON_WIDTH = '16px';
+const ACTION_ICON_HEIGHT = '16px';
 
 /// A grid element
 export class GridElement {
@@ -32,17 +28,30 @@ export class GridElement {
     }
 
     /// CSS values
-    get cssColumnsBegin() { return this.columns[0] + 1; }
-    get cssColumnsEnd() { return this.columns[1] + 1; }
-    get cssRowsBegin() { return this.rows[0] + 1; }
-    get cssRowsEnd() { return this.rows[1] + 1; }
-    get cssArea() : string {
-        return this.cssRowsBegin
-            + " / " + this.cssColumnsBegin
-            + " / " + this.cssRowsEnd
-            + " / " + this.cssColumnsEnd;
+    get cssColumnsBegin() {
+        return this.columns[0] + 1;
     }
-};
+    get cssColumnsEnd() {
+        return this.columns[1] + 1;
+    }
+    get cssRowsBegin() {
+        return this.rows[0] + 1;
+    }
+    get cssRowsEnd() {
+        return this.rows[1] + 1;
+    }
+    get cssArea(): string {
+        return (
+            this.cssRowsBegin +
+            ' / ' +
+            this.cssColumnsBegin +
+            ' / ' +
+            this.cssRowsEnd +
+            ' / ' +
+            this.cssColumnsEnd
+        );
+    }
+}
 
 /// A length unit in the grid
 export enum GridLengthUnit {
@@ -52,8 +61,8 @@ export enum GridLengthUnit {
     AUTO,
     MIN_CONTENT,
     MAX_CONTENT,
-    MIN_MAX
-};
+    MIN_MAX,
+}
 
 /// A grid layout
 export class GridLayout {
@@ -67,13 +76,13 @@ export class GridLayout {
         this.columnCount = 12;
         this.rowHeight = 48;
     }
-};
+}
 
 /// A viz card
 function VizCard(props: {
-    stmt: proto.tql.VizStatement,
-    data: proto.engine.QueryResult | null,
-    pos: GridElement
+    stmt: proto.tql.VizStatement;
+    data: proto.engine.QueryResult | null;
+    pos: GridElement;
 }) {
     let viz: React.ReactElement | null = null;
     if (props.data) {
@@ -100,32 +109,41 @@ function VizCard(props: {
     }
 
     return (
-        <div className={s.viz}
+        <div
+            className={s.viz}
             style={{
-                gridArea: props.pos.cssArea
+                gridArea: props.pos.cssArea,
             }}
         >
-            <div className={s.viz_id}>
-                {props.stmt.getVizId()}
-            </div>
+            <div className={s.viz_id}>{props.stmt.getVizId()}</div>
             <div className={s.viz_card}>
                 <div className={s.viz_card_header}>
                     <div className={s.viz_card_title}>
                         {props.stmt.getTitle()}
                     </div>
                     <div className={s.viz_card_action_refresh}>
-                        <RefreshIcon className={s.viz_card_action_icon} width={ACTION_ICON_WIDTH} height={ACTION_ICON_HEIGHT} />
+                        <RefreshIcon
+                            className={s.viz_card_action_icon}
+                            width={ACTION_ICON_WIDTH}
+                            height={ACTION_ICON_HEIGHT}
+                        />
                     </div>
                     <div className={s.viz_card_action_edit}>
-                        <EditIcon className={s.viz_card_action_icon} width={ACTION_ICON_WIDTH} height={ACTION_ICON_HEIGHT} />
+                        <EditIcon
+                            className={s.viz_card_action_icon}
+                            width={ACTION_ICON_WIDTH}
+                            height={ACTION_ICON_HEIGHT}
+                        />
                     </div>
                     <div className={s.viz_card_action_delete}>
-                        <DeleteIcon className={s.viz_card_action_icon} width={ACTION_ICON_WIDTH} height={ACTION_ICON_HEIGHT} />
+                        <DeleteIcon
+                            className={s.viz_card_action_icon}
+                            width={ACTION_ICON_WIDTH}
+                            height={ACTION_ICON_HEIGHT}
+                        />
                     </div>
                 </div>
-                <div className={s.viz_card_body}>
-                    {viz}
-                </div>
+                <div className={s.viz_card_body}>{viz}</div>
             </div>
         </div>
     );
@@ -136,7 +154,7 @@ interface IVizGridProps {
     statements: Immutable.List<proto.tql.Statement>;
     queryResults: Immutable.Map<string, proto.engine.QueryResult>;
 
-    sizeClass: Store.SizeClass,
+    sizeClass: Store.SizeClass;
     width: number;
     height: number;
 }
@@ -161,15 +179,17 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
         let vizStmts = mapStatements(
             props.statements,
             proto.tql.Statement.StatementCase.VIZ,
-            (_, v: proto.tql.VizStatement) => v
+            (_, v: proto.tql.VizStatement) => v,
         );
-        let vizData = vizStmts.map((v) => props.queryResults.get(v.getQueryId()) || null);
+        let vizData = vizStmts.map(
+            v => props.queryResults.get(v.getQueryId()) || null,
+        );
 
         // Pick a length value
         let pickArea = (v: proto.tql.VizResponsiveGridArea | undefined) => {
             if (!v) {
                 return null;
-            } 
+            }
             let lv: proto.tql.VizGridArea | undefined;
             switch (props.sizeClass) {
                 case Store.SizeClass.SMALL:
@@ -189,10 +209,10 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
                 lv = v.getWildcard();
             }
             return lv || null;
-        }
+        };
 
         let gridLayout = new GridLayout();
-        let vizAreas = vizStmts.map((v) => pickArea(v.getArea()));
+        let vizAreas = vizStmts.map(v => pickArea(v.getArea()));
         // XXX compute the viz positions with the core
 
         // Return state
@@ -208,10 +228,11 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
     }
 
     public componentDidUpdate(prevProps: IVizGridProps) {
-        if (this.props.statements.equals(prevProps.statements)
-            && this.props.queryResults.equals(prevProps.queryResults)
-            && this.props.width === prevProps.width
-            && this.props.height === prevProps.height
+        if (
+            this.props.statements.equals(prevProps.statements) &&
+            this.props.queryResults.equals(prevProps.queryResults) &&
+            this.props.width === prevProps.width &&
+            this.props.height === prevProps.height
         ) {
             return;
         }
@@ -220,15 +241,21 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 
     public render() {
         return (
-            <div className={s.container}
+            <div
+                className={s.container}
                 style={{
                     width: this.props.width,
-                    height: this.props.height
+                    height: this.props.height,
                 }}
             >
-                {this.state.vizStmts.map((s, i) =>
-                    <VizCard key={s.getVizId()} stmt={s} pos={this.state.vizPositions[i]} data={this.state.vizData[i]} />
-                )}
+                {this.state.vizStmts.map((s, i) => (
+                    <VizCard
+                        key={s.getVizId()}
+                        stmt={s}
+                        pos={this.state.vizPositions[i]}
+                        data={this.state.vizData[i]}
+                    />
+                ))}
             </div>
         );
     }
@@ -241,4 +268,6 @@ function mapStateToProps(state: Store.RootState) {
         queryResults: state.tqlQueryResults,
     };
 }
-export default connect(mapStateToProps, (_dispatch) => { return {}; })(withAutoSizer(VizGrid));
+export default connect(mapStateToProps, _dispatch => {
+    return {};
+})(withAutoSizer(VizGrid));

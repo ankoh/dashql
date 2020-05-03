@@ -10,7 +10,6 @@ interface INavigationBarProps {
     navigateRoot: (view: Store.RootView) => void;
 }
 
-
 interface INavBarTabProps {
     rootView: Store.RootView;
     onViewChanged: (view: Store.RootView) => void;
@@ -19,27 +18,27 @@ interface INavBarTabProps {
 
 function NavBarTab(props: INavBarTabProps) {
     const isActive = props.tabView === props.rootView;
-    let tabName = "?";
+    let tabName = '?';
     switch (props.tabView) {
         case Store.RootView.EXPLORER:
-            tabName = "Explorer";
+            tabName = 'Explorer';
             break;
         case Store.RootView.WORKBOOK:
-            tabName = "Workbook";
+            tabName = 'Workbook';
             break;
         case Store.RootView.LIBRARY:
-            tabName = "Library";
+            tabName = 'Library';
             break;
     }
     return (
         <div className={s.tab_container}>
             <div
-                className={classNames(s.tab, isActive ? s.active : "")}
-                onClick={()=>{ props.onViewChanged(props.tabView); }}
+                className={classNames(s.tab, isActive ? s.active : '')}
+                onClick={() => {
+                    props.onViewChanged(props.tabView);
+                }}
             >
-                <div className={s.tab_name}>
-                    {tabName}
-                </div>
+                <div className={s.tab_name}>{tabName}</div>
             </div>
         </div>
     );
@@ -49,9 +48,7 @@ class NavigationBar extends React.Component<INavigationBarProps> {
     public render() {
         return (
             <div className={s.container}>
-                <div className={s.brand}>
-                    TIGON
-                </div>
+                <div className={s.brand}>TIGON</div>
                 <div className={s.tabs}>
                     <NavBarTab
                         tabView={Store.RootView.EXPLORER}
@@ -76,14 +73,15 @@ class NavigationBar extends React.Component<INavigationBarProps> {
 
 function mapStateToProps(state: Store.RootState) {
     return {
-        rootView: state.rootView
+        rootView: state.rootView,
     };
 }
 function mapDispatchToProps(dispatch: Store.Dispatch) {
     return {
-        navigateRoot: (view: Store.RootView) => { dispatch(Store.navigateRoot(view)); },
+        navigateRoot: (view: Store.RootView) => {
+            dispatch(Store.navigateRoot(view));
+        },
     };
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(NavigationBar);
-

@@ -1,4 +1,4 @@
-import * as State from "./root_state";
+import * as State from './root_state';
 import * as proto from 'tigon-proto';
 
 // ---------------------------------------------------------------------------
@@ -6,12 +6,12 @@ import * as proto from 'tigon-proto';
 // ---------------------------------------------------------------------------
 
 export enum ActionType {
-    CONFIGURE_APP           = 'CONFIGURE_APP',
-    NAVIGATE_ROOT           = 'NAVIGATE_ROOT',
-    PUSH_LOG_ENTRY          = 'PUSH_LOG_ENTRY',
-    PUSH_TQL_STATEMENTS     = 'PUSH_TRANSIENT_TQL_STATEMENTS',
-    SET_TQL_QUERY_RESULT    = 'SET_TRANSIENT_QUERY_RESULT',
-    OTHER                   = 'OTHER',
+    CONFIGURE_APP = 'CONFIGURE_APP',
+    NAVIGATE_ROOT = 'NAVIGATE_ROOT',
+    PUSH_LOG_ENTRY = 'PUSH_LOG_ENTRY',
+    PUSH_TQL_STATEMENTS = 'PUSH_TRANSIENT_TQL_STATEMENTS',
+    SET_TQL_QUERY_RESULT = 'SET_TRANSIENT_QUERY_RESULT',
+    OTHER = 'OTHER',
 }
 
 // ---------------------------------------------------------------------------
@@ -23,7 +23,10 @@ export type RootAction =
     | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
     | Action<ActionType.PUSH_TQL_STATEMENTS, Array<proto.tql.Statement>>
-    | Action<ActionType.SET_TQL_QUERY_RESULT, [string, proto.engine.QueryResult]>
+    | Action<
+          ActionType.SET_TQL_QUERY_RESULT,
+          [string, proto.engine.QueryResult]
+      >
     | Action<ActionType.OTHER, {}>;
 
 // ---------------------------------------------------------------------------
@@ -56,10 +59,18 @@ export function configureApp(config: State.AppSettings): RootAction {
     return createAction(ActionType.CONFIGURE_APP, config);
 }
 
-export function pushTQLStatements(stmts: Array<proto.tql.Statement>): RootAction {
+export function pushTQLStatements(
+    stmts: Array<proto.tql.Statement>,
+): RootAction {
     return createAction(ActionType.PUSH_TQL_STATEMENTS, stmts);
 }
 
-export function setTQLQueryResult(key: string, result: proto.engine.QueryResult): RootAction {
-    return createAction<ActionType.SET_TQL_QUERY_RESULT, [string, proto.engine.QueryResult]>(ActionType.SET_TQL_QUERY_RESULT, [key, result]);
+export function setTQLQueryResult(
+    key: string,
+    result: proto.engine.QueryResult,
+): RootAction {
+    return createAction<
+        ActionType.SET_TQL_QUERY_RESULT,
+        [string, proto.engine.QueryResult]
+    >(ActionType.SET_TQL_QUERY_RESULT, [key, result]);
 }

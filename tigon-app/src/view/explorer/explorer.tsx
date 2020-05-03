@@ -36,96 +36,131 @@ import {
     VariableBoxIcon,
 } from '../../svg/icons';
 
-const VIZTYPE_ICON_WIDTH = "20px";
-const VIZTYPE_ICON_HEIGHT = "20px";
-const TOOL_ICON_WIDTH = "20px";
-const TOOL_ICON_HEIGHT = "20px";
-const TOPBAR_ICON_WIDTH = "20px";
-const TOPBAR_ICON_HEIGHT = "20px";
-const INPUT_HEADER_ICON_WIDTH = "16px";
-const INPUT_HEADER_ICON_HEIGHT = "16px";
-const INPUT_TOGGLE_ICON_WIDTH = "20px";
-const INPUT_TOGGLE_ICON_HEIGHT = "20px";
+const VIZTYPE_ICON_WIDTH = '20px';
+const VIZTYPE_ICON_HEIGHT = '20px';
+const TOOL_ICON_WIDTH = '20px';
+const TOOL_ICON_HEIGHT = '20px';
+const TOPBAR_ICON_WIDTH = '20px';
+const TOPBAR_ICON_HEIGHT = '20px';
+const INPUT_HEADER_ICON_WIDTH = '16px';
+const INPUT_HEADER_ICON_HEIGHT = '16px';
+const INPUT_TOGGLE_ICON_WIDTH = '20px';
+const INPUT_TOGGLE_ICON_HEIGHT = '20px';
 
 interface IExplorerProps {
     appContext: IAppContext;
     tqlStatements: Immutable.List<proto.tql.Statement>;
 }
 
-function Section(props: { title: string, children?: React.ReactNodeArray }) {
+function Section(props: { title: string; children?: React.ReactNodeArray }) {
     return (
         <div className={s.outline_section}>
-            <div className={cN(s.outline_section_header, {
-                [s.with_children]: props.children && props.children.length > 0
-            })} />
-            <div className={s.outline_section_title}>
-                {props.title}
-            </div>
+            <div
+                className={cN(s.outline_section_header, {
+                    [s.with_children]:
+                        props.children && props.children.length > 0,
+                })}
+            />
+            <div className={s.outline_section_title}>{props.title}</div>
             <div className={s.outline_section_badge}>
                 {props.children ? props.children.length : 0}
             </div>
-            <div className={s.outline_section_entries}>
-                {props.children}
-            </div>
+            <div className={s.outline_section_entries}>{props.children}</div>
         </div>
     );
 }
 
-function SectionEntry(props: { name: string, description: string }) {
-    return (
-        <div className={s.outline_section_entry}>
-            {props.name}
-        </div>
-    );
+function SectionEntry(props: { name: string; description: string }) {
+    return <div className={s.outline_section_entry}>{props.name}</div>;
 }
 
 function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
     return (
         <div className={s.outline}>
-            <div className={s.outline_header}>
-                TQL Program
-            </div>
+            <div className={s.outline_header}>TQL Program</div>
             <Section title="Parameters">
-                {mapStatements(props.statements, proto.tql.Statement.StatementCase.PARAMETER,
-                    (i, s: proto.tql.ParameterDeclaration) =>
-                        <SectionEntry key={i} name={s.getParameterId() || "-"} description={""} />)}
+                {mapStatements(
+                    props.statements,
+                    proto.tql.Statement.StatementCase.PARAMETER,
+                    (i, s: proto.tql.ParameterDeclaration) => (
+                        <SectionEntry
+                            key={i}
+                            name={s.getParameterId() || '-'}
+                            description={''}
+                        />
+                    ),
+                )}
             </Section>
             <Section title="Load Statements">
-                {mapStatements(props.statements, proto.tql.Statement.StatementCase.LOAD,
-                    (i, s: proto.tql.LoadStatement) => 
-                        <SectionEntry key={i} name={s.getDataId() || "-"} description={""} />)}
+                {mapStatements(
+                    props.statements,
+                    proto.tql.Statement.StatementCase.LOAD,
+                    (i, s: proto.tql.LoadStatement) => (
+                        <SectionEntry
+                            key={i}
+                            name={s.getDataId() || '-'}
+                            description={''}
+                        />
+                    ),
+                )}
             </Section>
             <Section title="Extract Statements">
-                {mapStatements(props.statements, proto.tql.Statement.StatementCase.EXTRACT,
-                    (i, s: proto.tql.ExtractStatement) =>
-                        <SectionEntry key={i} name={s.getExtractId() || "-"} description={""} />)}
+                {mapStatements(
+                    props.statements,
+                    proto.tql.Statement.StatementCase.EXTRACT,
+                    (i, s: proto.tql.ExtractStatement) => (
+                        <SectionEntry
+                            key={i}
+                            name={s.getExtractId() || '-'}
+                            description={''}
+                        />
+                    ),
+                )}
             </Section>
             <Section title="Query Statements">
-                {mapStatements(props.statements, proto.tql.Statement.StatementCase.QUERY,
-                    (i, s: proto.tql.QueryStatement) => 
-                        <SectionEntry key={i} name={s.getQueryId() || "-"} description={""} />)}
+                {mapStatements(
+                    props.statements,
+                    proto.tql.Statement.StatementCase.QUERY,
+                    (i, s: proto.tql.QueryStatement) => (
+                        <SectionEntry
+                            key={i}
+                            name={s.getQueryId() || '-'}
+                            description={''}
+                        />
+                    ),
+                )}
             </Section>
             <Section title="Vizualizations">
-                {mapStatements(props.statements, proto.tql.Statement.StatementCase.VIZ,
-                    (i, s: proto.tql.VizStatement) => 
-                        <SectionEntry key={i} name={s.getVizId() || "-"} description={""} />)}
+                {mapStatements(
+                    props.statements,
+                    proto.tql.Statement.StatementCase.VIZ,
+                    (i, s: proto.tql.VizStatement) => (
+                        <SectionEntry
+                            key={i}
+                            name={s.getVizId() || '-'}
+                            description={''}
+                        />
+                    ),
+                )}
             </Section>
         </div>
     );
 }
 
 class Explorer extends React.Component<IExplorerProps> {
-
     public render() {
         return (
             <div className={s.explorer}>
-
                 <div className={s.board}>
                     <Board scaleFactor={1.0} />
                     <div className={s.input}>
                         <div className={s.input_header}>
                             <div className={s.input_type}>
-                                <ConsoleIcon className={s.input_icon} width={INPUT_HEADER_ICON_WIDTH} height={INPUT_HEADER_ICON_HEIGHT} />
+                                <ConsoleIcon
+                                    className={s.input_icon}
+                                    width={INPUT_HEADER_ICON_WIDTH}
+                                    height={INPUT_HEADER_ICON_HEIGHT}
+                                />
                             </div>
                         </div>
                         <div className={s.input_terminal}>
@@ -133,11 +168,21 @@ class Explorer extends React.Component<IExplorerProps> {
                         </div>
                     </div>
                     <div className={cN(s.input_toggle, s.expanded)}>
-                        <div className={cN(s.input_toggle_type, s.border_right)}>
-                            <ConsoleIcon className={s.input_toggle_icon} width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                        <div
+                            className={cN(s.input_toggle_type, s.border_right)}
+                        >
+                            <ConsoleIcon
+                                className={s.input_toggle_icon}
+                                width={INPUT_TOGGLE_ICON_WIDTH}
+                                height={INPUT_TOGGLE_ICON_HEIGHT}
+                            />
                         </div>
                         <div className={s.input_toggle_type}>
-                            <CodeIcon className={s.input_toggle_icon} width={INPUT_TOGGLE_ICON_WIDTH} height={INPUT_TOGGLE_ICON_HEIGHT} />
+                            <CodeIcon
+                                className={s.input_toggle_icon}
+                                width={INPUT_TOGGLE_ICON_WIDTH}
+                                height={INPUT_TOGGLE_ICON_HEIGHT}
+                            />
                         </div>
                     </div>
                 </div>
@@ -145,45 +190,82 @@ class Explorer extends React.Component<IExplorerProps> {
                 <div className={s.topbar}>
                     <div className={s.topbar_actionset}>
                         <div className={s.topbar_action}>
-                            <AddIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                            <AddIcon
+                                className={s.topbar_icon}
+                                width={TOPBAR_ICON_WIDTH}
+                                height={TOPBAR_ICON_HEIGHT}
+                            />
                         </div>
                         <div className={s.topbar_action}>
-                            <RefreshIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-                        </div>
-                    </div>
-                    <div className={s.topbar_actionset}>
-                        <div className={s.topbar_action}>
-                            <RulerIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-                        </div>
-                        <div className={s.topbar_action}>
-                            <AspectRatioIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-                        </div>
-                    </div>
-                    <div className={s.topbar_actionset}>
-                        <div className={s.topbar_action}>
-                            <DatabaseIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-                        </div>
-                        <div className={s.topbar_action}>
-                            <TaskListIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-                        </div>
-                        <div className={s.topbar_action}>
-                            <LogIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
+                            <RefreshIcon
+                                className={s.topbar_icon}
+                                width={TOPBAR_ICON_WIDTH}
+                                height={TOPBAR_ICON_HEIGHT}
+                            />
                         </div>
                     </div>
                     <div className={s.topbar_actionset}>
                         <div className={s.topbar_action}>
-                            <DocumentDownloadIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-
+                            <RulerIcon
+                                className={s.topbar_icon}
+                                width={TOPBAR_ICON_WIDTH}
+                                height={TOPBAR_ICON_HEIGHT}
+                            />
                         </div>
                         <div className={s.topbar_action}>
-                            <CloudUploadIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-
+                            <AspectRatioIcon
+                                className={s.topbar_icon}
+                                width={TOPBAR_ICON_WIDTH}
+                                height={TOPBAR_ICON_HEIGHT}
+                            />
                         </div>
                     </div>
                     <div className={s.topbar_actionset}>
                         <div className={s.topbar_action}>
-                            <GitHubFaceIcon className={s.topbar_icon} width={TOPBAR_ICON_WIDTH} height={TOPBAR_ICON_HEIGHT} />
-
+                            <DatabaseIcon
+                                className={s.topbar_icon}
+                                width={TOPBAR_ICON_WIDTH}
+                                height={TOPBAR_ICON_HEIGHT}
+                            />
+                        </div>
+                        <div className={s.topbar_action}>
+                            <TaskListIcon
+                                className={s.topbar_icon}
+                                width={TOPBAR_ICON_WIDTH}
+                                height={TOPBAR_ICON_HEIGHT}
+                            />
+                        </div>
+                        <div className={s.topbar_action}>
+                            <LogIcon
+                                className={s.topbar_icon}
+                                width={TOPBAR_ICON_WIDTH}
+                                height={TOPBAR_ICON_HEIGHT}
+                            />
+                        </div>
+                    </div>
+                    <div className={s.topbar_actionset}>
+                        <div className={s.topbar_action}>
+                            <DocumentDownloadIcon
+                                className={s.topbar_icon}
+                                width={TOPBAR_ICON_WIDTH}
+                                height={TOPBAR_ICON_HEIGHT}
+                            />
+                        </div>
+                        <div className={s.topbar_action}>
+                            <CloudUploadIcon
+                                className={s.topbar_icon}
+                                width={TOPBAR_ICON_WIDTH}
+                                height={TOPBAR_ICON_HEIGHT}
+                            />
+                        </div>
+                    </div>
+                    <div className={s.topbar_actionset}>
+                        <div className={s.topbar_action}>
+                            <GitHubFaceIcon
+                                className={s.topbar_icon}
+                                width={TOPBAR_ICON_WIDTH}
+                                height={TOPBAR_ICON_HEIGHT}
+                            />
                         </div>
                     </div>
                 </div>
@@ -192,56 +274,98 @@ class Explorer extends React.Component<IExplorerProps> {
 
                 <div className={s.toolbar}>
                     <div className={s.toolbar_tool}>
-                        <VariableBoxIcon className={s.toolbar_icon} width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                        <VariableBoxIcon
+                            className={s.toolbar_icon}
+                            width={TOOL_ICON_WIDTH}
+                            height={TOOL_ICON_HEIGHT}
+                        />
                     </div>
                     <div className={s.toolbar_tool}>
-                        <FileDocumentBoxPlusIcon className={s.toolbar_icon} width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                        <FileDocumentBoxPlusIcon
+                            className={s.toolbar_icon}
+                            width={TOOL_ICON_WIDTH}
+                            height={TOOL_ICON_HEIGHT}
+                        />
                     </div>
                     <div className={s.toolbar_tool}>
-                        <DatabaseImportIcon className={s.toolbar_icon} width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                        <DatabaseImportIcon
+                            className={s.toolbar_icon}
+                            width={TOOL_ICON_WIDTH}
+                            height={TOOL_ICON_HEIGHT}
+                        />
                     </div>
                     <div className={s.toolbar_tool}>
-                        <DatabaseSearchIcon className={s.toolbar_icon} width={TOOL_ICON_WIDTH} height={TOOL_ICON_HEIGHT} />
+                        <DatabaseSearchIcon
+                            className={s.toolbar_icon}
+                            width={TOOL_ICON_WIDTH}
+                            height={TOOL_ICON_HEIGHT}
+                        />
                     </div>
                 </div>
 
                 <div className={s.viztypes}>
                     <div className={s.viztypes_viztype}>
-                        <PlanIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        <PlanIcon
+                            className={s.viztypes_icon}
+                            width={VIZTYPE_ICON_WIDTH}
+                            height={VIZTYPE_ICON_HEIGHT}
+                        />
                     </div>
                     <div className={s.viztypes_viztype}>
-                        <TextCardIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        <TextCardIcon
+                            className={s.viztypes_icon}
+                            width={VIZTYPE_ICON_WIDTH}
+                            height={VIZTYPE_ICON_HEIGHT}
+                        />
                     </div>
                     <div className={s.viztypes_viztype}>
-                        <TableChartIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                        <TableChartIcon
+                            className={s.viztypes_icon}
+                            width={VIZTYPE_ICON_WIDTH}
+                            height={VIZTYPE_ICON_HEIGHT}
+                        />
                     </div>
                     <div className={s.viztypes_vega}>
                         <div className={s.viztypes_viztype}>
-                            <LineChartIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                            <LineChartIcon
+                                className={s.viztypes_icon}
+                                width={VIZTYPE_ICON_WIDTH}
+                                height={VIZTYPE_ICON_HEIGHT}
+                            />
                         </div>
                         <div className={s.viztypes_viztype}>
-                            <BarChartIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                            <BarChartIcon
+                                className={s.viztypes_icon}
+                                width={VIZTYPE_ICON_WIDTH}
+                                height={VIZTYPE_ICON_HEIGHT}
+                            />
                         </div>
                         <div className={s.viztypes_viztype}>
-                            <ScatterChartIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                            <ScatterChartIcon
+                                className={s.viztypes_icon}
+                                width={VIZTYPE_ICON_WIDTH}
+                                height={VIZTYPE_ICON_HEIGHT}
+                            />
                         </div>
                         <div className={s.viztypes_viztype}>
-                            <ArcChartIcon className={s.viztypes_icon} width={VIZTYPE_ICON_WIDTH} height={VIZTYPE_ICON_HEIGHT} />
+                            <ArcChartIcon
+                                className={s.viztypes_icon}
+                                width={VIZTYPE_ICON_WIDTH}
+                                height={VIZTYPE_ICON_HEIGHT}
+                            />
                         </div>
                     </div>
                 </div>
 
                 <div className={s.properties}>
-                    <div className={s.properties_header}>
-                        Properties
-                    </div>
+                    <div className={s.properties_header}>Properties</div>
                 </div>
             </div>
         );
     }
 
     protected async evalTermInput(text: string) {
-        text = text.replace("run", "");
+        text = text.replace('run', '');
 
         // let result = await ctrl.core.runQuery(session, text);
         // let d = new Store.QueryResultDataSource(result);
@@ -257,15 +381,16 @@ class Explorer extends React.Component<IExplorerProps> {
 
         // Handle terminal input
         if (text != null) {
-            await this.evalTermInput(text)
+            await this.evalTermInput(text);
         }
 
         // Schedule next read
-        ctrl.terminal.read("> ",  "   ",)
+        ctrl.terminal
+            .read('> ', '   ')
             .then(this.runTermEvalLoop.bind(this))
-            .catch(function(text: string) {
-                ctrl.terminal.printLine("exception: " + text);
-            });       
+            .catch(function (text: string) {
+                ctrl.terminal.printLine('exception: ' + text);
+            });
     }
 
     // Component did mount to the dom
@@ -283,9 +408,9 @@ function mapStateToExplorerProps(state: Store.RootState) {
 }
 
 function mapDispatchToExplorerProps(_dispatch: Store.Dispatch) {
-    return {
-    };
+    return {};
 }
 
-export default withAppContext(connect(mapStateToExplorerProps, mapDispatchToExplorerProps)(Explorer));
-
+export default withAppContext(
+    connect(mapStateToExplorerProps, mapDispatchToExplorerProps)(Explorer),
+);

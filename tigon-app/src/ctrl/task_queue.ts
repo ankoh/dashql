@@ -46,7 +46,9 @@ export class TaskQueue {
     protected swap(i: number, j: number) {
         let ti = this.at(i);
         let tj = this.at(j);
-        if (!ti || !tj) { return; }
+        if (!ti || !tj) {
+            return;
+        }
         let tmp = this.heap[i];
         this.heap[i] = this.heap[j];
         this.heap[j] = tmp;
@@ -89,11 +91,17 @@ export class TaskQueue {
     }
 
     /// Get the capacity
-    public capacity() { return this.heap.length; }
+    public capacity() {
+        return this.heap.length;
+    }
     /// Get the size
-    public size() { return this.heapSize; }
+    public size() {
+        return this.heapSize;
+    }
     /// Is the heap empty?
-    public empty() { return this.size() === 0; }
+    public empty() {
+        return this.size() === 0;
+    }
 
     /// Push a task
     public push(task: Task) {

@@ -31,7 +31,7 @@ class HistoryBuffer {
 
     // Push a command to the history buffer
     public push(text: string) {
-        if (text.trim() === "") {
+        if (text.trim() === '') {
             return;
         }
         this.buffer[this.cursor] = text;
@@ -40,7 +40,9 @@ class HistoryBuffer {
 
     // Get the previous command
     public getPrevious(): string | null {
-        return this.buffer[(this.cursor + (this.buffer.length - 1)) % this.buffer.length];
+        return this.buffer[
+            (this.cursor + (this.buffer.length - 1)) % this.buffer.length
+        ];
     }
 
     // Get the next command
@@ -66,21 +68,26 @@ class Prompt {
     output: string;
 
     // Constructor
-    constructor(promptPrefix: string = "> ", continuationPrefix: string = "  ", resolve: ResolveInputFunc, reject: RejectInputFunc) {
+    constructor(
+        promptPrefix: string = '> ',
+        continuationPrefix: string = '  ',
+        resolve: ResolveInputFunc,
+        reject: RejectInputFunc,
+    ) {
         this.promptPrefix = promptPrefix;
         this.continuationPrefix = continuationPrefix;
         this.resolve = resolve;
         this.reject = reject;
 
-        this.input = "";
+        this.input = '';
         this.inputRowMap = new Array<number>();
         this.inputColumnMap = new Array<number>();
 
-        this.output = "";
+        this.output = '';
     }
 
     // Reset prompt with new text
-    public reset(text: string = "") {
+    public reset(text: string = '') {
         this.inputRowMap.length = 0;
         this.inputColumnMap.length = 0;
         this.output = this.promptPrefix;
@@ -89,7 +96,7 @@ class Prompt {
         for (let i = 0; i < text.length; ++i) {
             this.inputColumnMap.push(this.output.length - rowStart);
             this.output += text[i];
-            if (text[i] === "\n") {
+            if (text[i] === '\n') {
                 ++row;
                 rowStart = this.output.length;
                 this.output += this.continuationPrefix;
@@ -106,7 +113,7 @@ class Prompt {
         for (let i = 0; i < text.length; ++i) {
             this.inputColumnMap.push(this.output.length - rowStart);
             this.output += text[i];
-            if (text[i] === "\n") {
+            if (text[i] === '\n') {
                 ++row;
                 rowStart = this.output.length;
                 this.output += this.continuationPrefix;
@@ -130,10 +137,7 @@ class Prompt {
             return [0, 0];
         } else {
             let last = this.input.length - 1;
-            return [
-                this.inputRowMap[last],
-                this.inputColumnMap[last] + 1
-            ];
+            return [this.inputRowMap[last], this.inputColumnMap[last] + 1];
         }
     }
 
@@ -203,27 +207,36 @@ export class TerminalController {
     }
 
     // Attach to terminal events
-    public attach() {
-    }
+    public attach() {}
 
     // Detach from terminal events
-    public detach() {
-    }
+    public detach() {}
 
     // Read next input from the terminal
-    public read(inputPrompt: string, continuationPrompt: string = "> "): Promise<string> {
+    public read(
+        inputPrompt: string,
+        continuationPrompt: string = '> ',
+    ): Promise<string> {
         let t = this;
-        return new Promise(function (resolve: ResolveInputFunc, reject: RejectInputFunc): void {
+        return new Promise(function (
+            resolve: ResolveInputFunc,
+            reject: RejectInputFunc,
+        ): void {
             t.term.write(inputPrompt);
-            t.activePrompt = new Prompt(inputPrompt, continuationPrompt, resolve, reject);
+            t.activePrompt = new Prompt(
+                inputPrompt,
+                continuationPrompt,
+                resolve,
+                reject,
+            );
             t.cursor = 0;
         });
     }
 
     // Abort pending reads
-    public abortRead(reason: string = "aborted") {
+    public abortRead(reason: string = 'aborted') {
         if (this.activePrompt != null) {
-            this.term.write("\r\n");
+            this.term.write('\r\n');
             this.activePrompt.reject(reason);
             this.activePrompt = null;
         }
@@ -231,13 +244,13 @@ export class TerminalController {
 
     // Print a message
     public print(text: string) {
-        let normed = text.replace(/[\r\n]+/g, "\n");
-        this.term.write(normed.replace(/\n/g, "\r\n"));
+        let normed = text.replace(/[\r\n]+/g, '\n');
+        this.term.write(normed.replace(/\n/g, '\r\n'));
     }
 
     // Print a line
     public printLine(text: string) {
-        this.print(text + "\n");
+        this.print(text + '\n');
     }
 
     // ------------------
@@ -245,7 +258,7 @@ export class TerminalController {
     // ------------------
 
     // Set the input
-    protected resetPrompt(input: string = "") {
+    protected resetPrompt(input: string = '') {
         if (!this.activePrompt) {
             return;
         }
@@ -256,16 +269,16 @@ export class TerminalController {
 
         // Move cursor to the last line after the last line.
         // \x1B[E: Cursor Next Line
-        this.term.write("\r")
-        for (let i = 0; i <= (insertPos[0] - cursorPos[0]); ++i) {
-            this.term.write("\x1B[E");
+        this.term.write('\r');
+        for (let i = 0; i <= insertPos[0] - cursorPos[0]; ++i) {
+            this.term.write('\x1B[E');
         }
 
         // Clear the previous line.
         // \x1B[F: Move to previous line
         // \x1B[2K: Erase full line
         for (let i = 0; i <= insertPos[0]; ++i) {
-            this.term.write("\x1B[F\x1B[2K");
+            this.term.write('\x1B[F\x1B[2K');
         }
 
         // Reset the prompt
@@ -281,7 +294,10 @@ export class TerminalController {
         if (!this.activePrompt) {
             return;
         }
-        let c = Math.max(Math.min(newCursor, this.activePrompt.input.length), 0);
+        let c = Math.max(
+            Math.min(newCursor, this.activePrompt.input.length),
+            0,
+        );
 
         // Get previous and new position
         let prevPos = this.activePrompt.getCursorPosition(this.cursor);
@@ -291,20 +307,20 @@ export class TerminalController {
         // \x1B[B: Cursor Down
         // \x1B[A: Cursor Up
         for (let i = prevPos[0]; i < newPos[0]; ++i) {
-            this.term.write("\x1B[B");
+            this.term.write('\x1B[B');
         }
         for (let i = newPos[0]; i < prevPos[0]; ++i) {
-            this.term.write("\x1B[A");
+            this.term.write('\x1B[A');
         }
 
         // Move horizontally
         // \x1B[C: Cursor Forward
         // \x1B[D: Cursor Back
         for (let i = prevPos[1]; i < newPos[1]; ++i) {
-            this.term.write("\x1B[C");
+            this.term.write('\x1B[C');
         }
         for (let i = newPos[1]; i < prevPos[1]; ++i) {
-            this.term.write("\x1B[D");
+            this.term.write('\x1B[D');
         }
 
         // Set the new cursor
@@ -335,7 +351,8 @@ export class TerminalController {
         let c = this.cursor;
         this.resetPrompt(
             this.activePrompt.input.substr(0, this.cursor) +
-            this.activePrompt.input.substr(this.cursor + 1));
+                this.activePrompt.input.substr(this.cursor + 1),
+        );
         this.setCursor(c);
     }
 
@@ -344,7 +361,10 @@ export class TerminalController {
         if (!this.activePrompt || this.cursor < 0) {
             return;
         }
-        if (this.cursor === this.activePrompt.input.length && !text.includes("\n")) {
+        if (
+            this.cursor === this.activePrompt.input.length &&
+            !text.includes('\n')
+        ) {
             this.activePrompt.append(text);
             this.print(text);
             this.cursor += text.length;
@@ -352,8 +372,9 @@ export class TerminalController {
             let c = this.cursor;
             this.resetPrompt(
                 this.activePrompt.input.substr(0, this.cursor) +
-                text +
-                this.activePrompt.input.substr(this.cursor));
+                    text +
+                    this.activePrompt.input.substr(this.cursor),
+            );
             this.setCursor(c + text.length);
         }
     }
@@ -374,7 +395,7 @@ export class TerminalController {
         if (!this.activePrompt) {
             return true;
         }
-        if (this.activePrompt.input.endsWith(";")) {
+        if (this.activePrompt.input.endsWith(';')) {
             return true;
         }
         return false;
@@ -382,64 +403,64 @@ export class TerminalController {
 
     // Process terminal data
     protected onData(data: string) {
-        let candidate: string | null = "";
+        let candidate: string | null = '';
         let prefix = data.charCodeAt(0);
-        let input = (this.activePrompt && this.activePrompt.input) || "";
+        let input = (this.activePrompt && this.activePrompt.input) || '';
 
         // Handle ANSI escape sequences
         if (prefix === 0x1b) {
             switch (data.substr(1)) {
-                case "[A": // Arrow Up
-                    candidate = this.history.getPrevious()
+                case '[A': // Arrow Up
+                    candidate = this.history.getPrevious();
                     if (candidate) {
                         this.resetPrompt(candidate);
                     }
                     break;
-                case "[B": // Arrow Down
-                    candidate = this.history.getNext()
+                case '[B': // Arrow Down
+                    candidate = this.history.getNext();
                     if (candidate) {
                         this.resetPrompt(candidate);
                     }
                     break;
-                case "[D": // Arrow Left
+                case '[D': // Arrow Left
                     this.moveCursorBack();
                     break;
-                case "[C": // Arrow Right
+                case '[C': // Arrow Right
                     this.moveCursorForward();
                     break;
-                case "[3~": // Erase at cursor
+                case '[3~': // Erase at cursor
                     this.eraseAtCursor();
                     break;
-                case "[F": // End
+                case '[F': // End
                     this.setCursor(input.length);
                     break;
-                case "[H": // Home
+                case '[H': // Home
                     this.setCursor(0);
                     break;
-                case "b": // Alt + Left
+                case 'b': // Alt + Left
                     this.setCursor(closestLeftBoundary(input, this.cursor));
                     break;
-                case "f": // Alt + Right
+                case 'f': // Alt + Right
                     this.setCursor(closestRightBoundary(input, this.cursor));
                     break;
             }
         } else if (prefix < 32 || prefix === 0x7f) {
             switch (data) {
-                case "\r": // Carriage-Return
-                    this.insertAtCursor("\n");
+                case '\r': // Carriage-Return
+                    this.insertAtCursor('\n');
                     break;
-                case "\x7F": // Backspace
+                case '\x7F': // Backspace
                     this.eraseBeforeCursor();
                     break;
-                case "\t": // Tab
+                case '\t': // Tab
                     // TODO autocompletion
-                    this.insertAtCursor(" ");
+                    this.insertAtCursor(' ');
                     break;
-                case "\x03": // Ctrl + C
+                case '\x03': // Ctrl + C
                     if (this.activePrompt) {
-                        this.resetPrompt("");
+                        this.resetPrompt('');
                     } else {
-                        this.term.write("^C\r\n");
+                        this.term.write('^C\r\n');
                     }
                     break;
             }
@@ -447,7 +468,7 @@ export class TerminalController {
             this.insertAtCursor(data);
 
             // Command complete?
-            if (data.endsWith(";")) {
+            if (data.endsWith(';')) {
                 this.commitInput();
             }
         }
@@ -459,7 +480,7 @@ export class TerminalController {
             return;
         }
         let tmp = this.activePrompt.input;
-        this.resetPrompt("");
+        this.resetPrompt('');
         this.termSize = {
             columns,
             rows,
@@ -469,7 +490,10 @@ export class TerminalController {
 }
 
 // Detects all the word boundaries on the given input
-function wordBoundaries(input: string, leftSide: boolean = true): Array<number> {
+function wordBoundaries(
+    input: string,
+    leftSide: boolean = true,
+): Array<number> {
     let match;
     let words = new Array<number>();
     let rx = /\w+/g;

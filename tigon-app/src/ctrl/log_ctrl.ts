@@ -33,11 +33,18 @@ export class LogController {
     }
 
     // Log levels
-    public debug(text: string)      { this.log(Store.LogLevel.DEBUG, text); }
-    public info(text: string)       { this.log(Store.LogLevel.INFO, text); }
-    public warning(text: string)    { this.log(Store.LogLevel.WARNING, text); }
-    public error(text: string)      { this.log(Store.LogLevel.ERROR, text); }
+    public debug(text: string) {
+        this.log(Store.LogLevel.DEBUG, text);
+    }
+    public info(text: string) {
+        this.log(Store.LogLevel.INFO, text);
+    }
+    public warning(text: string) {
+        this.log(Store.LogLevel.WARNING, text);
+    }
+    public error(text: string) {
+        this.log(Store.LogLevel.ERROR, text);
+    }
 }
 
 export default LogController;
-

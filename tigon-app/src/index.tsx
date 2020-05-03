@@ -24,5 +24,5 @@ ReactDOM.render(
             <Router />
         </AppContextProvider>
     </ReduxProvider>,
-    document.getElementById('root') as HTMLElement
+    document.getElementById('root') as HTMLElement,
 );

@@ -38,7 +38,12 @@ export class RootController {
         this.cache = new CacheController();
         this.terminal = new TerminalController();
         this.demo = new DemoController(this.store, this.core, this.log);
-        this.interpreter = new TQLInterpreter(this.store, this.core, this.log, this.cache);
+        this.interpreter = new TQLInterpreter(
+            this.store,
+            this.core,
+            this.log,
+            this.cache,
+        );
         this.workerTimer = null;
     }
 
@@ -50,7 +55,10 @@ export class RootController {
     // Init the controller
     public async init(): Promise<void> {
         this.core.init();
-        this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
+        this.workerTimer = window.setTimeout(
+            this.worker.bind(this),
+            workerIntervalMS,
+        );
 
         await this.loadTestEnv();
 
@@ -65,7 +73,9 @@ export class RootController {
         // TODO
 
         // Reschedule worker
-        this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
+        this.workerTimer = window.setTimeout(
+            this.worker.bind(this),
+            workerIntervalMS,
+        );
     }
 }
-

@@ -18,43 +18,45 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
     }
 
     /// Get an operator name
-    private getOperatorName(type: proto.engine.LogicalOperatorTypeMap[keyof proto.engine.LogicalOperatorTypeMap]) {
+    private getOperatorName(
+        type: proto.engine.LogicalOperatorTypeMap[keyof proto.engine.LogicalOperatorTypeMap],
+    ) {
         var operatorTypeNames = [
-            "INVALID",
-            "PROJECTION",
-            "FILTER",
-            "AGGREGATE_AND_GROUP_BY",
-            "WINDOW",
-            "LIMIT",
-            "ORDER_BY",
-            "COPY_FROM_FILE",
-            "COPY_TO_FILE",
-            "DISTINCT",
-            "INDEX_SCAN",
-            "GET",
-            "CHUNK_GET",
-            "DELIM_GET",
-            "EXPRESSION_GET",
-            "TABLE_FUNCTION",
-            "SUBQUERY",
-            "EMPTY_RESULT",
-            "JOIN",
-            "DELIM_JOIN",
-            "COMPARISON_JOIN",
-            "ANY_JOIN",
-            "CROSS_PRODUCT",
-            "UNION",
-            "EXCEPT",
-            "INTERSECT",
-            "INSERT",
-            "DELETE",
-            "UPDATE",
-            "CREATE_TABLE",
-            "CREATE_INDEX",
-            "EXPLAIN",
-            "PRUNE_COLUMNS",
-            "PREPARE",
-            "EXECUTE"
+            'INVALID',
+            'PROJECTION',
+            'FILTER',
+            'AGGREGATE_AND_GROUP_BY',
+            'WINDOW',
+            'LIMIT',
+            'ORDER_BY',
+            'COPY_FROM_FILE',
+            'COPY_TO_FILE',
+            'DISTINCT',
+            'INDEX_SCAN',
+            'GET',
+            'CHUNK_GET',
+            'DELIM_GET',
+            'EXPRESSION_GET',
+            'TABLE_FUNCTION',
+            'SUBQUERY',
+            'EMPTY_RESULT',
+            'JOIN',
+            'DELIM_JOIN',
+            'COMPARISON_JOIN',
+            'ANY_JOIN',
+            'CROSS_PRODUCT',
+            'UNION',
+            'EXCEPT',
+            'INTERSECT',
+            'INSERT',
+            'DELETE',
+            'UPDATE',
+            'CREATE_TABLE',
+            'CREATE_INDEX',
+            'EXPLAIN',
+            'PRUNE_COLUMNS',
+            'PREPARE',
+            'EXECUTE',
         ];
         return operatorTypeNames[type];
     }
@@ -67,7 +69,9 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
                 edgesep: 8,
                 rankdir: 'LR',
             })
-            .setDefaultEdgeLabel(function() { return {}; });
+            .setDefaultEdgeLabel(function () {
+                return {};
+            });
 
         let buffer = this.props.plan!;
         let opTypes = buffer.getOperatorTypesList();
@@ -84,16 +88,19 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
                 height: 12,
                 rx: 3,
                 ry: 3,
-            })
+            });
         }
 
         // Create edges
         for (let oid = 0; oid < opCount; oid += 1) {
             let begin = childOffsets[oid];
-            let end = (oid + 1 < childOffsets.length) ? childOffsets[oid + 1] : children.length;
+            let end =
+                oid + 1 < childOffsets.length
+                    ? childOffsets[oid + 1]
+                    : children.length;
             for (let cid = begin; cid < end; cid += 1) {
                 graph.setEdge(String(oid), String(children[cid]), {
-                    arrowhead: "undirected",
+                    arrowhead: 'undirected',
                 });
             }
         }
@@ -128,11 +135,12 @@ export class PlanViewer extends React.PureComponent<IPlanViewerProps> {
     public render() {
         return (
             <div className="plan_viewer">
-                {
-                    this.props.plan &&
-                    <svg ref={this.container} className="plan_viewer_graph">
-                    </svg>       
-                }
+                {this.props.plan && (
+                    <svg
+                        ref={this.container}
+                        className="plan_viewer_graph"
+                    ></svg>
+                )}
             </div>
         );
     }

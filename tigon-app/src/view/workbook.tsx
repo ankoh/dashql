@@ -4,12 +4,9 @@ import * as Store from '../store';
 import { connect } from 'react-redux';
 import ChartViewer from './viz/chart_viewer';
 
+interface IWorkbookProps {}
 
-interface IWorkbookProps {
-}
-
-interface IWorkbookState {
-}
+interface IWorkbookState {}
 
 export class Workbook extends React.Component<IWorkbookProps, IWorkbookState> {
     public render() {

@@ -43,7 +43,7 @@ export enum SizeClass {
     SMALL,
     MEDIUM,
     LARGE,
-    XLARGE
+    XLARGE,
 }
 
 // ---------------------------------------------------------------------------
@@ -65,14 +65,13 @@ export class CoreBuffer {
 }
 
 // An application config
-export class AppSettings {
-}
+export class AppSettings {}
 
 // The log entry
 export class LogEntry {
     public timestamp: Date = new Date();
     public level: LogLevel = LogLevel.UNDEFINED;
-    public text: string = "";
+    public text: string = '';
 }
 
 export type TaskID = number;
@@ -80,10 +79,10 @@ export type TaskID = number;
 // A task
 export class TaskInfo {
     public taskID: TaskID = 1;
-    public title: string = "";
-    public description: string = "";
+    public title: string = '';
+    public description: string = '';
     public statusTag: TaskStatus = TaskStatus.PENDING;
-    public statusText: string = "";
+    public statusText: string = '';
     public error: Error | null = null;
     public timeCreated: Date | null = null;
     public timeQueued: Date | null = null;
@@ -103,9 +102,11 @@ export enum LaunchProgressStatus {
 }
 
 export class LaunchProgress {
-    public app_configured: LaunchProgressStatus = LaunchProgressStatus.COMPLETED;
+    public app_configured: LaunchProgressStatus =
+        LaunchProgressStatus.COMPLETED;
     public version_checked: LaunchProgressStatus = LaunchProgressStatus.STARTED;
-    public core_instantiated: LaunchProgressStatus = LaunchProgressStatus.STARTED;
+    public core_instantiated: LaunchProgressStatus =
+        LaunchProgressStatus.STARTED;
 }
 
 // ---------------------------------------------------------------------------
@@ -167,4 +168,3 @@ export class RootState {
         return;
     }
 }
-

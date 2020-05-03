@@ -8,7 +8,11 @@ export class DemoController {
     protected log: LogController;
     protected core: CoreController;
 
-    constructor(store: Store.ReduxStore, core: CoreController, log: LogController) {
+    constructor(
+        store: Store.ReduxStore,
+        core: CoreController,
+        log: LogController,
+    ) {
         this.store = store;
         this.core = core;
         this.log = log;
@@ -17,7 +21,9 @@ export class DemoController {
     async init() {
         await this.core.waitUntilReady();
         let session = await this.core.createSession();
-        let tql = await this.core.parseTQL(session, `
+        let tql = await this.core.parseTQL(
+            session,
+            `
             DECLARE PARAMETER days AS INTEGER;
 
             LOAD whether_api_data FROM http (
@@ -40,27 +46,65 @@ export class DemoController {
                 title = "Weekly Temperature",
                 area = 6/20/6/0
             );
-        `);
+        `,
+        );
 
         // Q1 result
         let q1Res = new QueryResultWriter();
-        q1Res.addNumericColumn("col1", proto.engine.SQLTypeID.SQL_INTEGER, [
-            1, 2, 3, 4, 5, 6, 7, 8, 9
+        q1Res.addNumericColumn('col1', proto.engine.SQLTypeID.SQL_INTEGER, [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
         ]);
-        q1Res.addNumericColumn("col2", proto.engine.SQLTypeID.SQL_INTEGER, [
-            10, 11, 12, 13, 14, 15, 16, 17, 18, 19
+        q1Res.addNumericColumn('col2', proto.engine.SQLTypeID.SQL_INTEGER, [
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
         ]);
-        q1Res.addNumericColumn("col3", proto.engine.SQLTypeID.SQL_INTEGER, [
-            20, 21, 22, 23, 24, 25, 26, 27, 28, 29
+        q1Res.addNumericColumn('col3', proto.engine.SQLTypeID.SQL_INTEGER, [
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
         ]);
-        q1Res.addNumericColumn("col4", proto.engine.SQLTypeID.SQL_INTEGER, [
-            30, 31, 32, 33, 34, 35, 36, 37, 38, 39
+        q1Res.addNumericColumn('col4', proto.engine.SQLTypeID.SQL_INTEGER, [
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
         ]);
 
         this.store.dispatch(Store.pushTQLStatements(tql.getStatementsList()));
-        this.store.dispatch(Store.setTQLQueryResult("temp_weekly", q1Res.finish()));       
+        this.store.dispatch(
+            Store.setTQLQueryResult('temp_weekly', q1Res.finish()),
+        );
     }
-};
+}
 
 export class QueryResultWriter {
     protected queryResult: proto.engine.QueryResult;
@@ -75,12 +119,17 @@ export class QueryResultWriter {
         this.rowCount = 0;
     }
 
-    public addNumericColumn(name: string, sqlTypeID: proto.engine.SQLTypeIDMap[keyof proto.engine.SQLTypeIDMap], rows: Array<number>) {
+    public addNumericColumn(
+        name: string,
+        sqlTypeID: proto.engine.SQLTypeIDMap[keyof proto.engine.SQLTypeIDMap],
+        rows: Array<number>,
+    ) {
         this.rowCount = rows.length;
         this.columnCount += 1;
         let column = new proto.engine.QueryResultColumn();
         let sqlType = new proto.engine.SQLType();
-        let rawType: proto.engine.RawTypeIDMap[keyof proto.engine.RawTypeIDMap] = proto.engine.RawTypeID.RAW_INVALID;
+        let rawType: proto.engine.RawTypeIDMap[keyof proto.engine.RawTypeIDMap] =
+            proto.engine.RawTypeID.RAW_INVALID;
         sqlType.setTypeId(sqlTypeID);
         switch (sqlTypeID) {
             case proto.engine.SQLTypeID.SQL_BIGINT:
@@ -120,7 +169,7 @@ export class QueryResultWriter {
         column.setNullMaskList(nullMask);
         this.queryResult.addColumnRawTypes(rawType);
         this.queryResult.addColumnNames(name);
-        this.queryResult.addColumnSqlTypes(sqlType)
+        this.queryResult.addColumnSqlTypes(sqlType);
         this.dataChunk.addColumns(column);
     }
 
@@ -150,4 +199,4 @@ export class QueryResultWriter {
         queryResult.addDataChunks(this.dataChunk);
         return queryResult;
     }
-};
+}

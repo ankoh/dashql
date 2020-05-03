@@ -6,21 +6,21 @@ import './chart_viewer.scss';
 
 const data: any = {
     table: [
-        {"category": "A", "amount": 28},
-        {"category": "B", "amount": 55},
-        {"category": "C", "amount": 43},
-        {"category": "D", "amount": 91},
-        {"category": "E", "amount": 81},
-        {"category": "F", "amount": 53},
-        {"category": "G", "amount": 19},
-        {"category": "H", "amount": 87}
-    ]
+        { category: 'A', amount: 28 },
+        { category: 'B', amount: 55 },
+        { category: 'C', amount: 43 },
+        { category: 'D', amount: 91 },
+        { category: 'E', amount: 81 },
+        { category: 'F', amount: 53 },
+        { category: 'G', amount: 19 },
+        { category: 'H', amount: 87 },
+    ],
 };
 
 const spec: VisualizationSpec = {
     autosize: {
-        type: "fit",
-        contains: "padding"
+        type: 'fit',
+        contains: 'padding',
     },
 
     padding: { left: 40, right: 20, top: 5, bottom: 24 },
@@ -40,11 +40,11 @@ const spec: VisualizationSpec = {
         },
     ],
 
-    data: [ {name: 'table'} ],
+    data: [{ name: 'table' }],
 
     axes: [
         { orient: 'bottom', scale: 'xscale' },
-        { orient: 'left', scale: 'yscale' }
+        { orient: 'left', scale: 'yscale' },
     ],
 
     marks: [
@@ -79,24 +79,30 @@ const spec: VisualizationSpec = {
     ],
 };
 
-
 interface IChartViewerProps {
     width: number;
     height: number;
 }
 
-interface IChartViewerState {
-}
+interface IChartViewerState {}
 
-export class ChartViewer extends React.Component<IChartViewerProps, IChartViewerState> {
+export class ChartViewer extends React.Component<
+    IChartViewerProps,
+    IChartViewerState
+> {
     public render() {
         return (
             <div className="chart_viewer">
-                <Vega spec={spec} data={data} actions={false} width={this.props.width} height={this.props.height} />
+                <Vega
+                    spec={spec}
+                    data={data}
+                    actions={false}
+                    width={this.props.width}
+                    height={this.props.height}
+                />
             </div>
         );
     }
 }
 
 export default withAutoSizer(ChartViewer);
-

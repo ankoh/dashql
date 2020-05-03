@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
+PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
 PROTO_DIR="${PROJECT_ROOT}/tigon-proto"
 PROTO_SPEC_DIR="${PROTO_DIR}/spec"
@@ -52,3 +52,7 @@ echo "[ RUN ] Install js library" \
     && { echo "[ OK  ] Install js library"; } \
     || { echo "[ ERR ] Install js library"; exit 1; }
 
+echo "[ RUN ] Formatting files" \
+    && ${PROJECT_ROOT}/bin/format \
+    && { echo "[ OK  ] Formatting files"; } \
+    || { echo "[ ERR ] Formatting files"; exit 1; }

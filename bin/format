@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+
+PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
+
+npx prettier --write "$PROJECT_ROOT/**/*.{js,json,ts,tsx,d.ts}"
+
+find -E $PROJECT_ROOT \
+    -path '*submodules' -prune -o \
+    -regex '.*\.(cc|h)' \
+    -exec echo clang-format -i {} \;

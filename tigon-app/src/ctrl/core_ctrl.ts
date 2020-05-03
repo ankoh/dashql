@@ -32,17 +32,15 @@ export class CoreController {
     // Initialize the core
     public init(): Promise<void> {
         this.coreLoading = new Promise<void>(resolve => {
-
             this.core = this.loadCore({
-                print: function(text: any) {
+                print: function (text: any) {
                     console.log(text);
                 },
-                printErr: function(text: any) {
+                printErr: function (text: any) {
                     console.log(text);
                 },
-                onRuntimeInitialized: function() {
-                },
-                postRun: function() {
+                onRuntimeInitialized: function () {},
+                postRun: function () {
                     resolve();
                 },
             });
@@ -60,7 +58,11 @@ export class CoreController {
     }
 
     // Call a core function with packed response buffer
-    protected callSRet(funcName: string, argTypes: Array<string>, args: Array<any>): [number, number, number, number] {
+    protected callSRet(
+        funcName: string,
+        argTypes: Array<string>,
+        args: Array<any>,
+    ): [number, number, number, number] {
         // Save the stack
         var stackPointer = this.core.stackSave();
 
@@ -84,7 +86,7 @@ export class CoreController {
         return [status, error, data, dataSize];
     }
 
-    // Create a session 
+    // Create a session
     public async createSession(): Promise<number> {
         await this.waitUntilReady();
         let session = this.core.ccall('tigon_create_session', 'number', [], []);
@@ -99,58 +101,112 @@ export class CoreController {
     }
 
     // Copy a flatbuffer
-    public async copyFlatBuffer(session: number, buffer: flatbuffers.ByteBuffer): Promise<[number, number]> {
-        return this.copyBuffer(session, buffer.bytes().subarray(buffer.position()));
+    public async copyFlatBuffer(
+        session: number,
+        buffer: flatbuffers.ByteBuffer,
+    ): Promise<[number, number]> {
+        return this.copyBuffer(
+            session,
+            buffer.bytes().subarray(buffer.position()),
+        );
     }
 
     // Copy a buffer
-    public async copyBuffer(session: number, buffer: Uint8Array): Promise<[number, number]> {
-        var ptr = this.core.allocate(buffer.length, 'i8', this.core.ALLOC_NORMAL); 
+    public async copyBuffer(
+        session: number,
+        buffer: Uint8Array,
+    ): Promise<[number, number]> {
+        var ptr = this.core.allocate(
+            buffer.length,
+            'i8',
+            this.core.ALLOC_NORMAL,
+        );
         let mem = this.core.HEAPU8.subarray(ptr, ptr + buffer.length);
         mem.set(buffer);
-        this.core.ccall('tigon_register_buffer', 'void', ['number', 'number', 'number'], [session, ptr, buffer.length]);
+        this.core.ccall(
+            'tigon_register_buffer',
+            'void',
+            ['number', 'number', 'number'],
+            [session, ptr, buffer.length],
+        );
         return [ptr, buffer.length];
     }
 
     // Parse TQL
-    public async parseTQL(session: number, text: string): Promise<proto.tql.Module> {
+    public async parseTQL(
+        session: number,
+        text: string,
+    ): Promise<proto.tql.Module> {
         await this.waitUntilReady();
-        let [status, error, data, dataSize] = this.callSRet('tigon_parse_tql', ['number', 'string'], [session, text]);
+        let [status, error, data, dataSize] = this.callSRet(
+            'tigon_parse_tql',
+            ['number', 'string'],
+            [session, text],
+        );
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             console.log(error);
-            return Promise.reject(new Error(""));
+            return Promise.reject(new Error(''));
         }
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
         let msg = proto.tql.Module.deserializeBinary(mem);
-        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [session, data]);
+        this.core.ccall(
+            'tigon_release_buffer',
+            'void',
+            ['number', 'number'],
+            [session, data],
+        );
         return msg;
     }
 
     // Run a query
-    public async runQuery(session: number, text: string): Promise<proto.engine.QueryResult> {
+    public async runQuery(
+        session: number,
+        text: string,
+    ): Promise<proto.engine.QueryResult> {
         await this.waitUntilReady();
-        let [status, error, data, dataSize] = this.callSRet('tigon_run_query', ['number', 'string'], [session, text]);
+        let [status, error, data, dataSize] = this.callSRet(
+            'tigon_run_query',
+            ['number', 'string'],
+            [session, text],
+        );
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             console.log(error);
-            return Promise.reject(new Error(""));
+            return Promise.reject(new Error(''));
         }
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
         let msg = proto.engine.QueryResult.deserializeBinary(mem);
-        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [session, data]);
+        this.core.ccall(
+            'tigon_release_buffer',
+            'void',
+            ['number', 'number'],
+            [session, data],
+        );
         return msg;
     }
 
     // Plan a query
-    public async planQuery(session: number, text: string): Promise<proto.engine.QueryPlan> {
+    public async planQuery(
+        session: number,
+        text: string,
+    ): Promise<proto.engine.QueryPlan> {
         await this.waitUntilReady();
-        let [status, error, data, dataSize] = this.callSRet('tigon_plan_query', ['number', 'string'], [session, text]);
+        let [status, error, data, dataSize] = this.callSRet(
+            'tigon_plan_query',
+            ['number', 'string'],
+            [session, text],
+        );
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             console.log(error);
-            return Promise.reject(new Error(""));
+            return Promise.reject(new Error(''));
         }
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
         let msg = proto.engine.QueryPlan.deserializeBinary(mem);
-        this.core.ccall('tigon_release_buffer', 'void', ['number', 'number'], [session, data]);
+        this.core.ccall(
+            'tigon_release_buffer',
+            'void',
+            ['number', 'number'],
+            [session, data],
+        );
         return msg;
     }
-};
+}

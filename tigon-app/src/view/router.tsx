@@ -57,7 +57,7 @@ class Router extends React.Component<IRouterProps> {
 
 function mapStateToProps(state: Store.RootState) {
     return {
-        rootView: state.rootView
+        rootView: state.rootView,
     };
 }
 function mapDispatchToProps(_dispatch: Store.Dispatch) {
@@ -65,4 +65,3 @@ function mapDispatchToProps(_dispatch: Store.Dispatch) {
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Router);
-
