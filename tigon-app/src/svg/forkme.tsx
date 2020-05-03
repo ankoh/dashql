@@ -11,7 +11,7 @@ interface ForkMeProps {
 export function ForkMe(props: ForkMeProps) {
     return (
         <a
-            href={props.url || 'https://github.com/ankoh'}
+            href={props.url || 'https://github.com/tigon'}
             className="github-corner"
         >
             <svg width="80" height="80" viewBox="0 0 250 250">

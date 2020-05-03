@@ -4,7 +4,7 @@ PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/
 
 EMSDK_COMMIT="a5082b2"
 DOCKER_IMAGE_NAME="tigon-dev"
-DOCKER_IMAGE_NAMESPACE="ankoh"
+DOCKER_IMAGE_NAMESPACE="tigon"
 DOCKER_IMAGE_TAG="${EMSDK_COMMIT}"
 
 set -x

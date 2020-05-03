@@ -3,7 +3,7 @@
 PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/.."
 
 DOCKER_IMAGE_NAME="tigon"
-DOCKER_IMAGE_NAMESPACE="ankoh"
+DOCKER_IMAGE_NAMESPACE="tigon"
 DOCKER_IMAGE_TAG="latest"
 
 set -x

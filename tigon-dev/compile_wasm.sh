@@ -7,7 +7,7 @@ CORE_BUILD_DIR="${PROJECT_ROOT}/tigon-core/build/emscripten"
 CORE_SOURCE_DIR="${PROJECT_ROOT}/tigon-core"
 APP_LIB_DIR="${PROJECT_ROOT}/tigon-app/public/lib"
 
-CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/root/.emscripten_cache/ ankoh/tigon-dev:${IMAGE_TAG} "
+CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/root/.emscripten_cache/ tigon/tigon-dev:${IMAGE_TAG} "
 EMCONFIGURE="${CMD_PREFIX} emconfigure"
 EMMAKE="${CMD_PREFIX} emmake"
 
