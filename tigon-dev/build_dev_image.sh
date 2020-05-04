@@ -1,6 +1,7 @@
 #!/bin/bash
+set -euo pipefail
 
-PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/.."
+PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
 EMSDK_COMMIT="a5082b2"
 DOCKER_IMAGE_NAME="tigon-dev"

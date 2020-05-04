@@ -1,6 +1,7 @@
 #!/bin/bash
+set -euo pipefail
 
-PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/.."
+PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
 IMAGE_TAG="a5082b2"
 CORE_BUILD_DIR="${PROJECT_ROOT}/tigon-core/build/emscripten"
@@ -11,7 +12,7 @@ CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscri
 EMCONFIGURE="${CMD_PREFIX} emconfigure"
 EMMAKE="${CMD_PREFIX} emmake"
 
-set -ex
+set -x
 
 mkdir -p ${CORE_BUILD_DIR}
 
