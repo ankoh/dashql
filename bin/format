@@ -3,9 +3,12 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
-npx prettier --write "$PROJECT_ROOT/**/*.{js,json,ts,tsx,d.ts}"
+npx prettier \
+    --write "$PROJECT_ROOT/**/*.{js,json,ts,tsx,d.ts}" \
+    --config "$PROJECT_ROOT/.prettierrc" \
+    --ignore-path "$PROJECT_ROOT/.prettierignore"
 
 find -E $PROJECT_ROOT \
-    -path '*submodules' -prune -o \
+    -regex '.*/(submodules|node_modules|install|build)/.*' -prune -o \
     -regex '.*\.(cc|h)' \
     -exec echo clang-format -i {} \;
