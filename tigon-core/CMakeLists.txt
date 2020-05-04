@@ -30,7 +30,7 @@ set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
 # ---------------------------------------------------------------------------
 # Bison
 
-find_package(BISON 3.3 REQUIRED)
+find_package(BISON 3.3)
 find_package(FLEX REQUIRED)
 find_package(Threads REQUIRED)
 
