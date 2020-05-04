@@ -42,6 +42,7 @@ done
 
 echo "[ RUN ] Bundle js library" \
     && cd "${PROTO_DIR}/lib/js" \
+    && npm install \
     && npm run bundle \
     && { echo "[ OK  ] Bundle js library"; } \
     || { echo "[ ERR ] Bundle js library"; exit 1; }

@@ -5,7 +5,7 @@
   "main": "dist/tigon-proto.js",
   "typings": "src/index.d.ts",
   "scripts": {
-    "bundle": "webpack"
+    "bundle": "npx webpack"
   },
   "author": "",
   "license": "",
