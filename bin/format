@@ -9,6 +9,6 @@ npx prettier \
     --ignore-path "$PROJECT_ROOT/.prettierignore"
 
 find -E $PROJECT_ROOT \
-    -regex '.*/(submodules|node_modules|install|build)/.*' -prune -o \
+    -regex '.*/(\..*|submodules|node_modules|install|build)/.*' -prune -o \
     -regex '.*\.(cc|h)' \
     -exec echo clang-format -i {} \;
