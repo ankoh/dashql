@@ -11,8 +11,7 @@
 
 namespace tigon {
 
-class Extract {
-};
+    class Extract {};
 
 } // namespace tigon
 

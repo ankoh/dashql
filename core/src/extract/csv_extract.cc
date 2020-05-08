@@ -3,5 +3,5 @@
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
-#include "tigon/extract/csv_extract.h"
 #include "cwcsv/parser.h"
+#include "tigon/extract/csv_extract.h"

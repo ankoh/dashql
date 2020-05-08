@@ -3,17 +3,16 @@
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
-#include "tigon/parser/tql/tql_parse_context.h"
-#include "tigon/common/error.h"
-#include "tigon/parser/tql/tql_parser.h"
 #include <iostream>
 #include <sstream>
 #include <unordered_set>
+#include "tigon/common/error.h"
+#include "tigon/parser/tql/tql_parse_context.h"
+#include "tigon/parser/tql/tql_parser.h"
 
 using namespace tigon::tql;
 
-ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
-    : trace_scanning(trace_scanning), trace_parsing(trace_parsing), statements() {}
+ParseContext::ParseContext(bool trace_scanning, bool trace_parsing): trace_scanning(trace_scanning), trace_parsing(trace_parsing), statements() {}
 
 ParseContext::~ParseContext() {}
 
@@ -25,16 +24,16 @@ Module ParseContext::Parse(std::string_view in) {
         parser.parse();
     }
     endScan();
-    return Module {
-        std::move(statements)
-    };
+    return Module{std::move(statements)};
 }
 
 // Yield an error
-void ParseContext::Error(const std::string &m) { throw TQLParseError(m); }
+void ParseContext::Error(const std::string& m) {
+    throw TQLParseError(m);
+}
 
 // Yield an error
-void ParseContext::Error(uint32_t line, uint32_t column, const std::string &err) {
+void ParseContext::Error(uint32_t line, uint32_t column, const std::string& err) {
     std::stringstream ss;
     ss << "[" << line << ":" << column << "] " << err;
     throw TQLParseError(ss.str());

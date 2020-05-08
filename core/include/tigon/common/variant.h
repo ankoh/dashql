@@ -8,9 +8,9 @@
 
 namespace tigon {
 
-template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
-template<class... Ts> overload(Ts...) -> overload<Ts...>;
+    template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
+    template<class... Ts> overload(Ts...)->overload<Ts...>;
 
-}
+} // namespace tigon
 
 #endif // INCLUDE_TIGON_INFRA_VARIANT_H_

@@ -8,9 +8,6 @@
 
 #include "tigon/extract/extract.h"
 
-namespace tigon {
-
-
-} // namespace tigon
+namespace tigon {} // namespace tigon
 
 #endif // INCLUDE_TIGON_EXTRACT_CSV_EXTRACT_H_

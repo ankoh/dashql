@@ -3,18 +3,17 @@
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
-
-#include "tigon/tools/web/web_api.h"
-#include "tigon/proto/web_api.pb.h"
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_sinks.h"
 #include <iostream>
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
+#include "tigon/proto/web_api.pb.h"
+#include "tigon/tools/web/web_api.h"
 
 using namespace tigon;
 
 static std::unique_ptr<WebAPI> instance;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
 
@@ -35,40 +34,40 @@ int main(int argc, char *argv[]) {
 extern "C" {
 
 /// Create a session
-WebAPI::Session *tigon_create_session() {
+WebAPI::Session* tigon_create_session() {
     return &instance->createSession();
 }
 
 /// End a session
-void tigon_end_session(WebAPI::Session *session) {
+void tigon_end_session(WebAPI::Session* session) {
     instance->endSession(session);
 }
 
 /// Release a buffer
-void tigon_register_buffer(WebAPI::Session *session, void* buffer_ptr, unsigned buffer_length) {
+void tigon_register_buffer(WebAPI::Session* session, void* buffer_ptr, unsigned buffer_length) {
     std::unique_ptr<std::byte[]> bytes{static_cast<std::byte*>(buffer_ptr)};
     session->registerBuffer(std::move(bytes), buffer_length);
 }
 
 /// Release a buffer
-void tigon_release_buffer(WebAPI::Session *session, void* buffer) {
+void tigon_release_buffer(WebAPI::Session* session, void* buffer) {
     session->releaseBuffer(buffer);
 }
 
 /// Parse tql
-void tigon_parse_tql(WebAPI::Response::Packed* response, WebAPI::Session *session, const char *text) {
+void tigon_parse_tql(WebAPI::Response::Packed* response, WebAPI::Session* session, const char* text) {
     session->parseTQL(text);
     session->writePackedResponse(*response);
 }
 
 /// Run a query
-void tigon_run_query(WebAPI::Response::Packed* response, WebAPI::Session* session, const char *text) {
+void tigon_run_query(WebAPI::Response::Packed* response, WebAPI::Session* session, const char* text) {
     session->runQuery(text);
     session->writePackedResponse(*response);
 }
 
 /// Explain a query
-void tigon_plan_query(WebAPI::Response::Packed* response, WebAPI::Session *session, const char* text) {
+void tigon_plan_query(WebAPI::Response::Packed* response, WebAPI::Session* session, const char* text) {
     session->planQuery(text);
     session->writePackedResponse(*response);
 }
@@ -84,7 +83,4 @@ void tigon_compute_grid_layout(void* element_buffer, unsigned element_count) {
     nonstd::span<WebAPI::GridArea> out; // XXX
     WebAPI::computeGridLayout(elements, out, 12);
 }
-
 }
-
-

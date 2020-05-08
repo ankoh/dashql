@@ -13,19 +13,19 @@
 
 #include "spdlog/spdlog.h"
 
+#include "tigon/common/variant.h"
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/proto/duckdb_codec.h"
-#include "tigon/proto/tql_codec.h"
 #include "tigon/proto/tql.pb.h"
+#include "tigon/proto/tql_codec.h"
 #include "tigon/proto/web_api.pb.h"
-#include "tigon/common/variant.h"
 
 #include <cstdio>
+#include <iostream>
 #include <memory>
 #include <optional>
-#include <unordered_map>
 #include <string_view>
-#include <iostream>
+#include <unordered_map>
 
 using namespace tigon;
 
@@ -58,8 +58,7 @@ void WebAPI::Response::requestFailed(proto::web_api::StatusCode status, std::str
 }
 
 /// Constructor
-WebAPI::Response::Response(WebAPI::Session &session)
-    : session(session), status_code(), error(), data() {}
+WebAPI::Response::Response(WebAPI::Session& session): session(session), status_code(), error(), data() {}
 
 /// Constructor
 WebAPI::Response::~Response() {
@@ -67,8 +66,7 @@ WebAPI::Response::~Response() {
 }
 
 /// Constructor
-WebAPI::Session::Session(std::shared_ptr<duckdb::DuckDB> database)
-    : database(std::move(database)), buffers(), response(*this), nextQueryID() {}
+WebAPI::Session::Session(std::shared_ptr<duckdb::DuckDB> database): database(std::move(database)), buffers(), response(*this), nextQueryID() {}
 
 /// Destructor
 WebAPI::Session::~Session() {}
@@ -172,8 +170,7 @@ void WebAPI::Session::planQuery(std::string_view text) {
 }
 
 /// Constructor
-WebAPI::WebAPI()
-    : database(std::make_shared<duckdb::DuckDB>()), sessions() {}
+WebAPI::WebAPI(): database(std::make_shared<duckdb::DuckDB>()), sessions() {}
 
 /// Create a session
 WebAPI::Session& WebAPI::createSession() {
@@ -190,44 +187,43 @@ void WebAPI::endSession(Session* session) {
 
 namespace {
 
-// Taken from bithacks.
-// Interleave bits by Binary Magic Numbers
-// http://graphics.stanford.edu/~seander/bithacks.html
-uint32_t computeZ(uint16_t xIn, uint16_t yIn) {
-    static const uint32_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF};
-    static const uint32_t S[] = {1, 2, 4, 8};
+    // Taken from bithacks.
+    // Interleave bits by Binary Magic Numbers
+    // http://graphics.stanford.edu/~seander/bithacks.html
+    uint32_t computeZ(uint16_t xIn, uint16_t yIn) {
+        static const uint32_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF};
+        static const uint32_t S[] = {1, 2, 4, 8};
 
-    // Interleave lower 16 bits of x and y, so the bits of x
-    // are in the even positions and bits from y in the odd;
-    // z gets the resulting 32-bit Morton Number. 
-    // x and y must initially be less than 65536.
-    uint32_t x = xIn;
-    uint32_t y = yIn;
-    uint32_t z;
+        // Interleave lower 16 bits of x and y, so the bits of x
+        // are in the even positions and bits from y in the odd;
+        // z gets the resulting 32-bit Morton Number.
+        // x and y must initially be less than 65536.
+        uint32_t x = xIn;
+        uint32_t y = yIn;
+        uint32_t z;
 
-    x = (x | (x << S[3])) & B[3];
-    x = (x | (x << S[2])) & B[2];
-    x = (x | (x << S[1])) & B[1];
-    x = (x | (x << S[0])) & B[0];
+        x = (x | (x << S[3])) & B[3];
+        x = (x | (x << S[2])) & B[2];
+        x = (x | (x << S[1])) & B[1];
+        x = (x | (x << S[0])) & B[0];
 
-    y = (y | (y << S[3])) & B[3];
-    y = (y | (y << S[2])) & B[2];
-    y = (y | (y << S[1])) & B[1];
-    y = (y | (y << S[0])) & B[0];
+        y = (y | (y << S[3])) & B[3];
+        y = (y | (y << S[2])) & B[2];
+        y = (y | (y << S[1])) & B[1];
+        y = (y | (y << S[0])) & B[0];
 
-    z = x | (y << 1);
-    return z;
-}
+        z = x | (y << 1);
+        return z;
+    }
 
-struct ZEntry {
-    uint32_t zPos;
-    uint16_t elementID;
+    struct ZEntry {
+        uint32_t zPos;
+        uint16_t elementID;
 
-    ZEntry(uint32_t zPos, uint16_t elementID)
-        : zPos(zPos), elementID(elementID) {}
-};
+        ZEntry(uint32_t zPos, uint16_t elementID): zPos(zPos), elementID(elementID) {}
+    };
 
-}
+} // namespace
 
 /// Compute a grid layout
 void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, nonstd::span<GridArea> areas, uint16_t columns) {
@@ -246,16 +242,14 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, nonstd::span<
     std::vector<ZEntry> zIndex;
     zIndex.reserve(elements.size() * 4);
     auto addZ = [](std::vector<ZEntry>& zIndex, uint32_t zPos, uint16_t elementID) {
-        auto iter = std::upper_bound(zIndex.begin(), zIndex.end(), zPos, [](auto z, auto& v) {
-            return v.zPos < z;
-        });
+        auto iter = std::upper_bound(zIndex.begin(), zIndex.end(), zPos, [](auto z, auto& v) { return v.zPos < z; });
         zIndex.insert(iter, ZEntry{zPos, elementID});
     };
 
     // Insert all the elements
     uint16_t xBegin = 0;
     uint16_t yBegin = 0;
-    for (auto& elem: elements) {
+    for (auto& elem : elements) {
         ++elementEpoch;
         bool elementDone = false;
         auto xUB = xBegin;
@@ -272,12 +266,8 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, nonstd::span<
                 auto anchorNE = computeZ(xEnd, yBegin);
                 auto anchorSE = computeZ(xEnd, yEnd);
                 auto anchorSW = computeZ(xBegin, yEnd);
-                auto zLB = zIndex.begin() + (zIndex.rend() - std::lower_bound(zIndex.rbegin(), zIndex.rend(), anchorNW, [](auto& e, auto v) {
-                    return e.zPos > v;
-                }));
-                auto zUB = std::lower_bound(zIndex.begin(), zIndex.end(), anchorSE, [](auto& e, auto v) {
-                    return e.zPos < v;
-                });
+                auto zLB = zIndex.begin() + (zIndex.rend() - std::lower_bound(zIndex.rbegin(), zIndex.rend(), anchorNW, [](auto& e, auto v) { return e.zPos > v; }));
+                auto zUB = std::lower_bound(zIndex.begin(), zIndex.end(), anchorSE, [](auto& e, auto v) { return e.zPos < v; });
 
                 // Check iterators
                 bool foundConflict = false;
@@ -285,7 +275,7 @@ void WebAPI::computeGridLayout(nonstd::span<GridElement> elements, nonstd::span<
                     auto& candidate = areas[iter->elementID];
 
                     // Already checked?
-                    // Positioned elements have multiple entries in the z-index. 
+                    // Positioned elements have multiple entries in the z-index.
                     // We will likely see the same element multiple times in the range.
                     if (elementChecks[iter->elementID] >= elementEpoch) {
                         continue;
