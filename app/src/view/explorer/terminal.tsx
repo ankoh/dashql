@@ -35,10 +35,10 @@ class Terminal extends React.Component<ITerminalProps> {
     // Component did mount to the dom
     public componentDidMount() {
         if (this.termContainer.current != null) {
-            let ctrl = this.props.appContext.ctrl;
-            ctrl.terminal.open(this.termContainer.current);
-            ctrl.terminal.attach();
-            ctrl.terminal.focus();
+            let controller = this.props.appContext.controller;
+            controller.terminal.open(this.termContainer.current);
+            controller.terminal.attach();
+            controller.terminal.focus();
         }
     }
 
@@ -47,8 +47,8 @@ class Terminal extends React.Component<ITerminalProps> {
 
     // Component will unmount from the dom
     public componentWillUnmount() {
-        let ctrl = this.props.appContext.ctrl;
-        ctrl.terminal.detach();
+        let controller = this.props.appContext.controller;
+        controller.terminal.detach();
     }
 }
 

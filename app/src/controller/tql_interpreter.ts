@@ -1,8 +1,8 @@
 import * as proto from 'tigon-proto';
 import * as Store from '../store';
-import { LogController } from './log_ctrl';
-import { CoreController } from './core_ctrl';
-import { CacheController } from './cache_ctrl';
+import { LogController } from './log';
+import { CoreController } from './core';
+import { CacheController } from './cache';
 import { TaskID, Task, TaskQueue } from './task_queue';
 
 export class TQLInterpreter {

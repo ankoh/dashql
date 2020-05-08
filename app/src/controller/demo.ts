@@ -1,7 +1,7 @@
 import * as Store from '../store';
 import * as proto from 'tigon-proto';
-import { CoreController } from './core_ctrl';
-import { LogController } from './log_ctrl';
+import { CoreController } from './core';
+import { LogController } from './log';
 
 export class DemoController {
     protected store: Store.ReduxStore;

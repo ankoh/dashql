@@ -367,17 +367,17 @@ class Explorer extends React.Component<IExplorerProps> {
     protected async evalTermInput(text: string) {
         text = text.replace('run', '');
 
-        // let result = await ctrl.core.runQuery(session, text);
+        // let result = await controller.core.runQuery(session, text);
         // let d = new Store.QueryResultDataSource(result);
         // self.props.setExplorerDataSource(d);
 
-        //        let plan = await ctrl.core.planQuery(session, text);
+        //        let plan = await controller.core.planQuery(session, text);
         //        let p = new Store.QueryPlan(plan);
         //        this.props.setExplorerPlan(p);
     }
 
     protected async runTermEvalLoop(text: string | null = null) {
-        let ctrl = this.props.appContext.ctrl;
+        let controller = this.props.appContext.controller;
 
         // Handle terminal input
         if (text != null) {
@@ -385,11 +385,11 @@ class Explorer extends React.Component<IExplorerProps> {
         }
 
         // Schedule next read
-        ctrl.terminal
+        controller.terminal
             .read('> ', '   ')
             .then(this.runTermEvalLoop.bind(this))
             .catch(function (text: string) {
-                ctrl.terminal.printLine('exception: ' + text);
+                controller.terminal.printLine('exception: ' + text);
             });
     }
 

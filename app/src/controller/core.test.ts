@@ -1,4 +1,4 @@
-import { CoreController } from './core_ctrl';
+import { CoreController } from './core';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as proto from 'tigon-proto';

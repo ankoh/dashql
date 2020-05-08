@@ -1,9 +1,9 @@
 import * as Store from '../store';
-import { CacheController } from './cache_ctrl';
-import { CoreController } from './core_ctrl';
-import { LogController } from './log_ctrl';
-import { TerminalController } from './terminal_ctrl';
-import { DemoController } from './demo_ctrl';
+import { CacheController } from './cache';
+import { CoreController } from './core';
+import { LogController } from './log';
+import { TerminalController } from './terminal';
+import { DemoController } from './demo';
 import { TQLInterpreter } from './tql_interpreter';
 
 // The worker interval
