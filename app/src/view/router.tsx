@@ -7,7 +7,7 @@ import Library from './library';
 import * as Store from '../store';
 import { connect } from 'react-redux';
 
-import s from './router.module.scss';
+import styles from './router.module.scss';
 
 interface IRouterProps {
     rootView: Store.RootView;
@@ -18,33 +18,33 @@ class Router extends React.Component<IRouterProps> {
         switch (this.props.rootView) {
             case Store.RootView.LAUNCHER:
                 return (
-                    <div className={s.router}>
+                    <div className={styles.router}>
                         <Launcher />
                     </div>
                 );
             case Store.RootView.EXPLORER:
                 return (
-                    <div className={s.router}>
+                    <div className={styles.router}>
                         <NavigationBar />
-                        <div className={s.router_page_container}>
+                        <div className={styles.router_page_container}>
                             <Explorer />
                         </div>
                     </div>
                 );
             case Store.RootView.WORKBOOK:
                 return (
-                    <div className={s.router}>
+                    <div className={styles.router}>
                         <NavigationBar />
-                        <div className={s.router_page_container}>
+                        <div className={styles.router_page_container}>
                             <Workbook />
                         </div>
                     </div>
                 );
             case Store.RootView.LIBRARY:
                 return (
-                    <div className={s.router}>
+                    <div className={styles.router}>
                         <NavigationBar />
-                        <div className={s.router_page_container}>
+                        <div className={styles.router_page_container}>
                             <Library />
                         </div>
                     </div>

@@ -1,10 +1,11 @@
 import * as React from 'react';
 import * as proto from 'tigon-proto';
-import s from './table.module.scss';
 import { ChunkAccess } from '../../proto/engine_access';
 import { Grid, GridCellProps, Index } from 'react-virtualized';
 import { Scrollbars } from 'react-custom-scrollbars';
 import { withAutoSizer } from '../autosizer';
+
+import styles from './table.module.scss';
 
 // The table properties
 interface ITableProps {
@@ -56,7 +57,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                 return (
                     <div
                         key={props.key}
-                        className={s.cell_anchor}
+                        className={styles.cell_anchor}
                         style={{ ...props.style }}
                     />
                 );
@@ -64,7 +65,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                 return (
                     <div
                         key={props.key}
-                        className={s.cell_header_col}
+                        className={styles.cell_header_col}
                         style={{ ...props.style }}
                     >
                         {
@@ -78,7 +79,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                 return (
                     <div
                         key={props.key}
-                        className={s.cell_header_row}
+                        className={styles.cell_header_row}
                         style={{ ...props.style }}
                     >
                         {props.rowIndex}
@@ -88,7 +89,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                 return (
                     <div
                         key={props.key}
-                        className={s.cell_data}
+                        className={styles.cell_data}
                         style={{ ...props.style }}
                     >
                         {this.state.chunks.fmtValue(
@@ -140,7 +141,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
     public render() {
         return (
             <div
-                className={s.container}
+                className={styles.container}
                 style={{ height: this.props.height, width: this.props.width }}
             >
                 <Scrollbars
@@ -149,7 +150,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                         width: this.props.width,
                     }}
                     onScroll={this.handleScroll.bind(this)}
-                    className={s.scrollbars}
+                    className={styles.scrollbars}
                 >
                     <Grid
                         ref={this.gridRef}

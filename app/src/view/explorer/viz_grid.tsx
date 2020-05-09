@@ -4,11 +4,11 @@ import * as Store from '../../store';
 import * as proto from 'tigon-proto';
 import Table from '../viz/table';
 import ChartViewer from '../viz/chart_viewer';
-import s from './viz_grid.module.scss';
 import { connect } from 'react-redux';
 import { mapStatements } from '../../proto/tql_access';
 import { withAutoSizer } from '../autosizer';
 
+import styles from './viz_grid.module.scss';
 import { DeleteIcon, EditIcon, RefreshIcon } from '../../svg/icons';
 
 const ACTION_ICON_WIDTH = '16px';
@@ -110,40 +110,40 @@ function VizCard(props: {
 
     return (
         <div
-            className={s.viz}
+            className={styles.viz}
             style={{
                 gridArea: props.pos.cssArea,
             }}
         >
-            <div className={s.viz_id}>{props.stmt.getVizId()}</div>
-            <div className={s.viz_card}>
-                <div className={s.viz_card_header}>
-                    <div className={s.viz_card_title}>
+            <div className={styles.viz_id}>{props.stmt.getVizId()}</div>
+            <div className={styles.viz_card}>
+                <div className={styles.viz_card_header}>
+                    <div className={styles.viz_card_title}>
                         {props.stmt.getTitle()}
                     </div>
-                    <div className={s.viz_card_action_refresh}>
+                    <div className={styles.viz_card_action_refresh}>
                         <RefreshIcon
-                            className={s.viz_card_action_icon}
+                            className={styles.viz_card_action_icon}
                             width={ACTION_ICON_WIDTH}
                             height={ACTION_ICON_HEIGHT}
                         />
                     </div>
-                    <div className={s.viz_card_action_edit}>
+                    <div className={styles.viz_card_action_edit}>
                         <EditIcon
-                            className={s.viz_card_action_icon}
+                            className={styles.viz_card_action_icon}
                             width={ACTION_ICON_WIDTH}
                             height={ACTION_ICON_HEIGHT}
                         />
                     </div>
-                    <div className={s.viz_card_action_delete}>
+                    <div className={styles.viz_card_action_delete}>
                         <DeleteIcon
-                            className={s.viz_card_action_icon}
+                            className={styles.viz_card_action_icon}
                             width={ACTION_ICON_WIDTH}
                             height={ACTION_ICON_HEIGHT}
                         />
                     </div>
                 </div>
-                <div className={s.viz_card_body}>{viz}</div>
+                <div className={styles.viz_card_body}>{viz}</div>
             </div>
         </div>
     );
@@ -242,7 +242,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
     public render() {
         return (
             <div
-                className={s.container}
+                className={styles.container}
                 style={{
                     width: this.props.width,
                     height: this.props.height,

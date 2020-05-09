@@ -3,7 +3,7 @@ import * as Store from '../store';
 import { connect } from 'react-redux';
 import classNames from 'classnames';
 
-import s from './navigation_bar.module.scss';
+import styles from './navigation_bar.module.scss';
 
 interface INavigationBarProps {
     rootView: Store.RootView;
@@ -31,14 +31,17 @@ function NavBarTab(props: INavBarTabProps) {
             break;
     }
     return (
-        <div className={s.tab_container}>
+        <div className={styles.tab_container}>
             <div
-                className={classNames(s.tab, isActive ? s.active : '')}
+                className={classNames(
+                    styles.tab,
+                    isActive ? styles.active : '',
+                )}
                 onClick={() => {
                     props.onViewChanged(props.tabView);
                 }}
             >
-                <div className={s.tab_name}>{tabName}</div>
+                <div className={styles.tab_name}>{tabName}</div>
             </div>
         </div>
     );
@@ -47,9 +50,9 @@ function NavBarTab(props: INavBarTabProps) {
 class NavigationBar extends React.Component<INavigationBarProps> {
     public render() {
         return (
-            <div className={s.container}>
-                <div className={s.brand}>TIGON</div>
-                <div className={s.tabs}>
+            <div className={styles.container}>
+                <div className={styles.brand}>TIGON</div>
+                <div className={styles.tabs}>
                     <NavBarTab
                         tabView={Store.RootView.EXPLORER}
                         rootView={this.props.rootView}

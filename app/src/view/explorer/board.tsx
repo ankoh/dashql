@@ -3,7 +3,8 @@ import * as Store from '../../store';
 import { connect } from 'react-redux';
 import { withAutoSizer } from '../autosizer';
 import VizGrid from './viz_grid';
-import s from './board.module.scss';
+
+import styles from './board.module.scss';
 
 const TICK_COLOR = 'rgb(180, 180, 180)';
 const TICK_WIDTH = 1;
@@ -198,7 +199,7 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
     }
 
     render() {
-        return <canvas className={s.ruler} ref={this.canvas} />;
+        return <canvas className={styles.ruler} ref={this.canvas} />;
     }
 }
 
@@ -211,25 +212,25 @@ interface IBoardProps {
 export class Board extends React.Component<IBoardProps, {}> {
     public render() {
         return (
-            <div className={s.container}>
-                <div className={s.padded_children}>
-                    <div className={s.children}>
+            <div className={styles.container}>
+                <div className={styles.padded_children}>
+                    <div className={styles.children}>
                         <VizGrid sizeClass={Store.SizeClass.LARGE} />
                     </div>
                 </div>
-                <div className={s.ruler_top}>
+                <div className={styles.ruler_top}>
                     <AutoSizingRuler
                         orientation={RulerOrientation.Horizontal}
                         scaleFactor={this.props.scaleFactor}
                     />
                 </div>
-                <div className={s.ruler_left}>
+                <div className={styles.ruler_left}>
                     <AutoSizingRuler
                         orientation={RulerOrientation.Vertical}
                         scaleFactor={this.props.scaleFactor}
                     />
                 </div>
-                <div className={s.ruler_corner} />
+                <div className={styles.ruler_corner} />
             </div>
         );
     }
