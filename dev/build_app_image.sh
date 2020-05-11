@@ -10,7 +10,7 @@ DOCKER_IMAGE_TAG="latest"
 set -x
 
 cd ${PROJECT_ROOT} && \
-    tar -cvf - ./tigon-app/build ./tigon-dev/docker/app | docker build \
+    tar -cvf - ./app/build ./dev/docker/app | docker build \
         -t ${DOCKER_IMAGE_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
-        -f ./tigon-dev/docker/app/Dockerfile \
+        -f ./dev/docker/app/Dockerfile \
         -

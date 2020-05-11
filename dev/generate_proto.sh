@@ -3,10 +3,10 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
-PROTO_DIR="${PROJECT_ROOT}/tigon-proto"
+PROTO_DIR="${PROJECT_ROOT}/proto"
 PROTO_SPEC_DIR="${PROTO_DIR}/spec"
 PROTO_BUILD_DIR="${PROTO_DIR}/build"
-PROTOC="${PROJECT_ROOT}/tigon-dev/protoc/install/bin/protoc"
+PROTOC="${PROJECT_ROOT}/dev/protoc/install/bin/protoc"
 
 TSPROTOC_BUILD_DIR="${PROTO_BUILD_DIR}/ts-protoc-gen/"
 TSPROTOC_PLUGIN="${TSPROTOC_BUILD_DIR}/node_modules/.bin/protoc-gen-ts"
@@ -16,7 +16,7 @@ JS_PROTO_DIR="${PROTO_DIR}/lib/js/src/proto"
 
 ${PROTOC} --version \
     && { echo "[ OK  ] Command: protoc"; } \
-    || { echo "[ ERR ] Command: protoc (run tigon-dev/build_protoc.sh)"; exit 1; }
+    || { echo "[ ERR ] Command: protoc (run dev/build_protoc.sh)"; exit 1; }
 
 if [ -x "$(command -v ${TSPROTOC_PLUGIN})" ]; then
     echo "[ OK  ] Command: protoc-gen-ts"
@@ -49,7 +49,7 @@ echo "[ RUN ] Bundle js library" \
     || { echo "[ ERR ] Bundle js library"; exit 1; }
 
 echo "[ RUN ] Install js library" \
-    && cd "${PROJECT_ROOT}/tigon-app" \
+    && cd "${PROJECT_ROOT}/app" \
     && npm install \
     && { echo "[ OK  ] Install js library"; } \
     || { echo "[ ERR ] Install js library"; exit 1; }

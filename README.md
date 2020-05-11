@@ -3,6 +3,7 @@
 ## TigonQL
 
 ### Ad-hoc Visualization
+
 ```
 declare parameter days as integer;
 
@@ -22,6 +23,7 @@ display wheather_data using line chart;
 ```
 
 ### Fine-grained Configuration
+
 ```
 declare parameter days as integer;
 
@@ -89,9 +91,9 @@ source ${PATH_TO_EMSDK}/emsdk_env.sh
 
 ```
 
-mkdir -p tigon-core/build/debug
+mkdir -p core/build/debug
 
-cd tigon-core/build/debug
+cd core/build/debug
 
 cmake \
     -GNinja \

@@ -66,7 +66,7 @@ include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 # Proto project
 
 add_subdirectory(
-    "${CMAKE_SOURCE_DIR}/../tigon-proto/lib/cpp"
+    "${CMAKE_SOURCE_DIR}/../proto/lib/cpp"
     "${CMAKE_BINARY_DIR}/proto"
 )
 

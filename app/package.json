@@ -20,7 +20,7 @@
     "react-vega": "^7.1.0",
     "react-virtualized": "^9.21.1",
     "redux": "^4.0.4",
-    "tigon-proto": "file:../tigon-proto/lib/js",
+    "tigon-proto": "file:../proto/lib/js",
     "typescript": "3.6.3",
     "typescript-plugin-css-modules": "^2.0.2",
     "vega": "^5.7.3",

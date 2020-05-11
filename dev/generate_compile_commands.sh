@@ -3,8 +3,8 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
-CORE_SOURCE_DIR="${PROJECT_ROOT}/tigon-core"
-CORE_BUILD_DIR="${PROJECT_ROOT}/tigon-core/build/debug"
+CORE_SOURCE_DIR="${PROJECT_ROOT}/core"
+CORE_BUILD_DIR="${PROJECT_ROOT}/core/build/debug"
 
 [ -x "$(command -v cmake)" ] \
     && { echo "[ OK  ] Command: cmake"; } \

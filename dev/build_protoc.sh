@@ -3,7 +3,7 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 PROTOBUF_DIR="${PROJECT_ROOT}/submodules/protobuf"
-PROTOC_BASE_DIR="${PROJECT_ROOT}/tigon-dev/protoc"
+PROTOC_BASE_DIR="${PROJECT_ROOT}/dev/protoc"
 PROTOC_BUILD_DIR="${PROTOC_BASE_DIR}/build"
 PROTOC_INSTALL_DIR="${PROTOC_BASE_DIR}/install"
 
