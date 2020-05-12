@@ -1,0 +1,53 @@
+@import '../theme.scss';
+
+.container {
+    width: 100%;
+    height: 100%;
+    border-radius: $THEME_BORDER_RADIUS;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.8);
+    font-size: 0.7em;
+}
+
+.scrollbars {
+    border-radius: 0 0 $THEME_BORDER_RADIUS $THEME_BORDER_RADIUS;
+}
+
+$CELL_BORDER: 1px solid rgb(225, 225, 225);
+$CELL_COLOR_HEADERS: rgb(245, 245, 245);
+
+.cell_anchor {
+    background-color: $CELL_COLOR_HEADERS;
+    box-sizing: border-box;
+    border-bottom: $CELL_BORDER;
+    border-right: $CELL_BORDER;
+    text-align: center;
+    line-height: 24px;
+}
+
+.cell_header_col {
+    background-color: $CELL_COLOR_HEADERS;
+    box-sizing: border-box;
+    border-bottom: $CELL_BORDER;
+    border-right: $CELL_BORDER;
+    text-align: center;
+    line-height: 24px;
+}
+
+.cell_header_row {
+    background-color: $CELL_COLOR_HEADERS;
+    box-sizing: border-box;
+    border-bottom: $CELL_BORDER;
+    border-right: $CELL_BORDER;
+    text-align: center;
+    line-height: 24px;
+}
+
+.cell_data {
+    box-sizing: border-box;
+    border-bottom: $CELL_BORDER;
+    border-right: $CELL_BORDER;
+    text-align: center;
+    line-height: 24px;
+    padding: 0 8px 0 8px;
+}

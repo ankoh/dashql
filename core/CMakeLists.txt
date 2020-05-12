@@ -121,7 +121,6 @@ if(EMSCRIPTEN)
         -s ALLOW_MEMORY_GROWTH=1 \
         -s ASSERTIONS=1 \
         -s MODULARIZE=1 \
-        -s EXPORT_NAME=TigonCore \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
             _malloc, \

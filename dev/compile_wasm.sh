@@ -6,7 +6,7 @@ PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 IMAGE_TAG="a5082b2"
 CORE_BUILD_DIR="${PROJECT_ROOT}/core/build/emscripten"
 CORE_SOURCE_DIR="${PROJECT_ROOT}/core"
-APP_LIB_DIR="${PROJECT_ROOT}/app/public/lib"
+APP_LIB_DIR="${PROJECT_ROOT}/core/build/package"
 
 CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/root/.emscripten_cache/ tigon/tigon-dev:${IMAGE_TAG} "
 EMCONFIGURE="${CMD_PREFIX} emconfigure"
@@ -26,4 +26,6 @@ ${EMMAKE} make \
     -j$(nproc) \
     tigon_core
 
-cp ${CORE_SOURCE_DIR}/build/emscripten/tigon_core.{wasm,js} ${APP_LIB_DIR}
+mkdir -p "${APP_LIB_DIR}"
+
+cp ${CORE_SOURCE_DIR}/build/emscripten/tigon_core.{wasm,js} "${APP_LIB_DIR}"

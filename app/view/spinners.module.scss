@@ -1,0 +1,70 @@
+.rectangle_wave {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    @mixin rect {
+        flex: 1 0 auto;
+        margin: 0px 3%;
+        border-radius: 3px;
+        height: 40%;
+
+        &.active {
+            height: 100% !important;
+            -webkit-animation: rectangle_wave_stretch 1.2s infinite ease-in-out;
+            animation: rectangle_wave_stretch 1.2s infinite ease-in-out;
+        }
+    }
+
+    &_rect_1 {
+        @include rect;
+    }
+
+    &_rect_2 {
+        @include rect;
+        -webkit-animation-delay: -1.1s !important;
+        animation-delay: -1.1s !important;
+    }
+
+    &_rect_3 {
+        @include rect;
+        -webkit-animation-delay: -1s !important;
+        animation-delay: -1s !important;
+    }
+
+    &_rect_4 {
+        @include rect;
+        -webkit-animation-delay: -0.9s !important;
+        animation-delay: -0.9s !important;
+    }
+
+    &_rect_5 {
+        @include rect;
+        -webkit-animation-delay: -0.8s !important;
+        animation-delay: -0.8s !important;
+    }
+}
+
+@-webkit-keyframes rectangle_wave_stretch {
+    0%,
+    40%,
+    100% {
+        -webkit-transform: scaleY(0.4);
+    }
+    20% {
+        -webkit-transform: scaleY(1);
+    }
+}
+
+@keyframes rectangle_wave_stretch {
+    0%,
+    40%,
+    100% {
+        transform: scaleY(0.4);
+        -webkit-transform: scaleY(0.4);
+    }
+    20% {
+        transform: scaleY(1);
+        -webkit-transform: scaleY(1);
+    }
+}
