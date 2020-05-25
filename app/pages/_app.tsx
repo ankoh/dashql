@@ -8,7 +8,6 @@ import { RootController } from '../controller';
 
 import 'xterm/css/xterm.css';
 import '../view/terminal.raw.scss';
-import '../view/fonts/fonts.css';
 import '../view/index.scss';
 
 const store = createStore();

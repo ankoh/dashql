@@ -1,4 +1,5 @@
 @import './theme.scss';
+@import './fonts/fonts.css';
 
 body {
     margin: 0;
@@ -13,9 +14,4 @@ body {
 
     overflow-x: hidden;
     overflow-y: hidden;
-}
-
-#root {
-    width: 100%;
-    height: 100%;
 }
