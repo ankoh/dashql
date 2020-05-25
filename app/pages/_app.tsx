@@ -6,8 +6,6 @@ import { createStore, ReduxStore } from '../store';
 import { AppContextProvider, IAppContext } from '../app_context';
 import { RootController } from '../controller';
 
-import 'xterm/css/xterm.css';
-import '../view/terminal.raw.scss';
 import '../view/index.scss';
 
 const store = createStore();

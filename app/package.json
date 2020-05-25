@@ -23,9 +23,7 @@
     "@tigon/proto": "file:../proto/lib/js",
     "@tigon/core": "file:../core/build/package",
     "vega": "^5.11.1",
-    "vega-lite": "^4.12.0",
-    "xterm": "^4.5.0",
-    "xterm-addon-fit": "^0.3.0"
+    "vega-lite": "^4.12.0"
   },
   "devDependencies": {
     "@types/classnames": "^2.2.10",

@@ -2,7 +2,6 @@ import * as Store from '../store';
 import { CacheController } from './cache';
 import { CoreController } from './core';
 import { LogController } from './log';
-import { TerminalController } from './terminal';
 import { DemoController } from './demo';
 import { TQLInterpreter } from './tql_interpreter';
 
@@ -16,8 +15,6 @@ export class RootController {
     public core: CoreController;
     // The cache
     public cache: CacheController;
-    // The terminal
-    public terminal: TerminalController;
     // The interpreter
     public interpreter: TQLInterpreter;
 
@@ -33,7 +30,6 @@ export class RootController {
         this.log = new LogController(store);
         this.core = new CoreController();
         this.cache = new CacheController();
-        this.terminal = new TerminalController();
         this.demo = new DemoController(this.store, this.core, this.log);
         this.interpreter = new TQLInterpreter(
             this.store,

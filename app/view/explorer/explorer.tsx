@@ -3,7 +3,6 @@ import * as React from 'react';
 import * as Store from '../../store';
 import * as proto from '@tigon/proto';
 import Board from './board';
-import Terminal from './terminal';
 import classNames from 'classnames';
 import styles from './explorer.module.scss';
 import { IAppContext, withAppContext } from '../../app_context';
@@ -16,8 +15,6 @@ import {
     AspectRatioIcon,
     BarChartIcon,
     CloudUploadIcon,
-    CodeIcon,
-    ConsoleIcon,
     DatabaseIcon,
     DatabaseImportIcon,
     DatabaseSearchIcon,
@@ -42,10 +39,6 @@ const TOOL_ICON_WIDTH = '20px';
 const TOOL_ICON_HEIGHT = '20px';
 const TOPBAR_ICON_WIDTH = '20px';
 const TOPBAR_ICON_HEIGHT = '20px';
-const INPUT_HEADER_ICON_WIDTH = '16px';
-const INPUT_HEADER_ICON_HEIGHT = '16px';
-const INPUT_TOGGLE_ICON_WIDTH = '20px';
-const INPUT_TOGGLE_ICON_HEIGHT = '20px';
 
 interface IExplorerProps {
     appContext: IAppContext;
@@ -155,48 +148,7 @@ class Explorer extends React.Component<IExplorerProps> {
             <div className={styles.explorer}>
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />
-                    <div className={styles.input}>
-                        <div className={styles.input_header}>
-                            <div className={styles.input_type}>
-                                <ConsoleIcon
-                                    className={styles.input_icon}
-                                    width={INPUT_HEADER_ICON_WIDTH}
-                                    height={INPUT_HEADER_ICON_HEIGHT}
-                                />
-                            </div>
-                        </div>
-                        <div className={styles.input_terminal}>
-                            <Terminal />
-                        </div>
-                    </div>
-                    <div
-                        className={classNames(
-                            styles.input_toggle,
-                            styles.expanded,
-                        )}
-                    >
-                        <div
-                            className={classNames(
-                                styles.input_toggle_type,
-                                styles.border_right,
-                            )}
-                        >
-                            <ConsoleIcon
-                                className={styles.input_toggle_icon}
-                                width={INPUT_TOGGLE_ICON_WIDTH}
-                                height={INPUT_TOGGLE_ICON_HEIGHT}
-                            />
-                        </div>
-                        <div className={styles.input_toggle_type}>
-                            <CodeIcon
-                                className={styles.input_toggle_icon}
-                                width={INPUT_TOGGLE_ICON_WIDTH}
-                                height={INPUT_TOGGLE_ICON_HEIGHT}
-                            />
-                        </div>
-                    </div>
                 </div>
-
                 <div className={styles.topbar}>
                     <div className={styles.topbar_actionset}>
                         <div className={styles.topbar_action}>
@@ -279,9 +231,7 @@ class Explorer extends React.Component<IExplorerProps> {
                         </div>
                     </div>
                 </div>
-
                 <Outline statements={this.props.tqlStatements} />
-
                 <div className={styles.toolbar}>
                     <div className={styles.toolbar_tool}>
                         <VariableBoxIcon
@@ -312,7 +262,6 @@ class Explorer extends React.Component<IExplorerProps> {
                         />
                     </div>
                 </div>
-
                 <div className={styles.viztypes}>
                     <div className={styles.viztypes_viztype}>
                         <PlanIcon
@@ -366,46 +315,11 @@ class Explorer extends React.Component<IExplorerProps> {
                         </div>
                     </div>
                 </div>
-
                 <div className={styles.properties}>
                     <div className={styles.properties_header}>Properties</div>
                 </div>
             </div>
         );
-    }
-
-    protected async evalTermInput(text: string) {
-        text = text.replace('run', '');
-
-        // let result = await controller.core.runQuery(session, text);
-        // let d = new Store.QueryResultDataSource(result);
-        // self.props.setExplorerDataSource(d);
-
-        //        let plan = await controller.core.planQuery(session, text);
-        //        let p = new Store.QueryPlan(plan);
-        //        this.props.setExplorerPlan(p);
-    }
-
-    protected async runTermEvalLoop(text: string | null = null) {
-        let controller = this.props.appContext.controller;
-
-        // Handle terminal input
-        if (text != null) {
-            await this.evalTermInput(text);
-        }
-
-        // Schedule next read
-        controller.terminal
-            .read('> ', '   ')
-            .then(this.runTermEvalLoop.bind(this))
-            .catch(function (text: string) {
-                controller.terminal.printLine('exception: ' + text);
-            });
-    }
-
-    // Component did mount to the dom
-    public componentDidMount() {
-        this.runTermEvalLoop();
     }
 }
 
