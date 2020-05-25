@@ -7,7 +7,6 @@ import * as proto from '@tigon/proto';
 
 export enum ActionType {
     CONFIGURE_APP = 'CONFIGURE_APP',
-    NAVIGATE_ROOT = 'NAVIGATE_ROOT',
     PUSH_LOG_ENTRY = 'PUSH_LOG_ENTRY',
     PUSH_TQL_STATEMENTS = 'PUSH_TRANSIENT_TQL_STATEMENTS',
     SET_TQL_QUERY_RESULT = 'SET_TRANSIENT_QUERY_RESULT',
@@ -20,7 +19,6 @@ export enum ActionType {
 
 export type RootAction =
     | Action<ActionType.CONFIGURE_APP, State.AppSettings>
-    | Action<ActionType.NAVIGATE_ROOT, State.RootView>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
     | Action<ActionType.PUSH_TQL_STATEMENTS, Array<proto.tql.Statement>>
     | Action<
@@ -49,10 +47,6 @@ export function createAction<T, P>(type: T, payload: P): Action<T, P> {
 
 export function pushLogEntry(log: State.LogEntry): RootAction {
     return createAction(ActionType.PUSH_LOG_ENTRY, log);
-}
-
-export function navigateRoot(view: State.RootView): RootAction {
-    return createAction(ActionType.NAVIGATE_ROOT, view);
 }
 
 export function configureApp(config: State.AppSettings): RootAction {

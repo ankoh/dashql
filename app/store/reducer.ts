@@ -23,8 +23,6 @@ export function reducer(
                 ...state,
                 appSettings: a.payload,
             };
-        case ActionType.NAVIGATE_ROOT:
-            return { ...state, rootView: a.payload };
         case ActionType.PUSH_TQL_STATEMENTS:
             return {
                 ...state,

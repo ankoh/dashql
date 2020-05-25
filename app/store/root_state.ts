@@ -5,14 +5,6 @@ import * as proto from '@tigon/proto';
 // Enums
 // ---------------------------------------------------------------------------
 
-// A view
-export enum RootView {
-    LAUNCHER = 0,
-    EXPLORER = 1,
-    WORKBOOK = 2,
-    LIBRARY = 3,
-}
-
 // A log level
 export enum LogLevel {
     UNDEFINED = 0,
@@ -115,9 +107,6 @@ export class LaunchProgress {
 
 // A root state
 export class RootState {
-    // The root view
-    public rootView: RootView;
-
     /// The launch progress
     public launchProgress: LaunchProgress;
 
@@ -151,7 +140,6 @@ export class RootState {
 
     // Constructor
     constructor() {
-        this.rootView = RootView.EXPLORER;
         this.launchProgress = new LaunchProgress();
         this.appSettings = null;
         this.appSettingsLoadPending = true;

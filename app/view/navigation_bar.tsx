@@ -1,90 +1,46 @@
 import * as React from 'react';
-import * as Store from '../store';
-import { connect } from 'react-redux';
+import Link from 'next/link';
+import { withRouter } from 'next/router';
+import { WithRouterProps } from 'next/dist/client/with-router';
 import classNames from 'classnames';
 
 import styles from './navigation_bar.module.scss';
 
-interface INavigationBarProps {
-    rootView: Store.RootView;
-    navigateRoot: (view: Store.RootView) => void;
-}
+type Props = WithRouterProps;
 
-interface INavBarTabProps {
-    rootView: Store.RootView;
-    onViewChanged: (view: Store.RootView) => void;
-    tabView: Store.RootView;
-}
-
-function NavBarTab(props: INavBarTabProps) {
-    const isActive = props.tabView === props.rootView;
-    let tabName = '?';
-    switch (props.tabView) {
-        case Store.RootView.EXPLORER:
-            tabName = 'Explorer';
-            break;
-        case Store.RootView.WORKBOOK:
-            tabName = 'Workbook';
-            break;
-        case Store.RootView.LIBRARY:
-            tabName = 'Library';
-            break;
-    }
-    return (
-        <div className={styles.tab_container}>
-            <div
-                className={classNames(
-                    styles.tab,
-                    isActive ? styles.active : '',
-                )}
-                onClick={() => {
-                    props.onViewChanged(props.tabView);
-                }}
-            >
-                <div className={styles.tab_name}>{tabName}</div>
-            </div>
-        </div>
-    );
-}
-
-class NavigationBar extends React.Component<INavigationBarProps> {
+class NavigationBar extends React.Component<Props> {
     public render() {
         return (
             <div className={styles.container}>
                 <div className={styles.brand}>TIGON</div>
                 <div className={styles.tabs}>
-                    <NavBarTab
-                        tabView={Store.RootView.EXPLORER}
-                        rootView={this.props.rootView}
-                        onViewChanged={this.props.navigateRoot}
-                    />
-                    <NavBarTab
-                        tabView={Store.RootView.WORKBOOK}
-                        rootView={this.props.rootView}
-                        onViewChanged={this.props.navigateRoot}
-                    />
-                    <NavBarTab
-                        tabView={Store.RootView.LIBRARY}
-                        rootView={this.props.rootView}
-                        onViewChanged={this.props.navigateRoot}
-                    />
+                    {[
+                        ['/explorer', 'Explorer'],
+                        ['/workbook', 'Workbook'],
+                        ['/library', 'Library'],
+                    ].map(([route, name]) => (
+                        <div key={route} className={styles.tab_container}>
+                            <Link href={route}>
+                                <a
+                                    className={classNames(
+                                        styles.tab,
+                                        styles.tab_name,
+                                        {
+                                            [styles.active]:
+                                                this.props.router.route ===
+                                                route,
+                                        },
+                                    )}
+                                >
+                                    {name}
+                                </a>
+                            </Link>
+                        </div>
+                    ))}
                 </div>
             </div>
         );
     }
 }
 
-function mapStateToProps(state: Store.RootState) {
-    return {
-        rootView: state.rootView,
-    };
-}
-function mapDispatchToProps(dispatch: Store.Dispatch) {
-    return {
-        navigateRoot: (view: Store.RootView) => {
-            dispatch(Store.navigateRoot(view));
-        },
-    };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(NavigationBar);
+export default withRouter(NavigationBar);
