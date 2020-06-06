@@ -32,6 +32,7 @@ import {
     TextCardIcon,
     VariableBoxIcon,
 } from '../../svg/icons';
+import Editor from './editor';
 
 const VIZTYPE_ICON_WIDTH = '20px';
 const VIZTYPE_ICON_HEIGHT = '20px';
@@ -148,6 +149,9 @@ class Explorer extends React.Component<IExplorerProps> {
             <div className={styles.explorer}>
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />
+                    <div className={styles.editor}>
+                        <Editor />
+                    </div>
                 </div>
                 <div className={styles.topbar}>
                     <div className={styles.topbar_actionset}>
