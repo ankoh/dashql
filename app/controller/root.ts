@@ -2,6 +2,7 @@ import * as Store from '../store';
 import { CacheController } from './cache';
 import { CoreController } from './core';
 import { LogController } from './log';
+import { EditorController } from './editor';
 import { DemoController } from './demo';
 import { TQLInterpreter } from './tql_interpreter';
 
@@ -17,7 +18,8 @@ export class RootController {
     public cache: CacheController;
     // The interpreter
     public interpreter: TQLInterpreter;
-
+    // The editor
+    public editor: EditorController;
     // The demo
     public demo: DemoController;
 
@@ -30,6 +32,7 @@ export class RootController {
         this.log = new LogController(store);
         this.core = new CoreController();
         this.cache = new CacheController();
+        this.editor = new EditorController(this.store, this.core);
         this.demo = new DemoController(this.store, this.core, this.log);
         this.interpreter = new TQLInterpreter(
             this.store,
@@ -40,15 +43,8 @@ export class RootController {
         this.workerTimer = null;
     }
 
-    // XXX Load the test environment
-    async loadTestEnv() {
-        await this.demo.init();
-    }
-
     // Init the controller
     public async init(): Promise<void> {
         this.core.init();
-
-        await this.loadTestEnv();
     }
 }

@@ -1,11 +1,14 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
+import { IAppContext, withAppContext } from '../../app_context';
 
 import tigonTheme from './theme_tigon.json';
 
 const MonacoEditor = dynamic(import('react-monaco-editor'), { ssr: false });
 
-type Props = {};
+type Props = {
+    appContext: IAppContext;
+};
 
 type State = {
     text: string;
@@ -39,10 +42,14 @@ class Editor extends React.Component<Props, State> {
         this.setDimensions();
     }
 
-    handleChange = (value: string) => {
+    handleChange = async (value: string) => {
         this.setState({
             text: value,
         });
+
+        const { controller } = this.props.appContext;
+
+        await controller.editor.evaluate(value);
     };
 
     render() {
@@ -92,4 +99,4 @@ class Editor extends React.Component<Props, State> {
     }
 }
 
-export default Editor;
+export default withAppContext(Editor);
