@@ -54,72 +54,72 @@ using std::vector;
 %token SLASH                "slash"
 %token STAR                 "star"
 
-%token AREA                 "area"
-%token AS                   "as"
-%token AXES                 "axes"
-%token BAR                  "bar"
-%token BOX                  "box"
-%token BUBBLE               "bubble"
-%token CHART                "chart"
-%token COLOR                "color"
-%token COLUMN               "column"
-%token CSV                  "csv"
-%token DATE                 "date"
-%token DATETIME             "datetime"
-%token DECLARE              "declare"
-%token EXTRACT              "extract"
-%token FIELD                "field"
-%token FILE                 "file"
-%token FLOAT                "float"
-%token FROM                 "from"
-%token GET                  "get"
-%token GRID                 "grid"
-%token HEIGHT               "height"
-%token HISTOGRAM            "histogram"
-%token HORIZONTAL           "horizontal"
-%token HTTP                 "http"
-%token INTEGER              "integer"
-%token JSON                 "json"
-%token LG                   "lg"
-%token LINE                 "line"
-%token LINEAR               "linear"
-%token LOAD                 "load"
-%token LOG                  "log"
-%token MD                   "md"
-%token METHOD               "method"
-%token NUMBER               "number"
-%token PALETTE              "palette"
-%token PARAMETER            "parameter"
-%token PARQUET              "parquet"
-%token PERCENT              "percent"
-%token PIE                  "pie"
-%token PLOT                 "plot"
-%token POINT                "point"
-%token POST                 "post"
-%token PUT                  "put"
-%token PX                   "px"
-%token QUERY                "query"
-%token RGB                  "rgb"
-%token SCALE                "scale"
-%token SCATTER              "scatter"
-%token SHOW                 "show"
-%token SM                   "sm"
-%token STACKED              "stacked"
-%token TABLE                "table"
-%token TEXT                 "text"
-%token TIME                 "time"
-%token TITLE                "title"
-%token URL                  "url"
-%token USING                "using"
-%token VERTICAL             "vertical"
-%token VIS                  "vis"
-%token VISUALISE            "visualise"
-%token VISUALIZE            "visualize"
-%token VIZ                  "viz"
-%token WIDTH                "width"
-%token X                    "x"
-%token XL                   "xl"
-%token Y                    "y"
+%token <std::string_view>   AREA                 "area"
+%token <std::string_view>   AS                   "as"
+%token <std::string_view>   AXES                 "axes"
+%token <std::string_view>   BAR                  "bar"
+%token <std::string_view>   BOX                  "box"
+%token <std::string_view>   BUBBLE               "bubble"
+%token <std::string_view>   CHART                "chart"
+%token <std::string_view>   COLOR                "color"
+%token <std::string_view>   COLUMN               "column"
+%token <std::string_view>   CSV                  "csv"
+%token <std::string_view>   DATE                 "date"
+%token <std::string_view>   DATETIME             "datetime"
+%token <std::string_view>   DECLARE              "declare"
+%token <std::string_view>   EXTRACT              "extract"
+%token <std::string_view>   FIELD                "field"
+%token <std::string_view>   FILE                 "file"
+%token <std::string_view>   FLOAT                "float"
+%token <std::string_view>   FROM                 "from"
+%token <std::string_view>   GET                  "get"
+%token <std::string_view>   GRID                 "grid"
+%token <std::string_view>   HEIGHT               "height"
+%token <std::string_view>   HISTOGRAM            "histogram"
+%token <std::string_view>   HORIZONTAL           "horizontal"
+%token <std::string_view>   HTTP                 "http"
+%token <std::string_view>   INTEGER              "integer"
+%token <std::string_view>   JSON                 "json"
+%token <std::string_view>   LG                   "lg"
+%token <std::string_view>   LINE                 "line"
+%token <std::string_view>   LINEAR               "linear"
+%token <std::string_view>   LOAD                 "load"
+%token <std::string_view>   LOG                  "log"
+%token <std::string_view>   MD                   "md"
+%token <std::string_view>   METHOD               "method"
+%token <std::string_view>   NUMBER               "number"
+%token <std::string_view>   PALETTE              "palette"
+%token <std::string_view>   PARAMETER            "parameter"
+%token <std::string_view>   PARQUET              "parquet"
+%token <std::string_view>   PERCENT              "percent"
+%token <std::string_view>   PIE                  "pie"
+%token <std::string_view>   PLOT                 "plot"
+%token <std::string_view>   POINT                "point"
+%token <std::string_view>   POST                 "post"
+%token <std::string_view>   PUT                  "put"
+%token <std::string_view>   PX                   "px"
+%token <std::string_view>   QUERY                "query"
+%token <std::string_view>   RGB                  "rgb"
+%token <std::string_view>   SCALE                "scale"
+%token <std::string_view>   SCATTER              "scatter"
+%token <std::string_view>   SHOW                 "show"
+%token <std::string_view>   SM                   "sm"
+%token <std::string_view>   STACKED              "stacked"
+%token <std::string_view>   TABLE                "table"
+%token <std::string_view>   TEXT                 "text"
+%token <std::string_view>   TIME                 "time"
+%token <std::string_view>   TITLE                "title"
+%token <std::string_view>   URL                  "url"
+%token <std::string_view>   USING                "using"
+%token <std::string_view>   VERTICAL             "vertical"
+%token <std::string_view>   VIS                  "vis"
+%token <std::string_view>   VISUALISE            "visualise"
+%token <std::string_view>   VISUALIZE            "visualize"
+%token <std::string_view>   VIZ                  "viz"
+%token <std::string_view>   WIDTH                "width"
+%token <std::string_view>   X                    "x"
+%token <std::string_view>   XL                   "xl"
+%token <std::string_view>   Y                    "y"
 
 %token EOF 0                "eof"
 
@@ -133,6 +133,7 @@ using std::vector;
 %type <VizStatement::Type> viz_method;
 %type <VizStatement::TypeFlag> viz_method_prefix;
 %type <std::string_view> identifier;
+%type <std::string_view> keyword;
 %type <std::string_view> sql_literal;
 %type <std::unique_ptr<ExtractStatement>> extract_statement;
 %type <std::unique_ptr<LoadStatement>> load_statement;
@@ -172,6 +173,76 @@ parameter_declaration:
 identifier:
     IDENTIFIER_LITERAL  { $$ = $1; }
  |  STRING_LITERAL      { $$ = $1; }
+ |  keyword             { $$ = $1; }
+    ;
+
+keyword:
+    AREA { $$ = $1; }
+ |  AS { $$ = $1; }
+ |  AXES { $$ = $1; }
+ |  BAR { $$ = $1; }
+ |  BOX { $$ = $1; }
+ |  BUBBLE { $$ = $1; }
+ |  CHART { $$ = $1; }
+ |  COLOR { $$ = $1; }
+ |  COLUMN { $$ = $1; }
+ |  CSV { $$ = $1; }
+ |  DATE { $$ = $1; }
+ |  DATETIME { $$ = $1; }
+ |  DECLARE { $$ = $1; }
+ |  EXTRACT { $$ = $1; }
+ |  FIELD { $$ = $1; }
+ |  FILE { $$ = $1; }
+ |  FLOAT { $$ = $1; }
+ |  FROM { $$ = $1; }
+ |  GET { $$ = $1; }
+ |  GRID { $$ = $1; }
+ |  HEIGHT { $$ = $1; }
+ |  HISTOGRAM { $$ = $1; }
+ |  HORIZONTAL { $$ = $1; }
+ |  HTTP { $$ = $1; }
+ |  INTEGER { $$ = $1; }
+ |  JSON { $$ = $1; }
+ |  LG { $$ = $1; }
+ |  LINE { $$ = $1; }
+ |  LINEAR { $$ = $1; }
+ |  LOAD { $$ = $1; }
+ |  LOG { $$ = $1; }
+ |  MD { $$ = $1; }
+ |  METHOD { $$ = $1; }
+ |  NUMBER { $$ = $1; }
+ |  PALETTE { $$ = $1; }
+ |  PARAMETER { $$ = $1; }
+ |  PARQUET { $$ = $1; }
+ |  PERCENT { $$ = $1; }
+ |  PIE { $$ = $1; }
+ |  PLOT { $$ = $1; }
+ |  POINT { $$ = $1; }
+ |  POST { $$ = $1; }
+ |  PUT { $$ = $1; }
+ |  PX { $$ = $1; }
+ |  QUERY { $$ = $1; }
+ |  RGB { $$ = $1; }
+ |  SCALE { $$ = $1; }
+ |  SCATTER { $$ = $1; }
+ |  SHOW { $$ = $1; }
+ |  SM { $$ = $1; }
+ |  STACKED { $$ = $1; }
+ |  TABLE { $$ = $1; }
+ |  TEXT { $$ = $1; }
+ |  TIME { $$ = $1; }
+ |  TITLE { $$ = $1; }
+ |  URL { $$ = $1; }
+ |  USING { $$ = $1; }
+ |  VERTICAL { $$ = $1; }
+ |  VIS { $$ = $1; }
+ |  VISUALISE { $$ = $1; }
+ |  VISUALIZE { $$ = $1; }
+ |  VIZ { $$ = $1; }
+ |  WIDTH { $$ = $1; }
+ |  X { $$ = $1; }
+ |  XL { $$ = $1; }
+ |  Y { $$ = $1; }
     ;
 
 opt_as:

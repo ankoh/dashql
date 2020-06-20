@@ -104,72 +104,72 @@ loc.step();
 "/"                 { return Parser::make_SLASH(loc); }
 "*"                 { return Parser::make_STAR(loc); }
 
-"area"              { return Parser::make_AREA(loc); }
-"as"                { return Parser::make_AS(loc); }
-"axes"              { return Parser::make_AXES(loc); }
-"bar"               { return Parser::make_BAR(loc); }
-"box"               { return Parser::make_BOX(loc); }
-"bubble"            { return Parser::make_BUBBLE(loc); }
-"chart"             { return Parser::make_CHART(loc); }
-"color"             { return Parser::make_COLOR(loc); }
-"column"            { return Parser::make_COLUMN(loc); }
-"csv"               { return Parser::make_CSV(loc); }
-"date"              { return Parser::make_DATE(loc); }
-"datetime"          { return Parser::make_DATETIME(loc); }
-"declare"           { return Parser::make_DECLARE(loc); }
-"extract"           { return Parser::make_EXTRACT(loc); }
-"field"             { return Parser::make_FIELD(loc); }
-"file"              { return Parser::make_FILE(loc); }
-"float"             { return Parser::make_FLOAT(loc); }
-"from"              { return Parser::make_FROM(loc); }
-"get"               { return Parser::make_GET(loc); }
-"grid"              { return Parser::make_GRID(loc); }
-"height"            { return Parser::make_HEIGHT(loc); }
-"histogram"         { return Parser::make_HISTOGRAM(loc); }
-"horizontal"        { return Parser::make_HORIZONTAL(loc); }
-"http"              { return Parser::make_HTTP(loc); }
-"integer"           { return Parser::make_INTEGER(loc); }
-"json"              { return Parser::make_JSON(loc); }
-"lg"                { return Parser::make_LG(loc); }
-"line"              { return Parser::make_LINE(loc); }
-"linear"            { return Parser::make_LINEAR(loc); }
-"load"              { return Parser::make_LOAD(loc); }
-"log"               { return Parser::make_LOG(loc); }
-"md"                { return Parser::make_MD(loc); }
-"method"            { return Parser::make_METHOD(loc); }
-"number"            { return Parser::make_NUMBER(loc); }
-"palette"           { return Parser::make_PALETTE(loc); }
-"parameter"         { return Parser::make_PARAMETER(loc); }
-"parquet"           { return Parser::make_PARQUET(loc); }
-"percent"           { return Parser::make_PERCENT(loc); }
-"pie"               { return Parser::make_PIE(loc); }
-"plot"              { return Parser::make_PLOT(loc); }
-"point"             { return Parser::make_POINT(loc); }
-"post"              { return Parser::make_POST(loc); }
-"put"               { return Parser::make_PUT(loc); }
-"px"                { return Parser::make_PX(loc); }
-"query"             { return Parser::make_QUERY(loc); }
-"rgb"               { return Parser::make_RGB(loc); }
-"scale"             { return Parser::make_SCALE(loc); }
-"scatter"           { return Parser::make_SCATTER(loc); }
-"show"              { return Parser::make_SHOW(loc); }
-"sm"                { return Parser::make_SM(loc); }
-"stacked"           { return Parser::make_STACKED(loc); }
-"table"             { return Parser::make_TABLE(loc); }
-"text"              { return Parser::make_TEXT(loc); }
-"time"              { return Parser::make_TIME(loc); }
-"title"             { return Parser::make_TITLE(loc); }
-"url"               { return Parser::make_URL(loc); }
-"using"             { return Parser::make_USING(loc); }
-"vertical"          { return Parser::make_VERTICAL(loc); }
-"vis"               { return Parser::make_VIS(loc); }
-"visualise"         { return Parser::make_VISUALISE(loc); }
-"visualize"         { return Parser::make_VISUALIZE(loc); }
-"viz"               { return Parser::make_VIZ(loc); }
-"width"             { return Parser::make_WIDTH(loc); }
-"x"                 { return Parser::make_X(loc); }
-"xl"                { return Parser::make_XL(loc); }
-"y"                 { return Parser::make_Y(loc); }
+"area"              { return Parser::make_AREA(getTokenText(), loc); }
+"as"                { return Parser::make_AS(getTokenText(), loc); }
+"axes"              { return Parser::make_AXES(getTokenText(), loc); }
+"bar"               { return Parser::make_BAR(getTokenText(), loc); }
+"box"               { return Parser::make_BOX(getTokenText(), loc); }
+"bubble"            { return Parser::make_BUBBLE(getTokenText(), loc); }
+"chart"             { return Parser::make_CHART(getTokenText(), loc); }
+"color"             { return Parser::make_COLOR(getTokenText(), loc); }
+"column"            { return Parser::make_COLUMN(getTokenText(), loc); }
+"csv"               { return Parser::make_CSV(getTokenText(), loc); }
+"date"              { return Parser::make_DATE(getTokenText(), loc); }
+"datetime"          { return Parser::make_DATETIME(getTokenText(), loc); }
+"declare"           { return Parser::make_DECLARE(getTokenText(), loc); }
+"extract"           { return Parser::make_EXTRACT(getTokenText(), loc); }
+"field"             { return Parser::make_FIELD(getTokenText(), loc); }
+"file"              { return Parser::make_FILE(getTokenText(), loc); }
+"float"             { return Parser::make_FLOAT(getTokenText(), loc); }
+"from"              { return Parser::make_FROM(getTokenText(), loc); }
+"get"               { return Parser::make_GET(getTokenText(), loc); }
+"grid"              { return Parser::make_GRID(getTokenText(), loc); }
+"height"            { return Parser::make_HEIGHT(getTokenText(), loc); }
+"histogram"         { return Parser::make_HISTOGRAM(getTokenText(), loc); }
+"horizontal"        { return Parser::make_HORIZONTAL(getTokenText(), loc); }
+"http"              { return Parser::make_HTTP(getTokenText(), loc); }
+"integer"           { return Parser::make_INTEGER(getTokenText(), loc); }
+"json"              { return Parser::make_JSON(getTokenText(), loc); }
+"lg"                { return Parser::make_LG(getTokenText(), loc); }
+"line"              { return Parser::make_LINE(getTokenText(), loc); }
+"linear"            { return Parser::make_LINEAR(getTokenText(), loc); }
+"load"              { return Parser::make_LOAD(getTokenText(), loc); }
+"log"               { return Parser::make_LOG(getTokenText(), loc); }
+"md"                { return Parser::make_MD(getTokenText(), loc); }
+"method"            { return Parser::make_METHOD(getTokenText(), loc); }
+"number"            { return Parser::make_NUMBER(getTokenText(), loc); }
+"palette"           { return Parser::make_PALETTE(getTokenText(), loc); }
+"parameter"         { return Parser::make_PARAMETER(getTokenText(), loc); }
+"parquet"           { return Parser::make_PARQUET(getTokenText(), loc); }
+"percent"           { return Parser::make_PERCENT(getTokenText(), loc); }
+"pie"               { return Parser::make_PIE(getTokenText(), loc); }
+"plot"              { return Parser::make_PLOT(getTokenText(), loc); }
+"point"             { return Parser::make_POINT(getTokenText(), loc); }
+"post"              { return Parser::make_POST(getTokenText(), loc); }
+"put"               { return Parser::make_PUT(getTokenText(), loc); }
+"px"                { return Parser::make_PX(getTokenText(), loc); }
+"query"             { return Parser::make_QUERY(getTokenText(), loc); }
+"rgb"               { return Parser::make_RGB(getTokenText(), loc); }
+"scale"             { return Parser::make_SCALE(getTokenText(), loc); }
+"scatter"           { return Parser::make_SCATTER(getTokenText(), loc); }
+"show"              { return Parser::make_SHOW(getTokenText(), loc); }
+"sm"                { return Parser::make_SM(getTokenText(), loc); }
+"stacked"           { return Parser::make_STACKED(getTokenText(), loc); }
+"table"             { return Parser::make_TABLE(getTokenText(), loc); }
+"text"              { return Parser::make_TEXT(getTokenText(), loc); }
+"time"              { return Parser::make_TIME(getTokenText(), loc); }
+"title"             { return Parser::make_TITLE(getTokenText(), loc); }
+"url"               { return Parser::make_URL(getTokenText(), loc); }
+"using"             { return Parser::make_USING(getTokenText(), loc); }
+"vertical"          { return Parser::make_VERTICAL(getTokenText(), loc); }
+"vis"               { return Parser::make_VIS(getTokenText(), loc); }
+"visualise"         { return Parser::make_VISUALISE(getTokenText(), loc); }
+"visualize"         { return Parser::make_VISUALIZE(getTokenText(), loc); }
+"viz"               { return Parser::make_VIZ(getTokenText(), loc); }
+"width"             { return Parser::make_WIDTH(getTokenText(), loc); }
+"x"                 { return Parser::make_X(getTokenText(), loc); }
+"xl"                { return Parser::make_XL(getTokenText(), loc); }
+"y"                 { return Parser::make_Y(getTokenText(), loc); }
 
 select[^;]*         { return Parser::make_SQL_SELECT(getTokenText(), loc); }
 with[^;]*           { return Parser::make_SQL_WITH(getTokenText(), loc); }
