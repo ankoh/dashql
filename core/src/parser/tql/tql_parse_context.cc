@@ -24,19 +24,17 @@ Module ParseContext::Parse(std::string_view in) {
         parser.parse();
     }
     endScan();
-    return Module{std::move(statements)};
+    return Module{std::move(statements), std::move(errors)};
 }
 
 // Yield an error
-void ParseContext::Error(const std::string& m) {
-    throw TQLParseError(m);
+void ParseContext::Error(const std::string& message) {
+    throw TQLParseError(message);
 }
 
 // Yield an error
-void ParseContext::Error(uint32_t line, uint32_t column, const std::string& err) {
-    std::stringstream ss;
-    ss << "[" << line << ":" << column << "] " << err;
-    throw TQLParseError(ss.str());
+void ParseContext::Error(uint32_t line, uint32_t column, const std::string& message) {
+    errors.push_back({line, column, message});
 }
 
 /// Define a statement

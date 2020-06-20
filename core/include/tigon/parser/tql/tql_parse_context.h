@@ -31,6 +31,8 @@ namespace tigon {
             bool trace_parsing;
             /// The statements
             std::vector<Statement> statements;
+            /// The errors
+            std::vector<Error> errors;
 
             /// The cached values
             std::tuple<std::unique_ptr<VizStatement::Axis>, std::unique_ptr<VizStatement::ResponsiveGridArea>, std::unique_ptr<VizStatement>, std::unique_ptr<ExtractStatement>,

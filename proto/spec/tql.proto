@@ -5,7 +5,7 @@ option cc_enable_arenas = true;
 
 package tigon.proto.tql;
 
-// A  type
+// A type
 enum Type {
     INTEGER = 0;
     FLOAT = 1;
@@ -173,7 +173,15 @@ message Statement {
     }
 }
 
+/// An error
+message Error {
+    int32 line = 1;
+    int32 column = 2;
+    string message = 3;
+}
+
 /// A tql module
 message Module {
     repeated Statement statements = 1;
+    repeated Error errors = 2;
 }

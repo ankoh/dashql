@@ -81,35 +81,36 @@ namespace tigon {
 
     /// Write the tql program
     proto::tql::Module* encodeTQLModule(protobuf::Arena& arena, tql::Module& module) {
-        auto* mod = protobuf::Arena::CreateMessage<proto::tql::Module>(&arena);
-        auto* stmts = mod->mutable_statements();
+        auto* result = protobuf::Arena::CreateMessage<proto::tql::Module>(&arena);
+        auto* statements = result->mutable_statements();
+        auto* errors = result->mutable_errors();
 
         // Encode statements
         for (auto& statement : module.statements) {
             std::visit(overload{// Viz statement
-                                [&](std::unique_ptr<tql::VizStatement>& viz) { stmts->Add()->set_allocated_viz(encodeStatement(arena, *viz)); },
+                                [&](std::unique_ptr<tql::VizStatement>& viz) { statements->Add()->set_allocated_viz(encodeStatement(arena, *viz)); },
 
                                 // Extract statement
                                 [&](std::unique_ptr<tql::ExtractStatement>& extract) {
-                                    auto* e = stmts->Add()->mutable_extract();
+                                    auto* e = statements->Add()->mutable_extract();
                                     e->set_extract_id(extract->extract_id.data(), extract->extract_id.size());
                                 },
 
                                 // Load statement
                                 [&](std::unique_ptr<tql::LoadStatement>& load) {
-                                    auto* l = stmts->Add()->mutable_load();
+                                    auto* l = statements->Add()->mutable_load();
                                     l->set_data_id(load->data_id.data(), load->data_id.size());
                                 },
 
                                 // Parameter declaration
                                 [&](std::unique_ptr<tql::ParameterDeclaration>& param) {
-                                    auto* p = stmts->Add()->mutable_parameter();
+                                    auto* p = statements->Add()->mutable_parameter();
                                     p->set_parameter_id(param->parameter_id.data(), param->parameter_id.size());
                                 },
 
                                 // SQL statement
                                 [&](std::unique_ptr<tql::QueryStatement>& sql) {
-                                    auto* q = stmts->Add()->mutable_query();
+                                    auto* q = statements->Add()->mutable_query();
                                     if (sql->query_id.empty()) {
                                         q->set_query_id(generateID(*sql));
                                     } else {
@@ -119,7 +120,17 @@ namespace tigon {
                                 }},
                        statement);
         }
-        return mod;
+
+        // Encode errors
+        for (auto& error : module.errors) {
+            auto* next = errors->Add();
+
+            next->set_line(error.line);
+            next->set_column(error.column);
+            next->set_message(error.message);
+        }
+
+        return result;
     }
 
 } // namespace tigon

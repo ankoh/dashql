@@ -762,11 +762,52 @@ export namespace Statement {
     }
 }
 
+export class Error extends jspb.Message {
+    getLine(): number;
+    setLine(value: number): void;
+
+    getColumn(): number;
+    setColumn(value: number): void;
+
+    getMessage(): string;
+    setMessage(value: string): void;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): Error.AsObject;
+    static toObject(includeInstance: boolean, msg: Error): Error.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: {
+        [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
+    };
+    static serializeBinaryToWriter(
+        message: Error,
+        writer: jspb.BinaryWriter,
+    ): void;
+    static deserializeBinary(bytes: Uint8Array): Error;
+    static deserializeBinaryFromReader(
+        message: Error,
+        reader: jspb.BinaryReader,
+    ): Error;
+}
+
+export namespace Error {
+    export type AsObject = {
+        line: number;
+        column: number;
+        message: string;
+    };
+}
+
 export class Module extends jspb.Message {
     clearStatementsList(): void;
     getStatementsList(): Array<Statement>;
     setStatementsList(value: Array<Statement>): void;
     addStatements(value?: Statement, index?: number): Statement;
+
+    clearErrorsList(): void;
+    getErrorsList(): Array<Error>;
+    setErrorsList(value: Array<Error>): void;
+    addErrors(value?: Error, index?: number): Error;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): Module.AsObject;
@@ -789,6 +830,7 @@ export class Module extends jspb.Message {
 export namespace Module {
     export type AsObject = {
         statementsList: Array<Statement.AsObject>;
+        errorsList: Array<Error.AsObject>;
     };
 }
 

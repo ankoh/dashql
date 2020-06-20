@@ -46,7 +46,7 @@ struct TableStruct_tql_2eproto {
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxillaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[19]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[20]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -61,6 +61,9 @@ extern CSVColumnDefaultTypeInternal _CSVColumn_default_instance_;
 class CSVExtract;
 class CSVExtractDefaultTypeInternal;
 extern CSVExtractDefaultTypeInternal _CSVExtract_default_instance_;
+class Error;
+class ErrorDefaultTypeInternal;
+extern ErrorDefaultTypeInternal _Error_default_instance_;
 class ExtractMethod;
 class ExtractMethodDefaultTypeInternal;
 extern ExtractMethodDefaultTypeInternal _ExtractMethod_default_instance_;
@@ -118,6 +121,7 @@ extern VizStatementDefaultTypeInternal _VizStatement_default_instance_;
 PROTOBUF_NAMESPACE_OPEN
 template<> ::tigon::proto::tql::CSVColumn* Arena::CreateMaybeMessage<::tigon::proto::tql::CSVColumn>(Arena*);
 template<> ::tigon::proto::tql::CSVExtract* Arena::CreateMaybeMessage<::tigon::proto::tql::CSVExtract>(Arena*);
+template<> ::tigon::proto::tql::Error* Arena::CreateMaybeMessage<::tigon::proto::tql::Error>(Arena*);
 template<> ::tigon::proto::tql::ExtractMethod* Arena::CreateMaybeMessage<::tigon::proto::tql::ExtractMethod>(Arena*);
 template<> ::tigon::proto::tql::ExtractStatement* Arena::CreateMaybeMessage<::tigon::proto::tql::ExtractStatement>(Arena*);
 template<> ::tigon::proto::tql::FileLoadMethod* Arena::CreateMaybeMessage<::tigon::proto::tql::FileLoadMethod>(Arena*);
@@ -3580,6 +3584,180 @@ class Statement :
 };
 // -------------------------------------------------------------------
 
+class Error :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.Error) */ {
+ public:
+  Error();
+  virtual ~Error();
+
+  Error(const Error& from);
+  Error(Error&& from) noexcept
+    : Error() {
+    *this = ::std::move(from);
+  }
+
+  inline Error& operator=(const Error& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline Error& operator=(Error&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const Error& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const Error* internal_default_instance() {
+    return reinterpret_cast<const Error*>(
+               &_Error_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    18;
+
+  friend void swap(Error& a, Error& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(Error* other) {
+    if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Error* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline Error* New() const final {
+    return CreateMaybeMessage<Error>(nullptr);
+  }
+
+  Error* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<Error>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
+    final;
+  void CopyFrom(const Error& from);
+  void MergeFrom(const Error& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  void DiscardUnknownFields();
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(Error* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "tigon.proto.tql.Error";
+  }
+  protected:
+  explicit Error(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kMessageFieldNumber = 3,
+    kLineFieldNumber = 1,
+    kColumnFieldNumber = 2,
+  };
+  // string message = 3;
+  void clear_message();
+  const std::string& message() const;
+  void set_message(const std::string& value);
+  void set_message(std::string&& value);
+  void set_message(const char* value);
+  void set_message(const char* value, size_t size);
+  std::string* mutable_message();
+  std::string* release_message();
+  void set_allocated_message(std::string* message);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_message();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_message(
+      std::string* message);
+  private:
+  const std::string& _internal_message() const;
+  void _internal_set_message(const std::string& value);
+  std::string* _internal_mutable_message();
+  public:
+
+  // int32 line = 1;
+  void clear_line();
+  ::PROTOBUF_NAMESPACE_ID::int32 line() const;
+  void set_line(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_line() const;
+  void _internal_set_line(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // int32 column = 2;
+  void clear_column();
+  ::PROTOBUF_NAMESPACE_ID::int32 column() const;
+  void set_column(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_column() const;
+  void _internal_set_column(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.Error)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr message_;
+  ::PROTOBUF_NAMESPACE_ID::int32 line_;
+  ::PROTOBUF_NAMESPACE_ID::int32 column_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_tql_2eproto;
+};
+// -------------------------------------------------------------------
+
 class Module :
     public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.Module) */ {
  public:
@@ -3619,7 +3797,7 @@ class Module :
                &_Module_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    18;
+    19;
 
   friend void swap(Module& a, Module& b) {
     a.Swap(&b);
@@ -3692,6 +3870,7 @@ class Module :
 
   enum : int {
     kStatementsFieldNumber = 1,
+    kErrorsFieldNumber = 2,
   };
   // repeated .tigon.proto.tql.Statement statements = 1;
   int statements_size() const;
@@ -3711,6 +3890,24 @@ class Module :
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::Statement >&
       statements() const;
 
+  // repeated .tigon.proto.tql.Error errors = 2;
+  int errors_size() const;
+  private:
+  int _internal_errors_size() const;
+  public:
+  void clear_errors();
+  ::tigon::proto::tql::Error* mutable_errors(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::Error >*
+      mutable_errors();
+  private:
+  const ::tigon::proto::tql::Error& _internal_errors(int index) const;
+  ::tigon::proto::tql::Error* _internal_add_errors();
+  public:
+  const ::tigon::proto::tql::Error& errors(int index) const;
+  ::tigon::proto::tql::Error* add_errors();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::Error >&
+      errors() const;
+
   // @@protoc_insertion_point(class_scope:tigon.proto.tql.Module)
  private:
   class _Internal;
@@ -3720,6 +3917,7 @@ class Module :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::Statement > statements_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::Error > errors_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -6998,6 +7196,132 @@ inline Statement::StatementCase Statement::statement_case() const {
 }
 // -------------------------------------------------------------------
 
+// Error
+
+// int32 line = 1;
+inline void Error::clear_line() {
+  line_ = 0;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Error::_internal_line() const {
+  return line_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Error::line() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.Error.line)
+  return _internal_line();
+}
+inline void Error::_internal_set_line(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  
+  line_ = value;
+}
+inline void Error::set_line(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_line(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.Error.line)
+}
+
+// int32 column = 2;
+inline void Error::clear_column() {
+  column_ = 0;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Error::_internal_column() const {
+  return column_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Error::column() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.Error.column)
+  return _internal_column();
+}
+inline void Error::_internal_set_column(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  
+  column_ = value;
+}
+inline void Error::set_column(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_column(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.Error.column)
+}
+
+// string message = 3;
+inline void Error::clear_message() {
+  message_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline const std::string& Error::message() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.Error.message)
+  return _internal_message();
+}
+inline void Error::set_message(const std::string& value) {
+  _internal_set_message(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.Error.message)
+}
+inline std::string* Error::mutable_message() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.Error.message)
+  return _internal_mutable_message();
+}
+inline const std::string& Error::_internal_message() const {
+  return message_.Get();
+}
+inline void Error::_internal_set_message(const std::string& value) {
+  
+  message_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+}
+inline void Error::set_message(std::string&& value) {
+  
+  message_.SetLite(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.Error.message)
+}
+inline void Error::set_message(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  message_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.Error.message)
+}
+inline void Error::set_message(const char* value,
+    size_t size) {
+  
+  message_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.Error.message)
+}
+inline std::string* Error::_internal_mutable_message() {
+  
+  return message_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline std::string* Error::release_message() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.Error.message)
+  
+  return message_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline void Error::set_allocated_message(std::string* message) {
+  if (message != nullptr) {
+    
+  } else {
+    
+  }
+  message_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), message,
+      GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.Error.message)
+}
+inline std::string* Error::unsafe_arena_release_message() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.Error.message)
+  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
+  
+  return message_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArenaNoVirtual());
+}
+inline void Error::unsafe_arena_set_allocated_message(
+    std::string* message) {
+  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
+  if (message != nullptr) {
+    
+  } else {
+    
+  }
+  message_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      message, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.Error.message)
+}
+
+// -------------------------------------------------------------------
+
 // Module
 
 // repeated .tigon.proto.tql.Statement statements = 1;
@@ -7039,9 +7363,50 @@ Module::statements() const {
   return statements_;
 }
 
+// repeated .tigon.proto.tql.Error errors = 2;
+inline int Module::_internal_errors_size() const {
+  return errors_.size();
+}
+inline int Module::errors_size() const {
+  return _internal_errors_size();
+}
+inline void Module::clear_errors() {
+  errors_.Clear();
+}
+inline ::tigon::proto::tql::Error* Module::mutable_errors(int index) {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.Module.errors)
+  return errors_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::Error >*
+Module::mutable_errors() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.tql.Module.errors)
+  return &errors_;
+}
+inline const ::tigon::proto::tql::Error& Module::_internal_errors(int index) const {
+  return errors_.Get(index);
+}
+inline const ::tigon::proto::tql::Error& Module::errors(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.Module.errors)
+  return _internal_errors(index);
+}
+inline ::tigon::proto::tql::Error* Module::_internal_add_errors() {
+  return errors_.Add();
+}
+inline ::tigon::proto::tql::Error* Module::add_errors() {
+  // @@protoc_insertion_point(field_add:tigon.proto.tql.Module.errors)
+  return _internal_add_errors();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::Error >&
+Module::errors() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.tql.Module.errors)
+  return errors_;
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

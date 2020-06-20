@@ -19,7 +19,6 @@
 
 namespace tigon {
     namespace tql {
-
         /// A type
         enum class Type { Integer, Float, Text, Date, DateTime, Time };
 
@@ -263,12 +262,20 @@ namespace tigon {
         using Statement =
             std::variant<std::unique_ptr<ExtractStatement>, std::unique_ptr<LoadStatement>, std::unique_ptr<ParameterDeclaration>, std::unique_ptr<QueryStatement>, std::unique_ptr<VizStatement>>;
 
+        /// An error
+        struct Error {
+            uint32_t line;
+            uint32_t column;
+            const std::string& message;
+        };
+
         /// A module
         struct Module {
             /// The statements
             std::vector<Statement> statements;
+            /// The errors
+            std::vector<Error> errors;
         };
-
     } // namespace tql
 } // namespace tigon
 

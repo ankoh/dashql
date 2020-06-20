@@ -150,6 +150,7 @@ using std::vector;
 
 statement_list:
     statement_list statement SEMICOLON  { ctx.DefineStatement(move($2)); }
+ |  statement_list error SEMICOLON  { yyclearin; }
  |  %empty
     ;
 
