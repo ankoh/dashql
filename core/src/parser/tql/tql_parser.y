@@ -44,105 +44,105 @@ using std::vector;
 %token <uint32_t>           HEX_COLOR_LITERAL   "hex_color_literal"
 %token <int>                INTEGER_LITERAL     "integer_literal"
 
-%token SEMICOLON            "semicolon"
-%token LRB                  "left_round_bracket"
-%token RRB                  "right_round_bracket"
-%token LSB                  "left_square_bracket"
-%token RSB                  "right_square_bracket"
-%token EQUAL                "equal"
-%token COMMA                "comma"
-%token SLASH                "slash"
-%token STAR                 "star"
+%token SEMICOLON    "semicolon"
+%token LRB          "left_round_bracket"
+%token RRB          "right_round_bracket"
+%token LSB          "left_square_bracket"
+%token RSB          "right_square_bracket"
+%token EQUAL        "equal"
+%token COMMA        "comma"
+%token SLASH        "slash"
+%token STAR         "star"
 
-%token <std::string_view>   AREA                 "area"
-%token <std::string_view>   AS                   "as"
-%token <std::string_view>   AXES                 "axes"
-%token <std::string_view>   BAR                  "bar"
-%token <std::string_view>   BOX                  "box"
-%token <std::string_view>   BUBBLE               "bubble"
-%token <std::string_view>   CHART                "chart"
-%token <std::string_view>   COLOR                "color"
-%token <std::string_view>   COLUMN               "column"
-%token <std::string_view>   CSV                  "csv"
-%token <std::string_view>   DATE                 "date"
-%token <std::string_view>   DATETIME             "datetime"
-%token <std::string_view>   DECLARE              "declare"
-%token <std::string_view>   EXTRACT              "extract"
-%token <std::string_view>   FIELD                "field"
-%token <std::string_view>   FILE                 "file"
-%token <std::string_view>   FLOAT                "float"
-%token <std::string_view>   FROM                 "from"
-%token <std::string_view>   GET                  "get"
-%token <std::string_view>   GRID                 "grid"
-%token <std::string_view>   HEIGHT               "height"
-%token <std::string_view>   HISTOGRAM            "histogram"
-%token <std::string_view>   HORIZONTAL           "horizontal"
-%token <std::string_view>   HTTP                 "http"
-%token <std::string_view>   INTEGER              "integer"
-%token <std::string_view>   JSON                 "json"
-%token <std::string_view>   LG                   "lg"
-%token <std::string_view>   LINE                 "line"
-%token <std::string_view>   LINEAR               "linear"
-%token <std::string_view>   LOAD                 "load"
-%token <std::string_view>   LOG                  "log"
-%token <std::string_view>   MD                   "md"
-%token <std::string_view>   METHOD               "method"
-%token <std::string_view>   NUMBER               "number"
-%token <std::string_view>   PALETTE              "palette"
-%token <std::string_view>   PARAMETER            "parameter"
-%token <std::string_view>   PARQUET              "parquet"
-%token <std::string_view>   PERCENT              "percent"
-%token <std::string_view>   PIE                  "pie"
-%token <std::string_view>   PLOT                 "plot"
-%token <std::string_view>   POINT                "point"
-%token <std::string_view>   POST                 "post"
-%token <std::string_view>   PUT                  "put"
-%token <std::string_view>   PX                   "px"
-%token <std::string_view>   QUERY                "query"
-%token <std::string_view>   RGB                  "rgb"
-%token <std::string_view>   SCALE                "scale"
-%token <std::string_view>   SCATTER              "scatter"
-%token <std::string_view>   SHOW                 "show"
-%token <std::string_view>   SM                   "sm"
-%token <std::string_view>   STACKED              "stacked"
-%token <std::string_view>   TABLE                "table"
-%token <std::string_view>   TEXT                 "text"
-%token <std::string_view>   TIME                 "time"
-%token <std::string_view>   TITLE                "title"
-%token <std::string_view>   URL                  "url"
-%token <std::string_view>   USING                "using"
-%token <std::string_view>   VERTICAL             "vertical"
-%token <std::string_view>   VIS                  "vis"
-%token <std::string_view>   VISUALISE            "visualise"
-%token <std::string_view>   VISUALIZE            "visualize"
-%token <std::string_view>   VIZ                  "viz"
-%token <std::string_view>   WIDTH                "width"
-%token <std::string_view>   X                    "x"
-%token <std::string_view>   XL                   "xl"
-%token <std::string_view>   Y                    "y"
+%token <std::string_view>   AREA        "area"
+%token <std::string_view>   AS          "as"
+%token <std::string_view>   AXES        "axes"
+%token <std::string_view>   BAR         "bar"
+%token <std::string_view>   BOX         "box"
+%token <std::string_view>   BUBBLE      "bubble"
+%token <std::string_view>   CHART       "chart"
+%token <std::string_view>   COLOR       "color"
+%token <std::string_view>   COLUMN      "column"
+%token <std::string_view>   CSV         "csv"
+%token <std::string_view>   DATE        "date"
+%token <std::string_view>   DATETIME    "datetime"
+%token <std::string_view>   DECLARE     "declare"
+%token <std::string_view>   EXTRACT     "extract"
+%token <std::string_view>   FIELD       "field"
+%token <std::string_view>   FILE        "file"
+%token <std::string_view>   FLOAT       "float"
+%token <std::string_view>   FROM        "from"
+%token <std::string_view>   GET         "get"
+%token <std::string_view>   GRID        "grid"
+%token <std::string_view>   HEIGHT      "height"
+%token <std::string_view>   HISTOGRAM   "histogram"
+%token <std::string_view>   HORIZONTAL  "horizontal"
+%token <std::string_view>   HTTP        "http"
+%token <std::string_view>   INTEGER     "integer"
+%token <std::string_view>   JSON        "json"
+%token <std::string_view>   LG          "lg"
+%token <std::string_view>   LINE        "line"
+%token <std::string_view>   LINEAR      "linear"
+%token <std::string_view>   LOAD        "load"
+%token <std::string_view>   LOG         "log"
+%token <std::string_view>   MD          "md"
+%token <std::string_view>   METHOD      "method"
+%token <std::string_view>   NUMBER      "number"
+%token <std::string_view>   PALETTE     "palette"
+%token <std::string_view>   PARAMETER   "parameter"
+%token <std::string_view>   PARQUET     "parquet"
+%token <std::string_view>   PERCENT     "percent"
+%token <std::string_view>   PIE         "pie"
+%token <std::string_view>   PLOT        "plot"
+%token <std::string_view>   POINT       "point"
+%token <std::string_view>   POST        "post"
+%token <std::string_view>   PUT         "put"
+%token <std::string_view>   PX          "px"
+%token <std::string_view>   QUERY       "query"
+%token <std::string_view>   RGB         "rgb"
+%token <std::string_view>   SCALE       "scale"
+%token <std::string_view>   SCATTER     "scatter"
+%token <std::string_view>   SHOW        "show"
+%token <std::string_view>   SM          "sm"
+%token <std::string_view>   STACKED     "stacked"
+%token <std::string_view>   TABLE       "table"
+%token <std::string_view>   TEXT        "text"
+%token <std::string_view>   TIME        "time"
+%token <std::string_view>   TITLE       "title"
+%token <std::string_view>   URL         "url"
+%token <std::string_view>   USING       "using"
+%token <std::string_view>   VERTICAL    "vertical"
+%token <std::string_view>   VIS         "vis"
+%token <std::string_view>   VISUALISE   "visualise"
+%token <std::string_view>   VISUALIZE   "visualize"
+%token <std::string_view>   VIZ         "viz"
+%token <std::string_view>   WIDTH       "width"
+%token <std::string_view>   X           "x"
+%token <std::string_view>   XL          "xl"
+%token <std::string_view>   Y           "y"
 
-%token EOF 0                "eof"
+%token EOF 0    "eof"
 
-%type <LoadStatement::HTTPLoader::Method> http_method;
-%type <Statement> statement;
-%type <Type> type;
-%type <VizStatement::AxisScale> viz_axis_scale;
-%type <VizStatement::GridArea> viz_area_spec;
-%type <VizStatement::RGBColor> viz_color_value;
-%type <VizStatement::SizeClass> viz_size_class;
-%type <VizStatement::Type> viz_method;
-%type <VizStatement::TypeFlag> viz_method_prefix;
-%type <std::string_view> identifier;
-%type <std::string_view> keyword;
-%type <std::string_view> sql_literal;
-%type <std::unique_ptr<ExtractStatement>> extract_statement;
-%type <std::unique_ptr<LoadStatement>> load_statement;
-%type <std::unique_ptr<ParameterDeclaration>> parameter_declaration;
-%type <std::unique_ptr<QueryStatement>> query_statement;
-%type <std::unique_ptr<VizStatement::ResponsiveGridArea>> viz_area;
-%type <std::unique_ptr<VizStatement>> viz_statement;
-%type <std::vector<VizStatement::RGBColor>> opt_viz_color_list;
-%type <std::vector<VizStatement::RGBColor>> viz_color_list;
+%type <LoadStatement::HTTPLoader::Method>                   http_method;
+%type <Statement>                                           statement;
+%type <Type>                                                type;
+%type <VizStatement::AxisScale>                             viz_axis_scale;
+%type <VizStatement::GridArea>                              viz_area_spec;
+%type <VizStatement::RGBColor>                              viz_color_value;
+%type <VizStatement::SizeClass>                             viz_size_class;
+%type <VizStatement::Type>                                  viz_method;
+%type <VizStatement::TypeFlag>                              viz_method_prefix;
+%type <std::string_view>                                    identifier;
+%type <std::string_view>                                    keyword;
+%type <std::string_view>                                    sql_literal;
+%type <std::unique_ptr<ExtractStatement>>                   extract_statement;
+%type <std::unique_ptr<LoadStatement>>                      load_statement;
+%type <std::unique_ptr<ParameterDeclaration>>               parameter_declaration;
+%type <std::unique_ptr<QueryStatement>>                     query_statement;
+%type <std::unique_ptr<VizStatement::ResponsiveGridArea>>   viz_area;
+%type <std::unique_ptr<VizStatement>>                       viz_statement;
+%type <std::vector<VizStatement::RGBColor>>                 opt_viz_color_list;
+%type <std::vector<VizStatement::RGBColor>>                 viz_color_list;
 
 %%
 
@@ -150,16 +150,16 @@ using std::vector;
 
 statement_list:
     statement_list statement SEMICOLON  { ctx.DefineStatement(move($2)); }
- |  statement_list error SEMICOLON  { yyclearin; }
+ |  statement_list error SEMICOLON      { yyclearin; }
  |  %empty
     ;
 
 statement:
     extract_statement       { $$ = Statement { move($1) }; }
- |  viz_statement          { $$ = Statement { move($1) }; }
+ |  viz_statement           { $$ = Statement { move($1) }; }
  |  load_statement          { $$ = Statement { move($1) }; }
  |  parameter_declaration   { $$ = Statement { move($1) }; }
- |  query_statement           { $$ = Statement { move($1) }; }
+ |  query_statement         { $$ = Statement { move($1) }; }
     ;
 
 parameter_declaration:
@@ -178,72 +178,72 @@ identifier:
     ;
 
 keyword:
-    AREA { $$ = $1; }
- |  AS { $$ = $1; }
- |  AXES { $$ = $1; }
- |  BAR { $$ = $1; }
- |  BOX { $$ = $1; }
- |  BUBBLE { $$ = $1; }
- |  CHART { $$ = $1; }
- |  COLOR { $$ = $1; }
- |  COLUMN { $$ = $1; }
- |  CSV { $$ = $1; }
- |  DATE { $$ = $1; }
- |  DATETIME { $$ = $1; }
- |  DECLARE { $$ = $1; }
- |  EXTRACT { $$ = $1; }
- |  FIELD { $$ = $1; }
- |  FILE { $$ = $1; }
- |  FLOAT { $$ = $1; }
- |  FROM { $$ = $1; }
- |  GET { $$ = $1; }
- |  GRID { $$ = $1; }
- |  HEIGHT { $$ = $1; }
- |  HISTOGRAM { $$ = $1; }
- |  HORIZONTAL { $$ = $1; }
- |  HTTP { $$ = $1; }
- |  INTEGER { $$ = $1; }
- |  JSON { $$ = $1; }
- |  LG { $$ = $1; }
- |  LINE { $$ = $1; }
- |  LINEAR { $$ = $1; }
- |  LOAD { $$ = $1; }
- |  LOG { $$ = $1; }
- |  MD { $$ = $1; }
- |  METHOD { $$ = $1; }
- |  NUMBER { $$ = $1; }
- |  PALETTE { $$ = $1; }
- |  PARAMETER { $$ = $1; }
- |  PARQUET { $$ = $1; }
- |  PERCENT { $$ = $1; }
- |  PIE { $$ = $1; }
- |  PLOT { $$ = $1; }
- |  POINT { $$ = $1; }
- |  POST { $$ = $1; }
- |  PUT { $$ = $1; }
- |  PX { $$ = $1; }
- |  QUERY { $$ = $1; }
- |  RGB { $$ = $1; }
- |  SCALE { $$ = $1; }
- |  SCATTER { $$ = $1; }
- |  SHOW { $$ = $1; }
- |  SM { $$ = $1; }
- |  STACKED { $$ = $1; }
- |  TABLE { $$ = $1; }
- |  TEXT { $$ = $1; }
- |  TIME { $$ = $1; }
- |  TITLE { $$ = $1; }
- |  URL { $$ = $1; }
- |  USING { $$ = $1; }
- |  VERTICAL { $$ = $1; }
- |  VIS { $$ = $1; }
- |  VISUALISE { $$ = $1; }
- |  VISUALIZE { $$ = $1; }
- |  VIZ { $$ = $1; }
- |  WIDTH { $$ = $1; }
- |  X { $$ = $1; }
- |  XL { $$ = $1; }
- |  Y { $$ = $1; }
+    AREA        { $$ = $1; }
+ |  AS          { $$ = $1; }
+ |  AXES        { $$ = $1; }
+ |  BAR         { $$ = $1; }
+ |  BOX         { $$ = $1; }
+ |  BUBBLE      { $$ = $1; }
+ |  CHART       { $$ = $1; }
+ |  COLOR       { $$ = $1; }
+ |  COLUMN      { $$ = $1; }
+ |  CSV         { $$ = $1; }
+ |  DATE        { $$ = $1; }
+ |  DATETIME    { $$ = $1; }
+ |  DECLARE     { $$ = $1; }
+ |  EXTRACT     { $$ = $1; }
+ |  FIELD       { $$ = $1; }
+ |  FILE        { $$ = $1; }
+ |  FLOAT       { $$ = $1; }
+ |  FROM        { $$ = $1; }
+ |  GET         { $$ = $1; }
+ |  GRID        { $$ = $1; }
+ |  HEIGHT      { $$ = $1; }
+ |  HISTOGRAM   { $$ = $1; }
+ |  HORIZONTAL  { $$ = $1; }
+ |  HTTP        { $$ = $1; }
+ |  INTEGER     { $$ = $1; }
+ |  JSON        { $$ = $1; }
+ |  LG          { $$ = $1; }
+ |  LINE        { $$ = $1; }
+ |  LINEAR      { $$ = $1; }
+ |  LOAD        { $$ = $1; }
+ |  LOG         { $$ = $1; }
+ |  MD          { $$ = $1; }
+ |  METHOD      { $$ = $1; }
+ |  NUMBER      { $$ = $1; }
+ |  PALETTE     { $$ = $1; }
+ |  PARAMETER   { $$ = $1; }
+ |  PARQUET     { $$ = $1; }
+ |  PERCENT     { $$ = $1; }
+ |  PIE         { $$ = $1; }
+ |  PLOT        { $$ = $1; }
+ |  POINT       { $$ = $1; }
+ |  POST        { $$ = $1; }
+ |  PUT         { $$ = $1; }
+ |  PX          { $$ = $1; }
+ |  QUERY       { $$ = $1; }
+ |  RGB         { $$ = $1; }
+ |  SCALE       { $$ = $1; }
+ |  SCATTER     { $$ = $1; }
+ |  SHOW        { $$ = $1; }
+ |  SM          { $$ = $1; }
+ |  STACKED     { $$ = $1; }
+ |  TABLE       { $$ = $1; }
+ |  TEXT        { $$ = $1; }
+ |  TIME        { $$ = $1; }
+ |  TITLE       { $$ = $1; }
+ |  URL         { $$ = $1; }
+ |  USING       { $$ = $1; }
+ |  VERTICAL    { $$ = $1; }
+ |  VIS         { $$ = $1; }
+ |  VISUALISE   { $$ = $1; }
+ |  VISUALIZE   { $$ = $1; }
+ |  VIZ         { $$ = $1; }
+ |  WIDTH       { $$ = $1; }
+ |  X           { $$ = $1; }
+ |  XL          { $$ = $1; }
+ |  Y           { $$ = $1; }
     ;
 
 opt_as:
@@ -252,22 +252,22 @@ opt_as:
     ;
 
 type:
-    INTEGER   { $$ = Type::Integer; }
- |  FLOAT     { $$ = Type::Float; }
- |  TEXT      { $$ = Type::Text; }
- |  DATE      { $$ = Type::Date; }
- |  DATETIME  { $$ = Type::DateTime; }
- |  TIME      { $$ = Type::Time; }
+    INTEGER     { $$ = Type::Integer; }
+ |  FLOAT       { $$ = Type::Float; }
+ |  TEXT        { $$ = Type::Text; }
+ |  DATE        { $$ = Type::Date; }
+ |  DATETIME    { $$ = Type::DateTime; }
+ |  TIME        { $$ = Type::Time; }
     ;
 
 query_statement:
-    QUERY identifier AS sql_literal     { $$ = std::make_unique<QueryStatement>($2, $4); }
- |  sql_literal                         { $$ = std::make_unique<QueryStatement>(std::string_view(), $1); }
+    QUERY identifier AS sql_literal { $$ = std::make_unique<QueryStatement>($2, $4); }
+ |  sql_literal                     { $$ = std::make_unique<QueryStatement>(std::string_view(), $1); }
     ;
 
 sql_literal:
-    SQL_SELECT { $$ = $1; }
- |  SQL_WITH   { $$ = $1; }
+    SQL_SELECT  { $$ = $1; }
+ |  SQL_WITH    { $$ = $1; }
     ;
 
 load_statement:
@@ -293,14 +293,14 @@ load_method_http_field_list:
     ;
 
 load_method_http_field:
-    METHOD EQUAL http_method { ctx.cached<LoadStatement::HTTPLoader>()->method = $3; }
-  | URL EQUAL STRING_LITERAL { ctx.cached<LoadStatement::HTTPLoader>()->url = $3; }
+    METHOD EQUAL http_method    { ctx.cached<LoadStatement::HTTPLoader>()->method = $3; }
+  | URL EQUAL STRING_LITERAL    { ctx.cached<LoadStatement::HTTPLoader>()->url = $3; }
     ;
 
 http_method:
-    GET  { $$ = Load::HTTPLoader::Method::Get; }
- |  PUT  { $$ = Load::HTTPLoader::Method::Put; }
- |  POST { $$ = Load::HTTPLoader::Method::Post; }
+    GET     { $$ = Load::HTTPLoader::Method::Get; }
+ |  PUT     { $$ = Load::HTTPLoader::Method::Put; }
+ |  POST    { $$ = Load::HTTPLoader::Method::Post; }
     ;
 
 extract_statement:
@@ -344,9 +344,9 @@ viz_method_prefix_list:
     ;
 
 viz_method_prefix:
-    HORIZONTAL { $$ = Viz::TypeFlag::Horizontal; }
- |  VERTICAL   { $$ = Viz::TypeFlag::Vertical; }
- |  STACKED    { $$ = Viz::TypeFlag::Stacked; }
+    HORIZONTAL  { $$ = Viz::TypeFlag::Horizontal; }
+ |  VERTICAL    { $$ = Viz::TypeFlag::Vertical; }
+ |  STACKED     { $$ = Viz::TypeFlag::Stacked; }
     ;
 
 viz_method:
@@ -425,8 +425,8 @@ viz_axis_field:
     ;
 
 viz_axis_scale:
-    LINEAR { $$ = Viz::AxisScale::Linear; }
- |  LOG    { $$ = Viz::AxisScale::Logarithmic; }
+    LINEAR  { $$ = Viz::AxisScale::Linear; }
+ |  LOG     { $$ = Viz::AxisScale::Logarithmic; }
     ;
 
 viz_color:
@@ -476,8 +476,8 @@ viz_area:
     ;
 
 viz_area_spec:
-    INTEGER_LITERAL                         { $$ = VizStatement::GridArea($1); }
- |  viz_area_spec SLASH INTEGER_LITERAL     { $1.push($3); $$ = $1; } 
+    INTEGER_LITERAL                     { $$ = VizStatement::GridArea($1); }
+ |  viz_area_spec SLASH INTEGER_LITERAL { $1.push($3); $$ = $1; } 
     ;
 
 viz_area_responsive_list:
@@ -492,11 +492,11 @@ viz_area_responsive:
     ;
 
 viz_size_class:
-    STAR { $$ = Viz::SizeClass::Wildcard; }
- |  SM   { $$ = Viz::SizeClass::Small; }
- |  MD   { $$ = Viz::SizeClass::Medium; }
- |  LG   { $$ = Viz::SizeClass::Large; }
- |  XL   { $$ = Viz::SizeClass::ExtraLarge; }
+    STAR    { $$ = Viz::SizeClass::Wildcard; }
+ |  SM      { $$ = Viz::SizeClass::Small; }
+ |  MD      { $$ = Viz::SizeClass::Medium; }
+ |  LG      { $$ = Viz::SizeClass::Large; }
+ |  XL      { $$ = Viz::SizeClass::ExtraLarge; }
     ;
 
 %%
@@ -504,4 +504,3 @@ viz_size_class:
 void tigon::tql::Parser::error(const location_type& l, const std::string& m) {
     ctx.Error(l.begin.line, l.begin.column, m);
 }
-

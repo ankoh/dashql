@@ -94,107 +94,107 @@ using namespace tigon::tql;
 loc.step();
 %}
 
-";"                 { return Parser::make_SEMICOLON(loc); }
-"("                 { return Parser::make_LRB(loc); }
-")"                 { return Parser::make_RRB(loc); }
-"["                 { return Parser::make_LSB(loc); }
-"]"                 { return Parser::make_RSB(loc); }
-"="                 { return Parser::make_EQUAL(loc); }
-","                 { return Parser::make_COMMA(loc); }
-"/"                 { return Parser::make_SLASH(loc); }
-"*"                 { return Parser::make_STAR(loc); }
+";" { return Parser::make_SEMICOLON(loc); }
+"(" { return Parser::make_LRB(loc); }
+")" { return Parser::make_RRB(loc); }
+"[" { return Parser::make_LSB(loc); }
+"]" { return Parser::make_RSB(loc); }
+"=" { return Parser::make_EQUAL(loc); }
+"," { return Parser::make_COMMA(loc); }
+"/" { return Parser::make_SLASH(loc); }
+"*" { return Parser::make_STAR(loc); }
 
-"area"              { return Parser::make_AREA(getTokenText(), loc); }
-"as"                { return Parser::make_AS(getTokenText(), loc); }
-"axes"              { return Parser::make_AXES(getTokenText(), loc); }
-"bar"               { return Parser::make_BAR(getTokenText(), loc); }
-"box"               { return Parser::make_BOX(getTokenText(), loc); }
-"bubble"            { return Parser::make_BUBBLE(getTokenText(), loc); }
-"chart"             { return Parser::make_CHART(getTokenText(), loc); }
-"color"             { return Parser::make_COLOR(getTokenText(), loc); }
-"column"            { return Parser::make_COLUMN(getTokenText(), loc); }
-"csv"               { return Parser::make_CSV(getTokenText(), loc); }
-"date"              { return Parser::make_DATE(getTokenText(), loc); }
-"datetime"          { return Parser::make_DATETIME(getTokenText(), loc); }
-"declare"           { return Parser::make_DECLARE(getTokenText(), loc); }
-"extract"           { return Parser::make_EXTRACT(getTokenText(), loc); }
-"field"             { return Parser::make_FIELD(getTokenText(), loc); }
-"file"              { return Parser::make_FILE(getTokenText(), loc); }
-"float"             { return Parser::make_FLOAT(getTokenText(), loc); }
-"from"              { return Parser::make_FROM(getTokenText(), loc); }
-"get"               { return Parser::make_GET(getTokenText(), loc); }
-"grid"              { return Parser::make_GRID(getTokenText(), loc); }
-"height"            { return Parser::make_HEIGHT(getTokenText(), loc); }
-"histogram"         { return Parser::make_HISTOGRAM(getTokenText(), loc); }
-"horizontal"        { return Parser::make_HORIZONTAL(getTokenText(), loc); }
-"http"              { return Parser::make_HTTP(getTokenText(), loc); }
-"integer"           { return Parser::make_INTEGER(getTokenText(), loc); }
-"json"              { return Parser::make_JSON(getTokenText(), loc); }
-"lg"                { return Parser::make_LG(getTokenText(), loc); }
-"line"              { return Parser::make_LINE(getTokenText(), loc); }
-"linear"            { return Parser::make_LINEAR(getTokenText(), loc); }
-"load"              { return Parser::make_LOAD(getTokenText(), loc); }
-"log"               { return Parser::make_LOG(getTokenText(), loc); }
-"md"                { return Parser::make_MD(getTokenText(), loc); }
-"method"            { return Parser::make_METHOD(getTokenText(), loc); }
-"number"            { return Parser::make_NUMBER(getTokenText(), loc); }
-"palette"           { return Parser::make_PALETTE(getTokenText(), loc); }
-"parameter"         { return Parser::make_PARAMETER(getTokenText(), loc); }
-"parquet"           { return Parser::make_PARQUET(getTokenText(), loc); }
-"percent"           { return Parser::make_PERCENT(getTokenText(), loc); }
-"pie"               { return Parser::make_PIE(getTokenText(), loc); }
-"plot"              { return Parser::make_PLOT(getTokenText(), loc); }
-"point"             { return Parser::make_POINT(getTokenText(), loc); }
-"post"              { return Parser::make_POST(getTokenText(), loc); }
-"put"               { return Parser::make_PUT(getTokenText(), loc); }
-"px"                { return Parser::make_PX(getTokenText(), loc); }
-"query"             { return Parser::make_QUERY(getTokenText(), loc); }
-"rgb"               { return Parser::make_RGB(getTokenText(), loc); }
-"scale"             { return Parser::make_SCALE(getTokenText(), loc); }
-"scatter"           { return Parser::make_SCATTER(getTokenText(), loc); }
-"show"              { return Parser::make_SHOW(getTokenText(), loc); }
-"sm"                { return Parser::make_SM(getTokenText(), loc); }
-"stacked"           { return Parser::make_STACKED(getTokenText(), loc); }
-"table"             { return Parser::make_TABLE(getTokenText(), loc); }
-"text"              { return Parser::make_TEXT(getTokenText(), loc); }
-"time"              { return Parser::make_TIME(getTokenText(), loc); }
-"title"             { return Parser::make_TITLE(getTokenText(), loc); }
-"url"               { return Parser::make_URL(getTokenText(), loc); }
-"using"             { return Parser::make_USING(getTokenText(), loc); }
-"vertical"          { return Parser::make_VERTICAL(getTokenText(), loc); }
-"vis"               { return Parser::make_VIS(getTokenText(), loc); }
-"visualise"         { return Parser::make_VISUALISE(getTokenText(), loc); }
-"visualize"         { return Parser::make_VISUALIZE(getTokenText(), loc); }
-"viz"               { return Parser::make_VIZ(getTokenText(), loc); }
-"width"             { return Parser::make_WIDTH(getTokenText(), loc); }
-"x"                 { return Parser::make_X(getTokenText(), loc); }
-"xl"                { return Parser::make_XL(getTokenText(), loc); }
-"y"                 { return Parser::make_Y(getTokenText(), loc); }
+"area"          { return Parser::make_AREA(getTokenText(), loc); }
+"as"            { return Parser::make_AS(getTokenText(), loc); }
+"axes"          { return Parser::make_AXES(getTokenText(), loc); }
+"bar"           { return Parser::make_BAR(getTokenText(), loc); }
+"box"           { return Parser::make_BOX(getTokenText(), loc); }
+"bubble"        { return Parser::make_BUBBLE(getTokenText(), loc); }
+"chart"         { return Parser::make_CHART(getTokenText(), loc); }
+"color"         { return Parser::make_COLOR(getTokenText(), loc); }
+"column"        { return Parser::make_COLUMN(getTokenText(), loc); }
+"csv"           { return Parser::make_CSV(getTokenText(), loc); }
+"date"          { return Parser::make_DATE(getTokenText(), loc); }
+"datetime"      { return Parser::make_DATETIME(getTokenText(), loc); }
+"declare"       { return Parser::make_DECLARE(getTokenText(), loc); }
+"extract"       { return Parser::make_EXTRACT(getTokenText(), loc); }
+"field"         { return Parser::make_FIELD(getTokenText(), loc); }
+"file"          { return Parser::make_FILE(getTokenText(), loc); }
+"float"         { return Parser::make_FLOAT(getTokenText(), loc); }
+"from"          { return Parser::make_FROM(getTokenText(), loc); }
+"get"           { return Parser::make_GET(getTokenText(), loc); }
+"grid"          { return Parser::make_GRID(getTokenText(), loc); }
+"height"        { return Parser::make_HEIGHT(getTokenText(), loc); }
+"histogram"     { return Parser::make_HISTOGRAM(getTokenText(), loc); }
+"horizontal"    { return Parser::make_HORIZONTAL(getTokenText(), loc); }
+"http"          { return Parser::make_HTTP(getTokenText(), loc); }
+"integer"       { return Parser::make_INTEGER(getTokenText(), loc); }
+"json"          { return Parser::make_JSON(getTokenText(), loc); }
+"lg"            { return Parser::make_LG(getTokenText(), loc); }
+"line"          { return Parser::make_LINE(getTokenText(), loc); }
+"linear"        { return Parser::make_LINEAR(getTokenText(), loc); }
+"load"          { return Parser::make_LOAD(getTokenText(), loc); }
+"log"           { return Parser::make_LOG(getTokenText(), loc); }
+"md"            { return Parser::make_MD(getTokenText(), loc); }
+"method"        { return Parser::make_METHOD(getTokenText(), loc); }
+"number"        { return Parser::make_NUMBER(getTokenText(), loc); }
+"palette"       { return Parser::make_PALETTE(getTokenText(), loc); }
+"parameter"     { return Parser::make_PARAMETER(getTokenText(), loc); }
+"parquet"       { return Parser::make_PARQUET(getTokenText(), loc); }
+"percent"       { return Parser::make_PERCENT(getTokenText(), loc); }
+"pie"           { return Parser::make_PIE(getTokenText(), loc); }
+"plot"          { return Parser::make_PLOT(getTokenText(), loc); }
+"point"         { return Parser::make_POINT(getTokenText(), loc); }
+"post"          { return Parser::make_POST(getTokenText(), loc); }
+"put"           { return Parser::make_PUT(getTokenText(), loc); }
+"px"            { return Parser::make_PX(getTokenText(), loc); }
+"query"         { return Parser::make_QUERY(getTokenText(), loc); }
+"rgb"           { return Parser::make_RGB(getTokenText(), loc); }
+"scale"         { return Parser::make_SCALE(getTokenText(), loc); }
+"scatter"       { return Parser::make_SCATTER(getTokenText(), loc); }
+"show"          { return Parser::make_SHOW(getTokenText(), loc); }
+"sm"            { return Parser::make_SM(getTokenText(), loc); }
+"stacked"       { return Parser::make_STACKED(getTokenText(), loc); }
+"table"         { return Parser::make_TABLE(getTokenText(), loc); }
+"text"          { return Parser::make_TEXT(getTokenText(), loc); }
+"time"          { return Parser::make_TIME(getTokenText(), loc); }
+"title"         { return Parser::make_TITLE(getTokenText(), loc); }
+"url"           { return Parser::make_URL(getTokenText(), loc); }
+"using"         { return Parser::make_USING(getTokenText(), loc); }
+"vertical"      { return Parser::make_VERTICAL(getTokenText(), loc); }
+"vis"           { return Parser::make_VIS(getTokenText(), loc); }
+"visualise"     { return Parser::make_VISUALISE(getTokenText(), loc); }
+"visualize"     { return Parser::make_VISUALIZE(getTokenText(), loc); }
+"viz"           { return Parser::make_VIZ(getTokenText(), loc); }
+"width"         { return Parser::make_WIDTH(getTokenText(), loc); }
+"x"             { return Parser::make_X(getTokenText(), loc); }
+"xl"            { return Parser::make_XL(getTokenText(), loc); }
+"y"             { return Parser::make_Y(getTokenText(), loc); }
 
-select[^;]*         { return Parser::make_SQL_SELECT(getTokenText(), loc); }
-with[^;]*           { return Parser::make_SQL_WITH(getTokenText(), loc); }
-[a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER_LITERAL(getTokenText(), loc); }
-['"][^'"]*['"]      {
-                        auto text = getTokenText();
-                        return Parser::make_STRING_LITERAL(text.substr(1, text.size() - 2), loc);
+select[^;]*     { return Parser::make_SQL_SELECT(getTokenText(), loc); }
+with[^;]*       { return Parser::make_SQL_WITH(getTokenText(), loc); }
+[a-z][a-z0-9_]* { return Parser::make_IDENTIFIER_LITERAL(getTokenText(), loc); }
+['"][^'"]*['"]  {
+                    auto text = getTokenText();
+                    return Parser::make_STRING_LITERAL(text.substr(1, text.size() - 2), loc);
+                }
+[0-9]+          {
+                    uint32_t value = 0;
+                    try {
+                        value = std::stoul(tql_text);
+                    } catch(const std::invalid_argument &err) {
+                        ctx.Error(loc.begin.line, loc.begin.column, "integer is invalid");
+                    } catch(const std::out_of_range &err) {
+                        ctx.Error(loc.begin.line, loc.begin.column, "integer out of range");
                     }
-[0-9]+              {
-                        uint32_t value = 0;
-                        try {
-                            value = std::stoul(tql_text);
-                        } catch(const std::invalid_argument &err) {
-                            ctx.Error(loc.begin.line, loc.begin.column, "integer is invalid");
-                        } catch(const std::out_of_range &err) {
-                            ctx.Error(loc.begin.line, loc.begin.column, "integer out of range");
-                        }
-                        return Parser::make_INTEGER_LITERAL(value, loc);
-                    }
+                    return Parser::make_INTEGER_LITERAL(value, loc);
+                }
 
-[ \t]+              { loc.step(); }
-\n                  { loc.lines(1); loc.step(); }
+[ \t]+  { loc.step(); }
+\n      { loc.lines(1); loc.step(); }
 
-<<EOF>>             { return Parser::make_EOF(loc); }
-.                   { ctx.Error(loc.begin.line, loc.begin.column, "invalid character"); }
+<<EOF>> { return Parser::make_EOF(loc); }
+.       { ctx.Error(loc.begin.line, loc.begin.column, "invalid character"); }
 
 %%
 
@@ -225,4 +225,3 @@ void tigon::tql::ParseContext::endScan() {
     reader_offset = 0;
     parser_offset = 0;
 }
-
