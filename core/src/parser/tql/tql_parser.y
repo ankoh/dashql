@@ -17,7 +17,7 @@
 %define parse.error verbose
 %locations
 
-%param { tigon::tql::ParseContext &ctx }
+%param { tigon::tql::ParseContext &context }
 
 %code requires {
 #include <string>
@@ -26,7 +26,7 @@
 }
 
 %code {
-tigon::tql::Parser::symbol_type tql_lex(tigon::tql::ParseContext& ctx);
+tigon::tql::Parser::symbol_type tql_lex(tigon::tql::ParseContext& context);
 
 using Extract = tigon::tql::LoadStatement;
 using Load = tigon::tql::LoadStatement;
@@ -149,7 +149,7 @@ using std::vector;
 %start statement_list;
 
 statement_list:
-    statement_list statement SEMICOLON  { ctx.DefineStatement(move($2)); }
+    statement_list statement SEMICOLON  { context.DefineStatement(move($2)); }
  |  statement_list error SEMICOLON      { yyclearin; }
  |  %empty
     ;
@@ -164,7 +164,7 @@ statement:
 
 parameter_declaration:
     DECLARE PARAMETER identifier opt_as type {
-        auto& p = ctx.cached<ParameterDeclaration>();
+        auto& p = context.cached<ParameterDeclaration>();
         p->parameter_id = $3;
         p->type = $5;
         $$ = move(p);
@@ -272,7 +272,7 @@ sql_literal:
 
 load_statement:
     LOAD identifier FROM load_method {
-        auto& l = ctx.cached<LoadStatement>();
+        auto& l = context.cached<LoadStatement>();
         l->data_id = $2;
         $$ = move(l);
     }
@@ -280,10 +280,10 @@ load_statement:
 
 load_method:
     HTTP LRB load_method_http_field_list RRB {
-        ctx.cached<LoadStatement>()->method = move(ctx.cached<LoadStatement::HTTPLoader>());
+        context.cached<LoadStatement>()->method = move(context.cached<LoadStatement::HTTPLoader>());
     }
   | FILE {
-        ctx.cached<LoadStatement>()->method = move(ctx.cached<LoadStatement::FileLoader>());
+        context.cached<LoadStatement>()->method = move(context.cached<LoadStatement::FileLoader>());
     }
     ;
 
@@ -293,8 +293,8 @@ load_method_http_field_list:
     ;
 
 load_method_http_field:
-    METHOD EQUAL http_method    { ctx.cached<LoadStatement::HTTPLoader>()->method = $3; }
-  | URL EQUAL STRING_LITERAL    { ctx.cached<LoadStatement::HTTPLoader>()->url = $3; }
+    METHOD EQUAL http_method    { context.cached<LoadStatement::HTTPLoader>()->method = $3; }
+  | URL EQUAL STRING_LITERAL    { context.cached<LoadStatement::HTTPLoader>()->url = $3; }
     ;
 
 http_method:
@@ -305,7 +305,7 @@ http_method:
 
 extract_statement:
     EXTRACT identifier FROM identifier USING extract_method {
-        auto& e = ctx.cached<ExtractStatement>();
+        auto& e = context.cached<ExtractStatement>();
         e->extract_id = $2;
         e->data_id = $4;
         $$ = move(e);
@@ -320,7 +320,7 @@ extract_method:
 
 viz_statement:
     viz_statement_prefix identifier FROM identifier USING viz_method_prefix_list viz_method {
-        auto& d = ctx.cached<VizStatement>();
+        auto& d = context.cached<VizStatement>();
         d->viz_id = $2;
         d->query_id = $4;
         d->type = $7;
@@ -338,7 +338,7 @@ viz_statement_prefix:
 
 viz_method_prefix_list:
     viz_method_prefix_list viz_method_prefix {
-        ctx.cached<VizStatement>()->type_flags |= static_cast<uint64_t>($2);
+        context.cached<VizStatement>()->type_flags |= static_cast<uint64_t>($2);
     }
  |  %empty
     ;
@@ -390,10 +390,10 @@ viz_field:
     AXES EQUAL LRB viz_axes RRB
  |  COLOR EQUAL LRB viz_color RRB
  |  AREA EQUAL viz_area {
-        ctx.cached<VizStatement>()->area = std::move($3);
+        context.cached<VizStatement>()->area = std::move($3);
     }
  |  TITLE EQUAL identifier {
-        ctx.cached<VizStatement>()->title = $3;
+        context.cached<VizStatement>()->title = $3;
     }
     ;
 
@@ -404,9 +404,10 @@ viz_axes:
 
 viz_axes_field:
     X EQUAL LRB viz_axis RRB {
-        ctx.cached<VizStatement>()->axes.x = move(ctx.cached<VizStatement::Axis>());   }
+        context.cached<VizStatement>()->axes.x = move(context.cached<VizStatement::Axis>());
+    }
  |  Y EQUAL LRB viz_axis RRB {
-        ctx.cached<VizStatement>()->axes.y = move(ctx.cached<VizStatement::Axis>());
+        context.cached<VizStatement>()->axes.y = move(context.cached<VizStatement::Axis>());
     }
     ;
 
@@ -417,10 +418,10 @@ viz_axis:
 
 viz_axis_field:
     COLUMN EQUAL identifier {
-        ctx.cached<VizStatement::Axis>()->column = move($3);
+        context.cached<VizStatement::Axis>()->column = move($3);
     }
  |  SCALE EQUAL viz_axis_scale {
-        ctx.cached<VizStatement::Axis>()->scale = move($3);
+        context.cached<VizStatement::Axis>()->scale = move($3);
     }
     ;
 
@@ -436,10 +437,10 @@ viz_color:
 
 viz_color_field:
     COLUMN EQUAL identifier {
-        ctx.cached<VizStatement>()->color.column = move($3);
+        context.cached<VizStatement>()->color.column = move($3);
     }
  |  PALETTE EQUAL LSB opt_viz_color_list RSB {
-        ctx.cached<VizStatement>()->color.palette = move($4);
+        context.cached<VizStatement>()->color.palette = move($4);
     }
     ;
 
@@ -471,7 +472,7 @@ viz_area:
         $$ = move(a);
     }
  |  LRB viz_area_responsive_list RRB {
-        $$ = move(ctx.cached<VizStatement::ResponsiveGridArea>());
+        $$ = move(context.cached<VizStatement::ResponsiveGridArea>());
     }
     ;
 
@@ -487,7 +488,7 @@ viz_area_responsive_list:
 
 viz_area_responsive:
     viz_size_class EQUAL viz_area_spec {
-        ctx.cached<VizStatement::ResponsiveGridArea>()->set($1, $3);
+        context.cached<VizStatement::ResponsiveGridArea>()->set($1, $3);
     }
     ;
 
@@ -501,6 +502,6 @@ viz_size_class:
 
 %%
 
-void tigon::tql::Parser::error(const location_type& l, const std::string& m) {
-    ctx.Error(l.begin.line, l.begin.column, m);
+void tigon::tql::Parser::error(const location_type& location, const std::string& message) {
+    context.Error(location.begin.line, location.begin.column, message);
 }
