@@ -6,6 +6,7 @@ import * as Store from '../../store';
 import { IAppContext, withAppContext } from '../../app_context';
 import Board from './board';
 import Editor from './editor';
+import SectionEntry from './section_entry';
 
 import {
     AddIcon,
@@ -65,14 +66,6 @@ function Section(props: { title: string; children?: React.ReactNodeArray }) {
     );
 }
 
-function SectionEntry(props: { name?: proto.tql.String; description: string }) {
-    return (
-        <div className={styles.outline_section_entry}>
-            {props.name?.getString() ?? '(Unnamed)'}
-        </div>
-    );
-}
-
 function Outline(props: { module: proto.tql.Module }) {
     const statements = props.module.getStatementsList();
 
@@ -128,6 +121,8 @@ function Outline(props: { module: proto.tql.Module }) {
                         <SectionEntry
                             key={i}
                             name={parameter.getName()}
+                            entryLocation={parameter.getLocation()}
+                            nameLocation={parameter.getName()?.getLocation()}
                             description={''}
                         />
                     ),
@@ -138,6 +133,8 @@ function Outline(props: { module: proto.tql.Module }) {
                     <SectionEntry
                         key={i}
                         name={load.getName()}
+                        entryLocation={load.getLocation()}
+                        nameLocation={load.getName()?.getLocation()}
                         description={''}
                     />
                 ))}
@@ -148,6 +145,8 @@ function Outline(props: { module: proto.tql.Module }) {
                         <SectionEntry
                             key={i}
                             name={extract.getName()}
+                            entryLocation={extract.getLocation()}
+                            nameLocation={extract.getName()?.getLocation()}
                             description={''}
                         />
                     ),
@@ -158,6 +157,8 @@ function Outline(props: { module: proto.tql.Module }) {
                     <SectionEntry
                         key={i}
                         name={query.getName()}
+                        entryLocation={query.getLocation()}
+                        nameLocation={query.getName()?.getLocation()}
                         description={''}
                     />
                 ))}
@@ -168,6 +169,8 @@ function Outline(props: { module: proto.tql.Module }) {
                         <SectionEntry
                             key={i}
                             name={viz.getName()}
+                            entryLocation={viz.getLocation()}
+                            nameLocation={viz.getName()?.getLocation()}
                             description={''}
                         />
                     ),

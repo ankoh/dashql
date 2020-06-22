@@ -1,12 +1,16 @@
 import React from 'react';
+import { connect } from 'react-redux';
 import dynamic from 'next/dynamic';
+import type * as monaco from 'monaco-editor';
 import { IAppContext, withAppContext } from '../../app_context';
+import { RootState } from '../../store';
 
 import tigonTheme from './theme_tigon.json';
+import styles from './editor.module.scss';
 
 const MonacoEditor = dynamic(import('react-monaco-editor'), { ssr: false });
 
-type Props = {
+type Props = ReturnType<typeof mapStateToProps> & {
     appContext: IAppContext;
 };
 
@@ -17,6 +21,9 @@ type State = {
 };
 
 class Editor extends React.Component<Props, State> {
+    editor?: monaco.editor.IStandaloneCodeEditor;
+    decorations: string[] = [];
+
     ref: HTMLElement | null = null;
 
     state: State = {
@@ -24,6 +31,35 @@ class Editor extends React.Component<Props, State> {
         width: 0,
         height: 0,
     };
+
+    componentDidMount() {
+        this.setDimensions();
+    }
+
+    componentDidUpdate() {
+        const highlight = this.props.highlight;
+        const begin = highlight?.getBegin();
+        const end = highlight?.getEnd();
+
+        const range = {
+            startLineNumber: begin?.getLine() ?? -1,
+            startColumn: begin?.getColumn() ?? -1,
+            endLineNumber: end?.getLine() ?? -1,
+            endColumn: end?.getColumn() ?? -1,
+        };
+
+        const decorations = highlight
+            ? [
+                  {
+                      range,
+                      options: { inlineClassName: styles.highlight },
+                  },
+              ]
+            : [];
+
+        this.decorations =
+            this.editor?.deltaDecorations(this.decorations, decorations) ?? [];
+    }
 
     setDimensions = () => {
         const rect = this.ref?.getBoundingClientRect();
@@ -38,9 +74,35 @@ class Editor extends React.Component<Props, State> {
         });
     };
 
-    componentDidMount() {
-        this.setDimensions();
-    }
+    editorWillMount = (monaco_: typeof monaco) => {
+        monaco_.editor.defineTheme('tigon', {
+            ...tigonTheme,
+            base: 'vs',
+        });
+    };
+
+    editorDidMount = (monaco: monaco.editor.IStandaloneCodeEditor) => {
+        (window as any).MonacoEnvironment.getWorkerUrl = (
+            _moduleId: string,
+            label: string,
+        ) => {
+            switch (label) {
+                case 'json':
+                    return '_next/static/json.worker.js';
+                case 'css':
+                    return '_next/static/css.worker.js';
+                case 'html':
+                    return '_next/static/html.worker.js';
+                case 'typescript':
+                case 'javascript':
+                    return '_next/static/ts.worker.js';
+                default:
+                    return '_next/static/editor.worker.js';
+            }
+        };
+
+        this.editor = monaco;
+    };
 
     handleChange = async (value: string) => {
         this.setState({
@@ -56,32 +118,8 @@ class Editor extends React.Component<Props, State> {
         return (
             <div ref={ref => (this.ref = ref)} style={{ minHeight: 400 }}>
                 <MonacoEditor
-                    editorWillMount={monaco => {
-                        monaco.editor.defineTheme('tigon', {
-                            ...tigonTheme,
-                            base: 'vs',
-                        });
-                    }}
-                    editorDidMount={() => {
-                        (window as any).MonacoEnvironment.getWorkerUrl = (
-                            _moduleId: string,
-                            label: string,
-                        ) => {
-                            switch (label) {
-                                case 'json':
-                                    return '_next/static/json.worker.js';
-                                case 'css':
-                                    return '_next/static/css.worker.js';
-                                case 'html':
-                                    return '_next/static/html.worker.js';
-                                case 'typescript':
-                                case 'javascript':
-                                    return '_next/static/ts.worker.js';
-                                default:
-                                    return '_next/static/editor.worker.js';
-                            }
-                        };
-                    }}
+                    editorWillMount={this.editorWillMount}
+                    editorDidMount={this.editorDidMount}
                     width={this.state.width}
                     height={this.state.height}
                     language="sql"
@@ -99,4 +137,8 @@ class Editor extends React.Component<Props, State> {
     }
 }
 
-export default withAppContext(Editor);
+const mapStateToProps = (state: RootState) => ({
+    highlight: state.tqlHighlight,
+});
+
+export default connect(mapStateToProps)(withAppContext(Editor));

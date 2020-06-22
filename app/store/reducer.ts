@@ -36,6 +36,11 @@ export function reducer(
                     action.payload[1],
                 ),
             };
+        case 'SET_TQL_HIGHLIGHT':
+            return {
+                ...state,
+                tqlHighlight: action.payload,
+            };
         default:
             return state;
     }

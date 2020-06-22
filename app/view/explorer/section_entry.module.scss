@@ -1,0 +1,15 @@
+@import '../theme.scss';
+
+$border_color: rgb(238, 238, 238);
+
+.entry {
+    &:first-child {
+        border-top: none;
+    }
+
+    border-top: 1px solid $border_color;
+    padding-left: 8px;
+    line-height: 32px;
+    color: rgb(120, 120, 120);
+    cursor: pointer;
+}
