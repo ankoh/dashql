@@ -209,7 +209,7 @@ namespace tigon {
             Location location;
 
             /// The message
-            const std::string& message;
+            const std::string message;
         };
 
         /// A module
