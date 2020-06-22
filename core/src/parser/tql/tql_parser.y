@@ -53,22 +53,22 @@ using namespace tigon::tql::parser;
 Parser::symbol_type tql_lex(ParseContext& context);
 }
 
-%token <int>                INTEGER_LITERAL     "integer_literal"
-%token <std::string_view>   IDENTIFIER_LITERAL  "identifier_literal"
-%token <std::string_view>   SQL_SELECT          "sql_select"
-%token <std::string_view>   SQL_WITH            "sql_with"
-%token <std::string_view>   STRING_LITERAL      "string_literal"
-%token <uint32_t>           HEX_COLOR_LITERAL   "hex_color_literal"
+%token <int>                INTEGER_LITERAL     "integer literal"
+%token <std::string_view>   IDENTIFIER_LITERAL  "identifier literal"
+%token <std::string_view>   SQL_SELECT          "SQL select query"
+%token <std::string_view>   SQL_WITH            "SQL with clause"
+%token <std::string_view>   STRING_LITERAL      "string literal"
+%token <uint32_t>           HEX_COLOR_LITERAL   "hex color literal"
 
-%token COMMA        "comma"
-%token EQUAL        "equal"
-%token LRB          "left_round_bracket"
-%token LSB          "left_square_bracket"
-%token RRB          "right_round_bracket"
-%token RSB          "right_square_bracket"
-%token SEMICOLON    "semicolon"
-%token SLASH        "slash"
-%token STAR         "star"
+%token COMMA        ","
+%token EQUAL        "="
+%token LRB          "("
+%token LSB          "["
+%token RRB          ")"
+%token RSB          "]"
+%token SEMICOLON    ";"
+%token SLASH        "/"
+%token STAR         "*"
 
 %token <std::string_view>   AREA        "area"
 %token <std::string_view>   AS          "as"
@@ -137,7 +137,7 @@ Parser::symbol_type tql_lex(ParseContext& context);
 %token <std::string_view>   XL          "xl"
 %token <std::string_view>   Y           "y"
 
-%token EOF 0    "eof"
+%token EOF 0    "end of file"
 
 %type <DataType>                                            type;
 %type <ExtractStatement::ExtractMethod>                     extract_method;
