@@ -5,7 +5,6 @@ import * as proto from '@tigon/proto';
 import Table from '../viz/table';
 import ChartViewer from '../viz/chart_viewer';
 import { connect } from 'react-redux';
-import { mapStatements } from '../../proto/tql_access';
 import { withAutoSizer } from '../autosizer';
 
 import styles from './viz_grid.module.scss';
@@ -151,7 +150,7 @@ function VizCard(props: {
 
 /// Viz grid properties
 interface IVizGridProps {
-    statements: Immutable.List<proto.tql.Statement>;
+    module: proto.tql.Module;
     queryResults: Immutable.Map<string, proto.engine.QueryResult>;
 
     sizeClass: Store.SizeClass;
@@ -176,11 +175,15 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 
     protected static computeLayout(props: IVizGridProps): IVizGridState {
         // Get the viz statements
-        const vizStatements = mapStatements(
-            props.statements,
-            proto.tql.Statement.StatementCase.VIZ,
-            (_, statement: proto.tql.VizStatement) => statement,
-        );
+        const vizStatements: proto.tql.VizStatement[] = [];
+
+        for (const statement of props.module.getStatementsList()) {
+            const viz = statement.getViz();
+
+            if (viz) {
+                vizStatements.push(viz);
+            }
+        }
 
         const vizData = vizStatements.map(
             statement =>
@@ -205,7 +208,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 
     public componentDidUpdate(prevProps: IVizGridProps) {
         if (
-            this.props.statements.equals(prevProps.statements) &&
+            this.props.module === prevProps.module &&
             this.props.queryResults.equals(prevProps.queryResults) &&
             this.props.width === prevProps.width &&
             this.props.height === prevProps.height
@@ -240,7 +243,7 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 /// Connect the viz grid to redux
 function mapStateToProps(state: Store.RootState) {
     return {
-        statements: state.tqlStatements,
+        module: state.tqlModule,
         queryResults: state.tqlQueryResults,
     };
 }

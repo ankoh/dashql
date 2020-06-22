@@ -1,16 +1,15 @@
 import { compose, createStore as createReduxStore } from 'redux';
 import * as Model from './';
 
-function actionSanitizer(a: Model.RootAction) {
-    return a;
+function actionSanitizer(action: Model.RootAction) {
+    return action;
 }
 
-function stateSanitizer(s: Model.RootState) {
+function stateSanitizer(state: Model.RootState) {
     return {
-        ...s,
-        tqlStatements: s.tqlStatements.map(v => v.toObject()),
-        tqlQueryResult: s.tqlQueryResults.map((v, k) => [k, v.toObject()]),
-        tqlQueryPlans: s.tqlQueryPlans.map((v, k) => [k, v.toObject()]),
+        ...state,
+        tqlQueryResult: state.tqlQueryResults.map((v, k) => [k, v.toObject()]),
+        tqlQueryPlans: state.tqlQueryPlans.map((v, k) => [k, v.toObject()]),
     };
 }
 

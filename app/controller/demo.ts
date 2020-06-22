@@ -99,7 +99,7 @@ export class DemoController {
             39,
         ]);
 
-        this.store.dispatch(Store.setTQLStatements(tql.getStatementsList()));
+        this.store.dispatch(Store.setTQLModule(tql));
         this.store.dispatch(
             Store.setTQLQueryResult('temp_weekly', q1Res.finish()),
         );

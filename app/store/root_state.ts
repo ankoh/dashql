@@ -121,7 +121,7 @@ export class RootState {
     public logs: Immutable.List<LogEntry>;
 
     // The TQL statements (if any)
-    public tqlStatements: Immutable.List<proto.tql.Statement>;
+    public tqlModule: proto.tql.Module;
     // The TQL parameters (if any)
     public tqlParameters: Immutable.Map<string, string>;
     // The TQL load data (if any)
@@ -145,7 +145,7 @@ export class RootState {
         this.appSettingsLoadPending = true;
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logs = Immutable.List<LogEntry>();
-        this.tqlStatements = Immutable.List();
+        this.tqlModule = new proto.tql.Module();
         this.tqlParameters = Immutable.Map();
         this.tqlLoadData = Immutable.Map();
         this.tqlExtractData = Immutable.Map();

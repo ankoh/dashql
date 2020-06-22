@@ -8,7 +8,7 @@ import * as proto from '@tigon/proto';
 export enum ActionType {
     CONFIGURE_APP = 'CONFIGURE_APP',
     PUSH_LOG_ENTRY = 'PUSH_LOG_ENTRY',
-    SET_TQL_QUERY_STATEMENTS = 'SET_TQL_QUERY_STATEMENTS',
+    SET_TQL_MODULE = 'SET_TQL_MODULE',
     SET_TQL_QUERY_RESULT = 'SET_TRANSIENT_QUERY_RESULT',
     OTHER = 'OTHER',
 }
@@ -20,7 +20,7 @@ export enum ActionType {
 export type RootAction =
     | Action<ActionType.CONFIGURE_APP, State.AppSettings>
     | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
-    | Action<ActionType.SET_TQL_QUERY_STATEMENTS, Array<proto.tql.Statement>>
+    | Action<ActionType.SET_TQL_MODULE, proto.tql.Module>
     | Action<
           ActionType.SET_TQL_QUERY_RESULT,
           [string, proto.engine.QueryResult]
@@ -53,10 +53,8 @@ export function configureApp(config: State.AppSettings): RootAction {
     return createAction(ActionType.CONFIGURE_APP, config);
 }
 
-export function setTQLStatements(
-    statements: Array<proto.tql.Statement>,
-): RootAction {
-    return createAction(ActionType.SET_TQL_QUERY_STATEMENTS, statements);
+export function setTQLModule(module: proto.tql.Module): RootAction {
+    return createAction(ActionType.SET_TQL_MODULE, module);
 }
 
 export function setTQLQueryResult(

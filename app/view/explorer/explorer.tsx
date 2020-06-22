@@ -1,11 +1,9 @@
-import * as Immutable from 'immutable';
 import classNames from 'classnames';
 import * as React from 'react';
 import { connect } from 'react-redux';
 import * as proto from '@tigon/proto';
 import * as Store from '../../store';
 import { IAppContext, withAppContext } from '../../app_context';
-import { mapStatements } from '../../proto/tql_access';
 import Board from './board';
 import Editor from './editor';
 
@@ -44,7 +42,7 @@ const TOPBAR_ICON_HEIGHT = '20px';
 
 interface IExplorerProps {
     appContext: IAppContext;
-    tqlStatements: Immutable.List<proto.tql.Statement>;
+    tqlModule: proto.tql.Module;
 }
 
 function Section(props: { title: string; children?: React.ReactNodeArray }) {
@@ -75,15 +73,58 @@ function SectionEntry(props: { name?: proto.tql.String; description: string }) {
     );
 }
 
-function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
+function Outline(props: { module: proto.tql.Module }) {
+    const statements = props.module.getStatementsList();
+
+    const parameters: proto.tql.ParameterDeclaration[] = [];
+    const loads: proto.tql.LoadStatement[] = [];
+    const extracts: proto.tql.ExtractStatement[] = [];
+    const queries: proto.tql.QueryStatement[] = [];
+    const visualizations: proto.tql.VizStatement[] = [];
+
+    for (const statement of statements) {
+        switch (statement.getStatementCase()) {
+            case proto.tql.Statement.StatementCase.PARAMETER:
+                const parameter = statement.getParameter();
+                if (parameter) {
+                    parameters.push(parameter);
+                }
+                break;
+            case proto.tql.Statement.StatementCase.LOAD:
+                const load = statement.getLoad();
+                if (load) {
+                    loads.push(load);
+                }
+                break;
+            case proto.tql.Statement.StatementCase.EXTRACT:
+                const extract = statement.getExtract();
+                if (extract) {
+                    extracts.push(extract);
+                }
+                break;
+            case proto.tql.Statement.StatementCase.QUERY:
+                const query = statement.getQuery();
+                if (query) {
+                    queries.push(query);
+                }
+                break;
+            case proto.tql.Statement.StatementCase.VIZ:
+                const viz = statement.getViz();
+                if (viz) {
+                    visualizations.push(viz);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
     return (
         <div className={styles.outline}>
             <div className={styles.outline_header}>TQL Program</div>
             <Section title="Parameters">
-                {mapStatements(
-                    props.statements,
-                    proto.tql.Statement.StatementCase.PARAMETER,
-                    (i, parameter: proto.tql.ParameterDeclaration) => (
+                {parameters.map(
+                    (parameter: proto.tql.ParameterDeclaration, i: number) => (
                         <SectionEntry
                             key={i}
                             name={parameter.getName()}
@@ -93,23 +134,17 @@ function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
                 )}
             </Section>
             <Section title="Load Statements">
-                {mapStatements(
-                    props.statements,
-                    proto.tql.Statement.StatementCase.LOAD,
-                    (i, load: proto.tql.LoadStatement) => (
-                        <SectionEntry
-                            key={i}
-                            name={load.getName()}
-                            description={''}
-                        />
-                    ),
-                )}
+                {loads.map((load: proto.tql.LoadStatement, i: number) => (
+                    <SectionEntry
+                        key={i}
+                        name={load.getName()}
+                        description={''}
+                    />
+                ))}
             </Section>
             <Section title="Extract Statements">
-                {mapStatements(
-                    props.statements,
-                    proto.tql.Statement.StatementCase.EXTRACT,
-                    (i, extract: proto.tql.ExtractStatement) => (
+                {extracts.map(
+                    (extract: proto.tql.ExtractStatement, i: number) => (
                         <SectionEntry
                             key={i}
                             name={extract.getName()}
@@ -119,23 +154,17 @@ function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
                 )}
             </Section>
             <Section title="Query Statements">
-                {mapStatements(
-                    props.statements,
-                    proto.tql.Statement.StatementCase.QUERY,
-                    (i, query: proto.tql.QueryStatement) => (
-                        <SectionEntry
-                            key={i}
-                            name={query.getName()}
-                            description={''}
-                        />
-                    ),
-                )}
+                {queries.map((query: proto.tql.QueryStatement, i: number) => (
+                    <SectionEntry
+                        key={i}
+                        name={query.getName()}
+                        description={''}
+                    />
+                ))}
             </Section>
             <Section title="Vizualizations">
-                {mapStatements(
-                    props.statements,
-                    proto.tql.Statement.StatementCase.VIZ,
-                    (i, viz: proto.tql.VizStatement) => (
+                {visualizations.map(
+                    (viz: proto.tql.VizStatement, i: number) => (
                         <SectionEntry
                             key={i}
                             name={viz.getName()}
@@ -240,7 +269,7 @@ class Explorer extends React.Component<IExplorerProps> {
                         </div>
                     </div>
                 </div>
-                <Outline statements={this.props.tqlStatements} />
+                <Outline module={this.props.tqlModule} />
                 <div className={styles.toolbar}>
                     <div className={styles.toolbar_tool}>
                         <VariableBoxIcon
@@ -334,7 +363,7 @@ class Explorer extends React.Component<IExplorerProps> {
 
 function mapStateToExplorerProps(state: Store.RootState) {
     return {
-        tqlStatements: state.tqlStatements,
+        tqlModule: state.tqlModule,
         queryResults: state.tqlQueryResults,
         queryPlans: state.tqlQueryPlans,
     };

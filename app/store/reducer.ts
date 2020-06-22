@@ -1,4 +1,3 @@
-import Immutable from 'immutable';
 import * as State from './root_state';
 import { ActionType, RootAction } from './root_action';
 
@@ -24,10 +23,10 @@ export function reducer(
                 ...state,
                 appSettings: action.payload,
             };
-        case ActionType.SET_TQL_QUERY_STATEMENTS:
+        case ActionType.SET_TQL_MODULE:
             return {
                 ...state,
-                tqlStatements: Immutable.List(action.payload),
+                tqlModule: action.payload,
             };
         case ActionType.SET_TQL_QUERY_RESULT:
             return {

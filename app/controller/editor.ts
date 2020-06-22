@@ -17,7 +17,7 @@ export class EditorController {
 
         const tql = await this.core.parseTQL(session, input);
 
-        this.store.dispatch(Store.setTQLStatements(tql.getStatementsList()));
+        this.store.dispatch(Store.setTQLModule(tql));
     }
 }
 
