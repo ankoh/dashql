@@ -12,8 +12,9 @@
 #include <cerrno>
 #include <climits>
 #include <cstdlib>
-#include <string>
+#include <sstream>
 #include <string_view>
+#include <string>
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/parser/tql/tql_parser.h"
 
@@ -188,13 +189,15 @@ with[^;]*       { return Parser::make_SQL_WITH(getTokenText(), loc); }
                 }
 [0-9]+          {
                     uint32_t value = 0;
-                    try {
-                        value = std::stoul(tql_text);
-                    } catch(const std::invalid_argument &error) {
-                        context.Error(locate(loc), "integer is invalid");
-                    } catch(const std::out_of_range &error) {
-                        context.Error(locate(loc), "integer out of range");
+
+                    auto stream = std::stringstream(tql_text);
+                    stream >> value;
+
+                    if (!stream) {
+                        auto message = std::string("Invalid number \"") + tql_text + std::string("\"");
+                        context.Error(locate(loc), message);
                     }
+
                     return Parser::make_INTEGER_LITERAL(value, loc);
                 }
 
@@ -202,7 +205,10 @@ with[^;]*       { return Parser::make_SQL_WITH(getTokenText(), loc); }
 \n      { loc.lines(1); loc.step(); }
 
 <<EOF>> { return Parser::make_EOF(loc); }
-.       { context.Error(locate(loc), "invalid character"); }
+.       {
+            auto message = std::string("Invalid character \"") + tql_text + std::string("\"");
+            context.Error(locate(loc), message);
+        }
 
 %%
 
