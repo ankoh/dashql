@@ -2,32 +2,6 @@ import * as State from './root_state';
 import * as proto from '@tigon/proto';
 
 // ---------------------------------------------------------------------------
-// The action type
-// ---------------------------------------------------------------------------
-
-export enum ActionType {
-    CONFIGURE_APP = 'CONFIGURE_APP',
-    PUSH_LOG_ENTRY = 'PUSH_LOG_ENTRY',
-    SET_TQL_MODULE = 'SET_TQL_MODULE',
-    SET_TQL_QUERY_RESULT = 'SET_TRANSIENT_QUERY_RESULT',
-    OTHER = 'OTHER',
-}
-
-// ---------------------------------------------------------------------------
-// The root action type
-// ---------------------------------------------------------------------------
-
-export type RootAction =
-    | Action<ActionType.CONFIGURE_APP, State.AppSettings>
-    | Action<ActionType.PUSH_LOG_ENTRY, State.LogEntry>
-    | Action<ActionType.SET_TQL_MODULE, proto.tql.Module>
-    | Action<
-          ActionType.SET_TQL_QUERY_RESULT,
-          [string, proto.engine.QueryResult]
-      >
-    | Action<ActionType.OTHER, {}>;
-
-// ---------------------------------------------------------------------------
 // The action creators
 // ---------------------------------------------------------------------------
 
@@ -45,24 +19,34 @@ export function createAction<T, P>(type: T, payload: P): Action<T, P> {
     return { type, payload };
 }
 
-export function pushLogEntry(log: State.LogEntry): RootAction {
-    return createAction(ActionType.PUSH_LOG_ENTRY, log);
+export function pushLogEntry(log: State.LogEntry) {
+    return createAction('PUSH_LOG_ENTRY' as 'PUSH_LOG_ENTRY', log);
 }
 
-export function configureApp(config: State.AppSettings): RootAction {
-    return createAction(ActionType.CONFIGURE_APP, config);
+export function configureApp(config: State.AppSettings) {
+    return createAction('CONFIGURE_APP' as 'CONFIGURE_APP', config);
 }
 
-export function setTQLModule(module: proto.tql.Module): RootAction {
-    return createAction(ActionType.SET_TQL_MODULE, module);
+export function setTQLModule(module: proto.tql.Module) {
+    return createAction('SET_TQL_MODULE' as 'SET_TQL_MODULE', module);
 }
 
 export function setTQLQueryResult(
     key: string,
     result: proto.engine.QueryResult,
-): RootAction {
-    return createAction<
-        ActionType.SET_TQL_QUERY_RESULT,
-        [string, proto.engine.QueryResult]
-    >(ActionType.SET_TQL_QUERY_RESULT, [key, result]);
+) {
+    return createAction(
+        'SET_TQL_QUERY_RESULT' as 'SET_TQL_QUERY_RESULT',
+        [key, result] as [string, proto.engine.QueryResult],
+    );
 }
+
+// ---------------------------------------------------------------------------
+// The root action type
+// ---------------------------------------------------------------------------
+
+export type RootAction =
+    | ReturnType<typeof pushLogEntry>
+    | ReturnType<typeof configureApp>
+    | ReturnType<typeof setTQLModule>
+    | ReturnType<typeof setTQLQueryResult>;

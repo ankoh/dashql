@@ -1,5 +1,5 @@
 import * as State from './root_state';
-import { ActionType, RootAction } from './root_action';
+import { RootAction } from './root_action';
 
 const MAX_LOG_SIZE = 100;
 
@@ -8,7 +8,7 @@ export function reducer(
     action: RootAction,
 ): State.RootState {
     switch (action.type) {
-        case ActionType.PUSH_LOG_ENTRY:
+        case 'PUSH_LOG_ENTRY':
             return {
                 ...state,
                 logs: state.logs.withMutations(list => {
@@ -18,17 +18,17 @@ export function reducer(
                     }
                 }),
             };
-        case ActionType.CONFIGURE_APP:
+        case 'CONFIGURE_APP':
             return {
                 ...state,
                 appSettings: action.payload,
             };
-        case ActionType.SET_TQL_MODULE:
+        case 'SET_TQL_MODULE':
             return {
                 ...state,
                 tqlModule: action.payload,
             };
-        case ActionType.SET_TQL_QUERY_RESULT:
+        case 'SET_TQL_QUERY_RESULT':
             return {
                 ...state,
                 tqlQueryResults: state.tqlQueryResults.set(
@@ -36,8 +36,6 @@ export function reducer(
                     action.payload[1],
                 ),
             };
-        case ActionType.OTHER:
-            return state;
         default:
             return state;
     }
