@@ -137,6 +137,7 @@ size_t tigon::rpath::parser_offset;
 // Begin a scan
 void tigon::rpath::ParseContext::beginScan(std::string_view s) {
     rpath__flex_debug = trace_scanning;
+    loc = location();
     in = s;
     reader_offset = 0;
     parser_offset = 0;
@@ -144,6 +145,7 @@ void tigon::rpath::ParseContext::beginScan(std::string_view s) {
 
 // End a scan
 void tigon::rpath::ParseContext::endScan() {
+    loc = location();
     in = {};
     reader_offset = 0;
     parser_offset = 0;

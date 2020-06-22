@@ -228,6 +228,7 @@ size_t tigon::tql::parser_offset;
 // Begin a scan
 void tigon::tql::ParseContext::beginScan(std::string_view s) {
     tql__flex_debug = trace_scanning;
+    loc = location();
     in = s;
     reader_offset = 0;
     parser_offset = 0;
@@ -235,6 +236,7 @@ void tigon::tql::ParseContext::beginScan(std::string_view s) {
 
 // End a scan
 void tigon::tql::ParseContext::endScan() {
+    loc = location();
     in = {};
     reader_offset = 0;
     parser_offset = 0;
