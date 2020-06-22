@@ -161,8 +161,8 @@ Parser::symbol_type tql_lex(ParseContext& context);
 %start statement_list;
 
 statement_list:
-    statement_list statement SEMICOLON  { context.DefineStatement(std::move($2)); }
-  | statement_list error SEMICOLON      { yyclearin; }
+    statement_list statement  { context.DefineStatement(std::move($2)); }
+  | statement_list error      { yyclearin; }
   | %empty
     ;
 
@@ -175,7 +175,7 @@ statement:
     ;
 
 parameter_declaration:
-    DECLARE PARAMETER identifier opt_as type { $$ = ParameterDeclaration { locate(@1, @5), $3, $5 }; }
+    DECLARE PARAMETER identifier opt_as type SEMICOLON  { $$ = ParameterDeclaration { locate(@1, @6), $3, $5 }; }
     ;
 
 identifier:
@@ -268,8 +268,8 @@ type:
     ;
 
 query_statement:
-    QUERY identifier AS sql_literal { $$ = QueryStatement { locate(@1, @4), $2, $4 }; }
-  | sql_literal                     { $$ = QueryStatement { locate(@1), {}, $1 }; }
+    QUERY identifier AS sql_literal SEMICOLON { $$ = QueryStatement { locate(@1, @5), $2, $4 }; }
+  | sql_literal SEMICOLON                     { $$ = QueryStatement { locate(@1, @2), {}, $1 }; }
     ;
 
 sql_literal:
@@ -278,7 +278,7 @@ sql_literal:
     ;
 
 load_statement:
-    LOAD identifier FROM load_method { $$ = LoadStatement { locate(@1, @4), $2, $4 }; }
+    LOAD identifier FROM load_method SEMICOLON  { $$ = LoadStatement { locate(@1, @5), $2, $4 }; }
     ;
 
 load_method:
@@ -303,7 +303,7 @@ http_method:
     ;
 
 extract_statement:
-    EXTRACT identifier FROM identifier USING extract_method { $$ = ExtractStatement { locate(@1, @6), $2, $4, $6 }; }
+    EXTRACT identifier FROM identifier USING extract_method SEMICOLON { $$ = ExtractStatement { locate(@1, @7), $2, $4, $6 }; }
     ;
 
 extract_method:
@@ -312,7 +312,7 @@ extract_method:
     ;
 
 viz_statement:
-    viz_statement_prefix identifier FROM identifier USING viz_type { $$ = VizStatement { locate(@1, @6), $2, $4, $6 }; }
+    viz_statement_prefix identifier FROM identifier USING viz_type SEMICOLON  { $$ = VizStatement { locate(@1, @7), $2, $4, $6 }; }
     ;
 
 viz_statement_prefix:
