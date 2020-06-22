@@ -5,8 +5,20 @@ option cc_enable_arenas = true;
 
 package tigon.proto.tql;
 
-// A type
-enum Type {
+/// A position
+message Position {
+    uint32 line = 1;
+    uint32 column = 2;
+};
+
+/// A location
+message Location {
+    Position begin = 1;
+    Position end = 2;
+}
+
+/// A data type
+enum DataTypeType {
     INTEGER = 0;
     FLOAT = 1;
     TEXT = 2;
@@ -15,82 +27,115 @@ enum Type {
     TIME = 5;
 }
 
+/// A data type
+message DataType {
+    Location location = 1;
+    DataTypeType type = 2;
+}
+
+/// A string
+message String {
+    Location location = 1;
+    string string = 2;
+}
+
 /// A query statement
 message QueryStatement {
-    string query_id = 1;
-    string query_text = 2;
+    Location location = 1;
+    String name = 2;
+    String query_text = 3;
 }
 
 /// A parameter declaration
-message ParameterDeclaration { 
-    string parameter_id = 1;
-    Type parameter_type = 2;
+message ParameterDeclaration {
+    Location location = 1;
+    String name = 2;
+    DataType data_type = 3;
     oneof default_value {
-        int32 value_i32 = 3;
-        int64 value_i64 = 4;
-        double value_f64 = 5;
-        string value_str = 6;
+        int32 value_i32 = 4;
+        int64 value_i64 = 5;
+        double value_f64 = 6;
+        string value_str = 7;
     }
 }
 
-/// A http method
-enum HTTPMethod {
+/// A HTTP verb
+enum HTTPVerb {
     GET = 0;
     PUT = 1;
     POST = 2;
 }
 
-/// A http loader
-message HTTPLoadMethod {
-    string http_url = 1;
-    HTTPMethod http_method = 2;
+/// A HTTP method
+message HTTPMethod {
+    Location location = 1;
+    HTTPVerb verb = 2;
+}
+
+/// A HTTP URL
+message HTTPURL {
+    Location location = 1;
+    String url = 2;
+}
+
+/// A HTTP attribute
+message HTTPAttribute {
+    oneof attribute {
+        HTTPMethod method = 1;
+        HTTPURL url = 2;
+    }
+}
+
+/// HTTP attributes
+message HTTPAttributes {
+    Location location = 1;
+    repeated HTTPAttribute attributes = 2;
+}
+
+/// A HTTP loader
+message HTTPLoader {
+    Location location = 1;
+    HTTPAttributes attributes = 2;
 }
 
 /// A file loader
-message FileLoadMethod {}
+message FileLoader {
+    Location location = 1;
+}
 
 /// A load statement
 message LoadStatement {
-    string data_id = 1;
-    oneof load_method {
-        HTTPLoadMethod http = 2;
-        FileLoadMethod file = 3;
+    Location location = 1;
+    String name = 2;
+    oneof method {
+        HTTPLoader http = 3;
+        FileLoader file = 4;
     }
 }
 
 /// A json extractor
-message JSONExtract {
-}
-
-/// A csv column
-message CSVColumn {
-    string column_name = 1;
-    Type column_type = 2;
-    string source_name = 3;
-    int32 source_index = 4;
+message JSONPathExtract {
+    Location location = 1;
 }
 
 /// A csv extractor
 message CSVExtract {
-    repeated CSVColumn columns = 1;
-}
-
-/// An extract method
-message ExtractMethod {
+    Location location = 1;
 }
 
 /// An extract statement
 message ExtractStatement {
-    string extract_id = 1;
-    string data_id = 2;
+    Location location = 1;
+    String name = 2;
+    String data_name = 3;
     oneof method {
-        JSONExtract json = 3;
-        CSVExtract csv = 4;
+        JSONPathExtract JSON = 4;
+        CSVExtract CSV = 5;
     }
 }
 
-/// An viz type
-enum VizType {
+/// A viz type
+enum VizTypeType {
     VIZ_AREA = 0;
     VIZ_BAR = 1;
     VIZ_BOX = 2;
@@ -106,63 +151,21 @@ enum VizType {
     VIZ_TEXT = 12;
 }
 
-/// A viz color palette
-message VizColorPalette {
-    string color_target = 1;
-    repeated fixed32 palette = 2;
-}
-
-/// An optional uint32
-message UInt32 {
-    uint32 value = 1;
-}
-
-/// A viz grid area
-message VizGridArea {
-    UInt32 width = 1;
-    UInt32 height = 2;
-    UInt32 offsetX = 3;
-    UInt32 offsetY = 4;
-}
-
-/// A viz length
-message VizResponsiveGridArea {
-    VizGridArea wildcard = 1;
-    VizGridArea small = 2;
-    VizGridArea medium = 3;
-    VizGridArea large = 4;
-    VizGridArea xlarge = 5;
-}
-
-/// A viz axis sclae
-enum VizAxisScale {
-    Linear = 0;
-    Logarithmic = 1;
-}
-
-/// A viz axis
-message VizAxis {
-    string column = 1;
-    VizAxisScale scale = 2;
-}
-
-/// Viz axes
-message VizAxes {
-    VizAxis x = 1;
-    VizAxis y = 2;
+/// A viz type
+message VizType {
+    Location location = 1;
+    VizTypeType type = 2;
 }
 
 /// A viz statement
 message VizStatement {
-    string viz_id = 1;
-    VizType viz_type = 2;
-    string query_id = 4;
-    string title = 5;
-    VizResponsiveGridArea area = 7;
-    VizAxes axes = 9;
+    Location location = 1;
+    String name = 2;
+    String query_name = 3;
+    VizType viz_type = 4;
 }
 
-/// A statement union
+/// A statement
 message Statement {
     oneof statement {
         VizStatement viz = 1;
@@ -175,9 +178,8 @@ message Statement {
 
 /// An error
 message Error {
-    int32 line = 1;
-    int32 column = 2;
-    string message = 3;
+    Location location = 1;
+    string message = 2;
 }
 
 /// A tql module

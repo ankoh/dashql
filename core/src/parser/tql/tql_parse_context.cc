@@ -33,11 +33,11 @@ void ParseContext::Error(const std::string& message) {
 }
 
 // Yield an error
-void ParseContext::Error(uint32_t line, uint32_t column, const std::string& message) {
-    errors.push_back({line, column, message});
+void ParseContext::Error(Location location, const std::string& message) {
+    errors.push_back({location, message});
 }
 
 /// Define a statement
 void ParseContext::DefineStatement(Statement statement) {
-    statements.push_back(move(statement));
+    statements.push_back(std::move(statement));
 }

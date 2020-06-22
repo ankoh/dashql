@@ -7,37 +7,35 @@
 
 namespace tigon {
     namespace tql {
-
         const char* VizStatement::getTypeName() {
-            switch (type) {
-                case Type::Area:
+            switch (viz_type.type) {
+                case VizStatement::VizType::Type::Area:
                     return "Area";
-                case Type::Bar:
+                case VizStatement::VizType::Type::Bar:
                     return "Bar";
-                case Type::Box:
+                case VizStatement::VizType::Type::Box:
                     return "Box";
-                case Type::Bubble:
+                case VizStatement::VizType::Type::Bubble:
                     return "Bubble";
-                case Type::Grid:
+                case VizStatement::VizType::Type::Grid:
                     return "Grid";
-                case Type::Histogram:
+                case VizStatement::VizType::Type::Histogram:
                     return "Histogram";
-                case Type::Line:
+                case VizStatement::VizType::Type::Line:
                     return "Line";
-                case Type::Number:
+                case VizStatement::VizType::Type::Number:
                     return "Number";
-                case Type::Pie:
+                case VizStatement::VizType::Type::Pie:
                     return "Pie";
-                case Type::Point:
+                case VizStatement::VizType::Type::Point:
                     return "Point";
-                case Type::Scatter:
+                case VizStatement::VizType::Type::Scatter:
                     return "Scatter";
-                case Type::Table:
+                case VizStatement::VizType::Type::Table:
                     return "Table";
-                case Type::Text:
+                case VizStatement::VizType::Type::Text:
                     return "Text";
             }
         }
-
     } // namespace tql
 } // namespace tigon

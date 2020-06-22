@@ -24,25 +24,33 @@
 #pragma clang diagnostic ignored "-Wregister"
 
 namespace tigon {
-namespace tql {
+    namespace tql {
+        // The location of the current token
+        extern tigon::tql::location loc;
+        // The input string view
+        extern std::string_view in;
+        // The reader offset
+        extern size_t reader_offset;
+        // The parser offset
+        extern size_t parser_offset;
 
-// The location of the current token
-extern tigon::tql::location loc;
-// The input string view
-extern std::string_view in;
-// The reader offset
-extern size_t reader_offset;
-// The parser offset
-extern size_t parser_offset;
+        // Get the token text
+        inline std::string_view getTokenText() { return in.substr(parser_offset - tql_leng, tql_leng); }
 
-// Get the token text
-inline std::string_view getTokenText() { return in.substr(parser_offset - tql_leng, tql_leng); }
-
-}  // namespace tql
-}  // namespace tigon
+        namespace scanner {
+            Location locate(class location location) {
+                return {
+                    {location.begin.line, location.begin.column},
+                    {location.end.line, location.end.column}
+                };
+            }
+        } // namespace scanner
+    } // namespace tql
+} // namespace tigon
 
 using namespace tigon;
 using namespace tigon::tql;
+using namespace tigon::tql::scanner;
 
 // Work around an incompatibility in flex (at least versions
 // 2.5.31 through 2.5.33): it generates code that does
@@ -52,7 +60,7 @@ using namespace tigon::tql;
 #define yywrap() 1
 
 // Declare the tql_lex function
-#define YY_DECL Parser::symbol_type tql_lex(tigon::tql::ParseContext& ctx)
+#define YY_DECL Parser::symbol_type tql_lex(tigon::tql::ParseContext& context)
 // Configure the scanner to use string views
 #define YY_INPUT(buffer, bytes_read, max_bytes) \
     bytes_read = in.copy(buffer, max_bytes, reader_offset); \
@@ -182,10 +190,10 @@ with[^;]*       { return Parser::make_SQL_WITH(getTokenText(), loc); }
                     uint32_t value = 0;
                     try {
                         value = std::stoul(tql_text);
-                    } catch(const std::invalid_argument &err) {
-                        ctx.Error(loc.begin.line, loc.begin.column, "integer is invalid");
-                    } catch(const std::out_of_range &err) {
-                        ctx.Error(loc.begin.line, loc.begin.column, "integer out of range");
+                    } catch(const std::invalid_argument &error) {
+                        context.Error(locate(loc), "integer is invalid");
+                    } catch(const std::out_of_range &error) {
+                        context.Error(locate(loc), "integer out of range");
                     }
                     return Parser::make_INTEGER_LITERAL(value, loc);
                 }
@@ -194,7 +202,7 @@ with[^;]*       { return Parser::make_SQL_WITH(getTokenText(), loc); }
 \n      { loc.lines(1); loc.step(); }
 
 <<EOF>> { return Parser::make_EOF(loc); }
-.       { ctx.Error(loc.begin.line, loc.begin.column, "invalid character"); }
+.       { context.Error(locate(loc), "invalid character"); }
 
 %%
 

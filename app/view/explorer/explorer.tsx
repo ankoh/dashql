@@ -1,13 +1,13 @@
 import * as Immutable from 'immutable';
-import * as React from 'react';
-import * as Store from '../../store';
-import * as proto from '@tigon/proto';
-import Board from './board';
 import classNames from 'classnames';
-import styles from './explorer.module.scss';
-import { IAppContext, withAppContext } from '../../app_context';
+import * as React from 'react';
 import { connect } from 'react-redux';
+import * as proto from '@tigon/proto';
+import * as Store from '../../store';
+import { IAppContext, withAppContext } from '../../app_context';
 import { mapStatements } from '../../proto/tql_access';
+import Board from './board';
+import Editor from './editor';
 
 import {
     AddIcon,
@@ -32,7 +32,8 @@ import {
     TextCardIcon,
     VariableBoxIcon,
 } from '../../svg/icons';
-import Editor from './editor';
+
+import styles from './explorer.module.scss';
 
 const VIZTYPE_ICON_WIDTH = '20px';
 const VIZTYPE_ICON_HEIGHT = '20px';
@@ -66,8 +67,12 @@ function Section(props: { title: string; children?: React.ReactNodeArray }) {
     );
 }
 
-function SectionEntry(props: { name: string; description: string }) {
-    return <div className={styles.outline_section_entry}>{props.name}</div>;
+function SectionEntry(props: { name?: proto.tql.String; description: string }) {
+    return (
+        <div className={styles.outline_section_entry}>
+            {props.name?.getString() ?? '(Unnamed)'}
+        </div>
+    );
 }
 
 function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
@@ -78,10 +83,10 @@ function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
                 {mapStatements(
                     props.statements,
                     proto.tql.Statement.StatementCase.PARAMETER,
-                    (i, s: proto.tql.ParameterDeclaration) => (
+                    (i, parameter: proto.tql.ParameterDeclaration) => (
                         <SectionEntry
                             key={i}
-                            name={s.getParameterId() || '-'}
+                            name={parameter.getName()}
                             description={''}
                         />
                     ),
@@ -91,10 +96,10 @@ function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
                 {mapStatements(
                     props.statements,
                     proto.tql.Statement.StatementCase.LOAD,
-                    (i, s: proto.tql.LoadStatement) => (
+                    (i, load: proto.tql.LoadStatement) => (
                         <SectionEntry
                             key={i}
-                            name={s.getDataId() || '-'}
+                            name={load.getName()}
                             description={''}
                         />
                     ),
@@ -104,10 +109,10 @@ function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
                 {mapStatements(
                     props.statements,
                     proto.tql.Statement.StatementCase.EXTRACT,
-                    (i, s: proto.tql.ExtractStatement) => (
+                    (i, extract: proto.tql.ExtractStatement) => (
                         <SectionEntry
                             key={i}
-                            name={s.getExtractId() || '-'}
+                            name={extract.getName()}
                             description={''}
                         />
                     ),
@@ -117,10 +122,10 @@ function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
                 {mapStatements(
                     props.statements,
                     proto.tql.Statement.StatementCase.QUERY,
-                    (i, s: proto.tql.QueryStatement) => (
+                    (i, query: proto.tql.QueryStatement) => (
                         <SectionEntry
                             key={i}
-                            name={s.getQueryId() || '-'}
+                            name={query.getName()}
                             description={''}
                         />
                     ),
@@ -130,10 +135,10 @@ function Outline(props: { statements: Immutable.List<proto.tql.Statement> }) {
                 {mapStatements(
                     props.statements,
                     proto.tql.Statement.StatementCase.VIZ,
-                    (i, s: proto.tql.VizStatement) => (
+                    (i, viz: proto.tql.VizStatement) => (
                         <SectionEntry
                             key={i}
-                            name={s.getVizId() || '-'}
+                            name={viz.getName()}
                             description={''}
                         />
                     ),

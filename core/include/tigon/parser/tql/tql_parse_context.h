@@ -19,7 +19,6 @@
 
 namespace tigon {
     namespace tql {
-
         // Schema parse context
         class ParseContext {
             friend class Parser;
@@ -27,35 +26,26 @@ namespace tigon {
           protected:
             /// Trace the scanning
             bool trace_scanning;
+
             /// Trace the parsing
             bool trace_parsing;
+
             /// The statements
             std::vector<Statement> statements;
+
             /// The errors
             std::vector<Error> errors;
 
-            /// The cached values
-            std::tuple<std::unique_ptr<VizStatement::Axis>, std::unique_ptr<VizStatement::ResponsiveGridArea>, std::unique_ptr<VizStatement>, std::unique_ptr<ExtractStatement>,
-                       std::unique_ptr<LoadStatement::FileLoader>, std::unique_ptr<LoadStatement::HTTPLoader>, std::unique_ptr<LoadStatement>, std::unique_ptr<ParameterDeclaration>>
-                cache;
-
-            /// Get a cached value
-            template<typename T> std::unique_ptr<T>& cached() {
-                auto& c = std::get<std::unique_ptr<T>>(cache);
-                if (!c) {
-                    c = std::make_unique<T>();
-                }
-                return c;
-            }
-
             /// Begin a scan
             void beginScan(std::string_view in);
+
             /// End a scan
             void endScan();
 
           public:
             /// Constructor
             explicit ParseContext(bool trace_scanning = false, bool trace_parsing = false);
+
             /// Destructor
             virtual ~ParseContext();
 
@@ -63,9 +53,10 @@ namespace tigon {
             Module Parse(std::string_view in);
 
             /// Throw an error
-            void Error(uint32_t line, uint32_t column, const std::string& err);
+            void Error(Location location, const std::string& message);
+
             /// Throw an error
-            void Error(const std::string& m);
+            void Error(const std::string& message);
 
             /// Define a statement
             void DefineStatement(Statement statement);

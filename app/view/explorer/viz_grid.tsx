@@ -80,33 +80,35 @@ export class GridLayout {
 
 /// A viz card
 function VizCard(props: {
-    stmt: proto.tql.VizStatement;
+    statement: proto.tql.VizStatement;
     data: proto.engine.QueryResult | null;
     pos: GridElement;
 }) {
     let viz: React.ReactElement | null = null;
     if (props.data) {
-        switch (props.stmt.getVizType()) {
-            case proto.tql.VizType.VIZ_AREA:
-            case proto.tql.VizType.VIZ_BAR:
-            case proto.tql.VizType.VIZ_BOX:
-            case proto.tql.VizType.VIZ_BUBBLE:
-            case proto.tql.VizType.VIZ_GRID:
-            case proto.tql.VizType.VIZ_HISTOGRAM:
-            case proto.tql.VizType.VIZ_LINE:
-            case proto.tql.VizType.VIZ_NUMBER:
-            case proto.tql.VizType.VIZ_PIE:
-            case proto.tql.VizType.VIZ_SCATTER:
-            case proto.tql.VizType.VIZ_POINT:
+        switch (props.statement.getVizType()?.getType()) {
+            case proto.tql.VizTypeType.VIZ_AREA:
+            case proto.tql.VizTypeType.VIZ_BAR:
+            case proto.tql.VizTypeType.VIZ_BOX:
+            case proto.tql.VizTypeType.VIZ_BUBBLE:
+            case proto.tql.VizTypeType.VIZ_GRID:
+            case proto.tql.VizTypeType.VIZ_HISTOGRAM:
+            case proto.tql.VizTypeType.VIZ_LINE:
+            case proto.tql.VizTypeType.VIZ_NUMBER:
+            case proto.tql.VizTypeType.VIZ_PIE:
+            case proto.tql.VizTypeType.VIZ_SCATTER:
+            case proto.tql.VizTypeType.VIZ_POINT:
                 viz = <ChartViewer />;
                 break;
-            case proto.tql.VizType.VIZ_TABLE:
+            case proto.tql.VizTypeType.VIZ_TABLE:
                 viz = <Table data={props.data} />;
                 break;
-            case proto.tql.VizType.VIZ_TEXT:
+            case proto.tql.VizTypeType.VIZ_TEXT:
                 break;
         }
     }
+
+    const name = props.statement.getName()?.getString();
 
     return (
         <div
@@ -115,12 +117,10 @@ function VizCard(props: {
                 gridArea: props.pos.cssArea,
             }}
         >
-            <div className={styles.viz_id}>{props.stmt.getVizId()}</div>
+            <div className={styles.viz_id}>{name}</div>
             <div className={styles.viz_card}>
                 <div className={styles.viz_card_header}>
-                    <div className={styles.viz_card_title}>
-                        {props.stmt.getTitle()}
-                    </div>
+                    <div className={styles.viz_card_title}>{name}</div>
                     <div className={styles.viz_card_action_refresh}>
                         <RefreshIcon
                             className={styles.viz_card_action_icon}
@@ -162,7 +162,7 @@ interface IVizGridProps {
 /// A viz grid state
 interface IVizGridState {
     gridLayout: GridLayout;
-    vizStmts: Array<proto.tql.VizStatement>;
+    vizStatements: Array<proto.tql.VizStatement>;
     vizPositions: Array<GridElement>;
     vizData: Array<proto.engine.QueryResult | null>;
 }
@@ -176,54 +176,30 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
 
     protected static computeLayout(props: IVizGridProps): IVizGridState {
         // Get the viz statements
-        let vizStmts = mapStatements(
+        const vizStatements = mapStatements(
             props.statements,
             proto.tql.Statement.StatementCase.VIZ,
-            (_, v: proto.tql.VizStatement) => v,
-        );
-        let vizData = vizStmts.map(
-            v => props.queryResults.get(v.getQueryId()) || null,
+            (_, statement: proto.tql.VizStatement) => statement,
         );
 
-        // Pick a length value
-        let pickArea = (v: proto.tql.VizResponsiveGridArea | undefined) => {
-            if (!v) {
-                return null;
-            }
-            let lv: proto.tql.VizGridArea | undefined;
-            switch (props.sizeClass) {
-                case Store.SizeClass.SMALL:
-                    lv = v.getSmall();
-                    break;
-                case Store.SizeClass.MEDIUM:
-                    lv = v.getMedium();
-                    break;
-                case Store.SizeClass.LARGE:
-                    lv = v.getLarge();
-                    break;
-                case Store.SizeClass.XLARGE:
-                    lv = v.getXlarge();
-                    break;
-            }
-            if (!lv) {
-                lv = v.getWildcard();
-            }
-            return lv || null;
-        };
+        const vizData = vizStatements.map(
+            statement =>
+                props.queryResults.get(statement.getQueryName()!.getString()) ||
+                null,
+        );
 
-        let gridLayout = new GridLayout();
-        let vizAreas = vizStmts.map(v => pickArea(v.getArea()));
-        // XXX compute the viz positions with the core
+        const gridLayout = new GridLayout();
 
-        // Return state
+        // TODO layouting
+
         return {
-            gridLayout: gridLayout,
-            vizStmts: vizStmts,
+            gridLayout,
+            vizStatements,
             vizPositions: [
                 new GridElement([0, 6], [0, 20]),
                 new GridElement([6, 12], [0, 20]),
             ],
-            vizData: vizData,
+            vizData,
         };
     }
 
@@ -248,10 +224,10 @@ export class VizGrid extends React.Component<IVizGridProps, IVizGridState> {
                     height: this.props.height,
                 }}
             >
-                {this.state.vizStmts.map((s, i) => (
+                {this.state.vizStatements.map((statement, i) => (
                     <VizCard
-                        key={s.getVizId()}
-                        stmt={s}
+                        key={statement.getName()?.getString()}
+                        statement={statement}
                         pos={this.state.vizPositions[i]}
                         data={this.state.vizData[i]}
                     />

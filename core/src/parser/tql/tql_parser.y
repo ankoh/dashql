@@ -26,31 +26,47 @@
 }
 
 %code {
-tigon::tql::Parser::symbol_type tql_lex(tigon::tql::ParseContext& context);
+using namespace tigon::tql;
 
-using Extract = tigon::tql::LoadStatement;
-using Load = tigon::tql::LoadStatement;
-using Param = tigon::tql::ParameterDeclaration;
-using Viz = tigon::tql::VizStatement;
-using std::get;
-using std::move;
-using std::vector;
+namespace tigon {
+    namespace tql {
+        namespace parser {
+            Location locate(location location) {
+                return {
+                    {location.begin.line, location.begin.column},
+                    {location.end.line, location.end.column}
+                };
+            }
+
+            Location locate(location begin, location end) {
+                return {
+                    {begin.begin.line, begin.begin.column},
+                    {end.end.line, end.end.column}
+                };
+            }
+        } // namespace parser
+    } // namespace tql
+} // namespace tigon
+
+using namespace tigon::tql::parser;
+
+Parser::symbol_type tql_lex(ParseContext& context);
 }
 
+%token <int>                INTEGER_LITERAL     "integer_literal"
+%token <std::string_view>   IDENTIFIER_LITERAL  "identifier_literal"
 %token <std::string_view>   SQL_SELECT          "sql_select"
 %token <std::string_view>   SQL_WITH            "sql_with"
-%token <std::string_view>   IDENTIFIER_LITERAL  "identifier_literal"
 %token <std::string_view>   STRING_LITERAL      "string_literal"
 %token <uint32_t>           HEX_COLOR_LITERAL   "hex_color_literal"
-%token <int>                INTEGER_LITERAL     "integer_literal"
 
-%token SEMICOLON    "semicolon"
-%token LRB          "left_round_bracket"
-%token RRB          "right_round_bracket"
-%token LSB          "left_square_bracket"
-%token RSB          "right_square_bracket"
-%token EQUAL        "equal"
 %token COMMA        "comma"
+%token EQUAL        "equal"
+%token LRB          "left_round_bracket"
+%token LSB          "left_square_bracket"
+%token RRB          "right_round_bracket"
+%token RSB          "right_square_bracket"
+%token SEMICOLON    "semicolon"
 %token SLASH        "slash"
 %token STAR         "star"
 
@@ -123,209 +139,180 @@ using std::vector;
 
 %token EOF 0    "eof"
 
+%type <DataType>                                            type;
+%type <ExtractStatement::ExtractMethod>                     extract_method;
+%type <ExtractStatement>                                    extract_statement;
+%type <LoadStatement::HTTPLoader::Attribute>                load_method_http_attribute;
 %type <LoadStatement::HTTPLoader::Method>                   http_method;
+%type <LoadStatement::LoadMethod>                           load_method;
+%type <LoadStatement>                                       load_statement;
+%type <ParameterDeclaration>                                parameter_declaration;
+%type <QueryStatement>                                      query_statement;
 %type <Statement>                                           statement;
-%type <Type>                                                type;
-%type <VizStatement::AxisScale>                             viz_axis_scale;
-%type <VizStatement::GridArea>                              viz_area_spec;
-%type <VizStatement::RGBColor>                              viz_color_value;
-%type <VizStatement::SizeClass>                             viz_size_class;
-%type <VizStatement::Type>                                  viz_method;
-%type <VizStatement::TypeFlag>                              viz_method_prefix;
-%type <std::string_view>                                    identifier;
-%type <std::string_view>                                    keyword;
-%type <std::string_view>                                    sql_literal;
-%type <std::unique_ptr<ExtractStatement>>                   extract_statement;
-%type <std::unique_ptr<LoadStatement>>                      load_statement;
-%type <std::unique_ptr<ParameterDeclaration>>               parameter_declaration;
-%type <std::unique_ptr<QueryStatement>>                     query_statement;
-%type <std::unique_ptr<VizStatement::ResponsiveGridArea>>   viz_area;
-%type <std::unique_ptr<VizStatement>>                       viz_statement;
-%type <std::vector<VizStatement::RGBColor>>                 opt_viz_color_list;
-%type <std::vector<VizStatement::RGBColor>>                 viz_color_list;
+%type <String>                                              keyword;
+%type <std::vector<LoadStatement::HTTPLoader::Attribute>>   load_method_http_attribute_list;
+%type <String>                                              identifier;
+%type <String>                                              sql_literal;
+%type <VizStatement::VizType>                               viz_type;
+%type <VizStatement>                                        viz_statement;
 
 %%
 
 %start statement_list;
 
 statement_list:
-    statement_list statement SEMICOLON  { context.DefineStatement(move($2)); }
- |  statement_list error SEMICOLON      { yyclearin; }
- |  %empty
+    statement_list statement SEMICOLON  { context.DefineStatement(std::move($2)); }
+  | statement_list error SEMICOLON      { yyclearin; }
+  | %empty
     ;
 
 statement:
-    extract_statement       { $$ = Statement { move($1) }; }
- |  viz_statement           { $$ = Statement { move($1) }; }
- |  load_statement          { $$ = Statement { move($1) }; }
- |  parameter_declaration   { $$ = Statement { move($1) }; }
- |  query_statement         { $$ = Statement { move($1) }; }
+    extract_statement       { $$ = $1; }
+  | viz_statement           { $$ = $1; }
+  | load_statement          { $$ = $1; }
+  | parameter_declaration   { $$ = $1; }
+  | query_statement         { $$ = $1; }
     ;
 
 parameter_declaration:
-    DECLARE PARAMETER identifier opt_as type {
-        auto& p = context.cached<ParameterDeclaration>();
-        p->parameter_id = $3;
-        p->type = $5;
-        $$ = move(p);
-    }
+    DECLARE PARAMETER identifier opt_as type { $$ = ParameterDeclaration { locate(@1, @5), $3, $5 }; }
     ;
 
 identifier:
-    IDENTIFIER_LITERAL  { $$ = $1; }
- |  STRING_LITERAL      { $$ = $1; }
- |  keyword             { $$ = $1; }
+    IDENTIFIER_LITERAL  { $$ = String { locate(@1), $1 }; }
+  | STRING_LITERAL      { $$ = String { locate(@1), $1 }; }
+  | keyword             { $$ = $1; }
     ;
 
 keyword:
-    AREA        { $$ = $1; }
- |  AS          { $$ = $1; }
- |  AXES        { $$ = $1; }
- |  BAR         { $$ = $1; }
- |  BOX         { $$ = $1; }
- |  BUBBLE      { $$ = $1; }
- |  CHART       { $$ = $1; }
- |  COLOR       { $$ = $1; }
- |  COLUMN      { $$ = $1; }
- |  CSV         { $$ = $1; }
- |  DATE        { $$ = $1; }
- |  DATETIME    { $$ = $1; }
- |  DECLARE     { $$ = $1; }
- |  EXTRACT     { $$ = $1; }
- |  FIELD       { $$ = $1; }
- |  FILE        { $$ = $1; }
- |  FLOAT       { $$ = $1; }
- |  FROM        { $$ = $1; }
- |  GET         { $$ = $1; }
- |  GRID        { $$ = $1; }
- |  HEIGHT      { $$ = $1; }
- |  HISTOGRAM   { $$ = $1; }
- |  HORIZONTAL  { $$ = $1; }
- |  HTTP        { $$ = $1; }
- |  INTEGER     { $$ = $1; }
- |  JSON        { $$ = $1; }
- |  LG          { $$ = $1; }
- |  LINE        { $$ = $1; }
- |  LINEAR      { $$ = $1; }
- |  LOAD        { $$ = $1; }
- |  LOG         { $$ = $1; }
- |  MD          { $$ = $1; }
- |  METHOD      { $$ = $1; }
- |  NUMBER      { $$ = $1; }
- |  PALETTE     { $$ = $1; }
- |  PARAMETER   { $$ = $1; }
- |  PARQUET     { $$ = $1; }
- |  PERCENT     { $$ = $1; }
- |  PIE         { $$ = $1; }
- |  PLOT        { $$ = $1; }
- |  POINT       { $$ = $1; }
- |  POST        { $$ = $1; }
- |  PUT         { $$ = $1; }
- |  PX          { $$ = $1; }
- |  QUERY       { $$ = $1; }
- |  RGB         { $$ = $1; }
- |  SCALE       { $$ = $1; }
- |  SCATTER     { $$ = $1; }
- |  SHOW        { $$ = $1; }
- |  SM          { $$ = $1; }
- |  STACKED     { $$ = $1; }
- |  TABLE       { $$ = $1; }
- |  TEXT        { $$ = $1; }
- |  TIME        { $$ = $1; }
- |  TITLE       { $$ = $1; }
- |  URL         { $$ = $1; }
- |  USING       { $$ = $1; }
- |  VERTICAL    { $$ = $1; }
- |  VIS         { $$ = $1; }
- |  VISUALISE   { $$ = $1; }
- |  VISUALIZE   { $$ = $1; }
- |  VIZ         { $$ = $1; }
- |  WIDTH       { $$ = $1; }
- |  X           { $$ = $1; }
- |  XL          { $$ = $1; }
- |  Y           { $$ = $1; }
+    AREA        { $$ = String { locate(@1), $1 }; }
+  | AS          { $$ = String { locate(@1), $1 }; }
+  | AXES        { $$ = String { locate(@1), $1 }; }
+  | BAR         { $$ = String { locate(@1), $1 }; }
+  | BOX         { $$ = String { locate(@1), $1 }; }
+  | BUBBLE      { $$ = String { locate(@1), $1 }; }
+  | CHART       { $$ = String { locate(@1), $1 }; }
+  | COLOR       { $$ = String { locate(@1), $1 }; }
+  | COLUMN      { $$ = String { locate(@1), $1 }; }
+  | CSV         { $$ = String { locate(@1), $1 }; }
+  | DATE        { $$ = String { locate(@1), $1 }; }
+  | DATETIME    { $$ = String { locate(@1), $1 }; }
+  | DECLARE     { $$ = String { locate(@1), $1 }; }
+  | EXTRACT     { $$ = String { locate(@1), $1 }; }
+  | FIELD       { $$ = String { locate(@1), $1 }; }
+  | FILE        { $$ = String { locate(@1), $1 }; }
+  | FLOAT       { $$ = String { locate(@1), $1 }; }
+  | FROM        { $$ = String { locate(@1), $1 }; }
+  | GET         { $$ = String { locate(@1), $1 }; }
+  | GRID        { $$ = String { locate(@1), $1 }; }
+  | HEIGHT      { $$ = String { locate(@1), $1 }; }
+  | HISTOGRAM   { $$ = String { locate(@1), $1 }; }
+  | HORIZONTAL  { $$ = String { locate(@1), $1 }; }
+  | HTTP        { $$ = String { locate(@1), $1 }; }
+  | INTEGER     { $$ = String { locate(@1), $1 }; }
+  | JSON        { $$ = String { locate(@1), $1 }; }
+  | LG          { $$ = String { locate(@1), $1 }; }
+  | LINE        { $$ = String { locate(@1), $1 }; }
+  | LINEAR      { $$ = String { locate(@1), $1 }; }
+  | LOAD        { $$ = String { locate(@1), $1 }; }
+  | LOG         { $$ = String { locate(@1), $1 }; }
+  | MD          { $$ = String { locate(@1), $1 }; }
+  | METHOD      { $$ = String { locate(@1), $1 }; }
+  | NUMBER      { $$ = String { locate(@1), $1 }; }
+  | PALETTE     { $$ = String { locate(@1), $1 }; }
+  | PARAMETER   { $$ = String { locate(@1), $1 }; }
+  | PARQUET     { $$ = String { locate(@1), $1 }; }
+  | PERCENT     { $$ = String { locate(@1), $1 }; }
+  | PIE         { $$ = String { locate(@1), $1 }; }
+  | PLOT        { $$ = String { locate(@1), $1 }; }
+  | POINT       { $$ = String { locate(@1), $1 }; }
+  | POST        { $$ = String { locate(@1), $1 }; }
+  | PUT         { $$ = String { locate(@1), $1 }; }
+  | PX          { $$ = String { locate(@1), $1 }; }
+  | QUERY       { $$ = String { locate(@1), $1 }; }
+  | RGB         { $$ = String { locate(@1), $1 }; }
+  | SCALE       { $$ = String { locate(@1), $1 }; }
+  | SCATTER     { $$ = String { locate(@1), $1 }; }
+  | SHOW        { $$ = String { locate(@1), $1 }; }
+  | SM          { $$ = String { locate(@1), $1 }; }
+  | STACKED     { $$ = String { locate(@1), $1 }; }
+  | TABLE       { $$ = String { locate(@1), $1 }; }
+  | TEXT        { $$ = String { locate(@1), $1 }; }
+  | TIME        { $$ = String { locate(@1), $1 }; }
+  | TITLE       { $$ = String { locate(@1), $1 }; }
+  | URL         { $$ = String { locate(@1), $1 }; }
+  | USING       { $$ = String { locate(@1), $1 }; }
+  | VERTICAL    { $$ = String { locate(@1), $1 }; }
+  | VIS         { $$ = String { locate(@1), $1 }; }
+  | VISUALISE   { $$ = String { locate(@1), $1 }; }
+  | VISUALIZE   { $$ = String { locate(@1), $1 }; }
+  | VIZ         { $$ = String { locate(@1), $1 }; }
+  | WIDTH       { $$ = String { locate(@1), $1 }; }
+  | X           { $$ = String { locate(@1), $1 }; }
+  | XL          { $$ = String { locate(@1), $1 }; }
+  | Y           { $$ = String { locate(@1), $1 }; }
     ;
 
 opt_as:
     AS
- |  %empty
+  | %empty
     ;
 
 type:
-    INTEGER     { $$ = Type::Integer; }
- |  FLOAT       { $$ = Type::Float; }
- |  TEXT        { $$ = Type::Text; }
- |  DATE        { $$ = Type::Date; }
- |  DATETIME    { $$ = Type::DateTime; }
- |  TIME        { $$ = Type::Time; }
+    INTEGER     { $$ = DataType { locate(@1), DataType::Type::Integer }; }
+  | FLOAT       { $$ = DataType { locate(@1), DataType::Type::Float }; }
+  | TEXT        { $$ = DataType { locate(@1), DataType::Type::Text }; }
+  | DATE        { $$ = DataType { locate(@1), DataType::Type::Date }; }
+  | DATETIME    { $$ = DataType { locate(@1), DataType::Type::DateTime }; }
+  | TIME        { $$ = DataType { locate(@1), DataType::Type::Time }; }
     ;
 
 query_statement:
-    QUERY identifier AS sql_literal { $$ = std::make_unique<QueryStatement>($2, $4); }
- |  sql_literal                     { $$ = std::make_unique<QueryStatement>(std::string_view(), $1); }
+    QUERY identifier AS sql_literal { $$ = QueryStatement { locate(@1, @4), $2, $4 }; }
+  | sql_literal                     { $$ = QueryStatement { locate(@1), {}, $1 }; }
     ;
 
 sql_literal:
-    SQL_SELECT  { $$ = $1; }
- |  SQL_WITH    { $$ = $1; }
+    SQL_SELECT  { $$ = String { locate(@1), $1 }; }
+  | SQL_WITH    { $$ = String { locate(@1), $1 }; }
     ;
 
 load_statement:
-    LOAD identifier FROM load_method {
-        auto& l = context.cached<LoadStatement>();
-        l->data_id = $2;
-        $$ = move(l);
-    }
+    LOAD identifier FROM load_method { $$ = LoadStatement { locate(@1, @4), $2, $4 }; }
     ;
 
 load_method:
-    HTTP LRB load_method_http_field_list RRB {
-        context.cached<LoadStatement>()->method = move(context.cached<LoadStatement::HTTPLoader>());
-    }
-  | FILE {
-        context.cached<LoadStatement>()->method = move(context.cached<LoadStatement::FileLoader>());
-    }
+    HTTP LRB load_method_http_attribute_list RRB { $$ = LoadStatement::HTTPLoader { locate(@1, @4), LoadStatement::HTTPLoader::Attributes { locate(@3), $3 } }; }
+  | FILE { $$ = LoadStatement::FileLoader { locate(@1) }; }
     ;
 
-load_method_http_field_list:
-    load_method_http_field_list COMMA load_method_http_field
-  | load_method_http_field
+load_method_http_attribute_list:
+    load_method_http_attribute_list COMMA load_method_http_attribute    { $1.push_back($3); $$ = $1; }
+  | load_method_http_attribute                                          { $$ = std::vector<LoadStatement::HTTPLoader::Attribute> { $1 }; }
     ;
 
-load_method_http_field:
-    METHOD EQUAL http_method    { context.cached<LoadStatement::HTTPLoader>()->method = $3; }
-  | URL EQUAL STRING_LITERAL    { context.cached<LoadStatement::HTTPLoader>()->url = $3; }
+load_method_http_attribute:
+    METHOD EQUAL http_method    { $$ = $3; }
+  | URL EQUAL STRING_LITERAL    { $$ = LoadStatement::HTTPLoader::URL { locate(@3), $3 }; }
     ;
 
 http_method:
-    GET     { $$ = Load::HTTPLoader::Method::Get; }
- |  PUT     { $$ = Load::HTTPLoader::Method::Put; }
- |  POST    { $$ = Load::HTTPLoader::Method::Post; }
+    GET     { $$ = LoadStatement::HTTPLoader::Method { locate(@1), LoadStatement::HTTPLoader::Method::Verb::Get }; }
+  | PUT     { $$ = LoadStatement::HTTPLoader::Method { locate(@1), LoadStatement::HTTPLoader::Method::Verb::Put }; }
+  | POST    { $$ = LoadStatement::HTTPLoader::Method { locate(@1), LoadStatement::HTTPLoader::Method::Verb::Post }; }
     ;
 
 extract_statement:
-    EXTRACT identifier FROM identifier USING extract_method {
-        auto& e = context.cached<ExtractStatement>();
-        e->extract_id = $2;
-        e->data_id = $4;
-        $$ = move(e);
-    }
+    EXTRACT identifier FROM identifier USING extract_method { $$ = ExtractStatement { locate(@1, @6), $2, $4, $6 }; }
     ;
 
 extract_method:
-    CSV LRB RRB
-  | JSON LRB RRB
-  | PARQUET LRB RRB
+    CSV LRB RRB     { $$ = ExtractStatement::CSVExtract { locate(@1, @3) }; }
+  | JSON LRB RRB    { $$ = ExtractStatement::JSONPathExtract { locate(@1, @3) }; }
     ;
 
 viz_statement:
-    viz_statement_prefix identifier FROM identifier USING viz_method_prefix_list viz_method {
-        auto& d = context.cached<VizStatement>();
-        d->viz_id = $2;
-        d->query_id = $4;
-        d->type = $7;
-        $$ = move(d);
-    }
+    viz_statement_prefix identifier FROM identifier USING viz_type { $$ = VizStatement { locate(@1, @6), $2, $4, $6 }; }
     ;
 
 viz_statement_prefix:
@@ -336,172 +323,24 @@ viz_statement_prefix:
   | SHOW
     ;
 
-viz_method_prefix_list:
-    viz_method_prefix_list viz_method_prefix {
-        context.cached<VizStatement>()->type_flags |= static_cast<uint64_t>($2);
-    }
- |  %empty
-    ;
-
-viz_method_prefix:
-    HORIZONTAL  { $$ = Viz::TypeFlag::Horizontal; }
- |  VERTICAL    { $$ = Viz::TypeFlag::Vertical; }
- |  STACKED     { $$ = Viz::TypeFlag::Stacked; }
-    ;
-
-viz_method:
-    AREA opt_chart opt_viz_fields       { $$ = Viz::Type::Area; }
- |  BAR opt_chart opt_viz_fields        { $$ = Viz::Type::Bar; }
- |  BOX opt_chart opt_viz_fields        { $$ = Viz::Type::Box; }
- |  BUBBLE opt_chart opt_viz_fields     { $$ = Viz::Type::Bubble; }
- |  GRID opt_viz_fields                 { $$ = Viz::Type::Grid; }
- |  HISTOGRAM opt_chart opt_viz_fields  { $$ = Viz::Type::Histogram; }
- |  LINE opt_chart opt_viz_fields       { $$ = Viz::Type::Line; }
- |  NUMBER opt_field opt_viz_fields     { $$ = Viz::Type::Number; }
- |  PIE opt_chart opt_viz_fields        { $$ = Viz::Type::Pie; }
- |  POINT opt_chart opt_viz_fields      { $$ = Viz::Type::Point; }
- |  SCATTER opt_chart opt_viz_fields    { $$ = Viz::Type::Scatter; }
- |  TABLE opt_viz_fields                { $$ = Viz::Type::Table; }
- |  TEXT opt_chart opt_viz_fields       { $$ = Viz::Type::Text; }
-    ;
-
-opt_chart:
-    CHART
- |  VIZ
- |  %empty
-    ;
-
-opt_field:
-    FIELD
- |  %empty
-    ;
-
-opt_viz_fields:
-    LRB viz_fields RRB
- |  %empty
-    ;
-
-viz_fields:
-    viz_fields COMMA viz_field
- |  viz_field
-    ;
-
-viz_field:
-    AXES EQUAL LRB viz_axes RRB
- |  COLOR EQUAL LRB viz_color RRB
- |  AREA EQUAL viz_area {
-        context.cached<VizStatement>()->area = std::move($3);
-    }
- |  TITLE EQUAL identifier {
-        context.cached<VizStatement>()->title = $3;
-    }
-    ;
-
-viz_axes:
-    viz_axes COMMA viz_axes_field
- |  viz_axes_field
-    ;
-
-viz_axes_field:
-    X EQUAL LRB viz_axis RRB {
-        context.cached<VizStatement>()->axes.x = move(context.cached<VizStatement::Axis>());
-    }
- |  Y EQUAL LRB viz_axis RRB {
-        context.cached<VizStatement>()->axes.y = move(context.cached<VizStatement::Axis>());
-    }
-    ;
-
-viz_axis:
-    viz_axis COMMA viz_axis_field
- |  viz_axis_field
-    ;
-
-viz_axis_field:
-    COLUMN EQUAL identifier {
-        context.cached<VizStatement::Axis>()->column = move($3);
-    }
- |  SCALE EQUAL viz_axis_scale {
-        context.cached<VizStatement::Axis>()->scale = move($3);
-    }
-    ;
-
-viz_axis_scale:
-    LINEAR  { $$ = Viz::AxisScale::Linear; }
- |  LOG     { $$ = Viz::AxisScale::Logarithmic; }
-    ;
-
-viz_color:
-    viz_color COMMA viz_color_field
- |  viz_color_field
-    ;
-
-viz_color_field:
-    COLUMN EQUAL identifier {
-        context.cached<VizStatement>()->color.column = move($3);
-    }
- |  PALETTE EQUAL LSB opt_viz_color_list RSB {
-        context.cached<VizStatement>()->color.palette = move($4);
-    }
-    ;
-
-opt_viz_color_list:
-    viz_color_list  { $$ = move($1); }
- |  %empty          { $$ = vector<Viz::RGBColor>(); }
-    ;
-
-viz_color_list:
-    viz_color_list COMMA viz_color_value    { $1.push_back($3); $$ = move($1); }
- |  viz_color_value                         { $$ = vector<Viz::RGBColor>{$1}; }
-    ;
-
-viz_color_value:
-    RGB LRB INTEGER_LITERAL COMMA INTEGER_LITERAL COMMA INTEGER_LITERAL RRB {
-        $$ = Viz::RGBColor{
-            static_cast<uint8_t>($3),
-            static_cast<uint8_t>($5),
-            static_cast<uint8_t>($7)
-        };
-    }
- |  HEX_COLOR_LITERAL { $$ = Viz::RGBColor{$1}; }
-    ;
-
-viz_area:
-    viz_area_spec {
-        auto a = std::make_unique<VizStatement::ResponsiveGridArea>();
-        a->set(Viz::SizeClass::Wildcard, $1);
-        $$ = move(a);
-    }
- |  LRB viz_area_responsive_list RRB {
-        $$ = move(context.cached<VizStatement::ResponsiveGridArea>());
-    }
-    ;
-
-viz_area_spec:
-    INTEGER_LITERAL                     { $$ = VizStatement::GridArea($1); }
- |  viz_area_spec SLASH INTEGER_LITERAL { $1.push($3); $$ = $1; } 
-    ;
-
-viz_area_responsive_list:
-    viz_area_responsive
- |  viz_area_responsive_list COMMA viz_area_responsive
-    ;
-
-viz_area_responsive:
-    viz_size_class EQUAL viz_area_spec {
-        context.cached<VizStatement::ResponsiveGridArea>()->set($1, $3);
-    }
-    ;
-
-viz_size_class:
-    STAR    { $$ = Viz::SizeClass::Wildcard; }
- |  SM      { $$ = Viz::SizeClass::Small; }
- |  MD      { $$ = Viz::SizeClass::Medium; }
- |  LG      { $$ = Viz::SizeClass::Large; }
- |  XL      { $$ = Viz::SizeClass::ExtraLarge; }
+viz_type:
+    AREA        { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Area }; }
+  | BAR         { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Bar }; }
+  | BOX         { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Box }; }
+  | BUBBLE      { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Bubble }; }
+  | GRID        { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Grid }; }
+  | HISTOGRAM   { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Histogram }; }
+  | LINE        { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Line }; }
+  | NUMBER      { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Number }; }
+  | PIE         { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Pie }; }
+  | POINT       { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Point }; }
+  | SCATTER     { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Scatter }; }
+  | TABLE       { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Table }; }
+  | TEXT        { $$ = VizStatement::VizType { locate(@1), VizStatement::VizType::Type::Text }; }
     ;
 
 %%
 
 void tigon::tql::Parser::error(const location_type& location, const std::string& message) {
-    context.Error(location.begin.line, location.begin.column, message);
+    context.Error(locate(location), message);
 }

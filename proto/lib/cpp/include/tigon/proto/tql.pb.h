@@ -46,7 +46,7 @@ struct TableStruct_tql_2eproto {
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxillaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[20]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[21]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -55,143 +55,147 @@ struct TableStruct_tql_2eproto {
 namespace tigon {
 namespace proto {
 namespace tql {
-class CSVColumn;
-class CSVColumnDefaultTypeInternal;
-extern CSVColumnDefaultTypeInternal _CSVColumn_default_instance_;
 class CSVExtract;
 class CSVExtractDefaultTypeInternal;
 extern CSVExtractDefaultTypeInternal _CSVExtract_default_instance_;
+class DataType;
+class DataTypeDefaultTypeInternal;
+extern DataTypeDefaultTypeInternal _DataType_default_instance_;
 class Error;
 class ErrorDefaultTypeInternal;
 extern ErrorDefaultTypeInternal _Error_default_instance_;
-class ExtractMethod;
-class ExtractMethodDefaultTypeInternal;
-extern ExtractMethodDefaultTypeInternal _ExtractMethod_default_instance_;
 class ExtractStatement;
 class ExtractStatementDefaultTypeInternal;
 extern ExtractStatementDefaultTypeInternal _ExtractStatement_default_instance_;
-class FileLoadMethod;
-class FileLoadMethodDefaultTypeInternal;
-extern FileLoadMethodDefaultTypeInternal _FileLoadMethod_default_instance_;
-class HTTPLoadMethod;
-class HTTPLoadMethodDefaultTypeInternal;
-extern HTTPLoadMethodDefaultTypeInternal _HTTPLoadMethod_default_instance_;
-class JSONExtract;
-class JSONExtractDefaultTypeInternal;
-extern JSONExtractDefaultTypeInternal _JSONExtract_default_instance_;
+class FileLoader;
+class FileLoaderDefaultTypeInternal;
+extern FileLoaderDefaultTypeInternal _FileLoader_default_instance_;
+class HTTPAttribute;
+class HTTPAttributeDefaultTypeInternal;
+extern HTTPAttributeDefaultTypeInternal _HTTPAttribute_default_instance_;
+class HTTPAttributes;
+class HTTPAttributesDefaultTypeInternal;
+extern HTTPAttributesDefaultTypeInternal _HTTPAttributes_default_instance_;
+class HTTPLoader;
+class HTTPLoaderDefaultTypeInternal;
+extern HTTPLoaderDefaultTypeInternal _HTTPLoader_default_instance_;
+class HTTPMethod;
+class HTTPMethodDefaultTypeInternal;
+extern HTTPMethodDefaultTypeInternal _HTTPMethod_default_instance_;
+class HTTPURL;
+class HTTPURLDefaultTypeInternal;
+extern HTTPURLDefaultTypeInternal _HTTPURL_default_instance_;
+class JSONPathExtract;
+class JSONPathExtractDefaultTypeInternal;
+extern JSONPathExtractDefaultTypeInternal _JSONPathExtract_default_instance_;
 class LoadStatement;
 class LoadStatementDefaultTypeInternal;
 extern LoadStatementDefaultTypeInternal _LoadStatement_default_instance_;
+class Location;
+class LocationDefaultTypeInternal;
+extern LocationDefaultTypeInternal _Location_default_instance_;
 class Module;
 class ModuleDefaultTypeInternal;
 extern ModuleDefaultTypeInternal _Module_default_instance_;
 class ParameterDeclaration;
 class ParameterDeclarationDefaultTypeInternal;
 extern ParameterDeclarationDefaultTypeInternal _ParameterDeclaration_default_instance_;
+class Position;
+class PositionDefaultTypeInternal;
+extern PositionDefaultTypeInternal _Position_default_instance_;
 class QueryStatement;
 class QueryStatementDefaultTypeInternal;
 extern QueryStatementDefaultTypeInternal _QueryStatement_default_instance_;
 class Statement;
 class StatementDefaultTypeInternal;
 extern StatementDefaultTypeInternal _Statement_default_instance_;
-class UInt32;
-class UInt32DefaultTypeInternal;
-extern UInt32DefaultTypeInternal _UInt32_default_instance_;
-class VizAxes;
-class VizAxesDefaultTypeInternal;
-extern VizAxesDefaultTypeInternal _VizAxes_default_instance_;
-class VizAxis;
-class VizAxisDefaultTypeInternal;
-extern VizAxisDefaultTypeInternal _VizAxis_default_instance_;
-class VizColorPalette;
-class VizColorPaletteDefaultTypeInternal;
-extern VizColorPaletteDefaultTypeInternal _VizColorPalette_default_instance_;
-class VizGridArea;
-class VizGridAreaDefaultTypeInternal;
-extern VizGridAreaDefaultTypeInternal _VizGridArea_default_instance_;
-class VizResponsiveGridArea;
-class VizResponsiveGridAreaDefaultTypeInternal;
-extern VizResponsiveGridAreaDefaultTypeInternal _VizResponsiveGridArea_default_instance_;
+class String;
+class StringDefaultTypeInternal;
+extern StringDefaultTypeInternal _String_default_instance_;
 class VizStatement;
 class VizStatementDefaultTypeInternal;
 extern VizStatementDefaultTypeInternal _VizStatement_default_instance_;
+class VizType;
+class VizTypeDefaultTypeInternal;
+extern VizTypeDefaultTypeInternal _VizType_default_instance_;
 }  // namespace tql
 }  // namespace proto
 }  // namespace tigon
 PROTOBUF_NAMESPACE_OPEN
-template<> ::tigon::proto::tql::CSVColumn* Arena::CreateMaybeMessage<::tigon::proto::tql::CSVColumn>(Arena*);
 template<> ::tigon::proto::tql::CSVExtract* Arena::CreateMaybeMessage<::tigon::proto::tql::CSVExtract>(Arena*);
+template<> ::tigon::proto::tql::DataType* Arena::CreateMaybeMessage<::tigon::proto::tql::DataType>(Arena*);
 template<> ::tigon::proto::tql::Error* Arena::CreateMaybeMessage<::tigon::proto::tql::Error>(Arena*);
-template<> ::tigon::proto::tql::ExtractMethod* Arena::CreateMaybeMessage<::tigon::proto::tql::ExtractMethod>(Arena*);
 template<> ::tigon::proto::tql::ExtractStatement* Arena::CreateMaybeMessage<::tigon::proto::tql::ExtractStatement>(Arena*);
-template<> ::tigon::proto::tql::FileLoadMethod* Arena::CreateMaybeMessage<::tigon::proto::tql::FileLoadMethod>(Arena*);
-template<> ::tigon::proto::tql::HTTPLoadMethod* Arena::CreateMaybeMessage<::tigon::proto::tql::HTTPLoadMethod>(Arena*);
-template<> ::tigon::proto::tql::JSONExtract* Arena::CreateMaybeMessage<::tigon::proto::tql::JSONExtract>(Arena*);
+template<> ::tigon::proto::tql::FileLoader* Arena::CreateMaybeMessage<::tigon::proto::tql::FileLoader>(Arena*);
+template<> ::tigon::proto::tql::HTTPAttribute* Arena::CreateMaybeMessage<::tigon::proto::tql::HTTPAttribute>(Arena*);
+template<> ::tigon::proto::tql::HTTPAttributes* Arena::CreateMaybeMessage<::tigon::proto::tql::HTTPAttributes>(Arena*);
+template<> ::tigon::proto::tql::HTTPLoader* Arena::CreateMaybeMessage<::tigon::proto::tql::HTTPLoader>(Arena*);
+template<> ::tigon::proto::tql::HTTPMethod* Arena::CreateMaybeMessage<::tigon::proto::tql::HTTPMethod>(Arena*);
+template<> ::tigon::proto::tql::HTTPURL* Arena::CreateMaybeMessage<::tigon::proto::tql::HTTPURL>(Arena*);
+template<> ::tigon::proto::tql::JSONPathExtract* Arena::CreateMaybeMessage<::tigon::proto::tql::JSONPathExtract>(Arena*);
 template<> ::tigon::proto::tql::LoadStatement* Arena::CreateMaybeMessage<::tigon::proto::tql::LoadStatement>(Arena*);
+template<> ::tigon::proto::tql::Location* Arena::CreateMaybeMessage<::tigon::proto::tql::Location>(Arena*);
 template<> ::tigon::proto::tql::Module* Arena::CreateMaybeMessage<::tigon::proto::tql::Module>(Arena*);
 template<> ::tigon::proto::tql::ParameterDeclaration* Arena::CreateMaybeMessage<::tigon::proto::tql::ParameterDeclaration>(Arena*);
+template<> ::tigon::proto::tql::Position* Arena::CreateMaybeMessage<::tigon::proto::tql::Position>(Arena*);
 template<> ::tigon::proto::tql::QueryStatement* Arena::CreateMaybeMessage<::tigon::proto::tql::QueryStatement>(Arena*);
 template<> ::tigon::proto::tql::Statement* Arena::CreateMaybeMessage<::tigon::proto::tql::Statement>(Arena*);
-template<> ::tigon::proto::tql::UInt32* Arena::CreateMaybeMessage<::tigon::proto::tql::UInt32>(Arena*);
-template<> ::tigon::proto::tql::VizAxes* Arena::CreateMaybeMessage<::tigon::proto::tql::VizAxes>(Arena*);
-template<> ::tigon::proto::tql::VizAxis* Arena::CreateMaybeMessage<::tigon::proto::tql::VizAxis>(Arena*);
-template<> ::tigon::proto::tql::VizColorPalette* Arena::CreateMaybeMessage<::tigon::proto::tql::VizColorPalette>(Arena*);
-template<> ::tigon::proto::tql::VizGridArea* Arena::CreateMaybeMessage<::tigon::proto::tql::VizGridArea>(Arena*);
-template<> ::tigon::proto::tql::VizResponsiveGridArea* Arena::CreateMaybeMessage<::tigon::proto::tql::VizResponsiveGridArea>(Arena*);
+template<> ::tigon::proto::tql::String* Arena::CreateMaybeMessage<::tigon::proto::tql::String>(Arena*);
 template<> ::tigon::proto::tql::VizStatement* Arena::CreateMaybeMessage<::tigon::proto::tql::VizStatement>(Arena*);
+template<> ::tigon::proto::tql::VizType* Arena::CreateMaybeMessage<::tigon::proto::tql::VizType>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace tigon {
 namespace proto {
 namespace tql {
 
-enum Type : int {
+enum DataTypeType : int {
   INTEGER = 0,
   FLOAT = 1,
   TEXT = 2,
   DATE = 3,
   DATETIME = 4,
   TIME = 5,
-  Type_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::min(),
-  Type_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::max()
+  DataTypeType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::min(),
+  DataTypeType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::max()
 };
-bool Type_IsValid(int value);
-constexpr Type Type_MIN = INTEGER;
-constexpr Type Type_MAX = TIME;
-constexpr int Type_ARRAYSIZE = Type_MAX + 1;
+bool DataTypeType_IsValid(int value);
+constexpr DataTypeType DataTypeType_MIN = INTEGER;
+constexpr DataTypeType DataTypeType_MAX = TIME;
+constexpr int DataTypeType_ARRAYSIZE = DataTypeType_MAX + 1;
 
-const std::string& Type_Name(Type value);
+const std::string& DataTypeType_Name(DataTypeType value);
 template<typename T>
-inline const std::string& Type_Name(T enum_t_value) {
-  static_assert(::std::is_same<T, Type>::value ||
+inline const std::string& DataTypeType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, DataTypeType>::value ||
     ::std::is_integral<T>::value,
-    "Incorrect type passed to function Type_Name.");
-  return Type_Name(static_cast<Type>(enum_t_value));
+    "Incorrect type passed to function DataTypeType_Name.");
+  return DataTypeType_Name(static_cast<DataTypeType>(enum_t_value));
 }
-bool Type_Parse(
-    const std::string& name, Type* value);
-enum HTTPMethod : int {
+bool DataTypeType_Parse(
+    const std::string& name, DataTypeType* value);
+enum HTTPVerb : int {
   GET = 0,
   PUT = 1,
   POST = 2,
-  HTTPMethod_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::min(),
-  HTTPMethod_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::max()
+  HTTPVerb_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::min(),
+  HTTPVerb_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::max()
 };
-bool HTTPMethod_IsValid(int value);
-constexpr HTTPMethod HTTPMethod_MIN = GET;
-constexpr HTTPMethod HTTPMethod_MAX = POST;
-constexpr int HTTPMethod_ARRAYSIZE = HTTPMethod_MAX + 1;
+bool HTTPVerb_IsValid(int value);
+constexpr HTTPVerb HTTPVerb_MIN = GET;
+constexpr HTTPVerb HTTPVerb_MAX = POST;
+constexpr int HTTPVerb_ARRAYSIZE = HTTPVerb_MAX + 1;
 
-const std::string& HTTPMethod_Name(HTTPMethod value);
+const std::string& HTTPVerb_Name(HTTPVerb value);
 template<typename T>
-inline const std::string& HTTPMethod_Name(T enum_t_value) {
-  static_assert(::std::is_same<T, HTTPMethod>::value ||
+inline const std::string& HTTPVerb_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, HTTPVerb>::value ||
     ::std::is_integral<T>::value,
-    "Incorrect type passed to function HTTPMethod_Name.");
-  return HTTPMethod_Name(static_cast<HTTPMethod>(enum_t_value));
+    "Incorrect type passed to function HTTPVerb_Name.");
+  return HTTPVerb_Name(static_cast<HTTPVerb>(enum_t_value));
 }
-bool HTTPMethod_Parse(
-    const std::string& name, HTTPMethod* value);
-enum VizType : int {
+bool HTTPVerb_Parse(
+    const std::string& name, HTTPVerb* value);
+enum VizTypeType : int {
   VIZ_AREA = 0,
   VIZ_BAR = 1,
   VIZ_BOX = 2,
@@ -205,46 +209,665 @@ enum VizType : int {
   VIZ_SCATTER = 10,
   VIZ_TABLE = 11,
   VIZ_TEXT = 12,
-  VizType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::min(),
-  VizType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::max()
+  VizTypeType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::min(),
+  VizTypeType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::max()
 };
-bool VizType_IsValid(int value);
-constexpr VizType VizType_MIN = VIZ_AREA;
-constexpr VizType VizType_MAX = VIZ_TEXT;
-constexpr int VizType_ARRAYSIZE = VizType_MAX + 1;
+bool VizTypeType_IsValid(int value);
+constexpr VizTypeType VizTypeType_MIN = VIZ_AREA;
+constexpr VizTypeType VizTypeType_MAX = VIZ_TEXT;
+constexpr int VizTypeType_ARRAYSIZE = VizTypeType_MAX + 1;
 
-const std::string& VizType_Name(VizType value);
+const std::string& VizTypeType_Name(VizTypeType value);
 template<typename T>
-inline const std::string& VizType_Name(T enum_t_value) {
-  static_assert(::std::is_same<T, VizType>::value ||
+inline const std::string& VizTypeType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, VizTypeType>::value ||
     ::std::is_integral<T>::value,
-    "Incorrect type passed to function VizType_Name.");
-  return VizType_Name(static_cast<VizType>(enum_t_value));
+    "Incorrect type passed to function VizTypeType_Name.");
+  return VizTypeType_Name(static_cast<VizTypeType>(enum_t_value));
 }
-bool VizType_Parse(
-    const std::string& name, VizType* value);
-enum VizAxisScale : int {
-  Linear = 0,
-  Logarithmic = 1,
-  VizAxisScale_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::min(),
-  VizAxisScale_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::max()
-};
-bool VizAxisScale_IsValid(int value);
-constexpr VizAxisScale VizAxisScale_MIN = Linear;
-constexpr VizAxisScale VizAxisScale_MAX = Logarithmic;
-constexpr int VizAxisScale_ARRAYSIZE = VizAxisScale_MAX + 1;
-
-const std::string& VizAxisScale_Name(VizAxisScale value);
-template<typename T>
-inline const std::string& VizAxisScale_Name(T enum_t_value) {
-  static_assert(::std::is_same<T, VizAxisScale>::value ||
-    ::std::is_integral<T>::value,
-    "Incorrect type passed to function VizAxisScale_Name.");
-  return VizAxisScale_Name(static_cast<VizAxisScale>(enum_t_value));
-}
-bool VizAxisScale_Parse(
-    const std::string& name, VizAxisScale* value);
+bool VizTypeType_Parse(
+    const std::string& name, VizTypeType* value);
 // ===================================================================
+
+class Position :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.Position) */ {
+ public:
+  Position();
+  virtual ~Position();
+
+  Position(const Position& from);
+  Position(Position&& from) noexcept
+    : Position() {
+    *this = ::std::move(from);
+  }
+
+  inline Position& operator=(const Position& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline Position& operator=(Position&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const Position& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const Position* internal_default_instance() {
+    return reinterpret_cast<const Position*>(
+               &_Position_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    0;
+
+  friend void swap(Position& a, Position& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(Position* other) {
+    if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Position* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline Position* New() const final {
+    return CreateMaybeMessage<Position>(nullptr);
+  }
+
+  Position* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<Position>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
+    final;
+  void CopyFrom(const Position& from);
+  void MergeFrom(const Position& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  void DiscardUnknownFields();
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(Position* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "tigon.proto.tql.Position";
+  }
+  protected:
+  explicit Position(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kLineFieldNumber = 1,
+    kColumnFieldNumber = 2,
+  };
+  // uint32 line = 1;
+  void clear_line();
+  ::PROTOBUF_NAMESPACE_ID::uint32 line() const;
+  void set_line(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_line() const;
+  void _internal_set_line(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 column = 2;
+  void clear_column();
+  ::PROTOBUF_NAMESPACE_ID::uint32 column() const;
+  void set_column(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_column() const;
+  void _internal_set_column(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.Position)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 line_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 column_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_tql_2eproto;
+};
+// -------------------------------------------------------------------
+
+class Location :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.Location) */ {
+ public:
+  Location();
+  virtual ~Location();
+
+  Location(const Location& from);
+  Location(Location&& from) noexcept
+    : Location() {
+    *this = ::std::move(from);
+  }
+
+  inline Location& operator=(const Location& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline Location& operator=(Location&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const Location& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const Location* internal_default_instance() {
+    return reinterpret_cast<const Location*>(
+               &_Location_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    1;
+
+  friend void swap(Location& a, Location& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(Location* other) {
+    if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Location* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline Location* New() const final {
+    return CreateMaybeMessage<Location>(nullptr);
+  }
+
+  Location* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<Location>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
+    final;
+  void CopyFrom(const Location& from);
+  void MergeFrom(const Location& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  void DiscardUnknownFields();
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(Location* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "tigon.proto.tql.Location";
+  }
+  protected:
+  explicit Location(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kBeginFieldNumber = 1,
+    kEndFieldNumber = 2,
+  };
+  // .tigon.proto.tql.Position begin = 1;
+  bool has_begin() const;
+  private:
+  bool _internal_has_begin() const;
+  public:
+  void clear_begin();
+  const ::tigon::proto::tql::Position& begin() const;
+  ::tigon::proto::tql::Position* release_begin();
+  ::tigon::proto::tql::Position* mutable_begin();
+  void set_allocated_begin(::tigon::proto::tql::Position* begin);
+  private:
+  const ::tigon::proto::tql::Position& _internal_begin() const;
+  ::tigon::proto::tql::Position* _internal_mutable_begin();
+  public:
+  void unsafe_arena_set_allocated_begin(
+      ::tigon::proto::tql::Position* begin);
+  ::tigon::proto::tql::Position* unsafe_arena_release_begin();
+
+  // .tigon.proto.tql.Position end = 2;
+  bool has_end() const;
+  private:
+  bool _internal_has_end() const;
+  public:
+  void clear_end();
+  const ::tigon::proto::tql::Position& end() const;
+  ::tigon::proto::tql::Position* release_end();
+  ::tigon::proto::tql::Position* mutable_end();
+  void set_allocated_end(::tigon::proto::tql::Position* end);
+  private:
+  const ::tigon::proto::tql::Position& _internal_end() const;
+  ::tigon::proto::tql::Position* _internal_mutable_end();
+  public:
+  void unsafe_arena_set_allocated_end(
+      ::tigon::proto::tql::Position* end);
+  ::tigon::proto::tql::Position* unsafe_arena_release_end();
+
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.Location)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::tigon::proto::tql::Position* begin_;
+  ::tigon::proto::tql::Position* end_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_tql_2eproto;
+};
+// -------------------------------------------------------------------
+
+class DataType :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.DataType) */ {
+ public:
+  DataType();
+  virtual ~DataType();
+
+  DataType(const DataType& from);
+  DataType(DataType&& from) noexcept
+    : DataType() {
+    *this = ::std::move(from);
+  }
+
+  inline DataType& operator=(const DataType& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DataType& operator=(DataType&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const DataType& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const DataType* internal_default_instance() {
+    return reinterpret_cast<const DataType*>(
+               &_DataType_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    2;
+
+  friend void swap(DataType& a, DataType& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(DataType* other) {
+    if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DataType* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline DataType* New() const final {
+    return CreateMaybeMessage<DataType>(nullptr);
+  }
+
+  DataType* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<DataType>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
+    final;
+  void CopyFrom(const DataType& from);
+  void MergeFrom(const DataType& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  void DiscardUnknownFields();
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(DataType* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "tigon.proto.tql.DataType";
+  }
+  protected:
+  explicit DataType(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kLocationFieldNumber = 1,
+    kTypeFieldNumber = 2,
+  };
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
+  private:
+  bool _internal_has_location() const;
+  public:
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
+  private:
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
+  public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
+
+  // .tigon.proto.tql.DataTypeType type = 2;
+  void clear_type();
+  ::tigon::proto::tql::DataTypeType type() const;
+  void set_type(::tigon::proto::tql::DataTypeType value);
+  private:
+  ::tigon::proto::tql::DataTypeType _internal_type() const;
+  void _internal_set_type(::tigon::proto::tql::DataTypeType value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.DataType)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::tigon::proto::tql::Location* location_;
+  int type_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_tql_2eproto;
+};
+// -------------------------------------------------------------------
+
+class String :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.String) */ {
+ public:
+  String();
+  virtual ~String();
+
+  String(const String& from);
+  String(String&& from) noexcept
+    : String() {
+    *this = ::std::move(from);
+  }
+
+  inline String& operator=(const String& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline String& operator=(String&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const String& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const String* internal_default_instance() {
+    return reinterpret_cast<const String*>(
+               &_String_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    3;
+
+  friend void swap(String& a, String& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(String* other) {
+    if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(String* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline String* New() const final {
+    return CreateMaybeMessage<String>(nullptr);
+  }
+
+  String* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<String>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
+    final;
+  void CopyFrom(const String& from);
+  void MergeFrom(const String& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  void DiscardUnknownFields();
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(String* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "tigon.proto.tql.String";
+  }
+  protected:
+  explicit String(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kStringFieldNumber = 2,
+    kLocationFieldNumber = 1,
+  };
+  // string string = 2;
+  void clear_string();
+  const std::string& string() const;
+  void set_string(const std::string& value);
+  void set_string(std::string&& value);
+  void set_string(const char* value);
+  void set_string(const char* value, size_t size);
+  std::string* mutable_string();
+  std::string* release_string();
+  void set_allocated_string(std::string* string);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_string();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_string(
+      std::string* string);
+  private:
+  const std::string& _internal_string() const;
+  void _internal_set_string(const std::string& value);
+  std::string* _internal_mutable_string();
+  public:
+
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
+  private:
+  bool _internal_has_location() const;
+  public:
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
+  private:
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
+  public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
+
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.String)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr string_;
+  ::tigon::proto::tql::Location* location_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_tql_2eproto;
+};
+// -------------------------------------------------------------------
 
 class QueryStatement :
     public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.QueryStatement) */ {
@@ -285,7 +908,7 @@ class QueryStatement :
                &_QueryStatement_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    0;
+    4;
 
   friend void swap(QueryStatement& a, QueryStatement& b) {
     a.Swap(&b);
@@ -357,58 +980,63 @@ class QueryStatement :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kQueryIdFieldNumber = 1,
-    kQueryTextFieldNumber = 2,
+    kLocationFieldNumber = 1,
+    kNameFieldNumber = 2,
+    kQueryTextFieldNumber = 3,
   };
-  // string query_id = 1;
-  void clear_query_id();
-  const std::string& query_id() const;
-  void set_query_id(const std::string& value);
-  void set_query_id(std::string&& value);
-  void set_query_id(const char* value);
-  void set_query_id(const char* value, size_t size);
-  std::string* mutable_query_id();
-  std::string* release_query_id();
-  void set_allocated_query_id(std::string* query_id);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_query_id();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_query_id(
-      std::string* query_id);
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
   private:
-  const std::string& _internal_query_id() const;
-  void _internal_set_query_id(const std::string& value);
-  std::string* _internal_mutable_query_id();
+  bool _internal_has_location() const;
   public:
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
+  private:
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
+  public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
 
-  // string query_text = 2;
-  void clear_query_text();
-  const std::string& query_text() const;
-  void set_query_text(const std::string& value);
-  void set_query_text(std::string&& value);
-  void set_query_text(const char* value);
-  void set_query_text(const char* value, size_t size);
-  std::string* mutable_query_text();
-  std::string* release_query_text();
-  void set_allocated_query_text(std::string* query_text);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_query_text();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_query_text(
-      std::string* query_text);
+  // .tigon.proto.tql.String name = 2;
+  bool has_name() const;
   private:
-  const std::string& _internal_query_text() const;
-  void _internal_set_query_text(const std::string& value);
-  std::string* _internal_mutable_query_text();
+  bool _internal_has_name() const;
   public:
+  void clear_name();
+  const ::tigon::proto::tql::String& name() const;
+  ::tigon::proto::tql::String* release_name();
+  ::tigon::proto::tql::String* mutable_name();
+  void set_allocated_name(::tigon::proto::tql::String* name);
+  private:
+  const ::tigon::proto::tql::String& _internal_name() const;
+  ::tigon::proto::tql::String* _internal_mutable_name();
+  public:
+  void unsafe_arena_set_allocated_name(
+      ::tigon::proto::tql::String* name);
+  ::tigon::proto::tql::String* unsafe_arena_release_name();
+
+  // .tigon.proto.tql.String query_text = 3;
+  bool has_query_text() const;
+  private:
+  bool _internal_has_query_text() const;
+  public:
+  void clear_query_text();
+  const ::tigon::proto::tql::String& query_text() const;
+  ::tigon::proto::tql::String* release_query_text();
+  ::tigon::proto::tql::String* mutable_query_text();
+  void set_allocated_query_text(::tigon::proto::tql::String* query_text);
+  private:
+  const ::tigon::proto::tql::String& _internal_query_text() const;
+  ::tigon::proto::tql::String* _internal_mutable_query_text();
+  public:
+  void unsafe_arena_set_allocated_query_text(
+      ::tigon::proto::tql::String* query_text);
+  ::tigon::proto::tql::String* unsafe_arena_release_query_text();
 
   // @@protoc_insertion_point(class_scope:tigon.proto.tql.QueryStatement)
  private:
@@ -418,8 +1046,9 @@ class QueryStatement :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr query_id_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr query_text_;
+  ::tigon::proto::tql::Location* location_;
+  ::tigon::proto::tql::String* name_;
+  ::tigon::proto::tql::String* query_text_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -459,10 +1088,10 @@ class ParameterDeclaration :
   static const ParameterDeclaration& default_instance();
 
   enum DefaultValueCase {
-    kValueI32 = 3,
-    kValueI64 = 4,
-    kValueF64 = 5,
-    kValueStr = 6,
+    kValueI32 = 4,
+    kValueI64 = 5,
+    kValueF64 = 6,
+    kValueStr = 7,
     DEFAULT_VALUE_NOT_SET = 0,
   };
 
@@ -472,7 +1101,7 @@ class ParameterDeclaration :
                &_ParameterDeclaration_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    1;
+    5;
 
   friend void swap(ParameterDeclaration& a, ParameterDeclaration& b) {
     a.Swap(&b);
@@ -544,48 +1173,69 @@ class ParameterDeclaration :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kParameterIdFieldNumber = 1,
-    kParameterTypeFieldNumber = 2,
-    kValueI32FieldNumber = 3,
-    kValueI64FieldNumber = 4,
-    kValueF64FieldNumber = 5,
-    kValueStrFieldNumber = 6,
+    kLocationFieldNumber = 1,
+    kNameFieldNumber = 2,
+    kDataTypeFieldNumber = 3,
+    kValueI32FieldNumber = 4,
+    kValueI64FieldNumber = 5,
+    kValueF64FieldNumber = 6,
+    kValueStrFieldNumber = 7,
   };
-  // string parameter_id = 1;
-  void clear_parameter_id();
-  const std::string& parameter_id() const;
-  void set_parameter_id(const std::string& value);
-  void set_parameter_id(std::string&& value);
-  void set_parameter_id(const char* value);
-  void set_parameter_id(const char* value, size_t size);
-  std::string* mutable_parameter_id();
-  std::string* release_parameter_id();
-  void set_allocated_parameter_id(std::string* parameter_id);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_parameter_id();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_parameter_id(
-      std::string* parameter_id);
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
   private:
-  const std::string& _internal_parameter_id() const;
-  void _internal_set_parameter_id(const std::string& value);
-  std::string* _internal_mutable_parameter_id();
+  bool _internal_has_location() const;
   public:
-
-  // .tigon.proto.tql.Type parameter_type = 2;
-  void clear_parameter_type();
-  ::tigon::proto::tql::Type parameter_type() const;
-  void set_parameter_type(::tigon::proto::tql::Type value);
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
   private:
-  ::tigon::proto::tql::Type _internal_parameter_type() const;
-  void _internal_set_parameter_type(::tigon::proto::tql::Type value);
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
   public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
 
-  // int32 value_i32 = 3;
+  // .tigon.proto.tql.String name = 2;
+  bool has_name() const;
+  private:
+  bool _internal_has_name() const;
+  public:
+  void clear_name();
+  const ::tigon::proto::tql::String& name() const;
+  ::tigon::proto::tql::String* release_name();
+  ::tigon::proto::tql::String* mutable_name();
+  void set_allocated_name(::tigon::proto::tql::String* name);
+  private:
+  const ::tigon::proto::tql::String& _internal_name() const;
+  ::tigon::proto::tql::String* _internal_mutable_name();
+  public:
+  void unsafe_arena_set_allocated_name(
+      ::tigon::proto::tql::String* name);
+  ::tigon::proto::tql::String* unsafe_arena_release_name();
+
+  // .tigon.proto.tql.DataType data_type = 3;
+  bool has_data_type() const;
+  private:
+  bool _internal_has_data_type() const;
+  public:
+  void clear_data_type();
+  const ::tigon::proto::tql::DataType& data_type() const;
+  ::tigon::proto::tql::DataType* release_data_type();
+  ::tigon::proto::tql::DataType* mutable_data_type();
+  void set_allocated_data_type(::tigon::proto::tql::DataType* data_type);
+  private:
+  const ::tigon::proto::tql::DataType& _internal_data_type() const;
+  ::tigon::proto::tql::DataType* _internal_mutable_data_type();
+  public:
+  void unsafe_arena_set_allocated_data_type(
+      ::tigon::proto::tql::DataType* data_type);
+  ::tigon::proto::tql::DataType* unsafe_arena_release_data_type();
+
+  // int32 value_i32 = 4;
   private:
   bool _internal_has_value_i32() const;
   public:
@@ -597,7 +1247,7 @@ class ParameterDeclaration :
   void _internal_set_value_i32(::PROTOBUF_NAMESPACE_ID::int32 value);
   public:
 
-  // int64 value_i64 = 4;
+  // int64 value_i64 = 5;
   private:
   bool _internal_has_value_i64() const;
   public:
@@ -609,7 +1259,7 @@ class ParameterDeclaration :
   void _internal_set_value_i64(::PROTOBUF_NAMESPACE_ID::int64 value);
   public:
 
-  // double value_f64 = 5;
+  // double value_f64 = 6;
   private:
   bool _internal_has_value_f64() const;
   public:
@@ -621,7 +1271,7 @@ class ParameterDeclaration :
   void _internal_set_value_f64(double value);
   public:
 
-  // string value_str = 6;
+  // string value_str = 7;
   private:
   bool _internal_has_value_str() const;
   public:
@@ -666,8 +1316,9 @@ class ParameterDeclaration :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr parameter_id_;
-  int parameter_type_;
+  ::tigon::proto::tql::Location* location_;
+  ::tigon::proto::tql::String* name_;
+  ::tigon::proto::tql::DataType* data_type_;
   union DefaultValueUnion {
     DefaultValueUnion() {}
     ::PROTOBUF_NAMESPACE_ID::int32 value_i32_;
@@ -682,23 +1333,23 @@ class ParameterDeclaration :
 };
 // -------------------------------------------------------------------
 
-class HTTPLoadMethod :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.HTTPLoadMethod) */ {
+class HTTPMethod :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.HTTPMethod) */ {
  public:
-  HTTPLoadMethod();
-  virtual ~HTTPLoadMethod();
+  HTTPMethod();
+  virtual ~HTTPMethod();
 
-  HTTPLoadMethod(const HTTPLoadMethod& from);
-  HTTPLoadMethod(HTTPLoadMethod&& from) noexcept
-    : HTTPLoadMethod() {
+  HTTPMethod(const HTTPMethod& from);
+  HTTPMethod(HTTPMethod&& from) noexcept
+    : HTTPMethod() {
     *this = ::std::move(from);
   }
 
-  inline HTTPLoadMethod& operator=(const HTTPLoadMethod& from) {
+  inline HTTPMethod& operator=(const HTTPMethod& from) {
     CopyFrom(from);
     return *this;
   }
-  inline HTTPLoadMethod& operator=(HTTPLoadMethod&& from) noexcept {
+  inline HTTPMethod& operator=(HTTPMethod&& from) noexcept {
     if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
       if (this != &from) InternalSwap(&from);
     } else {
@@ -713,20 +1364,20 @@ class HTTPLoadMethod :
   inline void* GetMaybeArenaPointer() const final {
     return MaybeArenaPtr();
   }
-  static const HTTPLoadMethod& default_instance();
+  static const HTTPMethod& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const HTTPLoadMethod* internal_default_instance() {
-    return reinterpret_cast<const HTTPLoadMethod*>(
-               &_HTTPLoadMethod_default_instance_);
+  static inline const HTTPMethod* internal_default_instance() {
+    return reinterpret_cast<const HTTPMethod*>(
+               &_HTTPMethod_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    2;
+    6;
 
-  friend void swap(HTTPLoadMethod& a, HTTPLoadMethod& b) {
+  friend void swap(HTTPMethod& a, HTTPMethod& b) {
     a.Swap(&b);
   }
-  inline void Swap(HTTPLoadMethod* other) {
+  inline void Swap(HTTPMethod* other) {
     if (other == this) return;
     if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
       InternalSwap(other);
@@ -734,7 +1385,7 @@ class HTTPLoadMethod :
       ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(HTTPLoadMethod* other) {
+  void UnsafeArenaSwap(HTTPMethod* other) {
     if (other == this) return;
     GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
@@ -742,17 +1393,17 @@ class HTTPLoadMethod :
 
   // implements Message ----------------------------------------------
 
-  inline HTTPLoadMethod* New() const final {
-    return CreateMaybeMessage<HTTPLoadMethod>(nullptr);
+  inline HTTPMethod* New() const final {
+    return CreateMaybeMessage<HTTPMethod>(nullptr);
   }
 
-  HTTPLoadMethod* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<HTTPLoadMethod>(arena);
+  HTTPMethod* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<HTTPMethod>(arena);
   }
   void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
     final;
-  void CopyFrom(const HTTPLoadMethod& from);
-  void MergeFrom(const HTTPLoadMethod& from);
+  void CopyFrom(const HTTPMethod& from);
+  void MergeFrom(const HTTPMethod& from);
   PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
   bool IsInitialized() const final;
 
@@ -767,13 +1418,13 @@ class HTTPLoadMethod :
   inline void SharedCtor();
   inline void SharedDtor();
   void SetCachedSize(int size) const;
-  void InternalSwap(HTTPLoadMethod* other);
+  void InternalSwap(HTTPMethod* other);
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.HTTPLoadMethod";
+    return "tigon.proto.tql.HTTPMethod";
   }
   protected:
-  explicit HTTPLoadMethod(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  explicit HTTPMethod(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   static void ArenaDtor(void* object);
   inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
@@ -793,44 +1444,37 @@ class HTTPLoadMethod :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kHttpUrlFieldNumber = 1,
-    kHttpMethodFieldNumber = 2,
+    kLocationFieldNumber = 1,
+    kVerbFieldNumber = 2,
   };
-  // string http_url = 1;
-  void clear_http_url();
-  const std::string& http_url() const;
-  void set_http_url(const std::string& value);
-  void set_http_url(std::string&& value);
-  void set_http_url(const char* value);
-  void set_http_url(const char* value, size_t size);
-  std::string* mutable_http_url();
-  std::string* release_http_url();
-  void set_allocated_http_url(std::string* http_url);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_http_url();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_http_url(
-      std::string* http_url);
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
   private:
-  const std::string& _internal_http_url() const;
-  void _internal_set_http_url(const std::string& value);
-  std::string* _internal_mutable_http_url();
+  bool _internal_has_location() const;
+  public:
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
+  private:
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
+  public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
+
+  // .tigon.proto.tql.HTTPVerb verb = 2;
+  void clear_verb();
+  ::tigon::proto::tql::HTTPVerb verb() const;
+  void set_verb(::tigon::proto::tql::HTTPVerb value);
+  private:
+  ::tigon::proto::tql::HTTPVerb _internal_verb() const;
+  void _internal_set_verb(::tigon::proto::tql::HTTPVerb value);
   public:
 
-  // .tigon.proto.tql.HTTPMethod http_method = 2;
-  void clear_http_method();
-  ::tigon::proto::tql::HTTPMethod http_method() const;
-  void set_http_method(::tigon::proto::tql::HTTPMethod value);
-  private:
-  ::tigon::proto::tql::HTTPMethod _internal_http_method() const;
-  void _internal_set_http_method(::tigon::proto::tql::HTTPMethod value);
-  public:
-
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.HTTPLoadMethod)
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.HTTPMethod)
  private:
   class _Internal;
 
@@ -838,30 +1482,30 @@ class HTTPLoadMethod :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr http_url_;
-  int http_method_;
+  ::tigon::proto::tql::Location* location_;
+  int verb_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
 // -------------------------------------------------------------------
 
-class FileLoadMethod :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.FileLoadMethod) */ {
+class HTTPURL :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.HTTPURL) */ {
  public:
-  FileLoadMethod();
-  virtual ~FileLoadMethod();
+  HTTPURL();
+  virtual ~HTTPURL();
 
-  FileLoadMethod(const FileLoadMethod& from);
-  FileLoadMethod(FileLoadMethod&& from) noexcept
-    : FileLoadMethod() {
+  HTTPURL(const HTTPURL& from);
+  HTTPURL(HTTPURL&& from) noexcept
+    : HTTPURL() {
     *this = ::std::move(from);
   }
 
-  inline FileLoadMethod& operator=(const FileLoadMethod& from) {
+  inline HTTPURL& operator=(const HTTPURL& from) {
     CopyFrom(from);
     return *this;
   }
-  inline FileLoadMethod& operator=(FileLoadMethod&& from) noexcept {
+  inline HTTPURL& operator=(HTTPURL&& from) noexcept {
     if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
       if (this != &from) InternalSwap(&from);
     } else {
@@ -876,20 +1520,20 @@ class FileLoadMethod :
   inline void* GetMaybeArenaPointer() const final {
     return MaybeArenaPtr();
   }
-  static const FileLoadMethod& default_instance();
+  static const HTTPURL& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const FileLoadMethod* internal_default_instance() {
-    return reinterpret_cast<const FileLoadMethod*>(
-               &_FileLoadMethod_default_instance_);
+  static inline const HTTPURL* internal_default_instance() {
+    return reinterpret_cast<const HTTPURL*>(
+               &_HTTPURL_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    7;
 
-  friend void swap(FileLoadMethod& a, FileLoadMethod& b) {
+  friend void swap(HTTPURL& a, HTTPURL& b) {
     a.Swap(&b);
   }
-  inline void Swap(FileLoadMethod* other) {
+  inline void Swap(HTTPURL* other) {
     if (other == this) return;
     if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
       InternalSwap(other);
@@ -897,7 +1541,7 @@ class FileLoadMethod :
       ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(FileLoadMethod* other) {
+  void UnsafeArenaSwap(HTTPURL* other) {
     if (other == this) return;
     GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
@@ -905,17 +1549,17 @@ class FileLoadMethod :
 
   // implements Message ----------------------------------------------
 
-  inline FileLoadMethod* New() const final {
-    return CreateMaybeMessage<FileLoadMethod>(nullptr);
+  inline HTTPURL* New() const final {
+    return CreateMaybeMessage<HTTPURL>(nullptr);
   }
 
-  FileLoadMethod* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<FileLoadMethod>(arena);
+  HTTPURL* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<HTTPURL>(arena);
   }
   void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
     final;
-  void CopyFrom(const FileLoadMethod& from);
-  void MergeFrom(const FileLoadMethod& from);
+  void CopyFrom(const HTTPURL& from);
+  void MergeFrom(const HTTPURL& from);
   PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
   bool IsInitialized() const final;
 
@@ -930,13 +1574,13 @@ class FileLoadMethod :
   inline void SharedCtor();
   inline void SharedDtor();
   void SetCachedSize(int size) const;
-  void InternalSwap(FileLoadMethod* other);
+  void InternalSwap(HTTPURL* other);
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.FileLoadMethod";
+    return "tigon.proto.tql.HTTPURL";
   }
   protected:
-  explicit FileLoadMethod(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  explicit HTTPURL(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   static void ArenaDtor(void* object);
   inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
@@ -955,7 +1599,47 @@ class FileLoadMethod :
 
   // accessors -------------------------------------------------------
 
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.FileLoadMethod)
+  enum : int {
+    kLocationFieldNumber = 1,
+    kUrlFieldNumber = 2,
+  };
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
+  private:
+  bool _internal_has_location() const;
+  public:
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
+  private:
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
+  public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
+
+  // .tigon.proto.tql.String url = 2;
+  bool has_url() const;
+  private:
+  bool _internal_has_url() const;
+  public:
+  void clear_url();
+  const ::tigon::proto::tql::String& url() const;
+  ::tigon::proto::tql::String* release_url();
+  ::tigon::proto::tql::String* mutable_url();
+  void set_allocated_url(::tigon::proto::tql::String* url);
+  private:
+  const ::tigon::proto::tql::String& _internal_url() const;
+  ::tigon::proto::tql::String* _internal_mutable_url();
+  public:
+  void unsafe_arena_set_allocated_url(
+      ::tigon::proto::tql::String* url);
+  ::tigon::proto::tql::String* unsafe_arena_release_url();
+
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.HTTPURL)
  private:
   class _Internal;
 
@@ -963,6 +1647,666 @@ class FileLoadMethod :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
+  ::tigon::proto::tql::Location* location_;
+  ::tigon::proto::tql::String* url_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_tql_2eproto;
+};
+// -------------------------------------------------------------------
+
+class HTTPAttribute :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.HTTPAttribute) */ {
+ public:
+  HTTPAttribute();
+  virtual ~HTTPAttribute();
+
+  HTTPAttribute(const HTTPAttribute& from);
+  HTTPAttribute(HTTPAttribute&& from) noexcept
+    : HTTPAttribute() {
+    *this = ::std::move(from);
+  }
+
+  inline HTTPAttribute& operator=(const HTTPAttribute& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline HTTPAttribute& operator=(HTTPAttribute&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const HTTPAttribute& default_instance();
+
+  enum AttributeCase {
+    kMethod = 1,
+    kUrl = 2,
+    ATTRIBUTE_NOT_SET = 0,
+  };
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const HTTPAttribute* internal_default_instance() {
+    return reinterpret_cast<const HTTPAttribute*>(
+               &_HTTPAttribute_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    8;
+
+  friend void swap(HTTPAttribute& a, HTTPAttribute& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(HTTPAttribute* other) {
+    if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(HTTPAttribute* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline HTTPAttribute* New() const final {
+    return CreateMaybeMessage<HTTPAttribute>(nullptr);
+  }
+
+  HTTPAttribute* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<HTTPAttribute>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
+    final;
+  void CopyFrom(const HTTPAttribute& from);
+  void MergeFrom(const HTTPAttribute& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  void DiscardUnknownFields();
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(HTTPAttribute* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "tigon.proto.tql.HTTPAttribute";
+  }
+  protected:
+  explicit HTTPAttribute(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kMethodFieldNumber = 1,
+    kUrlFieldNumber = 2,
+  };
+  // .tigon.proto.tql.HTTPMethod method = 1;
+  bool has_method() const;
+  private:
+  bool _internal_has_method() const;
+  public:
+  void clear_method();
+  const ::tigon::proto::tql::HTTPMethod& method() const;
+  ::tigon::proto::tql::HTTPMethod* release_method();
+  ::tigon::proto::tql::HTTPMethod* mutable_method();
+  void set_allocated_method(::tigon::proto::tql::HTTPMethod* method);
+  private:
+  const ::tigon::proto::tql::HTTPMethod& _internal_method() const;
+  ::tigon::proto::tql::HTTPMethod* _internal_mutable_method();
+  public:
+  void unsafe_arena_set_allocated_method(
+      ::tigon::proto::tql::HTTPMethod* method);
+  ::tigon::proto::tql::HTTPMethod* unsafe_arena_release_method();
+
+  // .tigon.proto.tql.HTTPURL url = 2;
+  bool has_url() const;
+  private:
+  bool _internal_has_url() const;
+  public:
+  void clear_url();
+  const ::tigon::proto::tql::HTTPURL& url() const;
+  ::tigon::proto::tql::HTTPURL* release_url();
+  ::tigon::proto::tql::HTTPURL* mutable_url();
+  void set_allocated_url(::tigon::proto::tql::HTTPURL* url);
+  private:
+  const ::tigon::proto::tql::HTTPURL& _internal_url() const;
+  ::tigon::proto::tql::HTTPURL* _internal_mutable_url();
+  public:
+  void unsafe_arena_set_allocated_url(
+      ::tigon::proto::tql::HTTPURL* url);
+  ::tigon::proto::tql::HTTPURL* unsafe_arena_release_url();
+
+  void clear_attribute();
+  AttributeCase attribute_case() const;
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.HTTPAttribute)
+ private:
+  class _Internal;
+  void set_has_method();
+  void set_has_url();
+
+  inline bool has_attribute() const;
+  inline void clear_has_attribute();
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  union AttributeUnion {
+    AttributeUnion() {}
+    ::tigon::proto::tql::HTTPMethod* method_;
+    ::tigon::proto::tql::HTTPURL* url_;
+  } attribute_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 _oneof_case_[1];
+
+  friend struct ::TableStruct_tql_2eproto;
+};
+// -------------------------------------------------------------------
+
+class HTTPAttributes :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.HTTPAttributes) */ {
+ public:
+  HTTPAttributes();
+  virtual ~HTTPAttributes();
+
+  HTTPAttributes(const HTTPAttributes& from);
+  HTTPAttributes(HTTPAttributes&& from) noexcept
+    : HTTPAttributes() {
+    *this = ::std::move(from);
+  }
+
+  inline HTTPAttributes& operator=(const HTTPAttributes& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline HTTPAttributes& operator=(HTTPAttributes&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const HTTPAttributes& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const HTTPAttributes* internal_default_instance() {
+    return reinterpret_cast<const HTTPAttributes*>(
+               &_HTTPAttributes_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    9;
+
+  friend void swap(HTTPAttributes& a, HTTPAttributes& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(HTTPAttributes* other) {
+    if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(HTTPAttributes* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline HTTPAttributes* New() const final {
+    return CreateMaybeMessage<HTTPAttributes>(nullptr);
+  }
+
+  HTTPAttributes* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<HTTPAttributes>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
+    final;
+  void CopyFrom(const HTTPAttributes& from);
+  void MergeFrom(const HTTPAttributes& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  void DiscardUnknownFields();
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(HTTPAttributes* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "tigon.proto.tql.HTTPAttributes";
+  }
+  protected:
+  explicit HTTPAttributes(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kAttributesFieldNumber = 2,
+    kLocationFieldNumber = 1,
+  };
+  // repeated .tigon.proto.tql.HTTPAttribute attributes = 2;
+  int attributes_size() const;
+  private:
+  int _internal_attributes_size() const;
+  public:
+  void clear_attributes();
+  ::tigon::proto::tql::HTTPAttribute* mutable_attributes(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::HTTPAttribute >*
+      mutable_attributes();
+  private:
+  const ::tigon::proto::tql::HTTPAttribute& _internal_attributes(int index) const;
+  ::tigon::proto::tql::HTTPAttribute* _internal_add_attributes();
+  public:
+  const ::tigon::proto::tql::HTTPAttribute& attributes(int index) const;
+  ::tigon::proto::tql::HTTPAttribute* add_attributes();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::HTTPAttribute >&
+      attributes() const;
+
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
+  private:
+  bool _internal_has_location() const;
+  public:
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
+  private:
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
+  public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
+
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.HTTPAttributes)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::HTTPAttribute > attributes_;
+  ::tigon::proto::tql::Location* location_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_tql_2eproto;
+};
+// -------------------------------------------------------------------
+
+class HTTPLoader :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.HTTPLoader) */ {
+ public:
+  HTTPLoader();
+  virtual ~HTTPLoader();
+
+  HTTPLoader(const HTTPLoader& from);
+  HTTPLoader(HTTPLoader&& from) noexcept
+    : HTTPLoader() {
+    *this = ::std::move(from);
+  }
+
+  inline HTTPLoader& operator=(const HTTPLoader& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline HTTPLoader& operator=(HTTPLoader&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const HTTPLoader& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const HTTPLoader* internal_default_instance() {
+    return reinterpret_cast<const HTTPLoader*>(
+               &_HTTPLoader_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    10;
+
+  friend void swap(HTTPLoader& a, HTTPLoader& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(HTTPLoader* other) {
+    if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(HTTPLoader* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline HTTPLoader* New() const final {
+    return CreateMaybeMessage<HTTPLoader>(nullptr);
+  }
+
+  HTTPLoader* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<HTTPLoader>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
+    final;
+  void CopyFrom(const HTTPLoader& from);
+  void MergeFrom(const HTTPLoader& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  void DiscardUnknownFields();
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(HTTPLoader* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "tigon.proto.tql.HTTPLoader";
+  }
+  protected:
+  explicit HTTPLoader(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kLocationFieldNumber = 1,
+    kAttributesFieldNumber = 2,
+  };
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
+  private:
+  bool _internal_has_location() const;
+  public:
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
+  private:
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
+  public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
+
+  // .tigon.proto.tql.HTTPAttributes attributes = 2;
+  bool has_attributes() const;
+  private:
+  bool _internal_has_attributes() const;
+  public:
+  void clear_attributes();
+  const ::tigon::proto::tql::HTTPAttributes& attributes() const;
+  ::tigon::proto::tql::HTTPAttributes* release_attributes();
+  ::tigon::proto::tql::HTTPAttributes* mutable_attributes();
+  void set_allocated_attributes(::tigon::proto::tql::HTTPAttributes* attributes);
+  private:
+  const ::tigon::proto::tql::HTTPAttributes& _internal_attributes() const;
+  ::tigon::proto::tql::HTTPAttributes* _internal_mutable_attributes();
+  public:
+  void unsafe_arena_set_allocated_attributes(
+      ::tigon::proto::tql::HTTPAttributes* attributes);
+  ::tigon::proto::tql::HTTPAttributes* unsafe_arena_release_attributes();
+
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.HTTPLoader)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::tigon::proto::tql::Location* location_;
+  ::tigon::proto::tql::HTTPAttributes* attributes_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_tql_2eproto;
+};
+// -------------------------------------------------------------------
+
+class FileLoader :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.FileLoader) */ {
+ public:
+  FileLoader();
+  virtual ~FileLoader();
+
+  FileLoader(const FileLoader& from);
+  FileLoader(FileLoader&& from) noexcept
+    : FileLoader() {
+    *this = ::std::move(from);
+  }
+
+  inline FileLoader& operator=(const FileLoader& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline FileLoader& operator=(FileLoader&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const FileLoader& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const FileLoader* internal_default_instance() {
+    return reinterpret_cast<const FileLoader*>(
+               &_FileLoader_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    11;
+
+  friend void swap(FileLoader& a, FileLoader& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(FileLoader* other) {
+    if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(FileLoader* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline FileLoader* New() const final {
+    return CreateMaybeMessage<FileLoader>(nullptr);
+  }
+
+  FileLoader* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<FileLoader>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
+    final;
+  void CopyFrom(const FileLoader& from);
+  void MergeFrom(const FileLoader& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  void DiscardUnknownFields();
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(FileLoader* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "tigon.proto.tql.FileLoader";
+  }
+  protected:
+  explicit FileLoader(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kLocationFieldNumber = 1,
+  };
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
+  private:
+  bool _internal_has_location() const;
+  public:
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
+  private:
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
+  public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
+
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.FileLoader)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::tigon::proto::tql::Location* location_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -1001,10 +2345,10 @@ class LoadStatement :
   }
   static const LoadStatement& default_instance();
 
-  enum LoadMethodCase {
-    kHttp = 2,
-    kFile = 3,
-    LOAD_METHOD_NOT_SET = 0,
+  enum MethodCase {
+    kHttp = 3,
+    kFile = 4,
+    METHOD_NOT_SET = 0,
   };
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
@@ -1013,7 +2357,7 @@ class LoadStatement :
                &_LoadStatement_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    12;
 
   friend void swap(LoadStatement& a, LoadStatement& b) {
     a.Swap(&b);
@@ -1085,92 +2429,105 @@ class LoadStatement :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kDataIdFieldNumber = 1,
-    kHttpFieldNumber = 2,
-    kFileFieldNumber = 3,
+    kLocationFieldNumber = 1,
+    kNameFieldNumber = 2,
+    kHttpFieldNumber = 3,
+    kFileFieldNumber = 4,
   };
-  // string data_id = 1;
-  void clear_data_id();
-  const std::string& data_id() const;
-  void set_data_id(const std::string& value);
-  void set_data_id(std::string&& value);
-  void set_data_id(const char* value);
-  void set_data_id(const char* value, size_t size);
-  std::string* mutable_data_id();
-  std::string* release_data_id();
-  void set_allocated_data_id(std::string* data_id);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_data_id();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_data_id(
-      std::string* data_id);
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
   private:
-  const std::string& _internal_data_id() const;
-  void _internal_set_data_id(const std::string& value);
-  std::string* _internal_mutable_data_id();
+  bool _internal_has_location() const;
   public:
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
+  private:
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
+  public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
 
-  // .tigon.proto.tql.HTTPLoadMethod http = 2;
+  // .tigon.proto.tql.String name = 2;
+  bool has_name() const;
+  private:
+  bool _internal_has_name() const;
+  public:
+  void clear_name();
+  const ::tigon::proto::tql::String& name() const;
+  ::tigon::proto::tql::String* release_name();
+  ::tigon::proto::tql::String* mutable_name();
+  void set_allocated_name(::tigon::proto::tql::String* name);
+  private:
+  const ::tigon::proto::tql::String& _internal_name() const;
+  ::tigon::proto::tql::String* _internal_mutable_name();
+  public:
+  void unsafe_arena_set_allocated_name(
+      ::tigon::proto::tql::String* name);
+  ::tigon::proto::tql::String* unsafe_arena_release_name();
+
+  // .tigon.proto.tql.HTTPLoader http = 3;
   bool has_http() const;
   private:
   bool _internal_has_http() const;
   public:
   void clear_http();
-  const ::tigon::proto::tql::HTTPLoadMethod& http() const;
-  ::tigon::proto::tql::HTTPLoadMethod* release_http();
-  ::tigon::proto::tql::HTTPLoadMethod* mutable_http();
-  void set_allocated_http(::tigon::proto::tql::HTTPLoadMethod* http);
+  const ::tigon::proto::tql::HTTPLoader& http() const;
+  ::tigon::proto::tql::HTTPLoader* release_http();
+  ::tigon::proto::tql::HTTPLoader* mutable_http();
+  void set_allocated_http(::tigon::proto::tql::HTTPLoader* http);
   private:
-  const ::tigon::proto::tql::HTTPLoadMethod& _internal_http() const;
-  ::tigon::proto::tql::HTTPLoadMethod* _internal_mutable_http();
+  const ::tigon::proto::tql::HTTPLoader& _internal_http() const;
+  ::tigon::proto::tql::HTTPLoader* _internal_mutable_http();
   public:
   void unsafe_arena_set_allocated_http(
-      ::tigon::proto::tql::HTTPLoadMethod* http);
-  ::tigon::proto::tql::HTTPLoadMethod* unsafe_arena_release_http();
+      ::tigon::proto::tql::HTTPLoader* http);
+  ::tigon::proto::tql::HTTPLoader* unsafe_arena_release_http();
 
-  // .tigon.proto.tql.FileLoadMethod file = 3;
+  // .tigon.proto.tql.FileLoader file = 4;
   bool has_file() const;
   private:
   bool _internal_has_file() const;
   public:
   void clear_file();
-  const ::tigon::proto::tql::FileLoadMethod& file() const;
-  ::tigon::proto::tql::FileLoadMethod* release_file();
-  ::tigon::proto::tql::FileLoadMethod* mutable_file();
-  void set_allocated_file(::tigon::proto::tql::FileLoadMethod* file);
+  const ::tigon::proto::tql::FileLoader& file() const;
+  ::tigon::proto::tql::FileLoader* release_file();
+  ::tigon::proto::tql::FileLoader* mutable_file();
+  void set_allocated_file(::tigon::proto::tql::FileLoader* file);
   private:
-  const ::tigon::proto::tql::FileLoadMethod& _internal_file() const;
-  ::tigon::proto::tql::FileLoadMethod* _internal_mutable_file();
+  const ::tigon::proto::tql::FileLoader& _internal_file() const;
+  ::tigon::proto::tql::FileLoader* _internal_mutable_file();
   public:
   void unsafe_arena_set_allocated_file(
-      ::tigon::proto::tql::FileLoadMethod* file);
-  ::tigon::proto::tql::FileLoadMethod* unsafe_arena_release_file();
+      ::tigon::proto::tql::FileLoader* file);
+  ::tigon::proto::tql::FileLoader* unsafe_arena_release_file();
 
-  void clear_load_method();
-  LoadMethodCase load_method_case() const;
+  void clear_method();
+  MethodCase method_case() const;
   // @@protoc_insertion_point(class_scope:tigon.proto.tql.LoadStatement)
  private:
   class _Internal;
   void set_has_http();
   void set_has_file();
 
-  inline bool has_load_method() const;
-  inline void clear_has_load_method();
+  inline bool has_method() const;
+  inline void clear_has_method();
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr data_id_;
-  union LoadMethodUnion {
-    LoadMethodUnion() {}
-    ::tigon::proto::tql::HTTPLoadMethod* http_;
-    ::tigon::proto::tql::FileLoadMethod* file_;
-  } load_method_;
+  ::tigon::proto::tql::Location* location_;
+  ::tigon::proto::tql::String* name_;
+  union MethodUnion {
+    MethodUnion() {}
+    ::tigon::proto::tql::HTTPLoader* http_;
+    ::tigon::proto::tql::FileLoader* file_;
+  } method_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::uint32 _oneof_case_[1];
 
@@ -1178,23 +2535,23 @@ class LoadStatement :
 };
 // -------------------------------------------------------------------
 
-class JSONExtract :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.JSONExtract) */ {
+class JSONPathExtract :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.JSONPathExtract) */ {
  public:
-  JSONExtract();
-  virtual ~JSONExtract();
+  JSONPathExtract();
+  virtual ~JSONPathExtract();
 
-  JSONExtract(const JSONExtract& from);
-  JSONExtract(JSONExtract&& from) noexcept
-    : JSONExtract() {
+  JSONPathExtract(const JSONPathExtract& from);
+  JSONPathExtract(JSONPathExtract&& from) noexcept
+    : JSONPathExtract() {
     *this = ::std::move(from);
   }
 
-  inline JSONExtract& operator=(const JSONExtract& from) {
+  inline JSONPathExtract& operator=(const JSONPathExtract& from) {
     CopyFrom(from);
     return *this;
   }
-  inline JSONExtract& operator=(JSONExtract&& from) noexcept {
+  inline JSONPathExtract& operator=(JSONPathExtract&& from) noexcept {
     if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
       if (this != &from) InternalSwap(&from);
     } else {
@@ -1209,20 +2566,20 @@ class JSONExtract :
   inline void* GetMaybeArenaPointer() const final {
     return MaybeArenaPtr();
   }
-  static const JSONExtract& default_instance();
+  static const JSONPathExtract& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const JSONExtract* internal_default_instance() {
-    return reinterpret_cast<const JSONExtract*>(
-               &_JSONExtract_default_instance_);
+  static inline const JSONPathExtract* internal_default_instance() {
+    return reinterpret_cast<const JSONPathExtract*>(
+               &_JSONPathExtract_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    13;
 
-  friend void swap(JSONExtract& a, JSONExtract& b) {
+  friend void swap(JSONPathExtract& a, JSONPathExtract& b) {
     a.Swap(&b);
   }
-  inline void Swap(JSONExtract* other) {
+  inline void Swap(JSONPathExtract* other) {
     if (other == this) return;
     if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
       InternalSwap(other);
@@ -1230,7 +2587,7 @@ class JSONExtract :
       ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(JSONExtract* other) {
+  void UnsafeArenaSwap(JSONPathExtract* other) {
     if (other == this) return;
     GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
@@ -1238,17 +2595,17 @@ class JSONExtract :
 
   // implements Message ----------------------------------------------
 
-  inline JSONExtract* New() const final {
-    return CreateMaybeMessage<JSONExtract>(nullptr);
+  inline JSONPathExtract* New() const final {
+    return CreateMaybeMessage<JSONPathExtract>(nullptr);
   }
 
-  JSONExtract* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<JSONExtract>(arena);
+  JSONPathExtract* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<JSONPathExtract>(arena);
   }
   void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
     final;
-  void CopyFrom(const JSONExtract& from);
-  void MergeFrom(const JSONExtract& from);
+  void CopyFrom(const JSONPathExtract& from);
+  void MergeFrom(const JSONPathExtract& from);
   PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
   bool IsInitialized() const final;
 
@@ -1263,136 +2620,13 @@ class JSONExtract :
   inline void SharedCtor();
   inline void SharedDtor();
   void SetCachedSize(int size) const;
-  void InternalSwap(JSONExtract* other);
+  void InternalSwap(JSONPathExtract* other);
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.JSONExtract";
+    return "tigon.proto.tql.JSONPathExtract";
   }
   protected:
-  explicit JSONExtract(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  static void ArenaDtor(void* object);
-  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  std::string GetTypeName() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.JSONExtract)
- private:
-  class _Internal;
-
-  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  friend struct ::TableStruct_tql_2eproto;
-};
-// -------------------------------------------------------------------
-
-class CSVColumn :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.CSVColumn) */ {
- public:
-  CSVColumn();
-  virtual ~CSVColumn();
-
-  CSVColumn(const CSVColumn& from);
-  CSVColumn(CSVColumn&& from) noexcept
-    : CSVColumn() {
-    *this = ::std::move(from);
-  }
-
-  inline CSVColumn& operator=(const CSVColumn& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline CSVColumn& operator=(CSVColumn&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
-    return GetArenaNoVirtual();
-  }
-  inline void* GetMaybeArenaPointer() const final {
-    return MaybeArenaPtr();
-  }
-  static const CSVColumn& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const CSVColumn* internal_default_instance() {
-    return reinterpret_cast<const CSVColumn*>(
-               &_CSVColumn_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    6;
-
-  friend void swap(CSVColumn& a, CSVColumn& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(CSVColumn* other) {
-    if (other == this) return;
-    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(CSVColumn* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline CSVColumn* New() const final {
-    return CreateMaybeMessage<CSVColumn>(nullptr);
-  }
-
-  CSVColumn* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<CSVColumn>(arena);
-  }
-  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
-    final;
-  void CopyFrom(const CSVColumn& from);
-  void MergeFrom(const CSVColumn& from);
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
-      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  void DiscardUnknownFields();
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  inline void SharedCtor();
-  inline void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(CSVColumn* other);
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.CSVColumn";
-  }
-  protected:
-  explicit CSVColumn(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  explicit JSONPathExtract(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   static void ArenaDtor(void* object);
   inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
@@ -1412,80 +2646,27 @@ class CSVColumn :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kColumnNameFieldNumber = 1,
-    kSourceNameFieldNumber = 3,
-    kColumnTypeFieldNumber = 2,
-    kSourceIndexFieldNumber = 4,
+    kLocationFieldNumber = 1,
   };
-  // string column_name = 1;
-  void clear_column_name();
-  const std::string& column_name() const;
-  void set_column_name(const std::string& value);
-  void set_column_name(std::string&& value);
-  void set_column_name(const char* value);
-  void set_column_name(const char* value, size_t size);
-  std::string* mutable_column_name();
-  std::string* release_column_name();
-  void set_allocated_column_name(std::string* column_name);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_column_name();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_column_name(
-      std::string* column_name);
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
   private:
-  const std::string& _internal_column_name() const;
-  void _internal_set_column_name(const std::string& value);
-  std::string* _internal_mutable_column_name();
+  bool _internal_has_location() const;
   public:
-
-  // string source_name = 3;
-  void clear_source_name();
-  const std::string& source_name() const;
-  void set_source_name(const std::string& value);
-  void set_source_name(std::string&& value);
-  void set_source_name(const char* value);
-  void set_source_name(const char* value, size_t size);
-  std::string* mutable_source_name();
-  std::string* release_source_name();
-  void set_allocated_source_name(std::string* source_name);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_source_name();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_source_name(
-      std::string* source_name);
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
   private:
-  const std::string& _internal_source_name() const;
-  void _internal_set_source_name(const std::string& value);
-  std::string* _internal_mutable_source_name();
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
   public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
 
-  // .tigon.proto.tql.Type column_type = 2;
-  void clear_column_type();
-  ::tigon::proto::tql::Type column_type() const;
-  void set_column_type(::tigon::proto::tql::Type value);
-  private:
-  ::tigon::proto::tql::Type _internal_column_type() const;
-  void _internal_set_column_type(::tigon::proto::tql::Type value);
-  public:
-
-  // int32 source_index = 4;
-  void clear_source_index();
-  ::PROTOBUF_NAMESPACE_ID::int32 source_index() const;
-  void set_source_index(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_source_index() const;
-  void _internal_set_source_index(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.CSVColumn)
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.JSONPathExtract)
  private:
   class _Internal;
 
@@ -1493,10 +2674,7 @@ class CSVColumn :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr column_name_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr source_name_;
-  int column_type_;
-  ::PROTOBUF_NAMESPACE_ID::int32 source_index_;
+  ::tigon::proto::tql::Location* location_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -1541,7 +2719,7 @@ class CSVExtract :
                &_CSVExtract_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    7;
+    14;
 
   friend void swap(CSVExtract& a, CSVExtract& b) {
     a.Swap(&b);
@@ -1613,25 +2791,25 @@ class CSVExtract :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kColumnsFieldNumber = 1,
+    kLocationFieldNumber = 1,
   };
-  // repeated .tigon.proto.tql.CSVColumn columns = 1;
-  int columns_size() const;
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
   private:
-  int _internal_columns_size() const;
+  bool _internal_has_location() const;
   public:
-  void clear_columns();
-  ::tigon::proto::tql::CSVColumn* mutable_columns(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::CSVColumn >*
-      mutable_columns();
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
   private:
-  const ::tigon::proto::tql::CSVColumn& _internal_columns(int index) const;
-  ::tigon::proto::tql::CSVColumn* _internal_add_columns();
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
   public:
-  const ::tigon::proto::tql::CSVColumn& columns(int index) const;
-  ::tigon::proto::tql::CSVColumn* add_columns();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::CSVColumn >&
-      columns() const;
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
 
   // @@protoc_insertion_point(class_scope:tigon.proto.tql.CSVExtract)
  private:
@@ -1641,130 +2819,7 @@ class CSVExtract :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::CSVColumn > columns_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  friend struct ::TableStruct_tql_2eproto;
-};
-// -------------------------------------------------------------------
-
-class ExtractMethod :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.ExtractMethod) */ {
- public:
-  ExtractMethod();
-  virtual ~ExtractMethod();
-
-  ExtractMethod(const ExtractMethod& from);
-  ExtractMethod(ExtractMethod&& from) noexcept
-    : ExtractMethod() {
-    *this = ::std::move(from);
-  }
-
-  inline ExtractMethod& operator=(const ExtractMethod& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline ExtractMethod& operator=(ExtractMethod&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
-    return GetArenaNoVirtual();
-  }
-  inline void* GetMaybeArenaPointer() const final {
-    return MaybeArenaPtr();
-  }
-  static const ExtractMethod& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const ExtractMethod* internal_default_instance() {
-    return reinterpret_cast<const ExtractMethod*>(
-               &_ExtractMethod_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    8;
-
-  friend void swap(ExtractMethod& a, ExtractMethod& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(ExtractMethod* other) {
-    if (other == this) return;
-    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(ExtractMethod* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline ExtractMethod* New() const final {
-    return CreateMaybeMessage<ExtractMethod>(nullptr);
-  }
-
-  ExtractMethod* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<ExtractMethod>(arena);
-  }
-  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
-    final;
-  void CopyFrom(const ExtractMethod& from);
-  void MergeFrom(const ExtractMethod& from);
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
-      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  void DiscardUnknownFields();
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  inline void SharedCtor();
-  inline void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(ExtractMethod* other);
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.ExtractMethod";
-  }
-  protected:
-  explicit ExtractMethod(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  static void ArenaDtor(void* object);
-  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  std::string GetTypeName() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.ExtractMethod)
- private:
-  class _Internal;
-
-  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
+  ::tigon::proto::tql::Location* location_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -1804,8 +2859,8 @@ class ExtractStatement :
   static const ExtractStatement& default_instance();
 
   enum MethodCase {
-    kJson = 3,
-    kCsv = 4,
+    kJSON = 4,
+    kCSV = 5,
     METHOD_NOT_SET = 0,
   };
 
@@ -1815,7 +2870,7 @@ class ExtractStatement :
                &_ExtractStatement_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    9;
+    15;
 
   friend void swap(ExtractStatement& a, ExtractStatement& b) {
     a.Swap(&b);
@@ -1887,80 +2942,85 @@ class ExtractStatement :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kExtractIdFieldNumber = 1,
-    kDataIdFieldNumber = 2,
-    kJsonFieldNumber = 3,
-    kCsvFieldNumber = 4,
+    kLocationFieldNumber = 1,
+    kNameFieldNumber = 2,
+    kDataNameFieldNumber = 3,
+    kJSONFieldNumber = 4,
+    kCSVFieldNumber = 5,
   };
-  // string extract_id = 1;
-  void clear_extract_id();
-  const std::string& extract_id() const;
-  void set_extract_id(const std::string& value);
-  void set_extract_id(std::string&& value);
-  void set_extract_id(const char* value);
-  void set_extract_id(const char* value, size_t size);
-  std::string* mutable_extract_id();
-  std::string* release_extract_id();
-  void set_allocated_extract_id(std::string* extract_id);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_extract_id();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_extract_id(
-      std::string* extract_id);
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
   private:
-  const std::string& _internal_extract_id() const;
-  void _internal_set_extract_id(const std::string& value);
-  std::string* _internal_mutable_extract_id();
+  bool _internal_has_location() const;
   public:
-
-  // string data_id = 2;
-  void clear_data_id();
-  const std::string& data_id() const;
-  void set_data_id(const std::string& value);
-  void set_data_id(std::string&& value);
-  void set_data_id(const char* value);
-  void set_data_id(const char* value, size_t size);
-  std::string* mutable_data_id();
-  std::string* release_data_id();
-  void set_allocated_data_id(std::string* data_id);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_data_id();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_data_id(
-      std::string* data_id);
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
   private:
-  const std::string& _internal_data_id() const;
-  void _internal_set_data_id(const std::string& value);
-  std::string* _internal_mutable_data_id();
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
   public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
 
-  // .tigon.proto.tql.JSONExtract json = 3;
+  // .tigon.proto.tql.String name = 2;
+  bool has_name() const;
+  private:
+  bool _internal_has_name() const;
+  public:
+  void clear_name();
+  const ::tigon::proto::tql::String& name() const;
+  ::tigon::proto::tql::String* release_name();
+  ::tigon::proto::tql::String* mutable_name();
+  void set_allocated_name(::tigon::proto::tql::String* name);
+  private:
+  const ::tigon::proto::tql::String& _internal_name() const;
+  ::tigon::proto::tql::String* _internal_mutable_name();
+  public:
+  void unsafe_arena_set_allocated_name(
+      ::tigon::proto::tql::String* name);
+  ::tigon::proto::tql::String* unsafe_arena_release_name();
+
+  // .tigon.proto.tql.String data_name = 3;
+  bool has_data_name() const;
+  private:
+  bool _internal_has_data_name() const;
+  public:
+  void clear_data_name();
+  const ::tigon::proto::tql::String& data_name() const;
+  ::tigon::proto::tql::String* release_data_name();
+  ::tigon::proto::tql::String* mutable_data_name();
+  void set_allocated_data_name(::tigon::proto::tql::String* data_name);
+  private:
+  const ::tigon::proto::tql::String& _internal_data_name() const;
+  ::tigon::proto::tql::String* _internal_mutable_data_name();
+  public:
+  void unsafe_arena_set_allocated_data_name(
+      ::tigon::proto::tql::String* data_name);
+  ::tigon::proto::tql::String* unsafe_arena_release_data_name();
+
+  // .tigon.proto.tql.JSONPathExtract JSON = 4;
   bool has_json() const;
   private:
   bool _internal_has_json() const;
   public:
   void clear_json();
-  const ::tigon::proto::tql::JSONExtract& json() const;
-  ::tigon::proto::tql::JSONExtract* release_json();
-  ::tigon::proto::tql::JSONExtract* mutable_json();
-  void set_allocated_json(::tigon::proto::tql::JSONExtract* json);
+  const ::tigon::proto::tql::JSONPathExtract& json() const;
+  ::tigon::proto::tql::JSONPathExtract* release_json();
+  ::tigon::proto::tql::JSONPathExtract* mutable_json();
+  void set_allocated_json(::tigon::proto::tql::JSONPathExtract* json);
   private:
-  const ::tigon::proto::tql::JSONExtract& _internal_json() const;
-  ::tigon::proto::tql::JSONExtract* _internal_mutable_json();
+  const ::tigon::proto::tql::JSONPathExtract& _internal_json() const;
+  ::tigon::proto::tql::JSONPathExtract* _internal_mutable_json();
   public:
   void unsafe_arena_set_allocated_json(
-      ::tigon::proto::tql::JSONExtract* json);
-  ::tigon::proto::tql::JSONExtract* unsafe_arena_release_json();
+      ::tigon::proto::tql::JSONPathExtract* json);
+  ::tigon::proto::tql::JSONPathExtract* unsafe_arena_release_json();
 
-  // .tigon.proto.tql.CSVExtract csv = 4;
+  // .tigon.proto.tql.CSVExtract CSV = 5;
   bool has_csv() const;
   private:
   bool _internal_has_csv() const;
@@ -1993,11 +3053,12 @@ class ExtractStatement :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr extract_id_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr data_id_;
+  ::tigon::proto::tql::Location* location_;
+  ::tigon::proto::tql::String* name_;
+  ::tigon::proto::tql::String* data_name_;
   union MethodUnion {
     MethodUnion() {}
-    ::tigon::proto::tql::JSONExtract* json_;
+    ::tigon::proto::tql::JSONPathExtract* json_;
     ::tigon::proto::tql::CSVExtract* csv_;
   } method_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
@@ -2007,23 +3068,23 @@ class ExtractStatement :
 };
 // -------------------------------------------------------------------
 
-class VizColorPalette :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.VizColorPalette) */ {
+class VizType :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.VizType) */ {
  public:
-  VizColorPalette();
-  virtual ~VizColorPalette();
+  VizType();
+  virtual ~VizType();
 
-  VizColorPalette(const VizColorPalette& from);
-  VizColorPalette(VizColorPalette&& from) noexcept
-    : VizColorPalette() {
+  VizType(const VizType& from);
+  VizType(VizType&& from) noexcept
+    : VizType() {
     *this = ::std::move(from);
   }
 
-  inline VizColorPalette& operator=(const VizColorPalette& from) {
+  inline VizType& operator=(const VizType& from) {
     CopyFrom(from);
     return *this;
   }
-  inline VizColorPalette& operator=(VizColorPalette&& from) noexcept {
+  inline VizType& operator=(VizType&& from) noexcept {
     if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
       if (this != &from) InternalSwap(&from);
     } else {
@@ -2038,20 +3099,20 @@ class VizColorPalette :
   inline void* GetMaybeArenaPointer() const final {
     return MaybeArenaPtr();
   }
-  static const VizColorPalette& default_instance();
+  static const VizType& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const VizColorPalette* internal_default_instance() {
-    return reinterpret_cast<const VizColorPalette*>(
-               &_VizColorPalette_default_instance_);
+  static inline const VizType* internal_default_instance() {
+    return reinterpret_cast<const VizType*>(
+               &_VizType_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    10;
+    16;
 
-  friend void swap(VizColorPalette& a, VizColorPalette& b) {
+  friend void swap(VizType& a, VizType& b) {
     a.Swap(&b);
   }
-  inline void Swap(VizColorPalette* other) {
+  inline void Swap(VizType* other) {
     if (other == this) return;
     if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
       InternalSwap(other);
@@ -2059,7 +3120,7 @@ class VizColorPalette :
       ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(VizColorPalette* other) {
+  void UnsafeArenaSwap(VizType* other) {
     if (other == this) return;
     GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
     InternalSwap(other);
@@ -2067,17 +3128,17 @@ class VizColorPalette :
 
   // implements Message ----------------------------------------------
 
-  inline VizColorPalette* New() const final {
-    return CreateMaybeMessage<VizColorPalette>(nullptr);
+  inline VizType* New() const final {
+    return CreateMaybeMessage<VizType>(nullptr);
   }
 
-  VizColorPalette* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<VizColorPalette>(arena);
+  VizType* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<VizType>(arena);
   }
   void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
     final;
-  void CopyFrom(const VizColorPalette& from);
-  void MergeFrom(const VizColorPalette& from);
+  void CopyFrom(const VizType& from);
+  void MergeFrom(const VizType& from);
   PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
   bool IsInitialized() const final;
 
@@ -2092,13 +3153,13 @@ class VizColorPalette :
   inline void SharedCtor();
   inline void SharedDtor();
   void SetCachedSize(int size) const;
-  void InternalSwap(VizColorPalette* other);
+  void InternalSwap(VizType* other);
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.VizColorPalette";
+    return "tigon.proto.tql.VizType";
   }
   protected:
-  explicit VizColorPalette(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  explicit VizType(::PROTOBUF_NAMESPACE_ID::Arena* arena);
   private:
   static void ArenaDtor(void* object);
   inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
@@ -2118,57 +3179,37 @@ class VizColorPalette :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kPaletteFieldNumber = 2,
-    kColorTargetFieldNumber = 1,
+    kLocationFieldNumber = 1,
+    kTypeFieldNumber = 2,
   };
-  // repeated fixed32 palette = 2;
-  int palette_size() const;
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
   private:
-  int _internal_palette_size() const;
+  bool _internal_has_location() const;
   public:
-  void clear_palette();
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
   private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_palette(int index) const;
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
-      _internal_palette() const;
-  void _internal_add_palette(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
-      _internal_mutable_palette();
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
   public:
-  ::PROTOBUF_NAMESPACE_ID::uint32 palette(int index) const;
-  void set_palette(int index, ::PROTOBUF_NAMESPACE_ID::uint32 value);
-  void add_palette(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
-      palette() const;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
-      mutable_palette();
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
 
-  // string color_target = 1;
-  void clear_color_target();
-  const std::string& color_target() const;
-  void set_color_target(const std::string& value);
-  void set_color_target(std::string&& value);
-  void set_color_target(const char* value);
-  void set_color_target(const char* value, size_t size);
-  std::string* mutable_color_target();
-  std::string* release_color_target();
-  void set_allocated_color_target(std::string* color_target);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_color_target();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_color_target(
-      std::string* color_target);
+  // .tigon.proto.tql.VizTypeType type = 2;
+  void clear_type();
+  ::tigon::proto::tql::VizTypeType type() const;
+  void set_type(::tigon::proto::tql::VizTypeType value);
   private:
-  const std::string& _internal_color_target() const;
-  void _internal_set_color_target(const std::string& value);
-  std::string* _internal_mutable_color_target();
+  ::tigon::proto::tql::VizTypeType _internal_type() const;
+  void _internal_set_type(::tigon::proto::tql::VizTypeType value);
   public:
 
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.VizColorPalette)
+  // @@protoc_insertion_point(class_scope:tigon.proto.tql.VizType)
  private:
   class _Internal;
 
@@ -2176,903 +3217,8 @@ class VizColorPalette :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 > palette_;
-  mutable std::atomic<int> _palette_cached_byte_size_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr color_target_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  friend struct ::TableStruct_tql_2eproto;
-};
-// -------------------------------------------------------------------
-
-class UInt32 :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.UInt32) */ {
- public:
-  UInt32();
-  virtual ~UInt32();
-
-  UInt32(const UInt32& from);
-  UInt32(UInt32&& from) noexcept
-    : UInt32() {
-    *this = ::std::move(from);
-  }
-
-  inline UInt32& operator=(const UInt32& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline UInt32& operator=(UInt32&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
-    return GetArenaNoVirtual();
-  }
-  inline void* GetMaybeArenaPointer() const final {
-    return MaybeArenaPtr();
-  }
-  static const UInt32& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const UInt32* internal_default_instance() {
-    return reinterpret_cast<const UInt32*>(
-               &_UInt32_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    11;
-
-  friend void swap(UInt32& a, UInt32& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(UInt32* other) {
-    if (other == this) return;
-    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(UInt32* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline UInt32* New() const final {
-    return CreateMaybeMessage<UInt32>(nullptr);
-  }
-
-  UInt32* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<UInt32>(arena);
-  }
-  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
-    final;
-  void CopyFrom(const UInt32& from);
-  void MergeFrom(const UInt32& from);
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
-      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  void DiscardUnknownFields();
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  inline void SharedCtor();
-  inline void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(UInt32* other);
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.UInt32";
-  }
-  protected:
-  explicit UInt32(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  static void ArenaDtor(void* object);
-  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  std::string GetTypeName() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kValueFieldNumber = 1,
-  };
-  // uint32 value = 1;
-  void clear_value();
-  ::PROTOBUF_NAMESPACE_ID::uint32 value() const;
-  void set_value(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_value() const;
-  void _internal_set_value(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  public:
-
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.UInt32)
- private:
-  class _Internal;
-
-  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 value_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  friend struct ::TableStruct_tql_2eproto;
-};
-// -------------------------------------------------------------------
-
-class VizGridArea :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.VizGridArea) */ {
- public:
-  VizGridArea();
-  virtual ~VizGridArea();
-
-  VizGridArea(const VizGridArea& from);
-  VizGridArea(VizGridArea&& from) noexcept
-    : VizGridArea() {
-    *this = ::std::move(from);
-  }
-
-  inline VizGridArea& operator=(const VizGridArea& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline VizGridArea& operator=(VizGridArea&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
-    return GetArenaNoVirtual();
-  }
-  inline void* GetMaybeArenaPointer() const final {
-    return MaybeArenaPtr();
-  }
-  static const VizGridArea& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const VizGridArea* internal_default_instance() {
-    return reinterpret_cast<const VizGridArea*>(
-               &_VizGridArea_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    12;
-
-  friend void swap(VizGridArea& a, VizGridArea& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(VizGridArea* other) {
-    if (other == this) return;
-    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(VizGridArea* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline VizGridArea* New() const final {
-    return CreateMaybeMessage<VizGridArea>(nullptr);
-  }
-
-  VizGridArea* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<VizGridArea>(arena);
-  }
-  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
-    final;
-  void CopyFrom(const VizGridArea& from);
-  void MergeFrom(const VizGridArea& from);
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
-      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  void DiscardUnknownFields();
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  inline void SharedCtor();
-  inline void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(VizGridArea* other);
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.VizGridArea";
-  }
-  protected:
-  explicit VizGridArea(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  static void ArenaDtor(void* object);
-  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  std::string GetTypeName() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kWidthFieldNumber = 1,
-    kHeightFieldNumber = 2,
-    kOffsetXFieldNumber = 3,
-    kOffsetYFieldNumber = 4,
-  };
-  // .tigon.proto.tql.UInt32 width = 1;
-  bool has_width() const;
-  private:
-  bool _internal_has_width() const;
-  public:
-  void clear_width();
-  const ::tigon::proto::tql::UInt32& width() const;
-  ::tigon::proto::tql::UInt32* release_width();
-  ::tigon::proto::tql::UInt32* mutable_width();
-  void set_allocated_width(::tigon::proto::tql::UInt32* width);
-  private:
-  const ::tigon::proto::tql::UInt32& _internal_width() const;
-  ::tigon::proto::tql::UInt32* _internal_mutable_width();
-  public:
-  void unsafe_arena_set_allocated_width(
-      ::tigon::proto::tql::UInt32* width);
-  ::tigon::proto::tql::UInt32* unsafe_arena_release_width();
-
-  // .tigon.proto.tql.UInt32 height = 2;
-  bool has_height() const;
-  private:
-  bool _internal_has_height() const;
-  public:
-  void clear_height();
-  const ::tigon::proto::tql::UInt32& height() const;
-  ::tigon::proto::tql::UInt32* release_height();
-  ::tigon::proto::tql::UInt32* mutable_height();
-  void set_allocated_height(::tigon::proto::tql::UInt32* height);
-  private:
-  const ::tigon::proto::tql::UInt32& _internal_height() const;
-  ::tigon::proto::tql::UInt32* _internal_mutable_height();
-  public:
-  void unsafe_arena_set_allocated_height(
-      ::tigon::proto::tql::UInt32* height);
-  ::tigon::proto::tql::UInt32* unsafe_arena_release_height();
-
-  // .tigon.proto.tql.UInt32 offsetX = 3;
-  bool has_offsetx() const;
-  private:
-  bool _internal_has_offsetx() const;
-  public:
-  void clear_offsetx();
-  const ::tigon::proto::tql::UInt32& offsetx() const;
-  ::tigon::proto::tql::UInt32* release_offsetx();
-  ::tigon::proto::tql::UInt32* mutable_offsetx();
-  void set_allocated_offsetx(::tigon::proto::tql::UInt32* offsetx);
-  private:
-  const ::tigon::proto::tql::UInt32& _internal_offsetx() const;
-  ::tigon::proto::tql::UInt32* _internal_mutable_offsetx();
-  public:
-  void unsafe_arena_set_allocated_offsetx(
-      ::tigon::proto::tql::UInt32* offsetx);
-  ::tigon::proto::tql::UInt32* unsafe_arena_release_offsetx();
-
-  // .tigon.proto.tql.UInt32 offsetY = 4;
-  bool has_offsety() const;
-  private:
-  bool _internal_has_offsety() const;
-  public:
-  void clear_offsety();
-  const ::tigon::proto::tql::UInt32& offsety() const;
-  ::tigon::proto::tql::UInt32* release_offsety();
-  ::tigon::proto::tql::UInt32* mutable_offsety();
-  void set_allocated_offsety(::tigon::proto::tql::UInt32* offsety);
-  private:
-  const ::tigon::proto::tql::UInt32& _internal_offsety() const;
-  ::tigon::proto::tql::UInt32* _internal_mutable_offsety();
-  public:
-  void unsafe_arena_set_allocated_offsety(
-      ::tigon::proto::tql::UInt32* offsety);
-  ::tigon::proto::tql::UInt32* unsafe_arena_release_offsety();
-
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.VizGridArea)
- private:
-  class _Internal;
-
-  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  ::tigon::proto::tql::UInt32* width_;
-  ::tigon::proto::tql::UInt32* height_;
-  ::tigon::proto::tql::UInt32* offsetx_;
-  ::tigon::proto::tql::UInt32* offsety_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  friend struct ::TableStruct_tql_2eproto;
-};
-// -------------------------------------------------------------------
-
-class VizResponsiveGridArea :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.VizResponsiveGridArea) */ {
- public:
-  VizResponsiveGridArea();
-  virtual ~VizResponsiveGridArea();
-
-  VizResponsiveGridArea(const VizResponsiveGridArea& from);
-  VizResponsiveGridArea(VizResponsiveGridArea&& from) noexcept
-    : VizResponsiveGridArea() {
-    *this = ::std::move(from);
-  }
-
-  inline VizResponsiveGridArea& operator=(const VizResponsiveGridArea& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline VizResponsiveGridArea& operator=(VizResponsiveGridArea&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
-    return GetArenaNoVirtual();
-  }
-  inline void* GetMaybeArenaPointer() const final {
-    return MaybeArenaPtr();
-  }
-  static const VizResponsiveGridArea& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const VizResponsiveGridArea* internal_default_instance() {
-    return reinterpret_cast<const VizResponsiveGridArea*>(
-               &_VizResponsiveGridArea_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    13;
-
-  friend void swap(VizResponsiveGridArea& a, VizResponsiveGridArea& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(VizResponsiveGridArea* other) {
-    if (other == this) return;
-    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(VizResponsiveGridArea* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline VizResponsiveGridArea* New() const final {
-    return CreateMaybeMessage<VizResponsiveGridArea>(nullptr);
-  }
-
-  VizResponsiveGridArea* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<VizResponsiveGridArea>(arena);
-  }
-  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
-    final;
-  void CopyFrom(const VizResponsiveGridArea& from);
-  void MergeFrom(const VizResponsiveGridArea& from);
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
-      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  void DiscardUnknownFields();
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  inline void SharedCtor();
-  inline void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(VizResponsiveGridArea* other);
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.VizResponsiveGridArea";
-  }
-  protected:
-  explicit VizResponsiveGridArea(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  static void ArenaDtor(void* object);
-  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  std::string GetTypeName() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kWildcardFieldNumber = 1,
-    kSmallFieldNumber = 2,
-    kMediumFieldNumber = 3,
-    kLargeFieldNumber = 4,
-    kXlargeFieldNumber = 5,
-  };
-  // .tigon.proto.tql.VizGridArea wildcard = 1;
-  bool has_wildcard() const;
-  private:
-  bool _internal_has_wildcard() const;
-  public:
-  void clear_wildcard();
-  const ::tigon::proto::tql::VizGridArea& wildcard() const;
-  ::tigon::proto::tql::VizGridArea* release_wildcard();
-  ::tigon::proto::tql::VizGridArea* mutable_wildcard();
-  void set_allocated_wildcard(::tigon::proto::tql::VizGridArea* wildcard);
-  private:
-  const ::tigon::proto::tql::VizGridArea& _internal_wildcard() const;
-  ::tigon::proto::tql::VizGridArea* _internal_mutable_wildcard();
-  public:
-  void unsafe_arena_set_allocated_wildcard(
-      ::tigon::proto::tql::VizGridArea* wildcard);
-  ::tigon::proto::tql::VizGridArea* unsafe_arena_release_wildcard();
-
-  // .tigon.proto.tql.VizGridArea small = 2;
-  bool has_small() const;
-  private:
-  bool _internal_has_small() const;
-  public:
-  void clear_small();
-  const ::tigon::proto::tql::VizGridArea& small() const;
-  ::tigon::proto::tql::VizGridArea* release_small();
-  ::tigon::proto::tql::VizGridArea* mutable_small();
-  void set_allocated_small(::tigon::proto::tql::VizGridArea* small);
-  private:
-  const ::tigon::proto::tql::VizGridArea& _internal_small() const;
-  ::tigon::proto::tql::VizGridArea* _internal_mutable_small();
-  public:
-  void unsafe_arena_set_allocated_small(
-      ::tigon::proto::tql::VizGridArea* small);
-  ::tigon::proto::tql::VizGridArea* unsafe_arena_release_small();
-
-  // .tigon.proto.tql.VizGridArea medium = 3;
-  bool has_medium() const;
-  private:
-  bool _internal_has_medium() const;
-  public:
-  void clear_medium();
-  const ::tigon::proto::tql::VizGridArea& medium() const;
-  ::tigon::proto::tql::VizGridArea* release_medium();
-  ::tigon::proto::tql::VizGridArea* mutable_medium();
-  void set_allocated_medium(::tigon::proto::tql::VizGridArea* medium);
-  private:
-  const ::tigon::proto::tql::VizGridArea& _internal_medium() const;
-  ::tigon::proto::tql::VizGridArea* _internal_mutable_medium();
-  public:
-  void unsafe_arena_set_allocated_medium(
-      ::tigon::proto::tql::VizGridArea* medium);
-  ::tigon::proto::tql::VizGridArea* unsafe_arena_release_medium();
-
-  // .tigon.proto.tql.VizGridArea large = 4;
-  bool has_large() const;
-  private:
-  bool _internal_has_large() const;
-  public:
-  void clear_large();
-  const ::tigon::proto::tql::VizGridArea& large() const;
-  ::tigon::proto::tql::VizGridArea* release_large();
-  ::tigon::proto::tql::VizGridArea* mutable_large();
-  void set_allocated_large(::tigon::proto::tql::VizGridArea* large);
-  private:
-  const ::tigon::proto::tql::VizGridArea& _internal_large() const;
-  ::tigon::proto::tql::VizGridArea* _internal_mutable_large();
-  public:
-  void unsafe_arena_set_allocated_large(
-      ::tigon::proto::tql::VizGridArea* large);
-  ::tigon::proto::tql::VizGridArea* unsafe_arena_release_large();
-
-  // .tigon.proto.tql.VizGridArea xlarge = 5;
-  bool has_xlarge() const;
-  private:
-  bool _internal_has_xlarge() const;
-  public:
-  void clear_xlarge();
-  const ::tigon::proto::tql::VizGridArea& xlarge() const;
-  ::tigon::proto::tql::VizGridArea* release_xlarge();
-  ::tigon::proto::tql::VizGridArea* mutable_xlarge();
-  void set_allocated_xlarge(::tigon::proto::tql::VizGridArea* xlarge);
-  private:
-  const ::tigon::proto::tql::VizGridArea& _internal_xlarge() const;
-  ::tigon::proto::tql::VizGridArea* _internal_mutable_xlarge();
-  public:
-  void unsafe_arena_set_allocated_xlarge(
-      ::tigon::proto::tql::VizGridArea* xlarge);
-  ::tigon::proto::tql::VizGridArea* unsafe_arena_release_xlarge();
-
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.VizResponsiveGridArea)
- private:
-  class _Internal;
-
-  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  ::tigon::proto::tql::VizGridArea* wildcard_;
-  ::tigon::proto::tql::VizGridArea* small_;
-  ::tigon::proto::tql::VizGridArea* medium_;
-  ::tigon::proto::tql::VizGridArea* large_;
-  ::tigon::proto::tql::VizGridArea* xlarge_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  friend struct ::TableStruct_tql_2eproto;
-};
-// -------------------------------------------------------------------
-
-class VizAxis :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.VizAxis) */ {
- public:
-  VizAxis();
-  virtual ~VizAxis();
-
-  VizAxis(const VizAxis& from);
-  VizAxis(VizAxis&& from) noexcept
-    : VizAxis() {
-    *this = ::std::move(from);
-  }
-
-  inline VizAxis& operator=(const VizAxis& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline VizAxis& operator=(VizAxis&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
-    return GetArenaNoVirtual();
-  }
-  inline void* GetMaybeArenaPointer() const final {
-    return MaybeArenaPtr();
-  }
-  static const VizAxis& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const VizAxis* internal_default_instance() {
-    return reinterpret_cast<const VizAxis*>(
-               &_VizAxis_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    14;
-
-  friend void swap(VizAxis& a, VizAxis& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(VizAxis* other) {
-    if (other == this) return;
-    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(VizAxis* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline VizAxis* New() const final {
-    return CreateMaybeMessage<VizAxis>(nullptr);
-  }
-
-  VizAxis* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<VizAxis>(arena);
-  }
-  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
-    final;
-  void CopyFrom(const VizAxis& from);
-  void MergeFrom(const VizAxis& from);
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
-      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  void DiscardUnknownFields();
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  inline void SharedCtor();
-  inline void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(VizAxis* other);
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.VizAxis";
-  }
-  protected:
-  explicit VizAxis(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  static void ArenaDtor(void* object);
-  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  std::string GetTypeName() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kColumnFieldNumber = 1,
-    kScaleFieldNumber = 2,
-  };
-  // string column = 1;
-  void clear_column();
-  const std::string& column() const;
-  void set_column(const std::string& value);
-  void set_column(std::string&& value);
-  void set_column(const char* value);
-  void set_column(const char* value, size_t size);
-  std::string* mutable_column();
-  std::string* release_column();
-  void set_allocated_column(std::string* column);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_column();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_column(
-      std::string* column);
-  private:
-  const std::string& _internal_column() const;
-  void _internal_set_column(const std::string& value);
-  std::string* _internal_mutable_column();
-  public:
-
-  // .tigon.proto.tql.VizAxisScale scale = 2;
-  void clear_scale();
-  ::tigon::proto::tql::VizAxisScale scale() const;
-  void set_scale(::tigon::proto::tql::VizAxisScale value);
-  private:
-  ::tigon::proto::tql::VizAxisScale _internal_scale() const;
-  void _internal_set_scale(::tigon::proto::tql::VizAxisScale value);
-  public:
-
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.VizAxis)
- private:
-  class _Internal;
-
-  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr column_;
-  int scale_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  friend struct ::TableStruct_tql_2eproto;
-};
-// -------------------------------------------------------------------
-
-class VizAxes :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.tql.VizAxes) */ {
- public:
-  VizAxes();
-  virtual ~VizAxes();
-
-  VizAxes(const VizAxes& from);
-  VizAxes(VizAxes&& from) noexcept
-    : VizAxes() {
-    *this = ::std::move(from);
-  }
-
-  inline VizAxes& operator=(const VizAxes& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline VizAxes& operator=(VizAxes&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
-    return GetArenaNoVirtual();
-  }
-  inline void* GetMaybeArenaPointer() const final {
-    return MaybeArenaPtr();
-  }
-  static const VizAxes& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const VizAxes* internal_default_instance() {
-    return reinterpret_cast<const VizAxes*>(
-               &_VizAxes_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    15;
-
-  friend void swap(VizAxes& a, VizAxes& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(VizAxes* other) {
-    if (other == this) return;
-    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(VizAxes* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline VizAxes* New() const final {
-    return CreateMaybeMessage<VizAxes>(nullptr);
-  }
-
-  VizAxes* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<VizAxes>(arena);
-  }
-  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
-    final;
-  void CopyFrom(const VizAxes& from);
-  void MergeFrom(const VizAxes& from);
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
-      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  void DiscardUnknownFields();
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  inline void SharedCtor();
-  inline void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(VizAxes* other);
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.tql.VizAxes";
-  }
-  protected:
-  explicit VizAxes(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  static void ArenaDtor(void* object);
-  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  std::string GetTypeName() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kXFieldNumber = 1,
-    kYFieldNumber = 2,
-  };
-  // .tigon.proto.tql.VizAxis x = 1;
-  bool has_x() const;
-  private:
-  bool _internal_has_x() const;
-  public:
-  void clear_x();
-  const ::tigon::proto::tql::VizAxis& x() const;
-  ::tigon::proto::tql::VizAxis* release_x();
-  ::tigon::proto::tql::VizAxis* mutable_x();
-  void set_allocated_x(::tigon::proto::tql::VizAxis* x);
-  private:
-  const ::tigon::proto::tql::VizAxis& _internal_x() const;
-  ::tigon::proto::tql::VizAxis* _internal_mutable_x();
-  public:
-  void unsafe_arena_set_allocated_x(
-      ::tigon::proto::tql::VizAxis* x);
-  ::tigon::proto::tql::VizAxis* unsafe_arena_release_x();
-
-  // .tigon.proto.tql.VizAxis y = 2;
-  bool has_y() const;
-  private:
-  bool _internal_has_y() const;
-  public:
-  void clear_y();
-  const ::tigon::proto::tql::VizAxis& y() const;
-  ::tigon::proto::tql::VizAxis* release_y();
-  ::tigon::proto::tql::VizAxis* mutable_y();
-  void set_allocated_y(::tigon::proto::tql::VizAxis* y);
-  private:
-  const ::tigon::proto::tql::VizAxis& _internal_y() const;
-  ::tigon::proto::tql::VizAxis* _internal_mutable_y();
-  public:
-  void unsafe_arena_set_allocated_y(
-      ::tigon::proto::tql::VizAxis* y);
-  ::tigon::proto::tql::VizAxis* unsafe_arena_release_y();
-
-  // @@protoc_insertion_point(class_scope:tigon.proto.tql.VizAxes)
- private:
-  class _Internal;
-
-  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  ::tigon::proto::tql::VizAxis* x_;
-  ::tigon::proto::tql::VizAxis* y_;
+  ::tigon::proto::tql::Location* location_;
+  int type_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -3117,7 +3263,7 @@ class VizStatement :
                &_VizStatement_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    16;
+    17;
 
   friend void swap(VizStatement& a, VizStatement& b) {
     a.Swap(&b);
@@ -3189,132 +3335,82 @@ class VizStatement :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kVizIdFieldNumber = 1,
-    kQueryIdFieldNumber = 4,
-    kTitleFieldNumber = 5,
-    kAreaFieldNumber = 7,
-    kAxesFieldNumber = 9,
-    kVizTypeFieldNumber = 2,
+    kLocationFieldNumber = 1,
+    kNameFieldNumber = 2,
+    kQueryNameFieldNumber = 3,
+    kVizTypeFieldNumber = 4,
   };
-  // string viz_id = 1;
-  void clear_viz_id();
-  const std::string& viz_id() const;
-  void set_viz_id(const std::string& value);
-  void set_viz_id(std::string&& value);
-  void set_viz_id(const char* value);
-  void set_viz_id(const char* value, size_t size);
-  std::string* mutable_viz_id();
-  std::string* release_viz_id();
-  void set_allocated_viz_id(std::string* viz_id);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_viz_id();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_viz_id(
-      std::string* viz_id);
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
   private:
-  const std::string& _internal_viz_id() const;
-  void _internal_set_viz_id(const std::string& value);
-  std::string* _internal_mutable_viz_id();
+  bool _internal_has_location() const;
   public:
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
+  private:
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
+  public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
 
-  // string query_id = 4;
-  void clear_query_id();
-  const std::string& query_id() const;
-  void set_query_id(const std::string& value);
-  void set_query_id(std::string&& value);
-  void set_query_id(const char* value);
-  void set_query_id(const char* value, size_t size);
-  std::string* mutable_query_id();
-  std::string* release_query_id();
-  void set_allocated_query_id(std::string* query_id);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_query_id();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_query_id(
-      std::string* query_id);
+  // .tigon.proto.tql.String name = 2;
+  bool has_name() const;
   private:
-  const std::string& _internal_query_id() const;
-  void _internal_set_query_id(const std::string& value);
-  std::string* _internal_mutable_query_id();
+  bool _internal_has_name() const;
   public:
+  void clear_name();
+  const ::tigon::proto::tql::String& name() const;
+  ::tigon::proto::tql::String* release_name();
+  ::tigon::proto::tql::String* mutable_name();
+  void set_allocated_name(::tigon::proto::tql::String* name);
+  private:
+  const ::tigon::proto::tql::String& _internal_name() const;
+  ::tigon::proto::tql::String* _internal_mutable_name();
+  public:
+  void unsafe_arena_set_allocated_name(
+      ::tigon::proto::tql::String* name);
+  ::tigon::proto::tql::String* unsafe_arena_release_name();
 
-  // string title = 5;
-  void clear_title();
-  const std::string& title() const;
-  void set_title(const std::string& value);
-  void set_title(std::string&& value);
-  void set_title(const char* value);
-  void set_title(const char* value, size_t size);
-  std::string* mutable_title();
-  std::string* release_title();
-  void set_allocated_title(std::string* title);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_title();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_title(
-      std::string* title);
+  // .tigon.proto.tql.String query_name = 3;
+  bool has_query_name() const;
   private:
-  const std::string& _internal_title() const;
-  void _internal_set_title(const std::string& value);
-  std::string* _internal_mutable_title();
+  bool _internal_has_query_name() const;
   public:
+  void clear_query_name();
+  const ::tigon::proto::tql::String& query_name() const;
+  ::tigon::proto::tql::String* release_query_name();
+  ::tigon::proto::tql::String* mutable_query_name();
+  void set_allocated_query_name(::tigon::proto::tql::String* query_name);
+  private:
+  const ::tigon::proto::tql::String& _internal_query_name() const;
+  ::tigon::proto::tql::String* _internal_mutable_query_name();
+  public:
+  void unsafe_arena_set_allocated_query_name(
+      ::tigon::proto::tql::String* query_name);
+  ::tigon::proto::tql::String* unsafe_arena_release_query_name();
 
-  // .tigon.proto.tql.VizResponsiveGridArea area = 7;
-  bool has_area() const;
+  // .tigon.proto.tql.VizType viz_type = 4;
+  bool has_viz_type() const;
   private:
-  bool _internal_has_area() const;
+  bool _internal_has_viz_type() const;
   public:
-  void clear_area();
-  const ::tigon::proto::tql::VizResponsiveGridArea& area() const;
-  ::tigon::proto::tql::VizResponsiveGridArea* release_area();
-  ::tigon::proto::tql::VizResponsiveGridArea* mutable_area();
-  void set_allocated_area(::tigon::proto::tql::VizResponsiveGridArea* area);
-  private:
-  const ::tigon::proto::tql::VizResponsiveGridArea& _internal_area() const;
-  ::tigon::proto::tql::VizResponsiveGridArea* _internal_mutable_area();
-  public:
-  void unsafe_arena_set_allocated_area(
-      ::tigon::proto::tql::VizResponsiveGridArea* area);
-  ::tigon::proto::tql::VizResponsiveGridArea* unsafe_arena_release_area();
-
-  // .tigon.proto.tql.VizAxes axes = 9;
-  bool has_axes() const;
-  private:
-  bool _internal_has_axes() const;
-  public:
-  void clear_axes();
-  const ::tigon::proto::tql::VizAxes& axes() const;
-  ::tigon::proto::tql::VizAxes* release_axes();
-  ::tigon::proto::tql::VizAxes* mutable_axes();
-  void set_allocated_axes(::tigon::proto::tql::VizAxes* axes);
-  private:
-  const ::tigon::proto::tql::VizAxes& _internal_axes() const;
-  ::tigon::proto::tql::VizAxes* _internal_mutable_axes();
-  public:
-  void unsafe_arena_set_allocated_axes(
-      ::tigon::proto::tql::VizAxes* axes);
-  ::tigon::proto::tql::VizAxes* unsafe_arena_release_axes();
-
-  // .tigon.proto.tql.VizType viz_type = 2;
   void clear_viz_type();
-  ::tigon::proto::tql::VizType viz_type() const;
-  void set_viz_type(::tigon::proto::tql::VizType value);
+  const ::tigon::proto::tql::VizType& viz_type() const;
+  ::tigon::proto::tql::VizType* release_viz_type();
+  ::tigon::proto::tql::VizType* mutable_viz_type();
+  void set_allocated_viz_type(::tigon::proto::tql::VizType* viz_type);
   private:
-  ::tigon::proto::tql::VizType _internal_viz_type() const;
-  void _internal_set_viz_type(::tigon::proto::tql::VizType value);
+  const ::tigon::proto::tql::VizType& _internal_viz_type() const;
+  ::tigon::proto::tql::VizType* _internal_mutable_viz_type();
   public:
+  void unsafe_arena_set_allocated_viz_type(
+      ::tigon::proto::tql::VizType* viz_type);
+  ::tigon::proto::tql::VizType* unsafe_arena_release_viz_type();
 
   // @@protoc_insertion_point(class_scope:tigon.proto.tql.VizStatement)
  private:
@@ -3324,12 +3420,10 @@ class VizStatement :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr viz_id_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr query_id_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr title_;
-  ::tigon::proto::tql::VizResponsiveGridArea* area_;
-  ::tigon::proto::tql::VizAxes* axes_;
-  int viz_type_;
+  ::tigon::proto::tql::Location* location_;
+  ::tigon::proto::tql::String* name_;
+  ::tigon::proto::tql::String* query_name_;
+  ::tigon::proto::tql::VizType* viz_type_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -3383,7 +3477,7 @@ class Statement :
                &_Statement_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    17;
+    18;
 
   friend void swap(Statement& a, Statement& b) {
     a.Swap(&b);
@@ -3623,7 +3717,7 @@ class Error :
                &_Error_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    18;
+    19;
 
   friend void swap(Error& a, Error& b) {
     a.Swap(&b);
@@ -3695,11 +3789,10 @@ class Error :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kMessageFieldNumber = 3,
-    kLineFieldNumber = 1,
-    kColumnFieldNumber = 2,
+    kMessageFieldNumber = 2,
+    kLocationFieldNumber = 1,
   };
-  // string message = 3;
+  // string message = 2;
   void clear_message();
   const std::string& message() const;
   void set_message(const std::string& value);
@@ -3724,23 +3817,23 @@ class Error :
   std::string* _internal_mutable_message();
   public:
 
-  // int32 line = 1;
-  void clear_line();
-  ::PROTOBUF_NAMESPACE_ID::int32 line() const;
-  void set_line(::PROTOBUF_NAMESPACE_ID::int32 value);
+  // .tigon.proto.tql.Location location = 1;
+  bool has_location() const;
   private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_line() const;
-  void _internal_set_line(::PROTOBUF_NAMESPACE_ID::int32 value);
+  bool _internal_has_location() const;
   public:
-
-  // int32 column = 2;
-  void clear_column();
-  ::PROTOBUF_NAMESPACE_ID::int32 column() const;
-  void set_column(::PROTOBUF_NAMESPACE_ID::int32 value);
+  void clear_location();
+  const ::tigon::proto::tql::Location& location() const;
+  ::tigon::proto::tql::Location* release_location();
+  ::tigon::proto::tql::Location* mutable_location();
+  void set_allocated_location(::tigon::proto::tql::Location* location);
   private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_column() const;
-  void _internal_set_column(::PROTOBUF_NAMESPACE_ID::int32 value);
+  const ::tigon::proto::tql::Location& _internal_location() const;
+  ::tigon::proto::tql::Location* _internal_mutable_location();
   public:
+  void unsafe_arena_set_allocated_location(
+      ::tigon::proto::tql::Location* location);
+  ::tigon::proto::tql::Location* unsafe_arena_release_location();
 
   // @@protoc_insertion_point(class_scope:tigon.proto.tql.Error)
  private:
@@ -3751,8 +3844,7 @@ class Error :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr message_;
-  ::PROTOBUF_NAMESPACE_ID::int32 line_;
-  ::PROTOBUF_NAMESPACE_ID::int32 column_;
+  ::tigon::proto::tql::Location* location_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -3797,7 +3889,7 @@ class Module :
                &_Module_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    19;
+    20;
 
   friend void swap(Module& a, Module& b) {
     a.Swap(&b);
@@ -3930,279 +4022,851 @@ class Module :
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
-// QueryStatement
+// Position
 
-// string query_id = 1;
-inline void QueryStatement::clear_query_id() {
-  query_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// uint32 line = 1;
+inline void Position::clear_line() {
+  line_ = 0u;
 }
-inline const std::string& QueryStatement::query_id() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.QueryStatement.query_id)
-  return _internal_query_id();
+inline ::PROTOBUF_NAMESPACE_ID::uint32 Position::_internal_line() const {
+  return line_;
 }
-inline void QueryStatement::set_query_id(const std::string& value) {
-  _internal_set_query_id(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.QueryStatement.query_id)
+inline ::PROTOBUF_NAMESPACE_ID::uint32 Position::line() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.Position.line)
+  return _internal_line();
 }
-inline std::string* QueryStatement::mutable_query_id() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.QueryStatement.query_id)
-  return _internal_mutable_query_id();
-}
-inline const std::string& QueryStatement::_internal_query_id() const {
-  return query_id_.Get();
-}
-inline void QueryStatement::_internal_set_query_id(const std::string& value) {
+inline void Position::_internal_set_line(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   
-  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  line_ = value;
 }
-inline void QueryStatement::set_query_id(std::string&& value) {
+inline void Position::set_line(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_line(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.Position.line)
+}
+
+// uint32 column = 2;
+inline void Position::clear_column() {
+  column_ = 0u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 Position::_internal_column() const {
+  return column_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 Position::column() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.Position.column)
+  return _internal_column();
+}
+inline void Position::_internal_set_column(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   
-  query_id_.SetLite(
+  column_ = value;
+}
+inline void Position::set_column(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_column(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.Position.column)
+}
+
+// -------------------------------------------------------------------
+
+// Location
+
+// .tigon.proto.tql.Position begin = 1;
+inline bool Location::_internal_has_begin() const {
+  return this != internal_default_instance() && begin_ != nullptr;
+}
+inline bool Location::has_begin() const {
+  return _internal_has_begin();
+}
+inline void Location::clear_begin() {
+  if (GetArenaNoVirtual() == nullptr && begin_ != nullptr) {
+    delete begin_;
+  }
+  begin_ = nullptr;
+}
+inline const ::tigon::proto::tql::Position& Location::_internal_begin() const {
+  const ::tigon::proto::tql::Position* p = begin_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Position*>(
+      &::tigon::proto::tql::_Position_default_instance_);
+}
+inline const ::tigon::proto::tql::Position& Location::begin() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.Location.begin)
+  return _internal_begin();
+}
+inline ::tigon::proto::tql::Position* Location::release_begin() {
+  auto temp = unsafe_arena_release_begin();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Position* Location::unsafe_arena_release_begin() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.Location.begin)
+  
+  ::tigon::proto::tql::Position* temp = begin_;
+  begin_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::Position* Location::_internal_mutable_begin() {
+  
+  if (begin_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Position>(GetArenaNoVirtual());
+    begin_ = p;
+  }
+  return begin_;
+}
+inline ::tigon::proto::tql::Position* Location::mutable_begin() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.Location.begin)
+  return _internal_mutable_begin();
+}
+inline void Location::set_allocated_begin(::tigon::proto::tql::Position* begin) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete begin_;
+  }
+  if (begin) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(begin);
+    if (message_arena != submessage_arena) {
+      begin = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, begin, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  begin_ = begin;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.Location.begin)
+}
+
+// .tigon.proto.tql.Position end = 2;
+inline bool Location::_internal_has_end() const {
+  return this != internal_default_instance() && end_ != nullptr;
+}
+inline bool Location::has_end() const {
+  return _internal_has_end();
+}
+inline void Location::clear_end() {
+  if (GetArenaNoVirtual() == nullptr && end_ != nullptr) {
+    delete end_;
+  }
+  end_ = nullptr;
+}
+inline const ::tigon::proto::tql::Position& Location::_internal_end() const {
+  const ::tigon::proto::tql::Position* p = end_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Position*>(
+      &::tigon::proto::tql::_Position_default_instance_);
+}
+inline const ::tigon::proto::tql::Position& Location::end() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.Location.end)
+  return _internal_end();
+}
+inline ::tigon::proto::tql::Position* Location::release_end() {
+  auto temp = unsafe_arena_release_end();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Position* Location::unsafe_arena_release_end() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.Location.end)
+  
+  ::tigon::proto::tql::Position* temp = end_;
+  end_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::Position* Location::_internal_mutable_end() {
+  
+  if (end_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Position>(GetArenaNoVirtual());
+    end_ = p;
+  }
+  return end_;
+}
+inline ::tigon::proto::tql::Position* Location::mutable_end() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.Location.end)
+  return _internal_mutable_end();
+}
+inline void Location::set_allocated_end(::tigon::proto::tql::Position* end) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete end_;
+  }
+  if (end) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(end);
+    if (message_arena != submessage_arena) {
+      end = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, end, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  end_ = end;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.Location.end)
+}
+
+// -------------------------------------------------------------------
+
+// DataType
+
+// .tigon.proto.tql.Location location = 1;
+inline bool DataType::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
+}
+inline bool DataType::has_location() const {
+  return _internal_has_location();
+}
+inline void DataType::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
+}
+inline const ::tigon::proto::tql::Location& DataType::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
+}
+inline const ::tigon::proto::tql::Location& DataType::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.DataType.location)
+  return _internal_location();
+}
+inline ::tigon::proto::tql::Location* DataType::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* DataType::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.DataType.location)
+  
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::Location* DataType::_internal_mutable_location() {
+  
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
+}
+inline ::tigon::proto::tql::Location* DataType::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.DataType.location)
+  return _internal_mutable_location();
+}
+inline void DataType::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.DataType.location)
+}
+
+// .tigon.proto.tql.DataTypeType type = 2;
+inline void DataType::clear_type() {
+  type_ = 0;
+}
+inline ::tigon::proto::tql::DataTypeType DataType::_internal_type() const {
+  return static_cast< ::tigon::proto::tql::DataTypeType >(type_);
+}
+inline ::tigon::proto::tql::DataTypeType DataType::type() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.DataType.type)
+  return _internal_type();
+}
+inline void DataType::_internal_set_type(::tigon::proto::tql::DataTypeType value) {
+  
+  type_ = value;
+}
+inline void DataType::set_type(::tigon::proto::tql::DataTypeType value) {
+  _internal_set_type(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.DataType.type)
+}
+
+// -------------------------------------------------------------------
+
+// String
+
+// .tigon.proto.tql.Location location = 1;
+inline bool String::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
+}
+inline bool String::has_location() const {
+  return _internal_has_location();
+}
+inline void String::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
+}
+inline const ::tigon::proto::tql::Location& String::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
+}
+inline const ::tigon::proto::tql::Location& String::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.String.location)
+  return _internal_location();
+}
+inline ::tigon::proto::tql::Location* String::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* String::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.String.location)
+  
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::Location* String::_internal_mutable_location() {
+  
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
+}
+inline ::tigon::proto::tql::Location* String::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.String.location)
+  return _internal_mutable_location();
+}
+inline void String::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.String.location)
+}
+
+// string string = 2;
+inline void String::clear_string() {
+  string_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline const std::string& String::string() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.String.string)
+  return _internal_string();
+}
+inline void String::set_string(const std::string& value) {
+  _internal_set_string(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.String.string)
+}
+inline std::string* String::mutable_string() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.String.string)
+  return _internal_mutable_string();
+}
+inline const std::string& String::_internal_string() const {
+  return string_.Get();
+}
+inline void String::_internal_set_string(const std::string& value) {
+  
+  string_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+}
+inline void String::set_string(std::string&& value) {
+  
+  string_.SetLite(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.QueryStatement.query_id)
+  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.String.string)
 }
-inline void QueryStatement::set_query_id(const char* value) {
+inline void String::set_string(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  string_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.QueryStatement.query_id)
+  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.String.string)
 }
-inline void QueryStatement::set_query_id(const char* value,
+inline void String::set_string(const char* value,
     size_t size) {
   
-  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  string_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.QueryStatement.query_id)
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.String.string)
 }
-inline std::string* QueryStatement::_internal_mutable_query_id() {
+inline std::string* String::_internal_mutable_string() {
   
-  return query_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return string_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline std::string* QueryStatement::release_query_id() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.QueryStatement.query_id)
+inline std::string* String::release_string() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.String.string)
   
-  return query_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return string_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline void QueryStatement::set_allocated_query_id(std::string* query_id) {
-  if (query_id != nullptr) {
+inline void String::set_allocated_string(std::string* string) {
+  if (string != nullptr) {
     
   } else {
     
   }
-  query_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), query_id,
+  string_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), string,
       GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.QueryStatement.query_id)
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.String.string)
 }
-inline std::string* QueryStatement::unsafe_arena_release_query_id() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.QueryStatement.query_id)
+inline std::string* String::unsafe_arena_release_string() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.String.string)
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
   
-  return query_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  return string_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArenaNoVirtual());
 }
-inline void QueryStatement::unsafe_arena_set_allocated_query_id(
-    std::string* query_id) {
+inline void String::unsafe_arena_set_allocated_string(
+    std::string* string) {
   GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (query_id != nullptr) {
+  if (string != nullptr) {
     
   } else {
     
   }
-  query_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      query_id, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.QueryStatement.query_id)
+  string_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      string, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.String.string)
 }
 
-// string query_text = 2;
-inline void QueryStatement::clear_query_text() {
-  query_text_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// -------------------------------------------------------------------
+
+// QueryStatement
+
+// .tigon.proto.tql.Location location = 1;
+inline bool QueryStatement::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
 }
-inline const std::string& QueryStatement::query_text() const {
+inline bool QueryStatement::has_location() const {
+  return _internal_has_location();
+}
+inline void QueryStatement::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
+}
+inline const ::tigon::proto::tql::Location& QueryStatement::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
+}
+inline const ::tigon::proto::tql::Location& QueryStatement::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.QueryStatement.location)
+  return _internal_location();
+}
+inline ::tigon::proto::tql::Location* QueryStatement::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* QueryStatement::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.QueryStatement.location)
+  
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::Location* QueryStatement::_internal_mutable_location() {
+  
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
+}
+inline ::tigon::proto::tql::Location* QueryStatement::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.QueryStatement.location)
+  return _internal_mutable_location();
+}
+inline void QueryStatement::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.QueryStatement.location)
+}
+
+// .tigon.proto.tql.String name = 2;
+inline bool QueryStatement::_internal_has_name() const {
+  return this != internal_default_instance() && name_ != nullptr;
+}
+inline bool QueryStatement::has_name() const {
+  return _internal_has_name();
+}
+inline void QueryStatement::clear_name() {
+  if (GetArenaNoVirtual() == nullptr && name_ != nullptr) {
+    delete name_;
+  }
+  name_ = nullptr;
+}
+inline const ::tigon::proto::tql::String& QueryStatement::_internal_name() const {
+  const ::tigon::proto::tql::String* p = name_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::String*>(
+      &::tigon::proto::tql::_String_default_instance_);
+}
+inline const ::tigon::proto::tql::String& QueryStatement::name() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.QueryStatement.name)
+  return _internal_name();
+}
+inline ::tigon::proto::tql::String* QueryStatement::release_name() {
+  auto temp = unsafe_arena_release_name();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::String* QueryStatement::unsafe_arena_release_name() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.QueryStatement.name)
+  
+  ::tigon::proto::tql::String* temp = name_;
+  name_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::String* QueryStatement::_internal_mutable_name() {
+  
+  if (name_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::String>(GetArenaNoVirtual());
+    name_ = p;
+  }
+  return name_;
+}
+inline ::tigon::proto::tql::String* QueryStatement::mutable_name() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.QueryStatement.name)
+  return _internal_mutable_name();
+}
+inline void QueryStatement::set_allocated_name(::tigon::proto::tql::String* name) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete name_;
+  }
+  if (name) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(name);
+    if (message_arena != submessage_arena) {
+      name = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, name, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  name_ = name;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.QueryStatement.name)
+}
+
+// .tigon.proto.tql.String query_text = 3;
+inline bool QueryStatement::_internal_has_query_text() const {
+  return this != internal_default_instance() && query_text_ != nullptr;
+}
+inline bool QueryStatement::has_query_text() const {
+  return _internal_has_query_text();
+}
+inline void QueryStatement::clear_query_text() {
+  if (GetArenaNoVirtual() == nullptr && query_text_ != nullptr) {
+    delete query_text_;
+  }
+  query_text_ = nullptr;
+}
+inline const ::tigon::proto::tql::String& QueryStatement::_internal_query_text() const {
+  const ::tigon::proto::tql::String* p = query_text_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::String*>(
+      &::tigon::proto::tql::_String_default_instance_);
+}
+inline const ::tigon::proto::tql::String& QueryStatement::query_text() const {
   // @@protoc_insertion_point(field_get:tigon.proto.tql.QueryStatement.query_text)
   return _internal_query_text();
 }
-inline void QueryStatement::set_query_text(const std::string& value) {
-  _internal_set_query_text(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.QueryStatement.query_text)
+inline ::tigon::proto::tql::String* QueryStatement::release_query_text() {
+  auto temp = unsafe_arena_release_query_text();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
 }
-inline std::string* QueryStatement::mutable_query_text() {
+inline ::tigon::proto::tql::String* QueryStatement::unsafe_arena_release_query_text() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.QueryStatement.query_text)
+  
+  ::tigon::proto::tql::String* temp = query_text_;
+  query_text_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::String* QueryStatement::_internal_mutable_query_text() {
+  
+  if (query_text_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::String>(GetArenaNoVirtual());
+    query_text_ = p;
+  }
+  return query_text_;
+}
+inline ::tigon::proto::tql::String* QueryStatement::mutable_query_text() {
   // @@protoc_insertion_point(field_mutable:tigon.proto.tql.QueryStatement.query_text)
   return _internal_mutable_query_text();
 }
-inline const std::string& QueryStatement::_internal_query_text() const {
-  return query_text_.Get();
-}
-inline void QueryStatement::_internal_set_query_text(const std::string& value) {
-  
-  query_text_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
-}
-inline void QueryStatement::set_query_text(std::string&& value) {
-  
-  query_text_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.QueryStatement.query_text)
-}
-inline void QueryStatement::set_query_text(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  query_text_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.QueryStatement.query_text)
-}
-inline void QueryStatement::set_query_text(const char* value,
-    size_t size) {
-  
-  query_text_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.QueryStatement.query_text)
-}
-inline std::string* QueryStatement::_internal_mutable_query_text() {
-  
-  return query_text_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* QueryStatement::release_query_text() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.QueryStatement.query_text)
-  
-  return query_text_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void QueryStatement::set_allocated_query_text(std::string* query_text) {
-  if (query_text != nullptr) {
+inline void QueryStatement::set_allocated_query_text(::tigon::proto::tql::String* query_text) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete query_text_;
+  }
+  if (query_text) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(query_text);
+    if (message_arena != submessage_arena) {
+      query_text = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, query_text, submessage_arena);
+    }
     
   } else {
     
   }
-  query_text_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), query_text,
-      GetArenaNoVirtual());
+  query_text_ = query_text;
   // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.QueryStatement.query_text)
-}
-inline std::string* QueryStatement::unsafe_arena_release_query_text() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.QueryStatement.query_text)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return query_text_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void QueryStatement::unsafe_arena_set_allocated_query_text(
-    std::string* query_text) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (query_text != nullptr) {
-    
-  } else {
-    
-  }
-  query_text_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      query_text, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.QueryStatement.query_text)
 }
 
 // -------------------------------------------------------------------
 
 // ParameterDeclaration
 
-// string parameter_id = 1;
-inline void ParameterDeclaration::clear_parameter_id() {
-  parameter_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// .tigon.proto.tql.Location location = 1;
+inline bool ParameterDeclaration::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
 }
-inline const std::string& ParameterDeclaration::parameter_id() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.ParameterDeclaration.parameter_id)
-  return _internal_parameter_id();
+inline bool ParameterDeclaration::has_location() const {
+  return _internal_has_location();
 }
-inline void ParameterDeclaration::set_parameter_id(const std::string& value) {
-  _internal_set_parameter_id(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.ParameterDeclaration.parameter_id)
+inline void ParameterDeclaration::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
 }
-inline std::string* ParameterDeclaration::mutable_parameter_id() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ParameterDeclaration.parameter_id)
-  return _internal_mutable_parameter_id();
+inline const ::tigon::proto::tql::Location& ParameterDeclaration::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
 }
-inline const std::string& ParameterDeclaration::_internal_parameter_id() const {
-  return parameter_id_.Get();
+inline const ::tigon::proto::tql::Location& ParameterDeclaration::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ParameterDeclaration.location)
+  return _internal_location();
 }
-inline void ParameterDeclaration::_internal_set_parameter_id(const std::string& value) {
+inline ::tigon::proto::tql::Location* ParameterDeclaration::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* ParameterDeclaration::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ParameterDeclaration.location)
   
-  parameter_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
 }
-inline void ParameterDeclaration::set_parameter_id(std::string&& value) {
+inline ::tigon::proto::tql::Location* ParameterDeclaration::_internal_mutable_location() {
   
-  parameter_id_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.ParameterDeclaration.parameter_id)
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
 }
-inline void ParameterDeclaration::set_parameter_id(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  parameter_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.ParameterDeclaration.parameter_id)
+inline ::tigon::proto::tql::Location* ParameterDeclaration::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ParameterDeclaration.location)
+  return _internal_mutable_location();
 }
-inline void ParameterDeclaration::set_parameter_id(const char* value,
-    size_t size) {
-  
-  parameter_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.ParameterDeclaration.parameter_id)
-}
-inline std::string* ParameterDeclaration::_internal_mutable_parameter_id() {
-  
-  return parameter_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* ParameterDeclaration::release_parameter_id() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.ParameterDeclaration.parameter_id)
-  
-  return parameter_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void ParameterDeclaration::set_allocated_parameter_id(std::string* parameter_id) {
-  if (parameter_id != nullptr) {
+inline void ParameterDeclaration::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
     
   } else {
     
   }
-  parameter_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), parameter_id,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ParameterDeclaration.parameter_id)
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ParameterDeclaration.location)
 }
-inline std::string* ParameterDeclaration::unsafe_arena_release_parameter_id() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ParameterDeclaration.parameter_id)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
+
+// .tigon.proto.tql.String name = 2;
+inline bool ParameterDeclaration::_internal_has_name() const {
+  return this != internal_default_instance() && name_ != nullptr;
+}
+inline bool ParameterDeclaration::has_name() const {
+  return _internal_has_name();
+}
+inline void ParameterDeclaration::clear_name() {
+  if (GetArenaNoVirtual() == nullptr && name_ != nullptr) {
+    delete name_;
+  }
+  name_ = nullptr;
+}
+inline const ::tigon::proto::tql::String& ParameterDeclaration::_internal_name() const {
+  const ::tigon::proto::tql::String* p = name_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::String*>(
+      &::tigon::proto::tql::_String_default_instance_);
+}
+inline const ::tigon::proto::tql::String& ParameterDeclaration::name() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ParameterDeclaration.name)
+  return _internal_name();
+}
+inline ::tigon::proto::tql::String* ParameterDeclaration::release_name() {
+  auto temp = unsafe_arena_release_name();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::String* ParameterDeclaration::unsafe_arena_release_name() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ParameterDeclaration.name)
   
-  return parameter_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
+  ::tigon::proto::tql::String* temp = name_;
+  name_ = nullptr;
+  return temp;
 }
-inline void ParameterDeclaration::unsafe_arena_set_allocated_parameter_id(
-    std::string* parameter_id) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (parameter_id != nullptr) {
+inline ::tigon::proto::tql::String* ParameterDeclaration::_internal_mutable_name() {
+  
+  if (name_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::String>(GetArenaNoVirtual());
+    name_ = p;
+  }
+  return name_;
+}
+inline ::tigon::proto::tql::String* ParameterDeclaration::mutable_name() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ParameterDeclaration.name)
+  return _internal_mutable_name();
+}
+inline void ParameterDeclaration::set_allocated_name(::tigon::proto::tql::String* name) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete name_;
+  }
+  if (name) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(name);
+    if (message_arena != submessage_arena) {
+      name = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, name, submessage_arena);
+    }
     
   } else {
     
   }
-  parameter_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      parameter_id, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterDeclaration.parameter_id)
+  name_ = name;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ParameterDeclaration.name)
 }
 
-// .tigon.proto.tql.Type parameter_type = 2;
-inline void ParameterDeclaration::clear_parameter_type() {
-  parameter_type_ = 0;
+// .tigon.proto.tql.DataType data_type = 3;
+inline bool ParameterDeclaration::_internal_has_data_type() const {
+  return this != internal_default_instance() && data_type_ != nullptr;
 }
-inline ::tigon::proto::tql::Type ParameterDeclaration::_internal_parameter_type() const {
-  return static_cast< ::tigon::proto::tql::Type >(parameter_type_);
+inline bool ParameterDeclaration::has_data_type() const {
+  return _internal_has_data_type();
 }
-inline ::tigon::proto::tql::Type ParameterDeclaration::parameter_type() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.ParameterDeclaration.parameter_type)
-  return _internal_parameter_type();
+inline void ParameterDeclaration::clear_data_type() {
+  if (GetArenaNoVirtual() == nullptr && data_type_ != nullptr) {
+    delete data_type_;
+  }
+  data_type_ = nullptr;
 }
-inline void ParameterDeclaration::_internal_set_parameter_type(::tigon::proto::tql::Type value) {
+inline const ::tigon::proto::tql::DataType& ParameterDeclaration::_internal_data_type() const {
+  const ::tigon::proto::tql::DataType* p = data_type_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::DataType*>(
+      &::tigon::proto::tql::_DataType_default_instance_);
+}
+inline const ::tigon::proto::tql::DataType& ParameterDeclaration::data_type() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ParameterDeclaration.data_type)
+  return _internal_data_type();
+}
+inline ::tigon::proto::tql::DataType* ParameterDeclaration::release_data_type() {
+  auto temp = unsafe_arena_release_data_type();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::DataType* ParameterDeclaration::unsafe_arena_release_data_type() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ParameterDeclaration.data_type)
   
-  parameter_type_ = value;
+  ::tigon::proto::tql::DataType* temp = data_type_;
+  data_type_ = nullptr;
+  return temp;
 }
-inline void ParameterDeclaration::set_parameter_type(::tigon::proto::tql::Type value) {
-  _internal_set_parameter_type(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.ParameterDeclaration.parameter_type)
+inline ::tigon::proto::tql::DataType* ParameterDeclaration::_internal_mutable_data_type() {
+  
+  if (data_type_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::DataType>(GetArenaNoVirtual());
+    data_type_ = p;
+  }
+  return data_type_;
+}
+inline ::tigon::proto::tql::DataType* ParameterDeclaration::mutable_data_type() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ParameterDeclaration.data_type)
+  return _internal_mutable_data_type();
+}
+inline void ParameterDeclaration::set_allocated_data_type(::tigon::proto::tql::DataType* data_type) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete data_type_;
+  }
+  if (data_type) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(data_type);
+    if (message_arena != submessage_arena) {
+      data_type = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, data_type, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  data_type_ = data_type;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ParameterDeclaration.data_type)
 }
 
-// int32 value_i32 = 3;
+// int32 value_i32 = 4;
 inline bool ParameterDeclaration::_internal_has_value_i32() const {
   return default_value_case() == kValueI32;
 }
@@ -4237,7 +4901,7 @@ inline void ParameterDeclaration::set_value_i32(::PROTOBUF_NAMESPACE_ID::int32 v
   // @@protoc_insertion_point(field_set:tigon.proto.tql.ParameterDeclaration.value_i32)
 }
 
-// int64 value_i64 = 4;
+// int64 value_i64 = 5;
 inline bool ParameterDeclaration::_internal_has_value_i64() const {
   return default_value_case() == kValueI64;
 }
@@ -4272,7 +4936,7 @@ inline void ParameterDeclaration::set_value_i64(::PROTOBUF_NAMESPACE_ID::int64 v
   // @@protoc_insertion_point(field_set:tigon.proto.tql.ParameterDeclaration.value_i64)
 }
 
-// double value_f64 = 5;
+// double value_f64 = 6;
 inline bool ParameterDeclaration::_internal_has_value_f64() const {
   return default_value_case() == kValueF64;
 }
@@ -4307,7 +4971,7 @@ inline void ParameterDeclaration::set_value_f64(double value) {
   // @@protoc_insertion_point(field_set:tigon.proto.tql.ParameterDeclaration.value_f64)
 }
 
-// string value_str = 6;
+// string value_str = 7;
 inline bool ParameterDeclaration::_internal_has_value_str() const {
   return default_value_case() == kValueStr;
 }
@@ -4447,203 +5111,863 @@ inline ParameterDeclaration::DefaultValueCase ParameterDeclaration::default_valu
 }
 // -------------------------------------------------------------------
 
-// HTTPLoadMethod
+// HTTPMethod
 
-// string http_url = 1;
-inline void HTTPLoadMethod::clear_http_url() {
-  http_url_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// .tigon.proto.tql.Location location = 1;
+inline bool HTTPMethod::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
 }
-inline const std::string& HTTPLoadMethod::http_url() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPLoadMethod.http_url)
-  return _internal_http_url();
+inline bool HTTPMethod::has_location() const {
+  return _internal_has_location();
 }
-inline void HTTPLoadMethod::set_http_url(const std::string& value) {
-  _internal_set_http_url(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.HTTPLoadMethod.http_url)
+inline void HTTPMethod::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
 }
-inline std::string* HTTPLoadMethod::mutable_http_url() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.HTTPLoadMethod.http_url)
-  return _internal_mutable_http_url();
+inline const ::tigon::proto::tql::Location& HTTPMethod::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
 }
-inline const std::string& HTTPLoadMethod::_internal_http_url() const {
-  return http_url_.Get();
+inline const ::tigon::proto::tql::Location& HTTPMethod::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPMethod.location)
+  return _internal_location();
 }
-inline void HTTPLoadMethod::_internal_set_http_url(const std::string& value) {
+inline ::tigon::proto::tql::Location* HTTPMethod::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* HTTPMethod::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.HTTPMethod.location)
   
-  http_url_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
 }
-inline void HTTPLoadMethod::set_http_url(std::string&& value) {
+inline ::tigon::proto::tql::Location* HTTPMethod::_internal_mutable_location() {
   
-  http_url_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.HTTPLoadMethod.http_url)
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
 }
-inline void HTTPLoadMethod::set_http_url(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  http_url_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.HTTPLoadMethod.http_url)
+inline ::tigon::proto::tql::Location* HTTPMethod::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.HTTPMethod.location)
+  return _internal_mutable_location();
 }
-inline void HTTPLoadMethod::set_http_url(const char* value,
-    size_t size) {
-  
-  http_url_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.HTTPLoadMethod.http_url)
-}
-inline std::string* HTTPLoadMethod::_internal_mutable_http_url() {
-  
-  return http_url_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* HTTPLoadMethod::release_http_url() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.HTTPLoadMethod.http_url)
-  
-  return http_url_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void HTTPLoadMethod::set_allocated_http_url(std::string* http_url) {
-  if (http_url != nullptr) {
+inline void HTTPMethod::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
     
   } else {
     
   }
-  http_url_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), http_url,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.HTTPLoadMethod.http_url)
-}
-inline std::string* HTTPLoadMethod::unsafe_arena_release_http_url() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.HTTPLoadMethod.http_url)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return http_url_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void HTTPLoadMethod::unsafe_arena_set_allocated_http_url(
-    std::string* http_url) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (http_url != nullptr) {
-    
-  } else {
-    
-  }
-  http_url_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      http_url, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.HTTPLoadMethod.http_url)
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.HTTPMethod.location)
 }
 
-// .tigon.proto.tql.HTTPMethod http_method = 2;
-inline void HTTPLoadMethod::clear_http_method() {
-  http_method_ = 0;
+// .tigon.proto.tql.HTTPVerb verb = 2;
+inline void HTTPMethod::clear_verb() {
+  verb_ = 0;
 }
-inline ::tigon::proto::tql::HTTPMethod HTTPLoadMethod::_internal_http_method() const {
-  return static_cast< ::tigon::proto::tql::HTTPMethod >(http_method_);
+inline ::tigon::proto::tql::HTTPVerb HTTPMethod::_internal_verb() const {
+  return static_cast< ::tigon::proto::tql::HTTPVerb >(verb_);
 }
-inline ::tigon::proto::tql::HTTPMethod HTTPLoadMethod::http_method() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPLoadMethod.http_method)
-  return _internal_http_method();
+inline ::tigon::proto::tql::HTTPVerb HTTPMethod::verb() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPMethod.verb)
+  return _internal_verb();
 }
-inline void HTTPLoadMethod::_internal_set_http_method(::tigon::proto::tql::HTTPMethod value) {
+inline void HTTPMethod::_internal_set_verb(::tigon::proto::tql::HTTPVerb value) {
   
-  http_method_ = value;
+  verb_ = value;
 }
-inline void HTTPLoadMethod::set_http_method(::tigon::proto::tql::HTTPMethod value) {
-  _internal_set_http_method(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.HTTPLoadMethod.http_method)
+inline void HTTPMethod::set_verb(::tigon::proto::tql::HTTPVerb value) {
+  _internal_set_verb(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.HTTPMethod.verb)
 }
 
 // -------------------------------------------------------------------
 
-// FileLoadMethod
+// HTTPURL
+
+// .tigon.proto.tql.Location location = 1;
+inline bool HTTPURL::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
+}
+inline bool HTTPURL::has_location() const {
+  return _internal_has_location();
+}
+inline void HTTPURL::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
+}
+inline const ::tigon::proto::tql::Location& HTTPURL::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
+}
+inline const ::tigon::proto::tql::Location& HTTPURL::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPURL.location)
+  return _internal_location();
+}
+inline ::tigon::proto::tql::Location* HTTPURL::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* HTTPURL::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.HTTPURL.location)
+  
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::Location* HTTPURL::_internal_mutable_location() {
+  
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
+}
+inline ::tigon::proto::tql::Location* HTTPURL::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.HTTPURL.location)
+  return _internal_mutable_location();
+}
+inline void HTTPURL::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.HTTPURL.location)
+}
+
+// .tigon.proto.tql.String url = 2;
+inline bool HTTPURL::_internal_has_url() const {
+  return this != internal_default_instance() && url_ != nullptr;
+}
+inline bool HTTPURL::has_url() const {
+  return _internal_has_url();
+}
+inline void HTTPURL::clear_url() {
+  if (GetArenaNoVirtual() == nullptr && url_ != nullptr) {
+    delete url_;
+  }
+  url_ = nullptr;
+}
+inline const ::tigon::proto::tql::String& HTTPURL::_internal_url() const {
+  const ::tigon::proto::tql::String* p = url_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::String*>(
+      &::tigon::proto::tql::_String_default_instance_);
+}
+inline const ::tigon::proto::tql::String& HTTPURL::url() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPURL.url)
+  return _internal_url();
+}
+inline ::tigon::proto::tql::String* HTTPURL::release_url() {
+  auto temp = unsafe_arena_release_url();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::String* HTTPURL::unsafe_arena_release_url() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.HTTPURL.url)
+  
+  ::tigon::proto::tql::String* temp = url_;
+  url_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::String* HTTPURL::_internal_mutable_url() {
+  
+  if (url_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::String>(GetArenaNoVirtual());
+    url_ = p;
+  }
+  return url_;
+}
+inline ::tigon::proto::tql::String* HTTPURL::mutable_url() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.HTTPURL.url)
+  return _internal_mutable_url();
+}
+inline void HTTPURL::set_allocated_url(::tigon::proto::tql::String* url) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete url_;
+  }
+  if (url) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(url);
+    if (message_arena != submessage_arena) {
+      url = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, url, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  url_ = url;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.HTTPURL.url)
+}
+
+// -------------------------------------------------------------------
+
+// HTTPAttribute
+
+// .tigon.proto.tql.HTTPMethod method = 1;
+inline bool HTTPAttribute::_internal_has_method() const {
+  return attribute_case() == kMethod;
+}
+inline bool HTTPAttribute::has_method() const {
+  return _internal_has_method();
+}
+inline void HTTPAttribute::set_has_method() {
+  _oneof_case_[0] = kMethod;
+}
+inline void HTTPAttribute::clear_method() {
+  if (_internal_has_method()) {
+    if (GetArenaNoVirtual() == nullptr) {
+      delete attribute_.method_;
+    }
+    clear_has_attribute();
+  }
+}
+inline ::tigon::proto::tql::HTTPMethod* HTTPAttribute::release_method() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.HTTPAttribute.method)
+  if (has_method()) {
+    clear_has_attribute();
+      ::tigon::proto::tql::HTTPMethod* temp = attribute_.method_;
+    if (GetArenaNoVirtual() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    attribute_.method_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::tigon::proto::tql::HTTPMethod& HTTPAttribute::_internal_method() const {
+  return _internal_has_method()
+      ? *attribute_.method_
+      : *reinterpret_cast< ::tigon::proto::tql::HTTPMethod*>(&::tigon::proto::tql::_HTTPMethod_default_instance_);
+}
+inline const ::tigon::proto::tql::HTTPMethod& HTTPAttribute::method() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPAttribute.method)
+  return _internal_method();
+}
+inline ::tigon::proto::tql::HTTPMethod* HTTPAttribute::unsafe_arena_release_method() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.HTTPAttribute.method)
+  if (has_method()) {
+    clear_has_attribute();
+    ::tigon::proto::tql::HTTPMethod* temp = attribute_.method_;
+    attribute_.method_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void HTTPAttribute::unsafe_arena_set_allocated_method(::tigon::proto::tql::HTTPMethod* method) {
+  clear_attribute();
+  if (method) {
+    set_has_method();
+    attribute_.method_ = method;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.HTTPAttribute.method)
+}
+inline ::tigon::proto::tql::HTTPMethod* HTTPAttribute::_internal_mutable_method() {
+  if (!_internal_has_method()) {
+    clear_attribute();
+    set_has_method();
+    attribute_.method_ = CreateMaybeMessage< ::tigon::proto::tql::HTTPMethod >(
+        GetArenaNoVirtual());
+  }
+  return attribute_.method_;
+}
+inline ::tigon::proto::tql::HTTPMethod* HTTPAttribute::mutable_method() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.HTTPAttribute.method)
+  return _internal_mutable_method();
+}
+
+// .tigon.proto.tql.HTTPURL url = 2;
+inline bool HTTPAttribute::_internal_has_url() const {
+  return attribute_case() == kUrl;
+}
+inline bool HTTPAttribute::has_url() const {
+  return _internal_has_url();
+}
+inline void HTTPAttribute::set_has_url() {
+  _oneof_case_[0] = kUrl;
+}
+inline void HTTPAttribute::clear_url() {
+  if (_internal_has_url()) {
+    if (GetArenaNoVirtual() == nullptr) {
+      delete attribute_.url_;
+    }
+    clear_has_attribute();
+  }
+}
+inline ::tigon::proto::tql::HTTPURL* HTTPAttribute::release_url() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.HTTPAttribute.url)
+  if (has_url()) {
+    clear_has_attribute();
+      ::tigon::proto::tql::HTTPURL* temp = attribute_.url_;
+    if (GetArenaNoVirtual() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    attribute_.url_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::tigon::proto::tql::HTTPURL& HTTPAttribute::_internal_url() const {
+  return _internal_has_url()
+      ? *attribute_.url_
+      : *reinterpret_cast< ::tigon::proto::tql::HTTPURL*>(&::tigon::proto::tql::_HTTPURL_default_instance_);
+}
+inline const ::tigon::proto::tql::HTTPURL& HTTPAttribute::url() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPAttribute.url)
+  return _internal_url();
+}
+inline ::tigon::proto::tql::HTTPURL* HTTPAttribute::unsafe_arena_release_url() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.HTTPAttribute.url)
+  if (has_url()) {
+    clear_has_attribute();
+    ::tigon::proto::tql::HTTPURL* temp = attribute_.url_;
+    attribute_.url_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void HTTPAttribute::unsafe_arena_set_allocated_url(::tigon::proto::tql::HTTPURL* url) {
+  clear_attribute();
+  if (url) {
+    set_has_url();
+    attribute_.url_ = url;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.HTTPAttribute.url)
+}
+inline ::tigon::proto::tql::HTTPURL* HTTPAttribute::_internal_mutable_url() {
+  if (!_internal_has_url()) {
+    clear_attribute();
+    set_has_url();
+    attribute_.url_ = CreateMaybeMessage< ::tigon::proto::tql::HTTPURL >(
+        GetArenaNoVirtual());
+  }
+  return attribute_.url_;
+}
+inline ::tigon::proto::tql::HTTPURL* HTTPAttribute::mutable_url() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.HTTPAttribute.url)
+  return _internal_mutable_url();
+}
+
+inline bool HTTPAttribute::has_attribute() const {
+  return attribute_case() != ATTRIBUTE_NOT_SET;
+}
+inline void HTTPAttribute::clear_has_attribute() {
+  _oneof_case_[0] = ATTRIBUTE_NOT_SET;
+}
+inline HTTPAttribute::AttributeCase HTTPAttribute::attribute_case() const {
+  return HTTPAttribute::AttributeCase(_oneof_case_[0]);
+}
+// -------------------------------------------------------------------
+
+// HTTPAttributes
+
+// .tigon.proto.tql.Location location = 1;
+inline bool HTTPAttributes::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
+}
+inline bool HTTPAttributes::has_location() const {
+  return _internal_has_location();
+}
+inline void HTTPAttributes::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
+}
+inline const ::tigon::proto::tql::Location& HTTPAttributes::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
+}
+inline const ::tigon::proto::tql::Location& HTTPAttributes::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPAttributes.location)
+  return _internal_location();
+}
+inline ::tigon::proto::tql::Location* HTTPAttributes::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* HTTPAttributes::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.HTTPAttributes.location)
+  
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::Location* HTTPAttributes::_internal_mutable_location() {
+  
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
+}
+inline ::tigon::proto::tql::Location* HTTPAttributes::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.HTTPAttributes.location)
+  return _internal_mutable_location();
+}
+inline void HTTPAttributes::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.HTTPAttributes.location)
+}
+
+// repeated .tigon.proto.tql.HTTPAttribute attributes = 2;
+inline int HTTPAttributes::_internal_attributes_size() const {
+  return attributes_.size();
+}
+inline int HTTPAttributes::attributes_size() const {
+  return _internal_attributes_size();
+}
+inline void HTTPAttributes::clear_attributes() {
+  attributes_.Clear();
+}
+inline ::tigon::proto::tql::HTTPAttribute* HTTPAttributes::mutable_attributes(int index) {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.HTTPAttributes.attributes)
+  return attributes_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::HTTPAttribute >*
+HTTPAttributes::mutable_attributes() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.tql.HTTPAttributes.attributes)
+  return &attributes_;
+}
+inline const ::tigon::proto::tql::HTTPAttribute& HTTPAttributes::_internal_attributes(int index) const {
+  return attributes_.Get(index);
+}
+inline const ::tigon::proto::tql::HTTPAttribute& HTTPAttributes::attributes(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPAttributes.attributes)
+  return _internal_attributes(index);
+}
+inline ::tigon::proto::tql::HTTPAttribute* HTTPAttributes::_internal_add_attributes() {
+  return attributes_.Add();
+}
+inline ::tigon::proto::tql::HTTPAttribute* HTTPAttributes::add_attributes() {
+  // @@protoc_insertion_point(field_add:tigon.proto.tql.HTTPAttributes.attributes)
+  return _internal_add_attributes();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::HTTPAttribute >&
+HTTPAttributes::attributes() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.tql.HTTPAttributes.attributes)
+  return attributes_;
+}
+
+// -------------------------------------------------------------------
+
+// HTTPLoader
+
+// .tigon.proto.tql.Location location = 1;
+inline bool HTTPLoader::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
+}
+inline bool HTTPLoader::has_location() const {
+  return _internal_has_location();
+}
+inline void HTTPLoader::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
+}
+inline const ::tigon::proto::tql::Location& HTTPLoader::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
+}
+inline const ::tigon::proto::tql::Location& HTTPLoader::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPLoader.location)
+  return _internal_location();
+}
+inline ::tigon::proto::tql::Location* HTTPLoader::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* HTTPLoader::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.HTTPLoader.location)
+  
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::Location* HTTPLoader::_internal_mutable_location() {
+  
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
+}
+inline ::tigon::proto::tql::Location* HTTPLoader::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.HTTPLoader.location)
+  return _internal_mutable_location();
+}
+inline void HTTPLoader::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.HTTPLoader.location)
+}
+
+// .tigon.proto.tql.HTTPAttributes attributes = 2;
+inline bool HTTPLoader::_internal_has_attributes() const {
+  return this != internal_default_instance() && attributes_ != nullptr;
+}
+inline bool HTTPLoader::has_attributes() const {
+  return _internal_has_attributes();
+}
+inline void HTTPLoader::clear_attributes() {
+  if (GetArenaNoVirtual() == nullptr && attributes_ != nullptr) {
+    delete attributes_;
+  }
+  attributes_ = nullptr;
+}
+inline const ::tigon::proto::tql::HTTPAttributes& HTTPLoader::_internal_attributes() const {
+  const ::tigon::proto::tql::HTTPAttributes* p = attributes_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::HTTPAttributes*>(
+      &::tigon::proto::tql::_HTTPAttributes_default_instance_);
+}
+inline const ::tigon::proto::tql::HTTPAttributes& HTTPLoader::attributes() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.HTTPLoader.attributes)
+  return _internal_attributes();
+}
+inline ::tigon::proto::tql::HTTPAttributes* HTTPLoader::release_attributes() {
+  auto temp = unsafe_arena_release_attributes();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::HTTPAttributes* HTTPLoader::unsafe_arena_release_attributes() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.HTTPLoader.attributes)
+  
+  ::tigon::proto::tql::HTTPAttributes* temp = attributes_;
+  attributes_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::HTTPAttributes* HTTPLoader::_internal_mutable_attributes() {
+  
+  if (attributes_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::HTTPAttributes>(GetArenaNoVirtual());
+    attributes_ = p;
+  }
+  return attributes_;
+}
+inline ::tigon::proto::tql::HTTPAttributes* HTTPLoader::mutable_attributes() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.HTTPLoader.attributes)
+  return _internal_mutable_attributes();
+}
+inline void HTTPLoader::set_allocated_attributes(::tigon::proto::tql::HTTPAttributes* attributes) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete attributes_;
+  }
+  if (attributes) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(attributes);
+    if (message_arena != submessage_arena) {
+      attributes = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, attributes, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  attributes_ = attributes;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.HTTPLoader.attributes)
+}
+
+// -------------------------------------------------------------------
+
+// FileLoader
+
+// .tigon.proto.tql.Location location = 1;
+inline bool FileLoader::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
+}
+inline bool FileLoader::has_location() const {
+  return _internal_has_location();
+}
+inline void FileLoader::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
+}
+inline const ::tigon::proto::tql::Location& FileLoader::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
+}
+inline const ::tigon::proto::tql::Location& FileLoader::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.FileLoader.location)
+  return _internal_location();
+}
+inline ::tigon::proto::tql::Location* FileLoader::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* FileLoader::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.FileLoader.location)
+  
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::Location* FileLoader::_internal_mutable_location() {
+  
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
+}
+inline ::tigon::proto::tql::Location* FileLoader::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.FileLoader.location)
+  return _internal_mutable_location();
+}
+inline void FileLoader::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.FileLoader.location)
+}
 
 // -------------------------------------------------------------------
 
 // LoadStatement
 
-// string data_id = 1;
-inline void LoadStatement::clear_data_id() {
-  data_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// .tigon.proto.tql.Location location = 1;
+inline bool LoadStatement::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
 }
-inline const std::string& LoadStatement::data_id() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.LoadStatement.data_id)
-  return _internal_data_id();
+inline bool LoadStatement::has_location() const {
+  return _internal_has_location();
 }
-inline void LoadStatement::set_data_id(const std::string& value) {
-  _internal_set_data_id(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.LoadStatement.data_id)
+inline void LoadStatement::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
 }
-inline std::string* LoadStatement::mutable_data_id() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.LoadStatement.data_id)
-  return _internal_mutable_data_id();
+inline const ::tigon::proto::tql::Location& LoadStatement::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
 }
-inline const std::string& LoadStatement::_internal_data_id() const {
-  return data_id_.Get();
+inline const ::tigon::proto::tql::Location& LoadStatement::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.LoadStatement.location)
+  return _internal_location();
 }
-inline void LoadStatement::_internal_set_data_id(const std::string& value) {
+inline ::tigon::proto::tql::Location* LoadStatement::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* LoadStatement::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.LoadStatement.location)
   
-  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
 }
-inline void LoadStatement::set_data_id(std::string&& value) {
+inline ::tigon::proto::tql::Location* LoadStatement::_internal_mutable_location() {
   
-  data_id_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.LoadStatement.data_id)
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
 }
-inline void LoadStatement::set_data_id(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.LoadStatement.data_id)
+inline ::tigon::proto::tql::Location* LoadStatement::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.LoadStatement.location)
+  return _internal_mutable_location();
 }
-inline void LoadStatement::set_data_id(const char* value,
-    size_t size) {
-  
-  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.LoadStatement.data_id)
-}
-inline std::string* LoadStatement::_internal_mutable_data_id() {
-  
-  return data_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* LoadStatement::release_data_id() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.LoadStatement.data_id)
-  
-  return data_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void LoadStatement::set_allocated_data_id(std::string* data_id) {
-  if (data_id != nullptr) {
+inline void LoadStatement::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
     
   } else {
     
   }
-  data_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), data_id,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.LoadStatement.data_id)
-}
-inline std::string* LoadStatement::unsafe_arena_release_data_id() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.LoadStatement.data_id)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return data_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void LoadStatement::unsafe_arena_set_allocated_data_id(
-    std::string* data_id) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (data_id != nullptr) {
-    
-  } else {
-    
-  }
-  data_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      data_id, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.LoadStatement.data_id)
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.LoadStatement.location)
 }
 
-// .tigon.proto.tql.HTTPLoadMethod http = 2;
+// .tigon.proto.tql.String name = 2;
+inline bool LoadStatement::_internal_has_name() const {
+  return this != internal_default_instance() && name_ != nullptr;
+}
+inline bool LoadStatement::has_name() const {
+  return _internal_has_name();
+}
+inline void LoadStatement::clear_name() {
+  if (GetArenaNoVirtual() == nullptr && name_ != nullptr) {
+    delete name_;
+  }
+  name_ = nullptr;
+}
+inline const ::tigon::proto::tql::String& LoadStatement::_internal_name() const {
+  const ::tigon::proto::tql::String* p = name_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::String*>(
+      &::tigon::proto::tql::_String_default_instance_);
+}
+inline const ::tigon::proto::tql::String& LoadStatement::name() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.LoadStatement.name)
+  return _internal_name();
+}
+inline ::tigon::proto::tql::String* LoadStatement::release_name() {
+  auto temp = unsafe_arena_release_name();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::String* LoadStatement::unsafe_arena_release_name() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.LoadStatement.name)
+  
+  ::tigon::proto::tql::String* temp = name_;
+  name_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::String* LoadStatement::_internal_mutable_name() {
+  
+  if (name_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::String>(GetArenaNoVirtual());
+    name_ = p;
+  }
+  return name_;
+}
+inline ::tigon::proto::tql::String* LoadStatement::mutable_name() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.LoadStatement.name)
+  return _internal_mutable_name();
+}
+inline void LoadStatement::set_allocated_name(::tigon::proto::tql::String* name) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete name_;
+  }
+  if (name) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(name);
+    if (message_arena != submessage_arena) {
+      name = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, name, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  name_ = name;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.LoadStatement.name)
+}
+
+// .tigon.proto.tql.HTTPLoader http = 3;
 inline bool LoadStatement::_internal_has_http() const {
-  return load_method_case() == kHttp;
+  return method_case() == kHttp;
 }
 inline bool LoadStatement::has_http() const {
   return _internal_has_http();
@@ -4654,70 +5978,70 @@ inline void LoadStatement::set_has_http() {
 inline void LoadStatement::clear_http() {
   if (_internal_has_http()) {
     if (GetArenaNoVirtual() == nullptr) {
-      delete load_method_.http_;
+      delete method_.http_;
     }
-    clear_has_load_method();
+    clear_has_method();
   }
 }
-inline ::tigon::proto::tql::HTTPLoadMethod* LoadStatement::release_http() {
+inline ::tigon::proto::tql::HTTPLoader* LoadStatement::release_http() {
   // @@protoc_insertion_point(field_release:tigon.proto.tql.LoadStatement.http)
   if (has_http()) {
-    clear_has_load_method();
-      ::tigon::proto::tql::HTTPLoadMethod* temp = load_method_.http_;
+    clear_has_method();
+      ::tigon::proto::tql::HTTPLoader* temp = method_.http_;
     if (GetArenaNoVirtual() != nullptr) {
       temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
     }
-    load_method_.http_ = nullptr;
+    method_.http_ = nullptr;
     return temp;
   } else {
     return nullptr;
   }
 }
-inline const ::tigon::proto::tql::HTTPLoadMethod& LoadStatement::_internal_http() const {
+inline const ::tigon::proto::tql::HTTPLoader& LoadStatement::_internal_http() const {
   return _internal_has_http()
-      ? *load_method_.http_
-      : *reinterpret_cast< ::tigon::proto::tql::HTTPLoadMethod*>(&::tigon::proto::tql::_HTTPLoadMethod_default_instance_);
+      ? *method_.http_
+      : *reinterpret_cast< ::tigon::proto::tql::HTTPLoader*>(&::tigon::proto::tql::_HTTPLoader_default_instance_);
 }
-inline const ::tigon::proto::tql::HTTPLoadMethod& LoadStatement::http() const {
+inline const ::tigon::proto::tql::HTTPLoader& LoadStatement::http() const {
   // @@protoc_insertion_point(field_get:tigon.proto.tql.LoadStatement.http)
   return _internal_http();
 }
-inline ::tigon::proto::tql::HTTPLoadMethod* LoadStatement::unsafe_arena_release_http() {
+inline ::tigon::proto::tql::HTTPLoader* LoadStatement::unsafe_arena_release_http() {
   // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.LoadStatement.http)
   if (has_http()) {
-    clear_has_load_method();
-    ::tigon::proto::tql::HTTPLoadMethod* temp = load_method_.http_;
-    load_method_.http_ = nullptr;
+    clear_has_method();
+    ::tigon::proto::tql::HTTPLoader* temp = method_.http_;
+    method_.http_ = nullptr;
     return temp;
   } else {
     return nullptr;
   }
 }
-inline void LoadStatement::unsafe_arena_set_allocated_http(::tigon::proto::tql::HTTPLoadMethod* http) {
-  clear_load_method();
+inline void LoadStatement::unsafe_arena_set_allocated_http(::tigon::proto::tql::HTTPLoader* http) {
+  clear_method();
   if (http) {
     set_has_http();
-    load_method_.http_ = http;
+    method_.http_ = http;
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.LoadStatement.http)
 }
-inline ::tigon::proto::tql::HTTPLoadMethod* LoadStatement::_internal_mutable_http() {
+inline ::tigon::proto::tql::HTTPLoader* LoadStatement::_internal_mutable_http() {
   if (!_internal_has_http()) {
-    clear_load_method();
+    clear_method();
     set_has_http();
-    load_method_.http_ = CreateMaybeMessage< ::tigon::proto::tql::HTTPLoadMethod >(
+    method_.http_ = CreateMaybeMessage< ::tigon::proto::tql::HTTPLoader >(
         GetArenaNoVirtual());
   }
-  return load_method_.http_;
+  return method_.http_;
 }
-inline ::tigon::proto::tql::HTTPLoadMethod* LoadStatement::mutable_http() {
+inline ::tigon::proto::tql::HTTPLoader* LoadStatement::mutable_http() {
   // @@protoc_insertion_point(field_mutable:tigon.proto.tql.LoadStatement.http)
   return _internal_mutable_http();
 }
 
-// .tigon.proto.tql.FileLoadMethod file = 3;
+// .tigon.proto.tql.FileLoader file = 4;
 inline bool LoadStatement::_internal_has_file() const {
-  return load_method_case() == kFile;
+  return method_case() == kFile;
 }
 inline bool LoadStatement::has_file() const {
   return _internal_has_file();
@@ -4728,512 +6052,437 @@ inline void LoadStatement::set_has_file() {
 inline void LoadStatement::clear_file() {
   if (_internal_has_file()) {
     if (GetArenaNoVirtual() == nullptr) {
-      delete load_method_.file_;
+      delete method_.file_;
     }
-    clear_has_load_method();
+    clear_has_method();
   }
 }
-inline ::tigon::proto::tql::FileLoadMethod* LoadStatement::release_file() {
+inline ::tigon::proto::tql::FileLoader* LoadStatement::release_file() {
   // @@protoc_insertion_point(field_release:tigon.proto.tql.LoadStatement.file)
   if (has_file()) {
-    clear_has_load_method();
-      ::tigon::proto::tql::FileLoadMethod* temp = load_method_.file_;
+    clear_has_method();
+      ::tigon::proto::tql::FileLoader* temp = method_.file_;
     if (GetArenaNoVirtual() != nullptr) {
       temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
     }
-    load_method_.file_ = nullptr;
+    method_.file_ = nullptr;
     return temp;
   } else {
     return nullptr;
   }
 }
-inline const ::tigon::proto::tql::FileLoadMethod& LoadStatement::_internal_file() const {
+inline const ::tigon::proto::tql::FileLoader& LoadStatement::_internal_file() const {
   return _internal_has_file()
-      ? *load_method_.file_
-      : *reinterpret_cast< ::tigon::proto::tql::FileLoadMethod*>(&::tigon::proto::tql::_FileLoadMethod_default_instance_);
+      ? *method_.file_
+      : *reinterpret_cast< ::tigon::proto::tql::FileLoader*>(&::tigon::proto::tql::_FileLoader_default_instance_);
 }
-inline const ::tigon::proto::tql::FileLoadMethod& LoadStatement::file() const {
+inline const ::tigon::proto::tql::FileLoader& LoadStatement::file() const {
   // @@protoc_insertion_point(field_get:tigon.proto.tql.LoadStatement.file)
   return _internal_file();
 }
-inline ::tigon::proto::tql::FileLoadMethod* LoadStatement::unsafe_arena_release_file() {
+inline ::tigon::proto::tql::FileLoader* LoadStatement::unsafe_arena_release_file() {
   // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.LoadStatement.file)
   if (has_file()) {
-    clear_has_load_method();
-    ::tigon::proto::tql::FileLoadMethod* temp = load_method_.file_;
-    load_method_.file_ = nullptr;
+    clear_has_method();
+    ::tigon::proto::tql::FileLoader* temp = method_.file_;
+    method_.file_ = nullptr;
     return temp;
   } else {
     return nullptr;
   }
 }
-inline void LoadStatement::unsafe_arena_set_allocated_file(::tigon::proto::tql::FileLoadMethod* file) {
-  clear_load_method();
+inline void LoadStatement::unsafe_arena_set_allocated_file(::tigon::proto::tql::FileLoader* file) {
+  clear_method();
   if (file) {
     set_has_file();
-    load_method_.file_ = file;
+    method_.file_ = file;
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.LoadStatement.file)
 }
-inline ::tigon::proto::tql::FileLoadMethod* LoadStatement::_internal_mutable_file() {
+inline ::tigon::proto::tql::FileLoader* LoadStatement::_internal_mutable_file() {
   if (!_internal_has_file()) {
-    clear_load_method();
+    clear_method();
     set_has_file();
-    load_method_.file_ = CreateMaybeMessage< ::tigon::proto::tql::FileLoadMethod >(
+    method_.file_ = CreateMaybeMessage< ::tigon::proto::tql::FileLoader >(
         GetArenaNoVirtual());
   }
-  return load_method_.file_;
+  return method_.file_;
 }
-inline ::tigon::proto::tql::FileLoadMethod* LoadStatement::mutable_file() {
+inline ::tigon::proto::tql::FileLoader* LoadStatement::mutable_file() {
   // @@protoc_insertion_point(field_mutable:tigon.proto.tql.LoadStatement.file)
   return _internal_mutable_file();
 }
 
-inline bool LoadStatement::has_load_method() const {
-  return load_method_case() != LOAD_METHOD_NOT_SET;
+inline bool LoadStatement::has_method() const {
+  return method_case() != METHOD_NOT_SET;
 }
-inline void LoadStatement::clear_has_load_method() {
-  _oneof_case_[0] = LOAD_METHOD_NOT_SET;
+inline void LoadStatement::clear_has_method() {
+  _oneof_case_[0] = METHOD_NOT_SET;
 }
-inline LoadStatement::LoadMethodCase LoadStatement::load_method_case() const {
-  return LoadStatement::LoadMethodCase(_oneof_case_[0]);
+inline LoadStatement::MethodCase LoadStatement::method_case() const {
+  return LoadStatement::MethodCase(_oneof_case_[0]);
 }
 // -------------------------------------------------------------------
 
-// JSONExtract
+// JSONPathExtract
 
-// -------------------------------------------------------------------
-
-// CSVColumn
-
-// string column_name = 1;
-inline void CSVColumn::clear_column_name() {
-  column_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// .tigon.proto.tql.Location location = 1;
+inline bool JSONPathExtract::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
 }
-inline const std::string& CSVColumn::column_name() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.CSVColumn.column_name)
-  return _internal_column_name();
+inline bool JSONPathExtract::has_location() const {
+  return _internal_has_location();
 }
-inline void CSVColumn::set_column_name(const std::string& value) {
-  _internal_set_column_name(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.CSVColumn.column_name)
+inline void JSONPathExtract::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
 }
-inline std::string* CSVColumn::mutable_column_name() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.CSVColumn.column_name)
-  return _internal_mutable_column_name();
+inline const ::tigon::proto::tql::Location& JSONPathExtract::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
 }
-inline const std::string& CSVColumn::_internal_column_name() const {
-  return column_name_.Get();
+inline const ::tigon::proto::tql::Location& JSONPathExtract::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.JSONPathExtract.location)
+  return _internal_location();
 }
-inline void CSVColumn::_internal_set_column_name(const std::string& value) {
+inline ::tigon::proto::tql::Location* JSONPathExtract::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* JSONPathExtract::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.JSONPathExtract.location)
   
-  column_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
 }
-inline void CSVColumn::set_column_name(std::string&& value) {
+inline ::tigon::proto::tql::Location* JSONPathExtract::_internal_mutable_location() {
   
-  column_name_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.CSVColumn.column_name)
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
 }
-inline void CSVColumn::set_column_name(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  column_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.CSVColumn.column_name)
+inline ::tigon::proto::tql::Location* JSONPathExtract::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.JSONPathExtract.location)
+  return _internal_mutable_location();
 }
-inline void CSVColumn::set_column_name(const char* value,
-    size_t size) {
-  
-  column_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.CSVColumn.column_name)
-}
-inline std::string* CSVColumn::_internal_mutable_column_name() {
-  
-  return column_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* CSVColumn::release_column_name() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.CSVColumn.column_name)
-  
-  return column_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void CSVColumn::set_allocated_column_name(std::string* column_name) {
-  if (column_name != nullptr) {
+inline void JSONPathExtract::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
     
   } else {
     
   }
-  column_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), column_name,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.CSVColumn.column_name)
-}
-inline std::string* CSVColumn::unsafe_arena_release_column_name() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.CSVColumn.column_name)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return column_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void CSVColumn::unsafe_arena_set_allocated_column_name(
-    std::string* column_name) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (column_name != nullptr) {
-    
-  } else {
-    
-  }
-  column_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      column_name, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.CSVColumn.column_name)
-}
-
-// .tigon.proto.tql.Type column_type = 2;
-inline void CSVColumn::clear_column_type() {
-  column_type_ = 0;
-}
-inline ::tigon::proto::tql::Type CSVColumn::_internal_column_type() const {
-  return static_cast< ::tigon::proto::tql::Type >(column_type_);
-}
-inline ::tigon::proto::tql::Type CSVColumn::column_type() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.CSVColumn.column_type)
-  return _internal_column_type();
-}
-inline void CSVColumn::_internal_set_column_type(::tigon::proto::tql::Type value) {
-  
-  column_type_ = value;
-}
-inline void CSVColumn::set_column_type(::tigon::proto::tql::Type value) {
-  _internal_set_column_type(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.CSVColumn.column_type)
-}
-
-// string source_name = 3;
-inline void CSVColumn::clear_source_name() {
-  source_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline const std::string& CSVColumn::source_name() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.CSVColumn.source_name)
-  return _internal_source_name();
-}
-inline void CSVColumn::set_source_name(const std::string& value) {
-  _internal_set_source_name(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.CSVColumn.source_name)
-}
-inline std::string* CSVColumn::mutable_source_name() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.CSVColumn.source_name)
-  return _internal_mutable_source_name();
-}
-inline const std::string& CSVColumn::_internal_source_name() const {
-  return source_name_.Get();
-}
-inline void CSVColumn::_internal_set_source_name(const std::string& value) {
-  
-  source_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
-}
-inline void CSVColumn::set_source_name(std::string&& value) {
-  
-  source_name_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.CSVColumn.source_name)
-}
-inline void CSVColumn::set_source_name(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  source_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.CSVColumn.source_name)
-}
-inline void CSVColumn::set_source_name(const char* value,
-    size_t size) {
-  
-  source_name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.CSVColumn.source_name)
-}
-inline std::string* CSVColumn::_internal_mutable_source_name() {
-  
-  return source_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* CSVColumn::release_source_name() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.CSVColumn.source_name)
-  
-  return source_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void CSVColumn::set_allocated_source_name(std::string* source_name) {
-  if (source_name != nullptr) {
-    
-  } else {
-    
-  }
-  source_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), source_name,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.CSVColumn.source_name)
-}
-inline std::string* CSVColumn::unsafe_arena_release_source_name() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.CSVColumn.source_name)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return source_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void CSVColumn::unsafe_arena_set_allocated_source_name(
-    std::string* source_name) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (source_name != nullptr) {
-    
-  } else {
-    
-  }
-  source_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      source_name, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.CSVColumn.source_name)
-}
-
-// int32 source_index = 4;
-inline void CSVColumn::clear_source_index() {
-  source_index_ = 0;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 CSVColumn::_internal_source_index() const {
-  return source_index_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 CSVColumn::source_index() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.CSVColumn.source_index)
-  return _internal_source_index();
-}
-inline void CSVColumn::_internal_set_source_index(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  
-  source_index_ = value;
-}
-inline void CSVColumn::set_source_index(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_source_index(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.CSVColumn.source_index)
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.JSONPathExtract.location)
 }
 
 // -------------------------------------------------------------------
 
 // CSVExtract
 
-// repeated .tigon.proto.tql.CSVColumn columns = 1;
-inline int CSVExtract::_internal_columns_size() const {
-  return columns_.size();
+// .tigon.proto.tql.Location location = 1;
+inline bool CSVExtract::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
 }
-inline int CSVExtract::columns_size() const {
-  return _internal_columns_size();
+inline bool CSVExtract::has_location() const {
+  return _internal_has_location();
 }
-inline void CSVExtract::clear_columns() {
-  columns_.Clear();
+inline void CSVExtract::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
 }
-inline ::tigon::proto::tql::CSVColumn* CSVExtract::mutable_columns(int index) {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.CSVExtract.columns)
-  return columns_.Mutable(index);
+inline const ::tigon::proto::tql::Location& CSVExtract::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::CSVColumn >*
-CSVExtract::mutable_columns() {
-  // @@protoc_insertion_point(field_mutable_list:tigon.proto.tql.CSVExtract.columns)
-  return &columns_;
+inline const ::tigon::proto::tql::Location& CSVExtract::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.CSVExtract.location)
+  return _internal_location();
 }
-inline const ::tigon::proto::tql::CSVColumn& CSVExtract::_internal_columns(int index) const {
-  return columns_.Get(index);
+inline ::tigon::proto::tql::Location* CSVExtract::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
 }
-inline const ::tigon::proto::tql::CSVColumn& CSVExtract::columns(int index) const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.CSVExtract.columns)
-  return _internal_columns(index);
+inline ::tigon::proto::tql::Location* CSVExtract::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.CSVExtract.location)
+  
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
 }
-inline ::tigon::proto::tql::CSVColumn* CSVExtract::_internal_add_columns() {
-  return columns_.Add();
+inline ::tigon::proto::tql::Location* CSVExtract::_internal_mutable_location() {
+  
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
 }
-inline ::tigon::proto::tql::CSVColumn* CSVExtract::add_columns() {
-  // @@protoc_insertion_point(field_add:tigon.proto.tql.CSVExtract.columns)
-  return _internal_add_columns();
+inline ::tigon::proto::tql::Location* CSVExtract::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.CSVExtract.location)
+  return _internal_mutable_location();
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::tql::CSVColumn >&
-CSVExtract::columns() const {
-  // @@protoc_insertion_point(field_list:tigon.proto.tql.CSVExtract.columns)
-  return columns_;
+inline void CSVExtract::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.CSVExtract.location)
 }
-
-// -------------------------------------------------------------------
-
-// ExtractMethod
 
 // -------------------------------------------------------------------
 
 // ExtractStatement
 
-// string extract_id = 1;
-inline void ExtractStatement::clear_extract_id() {
-  extract_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// .tigon.proto.tql.Location location = 1;
+inline bool ExtractStatement::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
 }
-inline const std::string& ExtractStatement::extract_id() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.extract_id)
-  return _internal_extract_id();
+inline bool ExtractStatement::has_location() const {
+  return _internal_has_location();
 }
-inline void ExtractStatement::set_extract_id(const std::string& value) {
-  _internal_set_extract_id(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.ExtractStatement.extract_id)
+inline void ExtractStatement::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
 }
-inline std::string* ExtractStatement::mutable_extract_id() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.extract_id)
-  return _internal_mutable_extract_id();
+inline const ::tigon::proto::tql::Location& ExtractStatement::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
 }
-inline const std::string& ExtractStatement::_internal_extract_id() const {
-  return extract_id_.Get();
+inline const ::tigon::proto::tql::Location& ExtractStatement::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.location)
+  return _internal_location();
 }
-inline void ExtractStatement::_internal_set_extract_id(const std::string& value) {
+inline ::tigon::proto::tql::Location* ExtractStatement::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* ExtractStatement::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.location)
   
-  extract_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
 }
-inline void ExtractStatement::set_extract_id(std::string&& value) {
+inline ::tigon::proto::tql::Location* ExtractStatement::_internal_mutable_location() {
   
-  extract_id_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.ExtractStatement.extract_id)
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
 }
-inline void ExtractStatement::set_extract_id(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  extract_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.ExtractStatement.extract_id)
+inline ::tigon::proto::tql::Location* ExtractStatement::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.location)
+  return _internal_mutable_location();
 }
-inline void ExtractStatement::set_extract_id(const char* value,
-    size_t size) {
-  
-  extract_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.ExtractStatement.extract_id)
-}
-inline std::string* ExtractStatement::_internal_mutable_extract_id() {
-  
-  return extract_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* ExtractStatement::release_extract_id() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.extract_id)
-  
-  return extract_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void ExtractStatement::set_allocated_extract_id(std::string* extract_id) {
-  if (extract_id != nullptr) {
+inline void ExtractStatement::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
     
   } else {
     
   }
-  extract_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), extract_id,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ExtractStatement.extract_id)
-}
-inline std::string* ExtractStatement::unsafe_arena_release_extract_id() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ExtractStatement.extract_id)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return extract_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void ExtractStatement::unsafe_arena_set_allocated_extract_id(
-    std::string* extract_id) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (extract_id != nullptr) {
-    
-  } else {
-    
-  }
-  extract_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      extract_id, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ExtractStatement.extract_id)
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ExtractStatement.location)
 }
 
-// string data_id = 2;
-inline void ExtractStatement::clear_data_id() {
-  data_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// .tigon.proto.tql.String name = 2;
+inline bool ExtractStatement::_internal_has_name() const {
+  return this != internal_default_instance() && name_ != nullptr;
 }
-inline const std::string& ExtractStatement::data_id() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.data_id)
-  return _internal_data_id();
+inline bool ExtractStatement::has_name() const {
+  return _internal_has_name();
 }
-inline void ExtractStatement::set_data_id(const std::string& value) {
-  _internal_set_data_id(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.ExtractStatement.data_id)
+inline void ExtractStatement::clear_name() {
+  if (GetArenaNoVirtual() == nullptr && name_ != nullptr) {
+    delete name_;
+  }
+  name_ = nullptr;
 }
-inline std::string* ExtractStatement::mutable_data_id() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.data_id)
-  return _internal_mutable_data_id();
+inline const ::tigon::proto::tql::String& ExtractStatement::_internal_name() const {
+  const ::tigon::proto::tql::String* p = name_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::String*>(
+      &::tigon::proto::tql::_String_default_instance_);
 }
-inline const std::string& ExtractStatement::_internal_data_id() const {
-  return data_id_.Get();
+inline const ::tigon::proto::tql::String& ExtractStatement::name() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.name)
+  return _internal_name();
 }
-inline void ExtractStatement::_internal_set_data_id(const std::string& value) {
+inline ::tigon::proto::tql::String* ExtractStatement::release_name() {
+  auto temp = unsafe_arena_release_name();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::String* ExtractStatement::unsafe_arena_release_name() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.name)
   
-  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  ::tigon::proto::tql::String* temp = name_;
+  name_ = nullptr;
+  return temp;
 }
-inline void ExtractStatement::set_data_id(std::string&& value) {
+inline ::tigon::proto::tql::String* ExtractStatement::_internal_mutable_name() {
   
-  data_id_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.ExtractStatement.data_id)
+  if (name_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::String>(GetArenaNoVirtual());
+    name_ = p;
+  }
+  return name_;
 }
-inline void ExtractStatement::set_data_id(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.ExtractStatement.data_id)
+inline ::tigon::proto::tql::String* ExtractStatement::mutable_name() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.name)
+  return _internal_mutable_name();
 }
-inline void ExtractStatement::set_data_id(const char* value,
-    size_t size) {
-  
-  data_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.ExtractStatement.data_id)
-}
-inline std::string* ExtractStatement::_internal_mutable_data_id() {
-  
-  return data_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* ExtractStatement::release_data_id() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.data_id)
-  
-  return data_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void ExtractStatement::set_allocated_data_id(std::string* data_id) {
-  if (data_id != nullptr) {
+inline void ExtractStatement::set_allocated_name(::tigon::proto::tql::String* name) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete name_;
+  }
+  if (name) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(name);
+    if (message_arena != submessage_arena) {
+      name = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, name, submessage_arena);
+    }
     
   } else {
     
   }
-  data_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), data_id,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ExtractStatement.data_id)
-}
-inline std::string* ExtractStatement::unsafe_arena_release_data_id() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ExtractStatement.data_id)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return data_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void ExtractStatement::unsafe_arena_set_allocated_data_id(
-    std::string* data_id) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (data_id != nullptr) {
-    
-  } else {
-    
-  }
-  data_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      data_id, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ExtractStatement.data_id)
+  name_ = name;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ExtractStatement.name)
 }
 
-// .tigon.proto.tql.JSONExtract json = 3;
+// .tigon.proto.tql.String data_name = 3;
+inline bool ExtractStatement::_internal_has_data_name() const {
+  return this != internal_default_instance() && data_name_ != nullptr;
+}
+inline bool ExtractStatement::has_data_name() const {
+  return _internal_has_data_name();
+}
+inline void ExtractStatement::clear_data_name() {
+  if (GetArenaNoVirtual() == nullptr && data_name_ != nullptr) {
+    delete data_name_;
+  }
+  data_name_ = nullptr;
+}
+inline const ::tigon::proto::tql::String& ExtractStatement::_internal_data_name() const {
+  const ::tigon::proto::tql::String* p = data_name_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::String*>(
+      &::tigon::proto::tql::_String_default_instance_);
+}
+inline const ::tigon::proto::tql::String& ExtractStatement::data_name() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.data_name)
+  return _internal_data_name();
+}
+inline ::tigon::proto::tql::String* ExtractStatement::release_data_name() {
+  auto temp = unsafe_arena_release_data_name();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::String* ExtractStatement::unsafe_arena_release_data_name() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.data_name)
+  
+  ::tigon::proto::tql::String* temp = data_name_;
+  data_name_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::String* ExtractStatement::_internal_mutable_data_name() {
+  
+  if (data_name_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::String>(GetArenaNoVirtual());
+    data_name_ = p;
+  }
+  return data_name_;
+}
+inline ::tigon::proto::tql::String* ExtractStatement::mutable_data_name() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.data_name)
+  return _internal_mutable_data_name();
+}
+inline void ExtractStatement::set_allocated_data_name(::tigon::proto::tql::String* data_name) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete data_name_;
+  }
+  if (data_name) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(data_name);
+    if (message_arena != submessage_arena) {
+      data_name = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, data_name, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  data_name_ = data_name;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ExtractStatement.data_name)
+}
+
+// .tigon.proto.tql.JSONPathExtract JSON = 4;
 inline bool ExtractStatement::_internal_has_json() const {
-  return method_case() == kJson;
+  return method_case() == kJSON;
 }
 inline bool ExtractStatement::has_json() const {
   return _internal_has_json();
 }
 inline void ExtractStatement::set_has_json() {
-  _oneof_case_[0] = kJson;
+  _oneof_case_[0] = kJSON;
 }
 inline void ExtractStatement::clear_json() {
   if (_internal_has_json()) {
@@ -5243,11 +6492,11 @@ inline void ExtractStatement::clear_json() {
     clear_has_method();
   }
 }
-inline ::tigon::proto::tql::JSONExtract* ExtractStatement::release_json() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.json)
+inline ::tigon::proto::tql::JSONPathExtract* ExtractStatement::release_json() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.JSON)
   if (has_json()) {
     clear_has_method();
-      ::tigon::proto::tql::JSONExtract* temp = method_.json_;
+      ::tigon::proto::tql::JSONPathExtract* temp = method_.json_;
     if (GetArenaNoVirtual() != nullptr) {
       temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
     }
@@ -5257,57 +6506,57 @@ inline ::tigon::proto::tql::JSONExtract* ExtractStatement::release_json() {
     return nullptr;
   }
 }
-inline const ::tigon::proto::tql::JSONExtract& ExtractStatement::_internal_json() const {
+inline const ::tigon::proto::tql::JSONPathExtract& ExtractStatement::_internal_json() const {
   return _internal_has_json()
       ? *method_.json_
-      : *reinterpret_cast< ::tigon::proto::tql::JSONExtract*>(&::tigon::proto::tql::_JSONExtract_default_instance_);
+      : *reinterpret_cast< ::tigon::proto::tql::JSONPathExtract*>(&::tigon::proto::tql::_JSONPathExtract_default_instance_);
 }
-inline const ::tigon::proto::tql::JSONExtract& ExtractStatement::json() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.json)
+inline const ::tigon::proto::tql::JSONPathExtract& ExtractStatement::json() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.JSON)
   return _internal_json();
 }
-inline ::tigon::proto::tql::JSONExtract* ExtractStatement::unsafe_arena_release_json() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ExtractStatement.json)
+inline ::tigon::proto::tql::JSONPathExtract* ExtractStatement::unsafe_arena_release_json() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ExtractStatement.JSON)
   if (has_json()) {
     clear_has_method();
-    ::tigon::proto::tql::JSONExtract* temp = method_.json_;
+    ::tigon::proto::tql::JSONPathExtract* temp = method_.json_;
     method_.json_ = nullptr;
     return temp;
   } else {
     return nullptr;
   }
 }
-inline void ExtractStatement::unsafe_arena_set_allocated_json(::tigon::proto::tql::JSONExtract* json) {
+inline void ExtractStatement::unsafe_arena_set_allocated_json(::tigon::proto::tql::JSONPathExtract* json) {
   clear_method();
   if (json) {
     set_has_json();
     method_.json_ = json;
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ExtractStatement.json)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ExtractStatement.JSON)
 }
-inline ::tigon::proto::tql::JSONExtract* ExtractStatement::_internal_mutable_json() {
+inline ::tigon::proto::tql::JSONPathExtract* ExtractStatement::_internal_mutable_json() {
   if (!_internal_has_json()) {
     clear_method();
     set_has_json();
-    method_.json_ = CreateMaybeMessage< ::tigon::proto::tql::JSONExtract >(
+    method_.json_ = CreateMaybeMessage< ::tigon::proto::tql::JSONPathExtract >(
         GetArenaNoVirtual());
   }
   return method_.json_;
 }
-inline ::tigon::proto::tql::JSONExtract* ExtractStatement::mutable_json() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.json)
+inline ::tigon::proto::tql::JSONPathExtract* ExtractStatement::mutable_json() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.JSON)
   return _internal_mutable_json();
 }
 
-// .tigon.proto.tql.CSVExtract csv = 4;
+// .tigon.proto.tql.CSVExtract CSV = 5;
 inline bool ExtractStatement::_internal_has_csv() const {
-  return method_case() == kCsv;
+  return method_case() == kCSV;
 }
 inline bool ExtractStatement::has_csv() const {
   return _internal_has_csv();
 }
 inline void ExtractStatement::set_has_csv() {
-  _oneof_case_[0] = kCsv;
+  _oneof_case_[0] = kCSV;
 }
 inline void ExtractStatement::clear_csv() {
   if (_internal_has_csv()) {
@@ -5318,7 +6567,7 @@ inline void ExtractStatement::clear_csv() {
   }
 }
 inline ::tigon::proto::tql::CSVExtract* ExtractStatement::release_csv() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.csv)
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ExtractStatement.CSV)
   if (has_csv()) {
     clear_has_method();
       ::tigon::proto::tql::CSVExtract* temp = method_.csv_;
@@ -5337,11 +6586,11 @@ inline const ::tigon::proto::tql::CSVExtract& ExtractStatement::_internal_csv() 
       : *reinterpret_cast< ::tigon::proto::tql::CSVExtract*>(&::tigon::proto::tql::_CSVExtract_default_instance_);
 }
 inline const ::tigon::proto::tql::CSVExtract& ExtractStatement::csv() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.csv)
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ExtractStatement.CSV)
   return _internal_csv();
 }
 inline ::tigon::proto::tql::CSVExtract* ExtractStatement::unsafe_arena_release_csv() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ExtractStatement.csv)
+  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.ExtractStatement.CSV)
   if (has_csv()) {
     clear_has_method();
     ::tigon::proto::tql::CSVExtract* temp = method_.csv_;
@@ -5357,7 +6606,7 @@ inline void ExtractStatement::unsafe_arena_set_allocated_csv(::tigon::proto::tql
     set_has_csv();
     method_.csv_ = csv;
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ExtractStatement.csv)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ExtractStatement.CSV)
 }
 inline ::tigon::proto::tql::CSVExtract* ExtractStatement::_internal_mutable_csv() {
   if (!_internal_has_csv()) {
@@ -5369,7 +6618,7 @@ inline ::tigon::proto::tql::CSVExtract* ExtractStatement::_internal_mutable_csv(
   return method_.csv_;
 }
 inline ::tigon::proto::tql::CSVExtract* ExtractStatement::mutable_csv() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.csv)
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ExtractStatement.CSV)
   return _internal_mutable_csv();
 }
 
@@ -5384,1431 +6633,370 @@ inline ExtractStatement::MethodCase ExtractStatement::method_case() const {
 }
 // -------------------------------------------------------------------
 
-// VizColorPalette
+// VizType
 
-// string color_target = 1;
-inline void VizColorPalette::clear_color_target() {
-  color_target_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// .tigon.proto.tql.Location location = 1;
+inline bool VizType::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
 }
-inline const std::string& VizColorPalette::color_target() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizColorPalette.color_target)
-  return _internal_color_target();
+inline bool VizType::has_location() const {
+  return _internal_has_location();
 }
-inline void VizColorPalette::set_color_target(const std::string& value) {
-  _internal_set_color_target(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizColorPalette.color_target)
-}
-inline std::string* VizColorPalette::mutable_color_target() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizColorPalette.color_target)
-  return _internal_mutable_color_target();
-}
-inline const std::string& VizColorPalette::_internal_color_target() const {
-  return color_target_.Get();
-}
-inline void VizColorPalette::_internal_set_color_target(const std::string& value) {
-  
-  color_target_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
-}
-inline void VizColorPalette::set_color_target(std::string&& value) {
-  
-  color_target_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.VizColorPalette.color_target)
-}
-inline void VizColorPalette::set_color_target(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  color_target_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.VizColorPalette.color_target)
-}
-inline void VizColorPalette::set_color_target(const char* value,
-    size_t size) {
-  
-  color_target_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.VizColorPalette.color_target)
-}
-inline std::string* VizColorPalette::_internal_mutable_color_target() {
-  
-  return color_target_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* VizColorPalette::release_color_target() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizColorPalette.color_target)
-  
-  return color_target_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void VizColorPalette::set_allocated_color_target(std::string* color_target) {
-  if (color_target != nullptr) {
-    
-  } else {
-    
+inline void VizType::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
   }
-  color_target_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), color_target,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizColorPalette.color_target)
+  location_ = nullptr;
 }
-inline std::string* VizColorPalette::unsafe_arena_release_color_target() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.VizColorPalette.color_target)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return color_target_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
+inline const ::tigon::proto::tql::Location& VizType::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
 }
-inline void VizColorPalette::unsafe_arena_set_allocated_color_target(
-    std::string* color_target) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (color_target != nullptr) {
-    
-  } else {
-    
-  }
-  color_target_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      color_target, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizColorPalette.color_target)
+inline const ::tigon::proto::tql::Location& VizType::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizType.location)
+  return _internal_location();
 }
-
-// repeated fixed32 palette = 2;
-inline int VizColorPalette::_internal_palette_size() const {
-  return palette_.size();
-}
-inline int VizColorPalette::palette_size() const {
-  return _internal_palette_size();
-}
-inline void VizColorPalette::clear_palette() {
-  palette_.Clear();
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizColorPalette::_internal_palette(int index) const {
-  return palette_.Get(index);
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 VizColorPalette::palette(int index) const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizColorPalette.palette)
-  return _internal_palette(index);
-}
-inline void VizColorPalette::set_palette(int index, ::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  palette_.Set(index, value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizColorPalette.palette)
-}
-inline void VizColorPalette::_internal_add_palette(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  palette_.Add(value);
-}
-inline void VizColorPalette::add_palette(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_add_palette(value);
-  // @@protoc_insertion_point(field_add:tigon.proto.tql.VizColorPalette.palette)
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
-VizColorPalette::_internal_palette() const {
-  return palette_;
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
-VizColorPalette::palette() const {
-  // @@protoc_insertion_point(field_list:tigon.proto.tql.VizColorPalette.palette)
-  return _internal_palette();
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
-VizColorPalette::_internal_mutable_palette() {
-  return &palette_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
-VizColorPalette::mutable_palette() {
-  // @@protoc_insertion_point(field_mutable_list:tigon.proto.tql.VizColorPalette.palette)
-  return _internal_mutable_palette();
-}
-
-// -------------------------------------------------------------------
-
-// UInt32
-
-// uint32 value = 1;
-inline void UInt32::clear_value() {
-  value_ = 0u;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 UInt32::_internal_value() const {
-  return value_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 UInt32::value() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.UInt32.value)
-  return _internal_value();
-}
-inline void UInt32::_internal_set_value(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  
-  value_ = value;
-}
-inline void UInt32::set_value(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_value(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.UInt32.value)
-}
-
-// -------------------------------------------------------------------
-
-// VizGridArea
-
-// .tigon.proto.tql.UInt32 width = 1;
-inline bool VizGridArea::_internal_has_width() const {
-  return this != internal_default_instance() && width_ != nullptr;
-}
-inline bool VizGridArea::has_width() const {
-  return _internal_has_width();
-}
-inline void VizGridArea::clear_width() {
-  if (GetArenaNoVirtual() == nullptr && width_ != nullptr) {
-    delete width_;
-  }
-  width_ = nullptr;
-}
-inline const ::tigon::proto::tql::UInt32& VizGridArea::_internal_width() const {
-  const ::tigon::proto::tql::UInt32* p = width_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::UInt32*>(
-      &::tigon::proto::tql::_UInt32_default_instance_);
-}
-inline const ::tigon::proto::tql::UInt32& VizGridArea::width() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.width)
-  return _internal_width();
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::release_width() {
-  auto temp = unsafe_arena_release_width();
+inline ::tigon::proto::tql::Location* VizType::release_location() {
+  auto temp = unsafe_arena_release_location();
   if (GetArenaNoVirtual() != nullptr) {
     temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
   }
   return temp;
 }
-inline ::tigon::proto::tql::UInt32* VizGridArea::unsafe_arena_release_width() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizGridArea.width)
+inline ::tigon::proto::tql::Location* VizType::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizType.location)
   
-  ::tigon::proto::tql::UInt32* temp = width_;
-  width_ = nullptr;
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
   return temp;
 }
-inline ::tigon::proto::tql::UInt32* VizGridArea::_internal_mutable_width() {
+inline ::tigon::proto::tql::Location* VizType::_internal_mutable_location() {
   
-  if (width_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::UInt32>(GetArenaNoVirtual());
-    width_ = p;
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
   }
-  return width_;
+  return location_;
 }
-inline ::tigon::proto::tql::UInt32* VizGridArea::mutable_width() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizGridArea.width)
-  return _internal_mutable_width();
+inline ::tigon::proto::tql::Location* VizType::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizType.location)
+  return _internal_mutable_location();
 }
-inline void VizGridArea::set_allocated_width(::tigon::proto::tql::UInt32* width) {
+inline void VizType::set_allocated_location(::tigon::proto::tql::Location* location) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   if (message_arena == nullptr) {
-    delete width_;
+    delete location_;
   }
-  if (width) {
+  if (location) {
     ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(width);
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
     if (message_arena != submessage_arena) {
-      width = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, width, submessage_arena);
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
     }
     
   } else {
     
   }
-  width_ = width;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizGridArea.width)
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizType.location)
 }
 
-// .tigon.proto.tql.UInt32 height = 2;
-inline bool VizGridArea::_internal_has_height() const {
-  return this != internal_default_instance() && height_ != nullptr;
+// .tigon.proto.tql.VizTypeType type = 2;
+inline void VizType::clear_type() {
+  type_ = 0;
 }
-inline bool VizGridArea::has_height() const {
-  return _internal_has_height();
+inline ::tigon::proto::tql::VizTypeType VizType::_internal_type() const {
+  return static_cast< ::tigon::proto::tql::VizTypeType >(type_);
 }
-inline void VizGridArea::clear_height() {
-  if (GetArenaNoVirtual() == nullptr && height_ != nullptr) {
-    delete height_;
-  }
-  height_ = nullptr;
+inline ::tigon::proto::tql::VizTypeType VizType::type() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizType.type)
+  return _internal_type();
 }
-inline const ::tigon::proto::tql::UInt32& VizGridArea::_internal_height() const {
-  const ::tigon::proto::tql::UInt32* p = height_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::UInt32*>(
-      &::tigon::proto::tql::_UInt32_default_instance_);
-}
-inline const ::tigon::proto::tql::UInt32& VizGridArea::height() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.height)
-  return _internal_height();
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::release_height() {
-  auto temp = unsafe_arena_release_height();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::unsafe_arena_release_height() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizGridArea.height)
+inline void VizType::_internal_set_type(::tigon::proto::tql::VizTypeType value) {
   
-  ::tigon::proto::tql::UInt32* temp = height_;
-  height_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::_internal_mutable_height() {
-  
-  if (height_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::UInt32>(GetArenaNoVirtual());
-    height_ = p;
-  }
-  return height_;
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::mutable_height() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizGridArea.height)
-  return _internal_mutable_height();
-}
-inline void VizGridArea::set_allocated_height(::tigon::proto::tql::UInt32* height) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete height_;
-  }
-  if (height) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(height);
-    if (message_arena != submessage_arena) {
-      height = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, height, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  height_ = height;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizGridArea.height)
-}
-
-// .tigon.proto.tql.UInt32 offsetX = 3;
-inline bool VizGridArea::_internal_has_offsetx() const {
-  return this != internal_default_instance() && offsetx_ != nullptr;
-}
-inline bool VizGridArea::has_offsetx() const {
-  return _internal_has_offsetx();
-}
-inline void VizGridArea::clear_offsetx() {
-  if (GetArenaNoVirtual() == nullptr && offsetx_ != nullptr) {
-    delete offsetx_;
-  }
-  offsetx_ = nullptr;
-}
-inline const ::tigon::proto::tql::UInt32& VizGridArea::_internal_offsetx() const {
-  const ::tigon::proto::tql::UInt32* p = offsetx_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::UInt32*>(
-      &::tigon::proto::tql::_UInt32_default_instance_);
-}
-inline const ::tigon::proto::tql::UInt32& VizGridArea::offsetx() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.offsetX)
-  return _internal_offsetx();
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::release_offsetx() {
-  auto temp = unsafe_arena_release_offsetx();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::unsafe_arena_release_offsetx() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizGridArea.offsetX)
-  
-  ::tigon::proto::tql::UInt32* temp = offsetx_;
-  offsetx_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::_internal_mutable_offsetx() {
-  
-  if (offsetx_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::UInt32>(GetArenaNoVirtual());
-    offsetx_ = p;
-  }
-  return offsetx_;
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::mutable_offsetx() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizGridArea.offsetX)
-  return _internal_mutable_offsetx();
-}
-inline void VizGridArea::set_allocated_offsetx(::tigon::proto::tql::UInt32* offsetx) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete offsetx_;
-  }
-  if (offsetx) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(offsetx);
-    if (message_arena != submessage_arena) {
-      offsetx = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, offsetx, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  offsetx_ = offsetx;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizGridArea.offsetX)
-}
-
-// .tigon.proto.tql.UInt32 offsetY = 4;
-inline bool VizGridArea::_internal_has_offsety() const {
-  return this != internal_default_instance() && offsety_ != nullptr;
-}
-inline bool VizGridArea::has_offsety() const {
-  return _internal_has_offsety();
-}
-inline void VizGridArea::clear_offsety() {
-  if (GetArenaNoVirtual() == nullptr && offsety_ != nullptr) {
-    delete offsety_;
-  }
-  offsety_ = nullptr;
-}
-inline const ::tigon::proto::tql::UInt32& VizGridArea::_internal_offsety() const {
-  const ::tigon::proto::tql::UInt32* p = offsety_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::UInt32*>(
-      &::tigon::proto::tql::_UInt32_default_instance_);
-}
-inline const ::tigon::proto::tql::UInt32& VizGridArea::offsety() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizGridArea.offsetY)
-  return _internal_offsety();
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::release_offsety() {
-  auto temp = unsafe_arena_release_offsety();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::unsafe_arena_release_offsety() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizGridArea.offsetY)
-  
-  ::tigon::proto::tql::UInt32* temp = offsety_;
-  offsety_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::_internal_mutable_offsety() {
-  
-  if (offsety_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::UInt32>(GetArenaNoVirtual());
-    offsety_ = p;
-  }
-  return offsety_;
-}
-inline ::tigon::proto::tql::UInt32* VizGridArea::mutable_offsety() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizGridArea.offsetY)
-  return _internal_mutable_offsety();
-}
-inline void VizGridArea::set_allocated_offsety(::tigon::proto::tql::UInt32* offsety) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete offsety_;
-  }
-  if (offsety) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(offsety);
-    if (message_arena != submessage_arena) {
-      offsety = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, offsety, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  offsety_ = offsety;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizGridArea.offsetY)
-}
-
-// -------------------------------------------------------------------
-
-// VizResponsiveGridArea
-
-// .tigon.proto.tql.VizGridArea wildcard = 1;
-inline bool VizResponsiveGridArea::_internal_has_wildcard() const {
-  return this != internal_default_instance() && wildcard_ != nullptr;
-}
-inline bool VizResponsiveGridArea::has_wildcard() const {
-  return _internal_has_wildcard();
-}
-inline void VizResponsiveGridArea::clear_wildcard() {
-  if (GetArenaNoVirtual() == nullptr && wildcard_ != nullptr) {
-    delete wildcard_;
-  }
-  wildcard_ = nullptr;
-}
-inline const ::tigon::proto::tql::VizGridArea& VizResponsiveGridArea::_internal_wildcard() const {
-  const ::tigon::proto::tql::VizGridArea* p = wildcard_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizGridArea*>(
-      &::tigon::proto::tql::_VizGridArea_default_instance_);
-}
-inline const ::tigon::proto::tql::VizGridArea& VizResponsiveGridArea::wildcard() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizResponsiveGridArea.wildcard)
-  return _internal_wildcard();
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::release_wildcard() {
-  auto temp = unsafe_arena_release_wildcard();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::unsafe_arena_release_wildcard() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizResponsiveGridArea.wildcard)
-  
-  ::tigon::proto::tql::VizGridArea* temp = wildcard_;
-  wildcard_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::_internal_mutable_wildcard() {
-  
-  if (wildcard_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizGridArea>(GetArenaNoVirtual());
-    wildcard_ = p;
-  }
-  return wildcard_;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::mutable_wildcard() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizResponsiveGridArea.wildcard)
-  return _internal_mutable_wildcard();
-}
-inline void VizResponsiveGridArea::set_allocated_wildcard(::tigon::proto::tql::VizGridArea* wildcard) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete wildcard_;
-  }
-  if (wildcard) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(wildcard);
-    if (message_arena != submessage_arena) {
-      wildcard = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, wildcard, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  wildcard_ = wildcard;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizResponsiveGridArea.wildcard)
-}
-
-// .tigon.proto.tql.VizGridArea small = 2;
-inline bool VizResponsiveGridArea::_internal_has_small() const {
-  return this != internal_default_instance() && small_ != nullptr;
-}
-inline bool VizResponsiveGridArea::has_small() const {
-  return _internal_has_small();
-}
-inline void VizResponsiveGridArea::clear_small() {
-  if (GetArenaNoVirtual() == nullptr && small_ != nullptr) {
-    delete small_;
-  }
-  small_ = nullptr;
-}
-inline const ::tigon::proto::tql::VizGridArea& VizResponsiveGridArea::_internal_small() const {
-  const ::tigon::proto::tql::VizGridArea* p = small_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizGridArea*>(
-      &::tigon::proto::tql::_VizGridArea_default_instance_);
-}
-inline const ::tigon::proto::tql::VizGridArea& VizResponsiveGridArea::small() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizResponsiveGridArea.small)
-  return _internal_small();
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::release_small() {
-  auto temp = unsafe_arena_release_small();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::unsafe_arena_release_small() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizResponsiveGridArea.small)
-  
-  ::tigon::proto::tql::VizGridArea* temp = small_;
-  small_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::_internal_mutable_small() {
-  
-  if (small_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizGridArea>(GetArenaNoVirtual());
-    small_ = p;
-  }
-  return small_;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::mutable_small() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizResponsiveGridArea.small)
-  return _internal_mutable_small();
-}
-inline void VizResponsiveGridArea::set_allocated_small(::tigon::proto::tql::VizGridArea* small) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete small_;
-  }
-  if (small) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(small);
-    if (message_arena != submessage_arena) {
-      small = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, small, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  small_ = small;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizResponsiveGridArea.small)
-}
-
-// .tigon.proto.tql.VizGridArea medium = 3;
-inline bool VizResponsiveGridArea::_internal_has_medium() const {
-  return this != internal_default_instance() && medium_ != nullptr;
-}
-inline bool VizResponsiveGridArea::has_medium() const {
-  return _internal_has_medium();
-}
-inline void VizResponsiveGridArea::clear_medium() {
-  if (GetArenaNoVirtual() == nullptr && medium_ != nullptr) {
-    delete medium_;
-  }
-  medium_ = nullptr;
-}
-inline const ::tigon::proto::tql::VizGridArea& VizResponsiveGridArea::_internal_medium() const {
-  const ::tigon::proto::tql::VizGridArea* p = medium_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizGridArea*>(
-      &::tigon::proto::tql::_VizGridArea_default_instance_);
-}
-inline const ::tigon::proto::tql::VizGridArea& VizResponsiveGridArea::medium() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizResponsiveGridArea.medium)
-  return _internal_medium();
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::release_medium() {
-  auto temp = unsafe_arena_release_medium();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::unsafe_arena_release_medium() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizResponsiveGridArea.medium)
-  
-  ::tigon::proto::tql::VizGridArea* temp = medium_;
-  medium_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::_internal_mutable_medium() {
-  
-  if (medium_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizGridArea>(GetArenaNoVirtual());
-    medium_ = p;
-  }
-  return medium_;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::mutable_medium() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizResponsiveGridArea.medium)
-  return _internal_mutable_medium();
-}
-inline void VizResponsiveGridArea::set_allocated_medium(::tigon::proto::tql::VizGridArea* medium) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete medium_;
-  }
-  if (medium) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(medium);
-    if (message_arena != submessage_arena) {
-      medium = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, medium, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  medium_ = medium;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizResponsiveGridArea.medium)
-}
-
-// .tigon.proto.tql.VizGridArea large = 4;
-inline bool VizResponsiveGridArea::_internal_has_large() const {
-  return this != internal_default_instance() && large_ != nullptr;
-}
-inline bool VizResponsiveGridArea::has_large() const {
-  return _internal_has_large();
-}
-inline void VizResponsiveGridArea::clear_large() {
-  if (GetArenaNoVirtual() == nullptr && large_ != nullptr) {
-    delete large_;
-  }
-  large_ = nullptr;
-}
-inline const ::tigon::proto::tql::VizGridArea& VizResponsiveGridArea::_internal_large() const {
-  const ::tigon::proto::tql::VizGridArea* p = large_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizGridArea*>(
-      &::tigon::proto::tql::_VizGridArea_default_instance_);
-}
-inline const ::tigon::proto::tql::VizGridArea& VizResponsiveGridArea::large() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizResponsiveGridArea.large)
-  return _internal_large();
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::release_large() {
-  auto temp = unsafe_arena_release_large();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::unsafe_arena_release_large() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizResponsiveGridArea.large)
-  
-  ::tigon::proto::tql::VizGridArea* temp = large_;
-  large_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::_internal_mutable_large() {
-  
-  if (large_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizGridArea>(GetArenaNoVirtual());
-    large_ = p;
-  }
-  return large_;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::mutable_large() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizResponsiveGridArea.large)
-  return _internal_mutable_large();
-}
-inline void VizResponsiveGridArea::set_allocated_large(::tigon::proto::tql::VizGridArea* large) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete large_;
-  }
-  if (large) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(large);
-    if (message_arena != submessage_arena) {
-      large = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, large, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  large_ = large;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizResponsiveGridArea.large)
-}
-
-// .tigon.proto.tql.VizGridArea xlarge = 5;
-inline bool VizResponsiveGridArea::_internal_has_xlarge() const {
-  return this != internal_default_instance() && xlarge_ != nullptr;
-}
-inline bool VizResponsiveGridArea::has_xlarge() const {
-  return _internal_has_xlarge();
-}
-inline void VizResponsiveGridArea::clear_xlarge() {
-  if (GetArenaNoVirtual() == nullptr && xlarge_ != nullptr) {
-    delete xlarge_;
-  }
-  xlarge_ = nullptr;
-}
-inline const ::tigon::proto::tql::VizGridArea& VizResponsiveGridArea::_internal_xlarge() const {
-  const ::tigon::proto::tql::VizGridArea* p = xlarge_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizGridArea*>(
-      &::tigon::proto::tql::_VizGridArea_default_instance_);
-}
-inline const ::tigon::proto::tql::VizGridArea& VizResponsiveGridArea::xlarge() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizResponsiveGridArea.xlarge)
-  return _internal_xlarge();
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::release_xlarge() {
-  auto temp = unsafe_arena_release_xlarge();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::unsafe_arena_release_xlarge() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizResponsiveGridArea.xlarge)
-  
-  ::tigon::proto::tql::VizGridArea* temp = xlarge_;
-  xlarge_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::_internal_mutable_xlarge() {
-  
-  if (xlarge_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizGridArea>(GetArenaNoVirtual());
-    xlarge_ = p;
-  }
-  return xlarge_;
-}
-inline ::tigon::proto::tql::VizGridArea* VizResponsiveGridArea::mutable_xlarge() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizResponsiveGridArea.xlarge)
-  return _internal_mutable_xlarge();
-}
-inline void VizResponsiveGridArea::set_allocated_xlarge(::tigon::proto::tql::VizGridArea* xlarge) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete xlarge_;
-  }
-  if (xlarge) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(xlarge);
-    if (message_arena != submessage_arena) {
-      xlarge = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, xlarge, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  xlarge_ = xlarge;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizResponsiveGridArea.xlarge)
-}
-
-// -------------------------------------------------------------------
-
-// VizAxis
-
-// string column = 1;
-inline void VizAxis::clear_column() {
-  column_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline const std::string& VizAxis::column() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizAxis.column)
-  return _internal_column();
-}
-inline void VizAxis::set_column(const std::string& value) {
-  _internal_set_column(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizAxis.column)
-}
-inline std::string* VizAxis::mutable_column() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizAxis.column)
-  return _internal_mutable_column();
-}
-inline const std::string& VizAxis::_internal_column() const {
-  return column_.Get();
-}
-inline void VizAxis::_internal_set_column(const std::string& value) {
-  
-  column_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
-}
-inline void VizAxis::set_column(std::string&& value) {
-  
-  column_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.VizAxis.column)
-}
-inline void VizAxis::set_column(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  column_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.VizAxis.column)
-}
-inline void VizAxis::set_column(const char* value,
-    size_t size) {
-  
-  column_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.VizAxis.column)
-}
-inline std::string* VizAxis::_internal_mutable_column() {
-  
-  return column_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* VizAxis::release_column() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizAxis.column)
-  
-  return column_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void VizAxis::set_allocated_column(std::string* column) {
-  if (column != nullptr) {
-    
-  } else {
-    
-  }
-  column_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), column,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizAxis.column)
-}
-inline std::string* VizAxis::unsafe_arena_release_column() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.VizAxis.column)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return column_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void VizAxis::unsafe_arena_set_allocated_column(
-    std::string* column) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (column != nullptr) {
-    
-  } else {
-    
-  }
-  column_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      column, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizAxis.column)
-}
-
-// .tigon.proto.tql.VizAxisScale scale = 2;
-inline void VizAxis::clear_scale() {
-  scale_ = 0;
-}
-inline ::tigon::proto::tql::VizAxisScale VizAxis::_internal_scale() const {
-  return static_cast< ::tigon::proto::tql::VizAxisScale >(scale_);
-}
-inline ::tigon::proto::tql::VizAxisScale VizAxis::scale() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizAxis.scale)
-  return _internal_scale();
-}
-inline void VizAxis::_internal_set_scale(::tigon::proto::tql::VizAxisScale value) {
-  
-  scale_ = value;
-}
-inline void VizAxis::set_scale(::tigon::proto::tql::VizAxisScale value) {
-  _internal_set_scale(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizAxis.scale)
-}
-
-// -------------------------------------------------------------------
-
-// VizAxes
-
-// .tigon.proto.tql.VizAxis x = 1;
-inline bool VizAxes::_internal_has_x() const {
-  return this != internal_default_instance() && x_ != nullptr;
-}
-inline bool VizAxes::has_x() const {
-  return _internal_has_x();
-}
-inline void VizAxes::clear_x() {
-  if (GetArenaNoVirtual() == nullptr && x_ != nullptr) {
-    delete x_;
-  }
-  x_ = nullptr;
-}
-inline const ::tigon::proto::tql::VizAxis& VizAxes::_internal_x() const {
-  const ::tigon::proto::tql::VizAxis* p = x_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizAxis*>(
-      &::tigon::proto::tql::_VizAxis_default_instance_);
-}
-inline const ::tigon::proto::tql::VizAxis& VizAxes::x() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizAxes.x)
-  return _internal_x();
-}
-inline ::tigon::proto::tql::VizAxis* VizAxes::release_x() {
-  auto temp = unsafe_arena_release_x();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::VizAxis* VizAxes::unsafe_arena_release_x() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizAxes.x)
-  
-  ::tigon::proto::tql::VizAxis* temp = x_;
-  x_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::VizAxis* VizAxes::_internal_mutable_x() {
-  
-  if (x_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizAxis>(GetArenaNoVirtual());
-    x_ = p;
-  }
-  return x_;
-}
-inline ::tigon::proto::tql::VizAxis* VizAxes::mutable_x() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizAxes.x)
-  return _internal_mutable_x();
-}
-inline void VizAxes::set_allocated_x(::tigon::proto::tql::VizAxis* x) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete x_;
-  }
-  if (x) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(x);
-    if (message_arena != submessage_arena) {
-      x = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, x, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  x_ = x;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizAxes.x)
-}
-
-// .tigon.proto.tql.VizAxis y = 2;
-inline bool VizAxes::_internal_has_y() const {
-  return this != internal_default_instance() && y_ != nullptr;
-}
-inline bool VizAxes::has_y() const {
-  return _internal_has_y();
-}
-inline void VizAxes::clear_y() {
-  if (GetArenaNoVirtual() == nullptr && y_ != nullptr) {
-    delete y_;
-  }
-  y_ = nullptr;
-}
-inline const ::tigon::proto::tql::VizAxis& VizAxes::_internal_y() const {
-  const ::tigon::proto::tql::VizAxis* p = y_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizAxis*>(
-      &::tigon::proto::tql::_VizAxis_default_instance_);
-}
-inline const ::tigon::proto::tql::VizAxis& VizAxes::y() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizAxes.y)
-  return _internal_y();
-}
-inline ::tigon::proto::tql::VizAxis* VizAxes::release_y() {
-  auto temp = unsafe_arena_release_y();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::VizAxis* VizAxes::unsafe_arena_release_y() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizAxes.y)
-  
-  ::tigon::proto::tql::VizAxis* temp = y_;
-  y_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::VizAxis* VizAxes::_internal_mutable_y() {
-  
-  if (y_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizAxis>(GetArenaNoVirtual());
-    y_ = p;
-  }
-  return y_;
-}
-inline ::tigon::proto::tql::VizAxis* VizAxes::mutable_y() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizAxes.y)
-  return _internal_mutable_y();
-}
-inline void VizAxes::set_allocated_y(::tigon::proto::tql::VizAxis* y) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete y_;
-  }
-  if (y) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(y);
-    if (message_arena != submessage_arena) {
-      y = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, y, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  y_ = y;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizAxes.y)
+  type_ = value;
+}
+inline void VizType::set_type(::tigon::proto::tql::VizTypeType value) {
+  _internal_set_type(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizType.type)
 }
 
 // -------------------------------------------------------------------
 
 // VizStatement
 
-// string viz_id = 1;
-inline void VizStatement::clear_viz_id() {
-  viz_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// .tigon.proto.tql.Location location = 1;
+inline bool VizStatement::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
 }
-inline const std::string& VizStatement::viz_id() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.viz_id)
-  return _internal_viz_id();
+inline bool VizStatement::has_location() const {
+  return _internal_has_location();
 }
-inline void VizStatement::set_viz_id(const std::string& value) {
-  _internal_set_viz_id(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.viz_id)
+inline void VizStatement::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
 }
-inline std::string* VizStatement::mutable_viz_id() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.viz_id)
-  return _internal_mutable_viz_id();
+inline const ::tigon::proto::tql::Location& VizStatement::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
 }
-inline const std::string& VizStatement::_internal_viz_id() const {
-  return viz_id_.Get();
+inline const ::tigon::proto::tql::Location& VizStatement::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.location)
+  return _internal_location();
 }
-inline void VizStatement::_internal_set_viz_id(const std::string& value) {
+inline ::tigon::proto::tql::Location* VizStatement::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* VizStatement::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.location)
   
-  viz_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
 }
-inline void VizStatement::set_viz_id(std::string&& value) {
+inline ::tigon::proto::tql::Location* VizStatement::_internal_mutable_location() {
   
-  viz_id_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.VizStatement.viz_id)
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
 }
-inline void VizStatement::set_viz_id(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  viz_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.VizStatement.viz_id)
+inline ::tigon::proto::tql::Location* VizStatement::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.location)
+  return _internal_mutable_location();
 }
-inline void VizStatement::set_viz_id(const char* value,
-    size_t size) {
-  
-  viz_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.VizStatement.viz_id)
-}
-inline std::string* VizStatement::_internal_mutable_viz_id() {
-  
-  return viz_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* VizStatement::release_viz_id() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.viz_id)
-  
-  return viz_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void VizStatement::set_allocated_viz_id(std::string* viz_id) {
-  if (viz_id != nullptr) {
+inline void VizStatement::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
     
   } else {
     
   }
-  viz_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), viz_id,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.viz_id)
-}
-inline std::string* VizStatement::unsafe_arena_release_viz_id() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.VizStatement.viz_id)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return viz_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void VizStatement::unsafe_arena_set_allocated_viz_id(
-    std::string* viz_id) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (viz_id != nullptr) {
-    
-  } else {
-    
-  }
-  viz_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      viz_id, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.viz_id)
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.location)
 }
 
-// .tigon.proto.tql.VizType viz_type = 2;
+// .tigon.proto.tql.String name = 2;
+inline bool VizStatement::_internal_has_name() const {
+  return this != internal_default_instance() && name_ != nullptr;
+}
+inline bool VizStatement::has_name() const {
+  return _internal_has_name();
+}
+inline void VizStatement::clear_name() {
+  if (GetArenaNoVirtual() == nullptr && name_ != nullptr) {
+    delete name_;
+  }
+  name_ = nullptr;
+}
+inline const ::tigon::proto::tql::String& VizStatement::_internal_name() const {
+  const ::tigon::proto::tql::String* p = name_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::String*>(
+      &::tigon::proto::tql::_String_default_instance_);
+}
+inline const ::tigon::proto::tql::String& VizStatement::name() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.name)
+  return _internal_name();
+}
+inline ::tigon::proto::tql::String* VizStatement::release_name() {
+  auto temp = unsafe_arena_release_name();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::String* VizStatement::unsafe_arena_release_name() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.name)
+  
+  ::tigon::proto::tql::String* temp = name_;
+  name_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::String* VizStatement::_internal_mutable_name() {
+  
+  if (name_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::String>(GetArenaNoVirtual());
+    name_ = p;
+  }
+  return name_;
+}
+inline ::tigon::proto::tql::String* VizStatement::mutable_name() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.name)
+  return _internal_mutable_name();
+}
+inline void VizStatement::set_allocated_name(::tigon::proto::tql::String* name) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete name_;
+  }
+  if (name) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(name);
+    if (message_arena != submessage_arena) {
+      name = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, name, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  name_ = name;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.name)
+}
+
+// .tigon.proto.tql.String query_name = 3;
+inline bool VizStatement::_internal_has_query_name() const {
+  return this != internal_default_instance() && query_name_ != nullptr;
+}
+inline bool VizStatement::has_query_name() const {
+  return _internal_has_query_name();
+}
+inline void VizStatement::clear_query_name() {
+  if (GetArenaNoVirtual() == nullptr && query_name_ != nullptr) {
+    delete query_name_;
+  }
+  query_name_ = nullptr;
+}
+inline const ::tigon::proto::tql::String& VizStatement::_internal_query_name() const {
+  const ::tigon::proto::tql::String* p = query_name_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::String*>(
+      &::tigon::proto::tql::_String_default_instance_);
+}
+inline const ::tigon::proto::tql::String& VizStatement::query_name() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.query_name)
+  return _internal_query_name();
+}
+inline ::tigon::proto::tql::String* VizStatement::release_query_name() {
+  auto temp = unsafe_arena_release_query_name();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::String* VizStatement::unsafe_arena_release_query_name() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.query_name)
+  
+  ::tigon::proto::tql::String* temp = query_name_;
+  query_name_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::String* VizStatement::_internal_mutable_query_name() {
+  
+  if (query_name_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::String>(GetArenaNoVirtual());
+    query_name_ = p;
+  }
+  return query_name_;
+}
+inline ::tigon::proto::tql::String* VizStatement::mutable_query_name() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.query_name)
+  return _internal_mutable_query_name();
+}
+inline void VizStatement::set_allocated_query_name(::tigon::proto::tql::String* query_name) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete query_name_;
+  }
+  if (query_name) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(query_name);
+    if (message_arena != submessage_arena) {
+      query_name = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, query_name, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  query_name_ = query_name;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.query_name)
+}
+
+// .tigon.proto.tql.VizType viz_type = 4;
+inline bool VizStatement::_internal_has_viz_type() const {
+  return this != internal_default_instance() && viz_type_ != nullptr;
+}
+inline bool VizStatement::has_viz_type() const {
+  return _internal_has_viz_type();
+}
 inline void VizStatement::clear_viz_type() {
-  viz_type_ = 0;
+  if (GetArenaNoVirtual() == nullptr && viz_type_ != nullptr) {
+    delete viz_type_;
+  }
+  viz_type_ = nullptr;
 }
-inline ::tigon::proto::tql::VizType VizStatement::_internal_viz_type() const {
-  return static_cast< ::tigon::proto::tql::VizType >(viz_type_);
+inline const ::tigon::proto::tql::VizType& VizStatement::_internal_viz_type() const {
+  const ::tigon::proto::tql::VizType* p = viz_type_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizType*>(
+      &::tigon::proto::tql::_VizType_default_instance_);
 }
-inline ::tigon::proto::tql::VizType VizStatement::viz_type() const {
+inline const ::tigon::proto::tql::VizType& VizStatement::viz_type() const {
   // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.viz_type)
   return _internal_viz_type();
 }
-inline void VizStatement::_internal_set_viz_type(::tigon::proto::tql::VizType value) {
-  
-  viz_type_ = value;
-}
-inline void VizStatement::set_viz_type(::tigon::proto::tql::VizType value) {
-  _internal_set_viz_type(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.viz_type)
-}
-
-// string query_id = 4;
-inline void VizStatement::clear_query_id() {
-  query_id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline const std::string& VizStatement::query_id() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.query_id)
-  return _internal_query_id();
-}
-inline void VizStatement::set_query_id(const std::string& value) {
-  _internal_set_query_id(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.query_id)
-}
-inline std::string* VizStatement::mutable_query_id() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.query_id)
-  return _internal_mutable_query_id();
-}
-inline const std::string& VizStatement::_internal_query_id() const {
-  return query_id_.Get();
-}
-inline void VizStatement::_internal_set_query_id(const std::string& value) {
-  
-  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
-}
-inline void VizStatement::set_query_id(std::string&& value) {
-  
-  query_id_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.VizStatement.query_id)
-}
-inline void VizStatement::set_query_id(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.VizStatement.query_id)
-}
-inline void VizStatement::set_query_id(const char* value,
-    size_t size) {
-  
-  query_id_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.VizStatement.query_id)
-}
-inline std::string* VizStatement::_internal_mutable_query_id() {
-  
-  return query_id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* VizStatement::release_query_id() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.query_id)
-  
-  return query_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void VizStatement::set_allocated_query_id(std::string* query_id) {
-  if (query_id != nullptr) {
-    
-  } else {
-    
-  }
-  query_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), query_id,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.query_id)
-}
-inline std::string* VizStatement::unsafe_arena_release_query_id() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.VizStatement.query_id)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return query_id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void VizStatement::unsafe_arena_set_allocated_query_id(
-    std::string* query_id) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (query_id != nullptr) {
-    
-  } else {
-    
-  }
-  query_id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      query_id, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.query_id)
-}
-
-// string title = 5;
-inline void VizStatement::clear_title() {
-  title_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline const std::string& VizStatement::title() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.title)
-  return _internal_title();
-}
-inline void VizStatement::set_title(const std::string& value) {
-  _internal_set_title(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.VizStatement.title)
-}
-inline std::string* VizStatement::mutable_title() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.title)
-  return _internal_mutable_title();
-}
-inline const std::string& VizStatement::_internal_title() const {
-  return title_.Get();
-}
-inline void VizStatement::_internal_set_title(const std::string& value) {
-  
-  title_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
-}
-inline void VizStatement::set_title(std::string&& value) {
-  
-  title_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.tql.VizStatement.title)
-}
-inline void VizStatement::set_title(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  
-  title_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.tql.VizStatement.title)
-}
-inline void VizStatement::set_title(const char* value,
-    size_t size) {
-  
-  title_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.tql.VizStatement.title)
-}
-inline std::string* VizStatement::_internal_mutable_title() {
-  
-  return title_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline std::string* VizStatement::release_title() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.title)
-  
-  return title_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-}
-inline void VizStatement::set_allocated_title(std::string* title) {
-  if (title != nullptr) {
-    
-  } else {
-    
-  }
-  title_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), title,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.title)
-}
-inline std::string* VizStatement::unsafe_arena_release_title() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.tql.VizStatement.title)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return title_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline void VizStatement::unsafe_arena_set_allocated_title(
-    std::string* title) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (title != nullptr) {
-    
-  } else {
-    
-  }
-  title_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      title, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.VizStatement.title)
-}
-
-// .tigon.proto.tql.VizResponsiveGridArea area = 7;
-inline bool VizStatement::_internal_has_area() const {
-  return this != internal_default_instance() && area_ != nullptr;
-}
-inline bool VizStatement::has_area() const {
-  return _internal_has_area();
-}
-inline void VizStatement::clear_area() {
-  if (GetArenaNoVirtual() == nullptr && area_ != nullptr) {
-    delete area_;
-  }
-  area_ = nullptr;
-}
-inline const ::tigon::proto::tql::VizResponsiveGridArea& VizStatement::_internal_area() const {
-  const ::tigon::proto::tql::VizResponsiveGridArea* p = area_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizResponsiveGridArea*>(
-      &::tigon::proto::tql::_VizResponsiveGridArea_default_instance_);
-}
-inline const ::tigon::proto::tql::VizResponsiveGridArea& VizStatement::area() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.area)
-  return _internal_area();
-}
-inline ::tigon::proto::tql::VizResponsiveGridArea* VizStatement::release_area() {
-  auto temp = unsafe_arena_release_area();
+inline ::tigon::proto::tql::VizType* VizStatement::release_viz_type() {
+  auto temp = unsafe_arena_release_viz_type();
   if (GetArenaNoVirtual() != nullptr) {
     temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
   }
   return temp;
 }
-inline ::tigon::proto::tql::VizResponsiveGridArea* VizStatement::unsafe_arena_release_area() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.area)
+inline ::tigon::proto::tql::VizType* VizStatement::unsafe_arena_release_viz_type() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.viz_type)
   
-  ::tigon::proto::tql::VizResponsiveGridArea* temp = area_;
-  area_ = nullptr;
+  ::tigon::proto::tql::VizType* temp = viz_type_;
+  viz_type_ = nullptr;
   return temp;
 }
-inline ::tigon::proto::tql::VizResponsiveGridArea* VizStatement::_internal_mutable_area() {
+inline ::tigon::proto::tql::VizType* VizStatement::_internal_mutable_viz_type() {
   
-  if (area_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizResponsiveGridArea>(GetArenaNoVirtual());
-    area_ = p;
+  if (viz_type_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizType>(GetArenaNoVirtual());
+    viz_type_ = p;
   }
-  return area_;
+  return viz_type_;
 }
-inline ::tigon::proto::tql::VizResponsiveGridArea* VizStatement::mutable_area() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.area)
-  return _internal_mutable_area();
+inline ::tigon::proto::tql::VizType* VizStatement::mutable_viz_type() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.viz_type)
+  return _internal_mutable_viz_type();
 }
-inline void VizStatement::set_allocated_area(::tigon::proto::tql::VizResponsiveGridArea* area) {
+inline void VizStatement::set_allocated_viz_type(::tigon::proto::tql::VizType* viz_type) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   if (message_arena == nullptr) {
-    delete area_;
+    delete viz_type_;
   }
-  if (area) {
+  if (viz_type) {
     ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(area);
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(viz_type);
     if (message_arena != submessage_arena) {
-      area = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, area, submessage_arena);
+      viz_type = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, viz_type, submessage_arena);
     }
     
   } else {
     
   }
-  area_ = area;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.area)
-}
-
-// .tigon.proto.tql.VizAxes axes = 9;
-inline bool VizStatement::_internal_has_axes() const {
-  return this != internal_default_instance() && axes_ != nullptr;
-}
-inline bool VizStatement::has_axes() const {
-  return _internal_has_axes();
-}
-inline void VizStatement::clear_axes() {
-  if (GetArenaNoVirtual() == nullptr && axes_ != nullptr) {
-    delete axes_;
-  }
-  axes_ = nullptr;
-}
-inline const ::tigon::proto::tql::VizAxes& VizStatement::_internal_axes() const {
-  const ::tigon::proto::tql::VizAxes* p = axes_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::VizAxes*>(
-      &::tigon::proto::tql::_VizAxes_default_instance_);
-}
-inline const ::tigon::proto::tql::VizAxes& VizStatement::axes() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.VizStatement.axes)
-  return _internal_axes();
-}
-inline ::tigon::proto::tql::VizAxes* VizStatement::release_axes() {
-  auto temp = unsafe_arena_release_axes();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::tql::VizAxes* VizStatement::unsafe_arena_release_axes() {
-  // @@protoc_insertion_point(field_release:tigon.proto.tql.VizStatement.axes)
-  
-  ::tigon::proto::tql::VizAxes* temp = axes_;
-  axes_ = nullptr;
-  return temp;
-}
-inline ::tigon::proto::tql::VizAxes* VizStatement::_internal_mutable_axes() {
-  
-  if (axes_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::tql::VizAxes>(GetArenaNoVirtual());
-    axes_ = p;
-  }
-  return axes_;
-}
-inline ::tigon::proto::tql::VizAxes* VizStatement::mutable_axes() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.VizStatement.axes)
-  return _internal_mutable_axes();
-}
-inline void VizStatement::set_allocated_axes(::tigon::proto::tql::VizAxes* axes) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete axes_;
-  }
-  if (axes) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(axes);
-    if (message_arena != submessage_arena) {
-      axes = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, axes, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  axes_ = axes;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.axes)
+  viz_type_ = viz_type;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.VizStatement.viz_type)
 }
 
 // -------------------------------------------------------------------
@@ -7198,47 +7386,75 @@ inline Statement::StatementCase Statement::statement_case() const {
 
 // Error
 
-// int32 line = 1;
-inline void Error::clear_line() {
-  line_ = 0;
+// .tigon.proto.tql.Location location = 1;
+inline bool Error::_internal_has_location() const {
+  return this != internal_default_instance() && location_ != nullptr;
 }
-inline ::PROTOBUF_NAMESPACE_ID::int32 Error::_internal_line() const {
-  return line_;
+inline bool Error::has_location() const {
+  return _internal_has_location();
 }
-inline ::PROTOBUF_NAMESPACE_ID::int32 Error::line() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.Error.line)
-  return _internal_line();
+inline void Error::clear_location() {
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
 }
-inline void Error::_internal_set_line(::PROTOBUF_NAMESPACE_ID::int32 value) {
+inline const ::tigon::proto::tql::Location& Error::_internal_location() const {
+  const ::tigon::proto::tql::Location* p = location_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::Location*>(
+      &::tigon::proto::tql::_Location_default_instance_);
+}
+inline const ::tigon::proto::tql::Location& Error::location() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.Error.location)
+  return _internal_location();
+}
+inline ::tigon::proto::tql::Location* Error::release_location() {
+  auto temp = unsafe_arena_release_location();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::Location* Error::unsafe_arena_release_location() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.Error.location)
   
-  line_ = value;
+  ::tigon::proto::tql::Location* temp = location_;
+  location_ = nullptr;
+  return temp;
 }
-inline void Error::set_line(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_line(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.Error.line)
+inline ::tigon::proto::tql::Location* Error::_internal_mutable_location() {
+  
+  if (location_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::Location>(GetArenaNoVirtual());
+    location_ = p;
+  }
+  return location_;
+}
+inline ::tigon::proto::tql::Location* Error::mutable_location() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.Error.location)
+  return _internal_mutable_location();
+}
+inline void Error::set_allocated_location(::tigon::proto::tql::Location* location) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete location_;
+  }
+  if (location) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(location);
+    if (message_arena != submessage_arena) {
+      location = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  location_ = location;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.Error.location)
 }
 
-// int32 column = 2;
-inline void Error::clear_column() {
-  column_ = 0;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 Error::_internal_column() const {
-  return column_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 Error::column() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.tql.Error.column)
-  return _internal_column();
-}
-inline void Error::_internal_set_column(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  
-  column_ = value;
-}
-inline void Error::set_column(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_column(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.tql.Error.column)
-}
-
-// string message = 3;
+// string message = 2;
 inline void Error::clear_message() {
   message_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
@@ -7443,6 +7659,8 @@ Module::errors() const {
 
 // -------------------------------------------------------------------
 
+// -------------------------------------------------------------------
+
 
 // @@protoc_insertion_point(namespace_scope)
 
@@ -7452,10 +7670,9 @@ Module::errors() const {
 
 PROTOBUF_NAMESPACE_OPEN
 
-template <> struct is_proto_enum< ::tigon::proto::tql::Type> : ::std::true_type {};
-template <> struct is_proto_enum< ::tigon::proto::tql::HTTPMethod> : ::std::true_type {};
-template <> struct is_proto_enum< ::tigon::proto::tql::VizType> : ::std::true_type {};
-template <> struct is_proto_enum< ::tigon::proto::tql::VizAxisScale> : ::std::true_type {};
+template <> struct is_proto_enum< ::tigon::proto::tql::DataTypeType> : ::std::true_type {};
+template <> struct is_proto_enum< ::tigon::proto::tql::HTTPVerb> : ::std::true_type {};
+template <> struct is_proto_enum< ::tigon::proto::tql::VizTypeType> : ::std::true_type {};
 
 PROTOBUF_NAMESPACE_CLOSE
 

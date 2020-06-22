@@ -9,75 +9,21 @@
 namespace protobuf = google::protobuf;
 
 namespace tigon {
-    namespace {
+    void setLocation(tigon::proto::tql::Location* destination, tigon::tql::Location& source) {
+        auto* begin = destination->mutable_begin();
+        auto* end = destination->mutable_end();
 
-        /// Generate a query id
-        auto generateID(tql::QueryStatement& stmt) {
-            static unsigned id = 0;
-            return "query_" + std::to_string(++id);
-        }
+        begin->set_line(source.begin.line);
+        begin->set_column(source.begin.column);
 
-        /// Generate a viz title
-        auto generateTitle(tql::VizStatement& stmt) {
-            static unsigned id = 0;
-            auto typeName = stmt.getTypeName();
-            return std::string(typeName) + " " + std::to_string(++id);
-        }
+        end->set_line(source.end.line);
+        end->set_column(source.end.column);
+    }
 
-        /// Encode a viz statement
-        tigon::proto::tql::VizStatement* encodeStatement(protobuf::Arena& arena, tql::VizStatement& viz) {
-            auto* v = protobuf::Arena::CreateMessage<proto::tql::VizStatement>(&arena);
-            v->set_viz_id(viz.viz_id.data(), viz.viz_id.size());
-            v->set_viz_type(static_cast<proto::tql::VizType>(viz.type));
-            v->set_query_id(viz.query_id.data(), viz.query_id.size());
-
-            // Encode title
-            if (viz.title.empty()) {
-                v->set_title(generateTitle(viz));
-            } else {
-                v->set_title(viz.title.data(), viz.title.size());
-            }
-
-            // Encode area
-            if (viz.area) {
-                auto asProtoArea = [&](tql::VizStatement::GridArea& area) {
-                    auto* a = protobuf::Arena::CreateMessage<proto::tql::VizGridArea>(&arena);
-                    if (area.length >= 1) {
-                        a->mutable_width()->set_value(area.values[0]);
-                    }
-                    if (area.length >= 2) {
-                        a->mutable_height()->set_value(area.values[1]);
-                    }
-                    if (area.length >= 3) {
-                        a->mutable_offsetx()->set_value(area.values[2]);
-                    }
-                    if (area.length >= 4) {
-                        a->mutable_offsety()->set_value(area.values[3]);
-                    }
-                    return a;
-                };
-                auto* area = v->mutable_area();
-                if (auto a = viz.area->wildcard) {
-                    area->set_allocated_wildcard(asProtoArea(*a));
-                }
-                if (auto a = viz.area->sm) {
-                    area->set_allocated_small(asProtoArea(*a));
-                }
-                if (auto a = viz.area->md) {
-                    area->set_allocated_medium(asProtoArea(*a));
-                }
-                if (auto a = viz.area->lg) {
-                    area->set_allocated_large(asProtoArea(*a));
-                }
-                if (auto a = viz.area->xl) {
-                    area->set_allocated_xlarge(asProtoArea(*a));
-                }
-                v->set_allocated_area(area);
-            }
-            return v;
-        }
-
-    } // namespace
+    void setString(tigon::proto::tql::String* destination, tigon::tql::String& source) {
+        setLocation(destination->mutable_location(), source.location);
+        destination->set_string(source.string.data(), source.string.size());
+    }
 
     /// Write the tql program
     proto::tql::Module* encodeTQLModule(protobuf::Arena& arena, tql::Module& module) {
@@ -87,36 +33,94 @@ namespace tigon {
 
         // Encode statements
         for (auto& statement : module.statements) {
-            std::visit(overload{// Viz statement
-                                [&](std::unique_ptr<tql::VizStatement>& viz) { statements->Add()->set_allocated_viz(encodeStatement(arena, *viz)); },
+            std::visit(overload{// Parameter declaration
+                                [&](tql::ParameterDeclaration& parameter) {
+                                    auto* next = statements->Add()->mutable_parameter();
 
-                                // Extract statement
-                                [&](std::unique_ptr<tql::ExtractStatement>& extract) {
-                                    auto* e = statements->Add()->mutable_extract();
-                                    e->set_extract_id(extract->extract_id.data(), extract->extract_id.size());
+                                    // Set location
+                                    setLocation(next->mutable_location(), parameter.location);
+
+                                    // Set name
+                                    setString(next->mutable_name(), parameter.name);
+
+                                    // Set data type
+                                    auto* data_type = next->mutable_data_type();
+                                    setLocation(data_type->mutable_location(), parameter.data_type.location);
+                                    data_type->set_type(static_cast<proto::tql::DataTypeType>(parameter.data_type.type));
                                 },
 
                                 // Load statement
-                                [&](std::unique_ptr<tql::LoadStatement>& load) {
-                                    auto* l = statements->Add()->mutable_load();
-                                    l->set_data_id(load->data_id.data(), load->data_id.size());
+                                [&](tql::LoadStatement& load) {
+                                    auto* next = statements->Add()->mutable_load();
+
+                                    // Set location
+                                    setLocation(next->mutable_location(), load.location);
+
+                                    // Set name
+                                    setString(next->mutable_name(), load.name);
+
+                                    // Set method
+                                    std::visit(overload{[&](tql::LoadStatement::HTTPLoader& loader) {
+                                                            // TODO
+                                                        },
+                                                        [&](tql::LoadStatement::FileLoader& loader) {
+                                                            // TODO
+                                                        }},
+                                               load.method);
                                 },
 
-                                // Parameter declaration
-                                [&](std::unique_ptr<tql::ParameterDeclaration>& param) {
-                                    auto* p = statements->Add()->mutable_parameter();
-                                    p->set_parameter_id(param->parameter_id.data(), param->parameter_id.size());
+                                // Extract statement
+                                [&](tql::ExtractStatement& extract) {
+                                    auto* next = statements->Add()->mutable_extract();
+
+                                    // Set location
+                                    setLocation(next->mutable_location(), extract.location);
+
+                                    // Set name
+                                    setString(next->mutable_name(), extract.name);
+
+                                    // Set data name
+                                    setString(next->mutable_data_name(), extract.data_name);
+
+                                    // Set method
+                                    // TODO
                                 },
 
                                 // SQL statement
-                                [&](std::unique_ptr<tql::QueryStatement>& sql) {
-                                    auto* q = statements->Add()->mutable_query();
-                                    if (sql->query_id.empty()) {
-                                        q->set_query_id(generateID(*sql));
-                                    } else {
-                                        q->set_query_id(sql->query_id.data(), sql->query_id.size());
+                                [&](tql::QueryStatement& query) {
+                                    auto* next = statements->Add()->mutable_query();
+
+                                    // Set location
+                                    setLocation(next->mutable_location(), query.location);
+
+                                    // Set name
+                                    if (query.name) {
+                                        setString(next->mutable_name(), *query.name);
                                     }
-                                    q->set_query_text(sql->text.data(), sql->text.size());
+
+                                    // Set query text
+                                    setString(next->mutable_query_text(), query.query_text);
+                                },
+
+                                // Viz statement
+                                [&](tql::VizStatement& viz) {
+                                    std::cout << "Viz name: " << viz.name.string << std::endl;
+
+                                    auto* next = statements->Add()->mutable_viz();
+
+                                    // Set location
+                                    setLocation(next->mutable_location(), viz.location);
+
+                                    // Set name
+                                    setString(next->mutable_name(), viz.name);
+
+                                    // Set query name
+                                    setString(next->mutable_query_name(), viz.query_name);
+
+                                    // Set viz type
+                                    auto* viz_type = next->mutable_viz_type();
+                                    setLocation(viz_type->mutable_location(), viz.viz_type.location);
+                                    viz_type->set_type(static_cast<proto::tql::VizTypeType>(viz.viz_type.type));
                                 }},
                        statement);
         }
@@ -125,12 +129,13 @@ namespace tigon {
         for (auto& error : module.errors) {
             auto* next = errors->Add();
 
-            next->set_line(error.line);
-            next->set_column(error.column);
-            next->set_message(error.message);
+            // Set location
+            setLocation(next->mutable_location(), error.location);
+
+            // Set message
+            next->set_message(error.message.data(), error.message.size());
         }
 
         return result;
     }
-
 } // namespace tigon
