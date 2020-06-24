@@ -56,9 +56,7 @@ function Section(props: { title: string; children?: React.ReactNodeArray }) {
                 })}
             />
             <div className={styles.outline_section_title}>{props.title}</div>
-            <div className={styles.outline_section_badge}>
-                {props.children ? props.children.length : 0}
-            </div>
+            <div className={styles.outline_section_badge}>+</div>
             <div className={styles.outline_section_entries}>
                 {props.children}
             </div>

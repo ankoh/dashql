@@ -7,9 +7,16 @@ $border_color: rgb(238, 238, 238);
         border-top: none;
     }
 
+    display: flex;
     border-top: 1px solid $border_color;
     padding-left: 8px;
     line-height: 32px;
     color: rgb(120, 120, 120);
     cursor: pointer;
+
+    &_delete {
+        margin-left: auto;
+        padding-right: 12px;
+        font-size: 8px;
+    }
 }

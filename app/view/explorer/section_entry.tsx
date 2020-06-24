@@ -2,10 +2,12 @@ import * as React from 'react';
 import { connect } from 'react-redux';
 import * as proto from '@tigon/proto';
 import { Dispatch, setTQLHighlight } from '../../store';
+import { withAppContext, IAppContext } from '../../app_context';
 
 import styles from './section_entry.module.scss';
 
 type Props = {
+    appContext: IAppContext;
     dispatch: Dispatch;
 } & {
     name?: proto.tql.String;
@@ -35,6 +37,15 @@ class SectionEntry extends React.Component<Props> {
         this.props.dispatch(setTQLHighlight(null));
     };
 
+    handleDelete = (event: React.MouseEvent) => {
+        if (this.props.entryLocation) {
+            this.props.appContext.controller.editor.replace(
+                this.props.entryLocation,
+                null,
+            );
+        }
+    };
+
     render() {
         return (
             <div
@@ -48,9 +59,15 @@ class SectionEntry extends React.Component<Props> {
                 >
                     {this.props.name?.getString() ?? '(Unnamed)'}
                 </span>
+                <span
+                    className={styles.entry_delete}
+                    onClick={this.handleDelete}
+                >
+                    ✕
+                </span>
             </div>
         );
     }
 }
 
-export default connect()(SectionEntry);
+export default connect()(withAppContext(SectionEntry));

@@ -92,14 +92,16 @@ $topbar_background: rgb(46, 46, 46);
         &_badge {
             grid-row: 1;
             grid-column: 3;
-            justify-self: center;
+            justify-self: flex-end;
             align-self: center;
+            padding: 0px 4px;
+            margin-right: 8px;
 
-            font-size: 0.75em;
+            font-size: 12px;
+            line-height: 13px;
             border-radius: 8px;
             background-color: $THEME_COLOR_BADGE;
-            padding: 1px 8px;
-            color: rgb(255, 255, 255);
+            color: white;
         }
 
         &_entries {

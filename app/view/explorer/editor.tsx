@@ -102,6 +102,8 @@ class Editor extends React.Component<Props, State> {
         };
 
         this.editor = monaco;
+
+        this.props.appContext.controller.editor.registerEditor(monaco);
     };
 
     handleChange = async (value: string) => {
