@@ -44,6 +44,8 @@ $border_color: rgb(238, 238, 238);
         border-radius: 8px;
         background-color: $THEME_COLOR_BADGE;
         color: white;
+
+        user-select: none;
     }
 
     &_entries {

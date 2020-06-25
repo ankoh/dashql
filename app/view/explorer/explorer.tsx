@@ -46,14 +46,35 @@ interface IExplorerProps {
     tqlModule: proto.tql.Module;
 }
 
+function getSectionIndex(previous?: number, current?: number) {
+    if (previous !== undefined && current !== undefined) {
+        return Math.max(previous, current);
+    } else if (previous !== undefined) {
+        return previous;
+    } else if (current !== undefined) {
+        return current;
+    } else {
+        return undefined;
+    }
+}
+
 function Outline(props: { module: proto.tql.Module }) {
     const statements = props.module.getStatementsList();
 
     const parameters: number[] = [];
+    let lastParameter: number | undefined;
+
     const loads: number[] = [];
+    let lastLoad: number | undefined;
+
     const extracts: number[] = [];
+    let lastExtract: number | undefined;
+
     const queries: number[] = [];
+    let lastQuery: number | undefined;
+
     const visualizations: number[] = [];
+    let lastViz: number | undefined;
 
     for (let i = 0; i < statements.length; i++) {
         const statement = statements[i];
@@ -61,47 +82,101 @@ function Outline(props: { module: proto.tql.Module }) {
         switch (statement.getStatementCase()) {
             case proto.tql.Statement.StatementCase.PARAMETER:
                 parameters.push(i);
+                lastParameter = i;
                 break;
             case proto.tql.Statement.StatementCase.LOAD:
                 loads.push(i);
+                lastLoad = i;
                 break;
             case proto.tql.Statement.StatementCase.EXTRACT:
                 extracts.push(i);
+                lastExtract = i;
                 break;
             case proto.tql.Statement.StatementCase.QUERY:
                 queries.push(i);
+                lastQuery = i;
                 break;
             case proto.tql.Statement.StatementCase.VIZ:
                 visualizations.push(i);
+                lastViz = i;
                 break;
             default:
                 break;
         }
     }
+
+    lastLoad = getSectionIndex(lastParameter, lastLoad);
+    lastExtract = getSectionIndex(lastLoad, lastExtract);
+    lastQuery = getSectionIndex(lastExtract, lastQuery);
+    lastViz = getSectionIndex(lastQuery, lastViz);
+
     return (
         <div className={styles.outline}>
             <div className={styles.outline_header}>TQL Program</div>
-            <Section title="Parameters" indices={parameters}>
+            <Section
+                title="Parameters"
+                indices={parameters}
+                previousSectionIndex={undefined}
+                template={`
+DECLARE PARAMETER <name> AS INTEGER;
+
+`}
+            >
                 {parameters.map((i: number) => (
                     <SectionEntry key={i} index={i} />
                 ))}
             </Section>
-            <Section title="Load Statements" indices={loads}>
+            <Section
+                title="Load Statements"
+                indices={loads}
+                previousSectionIndex={lastParameter}
+                template={`
+LOAD <name> FROM http (
+    url = 'https://example.com',
+    method = GET
+);
+
+`}
+            >
                 {loads.map((i: number) => (
                     <SectionEntry key={i} index={i} />
                 ))}
             </Section>
-            <Section title="Extract Statements" indices={extracts}>
+            <Section
+                title="Extract Statements"
+                indices={extracts}
+                previousSectionIndex={lastLoad}
+                template={`
+EXTRACT <name> FROM <name> USING json ();
+
+`}
+            >
                 {extracts.map((i: number) => (
                     <SectionEntry key={i} index={i} />
                 ))}
             </Section>
-            <Section title="Query Statements" indices={queries}>
+            <Section
+                title="Query Statements"
+                indices={queries}
+                previousSectionIndex={lastExtract}
+                template={`
+QUERY <name> AS SELECT * FROM 1;
+
+`}
+            >
                 {queries.map((i: number) => (
                     <SectionEntry key={i} index={i} />
                 ))}
             </Section>
-            <Section title="Vizualizations" indices={visualizations}>
+            <Section
+                title="Vizualizations"
+                indices={visualizations}
+                previousSectionIndex={lastQuery}
+                template={`
+VIZ <name> FROM <name> USING TABLE;
+
+`}
+            >
                 {visualizations.map((i: number) => (
                     <SectionEntry key={i} index={i} />
                 ))}
