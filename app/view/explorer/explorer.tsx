@@ -49,139 +49,62 @@ interface IExplorerProps {
 function Outline(props: { module: proto.tql.Module }) {
     const statements = props.module.getStatementsList();
 
-    const parameters: proto.tql.ParameterDeclaration[] = [];
-    const loads: proto.tql.LoadStatement[] = [];
-    const extracts: proto.tql.ExtractStatement[] = [];
-    const queries: proto.tql.QueryStatement[] = [];
-    const visualizations: proto.tql.VizStatement[] = [];
+    const parameters: number[] = [];
+    const loads: number[] = [];
+    const extracts: number[] = [];
+    const queries: number[] = [];
+    const visualizations: number[] = [];
 
-    for (const statement of statements) {
+    for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i];
+
         switch (statement.getStatementCase()) {
             case proto.tql.Statement.StatementCase.PARAMETER:
-                const parameter = statement.getParameter();
-                if (parameter) {
-                    parameters.push(parameter);
-                }
+                parameters.push(i);
                 break;
             case proto.tql.Statement.StatementCase.LOAD:
-                const load = statement.getLoad();
-                if (load) {
-                    loads.push(load);
-                }
+                loads.push(i);
                 break;
             case proto.tql.Statement.StatementCase.EXTRACT:
-                const extract = statement.getExtract();
-                if (extract) {
-                    extracts.push(extract);
-                }
+                extracts.push(i);
                 break;
             case proto.tql.Statement.StatementCase.QUERY:
-                const query = statement.getQuery();
-                if (query) {
-                    queries.push(query);
-                }
+                queries.push(i);
                 break;
             case proto.tql.Statement.StatementCase.VIZ:
-                const viz = statement.getViz();
-                if (viz) {
-                    visualizations.push(viz);
-                }
+                visualizations.push(i);
                 break;
             default:
                 break;
         }
     }
-
     return (
         <div className={styles.outline}>
             <div className={styles.outline_header}>TQL Program</div>
-            <Section
-                title="Parameters"
-                locations={parameters.map(
-                    (parameter: proto.tql.ParameterDeclaration) =>
-                        parameter.getLocation()!,
-                )}
-            >
-                {parameters.map(
-                    (parameter: proto.tql.ParameterDeclaration, i: number) => (
-                        <SectionEntry
-                            key={i}
-                            name={parameter.getName()}
-                            entryLocation={parameter.getLocation()!}
-                            nameLocation={parameter.getName()?.getLocation()!}
-                            description={''}
-                        />
-                    ),
-                )}
-            </Section>
-            <Section
-                title="Load Statements"
-                locations={loads.map(
-                    (load: proto.tql.LoadStatement) => load.getLocation()!,
-                )}
-            >
-                {loads.map((load: proto.tql.LoadStatement, i: number) => (
-                    <SectionEntry
-                        key={i}
-                        name={load.getName()}
-                        entryLocation={load.getLocation()!}
-                        nameLocation={load.getName()?.getLocation()!}
-                        description={''}
-                    />
+            <Section title="Parameters" indices={parameters}>
+                {parameters.map((i: number) => (
+                    <SectionEntry key={i} index={i} />
                 ))}
             </Section>
-            <Section
-                title="Extract Statements"
-                locations={extracts.map(
-                    (extract: proto.tql.ExtractStatement) =>
-                        extract.getLocation()!,
-                )}
-            >
-                {extracts.map(
-                    (extract: proto.tql.ExtractStatement, i: number) => (
-                        <SectionEntry
-                            key={i}
-                            name={extract.getName()}
-                            entryLocation={extract.getLocation()!}
-                            nameLocation={extract.getName()?.getLocation()!}
-                            description={''}
-                        />
-                    ),
-                )}
-            </Section>
-            <Section
-                title="Query Statements"
-                locations={queries.map(
-                    (query: proto.tql.QueryStatement) => query.getLocation()!,
-                )}
-            >
-                {queries.map((query: proto.tql.QueryStatement, i: number) => (
-                    <SectionEntry
-                        key={i}
-                        name={query.getName()}
-                        entryLocation={query.getLocation()!}
-                        nameLocation={query.getName()?.getLocation()!}
-                        description={''}
-                    />
+            <Section title="Load Statements" indices={loads}>
+                {loads.map((i: number) => (
+                    <SectionEntry key={i} index={i} />
                 ))}
             </Section>
-            <Section
-                title="Vizualizations"
-                locations={visualizations.map(
-                    (viz: proto.tql.VizStatement) => viz.getLocation()!,
-                )}
-            >
-                {visualizations.map(
-                    (viz: proto.tql.VizStatement, i: number) => (
-                        <SectionEntry
-                            key={i}
-                            name={viz.getName()}
-                            entryLocation={viz.getLocation()!}
-                            nameLocation={viz.getName()?.getLocation()!}
-                            description={''}
-                        />
-                    ),
-                )}
+            <Section title="Extract Statements" indices={extracts}>
+                {extracts.map((i: number) => (
+                    <SectionEntry key={i} index={i} />
+                ))}
+            </Section>
+            <Section title="Query Statements" indices={queries}>
+                {queries.map((i: number) => (
+                    <SectionEntry key={i} index={i} />
+                ))}
+            </Section>
+            <Section title="Vizualizations" indices={visualizations}>
+                {visualizations.map((i: number) => (
+                    <SectionEntry key={i} index={i} />
+                ))}
             </Section>
         </div>
     );

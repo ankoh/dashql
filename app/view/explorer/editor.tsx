@@ -37,7 +37,9 @@ class Editor extends React.Component<Props, State> {
     }
 
     componentDidUpdate() {
-        const highlights = this.props.highlights;
+        const highlights = this.props.getHighlights.map(getHighlight =>
+            getHighlight(),
+        );
 
         const decorations = highlights.map(highlight => {
             const begin = highlight?.getBegin();
@@ -139,7 +141,7 @@ class Editor extends React.Component<Props, State> {
 }
 
 const mapStateToProps = (state: RootState) => ({
-    highlights: state.tqlHighlights,
+    getHighlights: state.tqlGetHighlights,
 });
 
 export default connect(mapStateToProps)(withAppContext(Editor));

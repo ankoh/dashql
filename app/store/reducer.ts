@@ -36,10 +36,10 @@ export function reducer(
                     action.payload[1],
                 ),
             };
-        case 'SET_TQL_HIGHLIGHTS':
+        case 'SET_TQL_GET_HIGHLIGHTS':
             return {
                 ...state,
-                tqlHighlights: action.payload,
+                tqlGetHighlights: action.payload,
             };
         default:
             return state;
