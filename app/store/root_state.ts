@@ -136,7 +136,7 @@ export class RootState {
     public tqlVisualizations: Immutable.Map<string, proto.engine.QueryPlan>;
 
     // The highlighted TQL
-    public tqlHighlight: proto.tql.Location | null;
+    public tqlHighlights: proto.tql.Location[];
 
     // The focused viz
     public focusedViz: number | null;
@@ -155,7 +155,7 @@ export class RootState {
         this.tqlQueryResults = Immutable.Map();
         this.tqlQueryPlans = Immutable.Map();
         this.tqlVisualizations = Immutable.Map();
-        this.tqlHighlight = null;
+        this.tqlHighlights = [];
         this.focusedViz = null;
         return;
     }

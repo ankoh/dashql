@@ -1,4 +1,3 @@
-import classNames from 'classnames';
 import * as React from 'react';
 import { connect } from 'react-redux';
 import * as proto from '@tigon/proto';
@@ -6,6 +5,7 @@ import * as Store from '../../store';
 import { IAppContext, withAppContext } from '../../app_context';
 import Board from './board';
 import Editor from './editor';
+import Section from './section';
 import SectionEntry from './section_entry';
 
 import {
@@ -44,24 +44,6 @@ const TOPBAR_ICON_HEIGHT = '20px';
 interface IExplorerProps {
     appContext: IAppContext;
     tqlModule: proto.tql.Module;
-}
-
-function Section(props: { title: string; children?: React.ReactNodeArray }) {
-    return (
-        <div className={styles.outline_section}>
-            <div
-                className={classNames(styles.outline_section_header, {
-                    [styles.with_children]:
-                        props.children && props.children.length > 0,
-                })}
-            />
-            <div className={styles.outline_section_title}>{props.title}</div>
-            <div className={styles.outline_section_badge}>+</div>
-            <div className={styles.outline_section_entries}>
-                {props.children}
-            </div>
-        </div>
-    );
 }
 
 function Outline(props: { module: proto.tql.Module }) {
@@ -113,62 +95,89 @@ function Outline(props: { module: proto.tql.Module }) {
     return (
         <div className={styles.outline}>
             <div className={styles.outline_header}>TQL Program</div>
-            <Section title="Parameters">
+            <Section
+                title="Parameters"
+                locations={parameters.map(
+                    (parameter: proto.tql.ParameterDeclaration) =>
+                        parameter.getLocation()!,
+                )}
+            >
                 {parameters.map(
                     (parameter: proto.tql.ParameterDeclaration, i: number) => (
                         <SectionEntry
                             key={i}
                             name={parameter.getName()}
-                            entryLocation={parameter.getLocation()}
-                            nameLocation={parameter.getName()?.getLocation()}
+                            entryLocation={parameter.getLocation()!}
+                            nameLocation={parameter.getName()?.getLocation()!}
                             description={''}
                         />
                     ),
                 )}
             </Section>
-            <Section title="Load Statements">
+            <Section
+                title="Load Statements"
+                locations={loads.map(
+                    (load: proto.tql.LoadStatement) => load.getLocation()!,
+                )}
+            >
                 {loads.map((load: proto.tql.LoadStatement, i: number) => (
                     <SectionEntry
                         key={i}
                         name={load.getName()}
-                        entryLocation={load.getLocation()}
-                        nameLocation={load.getName()?.getLocation()}
+                        entryLocation={load.getLocation()!}
+                        nameLocation={load.getName()?.getLocation()!}
                         description={''}
                     />
                 ))}
             </Section>
-            <Section title="Extract Statements">
+            <Section
+                title="Extract Statements"
+                locations={extracts.map(
+                    (extract: proto.tql.ExtractStatement) =>
+                        extract.getLocation()!,
+                )}
+            >
                 {extracts.map(
                     (extract: proto.tql.ExtractStatement, i: number) => (
                         <SectionEntry
                             key={i}
                             name={extract.getName()}
-                            entryLocation={extract.getLocation()}
-                            nameLocation={extract.getName()?.getLocation()}
+                            entryLocation={extract.getLocation()!}
+                            nameLocation={extract.getName()?.getLocation()!}
                             description={''}
                         />
                     ),
                 )}
             </Section>
-            <Section title="Query Statements">
+            <Section
+                title="Query Statements"
+                locations={queries.map(
+                    (query: proto.tql.QueryStatement) => query.getLocation()!,
+                )}
+            >
                 {queries.map((query: proto.tql.QueryStatement, i: number) => (
                     <SectionEntry
                         key={i}
                         name={query.getName()}
-                        entryLocation={query.getLocation()}
-                        nameLocation={query.getName()?.getLocation()}
+                        entryLocation={query.getLocation()!}
+                        nameLocation={query.getName()?.getLocation()!}
                         description={''}
                     />
                 ))}
             </Section>
-            <Section title="Vizualizations">
+            <Section
+                title="Vizualizations"
+                locations={visualizations.map(
+                    (viz: proto.tql.VizStatement) => viz.getLocation()!,
+                )}
+            >
                 {visualizations.map(
                     (viz: proto.tql.VizStatement, i: number) => (
                         <SectionEntry
                             key={i}
                             name={viz.getName()}
-                            entryLocation={viz.getLocation()}
-                            nameLocation={viz.getName()?.getLocation()}
+                            entryLocation={viz.getLocation()!}
+                            nameLocation={viz.getName()?.getLocation()!}
                             description={''}
                         />
                     ),

@@ -41,8 +41,11 @@ export function setTQLQueryResult(
     );
 }
 
-export function setTQLHighlight(location: proto.tql.Location | null) {
-    return createAction('SET_TQL_HIGHLIGHT' as 'SET_TQL_HIGHLIGHT', location);
+export function setTQLHighlights(locations: proto.tql.Location[]) {
+    return createAction(
+        'SET_TQL_HIGHLIGHTS' as 'SET_TQL_HIGHLIGHTS',
+        locations,
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -54,4 +57,4 @@ export type RootAction =
     | ReturnType<typeof configureApp>
     | ReturnType<typeof setTQLModule>
     | ReturnType<typeof setTQLQueryResult>
-    | ReturnType<typeof setTQLHighlight>;
+    | ReturnType<typeof setTQLHighlights>;

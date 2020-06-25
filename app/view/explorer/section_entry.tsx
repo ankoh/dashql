@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { connect } from 'react-redux';
 import * as proto from '@tigon/proto';
-import { Dispatch, setTQLHighlight } from '../../store';
+import { Dispatch, setTQLHighlights } from '../../store';
 import { withAppContext, IAppContext } from '../../app_context';
 
 import styles from './section_entry.module.scss';
@@ -11,30 +11,30 @@ type Props = {
     dispatch: Dispatch;
 } & {
     name?: proto.tql.String;
-    entryLocation?: proto.tql.Location;
-    nameLocation?: proto.tql.Location;
+    entryLocation: proto.tql.Location;
+    nameLocation: proto.tql.Location;
     description: string;
 };
 
 class SectionEntry extends React.Component<Props> {
     handleMouseOverEntry = (event: React.MouseEvent) => {
         event.stopPropagation();
-        this.props.dispatch(setTQLHighlight(this.props.entryLocation ?? null));
+        this.props.dispatch(setTQLHighlights([this.props.entryLocation]));
     };
 
     handleMouseLeaveEntry = (event: React.MouseEvent) => {
         event.stopPropagation();
-        this.props.dispatch(setTQLHighlight(null));
+        this.props.dispatch(setTQLHighlights([]));
     };
 
     handleMouseOverName = (event: React.MouseEvent) => {
         event.stopPropagation();
-        this.props.dispatch(setTQLHighlight(this.props.nameLocation ?? null));
+        this.props.dispatch(setTQLHighlights([this.props.nameLocation]));
     };
 
     handleMouseLeaveName = (event: React.MouseEvent) => {
         event.stopPropagation();
-        this.props.dispatch(setTQLHighlight(null));
+        this.props.dispatch(setTQLHighlights([]));
     };
 
     handleDelete = (event: React.MouseEvent) => {

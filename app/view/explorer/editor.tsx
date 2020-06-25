@@ -37,25 +37,24 @@ class Editor extends React.Component<Props, State> {
     }
 
     componentDidUpdate() {
-        const highlight = this.props.highlight;
-        const begin = highlight?.getBegin();
-        const end = highlight?.getEnd();
+        const highlights = this.props.highlights;
 
-        const range = {
-            startLineNumber: begin?.getLine() ?? -1,
-            startColumn: begin?.getColumn() ?? -1,
-            endLineNumber: end?.getLine() ?? -1,
-            endColumn: end?.getColumn() ?? -1,
-        };
+        const decorations = highlights.map(highlight => {
+            const begin = highlight?.getBegin();
+            const end = highlight?.getEnd();
 
-        const decorations = highlight
-            ? [
-                  {
-                      range,
-                      options: { inlineClassName: styles.highlight },
-                  },
-              ]
-            : [];
+            const range = {
+                startLineNumber: begin?.getLine() ?? 1,
+                startColumn: begin?.getColumn() ?? 1,
+                endLineNumber: end?.getLine() ?? 1,
+                endColumn: end?.getColumn() ?? 1,
+            };
+
+            return {
+                range,
+                options: { inlineClassName: styles.highlight },
+            };
+        });
 
         this.decorations =
             this.editor?.deltaDecorations(this.decorations, decorations) ?? [];
@@ -140,7 +139,7 @@ class Editor extends React.Component<Props, State> {
 }
 
 const mapStateToProps = (state: RootState) => ({
-    highlight: state.tqlHighlight,
+    highlights: state.tqlHighlights,
 });
 
 export default connect(mapStateToProps)(withAppContext(Editor));
