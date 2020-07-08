@@ -65,7 +65,7 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
         this.canvas = React.createRef();
         let [ticks, labels] = this.layout();
         this.state = {
-            dpr: window?.devicePixelRatio ?? 2,
+            dpr: global.window?.devicePixelRatio ?? 2,
             ticks: ticks,
             labels: labels,
         };
@@ -189,7 +189,7 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
         if (this.props !== prevProps) {
             let [ticks, labels] = this.layout();
             this.setState({
-                dpr: window.devicePixelRatio,
+                dpr: global.window?.devicePixelRatio ?? 2,
                 ticks: ticks,
                 labels: labels,
             });
