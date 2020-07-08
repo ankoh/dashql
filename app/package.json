@@ -2,7 +2,7 @@
   "name": "@tigon/app",
   "scripts": {
     "dev": "npx next",
-    "build": "npx next build",
+    "build": "npx next build && npx next export -o build",
     "start": "npx next start",
     "test": "npx jest"
   },
