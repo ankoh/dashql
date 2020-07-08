@@ -6,8 +6,7 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'tigon-proto.js',
-        library: 'tigon-proto',
-        libraryTarget: 'umd',
+        libraryTarget: 'commonjs',
     },
     performance: {
         maxEntrypointSize: 512000,
