@@ -32,12 +32,21 @@ export class CoreController {
         };
 
         if (process.env.JEST_WORKER_ID !== undefined) {
-            options.wasmBinary = await require('fs').promises.readFile(
-                require('path').resolve(
-                    __dirname,
-                    '../node_modules/@tigon/core/tigon_core.wasm',
-                ),
-            );
+            if (process.env.NODE_ENV === 'production') {
+                options.wasmBinary = await require('fs').promises.readFile(
+                    require('path').resolve(
+                        __dirname,
+                        '../../../../../node_modules/@tigon/core/tigon_core.wasm',
+                    ),
+                );
+            } else {
+                options.wasmBinary = await require('fs').promises.readFile(
+                    require('path').resolve(
+                        __dirname,
+                        '../node_modules/@tigon/core/tigon_core.wasm',
+                    ),
+                );
+            }
         } else if (typeof window === 'undefined') {
             options.wasmBinary = await require('fs').promises.readFile(
                 require('path').resolve(
