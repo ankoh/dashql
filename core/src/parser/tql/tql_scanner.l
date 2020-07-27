@@ -103,15 +103,15 @@ using namespace tigon::tql::scanner;
 loc.step();
 %}
 
-";" { return Parser::make_SEMICOLON(loc); }
-"(" { return Parser::make_LRB(loc); }
-")" { return Parser::make_RRB(loc); }
-"[" { return Parser::make_LSB(loc); }
-"]" { return Parser::make_RSB(loc); }
-"=" { return Parser::make_EQUAL(loc); }
 "," { return Parser::make_COMMA(loc); }
-"/" { return Parser::make_SLASH(loc); }
+";" { return Parser::make_SEMICOLON(loc); }
+"(" { return Parser::make_LEFT_ROUND_BRACKETS(loc); }
+")" { return Parser::make_RIGHT_ROUND_BRACKETS(loc); }
+"[" { return Parser::make_LEFT_SQUARE_BRACKETS(loc); }
+"]" { return Parser::make_RIGHT_SQUARE_BRACKETS(loc); }
 "*" { return Parser::make_STAR(loc); }
+"/" { return Parser::make_SLASH(loc); }
+"=" { return Parser::make_EQUAL(loc); }
 
 "area"          { return Parser::make_AREA(getTokenText(), loc); }
 "as"            { return Parser::make_AS(getTokenText(), loc); }
@@ -180,26 +180,27 @@ loc.step();
 "xl"            { return Parser::make_XL(getTokenText(), loc); }
 "y"             { return Parser::make_Y(getTokenText(), loc); }
 
-select[^;]*     { return Parser::make_SQL_SELECT(getTokenText(), loc); }
-with[^;]*       { return Parser::make_SQL_WITH(getTokenText(), loc); }
-[a-z][a-z0-9_]* { return Parser::make_IDENTIFIER_LITERAL(getTokenText(), loc); }
-['"][^'"]*['"]  {
-                    auto text = getTokenText();
-                    return Parser::make_STRING_LITERAL(text.substr(1, text.size() - 2), loc);
-                }
-[0-9]+          {
-                    uint32_t value = 0;
+select[^;]*             { return Parser::make_SQL_SELECT(getTokenText(), loc); }
+with[^;]*               { return Parser::make_SQL_WITH(getTokenText(), loc); }
+[a-z][a-z0-9_]*         { return Parser::make_IDENTIFIER_LITERAL(getTokenText(), loc); }
+[<][a-z][a-z0-9_]*[>]   { return Parser::make_PLACEHOLDER_LITERAL(getTokenText(), loc); }
+['"][^'"]*['"]          {
+                            auto text = getTokenText();
+                            return Parser::make_STRING_LITERAL(text.substr(1, text.size() - 2), loc);
+                        }
+[0-9]+                  {
+                            uint32_t value = 0;
 
-                    auto stream = std::stringstream(tql_text);
-                    stream >> value;
+                            auto stream = std::stringstream(tql_text);
+                            stream >> value;
 
-                    if (!stream) {
-                        auto message = std::string("Invalid number \"") + tql_text + std::string("\"");
-                        context.Error(locate(loc), message);
-                    }
+                            if (!stream) {
+                                auto message = std::string("Invalid number \"") + tql_text + std::string("\"");
+                                context.Error(locate(loc), message);
+                            }
 
-                    return Parser::make_INTEGER_LITERAL(value, loc);
-                }
+                            return Parser::make_INTEGER_LITERAL(value, loc);
+                        }
 
 [ \t]+  { loc.step(); }
 \n      { loc.lines(1); loc.step(); }

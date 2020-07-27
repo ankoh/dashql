@@ -55,20 +55,21 @@ Parser::symbol_type tql_lex(ParseContext& context);
 
 %token <int>                INTEGER_LITERAL     "integer literal"
 %token <std::string_view>   IDENTIFIER_LITERAL  "identifier literal"
+%token <std::string_view>   PLACEHOLDER_LITERAL "placeholder literal"
 %token <std::string_view>   SQL_SELECT          "SQL select query"
 %token <std::string_view>   SQL_WITH            "SQL with clause"
 %token <std::string_view>   STRING_LITERAL      "string literal"
 %token <uint32_t>           HEX_COLOR_LITERAL   "hex color literal"
 
-%token COMMA        ","
-%token EQUAL        "="
-%token LRB          "("
-%token LSB          "["
-%token RRB          ")"
-%token RSB          "]"
-%token SEMICOLON    ";"
-%token SLASH        "/"
-%token STAR         "*"
+%token COMMA                    ","
+%token EQUAL                    "="
+%token LEFT_ROUND_BRACKETS      "("
+%token LEFT_SQUARE_BRACKETS     "["
+%token RIGHT_ROUND_BRACKETS     ")"
+%token RIGHT_SQUARE_BRACKETS    "]"
+%token SEMICOLON                ";"
+%token SLASH                    "/"
+%token STAR                     "*"
 
 %token <std::string_view>   AREA        "area"
 %token <std::string_view>   AS          "as"
@@ -181,6 +182,7 @@ parameter_declaration:
 identifier:
     IDENTIFIER_LITERAL  { $$ = String { locate(@1), $1 }; }
   | STRING_LITERAL      { $$ = String { locate(@1), $1 }; }
+  | PLACEHOLDER_LITERAL { $$ = String { locate(@1), $1 }; }
   | keyword             { $$ = $1; }
     ;
 
@@ -282,8 +284,8 @@ load_statement:
     ;
 
 load_method:
-    HTTP LRB load_method_http_attribute_list RRB { $$ = LoadStatement::HTTPLoader { locate(@1, @4), LoadStatement::HTTPLoader::Attributes { locate(@3), $3 } }; }
-  | FILE { $$ = LoadStatement::FileLoader { locate(@1) }; }
+    HTTP LEFT_ROUND_BRACKETS load_method_http_attribute_list RIGHT_ROUND_BRACKETS   { $$ = LoadStatement::HTTPLoader { locate(@1, @4), LoadStatement::HTTPLoader::Attributes { locate(@3), $3 } }; }
+  | FILE                                                                            { $$ = LoadStatement::FileLoader { locate(@1) }; }
     ;
 
 load_method_http_attribute_list:
@@ -307,8 +309,8 @@ extract_statement:
     ;
 
 extract_method:
-    CSV LRB RRB     { $$ = ExtractStatement::CSVExtract { locate(@1, @3) }; }
-  | JSON LRB RRB    { $$ = ExtractStatement::JSONPathExtract { locate(@1, @3) }; }
+    CSV LEFT_ROUND_BRACKETS RIGHT_ROUND_BRACKETS    { $$ = ExtractStatement::CSVExtract { locate(@1, @3) }; }
+  | JSON LEFT_ROUND_BRACKETS RIGHT_ROUND_BRACKETS   { $$ = ExtractStatement::JSONPathExtract { locate(@1, @3) }; }
     ;
 
 viz_statement:
