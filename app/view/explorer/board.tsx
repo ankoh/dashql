@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as Store from '../../store';
 import { connect } from 'react-redux';
 import { withAutoSizer } from '../autosizer';
+import Arguments from './arguments';
 import VizGrid from './viz_grid';
 
 import styles from './board.module.scss';
@@ -215,6 +216,7 @@ export class Board extends React.Component<IBoardProps, {}> {
             <div className={styles.container}>
                 <div className={styles.padded_children}>
                     <div className={styles.children}>
+                        <Arguments />
                         <VizGrid sizeClass={Store.SizeClass.LARGE} />
                     </div>
                 </div>

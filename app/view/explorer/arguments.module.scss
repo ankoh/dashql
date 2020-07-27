@@ -1,0 +1,13 @@
+.arguments {
+    display: flex;
+    justify-content: space-evenly;
+    flex-flow: wrap;
+}
+
+.argument_name {
+    line-height: 32px;
+    padding: 0px 12px;
+    font-size: 0.7em;
+    font-weight: 500;
+    color: rgb(170, 170, 170);
+}
