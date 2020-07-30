@@ -12,17 +12,19 @@ class Arguments extends React.Component<Props> {
     renderInput(type: ValueOf<proto.tql.DataTypeTypeMap>) {
         switch (type) {
             case proto.tql.DataTypeType.INTEGER:
-                return <input type="number" />;
+                return <input className={styles.input} type="number" />;
             case proto.tql.DataTypeType.FLOAT:
-                return <input type="number" step="any" />;
+                return (
+                    <input className={styles.input} type="number" step="any" />
+                );
             case proto.tql.DataTypeType.TEXT:
-                return <input type="text" />;
+                return <input className={styles.input} type="text" />;
             case proto.tql.DataTypeType.DATE:
-                return <input type="date" />;
+                return <input className={styles.input} type="date" />;
             case proto.tql.DataTypeType.DATETIME:
-                return <input type="datetime-local" />;
+                return <input className={styles.input} type="datetime-local" />;
             case proto.tql.DataTypeType.TIME:
-                return <input type="time" />;
+                return <input className={styles.input} type="time" />;
         }
     }
 
