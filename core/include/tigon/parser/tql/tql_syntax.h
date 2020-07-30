@@ -47,7 +47,7 @@ namespace tigon {
 
         /// A parameter type
         struct ParameterType {
-            enum class Type { Integer, Float, Text, Date, DateTime, Time };
+            enum class Type { Integer, Float, Text, Date, DateTime, Time, File };
 
             /// The location
             Location location;

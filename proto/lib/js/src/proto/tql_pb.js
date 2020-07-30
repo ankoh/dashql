@@ -5994,6 +5994,7 @@ proto.tigon.proto.tql.ParameterTypeType = {
     DATE: 3,
     DATETIME: 4,
     TIME: 5,
+    FILE: 6,
 };
 
 /**

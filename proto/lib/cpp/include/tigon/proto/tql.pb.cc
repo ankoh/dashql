@@ -481,17 +481,19 @@ bool ParameterTypeType_IsValid(int value) {
     case 3:
     case 4:
     case 5:
+    case 6:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ParameterTypeType_strings[6] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ParameterTypeType_strings[7] = {};
 
 static const char ParameterTypeType_names[] =
   "DATE"
   "DATETIME"
+  "FILE"
   "FLOAT"
   "INTEGER"
   "TEXT"
@@ -500,19 +502,21 @@ static const char ParameterTypeType_names[] =
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ParameterTypeType_entries[] = {
   { {ParameterTypeType_names + 0, 4}, 3 },
   { {ParameterTypeType_names + 4, 8}, 4 },
-  { {ParameterTypeType_names + 12, 5}, 1 },
-  { {ParameterTypeType_names + 17, 7}, 0 },
-  { {ParameterTypeType_names + 24, 4}, 2 },
-  { {ParameterTypeType_names + 28, 4}, 5 },
+  { {ParameterTypeType_names + 12, 4}, 6 },
+  { {ParameterTypeType_names + 16, 5}, 1 },
+  { {ParameterTypeType_names + 21, 7}, 0 },
+  { {ParameterTypeType_names + 28, 4}, 2 },
+  { {ParameterTypeType_names + 32, 4}, 5 },
 };
 
 static const int ParameterTypeType_entries_by_number[] = {
-  3, // 0 -> INTEGER
-  2, // 1 -> FLOAT
-  4, // 2 -> TEXT
+  4, // 0 -> INTEGER
+  3, // 1 -> FLOAT
+  5, // 2 -> TEXT
   0, // 3 -> DATE
   1, // 4 -> DATETIME
-  5, // 5 -> TIME
+  6, // 5 -> TIME
+  2, // 6 -> FILE
 };
 
 const std::string& ParameterTypeType_Name(
@@ -521,12 +525,12 @@ const std::string& ParameterTypeType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           ParameterTypeType_entries,
           ParameterTypeType_entries_by_number,
-          6, ParameterTypeType_strings);
+          7, ParameterTypeType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       ParameterTypeType_entries,
       ParameterTypeType_entries_by_number,
-      6, value);
+      7, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      ParameterTypeType_strings[idx].get();
 }
@@ -534,7 +538,7 @@ bool ParameterTypeType_Parse(
     const std::string& name, ParameterTypeType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      ParameterTypeType_entries, 6, name, &int_value);
+      ParameterTypeType_entries, 7, name, &int_value);
   if (success) {
     *value = static_cast<ParameterTypeType>(int_value);
   }

@@ -25,6 +25,8 @@ class Arguments extends React.Component<Props> {
                 return <input className={styles.input} type="datetime-local" />;
             case proto.tql.ParameterTypeType.TIME:
                 return <input className={styles.input} type="time" />;
+            case proto.tql.ParameterTypeType.FILE:
+                return <input className={styles.input} type="file" />;
         }
     }
 

@@ -912,6 +912,7 @@ export interface ParameterTypeTypeMap {
     DATE: 3;
     DATETIME: 4;
     TIME: 5;
+    FILE: 6;
 }
 
 export const ParameterTypeType: ParameterTypeTypeMap;

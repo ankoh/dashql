@@ -155,12 +155,13 @@ enum ParameterTypeType : int {
   DATE = 3,
   DATETIME = 4,
   TIME = 5,
+  FILE = 6,
   ParameterTypeType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::min(),
   ParameterTypeType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<::PROTOBUF_NAMESPACE_ID::int32>::max()
 };
 bool ParameterTypeType_IsValid(int value);
 constexpr ParameterTypeType ParameterTypeType_MIN = INTEGER;
-constexpr ParameterTypeType ParameterTypeType_MAX = TIME;
+constexpr ParameterTypeType ParameterTypeType_MAX = FILE;
 constexpr int ParameterTypeType_ARRAYSIZE = ParameterTypeType_MAX + 1;
 
 const std::string& ParameterTypeType_Name(ParameterTypeType value);

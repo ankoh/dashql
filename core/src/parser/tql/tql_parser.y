@@ -267,6 +267,7 @@ parameter_type:
   | DATE        { $$ = ParameterType { locate(@1), ParameterType::Type::Date }; }
   | DATETIME    { $$ = ParameterType { locate(@1), ParameterType::Type::DateTime }; }
   | TIME        { $$ = ParameterType { locate(@1), ParameterType::Type::Time }; }
+  | FILE        { $$ = ParameterType { locate(@1), ParameterType::Type::File }; }
     ;
 
 query_statement:
