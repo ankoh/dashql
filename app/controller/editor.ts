@@ -1,20 +1,21 @@
-import type * as monaco from 'monaco-editor';
 import { tql } from '@tigon/proto';
+import monaco, { Monaco } from '../monaco-editor';
 import * as Store from '../store';
 import { CoreController } from './core';
+import { isPresent } from '../util/functional';
 
 export class EditorController {
     protected store: Store.ReduxStore;
     protected core: CoreController;
 
-    private editor?: monaco.editor.IStandaloneCodeEditor;
+    private editor?: Monaco.editor.IStandaloneCodeEditor;
 
     constructor(store: Store.ReduxStore, core: CoreController) {
         this.store = store;
         this.core = core;
     }
 
-    public registerEditor(editor: monaco.editor.IStandaloneCodeEditor) {
+    public registerEditor(editor: Monaco.editor.IStandaloneCodeEditor) {
         this.editor = editor;
     }
 
@@ -24,7 +25,50 @@ export class EditorController {
         const session = await this.core.createSession();
         const module = await this.core.parseTQL(session, input);
 
+        this.displayErrors(module.getErrorsList());
         this.store.dispatch(Store.setTQLModule(module));
+    }
+
+    public displayErrors(errors: tql.Error[]) {
+        const model = this.editor?.getModel();
+
+        if (!model) {
+            return;
+        }
+
+        const markers = errors
+            .map(error => {
+                const location = error.getLocation();
+                const begin = location?.getBegin();
+                const startLineNumber = begin?.getLine();
+                const startColumn = begin?.getColumn();
+                const end = location?.getEnd();
+                const endLineNumber = end?.getLine();
+                const endColumn = end?.getColumn();
+
+                if (
+                    !startLineNumber ||
+                    !startColumn ||
+                    !endLineNumber ||
+                    !endColumn
+                ) {
+                    return undefined;
+                }
+
+                const message = error.getMessage();
+
+                return {
+                    startLineNumber,
+                    startColumn,
+                    endLineNumber,
+                    endColumn,
+                    message,
+                    severity: monaco.MarkerSeverity.Error,
+                };
+            })
+            .filter(isPresent);
+
+        monaco.editor.setModelMarkers(model, 'TQL', markers);
     }
 
     public replace(location: tql.Location, text: string | null) {
@@ -71,7 +115,7 @@ export class EditorController {
 
         this.editor?.executeEdits('', [
             {
-                range: range as monaco.Range,
+                range: range as Monaco.Range,
                 text,
             },
         ]);

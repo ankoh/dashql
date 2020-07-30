@@ -61,82 +61,82 @@ Parser::symbol_type tql_lex(ParseContext& context);
 %token <std::string_view>   STRING_LITERAL      "string literal"
 %token <uint32_t>           HEX_COLOR_LITERAL   "hex color literal"
 
-%token COMMA                    ","
-%token EQUAL                    "="
-%token LEFT_ROUND_BRACKETS      "("
-%token LEFT_SQUARE_BRACKETS     "["
-%token RIGHT_ROUND_BRACKETS     ")"
-%token RIGHT_SQUARE_BRACKETS    "]"
-%token SEMICOLON                ";"
-%token SLASH                    "/"
-%token STAR                     "*"
+%token COMMA                    ", token"
+%token EQUAL                    "= token"
+%token LEFT_ROUND_BRACKETS      "( token"
+%token LEFT_SQUARE_BRACKETS     "[ token"
+%token RIGHT_ROUND_BRACKETS     ") token"
+%token RIGHT_SQUARE_BRACKETS    "] token"
+%token SEMICOLON                "; token"
+%token SLASH                    "/ token"
+%token STAR                     "* token"
 
-%token <std::string_view>   AREA        "area"
-%token <std::string_view>   AS          "as"
-%token <std::string_view>   AXES        "axes"
-%token <std::string_view>   BAR         "bar"
-%token <std::string_view>   BOX         "box"
-%token <std::string_view>   BUBBLE      "bubble"
-%token <std::string_view>   CHART       "chart"
-%token <std::string_view>   COLOR       "color"
-%token <std::string_view>   COLUMN      "column"
-%token <std::string_view>   CSV         "csv"
-%token <std::string_view>   DATE        "date"
-%token <std::string_view>   DATETIME    "datetime"
-%token <std::string_view>   DECLARE     "declare"
-%token <std::string_view>   EXTRACT     "extract"
-%token <std::string_view>   FIELD       "field"
-%token <std::string_view>   FILE        "file"
-%token <std::string_view>   FLOAT       "float"
-%token <std::string_view>   FROM        "from"
-%token <std::string_view>   GET         "get"
-%token <std::string_view>   GRID        "grid"
-%token <std::string_view>   HEIGHT      "height"
-%token <std::string_view>   HISTOGRAM   "histogram"
-%token <std::string_view>   HORIZONTAL  "horizontal"
-%token <std::string_view>   HTTP        "http"
-%token <std::string_view>   INTEGER     "integer"
-%token <std::string_view>   JSON        "json"
-%token <std::string_view>   LG          "lg"
-%token <std::string_view>   LINE        "line"
-%token <std::string_view>   LINEAR      "linear"
-%token <std::string_view>   LOAD        "load"
-%token <std::string_view>   LOG         "log"
-%token <std::string_view>   MD          "md"
-%token <std::string_view>   METHOD      "method"
-%token <std::string_view>   NUMBER      "number"
-%token <std::string_view>   PALETTE     "palette"
-%token <std::string_view>   PARAMETER   "parameter"
-%token <std::string_view>   PARQUET     "parquet"
-%token <std::string_view>   PERCENT     "percent"
-%token <std::string_view>   PIE         "pie"
-%token <std::string_view>   PLOT        "plot"
-%token <std::string_view>   POINT       "point"
-%token <std::string_view>   POST        "post"
-%token <std::string_view>   PUT         "put"
-%token <std::string_view>   PX          "px"
-%token <std::string_view>   QUERY       "query"
-%token <std::string_view>   RGB         "rgb"
-%token <std::string_view>   SCALE       "scale"
-%token <std::string_view>   SCATTER     "scatter"
-%token <std::string_view>   SHOW        "show"
-%token <std::string_view>   SM          "sm"
-%token <std::string_view>   STACKED     "stacked"
-%token <std::string_view>   TABLE       "table"
-%token <std::string_view>   TEXT        "text"
-%token <std::string_view>   TIME        "time"
-%token <std::string_view>   TITLE       "title"
-%token <std::string_view>   URL         "url"
-%token <std::string_view>   USING       "using"
-%token <std::string_view>   VERTICAL    "vertical"
-%token <std::string_view>   VIS         "vis"
-%token <std::string_view>   VISUALISE   "visualise"
-%token <std::string_view>   VISUALIZE   "visualize"
-%token <std::string_view>   VIZ         "viz"
-%token <std::string_view>   WIDTH       "width"
-%token <std::string_view>   X           "x"
-%token <std::string_view>   XL          "xl"
-%token <std::string_view>   Y           "y"
+%token <std::string_view>   AREA        "AREA keyword"
+%token <std::string_view>   AS          "AS keyword"
+%token <std::string_view>   AXES        "AXES keyword"
+%token <std::string_view>   BAR         "BAR keyword"
+%token <std::string_view>   BOX         "BOX keyword"
+%token <std::string_view>   BUBBLE      "BUBBLE keyword"
+%token <std::string_view>   CHART       "CHART keyword"
+%token <std::string_view>   COLOR       "COLOR keyword"
+%token <std::string_view>   COLUMN      "COLUMN keyword"
+%token <std::string_view>   CSV         "CSV keyword"
+%token <std::string_view>   DATE        "DATE keyword"
+%token <std::string_view>   DATETIME    "DATETIME keyword"
+%token <std::string_view>   DECLARE     "DECLARE keyword"
+%token <std::string_view>   EXTRACT     "EXTRACT keyword"
+%token <std::string_view>   FIELD       "FIELD keyword"
+%token <std::string_view>   FILE        "FILE keyword"
+%token <std::string_view>   FLOAT       "FLOAT keyword"
+%token <std::string_view>   FROM        "FROM keyword"
+%token <std::string_view>   GET         "GET keyword"
+%token <std::string_view>   GRID        "GRID keyword"
+%token <std::string_view>   HEIGHT      "HEIGHT keyword"
+%token <std::string_view>   HISTOGRAM   "HISTOGRAM keyword"
+%token <std::string_view>   HORIZONTAL  "HORIZONTAL keyword"
+%token <std::string_view>   HTTP        "HTTP keyword"
+%token <std::string_view>   INTEGER     "INTEGER keyword"
+%token <std::string_view>   JSON        "JSON keyword"
+%token <std::string_view>   LG          "LG keyword"
+%token <std::string_view>   LINE        "LINE keyword"
+%token <std::string_view>   LINEAR      "LINEAR keyword"
+%token <std::string_view>   LOAD        "LOAD keyword"
+%token <std::string_view>   LOG         "LOG keyword"
+%token <std::string_view>   MD          "MD keyword"
+%token <std::string_view>   METHOD      "METHOD keyword"
+%token <std::string_view>   NUMBER      "NUMBER keyword"
+%token <std::string_view>   PALETTE     "PALETTE keyword"
+%token <std::string_view>   PARAMETER   "PARAMETER keyword"
+%token <std::string_view>   PARQUET     "PARQUET keyword"
+%token <std::string_view>   PERCENT     "PERCENT keyword"
+%token <std::string_view>   PIE         "PIE keyword"
+%token <std::string_view>   PLOT        "PLOT keyword"
+%token <std::string_view>   POINT       "POINT keyword"
+%token <std::string_view>   POST        "POST keyword"
+%token <std::string_view>   PUT         "PUT keyword"
+%token <std::string_view>   PX          "PX keyword"
+%token <std::string_view>   QUERY       "QUERY keyword"
+%token <std::string_view>   RGB         "RGB keyword"
+%token <std::string_view>   SCALE       "SCALE keyword"
+%token <std::string_view>   SCATTER     "SCATTER keyword"
+%token <std::string_view>   SHOW        "SHOW keyword"
+%token <std::string_view>   SM          "SM keyword"
+%token <std::string_view>   STACKED     "STACKED keyword"
+%token <std::string_view>   TABLE       "TABLE keyword"
+%token <std::string_view>   TEXT        "TEXT keyword"
+%token <std::string_view>   TIME        "TIME keyword"
+%token <std::string_view>   TITLE       "TITLE keyword"
+%token <std::string_view>   URL         "URL keyword"
+%token <std::string_view>   USING       "USING keyword"
+%token <std::string_view>   VERTICAL    "VERTICAL keyword"
+%token <std::string_view>   VIS         "VIS keyword"
+%token <std::string_view>   VISUALISE   "VISUALISE keyword"
+%token <std::string_view>   VISUALIZE   "VISUALIZE keyword"
+%token <std::string_view>   VIZ         "VIZ keyword"
+%token <std::string_view>   WIDTH       "WIDTH keyword"
+%token <std::string_view>   X           "X keyword"
+%token <std::string_view>   XL          "XL keyword"
+%token <std::string_view>   Y           "Y keyword"
 
 %token EOF 0    "end of file"
 
@@ -162,8 +162,8 @@ Parser::symbol_type tql_lex(ParseContext& context);
 %start statement_list;
 
 statement_list:
-    statement_list statement  { context.DefineStatement(std::move($2)); }
-  | statement_list error      { yyclearin; }
+    statement_list statement SEMICOLON  { context.DefineStatement(std::move($2), locate(@2, @3)); }
+  | statement_list error SEMICOLON      { yyclearin; yyerrok; }
   | %empty
     ;
 
@@ -176,7 +176,7 @@ statement:
     ;
 
 parameter_declaration:
-    DECLARE PARAMETER identifier opt_as parameter_type SEMICOLON    { $$ = ParameterDeclaration { locate(@1, @6), $3, $5 }; }
+    DECLARE PARAMETER identifier opt_as parameter_type  { $$ = ParameterDeclaration { locate(@1, @5), $3, $5 }; }
     ;
 
 identifier:
@@ -271,8 +271,8 @@ parameter_type:
     ;
 
 query_statement:
-    QUERY identifier AS sql_literal SEMICOLON { $$ = QueryStatement { locate(@1, @5), $2, $4 }; }
-  | sql_literal SEMICOLON                     { $$ = QueryStatement { locate(@1, @2), {}, $1 }; }
+    QUERY identifier AS sql_literal { $$ = QueryStatement { locate(@1, @4), $2, $4 }; }
+  | sql_literal                     { $$ = QueryStatement { locate(@1, @1), {}, $1 }; }
     ;
 
 sql_literal:
@@ -281,7 +281,7 @@ sql_literal:
     ;
 
 load_statement:
-    LOAD identifier FROM load_method SEMICOLON  { $$ = LoadStatement { locate(@1, @5), $2, $4 }; }
+    LOAD identifier FROM load_method    { $$ = LoadStatement { locate(@1, @4), $2, $4 }; }
     ;
 
 load_method:
@@ -306,7 +306,7 @@ http_method:
     ;
 
 extract_statement:
-    EXTRACT identifier FROM identifier USING extract_method SEMICOLON { $$ = ExtractStatement { locate(@1, @7), $2, $4, $6 }; }
+    EXTRACT identifier FROM identifier USING extract_method { $$ = ExtractStatement { locate(@1, @6), $2, $4, $6 }; }
     ;
 
 extract_method:
@@ -315,7 +315,7 @@ extract_method:
     ;
 
 viz_statement:
-    viz_statement_prefix identifier FROM identifier USING viz_type SEMICOLON  { $$ = VizStatement { locate(@1, @7), $2, $4, $6 }; }
+    viz_statement_prefix identifier FROM identifier USING viz_type  { $$ = VizStatement { locate(@1, @6), $2, $4, $6 }; }
     ;
 
 viz_statement_prefix:

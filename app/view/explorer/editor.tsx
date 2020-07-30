@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import dynamic from 'next/dynamic';
-import type * as monaco from 'monaco-editor';
+import monaco, { Monaco } from '../../monaco-editor';
 import { IAppContext, withAppContext } from '../../app_context';
 import { RootState } from '../../store';
 
@@ -21,7 +21,7 @@ type State = {
 };
 
 class Editor extends React.Component<Props, State> {
-    editor?: monaco.editor.IStandaloneCodeEditor;
+    editor?: Monaco.editor.IStandaloneCodeEditor;
     decorations: string[] = [];
 
     ref: HTMLElement | null = null;
@@ -75,14 +75,14 @@ class Editor extends React.Component<Props, State> {
         });
     };
 
-    editorWillMount = (monaco_: typeof monaco) => {
-        monaco_.editor.defineTheme('tigon', {
+    editorWillMount = () => {
+        monaco.editor.defineTheme('tigon', {
             ...tigonTheme,
             base: 'vs',
         });
     };
 
-    editorDidMount = (monaco: monaco.editor.IStandaloneCodeEditor) => {
+    editorDidMount = (monaco: Monaco.editor.IStandaloneCodeEditor) => {
         (window as any).MonacoEnvironment.getWorkerUrl = (
             _moduleId: string,
             label: string,

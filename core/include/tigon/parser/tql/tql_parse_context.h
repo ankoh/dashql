@@ -59,7 +59,7 @@ namespace tigon {
             void Error(const std::string& message);
 
             /// Define a statement
-            void DefineStatement(Statement statement);
+            void DefineStatement(Statement statement, Location location);
         };
 
     } // namespace tql

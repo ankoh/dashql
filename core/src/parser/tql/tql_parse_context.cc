@@ -7,6 +7,7 @@
 #include <sstream>
 #include <unordered_set>
 #include "tigon/common/error.h"
+#include "tigon/common/variant.h"
 #include "tigon/parser/tql/tql_parse_context.h"
 #include "tigon/parser/tql/tql_parser.h"
 
@@ -28,16 +29,23 @@ Module ParseContext::Parse(std::string_view in) {
 }
 
 // Yield an error
-void ParseContext::Error(const std::string& message) {
-    throw TQLParseError(message);
-}
-
-// Yield an error
 void ParseContext::Error(Location location, const std::string& message) {
     errors.push_back({location, message});
 }
 
 /// Define a statement
-void ParseContext::DefineStatement(Statement statement) {
+void ParseContext::DefineStatement(Statement statement, Location location) {
+    std::visit(overload{// Parameter declaration
+                        [&](tql::ParameterDeclaration& parameter) { parameter.location = location; },
+                        // Load statement
+                        [&](tql::LoadStatement& load) { load.location = location; },
+                        // Extract statement
+                        [&](tql::ExtractStatement& extract) { extract.location = location; },
+                        // SQL statement
+                        [&](tql::QueryStatement& query) { query.location = location; },
+                        // Viz statement
+                        [&](tql::VizStatement& viz) { viz.location = location; }},
+               statement);
+
     statements.push_back(std::move(statement));
 }
