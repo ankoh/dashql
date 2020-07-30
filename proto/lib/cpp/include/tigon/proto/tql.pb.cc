@@ -12,7 +12,6 @@
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_CSVExtract_tql_2eproto;
-extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_DataType_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_Error_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<4> scc_info_ExtractStatement_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_FileLoader_tql_2eproto;
@@ -25,6 +24,7 @@ extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::S
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<4> scc_info_LoadStatement_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_Location_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<3> scc_info_ParameterDeclaration_tql_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_ParameterType_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_Position_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_QueryStatement_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<5> scc_info_Statement_tql_2eproto;
@@ -42,10 +42,10 @@ class LocationDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<Location> _instance;
 } _Location_default_instance_;
-class DataTypeDefaultTypeInternal {
+class ParameterTypeDefaultTypeInternal {
  public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<DataType> _instance;
-} _DataType_default_instance_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<ParameterType> _instance;
+} _ParameterType_default_instance_;
 class StringDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<String> _instance;
@@ -149,21 +149,6 @@ static void InitDefaultsscc_info_CSVExtract_tql_2eproto() {
 
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_CSVExtract_tql_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_CSVExtract_tql_2eproto}, {
-      &scc_info_Location_tql_2eproto.base,}};
-
-static void InitDefaultsscc_info_DataType_tql_2eproto() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  {
-    void* ptr = &::tigon::proto::tql::_DataType_default_instance_;
-    new (ptr) ::tigon::proto::tql::DataType();
-    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::tigon::proto::tql::DataType::InitAsDefaultInstance();
-}
-
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_DataType_tql_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_DataType_tql_2eproto}, {
       &scc_info_Location_tql_2eproto.base,}};
 
 static void InitDefaultsscc_info_Error_tql_2eproto() {
@@ -372,7 +357,22 @@ static void InitDefaultsscc_info_ParameterDeclaration_tql_2eproto() {
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 3, 0, InitDefaultsscc_info_ParameterDeclaration_tql_2eproto}, {
       &scc_info_Location_tql_2eproto.base,
       &scc_info_String_tql_2eproto.base,
-      &scc_info_DataType_tql_2eproto.base,}};
+      &scc_info_ParameterType_tql_2eproto.base,}};
+
+static void InitDefaultsscc_info_ParameterType_tql_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::tigon::proto::tql::_ParameterType_default_instance_;
+    new (ptr) ::tigon::proto::tql::ParameterType();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::tigon::proto::tql::ParameterType::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_ParameterType_tql_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_ParameterType_tql_2eproto}, {
+      &scc_info_Location_tql_2eproto.base,}};
 
 static void InitDefaultsscc_info_Position_tql_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -473,7 +473,7 @@ static void InitDefaultsscc_info_VizType_tql_2eproto() {
 namespace tigon {
 namespace proto {
 namespace tql {
-bool DataTypeType_IsValid(int value) {
+bool ParameterTypeType_IsValid(int value) {
   switch (value) {
     case 0:
     case 1:
@@ -487,9 +487,9 @@ bool DataTypeType_IsValid(int value) {
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DataTypeType_strings[6] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ParameterTypeType_strings[6] = {};
 
-static const char DataTypeType_names[] =
+static const char ParameterTypeType_names[] =
   "DATE"
   "DATETIME"
   "FLOAT"
@@ -497,16 +497,16 @@ static const char DataTypeType_names[] =
   "TEXT"
   "TIME";
 
-static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry DataTypeType_entries[] = {
-  { {DataTypeType_names + 0, 4}, 3 },
-  { {DataTypeType_names + 4, 8}, 4 },
-  { {DataTypeType_names + 12, 5}, 1 },
-  { {DataTypeType_names + 17, 7}, 0 },
-  { {DataTypeType_names + 24, 4}, 2 },
-  { {DataTypeType_names + 28, 4}, 5 },
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ParameterTypeType_entries[] = {
+  { {ParameterTypeType_names + 0, 4}, 3 },
+  { {ParameterTypeType_names + 4, 8}, 4 },
+  { {ParameterTypeType_names + 12, 5}, 1 },
+  { {ParameterTypeType_names + 17, 7}, 0 },
+  { {ParameterTypeType_names + 24, 4}, 2 },
+  { {ParameterTypeType_names + 28, 4}, 5 },
 };
 
-static const int DataTypeType_entries_by_number[] = {
+static const int ParameterTypeType_entries_by_number[] = {
   3, // 0 -> INTEGER
   2, // 1 -> FLOAT
   4, // 2 -> TEXT
@@ -515,28 +515,28 @@ static const int DataTypeType_entries_by_number[] = {
   5, // 5 -> TIME
 };
 
-const std::string& DataTypeType_Name(
-    DataTypeType value) {
+const std::string& ParameterTypeType_Name(
+    ParameterTypeType value) {
   static const bool dummy =
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
-          DataTypeType_entries,
-          DataTypeType_entries_by_number,
-          6, DataTypeType_strings);
+          ParameterTypeType_entries,
+          ParameterTypeType_entries_by_number,
+          6, ParameterTypeType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
-      DataTypeType_entries,
-      DataTypeType_entries_by_number,
+      ParameterTypeType_entries,
+      ParameterTypeType_entries_by_number,
       6, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
-                     DataTypeType_strings[idx].get();
+                     ParameterTypeType_strings[idx].get();
 }
-bool DataTypeType_Parse(
-    const std::string& name, DataTypeType* value) {
+bool ParameterTypeType_Parse(
+    const std::string& name, ParameterTypeType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      DataTypeType_entries, 6, name, &int_value);
+      ParameterTypeType_entries, 6, name, &int_value);
   if (success) {
-    *value = static_cast<DataTypeType>(int_value);
+    *value = static_cast<ParameterTypeType>(int_value);
   }
   return success;
 }
@@ -1180,20 +1180,20 @@ std::string Location::GetTypeName() const {
 
 // ===================================================================
 
-void DataType::InitAsDefaultInstance() {
-  ::tigon::proto::tql::_DataType_default_instance_._instance.get_mutable()->location_ = const_cast< ::tigon::proto::tql::Location*>(
+void ParameterType::InitAsDefaultInstance() {
+  ::tigon::proto::tql::_ParameterType_default_instance_._instance.get_mutable()->location_ = const_cast< ::tigon::proto::tql::Location*>(
       ::tigon::proto::tql::Location::internal_default_instance());
 }
-class DataType::_Internal {
+class ParameterType::_Internal {
  public:
-  static const ::tigon::proto::tql::Location& location(const DataType* msg);
+  static const ::tigon::proto::tql::Location& location(const ParameterType* msg);
 };
 
 const ::tigon::proto::tql::Location&
-DataType::_Internal::location(const DataType* msg) {
+ParameterType::_Internal::location(const ParameterType* msg) {
   return *msg->location_;
 }
-void DataType::unsafe_arena_set_allocated_location(
+void ParameterType::unsafe_arena_set_allocated_location(
     ::tigon::proto::tql::Location* location) {
   if (GetArenaNoVirtual() == nullptr) {
     delete location_;
@@ -1204,21 +1204,21 @@ void DataType::unsafe_arena_set_allocated_location(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.DataType.location)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterType.location)
 }
-DataType::DataType()
+ParameterType::ParameterType()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
-  // @@protoc_insertion_point(constructor:tigon.proto.tql.DataType)
+  // @@protoc_insertion_point(constructor:tigon.proto.tql.ParameterType)
 }
-DataType::DataType(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+ParameterType::ParameterType(::PROTOBUF_NAMESPACE_ID::Arena* arena)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
   _internal_metadata_(arena) {
   SharedCtor();
   RegisterArenaDtor(arena);
-  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.DataType)
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.ParameterType)
 }
-DataType::DataType(const DataType& from)
+ParameterType::ParameterType(const ParameterType& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
@@ -1228,43 +1228,43 @@ DataType::DataType(const DataType& from)
     location_ = nullptr;
   }
   type_ = from.type_;
-  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.DataType)
+  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.ParameterType)
 }
 
-void DataType::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_DataType_tql_2eproto.base);
+void ParameterType::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_ParameterType_tql_2eproto.base);
   ::memset(&location_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&type_) -
       reinterpret_cast<char*>(&location_)) + sizeof(type_));
 }
 
-DataType::~DataType() {
-  // @@protoc_insertion_point(destructor:tigon.proto.tql.DataType)
+ParameterType::~ParameterType() {
+  // @@protoc_insertion_point(destructor:tigon.proto.tql.ParameterType)
   SharedDtor();
 }
 
-void DataType::SharedDtor() {
+void ParameterType::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete location_;
 }
 
-void DataType::ArenaDtor(void* object) {
-  DataType* _this = reinterpret_cast< DataType* >(object);
+void ParameterType::ArenaDtor(void* object) {
+  ParameterType* _this = reinterpret_cast< ParameterType* >(object);
   (void)_this;
 }
-void DataType::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+void ParameterType::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
 }
-void DataType::SetCachedSize(int size) const {
+void ParameterType::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
-const DataType& DataType::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_DataType_tql_2eproto.base);
+const ParameterType& ParameterType::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_ParameterType_tql_2eproto.base);
   return *internal_default_instance();
 }
 
 
-void DataType::Clear() {
-// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.DataType)
+void ParameterType::Clear() {
+// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.ParameterType)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1277,7 +1277,7 @@ void DataType::Clear() {
   _internal_metadata_.Clear();
 }
 
-const char* DataType::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* ParameterType::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
   ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
@@ -1292,12 +1292,12 @@ const char* DataType::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::i
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.DataTypeType type = 2;
+      // .tigon.proto.tql.ParameterTypeType type = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
           ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
           CHK_(ptr);
-          _internal_set_type(static_cast<::tigon::proto::tql::DataTypeType>(val));
+          _internal_set_type(static_cast<::tigon::proto::tql::ParameterTypeType>(val));
         } else goto handle_unusual;
         continue;
       default: {
@@ -1320,9 +1320,9 @@ failure:
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* DataType::InternalSerializeWithCachedSizesToArray(
+::PROTOBUF_NAMESPACE_ID::uint8* ParameterType::InternalSerializeWithCachedSizesToArray(
     ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.DataType)
+  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.ParameterType)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -1334,7 +1334,7 @@ failure:
         1, _Internal::location(this), target, stream);
   }
 
-  // .tigon.proto.tql.DataTypeType type = 2;
+  // .tigon.proto.tql.ParameterTypeType type = 2;
   if (this->type() != 0) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
@@ -1345,12 +1345,12 @@ failure:
     target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
         static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.DataType)
+  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.ParameterType)
   return target;
 }
 
-size_t DataType::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.DataType)
+size_t ParameterType::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.ParameterType)
   size_t total_size = 0;
 
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
@@ -1364,7 +1364,7 @@ size_t DataType::ByteSizeLong() const {
         *location_);
   }
 
-  // .tigon.proto.tql.DataTypeType type = 2;
+  // .tigon.proto.tql.ParameterTypeType type = 2;
   if (this->type() != 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_type());
@@ -1378,14 +1378,14 @@ size_t DataType::ByteSizeLong() const {
   return total_size;
 }
 
-void DataType::CheckTypeAndMergeFrom(
+void ParameterType::CheckTypeAndMergeFrom(
     const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
-  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const DataType*>(
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const ParameterType*>(
       &from));
 }
 
-void DataType::MergeFrom(const DataType& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.DataType)
+void ParameterType::MergeFrom(const ParameterType& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.ParameterType)
   GOOGLE_DCHECK_NE(&from, this);
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
@@ -1399,26 +1399,26 @@ void DataType::MergeFrom(const DataType& from) {
   }
 }
 
-void DataType::CopyFrom(const DataType& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.DataType)
+void ParameterType::CopyFrom(const ParameterType& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.ParameterType)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool DataType::IsInitialized() const {
+bool ParameterType::IsInitialized() const {
   return true;
 }
 
-void DataType::InternalSwap(DataType* other) {
+void ParameterType::InternalSwap(ParameterType* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
   swap(location_, other->location_);
   swap(type_, other->type_);
 }
 
-std::string DataType::GetTypeName() const {
-  return "tigon.proto.tql.DataType";
+std::string ParameterType::GetTypeName() const {
+  return "tigon.proto.tql.ParameterType";
 }
 
 
@@ -2010,14 +2010,14 @@ void ParameterDeclaration::InitAsDefaultInstance() {
       ::tigon::proto::tql::Location::internal_default_instance());
   ::tigon::proto::tql::_ParameterDeclaration_default_instance_._instance.get_mutable()->name_ = const_cast< ::tigon::proto::tql::String*>(
       ::tigon::proto::tql::String::internal_default_instance());
-  ::tigon::proto::tql::_ParameterDeclaration_default_instance_._instance.get_mutable()->data_type_ = const_cast< ::tigon::proto::tql::DataType*>(
-      ::tigon::proto::tql::DataType::internal_default_instance());
+  ::tigon::proto::tql::_ParameterDeclaration_default_instance_._instance.get_mutable()->type_ = const_cast< ::tigon::proto::tql::ParameterType*>(
+      ::tigon::proto::tql::ParameterType::internal_default_instance());
 }
 class ParameterDeclaration::_Internal {
  public:
   static const ::tigon::proto::tql::Location& location(const ParameterDeclaration* msg);
   static const ::tigon::proto::tql::String& name(const ParameterDeclaration* msg);
-  static const ::tigon::proto::tql::DataType& data_type(const ParameterDeclaration* msg);
+  static const ::tigon::proto::tql::ParameterType& type(const ParameterDeclaration* msg);
 };
 
 const ::tigon::proto::tql::Location&
@@ -2028,9 +2028,9 @@ const ::tigon::proto::tql::String&
 ParameterDeclaration::_Internal::name(const ParameterDeclaration* msg) {
   return *msg->name_;
 }
-const ::tigon::proto::tql::DataType&
-ParameterDeclaration::_Internal::data_type(const ParameterDeclaration* msg) {
-  return *msg->data_type_;
+const ::tigon::proto::tql::ParameterType&
+ParameterDeclaration::_Internal::type(const ParameterDeclaration* msg) {
+  return *msg->type_;
 }
 void ParameterDeclaration::unsafe_arena_set_allocated_location(
     ::tigon::proto::tql::Location* location) {
@@ -2058,18 +2058,18 @@ void ParameterDeclaration::unsafe_arena_set_allocated_name(
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterDeclaration.name)
 }
-void ParameterDeclaration::unsafe_arena_set_allocated_data_type(
-    ::tigon::proto::tql::DataType* data_type) {
+void ParameterDeclaration::unsafe_arena_set_allocated_type(
+    ::tigon::proto::tql::ParameterType* type) {
   if (GetArenaNoVirtual() == nullptr) {
-    delete data_type_;
+    delete type_;
   }
-  data_type_ = data_type;
-  if (data_type) {
+  type_ = type;
+  if (type) {
     
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterDeclaration.data_type)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterDeclaration.type)
 }
 ParameterDeclaration::ParameterDeclaration()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
@@ -2097,10 +2097,10 @@ ParameterDeclaration::ParameterDeclaration(const ParameterDeclaration& from)
   } else {
     name_ = nullptr;
   }
-  if (from._internal_has_data_type()) {
-    data_type_ = new ::tigon::proto::tql::DataType(*from.data_type_);
+  if (from._internal_has_type()) {
+    type_ = new ::tigon::proto::tql::ParameterType(*from.type_);
   } else {
-    data_type_ = nullptr;
+    type_ = nullptr;
   }
   clear_has_default_value();
   switch (from.default_value_case()) {
@@ -2130,8 +2130,8 @@ ParameterDeclaration::ParameterDeclaration(const ParameterDeclaration& from)
 void ParameterDeclaration::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_ParameterDeclaration_tql_2eproto.base);
   ::memset(&location_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&data_type_) -
-      reinterpret_cast<char*>(&location_)) + sizeof(data_type_));
+      reinterpret_cast<char*>(&type_) -
+      reinterpret_cast<char*>(&location_)) + sizeof(type_));
   clear_has_default_value();
 }
 
@@ -2144,7 +2144,7 @@ void ParameterDeclaration::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete location_;
   if (this != internal_default_instance()) delete name_;
-  if (this != internal_default_instance()) delete data_type_;
+  if (this != internal_default_instance()) delete type_;
   if (has_default_value()) {
     clear_default_value();
   }
@@ -2207,10 +2207,10 @@ void ParameterDeclaration::Clear() {
     delete name_;
   }
   name_ = nullptr;
-  if (GetArenaNoVirtual() == nullptr && data_type_ != nullptr) {
-    delete data_type_;
+  if (GetArenaNoVirtual() == nullptr && type_ != nullptr) {
+    delete type_;
   }
-  data_type_ = nullptr;
+  type_ = nullptr;
   clear_default_value();
   _internal_metadata_.Clear();
 }
@@ -2237,10 +2237,10 @@ const char* ParameterDeclaration::_InternalParse(const char* ptr, ::PROTOBUF_NAM
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.DataType data_type = 3;
+      // .tigon.proto.tql.ParameterType type = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
-          ptr = ctx->ParseMessage(_internal_mutable_data_type(), ptr);
+          ptr = ctx->ParseMessage(_internal_mutable_type(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -2314,12 +2314,12 @@ failure:
         2, _Internal::name(this), target, stream);
   }
 
-  // .tigon.proto.tql.DataType data_type = 3;
-  if (this->has_data_type()) {
+  // .tigon.proto.tql.ParameterType type = 3;
+  if (this->has_type()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        3, _Internal::data_type(this), target, stream);
+        3, _Internal::type(this), target, stream);
   }
 
   // int32 value_i32 = 4;
@@ -2380,11 +2380,11 @@ size_t ParameterDeclaration::ByteSizeLong() const {
         *name_);
   }
 
-  // .tigon.proto.tql.DataType data_type = 3;
-  if (this->has_data_type()) {
+  // .tigon.proto.tql.ParameterType type = 3;
+  if (this->has_type()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *data_type_);
+        *type_);
   }
 
   switch (default_value_case()) {
@@ -2445,8 +2445,8 @@ void ParameterDeclaration::MergeFrom(const ParameterDeclaration& from) {
   if (from.has_name()) {
     _internal_mutable_name()->::tigon::proto::tql::String::MergeFrom(from._internal_name());
   }
-  if (from.has_data_type()) {
-    _internal_mutable_data_type()->::tigon::proto::tql::DataType::MergeFrom(from._internal_data_type());
+  if (from.has_type()) {
+    _internal_mutable_type()->::tigon::proto::tql::ParameterType::MergeFrom(from._internal_type());
   }
   switch (from.default_value_case()) {
     case kValueI32: {
@@ -2487,7 +2487,7 @@ void ParameterDeclaration::InternalSwap(ParameterDeclaration* other) {
   _internal_metadata_.Swap(&other->_internal_metadata_);
   swap(location_, other->location_);
   swap(name_, other->name_);
-  swap(data_type_, other->data_type_);
+  swap(type_, other->type_);
   swap(default_value_, other->default_value_);
   swap(_oneof_case_[0], other->_oneof_case_[0]);
 }
@@ -6963,8 +6963,8 @@ template<> PROTOBUF_NOINLINE ::tigon::proto::tql::Position* Arena::CreateMaybeMe
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::Location* Arena::CreateMaybeMessage< ::tigon::proto::tql::Location >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::tql::Location >(arena);
 }
-template<> PROTOBUF_NOINLINE ::tigon::proto::tql::DataType* Arena::CreateMaybeMessage< ::tigon::proto::tql::DataType >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::tigon::proto::tql::DataType >(arena);
+template<> PROTOBUF_NOINLINE ::tigon::proto::tql::ParameterType* Arena::CreateMaybeMessage< ::tigon::proto::tql::ParameterType >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::ParameterType >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::String* Arena::CreateMaybeMessage< ::tigon::proto::tql::String >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::tql::String >(arena);

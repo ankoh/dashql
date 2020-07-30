@@ -9,21 +9,21 @@ import styles from './arguments.module.scss';
 type Props = ReturnType<typeof mapStateToProps>;
 
 class Arguments extends React.Component<Props> {
-    renderInput(type: ValueOf<proto.tql.DataTypeTypeMap>) {
+    renderInput(type: ValueOf<proto.tql.ParameterTypeTypeMap>) {
         switch (type) {
-            case proto.tql.DataTypeType.INTEGER:
+            case proto.tql.ParameterTypeType.INTEGER:
                 return <input className={styles.input} type="number" />;
-            case proto.tql.DataTypeType.FLOAT:
+            case proto.tql.ParameterTypeType.FLOAT:
                 return (
                     <input className={styles.input} type="number" step="any" />
                 );
-            case proto.tql.DataTypeType.TEXT:
+            case proto.tql.ParameterTypeType.TEXT:
                 return <input className={styles.input} type="text" />;
-            case proto.tql.DataTypeType.DATE:
+            case proto.tql.ParameterTypeType.DATE:
                 return <input className={styles.input} type="date" />;
-            case proto.tql.DataTypeType.DATETIME:
+            case proto.tql.ParameterTypeType.DATETIME:
                 return <input className={styles.input} type="datetime-local" />;
-            case proto.tql.DataTypeType.TIME:
+            case proto.tql.ParameterTypeType.TIME:
                 return <input className={styles.input} type="time" />;
         }
     }
@@ -41,8 +41,8 @@ class Arguments extends React.Component<Props> {
                 const name = parameter.getName()?.getString() ?? '';
 
                 const type =
-                    parameter.getDataType()?.getType() ??
-                    proto.tql.DataTypeType.TEXT;
+                    parameter.getType()?.getType() ??
+                    proto.tql.ParameterTypeType.TEXT;
 
                 const input = this.renderInput(type);
 

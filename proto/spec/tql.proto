@@ -18,7 +18,7 @@ message Location {
 }
 
 /// A data type
-enum DataTypeType {
+enum ParameterTypeType {
     INTEGER = 0;
     FLOAT = 1;
     TEXT = 2;
@@ -27,10 +27,10 @@ enum DataTypeType {
     TIME = 5;
 }
 
-/// A data type
-message DataType {
+/// A parameter type
+message ParameterType {
     Location location = 1;
-    DataTypeType type = 2;
+    ParameterTypeType type = 2;
 }
 
 /// A string
@@ -50,7 +50,7 @@ message QueryStatement {
 message ParameterDeclaration {
     Location location = 1;
     String name = 2;
-    DataType data_type = 3;
+    ParameterType type = 3;
     oneof default_value {
         int32 value_i32 = 4;
         int64 value_i64 = 5;

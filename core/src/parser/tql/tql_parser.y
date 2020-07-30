@@ -140,7 +140,6 @@ Parser::symbol_type tql_lex(ParseContext& context);
 
 %token EOF 0    "end of file"
 
-%type <DataType>                                            type;
 %type <ExtractStatement::ExtractMethod>                     extract_method;
 %type <ExtractStatement>                                    extract_statement;
 %type <LoadStatement::HTTPLoader::Attribute>                load_method_http_attribute;
@@ -148,11 +147,12 @@ Parser::symbol_type tql_lex(ParseContext& context);
 %type <LoadStatement::LoadMethod>                           load_method;
 %type <LoadStatement>                                       load_statement;
 %type <ParameterDeclaration>                                parameter_declaration;
+%type <ParameterType>                                       parameter_type;
 %type <QueryStatement>                                      query_statement;
 %type <Statement>                                           statement;
-%type <String>                                              keyword;
 %type <std::vector<LoadStatement::HTTPLoader::Attribute>>   load_method_http_attribute_list;
 %type <String>                                              identifier;
+%type <String>                                              keyword;
 %type <String>                                              sql_literal;
 %type <VizStatement::VizType>                               viz_type;
 %type <VizStatement>                                        viz_statement;
@@ -176,7 +176,7 @@ statement:
     ;
 
 parameter_declaration:
-    DECLARE PARAMETER identifier opt_as type SEMICOLON  { $$ = ParameterDeclaration { locate(@1, @6), $3, $5 }; }
+    DECLARE PARAMETER identifier opt_as parameter_type SEMICOLON    { $$ = ParameterDeclaration { locate(@1, @6), $3, $5 }; }
     ;
 
 identifier:
@@ -260,13 +260,13 @@ opt_as:
   | %empty
     ;
 
-type:
-    INTEGER     { $$ = DataType { locate(@1), DataType::Type::Integer }; }
-  | FLOAT       { $$ = DataType { locate(@1), DataType::Type::Float }; }
-  | TEXT        { $$ = DataType { locate(@1), DataType::Type::Text }; }
-  | DATE        { $$ = DataType { locate(@1), DataType::Type::Date }; }
-  | DATETIME    { $$ = DataType { locate(@1), DataType::Type::DateTime }; }
-  | TIME        { $$ = DataType { locate(@1), DataType::Type::Time }; }
+parameter_type:
+    INTEGER     { $$ = ParameterType { locate(@1), ParameterType::Type::Integer }; }
+  | FLOAT       { $$ = ParameterType { locate(@1), ParameterType::Type::Float }; }
+  | TEXT        { $$ = ParameterType { locate(@1), ParameterType::Type::Text }; }
+  | DATE        { $$ = ParameterType { locate(@1), ParameterType::Type::Date }; }
+  | DATETIME    { $$ = ParameterType { locate(@1), ParameterType::Type::DateTime }; }
+  | TIME        { $$ = ParameterType { locate(@1), ParameterType::Type::Time }; }
     ;
 
 query_statement:

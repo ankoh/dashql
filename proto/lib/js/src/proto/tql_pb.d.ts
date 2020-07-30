@@ -71,37 +71,40 @@ export namespace Location {
     };
 }
 
-export class DataType extends jspb.Message {
+export class ParameterType extends jspb.Message {
     hasLocation(): boolean;
     clearLocation(): void;
     getLocation(): Location | undefined;
     setLocation(value?: Location): void;
 
-    getType(): DataTypeTypeMap[keyof DataTypeTypeMap];
-    setType(value: DataTypeTypeMap[keyof DataTypeTypeMap]): void;
+    getType(): ParameterTypeTypeMap[keyof ParameterTypeTypeMap];
+    setType(value: ParameterTypeTypeMap[keyof ParameterTypeTypeMap]): void;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): DataType.AsObject;
-    static toObject(includeInstance: boolean, msg: DataType): DataType.AsObject;
+    toObject(includeInstance?: boolean): ParameterType.AsObject;
+    static toObject(
+        includeInstance: boolean,
+        msg: ParameterType,
+    ): ParameterType.AsObject;
     static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
     static extensionsBinary: {
         [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
     };
     static serializeBinaryToWriter(
-        message: DataType,
+        message: ParameterType,
         writer: jspb.BinaryWriter,
     ): void;
-    static deserializeBinary(bytes: Uint8Array): DataType;
+    static deserializeBinary(bytes: Uint8Array): ParameterType;
     static deserializeBinaryFromReader(
-        message: DataType,
+        message: ParameterType,
         reader: jspb.BinaryReader,
-    ): DataType;
+    ): ParameterType;
 }
 
-export namespace DataType {
+export namespace ParameterType {
     export type AsObject = {
         location?: Location.AsObject;
-        type: DataTypeTypeMap[keyof DataTypeTypeMap];
+        type: ParameterTypeTypeMap[keyof ParameterTypeTypeMap];
     };
 }
 
@@ -195,10 +198,10 @@ export class ParameterDeclaration extends jspb.Message {
     getName(): String | undefined;
     setName(value?: String): void;
 
-    hasDataType(): boolean;
-    clearDataType(): void;
-    getDataType(): DataType | undefined;
-    setDataType(value?: DataType): void;
+    hasType(): boolean;
+    clearType(): void;
+    getType(): ParameterType | undefined;
+    setType(value?: ParameterType): void;
 
     hasValueI32(): boolean;
     clearValueI32(): void;
@@ -246,7 +249,7 @@ export namespace ParameterDeclaration {
     export type AsObject = {
         location?: Location.AsObject;
         name?: String.AsObject;
-        dataType?: DataType.AsObject;
+        type?: ParameterType.AsObject;
         valueI32: number;
         valueI64: number;
         valueF64: number;
@@ -902,7 +905,7 @@ export namespace Module {
     };
 }
 
-export interface DataTypeTypeMap {
+export interface ParameterTypeTypeMap {
     INTEGER: 0;
     FLOAT: 1;
     TEXT: 2;
@@ -911,7 +914,7 @@ export interface DataTypeTypeMap {
     TIME: 5;
 }
 
-export const DataTypeType: DataTypeTypeMap;
+export const ParameterTypeType: ParameterTypeTypeMap;
 
 export interface HTTPVerbMap {
     GET: 0;

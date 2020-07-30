@@ -45,8 +45,8 @@ namespace tigon {
             std::string_view string;
         };
 
-        /// A data type
-        struct DataType {
+        /// A parameter type
+        struct ParameterType {
             enum class Type { Integer, Float, Text, Date, DateTime, Time };
 
             /// The location
@@ -64,8 +64,8 @@ namespace tigon {
             /// The parameter name
             String name;
 
-            /// The data type
-            DataType data_type;
+            /// The parameter type
+            ParameterType type;
         };
 
         /// A raw sql statement

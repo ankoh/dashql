@@ -43,10 +43,10 @@ namespace tigon {
                                     // Set name
                                     setString(next->mutable_name(), parameter.name);
 
-                                    // Set data type
-                                    auto* data_type = next->mutable_data_type();
-                                    setLocation(data_type->mutable_location(), parameter.data_type.location);
-                                    data_type->set_type(static_cast<proto::tql::DataTypeType>(parameter.data_type.type));
+                                    // Set type
+                                    auto* type = next->mutable_type();
+                                    setLocation(type->mutable_location(), parameter.type.location);
+                                    type->set_type(static_cast<proto::tql::ParameterTypeType>(parameter.type.type));
                                 },
 
                                 // Load statement
