@@ -39,7 +39,7 @@ class Arguments extends React.Component<Props> {
                     null,
             )
             .filter(isPresent)
-            .map(parameter => {
+            .map((parameter, i) => {
                 const name = parameter.getName()?.getString() ?? '';
 
                 const type =
@@ -49,7 +49,7 @@ class Arguments extends React.Component<Props> {
                 const input = this.renderInput(type);
 
                 return (
-                    <div>
+                    <div key={i}>
                         <span className={styles.argument_name}>{name}:</span>
                         {input}
                     </div>
