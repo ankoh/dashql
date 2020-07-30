@@ -1,12 +1,8 @@
 import * as React from 'react';
-import { connect } from 'react-redux';
-import * as proto from '@tigon/proto';
-import * as Store from '../../store';
-import { IAppContext, withAppContext } from '../../app_context';
 import Board from './board';
 import Editor from './editor';
-import Section from './section';
-import SectionEntry from './section_entry';
+import Outline from './outline';
+import Library from './library';
 
 import {
     AddIcon,
@@ -41,151 +37,7 @@ const TOOL_ICON_HEIGHT = '20px';
 const TOPBAR_ICON_WIDTH = '20px';
 const TOPBAR_ICON_HEIGHT = '20px';
 
-interface IExplorerProps {
-    appContext: IAppContext;
-    tqlModule: proto.tql.Module;
-}
-
-function getSectionIndex(previous?: number, current?: number) {
-    if (previous !== undefined && current !== undefined) {
-        return Math.max(previous, current);
-    } else if (previous !== undefined) {
-        return previous;
-    } else if (current !== undefined) {
-        return current;
-    } else {
-        return undefined;
-    }
-}
-
-function Outline(props: { module: proto.tql.Module }) {
-    const statements = props.module.getStatementsList();
-
-    const parameters: number[] = [];
-    let lastParameter: number | undefined;
-
-    const loads: number[] = [];
-    let lastLoad: number | undefined;
-
-    const extracts: number[] = [];
-    let lastExtract: number | undefined;
-
-    const queries: number[] = [];
-    let lastQuery: number | undefined;
-
-    const visualizations: number[] = [];
-    let lastViz: number | undefined;
-
-    for (let i = 0; i < statements.length; i++) {
-        const statement = statements[i];
-
-        switch (statement.getStatementCase()) {
-            case proto.tql.Statement.StatementCase.PARAMETER:
-                parameters.push(i);
-                lastParameter = i;
-                break;
-            case proto.tql.Statement.StatementCase.LOAD:
-                loads.push(i);
-                lastLoad = i;
-                break;
-            case proto.tql.Statement.StatementCase.EXTRACT:
-                extracts.push(i);
-                lastExtract = i;
-                break;
-            case proto.tql.Statement.StatementCase.QUERY:
-                queries.push(i);
-                lastQuery = i;
-                break;
-            case proto.tql.Statement.StatementCase.VIZ:
-                visualizations.push(i);
-                lastViz = i;
-                break;
-            default:
-                break;
-        }
-    }
-
-    lastLoad = getSectionIndex(lastParameter, lastLoad);
-    lastExtract = getSectionIndex(lastLoad, lastExtract);
-    lastQuery = getSectionIndex(lastExtract, lastQuery);
-    lastViz = getSectionIndex(lastQuery, lastViz);
-
-    return (
-        <div className={styles.outline}>
-            <div className={styles.outline_header}>TQL Program</div>
-            <Section
-                title="Parameters"
-                indices={parameters}
-                previousSectionIndex={undefined}
-                template={`
-DECLARE PARAMETER <name> AS INTEGER;
-
-`}
-            >
-                {parameters.map((i: number) => (
-                    <SectionEntry key={i} index={i} />
-                ))}
-            </Section>
-            <Section
-                title="Load Statements"
-                indices={loads}
-                previousSectionIndex={lastParameter}
-                template={`
-LOAD <name> FROM http (
-    url = 'https://example.com',
-    method = GET
-);
-
-`}
-            >
-                {loads.map((i: number) => (
-                    <SectionEntry key={i} index={i} />
-                ))}
-            </Section>
-            <Section
-                title="Extract Statements"
-                indices={extracts}
-                previousSectionIndex={lastLoad}
-                template={`
-EXTRACT <name> FROM <name> USING json ();
-
-`}
-            >
-                {extracts.map((i: number) => (
-                    <SectionEntry key={i} index={i} />
-                ))}
-            </Section>
-            <Section
-                title="Query Statements"
-                indices={queries}
-                previousSectionIndex={lastExtract}
-                template={`
-QUERY <name> AS SELECT * FROM 1;
-
-`}
-            >
-                {queries.map((i: number) => (
-                    <SectionEntry key={i} index={i} />
-                ))}
-            </Section>
-            <Section
-                title="Vizualizations"
-                indices={visualizations}
-                previousSectionIndex={lastQuery}
-                template={`
-VIZ <name> FROM <name> USING TABLE;
-
-`}
-            >
-                {visualizations.map((i: number) => (
-                    <SectionEntry key={i} index={i} />
-                ))}
-            </Section>
-        </div>
-    );
-}
-
-class Explorer extends React.Component<IExplorerProps> {
+class Explorer extends React.Component {
     public render() {
         return (
             <div className={styles.explorer}>
@@ -277,7 +129,10 @@ class Explorer extends React.Component<IExplorerProps> {
                         </div>
                     </div>
                 </div>
-                <Outline module={this.props.tqlModule} />
+                <div className={styles.sidebar}>
+                    <Outline />
+                    <Library />
+                </div>
                 <div className={styles.toolbar}>
                     <div className={styles.toolbar_tool}>
                         <VariableBoxIcon
@@ -369,18 +224,4 @@ class Explorer extends React.Component<IExplorerProps> {
     }
 }
 
-function mapStateToExplorerProps(state: Store.RootState) {
-    return {
-        tqlModule: state.tqlModule,
-        queryResults: state.tqlQueryResults,
-        queryPlans: state.tqlQueryPlans,
-    };
-}
-
-function mapDispatchToExplorerProps(_dispatch: Store.Dispatch) {
-    return {};
-}
-
-export default withAppContext(
-    connect(mapStateToExplorerProps, mapDispatchToExplorerProps)(Explorer),
-);
+export default Explorer;

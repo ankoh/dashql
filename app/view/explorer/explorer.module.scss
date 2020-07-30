@@ -43,24 +43,12 @@ $topbar_background: rgb(46, 46, 46);
     }
 }
 
-.outline {
+.sidebar {
     grid-row: 2;
     grid-column: 1;
 
     border-right: 1px solid $border_color;
     font-size: 0.75em;
-
-    &_header {
-        background-color: rgb(255, 255, 255);
-        font-weight: 500;
-        line-height: 32px;
-        height: 32px;
-        padding: 0 12px;
-
-        border-bottom: 1px solid $border_color;
-
-        color: rgb(120, 120, 120);
-    }
 }
 
 .toolbar {
