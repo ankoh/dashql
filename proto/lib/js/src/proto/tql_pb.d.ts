@@ -71,43 +71,6 @@ export namespace Location {
     };
 }
 
-export class ParameterType extends jspb.Message {
-    hasLocation(): boolean;
-    clearLocation(): void;
-    getLocation(): Location | undefined;
-    setLocation(value?: Location): void;
-
-    getType(): ParameterTypeTypeMap[keyof ParameterTypeTypeMap];
-    setType(value: ParameterTypeTypeMap[keyof ParameterTypeTypeMap]): void;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): ParameterType.AsObject;
-    static toObject(
-        includeInstance: boolean,
-        msg: ParameterType,
-    ): ParameterType.AsObject;
-    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
-    static extensionsBinary: {
-        [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
-    };
-    static serializeBinaryToWriter(
-        message: ParameterType,
-        writer: jspb.BinaryWriter,
-    ): void;
-    static deserializeBinary(bytes: Uint8Array): ParameterType;
-    static deserializeBinaryFromReader(
-        message: ParameterType,
-        reader: jspb.BinaryReader,
-    ): ParameterType;
-}
-
-export namespace ParameterType {
-    export type AsObject = {
-        location?: Location.AsObject;
-        type: ParameterTypeTypeMap[keyof ParameterTypeTypeMap];
-    };
-}
-
 export class String extends jspb.Message {
     hasLocation(): boolean;
     clearLocation(): void;
@@ -142,48 +105,40 @@ export namespace String {
     };
 }
 
-export class QueryStatement extends jspb.Message {
+export class ParameterType extends jspb.Message {
     hasLocation(): boolean;
     clearLocation(): void;
     getLocation(): Location | undefined;
     setLocation(value?: Location): void;
 
-    hasName(): boolean;
-    clearName(): void;
-    getName(): String | undefined;
-    setName(value?: String): void;
-
-    hasQueryText(): boolean;
-    clearQueryText(): void;
-    getQueryText(): String | undefined;
-    setQueryText(value?: String): void;
+    getType(): ParameterTypeTypeMap[keyof ParameterTypeTypeMap];
+    setType(value: ParameterTypeTypeMap[keyof ParameterTypeTypeMap]): void;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): QueryStatement.AsObject;
+    toObject(includeInstance?: boolean): ParameterType.AsObject;
     static toObject(
         includeInstance: boolean,
-        msg: QueryStatement,
-    ): QueryStatement.AsObject;
+        msg: ParameterType,
+    ): ParameterType.AsObject;
     static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
     static extensionsBinary: {
         [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
     };
     static serializeBinaryToWriter(
-        message: QueryStatement,
+        message: ParameterType,
         writer: jspb.BinaryWriter,
     ): void;
-    static deserializeBinary(bytes: Uint8Array): QueryStatement;
+    static deserializeBinary(bytes: Uint8Array): ParameterType;
     static deserializeBinaryFromReader(
-        message: QueryStatement,
+        message: ParameterType,
         reader: jspb.BinaryReader,
-    ): QueryStatement;
+    ): ParameterType;
 }
 
-export namespace QueryStatement {
+export namespace ParameterType {
     export type AsObject = {
         location?: Location.AsObject;
-        name?: String.AsObject;
-        queryText?: String.AsObject;
+        type: ParameterTypeTypeMap[keyof ParameterTypeTypeMap];
     };
 }
 
@@ -263,6 +218,87 @@ export namespace ParameterDeclaration {
         VALUE_F64 = 6,
         VALUE_STR = 7,
     }
+}
+
+export class Variable extends jspb.Message {
+    hasLocation(): boolean;
+    clearLocation(): void;
+    getLocation(): Location | undefined;
+    setLocation(value?: Location): void;
+
+    hasName(): boolean;
+    clearName(): void;
+    getName(): String | undefined;
+    setName(value?: String): void;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): Variable.AsObject;
+    static toObject(includeInstance: boolean, msg: Variable): Variable.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: {
+        [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
+    };
+    static serializeBinaryToWriter(
+        message: Variable,
+        writer: jspb.BinaryWriter,
+    ): void;
+    static deserializeBinary(bytes: Uint8Array): Variable;
+    static deserializeBinaryFromReader(
+        message: Variable,
+        reader: jspb.BinaryReader,
+    ): Variable;
+}
+
+export namespace Variable {
+    export type AsObject = {
+        location?: Location.AsObject;
+        name?: String.AsObject;
+    };
+}
+
+export class QueryStatement extends jspb.Message {
+    hasLocation(): boolean;
+    clearLocation(): void;
+    getLocation(): Location | undefined;
+    setLocation(value?: Location): void;
+
+    hasName(): boolean;
+    clearName(): void;
+    getName(): String | undefined;
+    setName(value?: String): void;
+
+    hasQueryText(): boolean;
+    clearQueryText(): void;
+    getQueryText(): String | undefined;
+    setQueryText(value?: String): void;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): QueryStatement.AsObject;
+    static toObject(
+        includeInstance: boolean,
+        msg: QueryStatement,
+    ): QueryStatement.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: {
+        [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
+    };
+    static serializeBinaryToWriter(
+        message: QueryStatement,
+        writer: jspb.BinaryWriter,
+    ): void;
+    static deserializeBinary(bytes: Uint8Array): QueryStatement;
+    static deserializeBinaryFromReader(
+        message: QueryStatement,
+        reader: jspb.BinaryReader,
+    ): QueryStatement;
+}
+
+export namespace QueryStatement {
+    export type AsObject = {
+        location?: Location.AsObject;
+        name?: String.AsObject;
+        queryText?: String.AsObject;
+    };
 }
 
 export class HTTPMethod extends jspb.Message {
@@ -468,6 +504,11 @@ export class FileLoader extends jspb.Message {
     getLocation(): Location | undefined;
     setLocation(value?: Location): void;
 
+    hasVariable(): boolean;
+    clearVariable(): void;
+    getVariable(): Variable | undefined;
+    setVariable(value?: Variable): void;
+
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): FileLoader.AsObject;
     static toObject(
@@ -492,6 +533,7 @@ export class FileLoader extends jspb.Message {
 export namespace FileLoader {
     export type AsObject = {
         location?: Location.AsObject;
+        variable?: Variable.AsObject;
     };
 }
 

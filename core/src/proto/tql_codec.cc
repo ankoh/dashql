@@ -64,7 +64,15 @@ namespace tigon {
                                                             // TODO
                                                         },
                                                         [&](tql::LoadStatement::FileLoader& loader) {
-                                                            // TODO
+                                                            auto* file = next->mutable_file();
+
+                                                            // Set location
+                                                            setLocation(file->mutable_location(), loader.location);
+
+                                                            // Set variable
+                                                            auto* variable = file->mutable_variable();
+                                                            setLocation(variable->mutable_location(), loader.variable.location);
+                                                            setString(variable->mutable_name(), loader.variable.name);
                                                         }},
                                                load.method);
                                 },

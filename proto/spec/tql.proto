@@ -17,6 +17,12 @@ message Location {
     Position end = 2;
 }
 
+/// A string
+message String {
+    Location location = 1;
+    string string = 2;
+}
+
 /// A data type
 enum ParameterTypeType {
     INTEGER = 0;
@@ -34,19 +40,6 @@ message ParameterType {
     ParameterTypeType type = 2;
 }
 
-/// A string
-message String {
-    Location location = 1;
-    string string = 2;
-}
-
-/// A query statement
-message QueryStatement {
-    Location location = 1;
-    String name = 2;
-    String query_text = 3;
-}
-
 /// A parameter declaration
 message ParameterDeclaration {
     Location location = 1;
@@ -58,6 +51,19 @@ message ParameterDeclaration {
         double value_f64 = 6;
         string value_str = 7;
     }
+}
+
+/// A variable
+message Variable {
+    Location location = 1;
+    String name = 2;
+}
+
+/// A query statement
+message QueryStatement {
+    Location location = 1;
+    String name = 2;
+    String query_text = 3;
 }
 
 /// A HTTP verb
@@ -102,6 +108,7 @@ message HTTPLoader {
 /// A file loader
 message FileLoader {
     Location location = 1;
+    Variable variable = 2;
 }
 
 /// A load statement

@@ -14,7 +14,7 @@
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_CSVExtract_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_Error_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<4> scc_info_ExtractStatement_tql_2eproto;
-extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_FileLoader_tql_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_FileLoader_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_HTTPAttribute_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_HTTPAttributes_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_HTTPLoader_tql_2eproto;
@@ -29,6 +29,7 @@ extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::S
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_QueryStatement_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<5> scc_info_Statement_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_String_tql_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_Variable_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<3> scc_info_VizStatement_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_VizType_tql_2eproto;
 namespace tigon {
@@ -42,18 +43,14 @@ class LocationDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<Location> _instance;
 } _Location_default_instance_;
-class ParameterTypeDefaultTypeInternal {
- public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<ParameterType> _instance;
-} _ParameterType_default_instance_;
 class StringDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<String> _instance;
 } _String_default_instance_;
-class QueryStatementDefaultTypeInternal {
+class ParameterTypeDefaultTypeInternal {
  public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<QueryStatement> _instance;
-} _QueryStatement_default_instance_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<ParameterType> _instance;
+} _ParameterType_default_instance_;
 class ParameterDeclarationDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<ParameterDeclaration> _instance;
@@ -62,6 +59,14 @@ class ParameterDeclarationDefaultTypeInternal {
   double value_f64_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr value_str_;
 } _ParameterDeclaration_default_instance_;
+class VariableDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<Variable> _instance;
+} _Variable_default_instance_;
+class QueryStatementDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<QueryStatement> _instance;
+} _QueryStatement_default_instance_;
 class HTTPMethodDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<HTTPMethod> _instance;
@@ -195,9 +200,10 @@ static void InitDefaultsscc_info_FileLoader_tql_2eproto() {
   ::tigon::proto::tql::FileLoader::InitAsDefaultInstance();
 }
 
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_FileLoader_tql_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_FileLoader_tql_2eproto}, {
-      &scc_info_Location_tql_2eproto.base,}};
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_FileLoader_tql_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 2, 0, InitDefaultsscc_info_FileLoader_tql_2eproto}, {
+      &scc_info_Location_tql_2eproto.base,
+      &scc_info_Variable_tql_2eproto.base,}};
 
 static void InitDefaultsscc_info_HTTPAttribute_tql_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -437,6 +443,22 @@ static void InitDefaultsscc_info_String_tql_2eproto() {
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_String_tql_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_String_tql_2eproto}, {
       &scc_info_Location_tql_2eproto.base,}};
+
+static void InitDefaultsscc_info_Variable_tql_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::tigon::proto::tql::_Variable_default_instance_;
+    new (ptr) ::tigon::proto::tql::Variable();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::tigon::proto::tql::Variable::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_Variable_tql_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 2, 0, InitDefaultsscc_info_Variable_tql_2eproto}, {
+      &scc_info_Location_tql_2eproto.base,
+      &scc_info_String_tql_2eproto.base,}};
 
 static void InitDefaultsscc_info_VizStatement_tql_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -1184,250 +1206,6 @@ std::string Location::GetTypeName() const {
 
 // ===================================================================
 
-void ParameterType::InitAsDefaultInstance() {
-  ::tigon::proto::tql::_ParameterType_default_instance_._instance.get_mutable()->location_ = const_cast< ::tigon::proto::tql::Location*>(
-      ::tigon::proto::tql::Location::internal_default_instance());
-}
-class ParameterType::_Internal {
- public:
-  static const ::tigon::proto::tql::Location& location(const ParameterType* msg);
-};
-
-const ::tigon::proto::tql::Location&
-ParameterType::_Internal::location(const ParameterType* msg) {
-  return *msg->location_;
-}
-void ParameterType::unsafe_arena_set_allocated_location(
-    ::tigon::proto::tql::Location* location) {
-  if (GetArenaNoVirtual() == nullptr) {
-    delete location_;
-  }
-  location_ = location;
-  if (location) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterType.location)
-}
-ParameterType::ParameterType()
-  : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:tigon.proto.tql.ParameterType)
-}
-ParameterType::ParameterType(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
-  _internal_metadata_(arena) {
-  SharedCtor();
-  RegisterArenaDtor(arena);
-  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.ParameterType)
-}
-ParameterType::ParameterType(const ParameterType& from)
-  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
-      _internal_metadata_(nullptr) {
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  if (from._internal_has_location()) {
-    location_ = new ::tigon::proto::tql::Location(*from.location_);
-  } else {
-    location_ = nullptr;
-  }
-  type_ = from.type_;
-  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.ParameterType)
-}
-
-void ParameterType::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_ParameterType_tql_2eproto.base);
-  ::memset(&location_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&type_) -
-      reinterpret_cast<char*>(&location_)) + sizeof(type_));
-}
-
-ParameterType::~ParameterType() {
-  // @@protoc_insertion_point(destructor:tigon.proto.tql.ParameterType)
-  SharedDtor();
-}
-
-void ParameterType::SharedDtor() {
-  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
-  if (this != internal_default_instance()) delete location_;
-}
-
-void ParameterType::ArenaDtor(void* object) {
-  ParameterType* _this = reinterpret_cast< ParameterType* >(object);
-  (void)_this;
-}
-void ParameterType::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
-}
-void ParameterType::SetCachedSize(int size) const {
-  _cached_size_.Set(size);
-}
-const ParameterType& ParameterType::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_ParameterType_tql_2eproto.base);
-  return *internal_default_instance();
-}
-
-
-void ParameterType::Clear() {
-// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.ParameterType)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
-    delete location_;
-  }
-  location_ = nullptr;
-  type_ = 0;
-  _internal_metadata_.Clear();
-}
-
-const char* ParameterType::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
-#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
-  while (!ctx->Done(&ptr)) {
-    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
-    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
-    switch (tag >> 3) {
-      // .tigon.proto.tql.Location location = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
-          ptr = ctx->ParseMessage(_internal_mutable_location(), ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // .tigon.proto.tql.ParameterTypeType type = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
-          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
-          CHK_(ptr);
-          _internal_set_type(static_cast<::tigon::proto::tql::ParameterTypeType>(val));
-        } else goto handle_unusual;
-        continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag, &_internal_metadata_, ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
-    }  // switch
-  }  // while
-success:
-  return ptr;
-failure:
-  ptr = nullptr;
-  goto success;
-#undef CHK_
-}
-
-::PROTOBUF_NAMESPACE_ID::uint8* ParameterType::InternalSerializeWithCachedSizesToArray(
-    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.ParameterType)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  // .tigon.proto.tql.Location location = 1;
-  if (this->has_location()) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessageToArray(
-        1, _Internal::location(this), target, stream);
-  }
-
-  // .tigon.proto.tql.ParameterTypeType type = 2;
-  if (this->type() != 0) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
-      2, this->_internal_type(), target);
-  }
-
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
-        static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.ParameterType)
-  return target;
-}
-
-size_t ParameterType::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.ParameterType)
-  size_t total_size = 0;
-
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  // .tigon.proto.tql.Location location = 1;
-  if (this->has_location()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *location_);
-  }
-
-  // .tigon.proto.tql.ParameterTypeType type = 2;
-  if (this->type() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_type());
-  }
-
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    total_size += _internal_metadata_.unknown_fields().size();
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
-}
-
-void ParameterType::CheckTypeAndMergeFrom(
-    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
-  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const ParameterType*>(
-      &from));
-}
-
-void ParameterType::MergeFrom(const ParameterType& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.ParameterType)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  if (from.has_location()) {
-    _internal_mutable_location()->::tigon::proto::tql::Location::MergeFrom(from._internal_location());
-  }
-  if (from.type() != 0) {
-    _internal_set_type(from._internal_type());
-  }
-}
-
-void ParameterType::CopyFrom(const ParameterType& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.ParameterType)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool ParameterType::IsInitialized() const {
-  return true;
-}
-
-void ParameterType::InternalSwap(ParameterType* other) {
-  using std::swap;
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  swap(location_, other->location_);
-  swap(type_, other->type_);
-}
-
-std::string ParameterType::GetTypeName() const {
-  return "tigon.proto.tql.ParameterType";
-}
-
-
-// ===================================================================
-
 void String::InitAsDefaultInstance() {
   ::tigon::proto::tql::_String_default_instance_._instance.get_mutable()->location_ = const_cast< ::tigon::proto::tql::Location*>(
       ::tigon::proto::tql::Location::internal_default_instance());
@@ -1680,34 +1458,20 @@ std::string String::GetTypeName() const {
 
 // ===================================================================
 
-void QueryStatement::InitAsDefaultInstance() {
-  ::tigon::proto::tql::_QueryStatement_default_instance_._instance.get_mutable()->location_ = const_cast< ::tigon::proto::tql::Location*>(
+void ParameterType::InitAsDefaultInstance() {
+  ::tigon::proto::tql::_ParameterType_default_instance_._instance.get_mutable()->location_ = const_cast< ::tigon::proto::tql::Location*>(
       ::tigon::proto::tql::Location::internal_default_instance());
-  ::tigon::proto::tql::_QueryStatement_default_instance_._instance.get_mutable()->name_ = const_cast< ::tigon::proto::tql::String*>(
-      ::tigon::proto::tql::String::internal_default_instance());
-  ::tigon::proto::tql::_QueryStatement_default_instance_._instance.get_mutable()->query_text_ = const_cast< ::tigon::proto::tql::String*>(
-      ::tigon::proto::tql::String::internal_default_instance());
 }
-class QueryStatement::_Internal {
+class ParameterType::_Internal {
  public:
-  static const ::tigon::proto::tql::Location& location(const QueryStatement* msg);
-  static const ::tigon::proto::tql::String& name(const QueryStatement* msg);
-  static const ::tigon::proto::tql::String& query_text(const QueryStatement* msg);
+  static const ::tigon::proto::tql::Location& location(const ParameterType* msg);
 };
 
 const ::tigon::proto::tql::Location&
-QueryStatement::_Internal::location(const QueryStatement* msg) {
+ParameterType::_Internal::location(const ParameterType* msg) {
   return *msg->location_;
 }
-const ::tigon::proto::tql::String&
-QueryStatement::_Internal::name(const QueryStatement* msg) {
-  return *msg->name_;
-}
-const ::tigon::proto::tql::String&
-QueryStatement::_Internal::query_text(const QueryStatement* msg) {
-  return *msg->query_text_;
-}
-void QueryStatement::unsafe_arena_set_allocated_location(
+void ParameterType::unsafe_arena_set_allocated_location(
     ::tigon::proto::tql::Location* location) {
   if (GetArenaNoVirtual() == nullptr) {
     delete location_;
@@ -1718,47 +1482,21 @@ void QueryStatement::unsafe_arena_set_allocated_location(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.QueryStatement.location)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterType.location)
 }
-void QueryStatement::unsafe_arena_set_allocated_name(
-    ::tigon::proto::tql::String* name) {
-  if (GetArenaNoVirtual() == nullptr) {
-    delete name_;
-  }
-  name_ = name;
-  if (name) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.QueryStatement.name)
-}
-void QueryStatement::unsafe_arena_set_allocated_query_text(
-    ::tigon::proto::tql::String* query_text) {
-  if (GetArenaNoVirtual() == nullptr) {
-    delete query_text_;
-  }
-  query_text_ = query_text;
-  if (query_text) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.QueryStatement.query_text)
-}
-QueryStatement::QueryStatement()
+ParameterType::ParameterType()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
-  // @@protoc_insertion_point(constructor:tigon.proto.tql.QueryStatement)
+  // @@protoc_insertion_point(constructor:tigon.proto.tql.ParameterType)
 }
-QueryStatement::QueryStatement(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+ParameterType::ParameterType(::PROTOBUF_NAMESPACE_ID::Arena* arena)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
   _internal_metadata_(arena) {
   SharedCtor();
   RegisterArenaDtor(arena);
-  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.QueryStatement)
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.ParameterType)
 }
-QueryStatement::QueryStatement(const QueryStatement& from)
+ParameterType::ParameterType(const ParameterType& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
@@ -1767,55 +1505,44 @@ QueryStatement::QueryStatement(const QueryStatement& from)
   } else {
     location_ = nullptr;
   }
-  if (from._internal_has_name()) {
-    name_ = new ::tigon::proto::tql::String(*from.name_);
-  } else {
-    name_ = nullptr;
-  }
-  if (from._internal_has_query_text()) {
-    query_text_ = new ::tigon::proto::tql::String(*from.query_text_);
-  } else {
-    query_text_ = nullptr;
-  }
-  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.QueryStatement)
+  type_ = from.type_;
+  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.ParameterType)
 }
 
-void QueryStatement::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_QueryStatement_tql_2eproto.base);
+void ParameterType::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_ParameterType_tql_2eproto.base);
   ::memset(&location_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&query_text_) -
-      reinterpret_cast<char*>(&location_)) + sizeof(query_text_));
+      reinterpret_cast<char*>(&type_) -
+      reinterpret_cast<char*>(&location_)) + sizeof(type_));
 }
 
-QueryStatement::~QueryStatement() {
-  // @@protoc_insertion_point(destructor:tigon.proto.tql.QueryStatement)
+ParameterType::~ParameterType() {
+  // @@protoc_insertion_point(destructor:tigon.proto.tql.ParameterType)
   SharedDtor();
 }
 
-void QueryStatement::SharedDtor() {
+void ParameterType::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete location_;
-  if (this != internal_default_instance()) delete name_;
-  if (this != internal_default_instance()) delete query_text_;
 }
 
-void QueryStatement::ArenaDtor(void* object) {
-  QueryStatement* _this = reinterpret_cast< QueryStatement* >(object);
+void ParameterType::ArenaDtor(void* object) {
+  ParameterType* _this = reinterpret_cast< ParameterType* >(object);
   (void)_this;
 }
-void QueryStatement::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+void ParameterType::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
 }
-void QueryStatement::SetCachedSize(int size) const {
+void ParameterType::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
-const QueryStatement& QueryStatement::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_QueryStatement_tql_2eproto.base);
+const ParameterType& ParameterType::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_ParameterType_tql_2eproto.base);
   return *internal_default_instance();
 }
 
 
-void QueryStatement::Clear() {
-// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.QueryStatement)
+void ParameterType::Clear() {
+// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.ParameterType)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -1824,18 +1551,11 @@ void QueryStatement::Clear() {
     delete location_;
   }
   location_ = nullptr;
-  if (GetArenaNoVirtual() == nullptr && name_ != nullptr) {
-    delete name_;
-  }
-  name_ = nullptr;
-  if (GetArenaNoVirtual() == nullptr && query_text_ != nullptr) {
-    delete query_text_;
-  }
-  query_text_ = nullptr;
+  type_ = 0;
   _internal_metadata_.Clear();
 }
 
-const char* QueryStatement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* ParameterType::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
   ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
   while (!ctx->Done(&ptr)) {
@@ -1850,18 +1570,12 @@ const char* QueryStatement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.String name = 2;
+      // .tigon.proto.tql.ParameterTypeType type = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
-          ptr = ctx->ParseMessage(_internal_mutable_name(), ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
+          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
           CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // .tigon.proto.tql.String query_text = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
-          ptr = ctx->ParseMessage(_internal_mutable_query_text(), ptr);
-          CHK_(ptr);
+          _internal_set_type(static_cast<::tigon::proto::tql::ParameterTypeType>(val));
         } else goto handle_unusual;
         continue;
       default: {
@@ -1884,9 +1598,9 @@ failure:
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* QueryStatement::InternalSerializeWithCachedSizesToArray(
+::PROTOBUF_NAMESPACE_ID::uint8* ParameterType::InternalSerializeWithCachedSizesToArray(
     ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.QueryStatement)
+  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.ParameterType)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -1898,32 +1612,23 @@ failure:
         1, _Internal::location(this), target, stream);
   }
 
-  // .tigon.proto.tql.String name = 2;
-  if (this->has_name()) {
+  // .tigon.proto.tql.ParameterTypeType type = 2;
+  if (this->type() != 0) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessageToArray(
-        2, _Internal::name(this), target, stream);
-  }
-
-  // .tigon.proto.tql.String query_text = 3;
-  if (this->has_query_text()) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessageToArray(
-        3, _Internal::query_text(this), target, stream);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_type(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
         static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.QueryStatement)
+  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.ParameterType)
   return target;
 }
 
-size_t QueryStatement::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.QueryStatement)
+size_t ParameterType::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.ParameterType)
   size_t total_size = 0;
 
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
@@ -1937,18 +1642,10 @@ size_t QueryStatement::ByteSizeLong() const {
         *location_);
   }
 
-  // .tigon.proto.tql.String name = 2;
-  if (this->has_name()) {
+  // .tigon.proto.tql.ParameterTypeType type = 2;
+  if (this->type() != 0) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *name_);
-  }
-
-  // .tigon.proto.tql.String query_text = 3;
-  if (this->has_query_text()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *query_text_);
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_type());
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -1959,14 +1656,14 @@ size_t QueryStatement::ByteSizeLong() const {
   return total_size;
 }
 
-void QueryStatement::CheckTypeAndMergeFrom(
+void ParameterType::CheckTypeAndMergeFrom(
     const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
-  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const QueryStatement*>(
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const ParameterType*>(
       &from));
 }
 
-void QueryStatement::MergeFrom(const QueryStatement& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.QueryStatement)
+void ParameterType::MergeFrom(const ParameterType& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.ParameterType)
   GOOGLE_DCHECK_NE(&from, this);
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
@@ -1975,35 +1672,31 @@ void QueryStatement::MergeFrom(const QueryStatement& from) {
   if (from.has_location()) {
     _internal_mutable_location()->::tigon::proto::tql::Location::MergeFrom(from._internal_location());
   }
-  if (from.has_name()) {
-    _internal_mutable_name()->::tigon::proto::tql::String::MergeFrom(from._internal_name());
-  }
-  if (from.has_query_text()) {
-    _internal_mutable_query_text()->::tigon::proto::tql::String::MergeFrom(from._internal_query_text());
+  if (from.type() != 0) {
+    _internal_set_type(from._internal_type());
   }
 }
 
-void QueryStatement::CopyFrom(const QueryStatement& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.QueryStatement)
+void ParameterType::CopyFrom(const ParameterType& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.ParameterType)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool QueryStatement::IsInitialized() const {
+bool ParameterType::IsInitialized() const {
   return true;
 }
 
-void QueryStatement::InternalSwap(QueryStatement* other) {
+void ParameterType::InternalSwap(ParameterType* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
   swap(location_, other->location_);
-  swap(name_, other->name_);
-  swap(query_text_, other->query_text_);
+  swap(type_, other->type_);
 }
 
-std::string QueryStatement::GetTypeName() const {
-  return "tigon.proto.tql.QueryStatement";
+std::string ParameterType::GetTypeName() const {
+  return "tigon.proto.tql.ParameterType";
 }
 
 
@@ -2498,6 +2191,608 @@ void ParameterDeclaration::InternalSwap(ParameterDeclaration* other) {
 
 std::string ParameterDeclaration::GetTypeName() const {
   return "tigon.proto.tql.ParameterDeclaration";
+}
+
+
+// ===================================================================
+
+void Variable::InitAsDefaultInstance() {
+  ::tigon::proto::tql::_Variable_default_instance_._instance.get_mutable()->location_ = const_cast< ::tigon::proto::tql::Location*>(
+      ::tigon::proto::tql::Location::internal_default_instance());
+  ::tigon::proto::tql::_Variable_default_instance_._instance.get_mutable()->name_ = const_cast< ::tigon::proto::tql::String*>(
+      ::tigon::proto::tql::String::internal_default_instance());
+}
+class Variable::_Internal {
+ public:
+  static const ::tigon::proto::tql::Location& location(const Variable* msg);
+  static const ::tigon::proto::tql::String& name(const Variable* msg);
+};
+
+const ::tigon::proto::tql::Location&
+Variable::_Internal::location(const Variable* msg) {
+  return *msg->location_;
+}
+const ::tigon::proto::tql::String&
+Variable::_Internal::name(const Variable* msg) {
+  return *msg->name_;
+}
+void Variable::unsafe_arena_set_allocated_location(
+    ::tigon::proto::tql::Location* location) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete location_;
+  }
+  location_ = location;
+  if (location) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.Variable.location)
+}
+void Variable::unsafe_arena_set_allocated_name(
+    ::tigon::proto::tql::String* name) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete name_;
+  }
+  name_ = name;
+  if (name) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.Variable.name)
+}
+Variable::Variable()
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:tigon.proto.tql.Variable)
+}
+Variable::Variable(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.Variable)
+}
+Variable::Variable(const Variable& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _internal_metadata_(nullptr) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  if (from._internal_has_location()) {
+    location_ = new ::tigon::proto::tql::Location(*from.location_);
+  } else {
+    location_ = nullptr;
+  }
+  if (from._internal_has_name()) {
+    name_ = new ::tigon::proto::tql::String(*from.name_);
+  } else {
+    name_ = nullptr;
+  }
+  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.Variable)
+}
+
+void Variable::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_Variable_tql_2eproto.base);
+  ::memset(&location_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&name_) -
+      reinterpret_cast<char*>(&location_)) + sizeof(name_));
+}
+
+Variable::~Variable() {
+  // @@protoc_insertion_point(destructor:tigon.proto.tql.Variable)
+  SharedDtor();
+}
+
+void Variable::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
+  if (this != internal_default_instance()) delete location_;
+  if (this != internal_default_instance()) delete name_;
+}
+
+void Variable::ArenaDtor(void* object) {
+  Variable* _this = reinterpret_cast< Variable* >(object);
+  (void)_this;
+}
+void Variable::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void Variable::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const Variable& Variable::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_Variable_tql_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void Variable::Clear() {
+// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.Variable)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
+  if (GetArenaNoVirtual() == nullptr && name_ != nullptr) {
+    delete name_;
+  }
+  name_ = nullptr;
+  _internal_metadata_.Clear();
+}
+
+const char* Variable::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // .tigon.proto.tql.Location location = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_location(), ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // .tigon.proto.tql.String name = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_name(), ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag, &_internal_metadata_, ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* Variable::InternalSerializeWithCachedSizesToArray(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.Variable)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .tigon.proto.tql.Location location = 1;
+  if (this->has_location()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        1, _Internal::location(this), target, stream);
+  }
+
+  // .tigon.proto.tql.String name = 2;
+  if (this->has_name()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        2, _Internal::name(this), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
+        static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.Variable)
+  return target;
+}
+
+size_t Variable::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.Variable)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .tigon.proto.tql.Location location = 1;
+  if (this->has_location()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *location_);
+  }
+
+  // .tigon.proto.tql.String name = 2;
+  if (this->has_name()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *name_);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields().size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void Variable::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const Variable*>(
+      &from));
+}
+
+void Variable::MergeFrom(const Variable& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.Variable)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.has_location()) {
+    _internal_mutable_location()->::tigon::proto::tql::Location::MergeFrom(from._internal_location());
+  }
+  if (from.has_name()) {
+    _internal_mutable_name()->::tigon::proto::tql::String::MergeFrom(from._internal_name());
+  }
+}
+
+void Variable::CopyFrom(const Variable& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.Variable)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool Variable::IsInitialized() const {
+  return true;
+}
+
+void Variable::InternalSwap(Variable* other) {
+  using std::swap;
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  swap(location_, other->location_);
+  swap(name_, other->name_);
+}
+
+std::string Variable::GetTypeName() const {
+  return "tigon.proto.tql.Variable";
+}
+
+
+// ===================================================================
+
+void QueryStatement::InitAsDefaultInstance() {
+  ::tigon::proto::tql::_QueryStatement_default_instance_._instance.get_mutable()->location_ = const_cast< ::tigon::proto::tql::Location*>(
+      ::tigon::proto::tql::Location::internal_default_instance());
+  ::tigon::proto::tql::_QueryStatement_default_instance_._instance.get_mutable()->name_ = const_cast< ::tigon::proto::tql::String*>(
+      ::tigon::proto::tql::String::internal_default_instance());
+  ::tigon::proto::tql::_QueryStatement_default_instance_._instance.get_mutable()->query_text_ = const_cast< ::tigon::proto::tql::String*>(
+      ::tigon::proto::tql::String::internal_default_instance());
+}
+class QueryStatement::_Internal {
+ public:
+  static const ::tigon::proto::tql::Location& location(const QueryStatement* msg);
+  static const ::tigon::proto::tql::String& name(const QueryStatement* msg);
+  static const ::tigon::proto::tql::String& query_text(const QueryStatement* msg);
+};
+
+const ::tigon::proto::tql::Location&
+QueryStatement::_Internal::location(const QueryStatement* msg) {
+  return *msg->location_;
+}
+const ::tigon::proto::tql::String&
+QueryStatement::_Internal::name(const QueryStatement* msg) {
+  return *msg->name_;
+}
+const ::tigon::proto::tql::String&
+QueryStatement::_Internal::query_text(const QueryStatement* msg) {
+  return *msg->query_text_;
+}
+void QueryStatement::unsafe_arena_set_allocated_location(
+    ::tigon::proto::tql::Location* location) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete location_;
+  }
+  location_ = location;
+  if (location) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.QueryStatement.location)
+}
+void QueryStatement::unsafe_arena_set_allocated_name(
+    ::tigon::proto::tql::String* name) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete name_;
+  }
+  name_ = name;
+  if (name) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.QueryStatement.name)
+}
+void QueryStatement::unsafe_arena_set_allocated_query_text(
+    ::tigon::proto::tql::String* query_text) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete query_text_;
+  }
+  query_text_ = query_text;
+  if (query_text) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.QueryStatement.query_text)
+}
+QueryStatement::QueryStatement()
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:tigon.proto.tql.QueryStatement)
+}
+QueryStatement::QueryStatement(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.tql.QueryStatement)
+}
+QueryStatement::QueryStatement(const QueryStatement& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _internal_metadata_(nullptr) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  if (from._internal_has_location()) {
+    location_ = new ::tigon::proto::tql::Location(*from.location_);
+  } else {
+    location_ = nullptr;
+  }
+  if (from._internal_has_name()) {
+    name_ = new ::tigon::proto::tql::String(*from.name_);
+  } else {
+    name_ = nullptr;
+  }
+  if (from._internal_has_query_text()) {
+    query_text_ = new ::tigon::proto::tql::String(*from.query_text_);
+  } else {
+    query_text_ = nullptr;
+  }
+  // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.QueryStatement)
+}
+
+void QueryStatement::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_QueryStatement_tql_2eproto.base);
+  ::memset(&location_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&query_text_) -
+      reinterpret_cast<char*>(&location_)) + sizeof(query_text_));
+}
+
+QueryStatement::~QueryStatement() {
+  // @@protoc_insertion_point(destructor:tigon.proto.tql.QueryStatement)
+  SharedDtor();
+}
+
+void QueryStatement::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
+  if (this != internal_default_instance()) delete location_;
+  if (this != internal_default_instance()) delete name_;
+  if (this != internal_default_instance()) delete query_text_;
+}
+
+void QueryStatement::ArenaDtor(void* object) {
+  QueryStatement* _this = reinterpret_cast< QueryStatement* >(object);
+  (void)_this;
+}
+void QueryStatement::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void QueryStatement::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const QueryStatement& QueryStatement::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_QueryStatement_tql_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void QueryStatement::Clear() {
+// @@protoc_insertion_point(message_clear_start:tigon.proto.tql.QueryStatement)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaNoVirtual() == nullptr && location_ != nullptr) {
+    delete location_;
+  }
+  location_ = nullptr;
+  if (GetArenaNoVirtual() == nullptr && name_ != nullptr) {
+    delete name_;
+  }
+  name_ = nullptr;
+  if (GetArenaNoVirtual() == nullptr && query_text_ != nullptr) {
+    delete query_text_;
+  }
+  query_text_ = nullptr;
+  _internal_metadata_.Clear();
+}
+
+const char* QueryStatement::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // .tigon.proto.tql.Location location = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_location(), ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // .tigon.proto.tql.String name = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_name(), ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // .tigon.proto.tql.String query_text = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+          ptr = ctx->ParseMessage(_internal_mutable_query_text(), ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag, &_internal_metadata_, ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* QueryStatement::InternalSerializeWithCachedSizesToArray(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.tql.QueryStatement)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .tigon.proto.tql.Location location = 1;
+  if (this->has_location()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        1, _Internal::location(this), target, stream);
+  }
+
+  // .tigon.proto.tql.String name = 2;
+  if (this->has_name()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        2, _Internal::name(this), target, stream);
+  }
+
+  // .tigon.proto.tql.String query_text = 3;
+  if (this->has_query_text()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        3, _Internal::query_text(this), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
+        static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.tql.QueryStatement)
+  return target;
+}
+
+size_t QueryStatement::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:tigon.proto.tql.QueryStatement)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .tigon.proto.tql.Location location = 1;
+  if (this->has_location()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *location_);
+  }
+
+  // .tigon.proto.tql.String name = 2;
+  if (this->has_name()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *name_);
+  }
+
+  // .tigon.proto.tql.String query_text = 3;
+  if (this->has_query_text()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *query_text_);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields().size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void QueryStatement::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const QueryStatement*>(
+      &from));
+}
+
+void QueryStatement::MergeFrom(const QueryStatement& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.tql.QueryStatement)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.has_location()) {
+    _internal_mutable_location()->::tigon::proto::tql::Location::MergeFrom(from._internal_location());
+  }
+  if (from.has_name()) {
+    _internal_mutable_name()->::tigon::proto::tql::String::MergeFrom(from._internal_name());
+  }
+  if (from.has_query_text()) {
+    _internal_mutable_query_text()->::tigon::proto::tql::String::MergeFrom(from._internal_query_text());
+  }
+}
+
+void QueryStatement::CopyFrom(const QueryStatement& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.tql.QueryStatement)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool QueryStatement::IsInitialized() const {
+  return true;
+}
+
+void QueryStatement::InternalSwap(QueryStatement* other) {
+  using std::swap;
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  swap(location_, other->location_);
+  swap(name_, other->name_);
+  swap(query_text_, other->query_text_);
+}
+
+std::string QueryStatement::GetTypeName() const {
+  return "tigon.proto.tql.QueryStatement";
 }
 
 
@@ -3847,15 +4142,22 @@ std::string HTTPLoader::GetTypeName() const {
 void FileLoader::InitAsDefaultInstance() {
   ::tigon::proto::tql::_FileLoader_default_instance_._instance.get_mutable()->location_ = const_cast< ::tigon::proto::tql::Location*>(
       ::tigon::proto::tql::Location::internal_default_instance());
+  ::tigon::proto::tql::_FileLoader_default_instance_._instance.get_mutable()->variable_ = const_cast< ::tigon::proto::tql::Variable*>(
+      ::tigon::proto::tql::Variable::internal_default_instance());
 }
 class FileLoader::_Internal {
  public:
   static const ::tigon::proto::tql::Location& location(const FileLoader* msg);
+  static const ::tigon::proto::tql::Variable& variable(const FileLoader* msg);
 };
 
 const ::tigon::proto::tql::Location&
 FileLoader::_Internal::location(const FileLoader* msg) {
   return *msg->location_;
+}
+const ::tigon::proto::tql::Variable&
+FileLoader::_Internal::variable(const FileLoader* msg) {
+  return *msg->variable_;
 }
 void FileLoader::unsafe_arena_set_allocated_location(
     ::tigon::proto::tql::Location* location) {
@@ -3869,6 +4171,19 @@ void FileLoader::unsafe_arena_set_allocated_location(
     
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.FileLoader.location)
+}
+void FileLoader::unsafe_arena_set_allocated_variable(
+    ::tigon::proto::tql::Variable* variable) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete variable_;
+  }
+  variable_ = variable;
+  if (variable) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.FileLoader.variable)
 }
 FileLoader::FileLoader()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
@@ -3891,12 +4206,19 @@ FileLoader::FileLoader(const FileLoader& from)
   } else {
     location_ = nullptr;
   }
+  if (from._internal_has_variable()) {
+    variable_ = new ::tigon::proto::tql::Variable(*from.variable_);
+  } else {
+    variable_ = nullptr;
+  }
   // @@protoc_insertion_point(copy_constructor:tigon.proto.tql.FileLoader)
 }
 
 void FileLoader::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_FileLoader_tql_2eproto.base);
-  location_ = nullptr;
+  ::memset(&location_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&variable_) -
+      reinterpret_cast<char*>(&location_)) + sizeof(variable_));
 }
 
 FileLoader::~FileLoader() {
@@ -3907,6 +4229,7 @@ FileLoader::~FileLoader() {
 void FileLoader::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete location_;
+  if (this != internal_default_instance()) delete variable_;
 }
 
 void FileLoader::ArenaDtor(void* object) {
@@ -3934,6 +4257,10 @@ void FileLoader::Clear() {
     delete location_;
   }
   location_ = nullptr;
+  if (GetArenaNoVirtual() == nullptr && variable_ != nullptr) {
+    delete variable_;
+  }
+  variable_ = nullptr;
   _internal_metadata_.Clear();
 }
 
@@ -3949,6 +4276,13 @@ const char* FileLoader::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID:
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_location(), ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // .tigon.proto.tql.Variable variable = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_variable(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -3986,6 +4320,14 @@ failure:
         1, _Internal::location(this), target, stream);
   }
 
+  // .tigon.proto.tql.Variable variable = 2;
+  if (this->has_variable()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        2, _Internal::variable(this), target, stream);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
         static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
@@ -4007,6 +4349,13 @@ size_t FileLoader::ByteSizeLong() const {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *location_);
+  }
+
+  // .tigon.proto.tql.Variable variable = 2;
+  if (this->has_variable()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *variable_);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -4033,6 +4382,9 @@ void FileLoader::MergeFrom(const FileLoader& from) {
   if (from.has_location()) {
     _internal_mutable_location()->::tigon::proto::tql::Location::MergeFrom(from._internal_location());
   }
+  if (from.has_variable()) {
+    _internal_mutable_variable()->::tigon::proto::tql::Variable::MergeFrom(from._internal_variable());
+  }
 }
 
 void FileLoader::CopyFrom(const FileLoader& from) {
@@ -4050,6 +4402,7 @@ void FileLoader::InternalSwap(FileLoader* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
   swap(location_, other->location_);
+  swap(variable_, other->variable_);
 }
 
 std::string FileLoader::GetTypeName() const {
@@ -6967,17 +7320,20 @@ template<> PROTOBUF_NOINLINE ::tigon::proto::tql::Position* Arena::CreateMaybeMe
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::Location* Arena::CreateMaybeMessage< ::tigon::proto::tql::Location >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::tql::Location >(arena);
 }
-template<> PROTOBUF_NOINLINE ::tigon::proto::tql::ParameterType* Arena::CreateMaybeMessage< ::tigon::proto::tql::ParameterType >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::tigon::proto::tql::ParameterType >(arena);
-}
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::String* Arena::CreateMaybeMessage< ::tigon::proto::tql::String >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::tql::String >(arena);
 }
-template<> PROTOBUF_NOINLINE ::tigon::proto::tql::QueryStatement* Arena::CreateMaybeMessage< ::tigon::proto::tql::QueryStatement >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::tigon::proto::tql::QueryStatement >(arena);
+template<> PROTOBUF_NOINLINE ::tigon::proto::tql::ParameterType* Arena::CreateMaybeMessage< ::tigon::proto::tql::ParameterType >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::ParameterType >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::ParameterDeclaration* Arena::CreateMaybeMessage< ::tigon::proto::tql::ParameterDeclaration >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::tql::ParameterDeclaration >(arena);
+}
+template<> PROTOBUF_NOINLINE ::tigon::proto::tql::Variable* Arena::CreateMaybeMessage< ::tigon::proto::tql::Variable >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::Variable >(arena);
+}
+template<> PROTOBUF_NOINLINE ::tigon::proto::tql::QueryStatement* Arena::CreateMaybeMessage< ::tigon::proto::tql::QueryStatement >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::tigon::proto::tql::QueryStatement >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::tql::HTTPMethod* Arena::CreateMaybeMessage< ::tigon::proto::tql::HTTPMethod >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::tql::HTTPMethod >(arena);

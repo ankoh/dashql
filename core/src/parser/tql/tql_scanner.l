@@ -112,6 +112,7 @@ loc.step();
 "*" { return Parser::make_STAR(loc); }
 "/" { return Parser::make_SLASH(loc); }
 "=" { return Parser::make_EQUAL(loc); }
+"$" { return Parser::make_DOLLAR(loc); }
 
 "area"          { return Parser::make_AREA(getTokenText(), loc); }
 "as"            { return Parser::make_AS(getTokenText(), loc); }

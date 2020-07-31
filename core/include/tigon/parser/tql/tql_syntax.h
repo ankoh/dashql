@@ -68,6 +68,15 @@ namespace tigon {
             ParameterType type;
         };
 
+        /// A variable
+        struct Variable {
+            /// The location
+            Location location;
+
+            /// The variable name
+            String name;
+        };
+
         /// A raw sql statement
         struct QueryStatement {
             /// The location
@@ -127,6 +136,9 @@ namespace tigon {
             struct FileLoader {
                 /// The location
                 Location location;
+
+                /// The variable
+                Variable variable;
             };
 
             using LoadMethod = std::variant<HTTPLoader, FileLoader>;

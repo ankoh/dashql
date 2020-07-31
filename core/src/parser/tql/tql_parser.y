@@ -62,6 +62,7 @@ Parser::symbol_type tql_lex(ParseContext& context);
 %token <uint32_t>           HEX_COLOR_LITERAL   "hex color literal"
 
 %token COMMA                    ", token"
+%token DOLLAR                   "$ token"
 %token EQUAL                    "= token"
 %token LEFT_ROUND_BRACKETS      "( token"
 %token LEFT_SQUARE_BRACKETS     "[ token"
@@ -154,6 +155,7 @@ Parser::symbol_type tql_lex(ParseContext& context);
 %type <String>                                              identifier;
 %type <String>                                              keyword;
 %type <String>                                              sql_literal;
+%type <Variable>                                            variable;
 %type <VizStatement::VizType>                               viz_type;
 %type <VizStatement>                                        viz_statement;
 
@@ -286,7 +288,7 @@ load_statement:
 
 load_method:
     HTTP LEFT_ROUND_BRACKETS load_method_http_attribute_list RIGHT_ROUND_BRACKETS   { $$ = LoadStatement::HTTPLoader { locate(@1, @4), LoadStatement::HTTPLoader::Attributes { locate(@3), $3 } }; }
-  | FILE                                                                            { $$ = LoadStatement::FileLoader { locate(@1) }; }
+  | FILE variable                                                                   { $$ = LoadStatement::FileLoader { locate(@1, @2), $2 }; }
     ;
 
 load_method_http_attribute_list:
@@ -304,6 +306,9 @@ http_method:
   | PUT     { $$ = LoadStatement::HTTPLoader::Method { locate(@1), LoadStatement::HTTPLoader::Method::Verb::Put }; }
   | POST    { $$ = LoadStatement::HTTPLoader::Method { locate(@1), LoadStatement::HTTPLoader::Method::Verb::Post }; }
     ;
+
+variable:
+    DOLLAR identifier   { $$ = Variable { locate(@1, @2), $2 }; }
 
 extract_statement:
     EXTRACT identifier FROM identifier USING extract_method { $$ = ExtractStatement { locate(@1, @6), $2, $4, $6 }; }
