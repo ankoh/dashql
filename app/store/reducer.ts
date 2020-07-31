@@ -28,6 +28,19 @@ export function reducer(
                 ...state,
                 tqlModule: action.payload,
             };
+        case 'SET_TQL_ARGUMENT':
+            return {
+                ...state,
+                tqlArguments: state.tqlArguments.set(
+                    action.payload.name,
+                    action.payload.argument,
+                ),
+            };
+        case 'UNSET_TQL_ARGUMENT':
+            return {
+                ...state,
+                tqlArguments: state.tqlArguments.delete(action.payload),
+            };
         case 'SET_TQL_QUERY_RESULT':
             return {
                 ...state,

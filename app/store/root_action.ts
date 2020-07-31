@@ -31,6 +31,17 @@ export function setTQLModule(module: proto.tql.Module) {
     return createAction('SET_TQL_MODULE' as 'SET_TQL_MODULE', module);
 }
 
+export function setTQLArgument(name: string, argument: State.Argument) {
+    return createAction('SET_TQL_ARGUMENT' as 'SET_TQL_ARGUMENT', {
+        name,
+        argument,
+    });
+}
+
+export function unsetTQLArgument(name: string) {
+    return createAction('UNSET_TQL_ARGUMENT' as 'UNSET_TQL_ARGUMENT', name);
+}
+
 export function setTQLQueryResult(
     key: string,
     result: proto.engine.QueryResult,
@@ -58,5 +69,7 @@ export type RootAction =
     | ReturnType<typeof pushLogEntry>
     | ReturnType<typeof configureApp>
     | ReturnType<typeof setTQLModule>
+    | ReturnType<typeof setTQLArgument>
+    | ReturnType<typeof unsetTQLArgument>
     | ReturnType<typeof setTQLQueryResult>
     | ReturnType<typeof setTQLGetHighlights>;

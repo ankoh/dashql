@@ -101,6 +101,36 @@ export class LaunchProgress {
         LaunchProgressStatus.STARTED;
 }
 
+export type Argument =
+    | {
+          type: proto.tql.ParameterTypeTypeMap['INTEGER'];
+          value: number;
+      }
+    | {
+          type: proto.tql.ParameterTypeTypeMap['FLOAT'];
+          value: number;
+      }
+    | {
+          type: proto.tql.ParameterTypeTypeMap['TEXT'];
+          value: string;
+      }
+    | {
+          type: proto.tql.ParameterTypeTypeMap['DATE'];
+          value: Date;
+      }
+    | {
+          type: proto.tql.ParameterTypeTypeMap['DATETIME'];
+          value: Date;
+      }
+    | {
+          type: proto.tql.ParameterTypeTypeMap['TIME'];
+          value: Date;
+      }
+    | {
+          type: proto.tql.ParameterTypeTypeMap['FILE'];
+          value: File;
+      };
+
 // ---------------------------------------------------------------------------
 // Root state type
 // ---------------------------------------------------------------------------
@@ -122,8 +152,8 @@ export class RootState {
 
     // The TQL statements (if any)
     public tqlModule: proto.tql.Module;
-    // The TQL parameters (if any)
-    public tqlParameters: Immutable.Map<string, string>;
+    // The TQL arguments (if any)
+    public tqlArguments: Immutable.Map<string, Argument>;
     // The TQL load data (if any)
     public tqlLoadData: Immutable.Map<string, CoreBuffer>;
     // The TQL extract data (if any)
@@ -149,7 +179,7 @@ export class RootState {
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logs = Immutable.List<LogEntry>();
         this.tqlModule = new proto.tql.Module();
-        this.tqlParameters = Immutable.Map();
+        this.tqlArguments = Immutable.Map();
         this.tqlLoadData = Immutable.Map();
         this.tqlExtractData = Immutable.Map();
         this.tqlQueryResults = Immutable.Map();
