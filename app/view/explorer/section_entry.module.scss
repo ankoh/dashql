@@ -16,7 +16,9 @@ $border_color: rgb(238, 238, 238);
 
     &_delete {
         margin-left: auto;
+        padding-left: 12px;
         padding-right: 12px;
         font-size: 8px;
+        user-select: none;
     }
 }
