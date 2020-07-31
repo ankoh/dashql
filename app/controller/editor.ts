@@ -72,7 +72,17 @@ export class EditorController {
     }
 
     public replace(location: tql.Location, text: string | null) {
-        const model = this.editor?.getModel();
+        const editor = this.editor;
+
+        if (!editor) {
+            return;
+        }
+
+        const model = editor.getModel();
+
+        if (!model) {
+            return;
+        }
 
         const begin = location.getBegin();
         const end = location.getEnd();
@@ -94,8 +104,7 @@ export class EditorController {
 
             if (
                 nextCharacterRange.endColumn ==
-                (model?.getLineLength(nextCharacterRange.endLineNumber) ?? 0) +
-                    1
+                (model.getLineLength(nextCharacterRange.endLineNumber) ?? 0) + 1
             ) {
                 nextCharacterRange.endLineNumber += 1;
                 nextCharacterRange.endColumn = 1;
@@ -103,7 +112,7 @@ export class EditorController {
                 nextCharacterRange.endColumn += 1;
             }
 
-            const nextCharacter = model?.getValueInRange(nextCharacterRange);
+            const nextCharacter = model.getValueInRange(nextCharacterRange);
 
             if (nextCharacter != '\n') {
                 break;
@@ -113,12 +122,47 @@ export class EditorController {
             }
         }
 
-        this.editor?.executeEdits('', [
-            {
-                range: range as Monaco.Range,
-                text,
-            },
-        ]);
+        let paddedText = text;
+
+        if (paddedText != null) {
+            if (!(range.endLineNumber == 1 && range.endColumn == 1)) {
+                paddedText = '\n\n' + paddedText;
+            }
+
+            if (
+                range.endLineNumber == model.getLineCount() &&
+                range.endColumn == model.getLineLength(range.endLineNumber) + 1
+            ) {
+                paddedText = paddedText + '\n';
+            } else if (
+                range.endColumn == 1 ||
+                range.endColumn == model.getLineLength(range.endLineNumber) + 1
+            ) {
+                paddedText = paddedText + '\n\n';
+            }
+        }
+
+        editor.executeEdits(
+            '',
+            [
+                {
+                    range: range as Monaco.Range,
+                    text: paddedText,
+                },
+            ],
+            [
+                monaco.Selection.fromPositions(
+                    {
+                        lineNumber: 1,
+                        column: 1,
+                    },
+                    {
+                        lineNumber: 1,
+                        column: 1,
+                    },
+                ),
+            ],
+        );
     }
 }
 
