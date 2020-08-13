@@ -12,8 +12,8 @@
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
 extern PROTOBUF_INTERNAL_EXPORT_engine_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_QueryPlan_engine_2eproto;
-extern PROTOBUF_INTERNAL_EXPORT_engine_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_QueryResultChunk_engine_2eproto;
-extern PROTOBUF_INTERNAL_EXPORT_engine_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_QueryResultColumn_engine_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_engine_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_QueryResultColumn_engine_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_engine_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_QueryResultRow_engine_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_engine_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_SQLType_engine_2eproto;
 namespace tigon {
 namespace proto {
@@ -26,14 +26,22 @@ class QueryPlanDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<QueryPlan> _instance;
 } _QueryPlan_default_instance_;
+class QueryResultRowDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<QueryResultRow> _instance;
+  bool bool__;
+  ::PROTOBUF_NAMESPACE_ID::int32 i32_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 u32_;
+  ::PROTOBUF_NAMESPACE_ID::int64 i64_;
+  ::PROTOBUF_NAMESPACE_ID::uint64 u64_;
+  float f32_;
+  double f64_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr str_;
+} _QueryResultRow_default_instance_;
 class QueryResultColumnDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<QueryResultColumn> _instance;
 } _QueryResultColumn_default_instance_;
-class QueryResultChunkDefaultTypeInternal {
- public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<QueryResultChunk> _instance;
-} _QueryResultChunk_default_instance_;
 class QueryResultDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<QueryResult> _instance;
@@ -66,25 +74,9 @@ static void InitDefaultsscc_info_QueryResult_engine_2eproto() {
   ::tigon::proto::engine::QueryResult::InitAsDefaultInstance();
 }
 
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<3> scc_info_QueryResult_engine_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 3, 0, InitDefaultsscc_info_QueryResult_engine_2eproto}, {
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_QueryResult_engine_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 2, 0, InitDefaultsscc_info_QueryResult_engine_2eproto}, {
       &scc_info_QueryPlan_engine_2eproto.base,
-      &scc_info_SQLType_engine_2eproto.base,
-      &scc_info_QueryResultChunk_engine_2eproto.base,}};
-
-static void InitDefaultsscc_info_QueryResultChunk_engine_2eproto() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  {
-    void* ptr = &::tigon::proto::engine::_QueryResultChunk_default_instance_;
-    new (ptr) ::tigon::proto::engine::QueryResultChunk();
-    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::tigon::proto::engine::QueryResultChunk::InitAsDefaultInstance();
-}
-
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_QueryResultChunk_engine_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_QueryResultChunk_engine_2eproto}, {
       &scc_info_QueryResultColumn_engine_2eproto.base,}};
 
 static void InitDefaultsscc_info_QueryResultColumn_engine_2eproto() {
@@ -98,8 +90,24 @@ static void InitDefaultsscc_info_QueryResultColumn_engine_2eproto() {
   ::tigon::proto::engine::QueryResultColumn::InitAsDefaultInstance();
 }
 
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_QueryResultColumn_engine_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_QueryResultColumn_engine_2eproto}, {}};
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_QueryResultColumn_engine_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 2, 0, InitDefaultsscc_info_QueryResultColumn_engine_2eproto}, {
+      &scc_info_SQLType_engine_2eproto.base,
+      &scc_info_QueryResultRow_engine_2eproto.base,}};
+
+static void InitDefaultsscc_info_QueryResultRow_engine_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::tigon::proto::engine::_QueryResultRow_default_instance_;
+    new (ptr) ::tigon::proto::engine::QueryResultRow();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::tigon::proto::engine::QueryResultRow::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_QueryResultRow_engine_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_QueryResultRow_engine_2eproto}, {}};
 
 static void InitDefaultsscc_info_SQLType_engine_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -118,125 +126,41 @@ static void InitDefaultsscc_info_SQLType_engine_2eproto() {
 namespace tigon {
 namespace proto {
 namespace engine {
-bool RawTypeID_IsValid(int value) {
-  switch (value) {
-    case 0:
-    case 1:
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-    case 8:
-    case 9:
-    case 10:
-    case 11:
-      return true;
-    default:
-      return false;
-  }
-}
-
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> RawTypeID_strings[12] = {};
-
-static const char RawTypeID_names[] =
-  "RAW_BIGINT"
-  "RAW_BOOLEAN"
-  "RAW_DOUBLE"
-  "RAW_FLOAT"
-  "RAW_HASH"
-  "RAW_INTEGER"
-  "RAW_INVALID"
-  "RAW_POINTER"
-  "RAW_SMALLINT"
-  "RAW_TINYINT"
-  "RAW_VARBINARY"
-  "RAW_VARCHAR";
-
-static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry RawTypeID_entries[] = {
-  { {RawTypeID_names + 0, 10}, 5 },
-  { {RawTypeID_names + 10, 11}, 1 },
-  { {RawTypeID_names + 21, 10}, 9 },
-  { {RawTypeID_names + 31, 9}, 8 },
-  { {RawTypeID_names + 40, 8}, 6 },
-  { {RawTypeID_names + 48, 11}, 4 },
-  { {RawTypeID_names + 59, 11}, 0 },
-  { {RawTypeID_names + 70, 11}, 7 },
-  { {RawTypeID_names + 81, 12}, 3 },
-  { {RawTypeID_names + 93, 11}, 2 },
-  { {RawTypeID_names + 104, 13}, 11 },
-  { {RawTypeID_names + 117, 11}, 10 },
-};
-
-static const int RawTypeID_entries_by_number[] = {
-  6, // 0 -> RAW_INVALID
-  1, // 1 -> RAW_BOOLEAN
-  9, // 2 -> RAW_TINYINT
-  8, // 3 -> RAW_SMALLINT
-  5, // 4 -> RAW_INTEGER
-  0, // 5 -> RAW_BIGINT
-  4, // 6 -> RAW_HASH
-  7, // 7 -> RAW_POINTER
-  3, // 8 -> RAW_FLOAT
-  2, // 9 -> RAW_DOUBLE
-  11, // 10 -> RAW_VARCHAR
-  10, // 11 -> RAW_VARBINARY
-};
-
-const std::string& RawTypeID_Name(
-    RawTypeID value) {
-  static const bool dummy =
-      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
-          RawTypeID_entries,
-          RawTypeID_entries_by_number,
-          12, RawTypeID_strings);
-  (void) dummy;
-  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
-      RawTypeID_entries,
-      RawTypeID_entries_by_number,
-      12, value);
-  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
-                     RawTypeID_strings[idx].get();
-}
-bool RawTypeID_Parse(
-    const std::string& name, RawTypeID* value) {
-  int int_value;
-  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      RawTypeID_entries, 12, name, &int_value);
-  if (success) {
-    *value = static_cast<RawTypeID>(int_value);
-  }
-  return success;
-}
 bool SQLTypeID_IsValid(int value) {
   switch (value) {
     case 0:
     case 1:
     case 2:
     case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-    case 8:
-    case 9:
     case 10:
     case 11:
     case 12:
     case 13:
     case 14:
     case 15:
+    case 16:
+    case 17:
+    case 18:
+    case 19:
+    case 20:
+    case 21:
+    case 22:
+    case 23:
+    case 24:
+    case 100:
+    case 101:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SQLTypeID_strings[16] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SQLTypeID_strings[21] = {};
 
 static const char SQLTypeID_names[] =
+  "SQL_ANY"
   "SQL_BIGINT"
+  "SQL_BLOB"
   "SQL_BOOLEAN"
   "SQL_CHAR"
   "SQL_DATE"
@@ -245,50 +169,63 @@ static const char SQLTypeID_names[] =
   "SQL_FLOAT"
   "SQL_INTEGER"
   "SQL_INVALID"
+  "SQL_LIST"
   "SQL_NULL"
-  "SQL_REAL"
   "SQL_SMALLINT"
+  "SQL_STRUCT"
+  "SQL_TIME"
   "SQL_TIMESTAMP"
   "SQL_TINYINT"
+  "SQL_UNKNOWN"
   "SQL_VARBINARY"
   "SQL_VARCHAR";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry SQLTypeID_entries[] = {
-  { {SQLTypeID_names + 0, 10}, 6 },
-  { {SQLTypeID_names + 10, 11}, 2 },
-  { {SQLTypeID_names + 21, 8}, 13 },
-  { {SQLTypeID_names + 29, 8}, 7 },
-  { {SQLTypeID_names + 37, 11}, 12 },
-  { {SQLTypeID_names + 48, 10}, 10 },
-  { {SQLTypeID_names + 58, 9}, 11 },
-  { {SQLTypeID_names + 67, 11}, 5 },
-  { {SQLTypeID_names + 78, 11}, 0 },
-  { {SQLTypeID_names + 89, 8}, 1 },
-  { {SQLTypeID_names + 97, 8}, 9 },
-  { {SQLTypeID_names + 105, 12}, 4 },
-  { {SQLTypeID_names + 117, 13}, 8 },
-  { {SQLTypeID_names + 130, 11}, 3 },
-  { {SQLTypeID_names + 141, 13}, 15 },
-  { {SQLTypeID_names + 154, 11}, 14 },
+  { {SQLTypeID_names + 0, 7}, 3 },
+  { {SQLTypeID_names + 7, 10}, 14 },
+  { {SQLTypeID_names + 17, 8}, 24 },
+  { {SQLTypeID_names + 25, 11}, 10 },
+  { {SQLTypeID_names + 36, 8}, 21 },
+  { {SQLTypeID_names + 44, 8}, 15 },
+  { {SQLTypeID_names + 52, 11}, 20 },
+  { {SQLTypeID_names + 63, 10}, 19 },
+  { {SQLTypeID_names + 73, 9}, 18 },
+  { {SQLTypeID_names + 82, 11}, 13 },
+  { {SQLTypeID_names + 93, 11}, 0 },
+  { {SQLTypeID_names + 104, 8}, 101 },
+  { {SQLTypeID_names + 112, 8}, 1 },
+  { {SQLTypeID_names + 120, 12}, 12 },
+  { {SQLTypeID_names + 132, 10}, 100 },
+  { {SQLTypeID_names + 142, 8}, 16 },
+  { {SQLTypeID_names + 150, 13}, 17 },
+  { {SQLTypeID_names + 163, 11}, 11 },
+  { {SQLTypeID_names + 174, 11}, 2 },
+  { {SQLTypeID_names + 185, 13}, 23 },
+  { {SQLTypeID_names + 198, 11}, 22 },
 };
 
 static const int SQLTypeID_entries_by_number[] = {
-  8, // 0 -> SQL_INVALID
-  9, // 1 -> SQL_NULL
-  1, // 2 -> SQL_BOOLEAN
-  13, // 3 -> SQL_TINYINT
-  11, // 4 -> SQL_SMALLINT
-  7, // 5 -> SQL_INTEGER
-  0, // 6 -> SQL_BIGINT
-  3, // 7 -> SQL_DATE
-  12, // 8 -> SQL_TIMESTAMP
-  10, // 9 -> SQL_REAL
-  5, // 10 -> SQL_DOUBLE
-  6, // 11 -> SQL_FLOAT
-  4, // 12 -> SQL_DECIMAL
-  2, // 13 -> SQL_CHAR
-  15, // 14 -> SQL_VARCHAR
-  14, // 15 -> SQL_VARBINARY
+  10, // 0 -> SQL_INVALID
+  12, // 1 -> SQL_NULL
+  18, // 2 -> SQL_UNKNOWN
+  0, // 3 -> SQL_ANY
+  3, // 10 -> SQL_BOOLEAN
+  17, // 11 -> SQL_TINYINT
+  13, // 12 -> SQL_SMALLINT
+  9, // 13 -> SQL_INTEGER
+  1, // 14 -> SQL_BIGINT
+  5, // 15 -> SQL_DATE
+  15, // 16 -> SQL_TIME
+  16, // 17 -> SQL_TIMESTAMP
+  8, // 18 -> SQL_FLOAT
+  7, // 19 -> SQL_DOUBLE
+  6, // 20 -> SQL_DECIMAL
+  4, // 21 -> SQL_CHAR
+  20, // 22 -> SQL_VARCHAR
+  19, // 23 -> SQL_VARBINARY
+  2, // 24 -> SQL_BLOB
+  14, // 100 -> SQL_STRUCT
+  11, // 101 -> SQL_LIST
 };
 
 const std::string& SQLTypeID_Name(
@@ -297,12 +234,12 @@ const std::string& SQLTypeID_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           SQLTypeID_entries,
           SQLTypeID_entries_by_number,
-          16, SQLTypeID_strings);
+          21, SQLTypeID_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       SQLTypeID_entries,
       SQLTypeID_entries_by_number,
-      16, value);
+      21, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      SQLTypeID_strings[idx].get();
 }
@@ -310,7 +247,7 @@ bool SQLTypeID_Parse(
     const std::string& name, SQLTypeID* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      SQLTypeID_entries, 16, name, &int_value);
+      SQLTypeID_entries, 21, name, &int_value);
   if (success) {
     *value = static_cast<SQLTypeID>(int_value);
   }
@@ -361,13 +298,15 @@ bool LogicalOperatorType_IsValid(int value) {
     case 40:
     case 41:
     case 42:
+    case 43:
+    case 44:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> LogicalOperatorType_strings[43] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> LogicalOperatorType_strings[45] = {};
 
 static const char LogicalOperatorType_names[] =
   "OP_AGGREGATE_AND_GROUP_BY"
@@ -383,6 +322,7 @@ static const char LogicalOperatorType_names[] =
   "OP_CREATE_TABLE"
   "OP_CREATE_VIEW"
   "OP_CROSS_PRODUCT"
+  "OP_CTE_REF"
   "OP_DELETE"
   "OP_DELIM_GET"
   "OP_DELIM_JOIN"
@@ -405,105 +345,110 @@ static const char LogicalOperatorType_names[] =
   "OP_PRAGMA"
   "OP_PREPARE"
   "OP_PROJECTION"
-  "OP_PRUNE_COLUMNS"
-  "OP_SUBQUERY"
+  "OP_RECURSIVE_CTE"
   "OP_TABLE_FUNCTION"
   "OP_TOP_N"
   "OP_TRANSACTION"
   "OP_UNION"
+  "OP_UNNEST"
   "OP_UPDATE"
+  "OP_VACUUM"
   "OP_WINDOW";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry LogicalOperatorType_entries[] = {
   { {LogicalOperatorType_names + 0, 25}, 3 },
-  { {LogicalOperatorType_names + 25, 8}, 30 },
-  { {LogicalOperatorType_names + 33, 11}, 22 },
-  { {LogicalOperatorType_names + 44, 12}, 13 },
-  { {LogicalOperatorType_names + 56, 18}, 21 },
-  { {LogicalOperatorType_names + 74, 17}, 8 },
-  { {LogicalOperatorType_names + 91, 15}, 9 },
-  { {LogicalOperatorType_names + 106, 15}, 32 },
-  { {LogicalOperatorType_names + 121, 16}, 35 },
-  { {LogicalOperatorType_names + 137, 18}, 33 },
-  { {LogicalOperatorType_names + 155, 15}, 31 },
-  { {LogicalOperatorType_names + 170, 14}, 34 },
-  { {LogicalOperatorType_names + 184, 16}, 23 },
-  { {LogicalOperatorType_names + 200, 9}, 28 },
-  { {LogicalOperatorType_names + 209, 12}, 14 },
-  { {LogicalOperatorType_names + 221, 13}, 20 },
-  { {LogicalOperatorType_names + 234, 11}, 10 },
-  { {LogicalOperatorType_names + 245, 7}, 36 },
-  { {LogicalOperatorType_names + 252, 15}, 18 },
-  { {LogicalOperatorType_names + 267, 9}, 25 },
-  { {LogicalOperatorType_names + 276, 10}, 42 },
-  { {LogicalOperatorType_names + 286, 10}, 39 },
-  { {LogicalOperatorType_names + 296, 17}, 15 },
-  { {LogicalOperatorType_names + 313, 9}, 2 },
-  { {LogicalOperatorType_names + 322, 6}, 12 },
-  { {LogicalOperatorType_names + 328, 13}, 11 },
-  { {LogicalOperatorType_names + 341, 9}, 27 },
-  { {LogicalOperatorType_names + 350, 12}, 26 },
-  { {LogicalOperatorType_names + 362, 10}, 0 },
-  { {LogicalOperatorType_names + 372, 7}, 19 },
-  { {LogicalOperatorType_names + 379, 8}, 5 },
-  { {LogicalOperatorType_names + 387, 11}, 6 },
-  { {LogicalOperatorType_names + 398, 9}, 37 },
-  { {LogicalOperatorType_names + 407, 10}, 41 },
-  { {LogicalOperatorType_names + 417, 13}, 1 },
-  { {LogicalOperatorType_names + 430, 16}, 40 },
-  { {LogicalOperatorType_names + 446, 11}, 17 },
-  { {LogicalOperatorType_names + 457, 17}, 16 },
-  { {LogicalOperatorType_names + 474, 8}, 7 },
-  { {LogicalOperatorType_names + 482, 14}, 38 },
-  { {LogicalOperatorType_names + 496, 8}, 24 },
-  { {LogicalOperatorType_names + 504, 9}, 29 },
-  { {LogicalOperatorType_names + 513, 9}, 4 },
+  { {LogicalOperatorType_names + 25, 8}, 32 },
+  { {LogicalOperatorType_names + 33, 11}, 23 },
+  { {LogicalOperatorType_names + 44, 12}, 14 },
+  { {LogicalOperatorType_names + 56, 18}, 22 },
+  { {LogicalOperatorType_names + 74, 17}, 9 },
+  { {LogicalOperatorType_names + 91, 15}, 10 },
+  { {LogicalOperatorType_names + 106, 15}, 34 },
+  { {LogicalOperatorType_names + 121, 16}, 37 },
+  { {LogicalOperatorType_names + 137, 18}, 35 },
+  { {LogicalOperatorType_names + 155, 15}, 33 },
+  { {LogicalOperatorType_names + 170, 14}, 36 },
+  { {LogicalOperatorType_names + 184, 16}, 24 },
+  { {LogicalOperatorType_names + 200, 10}, 19 },
+  { {LogicalOperatorType_names + 210, 9}, 30 },
+  { {LogicalOperatorType_names + 219, 12}, 15 },
+  { {LogicalOperatorType_names + 231, 13}, 21 },
+  { {LogicalOperatorType_names + 244, 11}, 11 },
+  { {LogicalOperatorType_names + 255, 7}, 38 },
+  { {LogicalOperatorType_names + 262, 15}, 18 },
+  { {LogicalOperatorType_names + 277, 9}, 26 },
+  { {LogicalOperatorType_names + 286, 10}, 43 },
+  { {LogicalOperatorType_names + 296, 10}, 41 },
+  { {LogicalOperatorType_names + 306, 17}, 16 },
+  { {LogicalOperatorType_names + 323, 9}, 2 },
+  { {LogicalOperatorType_names + 332, 6}, 13 },
+  { {LogicalOperatorType_names + 338, 13}, 12 },
+  { {LogicalOperatorType_names + 351, 9}, 29 },
+  { {LogicalOperatorType_names + 360, 12}, 27 },
+  { {LogicalOperatorType_names + 372, 10}, 0 },
+  { {LogicalOperatorType_names + 382, 7}, 20 },
+  { {LogicalOperatorType_names + 389, 8}, 6 },
+  { {LogicalOperatorType_names + 397, 11}, 7 },
+  { {LogicalOperatorType_names + 408, 9}, 39 },
+  { {LogicalOperatorType_names + 417, 10}, 42 },
+  { {LogicalOperatorType_names + 427, 13}, 1 },
+  { {LogicalOperatorType_names + 440, 16}, 28 },
+  { {LogicalOperatorType_names + 456, 17}, 17 },
+  { {LogicalOperatorType_names + 473, 8}, 8 },
+  { {LogicalOperatorType_names + 481, 14}, 40 },
+  { {LogicalOperatorType_names + 495, 8}, 25 },
+  { {LogicalOperatorType_names + 503, 9}, 5 },
+  { {LogicalOperatorType_names + 512, 9}, 31 },
+  { {LogicalOperatorType_names + 521, 9}, 44 },
+  { {LogicalOperatorType_names + 530, 9}, 4 },
 };
 
 static const int LogicalOperatorType_entries_by_number[] = {
-  28, // 0 -> OP_INVALID
-  34, // 1 -> OP_PROJECTION
-  23, // 2 -> OP_FILTER
+  29, // 0 -> OP_INVALID
+  35, // 1 -> OP_PROJECTION
+  24, // 2 -> OP_FILTER
   0, // 3 -> OP_AGGREGATE_AND_GROUP_BY
-  42, // 4 -> OP_WINDOW
-  30, // 5 -> OP_LIMIT
-  31, // 6 -> OP_ORDER_BY
-  38, // 7 -> OP_TOP_N
-  5, // 8 -> OP_COPY_FROM_FILE
-  6, // 9 -> OP_COPY_TO_FILE
-  16, // 10 -> OP_DISTINCT
-  25, // 11 -> OP_INDEX_SCAN
-  24, // 12 -> OP_GET
-  3, // 13 -> OP_CHUNK_GET
-  14, // 14 -> OP_DELIM_GET
-  22, // 15 -> OP_EXPRESSION_GET
-  37, // 16 -> OP_TABLE_FUNCTION
-  36, // 17 -> OP_SUBQUERY
-  18, // 18 -> OP_EMPTY_RESULT
-  29, // 19 -> OP_JOIN
-  15, // 20 -> OP_DELIM_JOIN
-  4, // 21 -> OP_COMPARISON_JOIN
-  2, // 22 -> OP_ANY_JOIN
-  12, // 23 -> OP_CROSS_PRODUCT
-  40, // 24 -> OP_UNION
-  19, // 25 -> OP_EXCEPT
-  27, // 26 -> OP_INTERSECT
-  26, // 27 -> OP_INSERT
-  13, // 28 -> OP_DELETE
-  41, // 29 -> OP_UPDATE
-  1, // 30 -> OP_ALTER
-  10, // 31 -> OP_CREATE_TABLE
-  7, // 32 -> OP_CREATE_INDEX
-  9, // 33 -> OP_CREATE_SEQUENCE
-  11, // 34 -> OP_CREATE_VIEW
-  8, // 35 -> OP_CREATE_SCHEMA
-  17, // 36 -> OP_DROP
-  32, // 37 -> OP_PRAGMA
-  39, // 38 -> OP_TRANSACTION
-  21, // 39 -> OP_EXPLAIN
-  35, // 40 -> OP_PRUNE_COLUMNS
-  33, // 41 -> OP_PREPARE
-  20, // 42 -> OP_EXECUTE
+  44, // 4 -> OP_WINDOW
+  41, // 5 -> OP_UNNEST
+  31, // 6 -> OP_LIMIT
+  32, // 7 -> OP_ORDER_BY
+  38, // 8 -> OP_TOP_N
+  5, // 9 -> OP_COPY_FROM_FILE
+  6, // 10 -> OP_COPY_TO_FILE
+  17, // 11 -> OP_DISTINCT
+  26, // 12 -> OP_INDEX_SCAN
+  25, // 13 -> OP_GET
+  3, // 14 -> OP_CHUNK_GET
+  15, // 15 -> OP_DELIM_GET
+  23, // 16 -> OP_EXPRESSION_GET
+  37, // 17 -> OP_TABLE_FUNCTION
+  19, // 18 -> OP_EMPTY_RESULT
+  13, // 19 -> OP_CTE_REF
+  30, // 20 -> OP_JOIN
+  16, // 21 -> OP_DELIM_JOIN
+  4, // 22 -> OP_COMPARISON_JOIN
+  2, // 23 -> OP_ANY_JOIN
+  12, // 24 -> OP_CROSS_PRODUCT
+  40, // 25 -> OP_UNION
+  20, // 26 -> OP_EXCEPT
+  28, // 27 -> OP_INTERSECT
+  36, // 28 -> OP_RECURSIVE_CTE
+  27, // 29 -> OP_INSERT
+  14, // 30 -> OP_DELETE
+  42, // 31 -> OP_UPDATE
+  1, // 32 -> OP_ALTER
+  10, // 33 -> OP_CREATE_TABLE
+  7, // 34 -> OP_CREATE_INDEX
+  9, // 35 -> OP_CREATE_SEQUENCE
+  11, // 36 -> OP_CREATE_VIEW
+  8, // 37 -> OP_CREATE_SCHEMA
+  18, // 38 -> OP_DROP
+  33, // 39 -> OP_PRAGMA
+  39, // 40 -> OP_TRANSACTION
+  22, // 41 -> OP_EXPLAIN
+  34, // 42 -> OP_PREPARE
+  21, // 43 -> OP_EXECUTE
+  43, // 44 -> OP_VACUUM
 };
 
 const std::string& LogicalOperatorType_Name(
@@ -512,12 +457,12 @@ const std::string& LogicalOperatorType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           LogicalOperatorType_entries,
           LogicalOperatorType_entries_by_number,
-          43, LogicalOperatorType_strings);
+          45, LogicalOperatorType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       LogicalOperatorType_entries,
       LogicalOperatorType_entries_by_number,
-      43, value);
+      45, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      LogicalOperatorType_strings[idx].get();
 }
@@ -525,7 +470,7 @@ bool LogicalOperatorType_Parse(
     const std::string& name, LogicalOperatorType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      LogicalOperatorType_entries, 43, name, &int_value);
+      LogicalOperatorType_entries, 45, name, &int_value);
   if (success) {
     *value = static_cast<LogicalOperatorType>(int_value);
   }
@@ -556,6 +501,11 @@ SQLType::SQLType(const SQLType& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
+  collation_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_collation().empty()) {
+    collation_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_collation(),
+      GetArenaNoVirtual());
+  }
   ::memcpy(&type_id_, &from.type_id_,
     static_cast<size_t>(reinterpret_cast<char*>(&scale_) -
     reinterpret_cast<char*>(&type_id_)) + sizeof(scale_));
@@ -563,6 +513,8 @@ SQLType::SQLType(const SQLType& from)
 }
 
 void SQLType::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_SQLType_engine_2eproto.base);
+  collation_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   ::memset(&type_id_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&scale_) -
       reinterpret_cast<char*>(&type_id_)) + sizeof(scale_));
@@ -575,6 +527,7 @@ SQLType::~SQLType() {
 
 void SQLType::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
+  collation_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
 void SQLType::ArenaDtor(void* object) {
@@ -598,6 +551,7 @@ void SQLType::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  collation_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
   ::memset(&type_id_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&scale_) -
       reinterpret_cast<char*>(&type_id_)) + sizeof(scale_));
@@ -631,6 +585,13 @@ const char* SQLType::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::in
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
           scale_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // string collation = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParserUTF8(_internal_mutable_collation(), ptr, ctx, nullptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -679,6 +640,16 @@ failure:
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(3, this->_internal_scale(), target);
   }
 
+  // string collation = 4;
+  if (this->collation().size() > 0) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_collation().data(), static_cast<int>(this->_internal_collation().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "tigon.proto.engine.SQLType.collation");
+    target = stream->WriteStringMaybeAliased(
+        4, this->_internal_collation(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
         static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
@@ -694,6 +665,13 @@ size_t SQLType::ByteSizeLong() const {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
+
+  // string collation = 4;
+  if (this->collation().size() > 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_collation());
+  }
 
   // .tigon.proto.engine.SQLTypeID type_id = 1;
   if (this->type_id() != 0) {
@@ -736,6 +714,9 @@ void SQLType::MergeFrom(const SQLType& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
+  if (from.collation().size() > 0) {
+    _internal_set_collation(from._internal_collation());
+  }
   if (from.type_id() != 0) {
     _internal_set_type_id(from._internal_type_id());
   }
@@ -761,6 +742,8 @@ bool SQLType::IsInitialized() const {
 void SQLType::InternalSwap(SQLType* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
+  collation_.Swap(&other->collation_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+    GetArenaNoVirtual());
   swap(type_id_, other->type_id_);
   swap(width_, other->width_);
   swap(scale_, other->scale_);
@@ -1051,12 +1034,479 @@ std::string QueryPlan::GetTypeName() const {
 
 // ===================================================================
 
-void QueryResultColumn::InitAsDefaultInstance() {
+void QueryResultRow::InitAsDefaultInstance() {
 }
-class QueryResultColumn::_Internal {
+class QueryResultRow::_Internal {
  public:
 };
 
+QueryResultRow::QueryResultRow()
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:tigon.proto.engine.QueryResultRow)
+}
+QueryResultRow::QueryResultRow(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+  _internal_metadata_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:tigon.proto.engine.QueryResultRow)
+}
+QueryResultRow::QueryResultRow(const QueryResultRow& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _internal_metadata_(nullptr) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  clear_has_value();
+  switch (from.value_case()) {
+    case kBool: {
+      _internal_set_bool_(from._internal_bool_());
+      break;
+    }
+    case kI32: {
+      _internal_set_i32(from._internal_i32());
+      break;
+    }
+    case kU32: {
+      _internal_set_u32(from._internal_u32());
+      break;
+    }
+    case kI64: {
+      _internal_set_i64(from._internal_i64());
+      break;
+    }
+    case kU64: {
+      _internal_set_u64(from._internal_u64());
+      break;
+    }
+    case kF32: {
+      _internal_set_f32(from._internal_f32());
+      break;
+    }
+    case kF64: {
+      _internal_set_f64(from._internal_f64());
+      break;
+    }
+    case kStr: {
+      _internal_set_str(from._internal_str());
+      break;
+    }
+    case VALUE_NOT_SET: {
+      break;
+    }
+  }
+  // @@protoc_insertion_point(copy_constructor:tigon.proto.engine.QueryResultRow)
+}
+
+void QueryResultRow::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_QueryResultRow_engine_2eproto.base);
+  clear_has_value();
+}
+
+QueryResultRow::~QueryResultRow() {
+  // @@protoc_insertion_point(destructor:tigon.proto.engine.QueryResultRow)
+  SharedDtor();
+}
+
+void QueryResultRow::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
+  if (has_value()) {
+    clear_value();
+  }
+}
+
+void QueryResultRow::ArenaDtor(void* object) {
+  QueryResultRow* _this = reinterpret_cast< QueryResultRow* >(object);
+  (void)_this;
+}
+void QueryResultRow::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void QueryResultRow::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const QueryResultRow& QueryResultRow::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_QueryResultRow_engine_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void QueryResultRow::clear_value() {
+// @@protoc_insertion_point(one_of_clear_start:tigon.proto.engine.QueryResultRow)
+  switch (value_case()) {
+    case kBool: {
+      // No need to clear
+      break;
+    }
+    case kI32: {
+      // No need to clear
+      break;
+    }
+    case kU32: {
+      // No need to clear
+      break;
+    }
+    case kI64: {
+      // No need to clear
+      break;
+    }
+    case kU64: {
+      // No need to clear
+      break;
+    }
+    case kF32: {
+      // No need to clear
+      break;
+    }
+    case kF64: {
+      // No need to clear
+      break;
+    }
+    case kStr: {
+      value_.str_.Destroy(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+          GetArenaNoVirtual());
+      break;
+    }
+    case VALUE_NOT_SET: {
+      break;
+    }
+  }
+  _oneof_case_[0] = VALUE_NOT_SET;
+}
+
+
+void QueryResultRow::Clear() {
+// @@protoc_insertion_point(message_clear_start:tigon.proto.engine.QueryResultRow)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  clear_value();
+  _internal_metadata_.Clear();
+}
+
+const char* QueryResultRow::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // bool bool = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
+          _internal_set_bool_(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int32 i32 = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
+          _internal_set_i32(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint32 u32 = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
+          _internal_set_u32(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int64 i64 = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
+          _internal_set_i64(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint64 u64 = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 40)) {
+          _internal_set_u64(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // float f32 = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 53)) {
+          _internal_set_f32(::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr));
+          ptr += sizeof(float);
+        } else goto handle_unusual;
+        continue;
+      // double f64 = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 57)) {
+          _internal_set_f64(::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr));
+          ptr += sizeof(double);
+        } else goto handle_unusual;
+        continue;
+      // string str = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 66)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParserUTF8(_internal_mutable_str(), ptr, ctx, nullptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag, &_internal_metadata_, ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* QueryResultRow::InternalSerializeWithCachedSizesToArray(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.engine.QueryResultRow)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // bool bool = 1;
+  if (_internal_has_bool_()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(1, this->_internal_bool_(), target);
+  }
+
+  // int32 i32 = 2;
+  if (_internal_has_i32()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(2, this->_internal_i32(), target);
+  }
+
+  // uint32 u32 = 3;
+  if (_internal_has_u32()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(3, this->_internal_u32(), target);
+  }
+
+  // int64 i64 = 4;
+  if (_internal_has_i64()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(4, this->_internal_i64(), target);
+  }
+
+  // uint64 u64 = 5;
+  if (_internal_has_u64()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt64ToArray(5, this->_internal_u64(), target);
+  }
+
+  // float f32 = 6;
+  if (_internal_has_f32()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteFloatToArray(6, this->_internal_f32(), target);
+  }
+
+  // double f64 = 7;
+  if (_internal_has_f64()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteDoubleToArray(7, this->_internal_f64(), target);
+  }
+
+  // string str = 8;
+  if (_internal_has_str()) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_str().data(), static_cast<int>(this->_internal_str().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "tigon.proto.engine.QueryResultRow.str");
+    target = stream->WriteStringMaybeAliased(
+        8, this->_internal_str(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
+        static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.engine.QueryResultRow)
+  return target;
+}
+
+size_t QueryResultRow::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:tigon.proto.engine.QueryResultRow)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  switch (value_case()) {
+    // bool bool = 1;
+    case kBool: {
+      total_size += 1 + 1;
+      break;
+    }
+    // int32 i32 = 2;
+    case kI32: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+          this->_internal_i32());
+      break;
+    }
+    // uint32 u32 = 3;
+    case kU32: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
+          this->_internal_u32());
+      break;
+    }
+    // int64 i64 = 4;
+    case kI64: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64Size(
+          this->_internal_i64());
+      break;
+    }
+    // uint64 u64 = 5;
+    case kU64: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt64Size(
+          this->_internal_u64());
+      break;
+    }
+    // float f32 = 6;
+    case kF32: {
+      total_size += 1 + 4;
+      break;
+    }
+    // double f64 = 7;
+    case kF64: {
+      total_size += 1 + 8;
+      break;
+    }
+    // string str = 8;
+    case kStr: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_str());
+      break;
+    }
+    case VALUE_NOT_SET: {
+      break;
+    }
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields().size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void QueryResultRow::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const QueryResultRow*>(
+      &from));
+}
+
+void QueryResultRow::MergeFrom(const QueryResultRow& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.engine.QueryResultRow)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  switch (from.value_case()) {
+    case kBool: {
+      _internal_set_bool_(from._internal_bool_());
+      break;
+    }
+    case kI32: {
+      _internal_set_i32(from._internal_i32());
+      break;
+    }
+    case kU32: {
+      _internal_set_u32(from._internal_u32());
+      break;
+    }
+    case kI64: {
+      _internal_set_i64(from._internal_i64());
+      break;
+    }
+    case kU64: {
+      _internal_set_u64(from._internal_u64());
+      break;
+    }
+    case kF32: {
+      _internal_set_f32(from._internal_f32());
+      break;
+    }
+    case kF64: {
+      _internal_set_f64(from._internal_f64());
+      break;
+    }
+    case kStr: {
+      _internal_set_str(from._internal_str());
+      break;
+    }
+    case VALUE_NOT_SET: {
+      break;
+    }
+  }
+}
+
+void QueryResultRow::CopyFrom(const QueryResultRow& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.engine.QueryResultRow)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool QueryResultRow::IsInitialized() const {
+  return true;
+}
+
+void QueryResultRow::InternalSwap(QueryResultRow* other) {
+  using std::swap;
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  swap(value_, other->value_);
+  swap(_oneof_case_[0], other->_oneof_case_[0]);
+}
+
+std::string QueryResultRow::GetTypeName() const {
+  return "tigon.proto.engine.QueryResultRow";
+}
+
+
+// ===================================================================
+
+void QueryResultColumn::InitAsDefaultInstance() {
+  ::tigon::proto::engine::_QueryResultColumn_default_instance_._instance.get_mutable()->type_ = const_cast< ::tigon::proto::engine::SQLType*>(
+      ::tigon::proto::engine::SQLType::internal_default_instance());
+}
+class QueryResultColumn::_Internal {
+ public:
+  static const ::tigon::proto::engine::SQLType& type(const QueryResultColumn* msg);
+};
+
+const ::tigon::proto::engine::SQLType&
+QueryResultColumn::_Internal::type(const QueryResultColumn* msg) {
+  return *msg->type_;
+}
+void QueryResultColumn::unsafe_arena_set_allocated_type(
+    ::tigon::proto::engine::SQLType* type) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete type_;
+  }
+  type_ = type;
+  if (type) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.engine.QueryResultColumn.type)
+}
 QueryResultColumn::QueryResultColumn()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
   SharedCtor();
@@ -1065,14 +1515,7 @@ QueryResultColumn::QueryResultColumn()
 QueryResultColumn::QueryResultColumn(::PROTOBUF_NAMESPACE_ID::Arena* arena)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
   _internal_metadata_(arena),
-  null_mask_(arena),
-  rows_i32_(arena),
-  rows_u32_(arena),
-  rows_i64_(arena),
-  rows_u64_(arena),
-  rows_f32_(arena),
-  rows_f64_(arena),
-  rows_str_(arena) {
+  rows_(arena) {
   SharedCtor();
   RegisterArenaDtor(arena);
   // @@protoc_insertion_point(arena_constructor:tigon.proto.engine.QueryResultColumn)
@@ -1080,22 +1523,25 @@ QueryResultColumn::QueryResultColumn(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 QueryResultColumn::QueryResultColumn(const QueryResultColumn& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr),
-      null_mask_(from.null_mask_),
-      rows_i32_(from.rows_i32_),
-      rows_u32_(from.rows_u32_),
-      rows_i64_(from.rows_i64_),
-      rows_u64_(from.rows_u64_),
-      rows_f32_(from.rows_f32_),
-      rows_f64_(from.rows_f64_),
-      rows_str_(from.rows_str_) {
+      rows_(from.rows_) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
-  type_id_ = from.type_id_;
+  name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_name().empty()) {
+    name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_name(),
+      GetArenaNoVirtual());
+  }
+  if (from._internal_has_type()) {
+    type_ = new ::tigon::proto::engine::SQLType(*from.type_);
+  } else {
+    type_ = nullptr;
+  }
   // @@protoc_insertion_point(copy_constructor:tigon.proto.engine.QueryResultColumn)
 }
 
 void QueryResultColumn::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_QueryResultColumn_engine_2eproto.base);
-  type_id_ = 0;
+  name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  type_ = nullptr;
 }
 
 QueryResultColumn::~QueryResultColumn() {
@@ -1105,6 +1551,8 @@ QueryResultColumn::~QueryResultColumn() {
 
 void QueryResultColumn::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
+  name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (this != internal_default_instance()) delete type_;
 }
 
 void QueryResultColumn::ArenaDtor(void* object) {
@@ -1128,15 +1576,12 @@ void QueryResultColumn::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  null_mask_.Clear();
-  rows_i32_.Clear();
-  rows_u32_.Clear();
-  rows_i64_.Clear();
-  rows_u64_.Clear();
-  rows_f32_.Clear();
-  rows_f64_.Clear();
-  rows_str_.Clear();
-  type_id_ = 0;
+  rows_.Clear();
+  name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  if (GetArenaNoVirtual() == nullptr && type_ != nullptr) {
+    delete type_;
+  }
+  type_ = nullptr;
   _internal_metadata_.Clear();
 }
 
@@ -1148,94 +1593,30 @@ const char* QueryResultColumn::_InternalParse(const char* ptr, ::PROTOBUF_NAMESP
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // .tigon.proto.engine.RawTypeID type_id = 1;
+      // string name = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParserUTF8(_internal_mutable_name(), ptr, ctx, nullptr);
           CHK_(ptr);
-          _internal_set_type_id(static_cast<::tigon::proto::engine::RawTypeID>(val));
         } else goto handle_unusual;
         continue;
-      // repeated bool null_mask = 2;
+      // .tigon.proto.engine.SQLType type = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedBoolParser(_internal_mutable_null_mask(), ptr, ctx);
-          CHK_(ptr);
-        } else if (static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16) {
-          _internal_add_null_mask(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
+          ptr = ctx->ParseMessage(_internal_mutable_type(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // repeated int32 rows_i32 = 3;
+      // repeated .tigon.proto.engine.QueryResultRow rows = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedInt32Parser(_internal_mutable_rows_i32(), ptr, ctx);
-          CHK_(ptr);
-        } else if (static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24) {
-          _internal_add_rows_i32(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // repeated uint32 rows_u32 = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedUInt32Parser(_internal_mutable_rows_u32(), ptr, ctx);
-          CHK_(ptr);
-        } else if (static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32) {
-          _internal_add_rows_u32(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // repeated int64 rows_i64 = 5;
-      case 5:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 42)) {
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedInt64Parser(_internal_mutable_rows_i64(), ptr, ctx);
-          CHK_(ptr);
-        } else if (static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 40) {
-          _internal_add_rows_i64(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // repeated uint64 rows_u64 = 6;
-      case 6:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 50)) {
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedUInt64Parser(_internal_mutable_rows_u64(), ptr, ctx);
-          CHK_(ptr);
-        } else if (static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 48) {
-          _internal_add_rows_u64(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // repeated float rows_f32 = 7;
-      case 7:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 58)) {
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedFloatParser(_internal_mutable_rows_f32(), ptr, ctx);
-          CHK_(ptr);
-        } else if (static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 61) {
-          _internal_add_rows_f32(::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr));
-          ptr += sizeof(float);
-        } else goto handle_unusual;
-        continue;
-      // repeated double rows_f64 = 8;
-      case 8:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 66)) {
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedDoubleParser(_internal_mutable_rows_f64(), ptr, ctx);
-          CHK_(ptr);
-        } else if (static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 65) {
-          _internal_add_rows_f64(::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr));
-          ptr += sizeof(double);
-        } else goto handle_unusual;
-        continue;
-      // repeated string rows_str = 9;
-      case 9:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 74)) {
           ptr -= 1;
           do {
             ptr += 1;
-            ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParserUTF8(_internal_add_rows_str(), ptr, ctx, nullptr);
+            ptr = ctx->ParseMessage(_internal_add_rows(), ptr);
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<74>(ptr));
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
         } else goto handle_unusual;
         continue;
       default: {
@@ -1264,72 +1645,30 @@ failure:
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .tigon.proto.engine.RawTypeID type_id = 1;
-  if (this->type_id() != 0) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
-      1, this->_internal_type_id(), target);
-  }
-
-  // repeated bool null_mask = 2;
-  if (this->_internal_null_mask_size() > 0) {
-    target = stream->WriteFixedPacked(2, _internal_null_mask(), target);
-  }
-
-  // repeated int32 rows_i32 = 3;
-  {
-    int byte_size = _rows_i32_cached_byte_size_.load(std::memory_order_relaxed);
-    if (byte_size > 0) {
-      target = stream->WriteInt32Packed(
-          3, _internal_rows_i32(), byte_size, target);
-    }
-  }
-
-  // repeated uint32 rows_u32 = 4;
-  {
-    int byte_size = _rows_u32_cached_byte_size_.load(std::memory_order_relaxed);
-    if (byte_size > 0) {
-      target = stream->WriteUInt32Packed(
-          4, _internal_rows_u32(), byte_size, target);
-    }
-  }
-
-  // repeated int64 rows_i64 = 5;
-  {
-    int byte_size = _rows_i64_cached_byte_size_.load(std::memory_order_relaxed);
-    if (byte_size > 0) {
-      target = stream->WriteInt64Packed(
-          5, _internal_rows_i64(), byte_size, target);
-    }
-  }
-
-  // repeated uint64 rows_u64 = 6;
-  {
-    int byte_size = _rows_u64_cached_byte_size_.load(std::memory_order_relaxed);
-    if (byte_size > 0) {
-      target = stream->WriteUInt64Packed(
-          6, _internal_rows_u64(), byte_size, target);
-    }
-  }
-
-  // repeated float rows_f32 = 7;
-  if (this->_internal_rows_f32_size() > 0) {
-    target = stream->WriteFixedPacked(7, _internal_rows_f32(), target);
-  }
-
-  // repeated double rows_f64 = 8;
-  if (this->_internal_rows_f64_size() > 0) {
-    target = stream->WriteFixedPacked(8, _internal_rows_f64(), target);
-  }
-
-  // repeated string rows_str = 9;
-  for (int i = 0, n = this->_internal_rows_str_size(); i < n; i++) {
-    const auto& s = this->_internal_rows_str(i);
+  // string name = 1;
+  if (this->name().size() > 0) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      s.data(), static_cast<int>(s.length()),
+      this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "tigon.proto.engine.QueryResultColumn.rows_str");
-    target = stream->WriteString(9, s, target);
+      "tigon.proto.engine.QueryResultColumn.name");
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_name(), target);
+  }
+
+  // .tigon.proto.engine.SQLType type = 2;
+  if (this->has_type()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        2, _Internal::type(this), target, stream);
+  }
+
+  // repeated .tigon.proto.engine.QueryResultRow rows = 3;
+  for (unsigned int i = 0,
+      n = static_cast<unsigned int>(this->_internal_rows_size()); i < n; i++) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(3, this->_internal_rows(i), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -1348,123 +1687,25 @@ size_t QueryResultColumn::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated bool null_mask = 2;
-  {
-    unsigned int count = static_cast<unsigned int>(this->_internal_null_mask_size());
-    size_t data_size = 1UL * count;
-    if (data_size > 0) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-            static_cast<::PROTOBUF_NAMESPACE_ID::int32>(data_size));
-    }
-    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
-    _null_mask_cached_byte_size_.store(cached_size,
-                                    std::memory_order_relaxed);
-    total_size += data_size;
+  // repeated .tigon.proto.engine.QueryResultRow rows = 3;
+  total_size += 1UL * this->_internal_rows_size();
+  for (const auto& msg : this->rows_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // repeated int32 rows_i32 = 3;
-  {
-    size_t data_size = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      Int32Size(this->rows_i32_);
-    if (data_size > 0) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-            static_cast<::PROTOBUF_NAMESPACE_ID::int32>(data_size));
-    }
-    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
-    _rows_i32_cached_byte_size_.store(cached_size,
-                                    std::memory_order_relaxed);
-    total_size += data_size;
-  }
-
-  // repeated uint32 rows_u32 = 4;
-  {
-    size_t data_size = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      UInt32Size(this->rows_u32_);
-    if (data_size > 0) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-            static_cast<::PROTOBUF_NAMESPACE_ID::int32>(data_size));
-    }
-    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
-    _rows_u32_cached_byte_size_.store(cached_size,
-                                    std::memory_order_relaxed);
-    total_size += data_size;
-  }
-
-  // repeated int64 rows_i64 = 5;
-  {
-    size_t data_size = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      Int64Size(this->rows_i64_);
-    if (data_size > 0) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-            static_cast<::PROTOBUF_NAMESPACE_ID::int32>(data_size));
-    }
-    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
-    _rows_i64_cached_byte_size_.store(cached_size,
-                                    std::memory_order_relaxed);
-    total_size += data_size;
-  }
-
-  // repeated uint64 rows_u64 = 6;
-  {
-    size_t data_size = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      UInt64Size(this->rows_u64_);
-    if (data_size > 0) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-            static_cast<::PROTOBUF_NAMESPACE_ID::int32>(data_size));
-    }
-    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
-    _rows_u64_cached_byte_size_.store(cached_size,
-                                    std::memory_order_relaxed);
-    total_size += data_size;
-  }
-
-  // repeated float rows_f32 = 7;
-  {
-    unsigned int count = static_cast<unsigned int>(this->_internal_rows_f32_size());
-    size_t data_size = 4UL * count;
-    if (data_size > 0) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-            static_cast<::PROTOBUF_NAMESPACE_ID::int32>(data_size));
-    }
-    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
-    _rows_f32_cached_byte_size_.store(cached_size,
-                                    std::memory_order_relaxed);
-    total_size += data_size;
-  }
-
-  // repeated double rows_f64 = 8;
-  {
-    unsigned int count = static_cast<unsigned int>(this->_internal_rows_f64_size());
-    size_t data_size = 8UL * count;
-    if (data_size > 0) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-            static_cast<::PROTOBUF_NAMESPACE_ID::int32>(data_size));
-    }
-    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
-    _rows_f64_cached_byte_size_.store(cached_size,
-                                    std::memory_order_relaxed);
-    total_size += data_size;
-  }
-
-  // repeated string rows_str = 9;
-  total_size += 1 *
-      ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(rows_str_.size());
-  for (int i = 0, n = rows_str_.size(); i < n; i++) {
-    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-      rows_str_.Get(i));
-  }
-
-  // .tigon.proto.engine.RawTypeID type_id = 1;
-  if (this->type_id() != 0) {
+  // string name = 1;
+  if (this->name().size() > 0) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_type_id());
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_name());
+  }
+
+  // .tigon.proto.engine.SQLType type = 2;
+  if (this->has_type()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *type_);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -1488,16 +1729,12 @@ void QueryResultColumn::MergeFrom(const QueryResultColumn& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  null_mask_.MergeFrom(from.null_mask_);
-  rows_i32_.MergeFrom(from.rows_i32_);
-  rows_u32_.MergeFrom(from.rows_u32_);
-  rows_i64_.MergeFrom(from.rows_i64_);
-  rows_u64_.MergeFrom(from.rows_u64_);
-  rows_f32_.MergeFrom(from.rows_f32_);
-  rows_f64_.MergeFrom(from.rows_f64_);
-  rows_str_.MergeFrom(from.rows_str_);
-  if (from.type_id() != 0) {
-    _internal_set_type_id(from._internal_type_id());
+  rows_.MergeFrom(from.rows_);
+  if (from.name().size() > 0) {
+    _internal_set_name(from._internal_name());
+  }
+  if (from.has_type()) {
+    _internal_mutable_type()->::tigon::proto::engine::SQLType::MergeFrom(from._internal_type());
   }
 }
 
@@ -1515,266 +1752,14 @@ bool QueryResultColumn::IsInitialized() const {
 void QueryResultColumn::InternalSwap(QueryResultColumn* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
-  null_mask_.InternalSwap(&other->null_mask_);
-  rows_i32_.InternalSwap(&other->rows_i32_);
-  rows_u32_.InternalSwap(&other->rows_u32_);
-  rows_i64_.InternalSwap(&other->rows_i64_);
-  rows_u64_.InternalSwap(&other->rows_u64_);
-  rows_f32_.InternalSwap(&other->rows_f32_);
-  rows_f64_.InternalSwap(&other->rows_f64_);
-  rows_str_.InternalSwap(&other->rows_str_);
-  swap(type_id_, other->type_id_);
+  rows_.InternalSwap(&other->rows_);
+  name_.Swap(&other->name_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+    GetArenaNoVirtual());
+  swap(type_, other->type_);
 }
 
 std::string QueryResultColumn::GetTypeName() const {
   return "tigon.proto.engine.QueryResultColumn";
-}
-
-
-// ===================================================================
-
-void QueryResultChunk::InitAsDefaultInstance() {
-}
-class QueryResultChunk::_Internal {
- public:
-};
-
-QueryResultChunk::QueryResultChunk()
-  : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:tigon.proto.engine.QueryResultChunk)
-}
-QueryResultChunk::QueryResultChunk(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
-  _internal_metadata_(arena),
-  columns_(arena) {
-  SharedCtor();
-  RegisterArenaDtor(arena);
-  // @@protoc_insertion_point(arena_constructor:tigon.proto.engine.QueryResultChunk)
-}
-QueryResultChunk::QueryResultChunk(const QueryResultChunk& from)
-  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
-      _internal_metadata_(nullptr),
-      columns_(from.columns_) {
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::memcpy(&row_offset_, &from.row_offset_,
-    static_cast<size_t>(reinterpret_cast<char*>(&row_count_) -
-    reinterpret_cast<char*>(&row_offset_)) + sizeof(row_count_));
-  // @@protoc_insertion_point(copy_constructor:tigon.proto.engine.QueryResultChunk)
-}
-
-void QueryResultChunk::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_QueryResultChunk_engine_2eproto.base);
-  ::memset(&row_offset_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&row_count_) -
-      reinterpret_cast<char*>(&row_offset_)) + sizeof(row_count_));
-}
-
-QueryResultChunk::~QueryResultChunk() {
-  // @@protoc_insertion_point(destructor:tigon.proto.engine.QueryResultChunk)
-  SharedDtor();
-}
-
-void QueryResultChunk::SharedDtor() {
-  GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
-}
-
-void QueryResultChunk::ArenaDtor(void* object) {
-  QueryResultChunk* _this = reinterpret_cast< QueryResultChunk* >(object);
-  (void)_this;
-}
-void QueryResultChunk::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
-}
-void QueryResultChunk::SetCachedSize(int size) const {
-  _cached_size_.Set(size);
-}
-const QueryResultChunk& QueryResultChunk::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_QueryResultChunk_engine_2eproto.base);
-  return *internal_default_instance();
-}
-
-
-void QueryResultChunk::Clear() {
-// @@protoc_insertion_point(message_clear_start:tigon.proto.engine.QueryResultChunk)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  columns_.Clear();
-  ::memset(&row_offset_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&row_count_) -
-      reinterpret_cast<char*>(&row_offset_)) + sizeof(row_count_));
-  _internal_metadata_.Clear();
-}
-
-const char* QueryResultChunk::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
-#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArenaNoVirtual(); (void)arena;
-  while (!ctx->Done(&ptr)) {
-    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
-    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
-    switch (tag >> 3) {
-      // uint32 row_offset = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          row_offset_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // uint32 row_count = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
-          row_count_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // repeated .tigon.proto.engine.QueryResultColumn columns = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
-          ptr -= 1;
-          do {
-            ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_columns(), ptr);
-            CHK_(ptr);
-            if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
-        } else goto handle_unusual;
-        continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag, &_internal_metadata_, ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
-    }  // switch
-  }  // while
-success:
-  return ptr;
-failure:
-  ptr = nullptr;
-  goto success;
-#undef CHK_
-}
-
-::PROTOBUF_NAMESPACE_ID::uint8* QueryResultChunk::InternalSerializeWithCachedSizesToArray(
-    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:tigon.proto.engine.QueryResultChunk)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  // uint32 row_offset = 1;
-  if (this->row_offset() != 0) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(1, this->_internal_row_offset(), target);
-  }
-
-  // uint32 row_count = 2;
-  if (this->row_count() != 0) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(2, this->_internal_row_count(), target);
-  }
-
-  // repeated .tigon.proto.engine.QueryResultColumn columns = 3;
-  for (unsigned int i = 0,
-      n = static_cast<unsigned int>(this->_internal_columns_size()); i < n; i++) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessageToArray(3, this->_internal_columns(i), target, stream);
-  }
-
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = stream->WriteRaw(_internal_metadata_.unknown_fields().data(),
-        static_cast<int>(_internal_metadata_.unknown_fields().size()), target);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:tigon.proto.engine.QueryResultChunk)
-  return target;
-}
-
-size_t QueryResultChunk::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:tigon.proto.engine.QueryResultChunk)
-  size_t total_size = 0;
-
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  // repeated .tigon.proto.engine.QueryResultColumn columns = 3;
-  total_size += 1UL * this->_internal_columns_size();
-  for (const auto& msg : this->columns_) {
-    total_size +=
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
-  }
-
-  // uint32 row_offset = 1;
-  if (this->row_offset() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_row_offset());
-  }
-
-  // uint32 row_count = 2;
-  if (this->row_count() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt32Size(
-        this->_internal_row_count());
-  }
-
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    total_size += _internal_metadata_.unknown_fields().size();
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
-}
-
-void QueryResultChunk::CheckTypeAndMergeFrom(
-    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
-  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const QueryResultChunk*>(
-      &from));
-}
-
-void QueryResultChunk::MergeFrom(const QueryResultChunk& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:tigon.proto.engine.QueryResultChunk)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  columns_.MergeFrom(from.columns_);
-  if (from.row_offset() != 0) {
-    _internal_set_row_offset(from._internal_row_offset());
-  }
-  if (from.row_count() != 0) {
-    _internal_set_row_count(from._internal_row_count());
-  }
-}
-
-void QueryResultChunk::CopyFrom(const QueryResultChunk& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:tigon.proto.engine.QueryResultChunk)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool QueryResultChunk::IsInitialized() const {
-  return true;
-}
-
-void QueryResultChunk::InternalSwap(QueryResultChunk* other) {
-  using std::swap;
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  columns_.InternalSwap(&other->columns_);
-  swap(row_offset_, other->row_offset_);
-  swap(row_count_, other->row_count_);
-}
-
-std::string QueryResultChunk::GetTypeName() const {
-  return "tigon.proto.engine.QueryResultChunk";
 }
 
 
@@ -1814,10 +1799,7 @@ QueryResult::QueryResult()
 QueryResult::QueryResult(::PROTOBUF_NAMESPACE_ID::Arena* arena)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
   _internal_metadata_(arena),
-  column_names_(arena),
-  column_raw_types_(arena),
-  column_sql_types_(arena),
-  data_chunks_(arena) {
+  columns_(arena) {
   SharedCtor();
   RegisterArenaDtor(arena);
   // @@protoc_insertion_point(arena_constructor:tigon.proto.engine.QueryResult)
@@ -1825,10 +1807,7 @@ QueryResult::QueryResult(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 QueryResult::QueryResult(const QueryResult& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _internal_metadata_(nullptr),
-      column_names_(from.column_names_),
-      column_raw_types_(from.column_raw_types_),
-      column_sql_types_(from.column_sql_types_),
-      data_chunks_(from.data_chunks_) {
+      columns_(from.columns_) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   if (from._internal_has_query_plan()) {
     query_plan_ = new ::tigon::proto::engine::QueryPlan(*from.query_plan_);
@@ -1879,10 +1858,7 @@ void QueryResult::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  column_names_.Clear();
-  column_raw_types_.Clear();
-  column_sql_types_.Clear();
-  data_chunks_.Clear();
+  columns_.Clear();
   if (GetArenaNoVirtual() == nullptr && query_plan_ != nullptr) {
     delete query_plan_;
   }
@@ -1929,51 +1905,16 @@ const char* QueryResult::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // repeated string column_names = 5;
+      // repeated .tigon.proto.engine.QueryResultColumn columns = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 42)) {
           ptr -= 1;
           do {
             ptr += 1;
-            ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParserUTF8(_internal_add_column_names(), ptr, ctx, nullptr);
+            ptr = ctx->ParseMessage(_internal_add_columns(), ptr);
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<42>(ptr));
-        } else goto handle_unusual;
-        continue;
-      // repeated .tigon.proto.engine.RawTypeID column_raw_types = 6;
-      case 6:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 50)) {
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedEnumParser(_internal_mutable_column_raw_types(), ptr, ctx);
-          CHK_(ptr);
-        } else if (static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 48) {
-          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
-          CHK_(ptr);
-          _internal_add_column_raw_types(static_cast<::tigon::proto::engine::RawTypeID>(val));
-        } else goto handle_unusual;
-        continue;
-      // repeated .tigon.proto.engine.SQLType column_sql_types = 7;
-      case 7:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 58)) {
-          ptr -= 1;
-          do {
-            ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_column_sql_types(), ptr);
-            CHK_(ptr);
-            if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<58>(ptr));
-        } else goto handle_unusual;
-        continue;
-      // repeated .tigon.proto.engine.QueryResultChunk data_chunks = 8;
-      case 8:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 66)) {
-          ptr -= 1;
-          do {
-            ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_data_chunks(), ptr);
-            CHK_(ptr);
-            if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<66>(ptr));
         } else goto handle_unusual;
         continue;
       default: {
@@ -2028,39 +1969,12 @@ failure:
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt32ToArray(4, this->_internal_row_count(), target);
   }
 
-  // repeated string column_names = 5;
-  for (int i = 0, n = this->_internal_column_names_size(); i < n; i++) {
-    const auto& s = this->_internal_column_names(i);
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      s.data(), static_cast<int>(s.length()),
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "tigon.proto.engine.QueryResult.column_names");
-    target = stream->WriteString(5, s, target);
-  }
-
-  // repeated .tigon.proto.engine.RawTypeID column_raw_types = 6;
-  {
-    int byte_size = _column_raw_types_cached_byte_size_.load(std::memory_order_relaxed);
-    if (byte_size > 0) {
-      target = stream->WriteEnumPacked(
-          6, column_raw_types_, byte_size, target);
-    }
-  }
-
-  // repeated .tigon.proto.engine.SQLType column_sql_types = 7;
+  // repeated .tigon.proto.engine.QueryResultColumn columns = 5;
   for (unsigned int i = 0,
-      n = static_cast<unsigned int>(this->_internal_column_sql_types_size()); i < n; i++) {
+      n = static_cast<unsigned int>(this->_internal_columns_size()); i < n; i++) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessageToArray(7, this->_internal_column_sql_types(i), target, stream);
-  }
-
-  // repeated .tigon.proto.engine.QueryResultChunk data_chunks = 8;
-  for (unsigned int i = 0,
-      n = static_cast<unsigned int>(this->_internal_data_chunks_size()); i < n; i++) {
-    stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessageToArray(8, this->_internal_data_chunks(i), target, stream);
+      InternalWriteMessageToArray(5, this->_internal_columns(i), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -2079,42 +1993,9 @@ size_t QueryResult::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated string column_names = 5;
-  total_size += 1 *
-      ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(column_names_.size());
-  for (int i = 0, n = column_names_.size(); i < n; i++) {
-    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-      column_names_.Get(i));
-  }
-
-  // repeated .tigon.proto.engine.RawTypeID column_raw_types = 6;
-  {
-    size_t data_size = 0;
-    unsigned int count = static_cast<unsigned int>(this->_internal_column_raw_types_size());for (unsigned int i = 0; i < count; i++) {
-      data_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(
-        this->_internal_column_raw_types(static_cast<int>(i)));
-    }
-    if (data_size > 0) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-            static_cast<::PROTOBUF_NAMESPACE_ID::int32>(data_size));
-    }
-    int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(data_size);
-    _column_raw_types_cached_byte_size_.store(cached_size,
-                                    std::memory_order_relaxed);
-    total_size += data_size;
-  }
-
-  // repeated .tigon.proto.engine.SQLType column_sql_types = 7;
-  total_size += 1UL * this->_internal_column_sql_types_size();
-  for (const auto& msg : this->column_sql_types_) {
-    total_size +=
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
-  }
-
-  // repeated .tigon.proto.engine.QueryResultChunk data_chunks = 8;
-  total_size += 1UL * this->_internal_data_chunks_size();
-  for (const auto& msg : this->data_chunks_) {
+  // repeated .tigon.proto.engine.QueryResultColumn columns = 5;
+  total_size += 1UL * this->_internal_columns_size();
+  for (const auto& msg : this->columns_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
@@ -2168,10 +2049,7 @@ void QueryResult::MergeFrom(const QueryResult& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  column_names_.MergeFrom(from.column_names_);
-  column_raw_types_.MergeFrom(from.column_raw_types_);
-  column_sql_types_.MergeFrom(from.column_sql_types_);
-  data_chunks_.MergeFrom(from.data_chunks_);
+  columns_.MergeFrom(from.columns_);
   if (from.has_query_plan()) {
     _internal_mutable_query_plan()->::tigon::proto::engine::QueryPlan::MergeFrom(from._internal_query_plan());
   }
@@ -2200,10 +2078,7 @@ bool QueryResult::IsInitialized() const {
 void QueryResult::InternalSwap(QueryResult* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
-  column_names_.InternalSwap(&other->column_names_);
-  column_raw_types_.InternalSwap(&other->column_raw_types_);
-  column_sql_types_.InternalSwap(&other->column_sql_types_);
-  data_chunks_.InternalSwap(&other->data_chunks_);
+  columns_.InternalSwap(&other->columns_);
   swap(query_plan_, other->query_plan_);
   swap(query_id_, other->query_id_);
   swap(column_count_, other->column_count_);
@@ -2226,11 +2101,11 @@ template<> PROTOBUF_NOINLINE ::tigon::proto::engine::SQLType* Arena::CreateMaybe
 template<> PROTOBUF_NOINLINE ::tigon::proto::engine::QueryPlan* Arena::CreateMaybeMessage< ::tigon::proto::engine::QueryPlan >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::engine::QueryPlan >(arena);
 }
+template<> PROTOBUF_NOINLINE ::tigon::proto::engine::QueryResultRow* Arena::CreateMaybeMessage< ::tigon::proto::engine::QueryResultRow >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::tigon::proto::engine::QueryResultRow >(arena);
+}
 template<> PROTOBUF_NOINLINE ::tigon::proto::engine::QueryResultColumn* Arena::CreateMaybeMessage< ::tigon::proto::engine::QueryResultColumn >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::engine::QueryResultColumn >(arena);
-}
-template<> PROTOBUF_NOINLINE ::tigon::proto::engine::QueryResultChunk* Arena::CreateMaybeMessage< ::tigon::proto::engine::QueryResultChunk >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::tigon::proto::engine::QueryResultChunk >(arena);
 }
 template<> PROTOBUF_NOINLINE ::tigon::proto::engine::QueryResult* Arena::CreateMaybeMessage< ::tigon::proto::engine::QueryResult >(Arena* arena) {
   return Arena::CreateMessageInternal< ::tigon::proto::engine::QueryResult >(arena);

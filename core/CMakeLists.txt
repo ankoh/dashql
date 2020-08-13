@@ -28,11 +28,16 @@ ProcessorCount(NPROCS)
 set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
 
 # ---------------------------------------------------------------------------
+# Threading
+
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
+# ---------------------------------------------------------------------------
 # Bison
 
 find_package(BISON 3.3)
 find_package(FLEX REQUIRED)
-find_package(Threads REQUIRED)
 
 # In the case where we cannot find a system-wide installation, look for
 # homebrew and ask for its bison installation.
@@ -81,6 +86,7 @@ include_directories(
 # Libraries
 
 add_library(tigon
+    ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
     ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
     ${CMAKE_SOURCE_DIR}/src/extract/json_extract.cc
     ${CMAKE_SOURCE_DIR}/src/parser/sql/sql_parser.cc
@@ -102,6 +108,14 @@ target_link_libraries(tigon
     Threads::Threads
 )
 
+if(EMSCRIPTEN)
+    set_target_properties(tigon PROPERTIES
+        COMPILE_FLAGS "\
+            -s DISABLE_EXCEPTION_CATCHING=0 \
+        "
+    )
+endif()
+
 # ---------------------------------------------------------------------------
 # Web API
 
@@ -112,31 +126,37 @@ add_executable(tigon_core
 target_link_libraries(tigon_core tigon)
 
 if(EMSCRIPTEN)
-    # SAFE_HEAP breaks duckdb 0.1
-    # SAFE_HEAP and ASSERTIONS break duckdb 0.1.1
+    # SAFE_HEAP breaks duckdb 0.2
     # -s SAFE_HEAP=1
-    # -s ASSERTIONS=1
-    set_target_properties(tigon_core PROPERTIES LINK_FLAGS " \
-        -s USE_PTHREADS=0 \
-        -s ALLOW_MEMORY_GROWTH=1 \
-        -s ASSERTIONS=1 \
-        -s MODULARIZE=1 \
-        -s EXPORTED_FUNCTIONS='[ \
-            _main, \
-            _malloc, \
-            _free, \
-            _tigon_create_session, \
-            _tigon_end_session, \
-            _tigon_register_buffer, \
-            _tigon_release_buffer, \
-            _tigon_parse_tql, \
-            _tigon_run_query, \
-            _tigon_plan_query, \
-            _tigon_extract_data, \
-            _tigon_compute_grid_layout \
-        ]' \
-        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
-    ")
+    set_target_properties(tigon_core PROPERTIES
+        COMPILE_FLAGS "\
+            -s DISABLE_EXCEPTION_CATCHING=0 \
+        "
+        LINK_FLAGS "\
+            -s ENVIRONMENT='web,worker' \
+            -s USE_PTHREADS=1 \
+            -Wl,--shared-memory,--no-check-features \
+            -s DISABLE_EXCEPTION_CATCHING=0 \
+            -s ASSERTIONS=1 \
+            -s MODULARIZE=1 \
+            -s EXPORTED_FUNCTIONS='[ \
+                _main, \
+                _malloc, \
+                _free, \
+                _tigon_create_session, \
+                _tigon_create_session, \
+                _tigon_end_session, \
+                _tigon_register_buffer, \
+                _tigon_release_buffer, \
+                _tigon_parse_tql, \
+                _tigon_run_query, \
+                _tigon_plan_query, \
+                _tigon_extract_data, \
+                _tigon_compute_grid_layout \
+            ]' \
+            -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"FS\", \"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
+        "
+    )
 endif()
 
 # ---------------------------------------------------------------------------
@@ -151,4 +171,3 @@ target_link_libraries(tester tigon gtest gmock Threads::Threads)
 
 enable_testing()
 add_test(tigon tester)
-

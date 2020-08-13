@@ -17,6 +17,7 @@ namespace tigon {
     X(FILTER)                                                                                                                                                                                          \
     X(AGGREGATE_AND_GROUP_BY)                                                                                                                                                                          \
     X(WINDOW)                                                                                                                                                                                          \
+    X(UNNEST)                                                                                                                                                                                          \
     X(LIMIT)                                                                                                                                                                                           \
     X(ORDER_BY)                                                                                                                                                                                        \
     X(TOP_N)                                                                                                                                                                                           \
@@ -30,8 +31,8 @@ namespace tigon {
     X(DELIM_GET)                                                                                                                                                                                       \
     X(EXPRESSION_GET)                                                                                                                                                                                  \
     X(TABLE_FUNCTION)                                                                                                                                                                                  \
-    X(SUBQUERY)                                                                                                                                                                                        \
     X(EMPTY_RESULT)                                                                                                                                                                                    \
+    X(CTE_REF)                                                                                                                                                                                         \
                                                                                                                                                                                                        \
     X(JOIN)                                                                                                                                                                                            \
     X(DELIM_JOIN)                                                                                                                                                                                      \
@@ -42,6 +43,7 @@ namespace tigon {
     X(UNION)                                                                                                                                                                                           \
     X(EXCEPT)                                                                                                                                                                                          \
     X(INTERSECT)                                                                                                                                                                                       \
+    X(RECURSIVE_CTE)                                                                                                                                                                                   \
                                                                                                                                                                                                        \
     X(INSERT)                                                                                                                                                                                          \
     X(DELETE)                                                                                                                                                                                          \
@@ -59,9 +61,9 @@ namespace tigon {
                                                                                                                                                                                                        \
     X(EXPLAIN)                                                                                                                                                                                         \
                                                                                                                                                                                                        \
-    X(PRUNE_COLUMNS)                                                                                                                                                                                   \
     X(PREPARE)                                                                                                                                                                                         \
-    X(EXECUTE)
+    X(EXECUTE)                                                                                                                                                                                         \
+    X(VACUUM)
 
     static proto::engine::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
         using D = duckdb::LogicalOperatorType;
@@ -146,161 +148,193 @@ namespace tigon {
         return plan;
     }
 
-    /// Write a fixed-length res column
-    template<typename DUCKDB_TYPE, typename PROTO_TYPE> static void encodeNumericColumn(protobuf::Arena& arena, proto::engine::QueryResultColumn* column, duckdb::Vector& vec) {
-        // Create column
-        column->set_type_id(static_cast<proto::engine::RawTypeID>(vec.type));
-
-        // Create nullmask buffer
-        auto* nullmask = column->mutable_null_mask();
-        nullmask->Reserve(vec.count);
-
-        // Create data buffer
-        protobuf::RepeatedField<PROTO_TYPE>* data;
-        if constexpr (std::is_same_v<PROTO_TYPE, int32_t>) {
-            data = column->mutable_rows_i32();
-        } else if constexpr (std::is_same_v<PROTO_TYPE, uint32_t>) {
-            data = column->mutable_rows_u32();
-        } else if constexpr (std::is_same_v<PROTO_TYPE, int64_t>) {
-            data = column->mutable_rows_i64();
-        } else if constexpr (std::is_same_v<PROTO_TYPE, uint64_t>) {
-            data = column->mutable_rows_u64();
-        } else if constexpr (std::is_same_v<PROTO_TYPE, float>) {
-            data = column->mutable_rows_f32();
-        } else if constexpr (std::is_same_v<PROTO_TYPE, double>) {
-            data = column->mutable_rows_f64();
-        } else {
-            return;
-        }
-        data->Reserve(vec.count);
-
-        // Run the vector operations
-        duckdb::VectorOperations::Exec(
-            vec.sel_vector, 0,
-            [&](duckdb::index_t i, duckdb::index_t k) {
-                nullmask->Add(vec.nullmask[i]);
-                data->Add(reinterpret_cast<DUCKDB_TYPE*>(vec.data)[i]);
-            },
-            0);
-    }
-
-    /// Write a fixed-length res column
-    static void encodeStringColumn(protobuf::Arena& arena, proto::engine::QueryResultColumn* column, duckdb::Vector& vec) {
-        column->set_type_id(static_cast<proto::engine::RawTypeID>(vec.type));
-
-        // Create nullmask buffer
-        auto* nullmask = column->mutable_null_mask();
-        nullmask->Reserve(vec.count);
-
-        // Create data buffer
-        auto data = column->mutable_rows_str();
-        data->Reserve(vec.count);
-
-        // Run the vector operations
-        duckdb::VectorOperations::Exec(
-            vec.sel_vector, 0,
-            [&](duckdb::index_t i, duckdb::index_t k) {
-                nullmask->Add(vec.nullmask[i]);
-                auto s = reinterpret_cast<char**>(vec.data)[i];
-                data->Add()->assign(s);
-            },
-            0);
-    }
-
     /// Write the query result
     proto::engine::QueryResult* encodeQueryResult(protobuf::Arena& arena, duckdb::QueryResult& queryResult, uint64_t queryID) {
-        auto* res = protobuf::Arena::CreateMessage<proto::engine::QueryResult>(&arena);
-        auto* chunks = res->mutable_data_chunks();
-        uint32_t rowCount = 0;
-        uint32_t colCount = 0;
-        res->set_query_id(queryID);
+        auto& result = *protobuf::Arena::CreateMessage<proto::engine::QueryResult>(&arena);
+        auto& columns = *result.mutable_columns();
+        size_t columnCount = queryResult.names.size();
+        size_t rowCount = 0;
 
-        // Fetch res rows and immediately write them into a flatbuffer
-        for (auto c = queryResult.Fetch(); !!c && c->size() > 0; c = queryResult.Fetch()) {
+        result.set_query_id(queryID);
+
+        for (size_t columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+            auto& column = *columns.Add();
+
+            auto name = queryResult.names[columnIndex];
+            column.set_allocated_name(&name);
+
+            auto sqlType = queryResult.sql_types[columnIndex];
+            auto& type = *column.mutable_type();
+
+            type.set_type_id(static_cast<tigon::proto::engine::SQLTypeID>(sqlType.id));
+            type.set_width(sqlType.width);
+            type.set_scale(sqlType.scale);
+            type.set_allocated_collation(&sqlType.collation);
+        }
+
+        while (true) {
+            auto chunk = queryResult.Fetch();
+
+            if (!chunk) {
+                // TODO: Handle failure
+                break;
+            }
+
+            auto chunkSize = chunk->size();
+
+            if (chunkSize <= 0) {
+                break;
+            }
+
             auto rowOffset = rowCount;
-            rowCount += c->size();
-            colCount = colCount;
 
-            // Add chunk
-            auto* chunk = chunks->Add();
-            chunk->set_row_count(c->size());
-            chunk->set_row_offset(rowOffset);
+            assert(chunk->column_count() == columnCount);
 
-            // Write columns
-            auto* cols = chunk->mutable_columns();
-            cols->Reserve(c->column_count);
-            for (size_t v = 0; v < c->column_count; ++v) {
-                auto& vec = c->GetVector(v);
-                auto* column = cols->Add();
-                switch (vec.type) {
-                    case duckdb::TypeId::INVALID:
-                    case duckdb::TypeId::VARBINARY:
-                        // TODO
-                        break;
-                    case duckdb::TypeId::BOOLEAN:
-                        encodeNumericColumn<int8_t, int32_t>(arena, column, vec);
-                        break;
-                    case duckdb::TypeId::TINYINT:
-                        encodeNumericColumn<int16_t, int32_t>(arena, column, vec);
-                        break;
-                    case duckdb::TypeId::SMALLINT:
-                        encodeNumericColumn<int32_t, int32_t>(arena, column, vec);
-                        break;
-                    case duckdb::TypeId::INTEGER:
-                        encodeNumericColumn<int64_t, int64_t>(arena, column, vec);
-                        break;
-                    case duckdb::TypeId::BIGINT:
-                        encodeNumericColumn<int64_t, int64_t>(arena, column, vec);
-                        break;
-                    case duckdb::TypeId::POINTER:
-                        encodeNumericColumn<uint64_t, uint64_t>(arena, column, vec);
-                        break;
-                    case duckdb::TypeId::HASH:
-                        encodeNumericColumn<uint64_t, uint64_t>(arena, column, vec);
-                        break;
-                    case duckdb::TypeId::FLOAT:
-                        encodeNumericColumn<float, float>(arena, column, vec);
-                        break;
-                    case duckdb::TypeId::DOUBLE:
-                        encodeNumericColumn<double, double>(arena, column, vec);
-                        break;
-                    case duckdb::TypeId::VARCHAR:
-                        encodeStringColumn(arena, column, vec);
-                        break;
+            for (size_t columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                auto& column = *columns.Mutable(columnIndex);
+                auto& rows = *column.mutable_rows();
+
+                rows.Reserve(rowCount + chunkSize);
+
+                for (size_t rowIndex = 0; rowIndex < chunkSize; rowIndex++) {
+                    auto value = chunk->GetValue(columnIndex, rowOffset + rowIndex);
+                    auto type = queryResult.sql_types[columnIndex];
+                    auto& row = *rows.Add();
+
+                    std::cout << "Type: " << static_cast<uint32_t>(value.type) << std::endl;
+                    std::cout << "Value (" << columnIndex << ", " << rowIndex << "): " << value.ToString() << std::endl;
+
+                    if (value.is_null) {
+                        continue;
+                    }
+
+                    switch (value.type) {
+                        case duckdb::TypeId::NA:
+                            break;
+                        case duckdb::TypeId::BOOL:
+                            row.set_bool_(value.value_.boolean);
+                            break;
+                        case duckdb::TypeId::UINT8:
+                            row.set_u32(value.value_.tinyint);
+                            break;
+                        case duckdb::TypeId::INT8:
+                            row.set_i32(value.value_.tinyint);
+                            break;
+                        case duckdb::TypeId::UINT16:
+                            row.set_u32(value.value_.smallint);
+                            break;
+                        case duckdb::TypeId::INT16:
+                            row.set_i32(value.value_.smallint);
+                            break;
+                        case duckdb::TypeId::UINT32:
+                            row.set_u32(value.value_.integer);
+                            break;
+                        case duckdb::TypeId::INT32:
+                            row.set_i32(value.value_.integer);
+                            break;
+                        case duckdb::TypeId::UINT64:
+                            row.set_u64(value.value_.bigint);
+                            break;
+                        case duckdb::TypeId::INT64:
+                            row.set_i64(value.value_.bigint);
+                            break;
+                        case duckdb::TypeId::HALF_FLOAT:
+                            row.set_f32(value.value_.smallint);
+                            break;
+                        case duckdb::TypeId::FLOAT:
+                            row.set_f32(value.value_.float_);
+                            break;
+                        case duckdb::TypeId::DOUBLE:
+                            row.set_f64(value.value_.double_);
+                            break;
+                        case duckdb::TypeId::STRING:
+                            row.set_str(value.str_value);
+                            break;
+                        case duckdb::TypeId::BINARY:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::FIXED_SIZE_BINARY:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::DATE32:
+                            row.set_i32(value.value_.integer);
+                            break;
+                        case duckdb::TypeId::DATE64:
+                            row.set_i64(value.value_.bigint);
+                            break;
+                        case duckdb::TypeId::TIMESTAMP:
+                            row.set_i64(value.value_.bigint);
+                            break;
+                        case duckdb::TypeId::TIME32:
+                            row.set_i64(value.value_.integer);
+                            break;
+                        case duckdb::TypeId::TIME64:
+                            row.set_i64(value.value_.bigint);
+                            break;
+                        case duckdb::TypeId::INTERVAL:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::DECIMAL:
+                            row.set_f64(value.value_.double_);
+                            break;
+                        case duckdb::TypeId::LIST:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::STRUCT:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::UNION:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::DICTIONARY:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::MAP:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::EXTENSION:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::FIXED_SIZE_LIST:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::DURATION:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::LARGE_STRING:
+                            row.set_str(value.str_value);
+                            break;
+                        case duckdb::TypeId::LARGE_BINARY:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::LARGE_LIST:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::VARCHAR:
+                            row.set_str(value.str_value);
+                            break;
+                        case duckdb::TypeId::VARBINARY:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::POINTER:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::HASH:
+                            // TODO
+                            break;
+                        case duckdb::TypeId::INVALID:
+                            // TODO
+                            break;
+                    }
                 }
             }
+
+            rowCount += chunkSize;
         }
 
-        // Write row and column count
-        res->set_column_count(colCount);
-        res->set_row_count(rowCount);
+        result.set_column_count(columnCount);
+        result.set_row_count(rowCount);
 
-        // Write column types
-        auto* rawTypes = res->mutable_column_raw_types();
-        rawTypes->Reserve(queryResult.types.size());
-        for (size_t i = 0; i < queryResult.types.size(); ++i) {
-            rawTypes->Add(static_cast<uint8_t>(queryResult.types[i]));
-        }
-
-        // Write column sql types
-        auto* sqlTypes = res->mutable_column_sql_types();
-        sqlTypes->Reserve(queryResult.sql_types.size());
-        for (size_t i = 0; i < queryResult.sql_types.size(); ++i) {
-            auto* sqlType = sqlTypes->Add();
-            sqlType->set_type_id(static_cast<proto::engine::SQLTypeID>(queryResult.sql_types[i].id));
-            sqlType->set_width(queryResult.sql_types[i].width);
-            sqlType->set_scale(queryResult.sql_types[i].scale);
-        }
-
-        // Write column names
-        auto* names = res->mutable_column_names();
-        names->Reserve(queryResult.names.size());
-        for (auto& name : queryResult.names) {
-            names->Add()->assign(name);
-        }
-
-        // Return result
-        return res;
+        return &result;
     }
-
 } // namespace tigon

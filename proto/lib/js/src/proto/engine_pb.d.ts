@@ -13,6 +13,9 @@ export class SQLType extends jspb.Message {
     getScale(): number;
     setScale(value: number): void;
 
+    getCollation(): string;
+    setCollation(value: string): void;
+
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): SQLType.AsObject;
     static toObject(includeInstance: boolean, msg: SQLType): SQLType.AsObject;
@@ -36,6 +39,7 @@ export namespace SQLType {
         typeId: SQLTypeIDMap[keyof SQLTypeIDMap];
         width: number;
         scale: number;
+        collation: string;
     };
 }
 
@@ -93,49 +97,107 @@ export namespace QueryPlan {
     };
 }
 
+export class QueryResultRow extends jspb.Message {
+    hasBool(): boolean;
+    clearBool(): void;
+    getBool(): boolean;
+    setBool(value: boolean): void;
+
+    hasI32(): boolean;
+    clearI32(): void;
+    getI32(): number;
+    setI32(value: number): void;
+
+    hasU32(): boolean;
+    clearU32(): void;
+    getU32(): number;
+    setU32(value: number): void;
+
+    hasI64(): boolean;
+    clearI64(): void;
+    getI64(): number;
+    setI64(value: number): void;
+
+    hasU64(): boolean;
+    clearU64(): void;
+    getU64(): number;
+    setU64(value: number): void;
+
+    hasF32(): boolean;
+    clearF32(): void;
+    getF32(): number;
+    setF32(value: number): void;
+
+    hasF64(): boolean;
+    clearF64(): void;
+    getF64(): number;
+    setF64(value: number): void;
+
+    hasStr(): boolean;
+    clearStr(): void;
+    getStr(): string;
+    setStr(value: string): void;
+
+    getValueCase(): QueryResultRow.ValueCase;
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): QueryResultRow.AsObject;
+    static toObject(
+        includeInstance: boolean,
+        msg: QueryResultRow,
+    ): QueryResultRow.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: {
+        [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
+    };
+    static serializeBinaryToWriter(
+        message: QueryResultRow,
+        writer: jspb.BinaryWriter,
+    ): void;
+    static deserializeBinary(bytes: Uint8Array): QueryResultRow;
+    static deserializeBinaryFromReader(
+        message: QueryResultRow,
+        reader: jspb.BinaryReader,
+    ): QueryResultRow;
+}
+
+export namespace QueryResultRow {
+    export type AsObject = {
+        bool: boolean;
+        i32: number;
+        u32: number;
+        i64: number;
+        u64: number;
+        f32: number;
+        f64: number;
+        str: string;
+    };
+
+    export enum ValueCase {
+        VALUE_NOT_SET = 0,
+        BOOL = 1,
+        I32 = 2,
+        U32 = 3,
+        I64 = 4,
+        U64 = 5,
+        F32 = 6,
+        F64 = 7,
+        STR = 8,
+    }
+}
+
 export class QueryResultColumn extends jspb.Message {
-    getTypeId(): RawTypeIDMap[keyof RawTypeIDMap];
-    setTypeId(value: RawTypeIDMap[keyof RawTypeIDMap]): void;
+    getName(): string;
+    setName(value: string): void;
 
-    clearNullMaskList(): void;
-    getNullMaskList(): Array<boolean>;
-    setNullMaskList(value: Array<boolean>): void;
-    addNullMask(value: boolean, index?: number): boolean;
+    hasType(): boolean;
+    clearType(): void;
+    getType(): SQLType | undefined;
+    setType(value?: SQLType): void;
 
-    clearRowsI32List(): void;
-    getRowsI32List(): Array<number>;
-    setRowsI32List(value: Array<number>): void;
-    addRowsI32(value: number, index?: number): number;
-
-    clearRowsU32List(): void;
-    getRowsU32List(): Array<number>;
-    setRowsU32List(value: Array<number>): void;
-    addRowsU32(value: number, index?: number): number;
-
-    clearRowsI64List(): void;
-    getRowsI64List(): Array<number>;
-    setRowsI64List(value: Array<number>): void;
-    addRowsI64(value: number, index?: number): number;
-
-    clearRowsU64List(): void;
-    getRowsU64List(): Array<number>;
-    setRowsU64List(value: Array<number>): void;
-    addRowsU64(value: number, index?: number): number;
-
-    clearRowsF32List(): void;
-    getRowsF32List(): Array<number>;
-    setRowsF32List(value: Array<number>): void;
-    addRowsF32(value: number, index?: number): number;
-
-    clearRowsF64List(): void;
-    getRowsF64List(): Array<number>;
-    setRowsF64List(value: Array<number>): void;
-    addRowsF64(value: number, index?: number): number;
-
-    clearRowsStrList(): void;
-    getRowsStrList(): Array<string>;
-    setRowsStrList(value: Array<string>): void;
-    addRowsStr(value: string, index?: number): string;
+    clearRowsList(): void;
+    getRowsList(): Array<QueryResultRow>;
+    setRowsList(value: Array<QueryResultRow>): void;
+    addRows(value?: QueryResultRow, index?: number): QueryResultRow;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): QueryResultColumn.AsObject;
@@ -160,56 +222,9 @@ export class QueryResultColumn extends jspb.Message {
 
 export namespace QueryResultColumn {
     export type AsObject = {
-        typeId: RawTypeIDMap[keyof RawTypeIDMap];
-        nullMaskList: Array<boolean>;
-        rowsI32List: Array<number>;
-        rowsU32List: Array<number>;
-        rowsI64List: Array<number>;
-        rowsU64List: Array<number>;
-        rowsF32List: Array<number>;
-        rowsF64List: Array<number>;
-        rowsStrList: Array<string>;
-    };
-}
-
-export class QueryResultChunk extends jspb.Message {
-    getRowOffset(): number;
-    setRowOffset(value: number): void;
-
-    getRowCount(): number;
-    setRowCount(value: number): void;
-
-    clearColumnsList(): void;
-    getColumnsList(): Array<QueryResultColumn>;
-    setColumnsList(value: Array<QueryResultColumn>): void;
-    addColumns(value?: QueryResultColumn, index?: number): QueryResultColumn;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): QueryResultChunk.AsObject;
-    static toObject(
-        includeInstance: boolean,
-        msg: QueryResultChunk,
-    ): QueryResultChunk.AsObject;
-    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
-    static extensionsBinary: {
-        [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
-    };
-    static serializeBinaryToWriter(
-        message: QueryResultChunk,
-        writer: jspb.BinaryWriter,
-    ): void;
-    static deserializeBinary(bytes: Uint8Array): QueryResultChunk;
-    static deserializeBinaryFromReader(
-        message: QueryResultChunk,
-        reader: jspb.BinaryReader,
-    ): QueryResultChunk;
-}
-
-export namespace QueryResultChunk {
-    export type AsObject = {
-        rowOffset: number;
-        rowCount: number;
-        columnsList: Array<QueryResultColumn.AsObject>;
+        name: string;
+        type?: SQLType.AsObject;
+        rowsList: Array<QueryResultRow.AsObject>;
     };
 }
 
@@ -228,28 +243,10 @@ export class QueryResult extends jspb.Message {
     getRowCount(): number;
     setRowCount(value: number): void;
 
-    clearColumnNamesList(): void;
-    getColumnNamesList(): Array<string>;
-    setColumnNamesList(value: Array<string>): void;
-    addColumnNames(value: string, index?: number): string;
-
-    clearColumnRawTypesList(): void;
-    getColumnRawTypesList(): Array<RawTypeIDMap[keyof RawTypeIDMap]>;
-    setColumnRawTypesList(value: Array<RawTypeIDMap[keyof RawTypeIDMap]>): void;
-    addColumnRawTypes(
-        value: RawTypeIDMap[keyof RawTypeIDMap],
-        index?: number,
-    ): RawTypeIDMap[keyof RawTypeIDMap];
-
-    clearColumnSqlTypesList(): void;
-    getColumnSqlTypesList(): Array<SQLType>;
-    setColumnSqlTypesList(value: Array<SQLType>): void;
-    addColumnSqlTypes(value?: SQLType, index?: number): SQLType;
-
-    clearDataChunksList(): void;
-    getDataChunksList(): Array<QueryResultChunk>;
-    setDataChunksList(value: Array<QueryResultChunk>): void;
-    addDataChunks(value?: QueryResultChunk, index?: number): QueryResultChunk;
+    clearColumnsList(): void;
+    getColumnsList(): Array<QueryResultColumn>;
+    setColumnsList(value: Array<QueryResultColumn>): void;
+    addColumns(value?: QueryResultColumn, index?: number): QueryResultColumn;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): QueryResult.AsObject;
@@ -278,47 +275,32 @@ export namespace QueryResult {
         queryPlan?: QueryPlan.AsObject;
         columnCount: number;
         rowCount: number;
-        columnNamesList: Array<string>;
-        columnRawTypesList: Array<RawTypeIDMap[keyof RawTypeIDMap]>;
-        columnSqlTypesList: Array<SQLType.AsObject>;
-        dataChunksList: Array<QueryResultChunk.AsObject>;
+        columnsList: Array<QueryResultColumn.AsObject>;
     };
 }
-
-export interface RawTypeIDMap {
-    RAW_INVALID: 0;
-    RAW_BOOLEAN: 1;
-    RAW_TINYINT: 2;
-    RAW_SMALLINT: 3;
-    RAW_INTEGER: 4;
-    RAW_BIGINT: 5;
-    RAW_HASH: 6;
-    RAW_POINTER: 7;
-    RAW_FLOAT: 8;
-    RAW_DOUBLE: 9;
-    RAW_VARCHAR: 10;
-    RAW_VARBINARY: 11;
-}
-
-export const RawTypeID: RawTypeIDMap;
 
 export interface SQLTypeIDMap {
     SQL_INVALID: 0;
     SQL_NULL: 1;
-    SQL_BOOLEAN: 2;
-    SQL_TINYINT: 3;
-    SQL_SMALLINT: 4;
-    SQL_INTEGER: 5;
-    SQL_BIGINT: 6;
-    SQL_DATE: 7;
-    SQL_TIMESTAMP: 8;
-    SQL_REAL: 9;
-    SQL_DOUBLE: 10;
-    SQL_FLOAT: 11;
-    SQL_DECIMAL: 12;
-    SQL_CHAR: 13;
-    SQL_VARCHAR: 14;
-    SQL_VARBINARY: 15;
+    SQL_UNKNOWN: 2;
+    SQL_ANY: 3;
+    SQL_BOOLEAN: 10;
+    SQL_TINYINT: 11;
+    SQL_SMALLINT: 12;
+    SQL_INTEGER: 13;
+    SQL_BIGINT: 14;
+    SQL_DATE: 15;
+    SQL_TIME: 16;
+    SQL_TIMESTAMP: 17;
+    SQL_FLOAT: 18;
+    SQL_DOUBLE: 19;
+    SQL_DECIMAL: 20;
+    SQL_CHAR: 21;
+    SQL_VARCHAR: 22;
+    SQL_VARBINARY: 23;
+    SQL_BLOB: 24;
+    SQL_STRUCT: 100;
+    SQL_LIST: 101;
 }
 
 export const SQLTypeID: SQLTypeIDMap;
@@ -329,44 +311,46 @@ export interface LogicalOperatorTypeMap {
     OP_FILTER: 2;
     OP_AGGREGATE_AND_GROUP_BY: 3;
     OP_WINDOW: 4;
-    OP_LIMIT: 5;
-    OP_ORDER_BY: 6;
-    OP_TOP_N: 7;
-    OP_COPY_FROM_FILE: 8;
-    OP_COPY_TO_FILE: 9;
-    OP_DISTINCT: 10;
-    OP_INDEX_SCAN: 11;
-    OP_GET: 12;
-    OP_CHUNK_GET: 13;
-    OP_DELIM_GET: 14;
-    OP_EXPRESSION_GET: 15;
-    OP_TABLE_FUNCTION: 16;
-    OP_SUBQUERY: 17;
+    OP_UNNEST: 5;
+    OP_LIMIT: 6;
+    OP_ORDER_BY: 7;
+    OP_TOP_N: 8;
+    OP_COPY_FROM_FILE: 9;
+    OP_COPY_TO_FILE: 10;
+    OP_DISTINCT: 11;
+    OP_INDEX_SCAN: 12;
+    OP_GET: 13;
+    OP_CHUNK_GET: 14;
+    OP_DELIM_GET: 15;
+    OP_EXPRESSION_GET: 16;
+    OP_TABLE_FUNCTION: 17;
     OP_EMPTY_RESULT: 18;
-    OP_JOIN: 19;
-    OP_DELIM_JOIN: 20;
-    OP_COMPARISON_JOIN: 21;
-    OP_ANY_JOIN: 22;
-    OP_CROSS_PRODUCT: 23;
-    OP_UNION: 24;
-    OP_EXCEPT: 25;
-    OP_INTERSECT: 26;
-    OP_INSERT: 27;
-    OP_DELETE: 28;
-    OP_UPDATE: 29;
-    OP_ALTER: 30;
-    OP_CREATE_TABLE: 31;
-    OP_CREATE_INDEX: 32;
-    OP_CREATE_SEQUENCE: 33;
-    OP_CREATE_VIEW: 34;
-    OP_CREATE_SCHEMA: 35;
-    OP_DROP: 36;
-    OP_PRAGMA: 37;
-    OP_TRANSACTION: 38;
-    OP_EXPLAIN: 39;
-    OP_PRUNE_COLUMNS: 40;
-    OP_PREPARE: 41;
-    OP_EXECUTE: 42;
+    OP_CTE_REF: 19;
+    OP_JOIN: 20;
+    OP_DELIM_JOIN: 21;
+    OP_COMPARISON_JOIN: 22;
+    OP_ANY_JOIN: 23;
+    OP_CROSS_PRODUCT: 24;
+    OP_UNION: 25;
+    OP_EXCEPT: 26;
+    OP_INTERSECT: 27;
+    OP_RECURSIVE_CTE: 28;
+    OP_INSERT: 29;
+    OP_DELETE: 30;
+    OP_UPDATE: 31;
+    OP_ALTER: 32;
+    OP_CREATE_TABLE: 33;
+    OP_CREATE_INDEX: 34;
+    OP_CREATE_SEQUENCE: 35;
+    OP_CREATE_VIEW: 36;
+    OP_CREATE_SCHEMA: 37;
+    OP_DROP: 38;
+    OP_PRAGMA: 39;
+    OP_TRANSACTION: 40;
+    OP_EXPLAIN: 41;
+    OP_PREPARE: 42;
+    OP_EXECUTE: 43;
+    OP_VACUUM: 44;
 }
 
 export const LogicalOperatorType: LogicalOperatorTypeMap;
