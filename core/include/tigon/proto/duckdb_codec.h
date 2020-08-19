@@ -14,10 +14,10 @@
 
 namespace tigon {
 
-/// Write the query plan
-proto::engine::QueryPlan* encodeQueryPlan(google::protobuf::Arena& arena, duckdb::LogicalOperator& plan);
-/// Write the query result
-proto::engine::QueryResult* encodeQueryResult(google::protobuf::Arena& arena, duckdb::QueryResult& result, uint64_t queryID);
+    /// Write the query plan
+    proto::engine::QueryPlan* encodeQueryPlan(google::protobuf::Arena& arena, duckdb::LogicalOperator& plan);
+    /// Write the query result
+    proto::engine::QueryResult* encodeQueryResult(google::protobuf::Arena& arena, duckdb::QueryResult& result, uint64_t queryID);
 
 } // namespace tigon
 

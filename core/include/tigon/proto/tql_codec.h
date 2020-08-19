@@ -12,8 +12,8 @@
 
 namespace tigon {
 
-/// Write the tql program
-proto::tql::Module* encodeTQLModule(google::protobuf::Arena& arena, tql::Module& module);
+    /// Write the tql program
+    proto::tql::Module* encodeTQLModule(google::protobuf::Arena& arena, tql::Module& module);
 
 } // namespace tigon
 
