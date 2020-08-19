@@ -162,8 +162,8 @@ void WebAPI::Session::planQuery(std::string_view text) {
 
     // Encode the query plan
     google::protobuf::Arena arena;
-    auto msg = encodeQueryPlan(arena, *planner.plan);
-    auto buffer = serializeMessage(*msg);
+    auto message = encodeQueryPlan(arena, *planner.plan);
+    auto buffer = serializeMessage(*message);
 
     // Return buffer
     response.requestSucceeded(buffer);

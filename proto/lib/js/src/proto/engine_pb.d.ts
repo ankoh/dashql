@@ -97,107 +97,51 @@ export namespace QueryPlan {
     };
 }
 
-export class QueryResultRow extends jspb.Message {
-    hasBool(): boolean;
-    clearBool(): void;
-    getBool(): boolean;
-    setBool(value: boolean): void;
-
-    hasI32(): boolean;
-    clearI32(): void;
-    getI32(): number;
-    setI32(value: number): void;
-
-    hasU32(): boolean;
-    clearU32(): void;
-    getU32(): number;
-    setU32(value: number): void;
-
-    hasI64(): boolean;
-    clearI64(): void;
-    getI64(): number;
-    setI64(value: number): void;
-
-    hasU64(): boolean;
-    clearU64(): void;
-    getU64(): number;
-    setU64(value: number): void;
-
-    hasF32(): boolean;
-    clearF32(): void;
-    getF32(): number;
-    setF32(value: number): void;
-
-    hasF64(): boolean;
-    clearF64(): void;
-    getF64(): number;
-    setF64(value: number): void;
-
-    hasStr(): boolean;
-    clearStr(): void;
-    getStr(): string;
-    setStr(value: string): void;
-
-    getValueCase(): QueryResultRow.ValueCase;
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): QueryResultRow.AsObject;
-    static toObject(
-        includeInstance: boolean,
-        msg: QueryResultRow,
-    ): QueryResultRow.AsObject;
-    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
-    static extensionsBinary: {
-        [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
-    };
-    static serializeBinaryToWriter(
-        message: QueryResultRow,
-        writer: jspb.BinaryWriter,
-    ): void;
-    static deserializeBinary(bytes: Uint8Array): QueryResultRow;
-    static deserializeBinaryFromReader(
-        message: QueryResultRow,
-        reader: jspb.BinaryReader,
-    ): QueryResultRow;
-}
-
-export namespace QueryResultRow {
-    export type AsObject = {
-        bool: boolean;
-        i32: number;
-        u32: number;
-        i64: number;
-        u64: number;
-        f32: number;
-        f64: number;
-        str: string;
-    };
-
-    export enum ValueCase {
-        VALUE_NOT_SET = 0,
-        BOOL = 1,
-        I32 = 2,
-        U32 = 3,
-        I64 = 4,
-        U64 = 5,
-        F32 = 6,
-        F64 = 7,
-        STR = 8,
-    }
-}
-
 export class QueryResultColumn extends jspb.Message {
-    getName(): string;
-    setName(value: string): void;
+    clearNullMaskList(): void;
+    getNullMaskList(): Array<boolean>;
+    setNullMaskList(value: Array<boolean>): void;
+    addNullMask(value: boolean, index?: number): boolean;
 
-    hasType(): boolean;
-    clearType(): void;
-    getType(): SQLType | undefined;
-    setType(value?: SQLType): void;
+    clearRowsBoolList(): void;
+    getRowsBoolList(): Array<number>;
+    setRowsBoolList(value: Array<number>): void;
+    addRowsBool(value: number, index?: number): number;
 
-    clearRowsList(): void;
-    getRowsList(): Array<QueryResultRow>;
-    setRowsList(value: Array<QueryResultRow>): void;
-    addRows(value?: QueryResultRow, index?: number): QueryResultRow;
+    clearRowsI32List(): void;
+    getRowsI32List(): Array<number>;
+    setRowsI32List(value: Array<number>): void;
+    addRowsI32(value: number, index?: number): number;
+
+    clearRowsU32List(): void;
+    getRowsU32List(): Array<number>;
+    setRowsU32List(value: Array<number>): void;
+    addRowsU32(value: number, index?: number): number;
+
+    clearRowsI64List(): void;
+    getRowsI64List(): Array<number>;
+    setRowsI64List(value: Array<number>): void;
+    addRowsI64(value: number, index?: number): number;
+
+    clearRowsU64List(): void;
+    getRowsU64List(): Array<number>;
+    setRowsU64List(value: Array<number>): void;
+    addRowsU64(value: number, index?: number): number;
+
+    clearRowsF32List(): void;
+    getRowsF32List(): Array<number>;
+    setRowsF32List(value: Array<number>): void;
+    addRowsF32(value: number, index?: number): number;
+
+    clearRowsF64List(): void;
+    getRowsF64List(): Array<number>;
+    setRowsF64List(value: Array<number>): void;
+    addRowsF64(value: number, index?: number): number;
+
+    clearRowsStrList(): void;
+    getRowsStrList(): Array<string>;
+    setRowsStrList(value: Array<string>): void;
+    addRowsStr(value: string, index?: number): string;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): QueryResultColumn.AsObject;
@@ -222,9 +166,56 @@ export class QueryResultColumn extends jspb.Message {
 
 export namespace QueryResultColumn {
     export type AsObject = {
-        name: string;
-        type?: SQLType.AsObject;
-        rowsList: Array<QueryResultRow.AsObject>;
+        nullMaskList: Array<boolean>;
+        rowsBoolList: Array<number>;
+        rowsI32List: Array<number>;
+        rowsU32List: Array<number>;
+        rowsI64List: Array<number>;
+        rowsU64List: Array<number>;
+        rowsF32List: Array<number>;
+        rowsF64List: Array<number>;
+        rowsStrList: Array<string>;
+    };
+}
+
+export class QueryResultChunk extends jspb.Message {
+    getRowOffset(): number;
+    setRowOffset(value: number): void;
+
+    getRowCount(): number;
+    setRowCount(value: number): void;
+
+    clearColumnsList(): void;
+    getColumnsList(): Array<QueryResultColumn>;
+    setColumnsList(value: Array<QueryResultColumn>): void;
+    addColumns(value?: QueryResultColumn, index?: number): QueryResultColumn;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): QueryResultChunk.AsObject;
+    static toObject(
+        includeInstance: boolean,
+        msg: QueryResultChunk,
+    ): QueryResultChunk.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: {
+        [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>;
+    };
+    static serializeBinaryToWriter(
+        message: QueryResultChunk,
+        writer: jspb.BinaryWriter,
+    ): void;
+    static deserializeBinary(bytes: Uint8Array): QueryResultChunk;
+    static deserializeBinaryFromReader(
+        message: QueryResultChunk,
+        reader: jspb.BinaryReader,
+    ): QueryResultChunk;
+}
+
+export namespace QueryResultChunk {
+    export type AsObject = {
+        rowOffset: number;
+        rowCount: number;
+        columnsList: Array<QueryResultColumn.AsObject>;
     };
 }
 
@@ -243,10 +234,20 @@ export class QueryResult extends jspb.Message {
     getRowCount(): number;
     setRowCount(value: number): void;
 
-    clearColumnsList(): void;
-    getColumnsList(): Array<QueryResultColumn>;
-    setColumnsList(value: Array<QueryResultColumn>): void;
-    addColumns(value?: QueryResultColumn, index?: number): QueryResultColumn;
+    clearColumnNamesList(): void;
+    getColumnNamesList(): Array<string>;
+    setColumnNamesList(value: Array<string>): void;
+    addColumnNames(value: string, index?: number): string;
+
+    clearColumnSqlTypesList(): void;
+    getColumnSqlTypesList(): Array<SQLType>;
+    setColumnSqlTypesList(value: Array<SQLType>): void;
+    addColumnSqlTypes(value?: SQLType, index?: number): SQLType;
+
+    clearDataChunksList(): void;
+    getDataChunksList(): Array<QueryResultChunk>;
+    setDataChunksList(value: Array<QueryResultChunk>): void;
+    addDataChunks(value?: QueryResultChunk, index?: number): QueryResultChunk;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): QueryResult.AsObject;
@@ -275,7 +276,9 @@ export namespace QueryResult {
         queryPlan?: QueryPlan.AsObject;
         columnCount: number;
         rowCount: number;
-        columnsList: Array<QueryResultColumn.AsObject>;
+        columnNamesList: Array<string>;
+        columnSqlTypesList: Array<SQLType.AsObject>;
+        dataChunksList: Array<QueryResultChunk.AsObject>;
     };
 }
 

@@ -111,24 +111,25 @@ message QueryPlan {
     repeated LogicalOperatorType operator_types = 3;
 }
 
-message QueryResultRow {
-    oneof value {
-        bool bool = 1;
-        int32 i32 = 2;
-        uint32 u32 = 3;
-        int64 i64 = 4;
-        uint64 u64 = 5;
-        float f32 = 6;
-        double f64 = 7;
-        string str = 8;
-    }
+// A column of a query result
+message QueryResultColumn {
+    repeated bool null_mask = 1;
+
+    repeated int32 rows_bool = 2;
+    repeated int32 rows_i32 = 3;
+    repeated uint32 rows_u32 = 4;
+    repeated int64 rows_i64 = 5;
+    repeated uint64 rows_u64 = 6;
+    repeated float rows_f32 = 7;
+    repeated double rows_f64 = 8;
+    repeated string rows_str = 9;
 }
 
-// A query result column
-message QueryResultColumn {
-    string name = 1;
-    SQLType type = 2;
-    repeated QueryResultRow rows = 3;
+// A data chunk
+message QueryResultChunk {
+    uint32 row_offset = 1;
+    uint32 row_count = 2;
+    repeated QueryResultColumn columns = 3;
 }
 
 // A query result
@@ -138,5 +139,7 @@ message QueryResult {
     uint32 column_count = 3;
     uint32 row_count = 4;
 
-    repeated QueryResultColumn columns = 5;
+    repeated string column_names = 5;
+    repeated SQLType column_sql_types = 7;
+    repeated QueryResultChunk data_chunks = 8;
 }

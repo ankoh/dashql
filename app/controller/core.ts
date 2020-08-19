@@ -62,6 +62,8 @@ export class CoreController {
         this.core = ((await import('@tigon/core')) as any).default(options);
 
         await this.loading;
+
+        window.FS = this.core.FS;
     }
 
     // Wait until the core controller is ready

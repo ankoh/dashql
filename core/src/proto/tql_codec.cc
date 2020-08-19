@@ -22,7 +22,7 @@ namespace tigon {
 
     void setString(tigon::proto::tql::String* destination, tigon::tql::String& source) {
         setLocation(destination->mutable_location(), source.location);
-        destination->set_string(source.string.data(), source.string.size());
+        destination->set_string(std::string(source.string));
     }
 
     /// Write the tql program
@@ -91,7 +91,19 @@ namespace tigon {
                                     setString(next->mutable_data_name(), extract.data_name);
 
                                     // Set method
-                                    // TODO
+                                    std::visit(overload{
+                                                   [&](tql::ExtractStatement::CSVExtract& extractor) {
+                                                       auto* csv = next->mutable_csv();
+
+                                                       setLocation(csv->mutable_location(), extractor.location);
+                                                   },
+                                                   [&](tql::ExtractStatement::JSONPathExtract& extractor) {
+                                                       auto* json = next->mutable_json();
+
+                                                       setLocation(json->mutable_location(), extractor.location);
+                                                   },
+                                               },
+                                               extract.method);
                                 },
 
                                 // SQL statement

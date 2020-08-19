@@ -1,22 +1,32 @@
 import * as proto from '@tigon/proto';
 
-export class ChunkAccess {
-    chunks: Array<proto.engine.QueryResultChunk>;
-    lastChunk: number;
+export class ChunkedResult {
+    protected chunks: proto.engine.QueryResultChunk[];
+    protected columnCount: number;
+    protected rowCount: number;
+    protected columnNames: string[];
+    protected sqlTypes: proto.engine.SQLType[];
+
+    protected lastChunk: number;
 
     /// Constructor
-    constructor(chunks: Array<proto.engine.QueryResultChunk>) {
-        this.chunks = chunks;
+    constructor(result: proto.engine.QueryResult) {
+        this.chunks = result.getDataChunksList();
+        this.columnCount = result.getColumnCount();
+        this.rowCount = result.getRowCount();
+        this.columnNames = result.getColumnNamesList();
+        this.sqlTypes = result.getColumnSqlTypesList();
         this.lastChunk = 0;
     }
 
     /// Check a chunk
-    protected cmpRange(
+    protected compareRange(
         chunk: proto.engine.QueryResultChunk,
         row: number,
     ): number {
-        let begin = chunk.getRowOffset();
-        let end = chunk.getRowOffset() + chunk.getRowCount();
+        const begin = chunk.getRowOffset();
+        const end = chunk.getRowOffset() + chunk.getRowCount();
+
         if (row >= begin && row < end) {
             return 0;
         } else if (row < begin) {
@@ -30,7 +40,7 @@ export class ChunkAccess {
     protected lastChunkContainsRow(row: number): boolean {
         return (
             this.lastChunk < this.chunks.length &&
-            this.cmpRange(this.chunks[this.lastChunk], row) === 0
+            this.compareRange(this.chunks[this.lastChunk], row) === 0
         );
     }
 
@@ -39,73 +49,142 @@ export class ChunkAccess {
         if (this.lastChunkContainsRow(row)) {
             return this.chunks[this.lastChunk];
         }
+
         let chunk: proto.engine.QueryResultChunk | null = null;
-        let lb = 0;
-        let ub = this.chunks.length;
-        while (lb < ub) {
-            let mid = Math.floor((lb + ub) / 2);
-            let candidate = this.chunks[mid];
-            let cmp = this.cmpRange(candidate, row);
-            if (cmp === 0) {
+        let lower = 0;
+        let upper = this.chunks.length;
+
+        while (lower < upper) {
+            const mid = Math.floor((lower + upper) / 2);
+            const candidate = this.chunks[mid];
+            const compare = this.compareRange(candidate, row);
+
+            if (compare === 0) {
                 chunk = candidate;
                 this.lastChunk = mid;
                 break;
-            } else if (cmp > 0) {
-                lb = mid + 1;
+            } else if (compare > 0) {
+                lower = mid + 1;
             } else {
-                ub = mid;
+                upper = mid;
             }
         }
+
         return chunk;
     }
 
+    public getColumnCount() {
+        return this.columnCount;
+    }
+
+    public getColumnName(columnIndex: number) {
+        return this.columnNames[columnIndex];
+    }
+
+    public getRowCount() {
+        return this.rowCount;
+    }
+
     /// Format a value
-    public fmtValue(row: number, col: number): string | null {
+    public formatValue(columnIndex: number, rowIndex: number): string | null {
         // Get the chunk
-        let chunk = this.findChunk(row);
+        const chunk = this.findChunk(rowIndex);
+
         if (!chunk) {
             return null;
         }
 
-        // Column out of bounds?
-        let columns = chunk.getColumnsList();
-        if (col > columns.length) {
-            return null;
-        }
+        const columns = chunk.getColumnsList();
+        const column = columns[columnIndex];
+        const nullMask = column.getNullMaskList();
 
-        // SQL NULL?
-        let column = columns[col];
-        let nullMask = column.getNullMaskList();
-        if (col <= nullMask.length && nullMask[col]) {
+        const index = rowIndex - chunk.getRowOffset();
+
+        if (nullMask[index]) {
             return 'NULL';
         }
 
-        // Retrieve the corresponding column
-        switch (column.getTypeId()) {
-            case proto.engine.RawTypeID.RAW_BIGINT:
-                return column.getRowsI64List()[row].toString();
-            case proto.engine.RawTypeID.RAW_BOOLEAN:
-                return column.getRowsI32List()[row].toString();
-            case proto.engine.RawTypeID.RAW_DOUBLE:
-                return column.getRowsF64List()[row].toString();
-            case proto.engine.RawTypeID.RAW_FLOAT:
-                return column.getRowsF32List()[row].toString();
-            case proto.engine.RawTypeID.RAW_HASH:
-                return column.getRowsU64List()[row].toString();
-            case proto.engine.RawTypeID.RAW_INTEGER:
-                return column.getRowsI64List()[row].toString();
-            case proto.engine.RawTypeID.RAW_POINTER:
-                return column.getRowsU64List()[row].toString();
-            case proto.engine.RawTypeID.RAW_SMALLINT:
-                return column.getRowsI32List()[row].toString();
-            case proto.engine.RawTypeID.RAW_TINYINT:
-                return column.getRowsI32List()[row].toString();
-            case proto.engine.RawTypeID.RAW_VARBINARY:
-                break;
-            case proto.engine.RawTypeID.RAW_VARCHAR:
-                return column.getRowsStrList()[row].toString();
-        }
+        const typeId = this.sqlTypes[columnIndex].getTypeId();
 
-        return null;
+        // Retrieve the corresponding column
+        switch (typeId) {
+            case proto.engine.SQLTypeID.SQL_INVALID:
+                return 'INVALID';
+            case proto.engine.SQLTypeID.SQL_NULL:
+                return 'NULL';
+            case proto.engine.SQLTypeID.SQL_UNKNOWN:
+                return 'UNKNOWN';
+            case proto.engine.SQLTypeID.SQL_ANY:
+                throw 'SQL_ANY format not implemented!';
+            case proto.engine.SQLTypeID.SQL_BOOLEAN:
+                return column.getRowsBoolList()[index].toString();
+            case proto.engine.SQLTypeID.SQL_TINYINT:
+                return column.getRowsI32List()[index].toString();
+            case proto.engine.SQLTypeID.SQL_SMALLINT:
+                return column.getRowsI32List()[index].toString();
+            case proto.engine.SQLTypeID.SQL_INTEGER:
+                return column.getRowsI32List()[index].toString();
+            case proto.engine.SQLTypeID.SQL_BIGINT:
+                return column.getRowsI64List()[index].toString();
+            case proto.engine.SQLTypeID.SQL_DATE: {
+                const formatter = new Intl.DateTimeFormat(navigator.language, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                });
+
+                const date = new Date(column.getRowsI32List()[index]);
+
+                return formatter.format(date);
+            }
+            case proto.engine.SQLTypeID.SQL_TIME: {
+                const formatter = new Intl.DateTimeFormat(navigator.language, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                });
+
+                const date = new Date(column.getRowsI32List()[index]);
+
+                return formatter.format(date);
+            }
+            case proto.engine.SQLTypeID.SQL_TIMESTAMP: {
+                const value = column.getRowsI64List()[index];
+
+                const dateValue = value >> 32;
+                const timeValue = value & 0xffffffff;
+
+                const formatter = new Intl.DateTimeFormat(navigator.language, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                });
+
+                const date = new Date(dateValue + timeValue);
+
+                return formatter.format(date);
+            }
+            case proto.engine.SQLTypeID.SQL_FLOAT:
+                return column.getRowsF32List()[index].toString();
+            case proto.engine.SQLTypeID.SQL_DOUBLE:
+                return column.getRowsF64List()[index].toString();
+            case proto.engine.SQLTypeID.SQL_DECIMAL:
+                throw 'SQL_DECIMAL format not implemented!';
+            case proto.engine.SQLTypeID.SQL_CHAR:
+                throw 'SQL_CHAR format not implemented!';
+            case proto.engine.SQLTypeID.SQL_VARCHAR:
+                return column.getRowsStrList()[index];
+            case proto.engine.SQLTypeID.SQL_VARBINARY:
+                throw 'SQL_VARBINARY format not implemented!';
+            case proto.engine.SQLTypeID.SQL_BLOB:
+                throw 'SQL_BLOB format not implemented!';
+            case proto.engine.SQLTypeID.SQL_STRUCT:
+                throw 'SQL_STRUCT format not implemented!';
+            case proto.engine.SQLTypeID.SQL_LIST:
+                throw 'SQL_LIST format not implemented!';
+        }
     }
 }

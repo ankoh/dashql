@@ -1,34 +1,31 @@
 import * as React from 'react';
-import * as proto from '@tigon/proto';
-import { ChunkAccess } from '../../proto/engine_access';
+import { ChunkedResult } from '../../proto/engine_access';
 import { Grid, GridCellProps, Index } from 'react-virtualized';
 import { Scrollbars } from 'react-custom-scrollbars';
 import { withAutoSizer } from '../autosizer';
 
 import styles from './table.module.scss';
 
-// The table properties
-interface ITableProps {
-    data: proto.engine.QueryResult;
+type Props = {
+    data: ChunkedResult;
     width: number;
     height: number;
-}
+};
 
-// The table state
-interface ITableState {
+type State = {
     scrollTop: number;
-    chunks: ChunkAccess;
-}
+    scrollLeft: number;
+};
 
 // The table
-export class Table extends React.Component<ITableProps, ITableState> {
+export class Table extends React.Component<Props, State> {
     protected gridRef: React.RefObject<Grid>;
 
-    constructor(props: ITableProps) {
+    constructor(props: Props) {
         super(props);
         this.state = {
             scrollTop: 0,
-            chunks: new ChunkAccess(this.props.data.getDataChunksList()),
+            scrollLeft: 0,
         };
         this.gridRef = React.createRef();
     }
@@ -42,7 +39,8 @@ export class Table extends React.Component<ITableProps, ITableState> {
             RowHeader,
             Data,
         }
-        let cellType =
+
+        const cellType =
             props.rowIndex === 0
                 ? props.columnIndex === 0
                     ? CellType.Anchor
@@ -68,11 +66,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
                         className={styles.cell_header_col}
                         style={{ ...props.style }}
                     >
-                        {
-                            this.props.data.getColumnNamesList()[
-                                props.columnIndex - 1
-                            ]
-                        }
+                        {this.props.data.getColumnName(props.columnIndex - 1)}
                     </div>
                 );
             case CellType.RowHeader:
@@ -92,9 +86,9 @@ export class Table extends React.Component<ITableProps, ITableState> {
                         className={styles.cell_data}
                         style={{ ...props.style }}
                     >
-                        {this.state.chunks.fmtValue(
-                            props.rowIndex - 1,
+                        {this.props.data.formatValue(
                             props.columnIndex - 1,
+                            props.rowIndex - 1,
                         )}
                     </div>
                 );
@@ -106,6 +100,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
         this.setState({
             ...this.state,
             scrollTop: event.target.scrollTop,
+            scrollLeft: event.target.scrollLeft,
         });
     }
 
@@ -120,7 +115,7 @@ export class Table extends React.Component<ITableProps, ITableState> {
             : Math.max(equalWidths, minWidth);
     }
 
-    public componentDidUpdate(prevProps: ITableProps) {
+    public componentDidUpdate(prevProps: Props) {
         if (
             this.props.width !== prevProps.width ||
             this.props.height !== prevProps.height
@@ -128,12 +123,6 @@ export class Table extends React.Component<ITableProps, ITableState> {
             if (this.gridRef.current) {
                 this.gridRef.current.recomputeGridSize();
             }
-        }
-        if (this.props.data !== prevProps.data) {
-            this.setState({
-                ...this.state,
-                chunks: new ChunkAccess(this.props.data.getDataChunksList()),
-            });
         }
     }
 
@@ -157,12 +146,13 @@ export class Table extends React.Component<ITableProps, ITableState> {
                         autoHeight
                         autoContainerWidth
                         scrollTop={this.state.scrollTop}
+                        scrollLeft={this.state.scrollLeft}
                         cellRenderer={this.renderCell.bind(this)}
                         columnCount={this.props.data.getColumnCount() + 1}
                         columnWidth={this.getColumnWidth.bind(this)}
                         height={this.props.height}
                         width={this.props.width}
-                        rowCount={this.props.data.getRowCount()}
+                        rowCount={this.props.data.getRowCount() + 1}
                         rowHeight={24}
                     />
                 </Scrollbars>

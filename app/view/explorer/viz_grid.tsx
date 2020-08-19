@@ -2,6 +2,7 @@ import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as Store from '../../store';
 import * as proto from '@tigon/proto';
+import { ChunkedResult } from '../../proto/engine_access';
 import Table from '../viz/table';
 import ChartViewer from '../viz/chart_viewer';
 import { connect } from 'react-redux';
@@ -100,7 +101,9 @@ function VizCard(props: {
                 viz = <ChartViewer />;
                 break;
             case proto.tql.VizTypeType.VIZ_TABLE:
-                viz = <Table data={props.data} />;
+                viz = props.data && (
+                    <Table data={new ChunkedResult(props.data)} />
+                );
                 break;
             case proto.tql.VizTypeType.VIZ_TEXT:
                 break;

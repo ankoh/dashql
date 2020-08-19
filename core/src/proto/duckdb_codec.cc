@@ -151,58 +151,57 @@ namespace tigon {
     /// Write the query result
     proto::engine::QueryResult* encodeQueryResult(protobuf::Arena& arena, duckdb::QueryResult& queryResult, uint64_t queryID) {
         auto& result = *protobuf::Arena::CreateMessage<proto::engine::QueryResult>(&arena);
-        auto& columns = *result.mutable_columns();
+        auto& chunks = *result.mutable_data_chunks();
+        auto& names = *result.mutable_column_names();
+        auto& sqlTypes = *result.mutable_column_sql_types();
+
         size_t columnCount = queryResult.names.size();
         size_t rowCount = 0;
 
         result.set_query_id(queryID);
 
         for (size_t columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            auto& column = *columns.Add();
-
             auto name = queryResult.names[columnIndex];
-            column.set_allocated_name(&name);
+            names.Add(std::string(name));
 
             auto sqlType = queryResult.sql_types[columnIndex];
-            auto& type = *column.mutable_type();
+            auto& type = *sqlTypes.Add();
 
             type.set_type_id(static_cast<tigon::proto::engine::SQLTypeID>(sqlType.id));
             type.set_width(sqlType.width);
             type.set_scale(sqlType.scale);
-            type.set_allocated_collation(&sqlType.collation);
+            type.set_collation(sqlType.collation);
         }
 
         while (true) {
-            auto chunk = queryResult.Fetch();
+            auto data = queryResult.Fetch();
 
-            if (!chunk) {
+            if (!data) {
                 // TODO: Handle failure
                 break;
             }
 
-            auto chunkSize = chunk->size();
+            auto dataSize = data->size();
 
-            if (chunkSize <= 0) {
+            if (dataSize <= 0) {
                 break;
             }
 
-            auto rowOffset = rowCount;
+            assert(data->column_count() == columnCount);
 
-            assert(chunk->column_count() == columnCount);
+            auto& chunk = *chunks.Add();
+            chunk.set_row_count(dataSize);
+            chunk.set_row_offset(rowCount);
 
             for (size_t columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                auto& column = *columns.Mutable(columnIndex);
-                auto& rows = *column.mutable_rows();
+                auto& column = *chunk.mutable_columns()->Add();
+                auto type = queryResult.sql_types[columnIndex];
+                auto& nullMask = *column.mutable_null_mask();
 
-                rows.Reserve(rowCount + chunkSize);
+                for (size_t rowIndex = 0; rowIndex < dataSize; rowIndex++) {
+                    auto value = data->GetValue(columnIndex, rowIndex);
 
-                for (size_t rowIndex = 0; rowIndex < chunkSize; rowIndex++) {
-                    auto value = chunk->GetValue(columnIndex, rowOffset + rowIndex);
-                    auto type = queryResult.sql_types[columnIndex];
-                    auto& row = *rows.Add();
-
-                    std::cout << "Type: " << static_cast<uint32_t>(value.type) << std::endl;
-                    std::cout << "Value (" << columnIndex << ", " << rowIndex << "): " << value.ToString() << std::endl;
+                    nullMask.Add(value.is_null);
 
                     if (value.is_null) {
                         continue;
@@ -212,43 +211,43 @@ namespace tigon {
                         case duckdb::TypeId::NA:
                             break;
                         case duckdb::TypeId::BOOL:
-                            row.set_bool_(value.value_.boolean);
+                            column.mutable_rows_bool()->Add(value.value_.boolean);
                             break;
                         case duckdb::TypeId::UINT8:
-                            row.set_u32(value.value_.tinyint);
+                            column.mutable_rows_u32()->Add(value.value_.tinyint);
                             break;
                         case duckdb::TypeId::INT8:
-                            row.set_i32(value.value_.tinyint);
+                            column.mutable_rows_i32()->Add(value.value_.tinyint);
                             break;
                         case duckdb::TypeId::UINT16:
-                            row.set_u32(value.value_.smallint);
+                            column.mutable_rows_u32()->Add(value.value_.smallint);
                             break;
                         case duckdb::TypeId::INT16:
-                            row.set_i32(value.value_.smallint);
+                            column.mutable_rows_i32()->Add(value.value_.smallint);
                             break;
                         case duckdb::TypeId::UINT32:
-                            row.set_u32(value.value_.integer);
+                            column.mutable_rows_u32()->Add(value.value_.integer);
                             break;
                         case duckdb::TypeId::INT32:
-                            row.set_i32(value.value_.integer);
+                            column.mutable_rows_i32()->Add(value.value_.integer);
                             break;
                         case duckdb::TypeId::UINT64:
-                            row.set_u64(value.value_.bigint);
+                            column.mutable_rows_u64()->Add(value.value_.bigint);
                             break;
                         case duckdb::TypeId::INT64:
-                            row.set_i64(value.value_.bigint);
+                            column.mutable_rows_i64()->Add(value.value_.bigint);
                             break;
                         case duckdb::TypeId::HALF_FLOAT:
-                            row.set_f32(value.value_.smallint);
+                            column.mutable_rows_f32()->Add(value.value_.smallint);
                             break;
                         case duckdb::TypeId::FLOAT:
-                            row.set_f32(value.value_.float_);
+                            column.mutable_rows_f32()->Add(value.value_.float_);
                             break;
                         case duckdb::TypeId::DOUBLE:
-                            row.set_f64(value.value_.double_);
+                            column.mutable_rows_f64()->Add(value.value_.double_);
                             break;
                         case duckdb::TypeId::STRING:
-                            row.set_str(value.str_value);
+                            column.mutable_rows_str()->Add(std::string(value.str_value));
                             break;
                         case duckdb::TypeId::BINARY:
                             // TODO
@@ -257,25 +256,25 @@ namespace tigon {
                             // TODO
                             break;
                         case duckdb::TypeId::DATE32:
-                            row.set_i32(value.value_.integer);
+                            column.mutable_rows_i32()->Add(value.value_.integer);
                             break;
                         case duckdb::TypeId::DATE64:
-                            row.set_i64(value.value_.bigint);
+                            column.mutable_rows_i64()->Add(value.value_.bigint);
                             break;
                         case duckdb::TypeId::TIMESTAMP:
-                            row.set_i64(value.value_.bigint);
+                            column.mutable_rows_i64()->Add(value.value_.bigint);
                             break;
                         case duckdb::TypeId::TIME32:
-                            row.set_i64(value.value_.integer);
+                            column.mutable_rows_i64()->Add(value.value_.integer);
                             break;
                         case duckdb::TypeId::TIME64:
-                            row.set_i64(value.value_.bigint);
+                            column.mutable_rows_i64()->Add(value.value_.bigint);
                             break;
                         case duckdb::TypeId::INTERVAL:
                             // TODO
                             break;
                         case duckdb::TypeId::DECIMAL:
-                            row.set_f64(value.value_.double_);
+                            column.mutable_rows_f64()->Add(value.value_.double_);
                             break;
                         case duckdb::TypeId::LIST:
                             // TODO
@@ -302,7 +301,7 @@ namespace tigon {
                             // TODO
                             break;
                         case duckdb::TypeId::LARGE_STRING:
-                            row.set_str(value.str_value);
+                            column.mutable_rows_str()->Add(std::string(value.str_value));
                             break;
                         case duckdb::TypeId::LARGE_BINARY:
                             // TODO
@@ -311,7 +310,7 @@ namespace tigon {
                             // TODO
                             break;
                         case duckdb::TypeId::VARCHAR:
-                            row.set_str(value.str_value);
+                            column.mutable_rows_str()->Add(std::string(value.str_value));
                             break;
                         case duckdb::TypeId::VARBINARY:
                             // TODO
@@ -329,7 +328,7 @@ namespace tigon {
                 }
             }
 
-            rowCount += chunkSize;
+            rowCount += dataSize;
         }
 
         result.set_column_count(columnCount);

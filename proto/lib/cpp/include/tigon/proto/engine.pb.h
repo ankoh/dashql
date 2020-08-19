@@ -61,12 +61,12 @@ extern QueryPlanDefaultTypeInternal _QueryPlan_default_instance_;
 class QueryResult;
 class QueryResultDefaultTypeInternal;
 extern QueryResultDefaultTypeInternal _QueryResult_default_instance_;
+class QueryResultChunk;
+class QueryResultChunkDefaultTypeInternal;
+extern QueryResultChunkDefaultTypeInternal _QueryResultChunk_default_instance_;
 class QueryResultColumn;
 class QueryResultColumnDefaultTypeInternal;
 extern QueryResultColumnDefaultTypeInternal _QueryResultColumn_default_instance_;
-class QueryResultRow;
-class QueryResultRowDefaultTypeInternal;
-extern QueryResultRowDefaultTypeInternal _QueryResultRow_default_instance_;
 class SQLType;
 class SQLTypeDefaultTypeInternal;
 extern SQLTypeDefaultTypeInternal _SQLType_default_instance_;
@@ -76,8 +76,8 @@ extern SQLTypeDefaultTypeInternal _SQLType_default_instance_;
 PROTOBUF_NAMESPACE_OPEN
 template<> ::tigon::proto::engine::QueryPlan* Arena::CreateMaybeMessage<::tigon::proto::engine::QueryPlan>(Arena*);
 template<> ::tigon::proto::engine::QueryResult* Arena::CreateMaybeMessage<::tigon::proto::engine::QueryResult>(Arena*);
+template<> ::tigon::proto::engine::QueryResultChunk* Arena::CreateMaybeMessage<::tigon::proto::engine::QueryResultChunk>(Arena*);
 template<> ::tigon::proto::engine::QueryResultColumn* Arena::CreateMaybeMessage<::tigon::proto::engine::QueryResultColumn>(Arena*);
-template<> ::tigon::proto::engine::QueryResultRow* Arena::CreateMaybeMessage<::tigon::proto::engine::QueryResultRow>(Arena*);
 template<> ::tigon::proto::engine::SQLType* Arena::CreateMaybeMessage<::tigon::proto::engine::SQLType>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace tigon {
@@ -570,289 +570,6 @@ class QueryPlan :
 };
 // -------------------------------------------------------------------
 
-class QueryResultRow :
-    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.engine.QueryResultRow) */ {
- public:
-  QueryResultRow();
-  virtual ~QueryResultRow();
-
-  QueryResultRow(const QueryResultRow& from);
-  QueryResultRow(QueryResultRow&& from) noexcept
-    : QueryResultRow() {
-    *this = ::std::move(from);
-  }
-
-  inline QueryResultRow& operator=(const QueryResultRow& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline QueryResultRow& operator=(QueryResultRow&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
-    return GetArenaNoVirtual();
-  }
-  inline void* GetMaybeArenaPointer() const final {
-    return MaybeArenaPtr();
-  }
-  static const QueryResultRow& default_instance();
-
-  enum ValueCase {
-    kBool = 1,
-    kI32 = 2,
-    kU32 = 3,
-    kI64 = 4,
-    kU64 = 5,
-    kF32 = 6,
-    kF64 = 7,
-    kStr = 8,
-    VALUE_NOT_SET = 0,
-  };
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const QueryResultRow* internal_default_instance() {
-    return reinterpret_cast<const QueryResultRow*>(
-               &_QueryResultRow_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    2;
-
-  friend void swap(QueryResultRow& a, QueryResultRow& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(QueryResultRow* other) {
-    if (other == this) return;
-    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(QueryResultRow* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline QueryResultRow* New() const final {
-    return CreateMaybeMessage<QueryResultRow>(nullptr);
-  }
-
-  QueryResultRow* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<QueryResultRow>(arena);
-  }
-  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
-    final;
-  void CopyFrom(const QueryResultRow& from);
-  void MergeFrom(const QueryResultRow& from);
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
-      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  void DiscardUnknownFields();
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  inline void SharedCtor();
-  inline void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(QueryResultRow* other);
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "tigon.proto.engine.QueryResultRow";
-  }
-  protected:
-  explicit QueryResultRow(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  static void ArenaDtor(void* object);
-  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  private:
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  std::string GetTypeName() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kBoolFieldNumber = 1,
-    kI32FieldNumber = 2,
-    kU32FieldNumber = 3,
-    kI64FieldNumber = 4,
-    kU64FieldNumber = 5,
-    kF32FieldNumber = 6,
-    kF64FieldNumber = 7,
-    kStrFieldNumber = 8,
-  };
-  // bool bool = 1;
-  private:
-  bool _internal_has_bool_() const;
-  public:
-  void clear_bool_();
-  bool bool_() const;
-  void set_bool_(bool value);
-  private:
-  bool _internal_bool_() const;
-  void _internal_set_bool_(bool value);
-  public:
-
-  // int32 i32 = 2;
-  private:
-  bool _internal_has_i32() const;
-  public:
-  void clear_i32();
-  ::PROTOBUF_NAMESPACE_ID::int32 i32() const;
-  void set_i32(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_i32() const;
-  void _internal_set_i32(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
-  // uint32 u32 = 3;
-  private:
-  bool _internal_has_u32() const;
-  public:
-  void clear_u32();
-  ::PROTOBUF_NAMESPACE_ID::uint32 u32() const;
-  void set_u32(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_u32() const;
-  void _internal_set_u32(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  public:
-
-  // int64 i64 = 4;
-  private:
-  bool _internal_has_i64() const;
-  public:
-  void clear_i64();
-  ::PROTOBUF_NAMESPACE_ID::int64 i64() const;
-  void set_i64(::PROTOBUF_NAMESPACE_ID::int64 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int64 _internal_i64() const;
-  void _internal_set_i64(::PROTOBUF_NAMESPACE_ID::int64 value);
-  public:
-
-  // uint64 u64 = 5;
-  private:
-  bool _internal_has_u64() const;
-  public:
-  void clear_u64();
-  ::PROTOBUF_NAMESPACE_ID::uint64 u64() const;
-  void set_u64(::PROTOBUF_NAMESPACE_ID::uint64 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint64 _internal_u64() const;
-  void _internal_set_u64(::PROTOBUF_NAMESPACE_ID::uint64 value);
-  public:
-
-  // float f32 = 6;
-  private:
-  bool _internal_has_f32() const;
-  public:
-  void clear_f32();
-  float f32() const;
-  void set_f32(float value);
-  private:
-  float _internal_f32() const;
-  void _internal_set_f32(float value);
-  public:
-
-  // double f64 = 7;
-  private:
-  bool _internal_has_f64() const;
-  public:
-  void clear_f64();
-  double f64() const;
-  void set_f64(double value);
-  private:
-  double _internal_f64() const;
-  void _internal_set_f64(double value);
-  public:
-
-  // string str = 8;
-  private:
-  bool _internal_has_str() const;
-  public:
-  void clear_str();
-  const std::string& str() const;
-  void set_str(const std::string& value);
-  void set_str(std::string&& value);
-  void set_str(const char* value);
-  void set_str(const char* value, size_t size);
-  std::string* mutable_str();
-  std::string* release_str();
-  void set_allocated_str(std::string* str);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_str();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_str(
-      std::string* str);
-  private:
-  const std::string& _internal_str() const;
-  void _internal_set_str(const std::string& value);
-  std::string* _internal_mutable_str();
-  public:
-
-  void clear_value();
-  ValueCase value_case() const;
-  // @@protoc_insertion_point(class_scope:tigon.proto.engine.QueryResultRow)
- private:
-  class _Internal;
-  void set_has_bool_();
-  void set_has_i32();
-  void set_has_u32();
-  void set_has_i64();
-  void set_has_u64();
-  void set_has_f32();
-  void set_has_f64();
-  void set_has_str();
-
-  inline bool has_value() const;
-  inline void clear_has_value();
-
-  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  union ValueUnion {
-    ValueUnion() {}
-    bool bool__;
-    ::PROTOBUF_NAMESPACE_ID::int32 i32_;
-    ::PROTOBUF_NAMESPACE_ID::uint32 u32_;
-    ::PROTOBUF_NAMESPACE_ID::int64 i64_;
-    ::PROTOBUF_NAMESPACE_ID::uint64 u64_;
-    float f32_;
-    double f64_;
-    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr str_;
-  } value_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 _oneof_case_[1];
-
-  friend struct ::TableStruct_engine_2eproto;
-};
-// -------------------------------------------------------------------
-
 class QueryResultColumn :
     public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.engine.QueryResultColumn) */ {
  public:
@@ -892,7 +609,7 @@ class QueryResultColumn :
                &_QueryResultColumn_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    2;
 
   friend void swap(QueryResultColumn& a, QueryResultColumn& b) {
     a.Swap(&b);
@@ -964,70 +681,215 @@ class QueryResultColumn :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kRowsFieldNumber = 3,
-    kNameFieldNumber = 1,
-    kTypeFieldNumber = 2,
+    kNullMaskFieldNumber = 1,
+    kRowsBoolFieldNumber = 2,
+    kRowsI32FieldNumber = 3,
+    kRowsU32FieldNumber = 4,
+    kRowsI64FieldNumber = 5,
+    kRowsU64FieldNumber = 6,
+    kRowsF32FieldNumber = 7,
+    kRowsF64FieldNumber = 8,
+    kRowsStrFieldNumber = 9,
   };
-  // repeated .tigon.proto.engine.QueryResultRow rows = 3;
-  int rows_size() const;
+  // repeated bool null_mask = 1;
+  int null_mask_size() const;
   private:
-  int _internal_rows_size() const;
+  int _internal_null_mask_size() const;
   public:
-  void clear_rows();
-  ::tigon::proto::engine::QueryResultRow* mutable_rows(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultRow >*
-      mutable_rows();
+  void clear_null_mask();
   private:
-  const ::tigon::proto::engine::QueryResultRow& _internal_rows(int index) const;
-  ::tigon::proto::engine::QueryResultRow* _internal_add_rows();
+  bool _internal_null_mask(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< bool >&
+      _internal_null_mask() const;
+  void _internal_add_null_mask(bool value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< bool >*
+      _internal_mutable_null_mask();
   public:
-  const ::tigon::proto::engine::QueryResultRow& rows(int index) const;
-  ::tigon::proto::engine::QueryResultRow* add_rows();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultRow >&
-      rows() const;
+  bool null_mask(int index) const;
+  void set_null_mask(int index, bool value);
+  void add_null_mask(bool value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< bool >&
+      null_mask() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< bool >*
+      mutable_null_mask();
 
-  // string name = 1;
-  void clear_name();
-  const std::string& name() const;
-  void set_name(const std::string& value);
-  void set_name(std::string&& value);
-  void set_name(const char* value);
-  void set_name(const char* value, size_t size);
-  std::string* mutable_name();
-  std::string* release_name();
-  void set_allocated_name(std::string* name);
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  std::string* unsafe_arena_release_name();
-  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
-  "    string fields are deprecated and will be removed in a"
-  "    future release.")
-  void unsafe_arena_set_allocated_name(
-      std::string* name);
+  // repeated int32 rows_bool = 2;
+  int rows_bool_size() const;
   private:
-  const std::string& _internal_name() const;
-  void _internal_set_name(const std::string& value);
-  std::string* _internal_mutable_name();
+  int _internal_rows_bool_size() const;
   public:
+  void clear_rows_bool();
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_rows_bool(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >&
+      _internal_rows_bool() const;
+  void _internal_add_rows_bool(::PROTOBUF_NAMESPACE_ID::int32 value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >*
+      _internal_mutable_rows_bool();
+  public:
+  ::PROTOBUF_NAMESPACE_ID::int32 rows_bool(int index) const;
+  void set_rows_bool(int index, ::PROTOBUF_NAMESPACE_ID::int32 value);
+  void add_rows_bool(::PROTOBUF_NAMESPACE_ID::int32 value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >&
+      rows_bool() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >*
+      mutable_rows_bool();
 
-  // .tigon.proto.engine.SQLType type = 2;
-  bool has_type() const;
+  // repeated int32 rows_i32 = 3;
+  int rows_i32_size() const;
   private:
-  bool _internal_has_type() const;
+  int _internal_rows_i32_size() const;
   public:
-  void clear_type();
-  const ::tigon::proto::engine::SQLType& type() const;
-  ::tigon::proto::engine::SQLType* release_type();
-  ::tigon::proto::engine::SQLType* mutable_type();
-  void set_allocated_type(::tigon::proto::engine::SQLType* type);
+  void clear_rows_i32();
   private:
-  const ::tigon::proto::engine::SQLType& _internal_type() const;
-  ::tigon::proto::engine::SQLType* _internal_mutable_type();
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_rows_i32(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >&
+      _internal_rows_i32() const;
+  void _internal_add_rows_i32(::PROTOBUF_NAMESPACE_ID::int32 value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >*
+      _internal_mutable_rows_i32();
   public:
-  void unsafe_arena_set_allocated_type(
-      ::tigon::proto::engine::SQLType* type);
-  ::tigon::proto::engine::SQLType* unsafe_arena_release_type();
+  ::PROTOBUF_NAMESPACE_ID::int32 rows_i32(int index) const;
+  void set_rows_i32(int index, ::PROTOBUF_NAMESPACE_ID::int32 value);
+  void add_rows_i32(::PROTOBUF_NAMESPACE_ID::int32 value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >&
+      rows_i32() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >*
+      mutable_rows_i32();
+
+  // repeated uint32 rows_u32 = 4;
+  int rows_u32_size() const;
+  private:
+  int _internal_rows_u32_size() const;
+  public:
+  void clear_rows_u32();
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_rows_u32(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+      _internal_rows_u32() const;
+  void _internal_add_rows_u32(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+      _internal_mutable_rows_u32();
+  public:
+  ::PROTOBUF_NAMESPACE_ID::uint32 rows_u32(int index) const;
+  void set_rows_u32(int index, ::PROTOBUF_NAMESPACE_ID::uint32 value);
+  void add_rows_u32(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+      rows_u32() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+      mutable_rows_u32();
+
+  // repeated int64 rows_i64 = 5;
+  int rows_i64_size() const;
+  private:
+  int _internal_rows_i64_size() const;
+  public:
+  void clear_rows_i64();
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int64 _internal_rows_i64(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int64 >&
+      _internal_rows_i64() const;
+  void _internal_add_rows_i64(::PROTOBUF_NAMESPACE_ID::int64 value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int64 >*
+      _internal_mutable_rows_i64();
+  public:
+  ::PROTOBUF_NAMESPACE_ID::int64 rows_i64(int index) const;
+  void set_rows_i64(int index, ::PROTOBUF_NAMESPACE_ID::int64 value);
+  void add_rows_i64(::PROTOBUF_NAMESPACE_ID::int64 value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int64 >&
+      rows_i64() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int64 >*
+      mutable_rows_i64();
+
+  // repeated uint64 rows_u64 = 6;
+  int rows_u64_size() const;
+  private:
+  int _internal_rows_u64_size() const;
+  public:
+  void clear_rows_u64();
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint64 _internal_rows_u64(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 >&
+      _internal_rows_u64() const;
+  void _internal_add_rows_u64(::PROTOBUF_NAMESPACE_ID::uint64 value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 >*
+      _internal_mutable_rows_u64();
+  public:
+  ::PROTOBUF_NAMESPACE_ID::uint64 rows_u64(int index) const;
+  void set_rows_u64(int index, ::PROTOBUF_NAMESPACE_ID::uint64 value);
+  void add_rows_u64(::PROTOBUF_NAMESPACE_ID::uint64 value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 >&
+      rows_u64() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 >*
+      mutable_rows_u64();
+
+  // repeated float rows_f32 = 7;
+  int rows_f32_size() const;
+  private:
+  int _internal_rows_f32_size() const;
+  public:
+  void clear_rows_f32();
+  private:
+  float _internal_rows_f32(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< float >&
+      _internal_rows_f32() const;
+  void _internal_add_rows_f32(float value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< float >*
+      _internal_mutable_rows_f32();
+  public:
+  float rows_f32(int index) const;
+  void set_rows_f32(int index, float value);
+  void add_rows_f32(float value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< float >&
+      rows_f32() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< float >*
+      mutable_rows_f32();
+
+  // repeated double rows_f64 = 8;
+  int rows_f64_size() const;
+  private:
+  int _internal_rows_f64_size() const;
+  public:
+  void clear_rows_f64();
+  private:
+  double _internal_rows_f64(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+      _internal_rows_f64() const;
+  void _internal_add_rows_f64(double value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+      _internal_mutable_rows_f64();
+  public:
+  double rows_f64(int index) const;
+  void set_rows_f64(int index, double value);
+  void add_rows_f64(double value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+      rows_f64() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+      mutable_rows_f64();
+
+  // repeated string rows_str = 9;
+  int rows_str_size() const;
+  private:
+  int _internal_rows_str_size() const;
+  public:
+  void clear_rows_str();
+  const std::string& rows_str(int index) const;
+  std::string* mutable_rows_str(int index);
+  void set_rows_str(int index, const std::string& value);
+  void set_rows_str(int index, std::string&& value);
+  void set_rows_str(int index, const char* value);
+  void set_rows_str(int index, const char* value, size_t size);
+  std::string* add_rows_str();
+  void add_rows_str(const std::string& value);
+  void add_rows_str(std::string&& value);
+  void add_rows_str(const char* value);
+  void add_rows_str(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& rows_str() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_rows_str();
+  private:
+  const std::string& _internal_rows_str(int index) const;
+  std::string* _internal_add_rows_str();
+  public:
 
   // @@protoc_insertion_point(class_scope:tigon.proto.engine.QueryResultColumn)
  private:
@@ -1037,9 +899,190 @@ class QueryResultColumn :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultRow > rows_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr name_;
-  ::tigon::proto::engine::SQLType* type_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< bool > null_mask_;
+  mutable std::atomic<int> _null_mask_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 > rows_bool_;
+  mutable std::atomic<int> _rows_bool_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 > rows_i32_;
+  mutable std::atomic<int> _rows_i32_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 > rows_u32_;
+  mutable std::atomic<int> _rows_u32_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int64 > rows_i64_;
+  mutable std::atomic<int> _rows_i64_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 > rows_u64_;
+  mutable std::atomic<int> _rows_u64_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< float > rows_f32_;
+  mutable std::atomic<int> _rows_f32_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< double > rows_f64_;
+  mutable std::atomic<int> _rows_f64_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> rows_str_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_engine_2eproto;
+};
+// -------------------------------------------------------------------
+
+class QueryResultChunk :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:tigon.proto.engine.QueryResultChunk) */ {
+ public:
+  QueryResultChunk();
+  virtual ~QueryResultChunk();
+
+  QueryResultChunk(const QueryResultChunk& from);
+  QueryResultChunk(QueryResultChunk&& from) noexcept
+    : QueryResultChunk() {
+    *this = ::std::move(from);
+  }
+
+  inline QueryResultChunk& operator=(const QueryResultChunk& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline QueryResultChunk& operator=(QueryResultChunk&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const QueryResultChunk& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const QueryResultChunk* internal_default_instance() {
+    return reinterpret_cast<const QueryResultChunk*>(
+               &_QueryResultChunk_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    3;
+
+  friend void swap(QueryResultChunk& a, QueryResultChunk& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(QueryResultChunk* other) {
+    if (other == this) return;
+    if (GetArenaNoVirtual() == other->GetArenaNoVirtual()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(QueryResultChunk* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArenaNoVirtual() == other->GetArenaNoVirtual());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline QueryResultChunk* New() const final {
+    return CreateMaybeMessage<QueryResultChunk>(nullptr);
+  }
+
+  QueryResultChunk* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<QueryResultChunk>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)
+    final;
+  void CopyFrom(const QueryResultChunk& from);
+  void MergeFrom(const QueryResultChunk& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  void DiscardUnknownFields();
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(QueryResultChunk* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "tigon.proto.engine.QueryResultChunk";
+  }
+  protected:
+  explicit QueryResultChunk(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kColumnsFieldNumber = 3,
+    kRowOffsetFieldNumber = 1,
+    kRowCountFieldNumber = 2,
+  };
+  // repeated .tigon.proto.engine.QueryResultColumn columns = 3;
+  int columns_size() const;
+  private:
+  int _internal_columns_size() const;
+  public:
+  void clear_columns();
+  ::tigon::proto::engine::QueryResultColumn* mutable_columns(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultColumn >*
+      mutable_columns();
+  private:
+  const ::tigon::proto::engine::QueryResultColumn& _internal_columns(int index) const;
+  ::tigon::proto::engine::QueryResultColumn* _internal_add_columns();
+  public:
+  const ::tigon::proto::engine::QueryResultColumn& columns(int index) const;
+  ::tigon::proto::engine::QueryResultColumn* add_columns();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultColumn >&
+      columns() const;
+
+  // uint32 row_offset = 1;
+  void clear_row_offset();
+  ::PROTOBUF_NAMESPACE_ID::uint32 row_offset() const;
+  void set_row_offset(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_row_offset() const;
+  void _internal_set_row_offset(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // uint32 row_count = 2;
+  void clear_row_count();
+  ::PROTOBUF_NAMESPACE_ID::uint32 row_count() const;
+  void set_row_count(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_row_count() const;
+  void _internal_set_row_count(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:tigon.proto.engine.QueryResultChunk)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArenaLite _internal_metadata_;
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultColumn > columns_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 row_offset_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 row_count_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_engine_2eproto;
 };
@@ -1156,29 +1199,73 @@ class QueryResult :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kColumnsFieldNumber = 5,
+    kColumnNamesFieldNumber = 5,
+    kColumnSqlTypesFieldNumber = 7,
+    kDataChunksFieldNumber = 8,
     kQueryPlanFieldNumber = 2,
     kQueryIdFieldNumber = 1,
     kColumnCountFieldNumber = 3,
     kRowCountFieldNumber = 4,
   };
-  // repeated .tigon.proto.engine.QueryResultColumn columns = 5;
-  int columns_size() const;
+  // repeated string column_names = 5;
+  int column_names_size() const;
   private:
-  int _internal_columns_size() const;
+  int _internal_column_names_size() const;
   public:
-  void clear_columns();
-  ::tigon::proto::engine::QueryResultColumn* mutable_columns(int index);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultColumn >*
-      mutable_columns();
+  void clear_column_names();
+  const std::string& column_names(int index) const;
+  std::string* mutable_column_names(int index);
+  void set_column_names(int index, const std::string& value);
+  void set_column_names(int index, std::string&& value);
+  void set_column_names(int index, const char* value);
+  void set_column_names(int index, const char* value, size_t size);
+  std::string* add_column_names();
+  void add_column_names(const std::string& value);
+  void add_column_names(std::string&& value);
+  void add_column_names(const char* value);
+  void add_column_names(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& column_names() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_column_names();
   private:
-  const ::tigon::proto::engine::QueryResultColumn& _internal_columns(int index) const;
-  ::tigon::proto::engine::QueryResultColumn* _internal_add_columns();
+  const std::string& _internal_column_names(int index) const;
+  std::string* _internal_add_column_names();
   public:
-  const ::tigon::proto::engine::QueryResultColumn& columns(int index) const;
-  ::tigon::proto::engine::QueryResultColumn* add_columns();
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultColumn >&
-      columns() const;
+
+  // repeated .tigon.proto.engine.SQLType column_sql_types = 7;
+  int column_sql_types_size() const;
+  private:
+  int _internal_column_sql_types_size() const;
+  public:
+  void clear_column_sql_types();
+  ::tigon::proto::engine::SQLType* mutable_column_sql_types(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::SQLType >*
+      mutable_column_sql_types();
+  private:
+  const ::tigon::proto::engine::SQLType& _internal_column_sql_types(int index) const;
+  ::tigon::proto::engine::SQLType* _internal_add_column_sql_types();
+  public:
+  const ::tigon::proto::engine::SQLType& column_sql_types(int index) const;
+  ::tigon::proto::engine::SQLType* add_column_sql_types();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::SQLType >&
+      column_sql_types() const;
+
+  // repeated .tigon.proto.engine.QueryResultChunk data_chunks = 8;
+  int data_chunks_size() const;
+  private:
+  int _internal_data_chunks_size() const;
+  public:
+  void clear_data_chunks();
+  ::tigon::proto::engine::QueryResultChunk* mutable_data_chunks(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultChunk >*
+      mutable_data_chunks();
+  private:
+  const ::tigon::proto::engine::QueryResultChunk& _internal_data_chunks(int index) const;
+  ::tigon::proto::engine::QueryResultChunk* _internal_add_data_chunks();
+  public:
+  const ::tigon::proto::engine::QueryResultChunk& data_chunks(int index) const;
+  ::tigon::proto::engine::QueryResultChunk* add_data_chunks();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultChunk >&
+      data_chunks() const;
 
   // .tigon.proto.engine.QueryPlan query_plan = 2;
   bool has_query_plan() const;
@@ -1233,7 +1320,9 @@ class QueryResult :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultColumn > columns_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> column_names_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::SQLType > column_sql_types_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultChunk > data_chunks_;
   ::tigon::proto::engine::QueryPlan* query_plan_;
   ::PROTOBUF_NAMESPACE_ID::uint32 query_id_;
   ::PROTOBUF_NAMESPACE_ID::uint32 column_count_;
@@ -1537,582 +1626,539 @@ QueryPlan::mutable_operator_types() {
 
 // -------------------------------------------------------------------
 
-// QueryResultRow
-
-// bool bool = 1;
-inline bool QueryResultRow::_internal_has_bool_() const {
-  return value_case() == kBool;
-}
-inline void QueryResultRow::set_has_bool_() {
-  _oneof_case_[0] = kBool;
-}
-inline void QueryResultRow::clear_bool_() {
-  if (_internal_has_bool_()) {
-    value_.bool__ = false;
-    clear_has_value();
-  }
-}
-inline bool QueryResultRow::_internal_bool_() const {
-  if (_internal_has_bool_()) {
-    return value_.bool__;
-  }
-  return false;
-}
-inline void QueryResultRow::_internal_set_bool_(bool value) {
-  if (!_internal_has_bool_()) {
-    clear_value();
-    set_has_bool_();
-  }
-  value_.bool__ = value;
-}
-inline bool QueryResultRow::bool_() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultRow.bool)
-  return _internal_bool_();
-}
-inline void QueryResultRow::set_bool_(bool value) {
-  _internal_set_bool_(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultRow.bool)
-}
-
-// int32 i32 = 2;
-inline bool QueryResultRow::_internal_has_i32() const {
-  return value_case() == kI32;
-}
-inline void QueryResultRow::set_has_i32() {
-  _oneof_case_[0] = kI32;
-}
-inline void QueryResultRow::clear_i32() {
-  if (_internal_has_i32()) {
-    value_.i32_ = 0;
-    clear_has_value();
-  }
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 QueryResultRow::_internal_i32() const {
-  if (_internal_has_i32()) {
-    return value_.i32_;
-  }
-  return 0;
-}
-inline void QueryResultRow::_internal_set_i32(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  if (!_internal_has_i32()) {
-    clear_value();
-    set_has_i32();
-  }
-  value_.i32_ = value;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 QueryResultRow::i32() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultRow.i32)
-  return _internal_i32();
-}
-inline void QueryResultRow::set_i32(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_i32(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultRow.i32)
-}
-
-// uint32 u32 = 3;
-inline bool QueryResultRow::_internal_has_u32() const {
-  return value_case() == kU32;
-}
-inline void QueryResultRow::set_has_u32() {
-  _oneof_case_[0] = kU32;
-}
-inline void QueryResultRow::clear_u32() {
-  if (_internal_has_u32()) {
-    value_.u32_ = 0u;
-    clear_has_value();
-  }
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultRow::_internal_u32() const {
-  if (_internal_has_u32()) {
-    return value_.u32_;
-  }
-  return 0u;
-}
-inline void QueryResultRow::_internal_set_u32(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  if (!_internal_has_u32()) {
-    clear_value();
-    set_has_u32();
-  }
-  value_.u32_ = value;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultRow::u32() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultRow.u32)
-  return _internal_u32();
-}
-inline void QueryResultRow::set_u32(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_u32(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultRow.u32)
-}
-
-// int64 i64 = 4;
-inline bool QueryResultRow::_internal_has_i64() const {
-  return value_case() == kI64;
-}
-inline void QueryResultRow::set_has_i64() {
-  _oneof_case_[0] = kI64;
-}
-inline void QueryResultRow::clear_i64() {
-  if (_internal_has_i64()) {
-    value_.i64_ = PROTOBUF_LONGLONG(0);
-    clear_has_value();
-  }
-}
-inline ::PROTOBUF_NAMESPACE_ID::int64 QueryResultRow::_internal_i64() const {
-  if (_internal_has_i64()) {
-    return value_.i64_;
-  }
-  return PROTOBUF_LONGLONG(0);
-}
-inline void QueryResultRow::_internal_set_i64(::PROTOBUF_NAMESPACE_ID::int64 value) {
-  if (!_internal_has_i64()) {
-    clear_value();
-    set_has_i64();
-  }
-  value_.i64_ = value;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int64 QueryResultRow::i64() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultRow.i64)
-  return _internal_i64();
-}
-inline void QueryResultRow::set_i64(::PROTOBUF_NAMESPACE_ID::int64 value) {
-  _internal_set_i64(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultRow.i64)
-}
-
-// uint64 u64 = 5;
-inline bool QueryResultRow::_internal_has_u64() const {
-  return value_case() == kU64;
-}
-inline void QueryResultRow::set_has_u64() {
-  _oneof_case_[0] = kU64;
-}
-inline void QueryResultRow::clear_u64() {
-  if (_internal_has_u64()) {
-    value_.u64_ = PROTOBUF_ULONGLONG(0);
-    clear_has_value();
-  }
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint64 QueryResultRow::_internal_u64() const {
-  if (_internal_has_u64()) {
-    return value_.u64_;
-  }
-  return PROTOBUF_ULONGLONG(0);
-}
-inline void QueryResultRow::_internal_set_u64(::PROTOBUF_NAMESPACE_ID::uint64 value) {
-  if (!_internal_has_u64()) {
-    clear_value();
-    set_has_u64();
-  }
-  value_.u64_ = value;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint64 QueryResultRow::u64() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultRow.u64)
-  return _internal_u64();
-}
-inline void QueryResultRow::set_u64(::PROTOBUF_NAMESPACE_ID::uint64 value) {
-  _internal_set_u64(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultRow.u64)
-}
-
-// float f32 = 6;
-inline bool QueryResultRow::_internal_has_f32() const {
-  return value_case() == kF32;
-}
-inline void QueryResultRow::set_has_f32() {
-  _oneof_case_[0] = kF32;
-}
-inline void QueryResultRow::clear_f32() {
-  if (_internal_has_f32()) {
-    value_.f32_ = 0;
-    clear_has_value();
-  }
-}
-inline float QueryResultRow::_internal_f32() const {
-  if (_internal_has_f32()) {
-    return value_.f32_;
-  }
-  return 0;
-}
-inline void QueryResultRow::_internal_set_f32(float value) {
-  if (!_internal_has_f32()) {
-    clear_value();
-    set_has_f32();
-  }
-  value_.f32_ = value;
-}
-inline float QueryResultRow::f32() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultRow.f32)
-  return _internal_f32();
-}
-inline void QueryResultRow::set_f32(float value) {
-  _internal_set_f32(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultRow.f32)
-}
-
-// double f64 = 7;
-inline bool QueryResultRow::_internal_has_f64() const {
-  return value_case() == kF64;
-}
-inline void QueryResultRow::set_has_f64() {
-  _oneof_case_[0] = kF64;
-}
-inline void QueryResultRow::clear_f64() {
-  if (_internal_has_f64()) {
-    value_.f64_ = 0;
-    clear_has_value();
-  }
-}
-inline double QueryResultRow::_internal_f64() const {
-  if (_internal_has_f64()) {
-    return value_.f64_;
-  }
-  return 0;
-}
-inline void QueryResultRow::_internal_set_f64(double value) {
-  if (!_internal_has_f64()) {
-    clear_value();
-    set_has_f64();
-  }
-  value_.f64_ = value;
-}
-inline double QueryResultRow::f64() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultRow.f64)
-  return _internal_f64();
-}
-inline void QueryResultRow::set_f64(double value) {
-  _internal_set_f64(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultRow.f64)
-}
-
-// string str = 8;
-inline bool QueryResultRow::_internal_has_str() const {
-  return value_case() == kStr;
-}
-inline void QueryResultRow::set_has_str() {
-  _oneof_case_[0] = kStr;
-}
-inline void QueryResultRow::clear_str() {
-  if (_internal_has_str()) {
-    value_.str_.Destroy(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-        GetArenaNoVirtual());
-    clear_has_value();
-  }
-}
-inline const std::string& QueryResultRow::str() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultRow.str)
-  return _internal_str();
-}
-inline void QueryResultRow::set_str(const std::string& value) {
-  _internal_set_str(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultRow.str)
-}
-inline std::string* QueryResultRow::mutable_str() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.engine.QueryResultRow.str)
-  return _internal_mutable_str();
-}
-inline const std::string& QueryResultRow::_internal_str() const {
-  if (_internal_has_str()) {
-    return value_.str_.Get();
-  }
-  return *&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited();
-}
-inline void QueryResultRow::_internal_set_str(const std::string& value) {
-  if (!_internal_has_str()) {
-    clear_value();
-    set_has_str();
-    value_.str_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  }
-  value_.str_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value,
-      GetArenaNoVirtual());
-}
-inline void QueryResultRow::set_str(std::string&& value) {
-  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultRow.str)
-  if (!_internal_has_str()) {
-    clear_value();
-    set_has_str();
-    value_.str_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  }
-  value_.str_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.engine.QueryResultRow.str)
-}
-inline void QueryResultRow::set_str(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  if (!_internal_has_str()) {
-    clear_value();
-    set_has_str();
-    value_.str_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  }
-  value_.str_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.engine.QueryResultRow.str)
-}
-inline void QueryResultRow::set_str(const char* value,
-                             size_t size) {
-  if (!_internal_has_str()) {
-    clear_value();
-    set_has_str();
-    value_.str_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  }
-  value_.str_.SetLite(
-      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size),
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.engine.QueryResultRow.str)
-}
-inline std::string* QueryResultRow::_internal_mutable_str() {
-  if (!_internal_has_str()) {
-    clear_value();
-    set_has_str();
-    value_.str_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  }
-  return value_.str_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
-}
-inline std::string* QueryResultRow::release_str() {
-  // @@protoc_insertion_point(field_release:tigon.proto.engine.QueryResultRow.str)
-  if (_internal_has_str()) {
-    clear_has_value();
-    return value_.str_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-        GetArenaNoVirtual());
-  } else {
-    return nullptr;
-  }
-}
-inline void QueryResultRow::set_allocated_str(std::string* str) {
-  if (has_value()) {
-    clear_value();
-  }
-  if (str != nullptr) {
-    set_has_str();
-    value_.str_.UnsafeSetDefault(str);
-  }
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.engine.QueryResultRow.str)
-}
-inline std::string* QueryResultRow::unsafe_arena_release_str() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.engine.QueryResultRow.str)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (_internal_has_str()) {
-    clear_has_value();
-    return value_.str_.UnsafeArenaRelease(
-        &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
-  } else {
-    return nullptr;
-  }
-}
-inline void QueryResultRow::unsafe_arena_set_allocated_str(std::string* str) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (!_internal_has_str()) {
-    value_.str_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  }
-  clear_value();
-  if (str) {
-    set_has_str();
-    value_.str_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), str, GetArenaNoVirtual());
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.engine.QueryResultRow.str)
-}
-
-inline bool QueryResultRow::has_value() const {
-  return value_case() != VALUE_NOT_SET;
-}
-inline void QueryResultRow::clear_has_value() {
-  _oneof_case_[0] = VALUE_NOT_SET;
-}
-inline QueryResultRow::ValueCase QueryResultRow::value_case() const {
-  return QueryResultRow::ValueCase(_oneof_case_[0]);
-}
-// -------------------------------------------------------------------
-
 // QueryResultColumn
 
-// string name = 1;
-inline void QueryResultColumn::clear_name() {
-  name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// repeated bool null_mask = 1;
+inline int QueryResultColumn::_internal_null_mask_size() const {
+  return null_mask_.size();
 }
-inline const std::string& QueryResultColumn::name() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.name)
-  return _internal_name();
+inline int QueryResultColumn::null_mask_size() const {
+  return _internal_null_mask_size();
 }
-inline void QueryResultColumn::set_name(const std::string& value) {
-  _internal_set_name(value);
-  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.name)
+inline void QueryResultColumn::clear_null_mask() {
+  null_mask_.Clear();
 }
-inline std::string* QueryResultColumn::mutable_name() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.engine.QueryResultColumn.name)
-  return _internal_mutable_name();
+inline bool QueryResultColumn::_internal_null_mask(int index) const {
+  return null_mask_.Get(index);
 }
-inline const std::string& QueryResultColumn::_internal_name() const {
-  return name_.Get();
+inline bool QueryResultColumn::null_mask(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.null_mask)
+  return _internal_null_mask(index);
 }
-inline void QueryResultColumn::_internal_set_name(const std::string& value) {
-  
-  name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+inline void QueryResultColumn::set_null_mask(int index, bool value) {
+  null_mask_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.null_mask)
 }
-inline void QueryResultColumn::set_name(std::string&& value) {
-  
-  name_.SetLite(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tigon.proto.engine.QueryResultColumn.name)
+inline void QueryResultColumn::_internal_add_null_mask(bool value) {
+  null_mask_.Add(value);
 }
-inline void QueryResultColumn::set_name(const char* value) {
+inline void QueryResultColumn::add_null_mask(bool value) {
+  _internal_add_null_mask(value);
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.null_mask)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< bool >&
+QueryResultColumn::_internal_null_mask() const {
+  return null_mask_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< bool >&
+QueryResultColumn::null_mask() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultColumn.null_mask)
+  return _internal_null_mask();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< bool >*
+QueryResultColumn::_internal_mutable_null_mask() {
+  return &null_mask_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< bool >*
+QueryResultColumn::mutable_null_mask() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultColumn.null_mask)
+  return _internal_mutable_null_mask();
+}
+
+// repeated int32 rows_bool = 2;
+inline int QueryResultColumn::_internal_rows_bool_size() const {
+  return rows_bool_.size();
+}
+inline int QueryResultColumn::rows_bool_size() const {
+  return _internal_rows_bool_size();
+}
+inline void QueryResultColumn::clear_rows_bool() {
+  rows_bool_.Clear();
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 QueryResultColumn::_internal_rows_bool(int index) const {
+  return rows_bool_.Get(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 QueryResultColumn::rows_bool(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.rows_bool)
+  return _internal_rows_bool(index);
+}
+inline void QueryResultColumn::set_rows_bool(int index, ::PROTOBUF_NAMESPACE_ID::int32 value) {
+  rows_bool_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.rows_bool)
+}
+inline void QueryResultColumn::_internal_add_rows_bool(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  rows_bool_.Add(value);
+}
+inline void QueryResultColumn::add_rows_bool(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_add_rows_bool(value);
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.rows_bool)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >&
+QueryResultColumn::_internal_rows_bool() const {
+  return rows_bool_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >&
+QueryResultColumn::rows_bool() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultColumn.rows_bool)
+  return _internal_rows_bool();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >*
+QueryResultColumn::_internal_mutable_rows_bool() {
+  return &rows_bool_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >*
+QueryResultColumn::mutable_rows_bool() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultColumn.rows_bool)
+  return _internal_mutable_rows_bool();
+}
+
+// repeated int32 rows_i32 = 3;
+inline int QueryResultColumn::_internal_rows_i32_size() const {
+  return rows_i32_.size();
+}
+inline int QueryResultColumn::rows_i32_size() const {
+  return _internal_rows_i32_size();
+}
+inline void QueryResultColumn::clear_rows_i32() {
+  rows_i32_.Clear();
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 QueryResultColumn::_internal_rows_i32(int index) const {
+  return rows_i32_.Get(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 QueryResultColumn::rows_i32(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.rows_i32)
+  return _internal_rows_i32(index);
+}
+inline void QueryResultColumn::set_rows_i32(int index, ::PROTOBUF_NAMESPACE_ID::int32 value) {
+  rows_i32_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.rows_i32)
+}
+inline void QueryResultColumn::_internal_add_rows_i32(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  rows_i32_.Add(value);
+}
+inline void QueryResultColumn::add_rows_i32(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_add_rows_i32(value);
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.rows_i32)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >&
+QueryResultColumn::_internal_rows_i32() const {
+  return rows_i32_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >&
+QueryResultColumn::rows_i32() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultColumn.rows_i32)
+  return _internal_rows_i32();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >*
+QueryResultColumn::_internal_mutable_rows_i32() {
+  return &rows_i32_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int32 >*
+QueryResultColumn::mutable_rows_i32() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultColumn.rows_i32)
+  return _internal_mutable_rows_i32();
+}
+
+// repeated uint32 rows_u32 = 4;
+inline int QueryResultColumn::_internal_rows_u32_size() const {
+  return rows_u32_.size();
+}
+inline int QueryResultColumn::rows_u32_size() const {
+  return _internal_rows_u32_size();
+}
+inline void QueryResultColumn::clear_rows_u32() {
+  rows_u32_.Clear();
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultColumn::_internal_rows_u32(int index) const {
+  return rows_u32_.Get(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultColumn::rows_u32(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.rows_u32)
+  return _internal_rows_u32(index);
+}
+inline void QueryResultColumn::set_rows_u32(int index, ::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  rows_u32_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.rows_u32)
+}
+inline void QueryResultColumn::_internal_add_rows_u32(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  rows_u32_.Add(value);
+}
+inline void QueryResultColumn::add_rows_u32(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_add_rows_u32(value);
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.rows_u32)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+QueryResultColumn::_internal_rows_u32() const {
+  return rows_u32_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+QueryResultColumn::rows_u32() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultColumn.rows_u32)
+  return _internal_rows_u32();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+QueryResultColumn::_internal_mutable_rows_u32() {
+  return &rows_u32_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+QueryResultColumn::mutable_rows_u32() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultColumn.rows_u32)
+  return _internal_mutable_rows_u32();
+}
+
+// repeated int64 rows_i64 = 5;
+inline int QueryResultColumn::_internal_rows_i64_size() const {
+  return rows_i64_.size();
+}
+inline int QueryResultColumn::rows_i64_size() const {
+  return _internal_rows_i64_size();
+}
+inline void QueryResultColumn::clear_rows_i64() {
+  rows_i64_.Clear();
+}
+inline ::PROTOBUF_NAMESPACE_ID::int64 QueryResultColumn::_internal_rows_i64(int index) const {
+  return rows_i64_.Get(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::int64 QueryResultColumn::rows_i64(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.rows_i64)
+  return _internal_rows_i64(index);
+}
+inline void QueryResultColumn::set_rows_i64(int index, ::PROTOBUF_NAMESPACE_ID::int64 value) {
+  rows_i64_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.rows_i64)
+}
+inline void QueryResultColumn::_internal_add_rows_i64(::PROTOBUF_NAMESPACE_ID::int64 value) {
+  rows_i64_.Add(value);
+}
+inline void QueryResultColumn::add_rows_i64(::PROTOBUF_NAMESPACE_ID::int64 value) {
+  _internal_add_rows_i64(value);
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.rows_i64)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int64 >&
+QueryResultColumn::_internal_rows_i64() const {
+  return rows_i64_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int64 >&
+QueryResultColumn::rows_i64() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultColumn.rows_i64)
+  return _internal_rows_i64();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int64 >*
+QueryResultColumn::_internal_mutable_rows_i64() {
+  return &rows_i64_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::int64 >*
+QueryResultColumn::mutable_rows_i64() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultColumn.rows_i64)
+  return _internal_mutable_rows_i64();
+}
+
+// repeated uint64 rows_u64 = 6;
+inline int QueryResultColumn::_internal_rows_u64_size() const {
+  return rows_u64_.size();
+}
+inline int QueryResultColumn::rows_u64_size() const {
+  return _internal_rows_u64_size();
+}
+inline void QueryResultColumn::clear_rows_u64() {
+  rows_u64_.Clear();
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint64 QueryResultColumn::_internal_rows_u64(int index) const {
+  return rows_u64_.Get(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint64 QueryResultColumn::rows_u64(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.rows_u64)
+  return _internal_rows_u64(index);
+}
+inline void QueryResultColumn::set_rows_u64(int index, ::PROTOBUF_NAMESPACE_ID::uint64 value) {
+  rows_u64_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.rows_u64)
+}
+inline void QueryResultColumn::_internal_add_rows_u64(::PROTOBUF_NAMESPACE_ID::uint64 value) {
+  rows_u64_.Add(value);
+}
+inline void QueryResultColumn::add_rows_u64(::PROTOBUF_NAMESPACE_ID::uint64 value) {
+  _internal_add_rows_u64(value);
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.rows_u64)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 >&
+QueryResultColumn::_internal_rows_u64() const {
+  return rows_u64_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 >&
+QueryResultColumn::rows_u64() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultColumn.rows_u64)
+  return _internal_rows_u64();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 >*
+QueryResultColumn::_internal_mutable_rows_u64() {
+  return &rows_u64_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint64 >*
+QueryResultColumn::mutable_rows_u64() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultColumn.rows_u64)
+  return _internal_mutable_rows_u64();
+}
+
+// repeated float rows_f32 = 7;
+inline int QueryResultColumn::_internal_rows_f32_size() const {
+  return rows_f32_.size();
+}
+inline int QueryResultColumn::rows_f32_size() const {
+  return _internal_rows_f32_size();
+}
+inline void QueryResultColumn::clear_rows_f32() {
+  rows_f32_.Clear();
+}
+inline float QueryResultColumn::_internal_rows_f32(int index) const {
+  return rows_f32_.Get(index);
+}
+inline float QueryResultColumn::rows_f32(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.rows_f32)
+  return _internal_rows_f32(index);
+}
+inline void QueryResultColumn::set_rows_f32(int index, float value) {
+  rows_f32_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.rows_f32)
+}
+inline void QueryResultColumn::_internal_add_rows_f32(float value) {
+  rows_f32_.Add(value);
+}
+inline void QueryResultColumn::add_rows_f32(float value) {
+  _internal_add_rows_f32(value);
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.rows_f32)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< float >&
+QueryResultColumn::_internal_rows_f32() const {
+  return rows_f32_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< float >&
+QueryResultColumn::rows_f32() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultColumn.rows_f32)
+  return _internal_rows_f32();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< float >*
+QueryResultColumn::_internal_mutable_rows_f32() {
+  return &rows_f32_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< float >*
+QueryResultColumn::mutable_rows_f32() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultColumn.rows_f32)
+  return _internal_mutable_rows_f32();
+}
+
+// repeated double rows_f64 = 8;
+inline int QueryResultColumn::_internal_rows_f64_size() const {
+  return rows_f64_.size();
+}
+inline int QueryResultColumn::rows_f64_size() const {
+  return _internal_rows_f64_size();
+}
+inline void QueryResultColumn::clear_rows_f64() {
+  rows_f64_.Clear();
+}
+inline double QueryResultColumn::_internal_rows_f64(int index) const {
+  return rows_f64_.Get(index);
+}
+inline double QueryResultColumn::rows_f64(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.rows_f64)
+  return _internal_rows_f64(index);
+}
+inline void QueryResultColumn::set_rows_f64(int index, double value) {
+  rows_f64_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.rows_f64)
+}
+inline void QueryResultColumn::_internal_add_rows_f64(double value) {
+  rows_f64_.Add(value);
+}
+inline void QueryResultColumn::add_rows_f64(double value) {
+  _internal_add_rows_f64(value);
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.rows_f64)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+QueryResultColumn::_internal_rows_f64() const {
+  return rows_f64_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+QueryResultColumn::rows_f64() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultColumn.rows_f64)
+  return _internal_rows_f64();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+QueryResultColumn::_internal_mutable_rows_f64() {
+  return &rows_f64_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+QueryResultColumn::mutable_rows_f64() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultColumn.rows_f64)
+  return _internal_mutable_rows_f64();
+}
+
+// repeated string rows_str = 9;
+inline int QueryResultColumn::_internal_rows_str_size() const {
+  return rows_str_.size();
+}
+inline int QueryResultColumn::rows_str_size() const {
+  return _internal_rows_str_size();
+}
+inline void QueryResultColumn::clear_rows_str() {
+  rows_str_.Clear();
+}
+inline std::string* QueryResultColumn::add_rows_str() {
+  // @@protoc_insertion_point(field_add_mutable:tigon.proto.engine.QueryResultColumn.rows_str)
+  return _internal_add_rows_str();
+}
+inline const std::string& QueryResultColumn::_internal_rows_str(int index) const {
+  return rows_str_.Get(index);
+}
+inline const std::string& QueryResultColumn::rows_str(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.rows_str)
+  return _internal_rows_str(index);
+}
+inline std::string* QueryResultColumn::mutable_rows_str(int index) {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.engine.QueryResultColumn.rows_str)
+  return rows_str_.Mutable(index);
+}
+inline void QueryResultColumn::set_rows_str(int index, const std::string& value) {
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.rows_str)
+  rows_str_.Mutable(index)->assign(value);
+}
+inline void QueryResultColumn::set_rows_str(int index, std::string&& value) {
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultColumn.rows_str)
+  rows_str_.Mutable(index)->assign(std::move(value));
+}
+inline void QueryResultColumn::set_rows_str(int index, const char* value) {
   GOOGLE_DCHECK(value != nullptr);
-  
-  name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
-              GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tigon.proto.engine.QueryResultColumn.name)
+  rows_str_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:tigon.proto.engine.QueryResultColumn.rows_str)
 }
-inline void QueryResultColumn::set_name(const char* value,
-    size_t size) {
-  
-  name_.SetLite(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
-      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tigon.proto.engine.QueryResultColumn.name)
+inline void QueryResultColumn::set_rows_str(int index, const char* value, size_t size) {
+  rows_str_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.engine.QueryResultColumn.rows_str)
 }
-inline std::string* QueryResultColumn::_internal_mutable_name() {
-  
-  return name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+inline std::string* QueryResultColumn::_internal_add_rows_str() {
+  return rows_str_.Add();
 }
-inline std::string* QueryResultColumn::release_name() {
-  // @@protoc_insertion_point(field_release:tigon.proto.engine.QueryResultColumn.name)
-  
-  return name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+inline void QueryResultColumn::add_rows_str(const std::string& value) {
+  rows_str_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.rows_str)
 }
-inline void QueryResultColumn::set_allocated_name(std::string* name) {
-  if (name != nullptr) {
-    
-  } else {
-    
-  }
-  name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), name,
-      GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.engine.QueryResultColumn.name)
+inline void QueryResultColumn::add_rows_str(std::string&& value) {
+  rows_str_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.rows_str)
 }
-inline std::string* QueryResultColumn::unsafe_arena_release_name() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tigon.proto.engine.QueryResultColumn.name)
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  
-  return name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      GetArenaNoVirtual());
+inline void QueryResultColumn::add_rows_str(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  rows_str_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:tigon.proto.engine.QueryResultColumn.rows_str)
 }
-inline void QueryResultColumn::unsafe_arena_set_allocated_name(
-    std::string* name) {
-  GOOGLE_DCHECK(GetArenaNoVirtual() != nullptr);
-  if (name != nullptr) {
-    
-  } else {
-    
-  }
-  name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      name, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.engine.QueryResultColumn.name)
+inline void QueryResultColumn::add_rows_str(const char* value, size_t size) {
+  rows_str_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:tigon.proto.engine.QueryResultColumn.rows_str)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+QueryResultColumn::rows_str() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultColumn.rows_str)
+  return rows_str_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+QueryResultColumn::mutable_rows_str() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultColumn.rows_str)
+  return &rows_str_;
 }
 
-// .tigon.proto.engine.SQLType type = 2;
-inline bool QueryResultColumn::_internal_has_type() const {
-  return this != internal_default_instance() && type_ != nullptr;
+// -------------------------------------------------------------------
+
+// QueryResultChunk
+
+// uint32 row_offset = 1;
+inline void QueryResultChunk::clear_row_offset() {
+  row_offset_ = 0u;
 }
-inline bool QueryResultColumn::has_type() const {
-  return _internal_has_type();
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultChunk::_internal_row_offset() const {
+  return row_offset_;
 }
-inline void QueryResultColumn::clear_type() {
-  if (GetArenaNoVirtual() == nullptr && type_ != nullptr) {
-    delete type_;
-  }
-  type_ = nullptr;
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultChunk::row_offset() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultChunk.row_offset)
+  return _internal_row_offset();
 }
-inline const ::tigon::proto::engine::SQLType& QueryResultColumn::_internal_type() const {
-  const ::tigon::proto::engine::SQLType* p = type_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::engine::SQLType*>(
-      &::tigon::proto::engine::_SQLType_default_instance_);
-}
-inline const ::tigon::proto::engine::SQLType& QueryResultColumn::type() const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.type)
-  return _internal_type();
-}
-inline ::tigon::proto::engine::SQLType* QueryResultColumn::release_type() {
-  auto temp = unsafe_arena_release_type();
-  if (GetArenaNoVirtual() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-  return temp;
-}
-inline ::tigon::proto::engine::SQLType* QueryResultColumn::unsafe_arena_release_type() {
-  // @@protoc_insertion_point(field_release:tigon.proto.engine.QueryResultColumn.type)
+inline void QueryResultChunk::_internal_set_row_offset(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   
-  ::tigon::proto::engine::SQLType* temp = type_;
-  type_ = nullptr;
-  return temp;
+  row_offset_ = value;
 }
-inline ::tigon::proto::engine::SQLType* QueryResultColumn::_internal_mutable_type() {
-  
-  if (type_ == nullptr) {
-    auto* p = CreateMaybeMessage<::tigon::proto::engine::SQLType>(GetArenaNoVirtual());
-    type_ = p;
-  }
-  return type_;
-}
-inline ::tigon::proto::engine::SQLType* QueryResultColumn::mutable_type() {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.engine.QueryResultColumn.type)
-  return _internal_mutable_type();
-}
-inline void QueryResultColumn::set_allocated_type(::tigon::proto::engine::SQLType* type) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
-  if (message_arena == nullptr) {
-    delete type_;
-  }
-  if (type) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(type);
-    if (message_arena != submessage_arena) {
-      type = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, type, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  type_ = type;
-  // @@protoc_insertion_point(field_set_allocated:tigon.proto.engine.QueryResultColumn.type)
+inline void QueryResultChunk::set_row_offset(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_row_offset(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultChunk.row_offset)
 }
 
-// repeated .tigon.proto.engine.QueryResultRow rows = 3;
-inline int QueryResultColumn::_internal_rows_size() const {
-  return rows_.size();
+// uint32 row_count = 2;
+inline void QueryResultChunk::clear_row_count() {
+  row_count_ = 0u;
 }
-inline int QueryResultColumn::rows_size() const {
-  return _internal_rows_size();
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultChunk::_internal_row_count() const {
+  return row_count_;
 }
-inline void QueryResultColumn::clear_rows() {
-  rows_.Clear();
+inline ::PROTOBUF_NAMESPACE_ID::uint32 QueryResultChunk::row_count() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultChunk.row_count)
+  return _internal_row_count();
 }
-inline ::tigon::proto::engine::QueryResultRow* QueryResultColumn::mutable_rows(int index) {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.engine.QueryResultColumn.rows)
-  return rows_.Mutable(index);
+inline void QueryResultChunk::_internal_set_row_count(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  
+  row_count_ = value;
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultRow >*
-QueryResultColumn::mutable_rows() {
-  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultColumn.rows)
-  return &rows_;
+inline void QueryResultChunk::set_row_count(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_row_count(value);
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResultChunk.row_count)
 }
-inline const ::tigon::proto::engine::QueryResultRow& QueryResultColumn::_internal_rows(int index) const {
-  return rows_.Get(index);
+
+// repeated .tigon.proto.engine.QueryResultColumn columns = 3;
+inline int QueryResultChunk::_internal_columns_size() const {
+  return columns_.size();
 }
-inline const ::tigon::proto::engine::QueryResultRow& QueryResultColumn::rows(int index) const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultColumn.rows)
-  return _internal_rows(index);
+inline int QueryResultChunk::columns_size() const {
+  return _internal_columns_size();
 }
-inline ::tigon::proto::engine::QueryResultRow* QueryResultColumn::_internal_add_rows() {
-  return rows_.Add();
+inline void QueryResultChunk::clear_columns() {
+  columns_.Clear();
 }
-inline ::tigon::proto::engine::QueryResultRow* QueryResultColumn::add_rows() {
-  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultColumn.rows)
-  return _internal_add_rows();
+inline ::tigon::proto::engine::QueryResultColumn* QueryResultChunk::mutable_columns(int index) {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.engine.QueryResultChunk.columns)
+  return columns_.Mutable(index);
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultRow >&
-QueryResultColumn::rows() const {
-  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultColumn.rows)
-  return rows_;
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultColumn >*
+QueryResultChunk::mutable_columns() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResultChunk.columns)
+  return &columns_;
+}
+inline const ::tigon::proto::engine::QueryResultColumn& QueryResultChunk::_internal_columns(int index) const {
+  return columns_.Get(index);
+}
+inline const ::tigon::proto::engine::QueryResultColumn& QueryResultChunk::columns(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResultChunk.columns)
+  return _internal_columns(index);
+}
+inline ::tigon::proto::engine::QueryResultColumn* QueryResultChunk::_internal_add_columns() {
+  return columns_.Add();
+}
+inline ::tigon::proto::engine::QueryResultColumn* QueryResultChunk::add_columns() {
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResultChunk.columns)
+  return _internal_add_columns();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultColumn >&
+QueryResultChunk::columns() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResultChunk.columns)
+  return columns_;
 }
 
 // -------------------------------------------------------------------
@@ -2247,43 +2293,156 @@ inline void QueryResult::set_row_count(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResult.row_count)
 }
 
-// repeated .tigon.proto.engine.QueryResultColumn columns = 5;
-inline int QueryResult::_internal_columns_size() const {
-  return columns_.size();
+// repeated string column_names = 5;
+inline int QueryResult::_internal_column_names_size() const {
+  return column_names_.size();
 }
-inline int QueryResult::columns_size() const {
-  return _internal_columns_size();
+inline int QueryResult::column_names_size() const {
+  return _internal_column_names_size();
 }
-inline void QueryResult::clear_columns() {
-  columns_.Clear();
+inline void QueryResult::clear_column_names() {
+  column_names_.Clear();
 }
-inline ::tigon::proto::engine::QueryResultColumn* QueryResult::mutable_columns(int index) {
-  // @@protoc_insertion_point(field_mutable:tigon.proto.engine.QueryResult.columns)
-  return columns_.Mutable(index);
+inline std::string* QueryResult::add_column_names() {
+  // @@protoc_insertion_point(field_add_mutable:tigon.proto.engine.QueryResult.column_names)
+  return _internal_add_column_names();
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultColumn >*
-QueryResult::mutable_columns() {
-  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResult.columns)
-  return &columns_;
+inline const std::string& QueryResult::_internal_column_names(int index) const {
+  return column_names_.Get(index);
 }
-inline const ::tigon::proto::engine::QueryResultColumn& QueryResult::_internal_columns(int index) const {
-  return columns_.Get(index);
+inline const std::string& QueryResult::column_names(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResult.column_names)
+  return _internal_column_names(index);
 }
-inline const ::tigon::proto::engine::QueryResultColumn& QueryResult::columns(int index) const {
-  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResult.columns)
-  return _internal_columns(index);
+inline std::string* QueryResult::mutable_column_names(int index) {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.engine.QueryResult.column_names)
+  return column_names_.Mutable(index);
 }
-inline ::tigon::proto::engine::QueryResultColumn* QueryResult::_internal_add_columns() {
-  return columns_.Add();
+inline void QueryResult::set_column_names(int index, const std::string& value) {
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResult.column_names)
+  column_names_.Mutable(index)->assign(value);
 }
-inline ::tigon::proto::engine::QueryResultColumn* QueryResult::add_columns() {
-  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResult.columns)
-  return _internal_add_columns();
+inline void QueryResult::set_column_names(int index, std::string&& value) {
+  // @@protoc_insertion_point(field_set:tigon.proto.engine.QueryResult.column_names)
+  column_names_.Mutable(index)->assign(std::move(value));
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultColumn >&
-QueryResult::columns() const {
-  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResult.columns)
-  return columns_;
+inline void QueryResult::set_column_names(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  column_names_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:tigon.proto.engine.QueryResult.column_names)
+}
+inline void QueryResult::set_column_names(int index, const char* value, size_t size) {
+  column_names_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:tigon.proto.engine.QueryResult.column_names)
+}
+inline std::string* QueryResult::_internal_add_column_names() {
+  return column_names_.Add();
+}
+inline void QueryResult::add_column_names(const std::string& value) {
+  column_names_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResult.column_names)
+}
+inline void QueryResult::add_column_names(std::string&& value) {
+  column_names_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResult.column_names)
+}
+inline void QueryResult::add_column_names(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  column_names_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:tigon.proto.engine.QueryResult.column_names)
+}
+inline void QueryResult::add_column_names(const char* value, size_t size) {
+  column_names_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:tigon.proto.engine.QueryResult.column_names)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+QueryResult::column_names() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResult.column_names)
+  return column_names_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+QueryResult::mutable_column_names() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResult.column_names)
+  return &column_names_;
+}
+
+// repeated .tigon.proto.engine.SQLType column_sql_types = 7;
+inline int QueryResult::_internal_column_sql_types_size() const {
+  return column_sql_types_.size();
+}
+inline int QueryResult::column_sql_types_size() const {
+  return _internal_column_sql_types_size();
+}
+inline void QueryResult::clear_column_sql_types() {
+  column_sql_types_.Clear();
+}
+inline ::tigon::proto::engine::SQLType* QueryResult::mutable_column_sql_types(int index) {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.engine.QueryResult.column_sql_types)
+  return column_sql_types_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::SQLType >*
+QueryResult::mutable_column_sql_types() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResult.column_sql_types)
+  return &column_sql_types_;
+}
+inline const ::tigon::proto::engine::SQLType& QueryResult::_internal_column_sql_types(int index) const {
+  return column_sql_types_.Get(index);
+}
+inline const ::tigon::proto::engine::SQLType& QueryResult::column_sql_types(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResult.column_sql_types)
+  return _internal_column_sql_types(index);
+}
+inline ::tigon::proto::engine::SQLType* QueryResult::_internal_add_column_sql_types() {
+  return column_sql_types_.Add();
+}
+inline ::tigon::proto::engine::SQLType* QueryResult::add_column_sql_types() {
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResult.column_sql_types)
+  return _internal_add_column_sql_types();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::SQLType >&
+QueryResult::column_sql_types() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResult.column_sql_types)
+  return column_sql_types_;
+}
+
+// repeated .tigon.proto.engine.QueryResultChunk data_chunks = 8;
+inline int QueryResult::_internal_data_chunks_size() const {
+  return data_chunks_.size();
+}
+inline int QueryResult::data_chunks_size() const {
+  return _internal_data_chunks_size();
+}
+inline void QueryResult::clear_data_chunks() {
+  data_chunks_.Clear();
+}
+inline ::tigon::proto::engine::QueryResultChunk* QueryResult::mutable_data_chunks(int index) {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.engine.QueryResult.data_chunks)
+  return data_chunks_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultChunk >*
+QueryResult::mutable_data_chunks() {
+  // @@protoc_insertion_point(field_mutable_list:tigon.proto.engine.QueryResult.data_chunks)
+  return &data_chunks_;
+}
+inline const ::tigon::proto::engine::QueryResultChunk& QueryResult::_internal_data_chunks(int index) const {
+  return data_chunks_.Get(index);
+}
+inline const ::tigon::proto::engine::QueryResultChunk& QueryResult::data_chunks(int index) const {
+  // @@protoc_insertion_point(field_get:tigon.proto.engine.QueryResult.data_chunks)
+  return _internal_data_chunks(index);
+}
+inline ::tigon::proto::engine::QueryResultChunk* QueryResult::_internal_add_data_chunks() {
+  return data_chunks_.Add();
+}
+inline ::tigon::proto::engine::QueryResultChunk* QueryResult::add_data_chunks() {
+  // @@protoc_insertion_point(field_add:tigon.proto.engine.QueryResult.data_chunks)
+  return _internal_add_data_chunks();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::tigon::proto::engine::QueryResultChunk >&
+QueryResult::data_chunks() const {
+  // @@protoc_insertion_point(field_list:tigon.proto.engine.QueryResult.data_chunks)
+  return data_chunks_;
 }
 
 #ifdef __GNUC__

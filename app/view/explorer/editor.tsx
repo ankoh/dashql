@@ -117,9 +117,15 @@ class Editor extends React.Component<Props, State> {
         await controller.editor.evaluate(value);
     };
 
+    handleRun = async () => {
+        const { controller } = this.props.appContext;
+
+        await controller.interpreter.eval(this.props.module);
+    };
+
     render() {
         return (
-            <div ref={ref => (this.ref = ref)} style={{ minHeight: 400 }}>
+            <div className={styles.editor} ref={ref => (this.ref = ref)}>
                 <MonacoEditor
                     editorWillMount={this.editorWillMount}
                     editorDidMount={this.editorDidMount}
@@ -135,12 +141,16 @@ class Editor extends React.Component<Props, State> {
                     }}
                     onChange={this.handleChange}
                 />
+                <button className={styles.run_button} onClick={this.handleRun}>
+                    ▶
+                </button>
             </div>
         );
     }
 }
 
 const mapStateToProps = (state: RootState) => ({
+    module: state.tqlModule,
     getHighlights: state.tqlGetHighlights,
 });
 
