@@ -50,4 +50,7 @@ $CELL_COLOR_HEADERS: rgb(245, 245, 245);
     text-align: center;
     line-height: 24px;
     padding: 0 8px 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
