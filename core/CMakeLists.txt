@@ -135,6 +135,7 @@ if(EMSCRIPTEN)
         LINK_FLAGS "\
             -s ENVIRONMENT='web,worker' \
             -s USE_PTHREADS=1 \
+            -s TOTAL_MEMORY=2097088KB \
             -Wl,--shared-memory,--no-check-features \
             -s DISABLE_EXCEPTION_CATCHING=0 \
             -s ASSERTIONS=1 \
