@@ -170,11 +170,11 @@ statement_list:
     ;
 
 statement:
-    extract_statement       { $$ = $1; }
-  | viz_statement           { $$ = $1; }
+    parameter_declaration   { $$ = $1; }
   | load_statement          { $$ = $1; }
-  | parameter_declaration   { $$ = $1; }
+  | extract_statement       { $$ = $1; }
   | query_statement         { $$ = $1; }
+  | viz_statement           { $$ = $1; }
     ;
 
 parameter_declaration:
@@ -272,16 +272,6 @@ parameter_type:
   | FILE        { $$ = ParameterType { locate(@1), ParameterType::Type::File }; }
     ;
 
-query_statement:
-    QUERY identifier AS sql_literal { $$ = QueryStatement { locate(@1, @4), $2, $4 }; }
-  | sql_literal                     { $$ = QueryStatement { locate(@1, @1), {}, $1 }; }
-    ;
-
-sql_literal:
-    SQL_SELECT  { $$ = String { locate(@1), $1 }; }
-  | SQL_WITH    { $$ = String { locate(@1), $1 }; }
-    ;
-
 load_statement:
     LOAD identifier FROM load_method    { $$ = LoadStatement { locate(@1, @4), $2, $4 }; }
     ;
@@ -317,6 +307,16 @@ extract_statement:
 extract_method:
     CSV LEFT_ROUND_BRACKETS RIGHT_ROUND_BRACKETS    { $$ = ExtractStatement::CSVExtract { locate(@1, @3) }; }
   | JSON LEFT_ROUND_BRACKETS RIGHT_ROUND_BRACKETS   { $$ = ExtractStatement::JSONPathExtract { locate(@1, @3) }; }
+    ;
+
+query_statement:
+    QUERY identifier AS sql_literal { $$ = QueryStatement { locate(@1, @4), $2, $4 }; }
+  | sql_literal                     { $$ = QueryStatement { locate(@1, @1), {}, $1 }; }
+    ;
+
+sql_literal:
+    SQL_SELECT  { $$ = String { locate(@1), $1 }; }
+  | SQL_WITH    { $$ = String { locate(@1), $1 }; }
     ;
 
 viz_statement:
