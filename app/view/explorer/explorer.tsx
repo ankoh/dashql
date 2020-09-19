@@ -43,9 +43,7 @@ class Explorer extends React.Component {
             <div className={styles.explorer}>
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />
-                    <div className={styles.editor}>
-                        <Editor />
-                    </div>
+                    <Editor />
                 </div>
                 <div className={styles.topbar}>
                     <div className={styles.topbar_actionset}>

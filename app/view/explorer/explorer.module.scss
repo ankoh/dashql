@@ -86,6 +86,8 @@ $topbar_background: rgb(46, 46, 46);
 }
 
 .board {
+    display: flex;
+    flex-flow: column;
     position: relative;
 
     grid-row: 2;
@@ -195,12 +197,4 @@ $topbar_background: rgb(46, 46, 46);
             fill: rgb(166, 166, 166);
         }
     }
-}
-
-.editor {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    padding: 0 1px 0 30px;
 }
