@@ -92,7 +92,17 @@ using namespace tigon::tql::scanner;
 %{
 // Code run each time a token is matched.
 // We just update the location of the token.
-#define YY_USER_ACTION  { loc.columns(tql_leng); parser_offset += tql_leng; }
+#define YY_USER_ACTION { \
+    auto token_text = in.substr(parser_offset, tql_leng); \
+    for (const char& c : token_text) { \
+        if (c == '\n') { \
+            loc.lines(1); \
+        } else { \
+            loc.columns(1); \
+        } \
+    } \
+    parser_offset += tql_leng; \
+}
 %}
 
 %%
@@ -203,8 +213,8 @@ with[^;]*               { return Parser::make_SQL_WITH(getTokenText(), loc); }
                             return Parser::make_INTEGER_LITERAL(value, loc);
                         }
 
-[ \t]+  { loc.step(); }
-\n      { loc.lines(1); loc.step(); }
+[ \t\r]+    { loc.step(); }
+\n          { loc.step(); }
 
 <<EOF>> { return Parser::make_EOF(loc); }
 .       {
