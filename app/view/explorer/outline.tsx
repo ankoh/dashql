@@ -85,7 +85,7 @@ class Outline extends React.Component<Props, State> {
         lastViz = this.getSectionIndex(lastQuery, lastViz);
 
         return (
-            <Section title="TQL Program">
+            <Section title="Dashboard Program">
                 <OutlineSubsection
                     title="Parameters"
                     indices={parameters}
