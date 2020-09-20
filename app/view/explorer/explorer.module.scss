@@ -86,9 +86,9 @@ $topbar_background: rgb(46, 46, 46);
 }
 
 .board {
+    position: relative;
     display: flex;
     flex-flow: column;
-    position: relative;
 
     grid-row: 2;
     grid-column: 3;

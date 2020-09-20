@@ -2,92 +2,73 @@
 
 .container {
     display: grid;
-    grid-template-rows: auto;
-    grid-template-columns: repeat(12, auto);
-    grid-gap: 20px 20px;
-
-    box-sizing: border-box;
-    height: 100%;
-    width: 100%;
+    grid-auto-rows: 2rem;
+    grid-template-columns: repeat(12, 1fr);
+    grid-gap: 1rem 1rem;
 }
 
-.viz {
-    height: 220px;
+.viz_card {
+    background: rgb(255, 255, 255);
+    border-radius: $THEME_BORDER_RADIUS;
+    box-shadow: $THEME_BOX_SHADOW_LEVEL_1;
 
     display: grid;
-    grid-template-rows: 32px auto;
+    grid-template-rows: 2rem auto;
 
-    &_id {
-        line-height: 32px;
-        padding: 0px 12px;
-        font-size: 0.7em;
-        font-weight: 500;
-        color: rgb(170, 170, 170);
-    }
-
-    &_card {
-        background: rgb(255, 255, 255);
-        border-radius: $THEME_BORDER_RADIUS;
-        box-shadow: $THEME_BOX_SHADOW_LEVEL_1;
+    &_header {
+        grid-row: 1;
 
         display: grid;
-        grid-template-rows: 32px auto;
+        grid-template-columns: auto 2rem 2rem 2rem;
 
-        &_header {
-            grid-row: 1;
+        border-bottom: 1px solid rgb(225, 225, 225);
+    }
 
-            display: grid;
-            grid-template-columns: auto 32px 32px 32px;
+    &_title {
+        grid-row: 1;
+        grid-column: 1;
 
-            border-bottom: 1px solid rgb(225, 225, 225);
+        line-height: 32px;
+        font-size: 0.75em;
+        padding: 0px 12px;
+    }
+
+    &_action_refresh {
+        grid-row: 1;
+        grid-column: 2;
+        display: grid;
+    }
+
+    &_action_edit {
+        grid-row: 1;
+        grid-column: 3;
+        display: grid;
+    }
+
+    &_action_delete {
+        grid-row: 1;
+        grid-column: 4;
+        display: grid;
+    }
+
+    &_action_icon {
+        justify-self: center;
+        align-self: center;
+
+        g {
+            fill: rgb(166, 166, 166);
         }
 
-        &_title {
-            grid-row: 1;
-            grid-column: 1;
-
-            line-height: 32px;
-            font-size: 0.75em;
-            padding: 0px 12px;
+        path {
+            fill: rgb(166, 166, 166);
         }
 
-        &_action_refresh {
-            grid-row: 1;
-            grid-column: 2;
-            display: grid;
+        circle {
+            fill: rgb(166, 166, 166);
         }
+    }
 
-        &_action_edit {
-            grid-row: 1;
-            grid-column: 3;
-            display: grid;
-        }
-
-        &_action_delete {
-            grid-row: 1;
-            grid-column: 4;
-            display: grid;
-        }
-
-        &_action_icon {
-            justify-self: center;
-            align-self: center;
-
-            g {
-                fill: rgb(166, 166, 166);
-            }
-
-            path {
-                fill: rgb(166, 166, 166);
-            }
-
-            circle {
-                fill: rgb(166, 166, 166);
-            }
-        }
-
-        &_body {
-            grid-row: 2;
-        }
+    &_body {
+        grid-row: 2;
     }
 }

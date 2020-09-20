@@ -62,6 +62,10 @@ class Arguments extends React.Component<Props> {
                 );
             });
 
+        if (parameters.length <= 0) {
+            return null;
+        }
+
         return <div className={styles.arguments}>{parameters}</div>;
     }
 }

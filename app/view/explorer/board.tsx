@@ -214,25 +214,27 @@ export class Board extends React.Component<IBoardProps, {}> {
     public render() {
         return (
             <div className={styles.container}>
-                <div className={styles.padded_children}>
-                    <div className={styles.children}>
-                        <Arguments />
-                        <VizGrid sizeClass={Store.SizeClass.LARGE} />
+                <div className={styles.children}>
+                    <div className={styles.ruler_area}>
+                        <div className={styles.content}>
+                            <Arguments />
+                            <VizGrid sizeClass={Store.SizeClass.LARGE} />
+                        </div>
+                        <div className={styles.ruler_top}>
+                            <AutoSizingRuler
+                                orientation={RulerOrientation.Horizontal}
+                                scaleFactor={this.props.scaleFactor}
+                            />
+                        </div>
+                        <div className={styles.ruler_left}>
+                            <AutoSizingRuler
+                                orientation={RulerOrientation.Vertical}
+                                scaleFactor={this.props.scaleFactor}
+                            />
+                        </div>
+                        <div className={styles.ruler_corner} />
                     </div>
                 </div>
-                <div className={styles.ruler_top}>
-                    <AutoSizingRuler
-                        orientation={RulerOrientation.Horizontal}
-                        scaleFactor={this.props.scaleFactor}
-                    />
-                </div>
-                <div className={styles.ruler_left}>
-                    <AutoSizingRuler
-                        orientation={RulerOrientation.Vertical}
-                        scaleFactor={this.props.scaleFactor}
-                    />
-                </div>
-                <div className={styles.ruler_corner} />
             </div>
         );
     }
