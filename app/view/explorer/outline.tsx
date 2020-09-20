@@ -130,7 +130,7 @@ class Outline extends React.Component<Props, State> {
                     ))}
                 </OutlineSubsection>
                 <OutlineSubsection
-                    title="Vizualizations"
+                    title="Visualizations"
                     indices={visualizations}
                     previousSectionIndex={lastQuery}
                     template={`VIZ <name> FROM <name> USING TABLE;`}
