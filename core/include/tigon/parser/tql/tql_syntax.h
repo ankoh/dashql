@@ -42,7 +42,15 @@ namespace tigon {
             Location location;
 
             /// The string
-            std::string_view string;
+            std::string string;
+        };
+
+        struct Boolean {
+            /// The location
+            Location location;
+
+            /// The boolean
+            bool boolean;
         };
 
         /// A parameter type
@@ -114,7 +122,7 @@ namespace tigon {
                     Location location;
 
                     /// The url
-                    std::string_view url;
+                    String url;
                 };
 
                 using Attribute = std::variant<Method, URL>;
@@ -132,7 +140,7 @@ namespace tigon {
                 Location location;
 
                 /// The attributes
-                Attributes attributes;
+                std::optional<Attributes> attributes;
             };
 
             /// A file loader
@@ -166,8 +174,76 @@ namespace tigon {
 
             /// An extractor that uses CSV
             struct CSVExtract {
+                /// An encoding
+                struct Encoding {
+                    /// The location
+                    Location location;
+
+                    /// The encoding
+                    String encoding;
+                };
+
+                /// A header
+                struct Header {
+                    /// The location
+                    Location location;
+
+                    /// The header
+                    std::variant<Boolean, std::vector<String>> header;
+                };
+
+                /// A delimiter
+                struct Delimiter {
+                    /// The location
+                    Location location;
+
+                    /// The delimiter
+                    String delimiter;
+                };
+
+                /// A quote
+                struct Quote {
+                    /// The location
+                    Location location;
+
+                    /// The quote
+                    String quote;
+                };
+
+                /// A date format
+                struct DateFormat {
+                    /// The location
+                    Location location;
+
+                    /// The date format
+                    String date_format;
+                };
+
+                /// A timestamp format
+                struct TimestampFormat {
+                    /// The location
+                    Location location;
+
+                    /// The timestamp format
+                    String timestamp_format;
+                };
+
+                using Attribute = std::variant<Encoding, Header, Delimiter, Quote, DateFormat, TimestampFormat>;
+
+                /// Attributes
+                struct Attributes {
+                    /// The location
+                    Location location;
+
+                    /// The attributes
+                    std::vector<Attribute> attributes;
+                };
+
                 /// The location
                 Location location;
+
+                /// The attributes
+                std::optional<Attributes> attributes;
             };
 
             using ExtractMethod = std::variant<JSONPathExtract, CSVExtract>;

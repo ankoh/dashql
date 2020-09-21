@@ -137,13 +137,18 @@ loc.step();
 "date"          { return Parser::make_DATE(getTokenText(), loc); }
 "datetime"      { return Parser::make_DATETIME(getTokenText(), loc); }
 "declare"       { return Parser::make_DECLARE(getTokenText(), loc); }
+"delimiter"     { return Parser::make_DELIMITER(getTokenText(), loc); }
+"encoding"      { return Parser::make_ENCODING(getTokenText(), loc); }
 "extract"       { return Parser::make_EXTRACT(getTokenText(), loc); }
+"false"         { return Parser::make_FALSE(getTokenText(), loc); }
 "field"         { return Parser::make_FIELD(getTokenText(), loc); }
 "file"          { return Parser::make_FILE(getTokenText(), loc); }
 "float"         { return Parser::make_FLOAT(getTokenText(), loc); }
+"format"        { return Parser::make_FORMAT(getTokenText(), loc); }
 "from"          { return Parser::make_FROM(getTokenText(), loc); }
 "get"           { return Parser::make_GET(getTokenText(), loc); }
 "grid"          { return Parser::make_GRID(getTokenText(), loc); }
+"header"        { return Parser::make_HEADER(getTokenText(), loc); }
 "height"        { return Parser::make_HEIGHT(getTokenText(), loc); }
 "histogram"     { return Parser::make_HISTOGRAM(getTokenText(), loc); }
 "horizontal"    { return Parser::make_HORIZONTAL(getTokenText(), loc); }
@@ -169,6 +174,7 @@ loc.step();
 "put"           { return Parser::make_PUT(getTokenText(), loc); }
 "px"            { return Parser::make_PX(getTokenText(), loc); }
 "query"         { return Parser::make_QUERY(getTokenText(), loc); }
+"quote"         { return Parser::make_QUOTE(getTokenText(), loc); }
 "rgb"           { return Parser::make_RGB(getTokenText(), loc); }
 "scale"         { return Parser::make_SCALE(getTokenText(), loc); }
 "scatter"       { return Parser::make_SCATTER(getTokenText(), loc); }
@@ -178,7 +184,9 @@ loc.step();
 "table"         { return Parser::make_TABLE(getTokenText(), loc); }
 "text"          { return Parser::make_TEXT(getTokenText(), loc); }
 "time"          { return Parser::make_TIME(getTokenText(), loc); }
+"timestamp"     { return Parser::make_TIMESTAMP(getTokenText(), loc); }
 "title"         { return Parser::make_TITLE(getTokenText(), loc); }
+"true"          { return Parser::make_TRUE(getTokenText(), loc); }
 "type"          { return Parser::make_TYPE(getTokenText(), loc); }
 "url"           { return Parser::make_URL(getTokenText(), loc); }
 "using"         { return Parser::make_USING(getTokenText(), loc); }
