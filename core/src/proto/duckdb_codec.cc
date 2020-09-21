@@ -4,6 +4,8 @@
 //---------------------------------------------------------------------------
 
 #include "duckdb/common/enums/logical_operator_type.hpp"
+#include "duckdb/common/types/date.hpp"
+#include "duckdb/common/types/timestamp.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "tigon/proto/duckdb_codec.h"
 
@@ -207,121 +209,68 @@ namespace tigon {
                         continue;
                     }
 
-                    switch (value.type) {
-                        case duckdb::TypeId::NA:
+                    switch (type.id) {
+                        case duckdb::SQLTypeId::INVALID:
+                            // TODO
                             break;
-                        case duckdb::TypeId::BOOL:
+                        case duckdb::SQLTypeId::SQLNULL:
+                            // TODO
+                            break;
+                        case duckdb::SQLTypeId::UNKNOWN:
+                            // TODO
+                            break;
+                        case duckdb::SQLTypeId::ANY:
+                            // TODO
+                            break;
+                        case duckdb::SQLTypeId::BOOLEAN:
                             column.mutable_rows_bool()->Add(value.value_.boolean);
                             break;
-                        case duckdb::TypeId::UINT8:
-                            column.mutable_rows_u32()->Add(value.value_.tinyint);
-                            break;
-                        case duckdb::TypeId::INT8:
+                        case duckdb::SQLTypeId::TINYINT:
                             column.mutable_rows_i32()->Add(value.value_.tinyint);
                             break;
-                        case duckdb::TypeId::UINT16:
-                            column.mutable_rows_u32()->Add(value.value_.smallint);
-                            break;
-                        case duckdb::TypeId::INT16:
+                        case duckdb::SQLTypeId::SMALLINT:
                             column.mutable_rows_i32()->Add(value.value_.smallint);
                             break;
-                        case duckdb::TypeId::UINT32:
-                            column.mutable_rows_u32()->Add(value.value_.integer);
-                            break;
-                        case duckdb::TypeId::INT32:
+                        case duckdb::SQLTypeId::INTEGER:
                             column.mutable_rows_i32()->Add(value.value_.integer);
                             break;
-                        case duckdb::TypeId::UINT64:
-                            column.mutable_rows_u64()->Add(value.value_.bigint);
-                            break;
-                        case duckdb::TypeId::INT64:
+                        case duckdb::SQLTypeId::BIGINT:
                             column.mutable_rows_i64()->Add(value.value_.bigint);
                             break;
-                        case duckdb::TypeId::HALF_FLOAT:
-                            column.mutable_rows_f32()->Add(value.value_.smallint);
+                        case duckdb::SQLTypeId::DATE:
+                            column.mutable_rows_i64()->Add(duckdb::Date::Epoch(value.value_.integer));
                             break;
-                        case duckdb::TypeId::FLOAT:
+                        case duckdb::SQLTypeId::TIME:
+                            column.mutable_rows_i32()->Add(value.value_.integer);
+                            break;
+                        case duckdb::SQLTypeId::TIMESTAMP:
+                            column.mutable_rows_i64()->Add(duckdb::Timestamp::GetEpoch(value.value_.bigint));
+                            break;
+                        case duckdb::SQLTypeId::FLOAT:
                             column.mutable_rows_f32()->Add(value.value_.float_);
                             break;
-                        case duckdb::TypeId::DOUBLE:
+                        case duckdb::SQLTypeId::DOUBLE:
                             column.mutable_rows_f64()->Add(value.value_.double_);
                             break;
-                        case duckdb::TypeId::STRING:
+                        case duckdb::SQLTypeId::DECIMAL:
+                            // TODO
+                            break;
+                        case duckdb::SQLTypeId::CHAR:
+                            // TODO
+                            break;
+                        case duckdb::SQLTypeId::VARCHAR:
                             column.mutable_rows_str()->Add(std::string(value.str_value));
                             break;
-                        case duckdb::TypeId::BINARY:
+                        case duckdb::SQLTypeId::VARBINARY:
                             // TODO
                             break;
-                        case duckdb::TypeId::FIXED_SIZE_BINARY:
+                        case duckdb::SQLTypeId::BLOB:
                             // TODO
                             break;
-                        case duckdb::TypeId::DATE32:
-                            column.mutable_rows_i32()->Add(value.value_.integer);
-                            break;
-                        case duckdb::TypeId::DATE64:
-                            column.mutable_rows_i64()->Add(value.value_.bigint);
-                            break;
-                        case duckdb::TypeId::TIMESTAMP:
-                            column.mutable_rows_i64()->Add(value.value_.bigint);
-                            break;
-                        case duckdb::TypeId::TIME32:
-                            column.mutable_rows_i64()->Add(value.value_.integer);
-                            break;
-                        case duckdb::TypeId::TIME64:
-                            column.mutable_rows_i64()->Add(value.value_.bigint);
-                            break;
-                        case duckdb::TypeId::INTERVAL:
+                        case duckdb::SQLTypeId::STRUCT:
                             // TODO
                             break;
-                        case duckdb::TypeId::DECIMAL:
-                            column.mutable_rows_f64()->Add(value.value_.double_);
-                            break;
-                        case duckdb::TypeId::LIST:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::STRUCT:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::UNION:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::DICTIONARY:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::MAP:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::EXTENSION:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::FIXED_SIZE_LIST:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::DURATION:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::LARGE_STRING:
-                            column.mutable_rows_str()->Add(std::string(value.str_value));
-                            break;
-                        case duckdb::TypeId::LARGE_BINARY:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::LARGE_LIST:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::VARCHAR:
-                            column.mutable_rows_str()->Add(std::string(value.str_value));
-                            break;
-                        case duckdb::TypeId::VARBINARY:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::POINTER:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::HASH:
-                            // TODO
-                            break;
-                        case duckdb::TypeId::INVALID:
+                        case duckdb::SQLTypeId::LIST:
                             // TODO
                             break;
                     }

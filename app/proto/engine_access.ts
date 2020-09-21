@@ -128,17 +128,19 @@ export class ChunkedResult {
                 return column.getRowsI64List()[index].toString();
             case proto.engine.SQLTypeID.SQL_DATE: {
                 const formatter = new Intl.DateTimeFormat(navigator.language, {
+                    timeZone: 'UTC',
                     year: 'numeric',
                     month: 'numeric',
                     day: 'numeric',
                 });
 
-                const date = new Date(column.getRowsI32List()[index]);
+                const date = new Date(column.getRowsI64List()[index] * 1000);
 
                 return formatter.format(date);
             }
             case proto.engine.SQLTypeID.SQL_TIME: {
                 const formatter = new Intl.DateTimeFormat(navigator.language, {
+                    timeZone: 'UTC',
                     hour: '2-digit',
                     minute: '2-digit',
                     second: '2-digit',
@@ -149,12 +151,8 @@ export class ChunkedResult {
                 return formatter.format(date);
             }
             case proto.engine.SQLTypeID.SQL_TIMESTAMP: {
-                const value = column.getRowsI64List()[index];
-
-                const dateValue = value >> 32;
-                const timeValue = value & 0xffffffff;
-
                 const formatter = new Intl.DateTimeFormat(navigator.language, {
+                    timeZone: 'UTC',
                     year: 'numeric',
                     month: 'numeric',
                     day: 'numeric',
@@ -163,7 +161,7 @@ export class ChunkedResult {
                     second: '2-digit',
                 });
 
-                const date = new Date(dateValue + timeValue);
+                const date = new Date(column.getRowsI64List()[index] * 1000);
 
                 return formatter.format(date);
             }
