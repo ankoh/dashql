@@ -53,10 +53,11 @@ class Arguments extends React.Component<Props> {
             .filter(isPresent)
             .map(parameter => {
                 const name = parameter.getName()?.getString() ?? '';
+                const label = parameter.getLabel()?.getString() ?? '';
 
                 return (
                     <div className={styles.argument} key={name}>
-                        <span className={styles.argument_name}>{name}:</span>
+                        <span className={styles.argument_name}>{label}:</span>
                         {this.renderInput(parameter)}
                     </div>
                 );

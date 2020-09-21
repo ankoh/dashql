@@ -153,6 +153,11 @@ export class ParameterDeclaration extends jspb.Message {
     getName(): String | undefined;
     setName(value?: String): void;
 
+    hasLabel(): boolean;
+    clearLabel(): void;
+    getLabel(): String | undefined;
+    setLabel(value?: String): void;
+
     hasType(): boolean;
     clearType(): void;
     getType(): ParameterType | undefined;
@@ -204,6 +209,7 @@ export namespace ParameterDeclaration {
     export type AsObject = {
         location?: Location.AsObject;
         name?: String.AsObject;
+        label?: String.AsObject;
         type?: ParameterType.AsObject;
         valueI32: number;
         valueI64: number;
@@ -213,10 +219,10 @@ export namespace ParameterDeclaration {
 
     export enum DefaultValueCase {
         DEFAULT_VALUE_NOT_SET = 0,
-        VALUE_I32 = 4,
-        VALUE_I64 = 5,
-        VALUE_F64 = 6,
-        VALUE_STR = 7,
+        VALUE_I32 = 5,
+        VALUE_I64 = 6,
+        VALUE_F64 = 7,
+        VALUE_STR = 8,
     }
 }
 

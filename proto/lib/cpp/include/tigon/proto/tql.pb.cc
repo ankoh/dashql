@@ -1707,6 +1707,8 @@ void ParameterDeclaration::InitAsDefaultInstance() {
       ::tigon::proto::tql::Location::internal_default_instance());
   ::tigon::proto::tql::_ParameterDeclaration_default_instance_._instance.get_mutable()->name_ = const_cast< ::tigon::proto::tql::String*>(
       ::tigon::proto::tql::String::internal_default_instance());
+  ::tigon::proto::tql::_ParameterDeclaration_default_instance_._instance.get_mutable()->label_ = const_cast< ::tigon::proto::tql::String*>(
+      ::tigon::proto::tql::String::internal_default_instance());
   ::tigon::proto::tql::_ParameterDeclaration_default_instance_._instance.get_mutable()->type_ = const_cast< ::tigon::proto::tql::ParameterType*>(
       ::tigon::proto::tql::ParameterType::internal_default_instance());
 }
@@ -1714,6 +1716,7 @@ class ParameterDeclaration::_Internal {
  public:
   static const ::tigon::proto::tql::Location& location(const ParameterDeclaration* msg);
   static const ::tigon::proto::tql::String& name(const ParameterDeclaration* msg);
+  static const ::tigon::proto::tql::String& label(const ParameterDeclaration* msg);
   static const ::tigon::proto::tql::ParameterType& type(const ParameterDeclaration* msg);
 };
 
@@ -1724,6 +1727,10 @@ ParameterDeclaration::_Internal::location(const ParameterDeclaration* msg) {
 const ::tigon::proto::tql::String&
 ParameterDeclaration::_Internal::name(const ParameterDeclaration* msg) {
   return *msg->name_;
+}
+const ::tigon::proto::tql::String&
+ParameterDeclaration::_Internal::label(const ParameterDeclaration* msg) {
+  return *msg->label_;
 }
 const ::tigon::proto::tql::ParameterType&
 ParameterDeclaration::_Internal::type(const ParameterDeclaration* msg) {
@@ -1754,6 +1761,19 @@ void ParameterDeclaration::unsafe_arena_set_allocated_name(
     
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterDeclaration.name)
+}
+void ParameterDeclaration::unsafe_arena_set_allocated_label(
+    ::tigon::proto::tql::String* label) {
+  if (GetArenaNoVirtual() == nullptr) {
+    delete label_;
+  }
+  label_ = label;
+  if (label) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tigon.proto.tql.ParameterDeclaration.label)
 }
 void ParameterDeclaration::unsafe_arena_set_allocated_type(
     ::tigon::proto::tql::ParameterType* type) {
@@ -1793,6 +1813,11 @@ ParameterDeclaration::ParameterDeclaration(const ParameterDeclaration& from)
     name_ = new ::tigon::proto::tql::String(*from.name_);
   } else {
     name_ = nullptr;
+  }
+  if (from._internal_has_label()) {
+    label_ = new ::tigon::proto::tql::String(*from.label_);
+  } else {
+    label_ = nullptr;
   }
   if (from._internal_has_type()) {
     type_ = new ::tigon::proto::tql::ParameterType(*from.type_);
@@ -1841,6 +1866,7 @@ void ParameterDeclaration::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete location_;
   if (this != internal_default_instance()) delete name_;
+  if (this != internal_default_instance()) delete label_;
   if (this != internal_default_instance()) delete type_;
   if (has_default_value()) {
     clear_default_value();
@@ -1904,6 +1930,10 @@ void ParameterDeclaration::Clear() {
     delete name_;
   }
   name_ = nullptr;
+  if (GetArenaNoVirtual() == nullptr && label_ != nullptr) {
+    delete label_;
+  }
+  label_ = nullptr;
   if (GetArenaNoVirtual() == nullptr && type_ != nullptr) {
     delete type_;
   }
@@ -1934,37 +1964,44 @@ const char* ParameterDeclaration::_InternalParse(const char* ptr, ::PROTOBUF_NAM
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .tigon.proto.tql.ParameterType type = 3;
+      // .tigon.proto.tql.String label = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+          ptr = ctx->ParseMessage(_internal_mutable_label(), ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // .tigon.proto.tql.ParameterType type = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_type(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // int32 value_i32 = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
+      // int32 value_i32 = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 40)) {
           _internal_set_value_i32(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // int64 value_i64 = 5;
-      case 5:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 40)) {
+      // int64 value_i64 = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 48)) {
           _internal_set_value_i64(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr));
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // double value_f64 = 6;
-      case 6:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 49)) {
+      // double value_f64 = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 57)) {
           _internal_set_value_f64(::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr));
           ptr += sizeof(double);
         } else goto handle_unusual;
         continue;
-      // string value_str = 7;
-      case 7:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 58)) {
+      // string value_str = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 66)) {
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParserUTF8(_internal_mutable_value_str(), ptr, ctx, nullptr);
           CHK_(ptr);
         } else goto handle_unusual;
@@ -2011,40 +2048,48 @@ failure:
         2, _Internal::name(this), target, stream);
   }
 
-  // .tigon.proto.tql.ParameterType type = 3;
+  // .tigon.proto.tql.String label = 3;
+  if (this->has_label()) {
+    stream->EnsureSpace(&target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        3, _Internal::label(this), target, stream);
+  }
+
+  // .tigon.proto.tql.ParameterType type = 4;
   if (this->has_type()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        3, _Internal::type(this), target, stream);
+        4, _Internal::type(this), target, stream);
   }
 
-  // int32 value_i32 = 4;
+  // int32 value_i32 = 5;
   if (_internal_has_value_i32()) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(4, this->_internal_value_i32(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(5, this->_internal_value_i32(), target);
   }
 
-  // int64 value_i64 = 5;
+  // int64 value_i64 = 6;
   if (_internal_has_value_i64()) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(5, this->_internal_value_i64(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(6, this->_internal_value_i64(), target);
   }
 
-  // double value_f64 = 6;
+  // double value_f64 = 7;
   if (_internal_has_value_f64()) {
     stream->EnsureSpace(&target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteDoubleToArray(6, this->_internal_value_f64(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteDoubleToArray(7, this->_internal_value_f64(), target);
   }
 
-  // string value_str = 7;
+  // string value_str = 8;
   if (_internal_has_value_str()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_value_str().data(), static_cast<int>(this->_internal_value_str().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "tigon.proto.tql.ParameterDeclaration.value_str");
     target = stream->WriteStringMaybeAliased(
-        7, this->_internal_value_str(), target);
+        8, this->_internal_value_str(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -2077,7 +2122,14 @@ size_t ParameterDeclaration::ByteSizeLong() const {
         *name_);
   }
 
-  // .tigon.proto.tql.ParameterType type = 3;
+  // .tigon.proto.tql.String label = 3;
+  if (this->has_label()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *label_);
+  }
+
+  // .tigon.proto.tql.ParameterType type = 4;
   if (this->has_type()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -2085,26 +2137,26 @@ size_t ParameterDeclaration::ByteSizeLong() const {
   }
 
   switch (default_value_case()) {
-    // int32 value_i32 = 4;
+    // int32 value_i32 = 5;
     case kValueI32: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
           this->_internal_value_i32());
       break;
     }
-    // int64 value_i64 = 5;
+    // int64 value_i64 = 6;
     case kValueI64: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64Size(
           this->_internal_value_i64());
       break;
     }
-    // double value_f64 = 6;
+    // double value_f64 = 7;
     case kValueF64: {
       total_size += 1 + 8;
       break;
     }
-    // string value_str = 7;
+    // string value_str = 8;
     case kValueStr: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
@@ -2141,6 +2193,9 @@ void ParameterDeclaration::MergeFrom(const ParameterDeclaration& from) {
   }
   if (from.has_name()) {
     _internal_mutable_name()->::tigon::proto::tql::String::MergeFrom(from._internal_name());
+  }
+  if (from.has_label()) {
+    _internal_mutable_label()->::tigon::proto::tql::String::MergeFrom(from._internal_label());
   }
   if (from.has_type()) {
     _internal_mutable_type()->::tigon::proto::tql::ParameterType::MergeFrom(from._internal_type());
@@ -2184,6 +2239,7 @@ void ParameterDeclaration::InternalSwap(ParameterDeclaration* other) {
   _internal_metadata_.Swap(&other->_internal_metadata_);
   swap(location_, other->location_);
   swap(name_, other->name_);
+  swap(label_, other->label_);
   swap(type_, other->type_);
   swap(default_value_, other->default_value_);
   swap(_oneof_case_[0], other->_oneof_case_[0]);

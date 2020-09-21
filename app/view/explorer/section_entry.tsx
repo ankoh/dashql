@@ -37,7 +37,7 @@ const getName = (module: proto.tql.Module, index: number) => {
 
     switch (statement.getStatementCase()) {
         case proto.tql.Statement.StatementCase.PARAMETER:
-            return statement.getParameter()?.getName();
+            return statement.getParameter()?.getLabel();
         case proto.tql.Statement.StatementCase.LOAD:
             return statement.getLoad()?.getName();
         case proto.tql.Statement.StatementCase.EXTRACT:

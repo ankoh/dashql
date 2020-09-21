@@ -43,6 +43,9 @@ namespace tigon {
                                     // Set name
                                     setString(next->mutable_name(), parameter.name);
 
+                                    // Set label
+                                    setString(next->mutable_label(), parameter.label);
+
                                     // Set type
                                     auto* type = next->mutable_type();
                                     setLocation(type->mutable_location(), parameter.type.location);

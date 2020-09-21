@@ -18,7 +18,7 @@ type Props = {
 
 type State = {};
 
-class OutlineSection extends React.Component<Props, State> {
+class OutlineSubsection extends React.Component<Props, State> {
     getStatementLocation = (module: proto.tql.Module, index: number) => {
         const statement = module.getStatementsList()[index];
 
@@ -134,4 +134,4 @@ const mapStateToProps = (state: RootState) => ({
     module: state.tqlModule,
 });
 
-export default connect(mapStateToProps)(withAppContext(OutlineSection));
+export default connect(mapStateToProps)(withAppContext(OutlineSubsection));

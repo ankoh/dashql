@@ -179,6 +179,7 @@ loc.step();
 "text"          { return Parser::make_TEXT(getTokenText(), loc); }
 "time"          { return Parser::make_TIME(getTokenText(), loc); }
 "title"         { return Parser::make_TITLE(getTokenText(), loc); }
+"type"          { return Parser::make_TYPE(getTokenText(), loc); }
 "url"           { return Parser::make_URL(getTokenText(), loc); }
 "using"         { return Parser::make_USING(getTokenText(), loc); }
 "vertical"      { return Parser::make_VERTICAL(getTokenText(), loc); }

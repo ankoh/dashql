@@ -22,6 +22,7 @@
 %code requires {
 #include <string>
 #include <cstdlib>
+#include <utility>
 #include "tigon/parser/tql/tql_parse_context.h"
 }
 
@@ -127,6 +128,7 @@ Parser::symbol_type tql_lex(ParseContext& context);
 %token <std::string_view>   TEXT        "TEXT keyword"
 %token <std::string_view>   TIME        "TIME keyword"
 %token <std::string_view>   TITLE       "TITLE keyword"
+%token <std::string_view>   TYPE        "TYPE keyword"
 %token <std::string_view>   URL         "URL keyword"
 %token <std::string_view>   USING       "USING keyword"
 %token <std::string_view>   VERTICAL    "VERTICAL keyword"
@@ -151,6 +153,7 @@ Parser::symbol_type tql_lex(ParseContext& context);
 %type <ParameterType>                                       parameter_type;
 %type <QueryStatement>                                      query_statement;
 %type <Statement>                                           statement;
+%type <std::optional<String>>                               alias;
 %type <std::vector<LoadStatement::HTTPLoader::Attribute>>   load_method_http_attribute_list;
 %type <String>                                              identifier;
 %type <String>                                              keyword;
@@ -178,7 +181,7 @@ statement:
     ;
 
 parameter_declaration:
-    DECLARE PARAMETER identifier opt_as parameter_type  { $$ = ParameterDeclaration { locate(@1, @5), $3, $5 }; }
+    DECLARE PARAMETER identifier alias TYPE parameter_type  { $$ = ParameterDeclaration { locate(@1, @6), $4.value_or($3), $3, $6 }; }
     ;
 
 identifier:
@@ -244,6 +247,7 @@ keyword:
   | TEXT        { $$ = String { locate(@1), $1 }; }
   | TIME        { $$ = String { locate(@1), $1 }; }
   | TITLE       { $$ = String { locate(@1), $1 }; }
+  | TYPE        { $$ = String { locate(@1), $1 }; }
   | URL         { $$ = String { locate(@1), $1 }; }
   | USING       { $$ = String { locate(@1), $1 }; }
   | VERTICAL    { $$ = String { locate(@1), $1 }; }
@@ -257,9 +261,9 @@ keyword:
   | Y           { $$ = String { locate(@1), $1 }; }
     ;
 
-opt_as:
-    AS
-  | %empty
+alias:
+    %empty        { $$ = std::nullopt; }
+  | AS identifier { $$ = $2; }
     ;
 
 parameter_type:

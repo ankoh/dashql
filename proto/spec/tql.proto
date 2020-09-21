@@ -44,12 +44,13 @@ message ParameterType {
 message ParameterDeclaration {
     Location location = 1;
     String name = 2;
-    ParameterType type = 3;
+    String label = 3;
+    ParameterType type = 4;
     oneof default_value {
-        int32 value_i32 = 4;
-        int64 value_i64 = 5;
-        double value_f64 = 6;
-        string value_str = 7;
+        int32 value_i32 = 5;
+        int64 value_i64 = 6;
+        double value_f64 = 7;
+        string value_str = 8;
     }
 }
 

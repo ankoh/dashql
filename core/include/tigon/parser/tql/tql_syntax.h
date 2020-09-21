@@ -64,6 +64,9 @@ namespace tigon {
             /// The parameter name
             String name;
 
+            /// The parameter label
+            String label;
+
             /// The parameter type
             ParameterType type;
         };

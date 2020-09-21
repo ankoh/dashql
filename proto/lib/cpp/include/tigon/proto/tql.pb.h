@@ -908,10 +908,10 @@ class ParameterDeclaration :
   static const ParameterDeclaration& default_instance();
 
   enum DefaultValueCase {
-    kValueI32 = 4,
-    kValueI64 = 5,
-    kValueF64 = 6,
-    kValueStr = 7,
+    kValueI32 = 5,
+    kValueI64 = 6,
+    kValueF64 = 7,
+    kValueStr = 8,
     DEFAULT_VALUE_NOT_SET = 0,
   };
 
@@ -995,11 +995,12 @@ class ParameterDeclaration :
   enum : int {
     kLocationFieldNumber = 1,
     kNameFieldNumber = 2,
-    kTypeFieldNumber = 3,
-    kValueI32FieldNumber = 4,
-    kValueI64FieldNumber = 5,
-    kValueF64FieldNumber = 6,
-    kValueStrFieldNumber = 7,
+    kLabelFieldNumber = 3,
+    kTypeFieldNumber = 4,
+    kValueI32FieldNumber = 5,
+    kValueI64FieldNumber = 6,
+    kValueF64FieldNumber = 7,
+    kValueStrFieldNumber = 8,
   };
   // .tigon.proto.tql.Location location = 1;
   bool has_location() const;
@@ -1037,7 +1038,25 @@ class ParameterDeclaration :
       ::tigon::proto::tql::String* name);
   ::tigon::proto::tql::String* unsafe_arena_release_name();
 
-  // .tigon.proto.tql.ParameterType type = 3;
+  // .tigon.proto.tql.String label = 3;
+  bool has_label() const;
+  private:
+  bool _internal_has_label() const;
+  public:
+  void clear_label();
+  const ::tigon::proto::tql::String& label() const;
+  ::tigon::proto::tql::String* release_label();
+  ::tigon::proto::tql::String* mutable_label();
+  void set_allocated_label(::tigon::proto::tql::String* label);
+  private:
+  const ::tigon::proto::tql::String& _internal_label() const;
+  ::tigon::proto::tql::String* _internal_mutable_label();
+  public:
+  void unsafe_arena_set_allocated_label(
+      ::tigon::proto::tql::String* label);
+  ::tigon::proto::tql::String* unsafe_arena_release_label();
+
+  // .tigon.proto.tql.ParameterType type = 4;
   bool has_type() const;
   private:
   bool _internal_has_type() const;
@@ -1055,7 +1074,7 @@ class ParameterDeclaration :
       ::tigon::proto::tql::ParameterType* type);
   ::tigon::proto::tql::ParameterType* unsafe_arena_release_type();
 
-  // int32 value_i32 = 4;
+  // int32 value_i32 = 5;
   private:
   bool _internal_has_value_i32() const;
   public:
@@ -1067,7 +1086,7 @@ class ParameterDeclaration :
   void _internal_set_value_i32(::PROTOBUF_NAMESPACE_ID::int32 value);
   public:
 
-  // int64 value_i64 = 5;
+  // int64 value_i64 = 6;
   private:
   bool _internal_has_value_i64() const;
   public:
@@ -1079,7 +1098,7 @@ class ParameterDeclaration :
   void _internal_set_value_i64(::PROTOBUF_NAMESPACE_ID::int64 value);
   public:
 
-  // double value_f64 = 6;
+  // double value_f64 = 7;
   private:
   bool _internal_has_value_f64() const;
   public:
@@ -1091,7 +1110,7 @@ class ParameterDeclaration :
   void _internal_set_value_f64(double value);
   public:
 
-  // string value_str = 7;
+  // string value_str = 8;
   private:
   bool _internal_has_value_str() const;
   public:
@@ -1138,6 +1157,7 @@ class ParameterDeclaration :
   typedef void DestructorSkippable_;
   ::tigon::proto::tql::Location* location_;
   ::tigon::proto::tql::String* name_;
+  ::tigon::proto::tql::String* label_;
   ::tigon::proto::tql::ParameterType* type_;
   union DefaultValueUnion {
     DefaultValueUnion() {}
@@ -4780,7 +4800,75 @@ inline void ParameterDeclaration::set_allocated_name(::tigon::proto::tql::String
   // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ParameterDeclaration.name)
 }
 
-// .tigon.proto.tql.ParameterType type = 3;
+// .tigon.proto.tql.String label = 3;
+inline bool ParameterDeclaration::_internal_has_label() const {
+  return this != internal_default_instance() && label_ != nullptr;
+}
+inline bool ParameterDeclaration::has_label() const {
+  return _internal_has_label();
+}
+inline void ParameterDeclaration::clear_label() {
+  if (GetArenaNoVirtual() == nullptr && label_ != nullptr) {
+    delete label_;
+  }
+  label_ = nullptr;
+}
+inline const ::tigon::proto::tql::String& ParameterDeclaration::_internal_label() const {
+  const ::tigon::proto::tql::String* p = label_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::tigon::proto::tql::String*>(
+      &::tigon::proto::tql::_String_default_instance_);
+}
+inline const ::tigon::proto::tql::String& ParameterDeclaration::label() const {
+  // @@protoc_insertion_point(field_get:tigon.proto.tql.ParameterDeclaration.label)
+  return _internal_label();
+}
+inline ::tigon::proto::tql::String* ParameterDeclaration::release_label() {
+  auto temp = unsafe_arena_release_label();
+  if (GetArenaNoVirtual() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+  return temp;
+}
+inline ::tigon::proto::tql::String* ParameterDeclaration::unsafe_arena_release_label() {
+  // @@protoc_insertion_point(field_release:tigon.proto.tql.ParameterDeclaration.label)
+  
+  ::tigon::proto::tql::String* temp = label_;
+  label_ = nullptr;
+  return temp;
+}
+inline ::tigon::proto::tql::String* ParameterDeclaration::_internal_mutable_label() {
+  
+  if (label_ == nullptr) {
+    auto* p = CreateMaybeMessage<::tigon::proto::tql::String>(GetArenaNoVirtual());
+    label_ = p;
+  }
+  return label_;
+}
+inline ::tigon::proto::tql::String* ParameterDeclaration::mutable_label() {
+  // @@protoc_insertion_point(field_mutable:tigon.proto.tql.ParameterDeclaration.label)
+  return _internal_mutable_label();
+}
+inline void ParameterDeclaration::set_allocated_label(::tigon::proto::tql::String* label) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == nullptr) {
+    delete label_;
+  }
+  if (label) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(label);
+    if (message_arena != submessage_arena) {
+      label = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, label, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  label_ = label;
+  // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ParameterDeclaration.label)
+}
+
+// .tigon.proto.tql.ParameterType type = 4;
 inline bool ParameterDeclaration::_internal_has_type() const {
   return this != internal_default_instance() && type_ != nullptr;
 }
@@ -4848,7 +4936,7 @@ inline void ParameterDeclaration::set_allocated_type(::tigon::proto::tql::Parame
   // @@protoc_insertion_point(field_set_allocated:tigon.proto.tql.ParameterDeclaration.type)
 }
 
-// int32 value_i32 = 4;
+// int32 value_i32 = 5;
 inline bool ParameterDeclaration::_internal_has_value_i32() const {
   return default_value_case() == kValueI32;
 }
@@ -4883,7 +4971,7 @@ inline void ParameterDeclaration::set_value_i32(::PROTOBUF_NAMESPACE_ID::int32 v
   // @@protoc_insertion_point(field_set:tigon.proto.tql.ParameterDeclaration.value_i32)
 }
 
-// int64 value_i64 = 5;
+// int64 value_i64 = 6;
 inline bool ParameterDeclaration::_internal_has_value_i64() const {
   return default_value_case() == kValueI64;
 }
@@ -4918,7 +5006,7 @@ inline void ParameterDeclaration::set_value_i64(::PROTOBUF_NAMESPACE_ID::int64 v
   // @@protoc_insertion_point(field_set:tigon.proto.tql.ParameterDeclaration.value_i64)
 }
 
-// double value_f64 = 6;
+// double value_f64 = 7;
 inline bool ParameterDeclaration::_internal_has_value_f64() const {
   return default_value_case() == kValueF64;
 }
@@ -4953,7 +5041,7 @@ inline void ParameterDeclaration::set_value_f64(double value) {
   // @@protoc_insertion_point(field_set:tigon.proto.tql.ParameterDeclaration.value_f64)
 }
 
-// string value_str = 7;
+// string value_str = 8;
 inline bool ParameterDeclaration::_internal_has_value_str() const {
   return default_value_case() == kValueStr;
 }

@@ -1351,17 +1351,17 @@ proto.tigon.proto.tql.ParameterType.prototype.setType = function (value) {
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.tigon.proto.tql.ParameterDeclaration.oneofGroups_ = [[4, 5, 6, 7]];
+proto.tigon.proto.tql.ParameterDeclaration.oneofGroups_ = [[5, 6, 7, 8]];
 
 /**
  * @enum {number}
  */
 proto.tigon.proto.tql.ParameterDeclaration.DefaultValueCase = {
     DEFAULT_VALUE_NOT_SET: 0,
-    VALUE_I32: 4,
-    VALUE_I64: 5,
-    VALUE_F64: 6,
-    VALUE_STR: 7,
+    VALUE_I32: 5,
+    VALUE_I64: 6,
+    VALUE_F64: 7,
+    VALUE_STR: 8,
 };
 
 /**
@@ -1417,20 +1417,23 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
                 name:
                     (f = msg.getName()) &&
                     proto.tigon.proto.tql.String.toObject(includeInstance, f),
+                label:
+                    (f = msg.getLabel()) &&
+                    proto.tigon.proto.tql.String.toObject(includeInstance, f),
                 type:
                     (f = msg.getType()) &&
                     proto.tigon.proto.tql.ParameterType.toObject(
                         includeInstance,
                         f,
                     ),
-                valueI32: jspb.Message.getFieldWithDefault(msg, 4, 0),
-                valueI64: jspb.Message.getFieldWithDefault(msg, 5, 0),
+                valueI32: jspb.Message.getFieldWithDefault(msg, 5, 0),
+                valueI64: jspb.Message.getFieldWithDefault(msg, 6, 0),
                 valueF64: jspb.Message.getFloatingPointFieldWithDefault(
                     msg,
-                    6,
+                    7,
                     0.0,
                 ),
-                valueStr: jspb.Message.getFieldWithDefault(msg, 7, ''),
+                valueStr: jspb.Message.getFieldWithDefault(msg, 8, ''),
             };
 
         if (includeInstance) {
@@ -1490,6 +1493,14 @@ proto.tigon.proto.tql.ParameterDeclaration.deserializeBinaryFromReader = functio
                 msg.setName(value);
                 break;
             case 3:
+                var value = new proto.tigon.proto.tql.String();
+                reader.readMessage(
+                    value,
+                    proto.tigon.proto.tql.String.deserializeBinaryFromReader,
+                );
+                msg.setLabel(value);
+                break;
+            case 4:
                 var value = new proto.tigon.proto.tql.ParameterType();
                 reader.readMessage(
                     value,
@@ -1498,19 +1509,19 @@ proto.tigon.proto.tql.ParameterDeclaration.deserializeBinaryFromReader = functio
                 );
                 msg.setType(value);
                 break;
-            case 4:
+            case 5:
                 var value = /** @type {number} */ (reader.readInt32());
                 msg.setValueI32(value);
                 break;
-            case 5:
+            case 6:
                 var value = /** @type {number} */ (reader.readInt64());
                 msg.setValueI64(value);
                 break;
-            case 6:
+            case 7:
                 var value = /** @type {number} */ (reader.readDouble());
                 msg.setValueF64(value);
                 break;
-            case 7:
+            case 8:
                 var value = /** @type {string} */ (reader.readString());
                 msg.setValueStr(value);
                 break;
@@ -1563,29 +1574,37 @@ proto.tigon.proto.tql.ParameterDeclaration.serializeBinaryToWriter = function (
             proto.tigon.proto.tql.String.serializeBinaryToWriter,
         );
     }
-    f = message.getType();
+    f = message.getLabel();
     if (f != null) {
         writer.writeMessage(
             3,
             f,
+            proto.tigon.proto.tql.String.serializeBinaryToWriter,
+        );
+    }
+    f = message.getType();
+    if (f != null) {
+        writer.writeMessage(
+            4,
+            f,
             proto.tigon.proto.tql.ParameterType.serializeBinaryToWriter,
         );
     }
-    f = /** @type {number} */ (jspb.Message.getField(message, 4));
-    if (f != null) {
-        writer.writeInt32(4, f);
-    }
     f = /** @type {number} */ (jspb.Message.getField(message, 5));
     if (f != null) {
-        writer.writeInt64(5, f);
+        writer.writeInt32(5, f);
     }
     f = /** @type {number} */ (jspb.Message.getField(message, 6));
     if (f != null) {
-        writer.writeDouble(6, f);
+        writer.writeInt64(6, f);
     }
-    f = /** @type {string} */ (jspb.Message.getField(message, 7));
+    f = /** @type {number} */ (jspb.Message.getField(message, 7));
     if (f != null) {
-        writer.writeString(7, f);
+        writer.writeDouble(7, f);
+    }
+    f = /** @type {string} */ (jspb.Message.getField(message, 8));
+    if (f != null) {
+        writer.writeString(8, f);
     }
 };
 
@@ -1666,14 +1685,52 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.hasName = function () {
 };
 
 /**
- * optional ParameterType type = 3;
+ * optional String label = 3;
+ * @return {?proto.tigon.proto.tql.String}
+ */
+proto.tigon.proto.tql.ParameterDeclaration.prototype.getLabel = function () {
+    return /** @type{?proto.tigon.proto.tql.String} */ (jspb.Message.getWrapperField(
+        this,
+        proto.tigon.proto.tql.String,
+        3,
+    ));
+};
+
+/**
+ * @param {?proto.tigon.proto.tql.String|undefined} value
+ * @return {!proto.tigon.proto.tql.ParameterDeclaration} returns this
+ */
+proto.tigon.proto.tql.ParameterDeclaration.prototype.setLabel = function (
+    value,
+) {
+    return jspb.Message.setWrapperField(this, 3, value);
+};
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.tigon.proto.tql.ParameterDeclaration} returns this
+ */
+proto.tigon.proto.tql.ParameterDeclaration.prototype.clearLabel = function () {
+    return this.setLabel(undefined);
+};
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.tigon.proto.tql.ParameterDeclaration.prototype.hasLabel = function () {
+    return jspb.Message.getField(this, 3) != null;
+};
+
+/**
+ * optional ParameterType type = 4;
  * @return {?proto.tigon.proto.tql.ParameterType}
  */
 proto.tigon.proto.tql.ParameterDeclaration.prototype.getType = function () {
     return /** @type{?proto.tigon.proto.tql.ParameterType} */ (jspb.Message.getWrapperField(
         this,
         proto.tigon.proto.tql.ParameterType,
-        3,
+        4,
     ));
 };
 
@@ -1684,7 +1741,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.getType = function () {
 proto.tigon.proto.tql.ParameterDeclaration.prototype.setType = function (
     value,
 ) {
-    return jspb.Message.setWrapperField(this, 3, value);
+    return jspb.Message.setWrapperField(this, 4, value);
 };
 
 /**
@@ -1700,15 +1757,15 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.clearType = function () {
  * @return {boolean}
  */
 proto.tigon.proto.tql.ParameterDeclaration.prototype.hasType = function () {
-    return jspb.Message.getField(this, 3) != null;
+    return jspb.Message.getField(this, 4) != null;
 };
 
 /**
- * optional int32 value_i32 = 4;
+ * optional int32 value_i32 = 5;
  * @return {number}
  */
 proto.tigon.proto.tql.ParameterDeclaration.prototype.getValueI32 = function () {
-    return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 4, 0));
+    return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 5, 0));
 };
 
 /**
@@ -1720,7 +1777,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.setValueI32 = function (
 ) {
     return jspb.Message.setOneofField(
         this,
-        4,
+        5,
         proto.tigon.proto.tql.ParameterDeclaration.oneofGroups_[0],
         value,
     );
@@ -1733,7 +1790,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.setValueI32 = function (
 proto.tigon.proto.tql.ParameterDeclaration.prototype.clearValueI32 = function () {
     return jspb.Message.setOneofField(
         this,
-        4,
+        5,
         proto.tigon.proto.tql.ParameterDeclaration.oneofGroups_[0],
         undefined,
     );
@@ -1744,15 +1801,15 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.clearValueI32 = function ()
  * @return {boolean}
  */
 proto.tigon.proto.tql.ParameterDeclaration.prototype.hasValueI32 = function () {
-    return jspb.Message.getField(this, 4) != null;
+    return jspb.Message.getField(this, 5) != null;
 };
 
 /**
- * optional int64 value_i64 = 5;
+ * optional int64 value_i64 = 6;
  * @return {number}
  */
 proto.tigon.proto.tql.ParameterDeclaration.prototype.getValueI64 = function () {
-    return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 5, 0));
+    return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 6, 0));
 };
 
 /**
@@ -1764,7 +1821,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.setValueI64 = function (
 ) {
     return jspb.Message.setOneofField(
         this,
-        5,
+        6,
         proto.tigon.proto.tql.ParameterDeclaration.oneofGroups_[0],
         value,
     );
@@ -1777,7 +1834,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.setValueI64 = function (
 proto.tigon.proto.tql.ParameterDeclaration.prototype.clearValueI64 = function () {
     return jspb.Message.setOneofField(
         this,
-        5,
+        6,
         proto.tigon.proto.tql.ParameterDeclaration.oneofGroups_[0],
         undefined,
     );
@@ -1788,17 +1845,17 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.clearValueI64 = function ()
  * @return {boolean}
  */
 proto.tigon.proto.tql.ParameterDeclaration.prototype.hasValueI64 = function () {
-    return jspb.Message.getField(this, 5) != null;
+    return jspb.Message.getField(this, 6) != null;
 };
 
 /**
- * optional double value_f64 = 6;
+ * optional double value_f64 = 7;
  * @return {number}
  */
 proto.tigon.proto.tql.ParameterDeclaration.prototype.getValueF64 = function () {
     return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(
         this,
-        6,
+        7,
         0.0,
     ));
 };
@@ -1812,7 +1869,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.setValueF64 = function (
 ) {
     return jspb.Message.setOneofField(
         this,
-        6,
+        7,
         proto.tigon.proto.tql.ParameterDeclaration.oneofGroups_[0],
         value,
     );
@@ -1825,7 +1882,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.setValueF64 = function (
 proto.tigon.proto.tql.ParameterDeclaration.prototype.clearValueF64 = function () {
     return jspb.Message.setOneofField(
         this,
-        6,
+        7,
         proto.tigon.proto.tql.ParameterDeclaration.oneofGroups_[0],
         undefined,
     );
@@ -1836,17 +1893,17 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.clearValueF64 = function ()
  * @return {boolean}
  */
 proto.tigon.proto.tql.ParameterDeclaration.prototype.hasValueF64 = function () {
-    return jspb.Message.getField(this, 6) != null;
+    return jspb.Message.getField(this, 7) != null;
 };
 
 /**
- * optional string value_str = 7;
+ * optional string value_str = 8;
  * @return {string}
  */
 proto.tigon.proto.tql.ParameterDeclaration.prototype.getValueStr = function () {
     return /** @type {string} */ (jspb.Message.getFieldWithDefault(
         this,
-        7,
+        8,
         '',
     ));
 };
@@ -1860,7 +1917,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.setValueStr = function (
 ) {
     return jspb.Message.setOneofField(
         this,
-        7,
+        8,
         proto.tigon.proto.tql.ParameterDeclaration.oneofGroups_[0],
         value,
     );
@@ -1873,7 +1930,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.setValueStr = function (
 proto.tigon.proto.tql.ParameterDeclaration.prototype.clearValueStr = function () {
     return jspb.Message.setOneofField(
         this,
-        7,
+        8,
         proto.tigon.proto.tql.ParameterDeclaration.oneofGroups_[0],
         undefined,
     );
@@ -1884,7 +1941,7 @@ proto.tigon.proto.tql.ParameterDeclaration.prototype.clearValueStr = function ()
  * @return {boolean}
  */
 proto.tigon.proto.tql.ParameterDeclaration.prototype.hasValueStr = function () {
-    return jspb.Message.getField(this, 7) != null;
+    return jspb.Message.getField(this, 8) != null;
 };
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
