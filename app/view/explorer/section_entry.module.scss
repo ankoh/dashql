@@ -8,9 +8,9 @@ $border_color: rgb(238, 238, 238);
     }
 
     display: flex;
+    line-height: 1.2em;
+    padding: 0.75em 0 0.75em 0.75em;
     border-top: 1px solid $border_color;
-    padding-left: 8px;
-    line-height: 32px;
     color: rgb(120, 120, 120);
     cursor: pointer;
 
