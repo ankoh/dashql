@@ -89,9 +89,11 @@ export class Table extends React.Component<Props, State> {
                         className={styles.cell_data}
                         style={{ ...props.style }}
                     >
-                        {this.state.result.formatValue(
-                            props.columnIndex - 1,
-                            props.rowIndex - 1,
+                        {String(
+                            this.state.result.getStringValue(
+                                props.columnIndex - 1,
+                                props.rowIndex - 1,
+                            ),
                         )}
                     </div>
                 );
