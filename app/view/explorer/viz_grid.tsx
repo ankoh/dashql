@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 import * as proto from '@tigon/proto';
 import { isPresent } from '../../util/functional';
 import * as Store from '../../store';
-import { ChunkedResult } from '../../proto/engine_access';
 import Table from '../viz/table';
 import ChartViewer from '../viz/chart_viewer';
 
@@ -63,8 +62,11 @@ function VizCard(props: {
     position: GridElement;
 }) {
     let viz: React.ReactElement | null = null;
+
     if (props.data) {
-        switch (props.statement.getVizType()?.getType()) {
+        const type = props.statement.getVizType()?.getType();
+
+        switch (type) {
             case proto.tql.VizTypeType.VIZ_AREA:
             case proto.tql.VizTypeType.VIZ_BAR:
             case proto.tql.VizTypeType.VIZ_BOX:
@@ -76,12 +78,10 @@ function VizCard(props: {
             case proto.tql.VizTypeType.VIZ_PIE:
             case proto.tql.VizTypeType.VIZ_SCATTER:
             case proto.tql.VizTypeType.VIZ_POINT:
-                viz = <ChartViewer />;
+                viz = <ChartViewer data={props.data} type={type} />;
                 break;
             case proto.tql.VizTypeType.VIZ_TABLE:
-                viz = props.data && (
-                    <Table data={new ChunkedResult(props.data)} />
-                );
+                viz = <Table data={props.data} />;
                 break;
             case proto.tql.VizTypeType.VIZ_TEXT:
                 break;

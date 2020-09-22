@@ -85,8 +85,21 @@ export class ChunkedResult {
         return this.rowCount;
     }
 
+    public formatColumn(columnIndex: number): (string | number | null)[] {
+        const result: (string | number | null)[] = [];
+
+        for (let i = 0; i < this.rowCount; i++) {
+            result.push(this.formatValue(columnIndex, i));
+        }
+
+        return result;
+    }
+
     /// Format a value
-    public formatValue(columnIndex: number, rowIndex: number): string | null {
+    public formatValue(
+        columnIndex: number,
+        rowIndex: number,
+    ): string | number | null {
         // Get the chunk
         const chunk = this.findChunk(rowIndex);
 
@@ -117,15 +130,15 @@ export class ChunkedResult {
             case proto.engine.SQLTypeID.SQL_ANY:
                 throw 'SQL_ANY format not implemented!';
             case proto.engine.SQLTypeID.SQL_BOOLEAN:
-                return column.getRowsBoolList()[index].toString();
+                return column.getRowsBoolList()[index];
             case proto.engine.SQLTypeID.SQL_TINYINT:
-                return column.getRowsI32List()[index].toString();
+                return column.getRowsI32List()[index];
             case proto.engine.SQLTypeID.SQL_SMALLINT:
-                return column.getRowsI32List()[index].toString();
+                return column.getRowsI32List()[index];
             case proto.engine.SQLTypeID.SQL_INTEGER:
-                return column.getRowsI32List()[index].toString();
+                return column.getRowsI32List()[index];
             case proto.engine.SQLTypeID.SQL_BIGINT:
-                return column.getRowsI64List()[index].toString();
+                return column.getRowsI64List()[index];
             case proto.engine.SQLTypeID.SQL_DATE: {
                 const formatter = new Intl.DateTimeFormat(navigator.language, {
                     timeZone: 'UTC',
@@ -166,9 +179,9 @@ export class ChunkedResult {
                 return formatter.format(date);
             }
             case proto.engine.SQLTypeID.SQL_FLOAT:
-                return column.getRowsF32List()[index].toString();
+                return column.getRowsF32List()[index];
             case proto.engine.SQLTypeID.SQL_DOUBLE:
-                return column.getRowsF64List()[index].toString();
+                return column.getRowsF64List()[index];
             case proto.engine.SQLTypeID.SQL_DECIMAL:
                 throw 'SQL_DECIMAL format not implemented!';
             case proto.engine.SQLTypeID.SQL_CHAR:

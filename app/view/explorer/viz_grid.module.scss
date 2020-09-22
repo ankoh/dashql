@@ -69,6 +69,8 @@
     }
 
     &_body {
+        display: flex;
+        flex-flow: column;
         grid-row: 2;
     }
 }

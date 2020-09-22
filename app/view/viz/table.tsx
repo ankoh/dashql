@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as proto from '@tigon/proto';
 import { ChunkedResult } from '../../proto/engine_access';
 import { Grid, GridCellProps, Index } from 'react-virtualized';
 import { Scrollbars } from 'react-custom-scrollbars';
@@ -7,12 +8,13 @@ import { withAutoSizer } from '../autosizer';
 import styles from './table.module.scss';
 
 type Props = {
-    data: ChunkedResult;
+    data: proto.engine.QueryResult;
     width: number;
     height: number;
 };
 
 type State = {
+    result: ChunkedResult;
     scrollTop: number;
     scrollLeft: number;
 };
@@ -24,6 +26,7 @@ export class Table extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = {
+            result: new ChunkedResult(props.data),
             scrollTop: 0,
             scrollLeft: 0,
         };
@@ -66,7 +69,7 @@ export class Table extends React.Component<Props, State> {
                         className={styles.cell_header_col}
                         style={{ ...props.style }}
                     >
-                        {this.props.data.getColumnName(props.columnIndex - 1)}
+                        {this.state.result.getColumnName(props.columnIndex - 1)}
                     </div>
                 );
             case CellType.RowHeader:
@@ -86,7 +89,7 @@ export class Table extends React.Component<Props, State> {
                         className={styles.cell_data}
                         style={{ ...props.style }}
                     >
-                        {this.props.data.formatValue(
+                        {this.state.result.formatValue(
                             props.columnIndex - 1,
                             props.rowIndex - 1,
                         )}
@@ -108,7 +111,7 @@ export class Table extends React.Component<Props, State> {
     protected getColumnWidth(index: Index) {
         let lineNumberWidth = 40;
         let available = this.props.width - lineNumberWidth;
-        let equalWidths = available / this.props.data.getColumnCount();
+        let equalWidths = available / this.state.result.getColumnCount();
         let minWidth = 56;
         return index.index === 0
             ? lineNumberWidth
@@ -123,6 +126,12 @@ export class Table extends React.Component<Props, State> {
             if (this.gridRef.current) {
                 this.gridRef.current.recomputeGridSize();
             }
+        }
+
+        if (this.props.data != prevProps.data) {
+            this.setState({
+                result: new ChunkedResult(this.props.data),
+            });
         }
     }
 
@@ -148,11 +157,11 @@ export class Table extends React.Component<Props, State> {
                         scrollTop={this.state.scrollTop}
                         scrollLeft={this.state.scrollLeft}
                         cellRenderer={this.renderCell.bind(this)}
-                        columnCount={this.props.data.getColumnCount() + 1}
+                        columnCount={this.state.result.getColumnCount() + 1}
                         columnWidth={this.getColumnWidth.bind(this)}
                         height={this.props.height}
                         width={this.props.width}
-                        rowCount={this.props.data.getRowCount() + 1}
+                        rowCount={this.state.result.getRowCount() + 1}
                         rowHeight={24}
                     />
                 </Scrollbars>

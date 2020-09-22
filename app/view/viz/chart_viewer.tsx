@@ -1,109 +1,150 @@
 import * as React from 'react';
 import { Vega } from 'react-vega';
 import { VisualizationSpec } from 'vega-embed';
-import { withAutoSizer } from '../autosizer';
+import * as proto from '@tigon/proto';
+import { ChunkedResult } from '../../proto/engine_access';
 
 import styles from './chart_viewer.module.scss';
 
-const data: any = {
-    table: [
-        { category: 'A', amount: 28 },
-        { category: 'B', amount: 55 },
-        { category: 'C', amount: 43 },
-        { category: 'D', amount: 91 },
-        { category: 'E', amount: 81 },
-        { category: 'F', amount: 53 },
-        { category: 'G', amount: 19 },
-        { category: 'H', amount: 87 },
-    ],
-};
-
-const spec: VisualizationSpec = {
-    autosize: {
-        type: 'fit',
-        contains: 'padding',
-    },
-
-    padding: { left: 40, right: 20, top: 5, bottom: 24 },
-
-    scales: [
-        {
-            name: 'xscale',
-            type: 'band',
-            range: 'width',
-            domain: { data: 'table', field: 'category' },
-        },
-        {
-            name: 'yscale',
-            nice: true,
-            range: 'height',
-            domain: { data: 'table', field: 'amount' },
-        },
-    ],
-
-    data: [{ name: 'table' }],
-
-    axes: [
-        { orient: 'bottom', scale: 'xscale' },
-        { orient: 'left', scale: 'yscale' },
-    ],
-
-    marks: [
-        {
-            type: 'rect',
-            from: { data: 'table' },
-            encode: {
-                enter: {
-                    x: { scale: 'xscale', field: 'category', offset: 1 },
-                    width: { scale: 'xscale', band: 1, offset: -1 },
-                    y: { scale: 'yscale', field: 'amount' },
-                    y2: { scale: 'yscale', value: 0 },
-                },
-                update: {
-                    fill: { value: 'steelblue' },
-                },
-                hover: {
-                    fill: { value: 'red' },
-                },
-            },
-        },
-        {
-            type: 'text',
-            encode: {
-                enter: {
-                    align: { value: 'center' },
-                    baseline: { value: 'bottom' },
-                    fill: { value: '#333' },
-                },
-            },
-        },
-    ],
-};
-
 interface IChartViewerProps {
-    width: number;
-    height: number;
+    data: proto.engine.QueryResult;
+    type: ValueOf<proto.tql.VizTypeTypeMap>;
 }
 
-interface IChartViewerState {}
+interface IChartViewerState {
+    spec: VisualizationSpec;
+}
 
 export class ChartViewer extends React.Component<
     IChartViewerProps,
     IChartViewerState
 > {
+    constructor(props: IChartViewerProps) {
+        super(props);
+
+        this.state = {
+            spec: this.generateSpec(),
+        };
+    }
+
+    private generateBarValues(data: ChunkedResult): any[] {
+        switch (data.getColumnCount()) {
+            case 2: {
+                const column1 = data.formatColumn(0);
+                const column2 = data.formatColumn(1);
+
+                return new Array(data.getRowCount())
+                    .fill(undefined)
+                    .map((_, i) => ({
+                        x: column1[i],
+                        y: column2[i],
+                    }));
+            }
+            case 3: {
+                const column1 = data.formatColumn(0);
+                const column2 = data.formatColumn(1);
+                const column3 = data.formatColumn(2);
+
+                return new Array(data.getRowCount())
+                    .fill(undefined)
+                    .map((_, i) => ({
+                        x: column1[i],
+                        y: column2[i],
+                        z: column3[i],
+                    }));
+            }
+        }
+
+        return [];
+    }
+
+    private generateBarSpec(data: ChunkedResult) {
+        const encoding: any = {};
+
+        switch (data.getColumnCount()) {
+            case 2:
+                encoding.x = {
+                    field: 'x',
+                    type: 'ordinal',
+                    title: data.getColumnName(0),
+                    sort: false,
+                };
+
+                encoding.y = {
+                    field: 'y',
+                    type: 'quantitative',
+                    title: data.getColumnName(1),
+                };
+                break;
+            case 3:
+                encoding.x = {
+                    field: 'x',
+                    type: 'ordinal',
+                    title: data.getColumnName(0),
+                    sort: false,
+                };
+
+                encoding.y = {
+                    field: 'y',
+                    type: 'quantitative',
+                    title: data.getColumnName(1),
+                };
+
+                encoding.color = {
+                    type: 'ordinal',
+                    field: 'z',
+                    title: data.getColumnName(2),
+                };
+                break;
+        }
+
+        return {
+            mark: {
+                type: 'bar',
+            },
+            data: {
+                values: this.generateBarValues(data),
+            },
+            encoding,
+        };
+    }
+
+    private generateChartSpec() {
+        const data = new ChunkedResult(this.props.data);
+
+        switch (this.props.type) {
+            case proto.tql.VizTypeType.VIZ_BAR:
+                return this.generateBarSpec(data);
+        }
+
+        return {};
+    }
+
+    private generateSpec(): VisualizationSpec {
+        return {
+            autosize: {
+                type: 'fit',
+                contains: 'padding',
+            },
+            ...(this.generateChartSpec() as any),
+        };
+    }
+
+    public componentDidUpdate(prevProps: IChartViewerProps) {
+        if (this.props.data != prevProps.data) {
+            this.setState({
+                spec: this.generateSpec(),
+            });
+        }
+    }
+
     public render() {
         return (
             <div className={styles.chart_viewer}>
-                <Vega
-                    spec={spec}
-                    data={data}
-                    actions={false}
-                    width={this.props.width}
-                    height={this.props.height}
-                />
+                <Vega spec={this.state.spec} actions={false} />
             </div>
         );
     }
 }
 
-export default withAutoSizer(ChartViewer);
+export default ChartViewer;
