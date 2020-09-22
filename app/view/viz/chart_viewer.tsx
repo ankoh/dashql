@@ -28,31 +28,30 @@ export class ChartViewer extends React.Component<
     }
 
     private generateBarValues(data: ChunkedResult): any[] {
-        switch (data.getColumnCount()) {
-            case 2: {
-                const column1 = data.formatColumn(0);
-                const column2 = data.formatColumn(1);
+        const columnCount = data.getColumnCount();
 
-                return new Array(data.getRowCount())
-                    .fill(undefined)
-                    .map((_, i) => ({
-                        x: column1[i],
-                        y: column2[i],
-                    }));
-            }
-            case 3: {
-                const column1 = data.formatColumn(0);
-                const column2 = data.formatColumn(1);
-                const column3 = data.formatColumn(2);
+        if (columnCount == 2) {
+            const column1 = data.formatColumn(0);
+            const column2 = data.formatColumn(1);
 
-                return new Array(data.getRowCount())
-                    .fill(undefined)
-                    .map((_, i) => ({
-                        x: column1[i],
-                        y: column2[i],
-                        z: column3[i],
-                    }));
-            }
+            return new Array(data.getRowCount())
+                .fill(undefined)
+                .map((_, i) => ({
+                    x: column1[i],
+                    y: column2[i],
+                }));
+        } else if (columnCount >= 3) {
+            const column1 = data.formatColumn(0);
+            const column2 = data.formatColumn(1);
+            const column3 = data.formatColumn(2);
+
+            return new Array(data.getRowCount())
+                .fill(undefined)
+                .map((_, i) => ({
+                    x: column1[i],
+                    y: column2[i],
+                    z: column3[i],
+                }));
         }
 
         return [];
@@ -61,41 +60,29 @@ export class ChartViewer extends React.Component<
     private generateBarSpec(data: ChunkedResult) {
         const encoding: any = {};
 
-        switch (data.getColumnCount()) {
-            case 2:
-                encoding.x = {
-                    field: 'x',
-                    type: 'ordinal',
-                    title: data.getColumnName(0),
-                    sort: false,
-                };
+        const columnCount = data.getColumnCount();
 
-                encoding.y = {
-                    field: 'y',
-                    type: 'quantitative',
-                    title: data.getColumnName(1),
-                };
-                break;
-            case 3:
-                encoding.x = {
-                    field: 'x',
-                    type: 'ordinal',
-                    title: data.getColumnName(0),
-                    sort: false,
-                };
+        if (columnCount >= 2) {
+            encoding.x = {
+                field: 'x',
+                type: 'ordinal',
+                title: data.getColumnName(0),
+                sort: false,
+            };
 
-                encoding.y = {
-                    field: 'y',
-                    type: 'quantitative',
-                    title: data.getColumnName(1),
-                };
+            encoding.y = {
+                field: 'y',
+                type: 'quantitative',
+                title: data.getColumnName(1),
+            };
+        }
 
-                encoding.color = {
-                    type: 'ordinal',
-                    field: 'z',
-                    title: data.getColumnName(2),
-                };
-                break;
+        if (columnCount >= 3) {
+            encoding.color = {
+                type: 'ordinal',
+                field: 'z',
+                title: data.getColumnName(2),
+            };
         }
 
         return {
