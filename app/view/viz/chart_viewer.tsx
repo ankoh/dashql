@@ -82,6 +82,7 @@ export class ChartViewer extends React.Component<
                 type: 'ordinal',
                 field: 'z',
                 title: data.getColumnName(2),
+                sort: false,
             };
         }
 
