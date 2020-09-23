@@ -3,9 +3,10 @@ pipeline {
         docker { image 'dashql/dashql-dev:1.40.1' }
     }
     stages {
-        stage('Test') {
-            steps {
-                sh 'bash'
+        stage('Protocol Buffers') {
+            steps 
+                sh './dev/build_protoc.sh'
+                sh './dev/generate_proto.sh'
             }
         }
     }
