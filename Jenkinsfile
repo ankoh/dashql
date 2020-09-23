@@ -9,9 +9,9 @@ pipeline {
         stage('Protobuf') {
             steps {
                 sh 'git submodule update --init --recursive'
-                sh 'mkdir -p ./build/emscripten'
-                sh '${EMSDK}/emcmake cmake -S./ -B./build/emscripten -DCMAKE_BUILD_TYPE=Release'
-                sh '${EMSDK}/emmake make -C./build/emscripten -j$(nproc)'
+                sh 'mkdir -p ./core/build/emscripten'
+                sh '${EMSDK}/emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release'
+                sh '${EMSDK}/emmake make -C./core/build/emscripten -j$(nproc)'
             }
         }
     }
