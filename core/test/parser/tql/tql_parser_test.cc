@@ -1,13 +1,13 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
 #include <gtest/gtest.h>
 #include <sstream>
-#include "tigon/parser/tql/tql_parse_context.h"
+#include "dashql/parser/tql/tql_parse_context.h"
 
-using namespace tigon::tql;
+using namespace dashql::tql;
 
 namespace {
     TEST(TQLTest, ParameterDeclaration) {

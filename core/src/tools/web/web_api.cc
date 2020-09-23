@@ -1,9 +1,9 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
-#include "tigon/tools/web/web_api.h"
+#include "dashql/tools/web/web_api.h"
 
 #include "duckdb.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
@@ -13,12 +13,12 @@
 
 #include "spdlog/spdlog.h"
 
-#include "tigon/common/variant.h"
-#include "tigon/parser/tql/tql_parse_context.h"
-#include "tigon/proto/duckdb_codec.h"
-#include "tigon/proto/tql.pb.h"
-#include "tigon/proto/tql_codec.h"
-#include "tigon/proto/web_api.pb.h"
+#include "dashql/common/variant.h"
+#include "dashql/parser/tql/tql_parse_context.h"
+#include "dashql/proto/duckdb_codec.h"
+#include "dashql/proto/tql.pb.h"
+#include "dashql/proto/tql_codec.h"
+#include "dashql/proto/web_api.pb.h"
 
 #include <cstdio>
 #include <iostream>
@@ -27,7 +27,7 @@
 #include <string_view>
 #include <unordered_map>
 
-using namespace tigon;
+using namespace dashql;
 
 /// Reset the response
 void WebAPI::Response::clear() {

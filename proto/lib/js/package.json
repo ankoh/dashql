@@ -1,8 +1,8 @@
 {
-  "name": "tigon-proto",
+  "name": "dashql-proto",
   "version": "0.0.1",
   "description": "",
-  "main": "dist/tigon-proto.js",
+  "main": "dist/dashql-proto.js",
   "typings": "src/index.d.ts",
   "scripts": {
     "bundle": "npx webpack"

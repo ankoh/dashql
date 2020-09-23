@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 import { ChunkedResult } from '../../proto/engine_access';
 import { Grid, GridCellProps, Index } from 'react-virtualized';
 import { Scrollbars } from 'react-custom-scrollbars';

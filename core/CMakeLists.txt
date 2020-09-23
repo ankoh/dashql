@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Tigon
+# DashQL
 # (c) 2019 Andre Kohn
 # ---------------------------------------------------------------------------
 
@@ -11,7 +11,7 @@ endif (POLICY CMP0048)
 
 # ---------------------------------------------------------------------------
 
-project("Tigon" VERSION 0.1)
+project("DashQL" VERSION 0.1)
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -85,7 +85,7 @@ include_directories(
 # ---------------------------------------------------------------------------
 # Libraries
 
-add_library(tigon
+add_library(dashql
     ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
     ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
     ${CMAKE_SOURCE_DIR}/src/extract/json_extract.cc
@@ -98,10 +98,10 @@ add_library(tigon
 include("${CMAKE_SOURCE_DIR}/src/parser/rpath/local.cmake")
 include("${CMAKE_SOURCE_DIR}/src/parser/tql/local.cmake")
 
-target_link_libraries(tigon
-    tigon_proto
-    tigon_rpath
-    tigon_tql
+target_link_libraries(dashql
+    dashql_proto
+    dashql_rpath
+    dashql_tql
     duckdb
     protobuf rapidjson cwcsv
     spdlog
@@ -109,7 +109,7 @@ target_link_libraries(tigon
 )
 
 if(EMSCRIPTEN)
-    set_target_properties(tigon PROPERTIES
+    set_target_properties(dashql PROPERTIES
         COMPILE_FLAGS "\
             -s DISABLE_EXCEPTION_CATCHING=0 \
         "
@@ -119,16 +119,16 @@ endif()
 # ---------------------------------------------------------------------------
 # Web API
 
-add_executable(tigon_core
+add_executable(dashql_core
     ${CMAKE_SOURCE_DIR}/src/tools/web/web_api_proxy.cc
 )
 
-target_link_libraries(tigon_core tigon)
+target_link_libraries(dashql_core dashql)
 
 if(EMSCRIPTEN)
     # SAFE_HEAP breaks duckdb 0.2
     # -s SAFE_HEAP=1
-    set_target_properties(tigon_core PROPERTIES
+    set_target_properties(dashql_core PROPERTIES
         COMPILE_FLAGS "\
             -s DISABLE_EXCEPTION_CATCHING=0 \
         "
@@ -144,16 +144,16 @@ if(EMSCRIPTEN)
                 _main, \
                 _malloc, \
                 _free, \
-                _tigon_create_session, \
-                _tigon_create_session, \
-                _tigon_end_session, \
-                _tigon_register_buffer, \
-                _tigon_release_buffer, \
-                _tigon_parse_tql, \
-                _tigon_run_query, \
-                _tigon_plan_query, \
-                _tigon_extract_data, \
-                _tigon_compute_grid_layout \
+                _dashql_create_session, \
+                _dashql_create_session, \
+                _dashql_end_session, \
+                _dashql_register_buffer, \
+                _dashql_release_buffer, \
+                _dashql_parse_tql, \
+                _dashql_run_query, \
+                _dashql_plan_query, \
+                _dashql_extract_data, \
+                _dashql_compute_grid_layout \
             ]' \
             -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"FS\", \"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
@@ -168,7 +168,7 @@ add_executable(tester
     ${CMAKE_SOURCE_DIR}/test/duckdb_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc
 )
-target_link_libraries(tester tigon gtest gmock Threads::Threads)
+target_link_libraries(tester dashql gtest gmock Threads::Threads)
 
 enable_testing()
-add_test(tigon tester)
+add_test(dashql tester)

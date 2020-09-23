@@ -1,15 +1,15 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
 #include <gtest/gtest.h>
 #include <numeric>
 #include <sstream>
-#include "tigon/proto/engine.pb.h"
-#include "tigon/tools/web/web_api.h"
+#include "dashql/proto/engine.pb.h"
+#include "dashql/tools/web/web_api.h"
 
-using namespace tigon;
+using namespace dashql;
 using namespace std;
 
 namespace {

@@ -1,8 +1,8 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
-#include "tigon/extract/json_extract.h"
+#include "dashql/extract/json_extract.h"
 
-using namespace tigon;
+using namespace dashql;

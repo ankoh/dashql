@@ -1,4 +1,4 @@
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 import * as Store from '../store';
 import { LogController } from './log';
 import { CoreController } from './core';

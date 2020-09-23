@@ -1,4 +1,4 @@
-// package: tigon.proto.web_api
+// package: dashql.proto.web_api
 // file: web_api.proto
 
 import * as jspb from 'google-protobuf';

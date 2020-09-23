@@ -1,4 +1,4 @@
-// package: tigon.proto.engine
+// package: dashql.proto.engine
 // file: engine.proto
 
 import * as jspb from 'google-protobuf';

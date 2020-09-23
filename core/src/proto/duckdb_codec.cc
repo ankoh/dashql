@@ -1,17 +1,17 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
+#include "dashql/proto/duckdb_codec.h"
 #include "duckdb/common/enums/logical_operator_type.hpp"
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/timestamp.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
-#include "tigon/proto/duckdb_codec.h"
 
 namespace protobuf = google::protobuf;
 
-namespace tigon {
+namespace dashql {
 
 #define LOGICAL_OPERATOR_TYPES                                                                                                                                                                         \
     X(INVALID)                                                                                                                                                                                         \
@@ -169,7 +169,7 @@ namespace tigon {
             auto sqlType = queryResult.sql_types[columnIndex];
             auto& type = *sqlTypes.Add();
 
-            type.set_type_id(static_cast<tigon::proto::engine::SQLTypeID>(sqlType.id));
+            type.set_type_id(static_cast<dashql::proto::engine::SQLTypeID>(sqlType.id));
             type.set_width(sqlType.width);
             type.set_scale(sqlType.scale);
             type.set_collation(sqlType.collation);
@@ -285,4 +285,4 @@ namespace tigon {
 
         return &result;
     }
-} // namespace tigon
+} // namespace dashql

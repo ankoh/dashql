@@ -3,8 +3,8 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
-DOCKER_IMAGE_NAME="tigon"
-DOCKER_IMAGE_NAMESPACE="tigon"
+DOCKER_IMAGE_NAME="dashql"
+DOCKER_IMAGE_NAMESPACE="dashql"
 DOCKER_IMAGE_TAG="latest"
 
 set -x

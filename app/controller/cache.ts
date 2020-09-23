@@ -1,6 +1,6 @@
 import * as idb from 'idb';
 
-const DB_NAME = 'tigon_idb';
+const DB_NAME = 'dashql_idb';
 const DB_VERSION = 1;
 const CACHE_TABLE = 'cache';
 

@@ -11,7 +11,7 @@ PROTOC="${PROJECT_ROOT}/dev/protoc/install/bin/protoc"
 TSPROTOC_BUILD_DIR="${PROTO_BUILD_DIR}/ts-protoc-gen/"
 TSPROTOC_PLUGIN="${TSPROTOC_BUILD_DIR}/node_modules/.bin/protoc-gen-ts"
 
-CPP_PROTO_DIR="${PROTO_DIR}/lib/cpp/include/tigon/proto"
+CPP_PROTO_DIR="${PROTO_DIR}/lib/cpp/include/dashql/proto"
 JS_PROTO_DIR="${PROTO_DIR}/lib/js/src/proto"
 
 ${PROTOC} --version \

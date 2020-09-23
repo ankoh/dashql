@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { connect } from 'react-redux';
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 import { isPresent } from '../../../util/functional';
 import { RootState } from '../../../store';
 import IntegerInput from './inputs/integer_input';

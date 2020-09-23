@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { connect } from 'react-redux';
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 import { Dispatch, setTQLGetHighlights, RootState } from '../../store';
 import { withAppContext, IAppContext } from '../../app_context';
 

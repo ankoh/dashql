@@ -1,6 +1,6 @@
 %{
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 %}
@@ -14,8 +14,8 @@
 #include <cstdlib>
 #include <string>
 #include <string_view>
-#include "tigon/parser/rpath/rpath_parse_context.h"
-#include "tigon/parser/rpath/rpath_parser.h"
+#include "dashql/parser/rpath/rpath_parse_context.h"
+#include "dashql/parser/rpath/rpath_parser.h"
 
 // ISO C++17 does not allow 'register' storage class specifier
 #pragma GCC diagnostic push
@@ -23,11 +23,11 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wregister"
 
-namespace tigon {
+namespace dashql {
 namespace rpath {
 
 // The location of the current token
-extern tigon::rpath::location loc;
+extern dashql::rpath::location loc;
 // The input string view
 extern std::string_view in;
 // The reader offset
@@ -36,10 +36,10 @@ extern size_t reader_offset;
 extern size_t parser_offset;
 
 }  // namespace rpath
-}  // namespace tigon
+}  // namespace dashql
 
-using namespace tigon;
-using namespace tigon::rpath;
+using namespace dashql;
+using namespace dashql::rpath;
 
 // Work around an incompatibility in flex (at least versions
 // 2.5.31 through 2.5.33): it generates code that does
@@ -126,16 +126,16 @@ loc.step ();
 // ---------------------------------------------------------------------------------------------------
 
 // The input stream
-tigon::rpath::location tigon::rpath::loc;
+dashql::rpath::location dashql::rpath::loc;
 // The input view of the scanner
-std::string_view tigon::rpath::in;
+std::string_view dashql::rpath::in;
 // The reader offset
-size_t tigon::rpath::reader_offset;
+size_t dashql::rpath::reader_offset;
 // The parser offset
-size_t tigon::rpath::parser_offset;
+size_t dashql::rpath::parser_offset;
 
 // Begin a scan
-void tigon::rpath::ParseContext::beginScan(std::string_view s) {
+void dashql::rpath::ParseContext::beginScan(std::string_view s) {
     rpath__flex_debug = trace_scanning;
     loc = location();
     in = s;
@@ -144,7 +144,7 @@ void tigon::rpath::ParseContext::beginScan(std::string_view s) {
 }
 
 // End a scan
-void tigon::rpath::ParseContext::endScan() {
+void dashql::rpath::ParseContext::endScan() {
     loc = location();
     in = {};
     reader_offset = 0;

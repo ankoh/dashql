@@ -1,5 +1,5 @@
 import * as State from './root_state';
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 
 // ---------------------------------------------------------------------------
 // The action creators

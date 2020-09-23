@@ -1,4 +1,4 @@
-// package: tigon.proto.tql
+// package: dashql.proto.tql
 // file: tql.proto
 
 import * as jspb from 'google-protobuf';

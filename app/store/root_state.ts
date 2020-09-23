@@ -1,5 +1,5 @@
 import * as Immutable from 'immutable';
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 
 // ---------------------------------------------------------------------------
 // Enums

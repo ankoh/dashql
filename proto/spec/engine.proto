@@ -3,7 +3,7 @@ syntax = "proto3";
 option optimize_for = LITE_RUNTIME;
 option cc_enable_arenas = true;
 
-package tigon.proto.engine;
+package dashql.proto.engine;
 
 // The SQL data types
 // duckdb: common/types.hpp

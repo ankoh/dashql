@@ -1,17 +1,17 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
 #include <iostream>
 #include <sstream>
 #include <unordered_set>
-#include "tigon/common/error.h"
-#include "tigon/common/variant.h"
-#include "tigon/parser/tql/tql_parse_context.h"
-#include "tigon/parser/tql/tql_parser.h"
+#include "dashql/common/error.h"
+#include "dashql/common/variant.h"
+#include "dashql/parser/tql/tql_parse_context.h"
+#include "dashql/parser/tql/tql_parser.h"
 
-using namespace tigon::tql;
+using namespace dashql::tql;
 
 ParseContext::ParseContext(bool trace_scanning, bool trace_parsing): trace_scanning(trace_scanning), trace_parsing(trace_parsing), statements() {}
 
@@ -20,7 +20,7 @@ ParseContext::~ParseContext() {}
 Module ParseContext::Parse(std::string_view in) {
     beginScan(in);
     {
-        tigon::tql::Parser parser(*this);
+        dashql::tql::Parser parser(*this);
         parser.set_debug_level(trace_parsing);
         parser.parse();
     }

@@ -1,16 +1,16 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
 #include <iostream>
 #include <sstream>
 #include <unordered_set>
-#include "tigon/common/error.h"
-#include "tigon/parser/rpath/rpath_parse_context.h"
-#include "tigon/parser/rpath/rpath_parser.h"
+#include "dashql/common/error.h"
+#include "dashql/parser/rpath/rpath_parse_context.h"
+#include "dashql/parser/rpath/rpath_parser.h"
 
-using namespace tigon::rpath;
+using namespace dashql::rpath;
 
 ParseContext::ParseContext(bool trace_scanning, bool trace_parsing): trace_scanning(trace_scanning), trace_parsing(trace_parsing) {}
 
@@ -19,7 +19,7 @@ ParseContext::~ParseContext() {}
 std::unique_ptr<RPath> ParseContext::Parse(std::string_view in) {
     beginScan(in);
     {
-        tigon::rpath::Parser parser(*this);
+        dashql::rpath::Parser parser(*this);
         parser.set_debug_level(trace_parsing);
         parser.parse();
     }

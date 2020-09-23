@@ -1,12 +1,12 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
 %skeleton "lalr1.cc"
 %require "3.3"
 
-%define api.namespace {tigon::rpath}
+%define api.namespace {dashql::rpath}
 %define api.parser.class {Parser}
 %define api.prefix {rpath_}
 %define api.token.constructor
@@ -17,16 +17,16 @@
 %define parse.error verbose
 %locations
 
-%param { tigon::rpath::ParseContext &ctx }
+%param { dashql::rpath::ParseContext &ctx }
 
 %code requires {
 #include <string>
 #include <cstdlib>
-#include "tigon/parser/rpath/rpath_parse_context.h"
+#include "dashql/parser/rpath/rpath_parse_context.h"
 }
 
 %code {
-tigon::rpath::Parser::symbol_type rpath_lex(tigon::rpath::ParseContext& ctx);
+dashql::rpath::Parser::symbol_type rpath_lex(dashql::rpath::ParseContext& ctx);
 
 using std::get;
 using std::move;
@@ -98,7 +98,7 @@ opt_integer:
 
 %%
 
-void tigon::rpath::Parser::error(const location_type& l, const std::string& m) {
+void dashql::rpath::Parser::error(const location_type& l, const std::string& m) {
     ctx.Error(l.begin.line, l.begin.column, m);
 }
 

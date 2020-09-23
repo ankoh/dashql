@@ -1,4 +1,4 @@
-// package: tigon.proto.rpath
+// package: dashql.proto.rpath
 // file: rpath.proto
 
 import * as jspb from 'google-protobuf';

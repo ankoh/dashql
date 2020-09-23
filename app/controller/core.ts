@@ -1,4 +1,4 @@
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 import * as Store from '../store';
 
 // IMPORTANT:
@@ -36,14 +36,14 @@ export class CoreController {
                 options.wasmBinary = await require('fs').promises.readFile(
                     require('path').resolve(
                         __dirname,
-                        '../../../../../node_modules/@tigon/core/tigon_core.wasm',
+                        '../../../../../node_modules/@dashql/core/dashql_core.wasm',
                     ),
                 );
             } else {
                 options.wasmBinary = await require('fs').promises.readFile(
                     require('path').resolve(
                         __dirname,
-                        '../node_modules/@tigon/core/tigon_core.wasm',
+                        '../node_modules/@dashql/core/dashql_core.wasm',
                     ),
                 );
             }
@@ -51,15 +51,15 @@ export class CoreController {
             options.wasmBinary = await require('fs').promises.readFile(
                 require('path').resolve(
                     __dirname,
-                    '../../../../../node_modules/@tigon/core/tigon_core.wasm',
+                    '../../../../../node_modules/@dashql/core/dashql_core.wasm',
                 ),
             );
         } else {
             options.locateFile = () =>
-                require('@tigon/core/tigon_core.wasm').default;
+                require('@dashql/core/dashql_core.wasm').default;
         }
 
-        this.core = ((await import('@tigon/core')) as any).default(options);
+        this.core = ((await import('@dashql/core')) as any).default(options);
 
         await this.loading;
 
@@ -103,14 +103,19 @@ export class CoreController {
     // Create a session
     public async createSession(): Promise<number> {
         await this.waitUntilReady();
-        let session = this.core.ccall('tigon_create_session', 'number', [], []);
+        let session = this.core.ccall(
+            'dashql_create_session',
+            'number',
+            [],
+            [],
+        );
         return Promise.resolve(session);
     }
 
     // End a session
     public async endSession(session: number): Promise<void> {
         await this.waitUntilReady();
-        this.core.ccall('tigon_end_session', 'void', ['number'], [session]);
+        this.core.ccall('dashql_end_session', 'void', ['number'], [session]);
         return Promise.resolve();
     }
 
@@ -138,7 +143,7 @@ export class CoreController {
         let mem = this.core.HEAPU8.subarray(ptr, ptr + buffer.length);
         mem.set(buffer);
         this.core.ccall(
-            'tigon_register_buffer',
+            'dashql_register_buffer',
             'void',
             ['number', 'number', 'number'],
             [session, ptr, buffer.length],
@@ -153,7 +158,7 @@ export class CoreController {
     ): Promise<proto.tql.Module> {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet(
-            'tigon_parse_tql',
+            'dashql_parse_tql',
             ['number', 'string'],
             [session, text],
         );
@@ -164,7 +169,7 @@ export class CoreController {
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
         let msg = proto.tql.Module.deserializeBinary(mem);
         this.core.ccall(
-            'tigon_release_buffer',
+            'dashql_release_buffer',
             'void',
             ['number', 'number'],
             [session, data],
@@ -179,7 +184,7 @@ export class CoreController {
     ): Promise<proto.engine.QueryResult> {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet(
-            'tigon_run_query',
+            'dashql_run_query',
             ['number', 'string'],
             [session, text],
         );
@@ -190,7 +195,7 @@ export class CoreController {
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
         let msg = proto.engine.QueryResult.deserializeBinary(mem);
         this.core.ccall(
-            'tigon_release_buffer',
+            'dashql_release_buffer',
             'void',
             ['number', 'number'],
             [session, data],
@@ -205,7 +210,7 @@ export class CoreController {
     ): Promise<proto.engine.QueryPlan> {
         await this.waitUntilReady();
         let [status, error, data, dataSize] = this.callSRet(
-            'tigon_plan_query',
+            'dashql_plan_query',
             ['number', 'string'],
             [session, text],
         );
@@ -216,7 +221,7 @@ export class CoreController {
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
         let msg = proto.engine.QueryPlan.deserializeBinary(mem);
         this.core.ccall(
-            'tigon_release_buffer',
+            'dashql_release_buffer',
             'void',
             ['number', 'number'],
             [session, data],

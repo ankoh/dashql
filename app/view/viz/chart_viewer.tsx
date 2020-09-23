@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Vega } from 'react-vega';
 import { VisualizationSpec } from 'vega-embed';
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 import { ChunkedResult } from '../../proto/engine_access';
 import { withAutoSizer } from '../autosizer';
 

@@ -1,5 +1,5 @@
 import './plan_viewer.scss';
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 import * as React from 'react';
 import * as d3 from 'd3';
 import * as dagre from 'dagre';

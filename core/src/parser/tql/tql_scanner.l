@@ -1,6 +1,6 @@
 %{
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 %}
@@ -15,8 +15,8 @@
 #include <sstream>
 #include <string_view>
 #include <string>
-#include "tigon/parser/tql/tql_parse_context.h"
-#include "tigon/parser/tql/tql_parser.h"
+#include "dashql/parser/tql/tql_parse_context.h"
+#include "dashql/parser/tql/tql_parser.h"
 
 // ISO C++17 does not allow 'register' storage class specifier
 #pragma GCC diagnostic push
@@ -24,10 +24,10 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wregister"
 
-namespace tigon {
+namespace dashql {
     namespace tql {
         // The location of the current token
-        extern tigon::tql::location loc;
+        extern dashql::tql::location loc;
         // The input string view
         extern std::string_view in;
         // The reader offset
@@ -47,11 +47,11 @@ namespace tigon {
             }
         } // namespace scanner
     } // namespace tql
-} // namespace tigon
+} // namespace dashql
 
-using namespace tigon;
-using namespace tigon::tql;
-using namespace tigon::tql::scanner;
+using namespace dashql;
+using namespace dashql::tql;
+using namespace dashql::tql::scanner;
 
 // Work around an incompatibility in flex (at least versions
 // 2.5.31 through 2.5.33): it generates code that does
@@ -61,7 +61,7 @@ using namespace tigon::tql::scanner;
 #define yywrap() 1
 
 // Declare the tql_lex function
-#define YY_DECL Parser::symbol_type tql_lex(tigon::tql::ParseContext& context)
+#define YY_DECL Parser::symbol_type tql_lex(dashql::tql::ParseContext& context)
 // Configure the scanner to use string views
 #define YY_INPUT(buffer, bytes_read, max_bytes) \
     bytes_read = in.copy(buffer, max_bytes, reader_offset); \
@@ -238,16 +238,16 @@ with[^;]*               { return Parser::make_SQL_WITH(getTokenText(), loc); }
 // ---------------------------------------------------------------------------------------------------
 
 // The input location
-tigon::tql::location tigon::tql::loc;
+dashql::tql::location dashql::tql::loc;
 // The input view of the scanner
-std::string_view tigon::tql::in;
+std::string_view dashql::tql::in;
 // The reader offset
-size_t tigon::tql::reader_offset;
+size_t dashql::tql::reader_offset;
 // The parser offset
-size_t tigon::tql::parser_offset;
+size_t dashql::tql::parser_offset;
 
 // Begin a scan
-void tigon::tql::ParseContext::beginScan(std::string_view s) {
+void dashql::tql::ParseContext::beginScan(std::string_view s) {
     tql__flex_debug = trace_scanning;
     loc = location();
     in = s;
@@ -256,7 +256,7 @@ void tigon::tql::ParseContext::beginScan(std::string_view s) {
 }
 
 // End a scan
-void tigon::tql::ParseContext::endScan() {
+void dashql::tql::ParseContext::endScan() {
     loc = location();
     in = {};
     reader_offset = 0;

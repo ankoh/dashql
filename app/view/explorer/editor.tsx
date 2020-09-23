@@ -5,7 +5,7 @@ import monaco, { Monaco } from '../../monaco-editor';
 import { IAppContext, withAppContext } from '../../app_context';
 import { RootState } from '../../store';
 
-import tigonTheme from './theme_tigon.json';
+import dashqlTheme from './theme_dashql.json';
 import styles from './editor.module.scss';
 
 const MonacoEditor = dynamic(import('react-monaco-editor'), { ssr: false });
@@ -76,8 +76,8 @@ class Editor extends React.Component<Props, State> {
     };
 
     editorWillMount = () => {
-        monaco.editor.defineTheme('tigon', {
-            ...tigonTheme,
+        monaco.editor.defineTheme('dashql', {
+            ...dashqlTheme,
             base: 'vs',
         });
     };
@@ -132,7 +132,7 @@ class Editor extends React.Component<Props, State> {
                     width={this.state.width}
                     height={this.state.height}
                     language="sql"
-                    theme="tigon"
+                    theme="dashql"
                     value={this.state.text}
                     options={{
                         minimap: {

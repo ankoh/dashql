@@ -1,15 +1,15 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
-#include "tigon/common/variant.h"
-#include "tigon/proto/tql_codec.h"
+#include "dashql/common/variant.h"
+#include "dashql/proto/tql_codec.h"
 
 namespace protobuf = google::protobuf;
 
-namespace tigon {
-    void setLocation(tigon::proto::tql::Location* destination, tigon::tql::Location& source) {
+namespace dashql {
+    void setLocation(dashql::proto::tql::Location* destination, dashql::tql::Location& source) {
         auto* begin = destination->mutable_begin();
         auto* end = destination->mutable_end();
 
@@ -20,7 +20,7 @@ namespace tigon {
         end->set_column(source.end.column);
     }
 
-    void setString(tigon::proto::tql::String* destination, tigon::tql::String& source) {
+    void setString(dashql::proto::tql::String* destination, dashql::tql::String& source) {
         setLocation(destination->mutable_location(), source.location);
         destination->set_string(std::string(source.string));
     }
@@ -161,4 +161,4 @@ namespace tigon {
 
         return result;
     }
-} // namespace tigon
+} // namespace dashql

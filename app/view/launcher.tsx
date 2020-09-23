@@ -105,7 +105,7 @@ class Launcher extends React.Component<ILauncherProps, ILauncherState> {
                         <img src="/img/logo_600.png" alt="Logo" />
                     </div>
                     <div className={styles.launcher_header}>
-                        Tigon Analytics
+                        DashQL Analytics
                     </div>
                     <div className={styles.launcher_build}>
                         Build:{' '}

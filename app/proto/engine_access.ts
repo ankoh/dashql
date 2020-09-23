@@ -1,4 +1,4 @@
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 
 export class ChunkedResult {
     protected chunks: proto.engine.QueryResultChunk[];

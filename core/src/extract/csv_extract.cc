@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
 #include "cwcsv/parser.h"
-#include "tigon/extract/csv_extract.h"
+#include "dashql/extract/csv_extract.h"

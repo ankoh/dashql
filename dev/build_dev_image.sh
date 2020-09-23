@@ -4,8 +4,8 @@ set -euo pipefail
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
 EMSDK_COMMIT="1.40.1"
-DOCKER_IMAGE_NAME="tigon-dev"
-DOCKER_IMAGE_NAMESPACE="tigon"
+DOCKER_IMAGE_NAME="dashql-dev"
+DOCKER_IMAGE_NAMESPACE="dashql"
 DOCKER_IMAGE_TAG="${EMSDK_COMMIT}"
 
 set -x

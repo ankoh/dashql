@@ -1,5 +1,5 @@
 {
-  "name": "@tigon/app",
+  "name": "@dashql/app",
   "scripts": {
     "dev": "npx next",
     "build": "npx next build && npx next export -o build",
@@ -7,8 +7,8 @@
     "test": "npx jest"
   },
   "dependencies": {
-    "@tigon/core": "file:../core/build/package",
-    "@tigon/proto": "file:../proto/lib/js",
+    "@dashql/core": "file:../core/build/package",
+    "@dashql/proto": "file:../proto/lib/js",
     "@types/d3": "^5.7.2",
     "@types/dagre": "^0.7.44",
     "@types/dagre-d3": "^0.4.39",

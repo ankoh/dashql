@@ -1,5 +1,5 @@
 import { CoreController } from './core';
-import * as proto from '@tigon/proto';
+import * as proto from '@dashql/proto';
 
 const core = new CoreController();
 

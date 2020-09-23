@@ -1,4 +1,4 @@
-import { tql } from '@tigon/proto';
+import { tql } from '@dashql/proto';
 import monaco, { Monaco } from '../monaco-editor';
 import * as Store from '../store';
 import { CoreController } from './core';

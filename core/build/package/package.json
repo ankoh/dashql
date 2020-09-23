@@ -1,4 +1,4 @@
 {
-  "name": "@tigon/core",
-  "main": "tigon_core.js"
+  "name": "@dashql/core",
+  "main": "dashql_core.js"
 }

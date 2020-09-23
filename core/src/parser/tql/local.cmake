@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Tigon
+# DashQL
 # (c) 2019 Andre Kohn
 # ---------------------------------------------------------------------------
 
@@ -8,9 +8,9 @@
 # ---------------------------------------------------------------------------
 
 # Register flex and bison output
-set(TQL_SCANNER_OUT ${CMAKE_BINARY_DIR}/include/tigon/parser/tql/tql_scanner.cc)
-set(TQL_PARSER_OUT ${CMAKE_BINARY_DIR}/include/tigon/parser/tql/tql_parser.cc)
-set(TQL_PARSER_HEADER_OUT ${CMAKE_BINARY_DIR}/include/tigon/parser/tql/tql_parser.h)
+set(TQL_SCANNER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/tql/tql_scanner.cc)
+set(TQL_PARSER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/tql/tql_parser.cc)
+set(TQL_PARSER_HEADER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/tql/tql_parser.h)
 
 set(TQL_PARSE_CONTEXT ${CMAKE_SOURCE_DIR}/src/parser/tql/tql_parse_context.cc)
 set(TQL_SEMANTIC ${CMAKE_SOURCE_DIR}/src/parser/tql/tql_semantic.cc)
@@ -18,8 +18,8 @@ set(TQL_SYNTAX ${CMAKE_SOURCE_DIR}/src/parser/tql/tql_syntax.cc)
 set(TQL_CC ${TQL_SCANNER_OUT} ${TQL_PARSER_OUT} ${TQL_COMPILER} ${TQL_PARSE_CONTEXT} ${TQL_SEMANTIC} ${TQL_SYNTAX})
 set(TQL_CC_LINTING ${TQL_COMPILER} ${TQL_PARSE_CONTEXT} ${TQL_SEMANA})
 
-IF(NOT EXISTS ${CMAKE_BINARY_DIR}/include/tigon/parser/tql/)
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include/tigon/parser/tql/)
+IF(NOT EXISTS ${CMAKE_BINARY_DIR}/include/dashql/parser/tql/)
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include/dashql/parser/tql/)
 ENDIF()
 
 # Generate parser & scanner
@@ -39,9 +39,9 @@ add_custom_command(
         ${CMAKE_SOURCE_DIR}/src/parser/tql/tql_scanner.l
 )
 
-add_library(tigon_tql ${TQL_CC})
-target_include_directories(tigon_tql PRIVATE ${CMAKE_BINARY_DIR}/include)
-set_property(TARGET tigon_tql PROPERTY CXX_STANDARD 17)
+add_library(dashql_tql ${TQL_CC})
+target_include_directories(dashql_tql PRIVATE ${CMAKE_BINARY_DIR}/include)
+set_property(TARGET dashql_tql PROPERTY CXX_STANDARD 17)
 
 # ---------------------------------------------------------------------------
 # Linting

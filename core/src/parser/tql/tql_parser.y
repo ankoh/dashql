@@ -1,12 +1,12 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
 %skeleton "lalr1.cc"
 %require "3.3"
 
-%define api.namespace {tigon::tql}
+%define api.namespace {dashql::tql}
 %define api.parser.class {Parser}
 %define api.prefix {tql_}
 %define api.token.constructor
@@ -17,19 +17,19 @@
 %define parse.error verbose
 %locations
 
-%param { tigon::tql::ParseContext &context }
+%param { dashql::tql::ParseContext &context }
 
 %code requires {
 #include <string>
 #include <cstdlib>
 #include <utility>
-#include "tigon/parser/tql/tql_parse_context.h"
+#include "dashql/parser/tql/tql_parse_context.h"
 }
 
 %code {
-using namespace tigon::tql;
+using namespace dashql::tql;
 
-namespace tigon {
+namespace dashql {
     namespace tql {
         namespace parser {
             Location locate(location location) {
@@ -47,9 +47,9 @@ namespace tigon {
             }
         } // namespace parser
     } // namespace tql
-} // namespace tigon
+} // namespace dashql
 
-using namespace tigon::tql::parser;
+using namespace dashql::tql::parser;
 
 Parser::symbol_type tql_lex(ParseContext& context);
 }
@@ -408,6 +408,6 @@ viz_type:
 
 %%
 
-void tigon::tql::Parser::error(const location_type& location, const std::string& message) {
+void dashql::tql::Parser::error(const location_type& location, const std::string& message) {
     context.Error(locate(location), message);
 }

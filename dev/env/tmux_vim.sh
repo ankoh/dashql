@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/../.."
-SESSION="tigon"
+SESSION="dashql"
 EDITOR="nvim"
 NODE_VERSION="v12.11.0"
 

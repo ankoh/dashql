@@ -1,3 +1,3 @@
-declare module '@tigon/core' {
+declare module '@dashql/core' {
     export = any;
 }

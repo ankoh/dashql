@@ -1,11 +1,11 @@
 //---------------------------------------------------------------------------
-// Tigon
+// DashQL
 // (c) 2019 Andre Kohn
 //---------------------------------------------------------------------------
 
-#include "tigon/parser/tql/tql_syntax.h"
+#include "dashql/parser/tql/tql_syntax.h"
 
-namespace tigon {
+namespace dashql {
     namespace tql {
         const char* VizStatement::getTypeName() {
             switch (viz_type.type) {
@@ -38,4 +38,4 @@ namespace tigon {
             }
         }
     } // namespace tql
-} // namespace tigon
+} // namespace dashql
