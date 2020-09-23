@@ -3,7 +3,7 @@ pipeline {
         docker { image 'dashql/dashql-dev:1.40.1' }
     }
     environment {
-        EMSDK_BIN = '/opt/emsdk/upstream/emscripten/'
+        EMSDK = '/opt/emsdk/upstream/emscripten/'
     }
     stages {
         stage('Protobuf') {
