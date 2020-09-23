@@ -3,8 +3,9 @@ pipeline {
         docker { image 'dashql/dashql-dev:1.40.1' }
     }
     stages {
-        stage('Protocol Buffers') {
+        stage('Protobuf') {
             steps {
+                sh 'git submodule update --init --recursive'
                 sh './dev/build_protoc.sh'
                 sh './dev/generate_proto.sh'
             }
