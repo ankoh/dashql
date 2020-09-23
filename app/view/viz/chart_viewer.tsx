@@ -186,6 +186,89 @@ export class ChartViewer extends React.Component<
         };
     }
 
+    private generateScatterValues(data: ChunkedResult): any[] {
+        const columnCount = data.getColumnCount();
+
+        if (columnCount == 2) {
+            const x = data.getColumn(0);
+            const y = data.getColumn(1);
+
+            return new Array(data.getRowCount())
+                .fill(undefined)
+                .map((_, i) => ({
+                    x: x[i],
+                    y: y[i],
+                }));
+        } else if (columnCount >= 3) {
+            const x = data.getColumn(0);
+            const values: any[] = [];
+
+            for (let column = 1; column < columnCount; column++) {
+                const y = data.getColumn(column);
+                const name = data.getColumnName(column);
+
+                for (let i = 0; i < x.length; i++) {
+                    const value = y[i];
+
+                    if (value != null) {
+                        values.push({
+                            x: x[i],
+                            y: value,
+                            z: name,
+                        });
+                    }
+                }
+            }
+
+            return values;
+        }
+
+        return [];
+    }
+
+    private generateScatterSpec(data: ChunkedResult) {
+        const encoding: any = {};
+
+        const columnCount = data.getColumnCount();
+
+        if (columnCount >= 2) {
+            encoding.x = {
+                field: 'x',
+                type: 'quantitative',
+                title: data.getColumnName(0),
+                sort: false,
+            };
+
+            encoding.y = {
+                field: 'y',
+                type: 'quantitative',
+                title: columnCount < 3 && data.getColumnName(1),
+            };
+        }
+
+        if (columnCount >= 3) {
+            encoding.color = {
+                type: 'ordinal',
+                field: 'z',
+                sort: false,
+                title: false,
+                scale: {
+                    scheme: 'category20',
+                },
+            };
+        }
+
+        return {
+            mark: {
+                type: 'point',
+            },
+            data: {
+                values: this.generateScatterValues(data),
+            },
+            encoding,
+        };
+    }
+
     private generateChartSpec() {
         const data = new ChunkedResult(this.props.data);
 
@@ -211,7 +294,7 @@ export class ChartViewer extends React.Component<
             case proto.tql.VizTypeType.VIZ_POINT:
                 return {};
             case proto.tql.VizTypeType.VIZ_SCATTER:
-                return {};
+                return this.generateScatterSpec(data);
             case proto.tql.VizTypeType.VIZ_TABLE:
                 return {};
             case proto.tql.VizTypeType.VIZ_TEXT:
