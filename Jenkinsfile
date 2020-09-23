@@ -6,7 +6,7 @@ pipeline {
         stage('Protobuf') {
             steps {
                 sh 'git submodule update --init --recursive'
-                sh './dev/compile_wasm.sh'
+                sh 'JENKINS_BUILD=1 ./dev/compile_wasm.sh'
             }
         }
     }
