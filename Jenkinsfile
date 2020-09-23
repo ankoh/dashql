@@ -4,7 +4,7 @@ pipeline {
     }
     stages {
         stage('Protocol Buffers') {
-            steps 
+            steps {
                 sh './dev/build_protoc.sh'
                 sh './dev/generate_proto.sh'
             }
