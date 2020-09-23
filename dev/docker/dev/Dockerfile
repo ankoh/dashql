@@ -1,4 +1,4 @@
-FROM ubuntu:19.10
+FROM ubuntu:20.10
 
 RUN apt-get update -qq \
     && apt-get install -y \
@@ -6,6 +6,7 @@ RUN apt-get update -qq \
         cmake ninja-build clang clang-tidy curl python \
         bison flex \
         openjdk-14-jdk \
+        nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
