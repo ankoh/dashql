@@ -28,11 +28,11 @@ RUN mkdir -p /opt/emsdk \
 
 SHELL ["/bin/bash", "-c"]
 RUN source /opt/emsdk/emsdk_env.sh \
-    && echo "PATH=$PATH" >> /opt/env.sh \
-    && echo "EMSDK=$EMSDK" >> /opt/env.sh \
-    && echo "EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
-    && echo "EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
-    && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
+    && echo "export PATH=$PATH" >> /opt/env.sh \
+    && echo "export EMSDK=$EMSDK" >> /opt/env.sh \
+    && echo "export EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
+    && echo "export EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
+    && printf '#!/bin/bash\nsource /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh
 
 ENTRYPOINT ["/opt/entrypoint.sh"]
