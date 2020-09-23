@@ -9,11 +9,8 @@ CORE_SOURCE_DIR="${PROJECT_ROOT}/core"
 APP_LIB_DIR="${PROJECT_ROOT}/core/build/package"
 
 CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/root/.emscripten_cache/ dashql/dashql-dev:${IMAGE_TAG} "
-if [ -n "${JENKINS_BUILD}" ]; then
-    CMD_PREFIX="/opt/emsdk/upstream/emscripten/"
-fi
-EMCONFIGURE="${CMD_PREFIX}emcmake"
-EMMAKE="${CMD_PREFIX}emmake"
+EMCONFIGURE="${CMD_PREFIX} emcmake"
+EMMAKE="${CMD_PREFIX} emmake"
 
 set -x
 
