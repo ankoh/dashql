@@ -6,8 +6,7 @@ pipeline {
         stage('Protobuf') {
             steps {
                 sh 'git submodule update --init --recursive'
-                sh './dev/build_protoc.sh'
-                sh './dev/generate_proto.sh'
+                sh './dev/compile_wasm.sh'
             }
         }
     }
