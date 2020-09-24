@@ -7,8 +7,9 @@ pipeline {
         }
     }
     environment {
-        EMSDK = '/opt/emsdk/upstream/emscripten'
+        EMSDK = '/opt/emsdk'
         EM_CACHE = '~/.emscripten_cache'
+        EM_UPSTREAM = '/opt/emsdk/upstream/emscripten'
     }
     stages {
         stage('Core') {
@@ -16,8 +17,8 @@ pipeline {
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/build/emscripten'
                 sh 'mkdir -p ./core/build/emscripten'
-                sh '${EMSDK}/emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release'
-                sh '${EMSDK}/emmake make -C./core/build/emscripten -j$(nproc)'
+                sh '${EM_UPSTREAM}/emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release'
+                sh '${EM_UPSTREAM}/emmake make -C./core/build/emscripten -j$(nproc)'
             }
         }
     }
