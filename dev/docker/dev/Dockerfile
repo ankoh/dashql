@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 
 RUN apt-get update -qq \
-    && apt-get install -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential git \
         cmake ninja-build clang clang-tidy curl python \
         bison flex \
