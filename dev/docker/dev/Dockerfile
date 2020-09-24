@@ -4,10 +4,11 @@ RUN apt-get update -qq \
     && apt-get install -y \
         build-essential git \
         cmake ninja-build clang clang-tidy curl python \
-        libpthread-stubs0-dev \
         bison flex \
         openjdk-14-jdk \
         nodejs \
+        libpthread-stubs0-dev \
+        libboost-all-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
