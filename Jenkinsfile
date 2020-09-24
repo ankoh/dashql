@@ -6,6 +6,9 @@ pipeline {
             additionalBuildArgs '--build-arg EMSDK_VERSION=2.0.4'
         }
     }
+    environment {
+        EM_CACHE = '~/.emscripten_cache'
+    }
     stages {
         stage('Core') {
             steps {
