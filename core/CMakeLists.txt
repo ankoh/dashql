@@ -32,6 +32,7 @@ set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Bison
@@ -86,7 +87,7 @@ include_directories(
 # Libraries
 
 add_library(dashql
-    ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
+    ${DUCKDB_AMALGAMATION}
     ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
     ${CMAKE_SOURCE_DIR}/src/extract/json_extract.cc
     ${CMAKE_SOURCE_DIR}/src/parser/sql/sql_parser.cc

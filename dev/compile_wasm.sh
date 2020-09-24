@@ -3,7 +3,7 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
-IMAGE_TAG="1.40.1"
+IMAGE_TAG="2.0.4"
 CORE_BUILD_DIR="${PROJECT_ROOT}/core/build/emscripten"
 CORE_SOURCE_DIR="${PROJECT_ROOT}/core"
 APP_LIB_DIR="${PROJECT_ROOT}/core/build/package"
@@ -16,6 +16,8 @@ set -x
 
 mkdir -p ${CORE_BUILD_DIR}
 
+CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
+
 ${EMCONFIGURE} cmake \
     -S/wd/core/ \
     -B/wd/core/build/emscripten \
@@ -23,7 +25,7 @@ ${EMCONFIGURE} cmake \
 
 ${EMMAKE} make \
     -C/wd/core/build/emscripten \
-    -j$(nproc) \
+    -j${CORES} \
     dashql_core
 
 mkdir -p "${APP_LIB_DIR}"
