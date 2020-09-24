@@ -4,7 +4,7 @@ pipeline {
             filename 'Dockerfile'
             dir './dev/docker/dev/'
             additionalBuildArgs '--build-arg EMSDK_VERSION=2.0.4'
-            args '-u jenkins:jenkins -v $HOME/.emscripten_cache:/mnt/emscripten_cache'
+            args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache'
         }
     }
     environment {
