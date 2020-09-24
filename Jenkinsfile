@@ -4,7 +4,7 @@ pipeline {
             filename 'Dockerfile'
             dir './dev/docker/dev/'
             additionalBuildArgs '--build-arg EMSDK_VERSION=2.0.4'
-            args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache -u root:root'
+            args '-u jenkins:jenkins -v $HOME/.emscripten_cache:/mnt/emscripten_cache'
         }
     }
     environment {
@@ -15,10 +15,9 @@ pipeline {
             steps {
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/build/emscripten'
-                sh 'ls -lisah /mnt/emscripten_cache'
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release || cat ./core/build/emscripten/CMakeFiles/CMakeError.log
+                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
                 '''
                 sh '''#!/bin/bash
                     source /opt/env.sh
