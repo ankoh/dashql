@@ -1,12 +1,15 @@
 pipeline {
     agent {
-        docker { image 'dashql/dashql-dev:1.40.1' }
+        dockerfile {
+            filename 'Dockerfile'
+            dir './dev/docker/dev/'
+        }
     }
     environment {
         EMSDK = '/opt/emsdk/upstream/emscripten'
     }
     stages {
-        stage('Protobuf') {
+        stage('Core') {
             steps {
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/build/emscripten'
