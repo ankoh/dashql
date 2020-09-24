@@ -41,8 +41,8 @@ namespace dashql {
         namespace scanner {
             Location locate(class location location) {
                 return {
-                    {location.begin.line, location.begin.column},
-                    {location.end.line, location.end.column}
+                    {static_cast<uint32_t>(location.begin.line), static_cast<uint32_t>(location.begin.column)},
+                    {static_cast<uint32_t>(location.end.line), static_cast<uint32_t>(location.end.column)}
                 };
             }
         } // namespace scanner
