@@ -16,11 +16,11 @@ pipeline {
                 sh 'mkdir -p ./core/build/emscripten'
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release || cat ./core/build/emscripten/CMakeFiles/CMakeOutput.log
+                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release || cat ./core/build/emscripten/CMakeFiles/CMakeError.log
                 '''
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emmake make -C./core/build/emscripten -j$(nproc)'
+                    emmake make -C./core/build/emscripten -j$(nproc)
                 '''
             }
         }
