@@ -164,12 +164,16 @@ endif()
 # ---------------------------------------------------------------------------
 # Tester
 
-add_executable(tester
-    ${CMAKE_SOURCE_DIR}/test/tester.cc
-    ${CMAKE_SOURCE_DIR}/test/duckdb_test.cc
-    ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc
-)
-target_link_libraries(tester dashql gtest gmock Threads::Threads)
+if(NOT EMSCRIPTEN)
 
-enable_testing()
-add_test(dashql tester)
+    add_executable(tester
+        ${CMAKE_SOURCE_DIR}/test/tester.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb_test.cc
+        ${CMAKE_SOURCE_DIR}/test/parser/tql/tql_parser_test.cc
+    )
+    target_link_libraries(tester dashql gtest gmock Threads::Threads)
+
+    enable_testing()
+    add_test(dashql tester)
+
+endif()
