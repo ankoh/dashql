@@ -11,10 +11,9 @@ pipeline {
             steps {
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/build/emscripten'
-                sh 'cat /opt/emsdk/.emscripten'
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release'
+                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
                 '''
                 sh '''#!/bin/bash
                     source /opt/env.sh
