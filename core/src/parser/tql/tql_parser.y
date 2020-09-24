@@ -34,15 +34,15 @@ namespace dashql {
         namespace parser {
             Location locate(location location) {
                 return {
-                    {location.begin.line, location.begin.column},
-                    {location.end.line, location.end.column}
+                    {static_cast<uint32_t>(location.begin.line), static_cast<uint32_t>(location.begin.column)},
+                    {static_cast<uint32_t>(location.end.line), static_cast<uint32_t>(location.end.column)}
                 };
             }
 
             Location locate(location begin, location end) {
                 return {
-                    {begin.begin.line, begin.begin.column},
-                    {end.end.line, end.end.column}
+                    {static_cast<uint32_t>(begin.begin.line), static_cast<uint32_t>(begin.begin.column)},
+                    {static_cast<uint32_t>(end.end.line), static_cast<uint32_t>(end.end.column)}
                 };
             }
         } // namespace parser
