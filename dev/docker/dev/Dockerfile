@@ -10,11 +10,10 @@ RUN apt-get update -qq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-ARG EMSDK_COMMIT
+ARG EMSDK_VERSION
 RUN mkdir -p /opt/emsdk \
     && cd /opt/emsdk \
-    && git clone https://github.com/emscripten-core/emsdk.git . \
-    && git checkout $EMSDK_COMMIT \
+    && curl -SL https://github.com/emscripten-core/emsdk/archive/${EMSDK_VERSION}.tar.gz | tar -xz --strip-components=1 \
     && ./emsdk install latest \
     && ./emsdk activate latest \
     && /bin/bash ./emsdk_env.sh \
