@@ -17,10 +17,11 @@ pipeline {
             steps {
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/build/emscripten'
-                sh 'mkdir -p ./core/build/emscripten'
-                sh 'echo $PATH'
-                sh 'emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release'
-                sh 'emmake make -C./core/build/emscripten -j$(nproc)'
+                sh '''#!/bin/bash
+                    source /opt/env.sh
+                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release'
+                    emmake make -C./core/build/emscripten -j$(nproc)'
+                '''
             }
         }
     }
