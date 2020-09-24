@@ -7,7 +7,7 @@ pipeline {
         }
     }
     environment {
-        PATH = '/opt/emsdk/upstream/emscripten:${env.PATH}'
+        PATH = '/opt/emsdk:/opt/emsdk/upstream/emscripten:${env.PATH}'
         EMSDK = '/opt/emsdk'
         EM_CONFIG = '/opt/emsdk/.emscripten'
         EM_CACHE = '~/.emscripten_cache'
@@ -18,6 +18,7 @@ pipeline {
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/build/emscripten'
                 sh 'mkdir -p ./core/build/emscripten'
+                sh 'echo $PATH'
                 sh 'emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release'
                 sh 'emmake make -C./core/build/emscripten -j$(nproc)'
             }
