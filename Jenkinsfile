@@ -16,7 +16,7 @@ pipeline {
                 sh 'mkdir -p ./core/build/emscripten'
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
+                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release || cat CMakeError.log
                 '''
                 sh '''#!/bin/bash
                     source /opt/env.sh
