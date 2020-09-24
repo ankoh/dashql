@@ -15,6 +15,7 @@ pipeline {
             steps {
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/build/emscripten'
+                sh 'ls -lisah /mnt/emscripten_cache'
                 sh '''#!/bin/bash
                     source /opt/env.sh
                     emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release || cat ./core/build/emscripten/CMakeFiles/CMakeError.log
