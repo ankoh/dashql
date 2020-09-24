@@ -7,12 +7,13 @@ pipeline {
         }
     }
     environment {
-        EM_CACHE = '~/.emscripten_cache'
+        EM_CACHE = '/home/jenkins/.emscripten_cache'
     }
     stages {
         stage('Core') {
             steps {
                 sh 'git submodule update --init --recursive'
+                sh 'mkdir -p '/home/jenkins/.emscripten_cache'
                 sh 'mkdir -p ./core/build/emscripten'
                 sh '''#!/bin/bash
                     source /opt/env.sh
