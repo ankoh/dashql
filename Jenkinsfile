@@ -3,6 +3,7 @@ pipeline {
         dockerfile {
             filename 'Dockerfile'
             dir './dev/docker/dev/'
+            additionalBuildArgs '--build-arg EMSDK_VERSION=2.0.4'
         }
     }
     environment {
