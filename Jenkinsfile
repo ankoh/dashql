@@ -9,6 +9,7 @@ pipeline {
     environment {
         PATH = '/opt/emsdk/upstream/emscripten:${env.PATH}'
         EMSDK = '/opt/emsdk'
+        EM_CONFIG = '/opt/emsdk/.emscripten'
         EM_CACHE = '~/.emscripten_cache'
         EM_UPSTREAM = '/opt/emsdk/upstream/emscripten'
     }
