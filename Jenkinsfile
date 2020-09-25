@@ -54,7 +54,7 @@ pipeline {
                     stages {
                         stage('Debug/Build') {
                             steps {
-                                cmake -S./core/ -B./core/build/debug -DCMAKE_BUILD_TYPE=Debug
+                                sh 'cmake -S./core/ -B./core/build/debug -DCMAKE_BUILD_TYPE=Debug'
                             }
                         }
 
