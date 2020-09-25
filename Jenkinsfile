@@ -35,7 +35,9 @@ pipeline {
                     archiveArtifacts artifacts: 'README.md', fingerprint: true
                 }
             }, app {
-                sh 'npm stuff'
+                steps {
+                    sh 'npm stuff'
+                }
 
             }, failFast: true
         }
