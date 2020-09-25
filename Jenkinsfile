@@ -45,8 +45,9 @@ pipeline {
 
                         stage ('App/Build') {
                             steps {
-                                sh 'cd ./app'
-                                sh 'npm ci --cache ${NPM_CACHE}'
+                                dir('./app') {
+                                    sh 'npm ci --cache ${NPM_CACHE}'
+                                }
                             }
                         }
                     }
