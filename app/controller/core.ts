@@ -59,7 +59,9 @@ export class CoreController {
                 require('@dashql/core/dashql_core.wasm').default;
         }
 
-        this.core = ((await import('@dashql/core')) as any).default(options);
+        this.core = await ((await import('@dashql/core')) as any).default(
+            options,
+        );
 
         await this.loading;
 
