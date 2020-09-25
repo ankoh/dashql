@@ -23,7 +23,7 @@ pipeline {
 //                    source /opt/env.sh
 //                    emmake make -C./core/build/emscripten -j$(nproc)
 //                '''
-                archiveArtifacts artifacts: './README.md', fingerprint: true
+                archiveArtifacts artifacts: 'README.md', fingerprint: true
             }
         }
 
