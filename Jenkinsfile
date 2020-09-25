@@ -4,12 +4,13 @@ pipeline {
             filename 'Dockerfile'
             dir './dev/docker/dev/'
             additionalBuildArgs '--build-arg EMSDK_VERSION=2.0.4'
-            args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache'
+            args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache -v $HOME/.npm_cache:/mnt/npm_cache'
         }
     }
 
     environment {
         EM_CACHE = '/mnt/emscripten_cache'
+        NPM_CACHE = '/mnt/npm_cache'
     }
 
     options {
@@ -44,7 +45,8 @@ pipeline {
 
                         stage ('App/Build') {
                             steps {
-                                sh 'echo "app build"'
+                                sh 'cd ./app'
+                                sh 'npm ci --cache ${NPM_CACHE}'
                             }
                         }
                     }
