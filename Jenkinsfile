@@ -25,5 +25,13 @@ pipeline {
                 '''
             }
         }
+
+        if (env.BRANCH_NAME == 'jenkins') {
+            stage('Deploy') {
+                steps {
+                    build job: 'dashql-cd'
+                }
+            }
+        }
     }
 }
