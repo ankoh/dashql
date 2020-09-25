@@ -10,6 +10,9 @@ pipeline {
     environment {
         EM_CACHE = '/mnt/emscripten_cache'
     }
+    options {
+        copyArtifactPermission('dashql-cd');
+    }
     stages {
         stage('Core') {
             steps {
