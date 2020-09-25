@@ -25,8 +25,6 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            parallel {
                 stage('App') {
                     stages {
                         stage('App/Emscripten') {
@@ -72,8 +70,6 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
 
         stage('Deploy') {
             when {
