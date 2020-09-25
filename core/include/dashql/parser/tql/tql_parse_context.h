@@ -53,10 +53,7 @@ namespace dashql {
             Module Parse(std::string_view in);
 
             /// Throw an error
-            void Error(Location location, const std::string& message);
-
-            /// Throw an error
-            void Error(const std::string& message);
+            void RaiseError(Location location, const std::string& message);
 
             /// Define a statement
             void DefineStatement(Statement statement, Location location);

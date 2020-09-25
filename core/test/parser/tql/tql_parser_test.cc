@@ -15,7 +15,7 @@ namespace {
         declare parameter days as integer;
     )RAW";
         ParseContext ctx;
-        auto module = ctx.Parse(in);
+        auto module = ctx.Parse(std::string_view{in});
         ASSERT_EQ(module.statements.size(), 1);
         ASSERT_EQ(module.errors.size(), 0);
     }

@@ -29,7 +29,7 @@ Module ParseContext::Parse(std::string_view in) {
 }
 
 // Yield an error
-void ParseContext::Error(Location location, const std::string& message) {
+void ParseContext::RaiseError(Location location, const std::string& message) {
     errors.push_back({location, message});
 }
 

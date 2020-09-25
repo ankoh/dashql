@@ -409,5 +409,5 @@ viz_type:
 %%
 
 void dashql::tql::Parser::error(const location_type& location, const std::string& message) {
-    context.Error(locate(location), message);
+    context.RaiseError(locate(location), message);
 }

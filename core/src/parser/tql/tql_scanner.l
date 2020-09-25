@@ -216,7 +216,7 @@ with[^;]*               { return Parser::make_SQL_WITH(getTokenText(), loc); }
 
                             if (!stream) {
                                 auto message = std::string("Invalid number \"") + tql_text + std::string("\"");
-                                context.Error(locate(loc), message);
+                                context.RaiseError(locate(loc), message);
                             }
 
                             return Parser::make_INTEGER_LITERAL(value, loc);
@@ -228,7 +228,7 @@ with[^;]*               { return Parser::make_SQL_WITH(getTokenText(), loc); }
 <<EOF>> { return Parser::make_EOF(loc); }
 .       {
             auto message = std::string("Invalid character \"") + tql_text + std::string("\"");
-            context.Error(locate(loc), message);
+            context.RaiseError(locate(loc), message);
         }
 
 %%
