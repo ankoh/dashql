@@ -7,17 +7,20 @@ pipeline {
             args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache'
         }
     }
+
     environment {
         EM_CACHE = '/mnt/emscripten_cache'
     }
+
     options {
         copyArtifactPermission('dashql-cd');
     }
+
     stages {
         stage('Configure') {
             steps {
                 sh 'git submodule update --init --recursive'
-                sh 'mkdir -p ./core/build/emscripten'
+                sh 'mkdir -p ./core/build/emscripten ./core/build/debug ./core/build/release'
             }
         }
 
@@ -51,7 +54,7 @@ pipeline {
                     stages {
                         stage('Debug/Build') {
                             steps {
-                                sh 'echo "native debug build"'
+                                cmake -S./core/ -B./core/build/debug -DCMAKE_BUILD_TYPE=Debug
                             }
                         }
 
