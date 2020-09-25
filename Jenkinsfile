@@ -36,7 +36,7 @@ pipeline {
             }
             steps {
                 build job: 'dashql-cd', wait: false, parameters: [
-                    string(name: 'UPSTREAM_JOB', value: env.BRANCH_NAME)
+                    string(name: 'UPSTREAM_BRANCH', value: env.BRANCH_NAME)
                 ]
             }
         }
