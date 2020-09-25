@@ -14,10 +14,13 @@ pipeline {
         copyArtifactPermission('dashql-cd');
     }
     stages {
+        state('Prepare') {
+            sh 'git submodule update --init --recursive'
+            sh 'mkdir -p ./core/build/emscripten'
+        }
+
         stage('Core') {
             steps {
-                sh 'git submodule update --init --recursive'
-                sh 'mkdir -p ./core/build/emscripten'
                 sh '''#!/bin/bash
                     source /opt/env.sh
                     emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
