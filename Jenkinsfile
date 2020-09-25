@@ -26,11 +26,12 @@ pipeline {
             }
         }
 
-        if (env.BRANCH_NAME == 'jenkins') {
-            stage('Deploy') {
-                steps {
-                    build job: 'dashql-cd'
-                }
+        stage('Deploy') {
+            when {
+                branch 'jenkins'
+            }
+            steps {
+                build job: 'dashql-cd'
             }
         }
     }
