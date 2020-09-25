@@ -24,7 +24,7 @@ pipeline {
         stage('Build') {
             parallel {
                 stage('App') {
-                    steps {
+                    stages {
                         stage('App/Emscripten') {
                             steps {
                                 sh '''#!/bin/bash
@@ -48,7 +48,7 @@ pipeline {
                 }
 
                 stage('Debug') {
-                    steps {
+                    stages {
                         stage('Debug/Build') {
                             steps {
                                 sh 'echo "native debug build"'
