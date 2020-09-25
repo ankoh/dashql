@@ -36,9 +36,30 @@ pipeline {
                         archiveArtifacts artifacts: 'README.md', fingerprint: true
                     }
                 }
+                stage('Build/Native/Debug') {
+                    steps {
+                        sh 'echo "native debug build"'
+                    }
+                }
                 stage('Build/App') {
                     steps {
                         sh 'echo "npm stuff"'
+                    }
+                }
+            }
+        }
+
+        stage('Test') {
+            parallel {
+                stage('Test/App') {
+                    steps {
+                        sh 'echo "test app"'
+                    }
+                }
+
+                stage('Test/Native/Debug') {
+                    steps {
+                        sh 'echo "test native debug build"'
                     }
                 }
             }
