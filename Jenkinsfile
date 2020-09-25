@@ -32,7 +32,11 @@ pipeline {
 
         stage('Deploy') {
             when {
-                branch 'jenkins'
+                anyOf {
+                    branch 'master'
+                    branch 'stable'
+                    branch 'testing'
+                }
             }
             steps {
                 build job: 'dashql-cd', wait: false, parameters: [
