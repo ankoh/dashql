@@ -38,7 +38,7 @@ pipeline {
                 }
                 stage('Build/App') {
                     steps {
-                        sh 'npm stuff'
+                        sh 'echo "npm stuff"'
                     }
                 }
             }
