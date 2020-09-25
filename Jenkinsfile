@@ -47,6 +47,7 @@ pipeline {
                             steps {
                                 dir('./app') {
                                     sh 'npm ci --cache ${NPM_CACHE}'
+                                    sh 'npm run build'
                                 }
                             }
                         }
