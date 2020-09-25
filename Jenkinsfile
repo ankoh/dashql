@@ -19,10 +19,10 @@ pipeline {
                     source /opt/env.sh
                     emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
                 '''
-                sh '''#!/bin/bash
-                    source /opt/env.sh
-                    emmake make -C./core/build/emscripten -j$(nproc)
-                '''
+//                sh '''#!/bin/bash
+//                    source /opt/env.sh
+//                    emmake make -C./core/build/emscripten -j$(nproc)
+//                '''
             }
         }
 
@@ -31,7 +31,7 @@ pipeline {
                 branch 'jenkins'
             }
             steps {
-                build job: 'dashql-cd'
+                build job: 'dashql-cd', wait: false
             }
         }
     }
