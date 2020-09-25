@@ -14,23 +14,30 @@ pipeline {
         copyArtifactPermission('dashql-cd');
     }
     stages {
-        stage('Setup') {
-            sh 'git submodule update --init --recursive'
-            sh 'mkdir -p ./core/build/emscripten'
+        stage('Configure') {
+            steps {
+                sh 'git submodule update --init --recursive'
+                sh 'mkdir -p ./core/build/emscripten'
+            }
         }
 
-        stage('Core/WASM') {
-            steps {
-                sh '''#!/bin/bash
-                    source /opt/env.sh
-                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
-                '''
-//                sh '''#!/bin/bash
+        stage('Build') {
+            parallel wasm {
+                steps {
+                    sh '''#!/bin/bash
+                        source /opt/env.sh
+                        emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
+                    '''
+//                  sh '''#!/bin/bash
 //                    source /opt/env.sh
 //                    emmake make -C./core/build/emscripten -j$(nproc)
-//                '''
-                archiveArtifacts artifacts: 'README.md', fingerprint: true
-            }
+//                  '''
+                    archiveArtifacts artifacts: 'README.md', fingerprint: true
+                }
+            }, app {
+                sh 'npm stuff'
+
+            }, failFast: true
         }
 
         stage('Deploy') {
