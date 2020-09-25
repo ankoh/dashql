@@ -14,12 +14,12 @@ pipeline {
         copyArtifactPermission('dashql-cd');
     }
     stages {
-        state('Prepare') {
+        stage('Setup') {
             sh 'git submodule update --init --recursive'
             sh 'mkdir -p ./core/build/emscripten'
         }
 
-        stage('Core') {
+        stage('Core/WASM') {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
