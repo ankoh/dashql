@@ -23,43 +23,43 @@ pipeline {
 
         stage('Build') {
             parallel {
-                stage('Build/WASM') {
+                stage('App') {
                     steps {
-                        sh '''#!/bin/bash
-                            source /opt/env.sh
-                            emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
-                        '''
-//                      sh '''#!/bin/bash
-//                          source /opt/env.sh
-//                          emmake make -C./core/build/emscripten -j$(nproc)
-//                      '''
-                        archiveArtifacts artifacts: 'README.md', fingerprint: true
-                    }
-                }
-                stage('Build/Native/Debug') {
-                    steps {
-                        sh 'echo "native debug build"'
-                    }
-                }
-                stage('Build/App') {
-                    steps {
-                        sh 'echo "npm stuff"'
-                    }
-                }
-            }
-        }
+                        stage('App/Emscripten') {
+                            steps {
+                                sh '''#!/bin/bash
+                                    source /opt/env.sh
+                                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
+                                '''
+//                              sh '''#!/bin/bash
+//                                  source /opt/env.sh
+//                                  emmake make -C./core/build/emscripten -j$(nproc)
+//                              '''
+                                archiveArtifacts artifacts: 'README.md', fingerprint: true
+                            }
+                        }
 
-        stage('Test') {
-            parallel {
-                stage('Test/App') {
-                    steps {
-                        sh 'echo "test app"'
+                        stage ('App/Build') {
+                            steps {
+                                sh 'app build'
+                            }
+                        }
                     }
                 }
 
-                stage('Test/Native/Debug') {
+                stage('Debug') {
                     steps {
-                        sh 'echo "test native debug build"'
+                        stage('Debug/Build') {
+                            steps {
+                                sh 'echo "native debug build"'
+                            }
+                        }
+
+                        stage('Debug/Test') {
+                            steps {
+                                sh 'echo "test debug"'
+                            }
+                        }
                     }
                 }
             }
