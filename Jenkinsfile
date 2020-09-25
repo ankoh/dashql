@@ -59,9 +59,9 @@ pipeline {
                     stages {
                         stage('Debug/Build') {
                             steps {
-//                                sh 'cmake -S./core/ -B./core/build/debug -DCMAKE_BUILD_TYPE=Debug'
-//                                sh 'make -C./core/build/debug -j$(nproc)'
-                                sh 'echo "build all the things"'
+                                sh 'cmake -S./core/ -B./core/build/debug -DCMAKE_BUILD_TYPE=Debug'
+                                sh 'make -C./core/build/debug -j$(nproc)'
+//                                sh 'echo "build all the things"'
                             }
                         }
 
