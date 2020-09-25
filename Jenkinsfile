@@ -35,7 +35,9 @@ pipeline {
                 branch 'jenkins'
             }
             steps {
-                build job: 'dashql-cd', wait: false
+                build job: 'dashql-cd', wait: false, parameters: [
+                    string(name: 'UPSTREAM_JOB', value: env.BRANCH_NAME)
+                ]
             }
         }
     }
