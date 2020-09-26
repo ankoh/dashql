@@ -62,12 +62,7 @@ pipeline {
                 dir('./app') {
                     sh 'npm ci --cache ${NPM_CACHE}'
                     sh 'npm run build'
-                    sh 'mv build dashql'
-                    sh 'tar -cvzf dashql.tar.gz ./dashql'
-                    sh 'rm -r ./dashql'
-                    sh 'mv ./dashql.tar.gz ../'
                 }
-                archiveArtifacts artifacts: 'dashql.tar.gz', fingerprint: true
             }
         }
 
@@ -80,6 +75,10 @@ pipeline {
                 }
             }
             steps {
+                sh 'mv app/build dashql'
+                sh 'tar -cvzf dashql.tar.gz ./dashql'
+                sh 'rm -r ./dashql'
+                archiveArtifacts artifacts: 'dashql.tar.gz', fingerprint: true
                 build job: 'dashql-cd', wait: false, parameters: [
                     string(name: 'UPSTREAM_BRANCH', value: env.BRANCH_NAME)
                 ]
