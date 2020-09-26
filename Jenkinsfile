@@ -12,7 +12,7 @@ pipeline {
         EM_CACHE = '/mnt/emscripten_cache'
         NPM_CACHE = '/mnt/npm_cache'
         CCACHE_DIR = '/mnt/ccache'
-//        CCACHE_BASEDIR = '${WORKSPACE}'
+        CCACHE_BASEDIR = '${WORKSPACE}'
     }
 
     options {
@@ -22,7 +22,7 @@ pipeline {
     stages {
         stage('Configure') {
             steps {
-                sh 'chown -R "${env.BUILD_USER_ID}" /mnt/npm_cache /mnt/ccache /mnt/emscripten_cache'
+                sh 'chown -R "$USER" /mnt/npm_cache /mnt/ccache /mnt/emscripten_cache'
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/build/emscripten ./core/build/debug ./core/build/release'
             }
