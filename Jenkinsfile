@@ -29,7 +29,6 @@ pipeline {
             steps {
                 sh 'cmake -S./core/ -B./core/build/debug -DCMAKE_BUILD_TYPE=Debug'
                 sh 'make -C./core/build/debug -j$(nproc)'
-//                                sh 'echo "build all the things"'
             }
         }
 
@@ -45,10 +44,10 @@ pipeline {
                     source /opt/env.sh
                     emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
                 '''
-//              sh '''#!/bin/bash
-//                  source /opt/env.sh
-//                  emmake make -C./core/build/emscripten -j$(nproc)
-//              '''
+                sh '''#!/bin/bash
+                    source /opt/env.sh
+                    emmake make -C./core/build/emscripten -j$(nproc)
+                '''
                 archiveArtifacts artifacts: 'README.md', fingerprint: true
             }
         }
@@ -57,7 +56,7 @@ pipeline {
             steps {
                 dir('./app') {
                     sh 'npm ci --cache ${NPM_CACHE}'
-//                                    sh 'npm run build'
+//                  sh 'npm run build'
                     sh 'echo "build all the things"'
                 }
             }
