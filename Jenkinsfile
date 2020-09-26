@@ -50,8 +50,8 @@ pipeline {
                 sh '''#!/bin/bash
                     source /opt/env.sh
                     emmake make -C./core/build/emscripten -j$(nproc)
+                    cp ./core/build/emscripten/dashql_core.{wasm,js,worker.js} ./core/build/package/
                 '''
-                archiveArtifacts artifacts: 'README.md', fingerprint: true
             }
         }
 
@@ -59,8 +59,8 @@ pipeline {
             steps {
                 dir('./app') {
                     sh 'npm ci --cache ${NPM_CACHE}'
-//                  sh 'npm run build'
-                    sh 'echo "build all the things"'
+                    sh 'npm run build'
+                    archiveArtifacts artifacts: 'README.md', fingerprint: true
                 }
             }
         }
