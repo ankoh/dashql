@@ -12,7 +12,7 @@ pipeline {
         EM_CACHE = '/mnt/emscripten_cache'
         NPM_CACHE = '/mnt/npm_cache'
         CCACHE_DIR = '/mnt/ccache'
-        CCACHE_BASEDIR = '${WORKSPACE}'
+//        CCACHE_BASEDIR = '${WORKSPACE}'
     }
 
     options {
