@@ -22,7 +22,7 @@ pipeline {
     stages {
         stage('Configure') {
             steps {
-                sh 'chown -R ${env.BUILD_USER_ID} /mnt/npm_cache /mnt/ccache ./mnt/emscripten_cache'
+                sh 'chown -R ${env.BUILD_USER_ID} /mnt/npm_cache /mnt/ccache /mnt/emscripten_cache'
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/build/emscripten ./core/build/debug ./core/build/release'
             }
