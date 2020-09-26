@@ -39,7 +39,7 @@ pipeline {
 
         stage('Debug/Test') {
             steps {
-                sh 'echo "test debug"'
+                sh './core/build/debug/tester'
             }
         }
 
