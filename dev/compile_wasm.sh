@@ -30,4 +30,4 @@ ${EMMAKE} make \
 
 mkdir -p "${APP_LIB_DIR}"
 
-cp ${CORE_SOURCE_DIR}/build/emscripten/dashql_core.{wasm,js} "${APP_LIB_DIR}"
+cp ${CORE_SOURCE_DIR}/build/emscripten/dashql_core.{wasm,js,worker.js} "${APP_LIB_DIR}"
