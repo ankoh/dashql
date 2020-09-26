@@ -25,51 +25,43 @@ pipeline {
             }
         }
 
-                stage('App') {
-                    stages {
-                        stage('App/Emscripten') {
-                            steps {
-                                sh '''#!/bin/bash
-                                    source /opt/env.sh
-                                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
-                                '''
-//                              sh '''#!/bin/bash
-//                                  source /opt/env.sh
-//                                  emmake make -C./core/build/emscripten -j$(nproc)
-//                              '''
-                                archiveArtifacts artifacts: 'README.md', fingerprint: true
-                            }
-                        }
-
-                        stage ('App/Build') {
-                            steps {
-                                dir('./app') {
-                                    sh 'npm ci --cache ${NPM_CACHE}'
-//                                    sh 'npm run build'
-                                    sh 'echo "build all the things"'
-                                }
-                            }
-                        }
-                    }
-                }
-
-                stage('Debug') {
-                    stages {
-                        stage('Debug/Build') {
-                            steps {
-                                sh 'cmake -S./core/ -B./core/build/debug -DCMAKE_BUILD_TYPE=Debug'
-                                sh 'make -C./core/build/debug -j$(nproc)'
+        stage('Debug/Build') {
+            steps {
+                sh 'cmake -S./core/ -B./core/build/debug -DCMAKE_BUILD_TYPE=Debug'
+                sh 'make -C./core/build/debug -j$(nproc)'
 //                                sh 'echo "build all the things"'
-                            }
-                        }
+            }
+        }
 
-                        stage('Debug/Test') {
-                            steps {
-                                sh 'echo "test debug"'
-                            }
-                        }
-                    }
+        stage('Debug/Test') {
+            steps {
+                sh 'echo "test debug"'
+            }
+        }
+
+        stage('App/Emscripten') {
+            steps {
+                sh '''#!/bin/bash
+                    source /opt/env.sh
+                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
+                '''
+//              sh '''#!/bin/bash
+//                  source /opt/env.sh
+//                  emmake make -C./core/build/emscripten -j$(nproc)
+//              '''
+                archiveArtifacts artifacts: 'README.md', fingerprint: true
+            }
+        }
+
+        stage ('App/Build') {
+            steps {
+                dir('./app') {
+                    sh 'npm ci --cache ${NPM_CACHE}'
+//                                    sh 'npm run build'
+                    sh 'echo "build all the things"'
                 }
+            }
+        }
 
         stage('Deploy') {
             when {
