@@ -12,7 +12,7 @@ class NavigationBar extends React.Component<Props> {
     public render() {
         return (
             <div className={styles.container}>
-                <div className={styles.brand}>TIGON</div>
+                <div className={styles.brand}>DashQL</div>
                 <div className={styles.tabs}>
                     {[
                         ['/explorer', 'Explorer'],
