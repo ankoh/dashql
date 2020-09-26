@@ -12,10 +12,10 @@ using namespace dashql::tql;
 namespace {
     TEST(TQLTest, ParameterDeclaration) {
         auto in = R"RAW(
-        declare parameter days as integer;
+        declare parameter days type integer;
     )RAW";
         ParseContext ctx;
-        auto module = ctx.Parse(std::string_view{in});
+        auto module = ctx.Parse(in);
         ASSERT_EQ(module.statements.size(), 1);
         ASSERT_EQ(module.errors.size(), 0);
     }
@@ -36,34 +36,6 @@ namespace {
     TEST(TQLTest, ExtractJsonPath) {
         auto in = R"RAW(
         extract weather_data from raw_data using json ();
-    )RAW";
-        ParseContext ctx;
-        auto module = ctx.Parse(in);
-        ASSERT_EQ(module.statements.size(), 1);
-        ASSERT_EQ(module.errors.size(), 0);
-    }
-
-    TEST(TQLTest, VizLineChart) {
-        auto in = R"RAW(
-        visualize whether_data_line from wheather_data using line chart (
-            area = (
-                sm = 1,
-                md = 3,
-                lg = 6,
-                xl = 6
-            ),
-            axes = (
-                x = (column = "a", scale = linear),
-                y = (column = "b", scale = linear)
-            ),
-            color = (
-                column = "c",
-                palette = [
-                    rgb(0, 0, 0),
-                    rgb(0, 0, 0)
-                ]
-            )
-        );
     )RAW";
         ParseContext ctx;
         auto module = ctx.Parse(in);
