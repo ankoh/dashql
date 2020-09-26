@@ -76,7 +76,7 @@ pipeline {
             }
             steps {
                 sh 'mv app/build dashql'
-                sh 'tar -cvzf dashql.tar.gz ./dashql'
+                sh 'tar -cvzf ./dashql.tar.gz ./dashql'
                 sh 'rm -r ./dashql'
                 archiveArtifacts artifacts: 'dashql.tar.gz', fingerprint: true
                 build job: 'dashql-cd', wait: false, parameters: [
