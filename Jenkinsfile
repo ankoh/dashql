@@ -4,13 +4,15 @@ pipeline {
             filename 'Dockerfile'
             dir './dev/docker/dev/'
             additionalBuildArgs '--build-arg EMSDK_VERSION=2.0.4'
-            args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache -v $HOME/.npm_cache:/mnt/npm_cache'
+            args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache -v $HOME/.npm_cache:/mnt/npm_cache -v $HOME/.ccache:/mnt/ccache'
         }
     }
 
     environment {
         EM_CACHE = '/mnt/emscripten_cache'
         NPM_CACHE = '/mnt/npm_cache'
+        CCACHE_DIR = '/mnt/ccache'
+        CCACHE_BASEDIR = '${WORKSPACE}'
     }
 
     options {
@@ -20,6 +22,7 @@ pipeline {
     stages {
         stage('Configure') {
             steps {
+                sh 'chown -R ${env.BUILD_USER_ID} /mnt/npm_cache /mnt/ccache ./mnt/emscripten_cache'
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/build/emscripten ./core/build/debug ./core/build/release'
             }
@@ -27,7 +30,7 @@ pipeline {
 
         stage('Debug/Build') {
             steps {
-                sh 'cmake -S./core/ -B./core/build/debug -DCMAKE_BUILD_TYPE=Debug'
+                sh 'cmake -S./core/ -B./core/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
                 sh 'make -C./core/build/debug -j$(nproc)'
             }
         }
