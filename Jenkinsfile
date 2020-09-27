@@ -87,4 +87,10 @@ pipeline {
             }
         }
     }
+
+    post {
+        always {
+            discordSend description: "Jenkins Pipeline Build", footer: "DashQL CI", link: env.BUILD_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "https://discordapp.com/api/webhooks/759701192439365652/XK_i40yR6eaX8xhama49DpZvZ8yJZi1BKXrbgeQN176zVbWjCkQERfVt7qAjj88A1PNK"
+        }
+    }
 }
