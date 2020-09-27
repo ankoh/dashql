@@ -8,6 +8,7 @@
 #include "duckdb.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/main/client_context.hpp"
+#include "duckdb/parallel/task_scheduler.hpp"
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/planner/planner.hpp"
 
@@ -170,7 +171,10 @@ void WebAPI::Session::planQuery(std::string_view text) {
 }
 
 /// Constructor
-WebAPI::WebAPI(): database(std::make_shared<duckdb::DuckDB>()), sessions() {}
+WebAPI::WebAPI(): database(std::make_shared<duckdb::DuckDB>()), sessions() {
+    database->scheduler->SetThreads(4);
+    std::cout << "use 4 threads" << std::endl;
+}
 
 /// Create a session
 WebAPI::Session& WebAPI::createSession() {
