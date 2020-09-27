@@ -28,6 +28,19 @@ module.exports = withTranspileModules({
             },
         });
 
+        config.module.rules.push({
+            test: /worker\.js$/,
+            type: 'javascript/auto',
+            loader: 'file-loader',
+            options: {
+                publicPath: `/_next/static/workers`,
+                outputPath: 'static/workers',
+            },
+        });
+
+        // https://github.com/webpack-contrib/worker-loader/issues/166
+        config.output.globalObject = 'this';
+
         const rule = config.module.rules
             .find(rule => rule.oneOf)
             .oneOf.find(
@@ -49,7 +62,7 @@ module.exports = withTranspileModules({
         config.plugins.push(
             new MonacoWebpackPlugin({
                 languages: ['sql'],
-                filename: 'static/[name].worker.js',
+                filename: 'static/workers/[name].worker.js',
             }),
         );
 

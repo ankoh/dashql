@@ -55,8 +55,19 @@ export class CoreController {
                 ),
             );
         } else {
-            options.locateFile = () =>
-                require('@dashql/core/dashql_core.wasm').default;
+            options.locateFile = (filename: string) => {
+                console.log("locateFile: " + filename)
+                switch (filename) {
+                    case "dashql_core.wasm":
+                        var foo = require('@dashql/core/dashql_core.wasm').default
+                        console.log(foo);
+                        return foo;
+                    case "dashql_core.worker.js":
+                        var foo = require('@dashql/core/dashql_core.worker.js').default
+                        console.log(foo);
+                        return foo;
+                }
+            }
         }
 
         this.core = await ((await import('@dashql/core')) as any).default(

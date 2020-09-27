@@ -89,16 +89,16 @@ class Editor extends React.Component<Props, State> {
         ) => {
             switch (label) {
                 case 'json':
-                    return '_next/static/json.worker.js';
+                    return '_next/static/workers/json.worker.js';
                 case 'css':
-                    return '_next/static/css.worker.js';
+                    return '_next/static/workers/css.worker.js';
                 case 'html':
-                    return '_next/static/html.worker.js';
+                    return '_next/static/workers/html.worker.js';
                 case 'typescript':
                 case 'javascript':
-                    return '_next/static/ts.worker.js';
+                    return '_next/static/workers/ts.worker.js';
                 default:
-                    return '_next/static/editor.worker.js';
+                    return '_next/static/workers/editor.worker.js';
             }
         };
 
