@@ -71,7 +71,9 @@ pipeline {
                 anyOf {
                     branch 'master'
                     branch 'stable'
-                    branch 'testing'
+                    branch 'dev0'
+                    branch 'dev1'
+                    branch 'dev2'
                 }
             }
             steps {
