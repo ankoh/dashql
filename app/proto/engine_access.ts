@@ -1,4 +1,5 @@
 import * as proto from '@dashql/proto';
+import { SQLTypeIDMap } from '@dashql/proto/src/proto/engine_pb';
 
 export class ChunkedResult {
     protected chunks: proto.engine.QueryResultChunk[];
@@ -88,10 +89,28 @@ export class ChunkedResult {
     public getColumn(
         columnIndex: number,
     ): (string | number | Date | null | undefined)[] {
-        const result: (string | number | Date | null | undefined)[] = [];
+        const result: (string | number | Date | null | undefined)[] = new Array(
+            this.getRowCount(),
+        );
 
-        for (let i = 0; i < this.rowCount; i++) {
-            result.push(this.getValue(columnIndex, i));
+        const chunks = this.chunks.sort(
+            (a, b) => a.getRowOffset() - b.getRowOffset(),
+        );
+
+        const typeId = this.sqlTypes[columnIndex].getTypeId();
+
+        for (const chunk of chunks) {
+            const offset = chunk.getRowOffset();
+            const count = chunk.getRowCount();
+
+            for (let i = offset; i < offset + count; i++) {
+                result[i] = this.getValueFromChunk(
+                    columnIndex,
+                    i,
+                    typeId,
+                    chunk,
+                );
+            }
         }
 
         return result;
@@ -108,6 +127,17 @@ export class ChunkedResult {
             return undefined;
         }
 
+        const typeId = this.sqlTypes[columnIndex].getTypeId();
+
+        return this.getValueFromChunk(columnIndex, rowIndex, typeId, chunk);
+    }
+
+    public getValueFromChunk(
+        columnIndex: number,
+        rowIndex: number,
+        typeId: SQLTypeIDMap[keyof SQLTypeIDMap],
+        chunk: proto.engine.QueryResultChunk,
+    ): string | number | Date | null | undefined {
         const columns = chunk.getColumnsList();
         const column = columns[columnIndex];
         const nullMask = column.getNullMaskList();
@@ -117,8 +147,6 @@ export class ChunkedResult {
         if (nullMask[index]) {
             return null;
         }
-
-        const typeId = this.sqlTypes[columnIndex].getTypeId();
 
         // Retrieve the corresponding column
         switch (typeId) {
