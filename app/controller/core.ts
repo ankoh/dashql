@@ -25,7 +25,7 @@ export class CoreController {
             printErr: console.error.bind(console),
             onRuntimeInitialized: this.resolveLoading,
         };
-        this.core = DashQLCore(options);
+        this.core = await DashQLCore(options);
         await this.loading;
 
         window.FS = this.core.FS;
