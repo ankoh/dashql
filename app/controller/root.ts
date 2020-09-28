@@ -41,6 +41,7 @@ export class RootController {
 
     // Init the controller
     public async init(): Promise<void> {
-        this.core.init();
+        if (typeof window !== `undefined`)
+            this.core.init();
     }
 }

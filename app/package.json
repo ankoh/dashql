@@ -7,7 +7,6 @@
     "test": "npx jest"
   },
   "dependencies": {
-    "@dashql/core": "file:../core/build/package",
     "@dashql/proto": "file:../proto/lib/js",
     "@types/d3": "^5.7.2",
     "@types/dagre": "^0.7.44",

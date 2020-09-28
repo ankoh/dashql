@@ -6,7 +6,7 @@ PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 IMAGE_TAG="2.0.4"
 CORE_BUILD_DIR="${PROJECT_ROOT}/core/build/emscripten"
 CORE_SOURCE_DIR="${PROJECT_ROOT}/core"
-APP_LIB_DIR="${PROJECT_ROOT}/core/build/package"
+APP_LIB_DIR="${PROJECT_ROOT}/app/public/core"
 
 CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/root/.emscripten_cache/ dashql/dashql-dev:${IMAGE_TAG} "
 EMCONFIGURE="${CMD_PREFIX} emcmake"
@@ -29,5 +29,4 @@ ${EMMAKE} make \
     dashql_core
 
 mkdir -p "${APP_LIB_DIR}"
-
 cp ${CORE_SOURCE_DIR}/build/emscripten/dashql_core.{wasm,js,worker.js} "${APP_LIB_DIR}"
