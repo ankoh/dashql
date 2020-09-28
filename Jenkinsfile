@@ -52,7 +52,7 @@ pipeline {
                 sh '''#!/bin/bash
                     source /opt/env.sh
                     emmake make -C./core/build/emscripten -j$(nproc)
-                    cp ./core/build/emscripten/dashql_core.{wasm,js,worker.js} ./core/build/package/
+                    cp ./core/build/emscripten/dashql_core.{wasm,js,worker.js} ./app/public/core/
                 '''
             }
         }

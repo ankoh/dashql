@@ -1,6 +1,7 @@
 import React from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import NextApp from 'next/app';
+import Head from 'next/head';
 import withRedux from 'next-redux-wrapper';
 import { createStore, ReduxStore } from '../store';
 import { AppContextProvider, IAppContext } from '../app_context';
@@ -22,11 +23,17 @@ class App extends NextApp<{ store: ReduxStore }> {
         const { Component, pageProps, store } = this.props;
 
         return (
-            <ReduxProvider store={store}>
-                <AppContextProvider value={appContext}>
-                    <Component {...pageProps} />
-                </AppContextProvider>
-            </ReduxProvider>
+            <div>
+                <Head>
+                    <script type="text/javascript" src="/core/dashql_core.js"></script>
+                </Head>
+
+                <ReduxProvider store={store}>
+                    <AppContextProvider value={appContext}>
+                        <Component {...pageProps} />
+                    </AppContextProvider>
+                </ReduxProvider>
+            </div>
         );
     }
 }

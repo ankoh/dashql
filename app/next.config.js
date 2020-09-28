@@ -7,10 +7,13 @@ const withTranspileModules = require('next-transpile-modules')([
 ]);
 
 module.exports = withTranspileModules({
+    env: {
+        PROJECT_ROOT: __dirname,
+    },
+
     webpack: (config, { isServer }) => {
         if (isServer) {
             global.window = undefined;
-
             config.node = false;
         } else {
             config.node = {
@@ -18,6 +21,7 @@ module.exports = withTranspileModules({
             };
         }
 
+        // Copy all wasm files
         config.module.rules.push({
             test: /\.wasm$/,
             type: 'javascript/auto',
@@ -28,6 +32,7 @@ module.exports = withTranspileModules({
             },
         });
 
+        // Copy all workers files
         config.module.rules.push({
             test: /worker\.js$/,
             type: 'javascript/auto',
@@ -41,16 +46,15 @@ module.exports = withTranspileModules({
         // https://github.com/webpack-contrib/worker-loader/issues/166
         config.output.globalObject = 'this';
 
+        // Find the global CSS loader
         const rule = config.module.rules
             .find(rule => rule.oneOf)
             .oneOf.find(
                 r =>
-                    // Find the global CSS loader
                     r.issuer &&
                     r.issuer.include &&
                     r.issuer.include.includes('_app'),
             );
-
         if (rule) {
             rule.issuer.include = [
                 rule.issuer.include,

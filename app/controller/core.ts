@@ -1,5 +1,6 @@
 import * as proto from '@dashql/proto';
-import * as Store from '../store';
+
+declare let DashQLCore: any;
 
 // IMPORTANT:
 // ALL methods that transitively depend on the core MUST be asynchronous.
@@ -8,14 +9,8 @@ import * as Store from '../store';
 // The core controller
 export class CoreController {
     protected loading: Promise<void>;
-
     protected resolveLoading: () => void = () => {};
-
-    // The core module
     protected core: any | null = null;
-
-    // The cached layout buffer (if any)
-    protected cachedLayoutBuffer: Store.CoreBuffer | null = null;
 
     constructor() {
         this.loading = new Promise(resolve => {
@@ -30,50 +25,7 @@ export class CoreController {
             printErr: console.error.bind(console),
             onRuntimeInitialized: this.resolveLoading,
         };
-
-        if (process.env.JEST_WORKER_ID !== undefined) {
-            if (process.env.NODE_ENV === 'production') {
-                options.wasmBinary = await require('fs').promises.readFile(
-                    require('path').resolve(
-                        __dirname,
-                        '../../../../../node_modules/@dashql/core/dashql_core.wasm',
-                    ),
-                );
-            } else {
-                options.wasmBinary = await require('fs').promises.readFile(
-                    require('path').resolve(
-                        __dirname,
-                        '../node_modules/@dashql/core/dashql_core.wasm',
-                    ),
-                );
-            }
-        } else if (typeof window === 'undefined') {
-            options.wasmBinary = await require('fs').promises.readFile(
-                require('path').resolve(
-                    __dirname,
-                    '../../../../../node_modules/@dashql/core/dashql_core.wasm',
-                ),
-            );
-        } else {
-            options.locateFile = (filename: string) => {
-                console.log("locateFile: " + filename)
-                switch (filename) {
-                    case "dashql_core.wasm":
-                        var foo = require('@dashql/core/dashql_core.wasm').default
-                        console.log(foo);
-                        return foo;
-                    case "dashql_core.worker.js":
-                        var foo = require('@dashql/core/dashql_core.worker.js').default
-                        console.log(foo);
-                        return foo;
-                }
-            }
-        }
-
-        this.core = await ((await import('@dashql/core')) as any).default(
-            options,
-        );
-
+        this.core = DashQLCore(options);
         await this.loading;
 
         window.FS = this.core.FS;
@@ -130,17 +82,6 @@ export class CoreController {
         await this.waitUntilReady();
         this.core.ccall('dashql_end_session', 'void', ['number'], [session]);
         return Promise.resolve();
-    }
-
-    // Copy a flatbuffer
-    public async copyFlatBuffer(
-        session: number,
-        buffer: flatbuffers.ByteBuffer,
-    ): Promise<[number, number]> {
-        return this.copyBuffer(
-            session,
-            buffer.bytes().subarray(buffer.position()),
-        );
     }
 
     // Copy a buffer
