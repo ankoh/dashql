@@ -173,7 +173,6 @@ void WebAPI::Session::planQuery(std::string_view text) {
 /// Constructor
 WebAPI::WebAPI(): database(std::make_shared<duckdb::DuckDB>()), sessions() {
     database->scheduler->SetThreads(4);
-    std::cout << "use 4 threads" << std::endl;
 }
 
 /// Create a session
