@@ -172,7 +172,10 @@ void WebAPI::Session::planQuery(std::string_view text) {
 
 /// Constructor
 WebAPI::WebAPI(): database(std::make_shared<duckdb::DuckDB>()), sessions() {
-    database->scheduler->SetThreads(4);
+    // TODO: Reevaluate enabling threads
+    // The synchronization overhead of using threads in Emscripten/JavaScript/WebAssembly seems to be more expensive
+    // than any potential performance benefits of using them at the time of this writing.
+    // database->scheduler->SetThreads(4);
 }
 
 /// Create a session
