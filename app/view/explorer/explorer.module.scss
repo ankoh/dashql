@@ -49,6 +49,8 @@ $topbar_background: rgb(46, 46, 46);
 
     border-right: 1px solid $border_color;
     font-size: 0.75em;
+
+    overflow-y: auto;
 }
 
 .toolbar {
