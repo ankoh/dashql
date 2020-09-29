@@ -38,6 +38,7 @@ include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
 
 # ---------------------------------------------------------------------------
 # Proto project
