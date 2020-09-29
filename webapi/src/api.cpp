@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 #include "duckdb_webapi/api.h"
 #include "duckdb_webapi/proto/duckdb_codec.h"
 #include "duckdb_webapi/proto/json_conversion.h"

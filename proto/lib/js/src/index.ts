@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 import * as api from "./proto/api_generated";
 import * as query_plan from "./proto/query_plan_generated";
 import * as query_result from "./proto/query_result_generated";

@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 2020 The DashQL Authors
+
 set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null

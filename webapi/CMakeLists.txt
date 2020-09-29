@@ -1,3 +1,5 @@
+# Copyright (c) 2020 The DashQL Authors
+
 # Use project versions
 # cmake --help-policy CMP0048
 if (POLICY CMP0048)

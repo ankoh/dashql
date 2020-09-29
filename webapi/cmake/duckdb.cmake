@@ -1,3 +1,5 @@
+# Copyright (c) 2020 The DashQL Authors
+
 include(ExternalProject)
 
 set(DUCKDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/duckdb")

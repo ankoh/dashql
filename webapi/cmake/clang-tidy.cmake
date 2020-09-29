@@ -1,3 +1,5 @@
+# Copyright (c) 2020 The DashQL Authors
+
 find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-7 clang-tidy)
 
 if(NOT CLANG_TIDY_EXECUTABLE)

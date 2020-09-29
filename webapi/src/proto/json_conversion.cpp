@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 #include "flatbuffers/minireflect.h"
 #include <sstream>
 

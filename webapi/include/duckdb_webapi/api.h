@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 #ifndef INCLUDE_DUCKDB_WEBAPI_API_H_
 #define INCLUDE_DUCKDB_WEBAPI_API_H_
 

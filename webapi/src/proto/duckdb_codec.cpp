@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 #include "duckdb_webapi/proto/duckdb_codec.h"
 #include "duckdb/planner/logical_operator.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
