@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as proto from '@dashql/proto';
+import { IAppContext, withAppContext } from '../../app_context';
 import GridElement from './grid_element';
 import Table from '../viz/table';
 import ChartViewer from '../viz/chart_viewer';
@@ -8,6 +9,8 @@ import styles from './viz_card.module.scss';
 import { DeleteIcon, EditIcon, RefreshIcon } from '../../svg/icons';
 
 type Props = {
+    appContext: IAppContext;
+} & {
     statement: proto.tql.VizStatement;
     data: proto.engine.QueryResult | null;
     position: GridElement;
@@ -18,6 +21,16 @@ const ACTION_ICON_HEIGHT = '16px';
 
 /// A viz card
 class VizCard extends React.Component<Props> {
+    handleClick = () => {
+        const location = this.props.statement.getLocation();
+
+        if (!location) {
+            return;
+        }
+
+        this.props.appContext.controller.editor.replace(location, null);
+    };
+
     render() {
         let viz: React.ReactElement | null = null;
 
@@ -71,7 +84,10 @@ class VizCard extends React.Component<Props> {
                             height={ACTION_ICON_HEIGHT}
                         />
                     </div>
-                    <div className={styles.viz_card_action_delete}>
+                    <div
+                        className={styles.viz_card_action_delete}
+                        onClick={this.handleClick}
+                    >
                         <DeleteIcon
                             className={styles.viz_card_action_icon}
                             width={ACTION_ICON_WIDTH}
@@ -85,4 +101,4 @@ class VizCard extends React.Component<Props> {
     }
 }
 
-export default VizCard;
+export default withAppContext(VizCard);
