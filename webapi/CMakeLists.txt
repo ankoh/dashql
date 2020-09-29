@@ -8,7 +8,7 @@ endif (POLICY CMP0048)
 
 # ---------------------------------------------------------------------------
 
-project("duckdb" VERSION 0.1)
+project(duckdbjs VERSION 0.1)
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -57,22 +57,32 @@ include_directories(
 )
 
 # ---------------------------------------------------------------------------
+# Library
+
+add_library(duckdb_webapi_core
+    ${DUCKDB_SOURCE_FILE}
+    ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
+    ${CMAKE_SOURCE_DIR}/src/api.cc
+    ${CMAKE_SOURCE_DIR}/src/proto/duckdb_codec.cc
+    ${CMAKE_SOURCE_DIR}/src/proto/json_conversion.cc
+)
+
+target_link_libraries(duckdb_webapi_core
+    duckdb_webapi_proto
+    flatbuffers spdlog Threads::Threads
+)
+
+# ---------------------------------------------------------------------------
 # API Proxy
 
 add_executable(duckdb_webapi
-    ${DUCKDB_SOURCE_FILE}
-    ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
-    ${CMAKE_SOURCE_DIR}/src/api.cpp
-    ${CMAKE_SOURCE_DIR}/src/api_proxy.cpp
-    ${CMAKE_SOURCE_DIR}/src/proto/duckdb_codec.cpp
-    ${CMAKE_SOURCE_DIR}/src/proto/json_conversion.cpp
+    ${CMAKE_SOURCE_DIR}/src/api_proxy.cc
 )
 
 target_link_libraries(duckdb_webapi
+    duckdb_webapi_core
     duckdb_webapi_proto
-    flatbuffers
-    spdlog
-    Threads::Threads
+    flatbuffers spdlog Threads::Threads
 )
 
 if(EMSCRIPTEN)
@@ -95,3 +105,23 @@ if(EMSCRIPTEN)
         "
     )
 endif()
+
+# ---------------------------------------------------------------------------
+# Tester
+
+if(NOT EMSCRIPTEN)
+
+    add_executable(tester
+        ${CMAKE_SOURCE_DIR}/test/tester.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb_test.cc
+    )
+    target_link_libraries(tester 
+        duckdb_webapi_core
+        duckdb_webapi_proto
+        flatbuffers gtest gmock Threads::Threads)
+
+    enable_testing()
+    add_test(duckdbjs tester)
+
+endif()
+
