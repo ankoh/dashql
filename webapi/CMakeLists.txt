@@ -34,7 +34,7 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/protobuf.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 
 # ---------------------------------------------------------------------------
@@ -61,11 +61,13 @@ add_executable(duckdb_webapi
     ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
     ${CMAKE_SOURCE_DIR}/src/api.cpp
     ${CMAKE_SOURCE_DIR}/src/api_proxy.cpp
+    ${CMAKE_SOURCE_DIR}/src/proto/codec.cpp
+    ${CMAKE_SOURCE_DIR}/src/proto/json_conversion.cpp
 )
 
 target_link_libraries(duckdb_webapi
     duckdb_webapi_proto
-    protobuf
+    flatbuffers
     spdlog
     Threads::Threads
 )

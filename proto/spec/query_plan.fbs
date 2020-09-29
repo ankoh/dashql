@@ -2,65 +2,65 @@ namespace duckdb_webapi.proto;
 
 // The logical operator types
 enum LogicalOperatorType: uint8 {
-    OP_INVALID = 0,
-    OP_PROJECTION = 1,
-    OP_FILTER = 2,
-    OP_AGGREGATE_AND_GROUP_BY = 3,
-    OP_WINDOW = 4,
-    OP_UNNEST = 5,
-    OP_LIMIT = 6,
-    OP_ORDER_BY = 7,
-    OP_TOP_N = 8,
-    OP_COPY_FROM_FILE = 9,
-    OP_COPY_TO_FILE = 10,
-    OP_DISTINCT = 11,
-    OP_INDEX_SCAN = 12,
+    INVALID = 0,
+    PROJECTION = 1,
+    FILTER = 2,
+    AGGREGATE_AND_GROUP_BY = 3,
+    WINDOW = 4,
+    UNNEST = 5,
+    LIMIT = 6,
+    ORDER_BY = 7,
+    TOP_N = 8,
+    COPY_FROM_FILE = 9,
+    COPY_TO_FILE = 10,
+    DISTINCT = 11,
+    INDEX_SCAN = 12,
 
     // Data sources
-    OP_GET = 13,
-    OP_CHUNK_GET = 14,
-    OP_DELIM_GET = 15,
-    OP_EXPRESSION_GET = 16,
-    OP_TABLE_FUNCTION = 17,
-    OP_EMPTY_RESULT = 18,
-    OP_CTE_REF = 19,
+    GET = 13,
+    CHUNK_GET = 14,
+    DELIM_GET = 15,
+    EXPRESSION_GET = 16,
+    TABLE_FUNCTION = 17,
+    EMPTY_RESULT = 18,
+    CTE_REF = 19,
 
     // Joins
-    OP_JOIN = 20,
-    OP_DELIM_JOIN = 21,
-    OP_COMPARISON_JOIN = 22,
-    OP_ANY_JOIN = 23,
-    OP_CROSS_PRODUCT = 24,
+    JOIN = 20,
+    DELIM_JOIN = 21,
+    COMPARISON_JOIN = 22,
+    ANY_JOIN = 23,
+    CROSS_PRODUCT = 24,
 
     // SetOps
-    OP_UNION = 25,
-    OP_EXCEPT = 26,
-    OP_INTERSECT = 27,
-    OP_RECURSIVE_CTE = 28,
+    UNION = 25,
+    EXCEPT = 26,
+    INTERSECT = 27,
+    RECURSIVE_CTE = 28,
 
     // Updates
-    OP_INSERT = 29,
-    OP_DELETE = 30,
-    OP_UPDATE = 31,
+    INSERT = 29,
+    DELETE = 30,
+    UPDATE = 31,
 
     // Schema
-    OP_ALTER = 32,
-    OP_CREATE_TABLE = 33,
-    OP_CREATE_INDEX = 34,
-    OP_CREATE_SEQUENCE = 35,
-    OP_CREATE_VIEW = 36,
-    OP_CREATE_SCHEMA = 37,
-    OP_DROP = 38,
-    OP_PRAGMA = 39,
-    OP_TRANSACTION = 40,
+    ALTER = 32,
+    CREATE_TABLE = 33,
+    CREATE_INDEX = 34,
+    CREATE_SEQUENCE = 35,
+    CREATE_VIEW = 36,
+    CREATE_SCHEMA = 37,
+    DROP = 38,
+    PRAGMA = 39,
+    TRANSACTION = 40,
 
     // Explain
-    OP_EXPLAIN = 41,
+    EXPLAIN = 41,
 
     // Helpers
-    OP_PREPARE = 42,
-    OP_EXECUTE = 43,
-    OP_VACUUM = 44
+    PREPARE = 42,
+    EXECUTE = 43,
+    VACUUM = 44
 }
 
 // A query plan
