@@ -1,0 +1,50 @@
+include "query_plan.fbs";
+include "sql_type.fbs";
+
+namespace duckdb_webapi.proto;
+
+// The raw data types
+enum RawTypeID: uint8 {
+    INVALID = 0,    // bool
+    BOOLEAN = 1,    // int8
+    TINYINT = 2,    // int16
+    SMALLINT = 3,   // int32
+    INTEGER = 4,    // int64
+    BIGINT = 5,     // int64
+    HASH = 6,       // uint64
+    POINTER = 7,    // uint64
+    FLOAT = 8,      // float32
+    DOUBLE = 9,     // float64
+    VARCHAR = 10,   // string
+    VARBINARY = 11  // [ubyte]
+}
+
+// A column of a query result
+table QueryResultColumn {
+    type_id: RawTypeID;
+    null_mask: [bool];
+    rows_u8: [ubyte];
+    rows_i16: [short];
+    rows_u16: [ushort];
+    rows_i32: [int];
+    rows_i64: [long];
+    rows_u64: [ulong];
+    rows_f32: [float];
+    rows_f64: [double];
+    rows_string: [string];
+}
+
+// A data chunk
+table QueryResultChunk {
+    columns: [QueryResultColumn];
+}
+
+// A query result
+table QueryResultHeader {
+    query_id: uint64;
+    query_plan: QueryPlan;
+    column_raw_types: [RawTypeID];
+    column_sql_types: [SQLType];
+    column_names: [string];
+    data_chunks: [QueryResultChunk];
+}

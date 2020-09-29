@@ -1,20 +1,23 @@
 {
   "name": "duckdb_webapi_proto",
   "version": "0.0.1",
-  "description": "duckdb_webapi protocol buffers",
-  "main": "dist/duckdb_webapi_proto.js",
-  "typings": "src/index.d.ts",
+  "description": "",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
   "scripts": {
-    "bundle": "npx webpack"
+    "prepare": "npm run build",
+    "build": "tsc"
   },
-  "author": "Andre Kohn <kohn.a@outlook.com>",
-  "license": "MIT",
+  "files": [
+    "lib"
+  ],
+  "author": "",
+  "license": "",
   "devDependencies": {
-    "@types/google-protobuf": "^3.7.2",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10"
+    "@types/flatbuffers": "^1.9.1",
+    "typescript": "^3.6.4"
   },
   "dependencies": {
-    "google-protobuf": "^3.11.0-rc.1"
+    "flatbuffers": "^1.11.0"
   }
 }

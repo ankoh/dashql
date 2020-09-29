@@ -1,54 +1,73 @@
 #!/bin/bash
+
 set -euo pipefail
 
-PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
+
 PROTO_DIR="${PROJECT_ROOT}/proto"
 PROTO_SPEC_DIR="${PROTO_DIR}/spec"
-PROTO_BUILD_DIR="${PROTO_DIR}/build"
-PROTOC="${PROJECT_ROOT}/dev/protoc/install/bin/protoc"
-
-TSPROTOC_BUILD_DIR="${PROTO_BUILD_DIR}/ts-protoc-gen/"
-TSPROTOC_PLUGIN="${TSPROTOC_BUILD_DIR}/node_modules/.bin/protoc-gen-ts"
-
 CPP_PROTO_DIR="${PROTO_DIR}/lib/cpp/include/duckdb_webapi/proto"
-JS_PROTO_DIR="${PROTO_DIR}/lib/js/src/proto"
+TS_PROTO_DIR="${PROTO_DIR}/lib/js/src/proto"
 
-${PROTOC} --version \
-    && { echo "[ OK  ] Command: protoc"; } \
-    || { echo "[ ERR ] Command: protoc (run dev/build_protoc.sh)"; exit 1; }
+FLATC="${PROJECT_ROOT}/dev/flatc/install/bin/flatc"
 
-if [ -x "$(command -v ${TSPROTOC_PLUGIN})" ]; then
-    echo "[ OK  ] Command: protoc-gen-ts"
-else
-    echo "[ GEN ] Command: protoc-gen-ts"
-    mkdir -p ${TSPROTOC_BUILD_DIR} \
-        && cd ${TSPROTOC_BUILD_DIR} \
-        && npm install ts-protoc-gen@next \
-        && { echo "[ OK  ] Command: protoc-gen-ts"; } \
-        || { echo "[ ERR ] Command: protoc-gen-ts"; exit 1; }
-fi
+TMP=$(mktemp -d)
 
-for PROTO_FILE in ${PROTO_SPEC_DIR}/*; do
-    ${PROTOC} \
-        -I ${PROTO_SPEC_DIR} \
-        --plugin=protoc-gen-ts=${TSPROTOC_PLUGIN} \
-        --cpp_out=${CPP_PROTO_DIR} \
-        --js_out="import_style=commonjs,binary:${JS_PROTO_DIR}" \
-        --ts_out=${JS_PROTO_DIR} \
-        ${PROTO_FILE} \
-        && { echo "[ OK  ] ${PROTO_FILE}"; } \
-        || { echo "[ ERR ] ${PROTO_FILE}"; exit 1; }
+${FLATC} --version \
+    && { echo "[ OK  ] Command: flatc"; } \
+    || { echo "[ ERR ] Command: flatc"; exit 1; }
+
+for PROTO_FILE in ${PROTO_SPEC_DIR}/*.fbs; do
+    PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
+    PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
+
+    ${FLATC} -I ${PROTO_DIR} -o ${CPP_PROTO_DIR} ${PROTO_FILE} --cpp \
+            --no-prefix --scoped-enums \
+            --reflect-types --reflect-names \
+            --gen-object-api --gen-name-strings --gen-compare \
+        && { echo "[ OK  ] ${PROTO_FILE}: C++"; } \
+        || { echo "[ ERR ] ${PROTO_FILE}: C++"; exit 1; }
 done
 
-echo "[ RUN ] Bundle js library" \
-    && cd "${PROTO_DIR}/lib/js" \
-    && npm install --silent \
-    && npm run bundle \
-    && { echo "[ OK  ] Bundle js library"; } \
-    || { echo "[ ERR ] Bundle js library"; exit 1; }
+# Copy all flatbuffer specs without the namespace.
+# We don't want namespaces in Typscript since we already have modules.
+for PROTO_FILE in ${PROTO_SPEC_DIR}/*.fbs; do
+    PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
+    PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
 
-echo "[ RUN ] Install js library" \
-    && cd "${PROJECT_ROOT}/lib" \
-    && npm install --silent \
-    && { echo "[ OK  ] Install js library"; } \
-    || { echo "[ ERR ] Install js library"; exit 1; }
+    FBS_TMP="${TMP}/${PROTO_FILE_NAME}.fbs"
+    sed -e "s/^namespace.*$//g" ${PROTO_FILE} > ${FBS_TMP}
+done
+
+for PROTO_FILE in ${PROTO_SPEC_DIR}/*.fbs; do
+    PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
+    PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
+    FBS_TMP="${TMP}/${PROTO_FILE_NAME}.fbs"
+
+    TS_PROTO_OUT="${TS_PROTO_DIR}/${PROTO_FILE_NAME}_generated.ts"
+    TS_PROTO_TMP="${TMP}/${PROTO_FILE_NAME}.ts"
+
+    ${FLATC} -I ${TMP} -o ${TS_PROTO_DIR} ${FBS_TMP} --ts --no-fb-import \
+        && mv ${TS_PROTO_OUT} ${TS_PROTO_TMP} \
+        && echo "/* eslint-disable */" > ${TS_PROTO_OUT} \
+        && echo "import { flatbuffers } from \"flatbuffers\";" >> ${TS_PROTO_OUT} \
+        && cat ${TS_PROTO_TMP} >> ${TS_PROTO_OUT} \
+        && { echo "[ OK  ] ${PROTO_FILE}: Typescript"; } \
+        || { echo "[ ERR ] ${PROTO_FILE}: Typescript"; exit 1; }
+
+done
+
+rm -r ${TMP}
+
+# echo "[ RUN ] Bundle js library" \
+#     && cd "${PROTO_DIR}/lib/js" \
+#     && npm install --silent \
+#     && npm run bundle \
+#     && { echo "[ OK  ] Bundle js library"; } \
+#     || { echo "[ ERR ] Bundle js library"; exit 1; }
+# 
+# echo "[ RUN ] Install js library" \
+#     && cd "${PROJECT_ROOT}/lib" \
+#     && npm install --silent \
+#     && { echo "[ OK  ] Install js library"; } \
+#     || { echo "[ ERR ] Install js library"; exit 1; }
