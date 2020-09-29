@@ -31,7 +31,7 @@ pipeline {
                 sh '''#!/bin/bash
                     source /opt/env.sh
                     emmake make -C./webapi/build/emscripten -j$(nproc)
-                    cp ./webapi/build/emscripten/dashql_webapi.{wasm,js,worker.js} ./lib/
+                    cp ./webapi/build/emscripten/duckdb_webapi.{wasm,js,worker.js} ./lib/
                 '''
             }
         }
