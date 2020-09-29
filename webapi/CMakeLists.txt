@@ -61,7 +61,7 @@ add_executable(duckdb_webapi
     ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
     ${CMAKE_SOURCE_DIR}/src/api.cpp
     ${CMAKE_SOURCE_DIR}/src/api_proxy.cpp
-    ${CMAKE_SOURCE_DIR}/src/proto/codec.cpp
+    ${CMAKE_SOURCE_DIR}/src/proto/duckdb_codec.cpp
     ${CMAKE_SOURCE_DIR}/src/proto/json_conversion.cpp
 )
 

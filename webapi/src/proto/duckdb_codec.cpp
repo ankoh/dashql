@@ -1,4 +1,4 @@
-#include "duckdb_webapi/proto/codec.h"
+#include "duckdb_webapi/proto/duckdb_codec.h"
 #include "duckdb/planner/logical_operator.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/common/vector_operations/unary_executor.hpp"
@@ -92,7 +92,9 @@ void iterVec(duckdb::VectorData& vec, size_t count, OP op) {
 
 /// Write a fixed-length result column
 template <typename T>
-static fb::Offset<proto::QueryResultColumn> writeFixedLengthResultColumn(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type, duckdb::VectorData &vec, size_t count) {
+static fb::Offset<proto::QueryResultColumn> writeCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type, duckdb::VectorData &vec, size_t count) {
+    assert(sizeof(T) == duckdb::GetTypeIdSize(type));
+
     T *values;
     auto dBuf = builder.CreateUninitializedVector(count, &values);
     std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
@@ -137,7 +139,7 @@ static fb::Offset<proto::QueryResultColumn> writeFixedLengthResultColumn(fb::Fla
 }
 
 /// Write a string result column
-static fb::Offset<proto::QueryResultColumn> writeStringResultColumn(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec, size_t count) {
+static fb::Offset<proto::QueryResultColumn> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec, size_t count) {
     std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
 
     // Has null mask?
@@ -198,60 +200,41 @@ fb::Offset<proto::QueryResultHeader> writeQueryResult(fb::FlatBufferBuilder& bui
             auto pType = lType.InternalType();
             auto vec = vectors.get()[column_id];
 
+            // Ref: src/common/types.cpp
+            // We only need to encode types that are actually used in LogicalType::GetInternalType.
+            // We try to catch this via tests.
+
             // Write result column
-            fb::Offset<proto::QueryResultColumn> column;
-            switch (pType) {
-            case duckdb::PhysicalType::INVALID:
-            case duckdb::PhysicalType::VARBINARY:
-                // TODO
-                break;
-            case duckdb::PhysicalType::BOOL:
-                // TODO
-                break;
-            case duckdb::PhysicalType::INT8:
-                column = writeFixedLengthResultColumn<int8_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::INT16:
-                column = writeFixedLengthResultColumn<int16_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::INT32:
-                column = writeFixedLengthResultColumn<int32_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::INT64:
-                column = writeFixedLengthResultColumn<int64_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::UINT8:
-                column = writeFixedLengthResultColumn<uint8_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::UINT16:
-                column = writeFixedLengthResultColumn<uint16_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::UINT32:
-                column = writeFixedLengthResultColumn<uint32_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::UINT64:
-                column = writeFixedLengthResultColumn<uint64_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::TIME32:
-                column = writeFixedLengthResultColumn<uint32_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::TIME64:
-                column = writeFixedLengthResultColumn<uint64_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::TIMESTAMP:
-                column = writeFixedLengthResultColumn<uint64_t>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::FLOAT:
-                column = writeFixedLengthResultColumn<float>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::DOUBLE:
-                column = writeFixedLengthResultColumn<double>(builder, pType, vec, size);
-                break;
-            case duckdb::PhysicalType::VARCHAR:
-            case duckdb::PhysicalType::STRING:
-                column = writeStringResultColumn(builder, vec, size);
-                break;
-            }
+            auto column = [&]() -> fb::Offset<proto::QueryResultColumn> {
+                switch (pType) {
+                case duckdb::PhysicalType::INT8:
+                    return writeCol<int8_t>(builder, pType, vec, size);
+                case duckdb::PhysicalType::INT16:
+                    return writeCol<int16_t>(builder, pType, vec, size);
+                case duckdb::PhysicalType::INT32:
+                    return writeCol<int32_t>(builder, pType, vec, size);
+                case duckdb::PhysicalType::INT64:
+                    return writeCol<int64_t>(builder, pType, vec, size);
+                case duckdb::PhysicalType::FLOAT:
+                    return writeCol<float>(builder, pType, vec, size);
+                case duckdb::PhysicalType::DOUBLE:
+                    return writeCol<double>(builder, pType, vec, size);
+
+                case duckdb::PhysicalType::VARCHAR:
+                case duckdb::PhysicalType::STRING:
+                    return writeStringCol(builder, vec, size);
+
+                case duckdb::PhysicalType::BOOL:
+                case duckdb::PhysicalType::INT128:
+                case duckdb::PhysicalType::VARBINARY:
+                case duckdb::PhysicalType::INTERVAL:
+                case duckdb::PhysicalType::STRUCT:
+                case duckdb::PhysicalType::LIST:
+                default:
+                    throw "unsupported physical type";
+                }
+                return {};
+            }();
 
             // Push new chunk column
             columns.push_back(column);
@@ -344,15 +327,13 @@ fb::Offset<proto::QueryPlan> writeQueryPlan(fb::FlatBufferBuilder& builder, duck
             operatorChildOffsets[oid] = operatorChildren.size();
 
             // Reached end?
-            if (edgeIter == operatorChildEdges.end()) {
+            if (edgeIter == operatorChildEdges.end())
                 continue;
-            }
 
             // At parent of next edge?
             auto& [parent, child] = *edgeIter;
-            if (oid != parent) {
+            if (oid != parent)
                 continue;
-            }
 
             // Store children 
             operatorChildren.push_back(child);
