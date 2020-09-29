@@ -1,9 +1,11 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import dynamic from 'next/dynamic';
+import classNames from 'classnames';
 import monaco, { Monaco } from '../../monaco-editor';
 import { IAppContext, withAppContext } from '../../app_context';
 import { RootState } from '../../store';
+import { Resizable } from 're-resizable';
 
 import dashqlTheme from './theme_dashql.json';
 import styles from './editor.module.scss';
@@ -18,6 +20,7 @@ type State = {
     text: string;
     width: number;
     height: number;
+    magic: boolean;
 };
 
 class Editor extends React.Component<Props, State> {
@@ -30,6 +33,7 @@ class Editor extends React.Component<Props, State> {
         text: '',
         width: 0,
         height: 0,
+        magic: false,
     };
 
     componentDidMount() {
@@ -89,16 +93,16 @@ class Editor extends React.Component<Props, State> {
         ) => {
             switch (label) {
                 case 'json':
-                    return '_next/static/workers/json.worker.js';
+                    return '_next/static/json.worker.js';
                 case 'css':
-                    return '_next/static/workers/css.worker.js';
+                    return '_next/static/css.worker.js';
                 case 'html':
-                    return '_next/static/workers/html.worker.js';
+                    return '_next/static/html.worker.js';
                 case 'typescript':
                 case 'javascript':
-                    return '_next/static/workers/ts.worker.js';
+                    return '_next/static/ts.worker.js';
                 default:
-                    return '_next/static/workers/editor.worker.js';
+                    return '_next/static/editor.worker.js';
             }
         };
 
@@ -115,6 +119,10 @@ class Editor extends React.Component<Props, State> {
         const { controller } = this.props.appContext;
 
         await controller.editor.evaluate(value);
+
+        if (this.state.magic) {
+            this.handleRun();
+        }
     };
 
     handleRun = async () => {
@@ -123,27 +131,76 @@ class Editor extends React.Component<Props, State> {
         await controller.interpreter.eval(this.props.module);
     };
 
+    handleMagic = () => {
+        if (!this.state.magic) {
+            this.handleRun();
+        }
+
+        this.setState({
+            magic: !this.state.magic,
+        });
+    };
+
     render() {
         return (
             <div className={styles.editor} ref={ref => (this.ref = ref)}>
-                <MonacoEditor
-                    editorWillMount={this.editorWillMount}
-                    editorDidMount={this.editorDidMount}
-                    width={this.state.width}
-                    height={this.state.height}
-                    language="sql"
-                    theme="dashql"
-                    value={this.state.text}
-                    options={{
-                        minimap: {
-                            enabled: false,
-                        },
+                <Resizable
+                    enable={{
+                        top: true,
                     }}
-                    onChange={this.handleChange}
-                />
-                <button className={styles.run_button} onClick={this.handleRun}>
-                    ▶
-                </button>
+                    size={{
+                        width: this.state.width,
+                        height: this.state.height,
+                    }}
+                    onResizeStop={(e, direction, ref, d) => {
+                        this.setState({
+                            width: this.state.width + d.width,
+                            height: this.state.height + d.height,
+                        });
+                    }}
+                >
+                    <MonacoEditor
+                        editorWillMount={this.editorWillMount}
+                        editorDidMount={this.editorDidMount}
+                        width={this.state.width}
+                        height={this.state.height}
+                        language="sql"
+                        theme="dashql"
+                        value={this.state.text}
+                        options={{
+                            minimap: {
+                                enabled: false,
+                            },
+                        }}
+                        onChange={this.handleChange}
+                    />
+                    <div className={styles.buttons}>
+                        <input
+                            type="number"
+                            className={styles.font_size_button}
+                            defaultValue="12"
+                            onChange={event =>
+                                this.editor?.updateOptions({
+                                    fontSize: event.target.valueAsNumber,
+                                })
+                            }
+                        />
+                        <button
+                            className={styles.run_button}
+                            onClick={this.handleRun}
+                        >
+                            ▶
+                        </button>
+                        <button
+                            className={classNames(styles.instant_button, {
+                                [styles.active]: this.state.magic,
+                            })}
+                            onClick={this.handleMagic}
+                        >
+                            ↯
+                        </button>
+                    </div>
+                </Resizable>
             </div>
         );
     }

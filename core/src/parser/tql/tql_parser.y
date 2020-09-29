@@ -303,8 +303,8 @@ load_statement:
     ;
 
 load_method:
-    HTTP LEFT_ROUND_BRACKETS load_method_http_attribute_list RIGHT_ROUND_BRACKETS   { $$ = LoadStatement::HTTPLoader { locate(@1, @4), LoadStatement::HTTPLoader::Attributes { locate(@3), $3 } }; }
-  | FILE variable                                                                   { $$ = LoadStatement::FileLoader { locate(@1, @2), $2 }; }
+    HTTP LEFT_ROUND_BRACKETS URL EQUAL STRING_LITERAL RIGHT_ROUND_BRACKETS  { $$ = LoadStatement::HTTPLoader { locate(@1, @6), String { locate(@5), std::string($5) }, std::nullopt }; }
+  | FILE variable                                                           { $$ = LoadStatement::FileLoader { locate(@1, @2), $2 }; }
     ;
 
 load_method_http_attribute_list:

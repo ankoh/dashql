@@ -116,15 +116,15 @@ export type Argument =
       }
     | {
           type: proto.tql.ParameterTypeTypeMap['DATE'];
-          value: Date;
+          value: string;
       }
     | {
           type: proto.tql.ParameterTypeTypeMap['DATETIME'];
-          value: Date;
+          value: string;
       }
     | {
           type: proto.tql.ParameterTypeTypeMap['TIME'];
-          value: Date;
+          value: string;
       }
     | {
           type: proto.tql.ParameterTypeTypeMap['FILE'];

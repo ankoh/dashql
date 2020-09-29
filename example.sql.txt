@@ -1,0 +1,11 @@
+DECLARE PARAMETER input AS FILE;
+
+LOAD data FROM file $input;
+
+EXTRACT result FROM data USING csv ();
+
+VIZ "My awesome Viz" FROM result USING TABLE;
+
+QUERY info as SELECT * FROM pragma_table_info('result');
+
+VIZ "Info" FROM info USING TABLE;

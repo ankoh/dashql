@@ -1,0 +1,2 @@
+date,city,temp,temp_min,temp_max,pressure,humidity,wind_speed,cloudiness,weather
+1979-01-01 00:00:00,Munich,8.53,7.0,9.06,985.0,57.0,11.3,75.0,Clouds

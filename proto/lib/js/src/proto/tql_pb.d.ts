@@ -471,10 +471,10 @@ export class HTTPLoader extends jspb.Message {
     getLocation(): Location | undefined;
     setLocation(value?: Location): void;
 
-    hasAttributes(): boolean;
-    clearAttributes(): void;
-    getAttributes(): HTTPAttributes | undefined;
-    setAttributes(value?: HTTPAttributes): void;
+    hasUrl(): boolean;
+    clearUrl(): void;
+    getUrl(): String | undefined;
+    setUrl(value?: String): void;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): HTTPLoader.AsObject;
@@ -500,7 +500,7 @@ export class HTTPLoader extends jspb.Message {
 export namespace HTTPLoader {
     export type AsObject = {
         location?: Location.AsObject;
-        attributes?: HTTPAttributes.AsObject;
+        url?: String.AsObject;
     };
 }
 

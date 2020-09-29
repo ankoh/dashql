@@ -64,7 +64,13 @@ namespace dashql {
 
                                     // Set method
                                     std::visit(overload{[&](tql::LoadStatement::HTTPLoader& loader) {
-                                                            // TODO
+                                                            auto* http = next->mutable_http();
+
+                                                            // Set location
+                                                            setLocation(http->mutable_location(), loader.location);
+
+                                                            // Set url
+                                                            setString(http->mutable_url(), loader.url);
                                                         },
                                                         [&](tql::LoadStatement::FileLoader& loader) {
                                                             auto* file = next->mutable_file();

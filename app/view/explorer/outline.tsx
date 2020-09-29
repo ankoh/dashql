@@ -90,7 +90,7 @@ class Outline extends React.Component<Props, State> {
                     title="Parameters"
                     indices={parameters}
                     previousSectionIndex={undefined}
-                    template={`DECLARE PARAMETER <name> AS INTEGER;`}
+                    template={`DECLARE PARAMETER '<Name>' AS <name> TYPE INTEGER;`}
                 >
                     {parameters.map((i: number) => (
                         <SectionEntry key={i} index={i} />
@@ -100,9 +100,8 @@ class Outline extends React.Component<Props, State> {
                     title="Load Statements"
                     indices={loads}
                     previousSectionIndex={lastParameter}
-                    template={`LOAD <name> FROM http (
-    url = 'https://example.com',
-    method = GET
+                    template={`LOAD <name> FROM HTTP (
+    url = 'https://example.com'
 );`}
                 >
                     {loads.map((i: number) => (
@@ -113,7 +112,7 @@ class Outline extends React.Component<Props, State> {
                     title="Extract Statements"
                     indices={extracts}
                     previousSectionIndex={lastLoad}
-                    template={`EXTRACT <name> FROM <name> USING json ();`}
+                    template={`EXTRACT <name> FROM <name> USING CSV;`}
                 >
                     {extracts.map((i: number) => (
                         <SectionEntry key={i} index={i} />
@@ -123,7 +122,7 @@ class Outline extends React.Component<Props, State> {
                     title="Query Statements"
                     indices={queries}
                     previousSectionIndex={lastExtract}
-                    template={`QUERY <name> AS SELECT * FROM 1;`}
+                    template={`QUERY <name> AS SELECT 1;`}
                 >
                     {queries.map((i: number) => (
                         <SectionEntry key={i} index={i} />
@@ -133,7 +132,7 @@ class Outline extends React.Component<Props, State> {
                     title="Visualizations"
                     indices={visualizations}
                     previousSectionIndex={lastQuery}
-                    template={`VIZ <name> FROM <name> USING TABLE;`}
+                    template={`VISUALIZE <name> FROM <name> USING TABLE;`}
                 >
                     {visualizations.map((i: number) => (
                         <SectionEntry key={i} index={i} />

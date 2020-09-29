@@ -134,6 +134,7 @@ if(EMSCRIPTEN)
             -s DISABLE_EXCEPTION_CATCHING=0 \
         "
         LINK_FLAGS "\
+            -02 \
             -s ENVIRONMENT='web,worker' \
             -s USE_PTHREADS=1 \
             -s TOTAL_MEMORY=2097088KB \

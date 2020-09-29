@@ -341,7 +341,6 @@ export class ChartViewer extends React.Component<
                     actions={false}
                     width={this.props.width}
                     height={this.props.height}
-                    renderer="svg"
                 />
             </div>
         );

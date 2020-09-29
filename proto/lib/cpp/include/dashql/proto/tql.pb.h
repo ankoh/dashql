@@ -2304,7 +2304,7 @@ class HTTPLoader :
 
   enum : int {
     kLocationFieldNumber = 1,
-    kAttributesFieldNumber = 2,
+    kUrlFieldNumber = 2,
   };
   // .dashql.proto.tql.Location location = 1;
   bool has_location() const;
@@ -2324,23 +2324,23 @@ class HTTPLoader :
       ::dashql::proto::tql::Location* location);
   ::dashql::proto::tql::Location* unsafe_arena_release_location();
 
-  // .dashql.proto.tql.HTTPAttributes attributes = 2;
-  bool has_attributes() const;
+  // .dashql.proto.tql.String url = 2;
+  bool has_url() const;
   private:
-  bool _internal_has_attributes() const;
+  bool _internal_has_url() const;
   public:
-  void clear_attributes();
-  const ::dashql::proto::tql::HTTPAttributes& attributes() const;
-  ::dashql::proto::tql::HTTPAttributes* release_attributes();
-  ::dashql::proto::tql::HTTPAttributes* mutable_attributes();
-  void set_allocated_attributes(::dashql::proto::tql::HTTPAttributes* attributes);
+  void clear_url();
+  const ::dashql::proto::tql::String& url() const;
+  ::dashql::proto::tql::String* release_url();
+  ::dashql::proto::tql::String* mutable_url();
+  void set_allocated_url(::dashql::proto::tql::String* url);
   private:
-  const ::dashql::proto::tql::HTTPAttributes& _internal_attributes() const;
-  ::dashql::proto::tql::HTTPAttributes* _internal_mutable_attributes();
+  const ::dashql::proto::tql::String& _internal_url() const;
+  ::dashql::proto::tql::String* _internal_mutable_url();
   public:
-  void unsafe_arena_set_allocated_attributes(
-      ::dashql::proto::tql::HTTPAttributes* attributes);
-  ::dashql::proto::tql::HTTPAttributes* unsafe_arena_release_attributes();
+  void unsafe_arena_set_allocated_url(
+      ::dashql::proto::tql::String* url);
+  ::dashql::proto::tql::String* unsafe_arena_release_url();
 
   // @@protoc_insertion_point(class_scope:dashql.proto.tql.HTTPLoader)
  private:
@@ -2351,7 +2351,7 @@ class HTTPLoader :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::dashql::proto::tql::Location* location_;
-  ::dashql::proto::tql::HTTPAttributes* attributes_;
+  ::dashql::proto::tql::String* url_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_tql_2eproto;
 };
@@ -6103,72 +6103,72 @@ inline void HTTPLoader::set_allocated_location(::dashql::proto::tql::Location* l
   // @@protoc_insertion_point(field_set_allocated:dashql.proto.tql.HTTPLoader.location)
 }
 
-// .dashql.proto.tql.HTTPAttributes attributes = 2;
-inline bool HTTPLoader::_internal_has_attributes() const {
-  return this != internal_default_instance() && attributes_ != nullptr;
+// .dashql.proto.tql.String url = 2;
+inline bool HTTPLoader::_internal_has_url() const {
+  return this != internal_default_instance() && url_ != nullptr;
 }
-inline bool HTTPLoader::has_attributes() const {
-  return _internal_has_attributes();
+inline bool HTTPLoader::has_url() const {
+  return _internal_has_url();
 }
-inline void HTTPLoader::clear_attributes() {
-  if (GetArenaNoVirtual() == nullptr && attributes_ != nullptr) {
-    delete attributes_;
+inline void HTTPLoader::clear_url() {
+  if (GetArenaNoVirtual() == nullptr && url_ != nullptr) {
+    delete url_;
   }
-  attributes_ = nullptr;
+  url_ = nullptr;
 }
-inline const ::dashql::proto::tql::HTTPAttributes& HTTPLoader::_internal_attributes() const {
-  const ::dashql::proto::tql::HTTPAttributes* p = attributes_;
-  return p != nullptr ? *p : *reinterpret_cast<const ::dashql::proto::tql::HTTPAttributes*>(
-      &::dashql::proto::tql::_HTTPAttributes_default_instance_);
+inline const ::dashql::proto::tql::String& HTTPLoader::_internal_url() const {
+  const ::dashql::proto::tql::String* p = url_;
+  return p != nullptr ? *p : *reinterpret_cast<const ::dashql::proto::tql::String*>(
+      &::dashql::proto::tql::_String_default_instance_);
 }
-inline const ::dashql::proto::tql::HTTPAttributes& HTTPLoader::attributes() const {
-  // @@protoc_insertion_point(field_get:dashql.proto.tql.HTTPLoader.attributes)
-  return _internal_attributes();
+inline const ::dashql::proto::tql::String& HTTPLoader::url() const {
+  // @@protoc_insertion_point(field_get:dashql.proto.tql.HTTPLoader.url)
+  return _internal_url();
 }
-inline ::dashql::proto::tql::HTTPAttributes* HTTPLoader::release_attributes() {
-  auto temp = unsafe_arena_release_attributes();
+inline ::dashql::proto::tql::String* HTTPLoader::release_url() {
+  auto temp = unsafe_arena_release_url();
   if (GetArenaNoVirtual() != nullptr) {
     temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
   }
   return temp;
 }
-inline ::dashql::proto::tql::HTTPAttributes* HTTPLoader::unsafe_arena_release_attributes() {
-  // @@protoc_insertion_point(field_release:dashql.proto.tql.HTTPLoader.attributes)
+inline ::dashql::proto::tql::String* HTTPLoader::unsafe_arena_release_url() {
+  // @@protoc_insertion_point(field_release:dashql.proto.tql.HTTPLoader.url)
   
-  ::dashql::proto::tql::HTTPAttributes* temp = attributes_;
-  attributes_ = nullptr;
+  ::dashql::proto::tql::String* temp = url_;
+  url_ = nullptr;
   return temp;
 }
-inline ::dashql::proto::tql::HTTPAttributes* HTTPLoader::_internal_mutable_attributes() {
+inline ::dashql::proto::tql::String* HTTPLoader::_internal_mutable_url() {
   
-  if (attributes_ == nullptr) {
-    auto* p = CreateMaybeMessage<::dashql::proto::tql::HTTPAttributes>(GetArenaNoVirtual());
-    attributes_ = p;
+  if (url_ == nullptr) {
+    auto* p = CreateMaybeMessage<::dashql::proto::tql::String>(GetArenaNoVirtual());
+    url_ = p;
   }
-  return attributes_;
+  return url_;
 }
-inline ::dashql::proto::tql::HTTPAttributes* HTTPLoader::mutable_attributes() {
-  // @@protoc_insertion_point(field_mutable:dashql.proto.tql.HTTPLoader.attributes)
-  return _internal_mutable_attributes();
+inline ::dashql::proto::tql::String* HTTPLoader::mutable_url() {
+  // @@protoc_insertion_point(field_mutable:dashql.proto.tql.HTTPLoader.url)
+  return _internal_mutable_url();
 }
-inline void HTTPLoader::set_allocated_attributes(::dashql::proto::tql::HTTPAttributes* attributes) {
+inline void HTTPLoader::set_allocated_url(::dashql::proto::tql::String* url) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
   if (message_arena == nullptr) {
-    delete attributes_;
+    delete url_;
   }
-  if (attributes) {
+  if (url) {
     ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(attributes);
+      ::PROTOBUF_NAMESPACE_ID::Arena::GetArena(url);
     if (message_arena != submessage_arena) {
-      attributes = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, attributes, submessage_arena);
+      url = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, url, submessage_arena);
     }
     
   } else {
     
   }
-  attributes_ = attributes;
-  // @@protoc_insertion_point(field_set_allocated:dashql.proto.tql.HTTPLoader.attributes)
+  url_ = url;
+  // @@protoc_insertion_point(field_set_allocated:dashql.proto.tql.HTTPLoader.url)
 }
 
 // -------------------------------------------------------------------

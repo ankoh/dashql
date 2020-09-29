@@ -11,10 +11,7 @@ interface IWorkbookState {}
 
 export class Workbook extends React.Component<IWorkbookProps, IWorkbookState> {
     public render() {
-        return (
-            <div className={styles.workbook}>
-            </div>
-        );
+        return <div className={styles.workbook}></div>;
     }
 }
 

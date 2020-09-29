@@ -3426,12 +3426,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
                         includeInstance,
                         f,
                     ),
-                attributes:
-                    (f = msg.getAttributes()) &&
-                    proto.dashql.proto.tql.HTTPAttributes.toObject(
-                        includeInstance,
-                        f,
-                    ),
+                url:
+                    (f = msg.getUrl()) &&
+                    proto.dashql.proto.tql.String.toObject(includeInstance, f),
             };
 
         if (includeInstance) {
@@ -3481,13 +3478,12 @@ proto.dashql.proto.tql.HTTPLoader.deserializeBinaryFromReader = function (
                 msg.setLocation(value);
                 break;
             case 2:
-                var value = new proto.dashql.proto.tql.HTTPAttributes();
+                var value = new proto.dashql.proto.tql.String();
                 reader.readMessage(
                     value,
-                    proto.dashql.proto.tql.HTTPAttributes
-                        .deserializeBinaryFromReader,
+                    proto.dashql.proto.tql.String.deserializeBinaryFromReader,
                 );
-                msg.setAttributes(value);
+                msg.setUrl(value);
                 break;
             default:
                 reader.skipField();
@@ -3527,12 +3523,12 @@ proto.dashql.proto.tql.HTTPLoader.serializeBinaryToWriter = function (
             proto.dashql.proto.tql.Location.serializeBinaryToWriter,
         );
     }
-    f = message.getAttributes();
+    f = message.getUrl();
     if (f != null) {
         writer.writeMessage(
             2,
             f,
-            proto.dashql.proto.tql.HTTPAttributes.serializeBinaryToWriter,
+            proto.dashql.proto.tql.String.serializeBinaryToWriter,
         );
     }
 };
@@ -3574,22 +3570,22 @@ proto.dashql.proto.tql.HTTPLoader.prototype.hasLocation = function () {
 };
 
 /**
- * optional HTTPAttributes attributes = 2;
- * @return {?proto.dashql.proto.tql.HTTPAttributes}
+ * optional String url = 2;
+ * @return {?proto.dashql.proto.tql.String}
  */
-proto.dashql.proto.tql.HTTPLoader.prototype.getAttributes = function () {
-    return /** @type{?proto.dashql.proto.tql.HTTPAttributes} */ (jspb.Message.getWrapperField(
+proto.dashql.proto.tql.HTTPLoader.prototype.getUrl = function () {
+    return /** @type{?proto.dashql.proto.tql.String} */ (jspb.Message.getWrapperField(
         this,
-        proto.dashql.proto.tql.HTTPAttributes,
+        proto.dashql.proto.tql.String,
         2,
     ));
 };
 
 /**
- * @param {?proto.dashql.proto.tql.HTTPAttributes|undefined} value
+ * @param {?proto.dashql.proto.tql.String|undefined} value
  * @return {!proto.dashql.proto.tql.HTTPLoader} returns this
  */
-proto.dashql.proto.tql.HTTPLoader.prototype.setAttributes = function (value) {
+proto.dashql.proto.tql.HTTPLoader.prototype.setUrl = function (value) {
     return jspb.Message.setWrapperField(this, 2, value);
 };
 
@@ -3597,15 +3593,15 @@ proto.dashql.proto.tql.HTTPLoader.prototype.setAttributes = function (value) {
  * Clears the message field making it undefined.
  * @return {!proto.dashql.proto.tql.HTTPLoader} returns this
  */
-proto.dashql.proto.tql.HTTPLoader.prototype.clearAttributes = function () {
-    return this.setAttributes(undefined);
+proto.dashql.proto.tql.HTTPLoader.prototype.clearUrl = function () {
+    return this.setUrl(undefined);
 };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.dashql.proto.tql.HTTPLoader.prototype.hasAttributes = function () {
+proto.dashql.proto.tql.HTTPLoader.prototype.hasUrl = function () {
     return jspb.Message.getField(this, 2) != null;
 };
 

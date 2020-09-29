@@ -12,10 +12,21 @@ import TimeInput from './inputs/time_input';
 import FileInput from './inputs/file_input';
 
 import styles from './arguments.module.scss';
+import { IAppContext, withAppContext } from '../../../app_context';
 
-type Props = ReturnType<typeof mapStateToProps>;
+type Props = {
+    appContext: IAppContext;
+} & ReturnType<typeof mapStateToProps>;
 
 class Arguments extends React.Component<Props> {
+    componentDidUpdate(prevProps: Props) {
+        if (this.props.arguments !== prevProps.arguments) {
+            this.props.appContext.controller.interpreter.eval(
+                this.props.module,
+            );
+        }
+    }
+
     renderInput(parameter: proto.tql.ParameterDeclaration) {
         const type = parameter.getType()?.getType();
         const name = parameter.getName()?.getString();
@@ -73,6 +84,7 @@ class Arguments extends React.Component<Props> {
 
 const mapStateToProps = (state: RootState) => ({
     module: state.tqlModule,
+    arguments: state.tqlArguments,
 });
 
-export default connect(mapStateToProps)(Arguments);
+export default connect(mapStateToProps)(withAppContext(Arguments));

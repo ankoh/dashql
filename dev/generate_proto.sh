@@ -55,6 +55,6 @@ echo "[ RUN ] Install js library" \
     || { echo "[ ERR ] Install js library"; exit 1; }
 
 echo "[ RUN ] Formatting files" \
-    && ${PROJECT_ROOT}/bin/format \
+    && ${PROJECT_ROOT}/dev/format \
     && { echo "[ OK  ] Formatting files"; } \
     || { echo "[ ERR ] Formatting files"; exit 1; }

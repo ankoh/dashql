@@ -27,7 +27,7 @@ class DateInput extends React.Component<Props> {
             this.props.dispatch(
                 setTQLArgument(this.props.name, {
                     type: proto.tql.ParameterTypeType.DATE,
-                    value: new Date(value),
+                    value,
                 }),
             );
         } else {
@@ -52,7 +52,7 @@ class DateInput extends React.Component<Props> {
             <input
                 className={styles.input}
                 type="date"
-                value={this.formatDate(this.props.argument?.value)}
+                value={this.props.argument?.value}
                 onChange={this.handleChange}
             />
         );

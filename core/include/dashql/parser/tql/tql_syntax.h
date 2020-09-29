@@ -139,6 +139,9 @@ namespace dashql {
                 /// The location
                 Location location;
 
+                /// The URL
+                String url;
+
                 /// The attributes
                 std::optional<Attributes> attributes;
             };

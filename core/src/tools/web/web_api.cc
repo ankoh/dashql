@@ -123,7 +123,15 @@ void WebAPI::Session::runQuery(std::string_view text) {
 
     // Create a new connection
     duckdb::Connection conn{*database};
+
+    auto start = std::chrono::high_resolution_clock::now();
     auto result = conn.SendQuery(std::string{text});
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+    std::cout << "DuckDB:" << text << std::endl;
+    std::cout << "DuckDB:" << duration << std::endl;
 
     // Query failed?
     if (!result->success) {

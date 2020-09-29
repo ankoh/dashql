@@ -12,6 +12,12 @@ export class TQLInterpreter {
     protected core: CoreController;
     protected cache: CacheController;
 
+    // TODO: Remove
+    protected quickAndDirtyLoadCache = new Map();
+
+    // TODO: Remove
+    protected quickAndDirtyExtractCache = new Map();
+
     protected queuedTasks: TaskQueue;
     protected activeTasks: Array<Task>;
     protected requiredFor: Map<TaskID, Array<TaskID>>;
@@ -34,6 +40,7 @@ export class TQLInterpreter {
 
     // Evaluate a program
     public async eval(module: proto.tql.Module) {
+        // console.profile('eval');
         const session = await this.core.createSession();
 
         const state = this.store.getState();
@@ -74,6 +81,11 @@ export class TQLInterpreter {
                         continue;
                     }
 
+                    // TODO: Remove
+                    if (this.quickAndDirtyLoadCache.get(destination)) {
+                        continue;
+                    }
+
                     const methodCase = load.getMethodCase();
 
                     switch (methodCase) {
@@ -104,10 +116,32 @@ export class TQLInterpreter {
 
                             break;
                         }
+                        case proto.tql.LoadStatement.MethodCase.HTTP: {
+                            const http = load.getHttp();
+
+                            if (!http) {
+                                continue;
+                            }
+
+                            const url = http.getUrl()?.getString();
+
+                            if (!url) {
+                                continue;
+                            }
+
+                            const response = await fetch(url);
+
+                            loads[destination] = await response.blob();
+
+                            break;
+                        }
                         default: {
                             throw `Load method ${methodCase} not implemented!`;
                         }
                     }
+
+                    // TODO: Remove
+                    this.quickAndDirtyLoadCache.set(destination, true);
 
                     break;
                 }
@@ -148,6 +182,15 @@ export class TQLInterpreter {
                                 continue;
                             }
 
+                            // TODO: Remove
+                            if (
+                                this.quickAndDirtyExtractCache.get(
+                                    destination,
+                                ) === blob
+                            ) {
+                                continue;
+                            }
+
                             const tempPath = '/tmp';
                             const tempFileName = `${source}.csv`;
                             const tempFilePath = `${tempPath}/${tempFileName}`;
@@ -181,6 +224,12 @@ export class TQLInterpreter {
                                 setTQLQueryResult(destination, result),
                             );
 
+                            // TODO: Remove
+                            this.quickAndDirtyExtractCache.set(
+                                destination,
+                                blob,
+                            );
+
                             break;
                         }
                         case proto.tql.ExtractStatement.MethodCase.JSON: {
@@ -191,6 +240,8 @@ export class TQLInterpreter {
                     break;
                 }
                 case proto.tql.Statement.StatementCase.QUERY: {
+                    console.time('execute statement');
+
                     const query = statement.getQuery();
 
                     if (!query) {
@@ -199,34 +250,88 @@ export class TQLInterpreter {
 
                     const destination = query.getName()?.getString();
 
-                    const text = query.getQueryText()?.getString();
+                    const text: string = (query
+                        .getQueryText()
+                        ?.getString() as any)?.replaceAll(
+                        /\$([a-z][a-z0-9_]*)/gi,
+                        (_: any, variableName: any) => {
+                            const argument = state.tqlArguments.get(
+                                variableName,
+                            );
+
+                            if (!argument) {
+                                return 'NULL';
+                            }
+
+                            switch (argument.type) {
+                                case proto.tql.ParameterTypeType.INTEGER:
+                                    return argument.value;
+                                case proto.tql.ParameterTypeType.FLOAT:
+                                    return argument.value;
+                                case proto.tql.ParameterTypeType.TEXT:
+                                    return `'${argument.value}'`;
+                                case proto.tql.ParameterTypeType.DATE: {
+                                    return `'${argument.value}'`;
+                                }
+                                case proto.tql.ParameterTypeType.DATETIME: {
+                                    return `'${argument.value}'`;
+                                }
+                                case proto.tql.ParameterTypeType.TIME: {
+                                    return `'${argument.value}'`;
+                                }
+                                case proto.tql.ParameterTypeType.FILE:
+                                    // TODO
+                                    throw 'Inserting files in text queries not supported';
+                            }
+                        },
+                    );
 
                     if (!text) {
                         continue;
                     }
 
+                    console.log('Query:', text);
+
                     if (destination) {
+                        console.time('drop table');
+
                         await this.core.runQuery(
                             session,
                             `DROP TABLE IF EXISTS ${destination};`,
                         );
+
+                        console.timeEnd('drop table');
+
+                        console.time('create table');
 
                         await this.core.runQuery(
                             session,
                             `CREATE TABLE ${destination} AS ${text};`,
                         );
 
+                        console.timeEnd('create table');
+
+                        console.time('select result');
+
                         const result = await this.core.runQuery(
                             session,
                             `SELECT * FROM ${destination};`,
                         );
 
+                        console.timeEnd('select result');
+
+                        console.time('dispatch');
+
                         this.store.dispatch(
                             setTQLQueryResult(destination, result),
                         );
+
+                        console.timeEnd('dispatch');
                     } else {
                         await this.core.runQuery(session, text);
                     }
+
+                    console.timeEnd('execute statement');
 
                     break;
                 }
@@ -235,6 +340,7 @@ export class TQLInterpreter {
                 }
             }
         }
+        // console.profileEnd('eval');
     }
 }
 

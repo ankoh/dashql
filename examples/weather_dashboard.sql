@@ -23,73 +23,65 @@ FROM (
 GROUP BY year, month, day
 ORDER BY date ASC;
 
-QUERY temperature_monthly AS
-SELECT
-    CAST(CONCAT(year, '-', month, '-', '01') AS DATE) as date,
-    MIN(temp_min) AS temp_min,
-    MAX(temp_max) AS temp_max,
-    AVG(temp) AS temp
-FROM (
-    SELECT
-        YEAR(date) AS year,
-        MONTH(date) AS month,
-        temp_min,
-        temp_max,
-        temp
-    FROM weather
-) AS weather
-GROUP BY year, month
-ORDER BY date ASC;
-
-QUERY temperature_3_years AS
+QUERY temperature AS
 SELECT
     date as "Date",
     temp_min as "Minimum",
     temp_max as "Maximum",
-    AVG(temp) OVER (ORDER BY DATE ROWS BETWEEN 45 PRECEDING AND 45 FOLLOWING) AS "90-day average"
+    AVG(temp) OVER (ORDER BY date ROWS BETWEEN 45 PRECEDING AND 45 FOLLOWING) AS "90-day average"
 FROM temperature_daily
 WHERE date >= (SELECT CAST(date AS DATE) FROM weather ORDER BY date DESC) - 3 * 365;
 
-QUERY temperature_40_years AS
-SELECT
-    date as "Date",
-    AVG(temp) OVER (ORDER BY DATE ROWS BETWEEN 5 * 12 PRECEDING AND 5 * 12 FOLLOWING) AS "10-year average",
-    temp as "Monthly average"
-FROM temperature_monthly
-WHERE date >= (SELECT CAST(date AS DATE) FROM weather ORDER BY date DESC) - 40 * 365;
-
-QUERY weather_monthly AS
-SELECT
-    MONTH(date) AS month,
-    LEFT(MONTHNAME(date), 3) AS month_name,
-    weather
-FROM weather;
-
-QUERY weather_observations AS
-SELECT
-    month_name,
-    COUNT(month) AS observations,
-    weather,
-    month
-FROM weather_monthly
-GROUP BY month_name, month, weather
-ORDER BY month ASC, weather ASC;
-
-QUERY weather_observations_total AS
-SELECT
-    month_name,
-    SUM(observations) AS total
-FROM weather_observations
-GROUP BY month_name, month
-ORDER BY month;
-
 QUERY weather_by_month AS
+WITH weather_monthly AS (
+    SELECT
+        MONTH(date) AS month,
+        weather
+    FROM weather
+),
+weather_observations AS (
+    SELECT
+        COUNT(month) AS observations,
+        weather,
+        month
+    FROM weather_monthly
+    GROUP BY month, weather
+    ORDER BY month ASC, weather ASC
+),
+weather_observations_total AS (
+    SELECT
+        month,
+        SUM(observations) AS total
+    FROM weather_observations
+    GROUP BY month
+    ORDER BY month
+),
+months AS (
+    SELECT * FROM (
+        VALUES
+            (1, 'Jan'),
+            (2, 'Feb'),
+            (3, 'Mar'),
+            (4, 'Apr'),
+            (5, 'May'),
+            (6, 'Jun'),
+            (7, 'Jul'),
+            (8, 'Aug'),
+            (9, 'Sep'),
+            (10, 'Oct'),
+            (11, 'Nov'),
+            (12, 'Dec')
+    ) as months(month, name)
+)
+
 SELECT
-    o.month_name AS "Month",
+    m.name AS "Month",
     observations * 1.0 / total AS "Share",
     weather as "Weather"
-FROM weather_observations o, weather_observations_total t
-WHERE o.month_name = t.month_name
+FROM weather_observations o, weather_observations_total t, months m
+WHERE
+    o.month = t.month AND
+    o.month = m.month
 ORDER BY o.month ASC, weather ASC;
 
 QUERY temperature_humidity AS
@@ -103,13 +95,9 @@ VISUALIZE "Weather Data (Table)" FROM weather USING TABLE;
 
 VISUALIZE "Weather Monthly (Table)" FROM weather_monthly USING TABLE;
 
-VISUALIZE "Temperature 3 years (Table)" FROM temperature_3_years USING TABLE;
+VISUALIZE "Temperature (Table)" FROM temperature USING TABLE;
 
-VISUALIZE "Temperature 3 years (Line Chart)" FROM temperature_3_years USING LINE;
-
-VISUALIZE "Temperature 40 years (Table)" FROM temperature_40_years USING TABLE;
-
-VISUALIZE "Temperature 40 years (Line Chart)" FROM temperature_40_years USING LINE;
+VISUALIZE "Temperature (Line Chart)" FROM temperature USING LINE;
 
 VISUALIZE "Weather Observations (Table)" FROM weather_observations USING TABLE;
 

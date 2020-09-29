@@ -1,0 +1,16 @@
+DECLARE PARAMETER days AS INTEGER;
+
+LOAD whether_api_data FROM http (
+    url = 'http://www.google.com',
+    method = get
+);
+
+EXTRACT weather_data FROM whether_api_data USING json ();
+
+QUERY temp_weekly AS SELECT * FROM region, nation;
+
+QUERY rain_weekly AS SELECT * FROM region, nation;
+
+VIZ temp_weekly_table FROM temp_weekly USING TABLE;
+
+VIZ temp_weekly_bar FROM temp_weekly USING Bar;

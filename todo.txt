@@ -1,0 +1,18 @@
+- Replace input parameters in text
+- customize CSV schema
+- support for CREATE TABLE etc. when no result set is desired
+- fix templates that are inserted in outlines
+- change type ordinal / numeric depending on SQL type
+- resize editor window
+- execute when typing
+- highlight statements that failed with an error
+- property explorer
+- layouting customization parameters
+- load from text
+- load from HTTP
+- load from CSV (DuckDB options)
+- .AsObject / .toObject()
+- rename parameters from sidebar
+- DAG for rerunning scripts
+- plugin system for extractor
+- CSS in grammar

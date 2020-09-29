@@ -4,17 +4,50 @@
 
 .editor {
     position: relative;
-    min-height: 400px;
+    min-height: 100px;
+    background: white;
 }
 
-.run_button {
+.buttons {
     position: absolute;
     top: 0;
     right: 0;
-    padding: 0.5em 1em;
+    display: flex;
+}
+
+.run_button {
+    outline: none;
+    padding: 0.5em 0;
+    padding-left: 0.5em;
+    width: 1.5em;
     border: none;
     border-bottom-left-radius: 4px;
     background: #e5e5e5;
+    color: green;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.instant_button {
+    outline: none;
+    padding: 0.5em 0;
+    width: 1em;
+    border: none;
+    background: #e5e5e5;
+    color: white;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.instant_button.active {
+    color: green;
+}
+
+.font_size_button {
+    outline: none;
+    padding: 0.5em 0;
+    width: 1em;
+    border: none;
     color: green;
     cursor: pointer;
     line-height: 1;

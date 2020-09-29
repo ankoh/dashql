@@ -25,9 +25,12 @@ class App extends NextApp<{ store: ReduxStore }> {
         return (
             <div>
                 <Head>
-                    <script type="text/javascript" src="/core/dashql_core.js"></script>
+                    <title>DashQL Explorer</title>
+                    <script
+                        type="text/javascript"
+                        src="/core/dashql_core.js"
+                    ></script>
                 </Head>
-
                 <ReduxProvider store={store}>
                     <AppContextProvider value={appContext}>
                         <Component {...pageProps} />

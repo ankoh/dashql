@@ -16,7 +16,6 @@ extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::S
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<4> scc_info_ExtractStatement_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_FileLoader_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_HTTPAttribute_tql_2eproto;
-extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_HTTPAttributes_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_HTTPLoader_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_HTTPMethod_tql_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_tql_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_HTTPURL_tql_2eproto;
@@ -251,7 +250,7 @@ static void InitDefaultsscc_info_HTTPLoader_tql_2eproto() {
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<2> scc_info_HTTPLoader_tql_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 2, 0, InitDefaultsscc_info_HTTPLoader_tql_2eproto}, {
       &scc_info_Location_tql_2eproto.base,
-      &scc_info_HTTPAttributes_tql_2eproto.base,}};
+      &scc_info_String_tql_2eproto.base,}};
 
 static void InitDefaultsscc_info_HTTPMethod_tql_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -3925,22 +3924,22 @@ std::string HTTPAttributes::GetTypeName() const {
 void HTTPLoader::InitAsDefaultInstance() {
   ::dashql::proto::tql::_HTTPLoader_default_instance_._instance.get_mutable()->location_ = const_cast< ::dashql::proto::tql::Location*>(
       ::dashql::proto::tql::Location::internal_default_instance());
-  ::dashql::proto::tql::_HTTPLoader_default_instance_._instance.get_mutable()->attributes_ = const_cast< ::dashql::proto::tql::HTTPAttributes*>(
-      ::dashql::proto::tql::HTTPAttributes::internal_default_instance());
+  ::dashql::proto::tql::_HTTPLoader_default_instance_._instance.get_mutable()->url_ = const_cast< ::dashql::proto::tql::String*>(
+      ::dashql::proto::tql::String::internal_default_instance());
 }
 class HTTPLoader::_Internal {
  public:
   static const ::dashql::proto::tql::Location& location(const HTTPLoader* msg);
-  static const ::dashql::proto::tql::HTTPAttributes& attributes(const HTTPLoader* msg);
+  static const ::dashql::proto::tql::String& url(const HTTPLoader* msg);
 };
 
 const ::dashql::proto::tql::Location&
 HTTPLoader::_Internal::location(const HTTPLoader* msg) {
   return *msg->location_;
 }
-const ::dashql::proto::tql::HTTPAttributes&
-HTTPLoader::_Internal::attributes(const HTTPLoader* msg) {
-  return *msg->attributes_;
+const ::dashql::proto::tql::String&
+HTTPLoader::_Internal::url(const HTTPLoader* msg) {
+  return *msg->url_;
 }
 void HTTPLoader::unsafe_arena_set_allocated_location(
     ::dashql::proto::tql::Location* location) {
@@ -3955,18 +3954,18 @@ void HTTPLoader::unsafe_arena_set_allocated_location(
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:dashql.proto.tql.HTTPLoader.location)
 }
-void HTTPLoader::unsafe_arena_set_allocated_attributes(
-    ::dashql::proto::tql::HTTPAttributes* attributes) {
+void HTTPLoader::unsafe_arena_set_allocated_url(
+    ::dashql::proto::tql::String* url) {
   if (GetArenaNoVirtual() == nullptr) {
-    delete attributes_;
+    delete url_;
   }
-  attributes_ = attributes;
-  if (attributes) {
+  url_ = url;
+  if (url) {
     
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:dashql.proto.tql.HTTPLoader.attributes)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:dashql.proto.tql.HTTPLoader.url)
 }
 HTTPLoader::HTTPLoader()
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(), _internal_metadata_(nullptr) {
@@ -3989,10 +3988,10 @@ HTTPLoader::HTTPLoader(const HTTPLoader& from)
   } else {
     location_ = nullptr;
   }
-  if (from._internal_has_attributes()) {
-    attributes_ = new ::dashql::proto::tql::HTTPAttributes(*from.attributes_);
+  if (from._internal_has_url()) {
+    url_ = new ::dashql::proto::tql::String(*from.url_);
   } else {
-    attributes_ = nullptr;
+    url_ = nullptr;
   }
   // @@protoc_insertion_point(copy_constructor:dashql.proto.tql.HTTPLoader)
 }
@@ -4000,8 +3999,8 @@ HTTPLoader::HTTPLoader(const HTTPLoader& from)
 void HTTPLoader::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_HTTPLoader_tql_2eproto.base);
   ::memset(&location_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&attributes_) -
-      reinterpret_cast<char*>(&location_)) + sizeof(attributes_));
+      reinterpret_cast<char*>(&url_) -
+      reinterpret_cast<char*>(&location_)) + sizeof(url_));
 }
 
 HTTPLoader::~HTTPLoader() {
@@ -4012,7 +4011,7 @@ HTTPLoader::~HTTPLoader() {
 void HTTPLoader::SharedDtor() {
   GOOGLE_DCHECK(GetArenaNoVirtual() == nullptr);
   if (this != internal_default_instance()) delete location_;
-  if (this != internal_default_instance()) delete attributes_;
+  if (this != internal_default_instance()) delete url_;
 }
 
 void HTTPLoader::ArenaDtor(void* object) {
@@ -4040,10 +4039,10 @@ void HTTPLoader::Clear() {
     delete location_;
   }
   location_ = nullptr;
-  if (GetArenaNoVirtual() == nullptr && attributes_ != nullptr) {
-    delete attributes_;
+  if (GetArenaNoVirtual() == nullptr && url_ != nullptr) {
+    delete url_;
   }
-  attributes_ = nullptr;
+  url_ = nullptr;
   _internal_metadata_.Clear();
 }
 
@@ -4062,10 +4061,10 @@ const char* HTTPLoader::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID:
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // .dashql.proto.tql.HTTPAttributes attributes = 2;
+      // .dashql.proto.tql.String url = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
-          ptr = ctx->ParseMessage(_internal_mutable_attributes(), ptr);
+          ptr = ctx->ParseMessage(_internal_mutable_url(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -4103,12 +4102,12 @@ failure:
         1, _Internal::location(this), target, stream);
   }
 
-  // .dashql.proto.tql.HTTPAttributes attributes = 2;
-  if (this->has_attributes()) {
+  // .dashql.proto.tql.String url = 2;
+  if (this->has_url()) {
     stream->EnsureSpace(&target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessageToArray(
-        2, _Internal::attributes(this), target, stream);
+        2, _Internal::url(this), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -4134,11 +4133,11 @@ size_t HTTPLoader::ByteSizeLong() const {
         *location_);
   }
 
-  // .dashql.proto.tql.HTTPAttributes attributes = 2;
-  if (this->has_attributes()) {
+  // .dashql.proto.tql.String url = 2;
+  if (this->has_url()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *attributes_);
+        *url_);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -4165,8 +4164,8 @@ void HTTPLoader::MergeFrom(const HTTPLoader& from) {
   if (from.has_location()) {
     _internal_mutable_location()->::dashql::proto::tql::Location::MergeFrom(from._internal_location());
   }
-  if (from.has_attributes()) {
-    _internal_mutable_attributes()->::dashql::proto::tql::HTTPAttributes::MergeFrom(from._internal_attributes());
+  if (from.has_url()) {
+    _internal_mutable_url()->::dashql::proto::tql::String::MergeFrom(from._internal_url());
   }
 }
 
@@ -4185,7 +4184,7 @@ void HTTPLoader::InternalSwap(HTTPLoader* other) {
   using std::swap;
   _internal_metadata_.Swap(&other->_internal_metadata_);
   swap(location_, other->location_);
-  swap(attributes_, other->attributes_);
+  swap(url_, other->url_);
 }
 
 std::string HTTPLoader::GetTypeName() const {

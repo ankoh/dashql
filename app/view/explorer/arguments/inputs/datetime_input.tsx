@@ -31,12 +31,10 @@ class DatetimeInput extends React.Component<Props> {
             const date = dateRef.value;
             const time = timeRef.value || '00:00:00';
 
-            const value = new Date(`${date} ${time}`);
-
             this.props.dispatch(
                 setTQLArgument(this.props.name, {
                     type: proto.tql.ParameterTypeType.DATETIME,
-                    value,
+                    value: `${date} ${time}`,
                 }),
             );
         } else {
@@ -56,12 +54,10 @@ class DatetimeInput extends React.Component<Props> {
             const date = dateRef.value || this.formatDate(new Date());
             const time = timeRef.value;
 
-            const value = new Date(`${date} ${time}`);
-
             this.props.dispatch(
                 setTQLArgument(this.props.name, {
                     type: proto.tql.ParameterTypeType.DATETIME,
-                    value,
+                    value: `${date} ${time}`,
                 }),
             );
         } else {
@@ -100,7 +96,7 @@ class DatetimeInput extends React.Component<Props> {
                     ref="date"
                     className={styles.input_fragment}
                     type="date"
-                    value={this.formatDate(this.props.argument?.value)}
+                    value={this.props.argument?.value}
                     onChange={this.handleChangeDate}
                 />
                 <input
@@ -108,7 +104,7 @@ class DatetimeInput extends React.Component<Props> {
                     className={styles.input_fragment}
                     type="time"
                     step="1"
-                    value={this.formatTime(this.props.argument?.value)}
+                    value={this.props.argument?.value}
                     onChange={this.handleChangeTime}
                 />
             </span>

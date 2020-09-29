@@ -144,10 +144,12 @@ export class CoreController {
         );
         if (status !== proto.web_api.StatusCode.SUCCESS) {
             console.log(error);
-            return Promise.reject(new Error(''));
+            // return Promise.reject(new Error(''));
         }
         let mem = this.core.HEAPU8.subarray(data, data + dataSize);
+        console.time('deserialize');
         let msg = proto.engine.QueryResult.deserializeBinary(mem);
+        console.timeEnd('deserialize');
         this.core.ccall(
             'dashql_release_buffer',
             'void',

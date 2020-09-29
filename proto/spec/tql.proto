@@ -103,7 +103,7 @@ message HTTPAttributes {
 /// A HTTP loader
 message HTTPLoader {
     Location location = 1;
-    HTTPAttributes attributes = 2;
+    String url = 2;
 }
 
 /// A file loader

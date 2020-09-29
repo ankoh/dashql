@@ -129,7 +129,7 @@ class Explorer extends React.Component {
                 </div>
                 <div className={styles.sidebar}>
                     <Outline />
-                    <Library />
+                    {/* <Library /> */}
                 </div>
                 <div className={styles.toolbar}>
                     <div className={styles.toolbar_tool}>
