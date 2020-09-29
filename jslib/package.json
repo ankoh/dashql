@@ -1,0 +1,19 @@
+{
+  "name": "duckdb.js",
+  "version": "0.0.1",
+  "description": "DuckDB powered by WebAssembly",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "exports-loader": "^1.1.0",
+    "file-loader": "^6.1.0",
+    "ts-loader": "^8.0.4",
+    "webpack": "^4.44.2",
+    "webpack-cli": "^3.3.12"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
