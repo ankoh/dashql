@@ -5,8 +5,10 @@ RUN apt-get update -qq \
         build-essential git \
         ccache cmake ninja-build clang clang-tidy curl python \
         bison flex \
-        nodejs npm \
         openjdk-14-jdk \
+        nodejs npm \
+        libpthread-stubs0-dev \
+        libboost-all-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

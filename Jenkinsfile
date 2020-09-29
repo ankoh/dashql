@@ -4,13 +4,15 @@ pipeline {
             filename 'Dockerfile.emsdk'
             dir './dev/'
             additionalBuildArgs '--build-arg EMSDK_VERSION=2.0.4'
-            args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache -v $HOME/.npm_cache:/mnt/npm_cache'
+            args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache -v $HOME/.npm_cache:/mnt/npm_cache -v $HOME/.ccache:/mnt/ccache'
         }
     }
 
     environment {
         EM_CACHE = '/mnt/emscripten_cache'
         NPM_CACHE = '/mnt/npm_cache'
+        CCACHE_DIR = '/mnt/ccache'
+        CCACHE_BASEDIR = '${WORKSPACE}'
     }
 
     stages {
@@ -21,6 +23,22 @@ pipeline {
                 sh 'mkdir -p ./webapi/build/emscripten'
             }
         }
+
+        stage('Debug/Build') {
+            steps {
+                sh 'cmake -S./webapi/ -B./webapi/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
+                sh 'ccache -s'
+                sh 'make -C./webapi/build/debug -j$(nproc)'
+                sh 'ccache -s'
+            }
+        }
+
+        stage('Debug/Test') {
+            steps {
+                sh './webapi/build/debug/tester'
+            }
+        }
+
 
         stage('Build/WebAPI') {
             steps {
@@ -38,11 +56,17 @@ pipeline {
 
         stage ('Build/Lib') {
             steps {
-                dir('./app') {
+                dir('./lib') {
                     sh 'npm ci --cache ${NPM_CACHE}'
                     sh 'npm run build'
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            discordSend description: "Jenkins Pipeline Build", link: env.RUN_DISPLAY_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "https://discordapp.com/api/webhooks/759701192439365652/XK_i40yR6eaX8xhama49DpZvZ8yJZi1BKXrbgeQN176zVbWjCkQERfVt7qAjj88A1PNK"
         }
     }
 }
