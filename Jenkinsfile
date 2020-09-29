@@ -18,7 +18,7 @@ pipeline {
             steps {
                 sh 'chown -R "$USER" /mnt/npm_cache /mnt/emscripten_cache'
                 sh 'git submodule update --init --recursive'
-                sh 'mkdir -p ./core/build/emscripten'
+                sh 'mkdir -p ./webapi/build/emscripten'
             }
         }
 
@@ -26,12 +26,12 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emcmake cmake -S./core/ -B./core/build/emscripten -DCMAKE_BUILD_TYPE=Release
+                    emcmake cmake -S./webapi/ -B./webapi/build/emscripten -DCMAKE_BUILD_TYPE=Release
                 '''
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emmake make -C./core/build/emscripten -j$(nproc)
-                    cp ./core/build/emscripten/dashql_core.{wasm,js,worker.js} ./app/public/core/
+                    emmake make -C./webapi/build/emscripten -j$(nproc)
+                    cp ./webapi/build/emscripten/dashql_webapi.{wasm,js,worker.js} ./lib/
                 '''
             }
         }
