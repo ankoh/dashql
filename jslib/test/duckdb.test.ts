@@ -1,5 +1,12 @@
 import { DuckDB } from '../dist/duckdb.js';
 
-test('adds 1 + 2 to equal 3', () => {
+beforeEach(async () => {
+    await DuckDB.open();
+});
+
+afterEach(() => {
+});
+
+test('DuckDB open', async () => {
     expect(1 + 2).toBe(3);
 });

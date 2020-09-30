@@ -1,5 +1,5 @@
 interface DuckDBModule extends EmscriptenModule {
 }
 
-export declare const DuckDB: EmscriptenModuleFactor<DuckDBModule>;
+export declare const DuckDB: EmscriptenModuleFactory<DuckDBModule>;
 export default DuckDB;
