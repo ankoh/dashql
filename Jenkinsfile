@@ -49,14 +49,14 @@ pipeline {
                 sh '''#!/bin/bash
                     source /opt/env.sh
                     emmake make -C./webapi/build/emscripten -j$(nproc)
-                    cp ./webapi/build/emscripten/duckdb_webapi.{wasm,js,worker.js} ./lib/
+                    cp ./webapi/build/emscripten/duckdb_webapi.{wasm,js,worker.js} ./jslib/src/duckdb/
                 '''
             }
         }
 
         stage ('Web/Pack') {
             steps {
-                dir('./lib') {
+                dir('./jslib') {
                     sh 'npm ci --cache ${NPM_CACHE}'
                     sh 'npm run build'
                 }
@@ -65,7 +65,7 @@ pipeline {
 
         stage ('Web/Test') {
             steps {
-                dir('./lib') {
+                dir('./jslib') {
                     sh 'npm run test'
                 }
             }
