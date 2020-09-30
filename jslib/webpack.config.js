@@ -13,11 +13,13 @@ module.exports = {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
         library: 'DuckDB',
-        libraryTarget: 'umd'
+        libraryTarget: 'umd',
+        umdNamedDefine: true,
+        globalObject: 'this'
     },
 
     resolve: {
-        extensions: ['.ts', 'js']
+        extensions: ['.ts', '.js']
     },
 
     module: {
@@ -25,10 +27,7 @@ module.exports = {
             test: /\\.ts$/,
             include: path.resolve(__dirname, 'src'),
             use: [{
-                loader: 'ts-loader',
-                options: {
-                    transpileOnly: true
-                }
+                loader: 'ts-loader'
             }]
         }, {
             test: /\.wasm$/,

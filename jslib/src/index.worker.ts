@@ -3,7 +3,7 @@
 import { DuckDB } from './duckdb/duckdb_webapi.js';
 import duckdb_webapi_wasm from './duckdb/duckdb_webapi.wasm';
 
-const foo = (m) => DuckDB({
+globalThis.DuckDB = (m) => DuckDB({
     ...m,
     locateFile(path) {
         if(path.endsWith('.wasm'))
@@ -12,6 +12,6 @@ const foo = (m) => DuckDB({
     }
 });
 
-//import './duckdb/duckdb_webapi.worker.js';
+import './duckdb/duckdb_webapi.worker.js';
 
 export {};
