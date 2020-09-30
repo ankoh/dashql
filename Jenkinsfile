@@ -24,7 +24,7 @@ pipeline {
             }
         }
 
-        stage('Debug/Build') {
+        stage('Native/Build') {
             steps {
                 sh 'cmake -S./webapi/ -B./webapi/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
                 sh 'ccache -s'
@@ -33,14 +33,14 @@ pipeline {
             }
         }
 
-        stage('Debug/Test') {
+        stage('Native/Test') {
             steps {
                 sh './webapi/build/debug/tester'
             }
         }
 
 
-        stage('Build/WebAPI') {
+        stage('Web/Build') {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
@@ -54,10 +54,19 @@ pipeline {
             }
         }
 
-        stage ('Build/Lib') {
+        stage ('Web/Pack') {
             steps {
                 dir('./lib') {
                     sh 'npm ci --cache ${NPM_CACHE}'
+                    sh 'npm run build'
+                }
+            }
+        }
+
+        stage ('Web/Test') {
+            steps {
+                dir('./lib') {
+                    sh 'npm run test'
                 }
             }
         }
