@@ -5,7 +5,7 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
-IMAGE_TAG="2.0.4"
+IMAGE_TAG="0.1"
 WEBAPI_BUILD_DIR="${PROJECT_ROOT}/webapi/build/emscripten"
 WEBAPI_SOURCE_DIR="${PROJECT_ROOT}/webapi"
 LIB_DIR="${PROJECT_ROOT}/jslib/src/duckdb"
