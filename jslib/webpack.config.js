@@ -5,8 +5,8 @@ module.exports = {
     mode: 'production',
 
     entry: {
-        "duckdb": './src/index.ts',
-        "duckdb.worker": './src/index.worker.ts'
+        "duckdb": './src/duckdb.ts',
+        "duckdb.worker": './src/duckdb.worker.ts'
     },
 
     output: {
