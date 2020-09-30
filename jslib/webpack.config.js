@@ -23,18 +23,23 @@ module.exports = {
     },
 
     module: {
-        rules: [{
-            test: /\\.ts$/,
-            include: path.resolve(__dirname, 'src'),
-            exclude: /node_modules/,
-            use: 'ts-loader'
-        }, {
-            test: /\.wasm$/,
-            type: 'javascript/auto',
-            loader: 'file-loader',
-            options: {
-                name: '[hash].[ext]',
+        rules: [
+            {
+                test: /\.ts$/,
+                use: 'ts-loader',
+                exclude: [
+                    /node_modules/,
+                    path.resolve(__dirname, 'test')
+                ],
+            },
+            {
+                test: /\.wasm$/,
+                type: 'javascript/auto',
+                loader: 'file-loader',
+                options: {
+                    name: '[hash].[ext]',
+                }
             }
-        }]
+        ]
     }
 }

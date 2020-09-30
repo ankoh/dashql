@@ -1,1 +1,3 @@
-/duckdb_webapi*
+/duckdb_webapi.js
+/duckdb_webapi.wasm
+/duckdb_webapi.worker.js
