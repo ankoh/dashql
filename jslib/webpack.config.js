@@ -26,9 +26,8 @@ module.exports = {
         rules: [{
             test: /\\.ts$/,
             include: path.resolve(__dirname, 'src'),
-            use: [{
-                loader: 'ts-loader'
-            }]
+            exclude: /node_modules/,
+            use: 'ts-loader'
         }, {
             test: /\.wasm$/,
             type: 'javascript/auto',

@@ -1,22 +1,25 @@
 {
-  "name": "duckdb.js",
-  "version": "0.0.1",
-  "description": "DuckDB powered by WebAssembly",
-  "main": "index.js",
-  "dependencies": {},
-  "devDependencies": {
-    "@types/jest": "^26.0.14",
-    "file-loader": "^6.1.0",
-    "jest": "^26.4.2",
-    "ts-jest": "^26.4.1",
-    "ts-loader": "^8.0.4",
-    "typescript": "^4.0.3",
-    "webpack": "^4.44.2",
-    "webpack-cli": "^3.3.12"
-  },
-  "scripts": {
-    "test": "jest"
-  },
-  "author": "",
-  "license": "ISC"
+    "name": "duckdb.js",
+    "version": "0.0.1",
+    "description": "DuckDB powered by WebAssembly",
+    "main": "dist/duckdb.js",
+    "types": "dist/types/index.d.ts",
+    "dependencies": {},
+    "devDependencies": {
+        "@types/jest": "^26.0.14",
+        "file-loader": "^6.1.0",
+        "jest": "^26.4.2",
+        "ts-jest": "^26.4.1",
+        "ts-loader": "^8.0.4",
+        "typescript": "^4.0.3",
+        "webpack": "^4.44.2",
+        "webpack-cli": "^3.3.12"
+    },
+    "scripts": {
+        "start": "webpack --progress --colors --watch",
+        "build": "webpack --mode=production",
+        "test": "jest"
+    },
+    "author": "",
+    "license": "ISC"
 }
