@@ -15,7 +15,7 @@
     "webpack-cli": "^3.3.12"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "author": "",
   "license": "ISC"
