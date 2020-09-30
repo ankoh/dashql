@@ -19,11 +19,11 @@ namespace duckdb_webapi {
     /// The Web API context
     class WebAPI {
         public:
-        class Session;
+        class Connection;
 
         /// A response
         class Response {
-            friend class Session;
+            friend class Connection;
 
             public:
             /// The return type
@@ -40,7 +40,7 @@ namespace duckdb_webapi {
 
             protected:
             /// The session
-            Session& session;
+            Connection& session;
 
             /// The status code
             proto::StatusCode status_code;
@@ -56,7 +56,7 @@ namespace duckdb_webapi {
 
             public:
             /// Constructor
-            Response(Session& session);
+            Response(Connection& session);
             /// Destructor
             ~Response();
 
@@ -100,12 +100,14 @@ namespace duckdb_webapi {
         };
 
         /// A session
-        class Session {
+        class Connection {
             friend class Response;
 
             protected:
             /// The database
             std::shared_ptr<duckdb::DuckDB> database;
+            /// The connection
+            duckdb::Connection connection;
             /// The detached flatbuffers owned by this session
             std::unordered_map<void*, flatbuffers::DetachedBuffer> detachedBuffers;
             /// The adopted buffers owned by this session
@@ -120,9 +122,9 @@ namespace duckdb_webapi {
 
             public:
             /// Constructor
-            Session(std::shared_ptr<duckdb::DuckDB> database);
+            Connection(std::shared_ptr<duckdb::DuckDB> database);
             /// Destructor
-            ~Session();
+            ~Connection();
 
             /// Get the response
             auto& getResponse() { return response; }
@@ -147,17 +149,17 @@ namespace duckdb_webapi {
     protected:
         /// The (shared) database
         std::shared_ptr<duckdb::DuckDB> database;
-        /// The sessions
-        std::unordered_map<Session*, std::unique_ptr<Session>> sessions;
+        /// The connections
+        std::unordered_map<Connection*, std::unique_ptr<Connection>> connections;
 
     public:
         /// Constructor
         WebAPI();
 
-        /// Create a session
-        Session& createSession();
-        /// End a session
-        void endSession(Session* session);
+        /// Create a connection
+        Connection& connect();
+        /// End a connection
+        void disconnect(Connection* session);
     };
 
 } // namespace tigon

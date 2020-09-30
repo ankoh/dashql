@@ -53,7 +53,7 @@ void WebAPI::Response::requestFailed(proto::StatusCode status, std::string err) 
 }
 
 /// Constructor
-WebAPI::Response::Response(WebAPI::Session &session)
+WebAPI::Response::Response(WebAPI::Connection &session)
     : session(session), status_code(), error(), data({nullptr, 0}) {}
 
 /// Constructor
@@ -62,19 +62,19 @@ WebAPI::Response::~Response() {
 }
 
 /// Constructor
-WebAPI::Session::Session(std::shared_ptr<duckdb::DuckDB> database)
-    : database(std::move(database)), detachedBuffers(), adoptedBuffers(), response(*this), nextQueryID() {}
+WebAPI::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
+    : database(std::move(db)), connection(*database), detachedBuffers(), adoptedBuffers(), response(*this), nextQueryID() {}
 
 /// Destructor
-WebAPI::Session::~Session() {}
+WebAPI::Connection::~Connection() {}
 
 /// Write the packed response
-void WebAPI::Session::writePackedResponse(Response::Packed& packed) {
+void WebAPI::Connection::writePackedResponse(Response::Packed& packed) {
     response.writePacked(packed);
 }
 
 /// Register a buffer
-std::pair<void*, size_t> WebAPI::Session::registerBuffer(flatbuffers::DetachedBuffer detached) {
+std::pair<void*, size_t> WebAPI::Connection::registerBuffer(flatbuffers::DetachedBuffer detached) {
     auto dataPtr = detached.data();
     auto dataSize = detached.size();
     detachedBuffers.insert({dataPtr, std::move(detached)});
@@ -82,7 +82,7 @@ std::pair<void*, size_t> WebAPI::Session::registerBuffer(flatbuffers::DetachedBu
 }
 
 /// Register a buffer
-std::pair<void*, size_t> WebAPI::Session::registerBuffer(nonstd::span<std::byte> bytes) {
+std::pair<void*, size_t> WebAPI::Connection::registerBuffer(nonstd::span<std::byte> bytes) {
     auto dataPtr = bytes.data();
     auto dataSize = bytes.size();
     adoptedBuffers.insert({dataPtr, AdoptedBuffer{bytes}});
@@ -90,13 +90,13 @@ std::pair<void*, size_t> WebAPI::Session::registerBuffer(nonstd::span<std::byte>
 }
 
 /// Release a buffer
-void WebAPI::Session::releaseBuffer(void* data) {
+void WebAPI::Connection::releaseBuffer(void* data) {
     detachedBuffers.erase(data);
     adoptedBuffers.erase(data);
 }
 
 /// Run a query
-void WebAPI::Session::runQuery(std::string_view text) {
+void WebAPI::Connection::runQuery(std::string_view text) {
     auto queryID = allocateQueryID();
 
     // Create a new connection
@@ -119,7 +119,7 @@ void WebAPI::Session::runQuery(std::string_view text) {
 }
 
 /// Plan a sql statement
-void WebAPI::Session::planQuery(std::string_view text) {
+void WebAPI::Connection::planQuery(std::string_view text) {
     // Parse the statements
     duckdb::Connection conn{*database};
     duckdb::Parser parser;
@@ -149,7 +149,7 @@ void WebAPI::Session::planQuery(std::string_view text) {
 }
 
 /// Format a query plan
-void WebAPI::Session::formatQueryPlan(void* query_plan) {
+void WebAPI::Connection::formatQueryPlan(void* query_plan) {
     auto txt = proto::writeJSON(query_plan, *proto::QueryPlanTypeTable());
 
     // Encode the query plan
@@ -164,17 +164,17 @@ void WebAPI::Session::formatQueryPlan(void* query_plan) {
 
 /// Constructor
 WebAPI::WebAPI()
-    : database(std::make_shared<duckdb::DuckDB>()), sessions() {}
+    : database(std::make_shared<duckdb::DuckDB>()), connections() {}
 
 /// Create a session
-WebAPI::Session& WebAPI::createSession() {
-    auto session = std::make_unique<WebAPI::Session>(database);
-    auto sessionPtr = session.get();
-    sessions.insert({sessionPtr, move(session)});
-    return *sessionPtr;
+WebAPI::Connection& WebAPI::connect() {
+    auto conn = std::make_unique<WebAPI::Connection>(database);
+    auto connPtr = conn.get();
+    connections.insert({connPtr, move(conn)});
+    return *connPtr;
 }
 
 /// End a session
-void WebAPI::endSession(Session* session) {
-    sessions.erase(session);
+void WebAPI::disconnect(Connection* session) {
+    connections.erase(session);
 }

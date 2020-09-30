@@ -99,7 +99,12 @@ if(EMSCRIPTEN)
             -s EXPORTED_FUNCTIONS='[ \
                 _main, \
                 _malloc, \
-                _free \
+                _free, \
+                _duckdb_webapi_connect, \
+                _duckdb_webapi_disconnect, \
+                _duckdb_webapi_register_buffer, \
+                _duckdb_webapi_release_buffer, \
+                _duckdb_webapi_query \
             ]' \
             -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "

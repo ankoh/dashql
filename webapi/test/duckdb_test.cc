@@ -12,9 +12,9 @@ namespace {
 
 TEST(SQLTests, CreateTable) {
     auto db = make_shared<duckdb::DuckDB>();
-    WebAPI::Session session{db};
+    WebAPI::Connection conn{db};
 
-    session.runQuery(R"RAW(
+    conn.runQuery(R"RAW(
         CREATE TABLE r1(
             a int,
             b int
