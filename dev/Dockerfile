@@ -6,7 +6,7 @@ RUN apt-get update -qq \
         ccache cmake ninja-build clang clang-tidy curl python python3 \
         bison flex \
         openjdk-14-jdk \
-        node npm \
+        nodejs npm \
         libpthread-stubs0-dev \
         libboost-all-dev \
     && apt-get clean \
