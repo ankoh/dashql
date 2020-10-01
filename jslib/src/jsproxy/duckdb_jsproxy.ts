@@ -1,4 +1,6 @@
 import { DuckDBModule } from '../duckdb/duckdb_module';
+import * as proto from '@dashql/duckdb-proto';
+import { QueryResultBuffer, QueryResultChunk } from './webapi_buffer';
 
 /// A query result.
 /// The user has to repeatedly call fetch to retrieve the results.
@@ -98,13 +100,67 @@ export abstract class DuckDBProxy {
         return [status, error, data, dataSize];
     }
 
+    /// Connect to database
+    public async connect(): Promise<number> {
+        let instance = await this.getInstance();
+        return instance.ccall('duckdb_webapi_connect', 'number', [], []);
+    }
+
+    /// Disconnect from database
+    public async disconnect(conn: number): Promise<void> {
+        let instance = await this.getInstance();
+        instance.ccall('duckdb_webapi_disconnect', null, ['number'], [conn]);
+    }
+
+    /// Copy a buffer
+    public async copyBuffer(conn: number, buffer: Uint8Array): Promise<[number, number]> {
+        let instance = await this.getInstance();
+        var ptr = instance.allocate(buffer.length, 'i8', instance.ALLOC_NORMAL);
+        let mem = instance.HEAPU8.subarray(ptr, ptr + buffer.length);
+        mem.set(buffer);
+        instance.ccall('dashql_register_buffer', null, ['number', 'number', 'number'], [conn, ptr, buffer.length]);
+        return [ptr, buffer.length];
+    }
+
     /// Send a query and return the full result
-    public async query(): Promise<QueryResult> {
-        return Promise.resolve(new QueryResult());
+    public async runQuery(conn: number, text: string): Promise<QueryResultBuffer> {
+        let instance = await this.getInstance();
+        let [s, err, d, n] = await this.callSRet('duckdb_run_query', ['number', 'string'], [conn, text]);
+        if (s !== proto.api.StatusCode.SUCCESS) {
+            console.log(err);
+            return Promise.reject(new Error(''));
+        }
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        let msg = new QueryResultBuffer(mem);
+        instance.ccall('dashql_release_buffer', null, ['number', 'number'], [conn, d]);
+        return msg;
     }
 
     /// Send a query and return a result stream
-    public async sendQuery(): Promise<QueryResult> {
-        return Promise.resolve(new QueryResult());
+    public async sendQuery(conn: number, text: string): Promise<QueryResultBuffer> {
+        let instance = await this.getInstance();
+        let [s, err, d, n] = await this.callSRet('duckdb_send_query', ['number', 'string'], [conn, text]);
+        if (s !== proto.api.StatusCode.SUCCESS) {
+            console.log(err);
+            return Promise.reject(new Error(''));
+        }
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        let msg = new QueryResultBuffer(mem);
+        instance.ccall('dashql_release_buffer', null, ['number', 'number'], [conn, d]);
+        return msg;
+    }
+
+    /// Fetch query results
+    public async fetchQueryResults(conn: number): Promise<QueryResultChunk> {
+        let instance = await this.getInstance();
+        let [s, err, d, n] = await this.callSRet('duckdb_fetch_query_results', ['number'], [conn]);
+        if (s !== proto.api.StatusCode.SUCCESS) {
+            console.log(err);
+            return Promise.reject(new Error(''));
+        }
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        let msg = new QueryResultChunk(mem);
+        instance.ccall('dashql_release_buffer', null, ['number', 'number'], [conn, d]);
+        return msg;
     }
 };

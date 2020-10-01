@@ -27,7 +27,7 @@ table QueryResultChunk {
 }
 
 // A query result
-table QueryResultHeader {
+table QueryResult {
     query_id: uint64;
     query_plan: QueryPlan;
     column_types: [LogicalType];

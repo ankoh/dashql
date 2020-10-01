@@ -60,15 +60,15 @@ done
 
 rm -r ${TMP}
 
-# echo "[ RUN ] Bundle js library" \
-#     && cd "${PROTO_DIR}/lib/js" \
-#     && npm install --silent \
-#     && npm run bundle \
-#     && { echo "[ OK  ] Bundle js library"; } \
-#     || { echo "[ ERR ] Bundle js library"; exit 1; }
-# 
-# echo "[ RUN ] Install js library" \
-#     && cd "${PROJECT_ROOT}/lib" \
-#     && npm install --silent \
-#     && { echo "[ OK  ] Install js library"; } \
-#     || { echo "[ ERR ] Install js library"; exit 1; }
+echo "[ RUN ] Bundle js library" \
+    && cd "${PROTO_DIR}/lib/js" \
+    && npm install --silent \
+    && npm run build \
+    && { echo "[ OK  ] Bundle js library"; } \
+    || { echo "[ ERR ] Bundle js library"; exit 1; }
+
+echo "[ RUN ] Install js library" \
+    && cd "${PROJECT_ROOT}/jslib" \
+    && npm install --silent \
+    && { echo "[ OK  ] Install js library"; } \
+    || { echo "[ ERR ] Install js library"; exit 1; }

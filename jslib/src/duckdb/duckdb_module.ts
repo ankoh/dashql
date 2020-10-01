@@ -6,4 +6,5 @@ export interface DuckDBModule extends EmscriptenModule {
     allocate: typeof allocate;
 
     ALLOC_STACK: typeof ALLOC_STACK;
+    ALLOC_NORMAL: typeof ALLOC_NORMAL;
 }

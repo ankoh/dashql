@@ -20,22 +20,22 @@ struct QueryResultChunk;
 struct QueryResultChunkBuilder;
 struct QueryResultChunkT;
 
-struct QueryResultHeader;
-struct QueryResultHeaderBuilder;
-struct QueryResultHeaderT;
+struct QueryResult;
+struct QueryResultBuilder;
+struct QueryResultT;
 
 bool operator==(const QueryResultColumnT &lhs, const QueryResultColumnT &rhs);
 bool operator!=(const QueryResultColumnT &lhs, const QueryResultColumnT &rhs);
 bool operator==(const QueryResultChunkT &lhs, const QueryResultChunkT &rhs);
 bool operator!=(const QueryResultChunkT &lhs, const QueryResultChunkT &rhs);
-bool operator==(const QueryResultHeaderT &lhs, const QueryResultHeaderT &rhs);
-bool operator!=(const QueryResultHeaderT &lhs, const QueryResultHeaderT &rhs);
+bool operator==(const QueryResultT &lhs, const QueryResultT &rhs);
+bool operator!=(const QueryResultT &lhs, const QueryResultT &rhs);
 
 inline const flatbuffers::TypeTable *QueryResultColumnTypeTable();
 
 inline const flatbuffers::TypeTable *QueryResultChunkTypeTable();
 
-inline const flatbuffers::TypeTable *QueryResultHeaderTypeTable();
+inline const flatbuffers::TypeTable *QueryResultTypeTable();
 
 struct QueryResultColumnT : public flatbuffers::NativeTable {
   typedef QueryResultColumn TableType;
@@ -379,22 +379,22 @@ inline flatbuffers::Offset<QueryResultChunk> CreateQueryResultChunkDirect(
 
 flatbuffers::Offset<QueryResultChunk> CreateQueryResultChunk(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultChunkT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct QueryResultHeaderT : public flatbuffers::NativeTable {
-  typedef QueryResultHeader TableType;
+struct QueryResultT : public flatbuffers::NativeTable {
+  typedef QueryResult TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "duckdb_webapi.proto.QueryResultHeaderT";
+    return "duckdb_webapi.proto.QueryResultT";
   }
   uint64_t query_id;
   std::unique_ptr<duckdb_webapi::proto::QueryPlanT> query_plan;
   std::vector<duckdb_webapi::proto::LogicalType> column_types;
   std::vector<std::string> column_names;
   std::vector<std::unique_ptr<duckdb_webapi::proto::QueryResultChunkT>> data_chunks;
-  QueryResultHeaderT()
+  QueryResultT()
       : query_id(0) {
   }
 };
 
-inline bool operator==(const QueryResultHeaderT &lhs, const QueryResultHeaderT &rhs) {
+inline bool operator==(const QueryResultT &lhs, const QueryResultT &rhs) {
   return
       (lhs.query_id == rhs.query_id) &&
       (lhs.query_plan == rhs.query_plan) &&
@@ -403,19 +403,19 @@ inline bool operator==(const QueryResultHeaderT &lhs, const QueryResultHeaderT &
       (lhs.data_chunks == rhs.data_chunks);
 }
 
-inline bool operator!=(const QueryResultHeaderT &lhs, const QueryResultHeaderT &rhs) {
+inline bool operator!=(const QueryResultT &lhs, const QueryResultT &rhs) {
     return !(lhs == rhs);
 }
 
 
-struct QueryResultHeader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef QueryResultHeaderT NativeTableType;
-  typedef QueryResultHeaderBuilder Builder;
+struct QueryResult FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef QueryResultT NativeTableType;
+  typedef QueryResultBuilder Builder;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return QueryResultHeaderTypeTable();
+    return QueryResultTypeTable();
   }
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "duckdb_webapi.proto.QueryResultHeader";
+    return "duckdb_webapi.proto.QueryResult";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_QUERY_ID = 4,
@@ -454,49 +454,49 @@ struct QueryResultHeader FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(data_chunks()) &&
            verifier.EndTable();
   }
-  QueryResultHeaderT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(QueryResultHeaderT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<QueryResultHeader> Pack(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultHeaderT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  QueryResultT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(QueryResultT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<QueryResult> Pack(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct QueryResultHeaderBuilder {
-  typedef QueryResultHeader Table;
+struct QueryResultBuilder {
+  typedef QueryResult Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_query_id(uint64_t query_id) {
-    fbb_.AddElement<uint64_t>(QueryResultHeader::VT_QUERY_ID, query_id, 0);
+    fbb_.AddElement<uint64_t>(QueryResult::VT_QUERY_ID, query_id, 0);
   }
   void add_query_plan(flatbuffers::Offset<duckdb_webapi::proto::QueryPlan> query_plan) {
-    fbb_.AddOffset(QueryResultHeader::VT_QUERY_PLAN, query_plan);
+    fbb_.AddOffset(QueryResult::VT_QUERY_PLAN, query_plan);
   }
   void add_column_types(flatbuffers::Offset<flatbuffers::Vector<const duckdb_webapi::proto::LogicalType *>> column_types) {
-    fbb_.AddOffset(QueryResultHeader::VT_COLUMN_TYPES, column_types);
+    fbb_.AddOffset(QueryResult::VT_COLUMN_TYPES, column_types);
   }
   void add_column_names(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> column_names) {
-    fbb_.AddOffset(QueryResultHeader::VT_COLUMN_NAMES, column_names);
+    fbb_.AddOffset(QueryResult::VT_COLUMN_NAMES, column_names);
   }
   void add_data_chunks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::QueryResultChunk>>> data_chunks) {
-    fbb_.AddOffset(QueryResultHeader::VT_DATA_CHUNKS, data_chunks);
+    fbb_.AddOffset(QueryResult::VT_DATA_CHUNKS, data_chunks);
   }
-  explicit QueryResultHeaderBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit QueryResultBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<QueryResultHeader> Finish() {
+  flatbuffers::Offset<QueryResult> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<QueryResultHeader>(end);
+    auto o = flatbuffers::Offset<QueryResult>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<QueryResultHeader> CreateQueryResultHeader(
+inline flatbuffers::Offset<QueryResult> CreateQueryResult(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t query_id = 0,
     flatbuffers::Offset<duckdb_webapi::proto::QueryPlan> query_plan = 0,
     flatbuffers::Offset<flatbuffers::Vector<const duckdb_webapi::proto::LogicalType *>> column_types = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> column_names = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::QueryResultChunk>>> data_chunks = 0) {
-  QueryResultHeaderBuilder builder_(_fbb);
+  QueryResultBuilder builder_(_fbb);
   builder_.add_query_id(query_id);
   builder_.add_data_chunks(data_chunks);
   builder_.add_column_names(column_names);
@@ -505,7 +505,7 @@ inline flatbuffers::Offset<QueryResultHeader> CreateQueryResultHeader(
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<QueryResultHeader> CreateQueryResultHeaderDirect(
+inline flatbuffers::Offset<QueryResult> CreateQueryResultDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t query_id = 0,
     flatbuffers::Offset<duckdb_webapi::proto::QueryPlan> query_plan = 0,
@@ -515,7 +515,7 @@ inline flatbuffers::Offset<QueryResultHeader> CreateQueryResultHeaderDirect(
   auto column_types__ = column_types ? _fbb.CreateVectorOfStructs<duckdb_webapi::proto::LogicalType>(*column_types) : 0;
   auto column_names__ = column_names ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*column_names) : 0;
   auto data_chunks__ = data_chunks ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::QueryResultChunk>>(*data_chunks) : 0;
-  return duckdb_webapi::proto::CreateQueryResultHeader(
+  return duckdb_webapi::proto::CreateQueryResult(
       _fbb,
       query_id,
       query_plan,
@@ -524,7 +524,7 @@ inline flatbuffers::Offset<QueryResultHeader> CreateQueryResultHeaderDirect(
       data_chunks__);
 }
 
-flatbuffers::Offset<QueryResultHeader> CreateQueryResultHeader(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultHeaderT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<QueryResult> CreateQueryResult(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 inline QueryResultColumnT *QueryResultColumn::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   std::unique_ptr<duckdb_webapi::proto::QueryResultColumnT> _o = std::unique_ptr<duckdb_webapi::proto::QueryResultColumnT>(new QueryResultColumnT());
@@ -611,13 +611,13 @@ inline flatbuffers::Offset<QueryResultChunk> CreateQueryResultChunk(flatbuffers:
       _columns);
 }
 
-inline QueryResultHeaderT *QueryResultHeader::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<duckdb_webapi::proto::QueryResultHeaderT> _o = std::unique_ptr<duckdb_webapi::proto::QueryResultHeaderT>(new QueryResultHeaderT());
+inline QueryResultT *QueryResult::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<duckdb_webapi::proto::QueryResultT> _o = std::unique_ptr<duckdb_webapi::proto::QueryResultT>(new QueryResultT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void QueryResultHeader::UnPackTo(QueryResultHeaderT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void QueryResult::UnPackTo(QueryResultT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = query_id(); _o->query_id = _e; }
@@ -627,20 +627,20 @@ inline void QueryResultHeader::UnPackTo(QueryResultHeaderT *_o, const flatbuffer
   { auto _e = data_chunks(); if (_e) { _o->data_chunks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data_chunks[_i] = std::unique_ptr<duckdb_webapi::proto::QueryResultChunkT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
-inline flatbuffers::Offset<QueryResultHeader> QueryResultHeader::Pack(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultHeaderT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateQueryResultHeader(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<QueryResult> QueryResult::Pack(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateQueryResult(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<QueryResultHeader> CreateQueryResultHeader(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultHeaderT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<QueryResult> CreateQueryResult(flatbuffers::FlatBufferBuilder &_fbb, const QueryResultT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const QueryResultHeaderT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const QueryResultT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _query_id = _o->query_id;
   auto _query_plan = _o->query_plan ? CreateQueryPlan(_fbb, _o->query_plan.get(), _rehasher) : 0;
   auto _column_types = _o->column_types.size() ? _fbb.CreateVectorOfStructs(_o->column_types) : 0;
   auto _column_names = _o->column_names.size() ? _fbb.CreateVectorOfStrings(_o->column_names) : 0;
   auto _data_chunks = _o->data_chunks.size() ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::QueryResultChunk>> (_o->data_chunks.size(), [](size_t i, _VectorArgs *__va) { return CreateQueryResultChunk(*__va->__fbb, __va->__o->data_chunks[i].get(), __va->__rehasher); }, &_va ) : 0;
-  return duckdb_webapi::proto::CreateQueryResultHeader(
+  return duckdb_webapi::proto::CreateQueryResult(
       _fbb,
       _query_id,
       _query_plan,
@@ -703,7 +703,7 @@ inline const flatbuffers::TypeTable *QueryResultChunkTypeTable() {
   return &tt;
 }
 
-inline const flatbuffers::TypeTable *QueryResultHeaderTypeTable() {
+inline const flatbuffers::TypeTable *QueryResultTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_ULONG, 0, -1 },
     { flatbuffers::ET_SEQUENCE, 0, 0 },
