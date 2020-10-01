@@ -114,11 +114,13 @@ namespace duckdb_webapi {
             std::unordered_map<void*, AdoptedBuffer> adoptedBuffers;
             /// The (last) response
             Response response;
-            /// The next query id
-            uint64_t nextQueryID;
+            /// The current query id
+            uint64_t currentQueryID;
+            /// The current query result (if any)
+            std::unique_ptr<duckdb::QueryResult> currentQueryResult;
 
             /// Allocate a query id
-            uint64_t allocateQueryID() { return ++nextQueryID; }
+            uint64_t allocateQueryID() { return ++currentQueryID; }
 
             public:
             /// Constructor
@@ -137,10 +139,14 @@ namespace duckdb_webapi {
             /// Release a buffer
             void releaseBuffer(void* buffer);
 
-            /// Run SQL query
+            /// Run a SQL query
             void runQuery(std::string_view text);
-            /// Plan SQL query
-            void planQuery(std::string_view text);
+            /// Start a SQL query
+            void sendQuery(std::string_view text);
+            /// Fetch query results
+            void fetchQueryResults();
+            /// Analyze a SQL query
+            void analyzeQuery(std::string_view text);
 
             /// Format a query plan
             void formatQueryPlan(void* query_plan);

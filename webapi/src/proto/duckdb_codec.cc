@@ -186,68 +186,75 @@ static fb::Offset<proto::QueryResultColumn> writeStringCol(fb::FlatBufferBuilder
     return c.Finish();
 }
 
+/// Write the query result chunk
+fb::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBufferBuilder& builder, duckdb::DataChunk* chunkPtr, nonstd::span<duckdb::LogicalType> types) {
+    duckdb::DataChunk tmp;
+    auto& chunk = (!!chunkPtr) ? *chunkPtr : tmp;
+
+    auto size = chunk.size();
+    auto vectors = chunk.Orrify();
+
+    // Write chunk columns
+    std::vector<fb::Offset<proto::QueryResultColumn>> columns;
+    for (size_t column_id = 0; column_id < chunk.column_count(); ++column_id) {
+        auto lType = types[column_id];
+        auto pType = lType.InternalType();
+        auto vec = vectors.get()[column_id];
+
+        // Ref: src/common/types.cpp
+        // We only need to encode types that are actually used in LogicalType::GetInternalType.
+        // We try to catch this via tests.
+
+        // Write result column
+        auto column = [&]() -> fb::Offset<proto::QueryResultColumn> {
+            switch (pType) {
+            case duckdb::PhysicalType::INT8:
+                return writeCol<int8_t>(builder, pType, vec, size);
+            case duckdb::PhysicalType::INT16:
+                return writeCol<int16_t>(builder, pType, vec, size);
+            case duckdb::PhysicalType::INT32:
+                return writeCol<int32_t>(builder, pType, vec, size);
+            case duckdb::PhysicalType::INT64:
+                return writeCol<int64_t>(builder, pType, vec, size);
+            case duckdb::PhysicalType::FLOAT:
+                return writeCol<float>(builder, pType, vec, size);
+            case duckdb::PhysicalType::DOUBLE:
+                return writeCol<double>(builder, pType, vec, size);
+
+            case duckdb::PhysicalType::VARCHAR:
+            case duckdb::PhysicalType::STRING:
+                return writeStringCol(builder, vec, size);
+
+            case duckdb::PhysicalType::BOOL:
+            case duckdb::PhysicalType::INT128:
+            case duckdb::PhysicalType::VARBINARY:
+            case duckdb::PhysicalType::INTERVAL:
+            case duckdb::PhysicalType::STRUCT:
+            case duckdb::PhysicalType::LIST:
+            default:
+                throw "unsupported physical type";
+            }
+            return {};
+        }();
+
+        // Push new chunk column
+        columns.push_back(column);
+    }
+    auto columnOffset = builder.CreateVector(columns);
+
+    // Build result chunk
+    proto::QueryResultChunkBuilder chunkBuilder{builder};
+    chunkBuilder.add_columns(columnOffset);
+    return chunkBuilder.Finish();
+}
+
 /// Write the query result
 fb::Offset<proto::QueryResultHeader> writeQueryResult(fb::FlatBufferBuilder& builder, duckdb::QueryResult& result, uint64_t queryID) {
 
     // Fetch result rows and immediately write them into a flatbuffer
     std::vector<fb::Offset<proto::QueryResultChunk>> chunks;
-    for (auto chunk = result.Fetch(); !!chunk && chunk->size() > 0; chunk = result.Fetch()) {
-        auto size = chunk->size();
-        auto vectors = chunk->Orrify();
-
-        // Write chunk columns
-        std::vector<fb::Offset<proto::QueryResultColumn>> columns;
-        for (size_t column_id = 0; column_id < chunk->column_count(); ++column_id) {
-            auto lType = result.types[column_id];
-            auto pType = lType.InternalType();
-            auto vec = vectors.get()[column_id];
-
-            // Ref: src/common/types.cpp
-            // We only need to encode types that are actually used in LogicalType::GetInternalType.
-            // We try to catch this via tests.
-
-            // Write result column
-            auto column = [&]() -> fb::Offset<proto::QueryResultColumn> {
-                switch (pType) {
-                case duckdb::PhysicalType::INT8:
-                    return writeCol<int8_t>(builder, pType, vec, size);
-                case duckdb::PhysicalType::INT16:
-                    return writeCol<int16_t>(builder, pType, vec, size);
-                case duckdb::PhysicalType::INT32:
-                    return writeCol<int32_t>(builder, pType, vec, size);
-                case duckdb::PhysicalType::INT64:
-                    return writeCol<int64_t>(builder, pType, vec, size);
-                case duckdb::PhysicalType::FLOAT:
-                    return writeCol<float>(builder, pType, vec, size);
-                case duckdb::PhysicalType::DOUBLE:
-                    return writeCol<double>(builder, pType, vec, size);
-
-                case duckdb::PhysicalType::VARCHAR:
-                case duckdb::PhysicalType::STRING:
-                    return writeStringCol(builder, vec, size);
-
-                case duckdb::PhysicalType::BOOL:
-                case duckdb::PhysicalType::INT128:
-                case duckdb::PhysicalType::VARBINARY:
-                case duckdb::PhysicalType::INTERVAL:
-                case duckdb::PhysicalType::STRUCT:
-                case duckdb::PhysicalType::LIST:
-                default:
-                    throw "unsupported physical type";
-                }
-                return {};
-            }();
-
-            // Push new chunk column
-            columns.push_back(column);
-        }
-        auto columnOffset = builder.CreateVector(columns);
-
-        // Build result chunk
-        proto::QueryResultChunkBuilder chunkBuilder{builder};
-        chunkBuilder.add_columns(columnOffset);
-        chunks.push_back(chunkBuilder.Finish());
-    }
+    for (auto chunk = result.Fetch(); !!chunk && chunk->size() > 0; chunk = result.Fetch())
+        chunks.push_back(writeQueryResultChunk(builder, chunk.get(), result.types));
     auto dataChunks = builder.CreateVector(chunks);
 
     // Write column types

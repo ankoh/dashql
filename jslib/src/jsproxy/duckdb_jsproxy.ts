@@ -1,3 +1,22 @@
+/// A query result.
+/// The user has to repeatedly call fetch to retrieve the results.
+export class QueryResult {
+    /// Fetch the next result chunk
+    public async fetch(): Promise<void> {
+    }
+
+    /// Print the query result
+    public toString(): string {
+        return "";
+    }
+};
+
+/// A query result iterator.
+export class QueryResultIterator {
+
+};
+
+/// The proxy for either the browser- order node-based DuckDB API
 export abstract class DuckDBProxy {
     /// The instance
     private instance: EmscriptenModule | null = null;
@@ -32,5 +51,15 @@ export abstract class DuckDBProxy {
 
         // Wait for onRuntimeInitialized
         await this.openPromise;
+    }
+
+    /// Send a query and return the full result
+    public async query(): Promise<QueryResult> {
+        return Promise.resolve(new QueryResult());
+    }
+
+    /// Send a query and return a result stream
+    public async sendQuery(): Promise<QueryResult> {
+        return Promise.resolve(new QueryResult());
     }
 };

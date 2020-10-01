@@ -22,6 +22,7 @@ table QueryResultColumn {
 
 // A data chunk
 table QueryResultChunk {
+    query_id: uint64;
     columns: [QueryResultColumn];
 }
 

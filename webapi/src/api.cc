@@ -63,7 +63,7 @@ WebAPI::Response::~Response() {
 
 /// Constructor
 WebAPI::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
-    : database(std::move(db)), connection(*database), detachedBuffers(), adoptedBuffers(), response(*this), nextQueryID() {}
+    : database(std::move(db)), connection(*database), detachedBuffers(), adoptedBuffers(), response(*this), currentQueryID(), currentQueryResult() {}
 
 /// Destructor
 WebAPI::Connection::~Connection() {}
@@ -95,7 +95,7 @@ void WebAPI::Connection::releaseBuffer(void* data) {
     adoptedBuffers.erase(data);
 }
 
-/// Run a query
+/// Run a SQL query
 void WebAPI::Connection::runQuery(std::string_view text) {
     auto queryID = allocateQueryID();
 
@@ -118,8 +118,48 @@ void WebAPI::Connection::runQuery(std::string_view text) {
     response.requestSucceeded(builder.Release());
 }
 
-/// Plan a sql statement
-void WebAPI::Connection::planQuery(std::string_view text) {
+/// Start a SQL query
+void WebAPI::Connection::sendQuery(std::string_view text) {
+    auto queryID = allocateQueryID();
+
+    // Create a new connection
+    duckdb::Connection conn{*database};
+    auto result = conn.SendQuery(std::string{text});
+
+    // Query failed?
+    if (!result->success) {
+        response.requestFailed(proto::StatusCode::ERROR, result->error);
+        return;
+    }
+
+    // Write the result buffer
+    fb::FlatBufferBuilder builder{1024};
+    auto queryResultOfs = proto::writeQueryResult(builder, *result, queryID);
+
+    // Return buffer
+    builder.Finish(queryResultOfs);
+    response.requestSucceeded(builder.Release());
+}
+
+/// Fetch query results
+void WebAPI::Connection::fetchQueryResults() {
+    // Fetch data if a query is active
+    std::unique_ptr<duckdb::DataChunk> chunk;
+    nonstd::span<duckdb::LogicalType> types;
+    if (currentQueryResult != nullptr) {
+        chunk = currentQueryResult->Fetch();
+        types = currentQueryResult->types;
+    }
+
+    // Get query result
+    fb::FlatBufferBuilder builder{128};
+    auto ofs = proto::writeQueryResultChunk(builder, chunk.get(), types);
+    builder.Finish(ofs);
+    response.requestSucceeded(builder.Release());
+}
+
+/// Analyze a SQL query
+void WebAPI::Connection::analyzeQuery(std::string_view text) {
     // Parse the statements
     duckdb::Connection conn{*database};
     duckdb::Parser parser;

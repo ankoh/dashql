@@ -8,6 +8,7 @@
 
 #include "flatbuffers/flatbuffers.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
+#include "duckdb_webapi/common/span.h"
 
 namespace duckdb_webapi {
 namespace proto {
@@ -17,6 +18,8 @@ proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type);
 
 /// Write the query result
 flatbuffers::Offset<proto::QueryResultHeader> writeQueryResult(flatbuffers::FlatBufferBuilder& builder, duckdb::QueryResult& result, uint64_t queryID);
+/// Write the query result chunk
+flatbuffers::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBufferBuilder& builder, duckdb::DataChunk* chunk, nonstd::span<duckdb::LogicalType> types);
 /// Write the query plan
 flatbuffers::Offset<proto::QueryPlan> writeQueryPlan(flatbuffers::FlatBufferBuilder& builder, duckdb::LogicalOperator& plan);
 
