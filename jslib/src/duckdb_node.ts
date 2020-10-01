@@ -2,10 +2,11 @@
 
 import duckdb_api_wasm from './duckdb/duckdb_nodeapi.wasm';
 import duckdb_api_init from './duckdb/duckdb_nodeapi.js';
+import { DuckDBModule } from './duckdb/duckdb_module';
 import { DuckDBProxy } from './jsproxy/duckdb_jsproxy';
 
 export class DuckDB extends DuckDBProxy {
-    protected init(moduleOverrides: Partial<EmscriptenModule>): Promise<EmscriptenModule> {
+    protected init(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule> {
         return duckdb_api_init({
             ...moduleOverrides,
             locateFile(path: string) {
