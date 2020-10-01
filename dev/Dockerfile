@@ -6,7 +6,6 @@ RUN apt-get update -qq \
         ccache cmake ninja-build clang clang-tidy curl python python3 \
         bison flex \
         openjdk-14-jdk \
-        nodejs npm \
         libpthread-stubs0-dev \
         libboost-all-dev \
     && apt-get clean \
@@ -45,6 +44,7 @@ RUN source /opt/emsdk/emsdk_env.sh \
     && echo "EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
     && echo "EM_CACHE=/mnt/emscripten_cache/" >> /opt/env.sh \
     && echo "EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
+    && echo "source /usr/local/nvm/nvm.sh" >> /opt/env.sh \
     && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh
 

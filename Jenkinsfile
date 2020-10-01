@@ -13,7 +13,6 @@ pipeline {
         NPM_CACHE = '/mnt/npm_cache'
         CCACHE_DIR = '/mnt/ccache'
         CCACHE_BASEDIR = '${WORKSPACE}'
-        NODE_VERSION = 'v14.13.0'
     }
 
     stages {
@@ -22,10 +21,6 @@ pipeline {
                 sh 'chown -R "$USER" /mnt/npm_cache /mnt/emscripten_cache'
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./webapi/build/emscripten'
-
-                nvm('version': '${NODE_VERSION}', 'nvmInstallDir':'/usr/local/nvm') {
-                    sh 'npm --version'
-                }
             }
         }
 
@@ -62,21 +57,25 @@ pipeline {
 
         stage ('Web/Pack') {
             steps {
-                nvm('version': '${NODE_VERSION}', 'nvmInstallDir':'/usr/local/nvm') {
-                    dir('./jslib') {
-                        sh 'npm ci --cache ${NPM_CACHE}'
-                        sh 'npm run build'
-                    }
+                dir('./jslib') {
+                    sh '''#!/bin/bash
+                        source /opt/env.sh
+                        nvm use default
+                        npm ci --cache ${NPM_CACHE}
+                        npm run build
+                    '''
                 }
             }
         }
 
         stage ('Web/Test') {
             steps {
-                nvm('version': '${NODE_VERSION}', 'nvmInstallDir':'/usr/local/nvm') {
-                    dir('./jslib') {
-                        sh 'npm run test'
-                    }
+                dir('./jslib') {
+                    sh '''#!/bin/bash
+                        source /opt/env.sh
+                        nvm use default
+                        npm run test
+                    '''
                 }
             }
         }
