@@ -10,7 +10,7 @@ WEBAPI_BUILD_DIR="${PROJECT_ROOT}/webapi/build/emscripten"
 WEBAPI_SOURCE_DIR="${PROJECT_ROOT}/webapi"
 LIB_DIR="${PROJECT_ROOT}/jslib/src/duckdb"
 
-CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/mnt/emscripten_cache/ dashql/emsdk:${IMAGE_TAG} "
+CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/mnt/emscripten_cache/ dashql/duckdbjs-dev:${IMAGE_TAG} "
 EMCONFIGURE="${CMD_PREFIX} emcmake"
 EMMAKE="${CMD_PREFIX} emmake"
 

@@ -6,13 +6,12 @@ RUN apt-get update -qq \
         ccache cmake ninja-build clang clang-tidy curl python python3 \
         bison flex \
         openjdk-14-jdk \
-        nodejs npm \
         libpthread-stubs0-dev \
         libboost-all-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-ARG EMSDK_VERSION
+ARG EMSDK_VERSION="2.0.4"
 RUN mkdir -p /opt/emsdk \
     && cd /opt/emsdk \
     && curl -SL https://github.com/emscripten-core/emsdk/archive/${EMSDK_VERSION}.tar.gz | tar -xz --strip-components=1 \
@@ -28,6 +27,17 @@ RUN mkdir -p /opt/emsdk \
     && find . -name "*.tmp" -exec rm {} \;
 
 SHELL ["/bin/bash", "-c"]
+
+ARG NVM_VERSION="v0.36.0"
+ARG NODE_VERSION="v14.13.0"
+ENV NVM_DIR=/usr/local/nvm
+RUN mkdir -p /usr/local/nvm \
+    && curl https://raw.githubusercontent.com/creationix/nvm/v0.36.0/install.sh | bash \
+    && source ${NVM_DIR}/nvm.sh \
+    && nvm install ${NODE_VERSION} \
+    && nvm alias default ${NODE_VERSION} \
+    && nvm use default
+
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "PATH=$PATH" >> /opt/env.sh \
     && echo "EMSDK=$EMSDK" >> /opt/env.sh \

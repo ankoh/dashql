@@ -58,6 +58,7 @@ pipeline {
         stage ('Web/Pack') {
             steps {
                 dir('./jslib') {
+                    sh 'npm --version'
                     sh 'npm ci --cache ${NPM_CACHE}'
                     sh 'npm run build'
                 }
