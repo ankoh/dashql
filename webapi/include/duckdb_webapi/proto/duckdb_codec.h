@@ -17,7 +17,7 @@ namespace proto {
 proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type);
 
 /// Write the query result
-flatbuffers::Offset<proto::QueryResultHeader> writeQueryResult(flatbuffers::FlatBufferBuilder& builder, duckdb::QueryResult& result, uint64_t queryID);
+flatbuffers::Offset<proto::QueryResult> writeQueryResult(flatbuffers::FlatBufferBuilder& builder, duckdb::QueryResult& result, uint64_t queryID);
 /// Write the query result chunk
 flatbuffers::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBufferBuilder& builder, duckdb::DataChunk* chunk, nonstd::span<duckdb::LogicalType> types);
 /// Write the query plan

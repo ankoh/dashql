@@ -248,7 +248,7 @@ fb::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBuffe
 }
 
 /// Write the query result
-fb::Offset<proto::QueryResultHeader> writeQueryResult(fb::FlatBufferBuilder& builder, duckdb::QueryResult& result, uint64_t queryID) {
+fb::Offset<proto::QueryResult> writeQueryResult(fb::FlatBufferBuilder& builder, duckdb::QueryResult& result, uint64_t queryID) {
 
     // Fetch result rows and immediately write them into a flatbuffer
     std::vector<fb::Offset<proto::QueryResultChunk>> chunks;
@@ -275,7 +275,7 @@ fb::Offset<proto::QueryResultHeader> writeQueryResult(fb::FlatBufferBuilder& bui
     auto columnNames = builder.CreateVectorOfStrings(result.names);
 
     // Write the query result
-    proto::QueryResultHeaderBuilder resultBuilder{builder};
+    proto::QueryResultBuilder resultBuilder{builder};
     resultBuilder.add_query_id(queryID);
     resultBuilder.add_column_names(columnNames);
     resultBuilder.add_column_types(columnTypes);
