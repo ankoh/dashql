@@ -1,9 +1,8 @@
 pipeline {
     agent {
         dockerfile {
-            filename 'Dockerfile.emsdk'
+            filename 'Dockerfile'
             dir './dev/'
-            additionalBuildArgs '--build-arg EMSDK_VERSION=2.0.4'
             args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache -v $HOME/.npm_cache:/mnt/npm_cache -v $HOME/.ccache:/mnt/ccache'
         }
     }
