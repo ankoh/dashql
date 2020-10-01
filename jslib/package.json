@@ -20,7 +20,7 @@
     "scripts": {
         "start": "webpack --progress --colors --watch",
         "build": "webpack --mode=production",
-        "test": "jest"
+        "test": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js"
     },
     "author": "",
     "license": "ISC",

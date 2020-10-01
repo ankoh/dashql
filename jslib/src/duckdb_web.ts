@@ -1,16 +1,16 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import DuckDBModule from './duckdb/duckdb_webapi.wasm';
-import { DuckDB as initDuckDB } from './duckdb/duckdb_webapi.js';
+import duckdb_api_wasm from './duckdb/duckdb_webapi.wasm';
+import duckdb_api_init from './duckdb/duckdb_webapi.js';
 import { DuckDBProxy } from './jsproxy/duckdb_jsproxy';
 
 export class DuckDB extends DuckDBProxy {
     protected init(moduleOverrides: Partial<EmscriptenModule>): Promise<EmscriptenModule> {
-        return initDuckDB({
+        return duckdb_api_init({
             ...moduleOverrides,
             locateFile(path: string) {
                 if (path.endsWith('.wasm'))
-                    return DuckDBModule;
+                    return duckdb_api_wasm;
                 return path;
             }
         });

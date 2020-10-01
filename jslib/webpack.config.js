@@ -6,8 +6,8 @@ const browserTarget = {
     target: 'web',
     mode: 'production',
     entry: {
-        "duckdb": './src/duckdb_web.ts',
-        "duckdb.worker": './src/duckdb_web.worker.ts'
+        "duckdb_web": './src/duckdb_web.ts',
+        "duckdb_web.worker": './src/duckdb_web.worker.ts'
     },
     output: {
         filename: '[name].js',
