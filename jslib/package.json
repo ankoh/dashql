@@ -14,7 +14,8 @@
         "ts-loader": "^8.0.4",
         "typescript": "^4.0.3",
         "webpack": "^4.44.2",
-        "webpack-cli": "^3.3.12"
+        "webpack-cli": "^3.3.12",
+        "webpack-node-externals": "^2.5.2"
     },
     "scripts": {
         "start": "webpack --progress --colors --watch",
@@ -22,5 +23,11 @@
         "test": "jest"
     },
     "author": "",
-    "license": "ISC"
+    "license": "ISC",
+    "browser": {
+        "worker_threads": false,
+        "perf_hooks": false,
+        "fs": false,
+        "buffer": false
+    }
 }

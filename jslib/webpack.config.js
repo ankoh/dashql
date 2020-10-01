@@ -1,14 +1,14 @@
-// webpack.config.js
-const path = require('path')
+const path = require('path');
+const nodeExternals = require('webpack-node-externals');
+const webpack = require('webpack');
 
-module.exports = {
+const browserTarget = {
+    target: 'web',
     mode: 'production',
-
     entry: {
-        "duckdb": './src/duckdb.ts',
-        "duckdb.worker": './src/duckdb.worker.ts'
+        "duckdb": './src/duckdb_web.ts',
+        "duckdb.worker": './src/duckdb_web.worker.ts'
     },
-
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
@@ -17,11 +17,9 @@ module.exports = {
         umdNamedDefine: true,
         globalObject: 'this'
     },
-
     resolve: {
         extensions: ['.ts', '.js']
     },
-
     module: {
         rules: [
             {
@@ -42,4 +40,15 @@ module.exports = {
             }
         ]
     }
-}
+};
+
+const nodeTarget = {
+    ...browserTarget,
+    target: 'node',
+    entry: {
+        "duckdb_node": './src/duckdb_node.ts',
+        "duckdb_node.worker": './src/duckdb_node.worker.ts'
+    }
+};
+
+module.exports = [browserTarget, nodeTarget];

@@ -28,9 +28,9 @@ ${EMCONFIGURE} cmake \
 ${EMMAKE} make \
     -C/wd/webapi/build/emscripten \
     -j${CORES} \
-    duckdb_webapi
+    duckdb_webapi duckdb_nodeapi
 
 mkdir -p "${LIB_DIR}"
 
-cp ${WEBAPI_SOURCE_DIR}/build/emscripten/duckdb_webapi.{wasm,js,worker.js} "${LIB_DIR}"
+cp ${WEBAPI_SOURCE_DIR}/build/emscripten/duckdb_*.{wasm,js,worker.js} "${LIB_DIR}"
 

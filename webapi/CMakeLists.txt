@@ -75,40 +75,34 @@ target_link_libraries(duckdb_webapi_core
 # ---------------------------------------------------------------------------
 # API Proxy
 
-add_executable(duckdb_webapi
-    ${CMAKE_SOURCE_DIR}/src/api_proxy.cc
-)
-
-target_link_libraries(duckdb_webapi
-    duckdb_webapi_core
-    duckdb_webapi_proto
-    flatbuffers spdlog Threads::Threads
-)
-
-if(EMSCRIPTEN)
-    # SAFE_HEAP breaks duckdb 0.2
-    # -s SAFE_HEAP=1
-    set_target_properties(duckdb_webapi PROPERTIES
-        LINK_FLAGS "\
-            -s ENVIRONMENT='web,worker' \
-            -s USE_PTHREADS=1 \
-            -Wl,--shared-memory,--no-check-features \
-            -s DISABLE_EXCEPTION_CATCHING=0 \
-            -s MODULARIZE=1 \
-            -s EXPORT_NAME='DuckDB' \
-            -s EXPORTED_FUNCTIONS='[ \
-                _main, \
-                _malloc, \
-                _free, \
-                _duckdb_webapi_connect, \
-                _duckdb_webapi_disconnect, \
-                _duckdb_webapi_register_buffer, \
-                _duckdb_webapi_release_buffer, \
-                _duckdb_webapi_query \
-            ]' \
-            -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
+if (EMSCRIPTEN)
+    set(EM_LINKER_FLAGS " \
+        -Wl,--shared-memory,--no-check-features \
+        -s USE_PTHREADS=1 \
+        -s DISABLE_EXCEPTION_CATCHING=0 \
+        -s MODULARIZE=1 \
+        -s EXPORT_NAME='DuckDB' \
+        -s EXPORTED_FUNCTIONS='[ \
+            _main, \
+            _malloc, \
+            _free, \
+            _duckdb_webapi_connect, \
+            _duckdb_webapi_disconnect, \
+            _duckdb_webapi_register_buffer, \
+            _duckdb_webapi_release_buffer, \
+            _duckdb_webapi_query \
+        ]' \
+        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
     )
+
+    add_executable(duckdb_webapi ${CMAKE_SOURCE_DIR}/src/api_proxy.cc)
+    target_link_libraries(duckdb_webapi duckdb_webapi_core duckdb_webapi_proto flatbuffers spdlog Threads::Threads)
+    set_target_properties(duckdb_webapi PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
+
+    add_executable(duckdb_nodeapi ${CMAKE_SOURCE_DIR}/src/api_proxy.cc)
+    target_link_libraries(duckdb_nodeapi duckdb_webapi_core duckdb_webapi_proto flatbuffers spdlog Threads::Threads)
+    set_target_properties(duckdb_nodeapi PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 endif()
 
 # ---------------------------------------------------------------------------
