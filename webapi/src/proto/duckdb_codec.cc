@@ -190,7 +190,6 @@ static fb::Offset<proto::QueryResultColumn> writeStringCol(fb::FlatBufferBuilder
 fb::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBufferBuilder& builder, duckdb::DataChunk* chunkPtr, nonstd::span<duckdb::LogicalType> types) {
     duckdb::DataChunk tmp;
     auto& chunk = (!!chunkPtr) ? *chunkPtr : tmp;
-
     auto size = chunk.size();
     auto vectors = chunk.Orrify();
 

@@ -51,8 +51,20 @@ void duckdb_webapi_release_buffer(WebAPI::Connection *conn, void* buffer) {
 }
 
 /// Run a query
-void duckdb_webapi_query(WebAPI::Response::Packed* response, WebAPI::Connection* conn, const char *text) {
+void duckdb_webapi_run_query(WebAPI::Response::Packed* response, WebAPI::Connection* conn, const char *text) {
     conn->runQuery(text);
+    conn->writePackedResponse(*response);
+}
+
+/// Send a query
+void duckdb_webapi_send_query(WebAPI::Response::Packed* response, WebAPI::Connection* conn, const char *text) {
+    conn->sendQuery(text);
+    conn->writePackedResponse(*response);
+}
+
+/// Fetch query results
+void duckdb_webapi_fetch_query_results(WebAPI::Response::Packed* response, WebAPI::Connection* conn) {
+    conn->fetchQueryResults();
     conn->writePackedResponse(*response);
 }
 

@@ -90,7 +90,9 @@ if (EMSCRIPTEN)
             _duckdb_webapi_disconnect, \
             _duckdb_webapi_register_buffer, \
             _duckdb_webapi_release_buffer, \
-            _duckdb_webapi_query \
+            _duckdb_webapi_run_query, \
+            _duckdb_webapi_send_query, \
+            _duckdb_webapi_fetch_query_results \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
