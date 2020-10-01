@@ -1,7 +1,8 @@
-import { DuckDBLoader } from '../dist/duckdb_node.js';
+import { DuckDB } from '../dist/duckdb_node.js';
 
 beforeEach(async () => {
-    await DuckDBLoader.open();
+    var db = new DuckDB();
+    await db.open();
 });
 
 afterEach(() => {

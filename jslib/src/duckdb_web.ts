@@ -4,7 +4,7 @@ import DuckDBModule from './duckdb/duckdb_webapi.wasm';
 import { DuckDB as initDuckDB } from './duckdb/duckdb_webapi.js';
 import { DuckDBProxy } from './jsproxy/duckdb_jsproxy';
 
-export default class DuckDB extends DuckDBProxy {
+export class DuckDB extends DuckDBProxy {
     protected init(moduleOverrides: Partial<EmscriptenModule>): Promise<EmscriptenModule> {
         return initDuckDB({
             ...moduleOverrides,
