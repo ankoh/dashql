@@ -12,6 +12,7 @@ const browserTarget = {
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
+        publicPath: 'dist/',
         library: 'DuckDB',
         libraryTarget: 'umd',
         umdNamedDefine: true,
