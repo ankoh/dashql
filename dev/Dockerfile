@@ -6,6 +6,7 @@ RUN apt-get update -qq \
         ccache cmake ninja-build clang clang-tidy curl python python3 \
         bison flex \
         openjdk-14-jdk \
+        node npm \
         libpthread-stubs0-dev \
         libboost-all-dev \
     && apt-get clean \
@@ -28,9 +29,9 @@ RUN mkdir -p /opt/emsdk \
 
 SHELL ["/bin/bash", "-c"]
 
+ENV NVM_DIR=/usr/local/nvm
 ARG NVM_VERSION="v0.36.0"
 ARG NODE_VERSION="v14.13.0"
-ENV NVM_DIR=/usr/local/nvm
 RUN mkdir -p /usr/local/nvm \
     && curl https://raw.githubusercontent.com/creationix/nvm/v0.36.0/install.sh | bash \
     && source ${NVM_DIR}/nvm.sh \
