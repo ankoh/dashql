@@ -1,0 +1,52 @@
+// Copyright (c) 2020 The DashQL Authors
+
+include "value.fbs";
+
+namespace duckdb_webapi.proto;
+
+/// A data distribution type
+enum DataDistributionType: uint8 {
+    UNIFORM = 0,
+
+    BERNOULLI = 1,
+    BINOMIAL = 2,
+    GEOMETRIC = 3,
+    NEGATIVE_BINOMIAL = 4,
+
+    POISSON = 5,
+    EXPONENTIAL = 6,
+    GAMMA = 7,
+    WEIBULL = 8,
+    EXTREME_VALUE = 9,
+
+    NORMAL = 10,
+    LOG_NORMAL = 11,
+    CHI_SQUARED = 12,
+    CAUCHY = 13,
+    FISHER_F = 14,
+    STUDENT_T = 15,
+
+    DISCRETE = 16,
+    PIECEWISE_CONSTANT = 17,
+    PIECEWISE_LINEAR = 18
+}
+
+/// A data distribution
+table DataDistribution {
+    distribution_type: DataDistributionType;
+}
+
+/// A table specification
+table ColumnSpec {
+    name: string;
+    value_type: LogicalType;
+    value_distribution: DataDistribution;
+    null_distribution: DataDistribution;
+}
+
+/// A table specification
+table TableSpec {
+    name: string;
+    columns: [ColumnSpec];
+    rows: uint64;
+}
