@@ -24,7 +24,7 @@ pipeline {
             }
         }
 
-        stage('WebAPI/Native/Build') {
+        stage('CPP/Build') {
             steps {
                 sh 'cmake -S./webapi/ -B./webapi/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
                 sh 'ccache -s'
@@ -33,14 +33,14 @@ pipeline {
             }
         }
 
-        stage('WebAPI/Native/Test') {
+        stage('CPP/Test') {
             steps {
                 sh './webapi/build/debug/tester'
             }
         }
 
 
-        stage('WebAPI/WASM/Build') {
+        stage('WASM/Build') {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
