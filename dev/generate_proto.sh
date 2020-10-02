@@ -8,6 +8,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 PROTO_DIR="${PROJECT_ROOT}/proto"
 PROTO_SPEC_DIR="${PROTO_DIR}/spec"
 CPP_PROTO_DIR="${PROTO_DIR}/lib/cpp/include/duckdb_webapi/proto"
+RS_PROTO_DIR="${PROTO_DIR}/lib/rs/src/proto"
 TS_PROTO_DIR="${PROTO_DIR}/lib/js/src/proto"
 
 FLATC="${PROJECT_ROOT}/dev/flatc/install/bin/flatc"
@@ -28,6 +29,12 @@ for PROTO_FILE in ${PROTO_SPEC_DIR}/*.fbs; do
             --gen-object-api --gen-name-strings --gen-compare \
         && { echo "[ OK  ] ${PROTO_FILE}: C++"; } \
         || { echo "[ ERR ] ${PROTO_FILE}: C++"; exit 1; }
+
+    ${FLATC} -I ${PROTO_DIR} -o ${RS_PROTO_DIR} ${PROTO_FILE} --rust \
+            --reflect-types --reflect-names \
+            --gen-object-api --gen-name-strings --gen-compare \
+        && { echo "[ OK  ] ${PROTO_FILE}: Rust"; } \
+        || { echo "[ ERR ] ${PROTO_FILE}: Rust"; exit 1; }
 done
 
 # Copy all flatbuffer specs without the namespace.
@@ -68,7 +75,7 @@ echo "[ RUN ] Bundle js library" \
     || { echo "[ ERR ] Bundle js library"; exit 1; }
 
 echo "[ RUN ] Install js library" \
-    && cd "${PROJECT_ROOT}/jslib" \
+    && cd "${PROJECT_ROOT}/libs/js" \
     && npm install --silent \
     && { echo "[ OK  ] Install js library"; } \
     || { echo "[ ERR ] Install js library"; exit 1; }
