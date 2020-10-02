@@ -1,0 +1,17 @@
+[package]
+name = "parser"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+name = "parser"
+path = "mod.rs"
+
+[[bin]]
+name = "generate"
+path = "generate.rs"
+
+[dependencies]
+cfgrammar = "0.9.1"
+lrlex = "0.9.1"
+lrpar = "0.9.1"
