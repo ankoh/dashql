@@ -16,23 +16,41 @@ duckdb::LogicalType translateType(const proto::LogicalType& type) {
     }
 }
 
+/// A distribution
+struct Distribution {
+};
+
 /// A value generator
 struct ValueGenerator {
     /// The appender
     duckdb::Appender& appender;
+    /// The name
+    const char* name;
+    /// The value distribution
+    std::unique_ptr<Distribution> valueDist;
+    /// The null distribution
+    std::unique_ptr<Distribution> nullDist;
+
     /// Constructor
-    ValueGenerator(duckdb::Appender& appender);
+    ValueGenerator(duckdb::Appender& appender, const char* name, std::unique_ptr<Distribution> valueDist, std::unique_ptr<Distribution> nullDist)
+        : appender(appender), name(name), valueDist(move(valueDist)), nullDist(move(nullDist)) {}
     /// Destructor
     virtual ~ValueGenerator() = default;
     /// Append value
     virtual void append() = 0;
 };
 
+/// An integer generator
+struct IntegerGenerator: public ValueGenerator {
+    IntegerGenerator(const char* name, std::unique_ptr<Distribution> valueDist, std::unique_ptr<Distribution> nullDist, duckdb::Appender& appender)
+        : ValueGenerator(appender, name, move(valueDist), move(nullDist)) {}
+};
+
 }
 
 /// Generate table
 void generateTable(duckdb::Connection& conn, proto::TableSpec& spec) {
-    /// The columns
+    /// Get the column name
     std::vector<std::pair<const char*, duckdb::LogicalType>> columns;
     for (unsigned i = 0; i < spec.columns()->size(); ++i) {
         auto col = spec.columns()->Get(i);
@@ -60,6 +78,19 @@ void generateTable(duckdb::Connection& conn, proto::TableSpec& spec) {
     // Create values
     duckdb::Appender appender(conn, spec.name()->c_str());
     std::vector<std::unique_ptr<ValueGenerator>> values;
+    for (unsigned i = 0; i < spec.columns()->size(); ++i) {
+        auto col = spec.columns()->Get(i);
+        auto name = col->name()->c_str();
+        auto valueType = col->value_type();
+        auto valueDist = col->value_distribution();
+        auto nullDist = col->null_distribution();
+        switch (valueType->type_id()) {
+            case proto::LogicalTypeID::INTEGER:
+                break;
+            default:
+                break;
+        }
+    }
 
     // Initialize the appender
     for (unsigned row = 0; row < spec.rows(); ++row) {
