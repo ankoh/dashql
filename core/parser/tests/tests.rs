@@ -13,11 +13,7 @@ mod tests {
 
         let (result, errors) = dashql_parser::parse(&lexer);
 
-        assert_eq!(
-            result.ok_or("Error")??,
-            vec![Statement::ParameterDeclaration]
-        );
-
+        assert_eq!(result.ok_or("Error")??.len(), 1);
         assert_eq!(errors.len(), 0);
 
         Ok(())

@@ -8,31 +8,31 @@ Statements -> Produce<Vec<Statement<'input>>>:
   ;
 
 Statement -> Produce<Statement<'input>>:
-    ParameterDeclaration    { $1 }
-  | LoadStatement           { $1 }
-  | ExtractStatement        { $1 }
-  | QueryStatement          { $1 }
-  | VisualizeStatement      { $1 }
+    ParameterDeclaration    { Ok(Statement::ParameterDeclaration($1?)) }
+  | LoadStatement           { Ok(Statement::LoadStatement($1?)) }
+  | ExtractStatement        { Ok(Statement::ExtractStatement($1?)) }
+  | QueryStatement          { Ok(Statement::QueryStatement($1?)) }
+  | VisualizeStatement      { Ok(Statement::VisualizeStatement($1?)) }
   ;
 
-ParameterDeclaration -> Produce<Statement<'input>>:
-    "declare" "parameter"   { Ok(Statement::ParameterDeclaration) }
+ParameterDeclaration -> Produce<ParameterDeclaration<'input>>:
+    "declare" "parameter"   { Ok(ParameterDeclaration { location: ($1?, $2?).into(), _dummy: "" }) }
   ;
 
-LoadStatement -> Produce<Statement<'input>>:
-    "load"  { Ok(Statement::LoadStatement) }
+LoadStatement -> Produce<LoadStatement<'input>>:
+    "load"  { Ok(LoadStatement { location: $1?.into(), _dummy: "" }) }
   ;
 
-ExtractStatement -> Produce<Statement<'input>>:
-    "extract"   { Ok(Statement::ExtractStatement) }
+ExtractStatement -> Produce<ExtractStatement<'input>>:
+    "extract"   { Ok(ExtractStatement { location: $1?.into(), _dummy: "" }) }
   ;
 
-QueryStatement -> Produce<Statement<'input>>:
-    "query" { Ok(Statement::QueryStatement) }
+QueryStatement -> Produce<QueryStatement<'input>>:
+    "query" { Ok(QueryStatement { location: $1?.into(), _dummy: "" }) }
   ;
 
-VisualizeStatement -> Produce<Statement<'input>>:
-    "visualize" { Ok(Statement::VisualizeStatement) }
+VisualizeStatement -> Produce<VisualizeStatement<'input>>:
+    "visualize" { Ok(VisualizeStatement { location: $1?.into(), _dummy: "" }) }
   ;
 
 %%

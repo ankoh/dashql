@@ -28,15 +28,15 @@ Rule::new(Some(6), Some("visualize".to_string()), "(?i)visualize".to_string()).u
     LRNonStreamingLexerDef::from_rules(rules)
 }
 #[allow(dead_code)]
-pub const T_QUERY: u32 = 5;
-#[allow(dead_code)]
-pub const T_PARAMETER: u32 = 2;
-#[allow(dead_code)]
-pub const T_DECLARE: u32 = 1;
-#[allow(dead_code)]
 pub const T_VISUALIZE: u32 = 6;
 #[allow(dead_code)]
 pub const T_LOAD: u32 = 3;
+#[allow(dead_code)]
+pub const T_DECLARE: u32 = 1;
+#[allow(dead_code)]
+pub const T_PARAMETER: u32 = 2;
+#[allow(dead_code)]
+pub const T_QUERY: u32 = 5;
 #[allow(dead_code)]
 pub const T_EXTRACT: u32 = 4;
 }
