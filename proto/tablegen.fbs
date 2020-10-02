@@ -36,7 +36,7 @@ table DataDistribution {
     distribution_type: DataDistributionType;
 }
 
-/// A table specification
+/// A column specification
 table ColumnSpec {
     name: string;
     value_type: LogicalType;

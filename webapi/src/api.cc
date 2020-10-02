@@ -3,6 +3,7 @@
 #include "duckdb_webapi/api.h"
 #include "duckdb_webapi/duckdb_codec.h"
 #include "duckdb_webapi/json_conversion.h"
+#include "duckdb_webapi/tablegen.h"
 
 #include "duckdb.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
@@ -200,6 +201,11 @@ void WebAPI::Connection::formatQueryPlan(void* query_plan) {
     // Return buffer
     builder.Finish(txtBuf);
     response.requestSucceeded(builder.Release());
+}
+
+/// Generate a table
+void WebAPI::Connection::generateTable(proto::TableSpec& spec) {
+    duckdb_webapi::generateTable(connection, spec);
 }
 
 /// Constructor

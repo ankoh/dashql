@@ -12,6 +12,7 @@
 #include "duckdb_webapi/proto/api_generated.h"
 #include "duckdb_webapi/proto/query_plan_generated.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
+#include "duckdb_webapi/proto/tablegen_generated.h"
 #include "duckdb_webapi/proto/value_generated.h"
 
 namespace duckdb_webapi {
@@ -147,9 +148,10 @@ namespace duckdb_webapi {
             void fetchQueryResults();
             /// Analyze a SQL query
             void analyzeQuery(std::string_view text);
-
             /// Format a query plan
             void formatQueryPlan(void* query_plan);
+            /// Generate a table
+            void generateTable(proto::TableSpec& spec);
         };
 
     protected:

@@ -74,4 +74,11 @@ void duckdb_webapi_analyze_query(WebAPI::Response::Packed* response, WebAPI::Con
     conn->writePackedResponse(*response);
 }
 
+/// Generate a table
+void duckdb_webapi_generate_table(WebAPI::Response::Packed* response, WebAPI::Connection* conn, void* spec, uint32_t size) {
+    // XXX
+
+    conn->writePackedResponse(*response);
+}
+
 }
