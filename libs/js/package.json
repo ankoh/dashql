@@ -5,7 +5,6 @@
     "main": "dist/duckdb.js",
     "types": "dist/index.d.ts",
     "dependencies": {
-        "@dashql/duckdb-proto": "file:../../proto/lib/js",
         "flatbuffers": "^1.12.0"
     },
     "devDependencies": {

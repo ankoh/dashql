@@ -6,10 +6,9 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 
 PROTO_DIR="${PROJECT_ROOT}/proto"
-PROTO_SPEC_DIR="${PROTO_DIR}/spec"
-CPP_PROTO_DIR="${PROTO_DIR}/lib/cpp/include/duckdb_webapi/proto"
-RS_PROTO_DIR="${PROTO_DIR}/lib/rs/src/proto"
-TS_PROTO_DIR="${PROTO_DIR}/lib/js/src/proto"
+CPP_PROTO_DIR="${PROJECT_ROOT}/libs/cpp/include/duckdb_webapi/proto"
+RS_PROTO_DIR="${PROJECT_ROOT}/libs/rs/src/proto"
+TS_PROTO_DIR="${PROJECT_ROOT}/libs/js/src/proto"
 
 FLATC="${PROJECT_ROOT}/dev/flatc/install/bin/flatc"
 
@@ -19,7 +18,7 @@ ${FLATC} --version \
     && { echo "[ OK  ] Command: flatc"; } \
     || { echo "[ ERR ] Command: flatc"; exit 1; }
 
-for PROTO_FILE in ${PROTO_SPEC_DIR}/*.fbs; do
+for PROTO_FILE in ${PROTO_DIR}/*.fbs; do
     PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
     PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
 
@@ -39,7 +38,7 @@ done
 
 # Copy all flatbuffer specs without the namespace.
 # We don't want namespaces in Typscript since we already have modules.
-for PROTO_FILE in ${PROTO_SPEC_DIR}/*.fbs; do
+for PROTO_FILE in ${PROTO_DIR}/*.fbs; do
     PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
     PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
 
@@ -47,7 +46,7 @@ for PROTO_FILE in ${PROTO_SPEC_DIR}/*.fbs; do
     sed -e "s/^namespace.*$//g" ${PROTO_FILE} > ${FBS_TMP}
 done
 
-for PROTO_FILE in ${PROTO_SPEC_DIR}/*.fbs; do
+for PROTO_FILE in ${PROTO_DIR}/*.fbs; do
     PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
     PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
     FBS_TMP="${TMP}/${PROTO_FILE_NAME}.fbs"
@@ -66,16 +65,3 @@ for PROTO_FILE in ${PROTO_SPEC_DIR}/*.fbs; do
 done
 
 rm -r ${TMP}
-
-echo "[ RUN ] Bundle js library" \
-    && cd "${PROTO_DIR}/lib/js" \
-    && npm install --silent \
-    && npm run build \
-    && { echo "[ OK  ] Bundle js library"; } \
-    || { echo "[ ERR ] Bundle js library"; exit 1; }
-
-echo "[ RUN ] Install js library" \
-    && cd "${PROJECT_ROOT}/libs/js" \
-    && npm install --silent \
-    && { echo "[ OK  ] Install js library"; } \
-    || { echo "[ ERR ] Install js library"; exit 1; }

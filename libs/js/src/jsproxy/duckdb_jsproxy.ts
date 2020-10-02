@@ -1,6 +1,6 @@
 import { DuckDBModule } from '../duckdb/duckdb_module';
-import * as proto from '@dashql/duckdb-proto';
 import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webapi_buffer';
+import * as proto from '../proto';
 
 /// A query result.
 /// The user has to repeatedly call fetch to retrieve the results.

@@ -1,4 +1,4 @@
-import * as proto from '@dashql/duckdb-proto';
+import * as proto from '../proto';
 import { flatbuffers } from 'flatbuffers';
 
 export abstract class WebAPIBuffer<BufferType> {
