@@ -1,6 +1,6 @@
 import { DuckDBModule } from '../duckdb/duckdb_module';
 import * as proto from '@dashql/duckdb-proto';
-import { QueryResultBuffer, QueryResultChunk } from './webapi_buffer';
+import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webapi_buffer';
 
 /// A query result.
 /// The user has to repeatedly call fetch to retrieve the results.
@@ -151,7 +151,7 @@ export abstract class DuckDBProxy {
     }
 
     /// Fetch query results
-    public async fetchQueryResults(conn: number): Promise<QueryResultChunk> {
+    public async fetchQueryResults(conn: number): Promise<QueryResultChunkBuffer> {
         let instance = await this.getInstance();
         let [s, err, d, n] = await this.callSRet('duckdb_fetch_query_results', ['number'], [conn]);
         if (s !== proto.api.StatusCode.SUCCESS) {
@@ -159,7 +159,21 @@ export abstract class DuckDBProxy {
             return Promise.reject(new Error(''));
         }
         let mem = instance.HEAPU8.subarray(d, d + n);
-        let msg = new QueryResultChunk(mem);
+        let msg = new QueryResultChunkBuffer(mem);
+        instance.ccall('dashql_release_buffer', null, ['number', 'number'], [conn, d]);
+        return msg;
+    }
+
+    /// Analyze a query
+    public async analyzeQuery(conn: number, text: string): Promise<QueryPlanBuffer> {
+        let instance = await this.getInstance();
+        let [s, err, d, n] = await this.callSRet('duckdb_fetch_query_results', ['number'], [conn]);
+        if (s !== proto.api.StatusCode.SUCCESS) {
+            console.log(err);
+            return Promise.reject(new Error(''));
+        }
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        let msg = new QueryPlanBuffer(mem);
         instance.ccall('dashql_release_buffer', null, ['number', 'number'], [conn, d]);
         return msg;
     }

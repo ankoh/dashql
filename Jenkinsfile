@@ -40,7 +40,7 @@ pipeline {
         }
 
 
-        stage('Web/Build') {
+        stage('WASM/Build') {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
@@ -55,8 +55,16 @@ pipeline {
             }
         }
 
-        stage ('Web/Pack') {
+        stage ('Web/Build') {
             steps {
+                dir('./proto/lib/js/') {
+                    sh '''#!/bin/bash
+                        source /opt/env.sh
+                        nvm use default
+                        npm ci --cache ${NPM_CACHE}
+                        npm run build
+                    '''
+                }
                 dir('./jslib') {
                     sh '''#!/bin/bash
                         source /opt/env.sh

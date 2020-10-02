@@ -68,4 +68,10 @@ void duckdb_webapi_fetch_query_results(WebAPI::Response::Packed* response, WebAP
     conn->writePackedResponse(*response);
 }
 
+/// Analyze a query
+void duckdb_webapi_analyze_query(WebAPI::Response::Packed* response, WebAPI::Connection* conn, const char *text) {
+    conn->analyzeQuery(text);
+    conn->writePackedResponse(*response);
+}
+
 }
