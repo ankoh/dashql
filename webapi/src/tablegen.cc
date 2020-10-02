@@ -3,6 +3,7 @@
 #include "duckdb_webapi/tablegen.h"
 #include "duckdb/main/appender.hpp"
 #include <tuple>
+#include <random>
 
 namespace duckdb_webapi {
 
@@ -18,17 +19,27 @@ duckdb::LogicalType translate(const proto::LogicalType& type) {
 
 /// A data distribution
 struct DataDistribution {
+    /// The random generator
+    std::mt19937& random;
     /// The appender
     duckdb::Appender& appender;
     /// The spec
     const proto::DataDistribution* dist;
     /// Constructor
-    DataDistribution(duckdb::Appender& appender, const proto::DataDistribution* dist)
-        : appender(appender), dist(dist) {}
+    DataDistribution(std::mt19937& random, duckdb::Appender& appender, const proto::DataDistribution* dist)
+        : random(random), appender(appender), dist(dist) {}
     /// Destructor
     virtual ~DataDistribution() = default;
     /// Append value
     virtual void append() = 0;
+};
+
+template <typename T>
+struct GenericNormalDistribution: public DataDistribution {
+    std::normal_distribution<T> dist;
+    void append() override {
+        appender.Append<T>(dist(random));
+    }
 };
 
 /// Translate the distribution
@@ -38,6 +49,8 @@ std::unique_ptr<DataDistribution> translate(const proto::DataDistribution* dist)
 
 /// A value generator
 struct ValueGenerator {
+    /// The random generator
+    std::mt19937& random;
     /// The appender
     duckdb::Appender& appender;
     /// The spec
@@ -48,8 +61,8 @@ struct ValueGenerator {
     std::unique_ptr<DataDistribution> nullDist;
 
     /// Constructor
-    ValueGenerator(duckdb::Appender& appender, const proto::ColumnSpec* spec)
-        : appender(appender), spec(spec), valueDist(translate(spec->value_distribution())), nullDist(translate(spec->null_distribution())) {}
+    ValueGenerator(std::mt19937& random, duckdb::Appender& appender, const proto::ColumnSpec* spec)
+        : random(random), appender(appender), spec(spec), valueDist(translate(spec->value_distribution())), nullDist(translate(spec->null_distribution())) {}
     /// Destructor
     virtual ~ValueGenerator() = default;
     /// Append value
@@ -58,8 +71,8 @@ struct ValueGenerator {
 
 /// An integer generator
 struct IntegerGenerator: public ValueGenerator {
-    IntegerGenerator(duckdb::Appender& appender, const proto::ColumnSpec* spec)
-        : ValueGenerator(appender, spec) {}
+    IntegerGenerator(std::mt19937& random, duckdb::Appender& appender, const proto::ColumnSpec* spec)
+        : ValueGenerator(random, appender, spec) {}
 };
 
 }
