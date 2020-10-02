@@ -24,7 +24,7 @@ pipeline {
             }
         }
 
-        stage('Native/Build') {
+        stage('WebAPI/Native/Build') {
             steps {
                 sh 'cmake -S./webapi/ -B./webapi/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
                 sh 'ccache -s'
@@ -33,14 +33,14 @@ pipeline {
             }
         }
 
-        stage('Native/Test') {
+        stage('WebAPI/Native/Test') {
             steps {
                 sh './webapi/build/debug/tester'
             }
         }
 
 
-        stage('WASM/Build') {
+        stage('WebAPI/WASM/Build') {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
@@ -49,13 +49,13 @@ pipeline {
                 sh '''#!/bin/bash
                     source /opt/env.sh
                     emmake make -C./webapi/build/emscripten -j$(nproc) duckdb_webapi duckdb_nodeapi
-                    cp ./webapi/build/emscripten/duckdb_webapi.{wasm,js,worker.js} ./jslib/src/duckdb/
-                    cp ./webapi/build/emscripten/duckdb_nodeapi.{wasm,js,worker.js} ./jslib/src/duckdb/
+                    cp ./webapi/build/emscripten/duckdb_webapi.{wasm,js,worker.js} ./libs/js/src/duckdb/
+                    cp ./webapi/build/emscripten/duckdb_nodeapi.{wasm,js,worker.js} ./libs/js/src/duckdb/
                 '''
             }
         }
 
-        stage ('Web/Build') {
+        stage ('JS/Build') {
             steps {
                 dir('./proto/lib/js/') {
                     sh '''#!/bin/bash
@@ -65,7 +65,7 @@ pipeline {
                         npm run build
                     '''
                 }
-                dir('./jslib') {
+                dir('./libs/js') {
                     sh '''#!/bin/bash
                         source /opt/env.sh
                         nvm use default
@@ -76,9 +76,9 @@ pipeline {
             }
         }
 
-        stage ('Web/Test') {
+        stage ('JS/Test') {
             steps {
-                dir('./jslib') {
+                dir('./libs/js') {
                     sh '''#!/bin/bash
                         source /opt/env.sh
                         nvm use default

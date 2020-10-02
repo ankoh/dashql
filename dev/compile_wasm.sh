@@ -8,7 +8,7 @@ PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 IMAGE_TAG="0.1"
 WEBAPI_BUILD_DIR="${PROJECT_ROOT}/webapi/build/emscripten"
 WEBAPI_SOURCE_DIR="${PROJECT_ROOT}/webapi"
-LIB_DIR="${PROJECT_ROOT}/jslib/src/duckdb"
+LIB_DIR="${PROJECT_ROOT}/libs/js/src/duckdb"
 
 CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/mnt/emscripten_cache/ dashql/duckdbjs-dev:${IMAGE_TAG} "
 EMCONFIGURE="${CMD_PREFIX} emcmake"
