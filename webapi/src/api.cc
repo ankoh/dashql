@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/api.h"
-#include "duckdb_webapi/proto/duckdb_codec.h"
-#include "duckdb_webapi/proto/json_conversion.h"
+#include "duckdb_webapi/duckdb_codec.h"
+#include "duckdb_webapi/json_conversion.h"
 
 #include "duckdb.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
@@ -111,7 +111,7 @@ void WebAPI::Connection::runQuery(std::string_view text) {
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
-    auto queryResultOfs = proto::writeQueryResult(builder, *result, queryID);
+    auto queryResultOfs = writeQueryResult(builder, *result, queryID);
 
     // Return buffer
     builder.Finish(queryResultOfs);
@@ -134,7 +134,7 @@ void WebAPI::Connection::sendQuery(std::string_view text) {
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
-    auto queryResultOfs = proto::writeQueryResult(builder, *result, queryID);
+    auto queryResultOfs = writeQueryResult(builder, *result, queryID);
 
     // Return buffer
     builder.Finish(queryResultOfs);
@@ -153,7 +153,7 @@ void WebAPI::Connection::fetchQueryResults() {
 
     // Get query result
     fb::FlatBufferBuilder builder{128};
-    auto ofs = proto::writeQueryResultChunk(builder, chunk.get(), types);
+    auto ofs = writeQueryResultChunk(builder, chunk.get(), types);
     builder.Finish(ofs);
     response.requestSucceeded(builder.Release());
 }
@@ -181,7 +181,7 @@ void WebAPI::Connection::analyzeQuery(std::string_view text) {
 
     // Write the plan buffer
     fb::FlatBufferBuilder builder{1024};
-    auto planOfs = proto::writeQueryPlan(builder, *planner.plan);
+    auto planOfs = writeQueryPlan(builder, *planner.plan);
 
     // Return buffer
     builder.Finish(planOfs);
@@ -190,7 +190,7 @@ void WebAPI::Connection::analyzeQuery(std::string_view text) {
 
 /// Format a query plan
 void WebAPI::Connection::formatQueryPlan(void* query_plan) {
-    auto txt = proto::writeJSON(query_plan, *proto::QueryPlanTypeTable());
+    auto txt = writeJSON(query_plan, *proto::QueryPlanTypeTable());
 
     // Encode the query plan
     fb::FlatBufferBuilder builder{txt.size() + 16};

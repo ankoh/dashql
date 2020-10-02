@@ -6,7 +6,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 
 PROTO_DIR="${PROJECT_ROOT}/proto"
-CPP_PROTO_DIR="${PROJECT_ROOT}/libs/cpp/include/duckdb_webapi/proto"
+CPP_PROTO_DIR="${PROJECT_ROOT}/webapi/include/duckdb_webapi/proto"
 RS_PROTO_DIR="${PROJECT_ROOT}/libs/rs/src/proto"
 TS_PROTO_DIR="${PROJECT_ROOT}/libs/js/src/proto"
 

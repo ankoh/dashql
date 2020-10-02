@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb_webapi/proto/duckdb_codec.h"
+#include "duckdb_webapi/duckdb_codec.h"
 #include "duckdb/planner/logical_operator.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/common/vector_operations/unary_executor.hpp"
@@ -8,7 +8,6 @@
 namespace fb = flatbuffers;
 
 namespace duckdb_webapi {
-namespace proto {
 
 #define LOGICAL_OPERATOR_TYPES \
     X(INVALID) \
@@ -378,6 +377,5 @@ fb::Offset<proto::QueryPlan> writeQueryPlan(fb::FlatBufferBuilder& builder, duck
     return planBuilder.Finish();
 }
 
-}  // namespace proto
 }  // namespace duckdb_webapi
 
