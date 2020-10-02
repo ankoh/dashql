@@ -57,14 +57,6 @@ pipeline {
 
         stage ('JS/Build') {
             steps {
-                dir('./proto/lib/js/') {
-                    sh '''#!/bin/bash
-                        source /opt/env.sh
-                        nvm use default
-                        npm ci --cache ${NPM_CACHE}
-                        npm run build
-                    '''
-                }
                 dir('./libs/js') {
                     sh '''#!/bin/bash
                         source /opt/env.sh
