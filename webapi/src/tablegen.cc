@@ -34,6 +34,9 @@ struct GeneratorExpression {
 struct ConstantInt : public GeneratorExpression {
     /// The constant value
     int64_t value;
+    /// Constructor
+    ConstantInt(int64_t value)
+        : value(value) {}
     /// Get the data type
     DataType getType() override { return DataType::Integer; }
     /// Generate a value
@@ -44,7 +47,6 @@ struct ConstantInt : public GeneratorExpression {
 struct ConstantFloat : public GeneratorExpression {
     /// The constant value
     double value;
-
     /// Constructor
     ConstantFloat(double value)
         : value(value) {}
