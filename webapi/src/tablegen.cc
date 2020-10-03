@@ -16,15 +16,16 @@ using data_t = uint64_t;
 static_assert(sizeof(int64_t) <= sizeof(data_t));
 static_assert(sizeof(double) <= sizeof(data_t));
 
+/// We support only 2 generated types, floats and ints
+enum class DataType { Integer, Float };
 
 /// Return value as data
-enum class DataType { Integer, Float };
 struct DataVector {
-    std::vector<data_t> values;
-    std::vector<bool> nulls;
+    /// The values
+    std::array<data_t, 128> values;
+    /// The nulls
+    std::array<bool, 128> nulls;
 };
-template<typename T>
-data_t asData(const T& v) { return *reinterpret_cast<const data_t*>(&v); }
 
 /// A generator expression
 struct GeneratorExpression {
@@ -34,6 +35,10 @@ struct GeneratorExpression {
     virtual DataType getType() = 0;
     /// Generate a value
     virtual DataVector& generate() = 0;
+
+    /// Convert to data type
+    template<typename T>
+    static  data_t asData(const T& v) { return *reinterpret_cast<const data_t*>(&v); }
 };
 
 /// A source generator expression
@@ -172,13 +177,13 @@ using PiecewiseConstantDistribution = HigherOrderDistribution<std::piecewise_con
 using PiecewiseLinearDistribution = HigherOrderDistribution<std::piecewise_linear_distribution, double>;
 
 /// A binary expression
-// struct BinaryGeneratorExpression: public GeneratorExpression {
-//     /// The input expressions
-//     std::unique_ptr<GeneratorExpression> left, right;
-//     /// Constructor
-//     BinaryGeneratorExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
-//         : left(move(left)), right(move(right)) {}
-// };
+struct BinaryGeneratorExpression: public GeneratorExpression {
+    /// The input expressions
+    std::unique_ptr<GeneratorExpression> left, right;
+    /// Constructor
+    BinaryGeneratorExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : left(move(left)), right(move(right)) {}
+};
 
 } // namespace
 
