@@ -10,9 +10,12 @@ namespace duckdb_webapi {
 
 namespace {
 
-static_assert(sizeof(double) <= sizeof(uint64_t));
+/// Generic data type
 using data_t = uint64_t;
+static_assert(sizeof(uint64_t) <= sizeof(data_t));
+static_assert(sizeof(double) <= sizeof(data_t));
 
+/// Return value as data
 template<typename T>
 data_t asData(const T& v) {
     return *reinterpret_cast<const data_t*>(&v);
@@ -24,15 +27,21 @@ struct GeneratorExpression {
     virtual data_t generate();
 };
 
+/// A constant integer
 struct ConstantInt : public GeneratorExpression {
+    /// The constant value
     uint64_t value;
+    /// Generate a value
     data_t generate() override {
         return asData(value);
     }
 };
 
+/// A constant floating point value
 struct ConstantFloat : public GeneratorExpression {
+    /// The constant value
     double value;
+    /// Generate a value
     data_t generate() override {
         return asData(value);
     }
@@ -44,8 +53,11 @@ struct ColumnRef : public GeneratorExpression {
 /// A generic distribution generator
 template <typename D>
 struct GenericDistribution : public GeneratorExpression {
+    /// The generator
     std::mt19937& generator;
+    /// The distribution
     D distribution;
+    /// Generate a value
     data_t generate() override {
         return asData(distribution(generator));
     }
@@ -54,8 +66,11 @@ struct GenericDistribution : public GeneratorExpression {
 /// A higher order distribution generator
 template <template <typename> class D, typename T>
 struct HigherOrderDistribution : public GeneratorExpression {
+    /// The generator
     std::mt19937& generator;
+    /// The distribution
     D<T> distribution;
+    /// Generate a value
     data_t generate() override {
         return asData(distribution(generator));
     }
