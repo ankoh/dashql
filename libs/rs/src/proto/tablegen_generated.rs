@@ -53,20 +53,22 @@ pub enum GeneratorExpressionType {
   RANDOM_STUDENT_T = 18,
   RANDOM_PIECEWISE_CONSTANT = 19,
   RANDOM_PIECEWISE_LINEAR = 20,
-  DERIVE_STRING = 21,
-  INT_TO_FLOAT = 22,
-  INT_TO_DECIMAL = 23,
-  FLOAT_TO_INT = 24,
+  GENERATE_STRING = 21,
+  FLOAT_TO_INT = 22,
+  INT_TO_FLOAT = 23,
+  INT_TO_DECIMAL = 24,
   NULL_IF = 25,
   COMPARE_LT = 26,
   COMPARE_LEQ = 27,
   COMPARE_GT = 28,
   COMPARE_GEQ = 29,
+  ADD = 30,
+  MULTIPLY = 31,
 
 }
 
 pub const ENUM_MIN_GENERATOR_EXPRESSION_TYPE: u8 = 0;
-pub const ENUM_MAX_GENERATOR_EXPRESSION_TYPE: u8 = 29;
+pub const ENUM_MAX_GENERATOR_EXPRESSION_TYPE: u8 = 31;
 
 impl<'a> flatbuffers::Follow<'a> for GeneratorExpressionType {
   type Inner = Self;
@@ -100,7 +102,7 @@ impl flatbuffers::Push for GeneratorExpressionType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 30] = [
+pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 32] = [
   GeneratorExpressionType::CONSTANT_INT,
   GeneratorExpressionType::CONSTANT_FLOAT,
   GeneratorExpressionType::COLUMN_REF,
@@ -122,19 +124,21 @@ pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 30] =
   GeneratorExpressionType::RANDOM_STUDENT_T,
   GeneratorExpressionType::RANDOM_PIECEWISE_CONSTANT,
   GeneratorExpressionType::RANDOM_PIECEWISE_LINEAR,
-  GeneratorExpressionType::DERIVE_STRING,
+  GeneratorExpressionType::GENERATE_STRING,
+  GeneratorExpressionType::FLOAT_TO_INT,
   GeneratorExpressionType::INT_TO_FLOAT,
   GeneratorExpressionType::INT_TO_DECIMAL,
-  GeneratorExpressionType::FLOAT_TO_INT,
   GeneratorExpressionType::NULL_IF,
   GeneratorExpressionType::COMPARE_LT,
   GeneratorExpressionType::COMPARE_LEQ,
   GeneratorExpressionType::COMPARE_GT,
-  GeneratorExpressionType::COMPARE_GEQ
+  GeneratorExpressionType::COMPARE_GEQ,
+  GeneratorExpressionType::ADD,
+  GeneratorExpressionType::MULTIPLY
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 30] = [
+pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 32] = [
     "CONSTANT_INT",
     "CONSTANT_FLOAT",
     "COLUMN_REF",
@@ -156,15 +160,17 @@ pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 30] = [
     "RANDOM_STUDENT_T",
     "RANDOM_PIECEWISE_CONSTANT",
     "RANDOM_PIECEWISE_LINEAR",
-    "DERIVE_STRING",
+    "GENERATE_STRING",
+    "FLOAT_TO_INT",
     "INT_TO_FLOAT",
     "INT_TO_DECIMAL",
-    "FLOAT_TO_INT",
     "NULL_IF",
     "COMPARE_LT",
     "COMPARE_LEQ",
     "COMPARE_GT",
-    "COMPARE_GEQ"
+    "COMPARE_GEQ",
+    "ADD",
+    "MULTIPLY"
 ];
 
 pub fn enum_name_generator_expression_type(e: GeneratorExpressionType) -> &'static str {

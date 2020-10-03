@@ -8,118 +8,81 @@
 
 namespace duckdb_webapi {
 
-// namespace {
-// 
-// /// Translate a type
-// duckdb::LogicalType translate(const proto::LogicalType& type) {
-//     switch (type.type_id()) {
-//         default:
-//             return duckdb::LogicalType();
-//     }
-// }
-// 
-// /// A data distribution
-// struct DataDistribution {
-//     /// The random generator
-//     std::mt19937& random;
-//     /// The appender
-//     duckdb::Appender& appender;
-//     /// The column type
-//     const proto::LogicalType* valueType;
-//     /// The spec
-//     const proto::DataDistribution* valueDist;
-//     /// Constructor
-//     DataDistribution(std::mt19937& random, duckdb::Appender& appender, const proto::LogicalType* valueType, const proto::DataDistribution* valueDist)
-//         : random(random), appender(appender), valueType(valueType), valueDist(valueDist) {}
-//     /// Destructor
-//     virtual ~DataDistribution() = default;
-//     /// Get an integer
-//     virtual void append() = 0;
-// };
-// 
-// template <typename T>
-// struct GenericNormalDistribution: public DataDistribution {
-//     std::normal_distribution<T> dist;
-//     void append() override {
-//         appender.Append<T>(dist(random));
-//     }
-// };
-// 
-// /// Translate the distribution
-// std::unique_ptr<DataDistribution> translate(const proto::DataDistribution* dist) {
-//     switch (dist->distribution_type()) {
-//         case proto::DataDistributionType::NORMAL:
-//             break;
-//         default:
-//             break;
-//     }
-//     return nullptr;
-// }
-// 
-// /// A value generator
-// struct ValueGenerator {
-//     /// The random generator
-//     std::mt19937& random;
-//     /// The appender
-//     duckdb::Appender& appender;
-//     /// The column spec
-//     const proto::ColumnSpec* spec;
-//     /// The value distribution
-//     std::variant<
-//         std::bernoulli_distribution,
-//         std::binomial_distribution<int64_t>,
-//         std::geometric_distribution<int64_t>,
-//         std::negative_binomial_distribution<int64_t>,
-//         std::exponential_distribution<double>,
-//         std::weibull_distribution<double>,
-//         std::extreme_value_distribution<double>,
-//         std::normal_distribution<double>,
-//         std::lognormal_distribution<double>,
-//         std::chi_squared_distribution<double>,
-//         std::cauchy_distribution<double>,
-//         std::fisher_f_distribution<double>,
-//         std::student_t_distribution<double>,
-//         std::discrete_distribution<int64_t>,
-//         std::piecewise_constant_distribution<double>,
-//         std::piecewise_linear_distribution<double>
-//     > valueDist;
-//     /// The null distribution
-//     std::optional<std::bernoulli_distribution> nullDist;
-// 
-//     /// Constructor
-//     ValueGenerator(std::mt19937& random, duckdb::Appender& appender, const proto::ColumnSpec* spec);
-//     /// Destructor
-//     virtual ~ValueGenerator() = default;
-//     /// Append value
-//     void append();
-// };
-// 
-// /// Constructor
-// ValueGenerator::ValueGenerator(std::mt19937& random, duckdb::Appender& appender, const proto::ColumnSpec* spec)
-//     : random(random), appender(appender), spec(spec), nullDist(std::nullopt) {
-// 
-//     // Create the value distribution state
-//     // valueDist = [&]() {
-//     //     auto dist = spec->value_distribution();
-//     //     switch (dist->distribution_type()) {
-//     //         case proto::DataDistributionType::NORMAL:
-//     //             return ;
-//     //         default:
-//     //             break;
-//     //     }
-//     // }();
-// 
-//     // Create the null distribution
-//     
-// }
-// 
-// /// Append value
-// void ValueGenerator::append() {
-//     
-// }
-// 
-// }
-// 
+namespace {
+
+static_assert(sizeof(double) <= sizeof(uint64_t));
+using data_t = uint64_t;
+
+template<typename T>
+data_t asData(const T& v) {
+    return *reinterpret_cast<const data_t*>(&v);
+}
+
+/// A generator expression
+struct GeneratorExpression {
+    /// Generate a value
+    virtual data_t generate();
+};
+
+struct ConstantInt : public GeneratorExpression {
+    uint64_t value;
+    data_t generate() override {
+        return asData(value);
+    }
+};
+
+struct ConstantFloat : public GeneratorExpression {
+    double value;
+    data_t generate() override {
+        return asData(value);
+    }
+};
+
+struct ColumnRef : public GeneratorExpression {
+};
+
+/// A generic distribution generator
+template <typename D>
+struct GenericDistribution : public GeneratorExpression {
+    std::mt19937& generator;
+    D distribution;
+    data_t generate() override {
+        return asData(distribution(generator));
+    }
+};
+
+/// A higher order distribution generator
+template <template <typename> class D, typename T>
+struct HigherOrderDistribution : public GeneratorExpression {
+    std::mt19937& generator;
+    D<T> distribution;
+    data_t generate() override {
+        return asData(distribution(generator));
+    }
+};
+
+using UniformIntDistribution = HigherOrderDistribution<std::uniform_int_distribution, uint64_t>;
+using UniformFloatDistribution = HigherOrderDistribution<std::uniform_real_distribution, double>;
+using BernoulliDistribution = GenericDistribution<std::bernoulli_distribution>;
+using BinomialDistribution = HigherOrderDistribution<std::binomial_distribution, uint64_t>;
+using GeometricDistribution = HigherOrderDistribution<std::geometric_distribution, uint64_t>;
+using NegativeBinomialDistribution = HigherOrderDistribution<std::negative_binomial_distribution, uint64_t>;
+using PoissonDistribution = HigherOrderDistribution<std::poisson_distribution, uint64_t>;
+using ExponentialDistribution = HigherOrderDistribution<std::exponential_distribution, double>;
+using GammaDistribution = HigherOrderDistribution<std::gamma_distribution, double>;
+using ExtremeValueDistribution = HigherOrderDistribution<std::extreme_value_distribution, double>;
+using NormalDistribution = HigherOrderDistribution<std::normal_distribution, double>;
+using LogNormalDistribution = HigherOrderDistribution<std::lognormal_distribution, double>;
+using ChiSquaredDistribution = HigherOrderDistribution<std::chi_squared_distribution, double>;
+using CauchyDistribution = HigherOrderDistribution<std::cauchy_distribution, double>;
+using FisherFDistribution = HigherOrderDistribution<std::fisher_f_distribution, double>;
+using StudentTDistribution = HigherOrderDistribution<std::student_t_distribution, double>;
+using DiscreteDistribution = HigherOrderDistribution<std::discrete_distribution, double>;
+using PiecewiseConstantDistribution = HigherOrderDistribution<std::piecewise_constant_distribution, double>;
+using PiecewiseLinearDistribution = HigherOrderDistribution<std::piecewise_linear_distribution, double>;
+
+}
+
 // /// Generate table
 // void generateTable(duckdb::Connection& conn, proto::TableSpec& spec) {
 //     /// Get the column name

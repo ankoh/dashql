@@ -64,20 +64,22 @@ enum class GeneratorExpressionType : uint8_t {
   RANDOM_STUDENT_T = 18,
   RANDOM_PIECEWISE_CONSTANT = 19,
   RANDOM_PIECEWISE_LINEAR = 20,
-  DERIVE_STRING = 21,
-  INT_TO_FLOAT = 22,
-  INT_TO_DECIMAL = 23,
-  FLOAT_TO_INT = 24,
+  GENERATE_STRING = 21,
+  FLOAT_TO_INT = 22,
+  INT_TO_FLOAT = 23,
+  INT_TO_DECIMAL = 24,
   NULL_IF = 25,
   COMPARE_LT = 26,
   COMPARE_LEQ = 27,
   COMPARE_GT = 28,
   COMPARE_GEQ = 29,
+  ADD = 30,
+  MULTIPLY = 31,
   MIN = CONSTANT_INT,
-  MAX = COMPARE_GEQ
+  MAX = MULTIPLY
 };
 
-inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[30] {
+inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[32] {
   static const GeneratorExpressionType values[] = {
     GeneratorExpressionType::CONSTANT_INT,
     GeneratorExpressionType::CONSTANT_FLOAT,
@@ -100,21 +102,23 @@ inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[30] 
     GeneratorExpressionType::RANDOM_STUDENT_T,
     GeneratorExpressionType::RANDOM_PIECEWISE_CONSTANT,
     GeneratorExpressionType::RANDOM_PIECEWISE_LINEAR,
-    GeneratorExpressionType::DERIVE_STRING,
+    GeneratorExpressionType::GENERATE_STRING,
+    GeneratorExpressionType::FLOAT_TO_INT,
     GeneratorExpressionType::INT_TO_FLOAT,
     GeneratorExpressionType::INT_TO_DECIMAL,
-    GeneratorExpressionType::FLOAT_TO_INT,
     GeneratorExpressionType::NULL_IF,
     GeneratorExpressionType::COMPARE_LT,
     GeneratorExpressionType::COMPARE_LEQ,
     GeneratorExpressionType::COMPARE_GT,
-    GeneratorExpressionType::COMPARE_GEQ
+    GeneratorExpressionType::COMPARE_GEQ,
+    GeneratorExpressionType::ADD,
+    GeneratorExpressionType::MULTIPLY
   };
   return values;
 }
 
 inline const char * const *EnumNamesGeneratorExpressionType() {
-  static const char * const names[31] = {
+  static const char * const names[33] = {
     "CONSTANT_INT",
     "CONSTANT_FLOAT",
     "COLUMN_REF",
@@ -136,22 +140,24 @@ inline const char * const *EnumNamesGeneratorExpressionType() {
     "RANDOM_STUDENT_T",
     "RANDOM_PIECEWISE_CONSTANT",
     "RANDOM_PIECEWISE_LINEAR",
-    "DERIVE_STRING",
+    "GENERATE_STRING",
+    "FLOAT_TO_INT",
     "INT_TO_FLOAT",
     "INT_TO_DECIMAL",
-    "FLOAT_TO_INT",
     "NULL_IF",
     "COMPARE_LT",
     "COMPARE_LEQ",
     "COMPARE_GT",
     "COMPARE_GEQ",
+    "ADD",
+    "MULTIPLY",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameGeneratorExpressionType(GeneratorExpressionType e) {
-  if (flatbuffers::IsOutRange(e, GeneratorExpressionType::CONSTANT_INT, GeneratorExpressionType::COMPARE_GEQ)) return "";
+  if (flatbuffers::IsOutRange(e, GeneratorExpressionType::CONSTANT_INT, GeneratorExpressionType::MULTIPLY)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesGeneratorExpressionType()[index];
 }
@@ -809,6 +815,8 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -836,18 +844,20 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     "RANDOM_STUDENT_T",
     "RANDOM_PIECEWISE_CONSTANT",
     "RANDOM_PIECEWISE_LINEAR",
-    "DERIVE_STRING",
+    "GENERATE_STRING",
+    "FLOAT_TO_INT",
     "INT_TO_FLOAT",
     "INT_TO_DECIMAL",
-    "FLOAT_TO_INT",
     "NULL_IF",
     "COMPARE_LT",
     "COMPARE_LEQ",
     "COMPARE_GT",
-    "COMPARE_GEQ"
+    "COMPARE_GEQ",
+    "ADD",
+    "MULTIPLY"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 30, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 32, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
