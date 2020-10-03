@@ -9,7 +9,6 @@
 namespace duckdb_webapi {
 
 namespace {
-
 /// Generic data type
 using data_t = uint64_t;
 static_assert(sizeof(int64_t) <= sizeof(data_t));
@@ -138,8 +137,7 @@ struct BinaryGeneratorExpression: public GeneratorExpression {
     BinaryGeneratorExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
         : left(move(left)), right(move(right)) {}
 };
-
-}
+} // namespace
 
 // /// Generate table
 // void generateTable(duckdb::Connection& conn, proto::TableSpec& spec) {
