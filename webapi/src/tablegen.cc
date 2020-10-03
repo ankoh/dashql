@@ -1,7 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/tablegen.h"
+#include "duckdb_webapi/common/span.h"
 #include "duckdb/main/appender.hpp"
+
 #include <tuple>
 #include <random>
 #include <variant>
@@ -14,12 +16,15 @@ using data_t = uint64_t;
 static_assert(sizeof(int64_t) <= sizeof(data_t));
 static_assert(sizeof(double) <= sizeof(data_t));
 
+
 /// Return value as data
-template<typename T>
-data_t asData(const T& v) {
-    return *reinterpret_cast<const data_t*>(&v);
-}
 enum class DataType { Integer, Float };
+struct DataVector {
+    std::vector<data_t> values;
+    std::vector<bool> nulls;
+};
+template<typename T>
+data_t asData(const T& v) { return *reinterpret_cast<const data_t*>(&v); }
 
 /// A generator expression
 struct GeneratorExpression {
@@ -28,11 +33,17 @@ struct GeneratorExpression {
     /// Get the data type
     virtual DataType getType() = 0;
     /// Generate a value
-    virtual data_t generate() = 0;
+    virtual DataVector& generate() = 0;
+};
+
+/// A source generator expression
+struct SourceGeneratorExpression: public GeneratorExpression {
+    /// The data vector
+    DataVector data;
 };
 
 /// A constant integer
-struct ConstantInt : public GeneratorExpression {
+struct ConstantInt : public SourceGeneratorExpression {
     /// The constant value
     int64_t value;
     /// Constructor
@@ -41,11 +52,17 @@ struct ConstantInt : public GeneratorExpression {
     /// Get the data type
     DataType getType() override { return DataType::Integer; }
     /// Generate a value
-    data_t generate() override { return asData(value); }
+    DataVector& generate() override {
+        for (unsigned i = 0; i < data.values.size(); ++i) {
+            data.values[i] = asData(value);
+            data.nulls[i] = false;
+        }
+        return data;
+    }
 };
 
 /// A constant floating point value
-struct ConstantFloat : public GeneratorExpression {
+struct ConstantFloat : public SourceGeneratorExpression {
     /// The constant value
     double value;
     /// Constructor
@@ -54,30 +71,43 @@ struct ConstantFloat : public GeneratorExpression {
     /// Get the data type
     DataType getType() override { return DataType::Float; }
     /// Generate a value
-    data_t generate() override { return asData(value); }
+    DataVector& generate() override {
+        for (unsigned i = 0; i < data.values.size(); ++i) {
+            data.values[i] = asData(value);
+            data.nulls[i] = false;
+        }
+        return data;
+    }
 };
 
 /// A column ref
-struct ColumnRef : public GeneratorExpression {
+struct ColumnRef : public SourceGeneratorExpression {
     /// The column type
     DataType columnType;
     /// The other columns
-    const std::vector<data_t>& columns;
+    const std::vector<DataVector>& columns;
     /// The column index
     size_t columnIndex;
 
     /// Constructor
-    ColumnRef(DataType colType, const std::vector<data_t>& cols, size_t colIdx)
+    ColumnRef(DataType colType, const std::vector<DataVector>& cols, size_t colIdx)
         : columnType(colType), columns(cols), columnIndex(colIdx) {}
     /// Get the data type
     DataType getType() override { return columnType; }
     /// Generate a value
-    data_t generate() override { return columns[columnIndex]; }
+    DataVector& generate() override {
+        auto& col = columns[columnIndex];
+        for (unsigned i = 0; i < data.values.size(); ++i) {
+            data.values[i] = col.values[i];
+            data.nulls[i] = col.nulls[i];
+        }
+        return data;
+    }
 };
 
 /// A generic distribution generator
 template <typename D>
-struct GenericDistribution : public GeneratorExpression {
+struct GenericDistribution : public SourceGeneratorExpression {
     /// The generator
     std::mt19937& generator;
     /// The distribution
@@ -86,12 +116,18 @@ struct GenericDistribution : public GeneratorExpression {
     GenericDistribution(std::mt19937& gen, D&& dist)
         : generator(gen), distribution(move(dist)) {}
     /// Generate a value
-    data_t generate() override { return asData(distribution(generator)); }
+    DataVector& generate() override {
+        for (unsigned i = 0; i < data.values.size(); ++i) {
+            data.values[i] = asData(distribution(generator));
+            data.nulls[i] = false;
+        }
+        return data;
+    }
 };
 
 /// A higher order distribution generator
 template <template <typename> class D, typename T>
-struct HigherOrderDistribution : public GeneratorExpression {
+struct HigherOrderDistribution : public SourceGeneratorExpression {
     /// The generator
     std::mt19937& generator;
     /// The distribution
@@ -106,7 +142,13 @@ struct HigherOrderDistribution : public GeneratorExpression {
         return DataType::Float;
     }
     /// Generate a value
-    data_t generate() override { return asData(distribution(generator)); }
+    DataVector& generate() override {
+        for (unsigned i = 0; i < data.values.size(); ++i) {
+            data.values[i] = asData(distribution(generator));
+            data.nulls[i] = false;
+        }
+        return data;
+    }
 };
 
 using UniformIntDistribution = HigherOrderDistribution<std::uniform_int_distribution, int64_t>;
@@ -130,13 +172,14 @@ using PiecewiseConstantDistribution = HigherOrderDistribution<std::piecewise_con
 using PiecewiseLinearDistribution = HigherOrderDistribution<std::piecewise_linear_distribution, double>;
 
 /// A binary expression
-struct BinaryGeneratorExpression: public GeneratorExpression {
-    /// The input expressions
-    std::unique_ptr<GeneratorExpression> left, right;
-    /// Constructor
-    BinaryGeneratorExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
-        : left(move(left)), right(move(right)) {}
-};
+// struct BinaryGeneratorExpression: public GeneratorExpression {
+//     /// The input expressions
+//     std::unique_ptr<GeneratorExpression> left, right;
+//     /// Constructor
+//     BinaryGeneratorExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+//         : left(move(left)), right(move(right)) {}
+// };
+
 } // namespace
 
 // /// Generate table
