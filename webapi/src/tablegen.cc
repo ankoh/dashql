@@ -57,6 +57,9 @@ struct GenericDistribution : public GeneratorExpression {
     std::mt19937& generator;
     /// The distribution
     D distribution;
+    /// Constructor
+    GenericDistribution(std::mt19937& gen, D&& dist)
+        : generator(gen), distribution(move(dist)) {}
     /// Generate a value
     data_t generate() override {
         return asData(distribution(generator));
@@ -70,6 +73,9 @@ struct HigherOrderDistribution : public GeneratorExpression {
     std::mt19937& generator;
     /// The distribution
     D<T> distribution;
+    /// Constructor
+    HigherOrderDistribution(std::mt19937& gen, D<T>&& dist)
+        : generator(gen), distribution(move(dist)) {}
     /// Generate a value
     data_t generate() override {
         return asData(distribution(generator));
