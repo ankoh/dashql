@@ -11,229 +11,485 @@
 namespace duckdb_webapi {
 namespace proto {
 
-struct DataDistribution;
-struct DataDistributionBuilder;
-struct DataDistributionT;
+struct GeneratorArgument;
 
-struct ColumnSpec;
-struct ColumnSpecBuilder;
-struct ColumnSpecT;
+struct GeneratorExpression;
+struct GeneratorExpressionBuilder;
+struct GeneratorExpressionT;
 
-struct TableSpec;
-struct TableSpecBuilder;
-struct TableSpecT;
+struct ColumnSpecification;
+struct ColumnSpecificationBuilder;
+struct ColumnSpecificationT;
 
-bool operator==(const DataDistributionT &lhs, const DataDistributionT &rhs);
-bool operator!=(const DataDistributionT &lhs, const DataDistributionT &rhs);
-bool operator==(const ColumnSpecT &lhs, const ColumnSpecT &rhs);
-bool operator!=(const ColumnSpecT &lhs, const ColumnSpecT &rhs);
-bool operator==(const TableSpecT &lhs, const TableSpecT &rhs);
-bool operator!=(const TableSpecT &lhs, const TableSpecT &rhs);
+struct TableSpecification;
+struct TableSpecificationBuilder;
+struct TableSpecificationT;
 
-inline const flatbuffers::TypeTable *DataDistributionTypeTable();
+bool operator==(const GeneratorArgument &lhs, const GeneratorArgument &rhs);
+bool operator!=(const GeneratorArgument &lhs, const GeneratorArgument &rhs);
+bool operator==(const GeneratorExpressionT &lhs, const GeneratorExpressionT &rhs);
+bool operator!=(const GeneratorExpressionT &lhs, const GeneratorExpressionT &rhs);
+bool operator==(const ColumnSpecificationT &lhs, const ColumnSpecificationT &rhs);
+bool operator!=(const ColumnSpecificationT &lhs, const ColumnSpecificationT &rhs);
+bool operator==(const TableSpecificationT &lhs, const TableSpecificationT &rhs);
+bool operator!=(const TableSpecificationT &lhs, const TableSpecificationT &rhs);
 
-inline const flatbuffers::TypeTable *ColumnSpecTypeTable();
+inline const flatbuffers::TypeTable *GeneratorArgumentTypeTable();
 
-inline const flatbuffers::TypeTable *TableSpecTypeTable();
+inline const flatbuffers::TypeTable *GeneratorExpressionTypeTable();
 
-/// A data distribution type
-enum class DataDistributionType : uint8_t {
-  UNIFORM = 0,
-  BERNOULLI = 1,
-  BINOMIAL = 2,
-  GEOMETRIC = 3,
-  NEGATIVE_BINOMIAL = 4,
-  POISSON = 5,
-  EXPONENTIAL = 6,
-  GAMMA = 7,
-  WEIBULL = 8,
-  EXTREME_VALUE = 9,
-  NORMAL = 10,
-  LOG_NORMAL = 11,
-  CHI_SQUARED = 12,
-  CAUCHY = 13,
-  FISHER_F = 14,
-  STUDENT_T = 15,
-  DISCRETE = 16,
-  PIECEWISE_CONSTANT = 17,
-  PIECEWISE_LINEAR = 18,
-  MIN = UNIFORM,
-  MAX = PIECEWISE_LINEAR
+inline const flatbuffers::TypeTable *ColumnSpecificationTypeTable();
+
+inline const flatbuffers::TypeTable *TableSpecificationTypeTable();
+
+enum class GeneratorExpressionType : uint8_t {
+  CONSTANT_INT = 0,
+  CONSTANT_FLOAT = 1,
+  COLUMN_REF = 2,
+  RANDOM_UNIFORM = 3,
+  RANDOM_BERNOULLI = 4,
+  RANDOM_BINOMIAL = 5,
+  RANDOM_GEOMETRIC = 6,
+  RANDOM_NEGATIVE_BINOMIAL = 7,
+  RANDOM_POISSON = 8,
+  RANDOM_EXPONENTIAL = 9,
+  RANDOM_GAMMA = 10,
+  RANDOM_WEIBULL = 11,
+  RANDOM_EXTREME_VALUE = 12,
+  RANDOM_NORMAL = 13,
+  RANDOM_LOG_NORMAL = 14,
+  RANDOM_CHI_SQUARED = 15,
+  RANDOM_CAUCHY = 16,
+  RANDOM_FISHER_F = 17,
+  RANDOM_STUDENT_T = 18,
+  RANDOM_PIECEWISE_CONSTANT = 19,
+  RANDOM_PIECEWISE_LINEAR = 20,
+  DERIVE_STRING = 21,
+  INT_TO_FLOAT = 22,
+  INT_TO_DECIMAL = 23,
+  FLOAT_TO_INT = 24,
+  NULL_IF = 25,
+  COMPARE_LT = 26,
+  COMPARE_LEQ = 27,
+  COMPARE_GT = 28,
+  COMPARE_GEQ = 29,
+  MIN = CONSTANT_INT,
+  MAX = COMPARE_GEQ
 };
 
-inline const DataDistributionType (&EnumValuesDataDistributionType())[19] {
-  static const DataDistributionType values[] = {
-    DataDistributionType::UNIFORM,
-    DataDistributionType::BERNOULLI,
-    DataDistributionType::BINOMIAL,
-    DataDistributionType::GEOMETRIC,
-    DataDistributionType::NEGATIVE_BINOMIAL,
-    DataDistributionType::POISSON,
-    DataDistributionType::EXPONENTIAL,
-    DataDistributionType::GAMMA,
-    DataDistributionType::WEIBULL,
-    DataDistributionType::EXTREME_VALUE,
-    DataDistributionType::NORMAL,
-    DataDistributionType::LOG_NORMAL,
-    DataDistributionType::CHI_SQUARED,
-    DataDistributionType::CAUCHY,
-    DataDistributionType::FISHER_F,
-    DataDistributionType::STUDENT_T,
-    DataDistributionType::DISCRETE,
-    DataDistributionType::PIECEWISE_CONSTANT,
-    DataDistributionType::PIECEWISE_LINEAR
+inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[30] {
+  static const GeneratorExpressionType values[] = {
+    GeneratorExpressionType::CONSTANT_INT,
+    GeneratorExpressionType::CONSTANT_FLOAT,
+    GeneratorExpressionType::COLUMN_REF,
+    GeneratorExpressionType::RANDOM_UNIFORM,
+    GeneratorExpressionType::RANDOM_BERNOULLI,
+    GeneratorExpressionType::RANDOM_BINOMIAL,
+    GeneratorExpressionType::RANDOM_GEOMETRIC,
+    GeneratorExpressionType::RANDOM_NEGATIVE_BINOMIAL,
+    GeneratorExpressionType::RANDOM_POISSON,
+    GeneratorExpressionType::RANDOM_EXPONENTIAL,
+    GeneratorExpressionType::RANDOM_GAMMA,
+    GeneratorExpressionType::RANDOM_WEIBULL,
+    GeneratorExpressionType::RANDOM_EXTREME_VALUE,
+    GeneratorExpressionType::RANDOM_NORMAL,
+    GeneratorExpressionType::RANDOM_LOG_NORMAL,
+    GeneratorExpressionType::RANDOM_CHI_SQUARED,
+    GeneratorExpressionType::RANDOM_CAUCHY,
+    GeneratorExpressionType::RANDOM_FISHER_F,
+    GeneratorExpressionType::RANDOM_STUDENT_T,
+    GeneratorExpressionType::RANDOM_PIECEWISE_CONSTANT,
+    GeneratorExpressionType::RANDOM_PIECEWISE_LINEAR,
+    GeneratorExpressionType::DERIVE_STRING,
+    GeneratorExpressionType::INT_TO_FLOAT,
+    GeneratorExpressionType::INT_TO_DECIMAL,
+    GeneratorExpressionType::FLOAT_TO_INT,
+    GeneratorExpressionType::NULL_IF,
+    GeneratorExpressionType::COMPARE_LT,
+    GeneratorExpressionType::COMPARE_LEQ,
+    GeneratorExpressionType::COMPARE_GT,
+    GeneratorExpressionType::COMPARE_GEQ
   };
   return values;
 }
 
-inline const char * const *EnumNamesDataDistributionType() {
-  static const char * const names[20] = {
-    "UNIFORM",
-    "BERNOULLI",
-    "BINOMIAL",
-    "GEOMETRIC",
-    "NEGATIVE_BINOMIAL",
-    "POISSON",
-    "EXPONENTIAL",
-    "GAMMA",
-    "WEIBULL",
-    "EXTREME_VALUE",
-    "NORMAL",
-    "LOG_NORMAL",
-    "CHI_SQUARED",
-    "CAUCHY",
-    "FISHER_F",
-    "STUDENT_T",
-    "DISCRETE",
-    "PIECEWISE_CONSTANT",
-    "PIECEWISE_LINEAR",
+inline const char * const *EnumNamesGeneratorExpressionType() {
+  static const char * const names[31] = {
+    "CONSTANT_INT",
+    "CONSTANT_FLOAT",
+    "COLUMN_REF",
+    "RANDOM_UNIFORM",
+    "RANDOM_BERNOULLI",
+    "RANDOM_BINOMIAL",
+    "RANDOM_GEOMETRIC",
+    "RANDOM_NEGATIVE_BINOMIAL",
+    "RANDOM_POISSON",
+    "RANDOM_EXPONENTIAL",
+    "RANDOM_GAMMA",
+    "RANDOM_WEIBULL",
+    "RANDOM_EXTREME_VALUE",
+    "RANDOM_NORMAL",
+    "RANDOM_LOG_NORMAL",
+    "RANDOM_CHI_SQUARED",
+    "RANDOM_CAUCHY",
+    "RANDOM_FISHER_F",
+    "RANDOM_STUDENT_T",
+    "RANDOM_PIECEWISE_CONSTANT",
+    "RANDOM_PIECEWISE_LINEAR",
+    "DERIVE_STRING",
+    "INT_TO_FLOAT",
+    "INT_TO_DECIMAL",
+    "FLOAT_TO_INT",
+    "NULL_IF",
+    "COMPARE_LT",
+    "COMPARE_LEQ",
+    "COMPARE_GT",
+    "COMPARE_GEQ",
     nullptr
   };
   return names;
 }
 
-inline const char *EnumNameDataDistributionType(DataDistributionType e) {
-  if (flatbuffers::IsOutRange(e, DataDistributionType::UNIFORM, DataDistributionType::PIECEWISE_LINEAR)) return "";
+inline const char *EnumNameGeneratorExpressionType(GeneratorExpressionType e) {
+  if (flatbuffers::IsOutRange(e, GeneratorExpressionType::CONSTANT_INT, GeneratorExpressionType::COMPARE_GEQ)) return "";
   const size_t index = static_cast<size_t>(e);
-  return EnumNamesDataDistributionType()[index];
+  return EnumNamesGeneratorExpressionType()[index];
 }
 
-struct DataDistributionT : public flatbuffers::NativeTable {
-  typedef DataDistribution TableType;
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "duckdb_webapi.proto.DataDistributionT";
-  }
-  duckdb_webapi::proto::DataDistributionType distribution_type;
-  DataDistributionT()
-      : distribution_type(duckdb_webapi::proto::DataDistributionType::UNIFORM) {
-  }
+enum class GeneratorArgumentType : uint8_t {
+  CONSTANT_INT_VALUE = 0,
+  CONSTANT_FLOAT_VALUE = 1,
+  COLUMN_REF_INDEX = 2,
+  RANDOM_UNIFORM_FLOAT_LB = 3,
+  RANDOM_UNIFORM_FLOAT_UB = 4,
+  RANDOM_UNIFORM_INT_LB = 5,
+  RANDOM_UNIFORM_INT_UB = 6,
+  RANDOM_BERNOULLI_PROBABILITY = 7,
+  RANDOM_BINOMIAL_UB = 8,
+  RANDOM_BINOMIAL_PROBABILITY = 9,
+  RANDOM_NEGATIVE_BINOMIAL_K = 10,
+  RANDOM_NEGATIVE_BINOMIAL_P = 11,
+  RANDOM_POISSON_MEAN = 12,
+  RANDOM_EXPONENTIAL_LAMBDA = 13,
+  RANDOM_GAMMA_ALPHA = 14,
+  RANDOM_GAMMA_BETA = 15,
+  RANDOM_WEIBULL_A = 16,
+  RANDOM_WEIBULL_B = 17,
+  RANDOM_EXTREME_VALUE_A = 18,
+  RANDOM_EXTREME_VALUE_B = 19,
+  RANDOM_NORMAL_MEAN = 20,
+  RANDOM_NORMAL_STDDEV = 21,
+  RANDOM_LOGNORMAL_M = 22,
+  RANDOM_LOGNORMAL_S = 23,
+  RANDOM_CHISQUARED_N = 24,
+  RANDOM_CAUCHY_A = 25,
+  RANDOM_CAUCHY_B = 26,
+  RANDOM_FISHER_F = 27,
+  RANDOM_FISHER_N = 28,
+  RANDOM_PIECEWISE_CONSTANT_INTERVAL = 29,
+  RANDOM_PIECEWISE_CONSTANT_WEIGHT = 30,
+  RANDOM_PIECEWISE_LINEAR_INTERVAL = 31,
+  RANDOM_PIECEWISE_LINEAR_DENSITY = 32,
+  INT_TO_DECIMAL_SCALE = 33,
+  MIN = CONSTANT_INT_VALUE,
+  MAX = INT_TO_DECIMAL_SCALE
 };
 
-inline bool operator==(const DataDistributionT &lhs, const DataDistributionT &rhs) {
-  return
-      (lhs.distribution_type == rhs.distribution_type);
+inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[34] {
+  static const GeneratorArgumentType values[] = {
+    GeneratorArgumentType::CONSTANT_INT_VALUE,
+    GeneratorArgumentType::CONSTANT_FLOAT_VALUE,
+    GeneratorArgumentType::COLUMN_REF_INDEX,
+    GeneratorArgumentType::RANDOM_UNIFORM_FLOAT_LB,
+    GeneratorArgumentType::RANDOM_UNIFORM_FLOAT_UB,
+    GeneratorArgumentType::RANDOM_UNIFORM_INT_LB,
+    GeneratorArgumentType::RANDOM_UNIFORM_INT_UB,
+    GeneratorArgumentType::RANDOM_BERNOULLI_PROBABILITY,
+    GeneratorArgumentType::RANDOM_BINOMIAL_UB,
+    GeneratorArgumentType::RANDOM_BINOMIAL_PROBABILITY,
+    GeneratorArgumentType::RANDOM_NEGATIVE_BINOMIAL_K,
+    GeneratorArgumentType::RANDOM_NEGATIVE_BINOMIAL_P,
+    GeneratorArgumentType::RANDOM_POISSON_MEAN,
+    GeneratorArgumentType::RANDOM_EXPONENTIAL_LAMBDA,
+    GeneratorArgumentType::RANDOM_GAMMA_ALPHA,
+    GeneratorArgumentType::RANDOM_GAMMA_BETA,
+    GeneratorArgumentType::RANDOM_WEIBULL_A,
+    GeneratorArgumentType::RANDOM_WEIBULL_B,
+    GeneratorArgumentType::RANDOM_EXTREME_VALUE_A,
+    GeneratorArgumentType::RANDOM_EXTREME_VALUE_B,
+    GeneratorArgumentType::RANDOM_NORMAL_MEAN,
+    GeneratorArgumentType::RANDOM_NORMAL_STDDEV,
+    GeneratorArgumentType::RANDOM_LOGNORMAL_M,
+    GeneratorArgumentType::RANDOM_LOGNORMAL_S,
+    GeneratorArgumentType::RANDOM_CHISQUARED_N,
+    GeneratorArgumentType::RANDOM_CAUCHY_A,
+    GeneratorArgumentType::RANDOM_CAUCHY_B,
+    GeneratorArgumentType::RANDOM_FISHER_F,
+    GeneratorArgumentType::RANDOM_FISHER_N,
+    GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_INTERVAL,
+    GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_WEIGHT,
+    GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_INTERVAL,
+    GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_DENSITY,
+    GeneratorArgumentType::INT_TO_DECIMAL_SCALE
+  };
+  return values;
 }
 
-inline bool operator!=(const DataDistributionT &lhs, const DataDistributionT &rhs) {
+inline const char * const *EnumNamesGeneratorArgumentType() {
+  static const char * const names[35] = {
+    "CONSTANT_INT_VALUE",
+    "CONSTANT_FLOAT_VALUE",
+    "COLUMN_REF_INDEX",
+    "RANDOM_UNIFORM_FLOAT_LB",
+    "RANDOM_UNIFORM_FLOAT_UB",
+    "RANDOM_UNIFORM_INT_LB",
+    "RANDOM_UNIFORM_INT_UB",
+    "RANDOM_BERNOULLI_PROBABILITY",
+    "RANDOM_BINOMIAL_UB",
+    "RANDOM_BINOMIAL_PROBABILITY",
+    "RANDOM_NEGATIVE_BINOMIAL_K",
+    "RANDOM_NEGATIVE_BINOMIAL_P",
+    "RANDOM_POISSON_MEAN",
+    "RANDOM_EXPONENTIAL_LAMBDA",
+    "RANDOM_GAMMA_ALPHA",
+    "RANDOM_GAMMA_BETA",
+    "RANDOM_WEIBULL_A",
+    "RANDOM_WEIBULL_B",
+    "RANDOM_EXTREME_VALUE_A",
+    "RANDOM_EXTREME_VALUE_B",
+    "RANDOM_NORMAL_MEAN",
+    "RANDOM_NORMAL_STDDEV",
+    "RANDOM_LOGNORMAL_M",
+    "RANDOM_LOGNORMAL_S",
+    "RANDOM_CHISQUARED_N",
+    "RANDOM_CAUCHY_A",
+    "RANDOM_CAUCHY_B",
+    "RANDOM_FISHER_F",
+    "RANDOM_FISHER_N",
+    "RANDOM_PIECEWISE_CONSTANT_INTERVAL",
+    "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
+    "RANDOM_PIECEWISE_LINEAR_INTERVAL",
+    "RANDOM_PIECEWISE_LINEAR_DENSITY",
+    "INT_TO_DECIMAL_SCALE",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameGeneratorArgumentType(GeneratorArgumentType e) {
+  if (flatbuffers::IsOutRange(e, GeneratorArgumentType::CONSTANT_INT_VALUE, GeneratorArgumentType::INT_TO_DECIMAL_SCALE)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesGeneratorArgumentType()[index];
+}
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) GeneratorArgument FLATBUFFERS_FINAL_CLASS {
+ private:
+  uint8_t argument_type_;
+  int8_t padding0__;  int16_t padding1__;  int32_t padding2__;
+  int64_t value_int_;
+  double value_float_;
+
+ public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return GeneratorArgumentTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "duckdb_webapi.proto.GeneratorArgument";
+  }
+  GeneratorArgument()
+      : argument_type_(0),
+        padding0__(0),
+        padding1__(0),
+        padding2__(0),
+        value_int_(0),
+        value_float_(0) {
+    (void)padding0__;
+    (void)padding1__;
+    (void)padding2__;
+  }
+  GeneratorArgument(duckdb_webapi::proto::GeneratorArgumentType _argument_type, int64_t _value_int, double _value_float)
+      : argument_type_(flatbuffers::EndianScalar(static_cast<uint8_t>(_argument_type))),
+        padding0__(0),
+        padding1__(0),
+        padding2__(0),
+        value_int_(flatbuffers::EndianScalar(_value_int)),
+        value_float_(flatbuffers::EndianScalar(_value_float)) {
+  }
+  duckdb_webapi::proto::GeneratorArgumentType argument_type() const {
+    return static_cast<duckdb_webapi::proto::GeneratorArgumentType>(flatbuffers::EndianScalar(argument_type_));
+  }
+  int64_t value_int() const {
+    return flatbuffers::EndianScalar(value_int_);
+  }
+  double value_float() const {
+    return flatbuffers::EndianScalar(value_float_);
+  }
+};
+FLATBUFFERS_STRUCT_END(GeneratorArgument, 24);
+
+inline bool operator==(const GeneratorArgument &lhs, const GeneratorArgument &rhs) {
+  return
+      (lhs.argument_type() == rhs.argument_type()) &&
+      (lhs.value_int() == rhs.value_int()) &&
+      (lhs.value_float() == rhs.value_float());
+}
+
+inline bool operator!=(const GeneratorArgument &lhs, const GeneratorArgument &rhs) {
     return !(lhs == rhs);
 }
 
 
-/// A data distribution
-struct DataDistribution FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef DataDistributionT NativeTableType;
-  typedef DataDistributionBuilder Builder;
+struct GeneratorExpressionT : public flatbuffers::NativeTable {
+  typedef GeneratorExpression TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "duckdb_webapi.proto.GeneratorExpressionT";
+  }
+  duckdb_webapi::proto::GeneratorExpressionType expression_type;
+  std::vector<duckdb_webapi::proto::GeneratorArgument> arguments;
+  std::vector<uint32_t> inputs;
+  GeneratorExpressionT()
+      : expression_type(duckdb_webapi::proto::GeneratorExpressionType::CONSTANT_INT) {
+  }
+};
+
+inline bool operator==(const GeneratorExpressionT &lhs, const GeneratorExpressionT &rhs) {
+  return
+      (lhs.expression_type == rhs.expression_type) &&
+      (lhs.arguments == rhs.arguments) &&
+      (lhs.inputs == rhs.inputs);
+}
+
+inline bool operator!=(const GeneratorExpressionT &lhs, const GeneratorExpressionT &rhs) {
+    return !(lhs == rhs);
+}
+
+
+struct GeneratorExpression FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef GeneratorExpressionT NativeTableType;
+  typedef GeneratorExpressionBuilder Builder;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return DataDistributionTypeTable();
+    return GeneratorExpressionTypeTable();
   }
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "duckdb_webapi.proto.DataDistribution";
+    return "duckdb_webapi.proto.GeneratorExpression";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_DISTRIBUTION_TYPE = 4
+    VT_EXPRESSION_TYPE = 4,
+    VT_ARGUMENTS = 6,
+    VT_INPUTS = 8
   };
-  duckdb_webapi::proto::DataDistributionType distribution_type() const {
-    return static_cast<duckdb_webapi::proto::DataDistributionType>(GetField<uint8_t>(VT_DISTRIBUTION_TYPE, 0));
+  duckdb_webapi::proto::GeneratorExpressionType expression_type() const {
+    return static_cast<duckdb_webapi::proto::GeneratorExpressionType>(GetField<uint8_t>(VT_EXPRESSION_TYPE, 0));
+  }
+  const flatbuffers::Vector<const duckdb_webapi::proto::GeneratorArgument *> *arguments() const {
+    return GetPointer<const flatbuffers::Vector<const duckdb_webapi::proto::GeneratorArgument *> *>(VT_ARGUMENTS);
+  }
+  const flatbuffers::Vector<uint32_t> *inputs() const {
+    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_INPUTS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint8_t>(verifier, VT_DISTRIBUTION_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_EXPRESSION_TYPE) &&
+           VerifyOffset(verifier, VT_ARGUMENTS) &&
+           verifier.VerifyVector(arguments()) &&
+           VerifyOffset(verifier, VT_INPUTS) &&
+           verifier.VerifyVector(inputs()) &&
            verifier.EndTable();
   }
-  DataDistributionT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(DataDistributionT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<DataDistribution> Pack(flatbuffers::FlatBufferBuilder &_fbb, const DataDistributionT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  GeneratorExpressionT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(GeneratorExpressionT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<GeneratorExpression> Pack(flatbuffers::FlatBufferBuilder &_fbb, const GeneratorExpressionT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct DataDistributionBuilder {
-  typedef DataDistribution Table;
+struct GeneratorExpressionBuilder {
+  typedef GeneratorExpression Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_distribution_type(duckdb_webapi::proto::DataDistributionType distribution_type) {
-    fbb_.AddElement<uint8_t>(DataDistribution::VT_DISTRIBUTION_TYPE, static_cast<uint8_t>(distribution_type), 0);
+  void add_expression_type(duckdb_webapi::proto::GeneratorExpressionType expression_type) {
+    fbb_.AddElement<uint8_t>(GeneratorExpression::VT_EXPRESSION_TYPE, static_cast<uint8_t>(expression_type), 0);
   }
-  explicit DataDistributionBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  void add_arguments(flatbuffers::Offset<flatbuffers::Vector<const duckdb_webapi::proto::GeneratorArgument *>> arguments) {
+    fbb_.AddOffset(GeneratorExpression::VT_ARGUMENTS, arguments);
+  }
+  void add_inputs(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> inputs) {
+    fbb_.AddOffset(GeneratorExpression::VT_INPUTS, inputs);
+  }
+  explicit GeneratorExpressionBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<DataDistribution> Finish() {
+  flatbuffers::Offset<GeneratorExpression> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<DataDistribution>(end);
+    auto o = flatbuffers::Offset<GeneratorExpression>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<DataDistribution> CreateDataDistribution(
+inline flatbuffers::Offset<GeneratorExpression> CreateGeneratorExpression(
     flatbuffers::FlatBufferBuilder &_fbb,
-    duckdb_webapi::proto::DataDistributionType distribution_type = duckdb_webapi::proto::DataDistributionType::UNIFORM) {
-  DataDistributionBuilder builder_(_fbb);
-  builder_.add_distribution_type(distribution_type);
+    duckdb_webapi::proto::GeneratorExpressionType expression_type = duckdb_webapi::proto::GeneratorExpressionType::CONSTANT_INT,
+    flatbuffers::Offset<flatbuffers::Vector<const duckdb_webapi::proto::GeneratorArgument *>> arguments = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> inputs = 0) {
+  GeneratorExpressionBuilder builder_(_fbb);
+  builder_.add_inputs(inputs);
+  builder_.add_arguments(arguments);
+  builder_.add_expression_type(expression_type);
   return builder_.Finish();
 }
 
-flatbuffers::Offset<DataDistribution> CreateDataDistribution(flatbuffers::FlatBufferBuilder &_fbb, const DataDistributionT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+inline flatbuffers::Offset<GeneratorExpression> CreateGeneratorExpressionDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    duckdb_webapi::proto::GeneratorExpressionType expression_type = duckdb_webapi::proto::GeneratorExpressionType::CONSTANT_INT,
+    const std::vector<duckdb_webapi::proto::GeneratorArgument> *arguments = nullptr,
+    const std::vector<uint32_t> *inputs = nullptr) {
+  auto arguments__ = arguments ? _fbb.CreateVectorOfStructs<duckdb_webapi::proto::GeneratorArgument>(*arguments) : 0;
+  auto inputs__ = inputs ? _fbb.CreateVector<uint32_t>(*inputs) : 0;
+  return duckdb_webapi::proto::CreateGeneratorExpression(
+      _fbb,
+      expression_type,
+      arguments__,
+      inputs__);
+}
 
-struct ColumnSpecT : public flatbuffers::NativeTable {
-  typedef ColumnSpec TableType;
+flatbuffers::Offset<GeneratorExpression> CreateGeneratorExpression(flatbuffers::FlatBufferBuilder &_fbb, const GeneratorExpressionT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct ColumnSpecificationT : public flatbuffers::NativeTable {
+  typedef ColumnSpecification TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "duckdb_webapi.proto.ColumnSpecT";
+    return "duckdb_webapi.proto.ColumnSpecificationT";
   }
   std::string name;
   std::unique_ptr<duckdb_webapi::proto::LogicalType> value_type;
-  std::unique_ptr<duckdb_webapi::proto::DataDistributionT> value_distribution;
-  std::unique_ptr<duckdb_webapi::proto::DataDistributionT> null_distribution;
-  ColumnSpecT() {
+  std::vector<std::unique_ptr<duckdb_webapi::proto::GeneratorExpressionT>> value_generator;
+  ColumnSpecificationT() {
   }
 };
 
-inline bool operator==(const ColumnSpecT &lhs, const ColumnSpecT &rhs) {
+inline bool operator==(const ColumnSpecificationT &lhs, const ColumnSpecificationT &rhs) {
   return
       (lhs.name == rhs.name) &&
       (lhs.value_type == rhs.value_type) &&
-      (lhs.value_distribution == rhs.value_distribution) &&
-      (lhs.null_distribution == rhs.null_distribution);
+      (lhs.value_generator == rhs.value_generator);
 }
 
-inline bool operator!=(const ColumnSpecT &lhs, const ColumnSpecT &rhs) {
+inline bool operator!=(const ColumnSpecificationT &lhs, const ColumnSpecificationT &rhs) {
     return !(lhs == rhs);
 }
 
 
-/// A table specification
-struct ColumnSpec FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ColumnSpecT NativeTableType;
-  typedef ColumnSpecBuilder Builder;
+struct ColumnSpecification FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ColumnSpecificationT NativeTableType;
+  typedef ColumnSpecificationBuilder Builder;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return ColumnSpecTypeTable();
+    return ColumnSpecificationTypeTable();
   }
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "duckdb_webapi.proto.ColumnSpec";
+    return "duckdb_webapi.proto.ColumnSpecification";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_VALUE_TYPE = 6,
-    VT_VALUE_DISTRIBUTION = 8,
-    VT_NULL_DISTRIBUTION = 10
+    VT_VALUE_GENERATOR = 8
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -241,120 +497,109 @@ struct ColumnSpec FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const duckdb_webapi::proto::LogicalType *value_type() const {
     return GetStruct<const duckdb_webapi::proto::LogicalType *>(VT_VALUE_TYPE);
   }
-  const duckdb_webapi::proto::DataDistribution *value_distribution() const {
-    return GetPointer<const duckdb_webapi::proto::DataDistribution *>(VT_VALUE_DISTRIBUTION);
-  }
-  const duckdb_webapi::proto::DataDistribution *null_distribution() const {
-    return GetPointer<const duckdb_webapi::proto::DataDistribution *>(VT_NULL_DISTRIBUTION);
+  const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *value_generator() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *>(VT_VALUE_GENERATOR);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            VerifyField<duckdb_webapi::proto::LogicalType>(verifier, VT_VALUE_TYPE) &&
-           VerifyOffset(verifier, VT_VALUE_DISTRIBUTION) &&
-           verifier.VerifyTable(value_distribution()) &&
-           VerifyOffset(verifier, VT_NULL_DISTRIBUTION) &&
-           verifier.VerifyTable(null_distribution()) &&
+           VerifyOffset(verifier, VT_VALUE_GENERATOR) &&
+           verifier.VerifyVector(value_generator()) &&
+           verifier.VerifyVectorOfTables(value_generator()) &&
            verifier.EndTable();
   }
-  ColumnSpecT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ColumnSpecT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ColumnSpec> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ColumnSpecT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  ColumnSpecificationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ColumnSpecificationT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ColumnSpecification> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ColumnSpecificationT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct ColumnSpecBuilder {
-  typedef ColumnSpec Table;
+struct ColumnSpecificationBuilder {
+  typedef ColumnSpecification Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(ColumnSpec::VT_NAME, name);
+    fbb_.AddOffset(ColumnSpecification::VT_NAME, name);
   }
   void add_value_type(const duckdb_webapi::proto::LogicalType *value_type) {
-    fbb_.AddStruct(ColumnSpec::VT_VALUE_TYPE, value_type);
+    fbb_.AddStruct(ColumnSpecification::VT_VALUE_TYPE, value_type);
   }
-  void add_value_distribution(flatbuffers::Offset<duckdb_webapi::proto::DataDistribution> value_distribution) {
-    fbb_.AddOffset(ColumnSpec::VT_VALUE_DISTRIBUTION, value_distribution);
+  void add_value_generator(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>> value_generator) {
+    fbb_.AddOffset(ColumnSpecification::VT_VALUE_GENERATOR, value_generator);
   }
-  void add_null_distribution(flatbuffers::Offset<duckdb_webapi::proto::DataDistribution> null_distribution) {
-    fbb_.AddOffset(ColumnSpec::VT_NULL_DISTRIBUTION, null_distribution);
-  }
-  explicit ColumnSpecBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit ColumnSpecificationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<ColumnSpec> Finish() {
+  flatbuffers::Offset<ColumnSpecification> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<ColumnSpec>(end);
+    auto o = flatbuffers::Offset<ColumnSpecification>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<ColumnSpec> CreateColumnSpec(
+inline flatbuffers::Offset<ColumnSpecification> CreateColumnSpecification(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     const duckdb_webapi::proto::LogicalType *value_type = 0,
-    flatbuffers::Offset<duckdb_webapi::proto::DataDistribution> value_distribution = 0,
-    flatbuffers::Offset<duckdb_webapi::proto::DataDistribution> null_distribution = 0) {
-  ColumnSpecBuilder builder_(_fbb);
-  builder_.add_null_distribution(null_distribution);
-  builder_.add_value_distribution(value_distribution);
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>> value_generator = 0) {
+  ColumnSpecificationBuilder builder_(_fbb);
+  builder_.add_value_generator(value_generator);
   builder_.add_value_type(value_type);
   builder_.add_name(name);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<ColumnSpec> CreateColumnSpecDirect(
+inline flatbuffers::Offset<ColumnSpecification> CreateColumnSpecificationDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     const duckdb_webapi::proto::LogicalType *value_type = 0,
-    flatbuffers::Offset<duckdb_webapi::proto::DataDistribution> value_distribution = 0,
-    flatbuffers::Offset<duckdb_webapi::proto::DataDistribution> null_distribution = 0) {
+    const std::vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *value_generator = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
-  return duckdb_webapi::proto::CreateColumnSpec(
+  auto value_generator__ = value_generator ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>(*value_generator) : 0;
+  return duckdb_webapi::proto::CreateColumnSpecification(
       _fbb,
       name__,
       value_type,
-      value_distribution,
-      null_distribution);
+      value_generator__);
 }
 
-flatbuffers::Offset<ColumnSpec> CreateColumnSpec(flatbuffers::FlatBufferBuilder &_fbb, const ColumnSpecT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<ColumnSpecification> CreateColumnSpecification(flatbuffers::FlatBufferBuilder &_fbb, const ColumnSpecificationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct TableSpecT : public flatbuffers::NativeTable {
-  typedef TableSpec TableType;
+struct TableSpecificationT : public flatbuffers::NativeTable {
+  typedef TableSpecification TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "duckdb_webapi.proto.TableSpecT";
+    return "duckdb_webapi.proto.TableSpecificationT";
   }
   std::string name;
-  std::vector<std::unique_ptr<duckdb_webapi::proto::ColumnSpecT>> columns;
+  std::vector<std::unique_ptr<duckdb_webapi::proto::ColumnSpecificationT>> columns;
   uint64_t rows;
-  TableSpecT()
+  TableSpecificationT()
       : rows(0) {
   }
 };
 
-inline bool operator==(const TableSpecT &lhs, const TableSpecT &rhs) {
+inline bool operator==(const TableSpecificationT &lhs, const TableSpecificationT &rhs) {
   return
       (lhs.name == rhs.name) &&
       (lhs.columns == rhs.columns) &&
       (lhs.rows == rhs.rows);
 }
 
-inline bool operator!=(const TableSpecT &lhs, const TableSpecT &rhs) {
+inline bool operator!=(const TableSpecificationT &lhs, const TableSpecificationT &rhs) {
     return !(lhs == rhs);
 }
 
 
-/// A table specification
-struct TableSpec FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef TableSpecT NativeTableType;
-  typedef TableSpecBuilder Builder;
+struct TableSpecification FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TableSpecificationT NativeTableType;
+  typedef TableSpecificationBuilder Builder;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return TableSpecTypeTable();
+    return TableSpecificationTypeTable();
   }
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "duckdb_webapi.proto.TableSpec";
+    return "duckdb_webapi.proto.TableSpecification";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
@@ -364,8 +609,8 @@ struct TableSpec FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpec>> *columns() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpec>> *>(VT_COLUMNS);
+  const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpecification>> *columns() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpecification>> *>(VT_COLUMNS);
   }
   uint64_t rows() const {
     return GetField<uint64_t>(VT_ROWS, 0);
@@ -380,158 +625,172 @@ struct TableSpec FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint64_t>(verifier, VT_ROWS) &&
            verifier.EndTable();
   }
-  TableSpecT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(TableSpecT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<TableSpec> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TableSpecT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  TableSpecificationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TableSpecificationT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TableSpecification> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TableSpecificationT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
-struct TableSpecBuilder {
-  typedef TableSpec Table;
+struct TableSpecificationBuilder {
+  typedef TableSpecification Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(TableSpec::VT_NAME, name);
+    fbb_.AddOffset(TableSpecification::VT_NAME, name);
   }
-  void add_columns(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpec>>> columns) {
-    fbb_.AddOffset(TableSpec::VT_COLUMNS, columns);
+  void add_columns(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpecification>>> columns) {
+    fbb_.AddOffset(TableSpecification::VT_COLUMNS, columns);
   }
   void add_rows(uint64_t rows) {
-    fbb_.AddElement<uint64_t>(TableSpec::VT_ROWS, rows, 0);
+    fbb_.AddElement<uint64_t>(TableSpecification::VT_ROWS, rows, 0);
   }
-  explicit TableSpecBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit TableSpecificationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<TableSpec> Finish() {
+  flatbuffers::Offset<TableSpecification> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<TableSpec>(end);
+    auto o = flatbuffers::Offset<TableSpecification>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<TableSpec> CreateTableSpec(
+inline flatbuffers::Offset<TableSpecification> CreateTableSpecification(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpec>>> columns = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpecification>>> columns = 0,
     uint64_t rows = 0) {
-  TableSpecBuilder builder_(_fbb);
+  TableSpecificationBuilder builder_(_fbb);
   builder_.add_rows(rows);
   builder_.add_columns(columns);
   builder_.add_name(name);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<TableSpec> CreateTableSpecDirect(
+inline flatbuffers::Offset<TableSpecification> CreateTableSpecificationDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    const std::vector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpec>> *columns = nullptr,
+    const std::vector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpecification>> *columns = nullptr,
     uint64_t rows = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
-  auto columns__ = columns ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpec>>(*columns) : 0;
-  return duckdb_webapi::proto::CreateTableSpec(
+  auto columns__ = columns ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpecification>>(*columns) : 0;
+  return duckdb_webapi::proto::CreateTableSpecification(
       _fbb,
       name__,
       columns__,
       rows);
 }
 
-flatbuffers::Offset<TableSpec> CreateTableSpec(flatbuffers::FlatBufferBuilder &_fbb, const TableSpecT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+flatbuffers::Offset<TableSpecification> CreateTableSpecification(flatbuffers::FlatBufferBuilder &_fbb, const TableSpecificationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-inline DataDistributionT *DataDistribution::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<duckdb_webapi::proto::DataDistributionT> _o = std::unique_ptr<duckdb_webapi::proto::DataDistributionT>(new DataDistributionT());
+inline GeneratorExpressionT *GeneratorExpression::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<duckdb_webapi::proto::GeneratorExpressionT> _o = std::unique_ptr<duckdb_webapi::proto::GeneratorExpressionT>(new GeneratorExpressionT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void DataDistribution::UnPackTo(DataDistributionT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void GeneratorExpression::UnPackTo(GeneratorExpressionT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = distribution_type(); _o->distribution_type = _e; }
+  { auto _e = expression_type(); _o->expression_type = _e; }
+  { auto _e = arguments(); if (_e) { _o->arguments.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->arguments[_i] = *_e->Get(_i); } } }
+  { auto _e = inputs(); if (_e) { _o->inputs.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->inputs[_i] = _e->Get(_i); } } }
 }
 
-inline flatbuffers::Offset<DataDistribution> DataDistribution::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DataDistributionT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateDataDistribution(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<GeneratorExpression> GeneratorExpression::Pack(flatbuffers::FlatBufferBuilder &_fbb, const GeneratorExpressionT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateGeneratorExpression(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<DataDistribution> CreateDataDistribution(flatbuffers::FlatBufferBuilder &_fbb, const DataDistributionT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<GeneratorExpression> CreateGeneratorExpression(flatbuffers::FlatBufferBuilder &_fbb, const GeneratorExpressionT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const DataDistributionT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _distribution_type = _o->distribution_type;
-  return duckdb_webapi::proto::CreateDataDistribution(
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const GeneratorExpressionT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _expression_type = _o->expression_type;
+  auto _arguments = _o->arguments.size() ? _fbb.CreateVectorOfStructs(_o->arguments) : 0;
+  auto _inputs = _o->inputs.size() ? _fbb.CreateVector(_o->inputs) : 0;
+  return duckdb_webapi::proto::CreateGeneratorExpression(
       _fbb,
-      _distribution_type);
+      _expression_type,
+      _arguments,
+      _inputs);
 }
 
-inline ColumnSpecT *ColumnSpec::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<duckdb_webapi::proto::ColumnSpecT> _o = std::unique_ptr<duckdb_webapi::proto::ColumnSpecT>(new ColumnSpecT());
+inline ColumnSpecificationT *ColumnSpecification::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<duckdb_webapi::proto::ColumnSpecificationT> _o = std::unique_ptr<duckdb_webapi::proto::ColumnSpecificationT>(new ColumnSpecificationT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void ColumnSpec::UnPackTo(ColumnSpecT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void ColumnSpecification::UnPackTo(ColumnSpecificationT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = _e->str(); }
   { auto _e = value_type(); if (_e) _o->value_type = std::unique_ptr<duckdb_webapi::proto::LogicalType>(new duckdb_webapi::proto::LogicalType(*_e)); }
-  { auto _e = value_distribution(); if (_e) _o->value_distribution = std::unique_ptr<duckdb_webapi::proto::DataDistributionT>(_e->UnPack(_resolver)); }
-  { auto _e = null_distribution(); if (_e) _o->null_distribution = std::unique_ptr<duckdb_webapi::proto::DataDistributionT>(_e->UnPack(_resolver)); }
+  { auto _e = value_generator(); if (_e) { _o->value_generator.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->value_generator[_i] = std::unique_ptr<duckdb_webapi::proto::GeneratorExpressionT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
-inline flatbuffers::Offset<ColumnSpec> ColumnSpec::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ColumnSpecT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateColumnSpec(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<ColumnSpecification> ColumnSpecification::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ColumnSpecificationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateColumnSpecification(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<ColumnSpec> CreateColumnSpec(flatbuffers::FlatBufferBuilder &_fbb, const ColumnSpecT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<ColumnSpecification> CreateColumnSpecification(flatbuffers::FlatBufferBuilder &_fbb, const ColumnSpecificationT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ColumnSpecT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ColumnSpecificationT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _value_type = _o->value_type ? _o->value_type.get() : 0;
-  auto _value_distribution = _o->value_distribution ? CreateDataDistribution(_fbb, _o->value_distribution.get(), _rehasher) : 0;
-  auto _null_distribution = _o->null_distribution ? CreateDataDistribution(_fbb, _o->null_distribution.get(), _rehasher) : 0;
-  return duckdb_webapi::proto::CreateColumnSpec(
+  auto _value_generator = _o->value_generator.size() ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> (_o->value_generator.size(), [](size_t i, _VectorArgs *__va) { return CreateGeneratorExpression(*__va->__fbb, __va->__o->value_generator[i].get(), __va->__rehasher); }, &_va ) : 0;
+  return duckdb_webapi::proto::CreateColumnSpecification(
       _fbb,
       _name,
       _value_type,
-      _value_distribution,
-      _null_distribution);
+      _value_generator);
 }
 
-inline TableSpecT *TableSpec::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<duckdb_webapi::proto::TableSpecT> _o = std::unique_ptr<duckdb_webapi::proto::TableSpecT>(new TableSpecT());
+inline TableSpecificationT *TableSpecification::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<duckdb_webapi::proto::TableSpecificationT> _o = std::unique_ptr<duckdb_webapi::proto::TableSpecificationT>(new TableSpecificationT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void TableSpec::UnPackTo(TableSpecT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void TableSpecification::UnPackTo(TableSpecificationT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = _e->str(); }
-  { auto _e = columns(); if (_e) { _o->columns.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->columns[_i] = std::unique_ptr<duckdb_webapi::proto::ColumnSpecT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = columns(); if (_e) { _o->columns.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->columns[_i] = std::unique_ptr<duckdb_webapi::proto::ColumnSpecificationT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = rows(); _o->rows = _e; }
 }
 
-inline flatbuffers::Offset<TableSpec> TableSpec::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TableSpecT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateTableSpec(_fbb, _o, _rehasher);
+inline flatbuffers::Offset<TableSpecification> TableSpecification::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TableSpecificationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTableSpecification(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<TableSpec> CreateTableSpec(flatbuffers::FlatBufferBuilder &_fbb, const TableSpecT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline flatbuffers::Offset<TableSpecification> CreateTableSpecification(flatbuffers::FlatBufferBuilder &_fbb, const TableSpecificationT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TableSpecT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TableSpecificationT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
-  auto _columns = _o->columns.size() ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpec>> (_o->columns.size(), [](size_t i, _VectorArgs *__va) { return CreateColumnSpec(*__va->__fbb, __va->__o->columns[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _columns = _o->columns.size() ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::ColumnSpecification>> (_o->columns.size(), [](size_t i, _VectorArgs *__va) { return CreateColumnSpecification(*__va->__fbb, __va->__o->columns[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _rows = _o->rows;
-  return duckdb_webapi::proto::CreateTableSpec(
+  return duckdb_webapi::proto::CreateTableSpecification(
       _fbb,
       _name,
       _columns,
       _rows);
 }
 
-inline const flatbuffers::TypeTable *DataDistributionTypeTypeTable() {
+inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -553,82 +812,199 @@ inline const flatbuffers::TypeTable *DataDistributionTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    duckdb_webapi::proto::DataDistributionTypeTypeTable
+    duckdb_webapi::proto::GeneratorExpressionTypeTypeTable
   };
   static const char * const names[] = {
-    "UNIFORM",
-    "BERNOULLI",
-    "BINOMIAL",
-    "GEOMETRIC",
-    "NEGATIVE_BINOMIAL",
-    "POISSON",
-    "EXPONENTIAL",
-    "GAMMA",
-    "WEIBULL",
-    "EXTREME_VALUE",
-    "NORMAL",
-    "LOG_NORMAL",
-    "CHI_SQUARED",
-    "CAUCHY",
-    "FISHER_F",
-    "STUDENT_T",
-    "DISCRETE",
-    "PIECEWISE_CONSTANT",
-    "PIECEWISE_LINEAR"
+    "CONSTANT_INT",
+    "CONSTANT_FLOAT",
+    "COLUMN_REF",
+    "RANDOM_UNIFORM",
+    "RANDOM_BERNOULLI",
+    "RANDOM_BINOMIAL",
+    "RANDOM_GEOMETRIC",
+    "RANDOM_NEGATIVE_BINOMIAL",
+    "RANDOM_POISSON",
+    "RANDOM_EXPONENTIAL",
+    "RANDOM_GAMMA",
+    "RANDOM_WEIBULL",
+    "RANDOM_EXTREME_VALUE",
+    "RANDOM_NORMAL",
+    "RANDOM_LOG_NORMAL",
+    "RANDOM_CHI_SQUARED",
+    "RANDOM_CAUCHY",
+    "RANDOM_FISHER_F",
+    "RANDOM_STUDENT_T",
+    "RANDOM_PIECEWISE_CONSTANT",
+    "RANDOM_PIECEWISE_LINEAR",
+    "DERIVE_STRING",
+    "INT_TO_FLOAT",
+    "INT_TO_DECIMAL",
+    "FLOAT_TO_INT",
+    "NULL_IF",
+    "COMPARE_LT",
+    "COMPARE_LEQ",
+    "COMPARE_GT",
+    "COMPARE_GEQ"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 19, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 30, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
-inline const flatbuffers::TypeTable *DataDistributionTypeTable() {
+inline const flatbuffers::TypeTable *GeneratorArgumentTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    duckdb_webapi::proto::DataDistributionTypeTypeTable
+    duckdb_webapi::proto::GeneratorArgumentTypeTypeTable
   };
   static const char * const names[] = {
-    "distribution_type"
+    "CONSTANT_INT_VALUE",
+    "CONSTANT_FLOAT_VALUE",
+    "COLUMN_REF_INDEX",
+    "RANDOM_UNIFORM_FLOAT_LB",
+    "RANDOM_UNIFORM_FLOAT_UB",
+    "RANDOM_UNIFORM_INT_LB",
+    "RANDOM_UNIFORM_INT_UB",
+    "RANDOM_BERNOULLI_PROBABILITY",
+    "RANDOM_BINOMIAL_UB",
+    "RANDOM_BINOMIAL_PROBABILITY",
+    "RANDOM_NEGATIVE_BINOMIAL_K",
+    "RANDOM_NEGATIVE_BINOMIAL_P",
+    "RANDOM_POISSON_MEAN",
+    "RANDOM_EXPONENTIAL_LAMBDA",
+    "RANDOM_GAMMA_ALPHA",
+    "RANDOM_GAMMA_BETA",
+    "RANDOM_WEIBULL_A",
+    "RANDOM_WEIBULL_B",
+    "RANDOM_EXTREME_VALUE_A",
+    "RANDOM_EXTREME_VALUE_B",
+    "RANDOM_NORMAL_MEAN",
+    "RANDOM_NORMAL_STDDEV",
+    "RANDOM_LOGNORMAL_M",
+    "RANDOM_LOGNORMAL_S",
+    "RANDOM_CHISQUARED_N",
+    "RANDOM_CAUCHY_A",
+    "RANDOM_CAUCHY_B",
+    "RANDOM_FISHER_F",
+    "RANDOM_FISHER_N",
+    "RANDOM_PIECEWISE_CONSTANT_INTERVAL",
+    "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
+    "RANDOM_PIECEWISE_LINEAR_INTERVAL",
+    "RANDOM_PIECEWISE_LINEAR_DENSITY",
+    "INT_TO_DECIMAL_SCALE"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 1, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 34, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
-inline const flatbuffers::TypeTable *ColumnSpecTypeTable() {
+inline const flatbuffers::TypeTable *GeneratorArgumentTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_LONG, 0, -1 },
+    { flatbuffers::ET_DOUBLE, 0, -1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    duckdb_webapi::proto::GeneratorArgumentTypeTypeTable
+  };
+  static const int64_t values[] = { 0, 8, 16, 24 };
+  static const char * const names[] = {
+    "argument_type",
+    "value_int",
+    "value_float"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_STRUCT, 3, type_codes, type_refs, nullptr, values, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *GeneratorExpressionTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 1, 1 },
+    { flatbuffers::ET_UINT, 1, -1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    duckdb_webapi::proto::GeneratorExpressionTypeTypeTable,
+    duckdb_webapi::proto::GeneratorArgumentTypeTable
+  };
+  static const char * const names[] = {
+    "expression_type",
+    "arguments",
+    "inputs"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *ColumnSpecificationTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_STRING, 0, -1 },
     { flatbuffers::ET_SEQUENCE, 0, 0 },
-    { flatbuffers::ET_SEQUENCE, 0, 1 },
-    { flatbuffers::ET_SEQUENCE, 0, 1 }
+    { flatbuffers::ET_SEQUENCE, 1, 1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     duckdb_webapi::proto::LogicalTypeTypeTable,
-    duckdb_webapi::proto::DataDistributionTypeTable
+    duckdb_webapi::proto::GeneratorExpressionTypeTable
   };
   static const char * const names[] = {
     "name",
     "value_type",
-    "value_distribution",
-    "null_distribution"
+    "value_generator"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 4, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
-inline const flatbuffers::TypeTable *TableSpecTypeTable() {
+inline const flatbuffers::TypeTable *TableSpecificationTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_STRING, 0, -1 },
     { flatbuffers::ET_SEQUENCE, 1, 0 },
     { flatbuffers::ET_ULONG, 0, -1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    duckdb_webapi::proto::ColumnSpecTypeTable
+    duckdb_webapi::proto::ColumnSpecificationTypeTable
   };
   static const char * const names[] = {
     "name",

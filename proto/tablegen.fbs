@@ -4,49 +4,96 @@ include "value.fbs";
 
 namespace duckdb_webapi.proto;
 
-/// A data distribution type
-enum DataDistributionType: uint8 {
-    UNIFORM = 0,
-
-    BERNOULLI = 1,
-    BINOMIAL = 2,
-    GEOMETRIC = 3,
-    NEGATIVE_BINOMIAL = 4,
-
-    POISSON = 5,
-    EXPONENTIAL = 6,
-    GAMMA = 7,
-    WEIBULL = 8,
-    EXTREME_VALUE = 9,
-
-    NORMAL = 10,
-    LOG_NORMAL = 11,
-    CHI_SQUARED = 12,
-    CAUCHY = 13,
-    FISHER_F = 14,
-    STUDENT_T = 15,
-
-    DISCRETE = 16,
-    PIECEWISE_CONSTANT = 17,
-    PIECEWISE_LINEAR = 18
+enum GeneratorExpressionType: uint8 {
+    CONSTANT_INT = 0,
+    CONSTANT_FLOAT,
+    COLUMN_REF,
+    RANDOM_UNIFORM,
+    RANDOM_BERNOULLI,
+    RANDOM_BINOMIAL,
+    RANDOM_GEOMETRIC,
+    RANDOM_NEGATIVE_BINOMIAL,
+    RANDOM_POISSON,
+    RANDOM_EXPONENTIAL,
+    RANDOM_GAMMA,
+    RANDOM_WEIBULL,
+    RANDOM_EXTREME_VALUE,
+    RANDOM_NORMAL,
+    RANDOM_LOG_NORMAL,
+    RANDOM_CHI_SQUARED,
+    RANDOM_CAUCHY,
+    RANDOM_FISHER_F,
+    RANDOM_STUDENT_T,
+    RANDOM_PIECEWISE_CONSTANT,
+    RANDOM_PIECEWISE_LINEAR,
+    DERIVE_STRING,
+    INT_TO_FLOAT,
+    INT_TO_DECIMAL,
+    FLOAT_TO_INT,
+    NULL_IF,
+    COMPARE_LT,
+    COMPARE_LEQ,
+    COMPARE_GT,
+    COMPARE_GEQ,
 }
 
-/// A data distribution
-table DataDistribution {
-    distribution_type: DataDistributionType;
+enum GeneratorArgumentType: uint8 {
+    CONSTANT_INT_VALUE = 0,
+    CONSTANT_FLOAT_VALUE,
+    COLUMN_REF_INDEX,
+    RANDOM_UNIFORM_FLOAT_LB,
+    RANDOM_UNIFORM_FLOAT_UB,
+    RANDOM_UNIFORM_INT_LB,
+    RANDOM_UNIFORM_INT_UB,
+    RANDOM_BERNOULLI_PROBABILITY,
+    RANDOM_BINOMIAL_UB,
+    RANDOM_BINOMIAL_PROBABILITY,
+    RANDOM_NEGATIVE_BINOMIAL_K,
+    RANDOM_NEGATIVE_BINOMIAL_P,
+    RANDOM_POISSON_MEAN,
+    RANDOM_EXPONENTIAL_LAMBDA,
+    RANDOM_GAMMA_ALPHA,
+    RANDOM_GAMMA_BETA,
+    RANDOM_WEIBULL_A,
+    RANDOM_WEIBULL_B,
+    RANDOM_EXTREME_VALUE_A,
+    RANDOM_EXTREME_VALUE_B,
+    RANDOM_NORMAL_MEAN,
+    RANDOM_NORMAL_STDDEV,
+    RANDOM_LOGNORMAL_M,
+    RANDOM_LOGNORMAL_S,
+    RANDOM_CHISQUARED_N,
+    RANDOM_CAUCHY_A,
+    RANDOM_CAUCHY_B,
+    RANDOM_FISHER_F,
+    RANDOM_FISHER_N,
+    RANDOM_PIECEWISE_CONSTANT_INTERVAL,
+    RANDOM_PIECEWISE_CONSTANT_WEIGHT,
+    RANDOM_PIECEWISE_LINEAR_INTERVAL,
+    RANDOM_PIECEWISE_LINEAR_DENSITY,
+    INT_TO_DECIMAL_SCALE
 }
 
-/// A column specification
-table ColumnSpec {
+struct GeneratorArgument {
+    argument_type: GeneratorArgumentType;
+    value_int: int64;
+    value_float: double;
+}
+
+table GeneratorExpression {
+    expression_type: GeneratorExpressionType;
+    arguments: [GeneratorArgument];
+    inputs: [uint32];
+}
+
+table ColumnSpecification {
     name: string;
     value_type: LogicalType;
-    value_distribution: DataDistribution;
-    null_distribution: DataDistribution;
+    value_generator: [GeneratorExpression];
 }
 
-/// A table specification
-table TableSpec {
+table TableSpecification {
     name: string;
-    columns: [ColumnSpec];
+    columns: [ColumnSpecification];
     rows: uint64;
 }

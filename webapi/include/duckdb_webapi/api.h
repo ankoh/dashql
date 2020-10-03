@@ -151,7 +151,7 @@ namespace duckdb_webapi {
             /// Format a query plan
             void formatQueryPlan(void* query_plan);
             /// Generate a table
-            void generateTable(proto::TableSpec& spec);
+            void generateTable(proto::TableSpecification& spec);
         };
 
     protected:

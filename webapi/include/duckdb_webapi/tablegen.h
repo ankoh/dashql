@@ -10,7 +10,7 @@
 namespace duckdb_webapi {
 
 /// Generate table
-void generateTable(duckdb::Connection& conn, proto::TableSpec& spec);
+void generateTable(duckdb::Connection& conn, proto::TableSpecification& spec);
 
 } // namespace duckdb_webapi
 

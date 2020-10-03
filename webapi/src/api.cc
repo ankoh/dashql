@@ -204,7 +204,7 @@ void WebAPI::Connection::formatQueryPlan(void* query_plan) {
 }
 
 /// Generate a table
-void WebAPI::Connection::generateTable(proto::TableSpec& spec) {
+void WebAPI::Connection::generateTable(proto::TableSpecification& spec) {
     duckdb_webapi::generateTable(connection, spec);
 }
 

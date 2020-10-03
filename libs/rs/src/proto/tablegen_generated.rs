@@ -28,37 +28,47 @@ pub mod proto {
   extern crate flatbuffers;
   use self::flatbuffers::EndianScalar;
 
-/// A data distribution type
 #[allow(non_camel_case_types)]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum DataDistributionType {
-  UNIFORM = 0,
-  BERNOULLI = 1,
-  BINOMIAL = 2,
-  GEOMETRIC = 3,
-  NEGATIVE_BINOMIAL = 4,
-  POISSON = 5,
-  EXPONENTIAL = 6,
-  GAMMA = 7,
-  WEIBULL = 8,
-  EXTREME_VALUE = 9,
-  NORMAL = 10,
-  LOG_NORMAL = 11,
-  CHI_SQUARED = 12,
-  CAUCHY = 13,
-  FISHER_F = 14,
-  STUDENT_T = 15,
-  DISCRETE = 16,
-  PIECEWISE_CONSTANT = 17,
-  PIECEWISE_LINEAR = 18,
+pub enum GeneratorExpressionType {
+  CONSTANT_INT = 0,
+  CONSTANT_FLOAT = 1,
+  COLUMN_REF = 2,
+  RANDOM_UNIFORM = 3,
+  RANDOM_BERNOULLI = 4,
+  RANDOM_BINOMIAL = 5,
+  RANDOM_GEOMETRIC = 6,
+  RANDOM_NEGATIVE_BINOMIAL = 7,
+  RANDOM_POISSON = 8,
+  RANDOM_EXPONENTIAL = 9,
+  RANDOM_GAMMA = 10,
+  RANDOM_WEIBULL = 11,
+  RANDOM_EXTREME_VALUE = 12,
+  RANDOM_NORMAL = 13,
+  RANDOM_LOG_NORMAL = 14,
+  RANDOM_CHI_SQUARED = 15,
+  RANDOM_CAUCHY = 16,
+  RANDOM_FISHER_F = 17,
+  RANDOM_STUDENT_T = 18,
+  RANDOM_PIECEWISE_CONSTANT = 19,
+  RANDOM_PIECEWISE_LINEAR = 20,
+  DERIVE_STRING = 21,
+  INT_TO_FLOAT = 22,
+  INT_TO_DECIMAL = 23,
+  FLOAT_TO_INT = 24,
+  NULL_IF = 25,
+  COMPARE_LT = 26,
+  COMPARE_LEQ = 27,
+  COMPARE_GT = 28,
+  COMPARE_GEQ = 29,
 
 }
 
-pub const ENUM_MIN_DATA_DISTRIBUTION_TYPE: u8 = 0;
-pub const ENUM_MAX_DATA_DISTRIBUTION_TYPE: u8 = 18;
+pub const ENUM_MIN_GENERATOR_EXPRESSION_TYPE: u8 = 0;
+pub const ENUM_MAX_GENERATOR_EXPRESSION_TYPE: u8 = 29;
 
-impl<'a> flatbuffers::Follow<'a> for DataDistributionType {
+impl<'a> flatbuffers::Follow<'a> for GeneratorExpressionType {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
@@ -66,193 +76,464 @@ impl<'a> flatbuffers::Follow<'a> for DataDistributionType {
   }
 }
 
-impl flatbuffers::EndianScalar for DataDistributionType {
+impl flatbuffers::EndianScalar for GeneratorExpressionType {
   #[inline]
   fn to_little_endian(self) -> Self {
     let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const DataDistributionType;
+    let p = &n as *const u8 as *const GeneratorExpressionType;
     unsafe { *p }
   }
   #[inline]
   fn from_little_endian(self) -> Self {
     let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const DataDistributionType;
+    let p = &n as *const u8 as *const GeneratorExpressionType;
     unsafe { *p }
   }
 }
 
-impl flatbuffers::Push for DataDistributionType {
-    type Output = DataDistributionType;
+impl flatbuffers::Push for GeneratorExpressionType {
+    type Output = GeneratorExpressionType;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<DataDistributionType>(dst, *self);
+        flatbuffers::emplace_scalar::<GeneratorExpressionType>(dst, *self);
     }
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_DATA_DISTRIBUTION_TYPE: [DataDistributionType; 19] = [
-  DataDistributionType::UNIFORM,
-  DataDistributionType::BERNOULLI,
-  DataDistributionType::BINOMIAL,
-  DataDistributionType::GEOMETRIC,
-  DataDistributionType::NEGATIVE_BINOMIAL,
-  DataDistributionType::POISSON,
-  DataDistributionType::EXPONENTIAL,
-  DataDistributionType::GAMMA,
-  DataDistributionType::WEIBULL,
-  DataDistributionType::EXTREME_VALUE,
-  DataDistributionType::NORMAL,
-  DataDistributionType::LOG_NORMAL,
-  DataDistributionType::CHI_SQUARED,
-  DataDistributionType::CAUCHY,
-  DataDistributionType::FISHER_F,
-  DataDistributionType::STUDENT_T,
-  DataDistributionType::DISCRETE,
-  DataDistributionType::PIECEWISE_CONSTANT,
-  DataDistributionType::PIECEWISE_LINEAR
+pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 30] = [
+  GeneratorExpressionType::CONSTANT_INT,
+  GeneratorExpressionType::CONSTANT_FLOAT,
+  GeneratorExpressionType::COLUMN_REF,
+  GeneratorExpressionType::RANDOM_UNIFORM,
+  GeneratorExpressionType::RANDOM_BERNOULLI,
+  GeneratorExpressionType::RANDOM_BINOMIAL,
+  GeneratorExpressionType::RANDOM_GEOMETRIC,
+  GeneratorExpressionType::RANDOM_NEGATIVE_BINOMIAL,
+  GeneratorExpressionType::RANDOM_POISSON,
+  GeneratorExpressionType::RANDOM_EXPONENTIAL,
+  GeneratorExpressionType::RANDOM_GAMMA,
+  GeneratorExpressionType::RANDOM_WEIBULL,
+  GeneratorExpressionType::RANDOM_EXTREME_VALUE,
+  GeneratorExpressionType::RANDOM_NORMAL,
+  GeneratorExpressionType::RANDOM_LOG_NORMAL,
+  GeneratorExpressionType::RANDOM_CHI_SQUARED,
+  GeneratorExpressionType::RANDOM_CAUCHY,
+  GeneratorExpressionType::RANDOM_FISHER_F,
+  GeneratorExpressionType::RANDOM_STUDENT_T,
+  GeneratorExpressionType::RANDOM_PIECEWISE_CONSTANT,
+  GeneratorExpressionType::RANDOM_PIECEWISE_LINEAR,
+  GeneratorExpressionType::DERIVE_STRING,
+  GeneratorExpressionType::INT_TO_FLOAT,
+  GeneratorExpressionType::INT_TO_DECIMAL,
+  GeneratorExpressionType::FLOAT_TO_INT,
+  GeneratorExpressionType::NULL_IF,
+  GeneratorExpressionType::COMPARE_LT,
+  GeneratorExpressionType::COMPARE_LEQ,
+  GeneratorExpressionType::COMPARE_GT,
+  GeneratorExpressionType::COMPARE_GEQ
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_DATA_DISTRIBUTION_TYPE: [&str; 19] = [
-    "UNIFORM",
-    "BERNOULLI",
-    "BINOMIAL",
-    "GEOMETRIC",
-    "NEGATIVE_BINOMIAL",
-    "POISSON",
-    "EXPONENTIAL",
-    "GAMMA",
-    "WEIBULL",
-    "EXTREME_VALUE",
-    "NORMAL",
-    "LOG_NORMAL",
-    "CHI_SQUARED",
-    "CAUCHY",
-    "FISHER_F",
-    "STUDENT_T",
-    "DISCRETE",
-    "PIECEWISE_CONSTANT",
-    "PIECEWISE_LINEAR"
+pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 30] = [
+    "CONSTANT_INT",
+    "CONSTANT_FLOAT",
+    "COLUMN_REF",
+    "RANDOM_UNIFORM",
+    "RANDOM_BERNOULLI",
+    "RANDOM_BINOMIAL",
+    "RANDOM_GEOMETRIC",
+    "RANDOM_NEGATIVE_BINOMIAL",
+    "RANDOM_POISSON",
+    "RANDOM_EXPONENTIAL",
+    "RANDOM_GAMMA",
+    "RANDOM_WEIBULL",
+    "RANDOM_EXTREME_VALUE",
+    "RANDOM_NORMAL",
+    "RANDOM_LOG_NORMAL",
+    "RANDOM_CHI_SQUARED",
+    "RANDOM_CAUCHY",
+    "RANDOM_FISHER_F",
+    "RANDOM_STUDENT_T",
+    "RANDOM_PIECEWISE_CONSTANT",
+    "RANDOM_PIECEWISE_LINEAR",
+    "DERIVE_STRING",
+    "INT_TO_FLOAT",
+    "INT_TO_DECIMAL",
+    "FLOAT_TO_INT",
+    "NULL_IF",
+    "COMPARE_LT",
+    "COMPARE_LEQ",
+    "COMPARE_GT",
+    "COMPARE_GEQ"
 ];
 
-pub fn enum_name_data_distribution_type(e: DataDistributionType) -> &'static str {
+pub fn enum_name_generator_expression_type(e: GeneratorExpressionType) -> &'static str {
   let index = e as u8;
-  ENUM_NAMES_DATA_DISTRIBUTION_TYPE[index as usize]
+  ENUM_NAMES_GENERATOR_EXPRESSION_TYPE[index as usize]
 }
 
-pub enum DataDistributionOffset {}
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum GeneratorArgumentType {
+  CONSTANT_INT_VALUE = 0,
+  CONSTANT_FLOAT_VALUE = 1,
+  COLUMN_REF_INDEX = 2,
+  RANDOM_UNIFORM_FLOAT_LB = 3,
+  RANDOM_UNIFORM_FLOAT_UB = 4,
+  RANDOM_UNIFORM_INT_LB = 5,
+  RANDOM_UNIFORM_INT_UB = 6,
+  RANDOM_BERNOULLI_PROBABILITY = 7,
+  RANDOM_BINOMIAL_UB = 8,
+  RANDOM_BINOMIAL_PROBABILITY = 9,
+  RANDOM_NEGATIVE_BINOMIAL_K = 10,
+  RANDOM_NEGATIVE_BINOMIAL_P = 11,
+  RANDOM_POISSON_MEAN = 12,
+  RANDOM_EXPONENTIAL_LAMBDA = 13,
+  RANDOM_GAMMA_ALPHA = 14,
+  RANDOM_GAMMA_BETA = 15,
+  RANDOM_WEIBULL_A = 16,
+  RANDOM_WEIBULL_B = 17,
+  RANDOM_EXTREME_VALUE_A = 18,
+  RANDOM_EXTREME_VALUE_B = 19,
+  RANDOM_NORMAL_MEAN = 20,
+  RANDOM_NORMAL_STDDEV = 21,
+  RANDOM_LOGNORMAL_M = 22,
+  RANDOM_LOGNORMAL_S = 23,
+  RANDOM_CHISQUARED_N = 24,
+  RANDOM_CAUCHY_A = 25,
+  RANDOM_CAUCHY_B = 26,
+  RANDOM_FISHER_F = 27,
+  RANDOM_FISHER_N = 28,
+  RANDOM_PIECEWISE_CONSTANT_INTERVAL = 29,
+  RANDOM_PIECEWISE_CONSTANT_WEIGHT = 30,
+  RANDOM_PIECEWISE_LINEAR_INTERVAL = 31,
+  RANDOM_PIECEWISE_LINEAR_DENSITY = 32,
+  INT_TO_DECIMAL_SCALE = 33,
+
+}
+
+pub const ENUM_MIN_GENERATOR_ARGUMENT_TYPE: u8 = 0;
+pub const ENUM_MAX_GENERATOR_ARGUMENT_TYPE: u8 = 33;
+
+impl<'a> flatbuffers::Follow<'a> for GeneratorArgumentType {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::read_scalar_at::<Self>(buf, loc)
+  }
+}
+
+impl flatbuffers::EndianScalar for GeneratorArgumentType {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let n = u8::to_le(self as u8);
+    let p = &n as *const u8 as *const GeneratorArgumentType;
+    unsafe { *p }
+  }
+  #[inline]
+  fn from_little_endian(self) -> Self {
+    let n = u8::from_le(self as u8);
+    let p = &n as *const u8 as *const GeneratorArgumentType;
+    unsafe { *p }
+  }
+}
+
+impl flatbuffers::Push for GeneratorArgumentType {
+    type Output = GeneratorArgumentType;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        flatbuffers::emplace_scalar::<GeneratorArgumentType>(dst, *self);
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 34] = [
+  GeneratorArgumentType::CONSTANT_INT_VALUE,
+  GeneratorArgumentType::CONSTANT_FLOAT_VALUE,
+  GeneratorArgumentType::COLUMN_REF_INDEX,
+  GeneratorArgumentType::RANDOM_UNIFORM_FLOAT_LB,
+  GeneratorArgumentType::RANDOM_UNIFORM_FLOAT_UB,
+  GeneratorArgumentType::RANDOM_UNIFORM_INT_LB,
+  GeneratorArgumentType::RANDOM_UNIFORM_INT_UB,
+  GeneratorArgumentType::RANDOM_BERNOULLI_PROBABILITY,
+  GeneratorArgumentType::RANDOM_BINOMIAL_UB,
+  GeneratorArgumentType::RANDOM_BINOMIAL_PROBABILITY,
+  GeneratorArgumentType::RANDOM_NEGATIVE_BINOMIAL_K,
+  GeneratorArgumentType::RANDOM_NEGATIVE_BINOMIAL_P,
+  GeneratorArgumentType::RANDOM_POISSON_MEAN,
+  GeneratorArgumentType::RANDOM_EXPONENTIAL_LAMBDA,
+  GeneratorArgumentType::RANDOM_GAMMA_ALPHA,
+  GeneratorArgumentType::RANDOM_GAMMA_BETA,
+  GeneratorArgumentType::RANDOM_WEIBULL_A,
+  GeneratorArgumentType::RANDOM_WEIBULL_B,
+  GeneratorArgumentType::RANDOM_EXTREME_VALUE_A,
+  GeneratorArgumentType::RANDOM_EXTREME_VALUE_B,
+  GeneratorArgumentType::RANDOM_NORMAL_MEAN,
+  GeneratorArgumentType::RANDOM_NORMAL_STDDEV,
+  GeneratorArgumentType::RANDOM_LOGNORMAL_M,
+  GeneratorArgumentType::RANDOM_LOGNORMAL_S,
+  GeneratorArgumentType::RANDOM_CHISQUARED_N,
+  GeneratorArgumentType::RANDOM_CAUCHY_A,
+  GeneratorArgumentType::RANDOM_CAUCHY_B,
+  GeneratorArgumentType::RANDOM_FISHER_F,
+  GeneratorArgumentType::RANDOM_FISHER_N,
+  GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_INTERVAL,
+  GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_WEIGHT,
+  GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_INTERVAL,
+  GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_DENSITY,
+  GeneratorArgumentType::INT_TO_DECIMAL_SCALE
+];
+
+#[allow(non_camel_case_types)]
+pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 34] = [
+    "CONSTANT_INT_VALUE",
+    "CONSTANT_FLOAT_VALUE",
+    "COLUMN_REF_INDEX",
+    "RANDOM_UNIFORM_FLOAT_LB",
+    "RANDOM_UNIFORM_FLOAT_UB",
+    "RANDOM_UNIFORM_INT_LB",
+    "RANDOM_UNIFORM_INT_UB",
+    "RANDOM_BERNOULLI_PROBABILITY",
+    "RANDOM_BINOMIAL_UB",
+    "RANDOM_BINOMIAL_PROBABILITY",
+    "RANDOM_NEGATIVE_BINOMIAL_K",
+    "RANDOM_NEGATIVE_BINOMIAL_P",
+    "RANDOM_POISSON_MEAN",
+    "RANDOM_EXPONENTIAL_LAMBDA",
+    "RANDOM_GAMMA_ALPHA",
+    "RANDOM_GAMMA_BETA",
+    "RANDOM_WEIBULL_A",
+    "RANDOM_WEIBULL_B",
+    "RANDOM_EXTREME_VALUE_A",
+    "RANDOM_EXTREME_VALUE_B",
+    "RANDOM_NORMAL_MEAN",
+    "RANDOM_NORMAL_STDDEV",
+    "RANDOM_LOGNORMAL_M",
+    "RANDOM_LOGNORMAL_S",
+    "RANDOM_CHISQUARED_N",
+    "RANDOM_CAUCHY_A",
+    "RANDOM_CAUCHY_B",
+    "RANDOM_FISHER_F",
+    "RANDOM_FISHER_N",
+    "RANDOM_PIECEWISE_CONSTANT_INTERVAL",
+    "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
+    "RANDOM_PIECEWISE_LINEAR_INTERVAL",
+    "RANDOM_PIECEWISE_LINEAR_DENSITY",
+    "INT_TO_DECIMAL_SCALE"
+];
+
+pub fn enum_name_generator_argument_type(e: GeneratorArgumentType) -> &'static str {
+  let index = e as u8;
+  ENUM_NAMES_GENERATOR_ARGUMENT_TYPE[index as usize]
+}
+
+// struct GeneratorArgument, aligned to 8
+#[repr(C, align(8))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GeneratorArgument {
+  argument_type_: GeneratorArgumentType,
+  padding0__: u8,  padding1__: u16,  padding2__: u32,
+  value_int_: i64,
+  value_float_: f64,
+} // pub struct GeneratorArgument
+impl flatbuffers::SafeSliceAccess for GeneratorArgument {}
+impl<'a> flatbuffers::Follow<'a> for GeneratorArgument {
+  type Inner = &'a GeneratorArgument;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a GeneratorArgument>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a GeneratorArgument {
+  type Inner = &'a GeneratorArgument;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<GeneratorArgument>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for GeneratorArgument {
+    type Output = GeneratorArgument;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const GeneratorArgument as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b GeneratorArgument {
+    type Output = GeneratorArgument;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const GeneratorArgument as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl GeneratorArgument {
+  pub fn new(_argument_type: GeneratorArgumentType, _value_int: i64, _value_float: f64) -> Self {
+    GeneratorArgument {
+      argument_type_: _argument_type.to_little_endian(),
+      value_int_: _value_int.to_little_endian(),
+      value_float_: _value_float.to_little_endian(),
+
+      padding0__: 0,padding1__: 0,padding2__: 0,
+    }
+  }
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "duckdb_webapi.proto.GeneratorArgument"
+    }
+
+  pub fn argument_type(&self) -> GeneratorArgumentType {
+    self.argument_type_.from_little_endian()
+  }
+  pub fn value_int(&self) -> i64 {
+    self.value_int_.from_little_endian()
+  }
+  pub fn value_float(&self) -> f64 {
+    self.value_float_.from_little_endian()
+  }
+}
+
+pub enum GeneratorExpressionOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
-/// A data distribution
-pub struct DataDistribution<'a> {
+pub struct GeneratorExpression<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for DataDistribution<'a> {
-    type Inner = DataDistribution<'a>;
+impl<'a> flatbuffers::Follow<'a> for GeneratorExpression<'a> {
+    type Inner = GeneratorExpression<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
         Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
-impl<'a> DataDistribution<'a> {
+impl<'a> GeneratorExpression<'a> {
     pub const fn get_fully_qualified_name() -> &'static str {
-        "duckdb_webapi.proto.DataDistribution"
+        "duckdb_webapi.proto.GeneratorExpression"
     }
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        DataDistribution {
+        GeneratorExpression {
             _tab: table,
         }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        args: &'args DataDistributionArgs) -> flatbuffers::WIPOffset<DataDistribution<'bldr>> {
-      let mut builder = DataDistributionBuilder::new(_fbb);
-      builder.add_distribution_type(args.distribution_type);
+        args: &'args GeneratorExpressionArgs<'args>) -> flatbuffers::WIPOffset<GeneratorExpression<'bldr>> {
+      let mut builder = GeneratorExpressionBuilder::new(_fbb);
+      if let Some(x) = args.inputs { builder.add_inputs(x); }
+      if let Some(x) = args.arguments { builder.add_arguments(x); }
+      builder.add_expression_type(args.expression_type);
       builder.finish()
     }
 
-    pub const VT_DISTRIBUTION_TYPE: flatbuffers::VOffsetT = 4;
+    pub const VT_EXPRESSION_TYPE: flatbuffers::VOffsetT = 4;
+    pub const VT_ARGUMENTS: flatbuffers::VOffsetT = 6;
+    pub const VT_INPUTS: flatbuffers::VOffsetT = 8;
 
   #[inline]
-  pub fn distribution_type(&self) -> DataDistributionType {
-    self._tab.get::<DataDistributionType>(DataDistribution::VT_DISTRIBUTION_TYPE, Some(DataDistributionType::UNIFORM)).unwrap()
+  pub fn expression_type(&self) -> GeneratorExpressionType {
+    self._tab.get::<GeneratorExpressionType>(GeneratorExpression::VT_EXPRESSION_TYPE, Some(GeneratorExpressionType::CONSTANT_INT)).unwrap()
+  }
+  #[inline]
+  pub fn arguments(&self) -> Option<&'a [GeneratorArgument]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<GeneratorArgument>>>(GeneratorExpression::VT_ARGUMENTS, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn inputs(&self) -> Option<flatbuffers::Vector<'a, u32>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u32>>>(GeneratorExpression::VT_INPUTS, None)
   }
 }
 
-pub struct DataDistributionArgs {
-    pub distribution_type: DataDistributionType,
+pub struct GeneratorExpressionArgs<'a> {
+    pub expression_type: GeneratorExpressionType,
+    pub arguments: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, GeneratorArgument>>>,
+    pub inputs: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u32>>>,
 }
-impl<'a> Default for DataDistributionArgs {
+impl<'a> Default for GeneratorExpressionArgs<'a> {
     #[inline]
     fn default() -> Self {
-        DataDistributionArgs {
-            distribution_type: DataDistributionType::UNIFORM,
+        GeneratorExpressionArgs {
+            expression_type: GeneratorExpressionType::CONSTANT_INT,
+            arguments: None,
+            inputs: None,
         }
     }
 }
-pub struct DataDistributionBuilder<'a: 'b, 'b> {
+pub struct GeneratorExpressionBuilder<'a: 'b, 'b> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> DataDistributionBuilder<'a, 'b> {
+impl<'a: 'b, 'b> GeneratorExpressionBuilder<'a, 'b> {
   #[inline]
-  pub fn add_distribution_type(&mut self, distribution_type: DataDistributionType) {
-    self.fbb_.push_slot::<DataDistributionType>(DataDistribution::VT_DISTRIBUTION_TYPE, distribution_type, DataDistributionType::UNIFORM);
+  pub fn add_expression_type(&mut self, expression_type: GeneratorExpressionType) {
+    self.fbb_.push_slot::<GeneratorExpressionType>(GeneratorExpression::VT_EXPRESSION_TYPE, expression_type, GeneratorExpressionType::CONSTANT_INT);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> DataDistributionBuilder<'a, 'b> {
+  pub fn add_arguments(&mut self, arguments: flatbuffers::WIPOffset<flatbuffers::Vector<'b , GeneratorArgument>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(GeneratorExpression::VT_ARGUMENTS, arguments);
+  }
+  #[inline]
+  pub fn add_inputs(&mut self, inputs: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u32>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(GeneratorExpression::VT_INPUTS, inputs);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> GeneratorExpressionBuilder<'a, 'b> {
     let start = _fbb.start_table();
-    DataDistributionBuilder {
+    GeneratorExpressionBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<DataDistribution<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<GeneratorExpression<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-pub enum ColumnSpecOffset {}
+pub enum ColumnSpecificationOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
-/// A table specification
-pub struct ColumnSpec<'a> {
+pub struct ColumnSpecification<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for ColumnSpec<'a> {
-    type Inner = ColumnSpec<'a>;
+impl<'a> flatbuffers::Follow<'a> for ColumnSpecification<'a> {
+    type Inner = ColumnSpecification<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
         Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
-impl<'a> ColumnSpec<'a> {
+impl<'a> ColumnSpecification<'a> {
     pub const fn get_fully_qualified_name() -> &'static str {
-        "duckdb_webapi.proto.ColumnSpec"
+        "duckdb_webapi.proto.ColumnSpecification"
     }
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        ColumnSpec {
+        ColumnSpecification {
             _tab: table,
         }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        args: &'args ColumnSpecArgs<'args>) -> flatbuffers::WIPOffset<ColumnSpec<'bldr>> {
-      let mut builder = ColumnSpecBuilder::new(_fbb);
-      if let Some(x) = args.null_distribution { builder.add_null_distribution(x); }
-      if let Some(x) = args.value_distribution { builder.add_value_distribution(x); }
+        args: &'args ColumnSpecificationArgs<'args>) -> flatbuffers::WIPOffset<ColumnSpecification<'bldr>> {
+      let mut builder = ColumnSpecificationBuilder::new(_fbb);
+      if let Some(x) = args.value_generator { builder.add_value_generator(x); }
       if let Some(x) = args.value_type { builder.add_value_type(x); }
       if let Some(x) = args.name { builder.add_name(x); }
       builder.finish()
@@ -260,112 +541,100 @@ impl<'a> ColumnSpec<'a> {
 
     pub const VT_NAME: flatbuffers::VOffsetT = 4;
     pub const VT_VALUE_TYPE: flatbuffers::VOffsetT = 6;
-    pub const VT_VALUE_DISTRIBUTION: flatbuffers::VOffsetT = 8;
-    pub const VT_NULL_DISTRIBUTION: flatbuffers::VOffsetT = 10;
+    pub const VT_VALUE_GENERATOR: flatbuffers::VOffsetT = 8;
 
   #[inline]
   pub fn name(&self) -> Option<&'a str> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ColumnSpec::VT_NAME, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ColumnSpecification::VT_NAME, None)
   }
   #[inline]
   pub fn value_type(&self) -> Option<&'a LogicalType> {
-    self._tab.get::<LogicalType>(ColumnSpec::VT_VALUE_TYPE, None)
+    self._tab.get::<LogicalType>(ColumnSpecification::VT_VALUE_TYPE, None)
   }
   #[inline]
-  pub fn value_distribution(&self) -> Option<DataDistribution<'a>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<DataDistribution<'a>>>(ColumnSpec::VT_VALUE_DISTRIBUTION, None)
-  }
-  #[inline]
-  pub fn null_distribution(&self) -> Option<DataDistribution<'a>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<DataDistribution<'a>>>(ColumnSpec::VT_NULL_DISTRIBUTION, None)
+  pub fn value_generator(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>>>(ColumnSpecification::VT_VALUE_GENERATOR, None)
   }
 }
 
-pub struct ColumnSpecArgs<'a> {
+pub struct ColumnSpecificationArgs<'a> {
     pub name: Option<flatbuffers::WIPOffset<&'a str>>,
     pub value_type: Option<&'a LogicalType>,
-    pub value_distribution: Option<flatbuffers::WIPOffset<DataDistribution<'a>>>,
-    pub null_distribution: Option<flatbuffers::WIPOffset<DataDistribution<'a>>>,
+    pub value_generator: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>>>,
 }
-impl<'a> Default for ColumnSpecArgs<'a> {
+impl<'a> Default for ColumnSpecificationArgs<'a> {
     #[inline]
     fn default() -> Self {
-        ColumnSpecArgs {
+        ColumnSpecificationArgs {
             name: None,
             value_type: None,
-            value_distribution: None,
-            null_distribution: None,
+            value_generator: None,
         }
     }
 }
-pub struct ColumnSpecBuilder<'a: 'b, 'b> {
+pub struct ColumnSpecificationBuilder<'a: 'b, 'b> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> ColumnSpecBuilder<'a, 'b> {
+impl<'a: 'b, 'b> ColumnSpecificationBuilder<'a, 'b> {
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ColumnSpec::VT_NAME, name);
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ColumnSpecification::VT_NAME, name);
   }
   #[inline]
   pub fn add_value_type(&mut self, value_type: &LogicalType) {
-    self.fbb_.push_slot_always::<&LogicalType>(ColumnSpec::VT_VALUE_TYPE, value_type);
+    self.fbb_.push_slot_always::<&LogicalType>(ColumnSpecification::VT_VALUE_TYPE, value_type);
   }
   #[inline]
-  pub fn add_value_distribution(&mut self, value_distribution: flatbuffers::WIPOffset<DataDistribution<'b >>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<DataDistribution>>(ColumnSpec::VT_VALUE_DISTRIBUTION, value_distribution);
+  pub fn add_value_generator(&mut self, value_generator: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<GeneratorExpression<'b >>>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ColumnSpecification::VT_VALUE_GENERATOR, value_generator);
   }
   #[inline]
-  pub fn add_null_distribution(&mut self, null_distribution: flatbuffers::WIPOffset<DataDistribution<'b >>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<DataDistribution>>(ColumnSpec::VT_NULL_DISTRIBUTION, null_distribution);
-  }
-  #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ColumnSpecBuilder<'a, 'b> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ColumnSpecificationBuilder<'a, 'b> {
     let start = _fbb.start_table();
-    ColumnSpecBuilder {
+    ColumnSpecificationBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<ColumnSpec<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<ColumnSpecification<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-pub enum TableSpecOffset {}
+pub enum TableSpecificationOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
-/// A table specification
-pub struct TableSpec<'a> {
+pub struct TableSpecification<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for TableSpec<'a> {
-    type Inner = TableSpec<'a>;
+impl<'a> flatbuffers::Follow<'a> for TableSpecification<'a> {
+    type Inner = TableSpecification<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
         Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
-impl<'a> TableSpec<'a> {
+impl<'a> TableSpecification<'a> {
     pub const fn get_fully_qualified_name() -> &'static str {
-        "duckdb_webapi.proto.TableSpec"
+        "duckdb_webapi.proto.TableSpecification"
     }
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        TableSpec {
+        TableSpecification {
             _tab: table,
         }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        args: &'args TableSpecArgs<'args>) -> flatbuffers::WIPOffset<TableSpec<'bldr>> {
-      let mut builder = TableSpecBuilder::new(_fbb);
+        args: &'args TableSpecificationArgs<'args>) -> flatbuffers::WIPOffset<TableSpecification<'bldr>> {
+      let mut builder = TableSpecificationBuilder::new(_fbb);
       builder.add_rows(args.rows);
       if let Some(x) = args.columns { builder.add_columns(x); }
       if let Some(x) = args.name { builder.add_name(x); }
@@ -378,60 +647,60 @@ impl<'a> TableSpec<'a> {
 
   #[inline]
   pub fn name(&self) -> Option<&'a str> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(TableSpec::VT_NAME, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(TableSpecification::VT_NAME, None)
   }
   #[inline]
-  pub fn columns(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ColumnSpec<'a>>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<ColumnSpec<'a>>>>>(TableSpec::VT_COLUMNS, None)
+  pub fn columns(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ColumnSpecification<'a>>>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<ColumnSpecification<'a>>>>>(TableSpecification::VT_COLUMNS, None)
   }
   #[inline]
   pub fn rows(&self) -> u64 {
-    self._tab.get::<u64>(TableSpec::VT_ROWS, Some(0)).unwrap()
+    self._tab.get::<u64>(TableSpecification::VT_ROWS, Some(0)).unwrap()
   }
 }
 
-pub struct TableSpecArgs<'a> {
+pub struct TableSpecificationArgs<'a> {
     pub name: Option<flatbuffers::WIPOffset<&'a str>>,
-    pub columns: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ColumnSpec<'a>>>>>,
+    pub columns: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ColumnSpecification<'a>>>>>,
     pub rows: u64,
 }
-impl<'a> Default for TableSpecArgs<'a> {
+impl<'a> Default for TableSpecificationArgs<'a> {
     #[inline]
     fn default() -> Self {
-        TableSpecArgs {
+        TableSpecificationArgs {
             name: None,
             columns: None,
             rows: 0,
         }
     }
 }
-pub struct TableSpecBuilder<'a: 'b, 'b> {
+pub struct TableSpecificationBuilder<'a: 'b, 'b> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> TableSpecBuilder<'a, 'b> {
+impl<'a: 'b, 'b> TableSpecificationBuilder<'a, 'b> {
   #[inline]
   pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(TableSpec::VT_NAME, name);
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(TableSpecification::VT_NAME, name);
   }
   #[inline]
-  pub fn add_columns(&mut self, columns: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<ColumnSpec<'b >>>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(TableSpec::VT_COLUMNS, columns);
+  pub fn add_columns(&mut self, columns: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<ColumnSpecification<'b >>>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(TableSpecification::VT_COLUMNS, columns);
   }
   #[inline]
   pub fn add_rows(&mut self, rows: u64) {
-    self.fbb_.push_slot::<u64>(TableSpec::VT_ROWS, rows, 0);
+    self.fbb_.push_slot::<u64>(TableSpecification::VT_ROWS, rows, 0);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> TableSpecBuilder<'a, 'b> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> TableSpecificationBuilder<'a, 'b> {
     let start = _fbb.start_table();
-    TableSpecBuilder {
+    TableSpecificationBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<TableSpec<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<TableSpecification<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
