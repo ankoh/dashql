@@ -24,6 +24,8 @@ enum class DataType { Integer, Float };
 
 /// A generator expression
 struct GeneratorExpression {
+    /// Destructor
+    virtual ~GeneratorExpression() = default;
     /// Get the data type
     virtual DataType getType() = 0;
     /// Generate a value
@@ -127,6 +129,15 @@ using StudentTDistribution = HigherOrderDistribution<std::student_t_distribution
 using DiscreteDistribution = HigherOrderDistribution<std::discrete_distribution, double>;
 using PiecewiseConstantDistribution = HigherOrderDistribution<std::piecewise_constant_distribution, double>;
 using PiecewiseLinearDistribution = HigherOrderDistribution<std::piecewise_linear_distribution, double>;
+
+/// A binary expression
+struct BinaryGeneratorExpression: public GeneratorExpression {
+    /// The input expressions
+    std::unique_ptr<GeneratorExpression> left, right;
+    /// Constructor
+    BinaryGeneratorExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : left(move(left)), right(move(right)) {}
+};
 
 }
 
