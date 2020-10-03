@@ -12,7 +12,7 @@ namespace {
 
 /// Generic data type
 using data_t = uint64_t;
-static_assert(sizeof(uint64_t) <= sizeof(data_t));
+static_assert(sizeof(int64_t) <= sizeof(data_t));
 static_assert(sizeof(double) <= sizeof(data_t));
 
 /// Return value as data
@@ -20,34 +20,56 @@ template<typename T>
 data_t asData(const T& v) {
     return *reinterpret_cast<const data_t*>(&v);
 }
+enum class DataType { Integer, Float };
 
 /// A generator expression
 struct GeneratorExpression {
+    /// Get the data type
+    virtual DataType getType() = 0;
     /// Generate a value
-    virtual data_t generate();
+    virtual data_t generate() = 0;
 };
 
 /// A constant integer
 struct ConstantInt : public GeneratorExpression {
     /// The constant value
-    uint64_t value;
+    int64_t value;
+    /// Get the data type
+    DataType getType() override { return DataType::Integer; }
     /// Generate a value
-    data_t generate() override {
-        return asData(value);
-    }
+    data_t generate() override { return asData(value); }
 };
 
 /// A constant floating point value
 struct ConstantFloat : public GeneratorExpression {
     /// The constant value
     double value;
+
+    /// Constructor
+    ConstantFloat(double value)
+        : value(value) {}
+    /// Get the data type
+    DataType getType() override { return DataType::Float; }
     /// Generate a value
-    data_t generate() override {
-        return asData(value);
-    }
+    data_t generate() override { return asData(value); }
 };
 
+/// A column ref
 struct ColumnRef : public GeneratorExpression {
+    /// The column type
+    DataType columnType;
+    /// The other columns
+    const std::vector<data_t>& columns;
+    /// The column index
+    size_t columnIndex;
+
+    /// Constructor
+    ColumnRef(DataType colType, const std::vector<data_t>& cols, size_t colIdx)
+        : columnType(colType), columns(cols), columnIndex(colIdx) {}
+    /// Get the data type
+    DataType getType() override { return columnType; }
+    /// Generate a value
+    data_t generate() override { return columns[columnIndex]; }
 };
 
 /// A generic distribution generator
@@ -61,9 +83,7 @@ struct GenericDistribution : public GeneratorExpression {
     GenericDistribution(std::mt19937& gen, D&& dist)
         : generator(gen), distribution(move(dist)) {}
     /// Generate a value
-    data_t generate() override {
-        return asData(distribution(generator));
-    }
+    data_t generate() override { return asData(distribution(generator)); }
 };
 
 /// A higher order distribution generator
@@ -76,19 +96,23 @@ struct HigherOrderDistribution : public GeneratorExpression {
     /// Constructor
     HigherOrderDistribution(std::mt19937& gen, D<T>&& dist)
         : generator(gen), distribution(move(dist)) {}
-    /// Generate a value
-    data_t generate() override {
-        return asData(distribution(generator));
+    /// Get the type
+    DataType getType() override {
+        if constexpr (std::is_same_v<T, int64_t>)
+            return DataType::Integer;
+        return DataType::Float;
     }
+    /// Generate a value
+    data_t generate() override { return asData(distribution(generator)); }
 };
 
-using UniformIntDistribution = HigherOrderDistribution<std::uniform_int_distribution, uint64_t>;
+using UniformIntDistribution = HigherOrderDistribution<std::uniform_int_distribution, int64_t>;
 using UniformFloatDistribution = HigherOrderDistribution<std::uniform_real_distribution, double>;
 using BernoulliDistribution = GenericDistribution<std::bernoulli_distribution>;
-using BinomialDistribution = HigherOrderDistribution<std::binomial_distribution, uint64_t>;
-using GeometricDistribution = HigherOrderDistribution<std::geometric_distribution, uint64_t>;
-using NegativeBinomialDistribution = HigherOrderDistribution<std::negative_binomial_distribution, uint64_t>;
-using PoissonDistribution = HigherOrderDistribution<std::poisson_distribution, uint64_t>;
+using BinomialDistribution = HigherOrderDistribution<std::binomial_distribution, int64_t>;
+using GeometricDistribution = HigherOrderDistribution<std::geometric_distribution, int64_t>;
+using NegativeBinomialDistribution = HigherOrderDistribution<std::negative_binomial_distribution, int64_t>;
+using PoissonDistribution = HigherOrderDistribution<std::poisson_distribution, int64_t>;
 using ExponentialDistribution = HigherOrderDistribution<std::exponential_distribution, double>;
 using GammaDistribution = HigherOrderDistribution<std::gamma_distribution, double>;
 using ExtremeValueDistribution = HigherOrderDistribution<std::extreme_value_distribution, double>;

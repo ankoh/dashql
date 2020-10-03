@@ -46,45 +46,45 @@ enum class GeneratorExpressionType : uint8_t {
   CONSTANT_INT = 0,
   CONSTANT_FLOAT = 1,
   COLUMN_REF = 2,
-  RANDOM_UNIFORM = 3,
-  RANDOM_BERNOULLI = 4,
-  RANDOM_BINOMIAL = 5,
-  RANDOM_GEOMETRIC = 6,
-  RANDOM_NEGATIVE_BINOMIAL = 7,
-  RANDOM_POISSON = 8,
-  RANDOM_EXPONENTIAL = 9,
-  RANDOM_GAMMA = 10,
-  RANDOM_WEIBULL = 11,
-  RANDOM_EXTREME_VALUE = 12,
-  RANDOM_NORMAL = 13,
-  RANDOM_LOG_NORMAL = 14,
-  RANDOM_CHI_SQUARED = 15,
-  RANDOM_CAUCHY = 16,
-  RANDOM_FISHER_F = 17,
-  RANDOM_STUDENT_T = 18,
-  RANDOM_PIECEWISE_CONSTANT = 19,
-  RANDOM_PIECEWISE_LINEAR = 20,
-  GENERATE_STRING = 21,
+  RANDOM_UNIFORM_INT = 3,
+  RANDOM_UNIFORM_FLOAT = 4,
+  RANDOM_BERNOULLI = 5,
+  RANDOM_BINOMIAL = 6,
+  RANDOM_GEOMETRIC = 7,
+  RANDOM_NEGATIVE_BINOMIAL = 8,
+  RANDOM_POISSON = 9,
+  RANDOM_EXPONENTIAL = 10,
+  RANDOM_GAMMA = 11,
+  RANDOM_WEIBULL = 12,
+  RANDOM_EXTREME_VALUE = 13,
+  RANDOM_NORMAL = 14,
+  RANDOM_LOG_NORMAL = 15,
+  RANDOM_CHI_SQUARED = 16,
+  RANDOM_CAUCHY = 17,
+  RANDOM_FISHER_F = 18,
+  RANDOM_STUDENT_T = 19,
+  RANDOM_PIECEWISE_CONSTANT = 20,
+  RANDOM_PIECEWISE_LINEAR = 21,
   FLOAT_TO_INT = 22,
   INT_TO_FLOAT = 23,
-  INT_TO_DECIMAL = 24,
-  NULL_IF = 25,
-  COMPARE_LT = 26,
-  COMPARE_LEQ = 27,
-  COMPARE_GT = 28,
-  COMPARE_GEQ = 29,
-  ADD = 30,
-  MULTIPLY = 31,
+  NULL_IF = 24,
+  COMPARE_LT = 25,
+  COMPARE_LEQ = 26,
+  COMPARE_GT = 27,
+  COMPARE_GEQ = 28,
+  ADD = 29,
+  MULTIPLY = 30,
   MIN = CONSTANT_INT,
   MAX = MULTIPLY
 };
 
-inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[32] {
+inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[31] {
   static const GeneratorExpressionType values[] = {
     GeneratorExpressionType::CONSTANT_INT,
     GeneratorExpressionType::CONSTANT_FLOAT,
     GeneratorExpressionType::COLUMN_REF,
-    GeneratorExpressionType::RANDOM_UNIFORM,
+    GeneratorExpressionType::RANDOM_UNIFORM_INT,
+    GeneratorExpressionType::RANDOM_UNIFORM_FLOAT,
     GeneratorExpressionType::RANDOM_BERNOULLI,
     GeneratorExpressionType::RANDOM_BINOMIAL,
     GeneratorExpressionType::RANDOM_GEOMETRIC,
@@ -102,10 +102,8 @@ inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[32] 
     GeneratorExpressionType::RANDOM_STUDENT_T,
     GeneratorExpressionType::RANDOM_PIECEWISE_CONSTANT,
     GeneratorExpressionType::RANDOM_PIECEWISE_LINEAR,
-    GeneratorExpressionType::GENERATE_STRING,
     GeneratorExpressionType::FLOAT_TO_INT,
     GeneratorExpressionType::INT_TO_FLOAT,
-    GeneratorExpressionType::INT_TO_DECIMAL,
     GeneratorExpressionType::NULL_IF,
     GeneratorExpressionType::COMPARE_LT,
     GeneratorExpressionType::COMPARE_LEQ,
@@ -118,11 +116,12 @@ inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[32] 
 }
 
 inline const char * const *EnumNamesGeneratorExpressionType() {
-  static const char * const names[33] = {
+  static const char * const names[32] = {
     "CONSTANT_INT",
     "CONSTANT_FLOAT",
     "COLUMN_REF",
-    "RANDOM_UNIFORM",
+    "RANDOM_UNIFORM_INT",
+    "RANDOM_UNIFORM_FLOAT",
     "RANDOM_BERNOULLI",
     "RANDOM_BINOMIAL",
     "RANDOM_GEOMETRIC",
@@ -140,10 +139,8 @@ inline const char * const *EnumNamesGeneratorExpressionType() {
     "RANDOM_STUDENT_T",
     "RANDOM_PIECEWISE_CONSTANT",
     "RANDOM_PIECEWISE_LINEAR",
-    "GENERATE_STRING",
     "FLOAT_TO_INT",
     "INT_TO_FLOAT",
-    "INT_TO_DECIMAL",
     "NULL_IF",
     "COMPARE_LT",
     "COMPARE_LEQ",
@@ -196,12 +193,11 @@ enum class GeneratorArgumentType : uint8_t {
   RANDOM_PIECEWISE_CONSTANT_WEIGHT = 30,
   RANDOM_PIECEWISE_LINEAR_INTERVAL = 31,
   RANDOM_PIECEWISE_LINEAR_DENSITY = 32,
-  INT_TO_DECIMAL_SCALE = 33,
   MIN = CONSTANT_INT_VALUE,
-  MAX = INT_TO_DECIMAL_SCALE
+  MAX = RANDOM_PIECEWISE_LINEAR_DENSITY
 };
 
-inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[34] {
+inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[33] {
   static const GeneratorArgumentType values[] = {
     GeneratorArgumentType::CONSTANT_INT_VALUE,
     GeneratorArgumentType::CONSTANT_FLOAT_VALUE,
@@ -235,14 +231,13 @@ inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[34] {
     GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_INTERVAL,
     GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_WEIGHT,
     GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_INTERVAL,
-    GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_DENSITY,
-    GeneratorArgumentType::INT_TO_DECIMAL_SCALE
+    GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_DENSITY
   };
   return values;
 }
 
 inline const char * const *EnumNamesGeneratorArgumentType() {
-  static const char * const names[35] = {
+  static const char * const names[34] = {
     "CONSTANT_INT_VALUE",
     "CONSTANT_FLOAT_VALUE",
     "COLUMN_REF_INDEX",
@@ -276,14 +271,13 @@ inline const char * const *EnumNamesGeneratorArgumentType() {
     "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
     "RANDOM_PIECEWISE_LINEAR_INTERVAL",
     "RANDOM_PIECEWISE_LINEAR_DENSITY",
-    "INT_TO_DECIMAL_SCALE",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameGeneratorArgumentType(GeneratorArgumentType e) {
-  if (flatbuffers::IsOutRange(e, GeneratorArgumentType::CONSTANT_INT_VALUE, GeneratorArgumentType::INT_TO_DECIMAL_SCALE)) return "";
+  if (flatbuffers::IsOutRange(e, GeneratorArgumentType::CONSTANT_INT_VALUE, GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_DENSITY)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesGeneratorArgumentType()[index];
 }
@@ -816,7 +810,6 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -826,7 +819,8 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     "CONSTANT_INT",
     "CONSTANT_FLOAT",
     "COLUMN_REF",
-    "RANDOM_UNIFORM",
+    "RANDOM_UNIFORM_INT",
+    "RANDOM_UNIFORM_FLOAT",
     "RANDOM_BERNOULLI",
     "RANDOM_BINOMIAL",
     "RANDOM_GEOMETRIC",
@@ -844,10 +838,8 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     "RANDOM_STUDENT_T",
     "RANDOM_PIECEWISE_CONSTANT",
     "RANDOM_PIECEWISE_LINEAR",
-    "GENERATE_STRING",
     "FLOAT_TO_INT",
     "INT_TO_FLOAT",
-    "INT_TO_DECIMAL",
     "NULL_IF",
     "COMPARE_LT",
     "COMPARE_LEQ",
@@ -857,14 +849,13 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     "MULTIPLY"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 32, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 31, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *GeneratorArgumentTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -935,11 +926,10 @@ inline const flatbuffers::TypeTable *GeneratorArgumentTypeTypeTable() {
     "RANDOM_PIECEWISE_CONSTANT_INTERVAL",
     "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
     "RANDOM_PIECEWISE_LINEAR_INTERVAL",
-    "RANDOM_PIECEWISE_LINEAR_DENSITY",
-    "INT_TO_DECIMAL_SCALE"
+    "RANDOM_PIECEWISE_LINEAR_DENSITY"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 34, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 33, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
