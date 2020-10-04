@@ -11,145 +11,97 @@
 namespace duckdb_webapi {
 
 namespace {
-/// Generic data type
-using data_t = uint64_t;
-static_assert(sizeof(int64_t) <= sizeof(data_t));
-static_assert(sizeof(double) <= sizeof(data_t));
 
-/// We support only 2 generated types, floats and ints
-enum class DataType { Integer, Float };
-
-/// Return value as data
+constexpr size_t VECTOR_SIZE = 128;
 struct DataVector {
     /// The values
-    std::array<data_t, 128> values;
+    std::array<int64_t, VECTOR_SIZE> values;
     /// The nulls
-    std::array<bool, 128> nulls;
+    std::array<bool, VECTOR_SIZE> nulls;
+    /// Get the vector size
+    constexpr size_t size() const { return VECTOR_SIZE; }
 };
 
-/// A generator expression
 struct GeneratorExpression {
     /// Destructor
     virtual ~GeneratorExpression() = default;
-    /// Get the data type
-    virtual DataType getType() = 0;
     /// Generate a value
     virtual DataVector& generate() = 0;
-
-    /// Convert to data type
-    template<typename T>
-    static  data_t asData(const T& v) { return *reinterpret_cast<const data_t*>(&v); }
 };
 
-/// A source generator expression
 struct SourceGeneratorExpression: public GeneratorExpression {
     /// The data vector
     DataVector data;
 };
 
-/// A constant integer
 struct ConstantInt : public SourceGeneratorExpression {
     /// The constant value
     int64_t value;
     /// Constructor
     ConstantInt(int64_t value)
         : value(value) {}
-    /// Get the data type
-    DataType getType() override { return DataType::Integer; }
-    /// Generate a value
+    /// Generate values
     DataVector& generate() override {
-        for (unsigned i = 0; i < data.values.size(); ++i) {
-            data.values[i] = asData(value);
+        for (unsigned i = 0; i < data.size(); ++i) {
+            data.values[i] = value;
             data.nulls[i] = false;
         }
         return data;
     }
 };
 
-/// A constant floating point value
-struct ConstantFloat : public SourceGeneratorExpression {
-    /// The constant value
-    double value;
-    /// Constructor
-    ConstantFloat(double value)
-        : value(value) {}
-    /// Get the data type
-    DataType getType() override { return DataType::Float; }
-    /// Generate a value
-    DataVector& generate() override {
-        for (unsigned i = 0; i < data.values.size(); ++i) {
-            data.values[i] = asData(value);
-            data.nulls[i] = false;
-        }
-        return data;
-    }
-};
-
-/// A column ref
 struct ColumnRef : public SourceGeneratorExpression {
-    /// The column type
-    DataType columnType;
-    /// The other columns
-    const std::vector<DataVector>& columns;
-    /// The column index
-    size_t columnIndex;
-
+    /// The target data vector
+    DataVector& column;
     /// Constructor
-    ColumnRef(DataType colType, const std::vector<DataVector>& cols, size_t colIdx)
-        : columnType(colType), columns(cols), columnIndex(colIdx) {}
-    /// Get the data type
-    DataType getType() override { return columnType; }
-    /// Generate a value
+    ColumnRef(DataVector& col)
+        : column(col) {}
+    /// Generate values
     DataVector& generate() override {
-        auto& col = columns[columnIndex];
-        for (unsigned i = 0; i < data.values.size(); ++i) {
-            data.values[i] = col.values[i];
-            data.nulls[i] = col.nulls[i];
+        for (unsigned i = 0; i < data.size(); ++i) {
+            data.values[i] = column.values[i];
+            data.nulls[i] = column.nulls[i];
         }
         return data;
     }
 };
 
-/// A generic distribution generator
 template <typename D>
 struct GenericDistribution : public SourceGeneratorExpression {
     /// The generator
     std::mt19937& generator;
     /// The distribution
     D distribution;
+    /// The scaling
+    int64_t scaling;
     /// Constructor
     GenericDistribution(std::mt19937& gen, D&& dist)
-        : generator(gen), distribution(move(dist)) {}
-    /// Generate a value
+        : generator(gen), distribution(move(dist)), scaling(1) {}
+    /// Generate values
     DataVector& generate() override {
-        for (unsigned i = 0; i < data.values.size(); ++i) {
-            data.values[i] = asData(distribution(generator));
+        for (unsigned i = 0; i < data.size(); ++i) {
+            data.values[i] = distribution(generator) * scaling;
             data.nulls[i] = false;
         }
         return data;
     }
 };
 
-/// A higher order distribution generator
 template <template <typename> class D, typename T>
 struct HigherOrderDistribution : public SourceGeneratorExpression {
     /// The generator
     std::mt19937& generator;
     /// The distribution
     D<T> distribution;
+    /// The scaling
+    int64_t scaling;
     /// Constructor
     HigherOrderDistribution(std::mt19937& gen, D<T>&& dist)
         : generator(gen), distribution(move(dist)) {}
-    /// Get the type
-    DataType getType() override {
-        if constexpr (std::is_same_v<T, int64_t>)
-            return DataType::Integer;
-        return DataType::Float;
-    }
-    /// Generate a value
+    /// Generate values
     DataVector& generate() override {
-        for (unsigned i = 0; i < data.values.size(); ++i) {
-            data.values[i] = asData(distribution(generator));
+        for (unsigned i = 0; i < data.size(); ++i) {
+            data.values[i] = distribution(generator) * scaling;
             data.nulls[i] = false;
         }
         return data;
@@ -157,7 +109,6 @@ struct HigherOrderDistribution : public SourceGeneratorExpression {
 };
 
 using UniformIntDistribution = HigherOrderDistribution<std::uniform_int_distribution, int64_t>;
-using UniformFloatDistribution = HigherOrderDistribution<std::uniform_real_distribution, double>;
 using BernoulliDistribution = GenericDistribution<std::bernoulli_distribution>;
 using BinomialDistribution = HigherOrderDistribution<std::binomial_distribution, int64_t>;
 using GeometricDistribution = HigherOrderDistribution<std::geometric_distribution, int64_t>;
@@ -176,13 +127,137 @@ using DiscreteDistribution = HigherOrderDistribution<std::discrete_distribution,
 using PiecewiseConstantDistribution = HigherOrderDistribution<std::piecewise_constant_distribution, double>;
 using PiecewiseLinearDistribution = HigherOrderDistribution<std::piecewise_linear_distribution, double>;
 
-/// A binary expression
 struct BinaryGeneratorExpression: public GeneratorExpression {
     /// The input expressions
     std::unique_ptr<GeneratorExpression> left, right;
     /// Constructor
     BinaryGeneratorExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
         : left(move(left)), right(move(right)) {}
+    /// Merge null values
+    void mergeNulls(DataVector& l, DataVector& r) {
+        for (unsigned i = 0; i < l.size(); ++i)
+            l.nulls[i] |= r.nulls[i];
+    }
+};
+
+struct AddExpression: public BinaryGeneratorExpression {
+    /// Constructor
+    AddExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : BinaryGeneratorExpression(move(left), move(right)) {}
+    /// Generate values
+    DataVector& generate() override {
+        auto& l = left->generate();
+        auto& r = left->generate();
+        for (unsigned i = 0; i < l.size(); ++i)
+            l.values[i] += r.values[i];
+        mergeNulls(l, r);
+        return l;
+    }
+};
+
+struct SubExpression: public BinaryGeneratorExpression {
+    /// Constructor
+    SubExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : BinaryGeneratorExpression(move(left), move(right)) {}
+    /// Generate values
+    DataVector& generate() override {
+        auto& l = left->generate();
+        auto& r = left->generate();
+        for (unsigned i = 0; i < l.size(); ++i)
+            l.values[i] -= r.values[i];
+        mergeNulls(l, r);
+        return l;
+    }
+};
+
+struct MulExpression: public BinaryGeneratorExpression {
+    /// Constructor
+    MulExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : BinaryGeneratorExpression(move(left), move(right)) {}
+    /// Generate values
+    DataVector& generate() override {
+        auto& l = left->generate();
+        auto& r = left->generate();
+        for (unsigned i = 0; i < l.size(); ++i)
+            l.values[i] *= r.values[i];
+        mergeNulls(l, r);
+        return l;
+    }
+};
+
+struct DivExpression: public BinaryGeneratorExpression {
+    /// Constructor
+    DivExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : BinaryGeneratorExpression(move(left), move(right)) {}
+    /// Generate values
+    DataVector& generate() override {
+        auto& l = left->generate();
+        auto& r = left->generate();
+        for (unsigned i = 0; i < l.size(); ++i)
+            l.values[i] = (r.values[i] == 0) ? 0 : (l.values[i] / r.values[i]);
+        mergeNulls(l, r);
+        return l;
+    }
+};
+
+struct CompareLTExpression: public BinaryGeneratorExpression {
+    /// Constructor
+    CompareLTExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : BinaryGeneratorExpression(move(left), move(right)) {}
+    /// Generate values
+    DataVector& generate() override {
+        auto& l = left->generate();
+        auto& r = left->generate();
+        for (unsigned i = 0; i < l.size(); ++i)
+            l.values[i] = l.values[i] < r.values[i];
+        mergeNulls(l, r);
+        return l;
+    }
+};
+
+struct CompareLEQExpression: public BinaryGeneratorExpression {
+    /// Constructor
+    CompareLEQExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : BinaryGeneratorExpression(move(left), move(right)) {}
+    /// Generate values
+    DataVector& generate() override {
+        auto& l = left->generate();
+        auto& r = left->generate();
+        for (unsigned i = 0; i < l.size(); ++i)
+            l.values[i] = l.values[i] <= r.values[i];
+        mergeNulls(l, r);
+        return l;
+    }
+};
+
+struct CompareGTExpression: public BinaryGeneratorExpression {
+    /// Constructor
+    CompareGTExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : BinaryGeneratorExpression(move(left), move(right)) {}
+    /// Generate values
+    DataVector& generate() override {
+        auto& l = left->generate();
+        auto& r = left->generate();
+        for (unsigned i = 0; i < l.size(); ++i)
+            l.values[i] = l.values[i] > r.values[i];
+        mergeNulls(l, r);
+        return l;
+    }
+};
+
+struct CompareGEQExpression: public BinaryGeneratorExpression {
+    /// Constructor
+    CompareGEQExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : BinaryGeneratorExpression(move(left), move(right)) {}
+    /// Generate values
+    DataVector& generate() override {
+        auto& l = left->generate();
+        auto& r = left->generate();
+        for (unsigned i = 0; i < l.size(); ++i)
+            l.values[i] = l.values[i] >= r.values[i];
+        mergeNulls(l, r);
+        return l;
+    }
 };
 
 } // namespace

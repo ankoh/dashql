@@ -32,42 +32,38 @@ pub mod proto {
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum GeneratorExpressionType {
-  CONSTANT_INT = 0,
-  CONSTANT_FLOAT = 1,
-  COLUMN_REF = 2,
-  RANDOM_UNIFORM_INT = 3,
-  RANDOM_UNIFORM_FLOAT = 4,
-  RANDOM_BERNOULLI = 5,
-  RANDOM_BINOMIAL = 6,
-  RANDOM_GEOMETRIC = 7,
-  RANDOM_NEGATIVE_BINOMIAL = 8,
-  RANDOM_POISSON = 9,
-  RANDOM_EXPONENTIAL = 10,
-  RANDOM_GAMMA = 11,
-  RANDOM_WEIBULL = 12,
-  RANDOM_EXTREME_VALUE = 13,
-  RANDOM_NORMAL = 14,
-  RANDOM_LOG_NORMAL = 15,
-  RANDOM_CHI_SQUARED = 16,
-  RANDOM_CAUCHY = 17,
-  RANDOM_FISHER_F = 18,
-  RANDOM_STUDENT_T = 19,
-  RANDOM_PIECEWISE_CONSTANT = 20,
-  RANDOM_PIECEWISE_LINEAR = 21,
-  FLOAT_TO_INT = 22,
-  INT_TO_FLOAT = 23,
-  NULL_IF = 24,
-  COMPARE_LT = 25,
-  COMPARE_LEQ = 26,
-  COMPARE_GT = 27,
-  COMPARE_GEQ = 28,
-  ADD = 29,
-  MULTIPLY = 30,
+  CONSTANT = 0,
+  COLUMN_REF = 1,
+  RANDOM_UNIFORM = 2,
+  RANDOM_BERNOULLI = 3,
+  RANDOM_BINOMIAL = 4,
+  RANDOM_GEOMETRIC = 5,
+  RANDOM_NEGATIVE_BINOMIAL = 6,
+  RANDOM_POISSON = 7,
+  RANDOM_EXPONENTIAL = 8,
+  RANDOM_GAMMA = 9,
+  RANDOM_WEIBULL = 10,
+  RANDOM_EXTREME_VALUE = 11,
+  RANDOM_NORMAL = 12,
+  RANDOM_LOG_NORMAL = 13,
+  RANDOM_CHI_SQUARED = 14,
+  RANDOM_CAUCHY = 15,
+  RANDOM_FISHER_F = 16,
+  RANDOM_STUDENT_T = 17,
+  RANDOM_PIECEWISE_CONSTANT = 18,
+  RANDOM_PIECEWISE_LINEAR = 19,
+  NULL_IF = 20,
+  COMPARE_LT = 21,
+  COMPARE_LEQ = 22,
+  COMPARE_GT = 23,
+  COMPARE_GEQ = 24,
+  ADD = 25,
+  MULTIPLY = 26,
 
 }
 
 pub const ENUM_MIN_GENERATOR_EXPRESSION_TYPE: u8 = 0;
-pub const ENUM_MAX_GENERATOR_EXPRESSION_TYPE: u8 = 30;
+pub const ENUM_MAX_GENERATOR_EXPRESSION_TYPE: u8 = 26;
 
 impl<'a> flatbuffers::Follow<'a> for GeneratorExpressionType {
   type Inner = Self;
@@ -101,12 +97,10 @@ impl flatbuffers::Push for GeneratorExpressionType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 31] = [
-  GeneratorExpressionType::CONSTANT_INT,
-  GeneratorExpressionType::CONSTANT_FLOAT,
+pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 27] = [
+  GeneratorExpressionType::CONSTANT,
   GeneratorExpressionType::COLUMN_REF,
-  GeneratorExpressionType::RANDOM_UNIFORM_INT,
-  GeneratorExpressionType::RANDOM_UNIFORM_FLOAT,
+  GeneratorExpressionType::RANDOM_UNIFORM,
   GeneratorExpressionType::RANDOM_BERNOULLI,
   GeneratorExpressionType::RANDOM_BINOMIAL,
   GeneratorExpressionType::RANDOM_GEOMETRIC,
@@ -124,8 +118,6 @@ pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 31] =
   GeneratorExpressionType::RANDOM_STUDENT_T,
   GeneratorExpressionType::RANDOM_PIECEWISE_CONSTANT,
   GeneratorExpressionType::RANDOM_PIECEWISE_LINEAR,
-  GeneratorExpressionType::FLOAT_TO_INT,
-  GeneratorExpressionType::INT_TO_FLOAT,
   GeneratorExpressionType::NULL_IF,
   GeneratorExpressionType::COMPARE_LT,
   GeneratorExpressionType::COMPARE_LEQ,
@@ -136,12 +128,10 @@ pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 31] =
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 31] = [
-    "CONSTANT_INT",
-    "CONSTANT_FLOAT",
+pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 27] = [
+    "CONSTANT",
     "COLUMN_REF",
-    "RANDOM_UNIFORM_INT",
-    "RANDOM_UNIFORM_FLOAT",
+    "RANDOM_UNIFORM",
     "RANDOM_BERNOULLI",
     "RANDOM_BINOMIAL",
     "RANDOM_GEOMETRIC",
@@ -159,8 +149,6 @@ pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 31] = [
     "RANDOM_STUDENT_T",
     "RANDOM_PIECEWISE_CONSTANT",
     "RANDOM_PIECEWISE_LINEAR",
-    "FLOAT_TO_INT",
-    "INT_TO_FLOAT",
     "NULL_IF",
     "COMPARE_LT",
     "COMPARE_LEQ",
@@ -179,44 +167,42 @@ pub fn enum_name_generator_expression_type(e: GeneratorExpressionType) -> &'stat
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum GeneratorArgumentType {
-  CONSTANT_INT_VALUE = 0,
-  CONSTANT_FLOAT_VALUE = 1,
-  COLUMN_REF_INDEX = 2,
-  RANDOM_UNIFORM_FLOAT_LB = 3,
-  RANDOM_UNIFORM_FLOAT_UB = 4,
-  RANDOM_UNIFORM_INT_LB = 5,
-  RANDOM_UNIFORM_INT_UB = 6,
-  RANDOM_BERNOULLI_PROBABILITY = 7,
-  RANDOM_BINOMIAL_UB = 8,
-  RANDOM_BINOMIAL_PROBABILITY = 9,
-  RANDOM_NEGATIVE_BINOMIAL_K = 10,
-  RANDOM_NEGATIVE_BINOMIAL_P = 11,
-  RANDOM_POISSON_MEAN = 12,
-  RANDOM_EXPONENTIAL_LAMBDA = 13,
-  RANDOM_GAMMA_ALPHA = 14,
-  RANDOM_GAMMA_BETA = 15,
-  RANDOM_WEIBULL_A = 16,
-  RANDOM_WEIBULL_B = 17,
-  RANDOM_EXTREME_VALUE_A = 18,
-  RANDOM_EXTREME_VALUE_B = 19,
-  RANDOM_NORMAL_MEAN = 20,
-  RANDOM_NORMAL_STDDEV = 21,
-  RANDOM_LOGNORMAL_M = 22,
-  RANDOM_LOGNORMAL_S = 23,
-  RANDOM_CHISQUARED_N = 24,
-  RANDOM_CAUCHY_A = 25,
-  RANDOM_CAUCHY_B = 26,
-  RANDOM_FISHER_F = 27,
-  RANDOM_FISHER_N = 28,
-  RANDOM_PIECEWISE_CONSTANT_INTERVAL = 29,
-  RANDOM_PIECEWISE_CONSTANT_WEIGHT = 30,
-  RANDOM_PIECEWISE_LINEAR_INTERVAL = 31,
-  RANDOM_PIECEWISE_LINEAR_DENSITY = 32,
+  CONSTANT_VALUE = 0,
+  COLUMN_REF_INDEX = 1,
+  RANDOM_SCALING = 2,
+  RANDOM_UNIFORM_LB = 3,
+  RANDOM_UNIFORM_UB = 4,
+  RANDOM_BERNOULLI_PROBABILITY = 5,
+  RANDOM_BINOMIAL_UB = 6,
+  RANDOM_BINOMIAL_PROBABILITY = 7,
+  RANDOM_NEGATIVE_BINOMIAL_K = 8,
+  RANDOM_NEGATIVE_BINOMIAL_P = 9,
+  RANDOM_POISSON_MEAN = 10,
+  RANDOM_EXPONENTIAL_LAMBDA = 11,
+  RANDOM_GAMMA_ALPHA = 12,
+  RANDOM_GAMMA_BETA = 13,
+  RANDOM_WEIBULL_A = 14,
+  RANDOM_WEIBULL_B = 15,
+  RANDOM_EXTREME_VALUE_A = 16,
+  RANDOM_EXTREME_VALUE_B = 17,
+  RANDOM_NORMAL_MEAN = 18,
+  RANDOM_NORMAL_STDDEV = 19,
+  RANDOM_LOGNORMAL_M = 20,
+  RANDOM_LOGNORMAL_S = 21,
+  RANDOM_CHISQUARED_N = 22,
+  RANDOM_CAUCHY_A = 23,
+  RANDOM_CAUCHY_B = 24,
+  RANDOM_FISHER_F = 25,
+  RANDOM_FISHER_N = 26,
+  RANDOM_PIECEWISE_CONSTANT_INTERVAL = 27,
+  RANDOM_PIECEWISE_CONSTANT_WEIGHT = 28,
+  RANDOM_PIECEWISE_LINEAR_INTERVAL = 29,
+  RANDOM_PIECEWISE_LINEAR_DENSITY = 30,
 
 }
 
 pub const ENUM_MIN_GENERATOR_ARGUMENT_TYPE: u8 = 0;
-pub const ENUM_MAX_GENERATOR_ARGUMENT_TYPE: u8 = 32;
+pub const ENUM_MAX_GENERATOR_ARGUMENT_TYPE: u8 = 30;
 
 impl<'a> flatbuffers::Follow<'a> for GeneratorArgumentType {
   type Inner = Self;
@@ -250,14 +236,12 @@ impl flatbuffers::Push for GeneratorArgumentType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 33] = [
-  GeneratorArgumentType::CONSTANT_INT_VALUE,
-  GeneratorArgumentType::CONSTANT_FLOAT_VALUE,
+pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 31] = [
+  GeneratorArgumentType::CONSTANT_VALUE,
   GeneratorArgumentType::COLUMN_REF_INDEX,
-  GeneratorArgumentType::RANDOM_UNIFORM_FLOAT_LB,
-  GeneratorArgumentType::RANDOM_UNIFORM_FLOAT_UB,
-  GeneratorArgumentType::RANDOM_UNIFORM_INT_LB,
-  GeneratorArgumentType::RANDOM_UNIFORM_INT_UB,
+  GeneratorArgumentType::RANDOM_SCALING,
+  GeneratorArgumentType::RANDOM_UNIFORM_LB,
+  GeneratorArgumentType::RANDOM_UNIFORM_UB,
   GeneratorArgumentType::RANDOM_BERNOULLI_PROBABILITY,
   GeneratorArgumentType::RANDOM_BINOMIAL_UB,
   GeneratorArgumentType::RANDOM_BINOMIAL_PROBABILITY,
@@ -287,14 +271,12 @@ pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 33] = [
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 33] = [
-    "CONSTANT_INT_VALUE",
-    "CONSTANT_FLOAT_VALUE",
+pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 31] = [
+    "CONSTANT_VALUE",
     "COLUMN_REF_INDEX",
-    "RANDOM_UNIFORM_FLOAT_LB",
-    "RANDOM_UNIFORM_FLOAT_UB",
-    "RANDOM_UNIFORM_INT_LB",
-    "RANDOM_UNIFORM_INT_UB",
+    "RANDOM_SCALING",
+    "RANDOM_UNIFORM_LB",
+    "RANDOM_UNIFORM_UB",
     "RANDOM_BERNOULLI_PROBABILITY",
     "RANDOM_BINOMIAL_UB",
     "RANDOM_BINOMIAL_PROBABILITY",
@@ -443,7 +425,7 @@ impl<'a> GeneratorExpression<'a> {
 
   #[inline]
   pub fn expression_type(&self) -> GeneratorExpressionType {
-    self._tab.get::<GeneratorExpressionType>(GeneratorExpression::VT_EXPRESSION_TYPE, Some(GeneratorExpressionType::CONSTANT_INT)).unwrap()
+    self._tab.get::<GeneratorExpressionType>(GeneratorExpression::VT_EXPRESSION_TYPE, Some(GeneratorExpressionType::CONSTANT)).unwrap()
   }
   #[inline]
   pub fn arguments(&self) -> Option<&'a [GeneratorArgument]> {
@@ -464,7 +446,7 @@ impl<'a> Default for GeneratorExpressionArgs<'a> {
     #[inline]
     fn default() -> Self {
         GeneratorExpressionArgs {
-            expression_type: GeneratorExpressionType::CONSTANT_INT,
+            expression_type: GeneratorExpressionType::CONSTANT,
             arguments: None,
             inputs: None,
         }
@@ -477,7 +459,7 @@ pub struct GeneratorExpressionBuilder<'a: 'b, 'b> {
 impl<'a: 'b, 'b> GeneratorExpressionBuilder<'a, 'b> {
   #[inline]
   pub fn add_expression_type(&mut self, expression_type: GeneratorExpressionType) {
-    self.fbb_.push_slot::<GeneratorExpressionType>(GeneratorExpression::VT_EXPRESSION_TYPE, expression_type, GeneratorExpressionType::CONSTANT_INT);
+    self.fbb_.push_slot::<GeneratorExpressionType>(GeneratorExpression::VT_EXPRESSION_TYPE, expression_type, GeneratorExpressionType::CONSTANT);
   }
   #[inline]
   pub fn add_arguments(&mut self, arguments: flatbuffers::WIPOffset<flatbuffers::Vector<'b , GeneratorArgument>>) {
