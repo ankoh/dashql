@@ -23,18 +23,15 @@ struct DataVector {
 };
 
 struct GeneratorExpression {
+    /// The output data
+    DataVector out;
     /// Destructor
     virtual ~GeneratorExpression() = default;
     /// Generate a value
     virtual DataVector& generate() = 0;
 };
 
-struct SourceGeneratorExpression: public GeneratorExpression {
-    /// The data vector
-    DataVector data;
-};
-
-struct ConstantInt : public SourceGeneratorExpression {
+struct ConstantInt : public GeneratorExpression {
     /// The constant value
     int64_t value;
     /// Constructor
@@ -42,15 +39,15 @@ struct ConstantInt : public SourceGeneratorExpression {
         : value(value) {}
     /// Generate values
     DataVector& generate() override {
-        for (unsigned i = 0; i < data.size(); ++i) {
-            data.values[i] = value;
-            data.nulls[i] = false;
+        for (unsigned i = 0; i < out.size(); ++i) {
+            out.values[i] = value;
+            out.nulls[i] = false;
         }
-        return data;
+        return out;
     }
 };
 
-struct ColumnRef : public SourceGeneratorExpression {
+struct ColumnRef : public GeneratorExpression {
     /// The target data vector
     DataVector& column;
     /// Constructor
@@ -58,16 +55,16 @@ struct ColumnRef : public SourceGeneratorExpression {
         : column(col) {}
     /// Generate values
     DataVector& generate() override {
-        for (unsigned i = 0; i < data.size(); ++i) {
-            data.values[i] = column.values[i];
-            data.nulls[i] = column.nulls[i];
+        for (unsigned i = 0; i < out.size(); ++i) {
+            out.values[i] = column.values[i];
+            out.nulls[i] = column.nulls[i];
         }
-        return data;
+        return out;
     }
 };
 
 template <typename D>
-struct GenericDistribution : public SourceGeneratorExpression {
+struct GenericDistribution : public GeneratorExpression {
     /// The generator
     std::mt19937& generator;
     /// The distribution
@@ -79,16 +76,16 @@ struct GenericDistribution : public SourceGeneratorExpression {
         : generator(gen), distribution(move(dist)), scaling(1) {}
     /// Generate values
     DataVector& generate() override {
-        for (unsigned i = 0; i < data.size(); ++i) {
-            data.values[i] = distribution(generator) * scaling;
-            data.nulls[i] = false;
+        for (unsigned i = 0; i < out.size(); ++i) {
+            out.values[i] = distribution(generator) * scaling;
+            out.nulls[i] = false;
         }
-        return data;
+        return out;
     }
 };
 
 template <template <typename> class D, typename T>
-struct HigherOrderDistribution : public SourceGeneratorExpression {
+struct HigherOrderDistribution : public GeneratorExpression {
     /// The generator
     std::mt19937& generator;
     /// The distribution
@@ -100,11 +97,11 @@ struct HigherOrderDistribution : public SourceGeneratorExpression {
         : generator(gen), distribution(move(dist)) {}
     /// Generate values
     DataVector& generate() override {
-        for (unsigned i = 0; i < data.size(); ++i) {
-            data.values[i] = distribution(generator) * scaling;
-            data.nulls[i] = false;
+        for (unsigned i = 0; i < out.size(); ++i) {
+            out.values[i] = distribution(generator) * scaling;
+            out.nulls[i] = false;
         }
-        return data;
+        return out;
     }
 };
 
@@ -135,8 +132,8 @@ struct BinaryGeneratorExpression: public GeneratorExpression {
         : left(move(left)), right(move(right)) {}
     /// Merge null values
     void mergeNulls(DataVector& l, DataVector& r) {
-        for (unsigned i = 0; i < l.size(); ++i)
-            l.nulls[i] |= r.nulls[i];
+        for (unsigned i = 0; i < out.size(); ++i)
+            out.nulls[i] = l.nulls[i] | r.nulls[i];
     }
 };
 
@@ -148,8 +145,8 @@ struct AddExpression: public BinaryGeneratorExpression {
     DataVector& generate() override {
         auto& l = left->generate();
         auto& r = left->generate();
-        for (unsigned i = 0; i < l.size(); ++i)
-            l.values[i] += r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i)
+            out.values[i] = l.values[i] + r.values[i];
         mergeNulls(l, r);
         return l;
     }
@@ -163,8 +160,8 @@ struct SubExpression: public BinaryGeneratorExpression {
     DataVector& generate() override {
         auto& l = left->generate();
         auto& r = left->generate();
-        for (unsigned i = 0; i < l.size(); ++i)
-            l.values[i] -= r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i)
+            out.values[i] = l.values[i] - r.values[i];
         mergeNulls(l, r);
         return l;
     }
@@ -178,8 +175,8 @@ struct MulExpression: public BinaryGeneratorExpression {
     DataVector& generate() override {
         auto& l = left->generate();
         auto& r = left->generate();
-        for (unsigned i = 0; i < l.size(); ++i)
-            l.values[i] *= r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i)
+            out.values[i] = l.values[i] * r.values[i];
         mergeNulls(l, r);
         return l;
     }
@@ -193,8 +190,8 @@ struct DivExpression: public BinaryGeneratorExpression {
     DataVector& generate() override {
         auto& l = left->generate();
         auto& r = left->generate();
-        for (unsigned i = 0; i < l.size(); ++i)
-            l.values[i] = (r.values[i] == 0) ? 0 : (l.values[i] / r.values[i]);
+        for (unsigned i = 0; i < out.size(); ++i)
+            out.values[i] = (r.values[i] == 0) ? 0 : (l.values[i] / r.values[i]);
         mergeNulls(l, r);
         return l;
     }
@@ -208,8 +205,8 @@ struct CompareLTExpression: public BinaryGeneratorExpression {
     DataVector& generate() override {
         auto& l = left->generate();
         auto& r = left->generate();
-        for (unsigned i = 0; i < l.size(); ++i)
-            l.values[i] = l.values[i] < r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i)
+            out.values[i] = l.values[i] < r.values[i];
         mergeNulls(l, r);
         return l;
     }
@@ -223,8 +220,8 @@ struct CompareLEQExpression: public BinaryGeneratorExpression {
     DataVector& generate() override {
         auto& l = left->generate();
         auto& r = left->generate();
-        for (unsigned i = 0; i < l.size(); ++i)
-            l.values[i] = l.values[i] <= r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i)
+            out.values[i] = l.values[i] <= r.values[i];
         mergeNulls(l, r);
         return l;
     }
@@ -238,8 +235,8 @@ struct CompareGTExpression: public BinaryGeneratorExpression {
     DataVector& generate() override {
         auto& l = left->generate();
         auto& r = left->generate();
-        for (unsigned i = 0; i < l.size(); ++i)
-            l.values[i] = l.values[i] > r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i)
+            out.values[i] = l.values[i] > r.values[i];
         mergeNulls(l, r);
         return l;
     }
@@ -253,8 +250,25 @@ struct CompareGEQExpression: public BinaryGeneratorExpression {
     DataVector& generate() override {
         auto& l = left->generate();
         auto& r = left->generate();
-        for (unsigned i = 0; i < l.size(); ++i)
-            l.values[i] = l.values[i] >= r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i)
+            out.values[i] = l.values[i] >= r.values[i];
+        mergeNulls(l, r);
+        return l;
+    }
+};
+
+struct NullIfExpression: public BinaryGeneratorExpression {
+    /// Constructor
+    NullIfExpression(std::unique_ptr<GeneratorExpression> left, std::unique_ptr<GeneratorExpression> right)
+        : BinaryGeneratorExpression(move(left), move(right)) {}
+    /// Generate values
+    DataVector& generate() override {
+        auto& l = left->generate();
+        auto& r = left->generate();
+        for (unsigned i = 0; i < out.size(); ++i) {
+            out.values[i] = l.values[i];
+            out.nulls[i] = l.nulls[i] | (!r.nulls[i] && r.values[i] != 0);
+        }
         mergeNulls(l, r);
         return l;
     }
