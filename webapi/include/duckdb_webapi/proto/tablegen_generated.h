@@ -67,22 +67,20 @@ enum class GeneratorExpressionType : uint8_t {
   RANDOM_CAUCHY = 15,
   RANDOM_FISHER_F = 16,
   RANDOM_STUDENT_T = 17,
-  RANDOM_PIECEWISE_CONSTANT = 18,
-  RANDOM_PIECEWISE_LINEAR = 19,
-  NULL_IF = 20,
-  COMPARE_LT = 21,
-  COMPARE_LEQ = 22,
-  COMPARE_GT = 23,
-  COMPARE_GEQ = 24,
-  ADD = 25,
-  SUB = 26,
-  MULTIPLY = 27,
-  DIV = 28,
+  NULL_IF = 18,
+  COMPARE_LT = 19,
+  COMPARE_LEQ = 20,
+  COMPARE_GT = 21,
+  COMPARE_GEQ = 22,
+  ADD = 23,
+  SUB = 24,
+  MULTIPLY = 25,
+  DIV = 26,
   MIN = CONSTANT,
   MAX = DIV
 };
 
-inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[29] {
+inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[27] {
   static const GeneratorExpressionType values[] = {
     GeneratorExpressionType::CONSTANT,
     GeneratorExpressionType::COLUMN_REF,
@@ -102,8 +100,6 @@ inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[29] 
     GeneratorExpressionType::RANDOM_CAUCHY,
     GeneratorExpressionType::RANDOM_FISHER_F,
     GeneratorExpressionType::RANDOM_STUDENT_T,
-    GeneratorExpressionType::RANDOM_PIECEWISE_CONSTANT,
-    GeneratorExpressionType::RANDOM_PIECEWISE_LINEAR,
     GeneratorExpressionType::NULL_IF,
     GeneratorExpressionType::COMPARE_LT,
     GeneratorExpressionType::COMPARE_LEQ,
@@ -118,7 +114,7 @@ inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[29] 
 }
 
 inline const char * const *EnumNamesGeneratorExpressionType() {
-  static const char * const names[30] = {
+  static const char * const names[28] = {
     "CONSTANT",
     "COLUMN_REF",
     "RANDOM_UNIFORM",
@@ -137,8 +133,6 @@ inline const char * const *EnumNamesGeneratorExpressionType() {
     "RANDOM_CAUCHY",
     "RANDOM_FISHER_F",
     "RANDOM_STUDENT_T",
-    "RANDOM_PIECEWISE_CONSTANT",
-    "RANDOM_PIECEWISE_LINEAR",
     "NULL_IF",
     "COMPARE_LT",
     "COMPARE_LEQ",
@@ -189,15 +183,11 @@ enum class GeneratorArgumentType : uint8_t {
   RANDOM_FISHERF_M = 26,
   RANDOM_FISHERF_N = 27,
   RANDOM_STUDENTT_N = 28,
-  RANDOM_PIECEWISE_CONSTANT_INTERVAL = 29,
-  RANDOM_PIECEWISE_CONSTANT_WEIGHT = 30,
-  RANDOM_PIECEWISE_LINEAR_INTERVAL = 31,
-  RANDOM_PIECEWISE_LINEAR_DENSITY = 32,
   MIN = CONSTANT_VALUE,
-  MAX = RANDOM_PIECEWISE_LINEAR_DENSITY
+  MAX = RANDOM_STUDENTT_N
 };
 
-inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[33] {
+inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[29] {
   static const GeneratorArgumentType values[] = {
     GeneratorArgumentType::CONSTANT_VALUE,
     GeneratorArgumentType::COLUMN_REF_INDEX,
@@ -227,17 +217,13 @@ inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[33] {
     GeneratorArgumentType::RANDOM_CAUCHY_B,
     GeneratorArgumentType::RANDOM_FISHERF_M,
     GeneratorArgumentType::RANDOM_FISHERF_N,
-    GeneratorArgumentType::RANDOM_STUDENTT_N,
-    GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_INTERVAL,
-    GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_WEIGHT,
-    GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_INTERVAL,
-    GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_DENSITY
+    GeneratorArgumentType::RANDOM_STUDENTT_N
   };
   return values;
 }
 
 inline const char * const *EnumNamesGeneratorArgumentType() {
-  static const char * const names[34] = {
+  static const char * const names[30] = {
     "CONSTANT_VALUE",
     "COLUMN_REF_INDEX",
     "RANDOM_SCALING",
@@ -267,17 +253,13 @@ inline const char * const *EnumNamesGeneratorArgumentType() {
     "RANDOM_FISHERF_M",
     "RANDOM_FISHERF_N",
     "RANDOM_STUDENTT_N",
-    "RANDOM_PIECEWISE_CONSTANT_INTERVAL",
-    "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
-    "RANDOM_PIECEWISE_LINEAR_INTERVAL",
-    "RANDOM_PIECEWISE_LINEAR_DENSITY",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameGeneratorArgumentType(GeneratorArgumentType e) {
-  if (flatbuffers::IsOutRange(e, GeneratorArgumentType::CONSTANT_VALUE, GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_DENSITY)) return "";
+  if (flatbuffers::IsOutRange(e, GeneratorArgumentType::CONSTANT_VALUE, GeneratorArgumentType::RANDOM_STUDENTT_N)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesGeneratorArgumentType()[index];
 }
@@ -975,8 +957,6 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1001,8 +981,6 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     "RANDOM_CAUCHY",
     "RANDOM_FISHER_F",
     "RANDOM_STUDENT_T",
-    "RANDOM_PIECEWISE_CONSTANT",
-    "RANDOM_PIECEWISE_LINEAR",
     "NULL_IF",
     "COMPARE_LT",
     "COMPARE_LEQ",
@@ -1014,17 +992,13 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     "DIV"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 29, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 27, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *GeneratorArgumentTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -1087,14 +1061,10 @@ inline const flatbuffers::TypeTable *GeneratorArgumentTypeTypeTable() {
     "RANDOM_CAUCHY_B",
     "RANDOM_FISHERF_M",
     "RANDOM_FISHERF_N",
-    "RANDOM_STUDENTT_N",
-    "RANDOM_PIECEWISE_CONSTANT_INTERVAL",
-    "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
-    "RANDOM_PIECEWISE_LINEAR_INTERVAL",
-    "RANDOM_PIECEWISE_LINEAR_DENSITY"
+    "RANDOM_STUDENTT_N"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 33, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 29, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

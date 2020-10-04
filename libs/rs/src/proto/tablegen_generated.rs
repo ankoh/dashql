@@ -50,22 +50,20 @@ pub enum GeneratorExpressionType {
   RANDOM_CAUCHY = 15,
   RANDOM_FISHER_F = 16,
   RANDOM_STUDENT_T = 17,
-  RANDOM_PIECEWISE_CONSTANT = 18,
-  RANDOM_PIECEWISE_LINEAR = 19,
-  NULL_IF = 20,
-  COMPARE_LT = 21,
-  COMPARE_LEQ = 22,
-  COMPARE_GT = 23,
-  COMPARE_GEQ = 24,
-  ADD = 25,
-  SUB = 26,
-  MULTIPLY = 27,
-  DIV = 28,
+  NULL_IF = 18,
+  COMPARE_LT = 19,
+  COMPARE_LEQ = 20,
+  COMPARE_GT = 21,
+  COMPARE_GEQ = 22,
+  ADD = 23,
+  SUB = 24,
+  MULTIPLY = 25,
+  DIV = 26,
 
 }
 
 pub const ENUM_MIN_GENERATOR_EXPRESSION_TYPE: u8 = 0;
-pub const ENUM_MAX_GENERATOR_EXPRESSION_TYPE: u8 = 28;
+pub const ENUM_MAX_GENERATOR_EXPRESSION_TYPE: u8 = 26;
 
 impl<'a> flatbuffers::Follow<'a> for GeneratorExpressionType {
   type Inner = Self;
@@ -99,7 +97,7 @@ impl flatbuffers::Push for GeneratorExpressionType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 29] = [
+pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 27] = [
   GeneratorExpressionType::CONSTANT,
   GeneratorExpressionType::COLUMN_REF,
   GeneratorExpressionType::RANDOM_UNIFORM,
@@ -118,8 +116,6 @@ pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 29] =
   GeneratorExpressionType::RANDOM_CAUCHY,
   GeneratorExpressionType::RANDOM_FISHER_F,
   GeneratorExpressionType::RANDOM_STUDENT_T,
-  GeneratorExpressionType::RANDOM_PIECEWISE_CONSTANT,
-  GeneratorExpressionType::RANDOM_PIECEWISE_LINEAR,
   GeneratorExpressionType::NULL_IF,
   GeneratorExpressionType::COMPARE_LT,
   GeneratorExpressionType::COMPARE_LEQ,
@@ -132,7 +128,7 @@ pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 29] =
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 29] = [
+pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 27] = [
     "CONSTANT",
     "COLUMN_REF",
     "RANDOM_UNIFORM",
@@ -151,8 +147,6 @@ pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 29] = [
     "RANDOM_CAUCHY",
     "RANDOM_FISHER_F",
     "RANDOM_STUDENT_T",
-    "RANDOM_PIECEWISE_CONSTANT",
-    "RANDOM_PIECEWISE_LINEAR",
     "NULL_IF",
     "COMPARE_LT",
     "COMPARE_LEQ",
@@ -202,15 +196,11 @@ pub enum GeneratorArgumentType {
   RANDOM_FISHERF_M = 26,
   RANDOM_FISHERF_N = 27,
   RANDOM_STUDENTT_N = 28,
-  RANDOM_PIECEWISE_CONSTANT_INTERVAL = 29,
-  RANDOM_PIECEWISE_CONSTANT_WEIGHT = 30,
-  RANDOM_PIECEWISE_LINEAR_INTERVAL = 31,
-  RANDOM_PIECEWISE_LINEAR_DENSITY = 32,
 
 }
 
 pub const ENUM_MIN_GENERATOR_ARGUMENT_TYPE: u8 = 0;
-pub const ENUM_MAX_GENERATOR_ARGUMENT_TYPE: u8 = 32;
+pub const ENUM_MAX_GENERATOR_ARGUMENT_TYPE: u8 = 28;
 
 impl<'a> flatbuffers::Follow<'a> for GeneratorArgumentType {
   type Inner = Self;
@@ -244,7 +234,7 @@ impl flatbuffers::Push for GeneratorArgumentType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 33] = [
+pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 29] = [
   GeneratorArgumentType::CONSTANT_VALUE,
   GeneratorArgumentType::COLUMN_REF_INDEX,
   GeneratorArgumentType::RANDOM_SCALING,
@@ -273,15 +263,11 @@ pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 33] = [
   GeneratorArgumentType::RANDOM_CAUCHY_B,
   GeneratorArgumentType::RANDOM_FISHERF_M,
   GeneratorArgumentType::RANDOM_FISHERF_N,
-  GeneratorArgumentType::RANDOM_STUDENTT_N,
-  GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_INTERVAL,
-  GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_WEIGHT,
-  GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_INTERVAL,
-  GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_DENSITY
+  GeneratorArgumentType::RANDOM_STUDENTT_N
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 33] = [
+pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 29] = [
     "CONSTANT_VALUE",
     "COLUMN_REF_INDEX",
     "RANDOM_SCALING",
@@ -310,11 +296,7 @@ pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 33] = [
     "RANDOM_CAUCHY_B",
     "RANDOM_FISHERF_M",
     "RANDOM_FISHERF_N",
-    "RANDOM_STUDENTT_N",
-    "RANDOM_PIECEWISE_CONSTANT_INTERVAL",
-    "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
-    "RANDOM_PIECEWISE_LINEAR_INTERVAL",
-    "RANDOM_PIECEWISE_LINEAR_DENSITY"
+    "RANDOM_STUDENTT_N"
 ];
 
 pub fn enum_name_generator_argument_type(e: GeneratorArgumentType) -> &'static str {

@@ -121,8 +121,6 @@ using CauchyDistribution = HigherOrderDistribution<cauchy_distribution, double>;
 using FisherFDistribution = HigherOrderDistribution<fisher_f_distribution, double>;
 using StudentTDistribution = HigherOrderDistribution<student_t_distribution, double>;
 using DiscreteDistribution = HigherOrderDistribution<discrete_distribution, double>;
-using PiecewiseConstantDistribution = HigherOrderDistribution<piecewise_constant_distribution, double>;
-using PiecewiseLinearDistribution = HigherOrderDistribution<piecewise_linear_distribution, double>;
 
 struct BinaryGeneratorExpression : public GeneratorExpression {
     /// The input expressions
@@ -334,8 +332,8 @@ void generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
                 case proto::GeneratorExpressionType::CONSTANT:
                     return make_unique<ConstantInt>(argi(X::CONSTANT_VALUE, 0));
                 case proto::GeneratorExpressionType::COLUMN_REF:
-                    // XXX
-                    break;
+                    /// XXX bounds check
+                    return make_unique<ColumnRef>(*columnData[argi(X::COLUMN_REF_INDEX)]);
 
                 case proto::GeneratorExpressionType::RANDOM_BERNOULLI:
                     return make_unique<BernoulliDistribution>(rand, bernoulli_distribution{argfp(X::RANDOM_BERNOULLI_PROBABILITY)});
@@ -370,31 +368,25 @@ void generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
                 case proto::GeneratorExpressionType::RANDOM_STUDENT_T:
                     return make_unique<StudentTDistribution>(rand, student_t_distribution<double>{argfp(X::RANDOM_STUDENTT_N)});
 
-                case proto::GeneratorExpressionType::RANDOM_PIECEWISE_CONSTANT:
-                    break;
-                case proto::GeneratorExpressionType::RANDOM_PIECEWISE_LINEAR:
-                    break;
-
                 case proto::GeneratorExpressionType::NULL_IF:
-                    break;
+                    return make_unique<NullIfExpression>();
                 case proto::GeneratorExpressionType::COMPARE_LT:
-                    break;
+                    return make_unique<CompareLTExpression>();
                 case proto::GeneratorExpressionType::COMPARE_LEQ:
-                    break;
+                    return make_unique<CompareLEQExpression>();
                 case proto::GeneratorExpressionType::COMPARE_GT:
-                    break;
+                    return make_unique<CompareGTExpression>();
                 case proto::GeneratorExpressionType::COMPARE_GEQ:
-                    break;
+                    return make_unique<CompareGEQExpression>();
                 case proto::GeneratorExpressionType::ADD:
-                    break;
+                    return make_unique<AddExpression>();
                 case proto::GeneratorExpressionType::SUB:
-                    break;
+                    return make_unique<SubExpression>();
                 case proto::GeneratorExpressionType::MULTIPLY:
-                    break;
+                    return make_unique<MulExpression>();
                 case proto::GeneratorExpressionType::DIV:
-                    break;
+                    return make_unique<DivExpression>();
                 }
-                return nullptr;
             }();
             // clang-format on
         }
