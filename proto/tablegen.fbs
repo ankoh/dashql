@@ -32,7 +32,7 @@ enum GeneratorExpressionType: uint8 {
     COMPARE_GEQ,
     ADD,
     SUB,
-    MUL,
+    MULTIPLY,
     DIV,
 }
 
@@ -45,6 +45,7 @@ enum GeneratorArgumentType: uint8 {
     RANDOM_BERNOULLI_PROBABILITY,
     RANDOM_BINOMIAL_UB,
     RANDOM_BINOMIAL_PROBABILITY,
+    RANDOM_GEOMETRIC_PROBABILITY,
     RANDOM_NEGATIVE_BINOMIAL_K,
     RANDOM_NEGATIVE_BINOMIAL_P,
     RANDOM_POISSON_MEAN,
@@ -53,7 +54,7 @@ enum GeneratorArgumentType: uint8 {
     RANDOM_GAMMA_BETA,
     RANDOM_WEIBULL_A,
     RANDOM_WEIBULL_B,
-    RANDOM_EXTREME_VALUE_A,
+    RANDOM_EXTREME_VALUE_A,   
     RANDOM_EXTREME_VALUE_B,
     RANDOM_NORMAL_MEAN,
     RANDOM_NORMAL_STDDEV,
@@ -62,8 +63,9 @@ enum GeneratorArgumentType: uint8 {
     RANDOM_CHISQUARED_N,
     RANDOM_CAUCHY_A,
     RANDOM_CAUCHY_B,
-    RANDOM_FISHER_F,
-    RANDOM_FISHER_N,
+    RANDOM_FISHERF_M,
+    RANDOM_FISHERF_N,
+    RANDOM_STUDENTT_N,
     RANDOM_PIECEWISE_CONSTANT_INTERVAL,
     RANDOM_PIECEWISE_CONSTANT_WEIGHT,
     RANDOM_PIECEWISE_LINEAR_INTERVAL,
@@ -82,10 +84,33 @@ table GeneratorExpression {
     inputs: [uint32];
 }
 
+enum GeneratorTransformType: uint8 {
+    NONE = 0,
+    SCALE_BY,
+    AS_DAYS,
+    AS_SECONDS,
+    GENERATE_STRING
+}
+
+enum GeneratorTransformArgType: uint8 {
+    SCALE_FACTOR = 0,
+    REFERENCE_TIMESTAMP,
+    STRING_LENGTH_LB,
+    STRING_LENGTH_UB
+}
+
+struct GeneratorTransformArg {
+    argument_type: GeneratorTransformArgType;
+    value_int: int64;
+    value_float: double;
+}
+
 table ColumnSpecification {
     name: string;
     value_type: LogicalType;
-    value_generator: [GeneratorExpression];
+    generator: [GeneratorExpression];
+    transform_type: GeneratorTransformType;
+    transform_arguments: [GeneratorTransformArg];
 }
 
 table TableSpecification {

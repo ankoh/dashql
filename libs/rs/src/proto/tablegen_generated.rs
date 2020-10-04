@@ -58,12 +58,14 @@ pub enum GeneratorExpressionType {
   COMPARE_GT = 23,
   COMPARE_GEQ = 24,
   ADD = 25,
-  MULTIPLY = 26,
+  SUB = 26,
+  MULTIPLY = 27,
+  DIV = 28,
 
 }
 
 pub const ENUM_MIN_GENERATOR_EXPRESSION_TYPE: u8 = 0;
-pub const ENUM_MAX_GENERATOR_EXPRESSION_TYPE: u8 = 26;
+pub const ENUM_MAX_GENERATOR_EXPRESSION_TYPE: u8 = 28;
 
 impl<'a> flatbuffers::Follow<'a> for GeneratorExpressionType {
   type Inner = Self;
@@ -97,7 +99,7 @@ impl flatbuffers::Push for GeneratorExpressionType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 27] = [
+pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 29] = [
   GeneratorExpressionType::CONSTANT,
   GeneratorExpressionType::COLUMN_REF,
   GeneratorExpressionType::RANDOM_UNIFORM,
@@ -124,11 +126,13 @@ pub const ENUM_VALUES_GENERATOR_EXPRESSION_TYPE: [GeneratorExpressionType; 27] =
   GeneratorExpressionType::COMPARE_GT,
   GeneratorExpressionType::COMPARE_GEQ,
   GeneratorExpressionType::ADD,
-  GeneratorExpressionType::MULTIPLY
+  GeneratorExpressionType::SUB,
+  GeneratorExpressionType::MULTIPLY,
+  GeneratorExpressionType::DIV
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 27] = [
+pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 29] = [
     "CONSTANT",
     "COLUMN_REF",
     "RANDOM_UNIFORM",
@@ -155,7 +159,9 @@ pub const ENUM_NAMES_GENERATOR_EXPRESSION_TYPE: [&str; 27] = [
     "COMPARE_GT",
     "COMPARE_GEQ",
     "ADD",
-    "MULTIPLY"
+    "SUB",
+    "MULTIPLY",
+    "DIV"
 ];
 
 pub fn enum_name_generator_expression_type(e: GeneratorExpressionType) -> &'static str {
@@ -175,34 +181,36 @@ pub enum GeneratorArgumentType {
   RANDOM_BERNOULLI_PROBABILITY = 5,
   RANDOM_BINOMIAL_UB = 6,
   RANDOM_BINOMIAL_PROBABILITY = 7,
-  RANDOM_NEGATIVE_BINOMIAL_K = 8,
-  RANDOM_NEGATIVE_BINOMIAL_P = 9,
-  RANDOM_POISSON_MEAN = 10,
-  RANDOM_EXPONENTIAL_LAMBDA = 11,
-  RANDOM_GAMMA_ALPHA = 12,
-  RANDOM_GAMMA_BETA = 13,
-  RANDOM_WEIBULL_A = 14,
-  RANDOM_WEIBULL_B = 15,
-  RANDOM_EXTREME_VALUE_A = 16,
-  RANDOM_EXTREME_VALUE_B = 17,
-  RANDOM_NORMAL_MEAN = 18,
-  RANDOM_NORMAL_STDDEV = 19,
-  RANDOM_LOGNORMAL_M = 20,
-  RANDOM_LOGNORMAL_S = 21,
-  RANDOM_CHISQUARED_N = 22,
-  RANDOM_CAUCHY_A = 23,
-  RANDOM_CAUCHY_B = 24,
-  RANDOM_FISHER_F = 25,
-  RANDOM_FISHER_N = 26,
-  RANDOM_PIECEWISE_CONSTANT_INTERVAL = 27,
-  RANDOM_PIECEWISE_CONSTANT_WEIGHT = 28,
-  RANDOM_PIECEWISE_LINEAR_INTERVAL = 29,
-  RANDOM_PIECEWISE_LINEAR_DENSITY = 30,
+  RANDOM_GEOMETRIC_PROBABILITY = 8,
+  RANDOM_NEGATIVE_BINOMIAL_K = 9,
+  RANDOM_NEGATIVE_BINOMIAL_P = 10,
+  RANDOM_POISSON_MEAN = 11,
+  RANDOM_EXPONENTIAL_LAMBDA = 12,
+  RANDOM_GAMMA_ALPHA = 13,
+  RANDOM_GAMMA_BETA = 14,
+  RANDOM_WEIBULL_A = 15,
+  RANDOM_WEIBULL_B = 16,
+  RANDOM_EXTREME_VALUE_A = 17,
+  RANDOM_EXTREME_VALUE_B = 18,
+  RANDOM_NORMAL_MEAN = 19,
+  RANDOM_NORMAL_STDDEV = 20,
+  RANDOM_LOGNORMAL_M = 21,
+  RANDOM_LOGNORMAL_S = 22,
+  RANDOM_CHISQUARED_N = 23,
+  RANDOM_CAUCHY_A = 24,
+  RANDOM_CAUCHY_B = 25,
+  RANDOM_FISHERF_M = 26,
+  RANDOM_FISHERF_N = 27,
+  RANDOM_STUDENTT_N = 28,
+  RANDOM_PIECEWISE_CONSTANT_INTERVAL = 29,
+  RANDOM_PIECEWISE_CONSTANT_WEIGHT = 30,
+  RANDOM_PIECEWISE_LINEAR_INTERVAL = 31,
+  RANDOM_PIECEWISE_LINEAR_DENSITY = 32,
 
 }
 
 pub const ENUM_MIN_GENERATOR_ARGUMENT_TYPE: u8 = 0;
-pub const ENUM_MAX_GENERATOR_ARGUMENT_TYPE: u8 = 30;
+pub const ENUM_MAX_GENERATOR_ARGUMENT_TYPE: u8 = 32;
 
 impl<'a> flatbuffers::Follow<'a> for GeneratorArgumentType {
   type Inner = Self;
@@ -236,7 +244,7 @@ impl flatbuffers::Push for GeneratorArgumentType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 31] = [
+pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 33] = [
   GeneratorArgumentType::CONSTANT_VALUE,
   GeneratorArgumentType::COLUMN_REF_INDEX,
   GeneratorArgumentType::RANDOM_SCALING,
@@ -245,6 +253,7 @@ pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 31] = [
   GeneratorArgumentType::RANDOM_BERNOULLI_PROBABILITY,
   GeneratorArgumentType::RANDOM_BINOMIAL_UB,
   GeneratorArgumentType::RANDOM_BINOMIAL_PROBABILITY,
+  GeneratorArgumentType::RANDOM_GEOMETRIC_PROBABILITY,
   GeneratorArgumentType::RANDOM_NEGATIVE_BINOMIAL_K,
   GeneratorArgumentType::RANDOM_NEGATIVE_BINOMIAL_P,
   GeneratorArgumentType::RANDOM_POISSON_MEAN,
@@ -262,8 +271,9 @@ pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 31] = [
   GeneratorArgumentType::RANDOM_CHISQUARED_N,
   GeneratorArgumentType::RANDOM_CAUCHY_A,
   GeneratorArgumentType::RANDOM_CAUCHY_B,
-  GeneratorArgumentType::RANDOM_FISHER_F,
-  GeneratorArgumentType::RANDOM_FISHER_N,
+  GeneratorArgumentType::RANDOM_FISHERF_M,
+  GeneratorArgumentType::RANDOM_FISHERF_N,
+  GeneratorArgumentType::RANDOM_STUDENTT_N,
   GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_INTERVAL,
   GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_WEIGHT,
   GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_INTERVAL,
@@ -271,7 +281,7 @@ pub const ENUM_VALUES_GENERATOR_ARGUMENT_TYPE: [GeneratorArgumentType; 31] = [
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 31] = [
+pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 33] = [
     "CONSTANT_VALUE",
     "COLUMN_REF_INDEX",
     "RANDOM_SCALING",
@@ -280,6 +290,7 @@ pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 31] = [
     "RANDOM_BERNOULLI_PROBABILITY",
     "RANDOM_BINOMIAL_UB",
     "RANDOM_BINOMIAL_PROBABILITY",
+    "RANDOM_GEOMETRIC_PROBABILITY",
     "RANDOM_NEGATIVE_BINOMIAL_K",
     "RANDOM_NEGATIVE_BINOMIAL_P",
     "RANDOM_POISSON_MEAN",
@@ -297,8 +308,9 @@ pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 31] = [
     "RANDOM_CHISQUARED_N",
     "RANDOM_CAUCHY_A",
     "RANDOM_CAUCHY_B",
-    "RANDOM_FISHER_F",
-    "RANDOM_FISHER_N",
+    "RANDOM_FISHERF_M",
+    "RANDOM_FISHERF_N",
+    "RANDOM_STUDENTT_N",
     "RANDOM_PIECEWISE_CONSTANT_INTERVAL",
     "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
     "RANDOM_PIECEWISE_LINEAR_INTERVAL",
@@ -308,6 +320,141 @@ pub const ENUM_NAMES_GENERATOR_ARGUMENT_TYPE: [&str; 31] = [
 pub fn enum_name_generator_argument_type(e: GeneratorArgumentType) -> &'static str {
   let index = e as u8;
   ENUM_NAMES_GENERATOR_ARGUMENT_TYPE[index as usize]
+}
+
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum GeneratorTransformType {
+  NONE = 0,
+  SCALE_BY = 1,
+  AS_DAYS = 2,
+  AS_SECONDS = 3,
+  GENERATE_STRING = 4,
+
+}
+
+pub const ENUM_MIN_GENERATOR_TRANSFORM_TYPE: u8 = 0;
+pub const ENUM_MAX_GENERATOR_TRANSFORM_TYPE: u8 = 4;
+
+impl<'a> flatbuffers::Follow<'a> for GeneratorTransformType {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::read_scalar_at::<Self>(buf, loc)
+  }
+}
+
+impl flatbuffers::EndianScalar for GeneratorTransformType {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let n = u8::to_le(self as u8);
+    let p = &n as *const u8 as *const GeneratorTransformType;
+    unsafe { *p }
+  }
+  #[inline]
+  fn from_little_endian(self) -> Self {
+    let n = u8::from_le(self as u8);
+    let p = &n as *const u8 as *const GeneratorTransformType;
+    unsafe { *p }
+  }
+}
+
+impl flatbuffers::Push for GeneratorTransformType {
+    type Output = GeneratorTransformType;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        flatbuffers::emplace_scalar::<GeneratorTransformType>(dst, *self);
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_GENERATOR_TRANSFORM_TYPE: [GeneratorTransformType; 5] = [
+  GeneratorTransformType::NONE,
+  GeneratorTransformType::SCALE_BY,
+  GeneratorTransformType::AS_DAYS,
+  GeneratorTransformType::AS_SECONDS,
+  GeneratorTransformType::GENERATE_STRING
+];
+
+#[allow(non_camel_case_types)]
+pub const ENUM_NAMES_GENERATOR_TRANSFORM_TYPE: [&str; 5] = [
+    "NONE",
+    "SCALE_BY",
+    "AS_DAYS",
+    "AS_SECONDS",
+    "GENERATE_STRING"
+];
+
+pub fn enum_name_generator_transform_type(e: GeneratorTransformType) -> &'static str {
+  let index = e as u8;
+  ENUM_NAMES_GENERATOR_TRANSFORM_TYPE[index as usize]
+}
+
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum GeneratorTransformArgType {
+  SCALE_FACTOR = 0,
+  REFERENCE_TIMESTAMP = 1,
+  STRING_LENGTH_LB = 2,
+  STRING_LENGTH_UB = 3,
+
+}
+
+pub const ENUM_MIN_GENERATOR_TRANSFORM_ARG_TYPE: u8 = 0;
+pub const ENUM_MAX_GENERATOR_TRANSFORM_ARG_TYPE: u8 = 3;
+
+impl<'a> flatbuffers::Follow<'a> for GeneratorTransformArgType {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::read_scalar_at::<Self>(buf, loc)
+  }
+}
+
+impl flatbuffers::EndianScalar for GeneratorTransformArgType {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let n = u8::to_le(self as u8);
+    let p = &n as *const u8 as *const GeneratorTransformArgType;
+    unsafe { *p }
+  }
+  #[inline]
+  fn from_little_endian(self) -> Self {
+    let n = u8::from_le(self as u8);
+    let p = &n as *const u8 as *const GeneratorTransformArgType;
+    unsafe { *p }
+  }
+}
+
+impl flatbuffers::Push for GeneratorTransformArgType {
+    type Output = GeneratorTransformArgType;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        flatbuffers::emplace_scalar::<GeneratorTransformArgType>(dst, *self);
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_GENERATOR_TRANSFORM_ARG_TYPE: [GeneratorTransformArgType; 4] = [
+  GeneratorTransformArgType::SCALE_FACTOR,
+  GeneratorTransformArgType::REFERENCE_TIMESTAMP,
+  GeneratorTransformArgType::STRING_LENGTH_LB,
+  GeneratorTransformArgType::STRING_LENGTH_UB
+];
+
+#[allow(non_camel_case_types)]
+pub const ENUM_NAMES_GENERATOR_TRANSFORM_ARG_TYPE: [&str; 4] = [
+    "SCALE_FACTOR",
+    "REFERENCE_TIMESTAMP",
+    "STRING_LENGTH_LB",
+    "STRING_LENGTH_UB"
+];
+
+pub fn enum_name_generator_transform_arg_type(e: GeneratorTransformArgType) -> &'static str {
+  let index = e as u8;
+  ENUM_NAMES_GENERATOR_TRANSFORM_ARG_TYPE[index as usize]
 }
 
 // struct GeneratorArgument, aligned to 8
@@ -372,6 +519,78 @@ impl GeneratorArgument {
     }
 
   pub fn argument_type(&self) -> GeneratorArgumentType {
+    self.argument_type_.from_little_endian()
+  }
+  pub fn value_int(&self) -> i64 {
+    self.value_int_.from_little_endian()
+  }
+  pub fn value_float(&self) -> f64 {
+    self.value_float_.from_little_endian()
+  }
+}
+
+// struct GeneratorTransformArg, aligned to 8
+#[repr(C, align(8))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GeneratorTransformArg {
+  argument_type_: GeneratorTransformArgType,
+  padding0__: u8,  padding1__: u16,  padding2__: u32,
+  value_int_: i64,
+  value_float_: f64,
+} // pub struct GeneratorTransformArg
+impl flatbuffers::SafeSliceAccess for GeneratorTransformArg {}
+impl<'a> flatbuffers::Follow<'a> for GeneratorTransformArg {
+  type Inner = &'a GeneratorTransformArg;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a GeneratorTransformArg>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a GeneratorTransformArg {
+  type Inner = &'a GeneratorTransformArg;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<GeneratorTransformArg>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for GeneratorTransformArg {
+    type Output = GeneratorTransformArg;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const GeneratorTransformArg as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b GeneratorTransformArg {
+    type Output = GeneratorTransformArg;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const GeneratorTransformArg as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl GeneratorTransformArg {
+  pub fn new(_argument_type: GeneratorTransformArgType, _value_int: i64, _value_float: f64) -> Self {
+    GeneratorTransformArg {
+      argument_type_: _argument_type.to_little_endian(),
+      value_int_: _value_int.to_little_endian(),
+      value_float_: _value_float.to_little_endian(),
+
+      padding0__: 0,padding1__: 0,padding2__: 0,
+    }
+  }
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "duckdb_webapi.proto.GeneratorTransformArg"
+    }
+
+  pub fn argument_type(&self) -> GeneratorTransformArgType {
     self.argument_type_.from_little_endian()
   }
   pub fn value_int(&self) -> i64 {
@@ -515,15 +734,19 @@ impl<'a> ColumnSpecification<'a> {
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
         args: &'args ColumnSpecificationArgs<'args>) -> flatbuffers::WIPOffset<ColumnSpecification<'bldr>> {
       let mut builder = ColumnSpecificationBuilder::new(_fbb);
-      if let Some(x) = args.value_generator { builder.add_value_generator(x); }
+      if let Some(x) = args.transform_arguments { builder.add_transform_arguments(x); }
+      if let Some(x) = args.generator { builder.add_generator(x); }
       if let Some(x) = args.value_type { builder.add_value_type(x); }
       if let Some(x) = args.name { builder.add_name(x); }
+      builder.add_transform_type(args.transform_type);
       builder.finish()
     }
 
     pub const VT_NAME: flatbuffers::VOffsetT = 4;
     pub const VT_VALUE_TYPE: flatbuffers::VOffsetT = 6;
-    pub const VT_VALUE_GENERATOR: flatbuffers::VOffsetT = 8;
+    pub const VT_GENERATOR: flatbuffers::VOffsetT = 8;
+    pub const VT_TRANSFORM_TYPE: flatbuffers::VOffsetT = 10;
+    pub const VT_TRANSFORM_ARGUMENTS: flatbuffers::VOffsetT = 12;
 
   #[inline]
   pub fn name(&self) -> Option<&'a str> {
@@ -534,15 +757,25 @@ impl<'a> ColumnSpecification<'a> {
     self._tab.get::<LogicalType>(ColumnSpecification::VT_VALUE_TYPE, None)
   }
   #[inline]
-  pub fn value_generator(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>>>(ColumnSpecification::VT_VALUE_GENERATOR, None)
+  pub fn generator(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>>>(ColumnSpecification::VT_GENERATOR, None)
+  }
+  #[inline]
+  pub fn transform_type(&self) -> GeneratorTransformType {
+    self._tab.get::<GeneratorTransformType>(ColumnSpecification::VT_TRANSFORM_TYPE, Some(GeneratorTransformType::NONE)).unwrap()
+  }
+  #[inline]
+  pub fn transform_arguments(&self) -> Option<&'a [GeneratorTransformArg]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<GeneratorTransformArg>>>(ColumnSpecification::VT_TRANSFORM_ARGUMENTS, None).map(|v| v.safe_slice() )
   }
 }
 
 pub struct ColumnSpecificationArgs<'a> {
     pub name: Option<flatbuffers::WIPOffset<&'a str>>,
     pub value_type: Option<&'a LogicalType>,
-    pub value_generator: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>>>,
+    pub generator: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>>>,
+    pub transform_type: GeneratorTransformType,
+    pub transform_arguments: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, GeneratorTransformArg>>>,
 }
 impl<'a> Default for ColumnSpecificationArgs<'a> {
     #[inline]
@@ -550,7 +783,9 @@ impl<'a> Default for ColumnSpecificationArgs<'a> {
         ColumnSpecificationArgs {
             name: None,
             value_type: None,
-            value_generator: None,
+            generator: None,
+            transform_type: GeneratorTransformType::NONE,
+            transform_arguments: None,
         }
     }
 }
@@ -568,8 +803,16 @@ impl<'a: 'b, 'b> ColumnSpecificationBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<&LogicalType>(ColumnSpecification::VT_VALUE_TYPE, value_type);
   }
   #[inline]
-  pub fn add_value_generator(&mut self, value_generator: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<GeneratorExpression<'b >>>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ColumnSpecification::VT_VALUE_GENERATOR, value_generator);
+  pub fn add_generator(&mut self, generator: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<GeneratorExpression<'b >>>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ColumnSpecification::VT_GENERATOR, generator);
+  }
+  #[inline]
+  pub fn add_transform_type(&mut self, transform_type: GeneratorTransformType) {
+    self.fbb_.push_slot::<GeneratorTransformType>(ColumnSpecification::VT_TRANSFORM_TYPE, transform_type, GeneratorTransformType::NONE);
+  }
+  #[inline]
+  pub fn add_transform_arguments(&mut self, transform_arguments: flatbuffers::WIPOffset<flatbuffers::Vector<'b , GeneratorTransformArg>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ColumnSpecification::VT_TRANSFORM_ARGUMENTS, transform_arguments);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ColumnSpecificationBuilder<'a, 'b> {

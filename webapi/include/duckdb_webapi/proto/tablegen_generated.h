@@ -17,6 +17,8 @@ struct GeneratorExpression;
 struct GeneratorExpressionBuilder;
 struct GeneratorExpressionT;
 
+struct GeneratorTransformArg;
+
 struct ColumnSpecification;
 struct ColumnSpecificationBuilder;
 struct ColumnSpecificationT;
@@ -29,6 +31,8 @@ bool operator==(const GeneratorArgument &lhs, const GeneratorArgument &rhs);
 bool operator!=(const GeneratorArgument &lhs, const GeneratorArgument &rhs);
 bool operator==(const GeneratorExpressionT &lhs, const GeneratorExpressionT &rhs);
 bool operator!=(const GeneratorExpressionT &lhs, const GeneratorExpressionT &rhs);
+bool operator==(const GeneratorTransformArg &lhs, const GeneratorTransformArg &rhs);
+bool operator!=(const GeneratorTransformArg &lhs, const GeneratorTransformArg &rhs);
 bool operator==(const ColumnSpecificationT &lhs, const ColumnSpecificationT &rhs);
 bool operator!=(const ColumnSpecificationT &lhs, const ColumnSpecificationT &rhs);
 bool operator==(const TableSpecificationT &lhs, const TableSpecificationT &rhs);
@@ -37,6 +41,8 @@ bool operator!=(const TableSpecificationT &lhs, const TableSpecificationT &rhs);
 inline const flatbuffers::TypeTable *GeneratorArgumentTypeTable();
 
 inline const flatbuffers::TypeTable *GeneratorExpressionTypeTable();
+
+inline const flatbuffers::TypeTable *GeneratorTransformArgTypeTable();
 
 inline const flatbuffers::TypeTable *ColumnSpecificationTypeTable();
 
@@ -69,12 +75,14 @@ enum class GeneratorExpressionType : uint8_t {
   COMPARE_GT = 23,
   COMPARE_GEQ = 24,
   ADD = 25,
-  MULTIPLY = 26,
+  SUB = 26,
+  MULTIPLY = 27,
+  DIV = 28,
   MIN = CONSTANT,
-  MAX = MULTIPLY
+  MAX = DIV
 };
 
-inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[27] {
+inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[29] {
   static const GeneratorExpressionType values[] = {
     GeneratorExpressionType::CONSTANT,
     GeneratorExpressionType::COLUMN_REF,
@@ -102,13 +110,15 @@ inline const GeneratorExpressionType (&EnumValuesGeneratorExpressionType())[27] 
     GeneratorExpressionType::COMPARE_GT,
     GeneratorExpressionType::COMPARE_GEQ,
     GeneratorExpressionType::ADD,
-    GeneratorExpressionType::MULTIPLY
+    GeneratorExpressionType::SUB,
+    GeneratorExpressionType::MULTIPLY,
+    GeneratorExpressionType::DIV
   };
   return values;
 }
 
 inline const char * const *EnumNamesGeneratorExpressionType() {
-  static const char * const names[28] = {
+  static const char * const names[30] = {
     "CONSTANT",
     "COLUMN_REF",
     "RANDOM_UNIFORM",
@@ -135,14 +145,16 @@ inline const char * const *EnumNamesGeneratorExpressionType() {
     "COMPARE_GT",
     "COMPARE_GEQ",
     "ADD",
+    "SUB",
     "MULTIPLY",
+    "DIV",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameGeneratorExpressionType(GeneratorExpressionType e) {
-  if (flatbuffers::IsOutRange(e, GeneratorExpressionType::CONSTANT, GeneratorExpressionType::MULTIPLY)) return "";
+  if (flatbuffers::IsOutRange(e, GeneratorExpressionType::CONSTANT, GeneratorExpressionType::DIV)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesGeneratorExpressionType()[index];
 }
@@ -156,34 +168,36 @@ enum class GeneratorArgumentType : uint8_t {
   RANDOM_BERNOULLI_PROBABILITY = 5,
   RANDOM_BINOMIAL_UB = 6,
   RANDOM_BINOMIAL_PROBABILITY = 7,
-  RANDOM_NEGATIVE_BINOMIAL_K = 8,
-  RANDOM_NEGATIVE_BINOMIAL_P = 9,
-  RANDOM_POISSON_MEAN = 10,
-  RANDOM_EXPONENTIAL_LAMBDA = 11,
-  RANDOM_GAMMA_ALPHA = 12,
-  RANDOM_GAMMA_BETA = 13,
-  RANDOM_WEIBULL_A = 14,
-  RANDOM_WEIBULL_B = 15,
-  RANDOM_EXTREME_VALUE_A = 16,
-  RANDOM_EXTREME_VALUE_B = 17,
-  RANDOM_NORMAL_MEAN = 18,
-  RANDOM_NORMAL_STDDEV = 19,
-  RANDOM_LOGNORMAL_M = 20,
-  RANDOM_LOGNORMAL_S = 21,
-  RANDOM_CHISQUARED_N = 22,
-  RANDOM_CAUCHY_A = 23,
-  RANDOM_CAUCHY_B = 24,
-  RANDOM_FISHER_F = 25,
-  RANDOM_FISHER_N = 26,
-  RANDOM_PIECEWISE_CONSTANT_INTERVAL = 27,
-  RANDOM_PIECEWISE_CONSTANT_WEIGHT = 28,
-  RANDOM_PIECEWISE_LINEAR_INTERVAL = 29,
-  RANDOM_PIECEWISE_LINEAR_DENSITY = 30,
+  RANDOM_GEOMETRIC_PROBABILITY = 8,
+  RANDOM_NEGATIVE_BINOMIAL_K = 9,
+  RANDOM_NEGATIVE_BINOMIAL_P = 10,
+  RANDOM_POISSON_MEAN = 11,
+  RANDOM_EXPONENTIAL_LAMBDA = 12,
+  RANDOM_GAMMA_ALPHA = 13,
+  RANDOM_GAMMA_BETA = 14,
+  RANDOM_WEIBULL_A = 15,
+  RANDOM_WEIBULL_B = 16,
+  RANDOM_EXTREME_VALUE_A = 17,
+  RANDOM_EXTREME_VALUE_B = 18,
+  RANDOM_NORMAL_MEAN = 19,
+  RANDOM_NORMAL_STDDEV = 20,
+  RANDOM_LOGNORMAL_M = 21,
+  RANDOM_LOGNORMAL_S = 22,
+  RANDOM_CHISQUARED_N = 23,
+  RANDOM_CAUCHY_A = 24,
+  RANDOM_CAUCHY_B = 25,
+  RANDOM_FISHERF_M = 26,
+  RANDOM_FISHERF_N = 27,
+  RANDOM_STUDENTT_N = 28,
+  RANDOM_PIECEWISE_CONSTANT_INTERVAL = 29,
+  RANDOM_PIECEWISE_CONSTANT_WEIGHT = 30,
+  RANDOM_PIECEWISE_LINEAR_INTERVAL = 31,
+  RANDOM_PIECEWISE_LINEAR_DENSITY = 32,
   MIN = CONSTANT_VALUE,
   MAX = RANDOM_PIECEWISE_LINEAR_DENSITY
 };
 
-inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[31] {
+inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[33] {
   static const GeneratorArgumentType values[] = {
     GeneratorArgumentType::CONSTANT_VALUE,
     GeneratorArgumentType::COLUMN_REF_INDEX,
@@ -193,6 +207,7 @@ inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[31] {
     GeneratorArgumentType::RANDOM_BERNOULLI_PROBABILITY,
     GeneratorArgumentType::RANDOM_BINOMIAL_UB,
     GeneratorArgumentType::RANDOM_BINOMIAL_PROBABILITY,
+    GeneratorArgumentType::RANDOM_GEOMETRIC_PROBABILITY,
     GeneratorArgumentType::RANDOM_NEGATIVE_BINOMIAL_K,
     GeneratorArgumentType::RANDOM_NEGATIVE_BINOMIAL_P,
     GeneratorArgumentType::RANDOM_POISSON_MEAN,
@@ -210,8 +225,9 @@ inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[31] {
     GeneratorArgumentType::RANDOM_CHISQUARED_N,
     GeneratorArgumentType::RANDOM_CAUCHY_A,
     GeneratorArgumentType::RANDOM_CAUCHY_B,
-    GeneratorArgumentType::RANDOM_FISHER_F,
-    GeneratorArgumentType::RANDOM_FISHER_N,
+    GeneratorArgumentType::RANDOM_FISHERF_M,
+    GeneratorArgumentType::RANDOM_FISHERF_N,
+    GeneratorArgumentType::RANDOM_STUDENTT_N,
     GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_INTERVAL,
     GeneratorArgumentType::RANDOM_PIECEWISE_CONSTANT_WEIGHT,
     GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_INTERVAL,
@@ -221,7 +237,7 @@ inline const GeneratorArgumentType (&EnumValuesGeneratorArgumentType())[31] {
 }
 
 inline const char * const *EnumNamesGeneratorArgumentType() {
-  static const char * const names[32] = {
+  static const char * const names[34] = {
     "CONSTANT_VALUE",
     "COLUMN_REF_INDEX",
     "RANDOM_SCALING",
@@ -230,6 +246,7 @@ inline const char * const *EnumNamesGeneratorArgumentType() {
     "RANDOM_BERNOULLI_PROBABILITY",
     "RANDOM_BINOMIAL_UB",
     "RANDOM_BINOMIAL_PROBABILITY",
+    "RANDOM_GEOMETRIC_PROBABILITY",
     "RANDOM_NEGATIVE_BINOMIAL_K",
     "RANDOM_NEGATIVE_BINOMIAL_P",
     "RANDOM_POISSON_MEAN",
@@ -247,8 +264,9 @@ inline const char * const *EnumNamesGeneratorArgumentType() {
     "RANDOM_CHISQUARED_N",
     "RANDOM_CAUCHY_A",
     "RANDOM_CAUCHY_B",
-    "RANDOM_FISHER_F",
-    "RANDOM_FISHER_N",
+    "RANDOM_FISHERF_M",
+    "RANDOM_FISHERF_N",
+    "RANDOM_STUDENTT_N",
     "RANDOM_PIECEWISE_CONSTANT_INTERVAL",
     "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
     "RANDOM_PIECEWISE_LINEAR_INTERVAL",
@@ -262,6 +280,81 @@ inline const char *EnumNameGeneratorArgumentType(GeneratorArgumentType e) {
   if (flatbuffers::IsOutRange(e, GeneratorArgumentType::CONSTANT_VALUE, GeneratorArgumentType::RANDOM_PIECEWISE_LINEAR_DENSITY)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesGeneratorArgumentType()[index];
+}
+
+enum class GeneratorTransformType : uint8_t {
+  NONE = 0,
+  SCALE_BY = 1,
+  AS_DAYS = 2,
+  AS_SECONDS = 3,
+  GENERATE_STRING = 4,
+  MIN = NONE,
+  MAX = GENERATE_STRING
+};
+
+inline const GeneratorTransformType (&EnumValuesGeneratorTransformType())[5] {
+  static const GeneratorTransformType values[] = {
+    GeneratorTransformType::NONE,
+    GeneratorTransformType::SCALE_BY,
+    GeneratorTransformType::AS_DAYS,
+    GeneratorTransformType::AS_SECONDS,
+    GeneratorTransformType::GENERATE_STRING
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesGeneratorTransformType() {
+  static const char * const names[6] = {
+    "NONE",
+    "SCALE_BY",
+    "AS_DAYS",
+    "AS_SECONDS",
+    "GENERATE_STRING",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameGeneratorTransformType(GeneratorTransformType e) {
+  if (flatbuffers::IsOutRange(e, GeneratorTransformType::NONE, GeneratorTransformType::GENERATE_STRING)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesGeneratorTransformType()[index];
+}
+
+enum class GeneratorTransformArgType : uint8_t {
+  SCALE_FACTOR = 0,
+  REFERENCE_TIMESTAMP = 1,
+  STRING_LENGTH_LB = 2,
+  STRING_LENGTH_UB = 3,
+  MIN = SCALE_FACTOR,
+  MAX = STRING_LENGTH_UB
+};
+
+inline const GeneratorTransformArgType (&EnumValuesGeneratorTransformArgType())[4] {
+  static const GeneratorTransformArgType values[] = {
+    GeneratorTransformArgType::SCALE_FACTOR,
+    GeneratorTransformArgType::REFERENCE_TIMESTAMP,
+    GeneratorTransformArgType::STRING_LENGTH_LB,
+    GeneratorTransformArgType::STRING_LENGTH_UB
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesGeneratorTransformArgType() {
+  static const char * const names[5] = {
+    "SCALE_FACTOR",
+    "REFERENCE_TIMESTAMP",
+    "STRING_LENGTH_LB",
+    "STRING_LENGTH_UB",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameGeneratorTransformArgType(GeneratorTransformArgType e) {
+  if (flatbuffers::IsOutRange(e, GeneratorTransformArgType::SCALE_FACTOR, GeneratorTransformArgType::STRING_LENGTH_UB)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesGeneratorTransformArgType()[index];
 }
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) GeneratorArgument FLATBUFFERS_FINAL_CLASS {
@@ -317,6 +410,63 @@ inline bool operator==(const GeneratorArgument &lhs, const GeneratorArgument &rh
 }
 
 inline bool operator!=(const GeneratorArgument &lhs, const GeneratorArgument &rhs) {
+    return !(lhs == rhs);
+}
+
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) GeneratorTransformArg FLATBUFFERS_FINAL_CLASS {
+ private:
+  uint8_t argument_type_;
+  int8_t padding0__;  int16_t padding1__;  int32_t padding2__;
+  int64_t value_int_;
+  double value_float_;
+
+ public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return GeneratorTransformArgTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "duckdb_webapi.proto.GeneratorTransformArg";
+  }
+  GeneratorTransformArg()
+      : argument_type_(0),
+        padding0__(0),
+        padding1__(0),
+        padding2__(0),
+        value_int_(0),
+        value_float_(0) {
+    (void)padding0__;
+    (void)padding1__;
+    (void)padding2__;
+  }
+  GeneratorTransformArg(duckdb_webapi::proto::GeneratorTransformArgType _argument_type, int64_t _value_int, double _value_float)
+      : argument_type_(flatbuffers::EndianScalar(static_cast<uint8_t>(_argument_type))),
+        padding0__(0),
+        padding1__(0),
+        padding2__(0),
+        value_int_(flatbuffers::EndianScalar(_value_int)),
+        value_float_(flatbuffers::EndianScalar(_value_float)) {
+  }
+  duckdb_webapi::proto::GeneratorTransformArgType argument_type() const {
+    return static_cast<duckdb_webapi::proto::GeneratorTransformArgType>(flatbuffers::EndianScalar(argument_type_));
+  }
+  int64_t value_int() const {
+    return flatbuffers::EndianScalar(value_int_);
+  }
+  double value_float() const {
+    return flatbuffers::EndianScalar(value_float_);
+  }
+};
+FLATBUFFERS_STRUCT_END(GeneratorTransformArg, 24);
+
+inline bool operator==(const GeneratorTransformArg &lhs, const GeneratorTransformArg &rhs) {
+  return
+      (lhs.argument_type() == rhs.argument_type()) &&
+      (lhs.value_int() == rhs.value_int()) &&
+      (lhs.value_float() == rhs.value_float());
+}
+
+inline bool operator!=(const GeneratorTransformArg &lhs, const GeneratorTransformArg &rhs) {
     return !(lhs == rhs);
 }
 
@@ -442,8 +592,11 @@ struct ColumnSpecificationT : public flatbuffers::NativeTable {
   }
   std::string name;
   std::unique_ptr<duckdb_webapi::proto::LogicalType> value_type;
-  std::vector<std::unique_ptr<duckdb_webapi::proto::GeneratorExpressionT>> value_generator;
-  ColumnSpecificationT() {
+  std::vector<std::unique_ptr<duckdb_webapi::proto::GeneratorExpressionT>> generator;
+  duckdb_webapi::proto::GeneratorTransformType transform_type;
+  std::vector<duckdb_webapi::proto::GeneratorTransformArg> transform_arguments;
+  ColumnSpecificationT()
+      : transform_type(duckdb_webapi::proto::GeneratorTransformType::NONE) {
   }
 };
 
@@ -451,7 +604,9 @@ inline bool operator==(const ColumnSpecificationT &lhs, const ColumnSpecificatio
   return
       (lhs.name == rhs.name) &&
       (lhs.value_type == rhs.value_type) &&
-      (lhs.value_generator == rhs.value_generator);
+      (lhs.generator == rhs.generator) &&
+      (lhs.transform_type == rhs.transform_type) &&
+      (lhs.transform_arguments == rhs.transform_arguments);
 }
 
 inline bool operator!=(const ColumnSpecificationT &lhs, const ColumnSpecificationT &rhs) {
@@ -471,7 +626,9 @@ struct ColumnSpecification FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_VALUE_TYPE = 6,
-    VT_VALUE_GENERATOR = 8
+    VT_GENERATOR = 8,
+    VT_TRANSFORM_TYPE = 10,
+    VT_TRANSFORM_ARGUMENTS = 12
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -479,17 +636,26 @@ struct ColumnSpecification FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   const duckdb_webapi::proto::LogicalType *value_type() const {
     return GetStruct<const duckdb_webapi::proto::LogicalType *>(VT_VALUE_TYPE);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *value_generator() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *>(VT_VALUE_GENERATOR);
+  const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *generator() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *>(VT_GENERATOR);
+  }
+  duckdb_webapi::proto::GeneratorTransformType transform_type() const {
+    return static_cast<duckdb_webapi::proto::GeneratorTransformType>(GetField<uint8_t>(VT_TRANSFORM_TYPE, 0));
+  }
+  const flatbuffers::Vector<const duckdb_webapi::proto::GeneratorTransformArg *> *transform_arguments() const {
+    return GetPointer<const flatbuffers::Vector<const duckdb_webapi::proto::GeneratorTransformArg *> *>(VT_TRANSFORM_ARGUMENTS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            VerifyField<duckdb_webapi::proto::LogicalType>(verifier, VT_VALUE_TYPE) &&
-           VerifyOffset(verifier, VT_VALUE_GENERATOR) &&
-           verifier.VerifyVector(value_generator()) &&
-           verifier.VerifyVectorOfTables(value_generator()) &&
+           VerifyOffset(verifier, VT_GENERATOR) &&
+           verifier.VerifyVector(generator()) &&
+           verifier.VerifyVectorOfTables(generator()) &&
+           VerifyField<uint8_t>(verifier, VT_TRANSFORM_TYPE) &&
+           VerifyOffset(verifier, VT_TRANSFORM_ARGUMENTS) &&
+           verifier.VerifyVector(transform_arguments()) &&
            verifier.EndTable();
   }
   ColumnSpecificationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -507,8 +673,14 @@ struct ColumnSpecificationBuilder {
   void add_value_type(const duckdb_webapi::proto::LogicalType *value_type) {
     fbb_.AddStruct(ColumnSpecification::VT_VALUE_TYPE, value_type);
   }
-  void add_value_generator(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>> value_generator) {
-    fbb_.AddOffset(ColumnSpecification::VT_VALUE_GENERATOR, value_generator);
+  void add_generator(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>> generator) {
+    fbb_.AddOffset(ColumnSpecification::VT_GENERATOR, generator);
+  }
+  void add_transform_type(duckdb_webapi::proto::GeneratorTransformType transform_type) {
+    fbb_.AddElement<uint8_t>(ColumnSpecification::VT_TRANSFORM_TYPE, static_cast<uint8_t>(transform_type), 0);
+  }
+  void add_transform_arguments(flatbuffers::Offset<flatbuffers::Vector<const duckdb_webapi::proto::GeneratorTransformArg *>> transform_arguments) {
+    fbb_.AddOffset(ColumnSpecification::VT_TRANSFORM_ARGUMENTS, transform_arguments);
   }
   explicit ColumnSpecificationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -525,11 +697,15 @@ inline flatbuffers::Offset<ColumnSpecification> CreateColumnSpecification(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     const duckdb_webapi::proto::LogicalType *value_type = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>> value_generator = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>> generator = 0,
+    duckdb_webapi::proto::GeneratorTransformType transform_type = duckdb_webapi::proto::GeneratorTransformType::NONE,
+    flatbuffers::Offset<flatbuffers::Vector<const duckdb_webapi::proto::GeneratorTransformArg *>> transform_arguments = 0) {
   ColumnSpecificationBuilder builder_(_fbb);
-  builder_.add_value_generator(value_generator);
+  builder_.add_transform_arguments(transform_arguments);
+  builder_.add_generator(generator);
   builder_.add_value_type(value_type);
   builder_.add_name(name);
+  builder_.add_transform_type(transform_type);
   return builder_.Finish();
 }
 
@@ -537,14 +713,19 @@ inline flatbuffers::Offset<ColumnSpecification> CreateColumnSpecificationDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     const duckdb_webapi::proto::LogicalType *value_type = 0,
-    const std::vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *value_generator = nullptr) {
+    const std::vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *generator = nullptr,
+    duckdb_webapi::proto::GeneratorTransformType transform_type = duckdb_webapi::proto::GeneratorTransformType::NONE,
+    const std::vector<duckdb_webapi::proto::GeneratorTransformArg> *transform_arguments = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
-  auto value_generator__ = value_generator ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>(*value_generator) : 0;
+  auto generator__ = generator ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>(*generator) : 0;
+  auto transform_arguments__ = transform_arguments ? _fbb.CreateVectorOfStructs<duckdb_webapi::proto::GeneratorTransformArg>(*transform_arguments) : 0;
   return duckdb_webapi::proto::CreateColumnSpecification(
       _fbb,
       name__,
       value_type,
-      value_generator__);
+      generator__,
+      transform_type,
+      transform_arguments__);
 }
 
 flatbuffers::Offset<ColumnSpecification> CreateColumnSpecification(flatbuffers::FlatBufferBuilder &_fbb, const ColumnSpecificationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -707,7 +888,9 @@ inline void ColumnSpecification::UnPackTo(ColumnSpecificationT *_o, const flatbu
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = _e->str(); }
   { auto _e = value_type(); if (_e) _o->value_type = std::unique_ptr<duckdb_webapi::proto::LogicalType>(new duckdb_webapi::proto::LogicalType(*_e)); }
-  { auto _e = value_generator(); if (_e) { _o->value_generator.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->value_generator[_i] = std::unique_ptr<duckdb_webapi::proto::GeneratorExpressionT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = generator(); if (_e) { _o->generator.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->generator[_i] = std::unique_ptr<duckdb_webapi::proto::GeneratorExpressionT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = transform_type(); _o->transform_type = _e; }
+  { auto _e = transform_arguments(); if (_e) { _o->transform_arguments.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->transform_arguments[_i] = *_e->Get(_i); } } }
 }
 
 inline flatbuffers::Offset<ColumnSpecification> ColumnSpecification::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ColumnSpecificationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -720,12 +903,16 @@ inline flatbuffers::Offset<ColumnSpecification> CreateColumnSpecification(flatbu
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ColumnSpecificationT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _value_type = _o->value_type ? _o->value_type.get() : 0;
-  auto _value_generator = _o->value_generator.size() ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> (_o->value_generator.size(), [](size_t i, _VectorArgs *__va) { return CreateGeneratorExpression(*__va->__fbb, __va->__o->value_generator[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _generator = _o->generator.size() ? _fbb.CreateVector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> (_o->generator.size(), [](size_t i, _VectorArgs *__va) { return CreateGeneratorExpression(*__va->__fbb, __va->__o->generator[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _transform_type = _o->transform_type;
+  auto _transform_arguments = _o->transform_arguments.size() ? _fbb.CreateVectorOfStructs(_o->transform_arguments) : 0;
   return duckdb_webapi::proto::CreateColumnSpecification(
       _fbb,
       _name,
       _value_type,
-      _value_generator);
+      _generator,
+      _transform_type,
+      _transform_arguments);
 }
 
 inline TableSpecificationT *TableSpecification::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -788,6 +975,8 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -820,16 +1009,20 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTypeTable() {
     "COMPARE_GT",
     "COMPARE_GEQ",
     "ADD",
-    "MULTIPLY"
+    "SUB",
+    "MULTIPLY",
+    "DIV"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 27, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 29, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *GeneratorArgumentTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -874,6 +1067,7 @@ inline const flatbuffers::TypeTable *GeneratorArgumentTypeTypeTable() {
     "RANDOM_BERNOULLI_PROBABILITY",
     "RANDOM_BINOMIAL_UB",
     "RANDOM_BINOMIAL_PROBABILITY",
+    "RANDOM_GEOMETRIC_PROBABILITY",
     "RANDOM_NEGATIVE_BINOMIAL_K",
     "RANDOM_NEGATIVE_BINOMIAL_P",
     "RANDOM_POISSON_MEAN",
@@ -891,15 +1085,62 @@ inline const flatbuffers::TypeTable *GeneratorArgumentTypeTypeTable() {
     "RANDOM_CHISQUARED_N",
     "RANDOM_CAUCHY_A",
     "RANDOM_CAUCHY_B",
-    "RANDOM_FISHER_F",
-    "RANDOM_FISHER_N",
+    "RANDOM_FISHERF_M",
+    "RANDOM_FISHERF_N",
+    "RANDOM_STUDENTT_N",
     "RANDOM_PIECEWISE_CONSTANT_INTERVAL",
     "RANDOM_PIECEWISE_CONSTANT_WEIGHT",
     "RANDOM_PIECEWISE_LINEAR_INTERVAL",
     "RANDOM_PIECEWISE_LINEAR_DENSITY"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 31, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 33, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *GeneratorTransformTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    duckdb_webapi::proto::GeneratorTransformTypeTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "SCALE_BY",
+    "AS_DAYS",
+    "AS_SECONDS",
+    "GENERATE_STRING"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 5, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *GeneratorTransformArgTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    duckdb_webapi::proto::GeneratorTransformArgTypeTypeTable
+  };
+  static const char * const names[] = {
+    "SCALE_FACTOR",
+    "REFERENCE_TIMESTAMP",
+    "STRING_LENGTH_LB",
+    "STRING_LENGTH_UB"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
@@ -946,23 +1187,50 @@ inline const flatbuffers::TypeTable *GeneratorExpressionTypeTable() {
   return &tt;
 }
 
+inline const flatbuffers::TypeTable *GeneratorTransformArgTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_LONG, 0, -1 },
+    { flatbuffers::ET_DOUBLE, 0, -1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    duckdb_webapi::proto::GeneratorTransformArgTypeTypeTable
+  };
+  static const int64_t values[] = { 0, 8, 16, 24 };
+  static const char * const names[] = {
+    "argument_type",
+    "value_int",
+    "value_float"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_STRUCT, 3, type_codes, type_refs, nullptr, values, names
+  };
+  return &tt;
+}
+
 inline const flatbuffers::TypeTable *ColumnSpecificationTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_STRING, 0, -1 },
     { flatbuffers::ET_SEQUENCE, 0, 0 },
-    { flatbuffers::ET_SEQUENCE, 1, 1 }
+    { flatbuffers::ET_SEQUENCE, 1, 1 },
+    { flatbuffers::ET_UCHAR, 0, 2 },
+    { flatbuffers::ET_SEQUENCE, 1, 3 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     duckdb_webapi::proto::LogicalTypeTypeTable,
-    duckdb_webapi::proto::GeneratorExpressionTypeTable
+    duckdb_webapi::proto::GeneratorExpressionTypeTable,
+    duckdb_webapi::proto::GeneratorTransformTypeTypeTable,
+    duckdb_webapi::proto::GeneratorTransformArgTypeTable
   };
   static const char * const names[] = {
     "name",
     "value_type",
-    "value_generator"
+    "generator",
+    "transform_type",
+    "transform_arguments"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_TABLE, 5, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
