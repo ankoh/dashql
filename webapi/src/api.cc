@@ -80,7 +80,7 @@ WebAPI::Connection::~Connection() {}
 
 /// Run a SQL query
 ExpectedBuffer<proto::QueryResult> WebAPI::Connection::runQuery(std::string_view text) {
-    auto queryID = allocateQueryID();
+    auto queryID = ++currentQueryID;
 
     // Create a new connection
     duckdb::Connection conn{*database};
@@ -101,7 +101,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::runQuery(std::string_view
 
 /// Start a SQL query
 ExpectedBuffer<proto::QueryResult> WebAPI::Connection::sendQuery(std::string_view text) {
-    auto queryID = allocateQueryID();
+    auto queryID = ++currentQueryID;
 
     // Create a new connection
     duckdb::Connection conn{*database};

@@ -130,8 +130,6 @@ namespace duckdb_webapi {
             /// Destructor
             ~Connection();
 
-            /// Allocate a query id
-            auto allocateQueryID() { return ++currentQueryID; }
             /// Get the buffer manager
             auto& getContext() { return *contextData; }
 
