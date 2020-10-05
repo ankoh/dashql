@@ -80,8 +80,6 @@ WebAPI::Connection::~Connection() {}
 
 /// Run a SQL query
 ExpectedBuffer<proto::QueryResult> WebAPI::Connection::runQuery(std::string_view text) {
-    auto queryID = ++currentQueryID;
-
     // Create a new connection
     duckdb::Connection conn{*database};
     auto result = conn.SendQuery(std::string{text});
@@ -92,7 +90,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::runQuery(std::string_view
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
-    auto queryResultOfs = writeQueryResult(builder, *result, queryID);
+    auto queryResultOfs = writeQueryResult(builder, *result, ++currentQueryID);
 
     // Return buffer
     builder.Finish(queryResultOfs);
@@ -101,8 +99,6 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::runQuery(std::string_view
 
 /// Start a SQL query
 ExpectedBuffer<proto::QueryResult> WebAPI::Connection::sendQuery(std::string_view text) {
-    auto queryID = ++currentQueryID;
-
     // Create a new connection
     duckdb::Connection conn{*database};
     auto result = conn.SendQuery(std::string{text});
@@ -113,7 +109,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::sendQuery(std::string_vie
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
-    auto queryResultOfs = writeQueryResult(builder, *result, queryID);
+    auto queryResultOfs = writeQueryResult(builder, *result, ++currentQueryID);
 
     // Return buffer
     builder.Finish(queryResultOfs);
