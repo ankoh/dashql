@@ -8,6 +8,8 @@
 #include <tuple>
 #include <unordered_map>
 #include <variant>
+#include <optional>
+#include <stack>
 
 using namespace std;
 
@@ -128,9 +130,9 @@ using DiscreteDistribution = HigherOrderDistribution<discrete_distribution, doub
 
 struct BinaryGeneratorExpression : public GeneratorExpression {
     /// The input expressions
-    shared_ptr<GeneratorExpression> left, right;
+    std::array<shared_ptr<GeneratorExpression>, 2> in;
     /// Constructor
-    BinaryGeneratorExpression() : left(nullptr), right(nullptr) {}
+    BinaryGeneratorExpression() : in({nullptr, nullptr}) {}
     /// Merge null values
     void mergeNulls(const DataVector &l, const DataVector &r) {
         for (unsigned i = 0; i < out.size(); ++i)
@@ -143,8 +145,8 @@ struct AddExpression : public BinaryGeneratorExpression {
     AddExpression() : BinaryGeneratorExpression() {}
     /// Compute values
     void compute() override {
-        auto &l = left->next(pass);
-        auto &r = right->next(pass);
+        auto &l = in[0]->next(pass);
+        auto &r = in[1]->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] + r.values[i];
         mergeNulls(l, r);
@@ -156,8 +158,8 @@ struct SubExpression : public BinaryGeneratorExpression {
     SubExpression() : BinaryGeneratorExpression() {}
     /// Compute values
     void compute() override {
-        auto &l = left->next(pass);
-        auto &r = right->next(pass);
+        auto &l = in[0]->next(pass);
+        auto &r = in[1]->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] - r.values[i];
         mergeNulls(l, r);
@@ -169,8 +171,8 @@ struct MulExpression : public BinaryGeneratorExpression {
     MulExpression() : BinaryGeneratorExpression() {}
     /// Compute values
     void compute() override {
-        auto &l = left->next(pass);
-        auto &r = right->next(pass);
+        auto &l = in[0]->next(pass);
+        auto &r = in[1]->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] * r.values[i];
         mergeNulls(l, r);
@@ -182,8 +184,8 @@ struct DivExpression : public BinaryGeneratorExpression {
     DivExpression() : BinaryGeneratorExpression() {}
     /// Compute values
     void compute() override {
-        auto &l = left->next(pass);
-        auto &r = right->next(pass);
+        auto &l = in[0]->next(pass);
+        auto &r = in[1]->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = (r.values[i] == 0) ? 0 : (l.values[i] / r.values[i]);
         mergeNulls(l, r);
@@ -195,8 +197,8 @@ struct CompareLTExpression : public BinaryGeneratorExpression {
     CompareLTExpression() : BinaryGeneratorExpression() {}
     /// Compute values
     void compute() override {
-        auto &l = left->next(pass);
-        auto &r = left->next(pass);
+        auto &l = in[0]->next(pass);
+        auto &r = in[1]->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] < r.values[i];
         mergeNulls(l, r);
@@ -208,8 +210,8 @@ struct CompareLEQExpression : public BinaryGeneratorExpression {
     CompareLEQExpression() : BinaryGeneratorExpression() {}
     /// Compute values
     void compute() override {
-        auto &l = left->next(pass);
-        auto &r = left->next(pass);
+        auto &l = in[0]->next(pass);
+        auto &r = in[1]->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] <= r.values[i];
         mergeNulls(l, r);
@@ -221,8 +223,8 @@ struct CompareGTExpression : public BinaryGeneratorExpression {
     CompareGTExpression() : BinaryGeneratorExpression() {}
     /// Compute values
     void compute() override {
-        auto &l = left->next(pass);
-        auto &r = left->next(pass);
+        auto &l = in[0]->next(pass);
+        auto &r = in[1]->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] > r.values[i];
         mergeNulls(l, r);
@@ -234,8 +236,8 @@ struct CompareGEQExpression : public BinaryGeneratorExpression {
     CompareGEQExpression() : BinaryGeneratorExpression() {}
     /// Compute values
     void compute() override {
-        auto &l = left->next(pass);
-        auto &r = left->next(pass);
+        auto &l = in[0]->next(pass);
+        auto &r = in[1]->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] >= r.values[i];
         mergeNulls(l, r);
@@ -247,8 +249,8 @@ struct NullIfExpression : public BinaryGeneratorExpression {
     NullIfExpression() : BinaryGeneratorExpression() {}
     /// Compute values
     void compute() override {
-        auto &l = left->next(pass);
-        auto &r = left->next(pass);
+        auto &l = in[0]->next(pass);
+        auto &r = in[1]->next(pass);
         for (unsigned i = 0; i < out.size(); ++i) {
             out.values[i] = l.values[i];
             out.nulls[i] = l.nulls[i] | (!r.nulls[i] && r.values[i] != 0);
@@ -270,6 +272,7 @@ struct OutputTransform {
     virtual void append(uint8_t n = VECTOR_SIZE);
 };
 
+
 } // namespace
 
 /// Generate table
@@ -289,13 +292,37 @@ void generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
         auto *exprs = col->generator();
 
         // Build expression tree
-        vector<shared_ptr<GeneratorExpression>> nodes;
-        nodes.resize(exprs->size());
-        for (unsigned j = 0; j < exprs->size(); ++j) {
-            auto *expr = exprs->Get(j);
-            auto *args = expr->arguments();
+        using DfsID = unsigned;
+        using ExprIdx = unsigned;
+        std::stack<std::tuple<DfsID, std::shared_ptr<GeneratorExpression>*, ExprIdx>> pending;
+        std::vector<std::pair<std::shared_ptr<GeneratorExpression>, DfsID>> translated;
+        pending.push({0, &columnGenerators[i], 0});
+        translated.resize(exprs->size(), {nullptr, 0});
+        DfsID dfsID = 1;
 
-            // Simplify argument lookup
+        while(!pending.empty()) {
+            auto [originID, nextRef, nextIdx] = pending.top();
+            pending.pop();
+
+            // Out of bounds?
+            if (nextIdx >= translated.size()) {
+                // XXX Error
+            }
+
+            // Already translated?
+            auto& [nextExpr, nextID] = translated[nextIdx];
+            if (nextExpr != nullptr) {
+                // Invalid edge?
+                if (nextID <= originID) {
+                    // XXX Error
+                }
+                *nextRef = nextExpr;
+                continue;
+            }
+
+            // Collect the arguments
+            auto *expr = exprs->Get(nextIdx);
+            auto *args = expr->arguments();
             using X = proto::GeneratorArgumentType;
             unordered_map<X, const proto::GeneratorArgument *> argMap;
             for (unsigned k = 0; k < args->size(); ++k) {
@@ -313,9 +340,9 @@ void generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
                 return defaultValue;
             };
 
-            // Allocate expression
+            // Create expression
             // clang-format off
-            nodes[j] = [&]() -> shared_ptr<GeneratorExpression> {
+            nextExpr = [&]() -> shared_ptr<GeneratorExpression> {
                 switch (expr->expression_type()) {
                 case proto::GeneratorExpressionType::CONSTANT:
                     return make_shared<ConstantInt>(argi(X::CONSTANT_VALUE, 0));
@@ -377,6 +404,9 @@ void generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
                 }
             }();
             // clang-format on
+
+            nextID = dfsID++;
+            *nextRef = nextExpr;
         }
     }
 
