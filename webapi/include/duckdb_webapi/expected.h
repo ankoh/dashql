@@ -43,9 +43,9 @@ template <typename V> struct Expected {
     /// Constructor
     template <typename... T> Expected(ErrorCode code, T... vs) : data(Error{code, vs...}) {}
     /// Is ok?
-    auto &isOk() const { return std::holds_alternative<V>(data); }
+    auto isOk() const { return std::holds_alternative<V>(data); }
     /// Is an error?
-    auto &isErr() const { return std::holds_alternative<Error>(data); }
+    auto isErr() const { return std::holds_alternative<Error>(data); }
     /// Get the error
     auto &getErr() const {
         assert(isErr());
@@ -68,9 +68,9 @@ template <typename V> struct ExpectedBuffer {
     /// Constructor
     template <typename... T> ExpectedBuffer(ErrorCode code, T... vs) : data(Error{code, vs...}) {}
     /// Is ok?
-    auto &isOk() const { return std::holds_alternative<V *>(data); }
+    auto isOk() const { return std::holds_alternative<flatbuffers::DetachedBuffer>(data); }
     /// Is an error?
-    auto &isErr() const { return std::holds_alternative<Error>(data); }
+    auto isErr() const { return std::holds_alternative<Error>(data); }
     /// Get the error
     auto &getErr() const {
         assert(isErr());
