@@ -39,6 +39,7 @@ void WebAPI::ContextData::requestSucceeded(fb::DetachedBuffer&& buffer) {
     requestData = registerBuffer(std::move(buffer));
 }
 
+/// Request failed
 void WebAPI::ContextData::requestFailed(Error&& err) {
     clearRequest();
     requestStatus = proto::StatusCode::ERROR;
@@ -73,7 +74,7 @@ void WebAPI::ContextData::releaseBuffer(void* data) {
 
 /// Constructor
 WebAPI::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
-    : database(std::move(db)), connection(*database), currentQueryID(), currentQueryResult() {}
+    : database(std::move(db)), connection(*database), contextData(std::make_unique<ContextData>()), currentQueryID(), currentQueryResult() {}
 
 /// Destructor
 WebAPI::Connection::~Connection() {}

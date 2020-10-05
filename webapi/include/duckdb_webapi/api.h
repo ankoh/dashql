@@ -117,12 +117,13 @@ namespace duckdb_webapi {
             std::shared_ptr<duckdb::DuckDB> database;
             /// The connection
             duckdb::Connection connection;
+            /// The context data
+            std::unique_ptr<ContextData> contextData;
+
             /// The current query id
             uint64_t currentQueryID;
             /// The current query result (if any)
             std::unique_ptr<duckdb::QueryResult> currentQueryResult;
-            /// The context data
-            std::unique_ptr<ContextData> contextData;
 
             public:
             /// Constructor
