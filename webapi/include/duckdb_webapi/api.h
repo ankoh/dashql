@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include "duckdb_webapi/expected.h"
 #include "duckdb_webapi/common/span.h"
 #include "duckdb_webapi/proto/api_generated.h"
 #include "duckdb_webapi/proto/query_plan_generated.h"
@@ -21,58 +22,19 @@ namespace duckdb_webapi {
     class WebAPI {
         public:
         class Connection;
+        class ContextData;
 
-        /// A response
-        class Response {
-            friend class Connection;
-
-            public:
-            /// The return type
-            struct Packed {
-                /// The status code
-                uint64_t status_code;
-                /// The error string (if any)
-                uint64_t error;
-                /// The data ptr (if any)
-                uint64_t data;
-                /// The data size
-                uint64_t data_size;
-            } __attribute((packed));
-
-            protected:
-            /// The session
-            Connection& session;
-
+        /// The return type
+        struct Response {
             /// The status code
-            proto::StatusCode status_code;
-            /// The error (if any)
-            std::string error;
-            /// The data (if any)
-            std::pair<void*, size_t> data;
-
-            /// Request succeeded
-            void requestSucceeded(flatbuffers::DetachedBuffer buffer);
-            /// Request failed
-            void requestFailed(proto::StatusCode status, std::string error);
-
-            public:
-            /// Constructor
-            Response(Connection& session);
-            /// Destructor
-            ~Response();
-
-            /// Get the status code
-            auto getStatus() { return status_code; }
-            /// Get the error (if any)
-            auto& getError() { return error; }
-            /// Get the data (if any)
-            auto& getData() { return data; }
-
-            /// Clear the response
-            void clear();
-            /// Write packed
-            void writePacked(Packed& buffer);
-        };
+            uint64_t statusCode;
+            /// The error string (if any)
+            uint64_t error;
+            /// The data ptr (if any)
+            uint64_t data;
+            /// The data size
+            uint64_t dataSize;
+        } __attribute((packed));
 
         // An adopted buffer
         class AdoptedBuffer {
@@ -100,7 +62,53 @@ namespace duckdb_webapi {
             AdoptedBuffer& operator=(const AdoptedBuffer& other) = delete;
         };
 
-        /// A session
+        /// A context data manager
+        class ContextData {
+            protected:
+            /// The detached flatbuffers owned by this session
+            std::unordered_map<void*, flatbuffers::DetachedBuffer> detachedBuffers;
+            /// The adopted buffers owned by this session
+            std::unordered_map<void*, AdoptedBuffer> adoptedBuffers;
+
+            /// The request status code
+            proto::StatusCode requestStatus;
+            /// The request data (if any)
+            std::pair<void*, size_t> requestData;
+            /// The request error (if any)
+            std::optional<Error> requestError;
+
+            /// Clear the request
+            void clearRequest();
+            /// Write succeeded
+            void requestSucceeded(flatbuffers::DetachedBuffer&& buffer);
+            /// Write failed
+            void requestFailed(Error&& error);
+
+            public:
+            /// Constructor
+            ContextData();
+
+            /// Store the result
+            template<typename T>
+            void respond(ExpectedBuffer<T>&& result, Response& response) {
+                if (result)
+                    requestSucceeded(result.releaseBuffer());
+                else
+                    requestFailed(result.releaseError());
+                response.statusCode = static_cast<uint32_t>(requestStatus);
+                response.error = !!requestError ? 0 : reinterpret_cast<uintptr_t>(requestError->getMessage());
+                response.data = reinterpret_cast<uintptr_t>(std::get<0>(requestData));
+                response.dataSize = std::get<1>(requestData);
+            }
+            /// Register a detached flatbuffer buffer
+            std::pair<void*, size_t> registerBuffer(flatbuffers::DetachedBuffer buffer);
+            /// Register a raw buffer
+            std::pair<void*, size_t> registerBuffer(nonstd::span<std::byte> buffer);
+            /// Release a buffer
+            void releaseBuffer(void* buffer);
+        };
+
+        /// A connection
         class Connection {
             friend class Response;
 
@@ -109,19 +117,12 @@ namespace duckdb_webapi {
             std::shared_ptr<duckdb::DuckDB> database;
             /// The connection
             duckdb::Connection connection;
-            /// The detached flatbuffers owned by this session
-            std::unordered_map<void*, flatbuffers::DetachedBuffer> detachedBuffers;
-            /// The adopted buffers owned by this session
-            std::unordered_map<void*, AdoptedBuffer> adoptedBuffers;
-            /// The (last) response
-            Response response;
             /// The current query id
             uint64_t currentQueryID;
             /// The current query result (if any)
             std::unique_ptr<duckdb::QueryResult> currentQueryResult;
-
-            /// Allocate a query id
-            uint64_t allocateQueryID() { return ++currentQueryID; }
+            /// The context data
+            std::unique_ptr<ContextData> contextData;
 
             public:
             /// Constructor
@@ -129,29 +130,23 @@ namespace duckdb_webapi {
             /// Destructor
             ~Connection();
 
-            /// Get the response
-            auto& getResponse() { return response; }
-            /// Write the response
-            void writePackedResponse(Response::Packed& packed);
-            /// Register a detached flatbuffer buffer
-            std::pair<void*, size_t> registerBuffer(flatbuffers::DetachedBuffer buffer);
-            /// Register a raw buffer
-            std::pair<void*, size_t> registerBuffer(nonstd::span<std::byte> buffer);
-            /// Release a buffer
-            void releaseBuffer(void* buffer);
+            /// Allocate a query id
+            auto allocateQueryID() { return ++currentQueryID; }
+            /// Get the buffer manager
+            auto& getContext() { return *contextData; }
 
             /// Run a SQL query
-            void runQuery(std::string_view text);
+            ExpectedBuffer<proto::QueryResult> runQuery(std::string_view text);
             /// Start a SQL query
-            void sendQuery(std::string_view text);
+            ExpectedBuffer<proto::QueryResult> sendQuery(std::string_view text);
             /// Fetch query results
-            void fetchQueryResults();
+            ExpectedBuffer<proto::QueryResultChunk> fetchQueryResults();
             /// Analyze a SQL query
-            void analyzeQuery(std::string_view text);
+            ExpectedBuffer<proto::QueryPlan> analyzeQuery(std::string_view text);
             /// Format a query plan
-            void formatQueryPlan(void* query_plan);
+            ExpectedBuffer<proto::FormattedText> formatQueryPlan(void* query_plan);
             /// Generate a table
-            void generateTable(proto::TableSpecification& spec);
+            ExpectedSignal generateTable(proto::TableSpecification& spec);
         };
 
     protected:

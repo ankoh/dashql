@@ -276,7 +276,7 @@ struct OutputTransform {
 } // namespace
 
 /// Generate table
-tl::expected<void, Error> generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
+ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
     mt19937 rand;
 
     // Construct the generator expressions.
@@ -301,20 +301,20 @@ tl::expected<void, Error> generateTable(duckdb::Connection &conn, proto::TableSp
         DfsID dfsID = 1;
 
         // Repeat until we constructed everything
-        while(!pending.empty()) {
+        while (!pending.empty()) {
             auto [originID, nextRef, nextIdx] = pending.top();
             pending.pop();
 
             // Target index is out of bounds?
             if (nextIdx >= translated.size())
-                return tl::make_unexpected(ErrorCode::TABLEGEN_INVALID_INPUT_INDEX);
+                return ErrorCode::TABLEGEN_INVALID_INPUT_INDEX;
 
             // Target already translated?
             auto& [nextExpr, nextID] = translated[nextIdx];
             if (nextExpr != nullptr) {
                 // Invalid edge?
                 if (nextID <= originID)
-                    return tl::make_unexpected(ErrorCode::TABLEGEN_CIRCULAR_DEPENDENCY);
+                    return ErrorCode::TABLEGEN_CIRCULAR_DEPENDENCY;
                 *nextRef = nextExpr;
                 continue;
             }

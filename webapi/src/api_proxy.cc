@@ -43,42 +43,40 @@ void duckdb_webapi_disconnect(WebAPI::Connection *conn) {
 
 /// Release a buffer
 void duckdb_webapi_register_buffer(WebAPI::Connection *conn, void* buffer, unsigned buffer_length) {
-    conn->registerBuffer(nonstd::span{static_cast<std::byte*>(buffer), static_cast<long>(buffer_length)});
+    conn->getContext().registerBuffer(nonstd::span{static_cast<std::byte*>(buffer), static_cast<long>(buffer_length)});
 }
 /// Release a buffer
 void duckdb_webapi_release_buffer(WebAPI::Connection *conn, void* buffer) {
-    conn->releaseBuffer(buffer);
+    conn->getContext().releaseBuffer(buffer);
 }
 
 /// Run a query
-void duckdb_webapi_run_query(WebAPI::Response::Packed* response, WebAPI::Connection* conn, const char *text) {
-    conn->runQuery(text);
-    conn->writePackedResponse(*response);
+void duckdb_webapi_run_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char *text) {
+    auto result = conn->runQuery(text);
+    conn->getContext().respond(move(result), *packed);
 }
 
 /// Send a query
-void duckdb_webapi_send_query(WebAPI::Response::Packed* response, WebAPI::Connection* conn, const char *text) {
-    conn->sendQuery(text);
-    conn->writePackedResponse(*response);
+void duckdb_webapi_send_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char *text) {
+    auto result = conn->sendQuery(text);
+    conn->getContext().respond(move(result), *packed);
 }
 
 /// Fetch query results
-void duckdb_webapi_fetch_query_results(WebAPI::Response::Packed* response, WebAPI::Connection* conn) {
-    conn->fetchQueryResults();
-    conn->writePackedResponse(*response);
+void duckdb_webapi_fetch_query_results(WebAPI::Response* packed, WebAPI::Connection* conn) {
+    auto result = conn->fetchQueryResults();
+    conn->getContext().respond(move(result), *packed);
 }
 
 /// Analyze a query
-void duckdb_webapi_analyze_query(WebAPI::Response::Packed* response, WebAPI::Connection* conn, const char *text) {
-    conn->analyzeQuery(text);
-    conn->writePackedResponse(*response);
+void duckdb_webapi_analyze_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char *text) {
+    auto result = conn->analyzeQuery(text);
+    conn->getContext().respond(move(result), *packed);
 }
 
 /// Generate a table
-void duckdb_webapi_generate_table(WebAPI::Response::Packed* response, WebAPI::Connection* conn, void* spec, uint32_t size) {
+void duckdb_webapi_generate_table(WebAPI::Response* response, WebAPI::Connection* conn, void* spec, uint32_t size) {
     // XXX
-
-    conn->writePackedResponse(*response);
 }
 
 }
