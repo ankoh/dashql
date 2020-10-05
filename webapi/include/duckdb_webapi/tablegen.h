@@ -5,12 +5,14 @@
 
 #include "duckdb.hpp"
 #include "duckdb/main/connection.hpp"
+#include "duckdb_webapi/common/expected.h"
+#include "duckdb_webapi/error.h"
 #include "duckdb_webapi/proto/tablegen_generated.h"
 
 namespace duckdb_webapi {
 
 /// Generate table
-void generateTable(duckdb::Connection& conn, proto::TableSpecification& spec);
+tl::expected<void, Error> generateTable(duckdb::Connection& conn, proto::TableSpecification& spec);
 
 } // namespace duckdb_webapi
 

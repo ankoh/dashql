@@ -276,22 +276,22 @@ struct OutputTransform {
 } // namespace
 
 /// Generate table
-void generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
+tl::expected<void, Error> generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
     mt19937 rand;
-
-    // Maintain a data vector per column
-    vector<DataVector *> columnData;
-    columnData.resize(spec.columns()->size(), nullptr);
 
     // Construct the generator expressions.
     // Each generator expression is responsible for a single data vector.
     vector<shared_ptr<GeneratorExpression>> columnGenerators;
+    vector<DataVector *> columnData;
     columnGenerators.resize(spec.columns()->size());
+    columnData.resize(spec.columns()->size(), nullptr);
+
+    // Translate columns from left to right
     for (unsigned i = 0; i < spec.columns()->size(); ++i) {
         auto *col = spec.columns()->Get(i);
         auto *exprs = col->generator();
 
-        // Build expression tree
+        // Build expression tree using a single DFS
         using DfsID = unsigned;
         using ExprIdx = unsigned;
         std::stack<std::tuple<DfsID, std::shared_ptr<GeneratorExpression>*, ExprIdx>> pending;
@@ -300,22 +300,21 @@ void generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
         translated.resize(exprs->size(), {nullptr, 0});
         DfsID dfsID = 1;
 
+        // Repeat until we constructed everything
         while(!pending.empty()) {
             auto [originID, nextRef, nextIdx] = pending.top();
             pending.pop();
 
-            // Out of bounds?
-            if (nextIdx >= translated.size()) {
-                // XXX Error
-            }
+            // Target index is out of bounds?
+            if (nextIdx >= translated.size())
+                return tl::make_unexpected(ErrorCode::TABLEGEN_INVALID_INPUT_INDEX);
 
-            // Already translated?
+            // Target already translated?
             auto& [nextExpr, nextID] = translated[nextIdx];
             if (nextExpr != nullptr) {
                 // Invalid edge?
-                if (nextID <= originID) {
-                    // XXX Error
-                }
+                if (nextID <= originID)
+                    return tl::make_unexpected(ErrorCode::TABLEGEN_CIRCULAR_DEPENDENCY);
                 *nextRef = nextExpr;
                 continue;
             }
@@ -448,6 +447,8 @@ void generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
     //             gen.append();
     //         appender.EndRow();
     //     }
+
+    return {};
 }
 
 } // namespace duckdb_webapi

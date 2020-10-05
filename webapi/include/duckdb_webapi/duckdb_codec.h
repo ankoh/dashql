@@ -22,7 +22,7 @@ flatbuffers::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::
 /// Write the query plan
 flatbuffers::Offset<proto::QueryPlan> writeQueryPlan(flatbuffers::FlatBufferBuilder& builder, duckdb::LogicalOperator& plan);
 
-} // namespace tigon
+} // namespace duckdb_webapi
 
 #endif // INCLUDE_DUCKDB_WEBAPI_PROTO_DUCKDB_CODEC_H_
 

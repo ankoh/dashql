@@ -170,6 +170,6 @@ namespace duckdb_webapi {
         void disconnect(Connection* session);
     };
 
-} // namespace tigon
+} // namespace duckdb_webapi
 
 #endif // INCLUDE_DUCKDB_WEBAPI_API_H_
