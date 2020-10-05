@@ -28,12 +28,20 @@ struct DataVector {
 struct GeneratorExpression {
     /// The output data
     DataVector out;
+    /// The current pass
+    uint64_t pass;
     /// Destructor
     virtual ~GeneratorExpression() = default;
-    /// Get the output
-    auto &getOutput() const { return out; }
-    /// Generate a value
-    virtual const DataVector &generate() = 0;
+    /// Compute values
+    virtual void compute() = 0;
+    /// Get the next data
+    const DataVector& next(uint64_t p) {
+        if (p != pass) {
+            pass = p;
+            compute();
+        }
+        return out;
+    }
 };
 
 struct ConstantInt : public GeneratorExpression {
@@ -41,13 +49,12 @@ struct ConstantInt : public GeneratorExpression {
     int64_t value;
     /// Constructor
     ConstantInt(int64_t value) : value(value) {}
-    /// Generate values
-    const DataVector &generate() override {
+    /// Compute values
+    void compute() override {
         for (unsigned i = 0; i < out.size(); ++i) {
             out.values[i] = value;
             out.nulls[i] = false;
         }
-        return out;
     }
 };
 
@@ -56,13 +63,12 @@ struct ColumnRef : public GeneratorExpression {
     DataVector &column;
     /// Constructor
     ColumnRef(DataVector &col) : column(col) {}
-    /// Generate values
-    const DataVector &generate() override {
+    /// Compute values
+    void compute() override {
         for (unsigned i = 0; i < out.size(); ++i) {
             out.values[i] = column.values[i];
             out.nulls[i] = column.nulls[i];
         }
-        return out;
     }
 };
 
@@ -75,13 +81,12 @@ template <typename D> struct GenericDistribution : public GeneratorExpression {
     int64_t scaling;
     /// Constructor
     GenericDistribution(mt19937 &gen, D &&dist) : generator(gen), distribution(move(dist)), scaling(1) {}
-    /// Generate values
-    const DataVector &generate() override {
+    /// Compute values
+    void compute() override {
         for (unsigned i = 0; i < out.size(); ++i) {
             out.values[i] = distribution(generator) * scaling;
             out.nulls[i] = false;
         }
-        return out;
     }
 };
 
@@ -94,13 +99,12 @@ template <template <typename> class D, typename T> struct HigherOrderDistributio
     int64_t scaling;
     /// Constructor
     HigherOrderDistribution(mt19937 &gen, D<T> &&dist) : generator(gen), distribution(move(dist)) {}
-    /// Generate values
-    const DataVector &generate() override {
+    /// Compute values
+    void compute() override {
         for (unsigned i = 0; i < out.size(); ++i) {
             out.values[i] = distribution(generator) * scaling;
             out.nulls[i] = false;
         }
-        return out;
     }
 };
 
@@ -124,7 +128,7 @@ using DiscreteDistribution = HigherOrderDistribution<discrete_distribution, doub
 
 struct BinaryGeneratorExpression : public GeneratorExpression {
     /// The input expressions
-    unique_ptr<GeneratorExpression> left, right;
+    shared_ptr<GeneratorExpression> left, right;
     /// Constructor
     BinaryGeneratorExpression() : left(nullptr), right(nullptr) {}
     /// Merge null values
@@ -137,128 +141,119 @@ struct BinaryGeneratorExpression : public GeneratorExpression {
 struct AddExpression : public BinaryGeneratorExpression {
     /// Constructor
     AddExpression() : BinaryGeneratorExpression() {}
-    /// Generate values
-    const DataVector &generate() override {
-        auto &l = left->generate();
-        auto &r = right->generate();
+    /// Compute values
+    void compute() override {
+        auto &l = left->next(pass);
+        auto &r = right->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] + r.values[i];
         mergeNulls(l, r);
-        return l;
     }
 };
 
 struct SubExpression : public BinaryGeneratorExpression {
     /// Constructor
     SubExpression() : BinaryGeneratorExpression() {}
-    /// Generate values
-    const DataVector &generate() override {
-        auto &l = left->generate();
-        auto &r = right->generate();
+    /// Compute values
+    void compute() override {
+        auto &l = left->next(pass);
+        auto &r = right->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] - r.values[i];
         mergeNulls(l, r);
-        return l;
     }
 };
 
 struct MulExpression : public BinaryGeneratorExpression {
     /// Constructor
     MulExpression() : BinaryGeneratorExpression() {}
-    /// Generate values
-    const DataVector &generate() override {
-        auto &l = left->generate();
-        auto &r = right->generate();
+    /// Compute values
+    void compute() override {
+        auto &l = left->next(pass);
+        auto &r = right->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] * r.values[i];
         mergeNulls(l, r);
-        return l;
     }
 };
 
 struct DivExpression : public BinaryGeneratorExpression {
     /// Constructor
     DivExpression() : BinaryGeneratorExpression() {}
-    /// Generate values
-    const DataVector &generate() override {
-        auto &l = left->generate();
-        auto &r = right->generate();
+    /// Compute values
+    void compute() override {
+        auto &l = left->next(pass);
+        auto &r = right->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = (r.values[i] == 0) ? 0 : (l.values[i] / r.values[i]);
         mergeNulls(l, r);
-        return l;
     }
 };
 
 struct CompareLTExpression : public BinaryGeneratorExpression {
     /// Constructor
     CompareLTExpression() : BinaryGeneratorExpression() {}
-    /// Generate values
-    const DataVector &generate() override {
-        auto &l = left->generate();
-        auto &r = left->generate();
+    /// Compute values
+    void compute() override {
+        auto &l = left->next(pass);
+        auto &r = left->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] < r.values[i];
         mergeNulls(l, r);
-        return l;
     }
 };
 
 struct CompareLEQExpression : public BinaryGeneratorExpression {
     /// Constructor
     CompareLEQExpression() : BinaryGeneratorExpression() {}
-    /// Generate values
-    const DataVector &generate() override {
-        auto &l = left->generate();
-        auto &r = left->generate();
+    /// Compute values
+    void compute() override {
+        auto &l = left->next(pass);
+        auto &r = left->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] <= r.values[i];
         mergeNulls(l, r);
-        return l;
     }
 };
 
 struct CompareGTExpression : public BinaryGeneratorExpression {
     /// Constructor
     CompareGTExpression() : BinaryGeneratorExpression() {}
-    /// Generate values
-    const DataVector &generate() override {
-        auto &l = left->generate();
-        auto &r = left->generate();
+    /// Compute values
+    void compute() override {
+        auto &l = left->next(pass);
+        auto &r = left->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] > r.values[i];
         mergeNulls(l, r);
-        return l;
     }
 };
 
 struct CompareGEQExpression : public BinaryGeneratorExpression {
     /// Constructor
     CompareGEQExpression() : BinaryGeneratorExpression() {}
-    /// Generate values
-    const DataVector &generate() override {
-        auto &l = left->generate();
-        auto &r = left->generate();
+    /// Compute values
+    void compute() override {
+        auto &l = left->next(pass);
+        auto &r = left->next(pass);
         for (unsigned i = 0; i < out.size(); ++i)
             out.values[i] = l.values[i] >= r.values[i];
         mergeNulls(l, r);
-        return l;
     }
 };
 
 struct NullIfExpression : public BinaryGeneratorExpression {
     /// Constructor
     NullIfExpression() : BinaryGeneratorExpression() {}
-    /// Generate values
-    const DataVector &generate() override {
-        auto &l = left->generate();
-        auto &r = left->generate();
+    /// Compute values
+    void compute() override {
+        auto &l = left->next(pass);
+        auto &r = left->next(pass);
         for (unsigned i = 0; i < out.size(); ++i) {
             out.values[i] = l.values[i];
             out.nulls[i] = l.nulls[i] | (!r.nulls[i] && r.values[i] != 0);
         }
         mergeNulls(l, r);
-        return l;
     }
 };
 
@@ -275,13 +270,6 @@ struct OutputTransform {
     virtual void append(uint8_t n = VECTOR_SIZE);
 };
 
-template <typename KeyType, typename ValueType>
-ValueType getArg(const unordered_map<KeyType, ValueType> &target, const KeyType &key, ValueType defaultValue) {
-    if (auto iter = target.find(key); iter != target.end())
-        return iter->second;
-    return defaultValue;
-}
-
 } // namespace
 
 /// Generate table
@@ -294,14 +282,14 @@ void generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
 
     // Construct the generator expressions.
     // Each generator expression is responsible for a single data vector.
-    vector<unique_ptr<GeneratorExpression>> columnGenerators;
+    vector<shared_ptr<GeneratorExpression>> columnGenerators;
     columnGenerators.resize(spec.columns()->size());
     for (unsigned i = 0; i < spec.columns()->size(); ++i) {
         auto *col = spec.columns()->Get(i);
         auto *exprs = col->generator();
 
         // Build expression tree
-        vector<unique_ptr<GeneratorExpression>> nodes;
+        vector<shared_ptr<GeneratorExpression>> nodes;
         nodes.resize(exprs->size());
         for (unsigned j = 0; j < exprs->size(); ++j) {
             auto *expr = exprs->Get(j);
@@ -327,65 +315,65 @@ void generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
 
             // Allocate expression
             // clang-format off
-            nodes[j] = [&]() -> unique_ptr<GeneratorExpression> {
+            nodes[j] = [&]() -> shared_ptr<GeneratorExpression> {
                 switch (expr->expression_type()) {
                 case proto::GeneratorExpressionType::CONSTANT:
-                    return make_unique<ConstantInt>(argi(X::CONSTANT_VALUE, 0));
+                    return make_shared<ConstantInt>(argi(X::CONSTANT_VALUE, 0));
                 case proto::GeneratorExpressionType::COLUMN_REF:
                     /// XXX bounds check
-                    return make_unique<ColumnRef>(*columnData[argi(X::COLUMN_REF_INDEX)]);
+                    return make_shared<ColumnRef>(*columnData[argi(X::COLUMN_REF_INDEX)]);
 
                 case proto::GeneratorExpressionType::RANDOM_BERNOULLI:
-                    return make_unique<BernoulliDistribution>(rand, bernoulli_distribution{argfp(X::RANDOM_BERNOULLI_PROBABILITY)});
+                    return make_shared<BernoulliDistribution>(rand, bernoulli_distribution{argfp(X::RANDOM_BERNOULLI_PROBABILITY)});
                 case proto::GeneratorExpressionType::RANDOM_UNIFORM:
-                    return make_unique<UniformIntDistribution>(rand, uniform_int_distribution<int64_t>{argi(X::RANDOM_UNIFORM_LB), argi(X::RANDOM_UNIFORM_UB)});
+                    return make_shared<UniformIntDistribution>(rand, uniform_int_distribution<int64_t>{argi(X::RANDOM_UNIFORM_LB), argi(X::RANDOM_UNIFORM_UB)});
                 case proto::GeneratorExpressionType::RANDOM_BINOMIAL:
-                    return make_unique<BinomialDistribution>(rand, binomial_distribution<int64_t>{argi(X::RANDOM_BINOMIAL_UB), argfp(X::RANDOM_BINOMIAL_PROBABILITY)});
+                    return make_shared<BinomialDistribution>(rand, binomial_distribution<int64_t>{argi(X::RANDOM_BINOMIAL_UB), argfp(X::RANDOM_BINOMIAL_PROBABILITY)});
                 case proto::GeneratorExpressionType::RANDOM_GEOMETRIC:
-                    return make_unique<GeometricDistribution>(rand, geometric_distribution<int64_t>{argfp(X::RANDOM_GEOMETRIC_PROBABILITY)});
+                    return make_shared<GeometricDistribution>(rand, geometric_distribution<int64_t>{argfp(X::RANDOM_GEOMETRIC_PROBABILITY)});
                 case proto::GeneratorExpressionType::RANDOM_NEGATIVE_BINOMIAL:
-                    return make_unique<NegativeBinomialDistribution>(rand, negative_binomial_distribution<int64_t>{argi(X::RANDOM_NEGATIVE_BINOMIAL_K), argfp(X::RANDOM_NEGATIVE_BINOMIAL_P)});
+                    return make_shared<NegativeBinomialDistribution>(rand, negative_binomial_distribution<int64_t>{argi(X::RANDOM_NEGATIVE_BINOMIAL_K), argfp(X::RANDOM_NEGATIVE_BINOMIAL_P)});
                 case proto::GeneratorExpressionType::RANDOM_POISSON:
-                    return make_unique<PoissonDistribution>(rand, poisson_distribution<int64_t>{argfp(X::RANDOM_POISSON_MEAN)});
+                    return make_shared<PoissonDistribution>(rand, poisson_distribution<int64_t>{argfp(X::RANDOM_POISSON_MEAN)});
                 case proto::GeneratorExpressionType::RANDOM_EXPONENTIAL:
-                    return make_unique<ExponentialDistribution>(rand, exponential_distribution<double>{argfp(X::RANDOM_EXPONENTIAL_LAMBDA)});
+                    return make_shared<ExponentialDistribution>(rand, exponential_distribution<double>{argfp(X::RANDOM_EXPONENTIAL_LAMBDA)});
                 case proto::GeneratorExpressionType::RANDOM_GAMMA:
-                    return make_unique<GammaDistribution>(rand, gamma_distribution<double>{argfp(X::RANDOM_GAMMA_ALPHA), argfp(X::RANDOM_GAMMA_BETA)});
+                    return make_shared<GammaDistribution>(rand, gamma_distribution<double>{argfp(X::RANDOM_GAMMA_ALPHA), argfp(X::RANDOM_GAMMA_BETA)});
                 case proto::GeneratorExpressionType::RANDOM_WEIBULL:
-                    return make_unique<WeibullDistribution>(rand, weibull_distribution<double>{argfp(X::RANDOM_WEIBULL_A), argfp(X::RANDOM_WEIBULL_B)});
+                    return make_shared<WeibullDistribution>(rand, weibull_distribution<double>{argfp(X::RANDOM_WEIBULL_A), argfp(X::RANDOM_WEIBULL_B)});
                 case proto::GeneratorExpressionType::RANDOM_EXTREME_VALUE:
-                    return make_unique<ExtremeValueDistribution>(rand, extreme_value_distribution<double>{argfp(X::RANDOM_EXTREME_VALUE_A), argfp(X::RANDOM_EXTREME_VALUE_B)});
+                    return make_shared<ExtremeValueDistribution>(rand, extreme_value_distribution<double>{argfp(X::RANDOM_EXTREME_VALUE_A), argfp(X::RANDOM_EXTREME_VALUE_B)});
                 case proto::GeneratorExpressionType::RANDOM_NORMAL:
-                    return make_unique<NormalDistribution>(rand, normal_distribution<double>{argfp(X::RANDOM_NORMAL_MEAN), argfp(X::RANDOM_NORMAL_STDDEV)});
+                    return make_shared<NormalDistribution>(rand, normal_distribution<double>{argfp(X::RANDOM_NORMAL_MEAN), argfp(X::RANDOM_NORMAL_STDDEV)});
                 case proto::GeneratorExpressionType::RANDOM_LOG_NORMAL:
-                    return make_unique<LogNormalDistribution>(rand, lognormal_distribution<double>{argfp(X::RANDOM_LOGNORMAL_M), argfp(X::RANDOM_LOGNORMAL_S)});
+                    return make_shared<LogNormalDistribution>(rand, lognormal_distribution<double>{argfp(X::RANDOM_LOGNORMAL_M), argfp(X::RANDOM_LOGNORMAL_S)});
                 case proto::GeneratorExpressionType::RANDOM_CHI_SQUARED:
-                    return make_unique<ChiSquaredDistribution>(rand, chi_squared_distribution<double>{argfp(X::RANDOM_CHISQUARED_N)});
+                    return make_shared<ChiSquaredDistribution>(rand, chi_squared_distribution<double>{argfp(X::RANDOM_CHISQUARED_N)});
                 case proto::GeneratorExpressionType::RANDOM_CAUCHY:
-                    return make_unique<CauchyDistribution>(rand, cauchy_distribution<double>{argfp(X::RANDOM_CAUCHY_A), argfp(X::RANDOM_CAUCHY_B)});
+                    return make_shared<CauchyDistribution>(rand, cauchy_distribution<double>{argfp(X::RANDOM_CAUCHY_A), argfp(X::RANDOM_CAUCHY_B)});
                 case proto::GeneratorExpressionType::RANDOM_FISHER_F:
-                    return make_unique<FisherFDistribution>(rand, fisher_f_distribution<double>{argfp(X::RANDOM_FISHERF_M), argfp(X::RANDOM_FISHERF_N)});
+                    return make_shared<FisherFDistribution>(rand, fisher_f_distribution<double>{argfp(X::RANDOM_FISHERF_M), argfp(X::RANDOM_FISHERF_N)});
                 case proto::GeneratorExpressionType::RANDOM_STUDENT_T:
-                    return make_unique<StudentTDistribution>(rand, student_t_distribution<double>{argfp(X::RANDOM_STUDENTT_N)});
+                    return make_shared<StudentTDistribution>(rand, student_t_distribution<double>{argfp(X::RANDOM_STUDENTT_N)});
 
                 case proto::GeneratorExpressionType::NULL_IF:
-                    return make_unique<NullIfExpression>();
+                    return make_shared<NullIfExpression>();
                 case proto::GeneratorExpressionType::COMPARE_LT:
-                    return make_unique<CompareLTExpression>();
+                    return make_shared<CompareLTExpression>();
                 case proto::GeneratorExpressionType::COMPARE_LEQ:
-                    return make_unique<CompareLEQExpression>();
+                    return make_shared<CompareLEQExpression>();
                 case proto::GeneratorExpressionType::COMPARE_GT:
-                    return make_unique<CompareGTExpression>();
+                    return make_shared<CompareGTExpression>();
                 case proto::GeneratorExpressionType::COMPARE_GEQ:
-                    return make_unique<CompareGEQExpression>();
+                    return make_shared<CompareGEQExpression>();
                 case proto::GeneratorExpressionType::ADD:
-                    return make_unique<AddExpression>();
+                    return make_shared<AddExpression>();
                 case proto::GeneratorExpressionType::SUB:
-                    return make_unique<SubExpression>();
+                    return make_shared<SubExpression>();
                 case proto::GeneratorExpressionType::MULTIPLY:
-                    return make_unique<MulExpression>();
+                    return make_shared<MulExpression>();
                 case proto::GeneratorExpressionType::DIV:
-                    return make_unique<DivExpression>();
+                    return make_shared<DivExpression>();
                 }
             }();
             // clang-format on
