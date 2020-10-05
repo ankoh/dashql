@@ -65,7 +65,7 @@ target_link_libraries(duckdb_webapi_core
 )
 
 add_library(duckdb_webapi_test
-    ${CMAKE_SOURCE_DIR}/test/lib/query_result_matcher.cc
+    ${CMAKE_SOURCE_DIR}/src/test/query_result_matcher.cc
 )
 
 target_link_libraries(duckdb_webapi_test
