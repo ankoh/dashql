@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/tablegen.h"
-#include "duckdb/main/appender.hpp"
 #include "duckdb_webapi/common/span.h"
+#include "duckdb/main/appender.hpp"
 
 #include <random>
 #include <tuple>

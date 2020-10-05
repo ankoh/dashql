@@ -64,14 +64,20 @@ target_link_libraries(duckdb_webapi_core
     flatbuffers spdlog Threads::Threads
 )
 
+add_library(duckdb_webapi_test
+    ${CMAKE_SOURCE_DIR}/test/lib/query_result_matcher.cc
+)
+
+target_link_libraries(duckdb_webapi_test
+    duckdb_webapi_core
+    flatbuffers gtest
+)
+
 # ---------------------------------------------------------------------------
 # API Proxy
 
 add_executable(duckdb_webapi ${CMAKE_SOURCE_DIR}/src/api_proxy.cc)
 target_link_libraries(duckdb_webapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
-
-add_executable(duckdb_nodeapi ${CMAKE_SOURCE_DIR}/src/api_proxy.cc)
-target_link_libraries(duckdb_nodeapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
 
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
@@ -98,6 +104,9 @@ if (EMSCRIPTEN)
     )
 
     set_target_properties(duckdb_webapi PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
+
+    add_executable(duckdb_nodeapi ${CMAKE_SOURCE_DIR}/src/api_proxy.cc)
+    target_link_libraries(duckdb_nodeapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
     set_target_properties(duckdb_nodeapi PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 endif()
 
@@ -112,6 +121,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(tester 
         duckdb_webapi_core
+        duckdb_webapi_test
         flatbuffers gtest gmock Threads::Threads)
 
     enable_testing()
