@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/api.h"
-#include "duckdb_webapi/duckdb_codec.h"
-#include "duckdb_webapi/json_conversion.h"
+#include "duckdb_webapi/codec.h"
+#include "duckdb_webapi/json.h"
 #include "duckdb_webapi/tablegen.h"
 
 #include "duckdb.hpp"
@@ -12,7 +12,6 @@
 #include "duckdb/planner/planner.hpp"
 
 #include "spdlog/spdlog.h"
-
 #include "flatbuffers/flatbuffers.h"
 
 #include <cstdio>

@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEBAPI_DUCKDB_CODEC_H_
-#define INCLUDE_DUCKDB_WEBAPI_DUCKDB_CODEC_H_
+#ifndef INCLUDE_DUCKDB_WEBAPI_CODEC_H_
+#define INCLUDE_DUCKDB_WEBAPI_CODEC_H_
 
 #include "duckdb.hpp"
 #include "duckdb/common/enums/logical_operator_type.hpp"
@@ -24,5 +24,5 @@ flatbuffers::Offset<proto::QueryPlan> writeQueryPlan(flatbuffers::FlatBufferBuil
 
 } // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_PROTO_DUCKDB_CODEC_H_
+#endif // INCLUDE_DUCKDB_WEBAPI_PROTO_CODEC_H_
 
