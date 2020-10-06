@@ -3,6 +3,7 @@
 #include "duckdb_webapi/value.h"
 #include "duckdb_webapi/common/exception.h"
 #include "duckdb_webapi/types/date.h"
+#include "duckdb_webapi/types/timestamp.h"
 
 namespace duckdb_webapi {
 
@@ -71,6 +72,38 @@ Value Value::TIME(dtime_t time) {
 
 Value Value::TIME(int32_t hour, int32_t min, int32_t sec, int32_t msec) {
     return Value::TIME(Time::fromTime(hour, min, sec, msec));
+}
+
+Value Value::TIMESTAMP(date_t date, dtime_t time) {
+    auto val = Value::BIGINT(Timestamp::fromDateTime(date, time));
+    val.logicalType = {proto::LogicalTypeID::TIMESTAMP, 0, 0};
+    return val;
+}
+
+Value Value::TIMESTAMP(timestamp_t timestamp) {
+    auto val = Value::BIGINT(timestamp);
+    val.logicalType = {proto::LogicalTypeID::TIMESTAMP, 0, 0};
+    return val;
+}
+
+Value Value::TIMESTAMP(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min, int32_t sec, int32_t msec) {
+    auto val = Value::TIMESTAMP(Date::fromDate(year, month, day), Time::fromTime(hour, min, sec, msec));
+    val.logicalType = {proto::LogicalTypeID::TIMESTAMP, 0, 0};
+    return val;
+}
+
+Value Value::FLOAT(float value) {
+    Value result{{proto::LogicalTypeID::FLOAT, 0, 0}};
+    result.value.floatValue = value;
+    result.isNull = false;
+    return result;
+}
+
+Value Value::DOUBLE(double value) {
+    Value result{{proto::LogicalTypeID::DOUBLE, 0, 0}};
+    result.value.doubleValue = value;
+    result.isNull = false;
+    return result;
 }
 
 } // namespace duckdb_webapi
