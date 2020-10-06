@@ -5,7 +5,7 @@
 
 #include "duckdb.hpp"
 #include "duckdb/main/connection.hpp"
-#include "duckdb_webapi/expected.h"
+#include "duckdb_webapi/common/expected.h"
 #include "duckdb_webapi/proto/tablegen_generated.h"
 
 namespace duckdb_webapi {

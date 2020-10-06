@@ -199,7 +199,7 @@ pub const ENUM_VALUES_PHYSICAL_TYPE_ID: [PhysicalTypeID; 40] = [
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum LogicalTypeID {
   INVALID = 0,
-  NULL_ = 1,
+  SQLNULL = 1,
   UNKNOWN = 2,
   ANY = 3,
   BOOLEAN = 10,
@@ -259,7 +259,7 @@ impl flatbuffers::Push for LogicalTypeID {
 #[allow(non_camel_case_types)]
 pub const ENUM_VALUES_LOGICAL_TYPE_ID: [LogicalTypeID; 21] = [
   LogicalTypeID::INVALID,
-  LogicalTypeID::NULL_,
+  LogicalTypeID::SQLNULL,
   LogicalTypeID::UNKNOWN,
   LogicalTypeID::ANY,
   LogicalTypeID::BOOLEAN,
@@ -284,7 +284,7 @@ pub const ENUM_VALUES_LOGICAL_TYPE_ID: [LogicalTypeID; 21] = [
 #[allow(non_camel_case_types)]
 pub const ENUM_NAMES_LOGICAL_TYPE_ID: [&str; 102] = [
     "INVALID",
-    "NULL_",
+    "SQLNULL",
     "UNKNOWN",
     "ANY",
     "",

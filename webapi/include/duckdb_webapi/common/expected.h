@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEBAPI_EXPECTED_H_
-#define INCLUDE_DUCKDB_WEBAPI_EXPECTED_H_
+#ifndef INCLUDE_DUCKDB_WEBAPI_COMMON_EXPECTED_H_
+#define INCLUDE_DUCKDB_WEBAPI_COMMON_EXPECTED_H_
 
 #include "duckdb.hpp"
 #include "duckdb/common/enums/logical_operator_type.hpp"

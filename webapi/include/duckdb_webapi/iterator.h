@@ -4,7 +4,7 @@
 #define INCLUDE_DUCKDB_WEBAPI_ITERATOR_H_
 
 #include "duckdb_webapi/api.h"
-#include "duckdb_webapi/expected.h"
+#include "duckdb_webapi/common/expected.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
 
 namespace duckdb_webapi {

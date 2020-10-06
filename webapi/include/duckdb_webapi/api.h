@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include "duckdb_webapi/expected.h"
+#include "duckdb_webapi/common/expected.h"
 #include "duckdb_webapi/common/span.h"
 #include "duckdb_webapi/proto/api_generated.h"
 #include "duckdb_webapi/proto/query_plan_generated.h"

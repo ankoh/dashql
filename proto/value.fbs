@@ -93,7 +93,7 @@ enum PhysicalTypeID: uint8 {
 /// A logical type id
 enum LogicalTypeID: uint8 {
     INVALID = 0,
-    NULL_ = 1,
+    SQLNULL = 1,
     UNKNOWN = 2,
     ANY = 3,
     BOOLEAN = 10,

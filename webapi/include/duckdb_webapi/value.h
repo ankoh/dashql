@@ -4,7 +4,7 @@
 #define INCLUDE_DUCKDB_WEBAPI_VALUE_H_
 
 #include "duckdb_webapi/api.h"
-#include "duckdb_webapi/expected.h"
+#include "duckdb_webapi/common/expected.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
 #include "duckdb_webapi/proto/value_generated.h"
 
@@ -20,8 +20,6 @@ using timestamp_t = int64_t;
 /// We deliberately omitted the types: hash, pointer, struct and list so far.
 class Value {
   protected:
-    /// The physical type of the value
-    proto::PhysicalTypeID physicalType;
     /// The logical type of the value
     proto::LogicalType logicalType = proto::LogicalType{proto::LogicalTypeID::INVALID, 0, 0};
     /// Whether or not the value is NULL
@@ -41,20 +39,22 @@ class Value {
 
   public:
     /// Create an empty NULL value of the specified type
-    Value(proto::PhysicalTypeID type = proto::PhysicalTypeID::INT32) : physicalType(type), isNull(true) {}
+    Value(proto::LogicalType type = {proto::LogicalTypeID::SQLNULL, 0, 0}) : logicalType(type), isNull(true) {} /// Create a BIGINT value
+    /// Create an INTEGER value
+    Value(int32_t val) : logicalType(proto::LogicalTypeID::INTEGER, 0, 0), isNull(false) { value.integerValue = val; }
     /// Create a BIGINT value
-    Value(int32_t val) : physicalType(proto::PhysicalTypeID::INT32), isNull(false) { value.integerValue = val; }
-    /// Create a BIGINT value
-    Value(int64_t val) : physicalType(proto::PhysicalTypeID::INT64), isNull(false) { value.bigintValue = val; }
+    Value(int64_t val) : logicalType(proto::LogicalTypeID::BIGINT, 0, 0), isNull(false) { value.bigintValue = val; }
     /// Create a FLOAT value
-    Value(float val) : physicalType(proto::PhysicalTypeID::FLOAT), isNull(false) { value.floatValue = val; }
+    Value(float val) : logicalType(proto::LogicalTypeID::FLOAT, 0, 0), isNull(false) { value.floatValue = val; }
     /// Create a DOUBLE value
-    Value(double val) : physicalType(proto::PhysicalTypeID::DOUBLE), isNull(false) { value.doubleValue = val; }
+    Value(double val) : logicalType(proto::LogicalTypeID::DOUBLE, 0, 0), isNull(false) { value.doubleValue = val; }
     /// Create a VARCHAR value
     Value(const char *val) : Value(val ? string(val) : string()) {}
     /// Create a VARCHAR value
     Value(string val);
 
+    /// Get the logical type
+    proto::LogicalType getLogicalType();
     /// Get inner value
     template <class T> T getValue() { assert(false); }
     /// Create a value
@@ -67,14 +67,11 @@ class Value {
     /// Convert this value to a string, with the given display format
     string toString(proto::LogicalType &type) const;
     /// Cast this value to another type
-    Value castAs(proto::PhysicalTypeID targetType, bool strict = false) const;
+    Value castAs(proto::LogicalTypeID targetType, bool strict = false) const;
     /// Cast this value to another type
     Value castAs(proto::LogicalType &sourceType, proto::LogicalType &targetType, bool strict = false);
     /// Tries to cast value to another type, throws exception if its not possible
     bool tryCastAs(proto::LogicalType &sourceType, proto::LogicalType &targetType, bool strict = false);
-
-    /// Get the logical type
-    proto::LogicalType getLogicalType();
 
     /// Numeric Operators
     Value operator+(const Value &rhs) const;
@@ -107,12 +104,12 @@ class Value {
     }
 
     /// Create the lowest possible value of a given type (numeric only)
-    static Value MinimumValue(proto::PhysicalTypeID type);
+    static Value MinimumValue(proto::LogicalTypeID type);
     /// Create the highest possible value of a given type (numeric only)
-    static Value MaximumValue(proto::PhysicalTypeID type);
+    static Value MaximumValue(proto::LogicalTypeID type);
 
     /// Create a Numeric value of the specified type with the specified value
-    static Value NUMERIC(proto::PhysicalTypeID id, int64_t value);
+    static Value NUMERIC(proto::LogicalTypeID id, int64_t value);
     /// Create a tinyint Value from a specified value
     static Value BOOLEAN(int8_t value);
     /// Create a tinyint Value from a specified value
@@ -140,8 +137,6 @@ class Value {
     static Value FLOAT(float value);
     /// Create a double Value from a specified value
     static Value DOUBLE(double value);
-    /// Create a blob Value from a specified value
-    static Value BLOB(string data, bool must_cast = true);
 };
 
 template <> Value Value::createValue(bool value);

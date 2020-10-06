@@ -199,7 +199,7 @@ inline const char *EnumNamePhysicalTypeID(PhysicalTypeID e) {
 /// A logical type id
 enum class LogicalTypeID : uint8_t {
   INVALID = 0,
-  NULL_ = 1,
+  SQLNULL = 1,
   UNKNOWN = 2,
   ANY = 3,
   BOOLEAN = 10,
@@ -226,7 +226,7 @@ enum class LogicalTypeID : uint8_t {
 inline const LogicalTypeID (&EnumValuesLogicalTypeID())[21] {
   static const LogicalTypeID values[] = {
     LogicalTypeID::INVALID,
-    LogicalTypeID::NULL_,
+    LogicalTypeID::SQLNULL,
     LogicalTypeID::UNKNOWN,
     LogicalTypeID::ANY,
     LogicalTypeID::BOOLEAN,
@@ -253,7 +253,7 @@ inline const LogicalTypeID (&EnumValuesLogicalTypeID())[21] {
 inline const char * const *EnumNamesLogicalTypeID() {
   static const char * const names[103] = {
     "INVALID",
-    "NULL_",
+    "SQLNULL",
     "UNKNOWN",
     "ANY",
     "",
@@ -545,7 +545,7 @@ inline const flatbuffers::TypeTable *LogicalTypeIDTypeTable() {
   static const int64_t values[] = { 0, 1, 2, 3, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 100, 101 };
   static const char * const names[] = {
     "INVALID",
-    "NULL_",
+    "SQLNULL",
     "UNKNOWN",
     "ANY",
     "BOOLEAN",

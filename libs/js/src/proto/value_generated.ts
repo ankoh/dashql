@@ -200,7 +200,7 @@ export enum PhysicalTypeID{
  */
 export enum LogicalTypeID{
   INVALID= 0,
-  NULL_= 1,
+  SQLNULL= 1,
   UNKNOWN= 2,
   ANY= 3,
   BOOLEAN= 10,
