@@ -56,6 +56,7 @@ add_library(duckdb_webapi_core
     ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
     ${CMAKE_SOURCE_DIR}/src/api.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb_codec.cc
+    ${CMAKE_SOURCE_DIR}/src/iterator.cc
     ${CMAKE_SOURCE_DIR}/src/json_conversion.cc
     ${CMAKE_SOURCE_DIR}/src/tablegen.cc
 )

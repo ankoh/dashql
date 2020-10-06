@@ -12,8 +12,6 @@ namespace test {
 
 /// Equal results?
 ::testing::AssertionResult equalResults(duckdb::QueryResult& dbResult, proto::QueryResult& protoResult);
-/// Equal results ordered by column?
-::testing::AssertionResult equalResultsOrderedBy(duckdb::QueryResult& dbResult, proto::QueryResult& protoResult, unsigned column);
 
 } // namespace test
 } // namespace duckdb_webapi

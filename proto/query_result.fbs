@@ -23,6 +23,7 @@ table QueryResultColumn {
 // A data chunk
 table QueryResultChunk {
     query_id: uint64;
+    row_count: uint64;
     columns: [QueryResultColumn];
 }
 

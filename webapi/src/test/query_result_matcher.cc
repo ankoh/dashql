@@ -7,14 +7,7 @@ namespace duckdb_webapi {
 namespace test {
 
 /// Equal results?
-::testing::AssertionResult equalResults(duckdb::QueryResult& dbResult, proto::QueryResult& protoResult) {
-    (void)dbResult;
-    (void)protoResult;
-    return ::testing::AssertionSuccess() << "results are equal";
-}
-
-/// Equal results ordered by column?
-::testing::AssertionResult equalResultsOrderedBy(duckdb::QueryResult& dbResult, proto::QueryResult& protoResult, unsigned column) {
+::testing::AssertionResult equalResults(duckdb::QueryResult& dbResult, std::vector<proto::QueryResultChunk*>& protoResult) {
     (void)dbResult;
     (void)protoResult;
     return ::testing::AssertionSuccess() << "results are equal";

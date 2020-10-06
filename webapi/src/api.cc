@@ -129,7 +129,7 @@ ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::fetchQueryResults() 
 
     // Get query result
     fb::FlatBufferBuilder builder{128};
-    auto ofs = writeQueryResultChunk(builder, chunk.get(), types);
+    auto ofs = writeQueryResultChunk(builder, currentQueryID, chunk.get(), types);
     builder.Finish(ofs);
     return { builder.Release() };
 }

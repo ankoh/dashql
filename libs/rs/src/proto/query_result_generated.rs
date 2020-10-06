@@ -260,17 +260,23 @@ impl<'a> QueryResultChunk<'a> {
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
         args: &'args QueryResultChunkArgs<'args>) -> flatbuffers::WIPOffset<QueryResultChunk<'bldr>> {
       let mut builder = QueryResultChunkBuilder::new(_fbb);
+      builder.add_row_count(args.row_count);
       builder.add_query_id(args.query_id);
       if let Some(x) = args.columns { builder.add_columns(x); }
       builder.finish()
     }
 
     pub const VT_QUERY_ID: flatbuffers::VOffsetT = 4;
-    pub const VT_COLUMNS: flatbuffers::VOffsetT = 6;
+    pub const VT_ROW_COUNT: flatbuffers::VOffsetT = 6;
+    pub const VT_COLUMNS: flatbuffers::VOffsetT = 8;
 
   #[inline]
   pub fn query_id(&self) -> u64 {
     self._tab.get::<u64>(QueryResultChunk::VT_QUERY_ID, Some(0)).unwrap()
+  }
+  #[inline]
+  pub fn row_count(&self) -> u64 {
+    self._tab.get::<u64>(QueryResultChunk::VT_ROW_COUNT, Some(0)).unwrap()
   }
   #[inline]
   pub fn columns(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<QueryResultColumn<'a>>>> {
@@ -280,6 +286,7 @@ impl<'a> QueryResultChunk<'a> {
 
 pub struct QueryResultChunkArgs<'a> {
     pub query_id: u64,
+    pub row_count: u64,
     pub columns: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<QueryResultColumn<'a>>>>>,
 }
 impl<'a> Default for QueryResultChunkArgs<'a> {
@@ -287,6 +294,7 @@ impl<'a> Default for QueryResultChunkArgs<'a> {
     fn default() -> Self {
         QueryResultChunkArgs {
             query_id: 0,
+            row_count: 0,
             columns: None,
         }
     }
@@ -299,6 +307,10 @@ impl<'a: 'b, 'b> QueryResultChunkBuilder<'a, 'b> {
   #[inline]
   pub fn add_query_id(&mut self, query_id: u64) {
     self.fbb_.push_slot::<u64>(QueryResultChunk::VT_QUERY_ID, query_id, 0);
+  }
+  #[inline]
+  pub fn add_row_count(&mut self, row_count: u64) {
+    self.fbb_.push_slot::<u64>(QueryResultChunk::VT_ROW_COUNT, row_count, 0);
   }
   #[inline]
   pub fn add_columns(&mut self, columns: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<QueryResultColumn<'b >>>>) {

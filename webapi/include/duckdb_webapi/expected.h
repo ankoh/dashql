@@ -41,11 +41,18 @@ template <typename V> struct Expected {
     /// Constructor
     Expected(Error &&e) : data(move(e)) {}
     /// Constructor
+    Expected(const Error &e) : data(e) {}
+    /// Constructor
     template <typename... T> Expected(ErrorCode code, T... vs) : data(Error{code, vs...}) {}
     /// Is ok?
     auto isOk() const { return std::holds_alternative<V>(data); }
     /// Is an error?
     auto isErr() const { return std::holds_alternative<Error>(data); }
+    /// Get the result
+    auto &get() const {
+        assert(isOk());
+        return std::get<V>(data);
+    }
     /// Get the error
     auto &getErr() const {
         assert(isErr());
@@ -54,7 +61,7 @@ template <typename V> struct Expected {
     /// Bool operator
     operator bool() const { return isOk(); }
     /// Dereference operator
-    auto &operator*() const { return std::get<V>(data); }
+    auto &operator*() const { return get(); }
 };
 using ExpectedSignal = Expected<std::monostate>;
 
@@ -66,11 +73,19 @@ template <typename V> struct ExpectedBuffer {
     /// Constructor
     ExpectedBuffer(Error &&e) : data(move(e)) {}
     /// Constructor
+    ExpectedBuffer(const Error &e) : data(e) {}
+    /// Constructor
     template <typename... T> ExpectedBuffer(ErrorCode code, T... vs) : data(Error{code, vs...}) {}
     /// Is ok?
     auto isOk() const { return std::holds_alternative<flatbuffers::DetachedBuffer>(data); }
     /// Is an error?
     auto isErr() const { return std::holds_alternative<Error>(data); }
+    /// Get the result
+    auto &get() const {
+        assert(isOk());
+        auto& buffer = std::get<flatbuffers::DetachedBuffer>(data);
+        return *flatbuffers::GetRoot<V>(buffer.data());
+    }
     /// Get the error
     auto &getErr() const {
         assert(isErr());
@@ -79,7 +94,7 @@ template <typename V> struct ExpectedBuffer {
     /// Bool operator
     operator bool() const { return isOk(); }
     /// Dereference operator
-    auto &operator*() const { return *flatbuffers::GetRoot<V>(data); }
+    auto &operator*() const { return get(); }
     /// Get buffer
     auto &&releaseBuffer() {
         isOk();

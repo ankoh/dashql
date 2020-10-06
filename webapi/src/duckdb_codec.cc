@@ -186,7 +186,7 @@ static fb::Offset<proto::QueryResultColumn> writeStringCol(fb::FlatBufferBuilder
 }
 
 /// Write the query result chunk
-fb::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBufferBuilder& builder, duckdb::DataChunk* chunkPtr, nonstd::span<duckdb::LogicalType> types) {
+fb::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBufferBuilder& builder, uint64_t queryID, duckdb::DataChunk* chunkPtr, nonstd::span<duckdb::LogicalType> types) {
     duckdb::DataChunk tmp;
     auto& chunk = (!!chunkPtr) ? *chunkPtr : tmp;
     auto size = chunk.size();
@@ -242,6 +242,8 @@ fb::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBuffe
 
     // Build result chunk
     proto::QueryResultChunkBuilder chunkBuilder{builder};
+    chunkBuilder.add_query_id(queryID);
+    chunkBuilder.add_row_count(size);
     chunkBuilder.add_columns(columnOffset);
     return chunkBuilder.Finish();
 }
@@ -252,7 +254,7 @@ fb::Offset<proto::QueryResult> writeQueryResult(fb::FlatBufferBuilder& builder, 
     // Fetch result rows and immediately write them into a flatbuffer
     std::vector<fb::Offset<proto::QueryResultChunk>> chunks;
     for (auto chunk = result.Fetch(); !!chunk && chunk->size() > 0; chunk = result.Fetch())
-        chunks.push_back(writeQueryResultChunk(builder, chunk.get(), result.types));
+        chunks.push_back(writeQueryResultChunk(builder, queryID, chunk.get(), result.types));
     auto dataChunks = builder.CreateVector(chunks);
 
     // Write column types
