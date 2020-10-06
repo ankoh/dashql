@@ -1,72 +1,66 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/value.h"
+#include "duckdb_webapi/codec.h"
 #include "duckdb_webapi/common/exception.h"
 #include "duckdb_webapi/common/types/date.h"
 #include "duckdb_webapi/common/types/timestamp.h"
 
 namespace duckdb_webapi {
 
-Value Value::NUMERIC(proto::LogicalTypeID id, int64_t value) {
-    Value result{{proto::LogicalTypeID::BOOLEAN, 0, 0}};
-    result.value.booleanValue = value ? true : false;
-    result.isNull = false;
-    return result;
-}
-
 Value Value::BOOLEAN(int8_t value) {
-    Value result{{proto::LogicalTypeID::BOOLEAN, 0, 0}};
+    Value result{LogicalType::create(proto::LogicalTypeID::BOOLEAN)};
     result.value.booleanValue = value ? true : false;
-    result.isNull = false;
+    result.null = false;
     return result;
 }
 
 Value Value::TINYINT(int8_t value) {
-    Value result{{proto::LogicalTypeID::TINYINT, 0, 0}};
+    Value result{LogicalType::create(proto::LogicalTypeID::TINYINT)};
     result.value.tinyintValue = value;
-    result.isNull = false;
+    result.null = false;
     return result;
 }
 
 Value Value::SMALLINT(int16_t value) {
-    Value result{{proto::LogicalTypeID::SMALLINT, 0, 0}};
+    Value result{LogicalType::create(proto::LogicalTypeID::SMALLINT)};
     result.value.smallintValue = value;
-    result.isNull = false;
+    result.null = false;
     return result;
 }
 
 Value Value::INTEGER(int32_t value) {
-    Value result{{proto::LogicalTypeID::INTEGER, 0, 0}};
+    Value result{LogicalType::create(proto::LogicalTypeID::INTEGER)};
     result.value.integerValue = value;
-    result.isNull = false;
+    result.null = false;
     return result;
 }
 
 Value Value::BIGINT(int64_t value) {
-    Value result{{proto::LogicalTypeID::BIGINT, 0, 0}};
+    Value result{LogicalType::create(proto::LogicalTypeID::BIGINT)};
     result.value.bigintValue = value;
-    result.isNull = false;
+    result.null = false;
     return result;
 }
 
 Value Value::DATE(date_t value) {
-    Value result{{proto::LogicalTypeID::DATE, 0, 0}};
+    Value result{LogicalType::create(proto::LogicalTypeID::DATE)};
     result.value.integerValue = value;
-    result.isNull = false;
+    result.null = false;
     return result;
 }
 
 Value Value::DATE(int32_t year, int32_t month, int32_t day) {
-    Value result{{proto::LogicalTypeID::DATE, 0, 0}};
+    Value result{LogicalType::create(proto::LogicalTypeID::DATE)};
     result.value.integerValue = Date::fromDate(year, month, day);
-    result.isNull = false;
+    result.null = false;
     return result;
 }
 
 Value Value::TIME(dtime_t time) {
-    Value result{{proto::LogicalTypeID::TIME, 0, 0}};
+    Value result{LogicalType::create(proto::LogicalTypeID::TIME)};
     result.value.integerValue = time;
-    result.isNull = false;
+    result.null = false;
     return result;
 }
 
@@ -76,33 +70,33 @@ Value Value::TIME(int32_t hour, int32_t min, int32_t sec, int32_t msec) {
 
 Value Value::TIMESTAMP(date_t date, dtime_t time) {
     auto val = Value::BIGINT(Timestamp::fromDateTime(date, time));
-    val.logicalType = {proto::LogicalTypeID::TIMESTAMP, 0, 0};
+    val.logicalType = LogicalType::create(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }
 
 Value Value::TIMESTAMP(timestamp_t timestamp) {
     auto val = Value::BIGINT(timestamp);
-    val.logicalType = {proto::LogicalTypeID::TIMESTAMP, 0, 0};
+    val.logicalType = LogicalType::create(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }
 
 Value Value::TIMESTAMP(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min, int32_t sec, int32_t msec) {
     auto val = Value::TIMESTAMP(Date::fromDate(year, month, day), Time::fromTime(hour, min, sec, msec));
-    val.logicalType = {proto::LogicalTypeID::TIMESTAMP, 0, 0};
+    val.logicalType = LogicalType::create(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }
 
 Value Value::FLOAT(float value) {
-    Value result{{proto::LogicalTypeID::FLOAT, 0, 0}};
+    Value result{LogicalType::create(proto::LogicalTypeID::FLOAT)};
     result.value.floatValue = value;
-    result.isNull = false;
+    result.null = false;
     return result;
 }
 
 Value Value::DOUBLE(double value) {
-    Value result{{proto::LogicalTypeID::DOUBLE, 0, 0}};
+    Value result{LogicalType::create(proto::LogicalTypeID::DOUBLE)};
     result.value.doubleValue = value;
-    result.isNull = false;
+    result.null = false;
     return result;
 }
 

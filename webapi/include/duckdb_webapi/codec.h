@@ -22,6 +22,18 @@ flatbuffers::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::
 /// Write the query plan
 flatbuffers::Offset<proto::QueryPlan> writeQueryPlan(flatbuffers::FlatBufferBuilder& builder, duckdb::LogicalOperator& plan);
 
+
+/// A logical type
+struct LogicalType {
+    static proto::LogicalType create();
+    static proto::LogicalType create(proto::LogicalTypeID id);
+    static proto::LogicalType create(proto::LogicalTypeID id, uint8_t width, uint8_t scale);
+    /// Get the physical type
+    static proto::PhysicalTypeID getPhysicalType(proto::LogicalType& type);
+    /// Logical type to string
+    static const char* toString(proto::LogicalTypeID typeID);
+};
+
 } // namespace duckdb_webapi
 
 #endif // INCLUDE_DUCKDB_WEBAPI_PROTO_CODEC_H_

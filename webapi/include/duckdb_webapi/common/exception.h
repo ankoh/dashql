@@ -6,6 +6,7 @@
 #include <exception>
 #include <string>
 #include <vector>
+#include <sstream>
 
 namespace duckdb_webapi {
 
@@ -13,6 +14,7 @@ namespace duckdb_webapi {
 enum class ExceptionType {
     INVALID = 0,
     CONVERSION = 1,
+    NOT_IMPLEMENTED = 2,
 };
 
 /// An exception format value type
@@ -45,42 +47,42 @@ template <> ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(std::st
 template <> ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(const char *value);
 template <> ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(char *value);
 
+/// Inline exception message
+static inline auto emsg() { return std::stringstream{}; }
+
 /// An exception
 class Exception : public std::exception {
   private:
     /// The exception type
     ExceptionType type;
     // The exception message
-    std::string exceptionMessage;
+    std::string message;
 
   public:
     /// Constructor
     Exception(std::string message);
+    /// Constructor
+    Exception(ExceptionType exceptionType, std::string message);
     /// Get message
     const char *what() const noexcept override;
-    /// Construct message
-    template <typename... Args> static std::string ConstructMessage(std::string msg, Args... params) {
-        std::vector<ExceptionFormatValue> values;
-        return ConstructMessageRecursive(msg, values, params...);
-    }
-    /// Construct message recursively
-    static std::string ConstructMessageRecursive(std::string msg, std::vector<ExceptionFormatValue> &values);
-    /// Construct message recursively
-    template <class T, typename... Args>
-    static std::string ConstructMessageRecursive(std::string msg, std::vector<ExceptionFormatValue> &values, T param,
-                                                 Args... params) {
-        values.push_back(ExceptionFormatValue::CreateFormatValue<T>(param));
-        return ConstructMessageRecursive(msg, values, params...);
-    }
 };
 
 /// A conversion exception
 struct ConversionException : public Exception {
-    /// Construct
-    ConversionException(std::string msg);
-    /// Construct
-    template <typename... Args>
-    ConversionException(std::string msg, Args... params) : ConversionException(ConstructMessage(msg, params...)) {}
+    /// Constructor
+    ConversionException(std::string message);
+    /// Constructor
+    ConversionException(std::stringstream message)
+        : ConversionException(message.str()) {}
+};
+
+/// A not-implemented exception
+struct NotImplementedException : public Exception {
+    /// Constructor
+    NotImplementedException(std::string message);
+    /// Constructor
+    NotImplementedException(std::stringstream message)
+        : NotImplementedException(message.str()) {}
 };
 
 } // namespace duckdb_webapi

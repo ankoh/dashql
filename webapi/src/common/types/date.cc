@@ -2,6 +2,7 @@
 
 #include "duckdb_webapi/common/exception.h"
 #include "duckdb_webapi/common/types/date.h"
+#include <sstream>
 
 namespace duckdb_webapi {
 
@@ -81,7 +82,7 @@ std::tuple<int32_t, int32_t, int32_t> Date::toDate(int32_t n) {
 date_t Date::fromDate(int32_t year, int32_t month, int32_t day) {
     int32_t n = 0;
     if (!(DD_DATE(day, month, year))) {
-        throw ConversionException("Date out of range: %d-%d-%d", year, month, day);
+        throw ConversionException(emsg() << "Date out of range: " << year << "-" << month << "-" << day);
     }
 
     if (year < 0)

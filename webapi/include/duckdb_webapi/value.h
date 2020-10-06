@@ -23,7 +23,7 @@ class Value {
     /// The logical type of the value
     proto::LogicalType logicalType = proto::LogicalType{proto::LogicalTypeID::INVALID, 0, 0};
     /// Whether or not the value is NULL
-    bool isNull;
+    bool null;
     /// The value of the object, if it is of a constant size type
     union Val {
         int8_t booleanValue;
@@ -40,24 +40,26 @@ class Value {
   public:
     /// Create an empty NULL value of the specified type
     Value(proto::LogicalType type = {proto::LogicalTypeID::SQLNULL, 0, 0})
-        : logicalType(type), isNull(true) {} /// Create a BIGINT value
+        : logicalType(type), null(true) {} /// Create a BIGINT value
     /// Create an INTEGER value
-    Value(int32_t val) : logicalType(proto::LogicalTypeID::INTEGER, 0, 0), isNull(false) { value.integerValue = val; }
+    Value(int32_t val) : logicalType(proto::LogicalTypeID::INTEGER, 0, 0), null(false) { value.integerValue = val; }
     /// Create a BIGINT value
-    Value(int64_t val) : logicalType(proto::LogicalTypeID::BIGINT, 0, 0), isNull(false) { value.bigintValue = val; }
+    Value(int64_t val) : logicalType(proto::LogicalTypeID::BIGINT, 0, 0), null(false) { value.bigintValue = val; }
     /// Create a FLOAT value
-    Value(float val) : logicalType(proto::LogicalTypeID::FLOAT, 0, 0), isNull(false) { value.floatValue = val; }
+    Value(float val) : logicalType(proto::LogicalTypeID::FLOAT, 0, 0), null(false) { value.floatValue = val; }
     /// Create a DOUBLE value
-    Value(double val) : logicalType(proto::LogicalTypeID::DOUBLE, 0, 0), isNull(false) { value.doubleValue = val; }
+    Value(double val) : logicalType(proto::LogicalTypeID::DOUBLE, 0, 0), null(false) { value.doubleValue = val; }
     /// Create a VARCHAR value
     Value(const char *val) : Value(val ? string(val) : string()) {}
     /// Create a VARCHAR value
     Value(string val);
 
     /// Get the logical type
-    proto::LogicalType getLogicalType();
+    auto& getLogicalType() const { return logicalType; }
+    /// Is value null?
+    auto isNull() const { return null; }
     /// Get inner value
-    template <class T> T getValue() { assert(false); }
+    template <class T> T getValue() const { assert(false); }
     /// Create a value
     template <class T> static Value createValue(T value) { assert(false); }
 
@@ -68,7 +70,7 @@ class Value {
     /// Convert this value to a string, with the given display format
     string toString(proto::LogicalType &type) const;
     /// Cast this value to another type
-    Value castAs(proto::LogicalTypeID targetType, bool strict = false) const;
+    Value castAs(proto::LogicalType targetType, bool strict = false) const;
     /// Cast this value to another type
     Value castAs(proto::LogicalType &sourceType, proto::LogicalType &targetType, bool strict = false);
     /// Tries to cast value to another type, throws exception if its not possible
@@ -153,14 +155,43 @@ template <> Value Value::createValue(float value);
 template <> Value Value::createValue(double value);
 template <> Value Value::createValue(Value value);
 
-template <> bool Value::getValue();
-template <> int8_t Value::getValue();
-template <> int16_t Value::getValue();
-template <> int32_t Value::getValue();
-template <> int64_t Value::getValue();
-template <> string Value::getValue();
-template <> float Value::getValue();
-template <> double Value::getValue();
+template <> bool Value::getValue() const;
+template <> int8_t Value::getValue() const;
+template <> int16_t Value::getValue() const;
+template <> int32_t Value::getValue() const;
+template <> int64_t Value::getValue() const;
+template <> std::string Value::getValue() const;
+template <> float Value::getValue() const;
+template <> double Value::getValue() const;
+
+struct ValueOps {
+    // A + B
+    static Value Add(const Value &left, const Value &right);
+    // A - B
+    static Value Subtract(const Value &left, const Value &right);
+    // A * B
+    static Value Multiply(const Value &left, const Value &right);
+    // A / B
+    static Value Divide(const Value &left, const Value &right);
+    // A % B
+    static Value Modulo(const Value &left, const Value &right);
+
+    // A == B
+    static bool Equals(const Value &left, const Value &right);
+    // A != B
+    static bool NotEquals(const Value &left, const Value &right);
+    // A > B
+    static bool GreaterThan(const Value &left, const Value &right);
+    // A >= B
+    static bool GreaterThanEquals(const Value &left, const Value &right);
+    // A < B
+    static bool LessThan(const Value &left, const Value &right);
+    // A <= B
+    static bool LessThanEquals(const Value &left, const Value &right);
+
+    // result = HASH(A)
+    static hash_t Hash(const Value &left);
+};
 
 } // namespace duckdb_webapi
 
