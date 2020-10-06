@@ -4,6 +4,8 @@
 #define INCLUDE_DUCKDB_WEBAPI_VALUE_H_
 
 #include "duckdb_webapi/api.h"
+#include "duckdb_webapi/types/date.h"
+#include "duckdb_webapi/types/time.h"
 #include "duckdb_webapi/common/expected.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
 #include "duckdb_webapi/proto/value_generated.h"
@@ -11,8 +13,6 @@
 namespace duckdb_webapi {
 
 using hash_t = uint64_t;
-using date_t = uint32_t;
-using dtime_t = int32_t;
 using timestamp_t = int64_t;
 
 /// SQL Value.
@@ -124,6 +124,8 @@ class Value {
     static Value DATE(date_t date);
     /// Create a date Value from a specified date
     static Value DATE(int32_t year, int32_t month, int32_t day);
+    /// Create a time Value from a specified date
+    static Value TIME(dtime_t time);
     /// Create a time Value from a specified date
     static Value TIME(int32_t hour, int32_t min, int32_t sec, int32_t msec);
     /// Create a timestamp Value from a specified date/time combination

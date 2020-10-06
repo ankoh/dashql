@@ -2,7 +2,7 @@
 
 #include "duckdb_webapi/value.h"
 #include "duckdb_webapi/common/exception.h"
-#include "duckdb_webapi/common/date.h"
+#include "duckdb_webapi/types/date.h"
 
 namespace duckdb_webapi {
 
@@ -57,9 +57,20 @@ Value Value::DATE(date_t value) {
 
 Value Value::DATE(int32_t year, int32_t month, int32_t day) {
     Value result{{proto::LogicalTypeID::DATE, 0, 0}};
-    result.value.integerValue = dateToNumber(year, month, day);
+    result.value.integerValue = Date::fromDate(year, month, day);
     result.isNull = false;
     return result;
+}
+
+Value Value::TIME(dtime_t time) {
+    Value result{{proto::LogicalTypeID::TIME, 0, 0}};
+    result.value.integerValue = time;
+    result.isNull = false;
+    return result;
+}
+
+Value Value::TIME(int32_t hour, int32_t min, int32_t sec, int32_t msec) {
+    return Value::TIME(Time::fromTime(hour, min, sec, msec));
 }
 
 } // namespace duckdb_webapi

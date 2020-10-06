@@ -55,7 +55,8 @@ add_library(duckdb_webapi_core
     ${DUCKDB_SOURCE_FILE}
     ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
     ${CMAKE_SOURCE_DIR}/src/api.cc
-    ${CMAKE_SOURCE_DIR}/src/common/date.cc
+    ${CMAKE_SOURCE_DIR}/src/types/date.cc
+    ${CMAKE_SOURCE_DIR}/src/types/time.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb_codec.cc
     ${CMAKE_SOURCE_DIR}/src/iterator.cc
     ${CMAKE_SOURCE_DIR}/src/json_conversion.cc

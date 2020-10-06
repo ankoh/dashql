@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb_webapi/common/date.h"
 #include "duckdb_webapi/common/exception.h"
+#include "duckdb_webapi/types/date.h"
 
 namespace duckdb_webapi {
 
@@ -42,9 +42,10 @@ int leapyears(int year) {
 
 }
 
-void numberToDate(int32_t n, int32_t &year, int32_t &month, int32_t &day) {
-    year = n / 365;
-    day = (n - year * 365) - leapyears(year >= 0 ? year - 1 : year);
+std::tuple<int32_t, int32_t, int32_t> Date::toDate(int32_t n) {
+    int32_t year = n / 365;
+    int32_t month = 0;
+    int32_t day = (n - year * 365) - leapyears(year >= 0 ? year - 1 : year);
     if (n < 0) {
         year--;
         while (day >= 0) {
@@ -74,9 +75,10 @@ void numberToDate(int32_t n, int32_t &year, int32_t &month, int32_t &day) {
         day -= CUMDAYS[month - 1];
     }
     year = (year <= 0) ? year - 1 : year;
+    return {year, month, day};
 }
 
-int32_t dateToNumber(int32_t year, int32_t month, int32_t day) {
+date_t Date::fromDate(int32_t year, int32_t month, int32_t day) {
     int32_t n = 0;
     if (!(DD_DATE(day, month, year))) {
         throw ConversionException("Date out of range: %d-%d-%d", year, month, day);
