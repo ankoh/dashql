@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/common/exception.h"
-#include "duckdb_webapi/types/time.h"
+#include "duckdb_webapi/common/types/time.h"
 
 namespace duckdb_webapi {
 

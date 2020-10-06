@@ -2,8 +2,8 @@
 
 #include "duckdb_webapi/value.h"
 #include "duckdb_webapi/common/exception.h"
-#include "duckdb_webapi/types/date.h"
-#include "duckdb_webapi/types/timestamp.h"
+#include "duckdb_webapi/common/types/date.h"
+#include "duckdb_webapi/common/types/timestamp.h"
 
 namespace duckdb_webapi {
 

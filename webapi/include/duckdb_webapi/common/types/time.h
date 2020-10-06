@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEBAPI_TYPES_TIME_H_
-#define INCLUDE_DUCKDB_WEBAPI_TYPES_TIME_H_
+#ifndef INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIME_H_
+#define INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIME_H_
 
 #include <cstdint>
 #include <tuple>
@@ -19,4 +19,4 @@ struct Time {
 
 } // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_TYPES_TIME_H_
+#endif // INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIME_H_

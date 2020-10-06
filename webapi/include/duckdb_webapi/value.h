@@ -5,10 +5,10 @@
 
 #include "duckdb_webapi/api.h"
 #include "duckdb_webapi/common/expected.h"
+#include "duckdb_webapi/common/types/date.h"
+#include "duckdb_webapi/common/types/time.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
 #include "duckdb_webapi/proto/value_generated.h"
-#include "duckdb_webapi/types/date.h"
-#include "duckdb_webapi/types/time.h"
 
 namespace duckdb_webapi {
 

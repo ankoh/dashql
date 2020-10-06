@@ -1,10 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEBAPI_TYPES_TIMESTAMP_H_
-#define INCLUDE_DUCKDB_WEBAPI_TYPES_TIMESTAMP_H_
+#ifndef INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIMESTAMP_H_
+#define INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIMESTAMP_H_
 
-#include "duckdb_webapi/types/date.h"
-#include "duckdb_webapi/types/time.h"
+#include "duckdb_webapi/common/types/date.h"
+#include "duckdb_webapi/common/types/time.h"
 #include <cstdint>
 #include <tuple>
 
@@ -27,4 +27,4 @@ struct Timestamp {
 
 } // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_TYPES_TIMESTAMP_H_
+#endif // INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIMESTAMP_H_
