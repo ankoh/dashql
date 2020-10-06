@@ -106,4 +106,15 @@ Value Value::DOUBLE(double value) {
     return result;
 }
 
+template <> Value Value::createValue(bool value) { return Value::BOOLEAN(value); }
+template <> Value Value::createValue(int8_t value) { return Value::TINYINT(value); }
+template <> Value Value::createValue(int16_t value) { return Value::SMALLINT(value); }
+template <> Value Value::createValue(int32_t value) { return Value::INTEGER(value); }
+template <> Value Value::createValue(int64_t value) { return Value::BIGINT(value); }
+template <> Value Value::createValue(const char *value) { return Value(string(value)); }
+template <> Value Value::createValue(std::string value) { return Value(value); }
+template <> Value Value::createValue(float value) { return Value::FLOAT(value); }
+template <> Value Value::createValue(double value) { return Value::DOUBLE(value); }
+template <> Value Value::createValue(Value value) { return value; }
+
 } // namespace duckdb_webapi

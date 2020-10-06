@@ -4,11 +4,11 @@
 #define INCLUDE_DUCKDB_WEBAPI_VALUE_H_
 
 #include "duckdb_webapi/api.h"
-#include "duckdb_webapi/types/date.h"
-#include "duckdb_webapi/types/time.h"
 #include "duckdb_webapi/common/expected.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
 #include "duckdb_webapi/proto/value_generated.h"
+#include "duckdb_webapi/types/date.h"
+#include "duckdb_webapi/types/time.h"
 
 namespace duckdb_webapi {
 
@@ -39,7 +39,8 @@ class Value {
 
   public:
     /// Create an empty NULL value of the specified type
-    Value(proto::LogicalType type = {proto::LogicalTypeID::SQLNULL, 0, 0}) : logicalType(type), isNull(true) {} /// Create a BIGINT value
+    Value(proto::LogicalType type = {proto::LogicalTypeID::SQLNULL, 0, 0})
+        : logicalType(type), isNull(true) {} /// Create a BIGINT value
     /// Create an INTEGER value
     Value(int32_t val) : logicalType(proto::LogicalTypeID::INTEGER, 0, 0), isNull(false) { value.integerValue = val; }
     /// Create a BIGINT value
@@ -147,7 +148,7 @@ template <> Value Value::createValue(int16_t value);
 template <> Value Value::createValue(int32_t value);
 template <> Value Value::createValue(int64_t value);
 template <> Value Value::createValue(const char *value);
-template <> Value Value::createValue(string value);
+template <> Value Value::createValue(std::string value);
 template <> Value Value::createValue(float value);
 template <> Value Value::createValue(double value);
 template <> Value Value::createValue(Value value);
