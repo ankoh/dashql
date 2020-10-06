@@ -59,6 +59,7 @@ add_library(duckdb_webapi_core
     ${CMAKE_SOURCE_DIR}/src/iterator.cc
     ${CMAKE_SOURCE_DIR}/src/json_conversion.cc
     ${CMAKE_SOURCE_DIR}/src/tablegen.cc
+    ${CMAKE_SOURCE_DIR}/src/value.cc
 )
 
 target_link_libraries(duckdb_webapi_core

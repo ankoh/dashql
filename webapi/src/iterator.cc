@@ -45,4 +45,5 @@ bool QueryResultForwardIterator::isEnd() const {
 }
 
 
+
 } // namespace duckdb_webapi
