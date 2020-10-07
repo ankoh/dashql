@@ -2,6 +2,7 @@
 
 #include "duckdb_webapi/common/types/hugeint.h"
 
+#include <cassert>
 #include <sstream>
 
 #include "duckdb_webapi/common/exception.h"
