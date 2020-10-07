@@ -218,6 +218,10 @@ export enum LogicalTypeID{
   VARCHAR= 22,
   VARBINARY= 23,
   BLOB= 24,
+  INTERVAL= 25,
+  HUGEINT= 50,
+  POINTER= 51,
+  HASH= 52,
   STRUCT= 100,
   LIST= 101
 };

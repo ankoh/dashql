@@ -31,6 +31,72 @@ pub mod proto {
   extern crate flatbuffers;
   use self::flatbuffers::EndianScalar;
 
+/// A 128-bit integer
+// struct I128, aligned to 8
+#[repr(C, align(8))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct I128 {
+  lower_: u64,
+  upper_: i64,
+} // pub struct I128
+impl flatbuffers::SafeSliceAccess for I128 {}
+impl<'a> flatbuffers::Follow<'a> for I128 {
+  type Inner = &'a I128;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a I128>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a I128 {
+  type Inner = &'a I128;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<I128>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for I128 {
+    type Output = I128;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const I128 as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b I128 {
+    type Output = I128;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const I128 as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl I128 {
+  pub fn new(_lower: u64, _upper: i64) -> Self {
+    I128 {
+      lower_: _lower.to_little_endian(),
+      upper_: _upper.to_little_endian(),
+
+    }
+  }
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "duckdb_webapi.proto.I128"
+    }
+
+  pub fn lower(&self) -> u64 {
+    self.lower_.from_little_endian()
+  }
+  pub fn upper(&self) -> i64 {
+    self.upper_.from_little_endian()
+  }
+}
+
 pub enum QueryResultColumnOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
@@ -65,6 +131,7 @@ impl<'a> QueryResultColumn<'a> {
       if let Some(x) = args.rows_string { builder.add_rows_string(x); }
       if let Some(x) = args.rows_f64 { builder.add_rows_f64(x); }
       if let Some(x) = args.rows_f32 { builder.add_rows_f32(x); }
+      if let Some(x) = args.rows_i128 { builder.add_rows_i128(x); }
       if let Some(x) = args.rows_u64 { builder.add_rows_u64(x); }
       if let Some(x) = args.rows_i64 { builder.add_rows_i64(x); }
       if let Some(x) = args.rows_i32 { builder.add_rows_i32(x); }
@@ -84,9 +151,10 @@ impl<'a> QueryResultColumn<'a> {
     pub const VT_ROWS_I32: flatbuffers::VOffsetT = 14;
     pub const VT_ROWS_I64: flatbuffers::VOffsetT = 16;
     pub const VT_ROWS_U64: flatbuffers::VOffsetT = 18;
-    pub const VT_ROWS_F32: flatbuffers::VOffsetT = 20;
-    pub const VT_ROWS_F64: flatbuffers::VOffsetT = 22;
-    pub const VT_ROWS_STRING: flatbuffers::VOffsetT = 24;
+    pub const VT_ROWS_I128: flatbuffers::VOffsetT = 20;
+    pub const VT_ROWS_F32: flatbuffers::VOffsetT = 22;
+    pub const VT_ROWS_F64: flatbuffers::VOffsetT = 24;
+    pub const VT_ROWS_STRING: flatbuffers::VOffsetT = 26;
 
   #[inline]
   pub fn physical_type(&self) -> PhysicalTypeID {
@@ -121,6 +189,10 @@ impl<'a> QueryResultColumn<'a> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u64>>>(QueryResultColumn::VT_ROWS_U64, None)
   }
   #[inline]
+  pub fn rows_i128(&self) -> Option<&'a [I128]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<I128>>>(QueryResultColumn::VT_ROWS_I128, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
   pub fn rows_f32(&self) -> Option<flatbuffers::Vector<'a, f32>> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, f32>>>(QueryResultColumn::VT_ROWS_F32, None)
   }
@@ -143,6 +215,7 @@ pub struct QueryResultColumnArgs<'a> {
     pub rows_i32: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i32>>>,
     pub rows_i64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i64>>>,
     pub rows_u64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u64>>>,
+    pub rows_i128: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, I128>>>,
     pub rows_f32: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, f32>>>,
     pub rows_f64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, f64>>>,
     pub rows_string: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>>,
@@ -159,6 +232,7 @@ impl<'a> Default for QueryResultColumnArgs<'a> {
             rows_i32: None,
             rows_i64: None,
             rows_u64: None,
+            rows_i128: None,
             rows_f32: None,
             rows_f64: None,
             rows_string: None,
@@ -201,6 +275,10 @@ impl<'a: 'b, 'b> QueryResultColumnBuilder<'a, 'b> {
   #[inline]
   pub fn add_rows_u64(&mut self, rows_u64: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u64>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_U64, rows_u64);
+  }
+  #[inline]
+  pub fn add_rows_i128(&mut self, rows_i128: flatbuffers::WIPOffset<flatbuffers::Vector<'b , I128>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_I128, rows_i128);
   }
   #[inline]
   pub fn add_rows_f32(&mut self, rows_f32: flatbuffers::WIPOffset<flatbuffers::Vector<'b , f32>>) {

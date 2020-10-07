@@ -7,6 +7,7 @@
 #include "duckdb/planner/logical_operator.hpp"
 #include "duckdb_webapi/common/exception.h"
 #include "duckdb_webapi/common/types/decimal.h"
+#include "duckdb_webapi/common/types/hugeint.h"
 
 namespace fb = flatbuffers;
 
@@ -139,6 +140,33 @@ static fb::Offset<proto::QueryResultColumn> writeCol(fb::FlatBufferBuilder &buil
     return c.Finish();
 }
 
+/// Write a fixed-length result column
+static fb::Offset<proto::QueryResultColumn> writeI128Col(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
+                                                     duckdb::VectorData &vec, size_t count) {
+    proto::I128 *values;
+    auto dBuf = builder.CreateUninitializedVectorOfStructs(count, &values);
+    std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
+
+    // Has null mask?
+    if (vec.nullmask) {
+        uint8_t *nullmask;
+        nBuf = builder.CreateUninitializedVector(count, &nullmask);
+        iterVec<hugeint_t, true>(vec, count, [&](unsigned i, hugeint_t value, bool null) {
+            values[i] = proto::I128{value.lower, value.upper};
+            nullmask[i] = null;
+        });
+    } else {
+        iterVec<hugeint_t, false>(vec, count, [&](unsigned i, hugeint_t value, bool null) { values[i] = proto::I128{value.lower, value.upper}; });
+    }
+
+    // Build the query result column
+    proto::QueryResultColumnBuilder c{builder};
+    c.add_physical_type(static_cast<proto::PhysicalTypeID>(type));
+    if (nBuf) c.add_null_mask(*nBuf);
+        c.add_rows_i128(dBuf);
+    return c.Finish();
+}
+
 /// Write a string result column
 static fb::Offset<proto::QueryResultColumn> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec,
                                                            size_t count) {
@@ -215,6 +243,8 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
                     return writeCol<int32_t>(builder, pType, vec, size);
                 case duckdb::PhysicalType::INT64:
                     return writeCol<int64_t>(builder, pType, vec, size);
+                case duckdb::PhysicalType::INT128:
+                    return writeI128Col(builder, pType, vec, size);
                 case duckdb::PhysicalType::FLOAT:
                     return writeCol<float>(builder, pType, vec, size);
                 case duckdb::PhysicalType::DOUBLE:
@@ -225,7 +255,6 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
                     return writeStringCol(builder, vec, size);
 
                 case duckdb::PhysicalType::BOOL:
-                case duckdb::PhysicalType::INT128:
                 case duckdb::PhysicalType::VARBINARY:
                 case duckdb::PhysicalType::INTERVAL:
                 case duckdb::PhysicalType::STRUCT:
@@ -400,6 +429,8 @@ proto::PhysicalTypeID LogicalType::GetPhysicalType(proto::LogicalType &type) {
         case proto::LogicalTypeID::BIGINT:
         case proto::LogicalTypeID::TIMESTAMP:
             return proto::PhysicalTypeID::INT64;
+        case proto::LogicalTypeID::HUGEINT:
+		    return proto::PhysicalTypeID::INT128;
         case proto::LogicalTypeID::FLOAT:
             return proto::PhysicalTypeID::FLOAT;
         case proto::LogicalTypeID::DOUBLE:
@@ -426,6 +457,10 @@ proto::PhysicalTypeID LogicalType::GetPhysicalType(proto::LogicalType &type) {
             return proto::PhysicalTypeID::STRUCT;
         case proto::LogicalTypeID::LIST:
             return proto::PhysicalTypeID::LIST;
+        case proto::LogicalTypeID::HASH:
+            return proto::PhysicalTypeID::HASH;
+        case proto::LogicalTypeID::POINTER:
+            return proto::PhysicalTypeID::POINTER;
         case proto::LogicalTypeID::ANY:
         case proto::LogicalTypeID::INVALID:
         case proto::LogicalTypeID::UNKNOWN:
@@ -472,6 +507,14 @@ const char *LogicalType::ToString(proto::LogicalTypeID id) {
             return "NULL";
         case proto::LogicalTypeID::ANY:
             return "ANY";
+        case proto::LogicalTypeID::INTERVAL:
+            return "INTERVAL";
+        case proto::LogicalTypeID::HASH:
+            return "HASH";
+        case proto::LogicalTypeID::POINTER:
+            return "POINTER";
+        case proto::LogicalTypeID::HUGEINT:
+            return "HUGEINT";
         case proto::LogicalTypeID::STRUCT:
             return "STRUCT<?>";
         case proto::LogicalTypeID::LIST:

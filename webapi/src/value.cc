@@ -102,42 +102,42 @@ Value Value::DOUBLE(double value) {
     return result;
 }
 
-template <> Value Value::createValue(bool value) { return Value::BOOLEAN(value); }
-template <> Value Value::createValue(int8_t value) { return Value::TINYINT(value); }
-template <> Value Value::createValue(int16_t value) { return Value::SMALLINT(value); }
-template <> Value Value::createValue(int32_t value) { return Value::INTEGER(value); }
-template <> Value Value::createValue(int64_t value) { return Value::BIGINT(value); }
-template <> Value Value::createValue(const char *value) { return Value(string(value)); }
-template <> Value Value::createValue(std::string value) { return Value(value); }
-template <> Value Value::createValue(float value) { return Value::FLOAT(value); }
-template <> Value Value::createValue(double value) { return Value::DOUBLE(value); }
-template <> Value Value::createValue(Value value) { return value; }
+template <> Value Value::CreateValue(bool value) { return Value::BOOLEAN(value); }
+template <> Value Value::CreateValue(int8_t value) { return Value::TINYINT(value); }
+template <> Value Value::CreateValue(int16_t value) { return Value::SMALLINT(value); }
+template <> Value Value::CreateValue(int32_t value) { return Value::INTEGER(value); }
+template <> Value Value::CreateValue(int64_t value) { return Value::BIGINT(value); }
+template <> Value Value::CreateValue(const char *value) { return Value(string(value)); }
+template <> Value Value::CreateValue(std::string value) { return Value(value); }
+template <> Value Value::CreateValue(float value) { return Value::FLOAT(value); }
+template <> Value Value::CreateValue(double value) { return Value::DOUBLE(value); }
+template <> Value Value::CreateValue(Value value) { return value; }
 
 namespace {
 
 template <class OP> static Value templated_binary_operation(const Value &left, const Value &right) {
-    auto leftType = left.getLogicalType();
-    auto rightType = right.getLogicalType();
+    auto leftType = left.GetLogicalType();
+    auto rightType = right.GetLogicalType();
     auto resultType = leftType;
     if (leftType != rightType) {
-        resultType = LogicalType::MaxType(left.getLogicalType(), right.getLogicalType());
-        Value left_cast = left.castAs(resultType);
-        Value right_cast = right.castAs(resultType);
+        resultType = LogicalType::MaxType(left.GetLogicalType(), right.GetLogicalType());
+        Value left_cast = left.CastAs(resultType);
+        Value right_cast = right.CastAs(resultType);
         return templated_binary_operation<OP>(left_cast, right_cast);
     }
-    if (left.isNull() || right.isNull()) {
-        return Value().castAs(resultType);
+    if (left.IsNull() || right.IsNull()) {
+        return Value().CastAs(resultType);
     }
     if (LogicalType::IsIntegral(LogicalType::GetPhysicalType(resultType))) {
         // integer addition
         return Value::NUMERIC(resultType, OP::template Operation<hugeint_t, hugeint_t, hugeint_t>(
-                                              left.getValue<hugeint_t>(), right.getValue<hugeint_t>()));
+                                              left.GetValue<hugeint_t>(), right.GetValue<hugeint_t>()));
     } else if (LogicalType::GetPhysicalType(resultType) == proto::PhysicalTypeID::FLOAT) {
         return Value::FLOAT(
-            OP::template Operation<float, float, float>(left.getValue<float>(), right.getValue<float>()));
+            OP::template Operation<float, float, float>(left.GetValue<float>(), right.GetValue<float>()));
     } else if (LogicalType::GetPhysicalType(resultType) == proto::PhysicalTypeID::DOUBLE) {
         return Value::DOUBLE(
-            OP::template Operation<double, double, double>(left.getValue<double>(), right.getValue<double>()));
+            OP::template Operation<double, double, double>(left.GetValue<double>(), right.GetValue<double>()));
     } else {
         throw Exception{ExceptionType::NOT_IMPLEMENTED, "Unimplemented type for value binary op"};
     }

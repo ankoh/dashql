@@ -55,26 +55,26 @@ class Value {
     Value(string val);
 
     /// Get the logical type
-    auto &getLogicalType() const { return logicalType; }
+    auto &GetLogicalType() const { return logicalType; }
     /// Is value null?
-    auto isNull() const { return null; }
+    auto IsNull() const { return null; }
     /// Get inner value
-    template <class T> T getValue() const { assert(false); }
+    template <class T> T GetValue() const { assert(false); }
     /// Create a value
-    template <class T> static Value createValue(T value) { assert(false); }
+    template <class T> static Value CreateValue(T value) { assert(false); }
 
     /// Return a copy of this value
-    Value copy() const { return Value(*this); }
+    Value Copy() const { return Value(*this); }
     /// Convert this value to a string
-    string toString() const;
+    string ToString() const;
     /// Convert this value to a string, with the given display format
-    string toString(proto::LogicalType &type) const;
+    string ToString(proto::LogicalType &type) const;
     /// Cast this value to another type
-    Value castAs(proto::LogicalType targetType, bool strict = false) const;
+    Value CastAs(proto::LogicalType targetType, bool strict = false) const;
     /// Cast this value to another type
-    Value castAs(proto::LogicalType &sourceType, proto::LogicalType &targetType, bool strict = false);
+    Value CastAs(proto::LogicalType &sourceType, proto::LogicalType &targetType, bool strict = false);
     /// Tries to cast value to another type, throws exception if its not possible
-    bool tryCastAs(proto::LogicalType &sourceType, proto::LogicalType &targetType, bool strict = false);
+    bool TryCastAs(proto::LogicalType &sourceType, proto::LogicalType &targetType, bool strict = false);
 
     /// Numeric Operators
     Value operator+(const Value &rhs) const;
@@ -102,7 +102,7 @@ class Value {
     static bool valuesAreEqual(Value resultValue, Value value);
     /// Print a value
     friend std::ostream &operator<<(std::ostream &out, const Value &val) {
-        out << val.toString();
+        out << val.ToString();
         return out;
     }
 
@@ -144,25 +144,25 @@ class Value {
     static Value DOUBLE(double value);
 };
 
-template <> Value Value::createValue(bool value);
-template <> Value Value::createValue(int8_t value);
-template <> Value Value::createValue(int16_t value);
-template <> Value Value::createValue(int32_t value);
-template <> Value Value::createValue(int64_t value);
-template <> Value Value::createValue(const char *value);
-template <> Value Value::createValue(std::string value);
-template <> Value Value::createValue(float value);
-template <> Value Value::createValue(double value);
-template <> Value Value::createValue(Value value);
+template <> Value Value::CreateValue(bool value);
+template <> Value Value::CreateValue(int8_t value);
+template <> Value Value::CreateValue(int16_t value);
+template <> Value Value::CreateValue(int32_t value);
+template <> Value Value::CreateValue(int64_t value);
+template <> Value Value::CreateValue(const char *value);
+template <> Value Value::CreateValue(std::string value);
+template <> Value Value::CreateValue(float value);
+template <> Value Value::CreateValue(double value);
+template <> Value Value::CreateValue(Value value);
 
-template <> bool Value::getValue() const;
-template <> int8_t Value::getValue() const;
-template <> int16_t Value::getValue() const;
-template <> int32_t Value::getValue() const;
-template <> int64_t Value::getValue() const;
-template <> std::string Value::getValue() const;
-template <> float Value::getValue() const;
-template <> double Value::getValue() const;
+template <> bool Value::GetValue() const;
+template <> int8_t Value::GetValue() const;
+template <> int16_t Value::GetValue() const;
+template <> int32_t Value::GetValue() const;
+template <> int64_t Value::GetValue() const;
+template <> std::string Value::GetValue() const;
+template <> float Value::GetValue() const;
+template <> double Value::GetValue() const;
 
 struct ValueOps {
     // A + B

@@ -217,6 +217,10 @@ pub enum LogicalTypeID {
   VARCHAR = 22,
   VARBINARY = 23,
   BLOB = 24,
+  INTERVAL = 25,
+  HUGEINT = 50,
+  POINTER = 51,
+  HASH = 52,
   STRUCT = 100,
   LIST = 101,
 
@@ -257,7 +261,7 @@ impl flatbuffers::Push for LogicalTypeID {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_LOGICAL_TYPE_ID: [LogicalTypeID; 21] = [
+pub const ENUM_VALUES_LOGICAL_TYPE_ID: [LogicalTypeID; 25] = [
   LogicalTypeID::INVALID,
   LogicalTypeID::SQLNULL,
   LogicalTypeID::UNKNOWN,
@@ -277,6 +281,10 @@ pub const ENUM_VALUES_LOGICAL_TYPE_ID: [LogicalTypeID; 21] = [
   LogicalTypeID::VARCHAR,
   LogicalTypeID::VARBINARY,
   LogicalTypeID::BLOB,
+  LogicalTypeID::INTERVAL,
+  LogicalTypeID::HUGEINT,
+  LogicalTypeID::POINTER,
+  LogicalTypeID::HASH,
   LogicalTypeID::STRUCT,
   LogicalTypeID::LIST
 ];
@@ -308,6 +316,7 @@ pub const ENUM_NAMES_LOGICAL_TYPE_ID: [&str; 102] = [
     "VARCHAR",
     "VARBINARY",
     "BLOB",
+    "INTERVAL",
     "",
     "",
     "",
@@ -332,10 +341,9 @@ pub const ENUM_NAMES_LOGICAL_TYPE_ID: [&str; 102] = [
     "",
     "",
     "",
-    "",
-    "",
-    "",
-    "",
+    "HUGEINT",
+    "POINTER",
+    "HASH",
     "",
     "",
     "",

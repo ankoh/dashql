@@ -217,13 +217,17 @@ enum class LogicalTypeID : uint8_t {
   VARCHAR = 22,
   VARBINARY = 23,
   BLOB = 24,
+  INTERVAL = 25,
+  HUGEINT = 50,
+  POINTER = 51,
+  HASH = 52,
   STRUCT = 100,
   LIST = 101,
   MIN = INVALID,
   MAX = LIST
 };
 
-inline const LogicalTypeID (&EnumValuesLogicalTypeID())[21] {
+inline const LogicalTypeID (&EnumValuesLogicalTypeID())[25] {
   static const LogicalTypeID values[] = {
     LogicalTypeID::INVALID,
     LogicalTypeID::SQLNULL,
@@ -244,6 +248,10 @@ inline const LogicalTypeID (&EnumValuesLogicalTypeID())[21] {
     LogicalTypeID::VARCHAR,
     LogicalTypeID::VARBINARY,
     LogicalTypeID::BLOB,
+    LogicalTypeID::INTERVAL,
+    LogicalTypeID::HUGEINT,
+    LogicalTypeID::POINTER,
+    LogicalTypeID::HASH,
     LogicalTypeID::STRUCT,
     LogicalTypeID::LIST
   };
@@ -277,6 +285,7 @@ inline const char * const *EnumNamesLogicalTypeID() {
     "VARCHAR",
     "VARBINARY",
     "BLOB",
+    "INTERVAL",
     "",
     "",
     "",
@@ -301,10 +310,9 @@ inline const char * const *EnumNamesLogicalTypeID() {
     "",
     "",
     "",
-    "",
-    "",
-    "",
-    "",
+    "HUGEINT",
+    "POINTER",
+    "HASH",
     "",
     "",
     "",
@@ -537,12 +545,16 @@ inline const flatbuffers::TypeTable *LogicalTypeIDTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     duckdb_webapi::proto::LogicalTypeIDTypeTable
   };
-  static const int64_t values[] = { 0, 1, 2, 3, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 100, 101 };
+  static const int64_t values[] = { 0, 1, 2, 3, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 50, 51, 52, 100, 101 };
   static const char * const names[] = {
     "INVALID",
     "SQLNULL",
@@ -563,11 +575,15 @@ inline const flatbuffers::TypeTable *LogicalTypeIDTypeTable() {
     "VARCHAR",
     "VARBINARY",
     "BLOB",
+    "INTERVAL",
+    "HUGEINT",
+    "POINTER",
+    "HASH",
     "STRUCT",
     "LIST"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 21, type_codes, type_refs, nullptr, values, names
+    flatbuffers::ST_ENUM, 25, type_codes, type_refs, nullptr, values, names
   };
   return &tt;
 }

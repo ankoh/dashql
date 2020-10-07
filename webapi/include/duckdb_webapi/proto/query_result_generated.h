@@ -12,6 +12,8 @@
 namespace duckdb_webapi {
 namespace proto {
 
+struct I128;
+
 struct QueryResultColumn;
 struct QueryResultColumnBuilder;
 struct QueryResultColumnT;
@@ -24,6 +26,8 @@ struct QueryResult;
 struct QueryResultBuilder;
 struct QueryResultT;
 
+bool operator==(const I128 &lhs, const I128 &rhs);
+bool operator!=(const I128 &lhs, const I128 &rhs);
 bool operator==(const QueryResultColumnT &lhs, const QueryResultColumnT &rhs);
 bool operator!=(const QueryResultColumnT &lhs, const QueryResultColumnT &rhs);
 bool operator==(const QueryResultChunkT &lhs, const QueryResultChunkT &rhs);
@@ -31,11 +35,54 @@ bool operator!=(const QueryResultChunkT &lhs, const QueryResultChunkT &rhs);
 bool operator==(const QueryResultT &lhs, const QueryResultT &rhs);
 bool operator!=(const QueryResultT &lhs, const QueryResultT &rhs);
 
+inline const flatbuffers::TypeTable *I128TypeTable();
+
 inline const flatbuffers::TypeTable *QueryResultColumnTypeTable();
 
 inline const flatbuffers::TypeTable *QueryResultChunkTypeTable();
 
 inline const flatbuffers::TypeTable *QueryResultTypeTable();
+
+/// A 128-bit integer
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) I128 FLATBUFFERS_FINAL_CLASS {
+ private:
+  uint64_t lower_;
+  int64_t upper_;
+
+ public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return I128TypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "duckdb_webapi.proto.I128";
+  }
+  I128()
+      : lower_(0),
+        upper_(0) {
+  }
+  I128(uint64_t _lower, int64_t _upper)
+      : lower_(flatbuffers::EndianScalar(_lower)),
+        upper_(flatbuffers::EndianScalar(_upper)) {
+  }
+  uint64_t lower() const {
+    return flatbuffers::EndianScalar(lower_);
+  }
+  int64_t upper() const {
+    return flatbuffers::EndianScalar(upper_);
+  }
+};
+FLATBUFFERS_STRUCT_END(I128, 16);
+
+inline bool operator==(const I128 &lhs, const I128 &rhs) {
+  return
+      (lhs.lower() == rhs.lower()) &&
+      (lhs.upper() == rhs.upper());
+}
+
+inline bool operator!=(const I128 &lhs, const I128 &rhs) {
+    return !(lhs == rhs);
+}
+
 
 struct QueryResultColumnT : public flatbuffers::NativeTable {
   typedef QueryResultColumn TableType;
@@ -50,6 +97,7 @@ struct QueryResultColumnT : public flatbuffers::NativeTable {
   std::vector<int32_t> rows_i32;
   std::vector<int64_t> rows_i64;
   std::vector<uint64_t> rows_u64;
+  std::vector<duckdb_webapi::proto::I128> rows_i128;
   std::vector<float> rows_f32;
   std::vector<double> rows_f64;
   std::vector<std::string> rows_string;
@@ -68,6 +116,7 @@ inline bool operator==(const QueryResultColumnT &lhs, const QueryResultColumnT &
       (lhs.rows_i32 == rhs.rows_i32) &&
       (lhs.rows_i64 == rhs.rows_i64) &&
       (lhs.rows_u64 == rhs.rows_u64) &&
+      (lhs.rows_i128 == rhs.rows_i128) &&
       (lhs.rows_f32 == rhs.rows_f32) &&
       (lhs.rows_f64 == rhs.rows_f64) &&
       (lhs.rows_string == rhs.rows_string);
@@ -96,9 +145,10 @@ struct QueryResultColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_ROWS_I32 = 14,
     VT_ROWS_I64 = 16,
     VT_ROWS_U64 = 18,
-    VT_ROWS_F32 = 20,
-    VT_ROWS_F64 = 22,
-    VT_ROWS_STRING = 24
+    VT_ROWS_I128 = 20,
+    VT_ROWS_F32 = 22,
+    VT_ROWS_F64 = 24,
+    VT_ROWS_STRING = 26
   };
   duckdb_webapi::proto::PhysicalTypeID physical_type() const {
     return static_cast<duckdb_webapi::proto::PhysicalTypeID>(GetField<uint8_t>(VT_PHYSICAL_TYPE, 0));
@@ -123,6 +173,9 @@ struct QueryResultColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<uint64_t> *rows_u64() const {
     return GetPointer<const flatbuffers::Vector<uint64_t> *>(VT_ROWS_U64);
+  }
+  const flatbuffers::Vector<const duckdb_webapi::proto::I128 *> *rows_i128() const {
+    return GetPointer<const flatbuffers::Vector<const duckdb_webapi::proto::I128 *> *>(VT_ROWS_I128);
   }
   const flatbuffers::Vector<float> *rows_f32() const {
     return GetPointer<const flatbuffers::Vector<float> *>(VT_ROWS_F32);
@@ -150,6 +203,8 @@ struct QueryResultColumn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(rows_i64()) &&
            VerifyOffset(verifier, VT_ROWS_U64) &&
            verifier.VerifyVector(rows_u64()) &&
+           VerifyOffset(verifier, VT_ROWS_I128) &&
+           verifier.VerifyVector(rows_i128()) &&
            VerifyOffset(verifier, VT_ROWS_F32) &&
            verifier.VerifyVector(rows_f32()) &&
            VerifyOffset(verifier, VT_ROWS_F64) &&
@@ -192,6 +247,9 @@ struct QueryResultColumnBuilder {
   void add_rows_u64(flatbuffers::Offset<flatbuffers::Vector<uint64_t>> rows_u64) {
     fbb_.AddOffset(QueryResultColumn::VT_ROWS_U64, rows_u64);
   }
+  void add_rows_i128(flatbuffers::Offset<flatbuffers::Vector<const duckdb_webapi::proto::I128 *>> rows_i128) {
+    fbb_.AddOffset(QueryResultColumn::VT_ROWS_I128, rows_i128);
+  }
   void add_rows_f32(flatbuffers::Offset<flatbuffers::Vector<float>> rows_f32) {
     fbb_.AddOffset(QueryResultColumn::VT_ROWS_F32, rows_f32);
   }
@@ -222,6 +280,7 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumn(
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> rows_i32 = 0,
     flatbuffers::Offset<flatbuffers::Vector<int64_t>> rows_i64 = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint64_t>> rows_u64 = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const duckdb_webapi::proto::I128 *>> rows_i128 = 0,
     flatbuffers::Offset<flatbuffers::Vector<float>> rows_f32 = 0,
     flatbuffers::Offset<flatbuffers::Vector<double>> rows_f64 = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> rows_string = 0) {
@@ -229,6 +288,7 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumn(
   builder_.add_rows_string(rows_string);
   builder_.add_rows_f64(rows_f64);
   builder_.add_rows_f32(rows_f32);
+  builder_.add_rows_i128(rows_i128);
   builder_.add_rows_u64(rows_u64);
   builder_.add_rows_i64(rows_i64);
   builder_.add_rows_i32(rows_i32);
@@ -250,6 +310,7 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumnDirect(
     const std::vector<int32_t> *rows_i32 = nullptr,
     const std::vector<int64_t> *rows_i64 = nullptr,
     const std::vector<uint64_t> *rows_u64 = nullptr,
+    const std::vector<duckdb_webapi::proto::I128> *rows_i128 = nullptr,
     const std::vector<float> *rows_f32 = nullptr,
     const std::vector<double> *rows_f64 = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *rows_string = nullptr) {
@@ -260,6 +321,7 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumnDirect(
   auto rows_i32__ = rows_i32 ? _fbb.CreateVector<int32_t>(*rows_i32) : 0;
   auto rows_i64__ = rows_i64 ? _fbb.CreateVector<int64_t>(*rows_i64) : 0;
   auto rows_u64__ = rows_u64 ? _fbb.CreateVector<uint64_t>(*rows_u64) : 0;
+  auto rows_i128__ = rows_i128 ? _fbb.CreateVectorOfStructs<duckdb_webapi::proto::I128>(*rows_i128) : 0;
   auto rows_f32__ = rows_f32 ? _fbb.CreateVector<float>(*rows_f32) : 0;
   auto rows_f64__ = rows_f64 ? _fbb.CreateVector<double>(*rows_f64) : 0;
   auto rows_string__ = rows_string ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*rows_string) : 0;
@@ -273,6 +335,7 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumnDirect(
       rows_i32__,
       rows_i64__,
       rows_u64__,
+      rows_i128__,
       rows_f32__,
       rows_f64__,
       rows_string__);
@@ -558,6 +621,7 @@ inline void QueryResultColumn::UnPackTo(QueryResultColumnT *_o, const flatbuffer
   { auto _e = rows_i32(); if (_e) { _o->rows_i32.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_i32[_i] = _e->Get(_i); } } }
   { auto _e = rows_i64(); if (_e) { _o->rows_i64.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_i64[_i] = _e->Get(_i); } } }
   { auto _e = rows_u64(); if (_e) { _o->rows_u64.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_u64[_i] = _e->Get(_i); } } }
+  { auto _e = rows_i128(); if (_e) { _o->rows_i128.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_i128[_i] = *_e->Get(_i); } } }
   { auto _e = rows_f32(); if (_e) { _o->rows_f32.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_f32[_i] = _e->Get(_i); } } }
   { auto _e = rows_f64(); if (_e) { _o->rows_f64.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_f64[_i] = _e->Get(_i); } } }
   { auto _e = rows_string(); if (_e) { _o->rows_string.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->rows_string[_i] = _e->Get(_i)->str(); } } }
@@ -579,6 +643,7 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumn(flatbuffer
   auto _rows_i32 = _o->rows_i32.size() ? _fbb.CreateVector(_o->rows_i32) : 0;
   auto _rows_i64 = _o->rows_i64.size() ? _fbb.CreateVector(_o->rows_i64) : 0;
   auto _rows_u64 = _o->rows_u64.size() ? _fbb.CreateVector(_o->rows_u64) : 0;
+  auto _rows_i128 = _o->rows_i128.size() ? _fbb.CreateVectorOfStructs(_o->rows_i128) : 0;
   auto _rows_f32 = _o->rows_f32.size() ? _fbb.CreateVector(_o->rows_f32) : 0;
   auto _rows_f64 = _o->rows_f64.size() ? _fbb.CreateVector(_o->rows_f64) : 0;
   auto _rows_string = _o->rows_string.size() ? _fbb.CreateVectorOfStrings(_o->rows_string) : 0;
@@ -592,6 +657,7 @@ inline flatbuffers::Offset<QueryResultColumn> CreateQueryResultColumn(flatbuffer
       _rows_i32,
       _rows_i64,
       _rows_u64,
+      _rows_i128,
       _rows_f32,
       _rows_f64,
       _rows_string);
@@ -667,6 +733,22 @@ inline flatbuffers::Offset<QueryResult> CreateQueryResult(flatbuffers::FlatBuffe
       _data_chunks);
 }
 
+inline const flatbuffers::TypeTable *I128TypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_ULONG, 0, -1 },
+    { flatbuffers::ET_LONG, 0, -1 }
+  };
+  static const int64_t values[] = { 0, 8, 16 };
+  static const char * const names[] = {
+    "lower",
+    "upper"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_STRUCT, 2, type_codes, nullptr, nullptr, values, names
+  };
+  return &tt;
+}
+
 inline const flatbuffers::TypeTable *QueryResultColumnTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -677,12 +759,14 @@ inline const flatbuffers::TypeTable *QueryResultColumnTypeTable() {
     { flatbuffers::ET_INT, 1, -1 },
     { flatbuffers::ET_LONG, 1, -1 },
     { flatbuffers::ET_ULONG, 1, -1 },
+    { flatbuffers::ET_SEQUENCE, 1, 1 },
     { flatbuffers::ET_FLOAT, 1, -1 },
     { flatbuffers::ET_DOUBLE, 1, -1 },
     { flatbuffers::ET_STRING, 1, -1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    duckdb_webapi::proto::PhysicalTypeIDTypeTable
+    duckdb_webapi::proto::PhysicalTypeIDTypeTable,
+    duckdb_webapi::proto::I128TypeTable
   };
   static const char * const names[] = {
     "physical_type",
@@ -693,12 +777,13 @@ inline const flatbuffers::TypeTable *QueryResultColumnTypeTable() {
     "rows_i32",
     "rows_i64",
     "rows_u64",
+    "rows_i128",
     "rows_f32",
     "rows_f64",
     "rows_string"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 11, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_TABLE, 12, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
