@@ -6,9 +6,9 @@
 namespace duckdb_webapi {
 
 /// Constructor
-Exception::Exception(std::string m) : std::exception(), type(ExceptionType::UNSPECIFIED), message(move(m)) {}
+Exception::Exception(std::string m) : std::exception(), type_(ExceptionType::UNSPECIFIED), message_(move(m)) {}
 /// Constructor
-Exception::Exception(ExceptionType t, std::string m) : std::exception(), type(t) {
+Exception::Exception(ExceptionType t, std::string m) : std::exception(), type_(t) {
     auto prefix = [](ExceptionType t) {
         switch (t) {
         case ExceptionType::UNSPECIFIED:
@@ -21,9 +21,9 @@ Exception::Exception(ExceptionType t, std::string m) : std::exception(), type(t)
             return "Unknown";
         }
     }(t);
-    message = std::string{prefix} + ": " + m;
+    message_ = std::string{prefix} + ": " + m;
 }
 /// Get exception message
-const char *Exception::what() const noexcept { return message.c_str(); }
+const char *Exception::what() const noexcept { return message_.c_str(); }
 
 } // namespace duckdb_webapi

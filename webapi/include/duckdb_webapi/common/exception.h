@@ -25,9 +25,9 @@ enum EOETag { EOE };
 class Exception : public std::exception {
    private:
     /// The exception type
-    ExceptionType type;
+    ExceptionType type_;
     // The exception message
-    std::string message;
+    std::string message_;
 
    public:
     /// Constructor
@@ -41,22 +41,22 @@ class Exception : public std::exception {
 /// An exception message builder
 struct ExceptionBuilder {
     /// The exception type
-    ExceptionType type;
+    ExceptionType type_;
     /// The stringstream
-    std::stringstream message;
+    std::stringstream message_;
     /// Constructor
-    ExceptionBuilder(ExceptionType t = ExceptionType::UNSPECIFIED) : type(t), message() {}
+    ExceptionBuilder(ExceptionType t = ExceptionType::UNSPECIFIED) : type_(t), message_() {}
     /// Constructor
-    ExceptionBuilder(const ExceptionBuilder& other) : type(other.type), message(other.message.str()) {}
+    ExceptionBuilder(const ExceptionBuilder& other) : type_(other.type_), message_(other.message_.str()) {}
     /// Stream operator
     template <typename V> ExceptionBuilder& operator<<(const V& v) {
-        message << v;
+        message_ << v;
         return *this;
     }
     /// Stream operator
-    Exception operator<<(EOETag) { return Exception{type, message.str()}; }
+    Exception operator<<(EOETag) { return Exception{type_, message_.str()}; }
     /// Get the string
-    std::string str() { return message.str(); }
+    std::string str() { return message_.str(); }
 };
 
 }  // namespace duckdb_webapi

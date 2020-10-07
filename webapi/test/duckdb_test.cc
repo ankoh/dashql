@@ -15,7 +15,7 @@ TEST(SQLTests, CreateTable) {
     auto db = make_shared<duckdb::DuckDB>();
     WebAPI::Connection conn{db};
 
-    conn.runQuery(R"RAW(
+    conn.RunQuery(R"RAW(
         CREATE TABLE r1(
             a int,
             b int

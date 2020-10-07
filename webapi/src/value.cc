@@ -11,56 +11,56 @@
 namespace duckdb_webapi {
 
 Value Value::BOOLEAN(int8_t value) {
-    Value result{LogicalType::create(proto::LogicalTypeID::BOOLEAN)};
+    Value result{LogicalType::Get(proto::LogicalTypeID::BOOLEAN)};
     result.value.booleanValue = value ? true : false;
     result.null = false;
     return result;
 }
 
 Value Value::TINYINT(int8_t value) {
-    Value result{LogicalType::create(proto::LogicalTypeID::TINYINT)};
+    Value result{LogicalType::Get(proto::LogicalTypeID::TINYINT)};
     result.value.tinyintValue = value;
     result.null = false;
     return result;
 }
 
 Value Value::SMALLINT(int16_t value) {
-    Value result{LogicalType::create(proto::LogicalTypeID::SMALLINT)};
+    Value result{LogicalType::Get(proto::LogicalTypeID::SMALLINT)};
     result.value.smallintValue = value;
     result.null = false;
     return result;
 }
 
 Value Value::INTEGER(int32_t value) {
-    Value result{LogicalType::create(proto::LogicalTypeID::INTEGER)};
+    Value result{LogicalType::Get(proto::LogicalTypeID::INTEGER)};
     result.value.integerValue = value;
     result.null = false;
     return result;
 }
 
 Value Value::BIGINT(int64_t value) {
-    Value result{LogicalType::create(proto::LogicalTypeID::BIGINT)};
+    Value result{LogicalType::Get(proto::LogicalTypeID::BIGINT)};
     result.value.bigintValue = value;
     result.null = false;
     return result;
 }
 
 Value Value::DATE(date_t value) {
-    Value result{LogicalType::create(proto::LogicalTypeID::DATE)};
+    Value result{LogicalType::Get(proto::LogicalTypeID::DATE)};
     result.value.integerValue = value;
     result.null = false;
     return result;
 }
 
 Value Value::DATE(int32_t year, int32_t month, int32_t day) {
-    Value result{LogicalType::create(proto::LogicalTypeID::DATE)};
+    Value result{LogicalType::Get(proto::LogicalTypeID::DATE)};
     result.value.integerValue = Date::FromDate(year, month, day);
     result.null = false;
     return result;
 }
 
 Value Value::TIME(dtime_t time) {
-    Value result{LogicalType::create(proto::LogicalTypeID::TIME)};
+    Value result{LogicalType::Get(proto::LogicalTypeID::TIME)};
     result.value.integerValue = time;
     result.null = false;
     return result;
@@ -72,31 +72,31 @@ Value Value::TIME(int32_t hour, int32_t min, int32_t sec, int32_t msec) {
 
 Value Value::TIMESTAMP(date_t date, dtime_t time) {
     auto val = Value::BIGINT(Timestamp::FromDateTime(date, time));
-    val.logicalType = LogicalType::create(proto::LogicalTypeID::TIMESTAMP);
+    val.logicalType = LogicalType::Get(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }
 
 Value Value::TIMESTAMP(timestamp_t timestamp) {
     auto val = Value::BIGINT(timestamp);
-    val.logicalType = LogicalType::create(proto::LogicalTypeID::TIMESTAMP);
+    val.logicalType = LogicalType::Get(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }
 
 Value Value::TIMESTAMP(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min, int32_t sec, int32_t msec) {
     auto val = Value::TIMESTAMP(Date::FromDate(year, month, day), Time::FromTime(hour, min, sec, msec));
-    val.logicalType = LogicalType::create(proto::LogicalTypeID::TIMESTAMP);
+    val.logicalType = LogicalType::Get(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }
 
 Value Value::FLOAT(float value) {
-    Value result{LogicalType::create(proto::LogicalTypeID::FLOAT)};
+    Value result{LogicalType::Get(proto::LogicalTypeID::FLOAT)};
     result.value.floatValue = value;
     result.null = false;
     return result;
 }
 
 Value Value::DOUBLE(double value) {
-    Value result{LogicalType::create(proto::LogicalTypeID::DOUBLE)};
+    Value result{LogicalType::Get(proto::LogicalTypeID::DOUBLE)};
     result.value.doubleValue = value;
     result.null = false;
     return result;
@@ -120,7 +120,7 @@ template <class OP> static Value templated_binary_operation(const Value &left, c
     auto rightType = right.getLogicalType();
     auto resultType = leftType;
     if (leftType != rightType) {
-        resultType = LogicalType::maxType(left.getLogicalType(), right.getLogicalType());
+        resultType = LogicalType::MaxType(left.getLogicalType(), right.getLogicalType());
         Value left_cast = left.castAs(resultType);
         Value right_cast = right.castAs(resultType);
         return templated_binary_operation<OP>(left_cast, right_cast);
@@ -128,14 +128,14 @@ template <class OP> static Value templated_binary_operation(const Value &left, c
     if (left.isNull() || right.isNull()) {
         return Value().castAs(resultType);
     }
-    if (LogicalType::isIntegral(LogicalType::getPhysicalType(resultType))) {
+    if (LogicalType::IsIntegral(LogicalType::GetPhysicalType(resultType))) {
         // integer addition
         return Value::NUMERIC(resultType, OP::template Operation<hugeint_t, hugeint_t, hugeint_t>(
                                               left.getValue<hugeint_t>(), right.getValue<hugeint_t>()));
-    } else if (LogicalType::getPhysicalType(resultType) == proto::PhysicalTypeID::FLOAT) {
+    } else if (LogicalType::GetPhysicalType(resultType) == proto::PhysicalTypeID::FLOAT) {
         return Value::FLOAT(
             OP::template Operation<float, float, float>(left.getValue<float>(), right.getValue<float>()));
-    } else if (LogicalType::getPhysicalType(resultType) == proto::PhysicalTypeID::DOUBLE) {
+    } else if (LogicalType::GetPhysicalType(resultType) == proto::PhysicalTypeID::DOUBLE) {
         return Value::DOUBLE(
             OP::template Operation<double, double, double>(left.getValue<double>(), right.getValue<double>()));
     } else {

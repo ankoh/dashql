@@ -25,66 +25,66 @@ using namespace duckdb_webapi;
 
 /// Reset the response
 void WebAPI::ContextData::clearRequest() {
-    requestStatus = proto::StatusCode::SUCCESS;
-    requestError.reset();
-    requestData = {nullptr, 0};
+    request_status_ = proto::StatusCode::SUCCESS;
+    request_error_.reset();
+    request_data_ = {nullptr, 0};
 }
 
 /// Request succeeded
 void WebAPI::ContextData::requestSucceeded(fb::DetachedBuffer&& buffer) {
     clearRequest();
-    requestStatus = proto::StatusCode::SUCCESS;
-    requestData = registerBuffer(std::move(buffer));
+    request_status_ = proto::StatusCode::SUCCESS;
+    request_data_ = RegisterBuffer(std::move(buffer));
 }
 
 /// Request failed
 void WebAPI::ContextData::requestFailed(Error&& err) {
     clearRequest();
-    requestStatus = proto::StatusCode::ERROR;
-    requestError = move(err);
+    request_status_ = proto::StatusCode::ERROR;
+    request_error_ = move(err);
 }
 
 /// Constructor
 WebAPI::ContextData::ContextData()
-    : detachedBuffers(), adoptedBuffers(), requestStatus(), requestData({nullptr, 0}), requestError() {}
+    : detached_buffers_(), adopted_buffers_(), request_status_(), request_data_({nullptr, 0}), request_error_() {}
 
 /// Register a buffer
-std::pair<void*, size_t> WebAPI::ContextData::registerBuffer(flatbuffers::DetachedBuffer detached) {
-    auto dataPtr = detached.data();
-    auto dataSize = detached.size();
-    detachedBuffers.insert({dataPtr, std::move(detached)});
-    return {dataPtr, dataSize};
+std::pair<void*, size_t> WebAPI::ContextData::RegisterBuffer(flatbuffers::DetachedBuffer detached) {
+    auto data_ptr = detached.data();
+    auto data_size = detached.size();
+    detached_buffers_.insert({data_ptr, std::move(detached)});
+    return {data_ptr, data_size};
 }
 
 /// Register a buffer
-std::pair<void*, size_t> WebAPI::ContextData::registerBuffer(nonstd::span<std::byte> bytes) {
-    auto dataPtr = bytes.data();
-    auto dataSize = bytes.size();
-    adoptedBuffers.insert({dataPtr, AdoptedBuffer{bytes}});
-    return {dataPtr, dataSize};
+std::pair<void*, size_t> WebAPI::ContextData::RegisterBuffer(nonstd::span<std::byte> bytes) {
+    auto data_ptr = bytes.data();
+    auto data_size = bytes.size();
+    adopted_buffers_.insert({data_ptr, AdoptedBuffer{bytes}});
+    return {data_ptr, data_size};
 }
 
 /// Release a buffer
-void WebAPI::ContextData::releaseBuffer(void* data) {
-    detachedBuffers.erase(data);
-    adoptedBuffers.erase(data);
+void WebAPI::ContextData::ReleaseBuffer(void* data) {
+    detached_buffers_.erase(data);
+    adopted_buffers_.erase(data);
 }
 
 /// Constructor
 WebAPI::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
-    : database(std::move(db)),
-      connection(*database),
-      contextData(std::make_unique<ContextData>()),
-      currentQueryID(),
-      currentQueryResult() {}
+    : database_(std::move(db)),
+      connection_(*database_),
+      context_data_(std::make_unique<ContextData>()),
+      current_query_id_(),
+      current_query_result_() {}
 
 /// Destructor
 WebAPI::Connection::~Connection() {}
 
 /// Run a SQL query
-ExpectedBuffer<proto::QueryResult> WebAPI::Connection::runQuery(std::string_view text) {
+ExpectedBuffer<proto::QueryResult> WebAPI::Connection::RunQuery(std::string_view text) {
     // Create a new connection
-    duckdb::Connection conn{*database};
+    duckdb::Connection conn{*database_};
     auto result = conn.SendQuery(std::string{text});
 
     // Query failed?
@@ -92,17 +92,17 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::runQuery(std::string_view
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
-    auto queryResultOfs = writeQueryResult(builder, *result, ++currentQueryID);
+    auto query_result_ofs = writeQueryResult(builder, *result, ++current_query_id_);
 
     // Return buffer
-    builder.Finish(queryResultOfs);
+    builder.Finish(query_result_ofs);
     return {builder.Release()};
 }
 
 /// Start a SQL query
-ExpectedBuffer<proto::QueryResult> WebAPI::Connection::sendQuery(std::string_view text) {
+ExpectedBuffer<proto::QueryResult> WebAPI::Connection::SendQuery(std::string_view text) {
     // Create a new connection
-    duckdb::Connection conn{*database};
+    duckdb::Connection conn{*database_};
     auto result = conn.SendQuery(std::string{text});
 
     // Query failed?
@@ -110,34 +110,34 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::sendQuery(std::string_vie
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
-    auto queryResultOfs = writeQueryResult(builder, *result, ++currentQueryID);
+    auto query_result_ofs = writeQueryResult(builder, *result, ++current_query_id_);
 
     // Return buffer
-    builder.Finish(queryResultOfs);
+    builder.Finish(query_result_ofs);
     return {builder.Release()};
 }
 
 /// Fetch query results
-ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::fetchQueryResults() {
+ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::FetchQueryResults() {
     // Fetch data if a query is active
     std::unique_ptr<duckdb::DataChunk> chunk;
     nonstd::span<duckdb::LogicalType> types;
-    if (currentQueryResult != nullptr) {
-        chunk = currentQueryResult->Fetch();
-        types = currentQueryResult->types;
+    if (current_query_result_ != nullptr) {
+        chunk = current_query_result_->Fetch();
+        types = current_query_result_->types;
     }
 
     // Get query result
     fb::FlatBufferBuilder builder{128};
-    auto ofs = writeQueryResultChunk(builder, currentQueryID, chunk.get(), types);
+    auto ofs = writeQueryResultChunk(builder, current_query_id_, chunk.get(), types);
     builder.Finish(ofs);
     return {builder.Release()};
 }
 
 /// Analyze a SQL query
-ExpectedBuffer<proto::QueryPlan> WebAPI::Connection::analyzeQuery(std::string_view text) {
+ExpectedBuffer<proto::QueryPlan> WebAPI::Connection::AnalyzeQuery(std::string_view text) {
     // Parse the statements
-    duckdb::Connection conn{*database};
+    duckdb::Connection conn{*database_};
     duckdb::Parser parser;
     parser.ParseQuery(std::string(text));
 
@@ -162,7 +162,7 @@ ExpectedBuffer<proto::QueryPlan> WebAPI::Connection::analyzeQuery(std::string_vi
 }
 
 /// Format a query plan
-ExpectedBuffer<proto::FormattedText> WebAPI::Connection::formatQueryPlan(void* query_plan) {
+ExpectedBuffer<proto::FormattedText> WebAPI::Connection::FormatQueryPlan(void* query_plan) {
     auto txt = writeJSON(query_plan, *proto::QueryPlanTypeTable());
 
     // Encode the query plan
@@ -176,15 +176,15 @@ ExpectedBuffer<proto::FormattedText> WebAPI::Connection::formatQueryPlan(void* q
 }
 
 /// Generate a table
-ExpectedSignal WebAPI::Connection::generateTable(proto::TableSpecification& spec) {
-    return duckdb_webapi::generateTable(connection, spec);
+ExpectedSignal WebAPI::Connection::GenerateTable(proto::TableSpecification& spec) {
+    return duckdb_webapi::generateTable(connection_, spec);
 }
 
 /// Constructor
 WebAPI::WebAPI() : database(std::make_shared<duckdb::DuckDB>()), connections() {}
 
 /// Create a session
-WebAPI::Connection& WebAPI::connect() {
+WebAPI::Connection& WebAPI::Connect() {
     auto conn = std::make_unique<WebAPI::Connection>(database);
     auto connPtr = conn.get();
     connections.insert({connPtr, move(conn)});
@@ -192,4 +192,4 @@ WebAPI::Connection& WebAPI::connect() {
 }
 
 /// End a session
-void WebAPI::disconnect(Connection* session) { connections.erase(session); }
+void WebAPI::Disconnect(Connection* session) { connections.erase(session); }

@@ -17,94 +17,94 @@ enum class ErrorCode { INVALID_REQUEST, QUERY_FAILED, TABLEGEN_INVALID_INPUT_IND
 
 struct Error {
     /// The error code
-    ErrorCode code;
+    ErrorCode code_;
     /// The message (if any)
-    std::string messageBuffer;
+    std::string message_buffer_;
     /// The message
-    const char *message;
+    const char *message_;
 
     /// Constructor
-    Error(ErrorCode code) : code(code), message(nullptr), messageBuffer() {}
+    Error(ErrorCode code) : code_(code), message_(nullptr), message_buffer_() {}
     /// Constructor
-    Error(ErrorCode code, const char *msg) : code(code), message(msg), messageBuffer() {}
+    Error(ErrorCode code, const char *msg) : code_(code), message_(msg), message_buffer_() {}
     /// Constructor
-    Error(ErrorCode code, std::string msg) : code(code), messageBuffer(move(msg)), message(messageBuffer.c_str()) {}
+    Error(ErrorCode code, std::string msg) : code_(code), message_buffer_(move(msg)), message_(message_buffer_.c_str()) {}
 
     /// Get the message
-    auto *getMessage() const { return message; }
+    auto *message() const { return message_; }
 };
 
 template <typename V> struct Expected {
     /// The data
-    std::variant<V, Error> data;
+    std::variant<V, Error> data_;
     /// Constructor
-    Expected(V &&v = {}) : data(move(v)) {}
+    Expected(V &&v = {}) : data_(move(v)) {}
     /// Constructor
-    Expected(Error &&e) : data(move(e)) {}
+    Expected(Error &&e) : data_(move(e)) {}
     /// Constructor
-    Expected(const Error &e) : data(e) {}
+    Expected(const Error &e) : data_(e) {}
     /// Constructor
-    template <typename... T> Expected(ErrorCode code, T... vs) : data(Error{code, vs...}) {}
+    template <typename... T> Expected(ErrorCode code, T... vs) : data_(Error{code, vs...}) {}
     /// Is ok?
-    auto isOk() const { return std::holds_alternative<V>(data); }
+    auto IsOk() const { return std::holds_alternative<V>(data_); }
     /// Is an error?
-    auto isErr() const { return std::holds_alternative<Error>(data); }
-    /// Get the result
-    auto &get() const {
-        assert(isOk());
-        return std::get<V>(data);
+    auto IsErr() const { return std::holds_alternative<Error>(data_); }
+    /// Get the value
+    auto &value() const {
+        assert(IsOk());
+        return std::get<V>(data_);
     }
     /// Get the error
-    auto &getErr() const {
-        assert(isErr());
-        return std::get<Error>(data);
+    auto &err() const {
+        assert(IsErr());
+        return std::get<Error>(data_);
     }
     /// Bool operator
-    operator bool() const { return isOk(); }
+    operator bool() const { return IsOk(); }
     /// Dereference operator
-    auto &operator*() const { return get(); }
+    auto &operator*() const { return value(); }
 };
 using ExpectedSignal = Expected<std::monostate>;
 
 template <typename V> struct ExpectedBuffer {
     /// The data
-    std::variant<flatbuffers::DetachedBuffer, Error> data;
+    std::variant<flatbuffers::DetachedBuffer, Error> data_;
     /// Constructor
-    ExpectedBuffer(flatbuffers::DetachedBuffer data) : data(move(data)) {}
+    ExpectedBuffer(flatbuffers::DetachedBuffer data) : data_(move(data)) {}
     /// Constructor
-    ExpectedBuffer(Error &&e) : data(move(e)) {}
+    ExpectedBuffer(Error &&e) : data_(move(e)) {}
     /// Constructor
-    ExpectedBuffer(const Error &e) : data(e) {}
+    ExpectedBuffer(const Error &e) : data_(e) {}
     /// Constructor
-    template <typename... T> ExpectedBuffer(ErrorCode code, T... vs) : data(Error{code, vs...}) {}
+    template <typename... T> ExpectedBuffer(ErrorCode code, T... vs) : data_(Error{code, vs...}) {}
     /// Is ok?
-    auto isOk() const { return std::holds_alternative<flatbuffers::DetachedBuffer>(data); }
+    auto IsOk() const { return std::holds_alternative<flatbuffers::DetachedBuffer>(data_); }
     /// Is an error?
-    auto isErr() const { return std::holds_alternative<Error>(data); }
+    auto IsErr() const { return std::holds_alternative<Error>(data_); }
     /// Get the result
-    auto &get() const {
-        assert(isOk());
-        auto &buffer = std::get<flatbuffers::DetachedBuffer>(data);
+    auto &value() const {
+        assert(IsOk());
+        auto &buffer = std::get<flatbuffers::DetachedBuffer>(data_);
         return *flatbuffers::GetRoot<V>(buffer.data());
     }
     /// Get the error
-    auto &getErr() const {
-        assert(isErr());
-        return std::get<Error>(data);
+    auto &err() const {
+        assert(IsErr());
+        return std::get<Error>(data_);
     }
     /// Bool operator
-    operator bool() const { return isOk(); }
+    operator bool() const { return IsOk(); }
     /// Dereference operator
-    auto &operator*() const { return get(); }
+    auto &operator*() const { return value(); }
     /// Get buffer
-    auto &&releaseBuffer() {
-        isOk();
-        return move(std::get<0>(data));
+    auto &&ReleaseBuffer() {
+        IsOk();
+        return move(std::get<0>(data_));
     }
     /// Get buffer
-    auto &&releaseError() {
-        isErr();
-        return move(std::get<1>(data));
+    auto &&ReleaseError() {
+        IsErr();
+        return move(std::get<1>(data_));
     }
 };
 

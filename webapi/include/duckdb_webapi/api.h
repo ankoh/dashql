@@ -64,16 +64,16 @@ class WebAPI {
     class ContextData {
        protected:
         /// The detached flatbuffers owned by this session
-        std::unordered_map<void*, flatbuffers::DetachedBuffer> detachedBuffers;
+        std::unordered_map<void*, flatbuffers::DetachedBuffer> detached_buffers_;
         /// The adopted buffers owned by this session
-        std::unordered_map<void*, AdoptedBuffer> adoptedBuffers;
+        std::unordered_map<void*, AdoptedBuffer> adopted_buffers_;
 
         /// The request status code
-        proto::StatusCode requestStatus;
+        proto::StatusCode request_status_;
         /// The request data (if any)
-        std::pair<void*, size_t> requestData;
+        std::pair<void*, size_t> request_data_;
         /// The request error (if any)
-        std::optional<Error> requestError;
+        std::optional<Error> request_error_;
 
         /// Clear the request
         void clearRequest();
@@ -87,23 +87,22 @@ class WebAPI {
         ContextData();
 
         /// Store the result
-        template <typename T>
-        void respond(ExpectedBuffer<T>&& result, Response& response) {
+        template <typename T> void Respond(ExpectedBuffer<T>&& result, Response& response) {
             if (result)
-                requestSucceeded(result.releaseBuffer());
+                requestSucceeded(result.ReleaseBuffer());
             else
-                requestFailed(result.releaseError());
-            response.statusCode = static_cast<uint32_t>(requestStatus);
-            response.error = !!requestError ? 0 : reinterpret_cast<uintptr_t>(requestError->getMessage());
-            response.data = reinterpret_cast<uintptr_t>(std::get<0>(requestData));
-            response.dataSize = std::get<1>(requestData);
+                requestFailed(result.ReleaseError());
+            response.statusCode = static_cast<uint32_t>(request_status_);
+            response.error = !!request_error_ ? 0 : reinterpret_cast<uintptr_t>(request_error_->message());
+            response.data = reinterpret_cast<uintptr_t>(std::get<0>(request_data_));
+            response.dataSize = std::get<1>(request_data_);
         }
         /// Register a detached flatbuffer buffer
-        std::pair<void*, size_t> registerBuffer(flatbuffers::DetachedBuffer buffer);
+        std::pair<void*, size_t> RegisterBuffer(flatbuffers::DetachedBuffer buffer);
         /// Register a raw buffer
-        std::pair<void*, size_t> registerBuffer(nonstd::span<std::byte> buffer);
+        std::pair<void*, size_t> RegisterBuffer(nonstd::span<std::byte> buffer);
         /// Release a buffer
-        void releaseBuffer(void* buffer);
+        void ReleaseBuffer(void* buffer);
     };
 
     /// A connection
@@ -112,16 +111,16 @@ class WebAPI {
 
        protected:
         /// The database
-        std::shared_ptr<duckdb::DuckDB> database;
+        std::shared_ptr<duckdb::DuckDB> database_;
         /// The connection
-        duckdb::Connection connection;
+        duckdb::Connection connection_;
         /// The context data
-        std::unique_ptr<ContextData> contextData;
+        std::unique_ptr<ContextData> context_data_;
 
         /// The current query id
-        uint64_t currentQueryID;
+        uint64_t current_query_id_;
         /// The current query result (if any)
-        std::unique_ptr<duckdb::QueryResult> currentQueryResult;
+        std::unique_ptr<duckdb::QueryResult> current_query_result_;
 
        public:
         /// Constructor
@@ -130,20 +129,20 @@ class WebAPI {
         ~Connection();
 
         /// Get the buffer manager
-        auto& getContext() { return *contextData; }
+        auto& context_data() { return *context_data_; }
 
         /// Run a SQL query
-        ExpectedBuffer<proto::QueryResult> runQuery(std::string_view text);
+        ExpectedBuffer<proto::QueryResult> RunQuery(std::string_view text);
         /// Start a SQL query
-        ExpectedBuffer<proto::QueryResult> sendQuery(std::string_view text);
+        ExpectedBuffer<proto::QueryResult> SendQuery(std::string_view text);
         /// Fetch query results
-        ExpectedBuffer<proto::QueryResultChunk> fetchQueryResults();
+        ExpectedBuffer<proto::QueryResultChunk> FetchQueryResults();
         /// Analyze a SQL query
-        ExpectedBuffer<proto::QueryPlan> analyzeQuery(std::string_view text);
+        ExpectedBuffer<proto::QueryPlan> AnalyzeQuery(std::string_view text);
         /// Format a query plan
-        ExpectedBuffer<proto::FormattedText> formatQueryPlan(void* query_plan);
+        ExpectedBuffer<proto::FormattedText> FormatQueryPlan(void* query_plan);
         /// Generate a table
-        ExpectedSignal generateTable(proto::TableSpecification& spec);
+        ExpectedSignal GenerateTable(proto::TableSpecification& spec);
     };
 
    protected:
@@ -157,9 +156,9 @@ class WebAPI {
     WebAPI();
 
     /// Create a connection
-    Connection& connect();
+    Connection& Connect();
     /// End a connection
-    void disconnect(Connection* session);
+    void Disconnect(Connection* session);
 };
 
 }  // namespace duckdb_webapi

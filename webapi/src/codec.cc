@@ -74,8 +74,7 @@ proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
 }
 
 /// Iterate over a vector
-template <typename T, bool WITH_NULL, typename OP>
-void iterVec(duckdb::VectorData &vec, size_t count, OP op) {
+template <typename T, bool WITH_NULL, typename OP> void iterVec(duckdb::VectorData &vec, size_t count, OP op) {
     if (vec.sel) {
         for (unsigned i = 0; i < count; ++i) {
             auto s = vec.sel->get_index(i);
@@ -378,14 +377,14 @@ fb::Offset<proto::QueryPlan> writeQueryPlan(fb::FlatBufferBuilder &builder, duck
     return planBuilder.Finish();
 }
 
-proto::LogicalType LogicalType::create() { return {proto::LogicalTypeID::INVALID, 0, 0}; }
-proto::LogicalType LogicalType::create(proto::LogicalTypeID id) { return {id, 0, 0}; }
-proto::LogicalType LogicalType::create(proto::LogicalTypeID id, uint8_t width, uint8_t scale) {
+proto::LogicalType LogicalType::Get() { return {proto::LogicalTypeID::INVALID, 0, 0}; }
+proto::LogicalType LogicalType::Get(proto::LogicalTypeID id) { return {id, 0, 0}; }
+proto::LogicalType LogicalType::Get(proto::LogicalTypeID id, uint8_t width, uint8_t scale) {
     return {id, width, scale};
 }
 
 /// Get the internal type
-proto::PhysicalTypeID LogicalType::getPhysicalType(proto::LogicalType &type) {
+proto::PhysicalTypeID LogicalType::GetPhysicalType(proto::LogicalType &type) {
     switch (type.type_id()) {
         case proto::LogicalTypeID::BOOLEAN:
             return proto::PhysicalTypeID::BOOL;
@@ -432,12 +431,12 @@ proto::PhysicalTypeID LogicalType::getPhysicalType(proto::LogicalType &type) {
         case proto::LogicalTypeID::UNKNOWN:
             return proto::PhysicalTypeID::INVALID;
         default:
-            throw ExceptionBuilder{ExceptionType::CONVERSION} << "Invalid LogicalType " << toString(type.type_id())
+            throw ExceptionBuilder{ExceptionType::CONVERSION} << "Invalid LogicalType " << ToString(type.type_id())
                                                               << EOE;
     }
 }
 
-const char *LogicalType::toString(proto::LogicalTypeID id) {
+const char *LogicalType::ToString(proto::LogicalTypeID id) {
     switch (id) {
         case proto::LogicalTypeID::BOOLEAN:
             return "BOOLEAN";
@@ -486,7 +485,7 @@ const char *LogicalType::toString(proto::LogicalTypeID id) {
 }
 
 /// Get the maximum logical type
-proto::LogicalType LogicalType::maxType(proto::LogicalType left, proto::LogicalType right) {
+proto::LogicalType LogicalType::MaxType(proto::LogicalType left, proto::LogicalType right) {
     if (left.type_id() < right.type_id()) {
         return right;
     } else if (right.type_id() < left.type_id()) {
@@ -497,8 +496,8 @@ proto::LogicalType LogicalType::maxType(proto::LogicalType left, proto::LogicalT
             return left;
         } else if (left.type_id() == proto::LogicalTypeID::DECIMAL) {
             // use max width/scale of the two types
-            return LogicalType::create(proto::LogicalTypeID::DECIMAL, std::max<uint8_t>(left.width(), right.width()),
-                                       std::max<uint8_t>(left.scale(), right.scale()));
+            return LogicalType::Get(proto::LogicalTypeID::DECIMAL, std::max<uint8_t>(left.width(), right.width()),
+                                    std::max<uint8_t>(left.scale(), right.scale()));
         } else {
             // types are equal but no extra specifier: just return the type
             // FIXME: LIST and STRUCT?
@@ -508,7 +507,7 @@ proto::LogicalType LogicalType::maxType(proto::LogicalType left, proto::LogicalT
 }
 
 /// Is constant size type?
-bool LogicalType::isConstantSize(proto::PhysicalTypeID type) {
+bool LogicalType::IsConstantSize(proto::PhysicalTypeID type) {
     return (type >= proto::PhysicalTypeID::BOOL && type <= proto::PhysicalTypeID::DOUBLE) ||
            (type >= proto::PhysicalTypeID::FIXED_SIZE_BINARY && type <= proto::PhysicalTypeID::INTERVAL) ||
            type == proto::PhysicalTypeID::HASH || type == proto::PhysicalTypeID::POINTER ||
@@ -516,20 +515,20 @@ bool LogicalType::isConstantSize(proto::PhysicalTypeID type) {
 }
 
 /// Is integral type?
-bool LogicalType::isIntegral(proto::PhysicalTypeID type) {
+bool LogicalType::IsIntegral(proto::PhysicalTypeID type) {
     return (type >= proto::PhysicalTypeID::UINT8 && type <= proto::PhysicalTypeID::INT64) ||
            type == proto::PhysicalTypeID::HASH || type == proto::PhysicalTypeID::POINTER ||
            type == proto::PhysicalTypeID::INT128;
 }
 
 /// Is numeric type?
-bool LogicalType::isNumeric(proto::PhysicalTypeID type) {
+bool LogicalType::IsNumeric(proto::PhysicalTypeID type) {
     return (type >= proto::PhysicalTypeID::UINT8 && type <= proto::PhysicalTypeID::DOUBLE) ||
            type == proto::PhysicalTypeID::INT128;
 }
 
 /// Is numeric type?
-bool LogicalType::isInteger(proto::PhysicalTypeID type) {
+bool LogicalType::IsInteger(proto::PhysicalTypeID type) {
     return (type >= proto::PhysicalTypeID::UINT8 && type <= proto::PhysicalTypeID::INT64) ||
            type == proto::PhysicalTypeID::INT128;
 }

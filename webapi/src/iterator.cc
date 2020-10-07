@@ -33,10 +33,10 @@ ExpectedSignal QueryResultForwardIterator::advance() {
         if (auto chunks = result.data_chunks(); chunks && chunkID < chunks->size()) {
             chunk = chunks->Get(chunkID);
         } else {
-            auto result = connection.fetchQueryResults();
-            if (!result.isOk()) return result.getErr();
-            chunk = &result.get();
-            chunkBuffer = result.releaseBuffer();
+            auto result = connection.FetchQueryResults();
+            if (!result.IsOk()) return result.err();
+            chunk = &result.value();
+            chunkBuffer = result.ReleaseBuffer();
         }
         chunkRowBegin = 0;
     }
