@@ -213,7 +213,7 @@ bool Hugeint::TryMultiply(hugeint_t lhs, hugeint_t rhs, hugeint_t &result) {
 hugeint_t Hugeint::Multiply(hugeint_t lhs, hugeint_t rhs) {
     hugeint_t result;
     if (!TryMultiply(lhs, rhs, result)) {
-        throw Exception{ExceptionType::OUT_OF_RANGE, "Overflow in HUGEINT multiplication!"};
+        throw Exception{ET::OUT_OF_RANGE, "Overflow in HUGEINT multiplication!"};
     }
     return result;
 }
@@ -323,14 +323,14 @@ bool Hugeint::SubtractInPlace(hugeint_t &lhs, hugeint_t rhs) {
 
 hugeint_t Hugeint::Add(hugeint_t lhs, hugeint_t rhs) {
     if (!AddInPlace(lhs, rhs)) {
-        throw Exception{ExceptionType::OUT_OF_RANGE, "Overflow in HUGEINT addition"};
+        throw Exception{ET::OUT_OF_RANGE, "Overflow in HUGEINT addition"};
     }
     return lhs;
 }
 
 hugeint_t Hugeint::Subtract(hugeint_t lhs, hugeint_t rhs) {
     if (!SubtractInPlace(lhs, rhs)) {
-        throw Exception{ExceptionType::OUT_OF_RANGE, "Underflow in HUGEINT subtraction"};
+        throw Exception{ET::OUT_OF_RANGE, "Underflow in HUGEINT subtraction"};
     }
     return lhs;
 }
@@ -413,7 +413,7 @@ template <> hugeint_t Hugeint::Convert(float value) { return Hugeint::Convert<do
 
 template <> hugeint_t Hugeint::Convert(double value) {
     if (value <= -170141183460469231731687303715884105728.0 || value >= 170141183460469231731687303715884105727.0) {
-        throw Exception{ExceptionType::OUT_OF_RANGE, "Double out of range of HUGEINT"};
+        throw Exception{ET::OUT_OF_RANGE, "Double out of range of HUGEINT"};
     }
     hugeint_t result;
     bool negative = value < 0;
