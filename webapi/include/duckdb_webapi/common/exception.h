@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEBAPI_COMMON_EXPECTED_H_
-#define INCLUDE_DUCKDB_WEBAPI_COMMON_EXPECTED_H_
+#ifndef INCLUDE_DUCKDB_WEBAPI_COMMON_EXCEPTION_H_
+#define INCLUDE_DUCKDB_WEBAPI_COMMON_EXCEPTION_H_
 
 #include <exception>
 #include <string>
@@ -60,5 +60,5 @@ struct ExceptionBuilder {
 
 } // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_EXPECTED_H_
+#endif // INCLUDE_DUCKDB_WEBAPI_EXCEPTION_H_
 
