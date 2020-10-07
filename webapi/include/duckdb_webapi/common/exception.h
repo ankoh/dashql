@@ -17,6 +17,7 @@ enum class ExceptionType {
     NOT_IMPLEMENTED = 2,
     OUT_OF_RANGE = 3,
 };
+using ET = ExceptionType;
 
 /// End-of-exception tag
 enum EOETag { EOE };

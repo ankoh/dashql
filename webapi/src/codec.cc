@@ -142,7 +142,7 @@ static fb::Offset<proto::QueryResultColumn> writeCol(fb::FlatBufferBuilder &buil
 
 /// Write a fixed-length result column
 static fb::Offset<proto::QueryResultColumn> writeI128Col(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
-                                                     duckdb::VectorData &vec, size_t count) {
+                                                         duckdb::VectorData &vec, size_t count) {
     proto::I128 *values;
     auto dBuf = builder.CreateUninitializedVectorOfStructs(count, &values);
     std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
@@ -156,14 +156,16 @@ static fb::Offset<proto::QueryResultColumn> writeI128Col(fb::FlatBufferBuilder &
             nullmask[i] = null;
         });
     } else {
-        iterVec<hugeint_t, false>(vec, count, [&](unsigned i, hugeint_t value, bool null) { values[i] = proto::I128{value.lower, value.upper}; });
+        iterVec<hugeint_t, false>(vec, count, [&](unsigned i, hugeint_t value, bool null) {
+            values[i] = proto::I128{value.lower, value.upper};
+        });
     }
 
     // Build the query result column
     proto::QueryResultColumnBuilder c{builder};
     c.add_physical_type(static_cast<proto::PhysicalTypeID>(type));
     if (nBuf) c.add_null_mask(*nBuf);
-        c.add_rows_i128(dBuf);
+    c.add_rows_i128(dBuf);
     return c.Finish();
 }
 
@@ -430,7 +432,7 @@ proto::PhysicalTypeID LogicalType::GetPhysicalType(proto::LogicalType &type) {
         case proto::LogicalTypeID::TIMESTAMP:
             return proto::PhysicalTypeID::INT64;
         case proto::LogicalTypeID::HUGEINT:
-		    return proto::PhysicalTypeID::INT128;
+            return proto::PhysicalTypeID::INT128;
         case proto::LogicalTypeID::FLOAT:
             return proto::PhysicalTypeID::FLOAT;
         case proto::LogicalTypeID::DOUBLE:
@@ -466,8 +468,7 @@ proto::PhysicalTypeID LogicalType::GetPhysicalType(proto::LogicalType &type) {
         case proto::LogicalTypeID::UNKNOWN:
             return proto::PhysicalTypeID::INVALID;
         default:
-            throw ExceptionBuilder{ExceptionType::CONVERSION} << "Invalid LogicalType " << ToString(type.type_id())
-                                                              << EOE;
+            throw ExceptionBuilder{ET::CONVERSION} << "Invalid LogicalType " << ToString(type.type_id()) << EOE;
     }
 }
 
