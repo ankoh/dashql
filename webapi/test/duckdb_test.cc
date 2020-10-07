@@ -1,9 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include <sstream>
+
 #include "duckdb_webapi/api.h"
 #include "duckdb_webapi/proto/query_plan_generated.h"
 #include "gtest/gtest.h"
-#include <sstream>
 
 using namespace duckdb_webapi;
 using namespace std;
@@ -30,4 +31,4 @@ TEST(SQLTests, CreateTable) {
     )RAW");
 }
 
-}
+}  // namespace

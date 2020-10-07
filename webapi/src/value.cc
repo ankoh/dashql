@@ -1,6 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/value.h"
+
 #include "duckdb_webapi/codec.h"
 #include "duckdb_webapi/common/exception.h"
 #include "duckdb_webapi/common/types/date.h"
@@ -142,6 +143,6 @@ template <class OP> static Value templated_binary_operation(const Value &left, c
     }
 }
 
-} // namespace
+}  // namespace
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi

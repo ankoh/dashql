@@ -3,10 +3,11 @@
 #ifndef INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIMESTAMP_H_
 #define INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIMESTAMP_H_
 
-#include "duckdb_webapi/common/types/date.h"
-#include "duckdb_webapi/common/types/time.h"
 #include <cstdint>
 #include <tuple>
+
+#include "duckdb_webapi/common/types/date.h"
+#include "duckdb_webapi/common/types/time.h"
 
 namespace duckdb_webapi {
 
@@ -25,6 +26,6 @@ struct Timestamp {
     }
 };
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIMESTAMP_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIMESTAMP_H_

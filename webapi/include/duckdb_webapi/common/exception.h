@@ -4,9 +4,9 @@
 #define INCLUDE_DUCKDB_WEBAPI_COMMON_EXCEPTION_H_
 
 #include <exception>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
 
 namespace duckdb_webapi {
 
@@ -19,25 +19,23 @@ enum class ExceptionType {
 };
 
 /// End-of-exception tag
-enum EOETag {
-    EOE
-};
+enum EOETag { EOE };
 
 /// An exception
 class Exception : public std::exception {
-  private:
+   private:
     /// The exception type
     ExceptionType type;
     // The exception message
     std::string message;
 
-  public:
+   public:
     /// Constructor
     Exception(std::string message);
     /// Constructor
     Exception(ExceptionType exceptionType, std::string message);
     /// Get message
-    const char *what() const noexcept override;
+    const char* what() const noexcept override;
 };
 
 /// An exception message builder
@@ -51,15 +49,17 @@ struct ExceptionBuilder {
     /// Constructor
     ExceptionBuilder(const ExceptionBuilder& other) : type(other.type), message(other.message.str()) {}
     /// Stream operator
-    template <typename V> 
-    ExceptionBuilder& operator<<(const V& v) { message << v; return *this; }
+    template <typename V> ExceptionBuilder& operator<<(const V& v) {
+        message << v;
+        return *this;
+    }
     /// Stream operator
     Exception operator<<(EOETag) { return Exception{type, message.str()}; }
     /// Get the string
     std::string str() { return message.str(); }
 };
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_EXCEPTION_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_EXCEPTION_H_
 

@@ -1,8 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb_webapi/common/exception.h"
 #include "duckdb_webapi/common/types/date.h"
+
 #include <sstream>
+
+#include "duckdb_webapi/common/exception.h"
 
 namespace duckdb_webapi {
 
@@ -17,7 +19,7 @@ static int CUMLEAPDAYS[13] = {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 
 #define YEAR_MIN (-YEAR_MAX)
 #define MONTHDAYS(m, y) ((m) != 2 ? LEAPDAYS[m] : leapyear(y) ? 29 : 28)
 #define YEARDAYS(y) (leapyear(y) ? 366 : 365)
-#define DD_DATE(d, m, y)                                                                                               \
+#define DD_DATE(d, m, y) \
     ((m) > 0 && (m) <= 12 && (d) > 0 && (y) != 0 && (y) >= YEAR_MIN && (y) <= YEAR_MAX && (d) <= MONTHDAYS(m, y))
 #define LOWER(c) ((c) >= 'A' && (c) <= 'Z' ? (c) + 'a' - 'A' : (c))
 // 1970-01-01 in date_t format
@@ -41,7 +43,7 @@ int leapyears(int year) {
     return y4 + y400 - y100 + (year >= 0); /* may be negative */
 }
 
-}
+}  // namespace
 
 std::tuple<int32_t, int32_t, int32_t> Date::toDate(int32_t n) {
     int32_t year = n / 365;
@@ -82,11 +84,11 @@ std::tuple<int32_t, int32_t, int32_t> Date::toDate(int32_t n) {
 date_t Date::fromDate(int32_t year, int32_t month, int32_t day) {
     int32_t n = 0;
     if (!(DD_DATE(day, month, year))) {
-        throw ExceptionBuilder{ExceptionType::CONVERSION} << "Date out of range: " << year << "-" << month << "-" << day << EOE;
+        throw ExceptionBuilder{ExceptionType::CONVERSION} << "Date out of range: " << year << "-" << month << "-" << day
+                                                          << EOE;
     }
 
-    if (year < 0)
-        year++;
+    if (year < 0) year++;
     n = (int32_t)(day - 1);
     if (month > 2 && leapyear(year)) {
         n++;
@@ -98,4 +100,4 @@ date_t Date::fromDate(int32_t year, int32_t month, int32_t day) {
     return n;
 }
 
-}
+}  // namespace duckdb_webapi

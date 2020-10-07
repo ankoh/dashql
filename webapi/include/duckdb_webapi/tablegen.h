@@ -13,6 +13,6 @@ namespace duckdb_webapi {
 /// Generate table
 ExpectedSignal generateTable(duckdb::Connection& conn, proto::TableSpecification& spec);
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_TABLEGEN_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_TABLEGEN_H_

@@ -1,7 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "flatbuffers/minireflect.h"
 #include <sstream>
+
+#include "flatbuffers/minireflect.h"
 
 namespace fb = flatbuffers;
 
@@ -21,7 +22,7 @@ struct ToJSONVisitor : public fb::IterationVisitor {
     bool vector_delimited;
 
     /// Constructor
-    ToJSONVisitor(std::stringstream &out, const char* delimiter, const char* indent, bool vector_delimited = true)
+    ToJSONVisitor(std::stringstream &out, const char *delimiter, const char *indent, bool vector_delimited = true)
         : out(out), delimiter(delimiter), indent(indent), indent_level(0), vector_delimited(vector_delimited) {}
 
     void append_indent() {
@@ -43,9 +44,8 @@ struct ToJSONVisitor : public fb::IterationVisitor {
     }
 
     void Field(size_t /*field_idx*/, size_t set_idx, fb::ElementaryType /*type*/, bool /*is_vector*/,
-               const fb::TypeTable* /*type_table*/, const char *name, const uint8_t* val) {
-        if (!val)
-            return;
+               const fb::TypeTable * /*type_table*/, const char *name, const uint8_t *val) {
+        if (!val) return;
         if (set_idx > 0) {
             out << "," << delimiter;
         }
@@ -55,7 +55,8 @@ struct ToJSONVisitor : public fb::IterationVisitor {
         }
     }
 
-    template <typename T> void Named(T x, const char *name) {
+    template <typename T>
+    void Named(T x, const char *name) {
         if (name) {
             out << "\"" << name << "\"";
         } else {
@@ -104,7 +105,7 @@ struct ToJSONVisitor : public fb::IterationVisitor {
         out << "]";
     }
 
-    void Element(size_t i, fb::ElementaryType /*type*/, const fb::TypeTable* /*type_table*/, const uint8_t* /*val*/) {
+    void Element(size_t i, fb::ElementaryType /*type*/, const fb::TypeTable * /*type_table*/, const uint8_t * /*val*/) {
         if (i) {
             out << ",";
             if (vector_delimited) {
@@ -116,17 +117,17 @@ struct ToJSONVisitor : public fb::IterationVisitor {
         }
     }
 };
-} // namespace
+}  // namespace
 
 namespace duckdb_webapi {
 
 /// Write the tql program
-std::string writeJSON(void* buffer, const flatbuffers::TypeTable &type_table) {
+std::string writeJSON(void *buffer, const flatbuffers::TypeTable &type_table) {
     std::stringstream out;
     ToJSONVisitor visitor(out, "\n", "    ", true);
-    fb::IterateFlatBuffer(static_cast<uint8_t*>(buffer), &type_table, &visitor);
+    fb::IterateFlatBuffer(static_cast<uint8_t *>(buffer), &type_table, &visitor);
     return out.str();
 }
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 

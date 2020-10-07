@@ -17,6 +17,6 @@ struct Time {
     static std::tuple<int32_t, int32_t, int32_t, int32_t> ToTime(dtime_t n);
 };
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIME_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_TIME_H_

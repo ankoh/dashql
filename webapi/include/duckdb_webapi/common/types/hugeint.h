@@ -13,11 +13,11 @@
 namespace duckdb_webapi {
 
 struct hugeint_t {
-  public:
+   public:
     uint64_t lower;
     int64_t upper;
 
-  public:
+   public:
     hugeint_t() = default;
     hugeint_t(int64_t value);
     hugeint_t(const hugeint_t &rhs) = default;
@@ -66,7 +66,7 @@ struct hugeint_t {
 
 //! The Hugeint class contains static operations for the INT128 type
 class Hugeint {
-  public:
+   public:
     //! Convert a string to a hugeint object
     static bool FromString(std::string str, hugeint_t &result);
     //! Convert a string to a hugeint object
@@ -170,6 +170,6 @@ template <> hugeint_t Hugeint::Convert(int64_t value);
 template <> hugeint_t Hugeint::Convert(float value);
 template <> hugeint_t Hugeint::Convert(double value);
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_DATE_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_DATE_H_

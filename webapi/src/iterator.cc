@@ -2,24 +2,29 @@
 
 #include "duckdb_webapi/iterator.h"
 
+#include <optional>
 #include <random>
+#include <stack>
 #include <tuple>
 #include <unordered_map>
 #include <variant>
-#include <optional>
-#include <stack>
 
 namespace duckdb_webapi {
 
 // Constructor
 QueryResultForwardIterator::QueryResultForwardIterator(WebAPI::Connection& connection, proto::QueryResult& result)
-    : connection(connection), result(result), globalRowIndex(0), chunkRowBegin(0), chunkID(0), chunkBuffer(), chunk(nullptr) {}
+    : connection(connection),
+      result(result),
+      globalRowIndex(0),
+      chunkRowBegin(0),
+      chunkID(0),
+      chunkBuffer(),
+      chunk(nullptr) {}
 
 /// Advance the iterator
 ExpectedSignal QueryResultForwardIterator::advance() {
     // Reached end?
-    if (isEnd())
-        return {};
+    if (isEnd()) return {};
     assert(!!chunk);
 
     // Get next chunk (if neccessary)
@@ -29,8 +34,7 @@ ExpectedSignal QueryResultForwardIterator::advance() {
             chunk = chunks->Get(chunkID);
         } else {
             auto result = connection.fetchQueryResults();
-            if (!result.isOk())
-                return result.getErr();
+            if (!result.isOk()) return result.getErr();
             chunk = &result.get();
             chunkBuffer = result.releaseBuffer();
         }
@@ -40,10 +44,6 @@ ExpectedSignal QueryResultForwardIterator::advance() {
 }
 
 /// Is at end?
-bool QueryResultForwardIterator::isEnd() const {
-    return !chunk || (chunkRowBegin >= chunk->row_count());
-}
+bool QueryResultForwardIterator::isEnd() const { return !chunk || (chunkRowBegin >= chunk->row_count()); }
 
-
-
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi

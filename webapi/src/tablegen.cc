@@ -1,15 +1,16 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/tablegen.h"
-#include "duckdb_webapi/common/span.h"
-#include "duckdb/main/appender.hpp"
 
+#include <optional>
 #include <random>
+#include <stack>
 #include <tuple>
 #include <unordered_map>
 #include <variant>
-#include <optional>
-#include <stack>
+
+#include "duckdb/main/appender.hpp"
+#include "duckdb_webapi/common/span.h"
 
 using namespace std;
 
@@ -37,7 +38,7 @@ struct GeneratorExpression {
     /// Compute values
     virtual void compute() = 0;
     /// Get the next data
-    const DataVector& next(uint64_t p) {
+    const DataVector &next(uint64_t p) {
         if (p != pass) {
             pass = p;
             compute();
@@ -74,7 +75,8 @@ struct ColumnRef : public GeneratorExpression {
     }
 };
 
-template <typename D> struct GenericDistribution : public GeneratorExpression {
+template <typename D>
+struct GenericDistribution : public GeneratorExpression {
     /// The generator
     mt19937 &generator;
     /// The distribution
@@ -92,7 +94,8 @@ template <typename D> struct GenericDistribution : public GeneratorExpression {
     }
 };
 
-template <template <typename> class D, typename T> struct HigherOrderDistribution : public GeneratorExpression {
+template <template <typename> class D, typename T>
+struct HigherOrderDistribution : public GeneratorExpression {
     /// The generator
     mt19937 &generator;
     /// The distribution
@@ -135,8 +138,7 @@ struct BinaryGeneratorExpression : public GeneratorExpression {
     BinaryGeneratorExpression() : in({nullptr, nullptr}) {}
     /// Merge null values
     void mergeNulls(const DataVector &l, const DataVector &r) {
-        for (unsigned i = 0; i < out.size(); ++i)
-            out.nulls[i] = l.nulls[i] | r.nulls[i];
+        for (unsigned i = 0; i < out.size(); ++i) out.nulls[i] = l.nulls[i] | r.nulls[i];
     }
 };
 
@@ -147,8 +149,7 @@ struct AddExpression : public BinaryGeneratorExpression {
     void compute() override {
         auto &l = in[0]->next(pass);
         auto &r = in[1]->next(pass);
-        for (unsigned i = 0; i < out.size(); ++i)
-            out.values[i] = l.values[i] + r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i) out.values[i] = l.values[i] + r.values[i];
         mergeNulls(l, r);
     }
 };
@@ -160,8 +161,7 @@ struct SubExpression : public BinaryGeneratorExpression {
     void compute() override {
         auto &l = in[0]->next(pass);
         auto &r = in[1]->next(pass);
-        for (unsigned i = 0; i < out.size(); ++i)
-            out.values[i] = l.values[i] - r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i) out.values[i] = l.values[i] - r.values[i];
         mergeNulls(l, r);
     }
 };
@@ -173,8 +173,7 @@ struct MulExpression : public BinaryGeneratorExpression {
     void compute() override {
         auto &l = in[0]->next(pass);
         auto &r = in[1]->next(pass);
-        for (unsigned i = 0; i < out.size(); ++i)
-            out.values[i] = l.values[i] * r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i) out.values[i] = l.values[i] * r.values[i];
         mergeNulls(l, r);
     }
 };
@@ -186,8 +185,7 @@ struct DivExpression : public BinaryGeneratorExpression {
     void compute() override {
         auto &l = in[0]->next(pass);
         auto &r = in[1]->next(pass);
-        for (unsigned i = 0; i < out.size(); ++i)
-            out.values[i] = (r.values[i] == 0) ? 0 : (l.values[i] / r.values[i]);
+        for (unsigned i = 0; i < out.size(); ++i) out.values[i] = (r.values[i] == 0) ? 0 : (l.values[i] / r.values[i]);
         mergeNulls(l, r);
     }
 };
@@ -199,8 +197,7 @@ struct CompareLTExpression : public BinaryGeneratorExpression {
     void compute() override {
         auto &l = in[0]->next(pass);
         auto &r = in[1]->next(pass);
-        for (unsigned i = 0; i < out.size(); ++i)
-            out.values[i] = l.values[i] < r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i) out.values[i] = l.values[i] < r.values[i];
         mergeNulls(l, r);
     }
 };
@@ -212,8 +209,7 @@ struct CompareLEQExpression : public BinaryGeneratorExpression {
     void compute() override {
         auto &l = in[0]->next(pass);
         auto &r = in[1]->next(pass);
-        for (unsigned i = 0; i < out.size(); ++i)
-            out.values[i] = l.values[i] <= r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i) out.values[i] = l.values[i] <= r.values[i];
         mergeNulls(l, r);
     }
 };
@@ -225,8 +221,7 @@ struct CompareGTExpression : public BinaryGeneratorExpression {
     void compute() override {
         auto &l = in[0]->next(pass);
         auto &r = in[1]->next(pass);
-        for (unsigned i = 0; i < out.size(); ++i)
-            out.values[i] = l.values[i] > r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i) out.values[i] = l.values[i] > r.values[i];
         mergeNulls(l, r);
     }
 };
@@ -238,8 +233,7 @@ struct CompareGEQExpression : public BinaryGeneratorExpression {
     void compute() override {
         auto &l = in[0]->next(pass);
         auto &r = in[1]->next(pass);
-        for (unsigned i = 0; i < out.size(); ++i)
-            out.values[i] = l.values[i] >= r.values[i];
+        for (unsigned i = 0; i < out.size(); ++i) out.values[i] = l.values[i] >= r.values[i];
         mergeNulls(l, r);
     }
 };
@@ -272,8 +266,7 @@ struct OutputTransform {
     virtual void append(uint8_t n = VECTOR_SIZE);
 };
 
-
-} // namespace
+}  // namespace
 
 /// Generate table
 ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
@@ -294,7 +287,7 @@ ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpecification
         // Build expression tree using a single DFS
         using DfsID = unsigned;
         using ExprIdx = unsigned;
-        std::stack<std::tuple<DfsID, std::shared_ptr<GeneratorExpression>*, ExprIdx>> pending;
+        std::stack<std::tuple<DfsID, std::shared_ptr<GeneratorExpression> *, ExprIdx>> pending;
         std::vector<std::pair<std::shared_ptr<GeneratorExpression>, DfsID>> translated;
         pending.push({0, &columnGenerators[i], 0});
         translated.resize(exprs->size(), {nullptr, 0});
@@ -306,15 +299,13 @@ ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpecification
             pending.pop();
 
             // Target index is out of bounds?
-            if (nextIdx >= translated.size())
-                return ErrorCode::TABLEGEN_INVALID_INPUT_INDEX;
+            if (nextIdx >= translated.size()) return ErrorCode::TABLEGEN_INVALID_INPUT_INDEX;
 
             // Target already translated?
-            auto& [nextExpr, nextID] = translated[nextIdx];
+            auto &[nextExpr, nextID] = translated[nextIdx];
             if (nextExpr != nullptr) {
                 // Invalid edge?
-                if (nextID <= originID)
-                    return ErrorCode::TABLEGEN_CIRCULAR_DEPENDENCY;
+                if (nextID <= originID) return ErrorCode::TABLEGEN_CIRCULAR_DEPENDENCY;
                 *nextRef = nextExpr;
                 continue;
             }
@@ -329,13 +320,11 @@ ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpecification
                 argMap.insert({arg->argument_type(), arg});
             }
             auto argi = [&](X key, int64_t defaultValue = 0) {
-                if (auto iter = argMap.find(key); iter != argMap.end())
-                    return iter->second->value_int();
+                if (auto iter = argMap.find(key); iter != argMap.end()) return iter->second->value_int();
                 return defaultValue;
             };
             auto argfp = [&](X key, double defaultValue = 0.0) {
-                if (auto iter = argMap.find(key); iter != argMap.end())
-                    return iter->second->value_float();
+                if (auto iter = argMap.find(key); iter != argMap.end()) return iter->second->value_float();
                 return defaultValue;
             };
 
@@ -451,4 +440,4 @@ ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpecification
     return {};
 }
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi

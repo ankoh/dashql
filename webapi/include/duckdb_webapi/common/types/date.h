@@ -17,6 +17,6 @@ struct Date {
     static std::tuple<int32_t, int32_t, int32_t> toDate(date_t date);
 };
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_DATE_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_COMMON_TYPES_DATE_H_

@@ -5,10 +5,9 @@
 
 #include "duckdb.hpp"
 #include "duckdb/common/enums/logical_operator_type.hpp"
-
-#include "flatbuffers/flatbuffers.h"
-#include "duckdb_webapi/proto/query_result_generated.h"
 #include "duckdb_webapi/common/span.h"
+#include "duckdb_webapi/proto/query_result_generated.h"
+#include "flatbuffers/flatbuffers.h"
 
 namespace duckdb_webapi {
 
@@ -16,12 +15,15 @@ namespace duckdb_webapi {
 proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type);
 
 /// Write the query result
-flatbuffers::Offset<proto::QueryResult> writeQueryResult(flatbuffers::FlatBufferBuilder& builder, duckdb::QueryResult& result, uint64_t queryID);
+flatbuffers::Offset<proto::QueryResult> writeQueryResult(flatbuffers::FlatBufferBuilder& builder,
+                                                         duckdb::QueryResult& result, uint64_t queryID);
 /// Write the query result chunk
-flatbuffers::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBufferBuilder& builder, uint64_t queryID, duckdb::DataChunk* chunk, nonstd::span<duckdb::LogicalType> types);
+flatbuffers::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBufferBuilder& builder,
+                                                                   uint64_t queryID, duckdb::DataChunk* chunk,
+                                                                   nonstd::span<duckdb::LogicalType> types);
 /// Write the query plan
-flatbuffers::Offset<proto::QueryPlan> writeQueryPlan(flatbuffers::FlatBufferBuilder& builder, duckdb::LogicalOperator& plan);
-
+flatbuffers::Offset<proto::QueryPlan> writeQueryPlan(flatbuffers::FlatBufferBuilder& builder,
+                                                     duckdb::LogicalOperator& plan);
 
 /// A logical type
 struct LogicalType {
@@ -47,7 +49,7 @@ struct LogicalType {
     static bool isInteger(proto::PhysicalTypeID type);
 };
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_PROTO_CODEC_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_PROTO_CODEC_H_
 

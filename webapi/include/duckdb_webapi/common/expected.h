@@ -3,12 +3,13 @@
 #ifndef INCLUDE_DUCKDB_WEBAPI_COMMON_EXPECTED_H_
 #define INCLUDE_DUCKDB_WEBAPI_COMMON_EXPECTED_H_
 
+#include <variant>
+
 #include "duckdb.hpp"
 #include "duckdb/common/enums/logical_operator_type.hpp"
 #include "duckdb_webapi/common/span.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
 #include "flatbuffers/flatbuffers.h"
-#include <variant>
 
 namespace duckdb_webapi {
 
@@ -30,7 +31,7 @@ struct Error {
     Error(ErrorCode code, std::string msg) : code(code), messageBuffer(move(msg)), message(messageBuffer.c_str()) {}
 
     /// Get the message
-    auto* getMessage() const { return message; }
+    auto *getMessage() const { return message; }
 };
 
 template <typename V> struct Expected {
@@ -83,7 +84,7 @@ template <typename V> struct ExpectedBuffer {
     /// Get the result
     auto &get() const {
         assert(isOk());
-        auto& buffer = std::get<flatbuffers::DetachedBuffer>(data);
+        auto &buffer = std::get<flatbuffers::DetachedBuffer>(data);
         return *flatbuffers::GetRoot<V>(buffer.data());
     }
     /// Get the error
@@ -107,7 +108,7 @@ template <typename V> struct ExpectedBuffer {
     }
 };
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_EXPECTED_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_EXPECTED_H_
 

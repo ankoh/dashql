@@ -40,7 +40,6 @@ struct QueryResultForwardIterator {
     }
 };
 
+}  // namespace duckdb_webapi
 
-} // namespace duckdb_webapi
-
-#endif // INCLUDE_DUCKDB_WEBAPI_ITERATOR_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_ITERATOR_H_

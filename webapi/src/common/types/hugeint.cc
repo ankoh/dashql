@@ -1,8 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/common/types/hugeint.h"
-#include "duckdb_webapi/common/exception.h"
+
 #include <sstream>
+
+#include "duckdb_webapi/common/exception.h"
 
 // Taken from here:
 // duckdb/src/common/types/hugeint.cpp
@@ -335,22 +337,22 @@ hugeint_t Hugeint::Subtract(hugeint_t lhs, hugeint_t rhs) {
 
 template <class DST> bool hugeint_try_cast_integer(hugeint_t input, DST &result) {
     switch (input.upper) {
-    case 0:
-        // positive number: check if the positive number is in range
-        if (input.lower <= uint64_t(std::numeric_limits<DST>::max())) {
-            result = DST(input.lower);
-            return true;
-        }
-        break;
-    case -1:
-        // negative number: check if the negative number is in range
-        if (input.lower > std::numeric_limits<uint64_t>::max() - uint64_t(std::numeric_limits<DST>::max())) {
-            result = -DST(std::numeric_limits<uint64_t>::max() - input.lower + 1);
-            return true;
-        }
-        break;
-    default:
-        break;
+        case 0:
+            // positive number: check if the positive number is in range
+            if (input.lower <= uint64_t(std::numeric_limits<DST>::max())) {
+                result = DST(input.lower);
+                return true;
+            }
+            break;
+        case -1:
+            // negative number: check if the negative number is in range
+            if (input.lower > std::numeric_limits<uint64_t>::max() - uint64_t(std::numeric_limits<DST>::max())) {
+                result = -DST(std::numeric_limits<uint64_t>::max() - input.lower + 1);
+                return true;
+            }
+            break;
+        default:
+            break;
     }
     return false;
 }
@@ -385,13 +387,13 @@ template <> bool Hugeint::tryCast(hugeint_t input, float &result) {
 
 template <> bool Hugeint::tryCast(hugeint_t input, double &result) {
     switch (input.upper) {
-    case -1:
-        // special case for upper = -1 to avoid rounding issues in small negative numbers
-        result = -double(std::numeric_limits<uint64_t>::max() - input.lower + 1);
-        break;
-    default:
-        result = double(input.lower) + double(input.upper) * double(std::numeric_limits<uint64_t>::max());
-        break;
+        case -1:
+            // special case for upper = -1 to avoid rounding issues in small negative numbers
+            result = -double(std::numeric_limits<uint64_t>::max() - input.lower + 1);
+            break;
+        default:
+            result = double(input.lower) + double(input.upper) * double(std::numeric_limits<uint64_t>::max());
+            break;
     }
     return true;
 }
@@ -404,13 +406,9 @@ template <class DST> hugeint_t hugeint_convert_integer(DST input) {
 }
 
 template <> hugeint_t Hugeint::Convert(int8_t value) { return hugeint_convert_integer<int8_t>(value); }
-
 template <> hugeint_t Hugeint::Convert(int16_t value) { return hugeint_convert_integer<int16_t>(value); }
-
 template <> hugeint_t Hugeint::Convert(int32_t value) { return hugeint_convert_integer<int32_t>(value); }
-
 template <> hugeint_t Hugeint::Convert(int64_t value) { return hugeint_convert_integer<int64_t>(value); }
-
 template <> hugeint_t Hugeint::Convert(float value) { return Hugeint::Convert<double>(value); }
 
 template <> hugeint_t Hugeint::Convert(double value) {
@@ -574,4 +572,4 @@ hugeint_t &hugeint_t::operator^=(const hugeint_t &rhs) {
 
 std::string hugeint_t::toString() const { return Hugeint::toString(*this); }
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi

@@ -1,18 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/api.h"
-#include "duckdb_webapi/codec.h"
-#include "duckdb_webapi/json.h"
-#include "duckdb_webapi/tablegen.h"
-
-#include "duckdb.hpp"
-#include "duckdb/common/vector_operations/vector_operations.hpp"
-#include "duckdb/main/client_context.hpp"
-#include "duckdb/parser/parser.hpp"
-#include "duckdb/planner/planner.hpp"
-
-#include "spdlog/spdlog.h"
-#include "flatbuffers/flatbuffers.h"
 
 #include <cstdio>
 #include <iostream>
@@ -20,6 +8,17 @@
 #include <optional>
 #include <string_view>
 #include <unordered_map>
+
+#include "duckdb.hpp"
+#include "duckdb/common/vector_operations/vector_operations.hpp"
+#include "duckdb/main/client_context.hpp"
+#include "duckdb/parser/parser.hpp"
+#include "duckdb/planner/planner.hpp"
+#include "duckdb_webapi/codec.h"
+#include "duckdb_webapi/json.h"
+#include "duckdb_webapi/tablegen.h"
+#include "flatbuffers/flatbuffers.h"
+#include "spdlog/spdlog.h"
 
 namespace fb = flatbuffers;
 using namespace duckdb_webapi;
@@ -73,7 +72,11 @@ void WebAPI::ContextData::releaseBuffer(void* data) {
 
 /// Constructor
 WebAPI::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
-    : database(std::move(db)), connection(*database), contextData(std::make_unique<ContextData>()), currentQueryID(), currentQueryResult() {}
+    : database(std::move(db)),
+      connection(*database),
+      contextData(std::make_unique<ContextData>()),
+      currentQueryID(),
+      currentQueryResult() {}
 
 /// Destructor
 WebAPI::Connection::~Connection() {}
@@ -85,8 +88,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::runQuery(std::string_view
     auto result = conn.SendQuery(std::string{text});
 
     // Query failed?
-    if (!result->success)
-        return { ErrorCode::QUERY_FAILED, move(result->error) };
+    if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
@@ -94,7 +96,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::runQuery(std::string_view
 
     // Return buffer
     builder.Finish(queryResultOfs);
-    return { builder.Release() };
+    return {builder.Release()};
 }
 
 /// Start a SQL query
@@ -104,8 +106,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::sendQuery(std::string_vie
     auto result = conn.SendQuery(std::string{text});
 
     // Query failed?
-    if (!result->success)
-        return { ErrorCode::QUERY_FAILED, move(result->error) };
+    if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
@@ -113,7 +114,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::sendQuery(std::string_vie
 
     // Return buffer
     builder.Finish(queryResultOfs);
-    return { builder.Release() };
+    return {builder.Release()};
 }
 
 /// Fetch query results
@@ -130,7 +131,7 @@ ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::fetchQueryResults() 
     fb::FlatBufferBuilder builder{128};
     auto ofs = writeQueryResultChunk(builder, currentQueryID, chunk.get(), types);
     builder.Finish(ofs);
-    return { builder.Release() };
+    return {builder.Release()};
 }
 
 /// Analyze a SQL query
@@ -144,8 +145,7 @@ ExpectedBuffer<proto::QueryPlan> WebAPI::Connection::analyzeQuery(std::string_vi
     conn.context->transaction.BeginTransaction();
 
     // Invalid statement count?
-    if (parser.statements.size() != 1)
-        return ErrorCode::INVALID_REQUEST;
+    if (parser.statements.size() != 1) return ErrorCode::INVALID_REQUEST;
 
     // Plan the query
     duckdb::Planner planner{*conn.context};
@@ -158,7 +158,7 @@ ExpectedBuffer<proto::QueryPlan> WebAPI::Connection::analyzeQuery(std::string_vi
 
     // Return buffer
     builder.Finish(planOfs);
-    return { builder.Release() };
+    return {builder.Release()};
 }
 
 /// Format a query plan
@@ -172,7 +172,7 @@ ExpectedBuffer<proto::FormattedText> WebAPI::Connection::formatQueryPlan(void* q
 
     // Return buffer
     builder.Finish(txtBuf);
-    return { builder.Release() };
+    return {builder.Release()};
 }
 
 /// Generate a table
@@ -181,8 +181,7 @@ ExpectedSignal WebAPI::Connection::generateTable(proto::TableSpecification& spec
 }
 
 /// Constructor
-WebAPI::WebAPI()
-    : database(std::make_shared<duckdb::DuckDB>()), connections() {}
+WebAPI::WebAPI() : database(std::make_shared<duckdb::DuckDB>()), connections() {}
 
 /// Create a session
 WebAPI::Connection& WebAPI::connect() {
@@ -193,6 +192,4 @@ WebAPI::Connection& WebAPI::connect() {
 }
 
 /// End a session
-void WebAPI::disconnect(Connection* session) {
-    connections.erase(session);
-}
+void WebAPI::disconnect(Connection* session) { connections.erase(session); }

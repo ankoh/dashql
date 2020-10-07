@@ -13,8 +13,8 @@ namespace test {
 /// Equal results?
 ::testing::AssertionResult equalResults(duckdb::QueryResult& dbResult, proto::QueryResult& protoResult);
 
-} // namespace test
-} // namespace duckdb_webapi
+}  // namespace test
+}  // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_QUERY_RESULT_DUCKDB_MATCHER_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_QUERY_RESULT_DUCKDB_MATCHER_H_
 

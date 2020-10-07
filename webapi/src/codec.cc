@@ -1,6 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/codec.h"
+
 #include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/planner/logical_operator.hpp"
@@ -11,75 +12,75 @@ namespace fb = flatbuffers;
 
 namespace duckdb_webapi {
 
-#define LOGICAL_OPERATOR_TYPES                                                                                         \
-    X(INVALID)                                                                                                         \
-    X(PROJECTION)                                                                                                      \
-    X(FILTER)                                                                                                          \
-    X(AGGREGATE_AND_GROUP_BY)                                                                                          \
-    X(WINDOW)                                                                                                          \
-    X(UNNEST)                                                                                                          \
-    X(LIMIT)                                                                                                           \
-    X(ORDER_BY)                                                                                                        \
-    X(TOP_N)                                                                                                           \
-    X(COPY_FROM_FILE)                                                                                                  \
-    X(COPY_TO_FILE)                                                                                                    \
-    X(DISTINCT)                                                                                                        \
-    X(INDEX_SCAN)                                                                                                      \
-    X(GET)                                                                                                             \
-    X(CHUNK_GET)                                                                                                       \
-    X(DELIM_GET)                                                                                                       \
-    X(EXPRESSION_GET)                                                                                                  \
-    X(TABLE_FUNCTION)                                                                                                  \
-    X(EMPTY_RESULT)                                                                                                    \
-    X(JOIN)                                                                                                            \
-    X(DELIM_JOIN)                                                                                                      \
-    X(COMPARISON_JOIN)                                                                                                 \
-    X(ANY_JOIN)                                                                                                        \
-    X(CROSS_PRODUCT)                                                                                                   \
-    X(UNION)                                                                                                           \
-    X(EXCEPT)                                                                                                          \
-    X(INTERSECT)                                                                                                       \
-    X(RECURSIVE_CTE)                                                                                                   \
-    X(INSERT)                                                                                                          \
-    X(DELETE)                                                                                                          \
-    X(UPDATE)                                                                                                          \
-    X(ALTER)                                                                                                           \
-    X(CREATE_TABLE)                                                                                                    \
-    X(CREATE_INDEX)                                                                                                    \
-    X(CREATE_SEQUENCE)                                                                                                 \
-    X(CREATE_VIEW)                                                                                                     \
-    X(CREATE_SCHEMA)                                                                                                   \
-    X(DROP)                                                                                                            \
-    X(PRAGMA)                                                                                                          \
-    X(TRANSACTION)                                                                                                     \
-    X(EXPLAIN)                                                                                                         \
-    X(PREPARE)                                                                                                         \
-    X(EXECUTE)                                                                                                         \
+#define LOGICAL_OPERATOR_TYPES \
+    X(INVALID)                 \
+    X(PROJECTION)              \
+    X(FILTER)                  \
+    X(AGGREGATE_AND_GROUP_BY)  \
+    X(WINDOW)                  \
+    X(UNNEST)                  \
+    X(LIMIT)                   \
+    X(ORDER_BY)                \
+    X(TOP_N)                   \
+    X(COPY_FROM_FILE)          \
+    X(COPY_TO_FILE)            \
+    X(DISTINCT)                \
+    X(INDEX_SCAN)              \
+    X(GET)                     \
+    X(CHUNK_GET)               \
+    X(DELIM_GET)               \
+    X(EXPRESSION_GET)          \
+    X(TABLE_FUNCTION)          \
+    X(EMPTY_RESULT)            \
+    X(JOIN)                    \
+    X(DELIM_JOIN)              \
+    X(COMPARISON_JOIN)         \
+    X(ANY_JOIN)                \
+    X(CROSS_PRODUCT)           \
+    X(UNION)                   \
+    X(EXCEPT)                  \
+    X(INTERSECT)               \
+    X(RECURSIVE_CTE)           \
+    X(INSERT)                  \
+    X(DELETE)                  \
+    X(UPDATE)                  \
+    X(ALTER)                   \
+    X(CREATE_TABLE)            \
+    X(CREATE_INDEX)            \
+    X(CREATE_SEQUENCE)         \
+    X(CREATE_VIEW)             \
+    X(CREATE_SCHEMA)           \
+    X(DROP)                    \
+    X(PRAGMA)                  \
+    X(TRANSACTION)             \
+    X(EXPLAIN)                 \
+    X(PREPARE)                 \
+    X(EXECUTE)                 \
     X(VACUUM)
 
 proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
     using D = duckdb::LogicalOperatorType;
     using P = proto::LogicalOperatorType;
     switch (type) {
-#define X(NAME)                                                                                                        \
-    case duckdb::LogicalOperatorType::NAME:                                                                            \
+#define X(NAME)                             \
+    case duckdb::LogicalOperatorType::NAME: \
         return proto::LogicalOperatorType::NAME;
         LOGICAL_OPERATOR_TYPES
 #undef X
-    default:
-        return proto::LogicalOperatorType::INVALID;
+        default:
+            return proto::LogicalOperatorType::INVALID;
     };
     return proto::LogicalOperatorType::INVALID;
 }
 
 /// Iterate over a vector
-template <typename T, bool WITH_NULL, typename OP> void iterVec(duckdb::VectorData &vec, size_t count, OP op) {
+template <typename T, bool WITH_NULL, typename OP>
+void iterVec(duckdb::VectorData &vec, size_t count, OP op) {
     if (vec.sel) {
         for (unsigned i = 0; i < count; ++i) {
             auto s = vec.sel->get_index(i);
             auto n = false;
-            if constexpr (WITH_NULL)
-                n = (*vec.nullmask)[s];
+            if constexpr (WITH_NULL) n = (*vec.nullmask)[s];
             auto d = reinterpret_cast<T *>(vec.data)[s];
             op(i, d, n);
         }
@@ -87,8 +88,7 @@ template <typename T, bool WITH_NULL, typename OP> void iterVec(duckdb::VectorDa
         for (unsigned i = 0; i < count; ++i) {
             auto d = reinterpret_cast<T *>(vec.data)[i];
             auto n = false;
-            if constexpr (WITH_NULL)
-                n = (*vec.nullmask)[i];
+            if constexpr (WITH_NULL) n = (*vec.nullmask)[i];
             op(i, d, n);
         }
     }
@@ -119,8 +119,7 @@ static fb::Offset<proto::QueryResultColumn> writeCol(fb::FlatBufferBuilder &buil
     // Build the query result column
     proto::QueryResultColumnBuilder c{builder};
     c.add_physical_type(static_cast<proto::PhysicalTypeID>(type));
-    if (nBuf)
-        c.add_null_mask(*nBuf);
+    if (nBuf) c.add_null_mask(*nBuf);
     if constexpr (std::is_same_v<T, uint8_t>) {
         c.add_rows_u8(dBuf);
     } else if constexpr (std::is_same_v<T, uint16_t>) {
@@ -175,16 +174,14 @@ static fb::Offset<proto::QueryResultColumn> writeStringCol(fb::FlatBufferBuilder
             for (unsigned i = 0; i < count; ++i)
                 builder.PushElement(builder.CreateString(source[vec.sel->get_index(i)]));
         } else {
-            for (unsigned i = 0; i < count; ++i)
-                builder.PushElement(builder.CreateString(source[i]));
+            for (unsigned i = 0; i < count; ++i) builder.PushElement(builder.CreateString(source[i]));
         }
     }
     auto dBuf = builder.EndVector(count);
     proto::QueryResultColumnBuilder c{builder};
     c.add_rows_string(dBuf);
     c.add_physical_type(proto::PhysicalTypeID::STRING);
-    if (nBuf)
-        c.add_null_mask(*nBuf);
+    if (nBuf) c.add_null_mask(*nBuf);
     return c.Finish();
 }
 
@@ -211,31 +208,31 @@ fb::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBuffe
         // Write result column
         auto column = [&]() -> fb::Offset<proto::QueryResultColumn> {
             switch (pType) {
-            case duckdb::PhysicalType::INT8:
-                return writeCol<int8_t>(builder, pType, vec, size);
-            case duckdb::PhysicalType::INT16:
-                return writeCol<int16_t>(builder, pType, vec, size);
-            case duckdb::PhysicalType::INT32:
-                return writeCol<int32_t>(builder, pType, vec, size);
-            case duckdb::PhysicalType::INT64:
-                return writeCol<int64_t>(builder, pType, vec, size);
-            case duckdb::PhysicalType::FLOAT:
-                return writeCol<float>(builder, pType, vec, size);
-            case duckdb::PhysicalType::DOUBLE:
-                return writeCol<double>(builder, pType, vec, size);
+                case duckdb::PhysicalType::INT8:
+                    return writeCol<int8_t>(builder, pType, vec, size);
+                case duckdb::PhysicalType::INT16:
+                    return writeCol<int16_t>(builder, pType, vec, size);
+                case duckdb::PhysicalType::INT32:
+                    return writeCol<int32_t>(builder, pType, vec, size);
+                case duckdb::PhysicalType::INT64:
+                    return writeCol<int64_t>(builder, pType, vec, size);
+                case duckdb::PhysicalType::FLOAT:
+                    return writeCol<float>(builder, pType, vec, size);
+                case duckdb::PhysicalType::DOUBLE:
+                    return writeCol<double>(builder, pType, vec, size);
 
-            case duckdb::PhysicalType::VARCHAR:
-            case duckdb::PhysicalType::STRING:
-                return writeStringCol(builder, vec, size);
+                case duckdb::PhysicalType::VARCHAR:
+                case duckdb::PhysicalType::STRING:
+                    return writeStringCol(builder, vec, size);
 
-            case duckdb::PhysicalType::BOOL:
-            case duckdb::PhysicalType::INT128:
-            case duckdb::PhysicalType::VARBINARY:
-            case duckdb::PhysicalType::INTERVAL:
-            case duckdb::PhysicalType::STRUCT:
-            case duckdb::PhysicalType::LIST:
-            default:
-                throw "unsupported physical type";
+                case duckdb::PhysicalType::BOOL:
+                case duckdb::PhysicalType::INT128:
+                case duckdb::PhysicalType::VARBINARY:
+                case duckdb::PhysicalType::INTERVAL:
+                case duckdb::PhysicalType::STRUCT:
+                case duckdb::PhysicalType::LIST:
+                default:
+                    throw "unsupported physical type";
             }
             return {};
         }();
@@ -256,7 +253,6 @@ fb::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBuffe
 /// Write the query result
 fb::Offset<proto::QueryResult> writeQueryResult(fb::FlatBufferBuilder &builder, duckdb::QueryResult &result,
                                                 uint64_t queryID) {
-
     // Fetch result rows and immediately write them into a flatbuffer
     std::vector<fb::Offset<proto::QueryResultChunk>> chunks;
     for (auto chunk = result.Fetch(); !!chunk && chunk->size() > 0; chunk = result.Fetch())
@@ -341,13 +337,11 @@ fb::Offset<proto::QueryPlan> writeQueryPlan(fb::FlatBufferBuilder &builder, duck
             operatorChildOffsets[oid] = operatorChildren.size();
 
             // Reached end?
-            if (edgeIter == operatorChildEdges.end())
-                continue;
+            if (edgeIter == operatorChildEdges.end()) continue;
 
             // At parent of next edge?
             auto &[parent, child] = *edgeIter;
-            if (oid != parent)
-                continue;
+            if (oid != parent) continue;
 
             // Store children
             operatorChildren.push_back(child);
@@ -393,99 +387,100 @@ proto::LogicalType LogicalType::create(proto::LogicalTypeID id, uint8_t width, u
 /// Get the internal type
 proto::PhysicalTypeID LogicalType::getPhysicalType(proto::LogicalType &type) {
     switch (type.type_id()) {
-    case proto::LogicalTypeID::BOOLEAN:
-        return proto::PhysicalTypeID::BOOL;
-    case proto::LogicalTypeID::TINYINT:
-        return proto::PhysicalTypeID::INT8;
-    case proto::LogicalTypeID::SMALLINT:
-        return proto::PhysicalTypeID::INT16;
-    case proto::LogicalTypeID::SQLNULL:
-    case proto::LogicalTypeID::DATE:
-    case proto::LogicalTypeID::TIME:
-    case proto::LogicalTypeID::INTEGER:
-        return proto::PhysicalTypeID::INT32;
-    case proto::LogicalTypeID::BIGINT:
-    case proto::LogicalTypeID::TIMESTAMP:
-        return proto::PhysicalTypeID::INT64;
-    case proto::LogicalTypeID::FLOAT:
-        return proto::PhysicalTypeID::FLOAT;
-    case proto::LogicalTypeID::DOUBLE:
-        return proto::PhysicalTypeID::DOUBLE;
-    case proto::LogicalTypeID::DECIMAL:
-        if (type.width() <= Decimal::MAX_WIDTH_INT16) {
+        case proto::LogicalTypeID::BOOLEAN:
+            return proto::PhysicalTypeID::BOOL;
+        case proto::LogicalTypeID::TINYINT:
+            return proto::PhysicalTypeID::INT8;
+        case proto::LogicalTypeID::SMALLINT:
             return proto::PhysicalTypeID::INT16;
-        } else if (type.width() <= Decimal::MAX_WIDTH_INT32) {
+        case proto::LogicalTypeID::SQLNULL:
+        case proto::LogicalTypeID::DATE:
+        case proto::LogicalTypeID::TIME:
+        case proto::LogicalTypeID::INTEGER:
             return proto::PhysicalTypeID::INT32;
-        } else if (type.width() <= Decimal::MAX_WIDTH_INT64) {
+        case proto::LogicalTypeID::BIGINT:
+        case proto::LogicalTypeID::TIMESTAMP:
             return proto::PhysicalTypeID::INT64;
-        } else if (type.width() <= Decimal::MAX_WIDTH_INT128) {
-            return proto::PhysicalTypeID::INT128;
-        } else {
-            throw Exception(ExceptionType::NOT_IMPLEMENTED, "Widths bigger than 38 are not supported");
-        }
-    case proto::LogicalTypeID::VARCHAR:
-    case proto::LogicalTypeID::CHAR:
-    case proto::LogicalTypeID::BLOB:
-        return proto::PhysicalTypeID::VARCHAR;
-    case proto::LogicalTypeID::VARBINARY:
-        return proto::PhysicalTypeID::VARBINARY;
-    case proto::LogicalTypeID::STRUCT:
-        return proto::PhysicalTypeID::STRUCT;
-    case proto::LogicalTypeID::LIST:
-        return proto::PhysicalTypeID::LIST;
-    case proto::LogicalTypeID::ANY:
-    case proto::LogicalTypeID::INVALID:
-    case proto::LogicalTypeID::UNKNOWN:
-        return proto::PhysicalTypeID::INVALID;
-    default:
-        throw ExceptionBuilder{ExceptionType::CONVERSION} << "Invalid LogicalType " << toString(type.type_id()) << EOE;
+        case proto::LogicalTypeID::FLOAT:
+            return proto::PhysicalTypeID::FLOAT;
+        case proto::LogicalTypeID::DOUBLE:
+            return proto::PhysicalTypeID::DOUBLE;
+        case proto::LogicalTypeID::DECIMAL:
+            if (type.width() <= Decimal::MAX_WIDTH_INT16) {
+                return proto::PhysicalTypeID::INT16;
+            } else if (type.width() <= Decimal::MAX_WIDTH_INT32) {
+                return proto::PhysicalTypeID::INT32;
+            } else if (type.width() <= Decimal::MAX_WIDTH_INT64) {
+                return proto::PhysicalTypeID::INT64;
+            } else if (type.width() <= Decimal::MAX_WIDTH_INT128) {
+                return proto::PhysicalTypeID::INT128;
+            } else {
+                throw Exception(ExceptionType::NOT_IMPLEMENTED, "Widths bigger than 38 are not supported");
+            }
+        case proto::LogicalTypeID::VARCHAR:
+        case proto::LogicalTypeID::CHAR:
+        case proto::LogicalTypeID::BLOB:
+            return proto::PhysicalTypeID::VARCHAR;
+        case proto::LogicalTypeID::VARBINARY:
+            return proto::PhysicalTypeID::VARBINARY;
+        case proto::LogicalTypeID::STRUCT:
+            return proto::PhysicalTypeID::STRUCT;
+        case proto::LogicalTypeID::LIST:
+            return proto::PhysicalTypeID::LIST;
+        case proto::LogicalTypeID::ANY:
+        case proto::LogicalTypeID::INVALID:
+        case proto::LogicalTypeID::UNKNOWN:
+            return proto::PhysicalTypeID::INVALID;
+        default:
+            throw ExceptionBuilder{ExceptionType::CONVERSION} << "Invalid LogicalType " << toString(type.type_id())
+                                                              << EOE;
     }
 }
 
 const char *LogicalType::toString(proto::LogicalTypeID id) {
     switch (id) {
-    case proto::LogicalTypeID::BOOLEAN:
-        return "BOOLEAN";
-    case proto::LogicalTypeID::TINYINT:
-        return "TINYINT";
-    case proto::LogicalTypeID::SMALLINT:
-        return "SMALLINT";
-    case proto::LogicalTypeID::INTEGER:
-        return "INTEGER";
-    case proto::LogicalTypeID::BIGINT:
-        return "BIGINT";
-    case proto::LogicalTypeID::DATE:
-        return "DATE";
-    case proto::LogicalTypeID::TIME:
-        return "TIME";
-    case proto::LogicalTypeID::TIMESTAMP:
-        return "TIMESTAMP";
-    case proto::LogicalTypeID::FLOAT:
-        return "FLOAT";
-    case proto::LogicalTypeID::DOUBLE:
-        return "DOUBLE";
-    case proto::LogicalTypeID::DECIMAL:
-        return "DECIMAL";
-    case proto::LogicalTypeID::VARCHAR:
-        return "VARCHAR";
-    case proto::LogicalTypeID::BLOB:
-        return "BLOB";
-    case proto::LogicalTypeID::VARBINARY:
-        return "VARBINARY";
-    case proto::LogicalTypeID::CHAR:
-        return "CHAR";
-    case proto::LogicalTypeID::SQLNULL:
-        return "NULL";
-    case proto::LogicalTypeID::ANY:
-        return "ANY";
-    case proto::LogicalTypeID::STRUCT:
-        return "STRUCT<?>";
-    case proto::LogicalTypeID::LIST:
-        return "LIST<?>";
-    case proto::LogicalTypeID::INVALID:
-        return "INVALID";
-    case proto::LogicalTypeID::UNKNOWN:
-        return "UNKNOWN";
+        case proto::LogicalTypeID::BOOLEAN:
+            return "BOOLEAN";
+        case proto::LogicalTypeID::TINYINT:
+            return "TINYINT";
+        case proto::LogicalTypeID::SMALLINT:
+            return "SMALLINT";
+        case proto::LogicalTypeID::INTEGER:
+            return "INTEGER";
+        case proto::LogicalTypeID::BIGINT:
+            return "BIGINT";
+        case proto::LogicalTypeID::DATE:
+            return "DATE";
+        case proto::LogicalTypeID::TIME:
+            return "TIME";
+        case proto::LogicalTypeID::TIMESTAMP:
+            return "TIMESTAMP";
+        case proto::LogicalTypeID::FLOAT:
+            return "FLOAT";
+        case proto::LogicalTypeID::DOUBLE:
+            return "DOUBLE";
+        case proto::LogicalTypeID::DECIMAL:
+            return "DECIMAL";
+        case proto::LogicalTypeID::VARCHAR:
+            return "VARCHAR";
+        case proto::LogicalTypeID::BLOB:
+            return "BLOB";
+        case proto::LogicalTypeID::VARBINARY:
+            return "VARBINARY";
+        case proto::LogicalTypeID::CHAR:
+            return "CHAR";
+        case proto::LogicalTypeID::SQLNULL:
+            return "NULL";
+        case proto::LogicalTypeID::ANY:
+            return "ANY";
+        case proto::LogicalTypeID::STRUCT:
+            return "STRUCT<?>";
+        case proto::LogicalTypeID::LIST:
+            return "LIST<?>";
+        case proto::LogicalTypeID::INVALID:
+            return "INVALID";
+        case proto::LogicalTypeID::UNKNOWN:
+            return "UNKNOWN";
     }
     return "UNDEFINED";
 }
@@ -539,5 +534,5 @@ bool LogicalType::isInteger(proto::PhysicalTypeID type) {
            type == proto::PhysicalTypeID::INT128;
 }
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 

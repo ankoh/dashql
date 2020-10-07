@@ -1,21 +1,20 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include <iostream>
+
 #include "duckdb_webapi/api.h"
 #include "duckdb_webapi/proto/api_generated.h"
-
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/idl.h"
-#include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_sinks.h"
-
-#include <iostream>
+#include "spdlog/spdlog.h"
 
 namespace fb = flatbuffers;
 using namespace duckdb_webapi;
 
 static std::unique_ptr<WebAPI> instance;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     // Prepare the logger
     auto logSink = std::make_shared<spdlog::sinks::stderr_sink_st>();
     auto logger = std::make_shared<spdlog::logger>("console", logSink);
@@ -33,31 +32,25 @@ int main(int argc, char *argv[]) {
 extern "C" {
 
 /// Create a conn
-WebAPI::Connection *duckdb_webapi_connect() {
-    return &instance->connect();
-}
+WebAPI::Connection* duckdb_webapi_connect() { return &instance->connect(); }
 /// End a conn
-void duckdb_webapi_disconnect(WebAPI::Connection *conn) {
-    instance->disconnect(conn);
-}
+void duckdb_webapi_disconnect(WebAPI::Connection* conn) { instance->disconnect(conn); }
 
 /// Release a buffer
-void duckdb_webapi_register_buffer(WebAPI::Connection *conn, void* buffer, unsigned buffer_length) {
+void duckdb_webapi_register_buffer(WebAPI::Connection* conn, void* buffer, unsigned buffer_length) {
     conn->getContext().registerBuffer(nonstd::span{static_cast<std::byte*>(buffer), static_cast<long>(buffer_length)});
 }
 /// Release a buffer
-void duckdb_webapi_release_buffer(WebAPI::Connection *conn, void* buffer) {
-    conn->getContext().releaseBuffer(buffer);
-}
+void duckdb_webapi_release_buffer(WebAPI::Connection* conn, void* buffer) { conn->getContext().releaseBuffer(buffer); }
 
 /// Run a query
-void duckdb_webapi_run_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char *text) {
+void duckdb_webapi_run_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char* text) {
     auto result = conn->runQuery(text);
     conn->getContext().respond(move(result), *packed);
 }
 
 /// Send a query
-void duckdb_webapi_send_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char *text) {
+void duckdb_webapi_send_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char* text) {
     auto result = conn->sendQuery(text);
     conn->getContext().respond(move(result), *packed);
 }
@@ -69,7 +62,7 @@ void duckdb_webapi_fetch_query_results(WebAPI::Response* packed, WebAPI::Connect
 }
 
 /// Analyze a query
-void duckdb_webapi_analyze_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char *text) {
+void duckdb_webapi_analyze_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char* text) {
     auto result = conn->analyzeQuery(text);
     conn->getContext().respond(move(result), *packed);
 }
@@ -78,5 +71,4 @@ void duckdb_webapi_analyze_query(WebAPI::Response* packed, WebAPI::Connection* c
 void duckdb_webapi_generate_table(WebAPI::Response* response, WebAPI::Connection* conn, void* spec, uint32_t size) {
     // XXX
 }
-
 }

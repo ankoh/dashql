@@ -19,7 +19,7 @@ using timestamp_t = int64_t;
 /// Implementation adopted from DuckDB and migrated to the flatbuffer schema.
 /// We deliberately omitted the types: hash, pointer, struct.
 class Value {
-  protected:
+   protected:
     /// The logical type of the value
     proto::LogicalType logicalType = proto::LogicalType{proto::LogicalTypeID::INVALID, 0, 0};
     /// Whether or not the value is NULL
@@ -37,10 +37,10 @@ class Value {
     /// The value of the object, if it is of a variable size type
     string strValue;
 
-  public:
+   public:
     /// Create an empty NULL value of the specified type
     Value(proto::LogicalType type = {proto::LogicalTypeID::SQLNULL, 0, 0})
-        : logicalType(type), null(true) {} /// Create a BIGINT value
+        : logicalType(type), null(true) {}  /// Create a BIGINT value
     /// Create an INTEGER value
     Value(int32_t val) : logicalType(proto::LogicalTypeID::INTEGER, 0, 0), null(false) { value.integerValue = val; }
     /// Create a BIGINT value
@@ -55,7 +55,7 @@ class Value {
     Value(string val);
 
     /// Get the logical type
-    auto& getLogicalType() const { return logicalType; }
+    auto &getLogicalType() const { return logicalType; }
     /// Is value null?
     auto isNull() const { return null; }
     /// Get inner value
@@ -193,6 +193,6 @@ struct ValueOps {
     static hash_t Hash(const Value &left);
 };
 
-} // namespace duckdb_webapi
+}  // namespace duckdb_webapi
 
-#endif // INCLUDE_DUCKDB_WEBAPI_VALUE_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_VALUE_H_
