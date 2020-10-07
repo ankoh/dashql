@@ -48,7 +48,7 @@ template <> ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(const c
 template <> ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(char *value);
 
 /// Inline exception message
-static inline auto emsg() { return std::stringstream{}; }
+static inline std::stringstream emsg() { return std::stringstream{}; }
 
 /// An exception
 class Exception : public std::exception {
