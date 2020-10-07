@@ -4,16 +4,11 @@
 #define INCLUDE_DUCKDB_WEBAPI_VALUE_H_
 
 #include "duckdb_webapi/api.h"
-#include "duckdb_webapi/common/expected.h"
-#include "duckdb_webapi/common/types/date.h"
-#include "duckdb_webapi/common/types/time.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
 #include "duckdb_webapi/proto/value_generated.h"
+#include "duckdb_webapi/types.h"
 
 namespace duckdb_webapi {
-
-using hash_t = uint64_t;
-using timestamp_t = int64_t;
 
 /// SQL Value.
 /// Implementation adopted from DuckDB and migrated to the flatbuffer schema.
@@ -164,35 +159,6 @@ template <> std::string Value::GetValue() const;
 template <> float Value::GetValue() const;
 template <> double Value::GetValue() const;
 
-struct ValueOps {
-    // A + B
-    static Value Add(const Value &left, const Value &right);
-    // A - B
-    static Value Subtract(const Value &left, const Value &right);
-    // A * B
-    static Value Multiply(const Value &left, const Value &right);
-    // A / B
-    static Value Divide(const Value &left, const Value &right);
-    // A % B
-    static Value Modulo(const Value &left, const Value &right);
-
-    // A == B
-    static bool Equals(const Value &left, const Value &right);
-    // A != B
-    static bool NotEquals(const Value &left, const Value &right);
-    // A > B
-    static bool GreaterThan(const Value &left, const Value &right);
-    // A >= B
-    static bool GreaterThanEquals(const Value &left, const Value &right);
-    // A < B
-    static bool LessThan(const Value &left, const Value &right);
-    // A <= B
-    static bool LessThanEquals(const Value &left, const Value &right);
-
-    // result = HASH(A)
-    static hash_t Hash(const Value &left);
-};
-
 }  // namespace duckdb_webapi
 
-#endif  // INCLUDE_DUCKDB_WEBAPI_VALUE_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_VALUE_VALUE_H_

@@ -4,9 +4,11 @@
 
 #include "duckdb_webapi/codec.h"
 #include "duckdb_webapi/common/exception.h"
-#include "duckdb_webapi/common/types/date.h"
-#include "duckdb_webapi/common/types/hugeint.h"
-#include "duckdb_webapi/common/types/timestamp.h"
+
+#include "duckdb/common/types.hpp"
+#include "duckdb/common/types/date.hpp"
+#include "duckdb/common/types/time.hpp"
+#include "duckdb/common/types/timestamp.hpp"
 
 namespace duckdb_webapi {
 
@@ -45,7 +47,7 @@ Value Value::BIGINT(int64_t value) {
     return result;
 }
 
-Value Value::DATE(date_t value) {
+Value Value::DATE(duckdb::date_t value) {
     Value result{LogicalType::Get(proto::LogicalTypeID::DATE)};
     result.value.integerValue = value;
     result.null = false;
@@ -54,7 +56,7 @@ Value Value::DATE(date_t value) {
 
 Value Value::DATE(int32_t year, int32_t month, int32_t day) {
     Value result{LogicalType::Get(proto::LogicalTypeID::DATE)};
-    result.value.integerValue = Date::FromDate(year, month, day);
+    result.value.integerValue = duckdb::Date::FromDate(year, month, day);
     result.null = false;
     return result;
 }
@@ -67,11 +69,11 @@ Value Value::TIME(dtime_t time) {
 }
 
 Value Value::TIME(int32_t hour, int32_t min, int32_t sec, int32_t msec) {
-    return Value::TIME(Time::FromTime(hour, min, sec, msec));
+    return Value::TIME(duckdb::Time::FromTime(hour, min, sec, msec));
 }
 
 Value Value::TIMESTAMP(date_t date, dtime_t time) {
-    auto val = Value::BIGINT(Timestamp::FromDateTime(date, time));
+    auto val = Value::BIGINT(duckdb::Timestamp::FromDatetime(date, time));
     val.logicalType = LogicalType::Get(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }
@@ -83,7 +85,7 @@ Value Value::TIMESTAMP(timestamp_t timestamp) {
 }
 
 Value Value::TIMESTAMP(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min, int32_t sec, int32_t msec) {
-    auto val = Value::TIMESTAMP(Date::FromDate(year, month, day), Time::FromTime(hour, min, sec, msec));
+    auto val = Value::TIMESTAMP(duckdb::Date::FromDate(year, month, day), duckdb::Time::FromTime(hour, min, sec, msec));
     val.logicalType = LogicalType::Get(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }

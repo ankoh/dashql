@@ -3,11 +3,11 @@
 #include "duckdb_webapi/codec.h"
 
 #include "duckdb/common/vector_operations/unary_executor.hpp"
+#include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/planner/logical_operator.hpp"
 #include "duckdb_webapi/common/exception.h"
-#include "duckdb_webapi/common/types/decimal.h"
-#include "duckdb_webapi/common/types/hugeint.h"
+#include "duckdb_webapi/types.h"
 
 namespace fb = flatbuffers;
 
@@ -438,17 +438,7 @@ proto::PhysicalTypeID LogicalType::GetPhysicalType(proto::LogicalType &type) {
         case proto::LogicalTypeID::DOUBLE:
             return proto::PhysicalTypeID::DOUBLE;
         case proto::LogicalTypeID::DECIMAL:
-            if (type.width() <= Decimal::MAX_WIDTH_INT16) {
-                return proto::PhysicalTypeID::INT16;
-            } else if (type.width() <= Decimal::MAX_WIDTH_INT32) {
-                return proto::PhysicalTypeID::INT32;
-            } else if (type.width() <= Decimal::MAX_WIDTH_INT64) {
-                return proto::PhysicalTypeID::INT64;
-            } else if (type.width() <= Decimal::MAX_WIDTH_INT128) {
-                return proto::PhysicalTypeID::INT128;
-            } else {
-                throw Exception(ET::NOT_IMPLEMENTED, "Widths bigger than 38 are not supported");
-            }
+            throw Exception(ET::NOT_IMPLEMENTED, "Decimals not implemented yet");
         case proto::LogicalTypeID::VARCHAR:
         case proto::LogicalTypeID::CHAR:
         case proto::LogicalTypeID::BLOB:
