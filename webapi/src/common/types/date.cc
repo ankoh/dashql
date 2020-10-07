@@ -33,13 +33,10 @@ static int CUMLEAPDAYS[13] = {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 
 int leapyears(int year) {
     /* count the 4-fold years that passed since jan-1-0 */
     int y4 = year / 4;
-
     /* count the 100-fold years */
     int y100 = year / 100;
-
     /* count the 400-fold years */
     int y400 = year / 400;
-
     return y4 + y400 - y100 + (year >= 0); /* may be negative */
 }
 
@@ -87,16 +84,13 @@ date_t Date::FromDate(int32_t year, int32_t month, int32_t day) {
         throw ExceptionBuilder{ExceptionType::CONVERSION} << "Date out of range: " << year << "-" << month << "-" << day
                                                           << EOE;
     }
-
     if (year < 0) year++;
     n = (int32_t)(day - 1);
-    if (month > 2 && leapyear(year)) {
+    if (month > 2 && leapyear(year))
         n++;
-    }
     n += CUMDAYS[month - 1];
     /* current year does not count as leapyear */
     n += 365 * year + leapyears(year >= 0 ? year - 1 : year);
-
     return n;
 }
 

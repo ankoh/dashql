@@ -16,7 +16,6 @@ dtime_t Time::FromTime(int hour, int min, int sec, int msec) {
 
 std::tuple<int32_t, int32_t, int32_t, int32_t> Time::ToTime(dtime_t n) {
     int h, m, s, ms;
-
     h = n / 3600000;
     n -= h * 3600000;
     m = n / 60000;
@@ -24,7 +23,6 @@ std::tuple<int32_t, int32_t, int32_t, int32_t> Time::ToTime(dtime_t n) {
     s = n / 1000;
     n -= s * 1000;
     ms = n;
-
     return {h, m, s, ms};
 }
 
