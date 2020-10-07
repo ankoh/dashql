@@ -12,9 +12,9 @@ using dtime_t = int32_t;
 
 struct Time {
     /// Convert time to number
-    static dtime_t fromTime(int32_t hour, int32_t min, int32_t sec, int32_t msec);
+    static dtime_t FromTime(int32_t hour, int32_t min, int32_t sec, int32_t msec);
     /// Convert number to time
-    static std::tuple<int32_t, int32_t, int32_t, int32_t> toTime(dtime_t n);
+    static std::tuple<int32_t, int32_t, int32_t, int32_t> ToTime(dtime_t n);
 };
 
 } // namespace duckdb_webapi

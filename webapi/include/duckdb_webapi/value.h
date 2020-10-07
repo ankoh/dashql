@@ -17,7 +17,7 @@ using timestamp_t = int64_t;
 
 /// SQL Value.
 /// Implementation adopted from DuckDB and migrated to the flatbuffer schema.
-/// We deliberately omitted the types: hash, pointer, struct and list so far.
+/// We deliberately omitted the types: hash, pointer, struct.
 class Value {
   protected:
     /// The logical type of the value

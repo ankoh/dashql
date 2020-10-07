@@ -4,6 +4,7 @@
 #include "duckdb_webapi/codec.h"
 #include "duckdb_webapi/common/exception.h"
 #include "duckdb_webapi/common/types/date.h"
+#include "duckdb_webapi/common/types/hugeint.h"
 #include "duckdb_webapi/common/types/timestamp.h"
 
 namespace duckdb_webapi {
@@ -65,7 +66,7 @@ Value Value::TIME(dtime_t time) {
 }
 
 Value Value::TIME(int32_t hour, int32_t min, int32_t sec, int32_t msec) {
-    return Value::TIME(Time::fromTime(hour, min, sec, msec));
+    return Value::TIME(Time::FromTime(hour, min, sec, msec));
 }
 
 Value Value::TIMESTAMP(date_t date, dtime_t time) {
@@ -81,7 +82,7 @@ Value Value::TIMESTAMP(timestamp_t timestamp) {
 }
 
 Value Value::TIMESTAMP(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min, int32_t sec, int32_t msec) {
-    auto val = Value::TIMESTAMP(Date::fromDate(year, month, day), Time::fromTime(hour, min, sec, msec));
+    auto val = Value::TIMESTAMP(Date::fromDate(year, month, day), Time::FromTime(hour, min, sec, msec));
     val.logicalType = LogicalType::create(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }
@@ -110,5 +111,37 @@ template <> Value Value::createValue(std::string value) { return Value(value); }
 template <> Value Value::createValue(float value) { return Value::FLOAT(value); }
 template <> Value Value::createValue(double value) { return Value::DOUBLE(value); }
 template <> Value Value::createValue(Value value) { return value; }
+
+namespace {
+
+template <class OP> static Value templated_binary_operation(const Value &left, const Value &right) {
+    auto leftType = left.getLogicalType();
+    auto rightType = right.getLogicalType();
+    auto resultType = leftType;
+    if (leftType != rightType) {
+        resultType = LogicalType::maxType(left.getLogicalType(), right.getLogicalType());
+        Value left_cast = left.castAs(resultType);
+        Value right_cast = right.castAs(resultType);
+        return templated_binary_operation<OP>(left_cast, right_cast);
+    }
+    if (left.isNull() || right.isNull()) {
+        return Value().castAs(resultType);
+    }
+    if (LogicalType::isIntegral(LogicalType::getPhysicalType(resultType))) {
+        // integer addition
+        return Value::NUMERIC(resultType, OP::template Operation<hugeint_t, hugeint_t, hugeint_t>(
+                                              left.getValue<hugeint_t>(), right.getValue<hugeint_t>()));
+    } else if (LogicalType::getPhysicalType(resultType) == proto::PhysicalTypeID::FLOAT) {
+        return Value::FLOAT(
+            OP::template Operation<float, float, float>(left.getValue<float>(), right.getValue<float>()));
+    } else if (LogicalType::getPhysicalType(resultType) == proto::PhysicalTypeID::DOUBLE) {
+        return Value::DOUBLE(
+            OP::template Operation<double, double, double>(left.getValue<double>(), right.getValue<double>()));
+    } else {
+        throw Exception{ExceptionType::NOT_IMPLEMENTED, "Unimplemented type for value binary op"};
+    }
+}
+
+} // namespace
 
 } // namespace duckdb_webapi

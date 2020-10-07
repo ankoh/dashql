@@ -25,13 +25,26 @@ flatbuffers::Offset<proto::QueryPlan> writeQueryPlan(flatbuffers::FlatBufferBuil
 
 /// A logical type
 struct LogicalType {
+    /// Create type
     static proto::LogicalType create();
+    /// Create type
     static proto::LogicalType create(proto::LogicalTypeID id);
+    /// Create type
     static proto::LogicalType create(proto::LogicalTypeID id, uint8_t width, uint8_t scale);
     /// Get the physical type
     static proto::PhysicalTypeID getPhysicalType(proto::LogicalType& type);
     /// Logical type to string
     static const char* toString(proto::LogicalTypeID typeID);
+    /// Get the maximum logical type
+    static proto::LogicalType maxType(proto::LogicalType left, proto::LogicalType right);
+    /// Is constant size type?
+    static bool isConstantSize(proto::PhysicalTypeID type);
+    /// Is integral type?
+    static bool isIntegral(proto::PhysicalTypeID type);
+    /// Is numeric type?
+    static bool isNumeric(proto::PhysicalTypeID type);
+    /// Is integer type?
+    static bool isInteger(proto::PhysicalTypeID type);
 };
 
 } // namespace duckdb_webapi

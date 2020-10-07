@@ -270,7 +270,7 @@ fb::Offset<proto::QueryResult> writeQueryResult(fb::FlatBufferBuilder &builder, 
         columnTypes = builder.CreateUninitializedVectorOfStructs<proto::LogicalType>(result.types.size(), &writer);
         for (size_t i = 0; i < result.types.size(); ++i) {
             auto t = result.types[i];
-            writer[i] = proto::LogicalType {
+            writer[i] = proto::LogicalType{
                 static_cast<proto::LogicalTypeID>(t.id()),
                 t.width(),
                 t.scale(),
@@ -442,7 +442,7 @@ proto::PhysicalTypeID LogicalType::getPhysicalType(proto::LogicalType &type) {
     }
 }
 
-const char* LogicalType::toString(proto::LogicalTypeID id) {
+const char *LogicalType::toString(proto::LogicalTypeID id) {
     switch (id) {
     case proto::LogicalTypeID::BOOLEAN:
         return "BOOLEAN";
@@ -488,6 +488,55 @@ const char* LogicalType::toString(proto::LogicalTypeID id) {
         return "UNKNOWN";
     }
     return "UNDEFINED";
+}
+
+/// Get the maximum logical type
+proto::LogicalType LogicalType::maxType(proto::LogicalType left, proto::LogicalType right) {
+    if (left.type_id() < right.type_id()) {
+        return right;
+    } else if (right.type_id() < left.type_id()) {
+        return left;
+    } else {
+        if (left.type_id() == proto::LogicalTypeID::VARCHAR) {
+            // XXX collations
+            return left;
+        } else if (left.type_id() == proto::LogicalTypeID::DECIMAL) {
+            // use max width/scale of the two types
+            return LogicalType::create(proto::LogicalTypeID::DECIMAL, std::max<uint8_t>(left.width(), right.width()),
+                                       std::max<uint8_t>(left.scale(), right.scale()));
+        } else {
+            // types are equal but no extra specifier: just return the type
+            // FIXME: LIST and STRUCT?
+            return left;
+        }
+    }
+}
+
+/// Is constant size type?
+bool LogicalType::isConstantSize(proto::PhysicalTypeID type) {
+    return (type >= proto::PhysicalTypeID::BOOL && type <= proto::PhysicalTypeID::DOUBLE) ||
+           (type >= proto::PhysicalTypeID::FIXED_SIZE_BINARY && type <= proto::PhysicalTypeID::INTERVAL) ||
+           type == proto::PhysicalTypeID::HASH || type == proto::PhysicalTypeID::POINTER ||
+           type == proto::PhysicalTypeID::INTERVAL || type == proto::PhysicalTypeID::INT128;
+}
+
+/// Is integral type?
+bool LogicalType::isIntegral(proto::PhysicalTypeID type) {
+    return (type >= proto::PhysicalTypeID::UINT8 && type <= proto::PhysicalTypeID::INT64) ||
+           type == proto::PhysicalTypeID::HASH || type == proto::PhysicalTypeID::POINTER ||
+           type == proto::PhysicalTypeID::INT128;
+}
+
+/// Is numeric type?
+bool LogicalType::isNumeric(proto::PhysicalTypeID type) {
+    return (type >= proto::PhysicalTypeID::UINT8 && type <= proto::PhysicalTypeID::DOUBLE) ||
+           type == proto::PhysicalTypeID::INT128;
+}
+
+/// Is numeric type?
+bool LogicalType::isInteger(proto::PhysicalTypeID type) {
+    return (type >= proto::PhysicalTypeID::UINT8 && type <= proto::PhysicalTypeID::INT64) ||
+           type == proto::PhysicalTypeID::INT128;
 }
 
 } // namespace duckdb_webapi

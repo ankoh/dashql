@@ -60,6 +60,7 @@ add_library(duckdb_webapi_core
     ${CMAKE_SOURCE_DIR}/src/json.cc
     ${CMAKE_SOURCE_DIR}/src/tablegen.cc
     ${CMAKE_SOURCE_DIR}/src/common/types/date.cc
+    ${CMAKE_SOURCE_DIR}/src/common/types/hugeint.cc
     ${CMAKE_SOURCE_DIR}/src/common/types/time.cc
     ${CMAKE_SOURCE_DIR}/src/common/exception.cc
     ${CMAKE_SOURCE_DIR}/src/value.cc

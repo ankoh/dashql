@@ -15,6 +15,7 @@ enum class ExceptionType {
     UNSPECIFIED = 0,
     CONVERSION = 1,
     NOT_IMPLEMENTED = 2,
+    OUT_OF_RANGE = 3,
 };
 
 /// End-of-exception tag
