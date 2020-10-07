@@ -6,13 +6,13 @@
 namespace duckdb_webapi {
 
 /// Constructor
-Exception::Exception(std::string m) : std::exception(), type(ExceptionType::INVALID), message(move(m)) {}
+Exception::Exception(std::string m) : std::exception(), type(ExceptionType::UNSPECIFIED), message(move(m)) {}
 /// Constructor
 Exception::Exception(ExceptionType t, std::string m) : std::exception(), type(t) {
     auto prefix = [](ExceptionType t) {
         switch (t) {
-        case ExceptionType::INVALID:
-            return "Invalid";
+        case ExceptionType::UNSPECIFIED:
+            return "Unspecified";
         case ExceptionType::CONVERSION:
             return "Conversion";
         case ExceptionType::NOT_IMPLEMENTED:
@@ -25,10 +25,5 @@ Exception::Exception(ExceptionType t, std::string m) : std::exception(), type(t)
 }
 /// Get exception message
 const char *Exception::what() const noexcept { return message.c_str(); }
-
-/// Conversion exception
-ConversionException::ConversionException(std::string m) : Exception(ExceptionType::CONVERSION, move(m)) {}
-/// Not implemented exception
-NotImplementedException::NotImplementedException(std::string m) : Exception(ExceptionType::NOT_IMPLEMENTED, move(m)) {}
 
 } // namespace duckdb_webapi

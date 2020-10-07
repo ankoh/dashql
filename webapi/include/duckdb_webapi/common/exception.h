@@ -12,43 +12,15 @@ namespace duckdb_webapi {
 
 /// An exception type
 enum class ExceptionType {
-    INVALID = 0,
+    UNSPECIFIED = 0,
     CONVERSION = 1,
     NOT_IMPLEMENTED = 2,
 };
 
-/// An exception format value type
-enum class ExceptionFormatValueType : uint8_t {
-    FORMAT_VALUE_TYPE_DOUBLE,
-    FORMAT_VALUE_TYPE_INTEGER,
-    FORMAT_VALUE_TYPE_STRING
+/// End-of-exception tag
+enum EOETag {
+    EOE
 };
-
-/// An exception format value
-struct ExceptionFormatValue {
-    ExceptionFormatValue(double dbl_val) : type(ExceptionFormatValueType::FORMAT_VALUE_TYPE_DOUBLE), dbl_val(dbl_val) {}
-    ExceptionFormatValue(int64_t int_val)
-        : type(ExceptionFormatValueType::FORMAT_VALUE_TYPE_INTEGER), int_val(int_val) {}
-    ExceptionFormatValue(std::string str_val)
-        : type(ExceptionFormatValueType::FORMAT_VALUE_TYPE_STRING), str_val(str_val) {}
-
-    ExceptionFormatValueType type;
-
-    double dbl_val;
-    int64_t int_val;
-    std::string str_val;
-
-    template <class T> static ExceptionFormatValue CreateFormatValue(T value) { return int64_t(value); }
-};
-
-template <> ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(float value);
-template <> ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(double value);
-template <> ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(std::string value);
-template <> ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(const char *value);
-template <> ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(char *value);
-
-/// Inline exception message
-static inline std::stringstream emsg() { return std::stringstream{}; }
 
 /// An exception
 class Exception : public std::exception {
@@ -67,22 +39,23 @@ class Exception : public std::exception {
     const char *what() const noexcept override;
 };
 
-/// A conversion exception
-struct ConversionException : public Exception {
+/// An exception message builder
+struct ExceptionBuilder {
+    /// The exception type
+    ExceptionType type;
+    /// The stringstream
+    std::stringstream message;
     /// Constructor
-    ConversionException(std::string message);
+    ExceptionBuilder(ExceptionType t = ExceptionType::UNSPECIFIED) : type(t), message() {}
     /// Constructor
-    ConversionException(std::stringstream message)
-        : ConversionException(message.str()) {}
-};
-
-/// A not-implemented exception
-struct NotImplementedException : public Exception {
-    /// Constructor
-    NotImplementedException(std::string message);
-    /// Constructor
-    NotImplementedException(std::stringstream message)
-        : NotImplementedException(message.str()) {}
+    ExceptionBuilder(const ExceptionBuilder& other) : type(other.type), message(other.message.str()) {}
+    /// Stream operator
+    template <typename V> 
+    ExceptionBuilder& operator<<(const V& v) { message << v; return *this; }
+    /// Stream operator
+    Exception operator<<(EOETag) { return Exception{type, message.str()}; }
+    /// Get the string
+    std::string str() { return message.str(); }
 };
 
 } // namespace duckdb_webapi

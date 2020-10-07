@@ -421,7 +421,7 @@ proto::PhysicalTypeID LogicalType::getPhysicalType(proto::LogicalType &type) {
         } else if (type.width() <= Decimal::MAX_WIDTH_INT128) {
             return proto::PhysicalTypeID::INT128;
         } else {
-            throw NotImplementedException("Widths bigger than 38 are not supported");
+            throw Exception(ExceptionType::NOT_IMPLEMENTED, "Widths bigger than 38 are not supported");
         }
     case proto::LogicalTypeID::VARCHAR:
     case proto::LogicalTypeID::CHAR:
@@ -438,7 +438,7 @@ proto::PhysicalTypeID LogicalType::getPhysicalType(proto::LogicalType &type) {
     case proto::LogicalTypeID::UNKNOWN:
         return proto::PhysicalTypeID::INVALID;
     default:
-        throw ConversionException(emsg() << "Invalid LogicalType " << toString(type.type_id()));
+        throw ExceptionBuilder{ExceptionType::CONVERSION} << "Invalid LogicalType " << toString(type.type_id()) << EOE;
     }
 }
 

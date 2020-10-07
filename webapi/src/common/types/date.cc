@@ -82,7 +82,7 @@ std::tuple<int32_t, int32_t, int32_t> Date::toDate(int32_t n) {
 date_t Date::fromDate(int32_t year, int32_t month, int32_t day) {
     int32_t n = 0;
     if (!(DD_DATE(day, month, year))) {
-        throw ConversionException(emsg() << "Date out of range: " << year << "-" << month << "-" << day);
+        throw ExceptionBuilder{ExceptionType::CONVERSION} << "Date out of range: " << year << "-" << month << "-" << day << EOE;
     }
 
     if (year < 0)
