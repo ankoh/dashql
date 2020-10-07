@@ -25,7 +25,7 @@ struct hugeint_t {
     hugeint_t &operator=(const hugeint_t &rhs) = default;
     hugeint_t &operator=(hugeint_t &&rhs) = default;
 
-    std::string toString() const;
+    std::string ToString() const;
 
     // comparison operators
     bool operator==(const hugeint_t &rhs) const;
@@ -72,7 +72,7 @@ class Hugeint {
     //! Convert a string to a hugeint object
     static bool FromCString(const char *str, size_t len, hugeint_t &result);
     //! Convert a hugeint object to a string
-    static std::string toString(hugeint_t input);
+    static std::string ToString(hugeint_t input);
 
     static hugeint_t FromString(std::string str) {
         hugeint_t result;
@@ -80,11 +80,11 @@ class Hugeint {
         return result;
     }
 
-    template <class T> static bool tryCast(hugeint_t input, T &result);
+    template <class T> static bool TryCast(hugeint_t input, T &result);
 
     template <class T> static T Cast(hugeint_t input) {
         T value;
-        tryCast(input, value);
+        TryCast(input, value);
         return value;
     }
 
@@ -155,13 +155,13 @@ class Hugeint {
     static hugeint_t PowersOfTen[40];
 };
 
-template <> bool Hugeint::tryCast(hugeint_t input, int8_t &result);
-template <> bool Hugeint::tryCast(hugeint_t input, int16_t &result);
-template <> bool Hugeint::tryCast(hugeint_t input, int32_t &result);
-template <> bool Hugeint::tryCast(hugeint_t input, int64_t &result);
-template <> bool Hugeint::tryCast(hugeint_t input, hugeint_t &result);
-template <> bool Hugeint::tryCast(hugeint_t input, float &result);
-template <> bool Hugeint::tryCast(hugeint_t input, double &result);
+template <> bool Hugeint::TryCast(hugeint_t input, int8_t &result);
+template <> bool Hugeint::TryCast(hugeint_t input, int16_t &result);
+template <> bool Hugeint::TryCast(hugeint_t input, int32_t &result);
+template <> bool Hugeint::TryCast(hugeint_t input, int64_t &result);
+template <> bool Hugeint::TryCast(hugeint_t input, hugeint_t &result);
+template <> bool Hugeint::TryCast(hugeint_t input, float &result);
+template <> bool Hugeint::TryCast(hugeint_t input, double &result);
 
 template <> hugeint_t Hugeint::Convert(int8_t value);
 template <> hugeint_t Hugeint::Convert(int16_t value);

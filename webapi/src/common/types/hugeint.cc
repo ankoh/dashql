@@ -51,7 +51,7 @@ hugeint_t Hugeint::PowersOfTen[]{hugeint_t(1),
                                  hugeint_t(1000000000000000000) * hugeint_t(1000000000000000000) * hugeint_t(10),
                                  hugeint_t(1000000000000000000) * hugeint_t(1000000000000000000) * hugeint_t(100)};
 
-static uint8_t positive_hugeint_highest_bit(hugeint_t bits) {
+static uint8_t positiveHugeintHighestBit(hugeint_t bits) {
     uint8_t out = 0;
     if (bits.upper) {
         out = 64;
@@ -70,7 +70,7 @@ static uint8_t positive_hugeint_highest_bit(hugeint_t bits) {
     return out;
 }
 
-static bool positive_hugeint_is_bit_set(hugeint_t lhs, uint8_t bit_position) {
+static bool positiveHugeintIsBitSet(hugeint_t lhs, uint8_t bit_position) {
     if (bit_position < 64) {
         return lhs.lower & (uint64_t(1) << uint64_t(bit_position));
     } else {
@@ -78,7 +78,7 @@ static bool positive_hugeint_is_bit_set(hugeint_t lhs, uint8_t bit_position) {
     }
 }
 
-hugeint_t positive_hugeint_leftshift(hugeint_t lhs, uint32_t amount) {
+static hugeint_t positiveHugeintLeftShift(hugeint_t lhs, uint32_t amount) {
     assert(amount > 0 && amount < 64);
     hugeint_t result;
     result.lower = lhs.lower << amount;
@@ -97,14 +97,14 @@ hugeint_t Hugeint::DivModPositive(hugeint_t lhs, uint64_t rhs, uint64_t &remaind
     div_result.upper = 0;
     remainder = 0;
 
-    uint8_t highest_bit_set = positive_hugeint_highest_bit(lhs);
+    uint8_t highest_bit_set = positiveHugeintHighestBit(lhs);
     // now iterate over the amount of bits that are set in the LHS
     for (uint8_t x = highest_bit_set; x > 0; x--) {
         // left-shift the current result and remainder by 1
-        div_result = positive_hugeint_leftshift(div_result, 1);
+        div_result = positiveHugeintLeftShift(div_result, 1);
         remainder <<= 1;
         // we get the value of the bit at position X, where position 0 is the least-significant bit
-        if (positive_hugeint_is_bit_set(lhs, x - 1)) {
+        if (positiveHugeintIsBitSet(lhs, x - 1)) {
             // increment the remainder
             remainder++;
         }
@@ -121,7 +121,7 @@ hugeint_t Hugeint::DivModPositive(hugeint_t lhs, uint64_t rhs, uint64_t &remaind
     return div_result;
 }
 
-std::string Hugeint::toString(hugeint_t input) {
+std::string Hugeint::ToString(hugeint_t input) {
     uint64_t remainder;
     std::string result;
     bool negative = input.upper < 0;
@@ -240,15 +240,15 @@ hugeint_t Hugeint::DivMod(hugeint_t lhs, hugeint_t rhs, hugeint_t &remainder) {
     remainder.lower = 0;
     remainder.upper = 0;
 
-    uint8_t highest_bit_set = positive_hugeint_highest_bit(lhs);
+    uint8_t highest_bit_set = positiveHugeintHighestBit(lhs);
     // now iterate over the amount of bits that are set in the LHS
     for (uint8_t x = highest_bit_set; x > 0; x--) {
         // left-shift the current result and remainder by 1
-        div_result = positive_hugeint_leftshift(div_result, 1);
-        remainder = positive_hugeint_leftshift(remainder, 1);
+        div_result = positiveHugeintLeftShift(div_result, 1);
+        remainder = positiveHugeintLeftShift(remainder, 1);
 
         // we get the value of the bit at position X, where position 0 is the least-significant bit
-        if (positive_hugeint_is_bit_set(lhs, x - 1)) {
+        if (positiveHugeintIsBitSet(lhs, x - 1)) {
             // increment the remainder
             Hugeint::AddInPlace(remainder, 1);
         }
@@ -335,7 +335,7 @@ hugeint_t Hugeint::Subtract(hugeint_t lhs, hugeint_t rhs) {
     return lhs;
 }
 
-template <class DST> bool hugeint_try_cast_integer(hugeint_t input, DST &result) {
+template <class DST> bool hugeintTryCastInteger(hugeint_t input, DST &result) {
     switch (input.upper) {
         case 0:
             // positive number: check if the positive number is in range
@@ -357,35 +357,35 @@ template <class DST> bool hugeint_try_cast_integer(hugeint_t input, DST &result)
     return false;
 }
 
-template <> bool Hugeint::tryCast(hugeint_t input, int8_t &result) {
-    return hugeint_try_cast_integer<int8_t>(input, result);
+template <> bool Hugeint::TryCast(hugeint_t input, int8_t &result) {
+    return hugeintTryCastInteger<int8_t>(input, result);
 }
 
-template <> bool Hugeint::tryCast(hugeint_t input, int16_t &result) {
-    return hugeint_try_cast_integer<int16_t>(input, result);
+template <> bool Hugeint::TryCast(hugeint_t input, int16_t &result) {
+    return hugeintTryCastInteger<int16_t>(input, result);
 }
 
-template <> bool Hugeint::tryCast(hugeint_t input, int32_t &result) {
-    return hugeint_try_cast_integer<int32_t>(input, result);
+template <> bool Hugeint::TryCast(hugeint_t input, int32_t &result) {
+    return hugeintTryCastInteger<int32_t>(input, result);
 }
 
-template <> bool Hugeint::tryCast(hugeint_t input, int64_t &result) {
-    return hugeint_try_cast_integer<int64_t>(input, result);
+template <> bool Hugeint::TryCast(hugeint_t input, int64_t &result) {
+    return hugeintTryCastInteger<int64_t>(input, result);
 }
 
-template <> bool Hugeint::tryCast(hugeint_t input, hugeint_t &result) {
+template <> bool Hugeint::TryCast(hugeint_t input, hugeint_t &result) {
     result = input;
     return true;
 }
 
-template <> bool Hugeint::tryCast(hugeint_t input, float &result) {
+template <> bool Hugeint::TryCast(hugeint_t input, float &result) {
     double dbl_result;
-    Hugeint::tryCast(input, dbl_result);
+    Hugeint::TryCast(input, dbl_result);
     result = (float)dbl_result;
     return true;
 }
 
-template <> bool Hugeint::tryCast(hugeint_t input, double &result) {
+template <> bool Hugeint::TryCast(hugeint_t input, double &result) {
     switch (input.upper) {
         case -1:
             // special case for upper = -1 to avoid rounding issues in small negative numbers
@@ -398,17 +398,17 @@ template <> bool Hugeint::tryCast(hugeint_t input, double &result) {
     return true;
 }
 
-template <class DST> hugeint_t hugeint_convert_integer(DST input) {
+template <class DST> hugeint_t hugeintConvertInteger(DST input) {
     hugeint_t result;
     result.lower = (uint64_t)input;
     result.upper = (input < 0) * -1;
     return result;
 }
 
-template <> hugeint_t Hugeint::Convert(int8_t value) { return hugeint_convert_integer<int8_t>(value); }
-template <> hugeint_t Hugeint::Convert(int16_t value) { return hugeint_convert_integer<int16_t>(value); }
-template <> hugeint_t Hugeint::Convert(int32_t value) { return hugeint_convert_integer<int32_t>(value); }
-template <> hugeint_t Hugeint::Convert(int64_t value) { return hugeint_convert_integer<int64_t>(value); }
+template <> hugeint_t Hugeint::Convert(int8_t value) { return hugeintConvertInteger<int8_t>(value); }
+template <> hugeint_t Hugeint::Convert(int16_t value) { return hugeintConvertInteger<int16_t>(value); }
+template <> hugeint_t Hugeint::Convert(int32_t value) { return hugeintConvertInteger<int32_t>(value); }
+template <> hugeint_t Hugeint::Convert(int64_t value) { return hugeintConvertInteger<int64_t>(value); }
 template <> hugeint_t Hugeint::Convert(float value) { return Hugeint::Convert<double>(value); }
 
 template <> hugeint_t Hugeint::Convert(double value) {
@@ -570,6 +570,6 @@ hugeint_t &hugeint_t::operator^=(const hugeint_t &rhs) {
     return *this;
 }
 
-std::string hugeint_t::toString() const { return Hugeint::toString(*this); }
+std::string hugeint_t::ToString() const { return Hugeint::ToString(*this); }
 
 }  // namespace duckdb_webapi
