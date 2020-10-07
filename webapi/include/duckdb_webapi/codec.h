@@ -12,17 +12,17 @@
 namespace duckdb_webapi {
 
 /// Map an operator type
-proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type);
+proto::LogicalOperatorType MapOperatorType(duckdb::LogicalOperatorType type);
 
 /// Write the query result
-flatbuffers::Offset<proto::QueryResult> writeQueryResult(flatbuffers::FlatBufferBuilder& builder,
+flatbuffers::Offset<proto::QueryResult> WriteQueryResult(flatbuffers::FlatBufferBuilder& builder,
                                                          duckdb::QueryResult& result, uint64_t queryID);
 /// Write the query result chunk
-flatbuffers::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBufferBuilder& builder,
+flatbuffers::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder& builder,
                                                                    uint64_t queryID, duckdb::DataChunk* chunk,
                                                                    nonstd::span<duckdb::LogicalType> types);
 /// Write the query plan
-flatbuffers::Offset<proto::QueryPlan> writeQueryPlan(flatbuffers::FlatBufferBuilder& builder,
+flatbuffers::Offset<proto::QueryPlan> WriteQueryPlan(flatbuffers::FlatBufferBuilder& builder,
                                                      duckdb::LogicalOperator& plan);
 
 /// A logical type

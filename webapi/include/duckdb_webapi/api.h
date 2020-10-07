@@ -147,9 +147,9 @@ class WebAPI {
 
    protected:
     /// The (shared) database
-    std::shared_ptr<duckdb::DuckDB> database;
+    std::shared_ptr<duckdb::DuckDB> database_;
     /// The connections
-    std::unordered_map<Connection*, std::unique_ptr<Connection>> connections;
+    std::unordered_map<Connection*, std::unique_ptr<Connection>> connections_;
 
    public:
     /// Constructor
@@ -158,7 +158,7 @@ class WebAPI {
     /// Create a connection
     Connection& Connect();
     /// End a connection
-    void Disconnect(Connection* session);
+    void Disconnect(Connection* connection);
 };
 
 }  // namespace duckdb_webapi

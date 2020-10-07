@@ -185,7 +185,7 @@ static fb::Offset<proto::QueryResultColumn> writeStringCol(fb::FlatBufferBuilder
 }
 
 /// Write the query result chunk
-fb::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBufferBuilder &builder, uint64_t queryID,
+fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder &builder, uint64_t queryID,
                                                           duckdb::DataChunk *chunkPtr,
                                                           nonstd::span<duckdb::LogicalType> types) {
     duckdb::DataChunk tmp;
@@ -250,12 +250,12 @@ fb::Offset<proto::QueryResultChunk> writeQueryResultChunk(flatbuffers::FlatBuffe
 }
 
 /// Write the query result
-fb::Offset<proto::QueryResult> writeQueryResult(fb::FlatBufferBuilder &builder, duckdb::QueryResult &result,
+fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, duckdb::QueryResult &result,
                                                 uint64_t queryID) {
     // Fetch result rows and immediately write them into a flatbuffer
     std::vector<fb::Offset<proto::QueryResultChunk>> chunks;
     for (auto chunk = result.Fetch(); !!chunk && chunk->size() > 0; chunk = result.Fetch())
-        chunks.push_back(writeQueryResultChunk(builder, queryID, chunk.get(), result.types));
+        chunks.push_back(WriteQueryResultChunk(builder, queryID, chunk.get(), result.types));
     auto dataChunks = builder.CreateVector(chunks);
 
     // Write column types
@@ -286,7 +286,7 @@ fb::Offset<proto::QueryResult> writeQueryResult(fb::FlatBufferBuilder &builder, 
 }
 
 /// Write the query plan
-fb::Offset<proto::QueryPlan> writeQueryPlan(fb::FlatBufferBuilder &builder, duckdb::LogicalOperator &plan) {
+fb::Offset<proto::QueryPlan> WriteQueryPlan(fb::FlatBufferBuilder &builder, duckdb::LogicalOperator &plan) {
     // Remember the children
     std::vector<duckdb::LogicalOperator *> operators;
     std::vector<std::tuple<size_t, size_t>> operatorChildEdges;

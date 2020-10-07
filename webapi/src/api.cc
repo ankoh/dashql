@@ -92,7 +92,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::RunQuery(std::string_view
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
-    auto query_result_ofs = writeQueryResult(builder, *result, ++current_query_id_);
+    auto query_result_ofs = WriteQueryResult(builder, *result, ++current_query_id_);
 
     // Return buffer
     builder.Finish(query_result_ofs);
@@ -110,7 +110,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::SendQuery(std::string_vie
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
-    auto query_result_ofs = writeQueryResult(builder, *result, ++current_query_id_);
+    auto query_result_ofs = WriteQueryResult(builder, *result, ++current_query_id_);
 
     // Return buffer
     builder.Finish(query_result_ofs);
@@ -129,7 +129,7 @@ ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::FetchQueryResults() 
 
     // Get query result
     fb::FlatBufferBuilder builder{128};
-    auto ofs = writeQueryResultChunk(builder, current_query_id_, chunk.get(), types);
+    auto ofs = WriteQueryResultChunk(builder, current_query_id_, chunk.get(), types);
     builder.Finish(ofs);
     return {builder.Release()};
 }
@@ -154,10 +154,10 @@ ExpectedBuffer<proto::QueryPlan> WebAPI::Connection::AnalyzeQuery(std::string_vi
 
     // Write the plan buffer
     fb::FlatBufferBuilder builder{1024};
-    auto planOfs = writeQueryPlan(builder, *planner.plan);
+    auto plan_ofs = WriteQueryPlan(builder, *planner.plan);
 
     // Return buffer
-    builder.Finish(planOfs);
+    builder.Finish(plan_ofs);
     return {builder.Release()};
 }
 
@@ -167,11 +167,11 @@ ExpectedBuffer<proto::FormattedText> WebAPI::Connection::FormatQueryPlan(void* q
 
     // Encode the query plan
     fb::FlatBufferBuilder builder{txt.size() + 16};
-    auto txtOfs = builder.CreateString(txt);
-    auto txtBuf = proto::CreateFormattedText(builder, txtOfs);
+    auto txt_ofs = builder.CreateString(txt);
+    auto txt_buf = proto::CreateFormattedText(builder, txt_ofs);
 
     // Return buffer
-    builder.Finish(txtBuf);
+    builder.Finish(txt_buf);
     return {builder.Release()};
 }
 
@@ -181,15 +181,15 @@ ExpectedSignal WebAPI::Connection::GenerateTable(proto::TableSpecification& spec
 }
 
 /// Constructor
-WebAPI::WebAPI() : database(std::make_shared<duckdb::DuckDB>()), connections() {}
+WebAPI::WebAPI() : database_(std::make_shared<duckdb::DuckDB>()), connections_() {}
 
 /// Create a session
 WebAPI::Connection& WebAPI::Connect() {
-    auto conn = std::make_unique<WebAPI::Connection>(database);
-    auto connPtr = conn.get();
-    connections.insert({connPtr, move(conn)});
-    return *connPtr;
+    auto conn = std::make_unique<WebAPI::Connection>(database_);
+    auto conn_ptr = conn.get();
+    connections_.insert({conn_ptr, move(conn)});
+    return *conn_ptr;
 }
 
 /// End a session
-void WebAPI::Disconnect(Connection* session) { connections.erase(session); }
+void WebAPI::Disconnect(Connection* session) { connections_.erase(session); }
