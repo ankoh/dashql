@@ -2,13 +2,13 @@
 
 #include "duckdb_webapi/value.h"
 
-#include "duckdb_webapi/codec.h"
-#include "duckdb_webapi/common/exception.h"
-
 #include "duckdb/common/types.hpp"
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/time.hpp"
 #include "duckdb/common/types/timestamp.hpp"
+#include "duckdb_webapi/codec.h"
+#include "duckdb_webapi/common/exception.h"
+#include "duckdb_webapi/value_ops.h"
 
 namespace duckdb_webapi {
 
@@ -115,36 +115,13 @@ template <> Value Value::CreateValue(float value) { return Value::FLOAT(value); 
 template <> Value Value::CreateValue(double value) { return Value::DOUBLE(value); }
 template <> Value Value::CreateValue(Value value) { return value; }
 
-namespace {
-
-template <class OP> static Value templated_binary_operation(const Value &left, const Value &right) {
-    auto leftType = left.GetLogicalType();
-    auto rightType = right.GetLogicalType();
-    auto resultType = leftType;
-    if (leftType != rightType) {
-        resultType = LogicalType::MaxType(left.GetLogicalType(), right.GetLogicalType());
-        Value left_cast = left.CastAs(resultType);
-        Value right_cast = right.CastAs(resultType);
-        return templated_binary_operation<OP>(left_cast, right_cast);
-    }
-    if (left.IsNull() || right.IsNull()) {
-        return Value().CastAs(resultType);
-    }
-    if (LogicalType::IsIntegral(LogicalType::GetPhysicalType(resultType))) {
-        // integer addition
-        return Value::NUMERIC(resultType, OP::template Operation<hugeint_t, hugeint_t, hugeint_t>(
-                                              left.GetValue<hugeint_t>(), right.GetValue<hugeint_t>()));
-    } else if (LogicalType::GetPhysicalType(resultType) == proto::PhysicalTypeID::FLOAT) {
-        return Value::FLOAT(
-            OP::template Operation<float, float, float>(left.GetValue<float>(), right.GetValue<float>()));
-    } else if (LogicalType::GetPhysicalType(resultType) == proto::PhysicalTypeID::DOUBLE) {
-        return Value::DOUBLE(
-            OP::template Operation<double, double, double>(left.GetValue<double>(), right.GetValue<double>()));
-    } else {
-        throw Exception{ET::NOT_IMPLEMENTED, "Unimplemented type for value binary op"};
-    }
+Value Value::operator+(const Value &rhs) const { return ValueOperations::Add(*this, rhs); }
+Value Value::operator-(const Value &rhs) const { return ValueOperations::Subtract(*this, rhs); }
+Value Value::operator*(const Value &rhs) const { return ValueOperations::Multiply(*this, rhs); }
+Value Value::operator/(const Value &rhs) const { return ValueOperations::Divide(*this, rhs); }
+Value Value::operator%(const Value &rhs) const {
+    throw Exception{ET::NOT_IMPLEMENTED, "value modulo"};
+    // return ValueOperations::Modulo(*this, rhs);
 }
-
-}  // namespace
 
 }  // namespace duckdb_webapi

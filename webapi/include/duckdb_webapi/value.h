@@ -107,7 +107,8 @@ class Value {
     static Value MaximumValue(proto::LogicalTypeID type);
 
     /// Create a Numeric value of the specified type with the specified value
-    static Value NUMERIC(proto::LogicalTypeID id, int64_t value);
+    static Value NUMERIC(proto::LogicalType id, int64_t value);
+    static Value NUMERIC(proto::LogicalType id, hugeint_t value);
     /// Create a tinyint Value from a specified value
     static Value BOOLEAN(int8_t value);
     /// Create a tinyint Value from a specified value

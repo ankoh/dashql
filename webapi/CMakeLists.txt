@@ -61,6 +61,7 @@ add_library(duckdb_webapi_core
     ${CMAKE_SOURCE_DIR}/src/tablegen.cc
     ${CMAKE_SOURCE_DIR}/src/common/exception.cc
     ${CMAKE_SOURCE_DIR}/src/value.cc
+    ${CMAKE_SOURCE_DIR}/src/value_ops.cc
 )
 
 target_link_libraries(duckdb_webapi_core
