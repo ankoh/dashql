@@ -139,7 +139,7 @@ template <class OP> static Value templated_binary_operation(const Value &left, c
         return Value::DOUBLE(
             OP::template Operation<double, double, double>(left.GetValue<double>(), right.GetValue<double>()));
     } else {
-        throw Exception{ExceptionType::NOT_IMPLEMENTED, "Unimplemented type for value binary op"};
+        throw Exception{ET::NOT_IMPLEMENTED, "Unimplemented type for value binary op"};
     }
 }
 
