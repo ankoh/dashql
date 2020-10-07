@@ -12,9 +12,9 @@ using date_t = int32_t;
 
 struct Date {
     /// Convert date to number
-    static date_t fromDate(int32_t year, int32_t month, int32_t day);
+    static date_t FromDate(int32_t year, int32_t month, int32_t day);
     /// Convert number to date
-    static std::tuple<int32_t, int32_t, int32_t> toDate(date_t date);
+    static std::tuple<int32_t, int32_t, int32_t> ToDate(date_t date);
 };
 
 }  // namespace duckdb_webapi

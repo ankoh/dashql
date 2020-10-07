@@ -54,7 +54,7 @@ Value Value::DATE(date_t value) {
 
 Value Value::DATE(int32_t year, int32_t month, int32_t day) {
     Value result{LogicalType::create(proto::LogicalTypeID::DATE)};
-    result.value.integerValue = Date::fromDate(year, month, day);
+    result.value.integerValue = Date::FromDate(year, month, day);
     result.null = false;
     return result;
 }
@@ -71,7 +71,7 @@ Value Value::TIME(int32_t hour, int32_t min, int32_t sec, int32_t msec) {
 }
 
 Value Value::TIMESTAMP(date_t date, dtime_t time) {
-    auto val = Value::BIGINT(Timestamp::fromDateTime(date, time));
+    auto val = Value::BIGINT(Timestamp::FromDateTime(date, time));
     val.logicalType = LogicalType::create(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }
@@ -83,7 +83,7 @@ Value Value::TIMESTAMP(timestamp_t timestamp) {
 }
 
 Value Value::TIMESTAMP(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min, int32_t sec, int32_t msec) {
-    auto val = Value::TIMESTAMP(Date::fromDate(year, month, day), Time::FromTime(hour, min, sec, msec));
+    auto val = Value::TIMESTAMP(Date::FromDate(year, month, day), Time::FromTime(hour, min, sec, msec));
     val.logicalType = LogicalType::create(proto::LogicalTypeID::TIMESTAMP);
     return val;
 }

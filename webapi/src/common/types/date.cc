@@ -45,7 +45,7 @@ int leapyears(int year) {
 
 }  // namespace
 
-std::tuple<int32_t, int32_t, int32_t> Date::toDate(int32_t n) {
+std::tuple<int32_t, int32_t, int32_t> Date::ToDate(int32_t n) {
     int32_t year = n / 365;
     int32_t month = 0;
     int32_t day = (n - year * 365) - leapyears(year >= 0 ? year - 1 : year);
@@ -81,7 +81,7 @@ std::tuple<int32_t, int32_t, int32_t> Date::toDate(int32_t n) {
     return {year, month, day};
 }
 
-date_t Date::fromDate(int32_t year, int32_t month, int32_t day) {
+date_t Date::FromDate(int32_t year, int32_t month, int32_t day) {
     int32_t n = 0;
     if (!(DD_DATE(day, month, year))) {
         throw ExceptionBuilder{ExceptionType::CONVERSION} << "Date out of range: " << year << "-" << month << "-" << day
