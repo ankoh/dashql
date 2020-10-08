@@ -204,40 +204,45 @@ static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, du
 /// Write a string result column
 static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec, size_t count) {
     std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
+    std::vector<std::string> strings{count};
+    auto *source = reinterpret_cast<const duckdb::string_t*>(vec.data);
 
     // Has null mask?
     if (vec.nullmask) {
         uint8_t *nullmask;
         auto n = builder.CreateUninitializedVector(count, &nullmask);
-        builder.StartVector(count, sizeof(fb::Offset<fb::String>));
-        auto **source = reinterpret_cast<const char **>(vec.data);
 
         // Has selection vector?
         if (vec.sel) {
             for (unsigned i = 0; i < count; ++i) {
-                auto s = vec.sel->get_index(i);
-                builder.PushElement(builder.CreateString(source[s]));
-                nullmask[i] = (*vec.nullmask)[s];
+                auto si = vec.sel->get_index(i);
+                auto& s = source[si];
+                strings[i] = s.GetString();
+                nullmask[i] = (*vec.nullmask)[si];
             }
         } else {
             for (unsigned i = 0; i < count; ++i) {
-                builder.PushElement(builder.CreateString(source[i]));
+                auto& s = source[i];
+                strings[i] = s.GetString();
                 nullmask[i] = (*vec.nullmask)[i];
             }
         }
     } else {
-        builder.StartVector(count, sizeof(fb::Offset<fb::String>));
-        auto **source = reinterpret_cast<const char **>(vec.data);
-
         // Has selection vector?
         if (vec.sel) {
-            for (unsigned i = 0; i < count; ++i)
-                builder.PushElement(builder.CreateString(source[vec.sel->get_index(i)]));
+            for (unsigned i = 0; i < count; ++i) {
+                auto si = vec.sel->get_index(i);
+                auto& s = source[si];
+                strings[i] = s.GetString();
+            }
         } else {
-            for (unsigned i = 0; i < count; ++i) builder.PushElement(builder.CreateString(source[i]));
+            for (unsigned i = 0; i < count; ++i) {
+                auto& s = source[i];
+                strings[i] = s.GetString();
+            }
         }
     }
-    auto dBuf = builder.EndVector(count);
+    auto dBuf = builder.CreateVectorOfStrings(strings);
     proto::VectorStringBuilder vSB{builder};
     vSB.add_values(dBuf);
     if (nBuf) vSB.add_null_mask(*nBuf);

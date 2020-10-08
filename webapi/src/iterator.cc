@@ -92,7 +92,8 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
     interval_t v_interval;
     auto copy = [&](auto& var, auto* vec) {
         var = vec->values()->Get(row);
-        null = vec->null_mask()->Get(row);
+        if (vec->null_mask())
+            null = vec->null_mask()->Get(row);
     };
 
     // Load value depending on physical type
@@ -130,7 +131,8 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
             auto v = values->Get(row);
             v_i128.lower = v->lower();
             v_i128.upper = v->upper();
-            null = null_mask->Get(row);
+            if (null_mask)
+                null = null_mask->Get(row);
             break;
         }
         case proto::VectorVariant::VectorF32:
@@ -147,7 +149,8 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
             v_interval.months = v->months();
             v_interval.days = v->days();
             v_interval.msecs = v->msecs();
-            null = null_mask->Get(row);
+            if (null_mask)
+                null = null_mask->Get(row);
             break;
         }
         case proto::VectorVariant::VectorString: {
@@ -155,7 +158,8 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
             auto* values = vec_i128->values();
             auto* null_mask = vec_i128->null_mask();
             value_str = values->Get(row)->c_str();
-            null = null_mask->Get(row);
+            if (null_mask)
+                null = null_mask->Get(row);
             break;
         }
     }

@@ -112,21 +112,22 @@ TEST(QueryResultIterator, FloatColumn) {
     ASSERT_TRUE(iter.IsEnd());
 }
 
-TEST(QueryResultIterator, DoubleColumn) {
+TEST(QueryResultIterator, VarcharColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebAPI::Connection conn{db};
     auto expected = conn.SendQuery(R"RAW(
-        SELECT v::DOUBLE FROM generate_series(0, 10000) as t(v);
+        SELECT v::VARCHAR FROM generate_series(0, 10000) as t(v);
     )RAW");
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::DOUBLE);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::VARCHAR);
     QueryResultIterator iter{conn, result};
     for (unsigned i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd());
-        ASSERT_EQ(iter.GetValue(0).GetValue<double>(), static_cast<double>(i));
+        auto txt = std::to_string(i);
+        ASSERT_EQ(iter.GetValue(0).GetValue<std::string>(), txt);
         iter.Next();
     }
     ASSERT_TRUE(iter.IsEnd());
