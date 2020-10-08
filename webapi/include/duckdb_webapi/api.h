@@ -131,8 +131,6 @@ class WebAPI {
         /// Get the buffer manager
         auto& context_data() { return *context_data_; }
 
-        /// Run a SQL query
-        ExpectedBuffer<proto::QueryResult> RunQuery(std::string_view text);
         /// Start a SQL query
         ExpectedBuffer<proto::QueryResult> SendQuery(std::string_view text);
         /// Fetch query results

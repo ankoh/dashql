@@ -134,39 +134,39 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
     } else if constexpr (std::is_same_v<T, uint8_t>) {
         proto::VectorU8Builder vec{builder};
         vec.add_values(dBuf);
-        build(vec, proto::VectorVariant::VectorI8);
+        build(vec, proto::VectorVariant::VectorU8);
     } else if constexpr (std::is_same_v<T, uint16_t>) {
         proto::VectorU16Builder vec{builder};
         vec.add_values(dBuf);
-        build(vec, proto::VectorVariant::VectorI8);
+        build(vec, proto::VectorVariant::VectorU16);
     } else if constexpr (std::is_same_v<T, int16_t>) {
         proto::VectorI16Builder vec{builder};
         vec.add_values(dBuf);
-        build(vec, proto::VectorVariant::VectorI8);
+        build(vec, proto::VectorVariant::VectorI16);
     } else if constexpr (std::is_same_v<T, uint32_t>) {
         proto::VectorU32Builder vec{builder};
         vec.add_values(dBuf);
-        build(vec, proto::VectorVariant::VectorI8);
+        build(vec, proto::VectorVariant::VectorU32);
     } else if constexpr (std::is_same_v<T, int32_t>) {
         proto::VectorI32Builder vec{builder};
         vec.add_values(dBuf);
-        build(vec, proto::VectorVariant::VectorI8);
+        build(vec, proto::VectorVariant::VectorI32);
     } else if constexpr (std::is_same_v<T, uint64_t>) {
         proto::VectorU64Builder vec{builder};
         vec.add_values(dBuf);
-        build(vec, proto::VectorVariant::VectorI8);
+        build(vec, proto::VectorVariant::VectorU64);
     } else if constexpr (std::is_same_v<T, int64_t>) {
         proto::VectorI64Builder vec{builder};
         vec.add_values(dBuf);
-        build(vec, proto::VectorVariant::VectorI8);
+        build(vec, proto::VectorVariant::VectorI64);
     } else if constexpr (std::is_same_v<T, float>) {
         proto::VectorF32Builder vec{builder};
         vec.add_values(dBuf);
-        build(vec, proto::VectorVariant::VectorI8);
+        build(vec, proto::VectorVariant::VectorF32);
     } else if constexpr (std::is_same_v<T, double>) {
         proto::VectorF64Builder vec{builder};
         vec.add_values(dBuf);
-        build(vec, proto::VectorVariant::VectorI8);
+        build(vec, proto::VectorVariant::VectorF64);
     } else {
         assert(false);
     }

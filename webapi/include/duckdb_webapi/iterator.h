@@ -10,11 +10,12 @@
 namespace duckdb_webapi {
 
 /// The query result forward iterator
-struct QueryResultForwardIterator {
+struct QueryResultIterator {
+    protected:
     /// The connection
     WebAPI::Connection& connection;
     /// The query result
-    proto::QueryResult& result;
+    const proto::QueryResult& result;
     /// The global row index
     uint64_t globalRowIndex;
     /// The chunk row begin
@@ -26,9 +27,15 @@ struct QueryResultForwardIterator {
     /// The chunk
     const proto::QueryResultChunk* chunk;
 
-    /// Constructor
-    QueryResultForwardIterator(WebAPI::Connection& connection, proto::QueryResult& result);
+    /// Verify the result chunk
+    bool Verify(const proto::QueryResultChunk& chunk) const;
 
+    public:
+    /// Constructor
+    QueryResultIterator(WebAPI::Connection& connection, const proto::QueryResult& result);
+
+    /// Get the column types
+    auto column_count() const { return result.column_types()->size(); }
     /// Get the column types
     auto& column_types() const { return *result.column_types(); }
     /// Get the column types
@@ -39,7 +46,7 @@ struct QueryResultForwardIterator {
     /// Advance the iterator
     ExpectedSignal Advance();
     /// Iterator increment
-    QueryResultForwardIterator& operator++() {
+    QueryResultIterator& operator++() {
         Advance();
         return *this;
     }

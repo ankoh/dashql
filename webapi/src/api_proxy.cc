@@ -46,12 +46,6 @@ void duckdb_webapi_release_buffer(WebAPI::Connection* conn, void* buffer) {
     conn->context_data().ReleaseBuffer(buffer);
 }
 
-/// Run a query
-void duckdb_webapi_run_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char* text) {
-    auto result = conn->RunQuery(text);
-    conn->context_data().Respond(move(result), *packed);
-}
-
 /// Send a query
 void duckdb_webapi_send_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char* text) {
     auto result = conn->SendQuery(text);

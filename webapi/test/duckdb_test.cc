@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "duckdb_webapi/api.h"
+#include "duckdb_webapi/iterator.h"
 #include "duckdb_webapi/proto/query_plan_generated.h"
 #include "gtest/gtest.h"
 
@@ -15,7 +16,7 @@ TEST(SQLTests, CreateTable) {
     auto db = make_shared<duckdb::DuckDB>();
     WebAPI::Connection conn{db};
 
-    conn.RunQuery(R"RAW(
+    conn.SendQuery(R"RAW(
         CREATE TABLE r1(
             a int,
             b int
