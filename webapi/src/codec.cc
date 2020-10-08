@@ -111,9 +111,8 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
             values[i] = value;
             nullmask[i] = null;
         });
-        // XXX We could just write the nulls directly to the flatbuffer but creating
-        //     a second uinitialized vector can invalidate the values ptr.
-        //     We could just update the values ptr after initializing the null mask vector.
+        // XXX We could just write the nulls directly to the flatbuffer but the nullmask invalidates the values ptr.
+        //     Tried to restore the values pointer with GetMutableTemporaryPointer, but didn't work.
         nBuf = builder.CreateVector(nullmask);
     } else {
         iterVec<T, false>(vec, count, [&](unsigned i, T value, bool null) { values[i] = value; });
