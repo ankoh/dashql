@@ -81,21 +81,30 @@ WebAPI::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
 /// Destructor
 WebAPI::Connection::~Connection() {}
 
-
-/// Start a SQL query
-ExpectedBuffer<proto::QueryResult> WebAPI::Connection::SendQuery(std::string_view text) {
-    // Create a new connection
-    duckdb::Connection conn{*database_};
-    auto result = conn.SendQuery(std::string{text});
-
-    // Query failed?
+/// Run a SQL query
+ExpectedBuffer<proto::QueryResult> WebAPI::Connection::RunQuery(std::string_view text) {
+    // Send the query
+    auto result = connection_.SendQuery(std::string{text});
     if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
+    current_query_result_ = move(result);
 
     // Write the result buffer
     fb::FlatBufferBuilder builder{1024};
-    auto query_result_ofs = WriteQueryResult(builder, *result, ++current_query_id_);
+    auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, ++current_query_id_, false);
+    builder.Finish(query_result_ofs);
+    return {builder.Release()};
+}
 
-    // Return buffer
+/// Start a SQL query
+ExpectedBuffer<proto::QueryResult> WebAPI::Connection::SendQuery(std::string_view text) {
+    // Send the query
+    auto result = connection_.SendQuery(std::string{text});
+    if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
+    current_query_result_ = move(result);
+
+    // Write the result buffer
+    fb::FlatBufferBuilder builder{1024};
+    auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, ++current_query_id_, true);
     builder.Finish(query_result_ofs);
     return {builder.Release()};
 }
@@ -114,6 +123,10 @@ ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::FetchQueryResults() 
     fb::FlatBufferBuilder builder{128};
     auto ofs = WriteQueryResultChunk(builder, current_query_id_, chunk.get(), types);
     builder.Finish(ofs);
+
+    // Last chunk?
+    if (chunk->size() == 0)
+        current_query_result_.reset();
     return {builder.Release()};
 }
 

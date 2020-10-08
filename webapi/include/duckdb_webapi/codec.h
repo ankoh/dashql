@@ -17,7 +17,8 @@ proto::OperatorType MapOperatorType(duckdb::LogicalOperatorType type);
 
 /// Write the query result
 flatbuffers::Offset<proto::QueryResult> WriteQueryResult(flatbuffers::FlatBufferBuilder& builder,
-                                                         duckdb::QueryResult& result, uint64_t queryID);
+                                                         duckdb::QueryResult& result, uint64_t queryID,
+                                                         bool async = true);
 /// Write the query result chunk
 flatbuffers::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder& builder,
                                                                    uint64_t queryID, duckdb::DataChunk* chunk,

@@ -322,11 +322,13 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
 
 /// Write the query result
 fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, duckdb::QueryResult &result,
-                                                uint64_t queryID) {
+                                                uint64_t queryID, bool async) {
     // Fetch result rows and immediately write them into a flatbuffer
     std::vector<fb::Offset<proto::QueryResultChunk>> chunks;
-    for (auto chunk = result.Fetch(); !!chunk && chunk->size() > 0; chunk = result.Fetch())
-        chunks.push_back(WriteQueryResultChunk(builder, queryID, chunk.get(), result.types));
+    if (!async) {
+        for (auto chunk = result.Fetch(); !!chunk && chunk->size() > 0; chunk = result.Fetch())
+            chunks.push_back(WriteQueryResultChunk(builder, queryID, chunk.get(), result.types));
+    }
     auto dataChunks = builder.CreateVector(chunks);
 
     // Write column types
@@ -352,7 +354,8 @@ fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, 
     resultBuilder.add_query_id(queryID);
     resultBuilder.add_column_names(columnNames);
     resultBuilder.add_column_types(columnTypes);
-    resultBuilder.add_data_chunks(dataChunks);
+    if (!async)
+        resultBuilder.add_data_chunks(dataChunks);
     return resultBuilder.Finish();
 }
 

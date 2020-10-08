@@ -25,10 +25,7 @@ TEST(QueryResultIterator, GenerateSeries) {
     auto& r = result.value();
     ASSERT_NE(r.column_names(), nullptr);
     ASSERT_NE(r.column_types(), nullptr);
-    ASSERT_NE(r.data_chunks(), nullptr);
-
-    auto chunks = r.data_chunks();
-    ASSERT_EQ(chunks->size(), 1);
+    ASSERT_EQ(r.data_chunks(), nullptr);
 
     QueryResultIterator iter{conn, result.value()};
     ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), 2);
