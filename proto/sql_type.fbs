@@ -8,6 +8,7 @@ enum SQLTypeID: uint8 {
     SQLNULL = 1,
     UNKNOWN = 2,
     ANY = 3,
+
     BOOLEAN = 10,
     TINYINT = 11,
     SMALLINT = 12,
@@ -16,17 +17,19 @@ enum SQLTypeID: uint8 {
     DATE = 15,
     TIME = 16,
     TIMESTAMP = 17,
-    FLOAT = 18,
-    DOUBLE = 19,
-    DECIMAL = 20,
+    DECIMAL = 18,
+    FLOAT = 19,
+    DOUBLE = 20,
     CHAR = 21,
     VARCHAR = 22,
     VARBINARY = 23,
     BLOB = 24,
     INTERVAL = 25,
+
     HUGEINT = 50,
     POINTER = 51,
     HASH = 52,
+
     STRUCT = 100,
     LIST = 101,
 }

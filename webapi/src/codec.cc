@@ -22,15 +22,12 @@ namespace duckdb_webapi {
     X(LIMIT)                   \
     X(ORDER_BY)                \
     X(TOP_N)                   \
-    X(COPY_FROM_FILE)          \
     X(COPY_TO_FILE)            \
     X(DISTINCT)                \
-    X(INDEX_SCAN)              \
     X(GET)                     \
     X(CHUNK_GET)               \
     X(DELIM_GET)               \
     X(EXPRESSION_GET)          \
-    X(TABLE_FUNCTION)          \
     X(EMPTY_RESULT)            \
     X(JOIN)                    \
     X(DELIM_JOIN)              \
