@@ -105,12 +105,16 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
 
     // Has null mask?
     if (vec.nullmask) {
-        uint8_t *nullmask;
-        nBuf = builder.CreateUninitializedVector(count, &nullmask);
+        std::vector<bool> nullmask;
+        nullmask.resize(count, false);
         iterVec<T, true>(vec, count, [&](unsigned i, T value, bool null) {
             values[i] = value;
             nullmask[i] = null;
         });
+        // XXX We could just write the nulls directly to the flatbuffer but creating
+        //     a second uinitialized vector can invalidate the values ptr.
+        //     We could just update the values ptr after initializing the null mask vector.
+        nBuf = builder.CreateVector(nullmask);
     } else {
         iterVec<T, false>(vec, count, [&](unsigned i, T value, bool null) { values[i] = value; });
     }
