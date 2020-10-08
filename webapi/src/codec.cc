@@ -97,14 +97,14 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
     assert(sizeof(T) == duckdb::GetTypeIdSize(type));
 
     T *values;
-    auto dBuf = builder.CreateUninitializedVector(count, &values);
-    std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
+    auto d_buf = builder.CreateUninitializedVector(count, &values);
+    std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
 
     // Has null mask?
     if (vec.nullmask) {
         uint8_t *nullmask;
-        nBuf = builder.CreateUninitializedVector(count, &nullmask);
-        values = GetMutableTemporaryPointer(builder, dBuf)->data();  // nBuf invalidates values
+        n_buf = builder.CreateUninitializedVector(count, &nullmask);
+        values = GetMutableTemporaryPointer(builder, d_buf)->data();  // n_buf invalidates values
         iterVec<T, true>(vec, count, [&](unsigned i, T value, bool null) {
             values[i] = value;
             nullmask[i] = null;
@@ -116,7 +116,7 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
     // Build the query result column
     fb::Offset<proto::Vector> wrapper;
     auto build = [&](auto &v, auto vt) {
-        if (nBuf) v.add_null_mask(*nBuf);
+        if (n_buf) v.add_null_mask(*n_buf);
         auto ofs = v.Finish();
         proto::VectorBuilder w{builder};
         w.add_variant(ofs.Union());
@@ -125,43 +125,43 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
     };
     if constexpr (std::is_same_v<T, int8_t>) {
         proto::VectorI8Builder vec{builder};
-        vec.add_values(dBuf);
+        vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorI8);
     } else if constexpr (std::is_same_v<T, uint8_t>) {
         proto::VectorU8Builder vec{builder};
-        vec.add_values(dBuf);
+        vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorU8);
     } else if constexpr (std::is_same_v<T, uint16_t>) {
         proto::VectorU16Builder vec{builder};
-        vec.add_values(dBuf);
+        vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorU16);
     } else if constexpr (std::is_same_v<T, int16_t>) {
         proto::VectorI16Builder vec{builder};
-        vec.add_values(dBuf);
+        vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorI16);
     } else if constexpr (std::is_same_v<T, uint32_t>) {
         proto::VectorU32Builder vec{builder};
-        vec.add_values(dBuf);
+        vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorU32);
     } else if constexpr (std::is_same_v<T, int32_t>) {
         proto::VectorI32Builder vec{builder};
-        vec.add_values(dBuf);
+        vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorI32);
     } else if constexpr (std::is_same_v<T, uint64_t>) {
         proto::VectorU64Builder vec{builder};
-        vec.add_values(dBuf);
+        vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorU64);
     } else if constexpr (std::is_same_v<T, int64_t>) {
         proto::VectorI64Builder vec{builder};
-        vec.add_values(dBuf);
+        vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorI64);
     } else if constexpr (std::is_same_v<T, float>) {
         proto::VectorF32Builder vec{builder};
-        vec.add_values(dBuf);
+        vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorF32);
     } else if constexpr (std::is_same_v<T, double>) {
         proto::VectorF64Builder vec{builder};
-        vec.add_values(dBuf);
+        vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorF64);
     } else {
         assert(false);
@@ -173,13 +173,13 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
 static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
                                               duckdb::VectorData &vec, size_t count) {
     proto::I128 *values;
-    auto dBuf = builder.CreateUninitializedVectorOfStructs(count, &values);
-    std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
+    auto d_buf = builder.CreateUninitializedVectorOfStructs(count, &values);
+    std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
 
     // Has null mask?
     if (vec.nullmask) {
         uint8_t *nullmask;
-        nBuf = builder.CreateUninitializedVector(count, &nullmask);
+        n_buf = builder.CreateUninitializedVector(count, &nullmask);
         iterVec<hugeint_t, true>(vec, count, [&](unsigned i, hugeint_t value, bool null) {
             values[i] = proto::I128{value.lower, value.upper};
             nullmask[i] = null;
@@ -192,8 +192,8 @@ static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, du
 
     // Build the query result column
     proto::VectorI128Builder vI128B{builder};
-    if (nBuf) vI128B.add_null_mask(*nBuf);
-    vI128B.add_values(dBuf);
+    if (n_buf) vI128B.add_null_mask(*n_buf);
+    vI128B.add_values(d_buf);
     auto vI128 = vI128B.Finish();
     proto::VectorBuilder v{builder};
     v.add_variant(vI128.Union());
@@ -203,9 +203,10 @@ static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, du
 
 /// Write a string result column
 static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec, size_t count) {
-    std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
-    std::vector<std::string> strings{count};
-    auto *source = reinterpret_cast<const duckdb::string_t*>(vec.data);
+    // First collect string views and copy nulls (if any)
+    std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
+    std::vector<std::string_view> strings{count};
+    auto *source = reinterpret_cast<const duckdb::string_t *>(vec.data);
 
     // Has null mask?
     if (vec.nullmask) {
@@ -216,15 +217,15 @@ static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, 
         if (vec.sel) {
             for (unsigned i = 0; i < count; ++i) {
                 auto si = vec.sel->get_index(i);
-                auto& s = source[si];
-                strings[i] = s.GetString();
+                auto &s = source[si];
                 nullmask[i] = (*vec.nullmask)[si];
+                strings[i] = std::string_view{s.GetData(), s.GetSize()};
             }
         } else {
             for (unsigned i = 0; i < count; ++i) {
-                auto& s = source[i];
-                strings[i] = s.GetString();
+                auto &s = source[i];
                 nullmask[i] = (*vec.nullmask)[i];
+                strings[i] = std::string_view{s.GetData(), s.GetSize()};
             }
         }
     } else {
@@ -232,25 +233,31 @@ static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, 
         if (vec.sel) {
             for (unsigned i = 0; i < count; ++i) {
                 auto si = vec.sel->get_index(i);
-                auto& s = source[si];
-                strings[i] = s.GetString();
+                auto &s = source[si];
+                strings[i] = std::string_view{s.GetData(), s.GetSize()};
             }
         } else {
             for (unsigned i = 0; i < count; ++i) {
-                auto& s = source[i];
-                strings[i] = s.GetString();
+                auto &s = source[i];
+                strings[i] = std::string_view{s.GetData(), s.GetSize()};
             }
         }
     }
-    auto dBuf = builder.CreateVectorOfStrings(strings);
-    proto::VectorStringBuilder vSB{builder};
-    vSB.add_values(dBuf);
-    if (nBuf) vSB.add_null_mask(*nBuf);
-    auto vSBOfs = vSB.Finish();
-    proto::VectorBuilder vB{builder};
-    vB.add_variant(vSBOfs.Union());
-    vB.add_variant_type(proto::VectorVariant::VectorString);
-    return vB.Finish();
+
+    // Copy all strings
+    std::vector<fb::Offset<fb::String>> s_ofs;
+    for (auto &s : strings) s_ofs.push_back(builder.CreateString(s.data(), s.length()));
+    auto d_buf = builder.CreateVector(s_ofs);
+
+    // Build string vector
+    proto::VectorStringBuilder v_sb{builder};
+    v_sb.add_values(d_buf);
+    if (n_buf) v_sb.add_null_mask(*n_buf);
+    auto v_sb_ofs = v_sb.Finish();
+    proto::VectorBuilder v_b{builder};
+    v_b.add_variant(v_sb_ofs.Union());
+    v_b.add_variant_type(proto::VectorVariant::VectorString);
+    return v_b.Finish();
 }
 
 /// Write the query result chunk
