@@ -17,22 +17,16 @@ TEST(QueryResultIterator, GenerateSeries) {
     WebAPI::Connection conn{db};
 
     auto result = conn.SendQuery(R"RAW(
-        SELECT * FROM generate_series(2, 5);
+        SELECT * FROM generate_series(2, 10000);
     )RAW");
-
     ASSERT_TRUE(result.IsOk());
-
-    auto& r = result.value();
-    ASSERT_NE(r.column_names(), nullptr);
-    ASSERT_NE(r.column_types(), nullptr);
-    ASSERT_EQ(r.data_chunks(), nullptr);
-
     QueryResultIterator iter{conn, result.value()};
-    ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), 2);
-    iter.Next();
-    ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), 3);
-    iter.Next();
-    ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), 4);
+    for (unsigned i = 2; i < 10000; ++i) {
+        ASSERT_FALSE(iter.IsEnd()) << i;
+        ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), i);
+        iter.Next();
+    }
+    ASSERT_TRUE(iter.IsEnd());
 }
 
 }  // namespace

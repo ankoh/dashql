@@ -7,16 +7,21 @@
 #include "duckdb_webapi/proto/query_plan_generated.h"
 #include "gtest/gtest.h"
 
+#include "duckdb/common/vector_size.hpp"
+
 using namespace duckdb_webapi;
 using namespace std;
 
 namespace {
 
-TEST(SQLTests, CreateTable) {
+TEST(DuckDBTests, Settings) {
+    ASSERT_EQ(STANDARD_VECTOR_SIZE, 1024);
+}
+
+TEST(DuckDBTests, CreateTable) {
     auto db = make_shared<duckdb::DuckDB>();
     WebAPI::Connection conn{db};
-
-    conn.SendQuery(R"RAW(
+    auto result = conn.RunQuery(R"RAW(
         CREATE TABLE r1(
             a int,
             b int
@@ -30,6 +35,7 @@ TEST(SQLTests, CreateTable) {
             f int
         );
     )RAW");
+    ASSERT_TRUE(result.IsOk());
 }
 
 }  // namespace

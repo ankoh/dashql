@@ -53,8 +53,8 @@ ExpectedSignal QueryResultIterator::Next() {
     if (IsEnd()) return {};
 
     // Still in current chunk?
-    auto row = ++globalRowIndex - chunkRowBegin;
-    if (row < chunk->row_count()) return {};
+    ++globalRowIndex;
+    if (chunk_row() < chunk->row_count()) return {};
 
     // Get next chunk (if neccessary)
     ++chunkID;
@@ -66,25 +66,22 @@ ExpectedSignal QueryResultIterator::Next() {
         chunk = &result.value();
         chunkBuffer = result.ReleaseBuffer();
     }
-    chunkRowBegin = 0;
+    chunkRowBegin = globalRowIndex;
     assert(Verify(*chunk));
     return {};
 }
 
 /// Is at end?
-bool QueryResultIterator::IsEnd() const { return !chunk || (chunkRowBegin >= chunk->row_count()); }
+bool QueryResultIterator::IsEnd() const { return !chunk || (chunk_row() >= chunk->row_count()); }
 
 /// Get a value
 duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
     assert(!!chunk);
     assert(!!chunk->columns());
-    if (!chunk->columns())
-        throw ExceptionBuilder{ET::OUT_OF_RANGE} << "column " << EOE;
-    if (chunk->columns()->size() <= col_idx)
-        throw ExceptionBuilder{ET::OUT_OF_RANGE} << "index " << col_idx << " exceeds chunk columns" << chunk->columns()->size() << EOE;
     auto column = chunk->columns()->Get(col_idx);
     auto type = result.column_types()->Get(col_idx);
-    auto row = globalRowIndex - chunkRowBegin;
+    auto row = chunk_row();
+    assert(chunk_row() < chunk->row_count());
 
     // Values
     auto v_i64 = 0ll;

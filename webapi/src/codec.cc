@@ -3,7 +3,6 @@
 #include "duckdb_webapi/codec.h"
 
 #include "duckdb/common/vector_operations/unary_executor.hpp"
-#include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/planner/logical_operator.hpp"
 #include "duckdb_webapi/common/exception.h"
@@ -97,7 +96,7 @@ template <typename T, bool WITH_NULL, typename OP> void iterVec(duckdb::VectorDa
 /// Write a fixed-length result column
 template <typename T>
 static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
-                                                     duckdb::VectorData &vec, size_t count) {
+                                          duckdb::VectorData &vec, size_t count) {
     assert(sizeof(T) == duckdb::GetTypeIdSize(type));
 
     T *values;
@@ -118,9 +117,8 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
 
     // Build the query result column
     fb::Offset<proto::Vector> wrapper;
-    auto build = [&](auto& v, auto vt) {
-        if (nBuf)
-            v.add_null_mask(*nBuf);
+    auto build = [&](auto &v, auto vt) {
+        if (nBuf) v.add_null_mask(*nBuf);
         auto ofs = v.Finish();
         proto::VectorBuilder w{builder};
         w.add_variant(ofs.Union());
@@ -175,7 +173,7 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
 
 /// Write a fixed-length result column
 static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
-                                                         duckdb::VectorData &vec, size_t count) {
+                                              duckdb::VectorData &vec, size_t count) {
     proto::I128 *values;
     auto dBuf = builder.CreateUninitializedVectorOfStructs(count, &values);
     std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
@@ -206,8 +204,7 @@ static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, du
 }
 
 /// Write a string result column
-static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec,
-                                                           size_t count) {
+static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec, size_t count) {
     std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
 
     // Has null mask?
@@ -245,8 +242,7 @@ static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, 
     auto dBuf = builder.EndVector(count);
     proto::VectorStringBuilder vSB{builder};
     vSB.add_values(dBuf);
-    if (nBuf)
-        vSB.add_null_mask(*nBuf);
+    if (nBuf) vSB.add_null_mask(*nBuf);
     auto vSBOfs = vSB.Finish();
     proto::VectorBuilder vB{builder};
     vB.add_variant(vSBOfs.Union());
@@ -354,8 +350,7 @@ fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, 
     resultBuilder.add_query_id(queryID);
     resultBuilder.add_column_names(columnNames);
     resultBuilder.add_column_types(columnTypes);
-    if (!async)
-        resultBuilder.add_data_chunks(dataChunks);
+    if (!async) resultBuilder.add_data_chunks(dataChunks);
     return resultBuilder.Finish();
 }
 

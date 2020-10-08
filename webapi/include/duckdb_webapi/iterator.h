@@ -40,6 +40,8 @@ struct QueryResultIterator {
     auto& column_types() const { return *result.column_types(); }
     /// Get the column types
     auto& column_names() const { return *result.column_names(); }
+    /// Get the chunk row
+    auto chunk_row() const { return globalRowIndex - chunkRowBegin; }
 
     /// Is at end?
     bool IsEnd() const;
