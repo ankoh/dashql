@@ -3,6 +3,7 @@
 #include "duckdb_webapi/iterator.h"
 #include "duckdb_webapi/types.h"
 #include "duckdb_webapi/proto/sql_type_generated.h"
+#include "duckdb/common/types/date.hpp"
 
 #include <optional>
 #include <random>
@@ -122,37 +123,49 @@ duckdb::Value QueryResultForwardIterator::GetValue(size_t col_idx) const {
 
     // Get value
     switch (type->type_id()) {
-        case proto::SQLTypeID::INVALID:
-        case proto::SQLTypeID::SQLNULL:
-        case proto::SQLTypeID::UNKNOWN:
         case proto::SQLTypeID::ANY:
+            return duckdb::Value{duckdb::LogicalType::ANY};
+        case proto::SQLTypeID::INVALID:
+        case proto::SQLTypeID::UNKNOWN:
+        case proto::SQLTypeID::SQLNULL:
+            return duckdb::Value{};
         case proto::SQLTypeID::BOOLEAN:
+            return duckdb::Value::BOOLEAN(v_i64);
         case proto::SQLTypeID::TINYINT:
+            return duckdb::Value::TINYINT(v_i64);
         case proto::SQLTypeID::SMALLINT:
-            break;
+            return duckdb::Value::SMALLINT(v_i64);
         case proto::SQLTypeID::INTEGER:
             return duckdb::Value::INTEGER(v_i64);
         case proto::SQLTypeID::BIGINT:
-        case proto::SQLTypeID::DATE:
-        case proto::SQLTypeID::TIME:
-        case proto::SQLTypeID::TIMESTAMP:
+            return duckdb::Value::BIGINT(v_i64);
         case proto::SQLTypeID::FLOAT:
+            return duckdb::Value::FLOAT(v_f64);
         case proto::SQLTypeID::DOUBLE:
-        case proto::SQLTypeID::DECIMAL:
+            return duckdb::Value::FLOAT(v_f64);
         case proto::SQLTypeID::CHAR:
+            return duckdb::Value(value_str);
         case proto::SQLTypeID::VARCHAR:
-        case proto::SQLTypeID::VARBINARY:
-        case proto::SQLTypeID::BLOB:
-        case proto::SQLTypeID::INTERVAL:
+            return duckdb::Value(value_str);
         case proto::SQLTypeID::HUGEINT:
-        case proto::SQLTypeID::POINTER:
+            return duckdb::Value::HUGEINT(v_i128);
+        case proto::SQLTypeID::DATE:
+            return duckdb::Value::DATE(v_i64);
+        case proto::SQLTypeID::TIME:
+            return duckdb::Value::TIME(v_i64);
+        case proto::SQLTypeID::TIMESTAMP:
+            return duckdb::Value::TIMESTAMP(v_i64);
+        case proto::SQLTypeID::BLOB:
+        case proto::SQLTypeID::DECIMAL:
         case proto::SQLTypeID::HASH:
-        case proto::SQLTypeID::STRUCT:
+        case proto::SQLTypeID::INTERVAL:
         case proto::SQLTypeID::LIST:
-            break;
+        case proto::SQLTypeID::POINTER:
+        case proto::SQLTypeID::STRUCT:
+        case proto::SQLTypeID::VARBINARY:
+            return duckdb::Value{};
     }
-
-    return duckdb::Value();
+    return duckdb::Value{};
 }
 
 }  // namespace duckdb_webapi
