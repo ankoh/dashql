@@ -15,6 +15,7 @@ using timestamp_t = duckdb::timestamp_t;
 using dtime_t = duckdb::dtime_t;
 using date_t = duckdb::date_t;
 using hugeint_t = duckdb::hugeint_t;
+using interval_t = duckdb::interval_t;
 
 }  // namespace duckdb_webapi
 

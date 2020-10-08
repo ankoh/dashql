@@ -62,6 +62,7 @@ duckdb::Value QueryResultForwardIterator::GetValue(size_t col_idx) const {
     auto v_i128 = hugeint_t();
     const char* value_str = nullptr;
     bool null = false;
+    interval_t v_interval;
     auto get = [&](auto& var, auto* vec) {
         var = vec->values()->Get(row);
         null = vec->null_mask()->Get(row);
@@ -111,6 +112,17 @@ duckdb::Value QueryResultForwardIterator::GetValue(size_t col_idx) const {
         case proto::VectorVariant::VectorF64:
             get(v_f64, column->variant_as_VectorF64());
             break;
+        case proto::VectorVariant::VectorInterval: {
+            auto* vec_interval = column->variant_as_VectorInterval();
+            auto* values = vec_interval->values();
+            auto* null_mask = vec_interval->null_mask();
+            auto* v = values->Get(row);
+            v_interval.months = v->months();
+            v_interval.days = v->days();
+            v_interval.msecs = v->msecs();
+            null = null_mask->Get(row);
+            break;
+        }
         case proto::VectorVariant::VectorString: {
             auto* vec_i128 = column->variant_as_VectorString();
             auto* values = vec_i128->values();
@@ -155,10 +167,11 @@ duckdb::Value QueryResultForwardIterator::GetValue(size_t col_idx) const {
             return duckdb::Value::TIME(v_i64);
         case proto::SQLTypeID::TIMESTAMP:
             return duckdb::Value::TIMESTAMP(v_i64);
+        case proto::SQLTypeID::INTERVAL:
+            return duckdb::Value::INTERVAL(v_interval);
         case proto::SQLTypeID::BLOB:
         case proto::SQLTypeID::DECIMAL:
         case proto::SQLTypeID::HASH:
-        case proto::SQLTypeID::INTERVAL:
         case proto::SQLTypeID::LIST:
         case proto::SQLTypeID::POINTER:
         case proto::SQLTypeID::STRUCT:

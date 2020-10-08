@@ -8,6 +8,13 @@ struct I128 {
     upper: int64;
 }
 
+// An interval
+struct Interval {
+    months: int32;
+    days: int32;
+    msecs: int64;
+}
+
 // Typed vectors
 table VectorI8 { values: [byte]; null_mask: [bool]; }
 table VectorU8 { values: [ubyte]; null_mask: [bool]; }
@@ -20,6 +27,7 @@ table VectorU64 { values: [ulong]; null_mask: [bool]; }
 table VectorI128 { values: [I128]; null_mask: [bool]; }
 table VectorF32 { values: [float]; null_mask: [bool]; }
 table VectorF64 { values: [double]; null_mask: [bool]; }
+table VectorInterval { values: [Interval]; null_mask: [bool]; }
 table VectorString { values: [string]; null_mask: [bool]; }
 
 // A vector variant
@@ -30,6 +38,7 @@ union VectorVariant {
     VectorI64, VectorU64,
     VectorI128,
     VectorF32, VectorF64,
+    VectorInterval,
     VectorString
 }
 

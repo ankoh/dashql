@@ -18,13 +18,14 @@ export enum VectorVariant{
   VectorI128= 9,
   VectorF32= 10,
   VectorF64= 11,
-  VectorString= 12
+  VectorInterval= 12,
+  VectorString= 13
 };
 
 export function unionToVectorVariant(
   type: VectorVariant,
-  accessor: (obj:VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorString|VectorU16|VectorU32|VectorU64|VectorU8) => VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null
-): VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null {
+  accessor: (obj:VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8) => VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null
+): VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null {
   switch(VectorVariant[type]) {
     case 'NONE': return null; 
     case 'VectorI8': return accessor(new VectorI8())! as VectorI8;
@@ -38,6 +39,7 @@ export function unionToVectorVariant(
     case 'VectorI128': return accessor(new VectorI128())! as VectorI128;
     case 'VectorF32': return accessor(new VectorF32())! as VectorF32;
     case 'VectorF64': return accessor(new VectorF64())! as VectorF64;
+    case 'VectorInterval': return accessor(new VectorInterval())! as VectorInterval;
     case 'VectorString': return accessor(new VectorString())! as VectorString;
     default: return null;
   }
@@ -45,9 +47,9 @@ export function unionToVectorVariant(
 
 export function unionListToVectorVariant(
   type: VectorVariant, 
-  accessor: (index: number, obj:VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorString|VectorU16|VectorU32|VectorU64|VectorU8) => VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null, 
+  accessor: (index: number, obj:VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8) => VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null, 
   index: number
-): VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null {
+): VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null {
   switch(VectorVariant[type]) {
     case 'NONE': return null; 
     case 'VectorI8': return accessor(index, new VectorI8())! as VectorI8;
@@ -61,6 +63,7 @@ export function unionListToVectorVariant(
     case 'VectorI128': return accessor(index, new VectorI128())! as VectorI128;
     case 'VectorF32': return accessor(index, new VectorF32())! as VectorF32;
     case 'VectorF64': return accessor(index, new VectorF64())! as VectorF64;
+    case 'VectorInterval': return accessor(index, new VectorInterval())! as VectorInterval;
     case 'VectorString': return accessor(index, new VectorString())! as VectorString;
     default: return null;
   }
@@ -115,6 +118,68 @@ static createI128(builder:flatbuffers.Builder, lower: flatbuffers.Long, upper: f
   builder.prep(8, 16);
   builder.writeInt64(upper);
   builder.writeInt64(lower);
+  return builder.offset();
+};
+
+}
+/**
+ * @constructor
+ */
+export class Interval {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns Interval
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):Interval {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @returns number
+ */
+months():number {
+  return this.bb!.readInt32(this.bb_pos);
+};
+
+/**
+ * @returns number
+ */
+days():number {
+  return this.bb!.readInt32(this.bb_pos + 4);
+};
+
+/**
+ * @returns flatbuffers.Long
+ */
+msecs():flatbuffers.Long {
+  return this.bb!.readInt64(this.bb_pos + 8);
+};
+
+/**
+ * @returns number
+ */
+static sizeOf():number {
+  return 16;
+}
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number months
+ * @param number days
+ * @param flatbuffers.Long msecs
+ * @returns flatbuffers.Offset
+ */
+static createInterval(builder:flatbuffers.Builder, months: number, days: number, msecs: flatbuffers.Long):flatbuffers.Offset {
+  builder.prep(8, 16);
+  builder.writeInt64(msecs);
+  builder.writeInt32(days);
+  builder.writeInt32(months);
   return builder.offset();
 };
 
@@ -1964,6 +2029,154 @@ static createVectorF64(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Off
   VectorF64.addValues(builder, valuesOffset);
   VectorF64.addNullMask(builder, nullMaskOffset);
   return VectorF64.endVectorF64(builder);
+}
+}
+/**
+ * @constructor
+ */
+export class VectorInterval {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns VectorInterval
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):VectorInterval {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param VectorInterval= obj
+ * @returns VectorInterval
+ */
+static getRootAsVectorInterval(bb:flatbuffers.ByteBuffer, obj?:VectorInterval):VectorInterval {
+  return (obj || new VectorInterval()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param VectorInterval= obj
+ * @returns VectorInterval
+ */
+static getSizePrefixedRootAsVectorInterval(bb:flatbuffers.ByteBuffer, obj?:VectorInterval):VectorInterval {
+  bb.setPosition(bb.position() + flatbuffers.SIZE_PREFIX_LENGTH);
+  return (obj || new VectorInterval()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param number index
+ * @param Interval= obj
+ * @returns Interval
+ */
+values(index: number, obj?:Interval):Interval|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? (obj || new Interval()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+valuesLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number index
+ * @returns boolean
+ */
+nullMask(index: number):boolean|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? !!this.bb!.readInt8(this.bb!.__vector(this.bb_pos + offset) + index) : false;
+};
+
+/**
+ * @returns number
+ */
+nullMaskLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns Int8Array
+ */
+nullMaskArray():Int8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? new Int8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startVectorInterval(builder:flatbuffers.Builder) {
+  builder.startObject(2);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset valuesOffset
+ */
+static addValues(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, valuesOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startValuesVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(16, numElems, 8);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset nullMaskOffset
+ */
+static addNullMask(builder:flatbuffers.Builder, nullMaskOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, nullMaskOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<boolean> data
+ * @returns flatbuffers.Offset
+ */
+static createNullMaskVector(builder:flatbuffers.Builder, data:boolean[]):flatbuffers.Offset {
+  builder.startVector(1, data.length, 1);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addInt8(+data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startNullMaskVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(1, numElems, 1);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endVectorInterval(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+static createVectorInterval(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Offset, nullMaskOffset:flatbuffers.Offset):flatbuffers.Offset {
+  VectorInterval.startVectorInterval(builder);
+  VectorInterval.addValues(builder, valuesOffset);
+  VectorInterval.addNullMask(builder, nullMaskOffset);
+  return VectorInterval.endVectorInterval(builder);
 }
 }
 /**

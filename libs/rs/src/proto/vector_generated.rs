@@ -41,12 +41,13 @@ pub enum VectorVariant {
   VectorI128 = 9,
   VectorF32 = 10,
   VectorF64 = 11,
-  VectorString = 12,
+  VectorInterval = 12,
+  VectorString = 13,
 
 }
 
 pub const ENUM_MIN_VECTOR_VARIANT: u8 = 0;
-pub const ENUM_MAX_VECTOR_VARIANT: u8 = 12;
+pub const ENUM_MAX_VECTOR_VARIANT: u8 = 13;
 
 impl<'a> flatbuffers::Follow<'a> for VectorVariant {
   type Inner = Self;
@@ -80,7 +81,7 @@ impl flatbuffers::Push for VectorVariant {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_VECTOR_VARIANT: [VectorVariant; 13] = [
+pub const ENUM_VALUES_VECTOR_VARIANT: [VectorVariant; 14] = [
   VectorVariant::NONE,
   VectorVariant::VectorI8,
   VectorVariant::VectorU8,
@@ -93,11 +94,12 @@ pub const ENUM_VALUES_VECTOR_VARIANT: [VectorVariant; 13] = [
   VectorVariant::VectorI128,
   VectorVariant::VectorF32,
   VectorVariant::VectorF64,
+  VectorVariant::VectorInterval,
   VectorVariant::VectorString
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_VECTOR_VARIANT: [&str; 13] = [
+pub const ENUM_NAMES_VECTOR_VARIANT: [&str; 14] = [
     "NONE",
     "VectorI8",
     "VectorU8",
@@ -110,6 +112,7 @@ pub const ENUM_NAMES_VECTOR_VARIANT: [&str; 13] = [
     "VectorI128",
     "VectorF32",
     "VectorF64",
+    "VectorInterval",
     "VectorString"
 ];
 
@@ -181,6 +184,76 @@ impl I128 {
   }
   pub fn upper(&self) -> i64 {
     self.upper_.from_little_endian()
+  }
+}
+
+// struct Interval, aligned to 8
+#[repr(C, align(8))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Interval {
+  months_: i32,
+  days_: i32,
+  msecs_: i64,
+} // pub struct Interval
+impl flatbuffers::SafeSliceAccess for Interval {}
+impl<'a> flatbuffers::Follow<'a> for Interval {
+  type Inner = &'a Interval;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a Interval>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a Interval {
+  type Inner = &'a Interval;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<Interval>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for Interval {
+    type Output = Interval;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const Interval as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b Interval {
+    type Output = Interval;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const Interval as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl Interval {
+  pub fn new(_months: i32, _days: i32, _msecs: i64) -> Self {
+    Interval {
+      months_: _months.to_little_endian(),
+      days_: _days.to_little_endian(),
+      msecs_: _msecs.to_little_endian(),
+
+    }
+  }
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "duckdb_webapi.proto.Interval"
+    }
+
+  pub fn months(&self) -> i32 {
+    self.months_.from_little_endian()
+  }
+  pub fn days(&self) -> i32 {
+    self.days_.from_little_endian()
+  }
+  pub fn msecs(&self) -> i64 {
+    self.msecs_.from_little_endian()
   }
 }
 
@@ -1174,6 +1247,96 @@ impl<'a: 'b, 'b> VectorF64Builder<'a, 'b> {
   }
 }
 
+pub enum VectorIntervalOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct VectorInterval<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for VectorInterval<'a> {
+    type Inner = VectorInterval<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self { _tab: flatbuffers::Table { buf, loc } }
+    }
+}
+
+impl<'a> VectorInterval<'a> {
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "duckdb_webapi.proto.VectorInterval"
+    }
+
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        VectorInterval {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args VectorIntervalArgs<'args>) -> flatbuffers::WIPOffset<VectorInterval<'bldr>> {
+      let mut builder = VectorIntervalBuilder::new(_fbb);
+      if let Some(x) = args.null_mask { builder.add_null_mask(x); }
+      if let Some(x) = args.values { builder.add_values(x); }
+      builder.finish()
+    }
+
+    pub const VT_VALUES: flatbuffers::VOffsetT = 4;
+    pub const VT_NULL_MASK: flatbuffers::VOffsetT = 6;
+
+  #[inline]
+  pub fn values(&self) -> Option<&'a [Interval]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Interval>>>(VectorInterval::VT_VALUES, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn null_mask(&self) -> Option<&'a [bool]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, bool>>>(VectorInterval::VT_NULL_MASK, None).map(|v| v.safe_slice())
+  }
+}
+
+pub struct VectorIntervalArgs<'a> {
+    pub values: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Interval>>>,
+    pub null_mask: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, bool>>>,
+}
+impl<'a> Default for VectorIntervalArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        VectorIntervalArgs {
+            values: None,
+            null_mask: None,
+        }
+    }
+}
+pub struct VectorIntervalBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> VectorIntervalBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_values(&mut self, values: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Interval>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(VectorInterval::VT_VALUES, values);
+  }
+  #[inline]
+  pub fn add_null_mask(&mut self, null_mask: flatbuffers::WIPOffset<flatbuffers::Vector<'b , bool>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(VectorInterval::VT_NULL_MASK, null_mask);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> VectorIntervalBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    VectorIntervalBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<VectorInterval<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
 pub enum VectorStringOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
@@ -1416,6 +1579,16 @@ impl<'a> Vector<'a> {
   pub fn variant_as_vector_f64(&self) -> Option<VectorF64<'a>> {
     if self.variant_type() == VectorVariant::VectorF64 {
       self.variant().map(VectorF64::init_from_table)
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn variant_as_vector_interval(&self) -> Option<VectorInterval<'a>> {
+    if self.variant_type() == VectorVariant::VectorInterval {
+      self.variant().map(VectorInterval::init_from_table)
     } else {
       None
     }
