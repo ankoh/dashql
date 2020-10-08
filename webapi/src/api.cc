@@ -118,6 +118,7 @@ ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::FetchQueryResults() 
         chunk = current_query_result_->Fetch();
         types = current_query_result_->types;
     }
+    if (!current_query_result_->success) return {ErrorCode::QUERY_FAILED, move(current_query_result_->error)};
 
     // Get query result
     fb::FlatBufferBuilder builder{128};
@@ -125,8 +126,7 @@ ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::FetchQueryResults() 
     builder.Finish(ofs);
 
     // Last chunk?
-    if (chunk->size() == 0)
-        current_query_result_.reset();
+    if (chunk && chunk->size() == 0) current_query_result_.reset();
     return {builder.Release()};
 }
 

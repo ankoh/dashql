@@ -12,21 +12,21 @@ using namespace std;
 
 namespace {
 
-TEST(QueryResultIterator, IntegerColumn) {
+TEST(QueryResultIterator, TinyIntColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebAPI::Connection conn{db};
     auto expected = conn.SendQuery(R"RAW(
-        SELECT v::INTEGER FROM generate_series(2, 10000) as t(v);
+        SELECT MOD(v, 128)::TINYINT FROM generate_series(2, 10000) as t(v);
     )RAW");
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::INTEGER);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::TINYINT);
     QueryResultIterator iter{conn, result};
     for (unsigned i = 2; i < 10000; ++i) {
-        ASSERT_FALSE(iter.IsEnd()) << i;
-        ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), i);
+        ASSERT_FALSE(iter.IsEnd());
+        ASSERT_EQ(iter.GetValue(0).GetValue<int8_t>(), i % 128);
         iter.Next();
     }
     ASSERT_TRUE(iter.IsEnd());
@@ -45,8 +45,28 @@ TEST(QueryResultIterator, SmallIntColumn) {
     ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::SMALLINT);
     QueryResultIterator iter{conn, result};
     for (unsigned i = 2; i < 10000; ++i) {
-        ASSERT_FALSE(iter.IsEnd()) << i;
+        ASSERT_FALSE(iter.IsEnd());
         ASSERT_EQ(iter.GetValue(0).GetValue<int16_t>(), i);
+        iter.Next();
+    }
+    ASSERT_TRUE(iter.IsEnd());
+}
+
+TEST(QueryResultIterator, IntegerColumn) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebAPI::Connection conn{db};
+    auto expected = conn.SendQuery(R"RAW(
+        SELECT v::INTEGER FROM generate_series(2, 10000) as t(v);
+    )RAW");
+    ASSERT_TRUE(expected.IsOk());
+    auto& result = expected.value();
+    ASSERT_NE(result.column_types(), nullptr);
+    ASSERT_EQ(result.column_types()->size(), 1);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::INTEGER);
+    QueryResultIterator iter{conn, result};
+    for (unsigned i = 2; i < 10000; ++i) {
+        ASSERT_FALSE(iter.IsEnd());
+        ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), i);
         iter.Next();
     }
     ASSERT_TRUE(iter.IsEnd());

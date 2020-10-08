@@ -35,7 +35,6 @@ QueryResultIterator::QueryResultIterator(WebAPI::Connection& connection, const p
         chunk = &result.value();
         chunkBuffer = result.ReleaseBuffer();
     }
-    assert(Verify(*chunk));
 }
 
 /// Verify the result chunk
@@ -76,12 +75,12 @@ bool QueryResultIterator::IsEnd() const { return !chunk || (chunk_row() >= chunk
 
 /// Get a value
 duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
-    assert(!!chunk);
-    assert(!!chunk->columns());
+    if (!chunk || !chunk->columns() || chunk->columns()->size() <= col_idx)
+        return duckdb::Value{};
     auto column = chunk->columns()->Get(col_idx);
     auto type = result.column_types()->Get(col_idx);
     auto row = chunk_row();
-    assert(chunk_row() < chunk->row_count());
+    assert(row < chunk->row_count());
 
     // Values
     auto v_i64 = 0ll;
@@ -91,7 +90,7 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
     const char* value_str = nullptr;
     bool null = false;
     interval_t v_interval;
-    auto get = [&](auto& var, auto* vec) {
+    auto copy = [&](auto& var, auto* vec) {
         var = vec->values()->Get(row);
         null = vec->null_mask()->Get(row);
     };
@@ -101,28 +100,28 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
         case proto::VectorVariant::NONE:
             break;
         case proto::VectorVariant::VectorI8:
-            get(v_i64, column->variant_as_VectorI8());
+            copy(v_i64, column->variant_as_VectorI8());
             break;
         case proto::VectorVariant::VectorU8:
-            get(v_u64, column->variant_as_VectorU8());
+            copy(v_u64, column->variant_as_VectorU8());
             break;
         case proto::VectorVariant::VectorI16:
-            get(v_i64, column->variant_as_VectorI16());
+            copy(v_i64, column->variant_as_VectorI16());
             break;
         case proto::VectorVariant::VectorU16:
-            get(v_u64, column->variant_as_VectorU16());
+            copy(v_u64, column->variant_as_VectorU16());
             break;
         case proto::VectorVariant::VectorI32:
-            get(v_i64, column->variant_as_VectorI32());
+            copy(v_i64, column->variant_as_VectorI32());
             break;
         case proto::VectorVariant::VectorU32:
-            get(v_u64, column->variant_as_VectorU32());
+            copy(v_u64, column->variant_as_VectorU32());
             break;
         case proto::VectorVariant::VectorI64:
-            get(v_i64, column->variant_as_VectorI64());
+            copy(v_i64, column->variant_as_VectorI64());
             break;
         case proto::VectorVariant::VectorU64:
-            get(v_u64, column->variant_as_VectorU64());
+            copy(v_u64, column->variant_as_VectorU64());
             break;
         case proto::VectorVariant::VectorI128: {
             auto* vec_i128 = column->variant_as_VectorI128();
@@ -135,10 +134,10 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
             break;
         }
         case proto::VectorVariant::VectorF32:
-            get(v_f64, column->variant_as_VectorF32());
+            copy(v_f64, column->variant_as_VectorF32());
             break;
         case proto::VectorVariant::VectorF64:
-            get(v_f64, column->variant_as_VectorF64());
+            copy(v_f64, column->variant_as_VectorF64());
             break;
         case proto::VectorVariant::VectorInterval: {
             auto* vec_interval = column->variant_as_VectorInterval();
