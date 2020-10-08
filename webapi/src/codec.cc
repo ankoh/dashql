@@ -105,15 +105,13 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
 
     // Has null mask?
     if (vec.nullmask) {
-        std::vector<bool> nullmask;
-        nullmask.resize(count, false);
+        uint8_t *nullmask;
+        nBuf = builder.CreateUninitializedVector(count, &nullmask);
+        values = GetMutableTemporaryPointer(builder, dBuf)->data();  // nBuf invalidates values
         iterVec<T, true>(vec, count, [&](unsigned i, T value, bool null) {
             values[i] = value;
             nullmask[i] = null;
         });
-        // XXX We could just write the nulls directly to the flatbuffer but the nullmask invalidates the values ptr.
-        //     Tried to restore the values pointer with GetMutableTemporaryPointer, but didn't work.
-        nBuf = builder.CreateVector(nullmask);
     } else {
         iterVec<T, false>(vec, count, [&](unsigned i, T value, bool null) { values[i] = value; });
     }
