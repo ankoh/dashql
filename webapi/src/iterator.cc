@@ -129,7 +129,9 @@ duckdb::Value QueryResultForwardIterator::GetValue(size_t col_idx) const {
         case proto::SQLTypeID::BOOLEAN:
         case proto::SQLTypeID::TINYINT:
         case proto::SQLTypeID::SMALLINT:
+            break;
         case proto::SQLTypeID::INTEGER:
+            return duckdb::Value::INTEGER(v_i64);
         case proto::SQLTypeID::BIGINT:
         case proto::SQLTypeID::DATE:
         case proto::SQLTypeID::TIME:
