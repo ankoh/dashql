@@ -207,6 +207,7 @@ static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, 
     std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
     std::vector<std::string_view> strings{count};
     auto *source = reinterpret_cast<const duckdb::string_t *>(vec.data);
+    using ST = std::string_view::size_type;
 
     // Has null mask?
     if (vec.nullmask) {
@@ -219,13 +220,13 @@ static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, 
                 auto si = vec.sel->get_index(i);
                 auto &s = source[si];
                 nullmask[i] = (*vec.nullmask)[si];
-                strings[i] = std::string_view{s.GetData(), s.GetSize()};
+                strings[i] = std::string_view{s.GetData(), static_cast<ST>(s.GetSize())};
             }
         } else {
             for (unsigned i = 0; i < count; ++i) {
                 auto &s = source[i];
                 nullmask[i] = (*vec.nullmask)[i];
-                strings[i] = std::string_view{s.GetData(), s.GetSize()};
+                strings[i] = std::string_view{s.GetData(), static_cast<ST>(s.GetSize())};
             }
         }
     } else {
@@ -234,12 +235,12 @@ static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, 
             for (unsigned i = 0; i < count; ++i) {
                 auto si = vec.sel->get_index(i);
                 auto &s = source[si];
-                strings[i] = std::string_view{s.GetData(), s.GetSize()};
+                strings[i] = std::string_view{s.GetData(), static_cast<ST>(s.GetSize())};
             }
         } else {
             for (unsigned i = 0; i < count; ++i) {
                 auto &s = source[i];
-                strings[i] = std::string_view{s.GetData(), s.GetSize()};
+                strings[i] = std::string_view{s.GetData(), static_cast<ST>(s.GetSize())};
             }
         }
     }
