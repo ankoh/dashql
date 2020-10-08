@@ -1,44 +1,23 @@
 // Copyright (c) 2020 The DashQL Authors
 
 include "query_plan.fbs";
-include "value.fbs";
+include "sql_type.fbs";
+include "vector.fbs";
 
 namespace duckdb_webapi.proto;
 
-/// A 128-bit integer
-struct I128 {
-    lower: uint64;
-    upper: int64;
-}
-
-// A column of a query result
-table QueryResultColumn {
-    physical_type: PhysicalTypeID;
-    null_mask: [bool];
-    rows_u8: [ubyte];
-    rows_i16: [short];
-    rows_u16: [ushort];
-    rows_i32: [int];
-    rows_i64: [long];
-    rows_u64: [ulong];
-    rows_i128: [I128];
-    rows_f32: [float];
-    rows_f64: [double];
-    rows_string: [string];
-}
-
-// A data chunk
+// A query result chunk
 table QueryResultChunk {
     query_id: uint64;
     row_count: uint64;
-    columns: [QueryResultColumn];
+    columns: [Vector];
 }
 
 // A query result
 table QueryResult {
     query_id: uint64;
     query_plan: QueryPlan;
-    column_types: [LogicalType];
+    column_types: [SQLType];
     column_names: [string];
     data_chunks: [QueryResultChunk];
 }

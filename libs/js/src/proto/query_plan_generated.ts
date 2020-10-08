@@ -5,7 +5,7 @@ import { flatbuffers } from "flatbuffers";
 /**
  * @enum {number}
  */
-export enum LogicalOperatorType{
+export enum OperatorType{
   INVALID= 0,
   PROJECTION= 1,
   FILTER= 2,
@@ -126,9 +126,9 @@ operatorChildOffsetsLength():number {
 
 /**
  * @param number index
- * @returns LogicalOperatorType
+ * @returns OperatorType
  */
-operatorTypes(index: number):LogicalOperatorType|null {
+operatorTypes(index: number):OperatorType|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? /**  */ (this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index)) : /**  */ (0);
 };
@@ -224,10 +224,10 @@ static addOperatorTypes(builder:flatbuffers.Builder, operatorTypesOffset:flatbuf
 
 /**
  * @param flatbuffers.Builder builder
- * @param Array.<LogicalOperatorType> data
+ * @param Array.<OperatorType> data
  * @returns flatbuffers.Offset
  */
-static createOperatorTypesVector(builder:flatbuffers.Builder, data:LogicalOperatorType[]):flatbuffers.Offset {
+static createOperatorTypesVector(builder:flatbuffers.Builder, data:OperatorType[]):flatbuffers.Offset {
   builder.startVector(1, data.length, 1);
   for (var i = data.length - 1; i >= 0; i--) {
     builder.addInt8(data[i]);

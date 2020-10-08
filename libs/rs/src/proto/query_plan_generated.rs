@@ -28,7 +28,7 @@ pub mod proto {
 #[allow(non_camel_case_types)]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum LogicalOperatorType {
+pub enum OperatorType {
   INVALID = 0,
   PROJECTION = 1,
   FILTER = 2,
@@ -77,10 +77,10 @@ pub enum LogicalOperatorType {
 
 }
 
-pub const ENUM_MIN_LOGICAL_OPERATOR_TYPE: u8 = 0;
-pub const ENUM_MAX_LOGICAL_OPERATOR_TYPE: u8 = 44;
+pub const ENUM_MIN_OPERATOR_TYPE: u8 = 0;
+pub const ENUM_MAX_OPERATOR_TYPE: u8 = 44;
 
-impl<'a> flatbuffers::Follow<'a> for LogicalOperatorType {
+impl<'a> flatbuffers::Follow<'a> for OperatorType {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
@@ -88,80 +88,80 @@ impl<'a> flatbuffers::Follow<'a> for LogicalOperatorType {
   }
 }
 
-impl flatbuffers::EndianScalar for LogicalOperatorType {
+impl flatbuffers::EndianScalar for OperatorType {
   #[inline]
   fn to_little_endian(self) -> Self {
     let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const LogicalOperatorType;
+    let p = &n as *const u8 as *const OperatorType;
     unsafe { *p }
   }
   #[inline]
   fn from_little_endian(self) -> Self {
     let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const LogicalOperatorType;
+    let p = &n as *const u8 as *const OperatorType;
     unsafe { *p }
   }
 }
 
-impl flatbuffers::Push for LogicalOperatorType {
-    type Output = LogicalOperatorType;
+impl flatbuffers::Push for OperatorType {
+    type Output = OperatorType;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<LogicalOperatorType>(dst, *self);
+        flatbuffers::emplace_scalar::<OperatorType>(dst, *self);
     }
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_LOGICAL_OPERATOR_TYPE: [LogicalOperatorType; 45] = [
-  LogicalOperatorType::INVALID,
-  LogicalOperatorType::PROJECTION,
-  LogicalOperatorType::FILTER,
-  LogicalOperatorType::AGGREGATE_AND_GROUP_BY,
-  LogicalOperatorType::WINDOW,
-  LogicalOperatorType::UNNEST,
-  LogicalOperatorType::LIMIT,
-  LogicalOperatorType::ORDER_BY,
-  LogicalOperatorType::TOP_N,
-  LogicalOperatorType::COPY_FROM_FILE,
-  LogicalOperatorType::COPY_TO_FILE,
-  LogicalOperatorType::DISTINCT,
-  LogicalOperatorType::INDEX_SCAN,
-  LogicalOperatorType::GET,
-  LogicalOperatorType::CHUNK_GET,
-  LogicalOperatorType::DELIM_GET,
-  LogicalOperatorType::EXPRESSION_GET,
-  LogicalOperatorType::TABLE_FUNCTION,
-  LogicalOperatorType::EMPTY_RESULT,
-  LogicalOperatorType::CTE_REF,
-  LogicalOperatorType::JOIN,
-  LogicalOperatorType::DELIM_JOIN,
-  LogicalOperatorType::COMPARISON_JOIN,
-  LogicalOperatorType::ANY_JOIN,
-  LogicalOperatorType::CROSS_PRODUCT,
-  LogicalOperatorType::UNION,
-  LogicalOperatorType::EXCEPT,
-  LogicalOperatorType::INTERSECT,
-  LogicalOperatorType::RECURSIVE_CTE,
-  LogicalOperatorType::INSERT,
-  LogicalOperatorType::DELETE,
-  LogicalOperatorType::UPDATE,
-  LogicalOperatorType::ALTER,
-  LogicalOperatorType::CREATE_TABLE,
-  LogicalOperatorType::CREATE_INDEX,
-  LogicalOperatorType::CREATE_SEQUENCE,
-  LogicalOperatorType::CREATE_VIEW,
-  LogicalOperatorType::CREATE_SCHEMA,
-  LogicalOperatorType::DROP,
-  LogicalOperatorType::PRAGMA,
-  LogicalOperatorType::TRANSACTION,
-  LogicalOperatorType::EXPLAIN,
-  LogicalOperatorType::PREPARE,
-  LogicalOperatorType::EXECUTE,
-  LogicalOperatorType::VACUUM
+pub const ENUM_VALUES_OPERATOR_TYPE: [OperatorType; 45] = [
+  OperatorType::INVALID,
+  OperatorType::PROJECTION,
+  OperatorType::FILTER,
+  OperatorType::AGGREGATE_AND_GROUP_BY,
+  OperatorType::WINDOW,
+  OperatorType::UNNEST,
+  OperatorType::LIMIT,
+  OperatorType::ORDER_BY,
+  OperatorType::TOP_N,
+  OperatorType::COPY_FROM_FILE,
+  OperatorType::COPY_TO_FILE,
+  OperatorType::DISTINCT,
+  OperatorType::INDEX_SCAN,
+  OperatorType::GET,
+  OperatorType::CHUNK_GET,
+  OperatorType::DELIM_GET,
+  OperatorType::EXPRESSION_GET,
+  OperatorType::TABLE_FUNCTION,
+  OperatorType::EMPTY_RESULT,
+  OperatorType::CTE_REF,
+  OperatorType::JOIN,
+  OperatorType::DELIM_JOIN,
+  OperatorType::COMPARISON_JOIN,
+  OperatorType::ANY_JOIN,
+  OperatorType::CROSS_PRODUCT,
+  OperatorType::UNION,
+  OperatorType::EXCEPT,
+  OperatorType::INTERSECT,
+  OperatorType::RECURSIVE_CTE,
+  OperatorType::INSERT,
+  OperatorType::DELETE,
+  OperatorType::UPDATE,
+  OperatorType::ALTER,
+  OperatorType::CREATE_TABLE,
+  OperatorType::CREATE_INDEX,
+  OperatorType::CREATE_SEQUENCE,
+  OperatorType::CREATE_VIEW,
+  OperatorType::CREATE_SCHEMA,
+  OperatorType::DROP,
+  OperatorType::PRAGMA,
+  OperatorType::TRANSACTION,
+  OperatorType::EXPLAIN,
+  OperatorType::PREPARE,
+  OperatorType::EXECUTE,
+  OperatorType::VACUUM
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_LOGICAL_OPERATOR_TYPE: [&str; 45] = [
+pub const ENUM_NAMES_OPERATOR_TYPE: [&str; 45] = [
     "INVALID",
     "PROJECTION",
     "FILTER",
@@ -209,9 +209,9 @@ pub const ENUM_NAMES_LOGICAL_OPERATOR_TYPE: [&str; 45] = [
     "VACUUM"
 ];
 
-pub fn enum_name_logical_operator_type(e: LogicalOperatorType) -> &'static str {
+pub fn enum_name_operator_type(e: OperatorType) -> &'static str {
   let index = e as u8;
-  ENUM_NAMES_LOGICAL_OPERATOR_TYPE[index as usize]
+  ENUM_NAMES_OPERATOR_TYPE[index as usize]
 }
 
 pub enum QueryPlanOffset {}
@@ -264,15 +264,15 @@ impl<'a> QueryPlan<'a> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u64>>>(QueryPlan::VT_OPERATOR_CHILD_OFFSETS, None)
   }
   #[inline]
-  pub fn operator_types(&self) -> Option<flatbuffers::Vector<'a, LogicalOperatorType>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, LogicalOperatorType>>>(QueryPlan::VT_OPERATOR_TYPES, None)
+  pub fn operator_types(&self) -> Option<flatbuffers::Vector<'a, OperatorType>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, OperatorType>>>(QueryPlan::VT_OPERATOR_TYPES, None)
   }
 }
 
 pub struct QueryPlanArgs<'a> {
     pub operator_children: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u64>>>,
     pub operator_child_offsets: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u64>>>,
-    pub operator_types: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, LogicalOperatorType>>>,
+    pub operator_types: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, OperatorType>>>,
 }
 impl<'a> Default for QueryPlanArgs<'a> {
     #[inline]
@@ -298,7 +298,7 @@ impl<'a: 'b, 'b> QueryPlanBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryPlan::VT_OPERATOR_CHILD_OFFSETS, operator_child_offsets);
   }
   #[inline]
-  pub fn add_operator_types(&mut self, operator_types: flatbuffers::WIPOffset<flatbuffers::Vector<'b , LogicalOperatorType>>) {
+  pub fn add_operator_types(&mut self, operator_types: flatbuffers::WIPOffset<flatbuffers::Vector<'b , OperatorType>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryPlan::VT_OPERATOR_TYPES, operator_types);
   }
   #[inline]

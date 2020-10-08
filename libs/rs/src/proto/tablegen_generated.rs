@@ -2,7 +2,7 @@
 
 
 
-use crate::value_generated::*;
+use crate::sql_type_generated::*;
 use std::mem;
 use std::cmp::Ordering;
 
@@ -12,7 +12,7 @@ use self::flatbuffers::EndianScalar;
 #[allow(unused_imports, dead_code)]
 pub mod duckdb_webapi {
 
-  use crate::value_generated::*;
+  use crate::sql_type_generated::*;
   use std::mem;
   use std::cmp::Ordering;
 
@@ -21,7 +21,7 @@ pub mod duckdb_webapi {
 #[allow(unused_imports, dead_code)]
 pub mod proto {
 
-  use crate::value_generated::*;
+  use crate::sql_type_generated::*;
   use std::mem;
   use std::cmp::Ordering;
 
@@ -735,8 +735,8 @@ impl<'a> ColumnSpecification<'a> {
     self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ColumnSpecification::VT_NAME, None)
   }
   #[inline]
-  pub fn value_type(&self) -> Option<&'a LogicalType> {
-    self._tab.get::<LogicalType>(ColumnSpecification::VT_VALUE_TYPE, None)
+  pub fn value_type(&self) -> Option<&'a SQLType> {
+    self._tab.get::<SQLType>(ColumnSpecification::VT_VALUE_TYPE, None)
   }
   #[inline]
   pub fn generator(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>> {
@@ -754,7 +754,7 @@ impl<'a> ColumnSpecification<'a> {
 
 pub struct ColumnSpecificationArgs<'a> {
     pub name: Option<flatbuffers::WIPOffset<&'a str>>,
-    pub value_type: Option<&'a LogicalType>,
+    pub value_type: Option<&'a SQLType>,
     pub generator: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<GeneratorExpression<'a>>>>>,
     pub transform_type: GeneratorTransformType,
     pub transform_arguments: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, GeneratorTransformArg>>>,
@@ -781,8 +781,8 @@ impl<'a: 'b, 'b> ColumnSpecificationBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ColumnSpecification::VT_NAME, name);
   }
   #[inline]
-  pub fn add_value_type(&mut self, value_type: &LogicalType) {
-    self.fbb_.push_slot_always::<&LogicalType>(ColumnSpecification::VT_VALUE_TYPE, value_type);
+  pub fn add_value_type(&mut self, value_type: &SQLType) {
+    self.fbb_.push_slot_always::<&SQLType>(ColumnSpecification::VT_VALUE_TYPE, value_type);
   }
   #[inline]
   pub fn add_generator(&mut self, generator: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<GeneratorExpression<'b >>>>) {

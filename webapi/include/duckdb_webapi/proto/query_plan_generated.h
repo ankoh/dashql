@@ -18,7 +18,7 @@ bool operator!=(const QueryPlanT &lhs, const QueryPlanT &rhs);
 
 inline const flatbuffers::TypeTable *QueryPlanTypeTable();
 
-enum class LogicalOperatorType : uint8_t {
+enum class OperatorType : uint8_t {
   INVALID = 0,
   PROJECTION = 1,
   FILTER = 2,
@@ -68,58 +68,58 @@ enum class LogicalOperatorType : uint8_t {
   MAX = VACUUM
 };
 
-inline const LogicalOperatorType (&EnumValuesLogicalOperatorType())[45] {
-  static const LogicalOperatorType values[] = {
-    LogicalOperatorType::INVALID,
-    LogicalOperatorType::PROJECTION,
-    LogicalOperatorType::FILTER,
-    LogicalOperatorType::AGGREGATE_AND_GROUP_BY,
-    LogicalOperatorType::WINDOW,
-    LogicalOperatorType::UNNEST,
-    LogicalOperatorType::LIMIT,
-    LogicalOperatorType::ORDER_BY,
-    LogicalOperatorType::TOP_N,
-    LogicalOperatorType::COPY_FROM_FILE,
-    LogicalOperatorType::COPY_TO_FILE,
-    LogicalOperatorType::DISTINCT,
-    LogicalOperatorType::INDEX_SCAN,
-    LogicalOperatorType::GET,
-    LogicalOperatorType::CHUNK_GET,
-    LogicalOperatorType::DELIM_GET,
-    LogicalOperatorType::EXPRESSION_GET,
-    LogicalOperatorType::TABLE_FUNCTION,
-    LogicalOperatorType::EMPTY_RESULT,
-    LogicalOperatorType::CTE_REF,
-    LogicalOperatorType::JOIN,
-    LogicalOperatorType::DELIM_JOIN,
-    LogicalOperatorType::COMPARISON_JOIN,
-    LogicalOperatorType::ANY_JOIN,
-    LogicalOperatorType::CROSS_PRODUCT,
-    LogicalOperatorType::UNION,
-    LogicalOperatorType::EXCEPT,
-    LogicalOperatorType::INTERSECT,
-    LogicalOperatorType::RECURSIVE_CTE,
-    LogicalOperatorType::INSERT,
-    LogicalOperatorType::DELETE,
-    LogicalOperatorType::UPDATE,
-    LogicalOperatorType::ALTER,
-    LogicalOperatorType::CREATE_TABLE,
-    LogicalOperatorType::CREATE_INDEX,
-    LogicalOperatorType::CREATE_SEQUENCE,
-    LogicalOperatorType::CREATE_VIEW,
-    LogicalOperatorType::CREATE_SCHEMA,
-    LogicalOperatorType::DROP,
-    LogicalOperatorType::PRAGMA,
-    LogicalOperatorType::TRANSACTION,
-    LogicalOperatorType::EXPLAIN,
-    LogicalOperatorType::PREPARE,
-    LogicalOperatorType::EXECUTE,
-    LogicalOperatorType::VACUUM
+inline const OperatorType (&EnumValuesOperatorType())[45] {
+  static const OperatorType values[] = {
+    OperatorType::INVALID,
+    OperatorType::PROJECTION,
+    OperatorType::FILTER,
+    OperatorType::AGGREGATE_AND_GROUP_BY,
+    OperatorType::WINDOW,
+    OperatorType::UNNEST,
+    OperatorType::LIMIT,
+    OperatorType::ORDER_BY,
+    OperatorType::TOP_N,
+    OperatorType::COPY_FROM_FILE,
+    OperatorType::COPY_TO_FILE,
+    OperatorType::DISTINCT,
+    OperatorType::INDEX_SCAN,
+    OperatorType::GET,
+    OperatorType::CHUNK_GET,
+    OperatorType::DELIM_GET,
+    OperatorType::EXPRESSION_GET,
+    OperatorType::TABLE_FUNCTION,
+    OperatorType::EMPTY_RESULT,
+    OperatorType::CTE_REF,
+    OperatorType::JOIN,
+    OperatorType::DELIM_JOIN,
+    OperatorType::COMPARISON_JOIN,
+    OperatorType::ANY_JOIN,
+    OperatorType::CROSS_PRODUCT,
+    OperatorType::UNION,
+    OperatorType::EXCEPT,
+    OperatorType::INTERSECT,
+    OperatorType::RECURSIVE_CTE,
+    OperatorType::INSERT,
+    OperatorType::DELETE,
+    OperatorType::UPDATE,
+    OperatorType::ALTER,
+    OperatorType::CREATE_TABLE,
+    OperatorType::CREATE_INDEX,
+    OperatorType::CREATE_SEQUENCE,
+    OperatorType::CREATE_VIEW,
+    OperatorType::CREATE_SCHEMA,
+    OperatorType::DROP,
+    OperatorType::PRAGMA,
+    OperatorType::TRANSACTION,
+    OperatorType::EXPLAIN,
+    OperatorType::PREPARE,
+    OperatorType::EXECUTE,
+    OperatorType::VACUUM
   };
   return values;
 }
 
-inline const char * const *EnumNamesLogicalOperatorType() {
+inline const char * const *EnumNamesOperatorType() {
   static const char * const names[46] = {
     "INVALID",
     "PROJECTION",
@@ -171,10 +171,10 @@ inline const char * const *EnumNamesLogicalOperatorType() {
   return names;
 }
 
-inline const char *EnumNameLogicalOperatorType(LogicalOperatorType e) {
-  if (flatbuffers::IsOutRange(e, LogicalOperatorType::INVALID, LogicalOperatorType::VACUUM)) return "";
+inline const char *EnumNameOperatorType(OperatorType e) {
+  if (flatbuffers::IsOutRange(e, OperatorType::INVALID, OperatorType::VACUUM)) return "";
   const size_t index = static_cast<size_t>(e);
-  return EnumNamesLogicalOperatorType()[index];
+  return EnumNamesOperatorType()[index];
 }
 
 struct QueryPlanT : public flatbuffers::NativeTable {
@@ -184,7 +184,7 @@ struct QueryPlanT : public flatbuffers::NativeTable {
   }
   std::vector<uint64_t> operator_children;
   std::vector<uint64_t> operator_child_offsets;
-  std::vector<duckdb_webapi::proto::LogicalOperatorType> operator_types;
+  std::vector<duckdb_webapi::proto::OperatorType> operator_types;
   QueryPlanT() {
   }
 };
@@ -303,7 +303,7 @@ inline void QueryPlan::UnPackTo(QueryPlanT *_o, const flatbuffers::resolver_func
   (void)_resolver;
   { auto _e = operator_children(); if (_e) { _o->operator_children.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->operator_children[_i] = _e->Get(_i); } } }
   { auto _e = operator_child_offsets(); if (_e) { _o->operator_child_offsets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->operator_child_offsets[_i] = _e->Get(_i); } } }
-  { auto _e = operator_types(); if (_e) { _o->operator_types.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->operator_types[_i] = static_cast<duckdb_webapi::proto::LogicalOperatorType>(_e->Get(_i)); } } }
+  { auto _e = operator_types(); if (_e) { _o->operator_types.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->operator_types[_i] = static_cast<duckdb_webapi::proto::OperatorType>(_e->Get(_i)); } } }
 }
 
 inline flatbuffers::Offset<QueryPlan> QueryPlan::Pack(flatbuffers::FlatBufferBuilder &_fbb, const QueryPlanT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -324,7 +324,7 @@ inline flatbuffers::Offset<QueryPlan> CreateQueryPlan(flatbuffers::FlatBufferBui
       _operator_types);
 }
 
-inline const flatbuffers::TypeTable *LogicalOperatorTypeTypeTable() {
+inline const flatbuffers::TypeTable *OperatorTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -373,7 +373,7 @@ inline const flatbuffers::TypeTable *LogicalOperatorTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    duckdb_webapi::proto::LogicalOperatorTypeTypeTable
+    duckdb_webapi::proto::OperatorTypeTypeTable
   };
   static const char * const names[] = {
     "INVALID",
@@ -435,7 +435,7 @@ inline const flatbuffers::TypeTable *QueryPlanTypeTable() {
     { flatbuffers::ET_UCHAR, 1, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    duckdb_webapi::proto::LogicalOperatorTypeTypeTable
+    duckdb_webapi::proto::OperatorTypeTypeTable
   };
   static const char * const names[] = {
     "operator_children",

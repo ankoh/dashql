@@ -29,15 +29,22 @@ struct QueryResultForwardIterator {
     /// Constructor
     QueryResultForwardIterator(WebAPI::Connection& connection, proto::QueryResult& result);
 
+    /// Get the column types
+    auto& column_types() const { return *result.column_types(); }
+    /// Get the column types
+    auto& column_names() const { return *result.column_names(); }
+
     /// Is at end?
-    bool isEnd() const;
+    bool IsEnd() const;
     /// Advance the iterator
-    ExpectedSignal advance();
+    ExpectedSignal Advance();
     /// Iterator increment
     QueryResultForwardIterator& operator++() {
-        advance();
+        Advance();
         return *this;
     }
+    /// Get a value
+    duckdb::Value GetValue(size_t col_idx) const;
 };
 
 }  // namespace duckdb_webapi

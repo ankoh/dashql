@@ -14,7 +14,7 @@
 #include "duckdb_webapi/proto/query_plan_generated.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
 #include "duckdb_webapi/proto/tablegen_generated.h"
-#include "duckdb_webapi/proto/value_generated.h"
+#include "duckdb_webapi/proto/vector_generated.h"
 
 namespace duckdb_webapi {
 

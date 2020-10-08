@@ -7,12 +7,13 @@
 #include "duckdb/common/enums/logical_operator_type.hpp"
 #include "duckdb_webapi/common/span.h"
 #include "duckdb_webapi/proto/query_result_generated.h"
+#include "duckdb_webapi/proto/vector_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
 namespace duckdb_webapi {
 
 /// Map an operator type
-proto::LogicalOperatorType MapOperatorType(duckdb::LogicalOperatorType type);
+proto::OperatorType MapOperatorType(duckdb::LogicalOperatorType type);
 
 /// Write the query result
 flatbuffers::Offset<proto::QueryResult> WriteQueryResult(flatbuffers::FlatBufferBuilder& builder,

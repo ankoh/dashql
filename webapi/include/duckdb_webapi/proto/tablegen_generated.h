@@ -6,7 +6,7 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-#include "value_generated.h"
+#include "sql_type_generated.h"
 
 namespace duckdb_webapi {
 namespace proto {
@@ -573,7 +573,7 @@ struct ColumnSpecificationT : public flatbuffers::NativeTable {
     return "duckdb_webapi.proto.ColumnSpecificationT";
   }
   std::string name;
-  std::unique_ptr<duckdb_webapi::proto::LogicalType> value_type;
+  std::unique_ptr<duckdb_webapi::proto::SQLType> value_type;
   std::vector<std::unique_ptr<duckdb_webapi::proto::GeneratorExpressionT>> generator;
   duckdb_webapi::proto::GeneratorTransformType transform_type;
   std::vector<duckdb_webapi::proto::GeneratorTransformArg> transform_arguments;
@@ -615,8 +615,8 @@ struct ColumnSpecification FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
-  const duckdb_webapi::proto::LogicalType *value_type() const {
-    return GetStruct<const duckdb_webapi::proto::LogicalType *>(VT_VALUE_TYPE);
+  const duckdb_webapi::proto::SQLType *value_type() const {
+    return GetStruct<const duckdb_webapi::proto::SQLType *>(VT_VALUE_TYPE);
   }
   const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *generator() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *>(VT_GENERATOR);
@@ -631,7 +631,7 @@ struct ColumnSpecification FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table 
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
-           VerifyField<duckdb_webapi::proto::LogicalType>(verifier, VT_VALUE_TYPE) &&
+           VerifyField<duckdb_webapi::proto::SQLType>(verifier, VT_VALUE_TYPE) &&
            VerifyOffset(verifier, VT_GENERATOR) &&
            verifier.VerifyVector(generator()) &&
            verifier.VerifyVectorOfTables(generator()) &&
@@ -652,7 +652,7 @@ struct ColumnSpecificationBuilder {
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
     fbb_.AddOffset(ColumnSpecification::VT_NAME, name);
   }
-  void add_value_type(const duckdb_webapi::proto::LogicalType *value_type) {
+  void add_value_type(const duckdb_webapi::proto::SQLType *value_type) {
     fbb_.AddStruct(ColumnSpecification::VT_VALUE_TYPE, value_type);
   }
   void add_generator(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>> generator) {
@@ -678,7 +678,7 @@ struct ColumnSpecificationBuilder {
 inline flatbuffers::Offset<ColumnSpecification> CreateColumnSpecification(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    const duckdb_webapi::proto::LogicalType *value_type = 0,
+    const duckdb_webapi::proto::SQLType *value_type = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>>> generator = 0,
     duckdb_webapi::proto::GeneratorTransformType transform_type = duckdb_webapi::proto::GeneratorTransformType::NONE,
     flatbuffers::Offset<flatbuffers::Vector<const duckdb_webapi::proto::GeneratorTransformArg *>> transform_arguments = 0) {
@@ -694,7 +694,7 @@ inline flatbuffers::Offset<ColumnSpecification> CreateColumnSpecification(
 inline flatbuffers::Offset<ColumnSpecification> CreateColumnSpecificationDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    const duckdb_webapi::proto::LogicalType *value_type = 0,
+    const duckdb_webapi::proto::SQLType *value_type = 0,
     const std::vector<flatbuffers::Offset<duckdb_webapi::proto::GeneratorExpression>> *generator = nullptr,
     duckdb_webapi::proto::GeneratorTransformType transform_type = duckdb_webapi::proto::GeneratorTransformType::NONE,
     const std::vector<duckdb_webapi::proto::GeneratorTransformArg> *transform_arguments = nullptr) {
@@ -869,7 +869,7 @@ inline void ColumnSpecification::UnPackTo(ColumnSpecificationT *_o, const flatbu
   (void)_o;
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = _e->str(); }
-  { auto _e = value_type(); if (_e) _o->value_type = std::unique_ptr<duckdb_webapi::proto::LogicalType>(new duckdb_webapi::proto::LogicalType(*_e)); }
+  { auto _e = value_type(); if (_e) _o->value_type = std::unique_ptr<duckdb_webapi::proto::SQLType>(new duckdb_webapi::proto::SQLType(*_e)); }
   { auto _e = generator(); if (_e) { _o->generator.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->generator[_i] = std::unique_ptr<duckdb_webapi::proto::GeneratorExpressionT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = transform_type(); _o->transform_type = _e; }
   { auto _e = transform_arguments(); if (_e) { _o->transform_arguments.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->transform_arguments[_i] = *_e->Get(_i); } } }
@@ -1187,7 +1187,7 @@ inline const flatbuffers::TypeTable *ColumnSpecificationTypeTable() {
     { flatbuffers::ET_SEQUENCE, 1, 3 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    duckdb_webapi::proto::LogicalTypeTypeTable,
+    duckdb_webapi::proto::SQLTypeTypeTable,
     duckdb_webapi::proto::GeneratorExpressionTypeTable,
     duckdb_webapi::proto::GeneratorTransformTypeTypeTable,
     duckdb_webapi::proto::GeneratorTransformArgTypeTable

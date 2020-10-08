@@ -3,7 +3,8 @@
 
 
 use crate::query_plan_generated::*;
-use crate::value_generated::*;
+use crate::sql_type_generated::*;
+use crate::vector_generated::*;
 use std::mem;
 use std::cmp::Ordering;
 
@@ -14,7 +15,8 @@ use self::flatbuffers::EndianScalar;
 pub mod duckdb_webapi {
 
   use crate::query_plan_generated::*;
-  use crate::value_generated::*;
+  use crate::sql_type_generated::*;
+  use crate::vector_generated::*;
   use std::mem;
   use std::cmp::Ordering;
 
@@ -24,288 +26,13 @@ pub mod duckdb_webapi {
 pub mod proto {
 
   use crate::query_plan_generated::*;
-  use crate::value_generated::*;
+  use crate::sql_type_generated::*;
+  use crate::vector_generated::*;
   use std::mem;
   use std::cmp::Ordering;
 
   extern crate flatbuffers;
   use self::flatbuffers::EndianScalar;
-
-/// A 128-bit integer
-// struct I128, aligned to 8
-#[repr(C, align(8))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct I128 {
-  lower_: u64,
-  upper_: i64,
-} // pub struct I128
-impl flatbuffers::SafeSliceAccess for I128 {}
-impl<'a> flatbuffers::Follow<'a> for I128 {
-  type Inner = &'a I128;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a I128>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a I128 {
-  type Inner = &'a I128;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<I128>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for I128 {
-    type Output = I128;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const I128 as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b I128 {
-    type Output = I128;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const I128 as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl I128 {
-  pub fn new(_lower: u64, _upper: i64) -> Self {
-    I128 {
-      lower_: _lower.to_little_endian(),
-      upper_: _upper.to_little_endian(),
-
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "duckdb_webapi.proto.I128"
-    }
-
-  pub fn lower(&self) -> u64 {
-    self.lower_.from_little_endian()
-  }
-  pub fn upper(&self) -> i64 {
-    self.upper_.from_little_endian()
-  }
-}
-
-pub enum QueryResultColumnOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
-
-pub struct QueryResultColumn<'a> {
-  pub _tab: flatbuffers::Table<'a>,
-}
-
-impl<'a> flatbuffers::Follow<'a> for QueryResultColumn<'a> {
-    type Inner = QueryResultColumn<'a>;
-    #[inline]
-    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self { _tab: flatbuffers::Table { buf, loc } }
-    }
-}
-
-impl<'a> QueryResultColumn<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "duckdb_webapi.proto.QueryResultColumn"
-    }
-
-    #[inline]
-    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        QueryResultColumn {
-            _tab: table,
-        }
-    }
-    #[allow(unused_mut)]
-    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        args: &'args QueryResultColumnArgs<'args>) -> flatbuffers::WIPOffset<QueryResultColumn<'bldr>> {
-      let mut builder = QueryResultColumnBuilder::new(_fbb);
-      if let Some(x) = args.rows_string { builder.add_rows_string(x); }
-      if let Some(x) = args.rows_f64 { builder.add_rows_f64(x); }
-      if let Some(x) = args.rows_f32 { builder.add_rows_f32(x); }
-      if let Some(x) = args.rows_i128 { builder.add_rows_i128(x); }
-      if let Some(x) = args.rows_u64 { builder.add_rows_u64(x); }
-      if let Some(x) = args.rows_i64 { builder.add_rows_i64(x); }
-      if let Some(x) = args.rows_i32 { builder.add_rows_i32(x); }
-      if let Some(x) = args.rows_u16 { builder.add_rows_u16(x); }
-      if let Some(x) = args.rows_i16 { builder.add_rows_i16(x); }
-      if let Some(x) = args.rows_u8 { builder.add_rows_u8(x); }
-      if let Some(x) = args.null_mask { builder.add_null_mask(x); }
-      builder.add_physical_type(args.physical_type);
-      builder.finish()
-    }
-
-    pub const VT_PHYSICAL_TYPE: flatbuffers::VOffsetT = 4;
-    pub const VT_NULL_MASK: flatbuffers::VOffsetT = 6;
-    pub const VT_ROWS_U8: flatbuffers::VOffsetT = 8;
-    pub const VT_ROWS_I16: flatbuffers::VOffsetT = 10;
-    pub const VT_ROWS_U16: flatbuffers::VOffsetT = 12;
-    pub const VT_ROWS_I32: flatbuffers::VOffsetT = 14;
-    pub const VT_ROWS_I64: flatbuffers::VOffsetT = 16;
-    pub const VT_ROWS_U64: flatbuffers::VOffsetT = 18;
-    pub const VT_ROWS_I128: flatbuffers::VOffsetT = 20;
-    pub const VT_ROWS_F32: flatbuffers::VOffsetT = 22;
-    pub const VT_ROWS_F64: flatbuffers::VOffsetT = 24;
-    pub const VT_ROWS_STRING: flatbuffers::VOffsetT = 26;
-
-  #[inline]
-  pub fn physical_type(&self) -> PhysicalTypeID {
-    self._tab.get::<PhysicalTypeID>(QueryResultColumn::VT_PHYSICAL_TYPE, Some(PhysicalTypeID::NA)).unwrap()
-  }
-  #[inline]
-  pub fn null_mask(&self) -> Option<&'a [bool]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, bool>>>(QueryResultColumn::VT_NULL_MASK, None).map(|v| v.safe_slice())
-  }
-  #[inline]
-  pub fn rows_u8(&self) -> Option<&'a [u8]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(QueryResultColumn::VT_ROWS_U8, None).map(|v| v.safe_slice())
-  }
-  #[inline]
-  pub fn rows_i16(&self) -> Option<flatbuffers::Vector<'a, i16>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, i16>>>(QueryResultColumn::VT_ROWS_I16, None)
-  }
-  #[inline]
-  pub fn rows_u16(&self) -> Option<flatbuffers::Vector<'a, u16>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u16>>>(QueryResultColumn::VT_ROWS_U16, None)
-  }
-  #[inline]
-  pub fn rows_i32(&self) -> Option<flatbuffers::Vector<'a, i32>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, i32>>>(QueryResultColumn::VT_ROWS_I32, None)
-  }
-  #[inline]
-  pub fn rows_i64(&self) -> Option<flatbuffers::Vector<'a, i64>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, i64>>>(QueryResultColumn::VT_ROWS_I64, None)
-  }
-  #[inline]
-  pub fn rows_u64(&self) -> Option<flatbuffers::Vector<'a, u64>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u64>>>(QueryResultColumn::VT_ROWS_U64, None)
-  }
-  #[inline]
-  pub fn rows_i128(&self) -> Option<&'a [I128]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<I128>>>(QueryResultColumn::VT_ROWS_I128, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn rows_f32(&self) -> Option<flatbuffers::Vector<'a, f32>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, f32>>>(QueryResultColumn::VT_ROWS_F32, None)
-  }
-  #[inline]
-  pub fn rows_f64(&self) -> Option<flatbuffers::Vector<'a, f64>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, f64>>>(QueryResultColumn::VT_ROWS_F64, None)
-  }
-  #[inline]
-  pub fn rows_string(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<&'a str>>>>(QueryResultColumn::VT_ROWS_STRING, None)
-  }
-}
-
-pub struct QueryResultColumnArgs<'a> {
-    pub physical_type: PhysicalTypeID,
-    pub null_mask: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, bool>>>,
-    pub rows_u8: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-    pub rows_i16: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i16>>>,
-    pub rows_u16: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u16>>>,
-    pub rows_i32: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i32>>>,
-    pub rows_i64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i64>>>,
-    pub rows_u64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u64>>>,
-    pub rows_i128: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, I128>>>,
-    pub rows_f32: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, f32>>>,
-    pub rows_f64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, f64>>>,
-    pub rows_string: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>>,
-}
-impl<'a> Default for QueryResultColumnArgs<'a> {
-    #[inline]
-    fn default() -> Self {
-        QueryResultColumnArgs {
-            physical_type: PhysicalTypeID::NA,
-            null_mask: None,
-            rows_u8: None,
-            rows_i16: None,
-            rows_u16: None,
-            rows_i32: None,
-            rows_i64: None,
-            rows_u64: None,
-            rows_i128: None,
-            rows_f32: None,
-            rows_f64: None,
-            rows_string: None,
-        }
-    }
-}
-pub struct QueryResultColumnBuilder<'a: 'b, 'b> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-}
-impl<'a: 'b, 'b> QueryResultColumnBuilder<'a, 'b> {
-  #[inline]
-  pub fn add_physical_type(&mut self, physical_type: PhysicalTypeID) {
-    self.fbb_.push_slot::<PhysicalTypeID>(QueryResultColumn::VT_PHYSICAL_TYPE, physical_type, PhysicalTypeID::NA);
-  }
-  #[inline]
-  pub fn add_null_mask(&mut self, null_mask: flatbuffers::WIPOffset<flatbuffers::Vector<'b , bool>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_NULL_MASK, null_mask);
-  }
-  #[inline]
-  pub fn add_rows_u8(&mut self, rows_u8: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_U8, rows_u8);
-  }
-  #[inline]
-  pub fn add_rows_i16(&mut self, rows_i16: flatbuffers::WIPOffset<flatbuffers::Vector<'b , i16>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_I16, rows_i16);
-  }
-  #[inline]
-  pub fn add_rows_u16(&mut self, rows_u16: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u16>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_U16, rows_u16);
-  }
-  #[inline]
-  pub fn add_rows_i32(&mut self, rows_i32: flatbuffers::WIPOffset<flatbuffers::Vector<'b , i32>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_I32, rows_i32);
-  }
-  #[inline]
-  pub fn add_rows_i64(&mut self, rows_i64: flatbuffers::WIPOffset<flatbuffers::Vector<'b , i64>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_I64, rows_i64);
-  }
-  #[inline]
-  pub fn add_rows_u64(&mut self, rows_u64: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u64>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_U64, rows_u64);
-  }
-  #[inline]
-  pub fn add_rows_i128(&mut self, rows_i128: flatbuffers::WIPOffset<flatbuffers::Vector<'b , I128>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_I128, rows_i128);
-  }
-  #[inline]
-  pub fn add_rows_f32(&mut self, rows_f32: flatbuffers::WIPOffset<flatbuffers::Vector<'b , f32>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_F32, rows_f32);
-  }
-  #[inline]
-  pub fn add_rows_f64(&mut self, rows_f64: flatbuffers::WIPOffset<flatbuffers::Vector<'b , f64>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_F64, rows_f64);
-  }
-  #[inline]
-  pub fn add_rows_string(&mut self, rows_string: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<&'b  str>>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultColumn::VT_ROWS_STRING, rows_string);
-  }
-  #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> QueryResultColumnBuilder<'a, 'b> {
-    let start = _fbb.start_table();
-    QueryResultColumnBuilder {
-      fbb_: _fbb,
-      start_: start,
-    }
-  }
-  #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<QueryResultColumn<'a>> {
-    let o = self.fbb_.end_table(self.start_);
-    flatbuffers::WIPOffset::new(o.value())
-  }
-}
 
 pub enum QueryResultChunkOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -357,15 +84,15 @@ impl<'a> QueryResultChunk<'a> {
     self._tab.get::<u64>(QueryResultChunk::VT_ROW_COUNT, Some(0)).unwrap()
   }
   #[inline]
-  pub fn columns(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<QueryResultColumn<'a>>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<QueryResultColumn<'a>>>>>(QueryResultChunk::VT_COLUMNS, None)
+  pub fn columns(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Vector<'a>>>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<Vector<'a>>>>>(QueryResultChunk::VT_COLUMNS, None)
   }
 }
 
 pub struct QueryResultChunkArgs<'a> {
     pub query_id: u64,
     pub row_count: u64,
-    pub columns: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<QueryResultColumn<'a>>>>>,
+    pub columns: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Vector<'a>>>>>,
 }
 impl<'a> Default for QueryResultChunkArgs<'a> {
     #[inline]
@@ -391,7 +118,7 @@ impl<'a: 'b, 'b> QueryResultChunkBuilder<'a, 'b> {
     self.fbb_.push_slot::<u64>(QueryResultChunk::VT_ROW_COUNT, row_count, 0);
   }
   #[inline]
-  pub fn add_columns(&mut self, columns: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<QueryResultColumn<'b >>>>) {
+  pub fn add_columns(&mut self, columns: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Vector<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResultChunk::VT_COLUMNS, columns);
   }
   #[inline]
@@ -463,8 +190,8 @@ impl<'a> QueryResult<'a> {
     self._tab.get::<flatbuffers::ForwardsUOffset<QueryPlan<'a>>>(QueryResult::VT_QUERY_PLAN, None)
   }
   #[inline]
-  pub fn column_types(&self) -> Option<&'a [LogicalType]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<LogicalType>>>(QueryResult::VT_COLUMN_TYPES, None).map(|v| v.safe_slice() )
+  pub fn column_types(&self) -> Option<&'a [SQLType]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<SQLType>>>(QueryResult::VT_COLUMN_TYPES, None).map(|v| v.safe_slice() )
   }
   #[inline]
   pub fn column_names(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
@@ -479,7 +206,7 @@ impl<'a> QueryResult<'a> {
 pub struct QueryResultArgs<'a> {
     pub query_id: u64,
     pub query_plan: Option<flatbuffers::WIPOffset<QueryPlan<'a>>>,
-    pub column_types: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, LogicalType>>>,
+    pub column_types: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, SQLType>>>,
     pub column_names: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>>,
     pub data_chunks: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<QueryResultChunk<'a>>>>>,
 }
@@ -509,7 +236,7 @@ impl<'a: 'b, 'b> QueryResultBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<QueryPlan>>(QueryResult::VT_QUERY_PLAN, query_plan);
   }
   #[inline]
-  pub fn add_column_types(&mut self, column_types: flatbuffers::WIPOffset<flatbuffers::Vector<'b , LogicalType>>) {
+  pub fn add_column_types(&mut self, column_types: flatbuffers::WIPOffset<flatbuffers::Vector<'b , SQLType>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(QueryResult::VT_COLUMN_TYPES, column_types);
   }
   #[inline]

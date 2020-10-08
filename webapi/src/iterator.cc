@@ -1,6 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/iterator.h"
+#include "duckdb_webapi/types.h"
+#include "duckdb_webapi/proto/sql_type_generated.h"
 
 #include <optional>
 #include <random>
@@ -22,9 +24,9 @@ QueryResultForwardIterator::QueryResultForwardIterator(WebAPI::Connection& conne
       chunk(nullptr) {}
 
 /// Advance the iterator
-ExpectedSignal QueryResultForwardIterator::advance() {
+ExpectedSignal QueryResultForwardIterator::Advance() {
     // Reached end?
-    if (isEnd()) return {};
+    if (IsEnd()) return {};
     assert(!!chunk);
 
     // Get next chunk (if neccessary)
@@ -44,6 +46,111 @@ ExpectedSignal QueryResultForwardIterator::advance() {
 }
 
 /// Is at end?
-bool QueryResultForwardIterator::isEnd() const { return !chunk || (chunkRowBegin >= chunk->row_count()); }
+bool QueryResultForwardIterator::IsEnd() const { return !chunk || (chunkRowBegin >= chunk->row_count()); }
+
+/// Get a value
+duckdb::Value QueryResultForwardIterator::GetValue(size_t col_idx) const {
+    auto column = chunk->columns()->Get(col_idx);
+    auto type = result.column_types()->Get(col_idx);
+    auto row = globalRowIndex - chunkRowBegin;
+
+    // Values
+    auto v_i64 = 0ll;
+    auto v_u64 = 0ull;
+    auto v_f64 = 0.0L;
+    auto v_i128 = hugeint_t();
+    const char* value_str = nullptr;
+    bool null = false;
+    auto get = [&](auto& var, auto* vec) {
+        var = vec->values()->Get(row);
+        null = vec->null_mask()->Get(row);
+    };
+
+    // Load value depending on physical type
+    switch (column->variant_type()) {
+        case proto::VectorVariant::NONE:
+            break;
+        case proto::VectorVariant::VectorI8:
+            get(v_i64, column->variant_as_VectorI8());
+            break;
+        case proto::VectorVariant::VectorU8:
+            get(v_u64, column->variant_as_VectorU8());
+            break;
+        case proto::VectorVariant::VectorI16:
+            get(v_i64, column->variant_as_VectorI16());
+            break;
+        case proto::VectorVariant::VectorU16:
+            get(v_u64, column->variant_as_VectorU16());
+            break;
+        case proto::VectorVariant::VectorI32:
+            get(v_i64, column->variant_as_VectorI32());
+            break;
+        case proto::VectorVariant::VectorU32:
+            get(v_u64, column->variant_as_VectorU32());
+            break;
+        case proto::VectorVariant::VectorI64:
+            get(v_i64, column->variant_as_VectorI64());
+            break;
+        case proto::VectorVariant::VectorU64:
+            get(v_u64, column->variant_as_VectorU64());
+            break;
+        case proto::VectorVariant::VectorI128: {
+            auto* vec_i128 = column->variant_as_VectorI128();
+            auto* values = vec_i128->values();
+            auto* null_mask = vec_i128->null_mask();
+            auto v = values->Get(row);
+            v_i128.lower = v->lower();
+            v_i128.upper = v->upper();
+            null = null_mask->Get(row);
+            break;
+        }
+        case proto::VectorVariant::VectorF32:
+            get(v_f64, column->variant_as_VectorF32());
+            break;
+        case proto::VectorVariant::VectorF64:
+            get(v_f64, column->variant_as_VectorF64());
+            break;
+        case proto::VectorVariant::VectorString: {
+            auto* vec_i128 = column->variant_as_VectorString();
+            auto* values = vec_i128->values();
+            auto* null_mask = vec_i128->null_mask();
+            value_str = values->Get(row)->c_str();
+            null = null_mask->Get(row);
+            break;
+        }
+    }
+
+    // Get value
+    switch (type->type_id()) {
+        case proto::SQLTypeID::INVALID:
+        case proto::SQLTypeID::SQLNULL:
+        case proto::SQLTypeID::UNKNOWN:
+        case proto::SQLTypeID::ANY:
+        case proto::SQLTypeID::BOOLEAN:
+        case proto::SQLTypeID::TINYINT:
+        case proto::SQLTypeID::SMALLINT:
+        case proto::SQLTypeID::INTEGER:
+        case proto::SQLTypeID::BIGINT:
+        case proto::SQLTypeID::DATE:
+        case proto::SQLTypeID::TIME:
+        case proto::SQLTypeID::TIMESTAMP:
+        case proto::SQLTypeID::FLOAT:
+        case proto::SQLTypeID::DOUBLE:
+        case proto::SQLTypeID::DECIMAL:
+        case proto::SQLTypeID::CHAR:
+        case proto::SQLTypeID::VARCHAR:
+        case proto::SQLTypeID::VARBINARY:
+        case proto::SQLTypeID::BLOB:
+        case proto::SQLTypeID::INTERVAL:
+        case proto::SQLTypeID::HUGEINT:
+        case proto::SQLTypeID::POINTER:
+        case proto::SQLTypeID::HASH:
+        case proto::SQLTypeID::STRUCT:
+        case proto::SQLTypeID::LIST:
+            break;
+    }
+
+    return duckdb::Value();
+}
 
 }  // namespace duckdb_webapi

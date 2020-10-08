@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb_webapi/common/exception.h"
-#include "duckdb_webapi/proto/value_generated.h"
+#include "duckdb_webapi/proto/vector_generated.h"
 
 namespace duckdb_webapi {
 

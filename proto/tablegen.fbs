@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "value.fbs";
+include "sql_type.fbs";
 
 namespace duckdb_webapi.proto;
 
@@ -101,7 +101,7 @@ struct GeneratorTransformArg {
 
 table ColumnSpecification {
     name: string;
-    value_type: LogicalType;
+    value_type: SQLType;
     generator: [GeneratorExpression];
     transform_type: GeneratorTransformType;
     transform_arguments: [GeneratorTransformArg];

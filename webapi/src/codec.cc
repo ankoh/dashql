@@ -59,19 +59,19 @@ namespace duckdb_webapi {
     X(EXECUTE)                 \
     X(VACUUM)
 
-proto::LogicalOperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
+proto::OperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
     using D = duckdb::LogicalOperatorType;
-    using P = proto::LogicalOperatorType;
+    using P = proto::OperatorType;
     switch (type) {
 #define X(NAME)                             \
     case duckdb::LogicalOperatorType::NAME: \
-        return proto::LogicalOperatorType::NAME;
+        return proto::OperatorType::NAME;
         LOGICAL_OPERATOR_TYPES
 #undef X
         default:
-            return proto::LogicalOperatorType::INVALID;
+            return proto::OperatorType::INVALID;
     };
-    return proto::LogicalOperatorType::INVALID;
+    return proto::OperatorType::INVALID;
 }
 
 /// Iterate over a vector
@@ -96,7 +96,7 @@ template <typename T, bool WITH_NULL, typename OP> void iterVec(duckdb::VectorDa
 
 /// Write a fixed-length result column
 template <typename T>
-static fb::Offset<proto::QueryResultColumn> writeCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
+static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
                                                      duckdb::VectorData &vec, size_t count) {
     assert(sizeof(T) == duckdb::GetTypeIdSize(type));
 
@@ -117,31 +117,64 @@ static fb::Offset<proto::QueryResultColumn> writeCol(fb::FlatBufferBuilder &buil
     }
 
     // Build the query result column
-    proto::QueryResultColumnBuilder c{builder};
-    c.add_physical_type(static_cast<proto::PhysicalTypeID>(type));
-    if (nBuf) c.add_null_mask(*nBuf);
-    if constexpr (std::is_same_v<T, uint8_t>) {
-        c.add_rows_u8(dBuf);
+    fb::Offset<proto::Vector> wrapper;
+    auto build = [&](auto& v, auto vt) {
+        if (nBuf)
+            v.add_null_mask(*nBuf);
+        auto ofs = v.Finish();
+        proto::VectorBuilder w{builder};
+        w.add_variant(ofs.Union());
+        w.add_variant_type(vt);
+        wrapper = w.Finish();
+    };
+    if constexpr (std::is_same_v<T, int8_t>) {
+        proto::VectorI8Builder vec{builder};
+        vec.add_values(dBuf);
+        build(vec, proto::VectorVariant::VectorI8);
+    } else if constexpr (std::is_same_v<T, uint8_t>) {
+        proto::VectorU8Builder vec{builder};
+        vec.add_values(dBuf);
+        build(vec, proto::VectorVariant::VectorI8);
     } else if constexpr (std::is_same_v<T, uint16_t>) {
-        c.add_rows_u16(dBuf);
+        proto::VectorU16Builder vec{builder};
+        vec.add_values(dBuf);
+        build(vec, proto::VectorVariant::VectorI8);
     } else if constexpr (std::is_same_v<T, int16_t>) {
-        c.add_rows_i16(dBuf);
+        proto::VectorI16Builder vec{builder};
+        vec.add_values(dBuf);
+        build(vec, proto::VectorVariant::VectorI8);
+    } else if constexpr (std::is_same_v<T, uint32_t>) {
+        proto::VectorU32Builder vec{builder};
+        vec.add_values(dBuf);
+        build(vec, proto::VectorVariant::VectorI8);
     } else if constexpr (std::is_same_v<T, int32_t>) {
-        c.add_rows_i32(dBuf);
+        proto::VectorI32Builder vec{builder};
+        vec.add_values(dBuf);
+        build(vec, proto::VectorVariant::VectorI8);
     } else if constexpr (std::is_same_v<T, uint64_t>) {
-        c.add_rows_u64(dBuf);
+        proto::VectorU64Builder vec{builder};
+        vec.add_values(dBuf);
+        build(vec, proto::VectorVariant::VectorI8);
     } else if constexpr (std::is_same_v<T, int64_t>) {
-        c.add_rows_i64(dBuf);
+        proto::VectorI64Builder vec{builder};
+        vec.add_values(dBuf);
+        build(vec, proto::VectorVariant::VectorI8);
     } else if constexpr (std::is_same_v<T, float>) {
-        c.add_rows_f32(dBuf);
+        proto::VectorF32Builder vec{builder};
+        vec.add_values(dBuf);
+        build(vec, proto::VectorVariant::VectorI8);
     } else if constexpr (std::is_same_v<T, double>) {
-        c.add_rows_f64(dBuf);
+        proto::VectorF64Builder vec{builder};
+        vec.add_values(dBuf);
+        build(vec, proto::VectorVariant::VectorI8);
+    } else {
+        assert(false);
     }
-    return c.Finish();
+    return wrapper;
 }
 
 /// Write a fixed-length result column
-static fb::Offset<proto::QueryResultColumn> writeI128Col(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
+static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
                                                          duckdb::VectorData &vec, size_t count) {
     proto::I128 *values;
     auto dBuf = builder.CreateUninitializedVectorOfStructs(count, &values);
@@ -162,15 +195,18 @@ static fb::Offset<proto::QueryResultColumn> writeI128Col(fb::FlatBufferBuilder &
     }
 
     // Build the query result column
-    proto::QueryResultColumnBuilder c{builder};
-    c.add_physical_type(static_cast<proto::PhysicalTypeID>(type));
-    if (nBuf) c.add_null_mask(*nBuf);
-    c.add_rows_i128(dBuf);
-    return c.Finish();
+    proto::VectorI128Builder vI128B{builder};
+    if (nBuf) vI128B.add_null_mask(*nBuf);
+    vI128B.add_values(dBuf);
+    auto vI128 = vI128B.Finish();
+    proto::VectorBuilder v{builder};
+    v.add_variant(vI128.Union());
+    v.add_variant_type(proto::VectorVariant::VectorI128);
+    return v.Finish();
 }
 
 /// Write a string result column
-static fb::Offset<proto::QueryResultColumn> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec,
+static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec,
                                                            size_t count) {
     std::optional<fb::Offset<fb::Vector<uint8_t>>> nBuf = std::nullopt;
 
@@ -207,11 +243,15 @@ static fb::Offset<proto::QueryResultColumn> writeStringCol(fb::FlatBufferBuilder
         }
     }
     auto dBuf = builder.EndVector(count);
-    proto::QueryResultColumnBuilder c{builder};
-    c.add_rows_string(dBuf);
-    c.add_physical_type(proto::PhysicalTypeID::STRING);
-    if (nBuf) c.add_null_mask(*nBuf);
-    return c.Finish();
+    proto::VectorStringBuilder vSB{builder};
+    vSB.add_values(dBuf);
+    if (nBuf)
+        vSB.add_null_mask(*nBuf);
+    auto vSBOfs = vSB.Finish();
+    proto::VectorBuilder vB{builder};
+    vB.add_variant(vSBOfs.Union());
+    vB.add_variant_type(proto::VectorVariant::VectorString);
+    return vB.Finish();
 }
 
 /// Write the query result chunk
@@ -224,7 +264,7 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
     auto vectors = chunk.Orrify();
 
     // Write chunk columns
-    std::vector<fb::Offset<proto::QueryResultColumn>> columns;
+    std::vector<fb::Offset<proto::Vector>> columns;
     for (size_t column_id = 0; column_id < chunk.column_count(); ++column_id) {
         auto lType = types[column_id];
         auto pType = lType.InternalType();
@@ -235,7 +275,7 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
         // We try to catch this via tests.
 
         // Write result column
-        auto column = [&]() -> fb::Offset<proto::QueryResultColumn> {
+        auto column = [&]() -> fb::Offset<proto::Vector> {
             switch (pType) {
                 case duckdb::PhysicalType::INT8:
                     return writeCol<int8_t>(builder, pType, vec, size);
@@ -290,14 +330,14 @@ fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, 
     auto dataChunks = builder.CreateVector(chunks);
 
     // Write column types
-    fb::Offset<fb::Vector<const proto::LogicalType *>> columnTypes;
+    fb::Offset<fb::Vector<const proto::SQLType *>> columnTypes;
     {
-        proto::LogicalType *writer;
-        columnTypes = builder.CreateUninitializedVectorOfStructs<proto::LogicalType>(result.types.size(), &writer);
+        proto::SQLType *writer;
+        columnTypes = builder.CreateUninitializedVectorOfStructs<proto::SQLType>(result.types.size(), &writer);
         for (size_t i = 0; i < result.types.size(); ++i) {
             auto t = result.types[i];
-            writer[i] = proto::LogicalType{
-                static_cast<proto::LogicalTypeID>(t.id()),
+            writer[i] = proto::SQLType{
+                static_cast<proto::SQLTypeID>(t.id()),
                 t.width(),
                 t.scale(),
             };

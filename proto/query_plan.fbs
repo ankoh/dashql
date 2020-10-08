@@ -2,8 +2,8 @@
 
 namespace duckdb_webapi.proto;
 
-// The logical operator types
-enum LogicalOperatorType: uint8 {
+// The (logical) operator types
+enum OperatorType: uint8 {
     INVALID = 0,
     PROJECTION = 1,
     FILTER = 2,
@@ -69,7 +69,7 @@ enum LogicalOperatorType: uint8 {
 table QueryPlan {
     operator_children: [uint64];
     operator_child_offsets: [uint64];
-    operator_types: [LogicalOperatorType];
+    operator_types: [OperatorType];
 }
 
 
