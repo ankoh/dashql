@@ -32,9 +32,9 @@ TEST(QueryResultIterator, GenerateSeries) {
 
     QueryResultIterator iter{conn, result.value()};
     ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), 2);
-    ++iter;
+    iter.Next();
     ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), 3);
-    ++iter;
+    iter.Next();
     ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), 4);
 }
 

@@ -44,10 +44,10 @@ struct QueryResultIterator {
     /// Is at end?
     bool IsEnd() const;
     /// Advance the iterator
-    ExpectedSignal Advance();
+    ExpectedSignal Next();
     /// Iterator increment
     QueryResultIterator& operator++() {
-        Advance();
+        Next();
         return *this;
     }
     /// Get a value

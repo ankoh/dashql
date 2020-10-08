@@ -48,7 +48,7 @@ bool QueryResultIterator::Verify(const proto::QueryResultChunk& chunk) const {
 }
 
 /// Advance the iterator
-ExpectedSignal QueryResultIterator::Advance() {
+ExpectedSignal QueryResultIterator::Next() {
     // Reached end?
     if (IsEnd()) return {};
 
