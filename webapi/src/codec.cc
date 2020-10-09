@@ -322,6 +322,8 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
         auto column = [&]() -> fb::Offset<proto::Vector> {
             switch (p_type) {
                 case duckdb::PhysicalType::BOOL:
+                    // XXX It would be rather easy to bitpack booleans into u8 vectors, implement later
+                    //     (Iterator must not assume vector.size() == row_count)
                     return writeCol<bool, uint8_t>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT8:
                     return writeCol<int8_t>(builder, p_type, vec, size);
