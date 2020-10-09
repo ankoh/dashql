@@ -181,4 +181,27 @@ TEST(QueryResultIterator, TimeColumn) {
     ASSERT_TRUE(iter.IsEnd());
 }
 
+TEST(QueryResultIterator, TimestampColumn) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebAPI::Connection conn{db};
+    auto expected = conn.SendQuery(R"RAW(
+        SELECT TIMESTAMP '2020-10-09 01:00:00' + CAST(CONCAT(MOD(v, 1000)::VARCHAR, ' millisecond') AS INTERVAL) FROM generate_series(0, 10000) AS t(v);
+    )RAW");
+    ASSERT_TRUE(expected.IsOk());
+    auto& result = expected.value();
+    ASSERT_NE(result.column_types(), nullptr);
+    ASSERT_EQ(result.column_types()->size(), 1);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::TIMESTAMP);
+    QueryResultIterator iter{conn, result};
+    for (int32_t i = 0; i <= 10000; ++i) {
+        ASSERT_FALSE(iter.IsEnd()) << "i=" << i;
+        auto d = duckdb::Date::FromDate(2020, 10, 9);
+        auto t = duckdb::Time::FromTime(1, 0, 0, i % 1000);
+        auto ts = duckdb::Timestamp::FromDatetime(d, t);
+        ASSERT_EQ(iter.GetValue(0).GetValue<timestamp_t>(), ts) << "i=" << i;
+        iter.Next();
+    }
+    ASSERT_TRUE(iter.IsEnd());
+}
+
 }  // namespace
