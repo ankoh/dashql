@@ -201,6 +201,39 @@ static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, du
     return v.Finish();
 }
 
+/// Write a interval result column
+static fb::Offset<proto::Vector> writeIntervalCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
+                                                  duckdb::VectorData &vec, size_t count) {
+    proto::Interval *values;
+    auto d_buf = builder.CreateUninitializedVectorOfStructs(count, &values);
+    std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
+    assert(type == duckdb::PhysicalType::INTERVAL);
+
+    // Has null mask?
+    if (vec.nullmask) {
+        uint8_t *nullmask;
+        n_buf = builder.CreateUninitializedVector(count, &nullmask);
+        iterVec<interval_t, true>(vec, count, [&](unsigned i, interval_t value, bool null) {
+            values[i] = proto::Interval{value.months, value.days, value.msecs};
+            nullmask[i] = null;
+        });
+    } else {
+        iterVec<interval_t, false>(vec, count, [&](unsigned i, interval_t value, bool null) {
+            values[i] = proto::Interval{value.months, value.days, value.msecs};
+        });
+    }
+
+    // Build the query result column
+    proto::VectorIntervalBuilder v_interval_b{builder};
+    if (n_buf) v_interval_b.add_null_mask(*n_buf);
+    v_interval_b.add_values(d_buf);
+    auto v_interval = v_interval_b.Finish();
+    proto::VectorBuilder v{builder};
+    v.add_variant(v_interval.Union());
+    v.add_variant_type(proto::VectorVariant::VectorInterval);
+    return v.Finish();
+}
+
 /// Write a string result column
 static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec, size_t count) {
     // First collect string views and copy nulls (if any)
@@ -298,6 +331,8 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
                     return writeCol<float>(builder, pType, vec, size);
                 case duckdb::PhysicalType::DOUBLE:
                     return writeCol<double>(builder, pType, vec, size);
+                case duckdb::PhysicalType::INTERVAL:
+                    return writeIntervalCol(builder, pType, vec, size);
 
                 case duckdb::PhysicalType::VARCHAR:
                 case duckdb::PhysicalType::STRING:
@@ -305,7 +340,6 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
 
                 case duckdb::PhysicalType::BOOL:
                 case duckdb::PhysicalType::VARBINARY:
-                case duckdb::PhysicalType::INTERVAL:
                 case duckdb::PhysicalType::STRUCT:
                 case duckdb::PhysicalType::LIST:
                 default:
