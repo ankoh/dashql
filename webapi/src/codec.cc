@@ -55,7 +55,7 @@ namespace duckdb_webapi {
     X(EXECUTE)                 \
     X(VACUUM)
 
-proto::OperatorType mapOperatorType(duckdb::LogicalOperatorType type) {
+proto::OperatorType MapOperatorType(duckdb::LogicalOperatorType type) {
     using D = duckdb::LogicalOperatorType;
     using P = proto::OperatorType;
     switch (type) {
@@ -191,12 +191,12 @@ static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, du
     }
 
     // Build the query result column
-    proto::VectorI128Builder vI128B{builder};
-    if (n_buf) vI128B.add_null_mask(*n_buf);
-    vI128B.add_values(d_buf);
-    auto vI128 = vI128B.Finish();
+    proto::VectorI128Builder v_i128_b{builder};
+    if (n_buf) v_i128_b.add_null_mask(*n_buf);
+    v_i128_b.add_values(d_buf);
+    auto v_i128 = v_i128_b.Finish();
     proto::VectorBuilder v{builder};
-    v.add_variant(vI128.Union());
+    v.add_variant(v_i128.Union());
     v.add_variant_type(proto::VectorVariant::VectorI128);
     return v.Finish();
 }
@@ -306,8 +306,8 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
     // Write chunk columns
     std::vector<fb::Offset<proto::Vector>> columns;
     for (size_t column_id = 0; column_id < chunk.column_count(); ++column_id) {
-        auto lType = types[column_id];
-        auto pType = lType.InternalType();
+        auto l_Type = types[column_id];
+        auto p_type = l_Type.InternalType();
         auto vec = vectors.get()[column_id];
 
         // Ref: src/common/types.cpp
@@ -316,23 +316,23 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
 
         // Write result column
         auto column = [&]() -> fb::Offset<proto::Vector> {
-            switch (pType) {
+            switch (p_type) {
                 case duckdb::PhysicalType::INT8:
-                    return writeCol<int8_t>(builder, pType, vec, size);
+                    return writeCol<int8_t>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT16:
-                    return writeCol<int16_t>(builder, pType, vec, size);
+                    return writeCol<int16_t>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT32:
-                    return writeCol<int32_t>(builder, pType, vec, size);
+                    return writeCol<int32_t>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT64:
-                    return writeCol<int64_t>(builder, pType, vec, size);
+                    return writeCol<int64_t>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT128:
-                    return writeI128Col(builder, pType, vec, size);
+                    return writeI128Col(builder, p_type, vec, size);
                 case duckdb::PhysicalType::FLOAT:
-                    return writeCol<float>(builder, pType, vec, size);
+                    return writeCol<float>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::DOUBLE:
-                    return writeCol<double>(builder, pType, vec, size);
+                    return writeCol<double>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INTERVAL:
-                    return writeIntervalCol(builder, pType, vec, size);
+                    return writeIntervalCol(builder, p_type, vec, size);
 
                 case duckdb::PhysicalType::VARCHAR:
                 case duckdb::PhysicalType::STRING:
@@ -343,7 +343,7 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
                 case duckdb::PhysicalType::STRUCT:
                 case duckdb::PhysicalType::LIST:
                 default:
-                    throw "unsupported physical type";
+                    throw Exception{ET::NOT_IMPLEMENTED, "unsupported physical type"};
             }
             return {};
         }();
@@ -351,14 +351,14 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
         // Push new chunk column
         columns.push_back(column);
     }
-    auto columnOffset = builder.CreateVector(columns);
+    auto column_offset = builder.CreateVector(columns);
 
     // Build result chunk
-    proto::QueryResultChunkBuilder chunkBuilder{builder};
-    chunkBuilder.add_query_id(queryID);
-    chunkBuilder.add_row_count(size);
-    chunkBuilder.add_columns(columnOffset);
-    return chunkBuilder.Finish();
+    proto::QueryResultChunkBuilder chunk_builder{builder};
+    chunk_builder.add_query_id(queryID);
+    chunk_builder.add_row_count(size);
+    chunk_builder.add_columns(column_offset);
+    return chunk_builder.Finish();
 }
 
 /// Write the query result
@@ -370,7 +370,7 @@ fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, 
         for (auto chunk = result.Fetch(); !!chunk && chunk->size() > 0; chunk = result.Fetch())
             chunks.push_back(WriteQueryResultChunk(builder, queryID, chunk.get(), result.types));
     }
-    auto dataChunks = builder.CreateVector(chunks);
+    auto data_chunks = builder.CreateVector(chunks);
 
     // Write column types
     fb::Offset<fb::Vector<const proto::SQLType *>> columnTypes;
@@ -391,19 +391,19 @@ fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, 
     auto columnNames = builder.CreateVectorOfStrings(result.names);
 
     // Write the query result
-    proto::QueryResultBuilder resultBuilder{builder};
-    resultBuilder.add_query_id(queryID);
-    resultBuilder.add_column_names(columnNames);
-    resultBuilder.add_column_types(columnTypes);
-    if (!async) resultBuilder.add_data_chunks(dataChunks);
-    return resultBuilder.Finish();
+    proto::QueryResultBuilder result_builder{builder};
+    result_builder.add_query_id(queryID);
+    result_builder.add_column_names(columnNames);
+    result_builder.add_column_types(columnTypes);
+    if (!async) result_builder.add_data_chunks(data_chunks);
+    return result_builder.Finish();
 }
 
 /// Write the query plan
 fb::Offset<proto::QueryPlan> WriteQueryPlan(fb::FlatBufferBuilder &builder, duckdb::LogicalOperator &plan) {
     // Remember the children
     std::vector<duckdb::LogicalOperator *> operators;
-    std::vector<std::tuple<size_t, size_t>> operatorChildEdges;
+    std::vector<std::tuple<size_t, size_t>> op_child_edges;
     operators.push_back(&plan);
 
     // Traverse the plan
@@ -419,76 +419,75 @@ fb::Offset<proto::QueryPlan> WriteQueryPlan(fb::FlatBufferBuilder &builder, duck
             auto childID = operators.size();
             operators.push_back(child.get());
             dfsStack.push_back(childID);
-            operatorChildEdges.push_back({targetID, childID});
+            op_child_edges.push_back({targetID, childID});
         }
     }
 
-    fb::Offset<fb::Vector<uint8_t>> operatorTypeVector;
-    fb::Offset<fb::Vector<uint64_t>> operatorChildVector;
-    fb::Offset<fb::Vector<uint64_t>> operatorChildOffsetVector;
+    fb::Offset<fb::Vector<uint8_t>> op_type_vec;
+    fb::Offset<fb::Vector<uint64_t>> op_child_vec;
+    fb::Offset<fb::Vector<uint64_t>> op_child_ofs_vec;
 
     // Write operator types
     {
         uint8_t *writer;
-        operatorTypeVector = builder.CreateUninitializedVector<uint8_t>(operators.size(), &writer);
-        for (size_t i = 0; i < operators.size(); ++i) {
-            writer[i] = static_cast<uint8_t>(mapOperatorType(operators[i]->type));
-        }
+        op_type_vec = builder.CreateUninitializedVector<uint8_t>(operators.size(), &writer);
+        for (size_t i = 0; i < operators.size(); ++i)
+            writer[i] = static_cast<uint8_t>(MapOperatorType(operators[i]->type));
     }
 
     // Write the children
     {
         // Encode children
-        std::vector<size_t> operatorChildren;
-        std::vector<size_t> operatorChildOffsets;
-        std::sort(operatorChildEdges.begin(), operatorChildEdges.end(),
+        std::vector<size_t> op_children;
+        std::vector<size_t> op_child_offsets;
+        std::sort(op_child_edges.begin(), op_child_edges.end(),
                   [&](auto &l, auto &r) { return std::get<0>(l) < std::get<0>(r); });
-        operatorChildOffsets.resize(operators.size(), 0);
+        op_child_offsets.resize(operators.size(), 0);
 
-        auto edgeIter = operatorChildEdges.begin();
+        auto edge_iter = op_child_edges.begin();
         for (auto oid = 0; oid < operators.size(); ++oid) {
-            operatorChildOffsets[oid] = operatorChildren.size();
+            op_child_offsets[oid] = op_children.size();
 
             // Reached end?
-            if (edgeIter == operatorChildEdges.end()) continue;
+            if (edge_iter == op_child_edges.end()) continue;
 
             // At parent of next edge?
-            auto &[parent, child] = *edgeIter;
+            auto &[parent, child] = *edge_iter;
             if (oid != parent) continue;
 
             // Store children
-            operatorChildren.push_back(child);
-            edgeIter++;
-            for (; edgeIter != operatorChildEdges.end(); ++edgeIter) {
-                auto &[nextParent, nextChild] = *edgeIter;
+            op_children.push_back(child);
+            edge_iter++;
+            for (; edge_iter != op_child_edges.end(); ++edge_iter) {
+                auto &[nextParent, nextChild] = *edge_iter;
                 if (oid != nextParent) {
                     break;
                 } else {
-                    operatorChildren.push_back(nextChild);
+                    op_children.push_back(nextChild);
                 }
             }
         }
 
         // Write children
         uint64_t *writer;
-        operatorChildVector = builder.CreateUninitializedVector<uint64_t>(operatorChildren.size(), &writer);
-        for (size_t i = 0; i < operatorChildren.size(); ++i) {
-            writer[i] = static_cast<size_t>(operatorChildren[i]);
+        op_child_vec = builder.CreateUninitializedVector<uint64_t>(op_children.size(), &writer);
+        for (size_t i = 0; i < op_children.size(); ++i) {
+            writer[i] = static_cast<size_t>(op_children[i]);
         }
 
         // Write child offsets
-        operatorChildOffsetVector = builder.CreateUninitializedVector<uint64_t>(operatorChildOffsets.size(), &writer);
-        for (size_t i = 0; i < operatorChildOffsets.size(); ++i) {
-            writer[i] = static_cast<size_t>(operatorChildOffsets[i]);
+        op_child_ofs_vec = builder.CreateUninitializedVector<uint64_t>(op_child_offsets.size(), &writer);
+        for (size_t i = 0; i < op_child_offsets.size(); ++i) {
+            writer[i] = static_cast<size_t>(op_child_offsets[i]);
         }
     }
 
     // Write the query result
-    proto::QueryPlanBuilder planBuilder{builder};
-    planBuilder.add_operator_types(operatorTypeVector);
-    planBuilder.add_operator_children(operatorChildVector);
-    planBuilder.add_operator_child_offsets(operatorChildOffsetVector);
-    return planBuilder.Finish();
+    proto::QueryPlanBuilder plan_builder{builder};
+    plan_builder.add_operator_types(op_type_vec);
+    plan_builder.add_operator_children(op_child_vec);
+    plan_builder.add_operator_child_offsets(op_child_ofs_vec);
+    return plan_builder.Finish();
 }
 
 }  // namespace duckdb_webapi
