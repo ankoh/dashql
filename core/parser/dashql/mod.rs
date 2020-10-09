@@ -22,7 +22,7 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
-    use super::{lexer, parser};
+    use super::{context, lexer, parser};
 
     #[test]
     fn parse_parameter_declaration() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,8 +33,22 @@ mod tests {
 
         let (result, errors) = parser::parse(&lexer);
 
-        assert_eq!(result.ok_or("Error")??.len(), 1);
+        let result = result.ok_or("Unexpected missing result")??;
+
         assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 1);
+
+        let statement = match result[0] {
+            context::Statement::ParameterDeclaration(parameter_declaration) => {
+                Ok(parameter_declaration)
+            }
+            _ => Err("Unexpected statement"),
+        }?;
+
+        assert_eq!(statement.location.begin.line, 1);
+        assert_eq!(statement.location.begin.column, 1);
+        assert_eq!(statement.location.end.line, 1);
+        assert_eq!(statement.location.end.column, 19);
 
         Ok(())
     }

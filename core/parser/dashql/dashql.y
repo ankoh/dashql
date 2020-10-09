@@ -3,8 +3,8 @@
 %%
 
 Statements -> Produce<Vec<Statement<'input>>>:
-    Statement ";"               { Ok(vec!($1?)) }
-  | Statements Statement ";"    { let mut vec = $1?; vec.push($2?); Ok(vec) }
+    Statement               { Ok(vec!($1?)) }
+  | Statements Statement    { let mut vec = $1?; vec.push($2?); Ok(vec) }
   ;
 
 Statement -> Produce<Statement<'input>>:
@@ -16,23 +16,23 @@ Statement -> Produce<Statement<'input>>:
   ;
 
 ParameterDeclaration -> Produce<ParameterDeclaration<'input>>:
-    "declare" "parameter"   { Ok(ParameterDeclaration { location: ($1?, $2?).into(), _dummy: "" }) }
+    "declare" "parameter" ";"   { Ok(ParameterDeclaration { location: ($lexer, $1?, $3?).into(), _dummy: "" }) }
   ;
 
 LoadStatement -> Produce<LoadStatement<'input>>:
-    "load"  { Ok(LoadStatement { location: $1?.into(), _dummy: "" }) }
+    "load" ";"  { Ok(LoadStatement { location: ($lexer, $2?).into(), _dummy: "" }) }
   ;
 
 ExtractStatement -> Produce<ExtractStatement<'input>>:
-    "extract"   { Ok(ExtractStatement { location: $1?.into(), _dummy: "" }) }
+    "extract" ";"   { Ok(ExtractStatement { location: ($lexer, $2?).into(), _dummy: "" }) }
   ;
 
 QueryStatement -> Produce<QueryStatement<'input>>:
-    "query" { Ok(QueryStatement { location: $1?.into(), _dummy: "" }) }
+    "query" ";" { Ok(QueryStatement { location: ($lexer, $2?).into(), _dummy: "" }) }
   ;
 
 VisualizeStatement -> Produce<VisualizeStatement<'input>>:
-    "visualize" { Ok(VisualizeStatement { location: $1?.into(), _dummy: "" }) }
+    "visualize" ";" { Ok(VisualizeStatement { location: ($lexer, $2?).into(), _dummy: "" }) }
   ;
 
 %%
