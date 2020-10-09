@@ -100,6 +100,9 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
     switch (column->variant_type()) {
         case proto::VectorVariant::NONE:
             break;
+        case proto::VectorVariant::VectorBool:
+            copy(v_i64, column->variant_as_VectorBool());
+            break;
         case proto::VectorVariant::VectorI8:
             copy(v_i64, column->variant_as_VectorI8());
             break;

@@ -13,6 +13,10 @@ struct I128;
 
 struct Interval;
 
+struct VectorBool;
+struct VectorBoolBuilder;
+struct VectorBoolT;
+
 struct VectorI8;
 struct VectorI8Builder;
 struct VectorI8T;
@@ -73,6 +77,8 @@ bool operator==(const I128 &lhs, const I128 &rhs);
 bool operator!=(const I128 &lhs, const I128 &rhs);
 bool operator==(const Interval &lhs, const Interval &rhs);
 bool operator!=(const Interval &lhs, const Interval &rhs);
+bool operator==(const VectorBoolT &lhs, const VectorBoolT &rhs);
+bool operator!=(const VectorBoolT &lhs, const VectorBoolT &rhs);
 bool operator==(const VectorI8T &lhs, const VectorI8T &rhs);
 bool operator!=(const VectorI8T &lhs, const VectorI8T &rhs);
 bool operator==(const VectorU8T &lhs, const VectorU8T &rhs);
@@ -106,6 +112,8 @@ inline const flatbuffers::TypeTable *I128TypeTable();
 
 inline const flatbuffers::TypeTable *IntervalTypeTable();
 
+inline const flatbuffers::TypeTable *VectorBoolTypeTable();
+
 inline const flatbuffers::TypeTable *VectorI8TypeTable();
 
 inline const flatbuffers::TypeTable *VectorU8TypeTable();
@@ -136,26 +144,28 @@ inline const flatbuffers::TypeTable *VectorTypeTable();
 
 enum class VectorVariant : uint8_t {
   NONE = 0,
-  VectorI8 = 1,
-  VectorU8 = 2,
-  VectorI16 = 3,
-  VectorU16 = 4,
-  VectorI32 = 5,
-  VectorU32 = 6,
-  VectorI64 = 7,
-  VectorU64 = 8,
-  VectorI128 = 9,
-  VectorF32 = 10,
-  VectorF64 = 11,
-  VectorInterval = 12,
-  VectorString = 13,
+  VectorBool = 1,
+  VectorI8 = 2,
+  VectorU8 = 3,
+  VectorI16 = 4,
+  VectorU16 = 5,
+  VectorI32 = 6,
+  VectorU32 = 7,
+  VectorI64 = 8,
+  VectorU64 = 9,
+  VectorI128 = 10,
+  VectorF32 = 11,
+  VectorF64 = 12,
+  VectorInterval = 13,
+  VectorString = 14,
   MIN = NONE,
   MAX = VectorString
 };
 
-inline const VectorVariant (&EnumValuesVectorVariant())[14] {
+inline const VectorVariant (&EnumValuesVectorVariant())[15] {
   static const VectorVariant values[] = {
     VectorVariant::NONE,
+    VectorVariant::VectorBool,
     VectorVariant::VectorI8,
     VectorVariant::VectorU8,
     VectorVariant::VectorI16,
@@ -174,8 +184,9 @@ inline const VectorVariant (&EnumValuesVectorVariant())[14] {
 }
 
 inline const char * const *EnumNamesVectorVariant() {
-  static const char * const names[15] = {
+  static const char * const names[16] = {
     "NONE",
+    "VectorBool",
     "VectorI8",
     "VectorU8",
     "VectorI16",
@@ -202,6 +213,10 @@ inline const char *EnumNameVectorVariant(VectorVariant e) {
 
 template<typename T> struct VectorVariantTraits {
   static const VectorVariant enum_value = VectorVariant::NONE;
+};
+
+template<> struct VectorVariantTraits<duckdb_webapi::proto::VectorBool> {
+  static const VectorVariant enum_value = VectorVariant::VectorBool;
 };
 
 template<> struct VectorVariantTraits<duckdb_webapi::proto::VectorI8> {
@@ -288,6 +303,14 @@ struct VectorVariantUnion {
   static void *UnPack(const void *obj, VectorVariant type, const flatbuffers::resolver_function_t *resolver);
   flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
 
+  duckdb_webapi::proto::VectorBoolT *AsVectorBool() {
+    return type == VectorVariant::VectorBool ?
+      reinterpret_cast<duckdb_webapi::proto::VectorBoolT *>(value) : nullptr;
+  }
+  const duckdb_webapi::proto::VectorBoolT *AsVectorBool() const {
+    return type == VectorVariant::VectorBool ?
+      reinterpret_cast<const duckdb_webapi::proto::VectorBoolT *>(value) : nullptr;
+  }
   duckdb_webapi::proto::VectorI8T *AsVectorI8() {
     return type == VectorVariant::VectorI8 ?
       reinterpret_cast<duckdb_webapi::proto::VectorI8T *>(value) : nullptr;
@@ -400,6 +423,10 @@ inline bool operator==(const VectorVariantUnion &lhs, const VectorVariantUnion &
   switch (lhs.type) {
     case VectorVariant::NONE: {
       return true;
+    }
+    case VectorVariant::VectorBool: {
+      return *(reinterpret_cast<const duckdb_webapi::proto::VectorBoolT *>(lhs.value)) ==
+             *(reinterpret_cast<const duckdb_webapi::proto::VectorBoolT *>(rhs.value));
     }
     case VectorVariant::VectorI8: {
       return *(reinterpret_cast<const duckdb_webapi::proto::VectorI8T *>(lhs.value)) ==
@@ -552,6 +579,105 @@ inline bool operator!=(const Interval &lhs, const Interval &rhs) {
     return !(lhs == rhs);
 }
 
+
+struct VectorBoolT : public flatbuffers::NativeTable {
+  typedef VectorBool TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "duckdb_webapi.proto.VectorBoolT";
+  }
+  std::vector<bool> values;
+  std::vector<bool> null_mask;
+  VectorBoolT() {
+  }
+};
+
+inline bool operator==(const VectorBoolT &lhs, const VectorBoolT &rhs) {
+  return
+      (lhs.values == rhs.values) &&
+      (lhs.null_mask == rhs.null_mask);
+}
+
+inline bool operator!=(const VectorBoolT &lhs, const VectorBoolT &rhs) {
+    return !(lhs == rhs);
+}
+
+
+struct VectorBool FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef VectorBoolT NativeTableType;
+  typedef VectorBoolBuilder Builder;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return VectorBoolTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "duckdb_webapi.proto.VectorBool";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_VALUES = 4,
+    VT_NULL_MASK = 6
+  };
+  const flatbuffers::Vector<uint8_t> *values() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_VALUES);
+  }
+  const flatbuffers::Vector<uint8_t> *null_mask() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_NULL_MASK);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_VALUES) &&
+           verifier.VerifyVector(values()) &&
+           VerifyOffset(verifier, VT_NULL_MASK) &&
+           verifier.VerifyVector(null_mask()) &&
+           verifier.EndTable();
+  }
+  VectorBoolT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(VectorBoolT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<VectorBool> Pack(flatbuffers::FlatBufferBuilder &_fbb, const VectorBoolT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct VectorBoolBuilder {
+  typedef VectorBool Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_values(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> values) {
+    fbb_.AddOffset(VectorBool::VT_VALUES, values);
+  }
+  void add_null_mask(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> null_mask) {
+    fbb_.AddOffset(VectorBool::VT_NULL_MASK, null_mask);
+  }
+  explicit VectorBoolBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<VectorBool> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<VectorBool>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<VectorBool> CreateVectorBool(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> values = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> null_mask = 0) {
+  VectorBoolBuilder builder_(_fbb);
+  builder_.add_null_mask(null_mask);
+  builder_.add_values(values);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<VectorBool> CreateVectorBoolDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<uint8_t> *values = nullptr,
+    const std::vector<uint8_t> *null_mask = nullptr) {
+  auto values__ = values ? _fbb.CreateVector<uint8_t>(*values) : 0;
+  auto null_mask__ = null_mask ? _fbb.CreateVector<uint8_t>(*null_mask) : 0;
+  return duckdb_webapi::proto::CreateVectorBool(
+      _fbb,
+      values__,
+      null_mask__);
+}
+
+flatbuffers::Offset<VectorBool> CreateVectorBool(flatbuffers::FlatBufferBuilder &_fbb, const VectorBoolT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct VectorI8T : public flatbuffers::NativeTable {
   typedef VectorI8 TableType;
@@ -1881,6 +2007,9 @@ struct Vector FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return GetPointer<const void *>(VT_VARIANT);
   }
   template<typename T> const T *variant_as() const;
+  const duckdb_webapi::proto::VectorBool *variant_as_VectorBool() const {
+    return variant_type() == duckdb_webapi::proto::VectorVariant::VectorBool ? static_cast<const duckdb_webapi::proto::VectorBool *>(variant()) : nullptr;
+  }
   const duckdb_webapi::proto::VectorI8 *variant_as_VectorI8() const {
     return variant_type() == duckdb_webapi::proto::VectorVariant::VectorI8 ? static_cast<const duckdb_webapi::proto::VectorI8 *>(variant()) : nullptr;
   }
@@ -1931,6 +2060,10 @@ struct Vector FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   void UnPackTo(VectorT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
   static flatbuffers::Offset<Vector> Pack(flatbuffers::FlatBufferBuilder &_fbb, const VectorT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
+
+template<> inline const duckdb_webapi::proto::VectorBool *Vector::variant_as<duckdb_webapi::proto::VectorBool>() const {
+  return variant_as_VectorBool();
+}
 
 template<> inline const duckdb_webapi::proto::VectorI8 *Vector::variant_as<duckdb_webapi::proto::VectorI8>() const {
   return variant_as_VectorI8();
@@ -2016,6 +2149,35 @@ inline flatbuffers::Offset<Vector> CreateVector(
 }
 
 flatbuffers::Offset<Vector> CreateVector(flatbuffers::FlatBufferBuilder &_fbb, const VectorT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+inline VectorBoolT *VectorBool::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<duckdb_webapi::proto::VectorBoolT> _o = std::unique_ptr<duckdb_webapi::proto::VectorBoolT>(new VectorBoolT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void VectorBool::UnPackTo(VectorBoolT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = values(); if (_e) { _o->values.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->values[_i] = _e->Get(_i) != 0; } } }
+  { auto _e = null_mask(); if (_e) { _o->null_mask.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->null_mask[_i] = _e->Get(_i) != 0; } } }
+}
+
+inline flatbuffers::Offset<VectorBool> VectorBool::Pack(flatbuffers::FlatBufferBuilder &_fbb, const VectorBoolT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateVectorBool(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<VectorBool> CreateVectorBool(flatbuffers::FlatBufferBuilder &_fbb, const VectorBoolT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const VectorBoolT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _values = _o->values.size() ? _fbb.CreateVector(_o->values) : 0;
+  auto _null_mask = _o->null_mask.size() ? _fbb.CreateVector(_o->null_mask) : 0;
+  return duckdb_webapi::proto::CreateVectorBool(
+      _fbb,
+      _values,
+      _null_mask);
+}
 
 inline VectorI8T *VectorI8::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   std::unique_ptr<duckdb_webapi::proto::VectorI8T> _o = std::unique_ptr<duckdb_webapi::proto::VectorI8T>(new VectorI8T());
@@ -2428,6 +2590,10 @@ inline bool VerifyVectorVariant(flatbuffers::Verifier &verifier, const void *obj
     case VectorVariant::NONE: {
       return true;
     }
+    case VectorVariant::VectorBool: {
+      auto ptr = reinterpret_cast<const duckdb_webapi::proto::VectorBool *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     case VectorVariant::VectorI8: {
       auto ptr = reinterpret_cast<const duckdb_webapi::proto::VectorI8 *>(obj);
       return verifier.VerifyTable(ptr);
@@ -2498,6 +2664,10 @@ inline bool VerifyVectorVariantVector(flatbuffers::Verifier &verifier, const fla
 
 inline void *VectorVariantUnion::UnPack(const void *obj, VectorVariant type, const flatbuffers::resolver_function_t *resolver) {
   switch (type) {
+    case VectorVariant::VectorBool: {
+      auto ptr = reinterpret_cast<const duckdb_webapi::proto::VectorBool *>(obj);
+      return ptr->UnPack(resolver);
+    }
     case VectorVariant::VectorI8: {
       auto ptr = reinterpret_cast<const duckdb_webapi::proto::VectorI8 *>(obj);
       return ptr->UnPack(resolver);
@@ -2556,6 +2726,10 @@ inline void *VectorVariantUnion::UnPack(const void *obj, VectorVariant type, con
 
 inline flatbuffers::Offset<void> VectorVariantUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
   switch (type) {
+    case VectorVariant::VectorBool: {
+      auto ptr = reinterpret_cast<const duckdb_webapi::proto::VectorBoolT *>(value);
+      return CreateVectorBool(_fbb, ptr, _rehasher).Union();
+    }
     case VectorVariant::VectorI8: {
       auto ptr = reinterpret_cast<const duckdb_webapi::proto::VectorI8T *>(value);
       return CreateVectorI8(_fbb, ptr, _rehasher).Union();
@@ -2614,6 +2788,10 @@ inline flatbuffers::Offset<void> VectorVariantUnion::Pack(flatbuffers::FlatBuffe
 
 inline VectorVariantUnion::VectorVariantUnion(const VectorVariantUnion &u) : type(u.type), value(nullptr) {
   switch (type) {
+    case VectorVariant::VectorBool: {
+      value = new duckdb_webapi::proto::VectorBoolT(*reinterpret_cast<duckdb_webapi::proto::VectorBoolT *>(u.value));
+      break;
+    }
     case VectorVariant::VectorI8: {
       value = new duckdb_webapi::proto::VectorI8T(*reinterpret_cast<duckdb_webapi::proto::VectorI8T *>(u.value));
       break;
@@ -2673,6 +2851,11 @@ inline VectorVariantUnion::VectorVariantUnion(const VectorVariantUnion &u) : typ
 
 inline void VectorVariantUnion::Reset() {
   switch (type) {
+    case VectorVariant::VectorBool: {
+      auto ptr = reinterpret_cast<duckdb_webapi::proto::VectorBoolT *>(value);
+      delete ptr;
+      break;
+    }
     case VectorVariant::VectorI8: {
       auto ptr = reinterpret_cast<duckdb_webapi::proto::VectorI8T *>(value);
       delete ptr;
@@ -2759,9 +2942,11 @@ inline const flatbuffers::TypeTable *VectorVariantTypeTable() {
     { flatbuffers::ET_SEQUENCE, 0, 9 },
     { flatbuffers::ET_SEQUENCE, 0, 10 },
     { flatbuffers::ET_SEQUENCE, 0, 11 },
-    { flatbuffers::ET_SEQUENCE, 0, 12 }
+    { flatbuffers::ET_SEQUENCE, 0, 12 },
+    { flatbuffers::ET_SEQUENCE, 0, 13 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
+    duckdb_webapi::proto::VectorBoolTypeTable,
     duckdb_webapi::proto::VectorI8TypeTable,
     duckdb_webapi::proto::VectorU8TypeTable,
     duckdb_webapi::proto::VectorI16TypeTable,
@@ -2778,6 +2963,7 @@ inline const flatbuffers::TypeTable *VectorVariantTypeTable() {
   };
   static const char * const names[] = {
     "NONE",
+    "VectorBool",
     "VectorI8",
     "VectorU8",
     "VectorI16",
@@ -2793,7 +2979,7 @@ inline const flatbuffers::TypeTable *VectorVariantTypeTable() {
     "VectorString"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_UNION, 14, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_UNION, 15, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
@@ -2828,6 +3014,21 @@ inline const flatbuffers::TypeTable *IntervalTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_STRUCT, 3, type_codes, nullptr, nullptr, values, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *VectorBoolTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_BOOL, 1, -1 },
+    { flatbuffers::ET_BOOL, 1, -1 }
+  };
+  static const char * const names[] = {
+    "values",
+    "null_mask"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 2, type_codes, nullptr, nullptr, nullptr, names
   };
   return &tt;
 }

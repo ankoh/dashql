@@ -91,12 +91,12 @@ template <typename T, bool WITH_NULL, typename OP> void iterVec(duckdb::VectorDa
 }
 
 /// Write a fixed-length result column
-template <typename T>
+template <typename VecType, typename FlatbufferType = VecType>
 static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
                                           duckdb::VectorData &vec, size_t count) {
-    assert(sizeof(T) == duckdb::GetTypeIdSize(type));
+    assert(sizeof(VecType) == duckdb::GetTypeIdSize(type));
 
-    T *values;
+    FlatbufferType *values;
     auto d_buf = builder.CreateUninitializedVector(count, &values);
     std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
 
@@ -105,12 +105,12 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
         uint8_t *nullmask;
         n_buf = builder.CreateUninitializedVector(count, &nullmask);
         values = GetMutableTemporaryPointer(builder, d_buf)->data();  // n_buf invalidates values
-        iterVec<T, true>(vec, count, [&](unsigned i, T value, bool null) {
+        iterVec<VecType, true>(vec, count, [&](unsigned i, VecType value, bool null) {
             values[i] = value;
             nullmask[i] = null;
         });
     } else {
-        iterVec<T, false>(vec, count, [&](unsigned i, T value, bool null) { values[i] = value; });
+        iterVec<VecType, false>(vec, count, [&](unsigned i, VecType value, bool null) { values[i] = value; });
     }
 
     // Build the query result column
@@ -123,43 +123,47 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
         w.add_variant_type(vt);
         wrapper = w.Finish();
     };
-    if constexpr (std::is_same_v<T, int8_t>) {
+    if constexpr (std::is_same_v<VecType, bool>) {
+        proto::VectorBoolBuilder vec{builder};
+        vec.add_values(d_buf);
+        build(vec, proto::VectorVariant::VectorBool);
+    } else if constexpr (std::is_same_v<VecType, int8_t>) {
         proto::VectorI8Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorI8);
-    } else if constexpr (std::is_same_v<T, uint8_t>) {
+    } else if constexpr (std::is_same_v<VecType, uint8_t>) {
         proto::VectorU8Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorU8);
-    } else if constexpr (std::is_same_v<T, uint16_t>) {
+    } else if constexpr (std::is_same_v<VecType, uint16_t>) {
         proto::VectorU16Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorU16);
-    } else if constexpr (std::is_same_v<T, int16_t>) {
+    } else if constexpr (std::is_same_v<VecType, int16_t>) {
         proto::VectorI16Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorI16);
-    } else if constexpr (std::is_same_v<T, uint32_t>) {
+    } else if constexpr (std::is_same_v<VecType, uint32_t>) {
         proto::VectorU32Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorU32);
-    } else if constexpr (std::is_same_v<T, int32_t>) {
+    } else if constexpr (std::is_same_v<VecType, int32_t>) {
         proto::VectorI32Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorI32);
-    } else if constexpr (std::is_same_v<T, uint64_t>) {
+    } else if constexpr (std::is_same_v<VecType, uint64_t>) {
         proto::VectorU64Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorU64);
-    } else if constexpr (std::is_same_v<T, int64_t>) {
+    } else if constexpr (std::is_same_v<VecType, int64_t>) {
         proto::VectorI64Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorI64);
-    } else if constexpr (std::is_same_v<T, float>) {
+    } else if constexpr (std::is_same_v<VecType, float>) {
         proto::VectorF32Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorF32);
-    } else if constexpr (std::is_same_v<T, double>) {
+    } else if constexpr (std::is_same_v<VecType, double>) {
         proto::VectorF64Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, proto::VectorVariant::VectorF64);
@@ -317,6 +321,8 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
         // Write result column
         auto column = [&]() -> fb::Offset<proto::Vector> {
             switch (p_type) {
+                case duckdb::PhysicalType::BOOL:
+                    return writeCol<bool, uint8_t>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT8:
                     return writeCol<int8_t>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT16:
@@ -333,12 +339,10 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
                     return writeCol<double>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INTERVAL:
                     return writeIntervalCol(builder, p_type, vec, size);
-
                 case duckdb::PhysicalType::VARCHAR:
                 case duckdb::PhysicalType::STRING:
                     return writeStringCol(builder, vec, size);
 
-                case duckdb::PhysicalType::BOOL:
                 case duckdb::PhysicalType::VARBINARY:
                 case duckdb::PhysicalType::STRUCT:
                 case duckdb::PhysicalType::LIST:

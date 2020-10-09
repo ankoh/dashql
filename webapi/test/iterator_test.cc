@@ -17,6 +17,26 @@ using namespace std;
 
 namespace {
 
+TEST(QueryResultIterator, BoolColumn) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebAPI::Connection conn{db};
+    auto expected = conn.SendQuery(R"RAW(
+        SELECT MOD(v, 2)::BOOL FROM generate_series(0, 10000) as t(v);
+    )RAW");
+    ASSERT_TRUE(expected.IsOk());
+    auto& result = expected.value();
+    ASSERT_NE(result.column_types(), nullptr);
+    ASSERT_EQ(result.column_types()->size(), 1);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::BOOLEAN);
+    QueryResultIterator iter{conn, result};
+    for (unsigned i = 0; i <= 10000; ++i) {
+        ASSERT_FALSE(iter.IsEnd());
+        ASSERT_EQ(iter.GetValue(0).GetValue<bool>(), i % 2);
+        iter.Next();
+    }
+    ASSERT_TRUE(iter.IsEnd());
+}
+
 TEST(QueryResultIterator, TinyIntColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebAPI::Connection conn{db};
