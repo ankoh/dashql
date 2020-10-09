@@ -344,10 +344,6 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
                 case duckdb::PhysicalType::VARCHAR:
                 case duckdb::PhysicalType::STRING:
                     return writeStringCol(builder, vec, size);
-
-                case duckdb::PhysicalType::VARBINARY:
-                case duckdb::PhysicalType::STRUCT:
-                case duckdb::PhysicalType::LIST:
                 default:
                     throw Exception{ET::NOT_IMPLEMENTED, "unsupported physical type"};
             }
