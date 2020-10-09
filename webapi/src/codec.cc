@@ -459,11 +459,11 @@ fb::Offset<proto::QueryPlan> WriteQueryPlan(fb::FlatBufferBuilder &builder, duck
             op_children.push_back(child);
             edge_iter++;
             for (; edge_iter != op_child_edges.end(); ++edge_iter) {
-                auto &[nextParent, nextChild] = *edge_iter;
-                if (oid != nextParent) {
+                auto &[next_parent, next_child] = *edge_iter;
+                if (oid != next_parent) {
                     break;
                 } else {
-                    op_children.push_back(nextChild);
+                    op_children.push_back(next_child);
                 }
             }
         }
