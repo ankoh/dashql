@@ -7,29 +7,27 @@ import { flatbuffers } from "flatbuffers";
  */
 export enum VectorVariant{
   NONE= 0,
-  VectorBool= 1,
-  VectorI8= 2,
-  VectorU8= 3,
-  VectorI16= 4,
-  VectorU16= 5,
-  VectorI32= 6,
-  VectorU32= 7,
-  VectorI64= 8,
-  VectorU64= 9,
-  VectorI128= 10,
-  VectorF32= 11,
-  VectorF64= 12,
-  VectorInterval= 13,
-  VectorString= 14
+  VectorI8= 1,
+  VectorU8= 2,
+  VectorI16= 3,
+  VectorU16= 4,
+  VectorI32= 5,
+  VectorU32= 6,
+  VectorI64= 7,
+  VectorU64= 8,
+  VectorI128= 9,
+  VectorF32= 10,
+  VectorF64= 11,
+  VectorInterval= 12,
+  VectorString= 13
 };
 
 export function unionToVectorVariant(
   type: VectorVariant,
-  accessor: (obj:VectorBool|VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8) => VectorBool|VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null
-): VectorBool|VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null {
+  accessor: (obj:VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8) => VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null
+): VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null {
   switch(VectorVariant[type]) {
     case 'NONE': return null; 
-    case 'VectorBool': return accessor(new VectorBool())! as VectorBool;
     case 'VectorI8': return accessor(new VectorI8())! as VectorI8;
     case 'VectorU8': return accessor(new VectorU8())! as VectorU8;
     case 'VectorI16': return accessor(new VectorI16())! as VectorI16;
@@ -49,12 +47,11 @@ export function unionToVectorVariant(
 
 export function unionListToVectorVariant(
   type: VectorVariant, 
-  accessor: (index: number, obj:VectorBool|VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8) => VectorBool|VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null, 
+  accessor: (index: number, obj:VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8) => VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null, 
   index: number
-): VectorBool|VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null {
+): VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null {
   switch(VectorVariant[type]) {
     case 'NONE': return null; 
-    case 'VectorBool': return accessor(index, new VectorBool())! as VectorBool;
     case 'VectorI8': return accessor(index, new VectorI8())! as VectorI8;
     case 'VectorU8': return accessor(index, new VectorU8())! as VectorU8;
     case 'VectorI16': return accessor(index, new VectorI16())! as VectorI16;
@@ -186,174 +183,6 @@ static createInterval(builder:flatbuffers.Builder, months: number, days: number,
   return builder.offset();
 };
 
-}
-/**
- * @constructor
- */
-export class VectorBool {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns VectorBool
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):VectorBool {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param VectorBool= obj
- * @returns VectorBool
- */
-static getRootAsVectorBool(bb:flatbuffers.ByteBuffer, obj?:VectorBool):VectorBool {
-  return (obj || new VectorBool()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param VectorBool= obj
- * @returns VectorBool
- */
-static getSizePrefixedRootAsVectorBool(bb:flatbuffers.ByteBuffer, obj?:VectorBool):VectorBool {
-  bb.setPosition(bb.position() + flatbuffers.SIZE_PREFIX_LENGTH);
-  return (obj || new VectorBool()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param number index
- * @returns boolean
- */
-values(index: number):boolean|null {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? !!this.bb!.readInt8(this.bb!.__vector(this.bb_pos + offset) + index) : false;
-};
-
-/**
- * @returns number
- */
-valuesLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @returns Int8Array
- */
-valuesArray():Int8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? new Int8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
-};
-
-/**
- * @param number index
- * @returns boolean
- */
-nullMask(index: number):boolean|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? !!this.bb!.readInt8(this.bb!.__vector(this.bb_pos + offset) + index) : false;
-};
-
-/**
- * @returns number
- */
-nullMaskLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @returns Int8Array
- */
-nullMaskArray():Int8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? new Int8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
-};
-
-/**
- * @param flatbuffers.Builder builder
- */
-static startVectorBool(builder:flatbuffers.Builder) {
-  builder.startObject(2);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset valuesOffset
- */
-static addValues(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, valuesOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param Array.<boolean> data
- * @returns flatbuffers.Offset
- */
-static createValuesVector(builder:flatbuffers.Builder, data:boolean[]):flatbuffers.Offset {
-  builder.startVector(1, data.length, 1);
-  for (var i = data.length - 1; i >= 0; i--) {
-    builder.addInt8(+data[i]);
-  }
-  return builder.endVector();
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startValuesVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(1, numElems, 1);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset nullMaskOffset
- */
-static addNullMask(builder:flatbuffers.Builder, nullMaskOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, nullMaskOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param Array.<boolean> data
- * @returns flatbuffers.Offset
- */
-static createNullMaskVector(builder:flatbuffers.Builder, data:boolean[]):flatbuffers.Offset {
-  builder.startVector(1, data.length, 1);
-  for (var i = data.length - 1; i >= 0; i--) {
-    builder.addInt8(+data[i]);
-  }
-  return builder.endVector();
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startNullMaskVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(1, numElems, 1);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @returns flatbuffers.Offset
- */
-static endVectorBool(builder:flatbuffers.Builder):flatbuffers.Offset {
-  var offset = builder.endObject();
-  return offset;
-};
-
-static createVectorBool(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Offset, nullMaskOffset:flatbuffers.Offset):flatbuffers.Offset {
-  VectorBool.startVectorBool(builder);
-  VectorBool.addValues(builder, valuesOffset);
-  VectorBool.addNullMask(builder, nullMaskOffset);
-  return VectorBool.endVectorBool(builder);
-}
 }
 /**
  * @constructor

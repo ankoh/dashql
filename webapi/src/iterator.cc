@@ -100,9 +100,6 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
     switch (column->variant_type()) {
         case proto::VectorVariant::NONE:
             break;
-        case proto::VectorVariant::VectorBool:
-            copy(v_i64, column->variant_as_VectorBool());
-            break;
         case proto::VectorVariant::VectorI8:
             copy(v_i64, column->variant_as_VectorI8());
             break;
@@ -176,7 +173,7 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
         case proto::SQLTypeID::SQLNULL:
             return duckdb::Value{};
         case proto::SQLTypeID::BOOLEAN:
-            return duckdb::Value::BOOLEAN(v_i64);
+            return duckdb::Value::BOOLEAN(v_u64);
         case proto::SQLTypeID::TINYINT:
             return duckdb::Value::TINYINT(v_i64);
         case proto::SQLTypeID::SMALLINT:

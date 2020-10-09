@@ -16,7 +16,6 @@ struct Interval {
 }
 
 // Typed vectors
-table VectorBool { values: [bool]; null_mask: [bool]; }
 table VectorI8 { values: [byte]; null_mask: [bool]; }
 table VectorU8 { values: [ubyte]; null_mask: [bool]; }
 table VectorI16 { values: [short]; null_mask: [bool]; }
@@ -33,7 +32,6 @@ table VectorString { values: [string]; null_mask: [bool]; }
 
 // A vector variant
 union VectorVariant {
-    VectorBool,
     VectorI8, VectorU8,
     VectorI16, VectorU16,
     VectorI32, VectorU32,

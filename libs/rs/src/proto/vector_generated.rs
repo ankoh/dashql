@@ -30,25 +30,24 @@ pub mod proto {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum VectorVariant {
   NONE = 0,
-  VectorBool = 1,
-  VectorI8 = 2,
-  VectorU8 = 3,
-  VectorI16 = 4,
-  VectorU16 = 5,
-  VectorI32 = 6,
-  VectorU32 = 7,
-  VectorI64 = 8,
-  VectorU64 = 9,
-  VectorI128 = 10,
-  VectorF32 = 11,
-  VectorF64 = 12,
-  VectorInterval = 13,
-  VectorString = 14,
+  VectorI8 = 1,
+  VectorU8 = 2,
+  VectorI16 = 3,
+  VectorU16 = 4,
+  VectorI32 = 5,
+  VectorU32 = 6,
+  VectorI64 = 7,
+  VectorU64 = 8,
+  VectorI128 = 9,
+  VectorF32 = 10,
+  VectorF64 = 11,
+  VectorInterval = 12,
+  VectorString = 13,
 
 }
 
 pub const ENUM_MIN_VECTOR_VARIANT: u8 = 0;
-pub const ENUM_MAX_VECTOR_VARIANT: u8 = 14;
+pub const ENUM_MAX_VECTOR_VARIANT: u8 = 13;
 
 impl<'a> flatbuffers::Follow<'a> for VectorVariant {
   type Inner = Self;
@@ -82,9 +81,8 @@ impl flatbuffers::Push for VectorVariant {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_VECTOR_VARIANT: [VectorVariant; 15] = [
+pub const ENUM_VALUES_VECTOR_VARIANT: [VectorVariant; 14] = [
   VectorVariant::NONE,
-  VectorVariant::VectorBool,
   VectorVariant::VectorI8,
   VectorVariant::VectorU8,
   VectorVariant::VectorI16,
@@ -101,9 +99,8 @@ pub const ENUM_VALUES_VECTOR_VARIANT: [VectorVariant; 15] = [
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_VECTOR_VARIANT: [&str; 15] = [
+pub const ENUM_NAMES_VECTOR_VARIANT: [&str; 14] = [
     "NONE",
-    "VectorBool",
     "VectorI8",
     "VectorU8",
     "VectorI16",
@@ -257,96 +254,6 @@ impl Interval {
   }
   pub fn msecs(&self) -> i64 {
     self.msecs_.from_little_endian()
-  }
-}
-
-pub enum VectorBoolOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
-
-pub struct VectorBool<'a> {
-  pub _tab: flatbuffers::Table<'a>,
-}
-
-impl<'a> flatbuffers::Follow<'a> for VectorBool<'a> {
-    type Inner = VectorBool<'a>;
-    #[inline]
-    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self { _tab: flatbuffers::Table { buf, loc } }
-    }
-}
-
-impl<'a> VectorBool<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "duckdb_webapi.proto.VectorBool"
-    }
-
-    #[inline]
-    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        VectorBool {
-            _tab: table,
-        }
-    }
-    #[allow(unused_mut)]
-    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        args: &'args VectorBoolArgs<'args>) -> flatbuffers::WIPOffset<VectorBool<'bldr>> {
-      let mut builder = VectorBoolBuilder::new(_fbb);
-      if let Some(x) = args.null_mask { builder.add_null_mask(x); }
-      if let Some(x) = args.values { builder.add_values(x); }
-      builder.finish()
-    }
-
-    pub const VT_VALUES: flatbuffers::VOffsetT = 4;
-    pub const VT_NULL_MASK: flatbuffers::VOffsetT = 6;
-
-  #[inline]
-  pub fn values(&self) -> Option<&'a [bool]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, bool>>>(VectorBool::VT_VALUES, None).map(|v| v.safe_slice())
-  }
-  #[inline]
-  pub fn null_mask(&self) -> Option<&'a [bool]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, bool>>>(VectorBool::VT_NULL_MASK, None).map(|v| v.safe_slice())
-  }
-}
-
-pub struct VectorBoolArgs<'a> {
-    pub values: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, bool>>>,
-    pub null_mask: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, bool>>>,
-}
-impl<'a> Default for VectorBoolArgs<'a> {
-    #[inline]
-    fn default() -> Self {
-        VectorBoolArgs {
-            values: None,
-            null_mask: None,
-        }
-    }
-}
-pub struct VectorBoolBuilder<'a: 'b, 'b> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-}
-impl<'a: 'b, 'b> VectorBoolBuilder<'a, 'b> {
-  #[inline]
-  pub fn add_values(&mut self, values: flatbuffers::WIPOffset<flatbuffers::Vector<'b , bool>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(VectorBool::VT_VALUES, values);
-  }
-  #[inline]
-  pub fn add_null_mask(&mut self, null_mask: flatbuffers::WIPOffset<flatbuffers::Vector<'b , bool>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(VectorBool::VT_NULL_MASK, null_mask);
-  }
-  #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> VectorBoolBuilder<'a, 'b> {
-    let start = _fbb.start_table();
-    VectorBoolBuilder {
-      fbb_: _fbb,
-      start_: start,
-    }
-  }
-  #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<VectorBool<'a>> {
-    let o = self.fbb_.end_table(self.start_);
-    flatbuffers::WIPOffset::new(o.value())
   }
 }
 
@@ -1567,16 +1474,6 @@ impl<'a> Vector<'a> {
   pub fn variant(&self) -> Option<flatbuffers::Table<'a>> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Table<'a>>>(Vector::VT_VARIANT, None)
   }
-  #[inline]
-  #[allow(non_snake_case)]
-  pub fn variant_as_vector_bool(&self) -> Option<VectorBool<'a>> {
-    if self.variant_type() == VectorVariant::VectorBool {
-      self.variant().map(VectorBool::init_from_table)
-    } else {
-      None
-    }
-  }
-
   #[inline]
   #[allow(non_snake_case)]
   pub fn variant_as_vector_i8(&self) -> Option<VectorI8<'a>> {

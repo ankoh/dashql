@@ -124,9 +124,9 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
         wrapper = w.Finish();
     };
     if constexpr (std::is_same_v<VecType, bool>) {
-        proto::VectorBoolBuilder vec{builder};
+        proto::VectorU8Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorBool);
+        build(vec, proto::VectorVariant::VectorU8);
     } else if constexpr (std::is_same_v<VecType, int8_t>) {
         proto::VectorI8Builder vec{builder};
         vec.add_values(d_buf);
