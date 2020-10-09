@@ -7,6 +7,10 @@ edition = "2018"
 name = "core"
 path = "lib.rs"
 
+[[bin]]
+name = "generate-parser"
+path = "parser/generate.rs"
+
 [dependencies]
 cfgrammar = "0.9.1"
 lrlex = "0.9.1"

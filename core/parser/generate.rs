@@ -3,11 +3,17 @@ use lrlex::LexerBuilder;
 use lrpar::{CTParserBuilder, RecoveryKind};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let input_y = "./dashql.y";
-    let output_y = "./dashql.y.rs";
+    let args = std::env::args().collect::<Vec<_>>();
 
-    let input_l = "./dashql.l";
-    let output_l = "./dashql.l.rs";
+    if args.len() != 2 + 4 {
+        Err("Invalid number of arguments")?;
+    }
+
+    let input_y = &args[2];
+    let output_y = &args[3];
+
+    let input_l = &args[4];
+    let output_l = &args[5];
 
     let lex_rule_ids_map = CTParserBuilder::new()
         .yacckind(YaccKind::Grmtools)
