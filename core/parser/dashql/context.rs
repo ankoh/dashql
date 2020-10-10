@@ -2,27 +2,31 @@ pub trait Error = std::error::Error;
 pub type Produce<T> = Result<T, Box<dyn Error>>;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct Position {
+pub struct Position<'input> {
     pub line: usize,
     pub column: usize,
+    phantom: std::marker::PhantomData<&'input str>,
 }
 
-impl From<(usize, usize)> for Position {
+impl<'input> From<(usize, usize)> for Position<'input> {
     fn from(value: (usize, usize)) -> Self {
         Self {
             line: value.0,
             column: value.1,
+            phantom: std::marker::PhantomData,
         }
     }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct Location {
-    pub begin: Position,
-    pub end: Position,
+pub struct Location<'input> {
+    pub begin: Position<'input>,
+    pub end: Position<'input>,
+    phantom: std::marker::PhantomData<&'input str>,
 }
 
-impl<'input, T> From<(&dyn lrpar::NonStreamingLexer<'input, u32>, lrpar::Lexeme<T>)> for Location
+impl<'input, T> From<(&dyn lrpar::NonStreamingLexer<'input, u32>, lrpar::Lexeme<T>)>
+    for Location<'input>
 where
     T: Copy,
 {
@@ -34,6 +38,7 @@ where
         Self {
             begin: begin.into(),
             end: end.into(),
+            phantom: std::marker::PhantomData,
         }
     }
 }
@@ -43,7 +48,7 @@ impl<'input, T>
         &dyn lrpar::NonStreamingLexer<'input, u32>,
         lrpar::Lexeme<T>,
         lrpar::Lexeme<T>,
-    )> for Location
+    )> for Location<'input>
 where
     T: Copy,
 {
@@ -61,8 +66,15 @@ where
         Self {
             begin: begin.0.into(),
             end: end.1.into(),
+            phantom: std::marker::PhantomData,
         }
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct String<'input> {
+    pub location: Location<'input>,
+    pub string: &'input str,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -76,30 +88,38 @@ pub enum Statement<'input> {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ParameterDeclaration<'input> {
-    pub location: Location,
-    pub _dummy: &'input str,
+    pub location: Location<'input>,
+    pub identifier: String<'input>,
+    pub label: String<'input>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ParameterType<'input> {
+    Integer(Location<'input>),
+    Float(Location<'input>),
+    Text(Location<'input>),
+    Date(Location<'input>),
+    DateTime(Location<'input>),
+    Time(Location<'input>),
+    File(Location<'input>),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct LoadStatement<'input> {
-    pub location: Location,
-    pub _dummy: &'input str,
+    pub location: Location<'input>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ExtractStatement<'input> {
-    pub location: Location,
-    pub _dummy: &'input str,
+    pub location: Location<'input>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct QueryStatement<'input> {
-    pub location: Location,
-    pub _dummy: &'input str,
+    pub location: Location<'input>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct VisualizeStatement<'input> {
-    pub location: Location,
-    pub _dummy: &'input str,
+    pub location: Location<'input>,
 }

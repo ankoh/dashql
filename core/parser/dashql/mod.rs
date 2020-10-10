@@ -26,7 +26,7 @@ mod tests {
 
     #[test]
     fn parse_parameter_declaration() -> Result<(), Box<dyn std::error::Error>> {
-        let input = "declare parameter;";
+        let input = "DECLARE PARAMETER foo TYPE INTEGER;";
 
         let lexerdef = lexer::lexerdef();
         let lexer = lexerdef.lexer(&input);
@@ -48,7 +48,9 @@ mod tests {
         assert_eq!(statement.location.begin.line, 1);
         assert_eq!(statement.location.begin.column, 1);
         assert_eq!(statement.location.end.line, 1);
-        assert_eq!(statement.location.end.column, 19);
+        assert_eq!(statement.location.end.column, 36);
+        assert_eq!(statement.identifier.string, "foo");
+        assert_eq!(statement.label.string, "foo");
 
         Ok(())
     }
