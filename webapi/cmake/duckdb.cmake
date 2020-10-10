@@ -17,11 +17,7 @@ ExternalProject_Get_Property(duckdb_ep SOURCE_DIR)
 set(DUCKDB_INCLUDE_DIR "${SOURCE_DIR}/src/include")
 set(DUCKDB_AMALGAMATION "${DUCKDB_SOURCE_DIR}/src/amalgamation/duckdb.cpp")
 
-file(GLOB_RECURSE DUCKDB_SRC_FILES "${DUCKDB_SOURCE_DIR}/src" *.cpp)
-string(REGEX REPLACE ".*amalgamation.*" "" DUCKDB_SRC_FILES "${DUCKDB_SRC_FILES}")
-
 add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}
     COMMAND ${Python3_EXECUTABLE} "${DUCKDB_SOURCE_DIR}/scripts/amalgamation.py"
     WORKING_DIRECTORY "${DUCKDB_SOURCE_DIR}"
-    DEPENDS ${DUCKDB_SRC_FILES}
 )
