@@ -142,7 +142,6 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(bm_result_codec
         duckdb_webapi_core
-        duckdb_webapi_bench
         benchmark
         flatbuffers gtest gmock Threads::Threads)
 
