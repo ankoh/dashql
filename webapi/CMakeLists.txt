@@ -34,7 +34,6 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 # ---------------------------------------------------------------------------
 # CMake includes
 
-include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
