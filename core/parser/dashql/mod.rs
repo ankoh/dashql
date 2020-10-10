@@ -54,4 +54,35 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn parse_parameter_declaration_with_alias() -> Result<(), Box<dyn std::error::Error>> {
+        let input = "DECLARE PARAMETER label AS identifier TYPE INTEGER;";
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+
+        let result = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 1);
+
+        let statement = match result[0] {
+            context::Statement::ParameterDeclaration(parameter_declaration) => {
+                Ok(parameter_declaration)
+            }
+            _ => Err("Unexpected statement"),
+        }?;
+
+        assert_eq!(statement.location.begin.line, 1);
+        assert_eq!(statement.location.begin.column, 1);
+        assert_eq!(statement.location.end.line, 1);
+        assert_eq!(statement.location.end.column, 52);
+        assert_eq!(statement.identifier.string, "identifier");
+        assert_eq!(statement.label.string, "label");
+
+        Ok(())
+    }
 }
