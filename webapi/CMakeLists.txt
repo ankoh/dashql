@@ -34,6 +34,7 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 # ---------------------------------------------------------------------------
 # CMake includes
 
+include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
@@ -131,3 +132,18 @@ if(NOT EMSCRIPTEN)
 
 endif()
 
+# ---------------------------------------------------------------------------
+# Benchmarks
+
+if(NOT EMSCRIPTEN)
+
+    add_executable(bm_result_codec
+        ${CMAKE_SOURCE_DIR}/bench/bm_result_codec.cc
+    )
+    target_link_libraries(bm_result_codec
+        duckdb_webapi_core
+        duckdb_webapi_bench
+        benchmark
+        flatbuffers gtest gmock Threads::Threads)
+
+endif()
