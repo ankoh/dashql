@@ -13,10 +13,6 @@ FLATC_INSTALL_DIR="${FLATC_BASE_DIR}/install"
     && { echo "[ OK  ] Command: cmake"; } \
     || { echo "[ ERR ] Command: cmake"; exit 1; }
 
-[ -x "$(command -v ninja)" ] \
-    && { echo "[ OK  ] Command: ninja"; } \
-    || { echo "[ ERR ] Command: ninja"; exit 1; }
-
 [ -x "$(command -v clang)" ] \
     && { echo "[ OK  ] Command: clang"; } \
     || { echo "[ ERR ] Command: clang"; exit 1; }
@@ -28,7 +24,6 @@ mkdir -p ${FLATC_BUILD_DIR} ${FLATC_INSTALL_DIR}
 
 cmake \
     -B${FLATC_BUILD_DIR} \
-    -GNinja \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_CXX_FLAGS=-std=c++17 \
     -DCMAKE_BUILD_TYPE=Release \
@@ -43,5 +38,6 @@ cmake \
     -DFLATBUFFERS_BUILD_SHAREDLIB=OFF \
     "${FLATBUF_DIR}"
 
-ninja -C ${FLATC_BUILD_DIR} install
+CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
+make -C ${FLATC_BUILD_DIR} -j${CORES} install
