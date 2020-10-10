@@ -2,9 +2,9 @@
 
 include(ExternalProject)
 
-# Get google benchmark
+# Google benchmark library
 ExternalProject_Add(
-    benchmark_src
+    benchmark_ep
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/benchmark"
     PREFIX "third_party/benchmark"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/benchmark/install"
@@ -13,7 +13,6 @@ ExternalProject_Add(
         -DCMAKE_CXX_STANDARD=17
         -DCMAKE_CXX_FLAGS=-std=c++17
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
         -DCMAKE_BUILD_TYPE=Release
@@ -27,16 +26,14 @@ ExternalProject_Add(
         <INSTALL_DIR>/lib/libbenchmark.a
 )
 
-# Prepare google benchmark
-ExternalProject_Get_Property(benchmark_src install_dir)
+ExternalProject_Get_Property(benchmark_ep install_dir)
 set(BENCHMARK_INCLUDE_DIR ${install_dir}/include)
 set(BENCHMARK_LIBRARY_PATH ${install_dir}/lib/libbenchmark.a)
 file(MAKE_DIRECTORY ${BENCHMARK_INCLUDE_DIR})
+
 add_library(benchmark STATIC IMPORTED)
 set_property(TARGET benchmark PROPERTY IMPORTED_LOCATION ${BENCHMARK_LIBRARY_PATH})
 set_property(TARGET benchmark APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BENCHMARK_INCLUDE_DIR})
 
-# Dependencies
-add_dependencies(benchmark_src gtest gmock)
-add_dependencies(benchmark benchmark_src)
+add_dependencies(benchmark benchmark_ep)
 
