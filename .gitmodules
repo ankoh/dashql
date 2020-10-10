@@ -1,9 +1,6 @@
 [submodule "submodules/duckdb"]
 	path = submodules/duckdb
 	url = https://github.com/cwida/duckdb
-[submodule "submodules/protobuf"]
-	path = submodules/protobuf
-	url = https://github.com/protocolbuffers/protobuf
 [submodule "submodules/googletest"]
 	path = submodules/googletest
 	url = https://github.com/google/googletest
