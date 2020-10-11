@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEBAPI_API_H_
-#define INCLUDE_DUCKDB_WEBAPI_API_H_
+#ifndef INCLUDE_DUCKDB_WEBAPI_WEBAPI_H_
+#define INCLUDE_DUCKDB_WEBAPI_WEBAPI_H_
 
 #include <stdexcept>
 #include <string>
@@ -163,4 +163,4 @@ class WebAPI {
 
 }  // namespace duckdb_webapi
 
-#endif  // INCLUDE_DUCKDB_WEBAPI_API_H_
+#endif  // INCLUDE_DUCKDB_WEBAPI_WEBAPI_H_

@@ -1,7 +1,7 @@
-mod api;
-mod api_bindings;
+mod webapi;
+mod webapi_bindings;
 
-use api::WebAPI;
+use webapi::WebAPI;
 
 pub fn init() {
     WebAPI::init();

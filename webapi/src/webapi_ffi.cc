@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "duckdb_webapi/api.h"
+#include "duckdb_webapi/webapi.h"
 #include "duckdb_webapi/proto/api_generated.h"
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/idl.h"

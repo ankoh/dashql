@@ -1,14 +1,14 @@
-use crate::api_bindings;
+use crate::webapi_bindings;
 
 pub(crate) struct Connection {
-    handle: api_bindings::ConnectionHandle,
+    handle: webapi_bindings::ConnectionHandle,
 }
 
 #[allow(dead_code)]
 impl Connection {
     pub fn disconnect(&self) -> Result<(), ()> {
         unsafe {
-            api_bindings::duckdb_webapi_disconnect(self.handle);
+            webapi_bindings::duckdb_webapi_disconnect(self.handle);
             Ok(())
         }
     }
@@ -25,7 +25,7 @@ pub(crate) struct WebAPI {
 impl WebAPI {
     pub fn init() {
         unsafe {
-            api_bindings::duckdb_webapi_init()
+            webapi_bindings::duckdb_webapi_init()
         }
     }
 

@@ -2,7 +2,7 @@
 
 #include "duckdb_webapi/test/query_result_matcher.h"
 
-#include "duckdb_webapi/api.h"
+#include "duckdb_webapi/webapi.h"
 
 namespace duckdb_webapi {
 namespace test {

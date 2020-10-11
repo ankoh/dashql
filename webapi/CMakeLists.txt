@@ -56,7 +56,7 @@ include_directories(
 add_library(duckdb_webapi_core
     ${DUCKDB_SOURCE_FILE}
     ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
-    ${CMAKE_SOURCE_DIR}/src/api.cc
+    ${CMAKE_SOURCE_DIR}/src/webapi.cc
     ${CMAKE_SOURCE_DIR}/src/codec.cc
     ${CMAKE_SOURCE_DIR}/src/iterator.cc
     ${CMAKE_SOURCE_DIR}/src/json.cc
@@ -106,16 +106,16 @@ if (EMSCRIPTEN)
         "
     )
 
-    add_executable(duckdb_webapi ${CMAKE_SOURCE_DIR}/src/api_ffi.cc)
+    add_executable(duckdb_webapi ${CMAKE_SOURCE_DIR}/src/webapi_ffi.cc)
     target_link_libraries(duckdb_webapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
     set_target_properties(duckdb_webapi PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 
-    add_executable(duckdb_nodeapi ${CMAKE_SOURCE_DIR}/src/api_ffi.cc)
+    add_executable(duckdb_nodeapi ${CMAKE_SOURCE_DIR}/src/webapi_ffi.cc)
     target_link_libraries(duckdb_nodeapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
     set_target_properties(duckdb_nodeapi PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
 
-    add_library(duckdb_webapi ${CMAKE_SOURCE_DIR}/src/api_ffi.cc)
+    add_library(duckdb_webapi ${CMAKE_SOURCE_DIR}/src/webapi_ffi.cc)
     target_link_libraries(duckdb_webapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
 endif()
 

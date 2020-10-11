@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-#include "duckdb_webapi/api.h"
+#include "duckdb_webapi/webapi.h"
 #include "duckdb_webapi/iterator.h"
 #include "duckdb_webapi/proto/query_plan_generated.h"
 #include "gtest/gtest.h"
