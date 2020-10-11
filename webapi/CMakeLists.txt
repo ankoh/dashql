@@ -116,7 +116,6 @@ else()
 
     add_library(duckdb_webapi ${CMAKE_SOURCE_DIR}/src/api_proxy.cc)
     target_link_libraries(duckdb_webapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
-    set_target_properties(duckdb_webapi PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 endif()
 
 # ---------------------------------------------------------------------------
