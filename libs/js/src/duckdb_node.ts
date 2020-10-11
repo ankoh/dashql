@@ -6,7 +6,7 @@ import { DuckDBModule } from './duckdb/duckdb_module';
 import { DuckDBProxy } from './jsproxy/duckdb_jsproxy';
 
 export class DuckDB extends DuckDBProxy {
-    protected init(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule> {
+    protected instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule> {
         return duckdb_api_init({
             ...moduleOverrides,
             locateFile(path: string) {
