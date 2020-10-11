@@ -1,5 +1,5 @@
 mod api;
-mod api_ffi;
+mod api_bindings;
 
 use api::WebAPI;
 
