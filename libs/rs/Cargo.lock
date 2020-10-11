@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "duckdb_webapi_proto"
+name = "duckdb_webapi"
 version = "0.1.0"
 dependencies = [
  "cmake",

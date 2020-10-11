@@ -1,8 +1,10 @@
 [package]
-name = "duckdb_webapi_proto"
+name = "duckdb_webapi"
 version = "0.1.0"
 authors = ["Andre Kohn <kohn.a@outlook.com>"]
 edition = "2018"
+repository = "https://github.com/dashql/duckdb.wasm"
+description = "DuckDB WebAPI"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
