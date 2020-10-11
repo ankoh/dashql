@@ -75,7 +75,7 @@ bool QueryResultIterator::IsEnd() const { return !chunk || (chunk_row() >= chunk
 
 /// Get a value
 duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
-    if (!chunk || !chunk->columns() || chunk->columns()->size() <= col_idx)
+    if (!chunk || !chunk->columns() || col_idx >= chunk->columns()->size())
         return duckdb::Value{};
     auto column = chunk->columns()->Get(col_idx);
     auto type = result.column_types()->Get(col_idx);
