@@ -2,6 +2,9 @@ use std::os::raw::c_char;
 
 /// An opaque connection
 pub(crate) type ConnectionHandle = *const u8;
+/// An opaque buffer
+#[allow(dead_code)]
+pub(crate) type BufferHandle = u64;
 
 /// A packed response.
 /// This is the "ugly" part of our WASM interop.
@@ -41,9 +44,14 @@ extern "C" {
         conn: ConnectionHandle,
         buffer_ptr: *const u8,
         buffer_length: u32,
-    );
+    ) -> BufferHandle;
     /// Release a buffer
-    pub fn duckdb_webapi_release_buffer(conn: ConnectionHandle, buffer_ptr: *const u8);
+    pub fn duckdb_webapi_release_buffer(conn: ConnectionHandle, buffer_handle: BufferHandle);
+    /// Get a buffer
+    pub fn duckdb_webapi_get_buffer(
+        conn: ConnectionHandle,
+        buffer_handle: BufferHandle,
+    ) -> *const u8;
     /// Run a query
     pub fn duckdb_webapi_run_query(
         response: *mut Response,
@@ -68,7 +76,7 @@ extern "C" {
     pub fn duckdb_webapi_generate_table(
         response: *mut Response,
         conn: ConnectionHandle,
-        spec_ptr: *const u8,
+        spec_handle: BufferHandle,
         spec_length: u32,
     );
 }
