@@ -19,9 +19,13 @@ pub struct Response {
 #[allow(dead_code)]
 impl Response {
     /// Get the error pointer
-    fn error(&self) -> *const c_char { self.error_ptr as *const c_char }
+    fn error(&self) -> *const c_char {
+        self.error_ptr as *const c_char
+    }
     /// Get the data pointer
-    fn data(&self) -> *const u8 { self.data_ptr as *const u8 }
+    fn data(&self) -> *const u8 {
+        self.data_ptr as *const u8
+    }
 }
 
 #[allow(dead_code)]
