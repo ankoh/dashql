@@ -3,9 +3,9 @@
 import duckdb_api_wasm from './duckdb/duckdb_nodeapi.wasm';
 import duckdb_api_init from './duckdb/duckdb_nodeapi.js';
 import { DuckDBModule } from './duckdb/duckdb_module';
-import { DuckDBProxy } from './jsproxy/duckdb_jsproxy';
+import { DuckDBBindings } from './webapi/duckdb_bindings';
 
-export class DuckDB extends DuckDBProxy {
+export class DuckDB extends DuckDBBindings {
     protected instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule> {
         return duckdb_api_init({
             ...moduleOverrides,

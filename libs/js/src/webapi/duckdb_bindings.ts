@@ -21,7 +21,7 @@ export class QueryResultIterator {
 };
 
 /// The proxy for either the browser- order node-based DuckDB API
-export abstract class DuckDBProxy {
+export abstract class DuckDBBindings {
     /// The instance
     private instance: DuckDBModule | null = null;
     /// The loading promise

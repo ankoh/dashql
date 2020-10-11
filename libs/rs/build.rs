@@ -41,7 +41,6 @@ fn build() -> Result<(), Error> {
         println!("cargo:rustc-link-lib=static=duckdb_webapi");
         println!("cargo:rustc-link-lib=dylib=c++");
     }
-
     Ok(())
 }
 
