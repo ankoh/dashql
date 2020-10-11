@@ -1,7 +1,7 @@
 use std::os::raw::c_char;
 
 /// An opaque connection
-pub(crate) type ConnectionHandle = *const u8;
+pub(crate) type ConnectionHandle = u64;
 /// An opaque buffer
 #[allow(dead_code)]
 pub(crate) type BufferHandle = u64;
