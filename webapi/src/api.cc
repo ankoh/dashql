@@ -78,9 +78,6 @@ WebAPI::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
       current_query_id_(),
       current_query_result_() {}
 
-/// Destructor
-WebAPI::Connection::~Connection() {}
-
 /// Run a SQL query
 ExpectedBuffer<proto::QueryResult> WebAPI::Connection::RunQuery(std::string_view text) {
     // Send the query

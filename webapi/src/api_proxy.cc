@@ -14,7 +14,10 @@ using namespace duckdb_webapi;
 
 static std::unique_ptr<WebAPI> instance;
 
-int main(int argc, char* argv[]) {
+extern "C" {
+
+/// Create a conn
+void duckdb_webapi_init() {
     // Prepare the logger
     auto logSink = std::make_shared<spdlog::sinks::stderr_sink_st>();
     auto logger = std::make_shared<spdlog::logger>("console", logSink);
@@ -26,20 +29,16 @@ int main(int argc, char* argv[]) {
     // Create the instance
     instance = std::make_unique<WebAPI>();
     spdlog::info("initialized web api");
-    return 0;
 }
-
-extern "C" {
-
 /// Create a conn
 WebAPI::Connection* duckdb_webapi_connect() { return &instance->Connect(); }
 /// End a conn
 void duckdb_webapi_disconnect(WebAPI::Connection* conn) { instance->Disconnect(conn); }
 
-/// Release a buffer
-void duckdb_webapi_register_buffer(WebAPI::Connection* conn, void* buffer, unsigned buffer_length) {
+/// Register a buffer
+void duckdb_webapi_register_buffer(WebAPI::Connection* conn, void* buffer, uint32_t buffer_size) {
     conn->context_data().RegisterBuffer(
-        nonstd::span{static_cast<std::byte*>(buffer), static_cast<long>(buffer_length)});
+        nonstd::span{static_cast<std::byte*>(buffer), static_cast<long>(buffer_size)});
 }
 /// Release a buffer
 void duckdb_webapi_release_buffer(WebAPI::Connection* conn, void* buffer) {
@@ -71,7 +70,14 @@ void duckdb_webapi_analyze_query(WebAPI::Response* packed, WebAPI::Connection* c
 }
 
 /// Generate a table
-void duckdb_webapi_generate_table(WebAPI::Response* response, WebAPI::Connection* conn, void* spec, uint32_t size) {
+void duckdb_webapi_generate_table(WebAPI::Response* response, WebAPI::Connection* conn, void* spec_buffer, uint32_t spec_size) {
     // XXX
 }
+
 }
+
+#ifdef EMSCRIPTEN
+int main() {
+    duckdb_webapi_init();
+}
+#endif

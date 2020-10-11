@@ -126,7 +126,7 @@ class WebAPI {
         /// Constructor
         Connection(std::shared_ptr<duckdb::DuckDB> database);
         /// Destructor
-        ~Connection();
+        ~Connection() = default;
 
         /// Get the buffer manager
         auto& context_data() { return *context_data_; }

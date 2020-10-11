@@ -15,7 +15,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -std=c++17)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
+if (WITH_ASAN)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
+endif ()
 
 # ---------------------------------------------------------------------------
 # Parallelism
@@ -78,9 +80,6 @@ target_link_libraries(duckdb_webapi_test
 # ---------------------------------------------------------------------------
 # API Proxy
 
-add_executable(duckdb_webapi ${CMAKE_SOURCE_DIR}/src/api_proxy.cc)
-target_link_libraries(duckdb_webapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
-
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
         -Wl,--shared-memory,--no-check-features \
@@ -92,6 +91,7 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
+            _duckdb_webapi_init, \
             _duckdb_webapi_connect, \
             _duckdb_webapi_disconnect, \
             _duckdb_webapi_register_buffer, \
@@ -105,11 +105,18 @@ if (EMSCRIPTEN)
         "
     )
 
+    add_executable(duckdb_webapi ${CMAKE_SOURCE_DIR}/src/api_proxy.cc)
+    target_link_libraries(duckdb_webapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
     set_target_properties(duckdb_webapi PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 
     add_executable(duckdb_nodeapi ${CMAKE_SOURCE_DIR}/src/api_proxy.cc)
     target_link_libraries(duckdb_nodeapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
     set_target_properties(duckdb_nodeapi PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
+else()
+
+    add_library(duckdb_webapi ${CMAKE_SOURCE_DIR}/src/api_proxy.cc)
+    target_link_libraries(duckdb_webapi duckdb_webapi_core flatbuffers spdlog Threads::Threads)
+    set_target_properties(duckdb_webapi PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 endif()
 
 # ---------------------------------------------------------------------------
