@@ -1,24 +1,8 @@
+// Copyright (c) 2020 The DashQL Authors
+
 import { DuckDBModule } from '../duckdb/duckdb_module';
 import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webapi_buffer';
 import * as proto from '../proto';
-
-/// A query result.
-/// The user has to repeatedly call fetch to retrieve the results.
-export class QueryResult {
-    /// Fetch the next result chunk
-    public async fetch(): Promise<void> {
-    }
-
-    /// Print the query result
-    public toString(): string {
-        return "";
-    }
-};
-
-/// A query result iterator.
-export class QueryResultIterator {
-
-};
 
 /// The proxy for either the browser- order node-based DuckDB API
 export abstract class DuckDBBindings {
@@ -27,7 +11,7 @@ export abstract class DuckDBBindings {
     /// The loading promise
     private openPromise: Promise<void> | null = null;
     /// The resolver for the open promise (called by onRuntimeInitialized)
-    private openPromiseResolver: () => void = () => {};
+    private openPromiseResolver: () => void = () => { };
 
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule>;
