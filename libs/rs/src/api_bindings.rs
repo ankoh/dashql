@@ -46,11 +46,11 @@ extern "C" {
         buffer_length: u32,
     ) -> BufferHandle;
     /// Release a buffer
-    pub fn duckdb_webapi_release_buffer(conn: ConnectionHandle, buffer_handle: BufferHandle);
+    pub fn duckdb_webapi_release_buffer(conn: ConnectionHandle, buffer: BufferHandle);
     /// Get a buffer
     pub fn duckdb_webapi_get_buffer(
         conn: ConnectionHandle,
-        buffer_handle: BufferHandle,
+        buffer: BufferHandle,
     ) -> *const u8;
     /// Run a query
     pub fn duckdb_webapi_run_query(
