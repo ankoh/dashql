@@ -43,25 +43,15 @@ export abstract class QueryResultIterator {
     }
 
     /// Get the result
-    protected get result(): proto.query_result.QueryResult {
-        return this._resultBuffer.get();
-    }
+    protected get result() { return this._resultBuffer.get(); }
     /// Get the column count
-    public get columnCount(): number {
-        return this._columnTypes.length;
-    }
+    public get columnCount() { return this._columnTypes.length; }
     /// Get the column count
-    public get columnTypes(): proto.sql_type.SQLType[] {
-        return this._columnTypes;
-    }
+    public get columnTypes() { return this._columnTypes; }
     /// Get the chunk row
-    public get currentRow(): number {
-        return this._globalRowIndex - this._currentChunkBegin;
-    }
+    public get currentRow() { return this._globalRowIndex - this._currentChunkBegin; }
     /// Get the column count
-    public getColumnName(idx: number): string {
-        return this._resultBuffer.get().columnNames(idx);
-    }
+    public getColumnName(idx: number) { return this._resultBuffer.get().columnNames(idx); }
 
     /// Is the end?
     abstract isEnd(): boolean;
