@@ -45,6 +45,10 @@ mod tests {
         }?;
 
         assert_eq!(parameter_declaration.location, ((1, 1), (1, 36)).into());
+        assert_eq!(
+            parameter_declaration.identifier.location,
+            ((1, 19), (1, 22)).into()
+        );
         assert_eq!(parameter_declaration.identifier.string, "foo");
         assert_eq!(parameter_declaration.label.string, "foo");
 
@@ -71,7 +75,15 @@ mod tests {
         }?;
 
         assert_eq!(parameter_declaration.location, ((1, 1), (1, 52)).into());
+        assert_eq!(
+            parameter_declaration.identifier.location,
+            ((1, 28), (1, 38)).into()
+        );
         assert_eq!(parameter_declaration.identifier.string, "identifier");
+        assert_eq!(
+            parameter_declaration.label.location,
+            ((1, 19), (1, 24)).into()
+        );
         assert_eq!(parameter_declaration.label.string, "label");
 
         Ok(())
@@ -79,6 +91,83 @@ mod tests {
 
     #[test]
     fn parse_load_statement_http_loader() -> Result<(), Box<dyn std::error::Error>> {
+        let input = "LOAD foo FROM HTTP;";
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+
+        let (result, _) = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 1);
+
+        let load_statement = match &result[0] {
+            syntax::Statement::LoadStatement(statement) => Ok(statement),
+            _ => Err("Unexpected statement"),
+        }?;
+
+        assert_eq!(load_statement.location, ((1, 1), (1, 20)).into());
+        assert_eq!(load_statement.identifier.location, ((1, 6), (1, 9)).into());
+        assert_eq!(load_statement.identifier.string, "foo");
+
+        let http_loader = match &load_statement.method {
+            syntax::LoadMethod::Http(loader) => Ok(loader),
+            _ => Err("Unexpected loader"),
+        }?;
+
+        assert_eq!(http_loader.location, ((1, 15), (1, 19)).into());
+        assert_eq!(http_loader.attributes, None);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_load_statement_http_loader_with_attributes_empty(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let input = "LOAD foo FROM HTTP ();";
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+
+        let (result, _) = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 1);
+
+        let load_statement = match &result[0] {
+            syntax::Statement::LoadStatement(statement) => Ok(statement),
+            _ => Err("Unexpected statement"),
+        }?;
+
+        assert_eq!(load_statement.location, ((1, 1), (1, 23)).into());
+        assert_eq!(load_statement.identifier.location, ((1, 6), (1, 9)).into());
+        assert_eq!(load_statement.identifier.string, "foo");
+
+        let http_loader = match &load_statement.method {
+            syntax::LoadMethod::Http(loader) => Ok(loader),
+            _ => Err("Unexpected loader"),
+        }?;
+
+        assert_eq!(http_loader.location, ((1, 15), (1, 22)).into());
+
+        let http_attributes = http_loader
+            .clone()
+            .attributes
+            .ok_or("Unexpected missing attributes")?;
+
+        assert_eq!(http_attributes.location, ((1, 20), (1, 22)).into());
+        assert_eq!(http_attributes.attributes, vec![]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_load_statement_http_loader_with_attributes() -> Result<(), Box<dyn std::error::Error>>
+    {
         let input = indoc! {r#"
             LOAD foo FROM HTTP (
                 METHOD = GET,
@@ -102,6 +191,7 @@ mod tests {
         }?;
 
         assert_eq!(load_statement.location, ((1, 1), (4, 3)).into());
+        assert_eq!(load_statement.identifier.location, ((1, 6), (1, 9)).into());
         assert_eq!(load_statement.identifier.string, "foo");
 
         let http_loader = match &load_statement.method {

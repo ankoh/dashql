@@ -75,11 +75,13 @@ LoadMethod -> Produce<'input, LoadMethod<'input>>:
   ;
 
 HttpLoaderAttributes -> Produce<'input, Option<HttpLoaderAttributes<'input>>>:
-    "(" HttpLoaderAttributeList ")" { let location = ($lexer, $1?, $3?).into(); Ok((Some(HttpLoaderAttributes { location, attributes: $2?.0 }), location)) }
+                                    { Ok((None, ((0, 0), (0, 0)).into())) }
+  | "(" HttpLoaderAttributeList ")" { let location = ($lexer, $1?, $3?).into(); Ok((Some(HttpLoaderAttributes { location, attributes: $2?.0 }), location)) }
   ;
 
 HttpLoaderAttributeList -> Produce<'input, Vec<HttpLoaderAttribute<'input>>>:
-    HttpLoaderAttribute                             { let attribute = $1?; Ok((vec![attribute.0], attribute.1)) }
+                                                    { Ok((vec![], ((0, 0), (0, 0)).into())) }
+  | HttpLoaderAttribute                             { let attribute = $1?; Ok((vec![attribute.0], attribute.1)) }
   | HttpLoaderAttributeList "," HttpLoaderAttribute { let attributes = $1?; let attribute = $3?; let mut vec = attributes.0; vec.push(attribute.0); Ok((vec, (attributes.1, attribute.1).into())) }
   ;
 
