@@ -10,8 +10,10 @@ beforeEach(async () => {
 afterEach(() => {
 });
 
-test('DuckDB open', async () => {
+test('INTEGER column', async () => {
     let conn = await db.connect();
-    let result = await db.sendQuery(conn, "select 1");
-    expect(1 + 2).toBe(3);
+    let result = await db.sendQuery(conn, `
+        SELECT v::INTEGER FROM generate_series(0, 10000) as t(v);
+    `);
+    expect(result.root.columnTypesLength()).toBe(1);
 });

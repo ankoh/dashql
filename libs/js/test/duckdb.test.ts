@@ -7,7 +7,3 @@ beforeEach(async () => {
 
 afterEach(() => {
 });
-
-test('DuckDB open', async () => {
-    expect(1 + 2).toBe(3);
-});

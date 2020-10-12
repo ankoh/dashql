@@ -20,7 +20,7 @@ export abstract class WebAPIBuffer<BufferType> {
     /// Initialize the buffer
     protected abstract getRoot(buffer: flatbuffers.ByteBuffer): BufferType;
     /// Get the object
-    public get root(): BufferType { return this.root; }
+    public get root(): BufferType { return this._root; }
 };
 
 export class QueryResultBuffer extends WebAPIBuffer<proto.query_result.QueryResult> {
