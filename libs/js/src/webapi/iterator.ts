@@ -165,12 +165,12 @@ export class QueryResultIterator {
             throw Error("column index out of bounds");
         }
         v.sqlType = this.columnTypes[cid];
-        v.value = null;
         let r = this.currentRow;
 
         // Read the vector
         let c = this.currentChunk.columns(cid, this._tmp.vector);
         if (c == null) {
+            v.nullFlag = true;
             return v;
         }
         switch (c.variantType()) {
@@ -178,55 +178,68 @@ export class QueryResultIterator {
                 break;
             case proto.vector.VectorVariant.VectorI8:
                 c.variant(this._tmp.vectorI8);
-                v.value = this._tmp.vectorI8.values(r)!;
+                v.i32 = this._tmp.vectorI8.values(r)!;
+                v.nullFlag = this._tmp.vectorI8.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU8:
                 c.variant(this._tmp.vectorU8);
-                v.value = this._tmp.vectorU8.values(r)!;
+                v.u32 = this._tmp.vectorU8.values(r)!;
+                v.nullFlag = this._tmp.vectorU8.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI16:
                 c.variant(this._tmp.vectorI16);
-                v.value = this._tmp.vectorI16.values(r)!;
+                v.i32 = this._tmp.vectorI16.values(r)!;
+                v.nullFlag = this._tmp.vectorI16.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU16:
                 c.variant(this._tmp.vectorU16);
-                v.value = this._tmp.vectorU16.values(r)!;
+                v.u32 = this._tmp.vectorU16.values(r)!;
+                v.nullFlag = this._tmp.vectorU16.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI32:
                 c.variant(this._tmp.vectorI32);
-                v.value = this._tmp.vectorI32.values(r)!;
+                v.i32 = this._tmp.vectorI32.values(r)!;
+                v.nullFlag = this._tmp.vectorI32.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU32:
                 c.variant(this._tmp.vectorU32);
-                v.value = this._tmp.vectorU32.values(r)!;
+                v.u32 = this._tmp.vectorU32.values(r)!;
+                v.nullFlag = this._tmp.vectorU32.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI64:
                 c.variant(this._tmp.vectorI64);
-                v.value = this._tmp.vectorI64.values(r)!;
+                v.i64 = this._tmp.vectorI64.values(r)!;
+                v.nullFlag = this._tmp.vectorI64.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU64:
                 c.variant(this._tmp.vectorU64);
-                v.value = this._tmp.vectorU64.values(r)!;
+                v.u64 = this._tmp.vectorU64.values(r)!;
+                v.nullFlag = this._tmp.vectorU64.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI128:
                 c.variant(this._tmp.vectorI128);
-                v.value = this._tmp.vectorI128.values(r)!;
+                this._tmp.vectorI128.values(r, v.i128)!;
+                v.nullFlag = this._tmp.vectorI128.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorF32:
                 c.variant(this._tmp.vectorF32);
-                v.value = this._tmp.vectorF32.values(r)!;
+                v.f64 = this._tmp.vectorF32.values(r)!;
+                v.nullFlag = this._tmp.vectorF32.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorF64:
                 c.variant(this._tmp.vectorF64);
-                v.value = this._tmp.vectorF64.values(r)!;
+                v.f64 = this._tmp.vectorF64.values(r)!;
+                v.nullFlag = this._tmp.vectorF64.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorInterval:
                 c.variant(this._tmp.vectorInterval);
-                v.value = this._tmp.vectorInterval.values(r)!;
+                this._tmp.vectorInterval.values(r, v.interval)!;
+                v.nullFlag = this._tmp.vectorInterval.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorString:
                 c.variant(this._tmp.vectorString);
-                v.value = this._tmp.vectorString.values(r)!;
+                v.str = this._tmp.vectorString.values(r)!;
+                v.nullFlag = this._tmp.vectorString.nullMask(r)!;
                 break;
         }
         return v;
