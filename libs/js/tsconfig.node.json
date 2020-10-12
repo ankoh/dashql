@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "target": "es2019",
+        "strict": true,
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "dist",
+        "noImplicitAny": true,
+        "esModuleInterop": true,
+        "types": ["emscripten", "jest"]
+    },
+    "exclude": [
+        "./test/**/*.ts",
+        "./node_modules"
+    ]
+}

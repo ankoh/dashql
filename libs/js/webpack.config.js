@@ -25,11 +25,11 @@ const browserTarget = {
         rules: [
             {
                 test: /\.ts$/,
-                use: 'ts-loader',
+                loader: 'ts-loader',
                 exclude: [
                     /node_modules/,
                     path.resolve(__dirname, 'test')
-                ],
+                ]
             },
             {
                 test: /\.wasm$/,
@@ -51,5 +51,9 @@ const nodeTarget = {
         "duckdb_node.worker": './src/duckdb_node.worker.ts'
     }
 };
+nodeTarget.module.rules[0] = {
+    ...nodeTarget.module.rules[0],
+    options: { configFile: 'tsconfig.node.json' },
+}
 
 module.exports = [browserTarget, nodeTarget];
