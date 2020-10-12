@@ -1,4 +1,7 @@
+// Copyright (c) 2020 The DashQL Authors
+
 import * as proto from '../proto';
+import { flatbuffers } from 'flatbuffers';
 
 /// A value
 export class Value {
