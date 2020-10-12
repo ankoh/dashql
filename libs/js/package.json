@@ -26,7 +26,7 @@
         "test": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js"
     },
     "author": "",
-    "license": "ISC",
+    "license": "MIT",
     "browser": {
         "worker_threads": false,
         "perf_hooks": false,
