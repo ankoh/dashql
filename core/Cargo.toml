@@ -13,5 +13,6 @@ path = "parser/generate.rs"
 
 [dependencies]
 cfgrammar = "0.9.1"
+indoc = "1.0.2"
 lrlex = "0.9.1"
 lrpar = "0.9.1"

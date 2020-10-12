@@ -23,6 +23,7 @@ pub mod parser {
 #[cfg(test)]
 mod tests {
     use super::{lexer, parser, syntax};
+    use indoc::indoc;
 
     #[test]
     fn parse_parameter_declaration() -> Result<(), Box<dyn std::error::Error>> {
@@ -38,19 +39,14 @@ mod tests {
         assert_eq!(errors.len(), 0);
         assert_eq!(result.len(), 1);
 
-        let statement = match &result[0] {
-            syntax::Statement::ParameterDeclaration(parameter_declaration) => {
-                Ok(parameter_declaration)
-            }
+        let parameter_declaration = match &result[0] {
+            syntax::Statement::ParameterDeclaration(statement) => Ok(statement),
             _ => Err("Unexpected statement"),
         }?;
 
-        assert_eq!(statement.location.begin.line, 1);
-        assert_eq!(statement.location.begin.column, 1);
-        assert_eq!(statement.location.end.line, 1);
-        assert_eq!(statement.location.end.column, 36);
-        assert_eq!(statement.identifier.string, "foo");
-        assert_eq!(statement.label.string, "foo");
+        assert_eq!(parameter_declaration.location, ((1, 1), (1, 36)).into());
+        assert_eq!(parameter_declaration.identifier.string, "foo");
+        assert_eq!(parameter_declaration.label.string, "foo");
 
         Ok(())
     }
@@ -69,26 +65,26 @@ mod tests {
         assert_eq!(errors.len(), 0);
         assert_eq!(result.len(), 1);
 
-        let statement = match &result[0] {
-            syntax::Statement::ParameterDeclaration(parameter_declaration) => {
-                Ok(parameter_declaration)
-            }
+        let parameter_declaration = match &result[0] {
+            syntax::Statement::ParameterDeclaration(statement) => Ok(statement),
             _ => Err("Unexpected statement"),
         }?;
 
-        assert_eq!(statement.location.begin.line, 1);
-        assert_eq!(statement.location.begin.column, 1);
-        assert_eq!(statement.location.end.line, 1);
-        assert_eq!(statement.location.end.column, 52);
-        assert_eq!(statement.identifier.string, "identifier");
-        assert_eq!(statement.label.string, "label");
+        assert_eq!(parameter_declaration.location, ((1, 1), (1, 52)).into());
+        assert_eq!(parameter_declaration.identifier.string, "identifier");
+        assert_eq!(parameter_declaration.label.string, "label");
 
         Ok(())
     }
 
     #[test]
-    fn parse_load_statement() -> Result<(), Box<dyn std::error::Error>> {
-        let input = "LOAD foo FROM HTTP;";
+    fn parse_load_statement_http_loader() -> Result<(), Box<dyn std::error::Error>> {
+        let input = indoc! {r#"
+            LOAD foo FROM HTTP (
+                METHOD = GET,
+                URL = 'https://example.com/data.csv'
+            );
+        "#};
 
         let lexerdef = lexer::lexerdef();
         let lexer = lexerdef.lexer(&input);
@@ -100,16 +96,48 @@ mod tests {
         assert_eq!(errors.len(), 0);
         assert_eq!(result.len(), 1);
 
-        let statement = match &result[0] {
-            syntax::Statement::LoadStatement(load_statement) => Ok(load_statement),
+        let load_statement = match &result[0] {
+            syntax::Statement::LoadStatement(statement) => Ok(statement),
             _ => Err("Unexpected statement"),
         }?;
 
-        assert_eq!(statement.location.begin.line, 1);
-        assert_eq!(statement.location.begin.column, 1);
-        assert_eq!(statement.location.end.line, 1);
-        assert_eq!(statement.location.end.column, 20);
-        assert_eq!(statement.identifier.string, "foo");
+        assert_eq!(load_statement.location, ((1, 1), (4, 3)).into());
+        assert_eq!(load_statement.identifier.string, "foo");
+
+        let http_loader = match &load_statement.method {
+            syntax::LoadMethod::Http(loader) => Ok(loader),
+            _ => Err("Unexpected loader"),
+        }?;
+
+        assert_eq!(http_loader.location, ((1, 15), (4, 2)).into());
+
+        let http_attributes = http_loader
+            .clone()
+            .attributes
+            .ok_or("Unexpected missing attributes")?;
+
+        assert_eq!(http_attributes.location, ((1, 20), (4, 2)).into());
+
+        let (http_attribute_method_location, http_method) = match http_attributes.attributes[0] {
+            syntax::HttpLoaderAttribute::Method(location, method) => Ok((location, method)),
+            _ => Err("Unexpected attribute"),
+        }?;
+
+        assert_eq!(http_attribute_method_location, ((2, 5), (2, 17)).into());
+
+        assert_eq!(
+            http_method,
+            syntax::HttpMethod::Get(((2, 14), (2, 17)).into())
+        );
+
+        let (http_attribute_url_location, http_url) = match http_attributes.attributes[1] {
+            syntax::HttpLoaderAttribute::Url(location, url) => Ok((location, url)),
+            _ => Err("Unexpected attribute"),
+        }?;
+
+        assert_eq!(http_attribute_url_location, ((3, 5), (3, 41)).into());
+        assert_eq!(http_url.location, ((3, 11), (3, 41)).into());
+        assert_eq!(http_url.string, "'https://example.com/data.csv'");
 
         Ok(())
     }

@@ -75,8 +75,7 @@ LoadMethod -> Produce<'input, LoadMethod<'input>>:
   ;
 
 HttpLoaderAttributes -> Produce<'input, Option<HttpLoaderAttributes<'input>>>:
-                                    { Ok((None, ((0, 0), (0, 0)).into())) }
-  | "(" HttpLoaderAttributeList ")" { let location = ($lexer, $1?, $3?).into(); Ok((Some(HttpLoaderAttributes { location, attributes: $2?.0 }), location)) }
+    "(" HttpLoaderAttributeList ")" { let location = ($lexer, $1?, $3?).into(); Ok((Some(HttpLoaderAttributes { location, attributes: $2?.0 }), location)) }
   ;
 
 HttpLoaderAttributeList -> Produce<'input, Vec<HttpLoaderAttribute<'input>>>:
