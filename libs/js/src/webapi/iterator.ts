@@ -5,7 +5,7 @@ import { QueryResultBuffer, QueryResultChunkBuffer } from './webapi_buffer';
 import { Value } from './value';
 import * as proto from '../proto';
 
-/// Forward iterator
+/// A query result iterator
 export abstract class QueryResultIterator {
     /// The bindings
     _bindings: DuckDBBindings;
@@ -51,12 +51,14 @@ export abstract class QueryResultIterator {
     /// Get the chunk row
     public get currentRow() { return this._globalRowIndex - this._currentChunkBegin; }
     /// Get the column count
-    public getColumnName(idx: number) { return this._resultBuffer.get().columnNames(idx); }
+    public getColumnName(idx: number) { return this.result.columnNames(idx); }
 
-    /// Is the end?
-    abstract isEnd(): boolean;
     /// Get the current chunk
     abstract get currentChunk(): proto.query_result.QueryResultChunk;
+    /// Is the end?
+    abstract isEnd(): boolean;
+    /// Advance the iterator
+    abstract async next(): Promise<void>;
 
     /// Get a value
     public getValue(cid: number, v: Value): Value {
@@ -163,14 +165,10 @@ export class QueryResultStreamIterator extends QueryResultIterator {
 
     /// Get the current chunk
     public get currentChunk(): proto.query_result.QueryResultChunk { return this._currentChunk; }
-
     /// Is the end?
-    public isEnd(): boolean {
-        return this._currentChunk == null || this.currentRow >= this._currentChunk.rowCount().low;
-    }
-
+    public isEnd(): boolean { return this.currentRow >= this._currentChunk.rowCount().low; }
     /// Advance the iterator
-    public async next() {
+    public async next(): Promise<void> {
         // Reached end?
         if (this.isEnd())
             return;
