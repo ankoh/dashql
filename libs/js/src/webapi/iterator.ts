@@ -6,7 +6,7 @@ import { Value } from './value';
 import * as proto from '../proto';
 
 /// Forward iterator
-export class QueryResultIterator {
+export abstract class QueryResultIterator {
     /// The bindings
     _bindings: DuckDBBindings;
     /// The connection
@@ -18,13 +18,9 @@ export class QueryResultIterator {
     /// The global row index
     _globalRowIndex: number;
     /// The chunk row begin
-    _chunkRowBegin: number;
+    _currentChunkBegin: number;
     /// The chunk identifier
-    _chunkID: number;
-    /// The chunk buffer (if any)
-    _chunkBuffer: QueryResultChunkBuffer | null;
-    /// The chunk (if any)
-    _chunk: proto.query_result.QueryResultChunk | null;
+    _currentChunkID: number;
     /// The temporary flatbuffer objects
     _tmp: VectorVariants;
 
@@ -35,13 +31,11 @@ export class QueryResultIterator {
         this._resultBuffer = result;
         this._columnTypes = new Array<proto.sql_type.SQLType>();
         this._globalRowIndex = 0;
-        this._chunkRowBegin = 0;
-        this._chunkID = 0;
-        this._chunkBuffer = null;
-        this._chunk = null;
+        this._currentChunkBegin = 0;
+        this._currentChunkID = 0;
 
         for (let i = 0; i < result.get().columnTypesLength(); ++i) {
-            let t =  new proto.sql_type.SQLType();
+            let t = new proto.sql_type.SQLType();
             result.get().columnTypes(i, t);
             this.columnTypes.push(t);
         }
@@ -58,20 +52,133 @@ export class QueryResultIterator {
     }
     /// Get the column count
     public get columnTypes(): proto.sql_type.SQLType[] {
-        return this.columnTypes;
+        return this._columnTypes;
     }
     /// Get the chunk row
-    public get chunkRow(): number {
-        return this._globalRowIndex - this._chunkRowBegin;
+    public get currentRow(): number {
+        return this._globalRowIndex - this._currentChunkBegin;
     }
     /// Get the column count
     public getColumnName(idx: number): string {
         return this._resultBuffer.get().columnNames(idx);
     }
+
+    /// Is the end?
+    abstract isEnd(): boolean;
+    /// Get the current chunk
+    abstract get currentChunk(): proto.query_result.QueryResultChunk;
+
+    /// Get a value
+    public getValue(cid: number, v: Value): Value {
+        if (cid >= this.columnCount) {
+            throw Error("column index out of bounds");
+        }
+        v.sqlType = this.columnTypes[cid];
+        v.value = null;
+        let r = this.currentRow;
+
+        // Read the vector
+        let c = this.currentChunk.columns(cid, this._tmp.vector);
+        if (c == null) {
+            return v;
+        }
+        switch (c.variantType()) {
+            case proto.vector.VectorVariant.NONE:
+                break;
+            case proto.vector.VectorVariant.VectorI8:
+                c.variant(this._tmp.vectorI8);
+                v.value = this._tmp.vectorI8.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorU8:
+                c.variant(this._tmp.vectorU8);
+                v.value = this._tmp.vectorU8.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorI16:
+                c.variant(this._tmp.vectorI16);
+                v.value = this._tmp.vectorI16.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorU16:
+                c.variant(this._tmp.vectorU16);
+                v.value = this._tmp.vectorU16.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorI32:
+                c.variant(this._tmp.vectorI32);
+                v.value = this._tmp.vectorI32.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorU32:
+                c.variant(this._tmp.vectorU32);
+                v.value = this._tmp.vectorU32.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorI64:
+                c.variant(this._tmp.vectorI64);
+                v.value = this._tmp.vectorI64.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorU64:
+                c.variant(this._tmp.vectorU64);
+                v.value = this._tmp.vectorU64.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorI128:
+                c.variant(this._tmp.vectorI128);
+                v.value = this._tmp.vectorI128.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorF32:
+                c.variant(this._tmp.vectorF32);
+                v.value = this._tmp.vectorF32.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorF64:
+                c.variant(this._tmp.vectorF64);
+                v.value = this._tmp.vectorF64.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorInterval:
+                c.variant(this._tmp.vectorInterval);
+                v.value = this._tmp.vectorInterval.values(r)!;
+                break;
+            case proto.vector.VectorVariant.VectorString:
+                c.variant(this._tmp.vectorString);
+                v.value = this._tmp.vectorString.values(r)!;
+                break;
+        }
+        return v;
+    }
+}
+
+export class QueryResultStreamIterator extends QueryResultIterator {
+    /// The chunk buffer (if any)
+    _currentChunkBuffer: QueryResultChunkBuffer | null;
+    /// The chunk (if any)
+    _currentChunk: proto.query_result.QueryResultChunk;
+
+    /// Constructor
+    protected constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer) {
+        super(bindings, connection, resultBuffer);
+
+        this._currentChunk = new proto.query_result.QueryResultChunk();
+        this._currentChunkBuffer = null;
+    }
+
+    /// Iterate over a result buffer
+    public static async iterate(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer): Promise<QueryResultStreamIterator> {
+        let iter = new QueryResultStreamIterator(bindings, connection, resultBuffer);
+        let result = resultBuffer.get()
+        let embeddedChunkCount = result.dataChunksLength();
+        if (embeddedChunkCount > 0) {
+            result.dataChunks(0, iter._currentChunk);
+        } else {
+            let chunkBuffer = await bindings.fetchQueryResults(connection);
+            iter._currentChunk = chunkBuffer.get();
+            iter._currentChunkBuffer = chunkBuffer;
+        }
+        return iter;
+    }
+
+    /// Get the current chunk
+    public get currentChunk(): proto.query_result.QueryResultChunk { return this._currentChunk; }
+
     /// Is the end?
     public isEnd(): boolean {
-        return this._chunk == null || this.chunkRow >= this._chunk.rowCount().low;
+        return this._currentChunk == null || this.currentRow >= this._currentChunk.rowCount().low;
     }
+
     /// Advance the iterator
     public async next() {
         // Reached end?
@@ -80,91 +187,19 @@ export class QueryResultIterator {
 
         // Still in current chunk?
         ++this._globalRowIndex;
-        if (this._chunk == null || this.chunkRow < this._chunk.rowCount().low)
+        if (this._currentChunk == null || this.currentRow < this._currentChunk.rowCount().low)
             return;
 
         // Get next chunk
-        ++this._chunkID;
-        if (this._chunkID < this.result.dataChunksLength()) {
-            this._chunk = this.result.dataChunks(this._chunkID, this._chunk);
+        ++this._currentChunkID;
+        if (this._currentChunkID < this.result.dataChunksLength()) {
+            this.result.dataChunks(this._currentChunkID, this._currentChunk);
         } else {
             let result = await this._bindings.fetchQueryResults(this._connection);
-            this._chunk = result.get();
-            this._chunkBuffer = result;
+            this._currentChunk = result.get();
+            this._currentChunkBuffer = result;
         }
-        this._chunkRowBegin = this._globalRowIndex;
-    }
-
-    /// Get a value
-    public getValue(idx: number, v: Value) {
-        if (this._chunk == null || idx >= this.columnCount) {
-            return;
-        }
-        v.sqlType = this.columnTypes[idx];
-        v.value = null;
-        let r = this.chunkRow;
-
-        // Read the vector
-        let column = this._chunk.columns(idx, this._tmp.vector);
-        if (column == null) {
-            return;
-        }
-        switch (column.variantType()) {
-            case proto.vector.VectorVariant.NONE:
-                break;
-            case proto.vector.VectorVariant.VectorI8:
-                column.variant(this._tmp.vectorI8);
-                v.value = this._tmp.vectorI8.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorU8:
-                column.variant(this._tmp.vectorU8);
-                v.value = this._tmp.vectorU8.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorI16:
-                column.variant(this._tmp.vectorI16);
-                v.value = this._tmp.vectorI16.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorU16:
-                column.variant(this._tmp.vectorU16);
-                v.value = this._tmp.vectorU16.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorI32:
-                column.variant(this._tmp.vectorI32);
-                v.value = this._tmp.vectorI32.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorU32:
-                column.variant(this._tmp.vectorU32);
-                v.value = this._tmp.vectorU32.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorI64:
-                column.variant(this._tmp.vectorI64);
-                v.value = this._tmp.vectorI64.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorU64:
-                column.variant(this._tmp.vectorU64);
-                v.value = this._tmp.vectorU64.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorI128:
-                column.variant(this._tmp.vectorI128);
-                v.value = this._tmp.vectorI128.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorF32:
-                column.variant(this._tmp.vectorF32);
-                v.value = this._tmp.vectorF32.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorF64:
-                column.variant(this._tmp.vectorF64);
-                v.value = this._tmp.vectorF64.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorInterval:
-                column.variant(this._tmp.vectorInterval);
-                v.value = this._tmp.vectorInterval.values(r)!;
-                break;
-            case proto.vector.VectorVariant.VectorString:
-                column.variant(this._tmp.vectorString);
-                v.value = this._tmp.vectorString.values(r)!;
-                break;
-        }
+        this._currentChunkBegin = this._globalRowIndex;
     }
 }
 
