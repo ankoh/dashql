@@ -1,5 +1,5 @@
 pub trait Error = std::error::Error;
-pub type Produce<T> = Result<T, Box<dyn Error>>;
+pub type Produce<'input, T> = Result<(T, Location<'input>), Box<dyn Error>>;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Position<'input> {
@@ -71,13 +71,33 @@ where
     }
 }
 
+impl<'input> From<(Location<'input>, Location<'input>)> for Location<'input> {
+    fn from(value: (Location<'input>, Location<'input>)) -> Self {
+        Self {
+            begin: value.0.begin,
+            end: value.1.end,
+            phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<'input> From<((usize, usize), (usize, usize))> for Location<'input> {
+    fn from(value: ((usize, usize), (usize, usize))) -> Self {
+        Self {
+            begin: value.0.into(),
+            end: value.1.into(),
+            phantom: std::marker::PhantomData,
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct String<'input> {
     pub location: Location<'input>,
     pub string: &'input str,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement<'input> {
     ParameterDeclaration(ParameterDeclaration<'input>),
     LoadStatement(LoadStatement<'input>),
@@ -104,9 +124,54 @@ pub enum ParameterType<'input> {
     File(Location<'input>),
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LoadStatement<'input> {
     pub location: Location<'input>,
+    pub identifier: String<'input>,
+    pub method: LoadMethod<'input>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LoadMethod<'input> {
+    Http(HttpLoader<'input>),
+    File(FileLoader<'input>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HttpLoader<'input> {
+    pub location: Location<'input>,
+    pub attributes: Option<HttpLoaderAttributes<'input>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HttpLoaderAttributes<'input> {
+    pub location: Location<'input>,
+    pub attributes: Vec<HttpLoaderAttribute<'input>>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum HttpLoaderAttribute<'input> {
+    Method(Location<'input>, HttpMethod<'input>),
+    Url(Location<'input>, String<'input>),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum HttpMethod<'input> {
+    Get(Location<'input>),
+    Put(Location<'input>),
+    Post(Location<'input>),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct FileLoader<'input> {
+    pub location: Location<'input>,
+    pub variable: Variable<'input>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct Variable<'input> {
+    pub location: Location<'input>,
+    pub identifier: String<'input>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

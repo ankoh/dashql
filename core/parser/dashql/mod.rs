@@ -33,12 +33,12 @@ mod tests {
 
         let (result, errors) = parser::parse(&lexer);
 
-        let result = result.ok_or("Unexpected missing result")??;
+        let (result, _) = result.ok_or("Unexpected missing result")??;
 
         assert_eq!(errors.len(), 0);
         assert_eq!(result.len(), 1);
 
-        let statement = match result[0] {
+        let statement = match &result[0] {
             context::Statement::ParameterDeclaration(parameter_declaration) => {
                 Ok(parameter_declaration)
             }
@@ -64,12 +64,12 @@ mod tests {
 
         let (result, errors) = parser::parse(&lexer);
 
-        let result = result.ok_or("Unexpected missing result")??;
+        let (result, _) = result.ok_or("Unexpected missing result")??;
 
         assert_eq!(errors.len(), 0);
         assert_eq!(result.len(), 1);
 
-        let statement = match result[0] {
+        let statement = match &result[0] {
             context::Statement::ParameterDeclaration(parameter_declaration) => {
                 Ok(parameter_declaration)
             }
@@ -82,6 +82,34 @@ mod tests {
         assert_eq!(statement.location.end.column, 52);
         assert_eq!(statement.identifier.string, "identifier");
         assert_eq!(statement.label.string, "label");
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_load_statement() -> Result<(), Box<dyn std::error::Error>> {
+        let input = "LOAD foo FROM HTTP;";
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+
+        let (result, _) = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 1);
+
+        let statement = match &result[0] {
+            context::Statement::LoadStatement(load_statement) => Ok(load_statement),
+            _ => Err("Unexpected statement"),
+        }?;
+
+        assert_eq!(statement.location.begin.line, 1);
+        assert_eq!(statement.location.begin.column, 1);
+        assert_eq!(statement.location.end.line, 1);
+        assert_eq!(statement.location.end.column, 20);
+        assert_eq!(statement.identifier.string, "foo");
 
         Ok(())
     }
