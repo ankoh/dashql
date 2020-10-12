@@ -24,11 +24,12 @@ void duckdb_webapi_init() {
     logger->set_level(spdlog::level::debug);
     logger->set_pattern(R"RAW({"time":"%T","level":"%l","message":"%v"})RAW");
     spdlog::set_default_logger(logger);
-    spdlog::info("initialized logger");
+    // XXX log to buffer
+    // spdlog::info("initialized logger");
 
     // Create the instance
     instance = std::make_unique<WebAPI>();
-    spdlog::info("initialized web api");
+    // spdlog::info("initialized web api");
 }
 /// Create a conn
 WebAPI::Connection* duckdb_webapi_connect() {

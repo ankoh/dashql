@@ -18,14 +18,15 @@ test('INTEGER column', async () => {
     `);
     expect(result.root.columnTypesLength()).toBe(1);
 
-    let resultChunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
-    let resultIter = await duckdb.webapi.QueryResultIterator.iterate(resultChunks);
+    let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
+    let iter = await duckdb.webapi.QueryResultIterator.iterate(chunks);
+    expect(iter.isEnd()).toBe(false);
 
-//    QueryResultIterator iter{conn, result};
-//    for (unsigned i = 0; i <= 10000; ++i) {
-//        ASSERT_FALSE(iter.IsEnd());
-//        ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), i);
-//        iter.Next();
-//    }
-//    ASSERT_TRUE(iter.IsEnd());
+    let v = new duckdb.webapi.Value();
+    for (let i = 0; i <= 10000; ++i) {
+        expect(iter.isEnd()).toBe(false);
+        expect(iter.getValue(0, v).i32).toBe(i);
+        await iter.next();
+    }
+    expect(iter.isEnd()).toBe(true);
 });

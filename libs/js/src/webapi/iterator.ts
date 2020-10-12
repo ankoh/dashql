@@ -144,19 +144,21 @@ export class QueryResultIterator {
     public isEnd(): boolean { return this.currentRow >= this._currentChunk.rowCount().low; }
 
     /// Advance the iterator
-    public async next(): Promise<void> {
+    public async next(): Promise<boolean> {
         // Reached end?
         if (this.isEnd())
-            return;
+            return false;
 
         // Still in current chunk?
         ++this._globalRowIndex;
-        if (this._currentChunk == null || this.currentRow < this._currentChunk.rowCount().low)
-            return;
+        if (this.currentRow < this._currentChunk.rowCount().low)
+            return true;
 
         // Get next chunk
         this._currentChunkBegin = this._globalRowIndex;
         this._currentChunk = await this._resultChunks.next();
+        let empty = this._currentChunk.rowCount().low == 0;
+        return !empty;
     }
 
     /// Get a value
