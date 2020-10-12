@@ -1306,7 +1306,7 @@
 
 // User code from the program section
 
-use crate::parser::dashql::context::*;
+use crate::parser::dashql::syntax::*;
 
     // User actions
 

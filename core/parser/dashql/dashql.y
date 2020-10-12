@@ -113,4 +113,4 @@ VisualizeStatement -> Produce<'input, VisualizeStatement<'input>>:
 
 %%
 
-use crate::parser::dashql::context::*;
+use crate::parser::dashql::syntax::*;

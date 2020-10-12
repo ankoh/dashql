@@ -1,4 +1,4 @@
-pub mod context;
+pub mod syntax;
 
 #[cfg(target_pointer_width = "32")]
 include!("dashql.l.i686-unknown-linux-gnu.rs");
@@ -22,7 +22,7 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
-    use super::{context, lexer, parser};
+    use super::{lexer, parser, syntax};
 
     #[test]
     fn parse_parameter_declaration() -> Result<(), Box<dyn std::error::Error>> {
@@ -39,7 +39,7 @@ mod tests {
         assert_eq!(result.len(), 1);
 
         let statement = match &result[0] {
-            context::Statement::ParameterDeclaration(parameter_declaration) => {
+            syntax::Statement::ParameterDeclaration(parameter_declaration) => {
                 Ok(parameter_declaration)
             }
             _ => Err("Unexpected statement"),
@@ -70,7 +70,7 @@ mod tests {
         assert_eq!(result.len(), 1);
 
         let statement = match &result[0] {
-            context::Statement::ParameterDeclaration(parameter_declaration) => {
+            syntax::Statement::ParameterDeclaration(parameter_declaration) => {
                 Ok(parameter_declaration)
             }
             _ => Err("Unexpected statement"),
@@ -101,7 +101,7 @@ mod tests {
         assert_eq!(result.len(), 1);
 
         let statement = match &result[0] {
-            context::Statement::LoadStatement(load_statement) => Ok(load_statement),
+            syntax::Statement::LoadStatement(load_statement) => Ok(load_statement),
             _ => Err("Unexpected statement"),
         }?;
 
