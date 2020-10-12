@@ -1,7 +1,7 @@
 use crate::webapi_bindings;
 
 pub(crate) struct Connection {
-    handle: webapi_bindings::ConnectionHandle,
+    handle: *const u8,
 }
 
 #[allow(dead_code)]

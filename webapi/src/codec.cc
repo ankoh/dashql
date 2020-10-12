@@ -7,6 +7,7 @@
 #include "duckdb/planner/logical_operator.hpp"
 #include "duckdb_webapi/common/exception.h"
 #include "duckdb_webapi/types.h"
+#include <iostream>
 
 namespace fb = flatbuffers;
 

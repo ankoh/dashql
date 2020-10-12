@@ -94,7 +94,6 @@ if (EMSCRIPTEN)
             _duckdb_webapi_init, \
             _duckdb_webapi_connect, \
             _duckdb_webapi_disconnect, \
-            _duckdb_webapi_get_buffer, \
             _duckdb_webapi_register_buffer, \
             _duckdb_webapi_release_buffer, \
             _duckdb_webapi_run_query, \
