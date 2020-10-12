@@ -24,12 +24,12 @@ export abstract class QueryResultChunkIterator {
         this._currentChunkID = -1;
     }
     /// Get the result
-    public get result() { return this._resultBuffer.get(); }
+    public get result() { return this._resultBuffer.root; }
     /// Get the next query result chunk
     public abstract next(): Promise<proto.query_result.QueryResultChunk>
 }
 
-/// A chunk stream
+/// A stream of query result chunks
 export class QueryResultChunkStream extends QueryResultChunkIterator {
     /// The current chunk
     _currentChunk: proto.query_result.QueryResultChunk;
@@ -45,12 +45,12 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
 
     /// Get the next chunk
     public async next(): Promise<proto.query_result.QueryResultChunk> {
-        let result = this._resultBuffer.get()
+        let result = this._resultBuffer.root;
         if (++this._currentChunkID < result.dataChunksLength()) {
             result.dataChunks(0, this._currentChunk);
         } else {
             let chunkBuffer = await this._bindings.fetchQueryResults(this._connection);
-            this._currentChunk = chunkBuffer.get();
+            this._currentChunk = chunkBuffer.root;
             this._currentChunkBuffer = chunkBuffer;
         }
         return this._currentChunk;
@@ -73,7 +73,7 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
             this._chunks.push(this.result.dataChunks(i)!);
         }
         for (let i = 0; i < chunkBuffers.length; ++i) {
-            this._chunks.push(chunkBuffers[i].get());
+            this._chunks.push(chunkBuffers[i].root);
         }
         if (this._chunks.length == 0 || this._chunks[this._chunks.length - 1].rowCount().low == 0)  {
             this._chunks.push(new proto.query_result.QueryResultChunk());
@@ -81,7 +81,7 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
     }
 
     /// Restart  the chunk iterator
-    public rewind() { this._currentChunkID = 0; }
+    public rewind() { this._currentChunkID = -1; }
     /// Get the next chunk
     public async next(): Promise<proto.query_result.QueryResultChunk> {
         this._currentChunkID = Math.min(this._currentChunkID + 1, this._chunks.length - 1);
@@ -233,7 +233,7 @@ export class QueryResultIterator {
     }
 }
 
-/// Flatbuffer objects to repeatedly decode vectors without allocation
+/// Flatbuffer objects to decode flatbuffers without allocation
 class VectorVariants {
     vector: proto.vector.Vector;
     vectorI8: proto.vector.VectorI8;

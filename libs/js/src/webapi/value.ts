@@ -12,5 +12,4 @@ export class Value {
         this.sqlType = new proto.sql_type.SQLType();
         this.value = null;
     }
-
 }
