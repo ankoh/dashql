@@ -5,41 +5,6 @@ import { QueryResultBuffer, QueryResultChunkBuffer } from './webapi_buffer';
 import { Value } from './value';
 import * as proto from '../proto';
 
-/// Flatbuffer objects to repeatedly decode vectors without allocation
-class VariantObjects {
-    vector: proto.vector.Vector;
-    vectorI8: proto.vector.VectorI8;
-    vectorU8: proto.vector.VectorU8;
-    vectorI16: proto.vector.VectorI16;
-    vectorU16: proto.vector.VectorU16;
-    vectorI32: proto.vector.VectorI32;
-    vectorU32: proto.vector.VectorU32;
-    vectorI64: proto.vector.VectorI64;
-    vectorU64: proto.vector.VectorU64;
-    vectorI128: proto.vector.VectorI128;
-    vectorF32: proto.vector.VectorF32;
-    vectorF64: proto.vector.VectorF64;
-    vectorInterval: proto.vector.VectorInterval;
-    vectorString: proto.vector.VectorString;
-
-    constructor() {
-        this.vector = new proto.vector.Vector();
-        this.vectorI8 = new proto.vector.VectorI8();
-        this.vectorU8 = new proto.vector.VectorU8();
-        this.vectorI16 = new proto.vector.VectorI16();
-        this.vectorU16 = new proto.vector.VectorU16();
-        this.vectorI32 = new proto.vector.VectorI32();
-        this.vectorU32 = new proto.vector.VectorU32();
-        this.vectorI64 = new proto.vector.VectorI64();
-        this.vectorU64 = new proto.vector.VectorU64();
-        this.vectorI128 = new proto.vector.VectorI128();
-        this.vectorF32 = new proto.vector.VectorF32();
-        this.vectorF64 = new proto.vector.VectorF64();
-        this.vectorInterval = new proto.vector.VectorInterval();
-        this.vectorString = new proto.vector.VectorString();
-    }
-};
-
 /// Forward iterator
 export class QueryResultIterator {
     /// The bindings
@@ -60,9 +25,8 @@ export class QueryResultIterator {
     _chunkBuffer: QueryResultChunkBuffer | null;
     /// The chunk (if any)
     _chunk: proto.query_result.QueryResultChunk | null;
-
     /// The temporary flatbuffer objects
-    tmp: VariantObjects;
+    _tmp: VectorVariants;
 
     /// Constructor
     public constructor(bindings: DuckDBBindings, connection: number, result: QueryResultBuffer) {
@@ -81,7 +45,7 @@ export class QueryResultIterator {
             result.get().columnTypes(i, t);
             this.columnTypes.push(t);
         }
-        this.tmp = new VariantObjects();
+        this._tmp = new VectorVariants();
     }
 
     /// Get the result
@@ -133,73 +97,109 @@ export class QueryResultIterator {
 
     /// Get a value
     public getValue(idx: number, v: Value) {
-        if (this._chunk == null || idx >= this._chunk.columnsLength()) {
+        if (this._chunk == null || idx >= this.columnCount) {
             return;
         }
-        let column = this._chunk.columns(idx, this.tmp.vector);
-        let columnType = this._resultBuffer.get().columnTypes(idx, v.sqlType);
+        v.sqlType = this.columnTypes[idx];
         v.value = null;
-        let chunkRow = this.chunkRow;
-        if (column == null || columnType == null) {
-            return;
-        }
+        let r = this.chunkRow;
 
         // Read the vector
+        let column = this._chunk.columns(idx, this._tmp.vector);
+        if (column == null) {
+            return;
+        }
         switch (column.variantType()) {
             case proto.vector.VectorVariant.NONE:
                 break;
             case proto.vector.VectorVariant.VectorI8:
-                column.variant(this.tmp.vectorI8);
-                v.value = this.tmp.vectorI8.values(chunkRow)!;
+                column.variant(this._tmp.vectorI8);
+                v.value = this._tmp.vectorI8.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU8:
-                column.variant(this.tmp.vectorU8);
-                v.value = this.tmp.vectorU8.values(chunkRow)!;
+                column.variant(this._tmp.vectorU8);
+                v.value = this._tmp.vectorU8.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI16:
-                column.variant(this.tmp.vectorI16);
-                v.value = this.tmp.vectorI16.values(chunkRow)!;
+                column.variant(this._tmp.vectorI16);
+                v.value = this._tmp.vectorI16.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU16:
-                column.variant(this.tmp.vectorU16);
-                v.value = this.tmp.vectorU16.values(chunkRow)!;
+                column.variant(this._tmp.vectorU16);
+                v.value = this._tmp.vectorU16.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI32:
-                column.variant(this.tmp.vectorI32);
-                v.value = this.tmp.vectorI32.values(chunkRow)!;
+                column.variant(this._tmp.vectorI32);
+                v.value = this._tmp.vectorI32.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU32:
-                column.variant(this.tmp.vectorU32);
-                v.value = this.tmp.vectorU32.values(chunkRow)!;
+                column.variant(this._tmp.vectorU32);
+                v.value = this._tmp.vectorU32.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI64:
-                column.variant(this.tmp.vectorI64);
-                v.value = this.tmp.vectorI64.values(chunkRow)!;
+                column.variant(this._tmp.vectorI64);
+                v.value = this._tmp.vectorI64.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU64:
-                column.variant(this.tmp.vectorU64);
-                v.value = this.tmp.vectorU64.values(chunkRow)!;
+                column.variant(this._tmp.vectorU64);
+                v.value = this._tmp.vectorU64.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI128:
-                column.variant(this.tmp.vectorI128);
-                v.value = this.tmp.vectorI128.values(chunkRow)!;
+                column.variant(this._tmp.vectorI128);
+                v.value = this._tmp.vectorI128.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorF32:
-                column.variant(this.tmp.vectorF32);
-                v.value = this.tmp.vectorF32.values(chunkRow)!;
+                column.variant(this._tmp.vectorF32);
+                v.value = this._tmp.vectorF32.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorF64:
-                column.variant(this.tmp.vectorF64);
-                v.value = this.tmp.vectorF64.values(chunkRow)!;
+                column.variant(this._tmp.vectorF64);
+                v.value = this._tmp.vectorF64.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorInterval:
-                column.variant(this.tmp.vectorInterval);
-                v.value = this.tmp.vectorInterval.values(chunkRow)!;
+                column.variant(this._tmp.vectorInterval);
+                v.value = this._tmp.vectorInterval.values(r)!;
                 break;
             case proto.vector.VectorVariant.VectorString:
-                column.variant(this.tmp.vectorString);
-                v.value = this.tmp.vectorString.values(chunkRow)!;
+                column.variant(this._tmp.vectorString);
+                v.value = this._tmp.vectorString.values(r)!;
                 break;
         }
     }
 }
+
+/// Flatbuffer objects to repeatedly decode vectors without allocation
+class VectorVariants {
+    vector: proto.vector.Vector;
+    vectorI8: proto.vector.VectorI8;
+    vectorU8: proto.vector.VectorU8;
+    vectorI16: proto.vector.VectorI16;
+    vectorU16: proto.vector.VectorU16;
+    vectorI32: proto.vector.VectorI32;
+    vectorU32: proto.vector.VectorU32;
+    vectorI64: proto.vector.VectorI64;
+    vectorU64: proto.vector.VectorU64;
+    vectorI128: proto.vector.VectorI128;
+    vectorF32: proto.vector.VectorF32;
+    vectorF64: proto.vector.VectorF64;
+    vectorInterval: proto.vector.VectorInterval;
+    vectorString: proto.vector.VectorString;
+
+    /// Constructor
+    constructor() {
+        this.vector = new proto.vector.Vector();
+        this.vectorI8 = new proto.vector.VectorI8();
+        this.vectorU8 = new proto.vector.VectorU8();
+        this.vectorI16 = new proto.vector.VectorI16();
+        this.vectorU16 = new proto.vector.VectorU16();
+        this.vectorI32 = new proto.vector.VectorI32();
+        this.vectorU32 = new proto.vector.VectorU32();
+        this.vectorI64 = new proto.vector.VectorI64();
+        this.vectorU64 = new proto.vector.VectorU64();
+        this.vectorI128 = new proto.vector.VectorI128();
+        this.vectorF32 = new proto.vector.VectorF32();
+        this.vectorF64 = new proto.vector.VectorF64();
+        this.vectorInterval = new proto.vector.VectorInterval();
+        this.vectorString = new proto.vector.VectorString();
+    }
+};
