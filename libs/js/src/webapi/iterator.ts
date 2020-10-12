@@ -6,7 +6,7 @@ import { Value } from './value';
 import * as proto from '../proto';
 
 /// A query result iterator
-export abstract class QueryResultIterator {
+export class QueryResultIterator {
     /// The bindings
     _bindings: DuckDBBindings;
     /// The connection
@@ -17,48 +17,90 @@ export abstract class QueryResultIterator {
     _columnTypes: proto.sql_type.SQLType[];
     /// The global row index
     _globalRowIndex: number;
-    /// The chunk row begin
-    _currentChunkBegin: number;
     /// The chunk identifier
     _currentChunkID: number;
+    /// The chunk row begin
+    _currentChunkBegin: number;
+    /// The chunk buffer (if any)
+    _currentChunkBuffer: QueryResultChunkBuffer | null;
+    /// The chunk (if any)
+    _currentChunk: proto.query_result.QueryResultChunk;
     /// The temporary flatbuffer objects
     _tmp: VectorVariants;
 
     /// Constructor
-    public constructor(bindings: DuckDBBindings, connection: number, result: QueryResultBuffer) {
+    protected constructor(bindings: DuckDBBindings, connection: number, result: QueryResultBuffer) {
         this._bindings = bindings;
         this._connection = connection;
         this._resultBuffer = result;
         this._columnTypes = new Array<proto.sql_type.SQLType>();
         this._globalRowIndex = 0;
-        this._currentChunkBegin = 0;
         this._currentChunkID = 0;
+        this._currentChunkBegin = 0;
+        this._currentChunkBuffer = null;
+        this._currentChunk = new proto.query_result.QueryResultChunk();
+        this._tmp = new VectorVariants();
 
+        // Collect the column types
         for (let i = 0; i < result.get().columnTypesLength(); ++i) {
             let t = new proto.sql_type.SQLType();
             result.get().columnTypes(i, t);
             this.columnTypes.push(t);
         }
-        this._tmp = new VectorVariants();
+    }
+
+    /// Iterate over a result buffer
+    public static async iterate(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer): Promise<QueryResultIterator> {
+        let iter = new QueryResultIterator(bindings, connection, resultBuffer);
+        let result = resultBuffer.get()
+        if (result.dataChunksLength() > 0) {
+            result.dataChunks(0, iter._currentChunk);
+        } else {
+            let chunkBuffer = await bindings.fetchQueryResults(connection);
+            iter._currentChunk = chunkBuffer.get();
+            iter._currentChunkBuffer = chunkBuffer;
+        }
+        return iter;
     }
 
     /// Get the result
-    protected get result() { return this._resultBuffer.get(); }
+    public get result() { return this._resultBuffer.get(); }
     /// Get the column count
     public get columnCount() { return this._columnTypes.length; }
     /// Get the column count
     public get columnTypes() { return this._columnTypes; }
     /// Get the chunk row
     public get currentRow() { return this._globalRowIndex - this._currentChunkBegin; }
+    /// Get the current chunk
+    public get currentChunk(): proto.query_result.QueryResultChunk { return this._currentChunk; }
+
     /// Get the column count
     public getColumnName(idx: number) { return this.result.columnNames(idx); }
-
-    /// Get the current chunk
-    abstract get currentChunk(): proto.query_result.QueryResultChunk;
     /// Is the end?
-    abstract isEnd(): boolean;
+    public isEnd(): boolean { return this.currentRow >= this._currentChunk.rowCount().low; }
+
     /// Advance the iterator
-    abstract async next(): Promise<void>;
+    public async next(): Promise<void> {
+        // Reached end?
+        if (this.isEnd())
+            return;
+
+        // Still in current chunk?
+        ++this._globalRowIndex;
+        if (this._currentChunk == null || this.currentRow < this._currentChunk.rowCount().low)
+            return;
+
+        // Get next chunk
+        ++this._currentChunkID;
+        if (this._currentChunkID < this.result.dataChunksLength()) {
+            this.result.dataChunks(this._currentChunkID, this._currentChunk);
+        } else {
+            let result = await this._bindings.fetchQueryResults(this._connection);
+            this._currentChunk = result.get();
+            this._currentChunkBuffer = result;
+        }
+        this._currentChunkBegin = this._globalRowIndex;
+    }
 
     /// Get a value
     public getValue(cid: number, v: Value): Value {
@@ -131,63 +173,6 @@ export abstract class QueryResultIterator {
                 break;
         }
         return v;
-    }
-}
-
-export class QueryResultStreamIterator extends QueryResultIterator {
-    /// The chunk buffer (if any)
-    _currentChunkBuffer: QueryResultChunkBuffer | null;
-    /// The chunk (if any)
-    _currentChunk: proto.query_result.QueryResultChunk;
-
-    /// Constructor
-    protected constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer) {
-        super(bindings, connection, resultBuffer);
-
-        this._currentChunk = new proto.query_result.QueryResultChunk();
-        this._currentChunkBuffer = null;
-    }
-
-    /// Iterate over a result buffer
-    public static async iterate(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer): Promise<QueryResultStreamIterator> {
-        let iter = new QueryResultStreamIterator(bindings, connection, resultBuffer);
-        let result = resultBuffer.get()
-        let embeddedChunkCount = result.dataChunksLength();
-        if (embeddedChunkCount > 0) {
-            result.dataChunks(0, iter._currentChunk);
-        } else {
-            let chunkBuffer = await bindings.fetchQueryResults(connection);
-            iter._currentChunk = chunkBuffer.get();
-            iter._currentChunkBuffer = chunkBuffer;
-        }
-        return iter;
-    }
-
-    /// Get the current chunk
-    public get currentChunk(): proto.query_result.QueryResultChunk { return this._currentChunk; }
-    /// Is the end?
-    public isEnd(): boolean { return this.currentRow >= this._currentChunk.rowCount().low; }
-    /// Advance the iterator
-    public async next(): Promise<void> {
-        // Reached end?
-        if (this.isEnd())
-            return;
-
-        // Still in current chunk?
-        ++this._globalRowIndex;
-        if (this._currentChunk == null || this.currentRow < this._currentChunk.rowCount().low)
-            return;
-
-        // Get next chunk
-        ++this._currentChunkID;
-        if (this._currentChunkID < this.result.dataChunksLength()) {
-            this.result.dataChunks(this._currentChunkID, this._currentChunk);
-        } else {
-            let result = await this._bindings.fetchQueryResults(this._connection);
-            this._currentChunk = result.get();
-            this._currentChunkBuffer = result;
-        }
-        this._currentChunkBegin = this._globalRowIndex;
     }
 }
 
