@@ -1,5 +1,5 @@
 {
-    "name": "duckdb.js",
+    "name": "duckdb.wasm",
     "version": "0.0.1",
     "description": "DuckDB powered by WebAssembly",
     "main": "dist/duckdb.js",
