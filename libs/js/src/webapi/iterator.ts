@@ -37,7 +37,7 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
     _currentChunkBuffer: QueryResultChunkBuffer | null;
 
     /// Constructor
-    constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer) {
+    public constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer) {
         super(bindings, connection, resultBuffer);
         this._currentChunk = new proto.query_result.QueryResultChunk();
         this._currentChunkBuffer = null;
@@ -65,7 +65,7 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
     _chunks: proto.query_result.QueryResultChunk[];
 
     /// Constructor
-    constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer, chunkBuffers: QueryResultChunkBuffer[]) {
+    public constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer, chunkBuffers: QueryResultChunkBuffer[]) {
         super(bindings, connection, resultBuffer);
         this._chunkBuffers = chunkBuffers;
         this._chunks = [];
