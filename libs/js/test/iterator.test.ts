@@ -18,7 +18,7 @@ describe('tuple iterator', () => {
     describe('single column', () => {
         test('TINYINT', async () => {
             let result = await db.sendQuery(conn, `
-                SELECT MOD(v, 128)::TINYINT FROM generate_series(0, 10000) as t(v);
+                SELECT (v & 127)::TINYINT FROM generate_series(0, 10000) as t(v);
             `);
             expect(result.root.columnTypesLength()).toBe(1);
             let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
@@ -34,7 +34,7 @@ describe('tuple iterator', () => {
 
         test('SMALLINT', async () => {
             let result = await db.sendQuery(conn, `
-                SELECT v::SMALLINT FROM generate_series(0, 10000) as t(v);
+                SELECT (v & 32767)::SMALLINT FROM generate_series(0, 10000) as t(v);
             `);
             expect(result.root.columnTypesLength()).toBe(1);
             let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
@@ -87,7 +87,7 @@ describe('chunk iterator', () => {
     describe('single column', () => {
         test('TINYINT', async () => {
             let result = await db.sendQuery(conn, `
-                SELECT MOD(v, 128)::TINYINT FROM generate_series(0, 10000) as t(v);
+                SELECT (v & 127)::TINYINT FROM generate_series(0, 10000) as t(v);
             `);
             expect(result.root.columnTypesLength()).toBe(1);
             let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
@@ -102,7 +102,7 @@ describe('chunk iterator', () => {
 
         test('SMALLINT', async () => {
             let result = await db.sendQuery(conn, `
-                SELECT v::SMALLINT FROM generate_series(0, 10000) as t(v);
+                SELECT (v & 32767)::SMALLINT FROM generate_series(0, 10000) as t(v);
             `);
             expect(result.root.columnTypesLength()).toBe(1);
             let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
