@@ -1,5 +1,4 @@
 pub trait Error = std::error::Error;
-pub type Produce<'input, T> = Result<(T, Location<'input>), Box<dyn Error>>;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Position<'input> {

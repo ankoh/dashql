@@ -179,3 +179,5 @@ VisualizeStatement -> Produce<'input, VisualizeStatement<'input>>:
 %%
 
 use crate::parser::dashql::syntax::*;
+
+pub type Produce<'input, T> = Result<(T, Location<'input>), Box<dyn Error>>;
