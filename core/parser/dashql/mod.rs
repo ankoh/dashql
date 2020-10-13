@@ -37,7 +37,7 @@ mod tests {
 
         assert_eq!(errors.len(), 0);
         assert_eq!(result.len(), 0);
-        assert_eq!(location, ((1, 1), (1, 1)).into());
+        assert_eq!(location, ((0, 0), (0, 0)).into());
 
         Ok(())
     }

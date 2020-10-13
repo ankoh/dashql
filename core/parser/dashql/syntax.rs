@@ -25,6 +25,20 @@ pub struct Location<'input> {
     phantom: std::marker::PhantomData<&'input str>,
 }
 
+impl<'input> Location<'input> {
+    pub fn invalid() -> Self {
+        ((0, 0), (0, 0)).into()
+    }
+
+    pub fn is_valid(&self) -> bool {
+        let begin_greater_zero = self.begin.line > 0 && self.begin.column > 0;
+        let end_after_begin = self.end.line > self.begin.line
+            || self.end.line == self.begin.line && self.end.column >= self.begin.column;
+
+        begin_greater_zero && end_after_begin
+    }
+}
+
 impl<'input, T> From<(&dyn lrpar::NonStreamingLexer<'input, u32>, lrpar::Lexeme<T>)>
     for Location<'input>
 where
@@ -73,10 +87,18 @@ where
 
 impl<'input> From<(Location<'input>, Location<'input>)> for Location<'input> {
     fn from(value: (Location<'input>, Location<'input>)) -> Self {
-        Self {
-            begin: value.0.begin,
-            end: value.1.end,
-            phantom: std::marker::PhantomData,
+        let left = value.0;
+        let right = value.1;
+
+        match (left.is_valid(), right.is_valid()) {
+            (false, false) => Self::invalid(),
+            (false, true) => right,
+            (true, false) => left,
+            (true, true) => Self {
+                begin: value.0.begin,
+                end: value.1.end,
+                phantom: std::marker::PhantomData,
+            },
         }
     }
 }
@@ -165,7 +187,7 @@ pub enum HttpMethod<'input> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct FileLoader<'input> {
     pub location: Location<'input>,
-    pub variable: Variable<'input>,
+    pub variable: Option<Variable<'input>>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -174,9 +196,57 @@ pub struct Variable<'input> {
     pub identifier: String<'input>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtractStatement<'input> {
     pub location: Location<'input>,
+    pub identifier: String<'input>,
+    pub source: String<'input>,
+    pub method: ExtractMethod<'input>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ExtractMethod<'input> {
+    Csv(CsvExtractor<'input>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CsvExtractor<'input> {
+    pub location: Location<'input>,
+    pub attributes: Option<CsvExtractorAttributes<'input>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CsvExtractorAttributes<'input> {
+    pub location: Location<'input>,
+    pub attributes: Vec<CsvExtractorAttribute<'input>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CsvExtractorAttribute<'input> {
+    Encoding(Location<'input>, String<'input>),
+    Header(Location<'input>, CsvHeaderValue<'input>),
+    Delimiter(Location<'input>, String<'input>),
+    Quote(Location<'input>, String<'input>),
+    DateFormat(Location<'input>, String<'input>),
+    TimestampFormat(Location<'input>, String<'input>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CsvHeaderValue<'input> {
+    Boolean(Boolean<'input>),
+    Strings(Strings<'input>),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct Boolean<'input> {
+    pub location: Location<'input>,
+    pub boolean: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Strings<'input> {
+    pub location: Location<'input>,
+    pub strings: Vec<String<'input>>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
