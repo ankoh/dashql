@@ -164,7 +164,12 @@ StringList -> Produce<'input, Vec<String<'input>>>:
   ;
 
 QueryStatement -> Produce<'input, QueryStatement<'input>>:
-    "QUERY" ";" { let location = ($lexer, $1?, $2?).into(); Ok((QueryStatement { location }, location)) }
+    "QUERY" Identifier "AS" SqlLiteral ";" { let location = ($lexer, $1?, $5?).into(); Ok((QueryStatement { location, identifier: $2?.0, query: $4?.0 }, location)) }
+  ;
+
+SqlLiteral -> Produce<'input, String<'input>>:
+    "SQL_SELECT"    { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "SQL_WITH"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   ;
 
 VisualizeStatement -> Produce<'input, VisualizeStatement<'input>>:

@@ -252,6 +252,8 @@ pub struct Strings<'input> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct QueryStatement<'input> {
     pub location: Location<'input>,
+    pub identifier: String<'input>,
+    pub query: String<'input>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

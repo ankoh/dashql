@@ -526,4 +526,76 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn parse_query_select() -> Result<(), Box<dyn std::error::Error>> {
+        let input = "QUERY foo AS SELECT 1;";
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+        let (result, _) = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 1);
+
+        let query_statement = match &result[0] {
+            syntax::Statement::QueryStatement(statement) => Ok(statement),
+            _ => Err("Unexpected statement"),
+        }?;
+
+        assert_eq!(query_statement.location, ((1, 1), (1, 23)).into());
+        assert_eq!(
+            query_statement.identifier.location,
+            ((1, 7), (1, 10)).into()
+        );
+        assert_eq!(query_statement.identifier.string, "foo");
+        assert_eq!(query_statement.query.location, ((1, 14), (1, 22)).into());
+        assert_eq!(query_statement.query.string, "SELECT 1");
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_query_common_table_expression() -> Result<(), Box<dyn std::error::Error>> {
+        let input = indoc! {"
+            QUERY foo AS WITH foo AS (
+                SELECT 1
+            )
+
+            SELECT * FROM foo;
+        "};
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+        let (result, _) = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 1);
+
+        let query_statement = match &result[0] {
+            syntax::Statement::QueryStatement(statement) => Ok(statement),
+            _ => Err("Unexpected statement"),
+        }?;
+
+        assert_eq!(query_statement.location, ((1, 1), (5, 19)).into());
+        assert_eq!(
+            query_statement.identifier.location,
+            ((1, 7), (1, 10)).into()
+        );
+        assert_eq!(query_statement.identifier.string, "foo");
+        assert_eq!(query_statement.query.location, ((1, 14), (5, 18)).into());
+        assert_eq!(query_statement.query.string, indoc! {"
+            WITH foo AS (
+                SELECT 1
+            )
+
+            SELECT * FROM foo"
+        });
+
+        Ok(())
+    }
 }

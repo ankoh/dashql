@@ -53,3 +53,6 @@ $   "$"
 '(\\.|[^\\'])*'     "SINGLY_QUOTED_STRING"
 "(\\.|[^\\"])*"     "DOUBLY_QUOTED_STRING"
 (?i)[a-z][a-z0-9_]* "IDENTIFIER"
+
+(?i)select[^;]* "SQL_SELECT"
+(?i)with[^;]*   "SQL_WITH"
