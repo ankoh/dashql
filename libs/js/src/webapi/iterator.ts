@@ -5,6 +5,8 @@ import { QueryResultBuffer, QueryResultChunkBuffer } from './webapi_buffer';
 import { Value } from './value';
 import * as proto from '../proto';
 
+type NumberVector = proto.vector.VectorI8 | proto.vector.VectorI16 | proto.vector.VectorI32 | proto.vector.VectorU8 | proto.vector.VectorU16 | proto.vector.VectorU32 | proto.vector.VectorF32 | proto.vector.VectorF64;
+
 /// An abstract chunk iterator
 export abstract class QueryResultChunkIterator {
     /// The bindings
@@ -17,6 +19,10 @@ export abstract class QueryResultChunkIterator {
     _currentChunkID: number;
     /// The current chunk
     _currentChunk: proto.query_result.QueryResultChunk;
+    /// The column types
+    _columnTypes: proto.sql_type.SQLType[];
+    /// The temporary flatbuffer objects
+    _tmp: VectorVariants;
 
     /// Constructor
     public constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer) {
@@ -25,11 +31,79 @@ export abstract class QueryResultChunkIterator {
         this._resultBuffer = resultBuffer;
         this._currentChunkID = -1;
         this._currentChunk = new proto.query_result.QueryResultChunk();
+        this._columnTypes = new Array<proto.sql_type.SQLType>();
+        this._tmp = new VectorVariants();
+
+        // Collect the column types
+        for (let i = 0; i < this.result.columnTypesLength(); ++i) {
+            let t = new proto.sql_type.SQLType();
+            this.result.columnTypes(i, t);
+            this._columnTypes.push(t);
+        }
     }
     /// Get the result
     public get result() { return this._resultBuffer.root; }
+    /// Get the column count
+    public get columnCount() { return this._columnTypes.length; }
+    /// Get the column count
+    public get columnTypes() { return this._columnTypes; }
+    /// Get the current chunk
+    public get currentChunk() { return this._currentChunk; }
+    /// Get the temporary buffers
+    public get tmp() { return this._tmp; }
+
     /// Get the next query result chunk
-    public abstract next(): Promise<boolean>
+    public abstract next(): Promise<boolean>;
+
+    /// Iterate over a number column
+    public iterateNumberColumn(cid: number, fn: (row: number, v: number | null) => void) {
+        if (cid >= this.columnCount) {
+            throw Error("column index out of bounds");
+        }
+        let c = this.currentChunk.columns(cid, this.tmp.vector);
+        let t = this.columnTypes[cid];
+        if (c == null) {
+            return;
+        }
+        let v: NumberVector;
+        switch (c.variantType()) {
+            case proto.vector.VectorVariant.VectorI8:
+                v = c.variant(this.tmp.vectorI8)!;
+                break;
+            case proto.vector.VectorVariant.VectorU8:
+                v = c.variant(this.tmp.vectorU8)!;
+                break;
+            case proto.vector.VectorVariant.VectorI16:
+                v = c.variant(this.tmp.vectorI16)!;
+                break;
+            case proto.vector.VectorVariant.VectorU16:
+                v = c.variant(this.tmp.vectorU16)!;
+                break;
+            case proto.vector.VectorVariant.VectorI32:
+                v = c.variant(this.tmp.vectorI32)!;
+                break;
+            case proto.vector.VectorVariant.VectorU32:
+                v = c.variant(this.tmp.vectorU32)!;
+                break;
+            case proto.vector.VectorVariant.VectorF32:
+                v = c.variant(this.tmp.vectorF32)!;
+                break;
+            case proto.vector.VectorVariant.VectorF64:
+                v = c.variant(this.tmp.vectorF64)!;
+                break;
+            case proto.vector.VectorVariant.NONE:
+            case proto.vector.VectorVariant.VectorI128:
+            case proto.vector.VectorVariant.VectorI64:
+            case proto.vector.VectorVariant.VectorInterval:
+            case proto.vector.VectorVariant.VectorString:
+            case proto.vector.VectorVariant.VectorU64:
+            default:
+                return;
+        }
+        for (let i = 0; i < v.valuesLength(); ++i) {
+            fn(i, v.nullMask(i) ? null : v.values(i));
+        }
+    }
 }
 
 /// A stream of query result chunks
@@ -93,33 +167,17 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
 /// A query result iterator
 export class QueryResultIterator {
     /// The query result
-    _resultChunks: QueryResultChunkIterator;
-    /// The column types
-    _columnTypes: proto.sql_type.SQLType[];
+    _chunkIter: QueryResultChunkIterator;
     /// The global row index
     _globalRowIndex: number;
     /// The chunk row begin
     _currentChunkBegin: number;
-    /// The chunk (if any)
-    _currentChunk: proto.query_result.QueryResultChunk;
-    /// The temporary flatbuffer objects
-    _tmp: VectorVariants;
 
     /// Constructor
     protected constructor(resultChunks: QueryResultChunkIterator) {
-        this._resultChunks = resultChunks;
-        this._columnTypes = new Array<proto.sql_type.SQLType>();
+        this._chunkIter = resultChunks;
         this._globalRowIndex = 0;
         this._currentChunkBegin = 0;
-        this._currentChunk = new proto.query_result.QueryResultChunk();
-        this._tmp = new VectorVariants();
-
-        // Collect the column types
-        for (let i = 0; i < this._resultChunks.result.columnTypesLength(); ++i) {
-            let t = new proto.sql_type.SQLType();
-            this._resultChunks.result.columnTypes(i, t);
-            this.columnTypes.push(t);
-        }
     }
 
     /// Iterate over a result buffer
@@ -130,19 +188,17 @@ export class QueryResultIterator {
         return iter;
     }
 
-    /// Get the column count
-    public get columnCount() { return this._columnTypes.length; }
-    /// Get the column count
-    public get columnTypes() { return this._columnTypes; }
     /// Get the chunk row
     public get currentRow() { return this._globalRowIndex - this._currentChunkBegin; }
     /// Get the current chunk
-    public get currentChunk(): proto.query_result.QueryResultChunk { return this._currentChunk; }
+    public get currentChunk(): proto.query_result.QueryResultChunk { return this._chunkIter.currentChunk; }
+    /// Get the temporary buffers
+    public get tmp() { return this._chunkIter.tmp; }
 
     /// Get the column count
-    public getColumnName(idx: number) { return this._resultChunks.result.columnNames(idx); }
+    public getColumnName(idx: number) { return this._chunkIter.result.columnNames(idx); }
     /// Is the end?
-    public isEnd(): boolean { return this.currentRow >= this._currentChunk.rowCount().low; }
+    public isEnd(): boolean { return this.currentRow >= this.currentChunk.rowCount().low; }
 
     /// Advance the iterator
     public async next(): Promise<boolean> {
@@ -152,26 +208,26 @@ export class QueryResultIterator {
 
         // Still in current chunk?
         ++this._globalRowIndex;
-        if (this.currentRow < this._currentChunk.rowCount().low)
+        if (this.currentRow < this.currentChunk.rowCount().low)
             return true;
 
         // Get next chunk
-        await this._resultChunks.next();
+        await this._chunkIter.next();
         this._currentChunkBegin = this._globalRowIndex;
-        let empty = this._currentChunk.rowCount().low == 0;
+        let empty = this.currentChunk.rowCount().low == 0;
         return !empty;
     }
 
     /// Get a value
     public getValue(cid: number, v: Value): Value {
-        if (cid >= this.columnCount) {
+        if (cid >= this._chunkIter.columnCount) {
             throw Error("column index out of bounds");
         }
-        v.sqlType = this.columnTypes[cid];
+        v.sqlType = this._chunkIter.columnTypes[cid];
         let r = this.currentRow;
 
         // Read the vector
-        let c = this.currentChunk.columns(cid, this._tmp.vector);
+        let c = this.currentChunk.columns(cid, this.tmp.vector);
         if (c == null) {
             v.nullFlag = true;
             return v;
@@ -180,69 +236,69 @@ export class QueryResultIterator {
             case proto.vector.VectorVariant.NONE:
                 break;
             case proto.vector.VectorVariant.VectorI8:
-                c.variant(this._tmp.vectorI8);
-                v.asNumber().value = this._tmp.vectorI8.values(r)!;
-                v.nullFlag = this._tmp.vectorI8.nullMask(r)!;
+                c.variant(this.tmp.vectorI8);
+                v.asNumber().value = this.tmp.vectorI8.values(r)!;
+                v.nullFlag = this.tmp.vectorI8.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU8:
-                c.variant(this._tmp.vectorU8);
-                v.asNumber().value = this._tmp.vectorU8.values(r)!;
-                v.nullFlag = this._tmp.vectorU8.nullMask(r)!;
+                c.variant(this.tmp.vectorU8);
+                v.asNumber().value = this.tmp.vectorU8.values(r)!;
+                v.nullFlag = this.tmp.vectorU8.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI16:
-                c.variant(this._tmp.vectorI16);
-                v.asNumber().value = this._tmp.vectorI16.values(r)!;
-                v.nullFlag = this._tmp.vectorI16.nullMask(r)!;
+                c.variant(this.tmp.vectorI16);
+                v.asNumber().value = this.tmp.vectorI16.values(r)!;
+                v.nullFlag = this.tmp.vectorI16.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU16:
-                c.variant(this._tmp.vectorU16);
-                v.asNumber().value = this._tmp.vectorU16.values(r)!;
-                v.nullFlag = this._tmp.vectorU16.nullMask(r)!;
+                c.variant(this.tmp.vectorU16);
+                v.asNumber().value = this.tmp.vectorU16.values(r)!;
+                v.nullFlag = this.tmp.vectorU16.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI32:
-                c.variant(this._tmp.vectorI32);
-                v.asNumber().value = this._tmp.vectorI32.values(r)!;
-                v.nullFlag = this._tmp.vectorI32.nullMask(r)!;
+                c.variant(this.tmp.vectorI32);
+                v.asNumber().value = this.tmp.vectorI32.values(r)!;
+                v.nullFlag = this.tmp.vectorI32.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU32:
-                c.variant(this._tmp.vectorU32);
-                v.asNumber().value = this._tmp.vectorU32.values(r)!;
-                v.nullFlag = this._tmp.vectorU32.nullMask(r)!;
+                c.variant(this.tmp.vectorU32);
+                v.asNumber().value = this.tmp.vectorU32.values(r)!;
+                v.nullFlag = this.tmp.vectorU32.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI64:
-                c.variant(this._tmp.vectorI64);
-                v.asLong().value = this._tmp.vectorI64.values(r)!;
-                v.nullFlag = this._tmp.vectorI64.nullMask(r)!;
+                c.variant(this.tmp.vectorI64);
+                v.asLong().value = this.tmp.vectorI64.values(r)!;
+                v.nullFlag = this.tmp.vectorI64.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorU64:
-                c.variant(this._tmp.vectorU64);
-                v.asLong().value = this._tmp.vectorU64.values(r)!;
-                v.nullFlag = this._tmp.vectorU64.nullMask(r)!;
+                c.variant(this.tmp.vectorU64);
+                v.asLong().value = this.tmp.vectorU64.values(r)!;
+                v.nullFlag = this.tmp.vectorU64.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorI128:
-                c.variant(this._tmp.vectorI128);
-                this._tmp.vectorI128.values(r, v.asI128().value)!;
-                v.nullFlag = this._tmp.vectorI128.nullMask(r)!;
+                c.variant(this.tmp.vectorI128);
+                this.tmp.vectorI128.values(r, v.asI128().value)!;
+                v.nullFlag = this.tmp.vectorI128.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorF32:
-                c.variant(this._tmp.vectorF32);
-                v.asNumber().value = this._tmp.vectorF32.values(r)!;
-                v.nullFlag = this._tmp.vectorF32.nullMask(r)!;
+                c.variant(this.tmp.vectorF32);
+                v.asNumber().value = this.tmp.vectorF32.values(r)!;
+                v.nullFlag = this.tmp.vectorF32.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorF64:
-                c.variant(this._tmp.vectorF64);
-                v.asNumber().value = this._tmp.vectorF64.values(r)!;
-                v.nullFlag = this._tmp.vectorF64.nullMask(r)!;
+                c.variant(this.tmp.vectorF64);
+                v.asNumber().value = this.tmp.vectorF64.values(r)!;
+                v.nullFlag = this.tmp.vectorF64.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorInterval:
-                c.variant(this._tmp.vectorInterval);
-                this._tmp.vectorInterval.values(r, v.asInterval().value)!;
-                v.nullFlag = this._tmp.vectorInterval.nullMask(r)!;
+                c.variant(this.tmp.vectorInterval);
+                this.tmp.vectorInterval.values(r, v.asInterval().value)!;
+                v.nullFlag = this.tmp.vectorInterval.nullMask(r)!;
                 break;
             case proto.vector.VectorVariant.VectorString:
-                c.variant(this._tmp.vectorString);
-                v.asString().value = this._tmp.vectorString.values(r)!;
-                v.nullFlag = this._tmp.vectorString.nullMask(r)!;
+                c.variant(this.tmp.vectorString);
+                v.asString().value = this.tmp.vectorString.values(r)!;
+                v.nullFlag = this.tmp.vectorString.nullMask(r)!;
                 break;
         }
         return v;
