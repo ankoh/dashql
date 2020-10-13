@@ -25,7 +25,7 @@ describe('DuckDBBindings', () => {
             } catch (e) {
                 error = e
             }
-            expect(error).toEqual(new Error(''));
+            expect(error).toEqual(new Error('Parser: syntax error at or near "INVALID" [1]'));
         });
     });
 });

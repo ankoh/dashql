@@ -5,6 +5,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <cstring>
 #include <unordered_map>
 
 #include "duckdb.hpp"
@@ -28,10 +29,8 @@ class WebAPI {
     struct Response {
         /// The status code
         uint64_t statusCode;
-        /// The error string (if any)
-        uint64_t error;
         /// The data ptr (if any)
-        uint64_t data;
+        uint64_t dataPtr;
         /// The data size
         uint64_t dataSize;
     } __attribute((packed));
@@ -77,10 +76,6 @@ class WebAPI {
 
         /// Clear the request
         void clearRequest();
-        /// Write succeeded
-        void requestSucceeded(flatbuffers::DetachedBuffer&& buffer);
-        /// Write failed
-        void requestFailed(Error&& error);
 
        public:
         /// Constructor
@@ -88,14 +83,22 @@ class WebAPI {
 
         /// Store the result
         template <typename T> void Respond(ExpectedBuffer<T>&& result, Response& response) {
-            if (result)
-                requestSucceeded(result.ReleaseBuffer());
-            else
-                requestFailed(result.ReleaseError());
+            clearRequest();
+            if (result) {
+                request_status_ = proto::StatusCode::SUCCESS;
+                request_data_ = RegisterBuffer(result.ReleaseBuffer());
+                auto [d, n] = request_data_;
+                response.dataPtr = reinterpret_cast<uintptr_t>(d);
+                response.dataSize = n;
+            } else {
+                request_status_ = proto::StatusCode::ERROR;
+                request_error_ = result.ReleaseError();
+                auto m = request_error_->message();
+                m = m == nullptr ? "" : m;
+                response.dataPtr = reinterpret_cast<uintptr_t>(m);
+                response.dataSize = strlen(m);
+            }
             response.statusCode = static_cast<uint32_t>(request_status_);
-            response.error = !!request_error_ ? 0 : reinterpret_cast<uintptr_t>(request_error_->message());
-            response.data = reinterpret_cast<uintptr_t>(std::get<0>(request_data_));
-            response.dataSize = std::get<1>(request_data_);
         }
         /// Register a detached flatbuffer buffer
         std::pair<void*, size_t> RegisterBuffer(flatbuffers::DetachedBuffer buffer);

@@ -5,12 +5,15 @@
     "main": "dist/duckdb.js",
     "types": "dist/index.d.ts",
     "dependencies": {
-        "flatbuffers": "^1.12.0"
+        "fastestsmallesttextencoderdecoder": "^1.0.22",
+        "flatbuffers": "^1.12.0",
+        "text-encoding": "^0.7.0"
     },
     "devDependencies": {
         "@types/emscripten": "^1.39.4",
         "@types/flatbuffers": "^1.10.0",
         "@types/jest": "^26.0.14",
+        "@types/text-encoding": "0.0.35",
         "benny": "^3.6.14",
         "file-loader": "^6.1.0",
         "jest": "^26.4.2",

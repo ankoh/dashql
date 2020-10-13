@@ -29,20 +29,6 @@ void WebAPI::ContextData::clearRequest() {
     request_data_ = {nullptr, 0};
 }
 
-/// Request succeeded
-void WebAPI::ContextData::requestSucceeded(fb::DetachedBuffer&& buffer) {
-    clearRequest();
-    request_status_ = proto::StatusCode::SUCCESS;
-    request_data_ = RegisterBuffer(std::move(buffer));
-}
-
-/// Request failed
-void WebAPI::ContextData::requestFailed(Error&& err) {
-    clearRequest();
-    request_status_ = proto::StatusCode::ERROR;
-    request_error_ = move(err);
-}
-
 /// Constructor
 WebAPI::ContextData::ContextData()
     : detached_buffers_(), adopted_buffers_(), request_status_(), request_data_({nullptr, 0}), request_error_() {}
