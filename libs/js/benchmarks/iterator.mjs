@@ -18,7 +18,7 @@ function formatBytes(bytes, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-suite("Chunks | Single Column",
+suite(`Chunks | 1 column | 10m rows`,
     add('TINYINT', async () => {
         tupleSize = 1;
         let conn = await db.connect();
