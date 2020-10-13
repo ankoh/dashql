@@ -18,7 +18,7 @@ function formatBytes(bytes, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-suite("Chunk Iterator | Single Column",
+suite("Chunks | Single Column",
     add('INTEGER', async () => {
         tupleSize = 4;
         let conn = await db.connect();
@@ -37,7 +37,7 @@ suite("Chunk Iterator | Single Column",
     }),
 
     cycle((result, summary) => {
-        console.log(`${kleur.cyan(result.name)} ops: ${result.ops} runs/s tp: ${formatBytes(result.ops * tupleCount * tupleSize)}/s`,
+        console.log(`${kleur.cyan(result.name)} f: ${result.ops} runs/s tp: ${formatBytes(result.ops * tupleCount * tupleSize)}/s`,
         )
     }),
 )
