@@ -20,7 +20,7 @@ function formatBytes(bytes, decimals = 2) {
 
 suite("Chunk Iterator | Single Column",
     add('INTEGER', async () => {
-        tupleSize = 2;
+        tupleSize = 4;
         let conn = await db.connect();
         let result = await db.sendQuery(conn, `
             SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
