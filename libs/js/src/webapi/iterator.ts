@@ -65,7 +65,7 @@ export abstract class QueryResultChunkIterator {
         if (c == null) {
             return;
         }
-        let v: NumberVector | null;
+        let v : NumberVector | null;
         switch (c.variantType()) {
             case proto.vector.VectorVariant.VectorI8:
                 v = c.variant(this.tmp.vectorI8)!;

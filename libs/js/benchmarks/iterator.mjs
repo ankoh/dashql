@@ -108,8 +108,6 @@ suite(`Chunks | 1 column | 10m rows`,
         let bytes = tupleCount * tupleSize;
         let duration = result.details.median;
         let throughput = bytes / duration;
-        console.log(`${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s tp: ${formatBytes(throughput)}/s`,
-        )
+        console.log(`${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s tp: ${formatBytes(throughput)}/s`)
     }),
 )
-
