@@ -26,7 +26,7 @@ describe('tuple iterator', () => {
             let value = new duckdb.webapi.Value();
             for (let i = 0; i <= 10000; ++i) {
                 expect(iter.isEnd()).toBe(false);
-                expect(iter.getValue(0, value).i8).toBe(i % 128);
+                expect(iter.getValue(0, value).i8).toBe(i & 127);
                 await iter.next();
             }
             expect(iter.isEnd()).toBe(true);
@@ -42,7 +42,7 @@ describe('tuple iterator', () => {
             let value = new duckdb.webapi.Value();
             for (let i = 0; i <= 10000; ++i) {
                 expect(iter.isEnd()).toBe(false);
-                expect(iter.getValue(0, value).i16).toBe(i);
+                expect(iter.getValue(0, value).i16).toBe(i & 32767);
                 await iter.next();
             }
             expect(iter.isEnd()).toBe(true);
@@ -94,7 +94,7 @@ describe('chunk iterator', () => {
             let i = 0;
             while (await chunks.next()) {
                 chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
-                    expect(v).toBe(i++ % 128);
+                    expect(v).toBe(i++ & 127);
                 });
             }
             expect(i).toBe(10001);
@@ -109,7 +109,7 @@ describe('chunk iterator', () => {
             let i = 0;
             while (await chunks.next()) {
                 chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
-                    expect(v).toBe(i++);
+                    expect(v).toBe(i++ & 32767);
                 });
             }
             expect(i).toBe(10001);
