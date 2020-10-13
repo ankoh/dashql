@@ -3,7 +3,6 @@
 #include "duckdb_webapi/webapi.h"
 
 #include <cstdio>
-#include <iostream>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -80,51 +79,63 @@ WebAPI::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
 
 /// Run a SQL query
 ExpectedBuffer<proto::QueryResult> WebAPI::Connection::RunQuery(std::string_view text) {
-    // Send the query
-    auto result = connection_.SendQuery(std::string{text});
-    if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
-    current_query_result_ = move(result);
+    try {
+        // Send the query
+        auto result = connection_.SendQuery(std::string{text});
+        if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
+        current_query_result_ = move(result);
 
-    // Write the result buffer
-    fb::FlatBufferBuilder builder{1024};
-    auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, ++current_query_id_, false);
-    builder.Finish(query_result_ofs);
-    return {builder.Release()};
+        // Write the result buffer
+        fb::FlatBufferBuilder builder{1024};
+        auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, ++current_query_id_, false);
+        builder.Finish(query_result_ofs);
+        return {builder.Release()};
+    } catch (std::exception& e) {
+        return {ErrorCode::QUERY_FAILED, e.what()};
+    }
 }
 
 /// Start a SQL query
 ExpectedBuffer<proto::QueryResult> WebAPI::Connection::SendQuery(std::string_view text) {
-    // Send the query
-    auto result = connection_.SendQuery(std::string{text});
-    if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
-    current_query_result_ = move(result);
+    try {
+        // Send the query
+        auto result = connection_.SendQuery(std::string{text});
+        if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
+        current_query_result_ = move(result);
 
-    // Write the result buffer
-    fb::FlatBufferBuilder builder{1024};
-    auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, ++current_query_id_, true);
-    builder.Finish(query_result_ofs);
-    return {builder.Release()};
+        // Write the result buffer
+        fb::FlatBufferBuilder builder{1024};
+        auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, ++current_query_id_, true);
+        builder.Finish(query_result_ofs);
+        return {builder.Release()};
+    } catch (std::exception& e) {
+        return {ErrorCode::QUERY_FAILED, e.what()};
+    }
 }
 
 /// Fetch query results
 ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::FetchQueryResults() {
-    // Fetch data if a query is active
-    std::unique_ptr<duckdb::DataChunk> chunk;
-    nonstd::span<duckdb::LogicalType> types;
-    if (current_query_result_ != nullptr) {
-        chunk = current_query_result_->Fetch();
-        types = current_query_result_->types;
+    try {
+        // Fetch data if a query is active
+        std::unique_ptr<duckdb::DataChunk> chunk;
+        nonstd::span<duckdb::LogicalType> types;
+        if (current_query_result_ != nullptr) {
+            chunk = current_query_result_->Fetch();
+            types = current_query_result_->types;
+        }
+        if (!current_query_result_->success) return {ErrorCode::QUERY_FAILED, move(current_query_result_->error)};
+
+        // Get query result
+        fb::FlatBufferBuilder builder{128};
+        auto ofs = WriteQueryResultChunk(builder, current_query_id_, chunk.get(), types);
+        builder.Finish(ofs);
+
+        // Last chunk?
+        if (chunk && chunk->size() == 0) current_query_result_.reset();
+        return {builder.Release()};
+    } catch (std::exception& e) {
+        return {ErrorCode::QUERY_FAILED, e.what()};
     }
-    if (!current_query_result_->success) return {ErrorCode::QUERY_FAILED, move(current_query_result_->error)};
-
-    // Get query result
-    fb::FlatBufferBuilder builder{128};
-    auto ofs = WriteQueryResultChunk(builder, current_query_id_, chunk.get(), types);
-    builder.Finish(ofs);
-
-    // Last chunk?
-    if (chunk && chunk->size() == 0) current_query_result_.reset();
-    return {builder.Release()};
 }
 
 /// Analyze a SQL query

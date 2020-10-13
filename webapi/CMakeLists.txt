@@ -15,8 +15,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -std=c++17)
+
 if (WITH_ASAN)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
+endif ()
+
+if (EMSCRIPTEN)
+    add_compile_options(-s DISABLE_EXCEPTION_CATCHING=0 -fexceptions)
 endif ()
 
 # ---------------------------------------------------------------------------
@@ -127,6 +132,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/tester.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/iterator_test.cc
+        ${CMAKE_SOURCE_DIR}/test/webapi_test.cc
     )
     target_link_libraries(tester 
         duckdb_webapi_core

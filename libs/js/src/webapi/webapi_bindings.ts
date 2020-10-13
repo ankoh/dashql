@@ -19,11 +19,13 @@ export abstract class DuckDBBindings {
     /// Open the database
     public async open() {
         // Already opened?
-        if (this.instance != null)
+        if (this.instance != null) {
             return;
+        }
         // Open in progress?
-        if (this.openPromise != null)
+        if (this.openPromise != null) {
             await this.openPromise;
+        }
 
         // Create a promise that we can await
         this.openPromise = new Promise(resolve => {
@@ -39,6 +41,7 @@ export abstract class DuckDBBindings {
 
         // Wait for onRuntimeInitialized
         await this.openPromise;
+        this.openPromise = null;
     }
 
     /// Get the instance
@@ -111,8 +114,7 @@ export abstract class DuckDBBindings {
         let instance = await this.getInstance();
         let [s, err, d, n] = await this.callSRet('duckdb_webapi_run_query', ['number', 'string'], [conn, text]);
         if (s !== proto.api.StatusCode.SUCCESS) {
-            console.log(err);
-            return Promise.reject(new Error(''));
+            throw new Error('');
         }
         let mem = instance.HEAPU8.subarray(d, d + n);
         let msg = new QueryResultBuffer(mem);
@@ -125,8 +127,7 @@ export abstract class DuckDBBindings {
         let instance = await this.getInstance();
         let [s, err, d, n] = await this.callSRet('duckdb_webapi_send_query', ['number', 'string'], [conn, text]);
         if (s !== proto.api.StatusCode.SUCCESS) {
-            console.log(err);
-            return Promise.reject(new Error(''));
+            throw new Error('');
         }
         let mem = instance.HEAPU8.subarray(d, d + n);
         let msg = new QueryResultBuffer(mem);
@@ -139,8 +140,7 @@ export abstract class DuckDBBindings {
         let instance = await this.getInstance();
         let [s, err, d, n] = await this.callSRet('duckdb_webapi_fetch_query_results', ['number'], [conn]);
         if (s !== proto.api.StatusCode.SUCCESS) {
-            console.log(err);
-            return Promise.reject(new Error(''));
+            throw new Error('');
         }
         let mem = instance.HEAPU8.subarray(d, d + n);
         let msg = new QueryResultChunkBuffer(mem);
@@ -153,8 +153,7 @@ export abstract class DuckDBBindings {
         let instance = await this.getInstance();
         let [s, err, d, n] = await this.callSRet('duckdb_webapi_analyze_query', ['number'], [conn]);
         if (s !== proto.api.StatusCode.SUCCESS) {
-            console.log(err);
-            return Promise.reject(new Error(''));
+            throw new Error('');
         }
         let mem = instance.HEAPU8.subarray(d, d + n);
         let msg = new QueryPlanBuffer(mem);

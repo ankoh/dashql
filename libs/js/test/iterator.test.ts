@@ -1,12 +1,15 @@
-import { DuckDB } from '../dist/duckdb_node.js';
 import * as duckdb from '../dist/duckdb_node.js';
 
-var db: DuckDB;
+var db: duckdb.DuckDB;
 var conn: number;
+const testRows = 3000;
+
+beforeAll(async () => {
+    db = new duckdb.DuckDB();
+    await db.open();
+});
 
 beforeEach(async () => {
-    db = new DuckDB();
-    await db.open();
     conn = await db.connect();
 });
 
@@ -14,9 +17,7 @@ afterEach(async () => {
     await db.disconnect(conn);
 });
 
-const testRows = 3000;
-
-describe('tuple iterator', () => {
+describe('QueryResultRowIterator', () => {
     describe('single column', () => {
         test('TINYINT', async () => {
             let result = await db.sendQuery(conn, `
@@ -85,7 +86,7 @@ describe('tuple iterator', () => {
     });
 });
 
-describe('chunk iterator', () => {
+describe('QueryResultChunkStream', () => {
     describe('single column', () => {
         test('TINYINT', async () => {
             let result = await db.sendQuery(conn, `
