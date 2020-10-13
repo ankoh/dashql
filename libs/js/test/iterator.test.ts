@@ -14,7 +14,6 @@ afterEach(async () => {
     await db.disconnect(conn);
 });
 
-
 describe('tuple iterator', () => {
     describe('single column', () => {
         test('TINYINT', async () => {
@@ -23,7 +22,7 @@ describe('tuple iterator', () => {
             `);
             expect(result.root.columnTypesLength()).toBe(1);
             let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
-            let iter = await duckdb.webapi.QueryResultIterator.iterate(chunks);
+            let iter = await duckdb.webapi.QueryResultRowIterator.iterate(chunks);
             let value = new duckdb.webapi.Value();
             for (let i = 0; i <= 10000; ++i) {
                 expect(iter.isEnd()).toBe(false);
@@ -39,7 +38,7 @@ describe('tuple iterator', () => {
             `);
             expect(result.root.columnTypesLength()).toBe(1);
             let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
-            let iter = await duckdb.webapi.QueryResultIterator.iterate(chunks);
+            let iter = await duckdb.webapi.QueryResultRowIterator.iterate(chunks);
             let value = new duckdb.webapi.Value();
             for (let i = 0; i <= 10000; ++i) {
                 expect(iter.isEnd()).toBe(false);
@@ -56,7 +55,7 @@ describe('tuple iterator', () => {
             expect(result.root.columnTypesLength()).toBe(1);
 
             let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
-            let iter = await duckdb.webapi.QueryResultIterator.iterate(chunks);
+            let iter = await duckdb.webapi.QueryResultRowIterator.iterate(chunks);
             let value = new duckdb.webapi.Value();
             for (let i = 0; i <= 10000; ++i) {
                 expect(iter.isEnd()).toBe(false);
@@ -72,7 +71,7 @@ describe('tuple iterator', () => {
             `);
             expect(result.root.columnTypesLength()).toBe(1);
             let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
-            let iter = await duckdb.webapi.QueryResultIterator.iterate(chunks);
+            let iter = await duckdb.webapi.QueryResultRowIterator.iterate(chunks);
             let value = new duckdb.webapi.Value();
             for (let i = 0; i <= 10000; ++i) {
                 expect(iter.isEnd()).toBe(false);

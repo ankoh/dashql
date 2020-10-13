@@ -164,8 +164,8 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
     }
 }
 
-/// A query result iterator
-export class QueryResultIterator {
+/// A query result row iterator
+export class QueryResultRowIterator {
     /// The query result
     _chunkIter: QueryResultChunkIterator;
     /// The global row index
@@ -181,8 +181,8 @@ export class QueryResultIterator {
     }
 
     /// Iterate over a result buffer
-    public static async iterate(resultChunks: QueryResultChunkIterator): Promise<QueryResultIterator> {
-        let iter = new QueryResultIterator(resultChunks);
+    public static async iterate(resultChunks: QueryResultChunkIterator): Promise<QueryResultRowIterator> {
+        let iter = new QueryResultRowIterator(resultChunks);
         await resultChunks.next();
         iter._currentChunkBegin = 0;
         return iter;
