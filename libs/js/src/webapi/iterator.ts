@@ -6,6 +6,7 @@ import { Value } from './value';
 import * as proto from '../proto';
 
 type NumberVector = proto.vector.VectorI8 | proto.vector.VectorI16 | proto.vector.VectorI32 | proto.vector.VectorU8 | proto.vector.VectorU16 | proto.vector.VectorU32 | proto.vector.VectorF32 | proto.vector.VectorF64;
+type NumberArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
 
 /// An abstract chunk iterator
 export abstract class QueryResultChunkIterator {
@@ -61,11 +62,10 @@ export abstract class QueryResultChunkIterator {
             throw Error("column index out of bounds");
         }
         let c = this.currentChunk.columns(cid, this.tmp.vector);
-        let t = this.columnTypes[cid];
         if (c == null) {
             return;
         }
-        let v: NumberVector;
+        let v: NumberVector | null;
         switch (c.variantType()) {
             case proto.vector.VectorVariant.VectorI8:
                 v = c.variant(this.tmp.vectorI8)!;
@@ -100,8 +100,18 @@ export abstract class QueryResultChunkIterator {
             default:
                 return;
         }
-        for (let i = 0; i < v.valuesLength(); ++i) {
-            fn(i, v.nullMask(i) ? null : v.values(i));
+        let a: NumberArray | null = v.valuesArray();
+        let n: Int8Array | null = v.nullMaskArray();
+        if (a == null)
+            return;
+        if (n != null) {
+            for (let i = 0; i < a.length; ++i) {
+                fn(i, n[i] ? null : a[i]);
+            }
+        } else {
+            for (let i = 0; i < a.length; ++i) {
+                fn(i, a[i]);
+            }
         }
     }
 }
