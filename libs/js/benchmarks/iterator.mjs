@@ -88,7 +88,7 @@ suite("Chunks | Single Column",
     }),
 
     add('DOUBLE', async () => {
-        tupleSize = 4;
+        tupleSize = 8;
         let conn = await db.connect();
         let result = await db.sendQuery(conn, `
             SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
