@@ -528,7 +528,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_query_select() -> Result<(), Box<dyn std::error::Error>> {
+    fn parse_query_statement_select() -> Result<(), Box<dyn std::error::Error>> {
         let input = "QUERY foo AS SELECT 1;";
 
         let lexerdef = lexer::lexerdef();
@@ -558,7 +558,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_query_common_table_expression() -> Result<(), Box<dyn std::error::Error>> {
+    fn parse_query_statement_common_table_expression() -> Result<(), Box<dyn std::error::Error>> {
         let input = indoc! {"
             QUERY foo AS WITH foo AS (
                 SELECT 1
@@ -595,6 +595,46 @@ mod tests {
 
             SELECT * FROM foo"
         });
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_visualize_statement() -> Result<(), Box<dyn std::error::Error>> {
+        let input = "VISUALIZE foo FROM bar USING BAR;";
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+        let (result, _) = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 1);
+
+        let visualize_statement = match &result[0] {
+            syntax::Statement::VisualizeStatement(statement) => Ok(statement),
+            _ => Err("Unexpected statement"),
+        }?;
+
+        assert_eq!(visualize_statement.location, ((1, 1), (1, 34)).into());
+        assert_eq!(
+            visualize_statement.identifier.location,
+            ((1, 11), (1, 14)).into()
+        );
+        assert_eq!(visualize_statement.identifier.string, "foo");
+        assert_eq!(
+            visualize_statement.source.location,
+            ((1, 20), (1, 23)).into()
+        );
+        assert_eq!(visualize_statement.source.string, "bar");
+
+        let visualization_type_location = match visualize_statement.r#type {
+            syntax::VisualizationType::Bar(location) => Ok(location),
+            _ => Err("Unexpected visualization type")
+        }?;
+
+        assert_eq!(visualization_type_location, ((1, 30), (1, 33)).into());
 
         Ok(())
     }

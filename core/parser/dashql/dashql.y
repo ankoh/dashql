@@ -30,7 +30,11 @@ Identifier -> Produce<'input, String<'input>>:
   ;
 
 Keyword -> Produce<'input, String<'input>>:
-    "AS"        { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+    "AREA"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "AS"        { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "BAR"       { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "BOX"       { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "BUBBLE"    { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "CSV"       { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "DATE"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "DATETIME"  { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
@@ -44,16 +48,24 @@ Keyword -> Produce<'input, String<'input>>:
   | "FORMAT"    { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "FROM"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "GET"       { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "GRID"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "HEADER"    { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "HISTOGRAM" { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "HTTP"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "INTEGER"   { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "LINE"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "LOAD"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "METHOD"    { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "NUMBER"    { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "PARAMETER" { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "PIE"       { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "POINT"     { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "POST"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "PUT"       { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "QUERY"     { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "QUOTE"     { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "SCATTER"   { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
+  | "TABLE"     { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "TEXT"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "TIME"      { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
   | "TIMESTAMP" { let location = ($lexer, $1?).into(); Ok((String { location, string: $lexer.span_str($1?.span()) }, location)) }
@@ -173,7 +185,23 @@ SqlLiteral -> Produce<'input, String<'input>>:
   ;
 
 VisualizeStatement -> Produce<'input, VisualizeStatement<'input>>:
-    "VISUALIZE" ";" { let location = ($lexer, $1?, $2?).into(); Ok((VisualizeStatement { location }, location)) }
+    "VISUALIZE" Identifier "FROM" Identifier "USING" VisualizationType ";"  { let location = ($lexer, $1?, $7?).into(); Ok((VisualizeStatement { location, identifier: $2?.0, source: $4?.0, r#type: $6?.0 }, location)) }
+  ;
+
+VisualizationType -> Produce<'input, VisualizationType<'input>>:
+    "AREA"      { let location = ($lexer, $1?).into(); Ok((VisualizationType::Area(location), location)) }
+  | "BAR"       { let location = ($lexer, $1?).into(); Ok((VisualizationType::Bar(location), location)) }
+  | "BOX"       { let location = ($lexer, $1?).into(); Ok((VisualizationType::Box(location), location)) }
+  | "BUBBLE"    { let location = ($lexer, $1?).into(); Ok((VisualizationType::Bubble(location), location)) }
+  | "GRID"      { let location = ($lexer, $1?).into(); Ok((VisualizationType::Grid(location), location)) }
+  | "HISTOGRAM" { let location = ($lexer, $1?).into(); Ok((VisualizationType::Histogram(location), location)) }
+  | "LINE"      { let location = ($lexer, $1?).into(); Ok((VisualizationType::Line(location), location)) }
+  | "NUMBER"    { let location = ($lexer, $1?).into(); Ok((VisualizationType::Number(location), location)) }
+  | "PIE"       { let location = ($lexer, $1?).into(); Ok((VisualizationType::Pie(location), location)) }
+  | "POINT"     { let location = ($lexer, $1?).into(); Ok((VisualizationType::Point(location), location)) }
+  | "SCATTER"   { let location = ($lexer, $1?).into(); Ok((VisualizationType::Scatter(location), location)) }
+  | "TABLE"     { let location = ($lexer, $1?).into(); Ok((VisualizationType::Table(location), location)) }
+  | "TEXT"      { let location = ($lexer, $1?).into(); Ok((VisualizationType::Text(location), location)) }
   ;
 
 %%

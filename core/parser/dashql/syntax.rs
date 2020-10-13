@@ -258,4 +258,24 @@ pub struct QueryStatement<'input> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct VisualizeStatement<'input> {
     pub location: Location<'input>,
+    pub identifier: String<'input>,
+    pub source: String<'input>,
+    pub r#type: VisualizationType<'input>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum VisualizationType<'input> {
+    Area(Location<'input>),
+    Bar(Location<'input>),
+    Box(Location<'input>),
+    Bubble(Location<'input>),
+    Grid(Location<'input>),
+    Histogram(Location<'input>),
+    Line(Location<'input>),
+    Number(Location<'input>),
+    Pie(Location<'input>),
+    Point(Location<'input>),
+    Scatter(Location<'input>),
+    Table(Location<'input>),
+    Text(Location<'input>),
 }
