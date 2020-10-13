@@ -58,71 +58,71 @@ Rule::new(Some(5), Some("IDENTIFIER".to_string()), "(?i)[a-z][a-z0-9_]*".to_stri
     LRNonStreamingLexerDef::from_rules(rules)
 }
 #[allow(dead_code)]
-pub const T_EXTRACT: u32 = 12;
-#[allow(dead_code)]
-pub const T_SINGLY_QUOTED_STRING: u32 = 4;
-#[allow(dead_code)]
-pub const T_DELIMITER: u32 = 10;
-#[allow(dead_code)]
-pub const T_VISUALIZE: u32 = 34;
-#[allow(dead_code)]
-pub const T_TIME: u32 = 29;
-#[allow(dead_code)]
-pub const T_USING: u32 = 33;
-#[allow(dead_code)]
-pub const T_HEADER: u32 = 19;
-#[allow(dead_code)]
-pub const T_AS: u32 = 6;
-#[allow(dead_code)]
-pub const T_FORMAT: u32 = 16;
-#[allow(dead_code)]
-pub const T_HTTP: u32 = 20;
-#[allow(dead_code)]
-pub const T_TYPE: u32 = 2;
-#[allow(dead_code)]
-pub const T_IDENTIFIER: u32 = 5;
-#[allow(dead_code)]
-pub const T_DATE: u32 = 8;
-#[allow(dead_code)]
-pub const T_FROM: u32 = 17;
-#[allow(dead_code)]
 pub const T_ENCODING: u32 = 11;
 #[allow(dead_code)]
-pub const T_METHOD: u32 = 23;
-#[allow(dead_code)]
-pub const T_PARAMETER: u32 = 1;
-#[allow(dead_code)]
-pub const T_POST: u32 = 24;
+pub const T_EXTRACT: u32 = 12;
 #[allow(dead_code)]
 pub const T_GET: u32 = 18;
 #[allow(dead_code)]
-pub const T_INTEGER: u32 = 21;
-#[allow(dead_code)]
-pub const T_DECLARE: u32 = 0;
-#[allow(dead_code)]
-pub const T_URL: u32 = 32;
-#[allow(dead_code)]
-pub const T_CSV: u32 = 7;
-#[allow(dead_code)]
 pub const T_LOAD: u32 = 22;
-#[allow(dead_code)]
-pub const T_TRUE: u32 = 31;
-#[allow(dead_code)]
-pub const T_TIMESTAMP: u32 = 30;
-#[allow(dead_code)]
-pub const T_FLOAT: u32 = 15;
-#[allow(dead_code)]
-pub const T_QUERY: u32 = 26;
-#[allow(dead_code)]
-pub const T_TEXT: u32 = 28;
-#[allow(dead_code)]
-pub const T_PUT: u32 = 25;
-#[allow(dead_code)]
-pub const T_FALSE: u32 = 13;
-#[allow(dead_code)]
-pub const T_FILE: u32 = 14;
 #[allow(dead_code)]
 pub const T_DATETIME: u32 = 9;
 #[allow(dead_code)]
+pub const T_INTEGER: u32 = 21;
+#[allow(dead_code)]
+pub const T_PUT: u32 = 25;
+#[allow(dead_code)]
+pub const T_FORMAT: u32 = 16;
+#[allow(dead_code)]
+pub const T_TRUE: u32 = 31;
+#[allow(dead_code)]
+pub const T_HTTP: u32 = 20;
+#[allow(dead_code)]
+pub const T_TIME: u32 = 29;
+#[allow(dead_code)]
+pub const T_HEADER: u32 = 19;
+#[allow(dead_code)]
+pub const T_QUERY: u32 = 26;
+#[allow(dead_code)]
+pub const T_URL: u32 = 32;
+#[allow(dead_code)]
+pub const T_AS: u32 = 6;
+#[allow(dead_code)]
+pub const T_POST: u32 = 24;
+#[allow(dead_code)]
+pub const T_DATE: u32 = 8;
+#[allow(dead_code)]
 pub const T_QUOTE: u32 = 27;
+#[allow(dead_code)]
+pub const T_FALSE: u32 = 13;
+#[allow(dead_code)]
+pub const T_DECLARE: u32 = 0;
+#[allow(dead_code)]
+pub const T_FLOAT: u32 = 15;
+#[allow(dead_code)]
+pub const T_DELIMITER: u32 = 10;
+#[allow(dead_code)]
+pub const T_PARAMETER: u32 = 1;
+#[allow(dead_code)]
+pub const T_USING: u32 = 33;
+#[allow(dead_code)]
+pub const T_VISUALIZE: u32 = 34;
+#[allow(dead_code)]
+pub const T_FROM: u32 = 17;
+#[allow(dead_code)]
+pub const T_SINGLY_QUOTED_STRING: u32 = 4;
+#[allow(dead_code)]
+pub const T_TYPE: u32 = 2;
+#[allow(dead_code)]
+pub const T_TIMESTAMP: u32 = 30;
+#[allow(dead_code)]
+pub const T_IDENTIFIER: u32 = 5;
+#[allow(dead_code)]
+pub const T_FILE: u32 = 14;
+#[allow(dead_code)]
+pub const T_METHOD: u32 = 23;
+#[allow(dead_code)]
+pub const T_TEXT: u32 = 28;
+#[allow(dead_code)]
+pub const T_CSV: u32 = 7;
 }

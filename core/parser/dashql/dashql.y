@@ -139,8 +139,8 @@ CsvExtractorAttribute -> Produce<'input, CsvExtractorAttribute<'input>>:
   | "HEADER" "=" CsvHeaderValue                     { let value = $3?; let location = (($lexer, $1?).into(), value.1).into(); Ok((CsvExtractorAttribute::Header(location, value.0), location)) }
   | "DELIMITER" "=" "SINGLY_QUOTED_STRING"          { let value = $3?; let location = ($lexer, $1?, value).into(); Ok((CsvExtractorAttribute::Delimiter(location, String { location: ($lexer, value).into(), string: $lexer.span_str(value.span()) }), location)) }
   | "QUOTE" "=" "SINGLY_QUOTED_STRING"              { let value = $3?; let location = ($lexer, $1?, value).into(); Ok((CsvExtractorAttribute::Quote(location, String { location: ($lexer, value).into(), string: $lexer.span_str(value.span()) }), location)) }
-  | "DATE" "FORMAT" "=" "SINGLY_QUOTED_STRING"      { let value = $3?; let location = ($lexer, $1?, value).into(); Ok((CsvExtractorAttribute::DateFormat(location, String { location: ($lexer, value).into(), string: $lexer.span_str(value.span()) }), location)) }
-  | "TIMESTAMP" "FORMAT" "=" "SINGLY_QUOTED_STRING" { let value = $3?; let location = ($lexer, $1?, value).into(); Ok((CsvExtractorAttribute::TimestampFormat(location, String { location: ($lexer, value).into(), string: $lexer.span_str(value.span()) }), location)) }
+  | "DATE" "FORMAT" "=" "SINGLY_QUOTED_STRING"      { let value = $4?; let location = ($lexer, $1?, value).into(); Ok((CsvExtractorAttribute::DateFormat(location, String { location: ($lexer, value).into(), string: $lexer.span_str(value.span()) }), location)) }
+  | "TIMESTAMP" "FORMAT" "=" "SINGLY_QUOTED_STRING" { let value = $4?; let location = ($lexer, $1?, value).into(); Ok((CsvExtractorAttribute::TimestampFormat(location, String { location: ($lexer, value).into(), string: $lexer.span_str(value.span()) }), location)) }
   ;
 
 CsvHeaderValue -> Produce<'input, CsvHeaderValue<'input>>:
@@ -160,7 +160,7 @@ Strings -> Produce<'input, Strings<'input>>:
 StringList -> Produce<'input, Vec<String<'input>>>:
                                             { Ok((vec![], Location::invalid())) }
   | "SINGLY_QUOTED_STRING"                  { let string = $1?; let location = ($lexer, string).into(); Ok((vec![String { location, string: $lexer.span_str(string.span()) }], location)) }
-  | StringList "," "SINGLY_QUOTED_STRING"   { let strings = $1?; let string = $3?; let location = (strings.1, ($lexer, string).into()).into(); let mut vec = strings.0; vec.push(String { location, string: $lexer.span_str(string.span()) }); Ok((vec, location)) }
+  | StringList "," "SINGLY_QUOTED_STRING"   { let strings = $1?; let string = $3?; let location = (strings.1, ($lexer, string).into()).into(); let mut vec = strings.0; vec.push(String { location: ($lexer, string).into(), string: $lexer.span_str(string.span()) }); Ok((vec, location)) }
   ;
 
 QueryStatement -> Produce<'input, QueryStatement<'input>>:
