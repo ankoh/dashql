@@ -6,7 +6,7 @@ let db = new duckdb.DuckDB();
 await db.open();
 const noop = () => {};
 
-let tupleCount = 1000000;
+let tupleCount = 10000000;
 let tupleSize = 0;
 
 function formatBytes(bytes, decimals = 2) {
@@ -70,8 +70,45 @@ suite("Chunks | Single Column",
         db.disconnect(conn);
     }),
 
+    add('FLOAT', async () => {
+        tupleSize = 4;
+        let conn = await db.connect();
+        let result = await db.sendQuery(conn, `
+            SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
+        `);
+        let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
+        while (true) {
+            if (!await chunks.next())
+                break;
+            chunks.iterateNumberColumn(0, (row, v) => {
+                noop();
+            });
+        }
+        db.disconnect(conn);
+    }),
+
+    add('DOUBLE', async () => {
+        tupleSize = 4;
+        let conn = await db.connect();
+        let result = await db.sendQuery(conn, `
+            SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
+        `);
+        let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
+        while (true) {
+            if (!await chunks.next())
+                break;
+            chunks.iterateNumberColumn(0, (row, v) => {
+                noop();
+            });
+        }
+        db.disconnect(conn);
+    }),
+
     cycle((result, summary) => {
-        console.log(`${kleur.cyan(result.name)} f: ${result.ops} runs/s tp: ${formatBytes(result.ops * tupleCount * tupleSize)}/s`,
+        let bytes = tupleCount * tupleSize;
+        let duration = result.details.median;
+        let throughput = bytes / duration;
+        console.log(`${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s tp: ${formatBytes(throughput)}/s`,
         )
     }),
 )
