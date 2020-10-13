@@ -15,6 +15,8 @@ export abstract class QueryResultChunkIterator {
     _resultBuffer: QueryResultBuffer;
     /// The chunk id
     _currentChunkID: number;
+    /// The current chunk
+    _currentChunk: proto.query_result.QueryResultChunk;
 
     /// Constructor
     public constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer) {
@@ -22,29 +24,27 @@ export abstract class QueryResultChunkIterator {
         this._connection = connection;
         this._resultBuffer = resultBuffer;
         this._currentChunkID = -1;
+        this._currentChunk = new proto.query_result.QueryResultChunk();
     }
     /// Get the result
     public get result() { return this._resultBuffer.root; }
     /// Get the next query result chunk
-    public abstract next(): Promise<proto.query_result.QueryResultChunk>
+    public abstract next(): Promise<boolean>
 }
 
 /// A stream of query result chunks
 export class QueryResultChunkStream extends QueryResultChunkIterator {
-    /// The current chunk
-    _currentChunk: proto.query_result.QueryResultChunk;
     /// The current chunk buffer
     _currentChunkBuffer: QueryResultChunkBuffer | null;
 
     /// Constructor
     public constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer) {
         super(bindings, connection, resultBuffer);
-        this._currentChunk = new proto.query_result.QueryResultChunk();
         this._currentChunkBuffer = null;
     }
 
     /// Get the next chunk
-    public async next(): Promise<proto.query_result.QueryResultChunk> {
+    public async next(): Promise<boolean> {
         let result = this._resultBuffer.root;
         if (++this._currentChunkID < result.dataChunksLength()) {
             result.dataChunks(0, this._currentChunk);
@@ -53,7 +53,7 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
             this._currentChunk = chunkBuffer.root;
             this._currentChunkBuffer = chunkBuffer;
         }
-        return this._currentChunk;
+        return this._currentChunk.rowCount().low > 0;
     }
 }
 
@@ -83,9 +83,10 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
     /// Restart  the chunk iterator
     public rewind() { this._currentChunkID = -1; }
     /// Get the next chunk
-    public async next(): Promise<proto.query_result.QueryResultChunk> {
+    public async next(): Promise<boolean> {
         this._currentChunkID = Math.min(this._currentChunkID + 1, this._chunks.length - 1);
-        return this._chunks[this._currentChunkID];
+        this._currentChunk = this._chunks[this._currentChunkID];
+        return this._currentChunk.rowCount().low > 0;
     }
 }
 
@@ -124,8 +125,8 @@ export class QueryResultIterator {
     /// Iterate over a result buffer
     public static async iterate(resultChunks: QueryResultChunkIterator): Promise<QueryResultIterator> {
         let iter = new QueryResultIterator(resultChunks);
+        await resultChunks.next();
         iter._currentChunkBegin = 0;
-        iter._currentChunk = await resultChunks.next();
         return iter;
     }
 
@@ -155,8 +156,8 @@ export class QueryResultIterator {
             return true;
 
         // Get next chunk
+        await this._resultChunks.next();
         this._currentChunkBegin = this._globalRowIndex;
-        this._currentChunk = await this._resultChunks.next();
         let empty = this._currentChunk.rowCount().low == 0;
         return !empty;
     }
