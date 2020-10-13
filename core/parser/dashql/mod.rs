@@ -26,6 +26,46 @@ mod tests {
     use indoc::indoc;
 
     #[test]
+    fn parse_statements_empty() -> Result<(), Box<dyn std::error::Error>> {
+        let input = "";
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+        let (result, location) = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 0);
+        assert_eq!(location, ((1, 1), (1, 1)).into());
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_statements_multiple() -> Result<(), Box<dyn std::error::Error>> {
+        let input = indoc! {"
+            DECLARE PARAMETER foo TYPE INTEGER;
+
+            DECLARE PARAMETER foo TYPE INTEGER;
+
+            DECLARE PARAMETER foo TYPE INTEGER;
+        "};
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+        let (result, location) = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 3);
+        assert_eq!(location, ((1, 1), (5, 36)).into());
+
+        Ok(())
+    }
+
+    #[test]
     fn parse_parameter_declaration() -> Result<(), Box<dyn std::error::Error>> {
         let input = "DECLARE PARAMETER foo TYPE INTEGER;";
 
@@ -33,7 +73,6 @@ mod tests {
         let lexer = lexerdef.lexer(&input);
 
         let (result, errors) = parser::parse(&lexer);
-
         let (result, _) = result.ok_or("Unexpected missing result")??;
 
         assert_eq!(errors.len(), 0);
@@ -63,7 +102,6 @@ mod tests {
         let lexer = lexerdef.lexer(&input);
 
         let (result, errors) = parser::parse(&lexer);
-
         let (result, _) = result.ok_or("Unexpected missing result")??;
 
         assert_eq!(errors.len(), 0);
@@ -97,7 +135,6 @@ mod tests {
         let lexer = lexerdef.lexer(&input);
 
         let (result, errors) = parser::parse(&lexer);
-
         let (result, _) = result.ok_or("Unexpected missing result")??;
 
         assert_eq!(errors.len(), 0);
@@ -132,7 +169,6 @@ mod tests {
         let lexer = lexerdef.lexer(&input);
 
         let (result, errors) = parser::parse(&lexer);
-
         let (result, _) = result.ok_or("Unexpected missing result")??;
 
         assert_eq!(errors.len(), 0);
@@ -179,7 +215,6 @@ mod tests {
         let lexer = lexerdef.lexer(&input);
 
         let (result, errors) = parser::parse(&lexer);
-
         let (result, _) = result.ok_or("Unexpected missing result")??;
 
         assert_eq!(errors.len(), 0);

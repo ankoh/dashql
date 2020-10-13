@@ -3,7 +3,7 @@
 %%
 
 Statements -> Produce<'input, Vec<Statement<'input>>>:
-    Statement               { let statement = $1?; Ok((vec![statement.0], statement.1)) }
+                            { Ok((vec![], ((1, 1), (1, 1)).into())) }
   | Statements Statement    { let statements = $1?; let statement = $2?; let mut vec = statements.0; vec.push(statement.0); Ok((vec, (statements.1, statement.1).into())) }
   ;
 
