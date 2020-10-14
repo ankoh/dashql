@@ -4,10 +4,6 @@ import { DuckDBModule } from '../duckdb/duckdb_module';
 import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webapi_buffer';
 import * as proto from '../proto';
 
-function buf2hex(buffer: Uint8Array) { // buffer is an ArrayBuffer
-  return Array.prototype.map.call(buffer, x => ('00' + x.toString(16)).slice(-2)).join('');
-}
-
 /// The proxy for either the browser- order node-based DuckDB API
 export abstract class DuckDBBindings {
     /// The instance
