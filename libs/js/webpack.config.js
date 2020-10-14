@@ -43,7 +43,12 @@ const browserTarget = {
         ]
     },
     plugins: [
-        new CleanWebpackPlugin(),
+        new CleanWebpackPlugin({
+            root: "./dist",
+            cleanOnceBeforeBuildPatterns: ["*.wasm", "!.*"],
+            cleanOnceAfterBuildPatterns: [],
+            verbose: true,
+        }),
     ],
     externals: {
         flatbuffers: "flatbuffers",
@@ -56,7 +61,15 @@ const nodeTarget = {
     entry: {
         "duckdb_node": './src/duckdb_node.ts',
         "duckdb_node.worker": './src/duckdb_node.worker.ts'
-    }
+    },
+    plugins: [
+        new CleanWebpackPlugin({
+            root: "./dist",
+            cleanOnceBeforeBuildPatterns: ["*.wasm", "!.*"],
+            cleanOnceAfterBuildPatterns: [],
+            verbose: true,
+        }),
+    ],
 };
 nodeTarget.module.rules[0] = {
     ...nodeTarget.module.rules[0],
