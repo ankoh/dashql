@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DuckDBBindings } from './webapi_bindings';
+import { DuckDBConnection } from './webapi_bindings';
 import { QueryResultBuffer, QueryResultChunkBuffer } from './webapi_buffer';
 import { Value } from './value';
 import * as proto from '../proto';
@@ -10,10 +10,8 @@ type NumberArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Arra
 
 /// An abstract chunk iterator
 export abstract class QueryResultChunkIterator {
-    /// The bindings
-    _bindings: DuckDBBindings;
     /// The connection
-    _connection: number;
+    _connection: DuckDBConnection;
     /// The result buffer
     _resultBuffer: QueryResultBuffer;
     /// The chunk id
@@ -26,8 +24,7 @@ export abstract class QueryResultChunkIterator {
     _tmp: VectorVariants;
 
     /// Constructor
-    public constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer) {
-        this._bindings = bindings;
+    public constructor(connection: DuckDBConnection, resultBuffer: QueryResultBuffer) {
         this._connection = connection;
         this._resultBuffer = resultBuffer;
         this._currentChunkID = -1;
@@ -122,8 +119,8 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
     _currentChunkBuffer: QueryResultChunkBuffer | null;
 
     /// Constructor
-    public constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer) {
-        super(bindings, connection, resultBuffer);
+    public constructor(connection: DuckDBConnection, resultBuffer: QueryResultBuffer) {
+        super(connection, resultBuffer);
         this._currentChunkBuffer = null;
     }
 
@@ -133,7 +130,7 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
         if (++this._currentChunkID < result.dataChunksLength()) {
             result.dataChunks(0, this._currentChunk);
         } else {
-            let chunkBuffer = await this._bindings.fetchQueryResults(this._connection);
+            let chunkBuffer = await this._connection.fetchQueryResults();
             this._currentChunk = chunkBuffer.root;
             this._currentChunkBuffer = chunkBuffer;
         }
@@ -149,8 +146,8 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
     _chunks: proto.query_result.QueryResultChunk[];
 
     /// Constructor
-    public constructor(bindings: DuckDBBindings, connection: number, resultBuffer: QueryResultBuffer, chunkBuffers: QueryResultChunkBuffer[]) {
-        super(bindings, connection, resultBuffer);
+    public constructor(connection: DuckDBConnection, resultBuffer: QueryResultBuffer, chunkBuffers: QueryResultChunkBuffer[]) {
+        super(connection, resultBuffer);
         this._chunkBuffers = chunkBuffers;
         this._chunks = [];
         for (let i = 0; i < this.result.dataChunksLength(); ++i) {

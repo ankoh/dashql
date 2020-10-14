@@ -22,86 +22,76 @@ suite(`Chunks | 1 column | 10m rows`,
     add('TINYINT', async () => {
         tupleSize = 1;
         let conn = await db.connect();
-        let result = await db.sendQuery(conn, `
+        let result = await conn.sendQuery(`
             SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
         `);
-        let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
+        let chunks = new duckdb.QueryResultChunkStream(db, conn, result);
         while (true) {
             if (!await chunks.next())
                 break;
-            chunks.iterateNumberColumn(0, (row, v) => {
-                noop();
-            });
+            chunks.iterateNumberColumn(0, (row, v) => { noop(); });
         }
-        db.disconnect(conn);
+        conn.disconnect();
     }),
 
     add('SMALLINT', async () => {
         tupleSize = 2;
         let conn = await db.connect();
-        let result = await db.sendQuery(conn, `
+        let result = await conn.sendQuery(`
             SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
         `);
-        let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
+        let chunks = new duckdb.QueryResultChunkStream(db, conn, result);
         while (true) {
             if (!await chunks.next())
                 break;
-            chunks.iterateNumberColumn(0, (row, v) => {
-                noop();
-            });
+            chunks.iterateNumberColumn(0, (row, v) => { noop(); });
         }
-        db.disconnect(conn);
+        conn.disconnect();
     }),
 
     add('INTEGER', async () => {
         tupleSize = 4;
         let conn = await db.connect();
-        let result = await db.sendQuery(conn, `
+        let result = await conn.sendQuery(`
             SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
         `);
-        let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
+        let chunks = new duckdb.QueryResultChunkStream(db, conn, result);
         while (true) {
             if (!await chunks.next())
                 break;
-            chunks.iterateNumberColumn(0, (row, v) => {
-                noop();
-            });
+            chunks.iterateNumberColumn(0, (row, v) => { noop(); });
         }
-        db.disconnect(conn);
+        conn.disconnect();
     }),
 
     add('FLOAT', async () => {
         tupleSize = 4;
         let conn = await db.connect();
-        let result = await db.sendQuery(conn, `
+        let result = await conn.sendQuery(`
             SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
         `);
-        let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
+        let chunks = new duckdb.QueryResultChunkStream(db, conn, result);
         while (true) {
             if (!await chunks.next())
                 break;
-            chunks.iterateNumberColumn(0, (row, v) => {
-                noop();
-            });
+            chunks.iterateNumberColumn(0, (row, v) => { noop(); });
         }
-        db.disconnect(conn);
+        conn.disconnect();
     }),
 
     add('DOUBLE', async () => {
         tupleSize = 8;
         let conn = await db.connect();
-        let result = await db.sendQuery(conn, `
+        let result = await conn.sendQuery(`
             SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
         `);
-        let chunks = new duckdb.webapi.QueryResultChunkStream(db, conn, result);
+        let chunks = new duckdb.QueryResultChunkStream(db, conn, result);
         while (true) {
             if (!await chunks.next())
                 break;
-            chunks.iterateNumberColumn(0, (row, v) => {
-                noop();
-            });
+            chunks.iterateNumberColumn(0, (row, v) => { noop(); });
         }
-        db.disconnect(conn);
+        conn.disconnect();
     }),
 
     cycle((result, summary) => {

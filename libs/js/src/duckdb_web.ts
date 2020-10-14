@@ -18,6 +18,4 @@ export class DuckDB extends webapi.DuckDBBindings {
     }
 }
 
-export {
-    webapi
-}
+export * from './webapi';

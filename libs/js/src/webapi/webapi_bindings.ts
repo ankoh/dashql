@@ -4,14 +4,105 @@ import { DuckDBModule } from '../duckdb/duckdb_module';
 import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webapi_buffer';
 import * as proto from '../proto';
 
+/// Decode a string
+function decodeString(buffer: Uint8Array): string {
+    var result = "";
+    for (var i = 0; i < buffer.length; i++) {
+        result += String.fromCharCode(buffer[i]);
+    }
+    return result;
+}
+
+/// A connection to DuckDB
+export class DuckDBConnection {
+    /// The bindings
+    _bindings: DuckDBBindings;
+    /// The connection handle
+    _conn: number;
+
+    /// Constructor
+    constructor(bindings: DuckDBBindings, conn: number) {
+        this._bindings = bindings;
+        this._conn = conn;
+    }
+
+    /// Disconnect from database
+    public async disconnect(): Promise<void> {
+        let instance = await this._bindings.getInstance();
+        instance.ccall('duckdb_webapi_disconnect', null, ['number'], [this._conn]);
+    }
+
+    /// Copy a buffer
+    public async copyBuffer(buffer: Uint8Array): Promise<[number, number]> {
+        let instance = await this._bindings.getInstance();
+        var ptr = instance.allocate(buffer.length, 'i8', instance.ALLOC_NORMAL);
+        let mem = instance.HEAPU8.subarray(ptr, ptr + buffer.length);
+        mem.set(buffer);
+        instance.ccall('duckdb_webapi_register_buffer', null, ['number', 'number', 'number'], [this._conn, ptr, buffer.length]);
+        return [ptr, buffer.length];
+    }
+
+    /// Send a query and return the full result
+    public async runQuery(text: string): Promise<QueryResultBuffer> {
+        let instance = await this._bindings.getInstance();
+        let [s, d, n] = await this._bindings.callSRet('duckdb_webapi_run_query', ['number', 'string'], [this._conn, text]);
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        if (s !== proto.api.StatusCode.SUCCESS) {
+            throw new Error(decodeString(mem));
+        }
+        let msg = new QueryResultBuffer(mem);
+        instance.ccall('duckdb_webapi_release_buffer', null, ['number', 'number'], [this._conn, d]);
+        return msg;
+    }
+
+    /// Send a query and return a result stream
+    public async sendQuery(text: string): Promise<QueryResultBuffer> {
+        let instance = await this._bindings.getInstance();
+        let [s, d, n] = await this._bindings.callSRet('duckdb_webapi_send_query', ['number', 'string'], [this._conn, text]);
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        if (s !== proto.api.StatusCode.SUCCESS) {
+            throw new Error(decodeString(mem));
+        }
+        let msg = new QueryResultBuffer(mem);
+        instance.ccall('duckdb_webapi_release_buffer', null, ['number', 'number'], [this._conn, d]);
+        return msg;
+    }
+
+    /// Fetch query results
+    public async fetchQueryResults(): Promise<QueryResultChunkBuffer> {
+        let instance = await this._bindings.getInstance();
+        let [s, d, n] = await this._bindings.callSRet('duckdb_webapi_fetch_query_results', ['number'], [this._conn]);
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        if (s !== proto.api.StatusCode.SUCCESS) {
+            throw new Error(decodeString(mem));
+        }
+        let msg = new QueryResultChunkBuffer(mem);
+        instance.ccall('duckdb_webapi_release_buffer', null, ['number', 'number'], [this._conn, d]);
+        return msg;
+    }
+
+    /// Analyze a query
+    public async analyzeQuery(text: string): Promise<QueryPlanBuffer> {
+        let instance = await this._bindings.getInstance();
+        let [s, d, n] = await this._bindings.callSRet('duckdb_webapi_analyze_query', ['number'], [this._conn]);
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        if (s !== proto.api.StatusCode.SUCCESS) {
+            throw new Error(decodeString(mem));
+        }
+        let msg = new QueryPlanBuffer(mem);
+        instance.ccall('duckdb_webapi_release_buffer', null, ['number', 'number'], [this._conn, d]);
+        return msg;
+    }
+}
+
 /// The proxy for either the browser- order node-based DuckDB API
 export abstract class DuckDBBindings {
     /// The instance
-    private instance: DuckDBModule | null = null;
+    private _instance: DuckDBModule | null = null;
     /// The loading promise
-    private openPromise: Promise<void> | null = null;
+    private _openPromise: Promise<void> | null = null;
     /// The resolver for the open promise (called by onRuntimeInitialized)
-    private openPromiseResolver: () => void = () => { };
+    private _openPromiseResolver: () => void = () => { };
 
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule>;
@@ -19,55 +110,46 @@ export abstract class DuckDBBindings {
     /// Open the database
     public async open() {
         // Already opened?
-        if (this.instance != null) {
+        if (this._instance != null) {
             return;
         }
         // Open in progress?
-        if (this.openPromise != null) {
-            await this.openPromise;
+        if (this._openPromise != null) {
+            await this._openPromise;
         }
 
         // Create a promise that we can await
-        this.openPromise = new Promise(resolve => {
-            this.openPromiseResolver = resolve;
+        this._openPromise = new Promise(resolve => {
+            this._openPromiseResolver = resolve;
         });
 
         // Initialize duckdb
-        this.instance = await this.instantiate({
+        this._instance = await this.instantiate({
             print: console.log.bind(console),
             printErr: console.log.bind(console),
-            onRuntimeInitialized: this.openPromiseResolver,
+            onRuntimeInitialized: this._openPromiseResolver,
         });
 
         // Wait for onRuntimeInitialized
-        await this.openPromise;
-        this.openPromise = null;
+        await this._openPromise;
+        this._openPromise = null;
     }
 
     /// Get the instance
-    protected async getInstance(): Promise<DuckDBModule> {
-        if (this.instance != null)
-            return this.instance;
-        if (this.openPromise != null) {
-            await this.openPromise;
-            if (this.instance == null)
+    public async getInstance(): Promise<DuckDBModule> {
+        if (this._instance != null)
+            return this._instance;
+        if (this._openPromise != null) {
+            await this._openPromise;
+            if (this._instance == null)
                 throw new Error('instance initialization failed');
-            return this.instance;
+            return this._instance;
         }
         throw new Error('instance not initialized');
     }
 
-    // Decode a string
-    protected decodeString(buffer: Uint8Array): string {
-        var result = "";
-        for (var i = 0; i < buffer.length; i++) {
-            result += String.fromCharCode(buffer[i]);
-        }
-        return result;
-    }
-
     // Call a core function with packed response buffer
-    protected async callSRet(
+    public async callSRet(
         funcName: string,
         argTypes: Array<Emscripten.JSType>,
         args: Array<any>,
@@ -96,76 +178,9 @@ export abstract class DuckDBBindings {
     }
 
     /// Connect to database
-    public async connect(): Promise<number> {
+    public async connect(): Promise<DuckDBConnection> {
         let instance = await this.getInstance();
-        return instance.ccall('duckdb_webapi_connect', 'number', [], []);
-    }
-
-    /// Disconnect from database
-    public async disconnect(conn: number): Promise<void> {
-        let instance = await this.getInstance();
-        instance.ccall('duckdb_webapi_disconnect', null, ['number'], [conn]);
-    }
-
-    /// Copy a buffer
-    public async copyBuffer(conn: number, buffer: Uint8Array): Promise<[number, number]> {
-        let instance = await this.getInstance();
-        var ptr = instance.allocate(buffer.length, 'i8', instance.ALLOC_NORMAL);
-        let mem = instance.HEAPU8.subarray(ptr, ptr + buffer.length);
-        mem.set(buffer);
-        instance.ccall('duckdb_webapi_register_buffer', null, ['number', 'number', 'number'], [conn, ptr, buffer.length]);
-        return [ptr, buffer.length];
-    }
-
-    /// Send a query and return the full result
-    public async runQuery(conn: number, text: string): Promise<QueryResultBuffer> {
-        let instance = await this.getInstance();
-        let [s, d, n] = await this.callSRet('duckdb_webapi_run_query', ['number', 'string'], [conn, text]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.api.StatusCode.SUCCESS) {
-            throw new Error(this.decodeString(mem));
-        }
-        let msg = new QueryResultBuffer(mem);
-        instance.ccall('duckdb_webapi_release_buffer', null, ['number', 'number'], [conn, d]);
-        return msg;
-    }
-
-    /// Send a query and return a result stream
-    public async sendQuery(conn: number, text: string): Promise<QueryResultBuffer> {
-        let instance = await this.getInstance();
-        let [s, d, n] = await this.callSRet('duckdb_webapi_send_query', ['number', 'string'], [conn, text]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.api.StatusCode.SUCCESS) {
-            throw new Error(this.decodeString(mem));
-        }
-        let msg = new QueryResultBuffer(mem);
-        instance.ccall('duckdb_webapi_release_buffer', null, ['number', 'number'], [conn, d]);
-        return msg;
-    }
-
-    /// Fetch query results
-    public async fetchQueryResults(conn: number): Promise<QueryResultChunkBuffer> {
-        let instance = await this.getInstance();
-        let [s, d, n] = await this.callSRet('duckdb_webapi_fetch_query_results', ['number'], [conn]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.api.StatusCode.SUCCESS) {
-            throw new Error(this.decodeString(mem));
-        }
-        let msg = new QueryResultChunkBuffer(mem);
-        instance.ccall('duckdb_webapi_release_buffer', null, ['number', 'number'], [conn, d]);
-        return msg;
-    }
-
-    /// Analyze a query
-    public async analyzeQuery(conn: number, text: string): Promise<QueryPlanBuffer> {
-        let instance = await this.getInstance();
-        let [s, d, n] = await this.callSRet('duckdb_webapi_analyze_query', ['number'], [conn]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.api.StatusCode.SUCCESS) {
-            throw new Error(this.decodeString(mem));
-        }
-        let msg = new QueryPlanBuffer(mem);
-        instance.ccall('duckdb_webapi_release_buffer', null, ['number', 'number'], [conn, d]);
-        return msg;
+        let conn = instance.ccall('duckdb_webapi_connect', 'number', [], []);
+        return new DuckDBConnection(this, conn);
     }
 };

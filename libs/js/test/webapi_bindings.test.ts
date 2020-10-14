@@ -1,7 +1,7 @@
 import * as duckdb from '../dist/duckdb_node.js';
 
 var db: duckdb.DuckDB;
-var conn: number = 0;
+var conn: duckdb.DuckDBConnection;
 
 beforeAll(async () => {
     db = new duckdb.DuckDB();
@@ -13,7 +13,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-    await db.disconnect(conn);
+    await conn.disconnect();
 });
 
 describe('DuckDBBindings', () => {
@@ -21,7 +21,7 @@ describe('DuckDBBindings', () => {
         test('INVALID SQL', async () => {
             let error: Error | null = null;
             try {
-                await db.sendQuery(conn, 'INVALID SQL');
+                await conn.sendQuery('INVALID SQL');
             } catch (e) {
                 error = e
             }
