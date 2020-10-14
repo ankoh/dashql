@@ -47,11 +47,13 @@ extern "C" {
     /// Register a buffer
     pub fn duckdb_webapi_register_buffer(
         conn: ConnectionHdl,
-        buffer_ptr: BufferHdl,
+        buffer_ptr: *const u8,
         buffer_length: u32,
     );
     /// Release a buffer
     pub fn duckdb_webapi_release_buffer(conn: ConnectionHdl, buffer: BufferHdl);
+    /// Access a buffer
+    pub fn duckdb_webapi_access_buffer(conn: ConnectionHdl, buffer: BufferHdl) -> *const u8;
     /// Run a query
     pub fn duckdb_webapi_run_query(
         response: *mut Response,

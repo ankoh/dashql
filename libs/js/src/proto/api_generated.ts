@@ -5,16 +5,19 @@ import { flatbuffers } from "flatbuffers";
 /**
  * @enum {number}
  */
+export namespace duckdb_webapi.proto{
 export enum StatusCode{
   SUCCESS= 0,
   ERROR= 1
 };
+}
 
 /**
  * A formatted text
  *
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class FormattedText {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -90,11 +93,13 @@ static createFormattedText(builder:flatbuffers.Builder, textOffset:flatbuffers.O
   return FormattedText.endFormattedText(builder);
 }
 }
+}
 /**
  * A raw data buffer
  *
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class RawData {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -203,5 +208,6 @@ static createRawData(builder:flatbuffers.Builder, dataOffset:flatbuffers.Offset)
   RawData.startRawData(builder);
   RawData.addData(builder, dataOffset);
   return RawData.endRawData(builder);
+}
 }
 }

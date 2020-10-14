@@ -5,6 +5,7 @@ import { flatbuffers } from "flatbuffers";
 /**
  * @enum {number}
  */
+export namespace duckdb_webapi.proto{
 export enum OperatorType{
   INVALID= 0,
   PROJECTION= 1,
@@ -52,10 +53,12 @@ export enum OperatorType{
   EXECUTE= 43,
   VACUUM= 44
 };
+}
 
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class QueryPlan {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -126,9 +129,9 @@ operatorChildOffsetsLength():number {
 
 /**
  * @param number index
- * @returns OperatorType
+ * @returns duckdb_webapi.proto.OperatorType
  */
-operatorTypes(index: number):OperatorType|null {
+operatorTypes(index: number):duckdb_webapi.proto.OperatorType|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? /**  */ (this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index)) : /**  */ (0);
 };
@@ -224,10 +227,10 @@ static addOperatorTypes(builder:flatbuffers.Builder, operatorTypesOffset:flatbuf
 
 /**
  * @param flatbuffers.Builder builder
- * @param Array.<OperatorType> data
+ * @param Array.<duckdb_webapi.proto.OperatorType> data
  * @returns flatbuffers.Offset
  */
-static createOperatorTypesVector(builder:flatbuffers.Builder, data:OperatorType[]):flatbuffers.Offset {
+static createOperatorTypesVector(builder:flatbuffers.Builder, data:duckdb_webapi.proto.OperatorType[]):flatbuffers.Offset {
   builder.startVector(1, data.length, 1);
   for (var i = data.length - 1; i >= 0; i--) {
     builder.addInt8(data[i]);
@@ -258,5 +261,6 @@ static createQueryPlan(builder:flatbuffers.Builder, operatorChildrenOffset:flatb
   QueryPlan.addOperatorChildOffsets(builder, operatorChildOffsetsOffset);
   QueryPlan.addOperatorTypes(builder, operatorTypesOffset);
   return QueryPlan.endQueryPlan(builder);
+}
 }
 }

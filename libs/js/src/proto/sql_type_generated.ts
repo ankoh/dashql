@@ -7,6 +7,7 @@ import { flatbuffers } from "flatbuffers";
  *
  * @enum {number}
  */
+export namespace duckdb_webapi.proto{
 export enum SQLTypeID{
   INVALID= 0,
   SQLNULL= 1,
@@ -34,10 +35,12 @@ export enum SQLTypeID{
   STRUCT= 100,
   LIST= 101
 };
+}
 
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class SQLType {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -54,9 +57,9 @@ __init(i:number, bb:flatbuffers.ByteBuffer):SQLType {
 };
 
 /**
- * @returns SQLTypeID
+ * @returns duckdb_webapi.proto.SQLTypeID
  */
-typeId():SQLTypeID {
+typeId():duckdb_webapi.proto.SQLTypeID {
   return /**  */ (this.bb!.readUint8(this.bb_pos));
 };
 
@@ -83,12 +86,12 @@ static sizeOf():number {
 
 /**
  * @param flatbuffers.Builder builder
- * @param SQLTypeID type_id
+ * @param duckdb_webapi.proto.SQLTypeID type_id
  * @param number width
  * @param number scale
  * @returns flatbuffers.Offset
  */
-static createSQLType(builder:flatbuffers.Builder, type_id: SQLTypeID, width: number, scale: number):flatbuffers.Offset {
+static createSQLType(builder:flatbuffers.Builder, type_id: duckdb_webapi.proto.SQLTypeID, width: number, scale: number):flatbuffers.Offset {
   builder.prep(2, 6);
   builder.pad(1);
   builder.writeInt8(scale);
@@ -98,4 +101,5 @@ static createSQLType(builder:flatbuffers.Builder, type_id: SQLTypeID, width: num
   return builder.offset();
 };
 
+}
 }

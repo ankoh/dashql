@@ -5,6 +5,7 @@ import { flatbuffers } from "flatbuffers";
 /**
  * @enum {number}
  */
+export namespace duckdb_webapi.proto{
 export enum VectorVariant{
   NONE= 0,
   VectorI8= 1,
@@ -24,54 +25,56 @@ export enum VectorVariant{
 
 export function unionToVectorVariant(
   type: VectorVariant,
-  accessor: (obj:VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8) => VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null
-): VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null {
-  switch(VectorVariant[type]) {
+  accessor: (obj:duckdb_webapi.proto.VectorF32|duckdb_webapi.proto.VectorF64|duckdb_webapi.proto.VectorI128|duckdb_webapi.proto.VectorI16|duckdb_webapi.proto.VectorI32|duckdb_webapi.proto.VectorI64|duckdb_webapi.proto.VectorI8|duckdb_webapi.proto.VectorInterval|duckdb_webapi.proto.VectorString|duckdb_webapi.proto.VectorU16|duckdb_webapi.proto.VectorU32|duckdb_webapi.proto.VectorU64|duckdb_webapi.proto.VectorU8) => duckdb_webapi.proto.VectorF32|duckdb_webapi.proto.VectorF64|duckdb_webapi.proto.VectorI128|duckdb_webapi.proto.VectorI16|duckdb_webapi.proto.VectorI32|duckdb_webapi.proto.VectorI64|duckdb_webapi.proto.VectorI8|duckdb_webapi.proto.VectorInterval|duckdb_webapi.proto.VectorString|duckdb_webapi.proto.VectorU16|duckdb_webapi.proto.VectorU32|duckdb_webapi.proto.VectorU64|duckdb_webapi.proto.VectorU8|null
+): duckdb_webapi.proto.VectorF32|duckdb_webapi.proto.VectorF64|duckdb_webapi.proto.VectorI128|duckdb_webapi.proto.VectorI16|duckdb_webapi.proto.VectorI32|duckdb_webapi.proto.VectorI64|duckdb_webapi.proto.VectorI8|duckdb_webapi.proto.VectorInterval|duckdb_webapi.proto.VectorString|duckdb_webapi.proto.VectorU16|duckdb_webapi.proto.VectorU32|duckdb_webapi.proto.VectorU64|duckdb_webapi.proto.VectorU8|null {
+  switch(duckdb_webapi.proto.VectorVariant[type]) {
     case 'NONE': return null; 
-    case 'VectorI8': return accessor(new VectorI8())! as VectorI8;
-    case 'VectorU8': return accessor(new VectorU8())! as VectorU8;
-    case 'VectorI16': return accessor(new VectorI16())! as VectorI16;
-    case 'VectorU16': return accessor(new VectorU16())! as VectorU16;
-    case 'VectorI32': return accessor(new VectorI32())! as VectorI32;
-    case 'VectorU32': return accessor(new VectorU32())! as VectorU32;
-    case 'VectorI64': return accessor(new VectorI64())! as VectorI64;
-    case 'VectorU64': return accessor(new VectorU64())! as VectorU64;
-    case 'VectorI128': return accessor(new VectorI128())! as VectorI128;
-    case 'VectorF32': return accessor(new VectorF32())! as VectorF32;
-    case 'VectorF64': return accessor(new VectorF64())! as VectorF64;
-    case 'VectorInterval': return accessor(new VectorInterval())! as VectorInterval;
-    case 'VectorString': return accessor(new VectorString())! as VectorString;
+    case 'VectorI8': return accessor(new duckdb_webapi.proto.VectorI8())! as duckdb_webapi.proto.VectorI8;
+    case 'VectorU8': return accessor(new duckdb_webapi.proto.VectorU8())! as duckdb_webapi.proto.VectorU8;
+    case 'VectorI16': return accessor(new duckdb_webapi.proto.VectorI16())! as duckdb_webapi.proto.VectorI16;
+    case 'VectorU16': return accessor(new duckdb_webapi.proto.VectorU16())! as duckdb_webapi.proto.VectorU16;
+    case 'VectorI32': return accessor(new duckdb_webapi.proto.VectorI32())! as duckdb_webapi.proto.VectorI32;
+    case 'VectorU32': return accessor(new duckdb_webapi.proto.VectorU32())! as duckdb_webapi.proto.VectorU32;
+    case 'VectorI64': return accessor(new duckdb_webapi.proto.VectorI64())! as duckdb_webapi.proto.VectorI64;
+    case 'VectorU64': return accessor(new duckdb_webapi.proto.VectorU64())! as duckdb_webapi.proto.VectorU64;
+    case 'VectorI128': return accessor(new duckdb_webapi.proto.VectorI128())! as duckdb_webapi.proto.VectorI128;
+    case 'VectorF32': return accessor(new duckdb_webapi.proto.VectorF32())! as duckdb_webapi.proto.VectorF32;
+    case 'VectorF64': return accessor(new duckdb_webapi.proto.VectorF64())! as duckdb_webapi.proto.VectorF64;
+    case 'VectorInterval': return accessor(new duckdb_webapi.proto.VectorInterval())! as duckdb_webapi.proto.VectorInterval;
+    case 'VectorString': return accessor(new duckdb_webapi.proto.VectorString())! as duckdb_webapi.proto.VectorString;
     default: return null;
   }
 }
 
 export function unionListToVectorVariant(
   type: VectorVariant, 
-  accessor: (index: number, obj:VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8) => VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null, 
+  accessor: (index: number, obj:duckdb_webapi.proto.VectorF32|duckdb_webapi.proto.VectorF64|duckdb_webapi.proto.VectorI128|duckdb_webapi.proto.VectorI16|duckdb_webapi.proto.VectorI32|duckdb_webapi.proto.VectorI64|duckdb_webapi.proto.VectorI8|duckdb_webapi.proto.VectorInterval|duckdb_webapi.proto.VectorString|duckdb_webapi.proto.VectorU16|duckdb_webapi.proto.VectorU32|duckdb_webapi.proto.VectorU64|duckdb_webapi.proto.VectorU8) => duckdb_webapi.proto.VectorF32|duckdb_webapi.proto.VectorF64|duckdb_webapi.proto.VectorI128|duckdb_webapi.proto.VectorI16|duckdb_webapi.proto.VectorI32|duckdb_webapi.proto.VectorI64|duckdb_webapi.proto.VectorI8|duckdb_webapi.proto.VectorInterval|duckdb_webapi.proto.VectorString|duckdb_webapi.proto.VectorU16|duckdb_webapi.proto.VectorU32|duckdb_webapi.proto.VectorU64|duckdb_webapi.proto.VectorU8|null, 
   index: number
-): VectorF32|VectorF64|VectorI128|VectorI16|VectorI32|VectorI64|VectorI8|VectorInterval|VectorString|VectorU16|VectorU32|VectorU64|VectorU8|null {
-  switch(VectorVariant[type]) {
+): duckdb_webapi.proto.VectorF32|duckdb_webapi.proto.VectorF64|duckdb_webapi.proto.VectorI128|duckdb_webapi.proto.VectorI16|duckdb_webapi.proto.VectorI32|duckdb_webapi.proto.VectorI64|duckdb_webapi.proto.VectorI8|duckdb_webapi.proto.VectorInterval|duckdb_webapi.proto.VectorString|duckdb_webapi.proto.VectorU16|duckdb_webapi.proto.VectorU32|duckdb_webapi.proto.VectorU64|duckdb_webapi.proto.VectorU8|null {
+  switch(duckdb_webapi.proto.VectorVariant[type]) {
     case 'NONE': return null; 
-    case 'VectorI8': return accessor(index, new VectorI8())! as VectorI8;
-    case 'VectorU8': return accessor(index, new VectorU8())! as VectorU8;
-    case 'VectorI16': return accessor(index, new VectorI16())! as VectorI16;
-    case 'VectorU16': return accessor(index, new VectorU16())! as VectorU16;
-    case 'VectorI32': return accessor(index, new VectorI32())! as VectorI32;
-    case 'VectorU32': return accessor(index, new VectorU32())! as VectorU32;
-    case 'VectorI64': return accessor(index, new VectorI64())! as VectorI64;
-    case 'VectorU64': return accessor(index, new VectorU64())! as VectorU64;
-    case 'VectorI128': return accessor(index, new VectorI128())! as VectorI128;
-    case 'VectorF32': return accessor(index, new VectorF32())! as VectorF32;
-    case 'VectorF64': return accessor(index, new VectorF64())! as VectorF64;
-    case 'VectorInterval': return accessor(index, new VectorInterval())! as VectorInterval;
-    case 'VectorString': return accessor(index, new VectorString())! as VectorString;
+    case 'VectorI8': return accessor(index, new duckdb_webapi.proto.VectorI8())! as duckdb_webapi.proto.VectorI8;
+    case 'VectorU8': return accessor(index, new duckdb_webapi.proto.VectorU8())! as duckdb_webapi.proto.VectorU8;
+    case 'VectorI16': return accessor(index, new duckdb_webapi.proto.VectorI16())! as duckdb_webapi.proto.VectorI16;
+    case 'VectorU16': return accessor(index, new duckdb_webapi.proto.VectorU16())! as duckdb_webapi.proto.VectorU16;
+    case 'VectorI32': return accessor(index, new duckdb_webapi.proto.VectorI32())! as duckdb_webapi.proto.VectorI32;
+    case 'VectorU32': return accessor(index, new duckdb_webapi.proto.VectorU32())! as duckdb_webapi.proto.VectorU32;
+    case 'VectorI64': return accessor(index, new duckdb_webapi.proto.VectorI64())! as duckdb_webapi.proto.VectorI64;
+    case 'VectorU64': return accessor(index, new duckdb_webapi.proto.VectorU64())! as duckdb_webapi.proto.VectorU64;
+    case 'VectorI128': return accessor(index, new duckdb_webapi.proto.VectorI128())! as duckdb_webapi.proto.VectorI128;
+    case 'VectorF32': return accessor(index, new duckdb_webapi.proto.VectorF32())! as duckdb_webapi.proto.VectorF32;
+    case 'VectorF64': return accessor(index, new duckdb_webapi.proto.VectorF64())! as duckdb_webapi.proto.VectorF64;
+    case 'VectorInterval': return accessor(index, new duckdb_webapi.proto.VectorInterval())! as duckdb_webapi.proto.VectorInterval;
+    case 'VectorString': return accessor(index, new duckdb_webapi.proto.VectorString())! as duckdb_webapi.proto.VectorString;
     default: return null;
   }
+}
 }
 
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class I128 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -122,9 +125,11 @@ static createI128(builder:flatbuffers.Builder, lower: flatbuffers.Long, upper: f
 };
 
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class Interval {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -184,9 +189,11 @@ static createInterval(builder:flatbuffers.Builder, months: number, days: number,
 };
 
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorI8 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -357,9 +364,11 @@ static createVectorI8(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Offs
   return VectorI8.endVectorI8(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorU8 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -525,9 +534,11 @@ static createVectorU8(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Offs
   return VectorU8.endVectorU8(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorI16 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -698,9 +709,11 @@ static createVectorI16(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Off
   return VectorI16.endVectorI16(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorU16 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -871,9 +884,11 @@ static createVectorU16(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Off
   return VectorU16.endVectorU16(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorI32 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -1044,9 +1059,11 @@ static createVectorI32(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Off
   return VectorI32.endVectorI32(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorU32 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -1217,9 +1234,11 @@ static createVectorU32(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Off
   return VectorU32.endVectorU32(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorI64 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -1377,9 +1396,11 @@ static createVectorI64(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Off
   return VectorI64.endVectorI64(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorU64 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -1537,9 +1558,11 @@ static createVectorU64(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Off
   return VectorU64.endVectorU64(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorI128 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -1576,12 +1599,12 @@ static getSizePrefixedRootAsVectorI128(bb:flatbuffers.ByteBuffer, obj?:VectorI12
 
 /**
  * @param number index
- * @param I128= obj
- * @returns I128
+ * @param duckdb_webapi.proto.I128= obj
+ * @returns duckdb_webapi.proto.I128
  */
-values(index: number, obj?:I128):I128|null {
+values(index: number, obj?:duckdb_webapi.proto.I128):duckdb_webapi.proto.I128|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new I128()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
+  return offset ? (obj || new duckdb_webapi.proto.I128()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
 };
 
 /**
@@ -1685,9 +1708,11 @@ static createVectorI128(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Of
   return VectorI128.endVectorI128(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorF32 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -1858,9 +1883,11 @@ static createVectorF32(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Off
   return VectorF32.endVectorF32(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorF64 {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -2031,9 +2058,11 @@ static createVectorF64(builder:flatbuffers.Builder, valuesOffset:flatbuffers.Off
   return VectorF64.endVectorF64(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorInterval {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -2070,12 +2099,12 @@ static getSizePrefixedRootAsVectorInterval(bb:flatbuffers.ByteBuffer, obj?:Vecto
 
 /**
  * @param number index
- * @param Interval= obj
- * @returns Interval
+ * @param duckdb_webapi.proto.Interval= obj
+ * @returns duckdb_webapi.proto.Interval
  */
-values(index: number, obj?:Interval):Interval|null {
+values(index: number, obj?:duckdb_webapi.proto.Interval):duckdb_webapi.proto.Interval|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new Interval()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
+  return offset ? (obj || new duckdb_webapi.proto.Interval()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
 };
 
 /**
@@ -2179,9 +2208,11 @@ static createVectorInterval(builder:flatbuffers.Builder, valuesOffset:flatbuffer
   return VectorInterval.endVectorInterval(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class VectorString {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -2342,9 +2373,11 @@ static createVectorString(builder:flatbuffers.Builder, valuesOffset:flatbuffers.
   return VectorString.endVectorString(builder);
 }
 }
+}
 /**
  * @constructor
  */
+export namespace duckdb_webapi.proto{
 export class Vector {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -2380,11 +2413,11 @@ static getSizePrefixedRootAsVector(bb:flatbuffers.ByteBuffer, obj?:Vector):Vecto
 };
 
 /**
- * @returns VectorVariant
+ * @returns duckdb_webapi.proto.VectorVariant
  */
-variantType():VectorVariant {
+variantType():duckdb_webapi.proto.VectorVariant {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : VectorVariant.NONE;
+  return offset ? /**  */ (this.bb!.readUint8(this.bb_pos + offset)) : duckdb_webapi.proto.VectorVariant.NONE;
 };
 
 /**
@@ -2405,10 +2438,10 @@ static startVector(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param VectorVariant variantType
+ * @param duckdb_webapi.proto.VectorVariant variantType
  */
-static addVariantType(builder:flatbuffers.Builder, variantType:VectorVariant) {
-  builder.addFieldInt8(0, variantType, VectorVariant.NONE);
+static addVariantType(builder:flatbuffers.Builder, variantType:duckdb_webapi.proto.VectorVariant) {
+  builder.addFieldInt8(0, variantType, duckdb_webapi.proto.VectorVariant.NONE);
 };
 
 /**
@@ -2428,10 +2461,11 @@ static endVector(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createVector(builder:flatbuffers.Builder, variantType:VectorVariant, variantOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createVector(builder:flatbuffers.Builder, variantType:duckdb_webapi.proto.VectorVariant, variantOffset:flatbuffers.Offset):flatbuffers.Offset {
   Vector.startVector(builder);
   Vector.addVariantType(builder, variantType);
   Vector.addVariant(builder, variantOffset);
   return Vector.endVector(builder);
+}
 }
 }
