@@ -7,8 +7,9 @@ pub type BufferHdl = *const u8;
 
 /// A packed response.
 /// This is the "ugly" part of our WASM interop.
-/// The fields error and data represent pointers that are 4 or 8 byte in length depending on the platform.
+/// The data pointer is either 4 or 8 byte in length depending on the platform.
 /// (32 bit on WASM vs 64 bit on Native)
+/// We always pack it as 64 bit integer.
 #[repr(C)]
 #[allow(dead_code)]
 pub struct Response {
