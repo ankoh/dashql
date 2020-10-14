@@ -12,6 +12,9 @@ license = "MIT"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[dependencies]
+flatbuffers = "0.6"
+
 [build-dependencies]
 cmake = "0.1.44"
 wasm-bindgen = "0.2"

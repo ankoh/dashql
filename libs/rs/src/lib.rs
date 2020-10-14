@@ -1,8 +1,5 @@
-mod webapi;
-mod webapi_bindings;
+pub mod iterator;
+pub mod webapi;
+pub mod webapi_bindings;
 
-use webapi::WebAPI;
-
-pub fn init() {
-    WebAPI::init();
-}
+pub use webapi::*;
