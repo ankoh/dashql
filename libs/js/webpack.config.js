@@ -1,6 +1,7 @@
 const path = require('path');
 const nodeExternals = require('webpack-node-externals');
 const webpack = require('webpack');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 const browserTarget = {
     target: 'web',
@@ -41,6 +42,9 @@ const browserTarget = {
             }
         ]
     },
+    plugins: [
+        new CleanWebpackPlugin(),
+    ],
     externals: {
         flatbuffers: "flatbuffers",
     }
