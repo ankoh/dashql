@@ -1,3 +1,4 @@
+pub mod error;
 pub mod iterator;
 pub mod webapi;
 pub mod webapi_bindings;
