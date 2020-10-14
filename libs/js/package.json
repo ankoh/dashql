@@ -1,6 +1,6 @@
 {
     "name": "@dashql/duckdb.wasm",
-    "version": "0.0.2",
+    "version": "0.0.4",
     "description": "DuckDB powered by WebAssembly",
     "main": "dist/duckdb.js",
     "types": "dist/index.d.ts",
