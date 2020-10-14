@@ -40,6 +40,9 @@ const browserTarget = {
                 }
             }
         ]
+    },
+    externals: {
+        flatbuffers: "flatbuffers",
     }
 };
 

@@ -2,7 +2,6 @@
 
 import { DuckDBModule } from '../duckdb/duckdb_module';
 import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webapi_buffer';
-import { TextDecoder } from 'text-encoding';
 import * as proto from '../proto';
 
 function buf2hex(buffer: Uint8Array) { // buffer is an ArrayBuffer
