@@ -4,6 +4,9 @@
     "description": "DuckDB powered by WebAssembly",
     "main": "dist/duckdb.js",
     "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
     "dependencies": {
         "flatbuffers": "^1.12.0"
     },
