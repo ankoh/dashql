@@ -2,15 +2,21 @@ use std::fmt;
 
 #[derive(Debug, Clone)]
 pub enum Error {
-    RawError(String),
-    ErrorDecodingError,
+    Raw(String),
+    InvalidStringData,
+}
+
+impl From<std::ffi::NulError> for Error {
+    fn from(_: std::ffi::NulError) -> Self {
+        Error::InvalidStringData
+    }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::RawError(e) => write!(f, "{}", e),
-            Error::ErrorDecodingError => write!(f, "string decoding"),
+            Error::Raw(e) => write!(f, "{}", e),
+            Error::InvalidStringData => write!(f, "invalid string data"),
         }
     }
 }

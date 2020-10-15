@@ -2,8 +2,8 @@ use crate::error::Error;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
-pub type ConnectionHdl = *const u8;
-pub type BufferHdl = *const u8;
+pub type ConnectionHdl = usize;
+pub type BufferHdl = usize;
 
 /// A packed response.
 /// This is the "ugly" part of our WASM interop.
@@ -26,11 +26,11 @@ impl Response {
             let b = std::slice::from_raw_parts(self.data_ptr as *mut u8, self.data_size as usize);
             let cs = match CStr::from_bytes_with_nul(b) {
                 Ok(cs) => cs,
-                Err(_) => return Err(Error::ErrorDecodingError)
+                Err(_) => return Err(Error::InvalidStringData)
             };
             let s = match cs.to_str() {
                 Ok(s) => s,
-                Err(_) => return Err(Error::ErrorDecodingError)
+                Err(_) => return Err(Error::InvalidStringData)
             };
             Ok(String::from(s))
         }

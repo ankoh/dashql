@@ -1,11 +1,8 @@
 use crate::error::Error;
-use crate::proto::{QueryResult, StatusCode};
-use crate::webapi_bindings::{
-    duckdb_webapi_access_buffer, duckdb_webapi_analyze_query, duckdb_webapi_disconnect,
-    duckdb_webapi_fetch_query_results, duckdb_webapi_init, duckdb_webapi_register_buffer, duckdb_webapi_release_buffer,
-    duckdb_webapi_run_query, duckdb_webapi_send_query, BufferHdl, ConnectionHdl, Response,
-};
+use crate::proto::{QueryPlan, QueryResult, QueryResultChunk, StatusCode};
+use crate::webapi_bindings::*;
 use std::os::raw::c_char;
+use std::ffi::CStr;
 
 /// A buffer for webapi results
 pub struct Buffer<'conn, T> {
@@ -15,7 +12,8 @@ pub struct Buffer<'conn, T> {
     table: Option<T>,
 }
 
-impl<'conn, 'buffer, T: flatbuffers::Follow<'buffer, Inner = T>> Buffer<'conn, T> {
+/// The buffer implementation
+impl<'buffer, 'conn: 'buffer, T: 'buffer + flatbuffers::Follow<'buffer, Inner = T>> Buffer<'conn, T> {
     /// Create from data
     pub fn from_data(connection: &'conn Connection, data_handle: BufferHdl, data_size: usize) -> Self {
         Self {
@@ -27,12 +25,12 @@ impl<'conn, 'buffer, T: flatbuffers::Follow<'buffer, Inner = T>> Buffer<'conn, T
     }
 
     /// Access a buffer
-    pub fn access(&'buffer mut self) -> &'buffer T {
+    pub fn access(&mut self) -> &T {
         unsafe {
             match self.table {
                 None => {
                     let p = self.connection.access_buffer(self.data_handle);
-                    let s: &'buffer [u8] = std::slice::from_raw_parts(p, self.data_size);
+                    let s = std::slice::from_raw_parts(p, self.data_size);
                     self.table = Some(flatbuffers::get_root::<T>(s));
                     self.table.as_ref().unwrap()
                 }
@@ -42,6 +40,7 @@ impl<'conn, 'buffer, T: flatbuffers::Follow<'buffer, Inner = T>> Buffer<'conn, T
     }
 }
 
+/// Release the buffer when dropped
 impl<'conn, T> Drop for Buffer<'conn, T> {
     /// Drop a buffer
     fn drop(&mut self) {
@@ -55,6 +54,11 @@ pub struct Connection {
 
 #[allow(dead_code)]
 impl Connection {
+    /// Construct a connection from a handle
+    pub fn from_handle(conn: ConnectionHdl) -> Self {
+        Self { conn }
+    }
+
     /// Disconnect
     pub fn disconnect(&self) -> Result<(), ()> {
         unsafe {
@@ -85,7 +89,7 @@ impl Connection {
             duckdb_webapi_run_query(&mut r, self.conn, text);
             if r.status_code == (StatusCode::ERROR as u64) {
                 let err = r.as_error()?;
-                return Err(Error::RawError(err));
+                return Err(Error::Raw(err));
             }
             let (b, n) = r.as_buffer();
             Ok(Buffer::from_data(self, b, n))
@@ -93,13 +97,13 @@ impl Connection {
     }
 
     /// Send a query
-    pub fn send_query<'conn>(&'conn self, text: *const c_char) -> Result<Buffer<'conn, QueryResult>, Error> {
+    pub fn send_query<'conn>(&'conn self, text: &CStr) -> Result<Buffer<'conn, QueryResult>, Error> {
         let mut r = Response::default();
         unsafe {
-            duckdb_webapi_send_query(&mut r, self.conn, text);
+            duckdb_webapi_send_query(&mut r, self.conn, text.as_ptr());
             if r.status_code == (StatusCode::ERROR as u64) {
                 let err = r.as_error()?;
-                return Err(Error::RawError(err));
+                return Err(Error::Raw(err));
             }
             let (b, n) = r.as_buffer();
             Ok(Buffer::from_data(self, b, n))
@@ -107,33 +111,48 @@ impl Connection {
     }
 
     /// Fetch query results
-    pub fn fetch_query_results(&self) {
-        let mut response = Response::default();
+    pub fn fetch_query_results<'conn>(&'conn self) -> Result<Buffer<'conn, QueryResultChunk>, Error> {
+        let mut r = Response::default();
         unsafe {
-            duckdb_webapi_fetch_query_results(&mut response, self.conn);
+            duckdb_webapi_fetch_query_results(&mut r, self.conn);
+            if r.status_code == (StatusCode::ERROR as u64) {
+                let err = r.as_error()?;
+                return Err(Error::Raw(err));
+            }
+            let (b, n) = r.as_buffer();
+            Ok(Buffer::from_data(self, b, n))
         }
     }
 
     /// Analyze query
-    pub fn analyze_query(&self, text: *const c_char) {
-        let mut response = Response::default();
+    pub fn analyze_query<'conn>(&'conn self, text: *const c_char) -> Result<Buffer<'conn, QueryPlan>, Error> {
+        let mut r = Response::default();
         unsafe {
-            duckdb_webapi_analyze_query(&mut response, self.conn, text);
+            duckdb_webapi_analyze_query(&mut r, self.conn, text);
+            if r.status_code == (StatusCode::ERROR as u64) {
+                let err = r.as_error()?;
+                return Err(Error::Raw(err));
+            }
+            let (b, n) = r.as_buffer();
+            Ok(Buffer::from_data(self, b, n))
         }
     }
 }
 
-pub struct WebAPI {}
+pub struct DuckDB {}
 
 #[allow(dead_code)]
-impl WebAPI {
+impl DuckDB {
     /// Init webapi
     pub fn init() {
         unsafe { duckdb_webapi_init() }
     }
 
     /// Connect
-    pub fn connect() -> Result<Connection, ()> {
-        Err(())
+    pub fn connect() -> Result<Connection, Error> {
+        unsafe {
+            let conn = duckdb_webapi_connect();
+            Ok(Connection::from_handle(conn))
+        }
     }
 }

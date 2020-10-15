@@ -16,6 +16,9 @@ static std::unique_ptr<WebAPI> instance;
 
 extern "C" {
 
+using ConnectionHdl = uintptr_t;
+using BufferHdl = uintptr_t;
+
 /// Create a conn
 void duckdb_webapi_init() {
     // Prepare the logger
@@ -32,48 +35,60 @@ void duckdb_webapi_init() {
     // spdlog::info("initialized web api");
 }
 /// Create a conn
-WebAPI::Connection* duckdb_webapi_connect() {
-    return &instance->Connect();
+ConnectionHdl duckdb_webapi_connect() {
+    return reinterpret_cast<ConnectionHdl>(&instance->Connect());
 }
 /// End a conn
-void duckdb_webapi_disconnect(WebAPI::Connection* conn) {
-    instance->Disconnect(reinterpret_cast<WebAPI::Connection*>(conn));
+void duckdb_webapi_disconnect(ConnectionHdl connHdl) {
+    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+    instance->Disconnect(c);
 }
 
 /// Register a buffer
-void duckdb_webapi_register_buffer(WebAPI::Connection* conn, void* buffer, uint32_t buffer_size) {
-    conn->context_data().RegisterBuffer(
+void duckdb_webapi_register_buffer(ConnectionHdl connHdl, void* buffer, uint32_t buffer_size) {
+    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+    c->context_data().RegisterBuffer(
         nonstd::span{static_cast<std::byte*>(buffer), static_cast<long>(buffer_size)});
 }
 
 /// Release a buffer
-void duckdb_webapi_release_buffer(WebAPI::Connection* conn, void* buffer) {
-    auto b = reinterpret_cast<void*>(buffer);
-    conn->context_data().ReleaseBuffer(b);
+void duckdb_webapi_release_buffer(ConnectionHdl connHdl, BufferHdl bufferHdl) {
+    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+    auto b = reinterpret_cast<void*>(bufferHdl);
+    c->context_data().ReleaseBuffer(b);
+}
+
+/// Access a buffer
+void* duckdb_webapi_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl) {
+    return reinterpret_cast<void*>(bufferHdl);
 }
 
 /// Run a query
-void duckdb_webapi_run_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char* text) {
-    auto r = conn->RunQuery(text);
-    conn->context_data().Respond(move(r), *packed);
+void duckdb_webapi_run_query(WebAPI::Response* packed, ConnectionHdl connHdl, const char* text) {
+    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+    auto r = c->RunQuery(text);
+    c->context_data().Respond(move(r), *packed);
 }
 
 /// Send a query
-void duckdb_webapi_send_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char* text) {
-    auto r = conn->SendQuery(text);
-    conn->context_data().Respond(move(r), *packed);
+void duckdb_webapi_send_query(WebAPI::Response* packed, ConnectionHdl connHdl, const char* text) {
+    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+    auto r = c->SendQuery(text);
+    c->context_data().Respond(move(r), *packed);
 }
 
 /// Fetch query results
-void duckdb_webapi_fetch_query_results(WebAPI::Response* packed, WebAPI::Connection* conn) {
-    auto r = conn->FetchQueryResults();
-    conn->context_data().Respond(move(r), *packed);
+void duckdb_webapi_fetch_query_results(WebAPI::Response* packed, ConnectionHdl connHdl) {
+    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+    auto r = c->FetchQueryResults();
+    c->context_data().Respond(move(r), *packed);
 }
 
 /// Analyze a query
-void duckdb_webapi_analyze_query(WebAPI::Response* packed, WebAPI::Connection* conn, const char* text) {
-    auto r = conn->AnalyzeQuery(text);
-    conn->context_data().Respond(move(r), *packed);
+void duckdb_webapi_analyze_query(WebAPI::Response* packed, ConnectionHdl connHdl, const char* text) {
+    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+    auto r = c->AnalyzeQuery(text);
+    c->context_data().Respond(move(r), *packed);
 }
 
 /// Generate a table
