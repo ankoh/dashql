@@ -4,7 +4,7 @@ use crate::webapi_bindings::*;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
-/// A buffer for webapi results
+/// A buffer for WebAPI results
 pub struct Buffer<'conn, T> {
     connection: &'conn Connection,
     data_handle: BufferHdl,
@@ -145,6 +145,7 @@ impl Drop for Connection {
     }
 }
 
+/// A DuckDB database
 pub struct DuckDB {}
 
 #[allow(dead_code)]
