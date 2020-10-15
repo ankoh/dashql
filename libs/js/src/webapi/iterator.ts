@@ -91,9 +91,9 @@ export abstract class QueryResultChunkIterator {
             case proto.vector.VectorVariant.NONE:
             case proto.vector.VectorVariant.VectorI128:
             case proto.vector.VectorVariant.VectorI64:
+            case proto.vector.VectorVariant.VectorU64:
             case proto.vector.VectorVariant.VectorInterval:
             case proto.vector.VectorVariant.VectorString:
-            case proto.vector.VectorVariant.VectorU64:
             default:
                 return;
         }

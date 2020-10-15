@@ -6,6 +6,7 @@ use std::fmt;
 pub enum Error {
     Raw(String),
     InvalidStringData,
+    IndexOutOfBounds,
 }
 
 impl From<std::ffi::NulError> for Error {
@@ -19,6 +20,7 @@ impl fmt::Display for Error {
         match self {
             Error::Raw(e) => write!(f, "{}", e),
             Error::InvalidStringData => write!(f, "invalid string data"),
+            Error::IndexOutOfBounds => write!(f, "index out of bounds"),
         }
     }
 }
