@@ -1,15 +1,19 @@
+// Copyright (c) 2020 The DashQL Authors
+
 use crate::error::Error;
 use crate::proto::{QueryPlan, QueryResult, QueryResultChunk, StatusCode};
 use crate::webapi_bindings::*;
 use std::ffi::CStr;
 use std::os::raw::c_char;
+use std::marker::PhantomData;
 
 /// A buffer for WebAPI results
 pub struct Buffer<'conn, T> {
-    connection: &'conn Connection,
+    pub connection: &'conn Connection,
     data_handle: BufferHdl,
     data_size: usize,
-    table: Option<T>,
+    data_ptr: *const u8,
+    data_phantom: PhantomData<T>,
 }
 
 impl<'buffer, 'conn: 'buffer, T: 'buffer + flatbuffers::Follow<'buffer, Inner = T>> Buffer<'conn, T> {
@@ -19,20 +23,19 @@ impl<'buffer, 'conn: 'buffer, T: 'buffer + flatbuffers::Follow<'buffer, Inner = 
             connection,
             data_handle,
             data_size,
-            table: None,
+            data_ptr: std::ptr::null(),
+            data_phantom: PhantomData,
         }
     }
 
     /// Access a buffer
-    pub fn access(&mut self) -> &T {
-        match self.table {
-            Some(ref t) => t,
-            None => unsafe {
-                let p = self.connection.access_buffer(self.data_handle);
-                let s = std::slice::from_raw_parts(p, self.data_size);
-                self.table = Some(flatbuffers::get_root::<T>(s));
-                self.table.as_ref().unwrap()
-            }
+    pub fn access(&mut self) -> T {
+        if self.data_ptr.is_null() {
+            self.data_ptr = self.connection.access_buffer(self.data_handle);
+        }
+        unsafe {
+            let s = std::slice::from_raw_parts(self.data_ptr, self.data_size);
+            flatbuffers::get_root::<T>(s)
         }
     }
 }

@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 use std::fmt;
 
 #[derive(Debug, Clone)]

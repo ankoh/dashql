@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 use crate::error::Error;
 use std::ffi::CStr;
 use std::os::raw::c_char;

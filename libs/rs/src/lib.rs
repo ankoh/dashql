@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 pub mod error;
 pub mod iterator;
 pub mod webapi;
