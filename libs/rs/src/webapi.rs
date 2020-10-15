@@ -25,15 +25,13 @@ impl<'buffer, 'conn: 'buffer, T: 'buffer + flatbuffers::Follow<'buffer, Inner = 
 
     /// Access a buffer
     pub fn access(&mut self) -> &T {
-        unsafe {
-            match self.table {
-                None => {
-                    let p = self.connection.access_buffer(self.data_handle);
-                    let s = std::slice::from_raw_parts(p, self.data_size);
-                    self.table = Some(flatbuffers::get_root::<T>(s));
-                    self.table.as_ref().unwrap()
-                }
-                Some(ref t) => t,
+        match self.table {
+            Some(ref t) => t,
+            None => unsafe {
+                let p = self.connection.access_buffer(self.data_handle);
+                let s = std::slice::from_raw_parts(p, self.data_size);
+                self.table = Some(flatbuffers::get_root::<T>(s));
+                self.table.as_ref().unwrap()
             }
         }
     }
