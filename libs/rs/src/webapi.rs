@@ -1,8 +1,8 @@
 use crate::error::Error;
 use crate::proto::{QueryPlan, QueryResult, QueryResultChunk, StatusCode};
 use crate::webapi_bindings::*;
-use std::os::raw::c_char;
 use std::ffi::CStr;
+use std::os::raw::c_char;
 
 /// A buffer for webapi results
 pub struct Buffer<'conn, T> {
@@ -12,7 +12,6 @@ pub struct Buffer<'conn, T> {
     table: Option<T>,
 }
 
-/// The buffer implementation
 impl<'buffer, 'conn: 'buffer, T: 'buffer + flatbuffers::Follow<'buffer, Inner = T>> Buffer<'conn, T> {
     /// Create from data
     pub fn from_data(connection: &'conn Connection, data_handle: BufferHdl, data_size: usize) -> Self {
@@ -40,14 +39,13 @@ impl<'buffer, 'conn: 'buffer, T: 'buffer + flatbuffers::Follow<'buffer, Inner = 
     }
 }
 
-/// Release the buffer when dropped
 impl<'conn, T> Drop for Buffer<'conn, T> {
-    /// Drop a buffer
     fn drop(&mut self) {
         self.connection.release_buffer(self.data_handle);
     }
 }
 
+/// A connection to DuckDB
 pub struct Connection {
     conn: ConnectionHdl,
 }
@@ -135,6 +133,14 @@ impl Connection {
             }
             let (b, n) = r.as_buffer();
             Ok(Buffer::from_data(self, b, n))
+        }
+    }
+}
+
+impl Drop for Connection {
+    fn drop(&mut self) {
+        unsafe {
+            duckdb_webapi_disconnect(self.conn);
         }
     }
 }
