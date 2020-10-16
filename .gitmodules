@@ -13,3 +13,6 @@
 [submodule "submodules/benchmark"]
 	path = submodules/benchmark
 	url = https://github.com/google/benchmark
+[submodule "submodules/dashql-dev"]
+	path = submodules/dashql-dev
+	url = https://github.com/dashql/dashql-dev

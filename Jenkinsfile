@@ -1,8 +1,7 @@
 pipeline {
     agent {
         dockerfile {
-            filename 'Dockerfile'
-            dir './dev/'
+            filename './submodules/dashql-dev/Dockerfile'
             additionalBuildArgs '--build-arg EMSDK_VERSION=2.0.4 --build-arg NODE_VERSION=v14.13.0'
             args '-v $HOME/.emscripten_cache:/mnt/emscripten_cache -v $HOME/.npm_cache:/mnt/npm_cache -v $HOME/.ccache:/mnt/ccache'
         }

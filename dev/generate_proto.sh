@@ -11,7 +11,7 @@ CPP_PROTO_DIR="${PROJECT_ROOT}/webapi/include/duckdb_webapi/proto"
 RS_PROTO_DIR="${PROJECT_ROOT}/libs/rs/src/proto"
 TS_PROTO_DIR="${PROJECT_ROOT}/libs/js/src/proto"
 
-FLATC="${PROJECT_ROOT}/dev/flatc/install/bin/flatc"
+FLATC="${PROJECT_ROOT}/submodules/dashql-dev/build/flatc/install/bin/flatc"
 
 TMP=$(mktemp -d)
 
