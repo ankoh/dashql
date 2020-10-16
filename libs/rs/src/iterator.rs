@@ -1,9 +1,26 @@
 // Copyright (c) 2020 The DashQL Authors
 
 use crate::error::Error;
-use crate::proto::{Interval, QueryResult, QueryResultChunk, SQLType, VectorVariant};
+use crate::proto::{Interval, QueryResult, QueryResultChunk, SQLType, VectorVariant, I128};
 use crate::webapi::{Buffer, Connection};
 
+/// Can be derived from a number
+pub trait FromNumber:
+    From<i8>
+    + From<u8>
+    + From<i16>
+    + From<u16>
+    + From<i32>
+    + From<u32>
+    + From<i64>
+    + From<u64>
+    + From<i128>
+    + From<f32>
+    + From<f64>
+{
+}
+
+/// An stream of query result chunks
 pub struct QueryResultChunkStream<'chunks, 'result: 'chunks, 'conn: 'result> {
     connection: &'conn Connection,
     result: &'result QueryResult<'result>,
@@ -57,6 +74,7 @@ impl<'chunks, 'result: 'chunks, 'conn: 'result> QueryResultChunkStream<'chunks, 
         Ok(self.current_chunk.unwrap().row_count() > 0)
     }
 
+    /// Iterate over a byte vector
     fn iterate_raw_vector<A: Copy, B: From<A>, F: Fn(usize, Option<&B>) -> ()>(
         &self,
         values: Option<&[A]>,
@@ -84,6 +102,7 @@ impl<'chunks, 'result: 'chunks, 'conn: 'result> QueryResultChunkStream<'chunks, 
         }
     }
 
+    /// Iterate over a number vector
     fn iterate_number_vector<
         'vector,
         A: flatbuffers::Follow<'vector>,
@@ -116,6 +135,7 @@ impl<'chunks, 'result: 'chunks, 'conn: 'result> QueryResultChunkStream<'chunks, 
         }
     }
 
+    /// Iterate over a string vector
     fn iterate_string_vector<'a, V: Default, F: Fn(usize, Option<&V>) -> ()>(
         &self,
         values: Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>,
@@ -139,23 +159,40 @@ impl<'chunks, 'result: 'chunks, 'conn: 'result> QueryResultChunkStream<'chunks, 
         }
     }
 
-    pub fn iterate_column<
-        V: Default
-            + Clone
-            + From<i8>
-            + From<u8>
-            + From<i16>
-            + From<u16>
-            + From<i32>
-            + From<u32>
-            + From<i64>
-            + From<u64>
-            + From<i128>
-            + From<f32>
-            + From<f64>
-            + From<Interval>,
+    /// Iterate over a number vector
+    fn iterate_i128_vector<
+        'vector,
+        V: From<i128>,
         F: Fn(usize, Option<&V>) -> (),
     >(
+        &'vector self,
+        values: Option<&[I128]>,
+        nulls: Option<&[bool]>,
+        f: &F,
+    ) {
+        match (values, nulls) {
+            (None, _) => return,
+            (Some(vs), None) => {
+                for i in 0..vs.len() {
+                    let v = ((vs[i].upper() as i128) << 64) & (vs[i].lower() as i128);
+                    f(i, Some(&v.into()));
+                }
+            }
+            (Some(vs), Some(ns)) => {
+                for i in 0..vs.len() {
+                    if ns[i] {
+                        f(i, None);
+                    } else {
+                        let v = ((vs[i].upper() as i128) << 64) & (vs[i].lower() as i128);
+                        f(i, Some(&v.into()));
+                    };
+                }
+            }
+        }
+    }
+
+    /// Iterate over a column
+    pub fn iterate_column<V: Default + Clone + FromNumber + From<Interval>, F: Fn(usize, Option<&V>) -> ()>(
         &self,
         cid: usize,
         f: &F,
@@ -216,7 +253,10 @@ impl<'chunks, 'result: 'chunks, 'conn: 'result> QueryResultChunkStream<'chunks, 
                 let v = column.variant_as_vector_f64().unwrap();
                 self.iterate_number_vector(v.values(), v.null_mask(), f);
             }
-            VectorVariant::VectorI128 => (),
+            VectorVariant::VectorI128 => {
+                let v = column.variant_as_vector_i128().unwrap();
+                self.iterate_i128_vector(v.values(), v.null_mask(), f);
+            }
             VectorVariant::VectorInterval => (),
             VectorVariant::VectorString => {
                 let v = column.variant_as_vector_string().unwrap();
