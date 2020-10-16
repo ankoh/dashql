@@ -20,23 +20,23 @@ pipeline {
             steps {
                 sh 'chown -R "$USER" /mnt/npm_cache /mnt/emscripten_cache'
                 sh 'git submodule update --init --recursive'
-                sh 'mkdir -p ./webapi/build/emscripten'
+                sh 'mkdir -p ./libs/cpp/build/emscripten'
                 sh './dev/reset_duckdb.sh'
             }
         }
 
         stage('CPP/Build') {
             steps {
-                sh 'cmake -S./webapi/ -B./webapi/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
+                sh 'cmake -S./libs/cpp/ -B./libs/cpp/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
                 sh 'ccache -s'
-                sh 'make -C./webapi/build/debug -j$(nproc)'
+                sh 'make -C./libs/cpp/build/debug -j$(nproc)'
                 sh 'ccache -s'
             }
         }
 
         stage('CPP/Test') {
             steps {
-                sh './webapi/build/debug/tester'
+                sh './libs/cpp/build/debug/tester'
             }
         }
 
@@ -45,13 +45,13 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emcmake cmake -S./webapi/ -B./webapi/build/emscripten -DCMAKE_BUILD_TYPE=Release
+                    emcmake cmake -S./libs/cpp/ -B./libs/cpp/build/emscripten -DCMAKE_BUILD_TYPE=Release
                 '''
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emmake make -C./webapi/build/emscripten -j$(nproc) duckdb_webapi duckdb_nodeapi
-                    cp ./webapi/build/emscripten/duckdb_webapi.{wasm,js,worker.js} ./libs/js/src/duckdb/
-                    cp ./webapi/build/emscripten/duckdb_nodeapi.{wasm,js,worker.js} ./libs/js/src/duckdb/
+                    emmake make -C./libs/cpp/build/emscripten -j$(nproc) duckdb_libs/cpp duckdb_nodeapi
+                    cp ./libs/cpp/build/emscripten/duckdb_libs/cpp.{wasm,js,worker.js} ./libs/js/src/duckdb/
+                    cp ./libs/cpp/build/emscripten/duckdb_nodeapi.{wasm,js,worker.js} ./libs/js/src/duckdb/
                 '''
             }
         }
