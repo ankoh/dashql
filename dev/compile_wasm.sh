@@ -6,9 +6,9 @@ set -euo pipefail
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
 IMAGE_TAG="0.1"
-WEBAPI_BUILD_DIR="${PROJECT_ROOT}/libs/cpp/build/emscripten"
-WEBAPI_SOURCE_DIR="${PROJECT_ROOT}/libs/cpp"
-LIB_DIR="${PROJECT_ROOT}/libs/js/src/duckdb"
+CPP_BUILD_DIR="${PROJECT_ROOT}/libs/cpp/build/emscripten"
+CPP_SOURCE_DIR="${PROJECT_ROOT}/libs/cpp"
+JS_LIB_DIR="${PROJECT_ROOT}/libs/js/src/duckdb"
 
 CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/mnt/emscripten_cache/ dashql/dashql-parser-dev:${IMAGE_TAG} "
 EMCONFIGURE="${CMD_PREFIX} emcmake"
@@ -16,7 +16,7 @@ EMMAKE="${CMD_PREFIX} emmake"
 
 set -x
 
-mkdir -p ${WEBAPI_BUILD_DIR}
+mkdir -p ${CPP_BUILD_DIR}
 
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
@@ -30,7 +30,7 @@ ${EMMAKE} make \
     -j${CORES} \
     duckdb_webapi duckdb_nodeapi
 
-mkdir -p "${LIB_DIR}"
+mkdir -p "${JS_LIB_DIR}"
 
-cp ${WEBAPI_SOURCE_DIR}/build/emscripten/duckdb_*.{wasm,js,worker.js} "${LIB_DIR}"
+cp ${CPP_SOURCE_DIR}/build/emscripten/dashql_parser_*.{wasm,js,worker.js} "${JS_LIB_DIR}"
 

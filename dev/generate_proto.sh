@@ -6,7 +6,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 
 PROTO_DIR="${PROJECT_ROOT}/proto"
-PROTO_AMALGAMATION_FILE="${PROTO_DIR}/proto.fbs"
+PROTO_AMALGAMATION_FILE="${PROTO_DIR}/dashql_parser/proto.fbs"
 CPP_PROTO_DIR="${PROJECT_ROOT}/libs/cpp/include/dashql_parser/proto"
 RS_PROTO_DIR="${PROJECT_ROOT}/libs/rs/src/proto"
 TS_PROTO_DIR="${PROJECT_ROOT}/libs/js/src/proto"
@@ -28,7 +28,7 @@ ${FLATC} -I ${PROTO_DIR} -o ${RS_PROTO_DIR} ${PROTO_AMALGAMATION_FILE} --rust \
     || { echo "[ ERR ] ${PROTO_AMALGAMATION_FILE}: Rust"; exit 1; }
 
 # Generate C++
-for PROTO_FILE in ${PROTO_DIR}/*.fbs; do
+for PROTO_FILE in ${PROTO_DIR}/dashql_parser/*.fbs; do
     PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
     PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
 

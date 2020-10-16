@@ -1,0 +1,7 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace dashql_parser.proto;
+
+table HelloWorld {
+    foo: string;
+}
