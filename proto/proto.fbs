@@ -1,8 +1,0 @@
-// Copyright (c) 2020 The DashQL Authors
-
-include "api.fbs";
-include "query_plan.fbs";
-include "query_result.fbs";
-include "sql_type.fbs";
-include "tablegen.fbs";
-include "vector.fbs";
