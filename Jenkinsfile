@@ -49,8 +49,8 @@ pipeline {
                 '''
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emmake make -C./libs/cpp/build/emscripten -j$(nproc) duckdb_libs/cpp duckdb_nodeapi
-                    cp ./libs/cpp/build/emscripten/duckdb_libs/cpp.{wasm,js,worker.js} ./libs/js/src/duckdb/
+                    emmake make -C./libs/cpp/build/emscripten -j$(nproc) duckdb_webapi duckdb_nodeapi
+                    cp ./libs/cpp/build/emscripten/duckdb_webapi.{wasm,js,worker.js} ./libs/js/src/duckdb/
                     cp ./libs/cpp/build/emscripten/duckdb_nodeapi.{wasm,js,worker.js} ./libs/js/src/duckdb/
                 '''
             }
