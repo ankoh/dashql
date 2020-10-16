@@ -5,8 +5,8 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
-WEBAPI_SOURCE_DIR="${PROJECT_ROOT}/webapi"
-WEBAPI_BUILD_DIR="${PROJECT_ROOT}/webapi/build/debug"
+WEBAPI_SOURCE_DIR="${PROJECT_ROOT}/libs/cpp"
+WEBAPI_BUILD_DIR="${PROJECT_ROOT}/libs/cpp/build/debug"
 
 [ -x "$(command -v cmake)" ] \
     && { echo "[ OK  ] Command: cmake"; } \
