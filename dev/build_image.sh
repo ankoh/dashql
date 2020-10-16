@@ -6,7 +6,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
 DOCKER_IMAGE_NAMESPACE="dashql"
-DOCKER_IMAGE_NAME="duckdbjs-dev"
+DOCKER_IMAGE_NAME="duckdb.wasm-dev"
 DOCKER_IMAGE_TAG="0.1"
 set -x
 
