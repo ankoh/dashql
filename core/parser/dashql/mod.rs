@@ -202,6 +202,82 @@ mod tests {
     }
 
     #[test]
+    fn parse_load_statement_file_loader() -> Result<(), Box<dyn std::error::Error>> {
+        let input = "LOAD foo FROM FILE;";
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+        let (result, _) = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 1);
+
+        let load_statement = match &result[0] {
+            syntax::Statement::LoadStatement(statement) => Ok(statement),
+            _ => Err("Unexpected statement"),
+        }?;
+
+        assert_eq!(load_statement.location, ((1, 1), (1, 20)).into());
+        assert_eq!(load_statement.identifier.location, ((1, 6), (1, 9)).into());
+        assert_eq!(load_statement.identifier.string, "foo");
+
+        let file_loader = match &load_statement.method {
+            syntax::LoadMethod::File(loader) => Ok(loader),
+            _ => Err("Unexpected loader"),
+        }?;
+
+        assert_eq!(file_loader.location, ((1, 15), (1, 19)).into());
+        assert_eq!(file_loader.variable, None);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_load_statement_file_loader_with_variable(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let input = "LOAD foo FROM FILE $file;";
+
+        let lexerdef = lexer::lexerdef();
+        let lexer = lexerdef.lexer(&input);
+
+        let (result, errors) = parser::parse(&lexer);
+        println!("{:#?}", errors);
+        let (result, _) = result.ok_or("Unexpected missing result")??;
+
+        assert_eq!(errors.len(), 0);
+        assert_eq!(result.len(), 1);
+
+        let load_statement = match &result[0] {
+            syntax::Statement::LoadStatement(statement) => Ok(statement),
+            _ => Err("Unexpected statement"),
+        }?;
+
+        assert_eq!(load_statement.location, ((1, 1), (1, 26)).into());
+        assert_eq!(load_statement.identifier.location, ((1, 6), (1, 9)).into());
+        assert_eq!(load_statement.identifier.string, "foo");
+
+        let file_loader = match &load_statement.method {
+            syntax::LoadMethod::File(loader) => Ok(loader),
+            _ => Err("Unexpected loader"),
+        }?;
+
+        assert_eq!(file_loader.location, ((1, 15), (1, 22)).into());
+        
+        let variable = match file_loader.variable {
+            Some(variable) => Ok(variable),
+            None => Err("Unexpected missing variable")
+        }?;
+
+        assert_eq!(variable.location, ((1, 20), (1, 25)).into());
+        assert_eq!(variable.identifier.location, ((1, 21), (1, 25)).into());
+        assert_eq!(variable.identifier.string, "file");
+
+        Ok(())
+    }
+
+    #[test]
     fn parse_load_statement_http_loader_with_attributes() -> Result<(), Box<dyn std::error::Error>>
     {
         let input = indoc! {r#"

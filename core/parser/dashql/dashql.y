@@ -123,8 +123,8 @@ HttpMethod -> Produce<'input, HttpMethod<'input>>:
   ;
 
 Variable -> Produce<'input, Option<Variable<'input>>>:
-                    { Ok(None, Location::invalid()) }
-    "$" Identifier  { let identifier = $2?; let location = (($lexer, $1?).into(), identifier.1).into(); Ok((Some(Variable { location, identifier: identifier.0 }), location)) }
+                    { Ok((None, Location::invalid())) }
+  | "GET" Identifier  { let identifier = $2?; let location = (($lexer, $1?).into(), identifier.1).into(); Ok((Some(Variable { location, identifier: identifier.0 }), location)) }
   ;
 
 ExtractStatement -> Produce<'input, ExtractStatement<'input>>:

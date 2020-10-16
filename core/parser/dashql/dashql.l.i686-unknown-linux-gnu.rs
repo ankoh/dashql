@@ -72,99 +72,99 @@ Rule::new(Some(53), Some("SQL_WITH".to_string()), "(?i)with[^;]*".to_string()).u
     LRNonStreamingLexerDef::from_rules(rules)
 }
 #[allow(dead_code)]
-pub const T_BAR: u32 = 8;
+pub const T_USING: u32 = 45;
 #[allow(dead_code)]
-pub const T_VISUALIZE: u32 = 46;
+pub const T_DATETIME: u32 = 13;
 #[allow(dead_code)]
-pub const T_BUBBLE: u32 = 10;
-#[allow(dead_code)]
-pub const T_AREA: u32 = 6;
-#[allow(dead_code)]
-pub const T_CSV: u32 = 11;
+pub const T_GET: u32 = 22;
 #[allow(dead_code)]
 pub const T_PARAMETER: u32 = 1;
 #[allow(dead_code)]
-pub const T_TEXT: u32 = 40;
-#[allow(dead_code)]
-pub const T_TIMESTAMP: u32 = 42;
-#[allow(dead_code)]
-pub const T_HTTP: u32 = 26;
-#[allow(dead_code)]
-pub const T_DATE: u32 = 12;
-#[allow(dead_code)]
-pub const T_ENCODING: u32 = 15;
-#[allow(dead_code)]
-pub const T_USING: u32 = 45;
-#[allow(dead_code)]
-pub const T_FALSE: u32 = 17;
-#[allow(dead_code)]
 pub const T_PUT: u32 = 35;
 #[allow(dead_code)]
-pub const T_METHOD: u32 = 30;
+pub const T_URL: u32 = 44;
 #[allow(dead_code)]
-pub const T_FORMAT: u32 = 20;
+pub const T_FROM: u32 = 21;
 #[allow(dead_code)]
-pub const T_LINE: u32 = 28;
-#[allow(dead_code)]
-pub const T_BOX: u32 = 9;
-#[allow(dead_code)]
-pub const T_TRUE: u32 = 43;
-#[allow(dead_code)]
-pub const T_TYPE: u32 = 2;
-#[allow(dead_code)]
-pub const T_INTEGER: u32 = 27;
-#[allow(dead_code)]
-pub const T_SCATTER: u32 = 38;
-#[allow(dead_code)]
-pub const T_HISTOGRAM: u32 = 25;
-#[allow(dead_code)]
-pub const T_SQL_WITH: u32 = 53;
-#[allow(dead_code)]
-pub const T_GRID: u32 = 23;
-#[allow(dead_code)]
-pub const T_LOAD: u32 = 29;
-#[allow(dead_code)]
-pub const T_DECLARE: u32 = 0;
-#[allow(dead_code)]
-pub const T_QUERY: u32 = 36;
-#[allow(dead_code)]
-pub const T_PIE: u32 = 32;
+pub const T_CSV: u32 = 11;
 #[allow(dead_code)]
 pub const T_AS: u32 = 7;
 #[allow(dead_code)]
+pub const T_HEADER: u32 = 24;
+#[allow(dead_code)]
+pub const T_QUERY: u32 = 36;
+#[allow(dead_code)]
+pub const T_QUOTE: u32 = 37;
+#[allow(dead_code)]
+pub const T_INTEGER: u32 = 27;
+#[allow(dead_code)]
+pub const T_SINGLY_QUOTED_STRING: u32 = 4;
+#[allow(dead_code)]
+pub const T_BAR: u32 = 8;
+#[allow(dead_code)]
+pub const T_HISTOGRAM: u32 = 25;
+#[allow(dead_code)]
+pub const T_TIMESTAMP: u32 = 42;
+#[allow(dead_code)]
+pub const T_LOAD: u32 = 29;
+#[allow(dead_code)]
+pub const T_METHOD: u32 = 30;
+#[allow(dead_code)]
 pub const T_SQL_SELECT: u32 = 52;
+#[allow(dead_code)]
+pub const T_EXTRACT: u32 = 16;
+#[allow(dead_code)]
+pub const T_BOX: u32 = 9;
+#[allow(dead_code)]
+pub const T_LINE: u32 = 28;
+#[allow(dead_code)]
+pub const T_NUMBER: u32 = 31;
+#[allow(dead_code)]
+pub const T_FILE: u32 = 18;
+#[allow(dead_code)]
+pub const T_FALSE: u32 = 17;
+#[allow(dead_code)]
+pub const T_POST: u32 = 34;
+#[allow(dead_code)]
+pub const T_HTTP: u32 = 26;
+#[allow(dead_code)]
+pub const T_TRUE: u32 = 43;
+#[allow(dead_code)]
+pub const T_IDENTIFIER: u32 = 5;
+#[allow(dead_code)]
+pub const T_TABLE: u32 = 39;
+#[allow(dead_code)]
+pub const T_DELIMITER: u32 = 14;
+#[allow(dead_code)]
+pub const T_FORMAT: u32 = 20;
+#[allow(dead_code)]
+pub const T_AREA: u32 = 6;
 #[allow(dead_code)]
 pub const T_FLOAT: u32 = 19;
 #[allow(dead_code)]
 pub const T_TIME: u32 = 41;
 #[allow(dead_code)]
-pub const T_QUOTE: u32 = 37;
+pub const T_BUBBLE: u32 = 10;
 #[allow(dead_code)]
-pub const T_NUMBER: u32 = 31;
+pub const T_DECLARE: u32 = 0;
 #[allow(dead_code)]
-pub const T_DATETIME: u32 = 13;
+pub const T_SCATTER: u32 = 38;
 #[allow(dead_code)]
-pub const T_IDENTIFIER: u32 = 5;
-#[allow(dead_code)]
-pub const T_FROM: u32 = 21;
-#[allow(dead_code)]
-pub const T_POST: u32 = 34;
+pub const T_PIE: u32 = 32;
 #[allow(dead_code)]
 pub const T_POINT: u32 = 33;
 #[allow(dead_code)]
-pub const T_URL: u32 = 44;
+pub const T_TYPE: u32 = 2;
 #[allow(dead_code)]
-pub const T_GET: u32 = 22;
+pub const T_TEXT: u32 = 40;
 #[allow(dead_code)]
-pub const T_HEADER: u32 = 24;
+pub const T_SQL_WITH: u32 = 53;
 #[allow(dead_code)]
-pub const T_DELIMITER: u32 = 14;
+pub const T_ENCODING: u32 = 15;
 #[allow(dead_code)]
-pub const T_SINGLY_QUOTED_STRING: u32 = 4;
+pub const T_DATE: u32 = 12;
 #[allow(dead_code)]
-pub const T_TABLE: u32 = 39;
+pub const T_GRID: u32 = 23;
 #[allow(dead_code)]
-pub const T_FILE: u32 = 18;
-#[allow(dead_code)]
-pub const T_EXTRACT: u32 = 16;
+pub const T_VISUALIZE: u32 = 46;
 }
