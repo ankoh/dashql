@@ -5,7 +5,7 @@ include(ExternalProject)
 # Google benchmark library
 ExternalProject_Add(
     benchmark_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/benchmark"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../submodules/benchmark"
     PREFIX "third_party/benchmark"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/benchmark/install"
     CMAKE_ARGS

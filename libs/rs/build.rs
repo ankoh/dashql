@@ -26,17 +26,17 @@ impl fmt::Display for Error {
 fn build() -> Result<(), Error> {
     if cfg!(debug_assertions) {
         let source_dir = env::current_dir()?;
-        let webapi_dir = source_dir.join("../../webapi");
-        let webapi_build_dir = if cfg!(debug_assertions) {
-            webapi_dir.join("build/debug")
+        let cpp_dir = source_dir.join("../cpp/");
+        let cpp_build_dir = if cfg!(debug_assertions) {
+            cpp_dir.join("build/debug")
         } else {
-            webapi_dir.join("build/release")
+            cpp_dir.join("build/release")
         };
-        let md = metadata(&webapi_build_dir);
+        let md = metadata(&cpp_build_dir);
         if md.is_err() || !md.unwrap().is_dir() {
-            return Err(Error::Raw(format!("couldn't find build directory of web api: {}", webapi_build_dir.display())))
+            return Err(Error::Raw(format!("couldn't find build directory of web api: {}", cpp_build_dir.display())))
         }
-        println!("cargo:rustc-link-search=native={}", webapi_build_dir.display());
+        println!("cargo:rustc-link-search=native={}", cpp_build_dir.display());
         println!("cargo:rustc-link-lib=static=duckdb_webapi_core");
         println!("cargo:rustc-link-lib=static=duckdb_webapi");
         println!("cargo:rustc-link-lib=dylib=c++");

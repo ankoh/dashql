@@ -60,7 +60,7 @@ include_directories(
 
 add_library(duckdb_webapi_core
     ${DUCKDB_SOURCE_FILE}
-    ${CMAKE_SOURCE_DIR}/../submodules/duckdb/src/amalgamation/duckdb.cpp
+    ${CMAKE_SOURCE_DIR}/../../submodules/duckdb/src/amalgamation/duckdb.cpp
     ${CMAKE_SOURCE_DIR}/src/webapi.cc
     ${CMAKE_SOURCE_DIR}/src/codec.cc
     ${CMAKE_SOURCE_DIR}/src/iterator.cc

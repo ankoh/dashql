@@ -23,7 +23,7 @@ CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
 ${EMCONFIGURE} cmake \
     -S/wd/libs/cpp/ \
-    -B/wd/lis/cpp/build/emscripten \
+    -B/wd/libs/cpp/build/emscripten \
     -DCMAKE_BUILD_TYPE=Release
 
 ${EMMAKE} make \

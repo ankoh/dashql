@@ -2,7 +2,7 @@
 
 include(ExternalProject)
 
-set(DUCKDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/duckdb")
+set(DUCKDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../submodules/duckdb")
 ExternalProject_Add(
     duckdb_ep
     SOURCE_DIR "${DUCKDB_SOURCE_DIR}"
