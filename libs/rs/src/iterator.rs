@@ -257,7 +257,10 @@ impl<'chunks, 'result: 'chunks, 'conn: 'result> QueryResultChunkStream<'chunks, 
                 let v = column.variant_as_vector_i128().unwrap();
                 self.iterate_i128_vector(v.values(), v.null_mask(), f);
             }
-            VectorVariant::VectorInterval => (),
+            VectorVariant::VectorInterval => {
+                let v = column.variant_as_vector_interval().unwrap();
+                self.iterate_raw_vector(v.values(), v.null_mask(), f);
+            }
             VectorVariant::VectorString => {
                 let v = column.variant_as_vector_string().unwrap();
                 self.iterate_string_vector(v.values(), v.null_mask(), f);
