@@ -1,0 +1,9 @@
+[submodule "submodules/flatbuffers"]
+	path = submodules/flatbuffers
+	url = https://github.com/google/flatbuffers
+[submodule "submodules/googletest"]
+	path = submodules/googletest
+	url = https://github.com/google/googletest
+[submodule "submodules/benchmark"]
+	path = submodules/benchmark
+	url = https://github.com/google/benchmark
