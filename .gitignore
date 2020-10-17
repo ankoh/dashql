@@ -3,3 +3,5 @@
 /.emscripten_cache
 
 compile_commands.json
+
+target

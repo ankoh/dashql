@@ -1,0 +1,12 @@
+[package]
+name = "dashql-core"
+version = "0.0.0"
+authors = ["The DashQL Authors"]
+edition = "2018"
+
+[lib]
+path = "lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.68"
