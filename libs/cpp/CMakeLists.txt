@@ -25,6 +25,20 @@ if (EMSCRIPTEN)
 endif ()
 
 # ---------------------------------------------------------------------------
+# CMake includes
+
+include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
+
+# ---------------------------------------------------------------------------
+# Parallelism
+
+include(ProcessorCount)
+ProcessorCount(NPROCS)
+set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
+
+# ---------------------------------------------------------------------------
 # Bison
 
 set(REQUIRED_BISON_VERSION 3.3)
@@ -48,27 +62,6 @@ if (NOT BISON_FOUND)
 endif()
 
 # ---------------------------------------------------------------------------
-# Parallelism
-
-include(ProcessorCount)
-ProcessorCount(NPROCS)
-set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
-
-# ---------------------------------------------------------------------------
-# Threading
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
-
-# ---------------------------------------------------------------------------
-# CMake includes
-
-include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
-
-# ---------------------------------------------------------------------------
 # Headers
 
 include_directories(
@@ -77,7 +70,7 @@ include_directories(
 )
 
 # ---------------------------------------------------------------------------
-# Bison & Flex
+# Parser & Scanner
 
 set(DASHQL_SCANNER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/scanner.cc)
 set(DASHQL_PARSER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/parser.cc)
@@ -116,7 +109,7 @@ target_link_libraries(dashql_parser
 )
 
 # ---------------------------------------------------------------------------
-# API Proxy
+# Emscripten
 
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
@@ -145,28 +138,25 @@ if (EMSCRIPTEN)
 endif()
 
 
-# # ---------------------------------------------------------------------------
-# # Tester
-# 
-# if(NOT EMSCRIPTEN)
-# 
-#     add_executable(tester
-#         ${CMAKE_SOURCE_DIR}/test/tester.cc
-#         ${CMAKE_SOURCE_DIR}/test/duckdb_test.cc
-#         ${CMAKE_SOURCE_DIR}/test/iterator_test.cc
-#         ${CMAKE_SOURCE_DIR}/test/webapi_test.cc
-#     )
-#     target_link_libraries(tester 
-#         duckdb_webapi_core
-#         duckdb_webapi_test
-#         flatbuffers gtest gmock Threads::Threads)
-# 
-#     enable_testing()
-#     add_test(duckdbjs tester)
-# 
-# endif()
-# 
-# # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Tester
+
+if(NOT EMSCRIPTEN)
+
+    add_executable(tester
+        ${CMAKE_SOURCE_DIR}/test/tester.cc
+        ${CMAKE_SOURCE_DIR}/test/parser_test.cc
+    )
+    target_link_libraries(tester 
+        dashql_parser
+        flatbuffers gtest gmock )
+
+    enable_testing()
+    add_test(dashql_parser tester)
+
+endif()
+
+# ---------------------------------------------------------------------------
 # # Benchmarks
 # 
 # if(NOT EMSCRIPTEN)
