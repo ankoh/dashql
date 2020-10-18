@@ -72,20 +72,20 @@ struct SectionsBuilder {
 
 static proto::program::ParameterTag encode(const ParameterType& p) {
     switch (p.type) {
-        case ParameterType::Type::Integer:
-            return proto::program::ParameterTag::INTEGER;
-        case ParameterType::Type::Float:
-            return proto::program::ParameterTag::FLOAT;
-        case ParameterType::Type::Text:
-            return proto::program::ParameterTag::TEXT;
-        case ParameterType::Type::Date:
-            return proto::program::ParameterTag::DATE;
-        case ParameterType::Type::DateTime:
-            return proto::program::ParameterTag::DATETIME;
-        case ParameterType::Type::Time:
-            return proto::program::ParameterTag::TIME;
-        case ParameterType::Type::File:
-            return proto::program::ParameterTag::FILE;
+#define PARAM_TYPES       \
+    X(Integer, INTEGER)   \
+    X(Float, FLOAT)       \
+    X(Text, TEXT)         \
+    X(Date, DATE)         \
+    X(DateTime, DATETIME) \
+    X(Time, TIME)         \
+    X(File, FILE)
+
+#define X(A, B)                  \
+    case ParameterType::Type::A: \
+        return proto::program::ParameterTag::B;
+        PARAM_TYPES
+#undef X
         default:
             return proto::program::ParameterTag::NONE;
     }
