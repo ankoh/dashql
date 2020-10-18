@@ -53,19 +53,20 @@ export enum HTTPVerb{
  */
 export namespace dashql.proto.program{
 export enum VizTag{
-  AREA= 0,
-  BAR= 1,
-  BOX= 2,
-  BUBBLE= 3,
-  GRID= 4,
-  HISTOGRAM= 5,
-  LINE= 6,
-  NUMBER= 7,
-  PIE= 8,
-  POINT= 9,
-  SCATTER= 10,
-  TABLE= 11,
-  TEXT= 12
+  NONE= 0,
+  AREA= 1,
+  BAR= 2,
+  BOX= 3,
+  BUBBLE= 4,
+  GRID= 5,
+  HISTOGRAM= 6,
+  LINE= 7,
+  NUMBER= 8,
+  PIE= 9,
+  POINT= 10,
+  SCATTER= 11,
+  TABLE= 12,
+  TEXT= 13
 };
 }
 

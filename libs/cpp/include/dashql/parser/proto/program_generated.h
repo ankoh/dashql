@@ -246,25 +246,27 @@ inline const char *EnumNameHTTPVerb(HTTPVerb e) {
 }
 
 enum class VizTag : uint8_t {
-  AREA = 0,
-  BAR = 1,
-  BOX = 2,
-  BUBBLE = 3,
-  GRID = 4,
-  HISTOGRAM = 5,
-  LINE = 6,
-  NUMBER = 7,
-  PIE = 8,
-  POINT = 9,
-  SCATTER = 10,
-  TABLE = 11,
-  TEXT = 12,
-  MIN = AREA,
+  NONE = 0,
+  AREA = 1,
+  BAR = 2,
+  BOX = 3,
+  BUBBLE = 4,
+  GRID = 5,
+  HISTOGRAM = 6,
+  LINE = 7,
+  NUMBER = 8,
+  PIE = 9,
+  POINT = 10,
+  SCATTER = 11,
+  TABLE = 12,
+  TEXT = 13,
+  MIN = NONE,
   MAX = TEXT
 };
 
-inline const VizTag (&EnumValuesVizTag())[13] {
+inline const VizTag (&EnumValuesVizTag())[14] {
   static const VizTag values[] = {
+    VizTag::NONE,
     VizTag::AREA,
     VizTag::BAR,
     VizTag::BOX,
@@ -283,7 +285,8 @@ inline const VizTag (&EnumValuesVizTag())[13] {
 }
 
 inline const char * const *EnumNamesVizTag() {
-  static const char * const names[14] = {
+  static const char * const names[15] = {
+    "NONE",
     "AREA",
     "BAR",
     "BOX",
@@ -303,7 +306,7 @@ inline const char * const *EnumNamesVizTag() {
 }
 
 inline const char *EnumNameVizTag(VizTag e) {
-  if (flatbuffers::IsOutRange(e, VizTag::AREA, VizTag::TEXT)) return "";
+  if (flatbuffers::IsOutRange(e, VizTag::NONE, VizTag::TEXT)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesVizTag()[index];
 }
@@ -1508,12 +1511,14 @@ inline const flatbuffers::TypeTable *VizTagTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     dashql::proto::program::VizTagTypeTable
   };
   static const char * const names[] = {
+    "NONE",
     "AREA",
     "BAR",
     "BOX",
@@ -1529,7 +1534,7 @@ inline const flatbuffers::TypeTable *VizTagTypeTable() {
     "TEXT"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 13, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 14, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

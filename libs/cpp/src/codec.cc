@@ -105,41 +105,65 @@ static proto::program::HTTPVerb encode(const LoadStatement::HTTPLoader::Method::
 static proto::program::SectionEntry encode(SectionsBuilder& sections, const ExtractStatement::ExtractMethod& method) {
     auto result = sections.null();
     std::visit(overload{
-        [&](const ExtractStatement::CSVExtract& c) {
-            auto loc = encode(c.location);
-            auto extract = proto::program::CSVExtract(loc);
-            result = sections.add(extract);
-        },
-        [&](const ExtractStatement::JSONPathExtract& j) {
-            auto loc = encode(j.location);
-            auto extract = proto::program::JSONPathExtract(loc);
-            result = sections.add(extract);
-        },
-    }, method);
+                   [&](const ExtractStatement::CSVExtract& c) {
+                       auto loc = encode(c.location);
+                       auto extract = proto::program::CSVExtract(loc);
+                       result = sections.add(extract);
+                   },
+                   [&](const ExtractStatement::JSONPathExtract& j) {
+                       auto loc = encode(j.location);
+                       auto extract = proto::program::JSONPathExtract(loc);
+                       result = sections.add(extract);
+                   },
+               },
+               method);
     return result;
 }
 
 static proto::program::SectionEntry encode(SectionsBuilder& sections, const LoadStatement::LoadMethod& method) {
     auto result = sections.null();
     std::visit(overload{
-        [&](const LoadStatement::FileLoader& f) {
-            auto loc = encode(f.location);
-            auto extract = proto::program::FileLoad(loc);
-            result = sections.add(extract);
-        },
-        [&](const LoadStatement::HTTPLoader& h) {
-            auto loc = encode(h.location);
-            auto verb = proto::program::HTTPVerb::NONE;
-            auto url = sections.null();
-            auto load = proto::program::HTTPLoad(loc, verb, url);
-            result = sections.add(load);
-        },
-    }, method);
+                   [&](const LoadStatement::FileLoader& f) {
+                       auto loc = encode(f.location);
+                       auto extract = proto::program::FileLoad(loc);
+                       result = sections.add(extract);
+                   },
+                   [&](const LoadStatement::HTTPLoader& h) {
+                       auto loc = encode(h.location);
+                       auto verb = proto::program::HTTPVerb::NONE;
+                       auto url = sections.null();
+                       auto load = proto::program::HTTPLoad(loc, verb, url);
+                       result = sections.add(load);
+                   },
+               },
+               method);
     return result;
 }
 
 static proto::program::VizTag encode(SectionsBuilder& sections, const VizStatement::VizType& type) {
-    // XXX
+    switch (type.type) {
+#define VIZ_TYPES           \
+    X(Area, AREA)           \
+    X(Bar, BAR)             \
+    X(Bubble, BUBBLE)       \
+    X(Grid, GRID)           \
+    X(Histogram, HISTOGRAM) \
+    X(Line, LINE)           \
+    X(Number, NUMBER)       \
+    X(Pie, PIE)             \
+    X(Point, POINT)         \
+    X(Scatter, SCATTER)     \
+    X(Table, TABLE)         \
+    X(Text, TEXT)
+
+#define X(A, B)                          \
+    case VizStatement::VizType::Type::A: \
+        return proto::program::VizTag::B;
+        VIZ_TYPES
+#undef X
+        default:
+            return proto::program::VizTag::NONE;
+    }
 }
 
 flatbuffers::Offset<proto::program::Program> WriteProgram(flatbuffers::FlatBufferBuilder& builder, Program& program) {

@@ -265,24 +265,25 @@ pub fn enum_name_httpverb(e: HTTPVerb) -> &'static str {
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum VizTag {
-  AREA = 0,
-  BAR = 1,
-  BOX = 2,
-  BUBBLE = 3,
-  GRID = 4,
-  HISTOGRAM = 5,
-  LINE = 6,
-  NUMBER = 7,
-  PIE = 8,
-  POINT = 9,
-  SCATTER = 10,
-  TABLE = 11,
-  TEXT = 12,
+  NONE = 0,
+  AREA = 1,
+  BAR = 2,
+  BOX = 3,
+  BUBBLE = 4,
+  GRID = 5,
+  HISTOGRAM = 6,
+  LINE = 7,
+  NUMBER = 8,
+  PIE = 9,
+  POINT = 10,
+  SCATTER = 11,
+  TABLE = 12,
+  TEXT = 13,
 
 }
 
 pub const ENUM_MIN_VIZ_TAG: u8 = 0;
-pub const ENUM_MAX_VIZ_TAG: u8 = 12;
+pub const ENUM_MAX_VIZ_TAG: u8 = 13;
 
 impl<'a> flatbuffers::Follow<'a> for VizTag {
   type Inner = Self;
@@ -316,7 +317,8 @@ impl flatbuffers::Push for VizTag {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_VIZ_TAG: [VizTag; 13] = [
+pub const ENUM_VALUES_VIZ_TAG: [VizTag; 14] = [
+  VizTag::NONE,
   VizTag::AREA,
   VizTag::BAR,
   VizTag::BOX,
@@ -333,7 +335,8 @@ pub const ENUM_VALUES_VIZ_TAG: [VizTag; 13] = [
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_VIZ_TAG: [&str; 13] = [
+pub const ENUM_NAMES_VIZ_TAG: [&str; 14] = [
+    "NONE",
     "AREA",
     "BAR",
     "BOX",
