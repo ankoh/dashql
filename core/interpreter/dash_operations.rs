@@ -47,6 +47,8 @@ impl From<&DashGraph> for DashOperations {
             })
             .collect::<MinHeap<_>>();
 
+        let mut operations = Vec::new();
+
         while let Some((handle, pending)) = heap.pop() {
             debug_assert!(
                 pending == 0,
@@ -58,15 +60,16 @@ impl From<&DashGraph> for DashOperations {
                 heap.decrement_key(consumer);
             }
 
-            // XXX do something
-        }
+            let node = graph.get_node(handle);
 
-        let operations = Vec::new();
+            operations.push(node.operation.clone());
+        }
 
         Self { operations }
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum DashOperation {
     Parameter,
     Load,
