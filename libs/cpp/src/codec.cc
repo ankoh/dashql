@@ -1,10 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include <string_view>
+
 #include "dashql/parser/common/variant.h"
 #include "dashql/parser/proto/program_generated.h"
 #include "dashql/parser/syntax.h"
 #include "flatbuffers/flatbuffers.h"
-#include <string_view>
 
 namespace dashql {
 namespace parser {
@@ -24,8 +25,7 @@ struct SectionsBuilder {
     /// The builder
     SectionsBuilder() = default;
     /// Add a value
-    template<typename V>
-    proto::program::SectionEntry add(V v) {
+    template <typename V> proto::program::SectionEntry add(V v) {
         auto push = [&](auto tag, auto& vec, auto&& val) {
             vec.push_back(val);
             return proto::program::SectionEntry(tag, vec.size() - 1);
@@ -65,6 +65,9 @@ struct SectionsBuilder {
         proto::program::SectionsBuilder sectionsBuilder{builder};
         return sectionsBuilder.Finish();
     }
+
+    /// A null entry
+    proto::program::SectionEntry null() { return proto::program::SectionEntry(proto::program::SectionTag::NONE, 0); }
 };
 
 static proto::program::ParameterTag encode(const ParameterType& p) {
@@ -91,80 +94,74 @@ static proto::program::ParameterTag encode(const ParameterType& p) {
 static proto::program::Location encode(const Location& l) {
     auto b = proto::program::Position(l.begin.line, l.begin.column);
     auto e = proto::program::Position(l.end.line, l.end.column);
-    return  proto::program::Location(b, e);
+    return proto::program::Location(b, e);
 }
 
-static proto::program::SectionEntry encode(const ExtractStatement::ExtractMethod& method) {
+static proto::program::SectionEntry encode(SectionsBuilder& sections, const ExtractStatement::ExtractMethod& method) {
     // XXX
 }
 
-static proto::program::SectionEntry encode(const LoadStatement::LoadMethod& method) {
+static proto::program::SectionEntry encode(SectionsBuilder& sections, const LoadStatement::LoadMethod& method) {
     // XXX
 }
 
-static proto::program::VizTag encode(const VizStatement::VizType& type) {
+static proto::program::VizTag encode(SectionsBuilder& sections, const VizStatement::VizType& type) {
     // XXX
 }
 
-static proto::program::SectionEntry null_entry() {
-    return proto::program::SectionEntry(proto::program::SectionTag::NONE, 0);
-}
-
-flatbuffers::Offset<proto::program::Program> WriteProgram(flatbuffers::FlatBufferBuilder& builder,
-                                                          Program& program)
-{
+flatbuffers::Offset<proto::program::Program> WriteProgram(flatbuffers::FlatBufferBuilder& builder, Program& program) {
     /// The sections
     SectionsBuilder sections;
 
     /// Encode all statements
     std::vector<proto::program::SectionEntry> stmt_entries;
-    for (auto& statement: program.statements) {
-        std::visit(overload {
-            [&](const ParameterDeclaration& p) {
-                auto loc = encode(p.location);
-                auto tag = encode(p.type);
-                auto name = sections.add(p.name.string);
-                auto label = sections.add(p.label.string);
-                auto decl = proto::program::ParameterDeclaration(loc, tag, name, label, null_entry());
-                stmt_entries.push_back(sections.add(decl));
-            },
-            [&](const ExtractStatement& e) {
-                auto loc = encode(e.location);
-                auto name = sections.add(e.name.string);
-                auto data = sections.add(e.data_name.string);
-                auto method = encode(e.method);
-                auto extract = proto::program::ExtractStatement(loc, name, data, method);
-                stmt_entries.push_back(sections.add(extract));
-            },
-            [&](const LoadStatement& l) {
-                auto loc = encode(l.location);
-                auto name = sections.add(l.name.string);
-                auto method = encode(l.method);
-                auto load = proto::program::LoadStatement(loc, name, method);
-                stmt_entries.push_back(sections.add(load));
-            },
-            [&](const QueryStatement& q) {
-                auto loc = encode(q.location);
-                auto name = q.name ? sections.add(q.name->string) : null_entry();
-                auto text = sections.add(q.query_text);
-                auto query = proto::program::QueryStatement(loc, name, text);
-                stmt_entries.push_back(sections.add(query));
-            },
-            [&](const VizStatement& v) {
-                auto loc = encode(v.location);
-                auto tag = encode(v.viz_type);
-                auto type = encode(v.viz_type);
-                auto name = sections.add(v.name.string);
-                auto query_name = sections.add(v.query_name.string);
-                auto viz = proto::program::VizStatement(loc, tag, name, query_name);
-                stmt_entries.push_back(sections.add(viz));
-            },
-        }, statement);
+    for (auto& statement : program.statements) {
+        std::visit(overload{
+                       [&](const ParameterDeclaration& p) {
+                           auto loc = encode(p.location);
+                           auto tag = encode(p.type);
+                           auto name = sections.add(p.name.string);
+                           auto label = sections.add(p.label.string);
+                           auto decl = proto::program::ParameterDeclaration(loc, tag, name, label, sections.null());
+                           stmt_entries.push_back(sections.add(decl));
+                       },
+                       [&](const ExtractStatement& e) {
+                           auto loc = encode(e.location);
+                           auto name = sections.add(e.name.string);
+                           auto data = sections.add(e.data_name.string);
+                           auto method = encode(sections, e.method);
+                           auto extract = proto::program::ExtractStatement(loc, name, data, method);
+                           stmt_entries.push_back(sections.add(extract));
+                       },
+                       [&](const LoadStatement& l) {
+                           auto loc = encode(l.location);
+                           auto name = sections.add(l.name.string);
+                           auto method = encode(sections, l.method);
+                           auto load = proto::program::LoadStatement(loc, name, method);
+                           stmt_entries.push_back(sections.add(load));
+                       },
+                       [&](const QueryStatement& q) {
+                           auto loc = encode(q.location);
+                           auto name = q.name ? sections.add(q.name->string) : sections.null();
+                           auto text = sections.add(q.query_text);
+                           auto query = proto::program::QueryStatement(loc, name, text);
+                           stmt_entries.push_back(sections.add(query));
+                       },
+                       [&](const VizStatement& v) {
+                           auto loc = encode(v.location);
+                           auto tag = encode(sections, v.viz_type);
+                           auto type = encode(sections, v.viz_type);
+                           auto name = sections.add(v.name.string);
+                           auto query_name = sections.add(v.query_name.string);
+                           auto viz = proto::program::VizStatement(loc, tag, name, query_name);
+                           stmt_entries.push_back(sections.add(viz));
+                       },
+                   },
+                   statement);
     }
 
     // Encode errors
     std::vector<flatbuffers::Offset<proto::program::Error>> errors;
-    
 
     // Encode program
     auto sec_ofs = sections.write(builder);
@@ -175,5 +172,5 @@ flatbuffers::Offset<proto::program::Program> WriteProgram(flatbuffers::FlatBuffe
     return programBuilder.Finish();
 }
 
-} // namespace parser
-} // namespace dashql
+}  // namespace parser
+}  // namespace dashql
