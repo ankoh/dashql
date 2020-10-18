@@ -98,6 +98,14 @@ static proto::program::SectionEntry encode(const ExtractStatement::ExtractMethod
     // XXX
 }
 
+static proto::program::SectionEntry encode(const LoadStatement::LoadMethod& method) {
+    // XXX
+}
+
+static proto::program::VizTag encode(const VizStatement::VizType& type) {
+    // XXX
+}
+
 static proto::program::SectionEntry null_entry() {
     return proto::program::SectionEntry(proto::program::SectionTag::NONE, 0);
 }
@@ -114,25 +122,42 @@ flatbuffers::Offset<proto::program::Program> WriteProgram(flatbuffers::FlatBuffe
         std::visit(overload {
             [&](const ParameterDeclaration& p) {
                 auto loc = encode(p.location);
-                auto name = sections.add<std::string_view>(p.name.string);
-                auto label = sections.add<std::string_view>(p.label.string);
                 auto tag = encode(p.type);
+                auto name = sections.add(p.name.string);
+                auto label = sections.add(p.label.string);
                 auto decl = proto::program::ParameterDeclaration(loc, tag, name, label, null_entry());
                 stmt_entries.push_back(sections.add(decl));
             },
             [&](const ExtractStatement& e) {
                 auto loc = encode(e.location);
-                auto name = sections.add<std::string_view>(e.name.string);
-                auto data = sections.add<std::string_view>(e.data_name.string);
+                auto name = sections.add(e.name.string);
+                auto data = sections.add(e.data_name.string);
                 auto method = encode(e.method);
                 auto extract = proto::program::ExtractStatement(loc, name, data, method);
                 stmt_entries.push_back(sections.add(extract));
             },
-            [&](const LoadStatement&) {
+            [&](const LoadStatement& l) {
+                auto loc = encode(l.location);
+                auto name = sections.add(l.name.string);
+                auto method = encode(l.method);
+                auto load = proto::program::LoadStatement(loc, name, method);
+                stmt_entries.push_back(sections.add(load));
             },
-            [&](const QueryStatement&) {
+            [&](const QueryStatement& q) {
+                auto loc = encode(q.location);
+                auto name = q.name ? sections.add(q.name->string) : null_entry();
+                auto text = sections.add(q.query_text);
+                auto query = proto::program::QueryStatement(loc, name, text);
+                stmt_entries.push_back(sections.add(query));
             },
-            [&](const VizStatement&) {
+            [&](const VizStatement& v) {
+                auto loc = encode(v.location);
+                auto tag = encode(v.viz_type);
+                auto type = encode(v.viz_type);
+                auto name = sections.add(v.name.string);
+                auto query_name = sections.add(v.query_name.string);
+                auto viz = proto::program::VizStatement(loc, tag, name, query_name);
+                stmt_entries.push_back(sections.add(viz));
             },
         }, statement);
     }
