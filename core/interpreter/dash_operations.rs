@@ -37,22 +37,25 @@ impl<'graph> PartialOrd for HeapDashNode {
 
 impl From<&DashGraph> for DashOperations {
     fn from(graph: &DashGraph) -> Self {
-        let heap_entries = (0..graph.get_node_count())
+        let mut heap = (0..graph.get_node_count())
             .into_iter()
             .map(|i| {
-                let h = DashNodeHandle::new(i);
-                let c = graph.get_node(h).get_producers_count();
-                (h, c)
+                let handle = DashNodeHandle::new(i);
+                let count = graph.get_node(handle).get_producers_count();
+
+                (handle, count)
             })
-            .collect::<Vec<_>>();
-        let mut heap = MinHeap::from_entries(heap_entries);
+            .collect::<MinHeap<_>>();
 
         while let Some((handle, pending)) = heap.pop() {
-            debug_assert!(pending == 0, "top heap element must not have pending dependencies");
+            debug_assert!(
+                pending == 0,
+                "top heap element must not have pending dependencies"
+            );
 
             // Decrement key of consumers
-            for c in graph.get_node(handle).get_consumers() {
-                heap.decrement_key(c);
+            for consumer in graph.get_node(handle).get_consumers() {
+                heap.decrement_key(consumer);
             }
 
             // XXX do something

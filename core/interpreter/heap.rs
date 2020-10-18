@@ -11,17 +11,6 @@ pub struct MinHeap<T: std::hash::Hash + std::cmp::Eq + Copy> {
 }
 
 impl<T: std::hash::Hash + std::cmp::Eq + Copy> MinHeap<T> {
-    pub fn from_entries(mut entries: Vec<(T, Priority)>) -> Self {
-        entries.sort_by(|left, right| left.1.cmp(&right.1));
-
-        let index: HashMap<T, usize> = (0..entries.len())
-            .into_iter()
-            .map(|i| (entries[i].0, i))
-            .collect();
-
-        Self { entries, index }
-    }
-
     fn swap(&mut self, a: usize, b: usize) {
         self.index.insert(self.entries[a].0, b);
         self.index.insert(self.entries[b].0, a);
@@ -93,5 +82,28 @@ impl<T: std::hash::Hash + std::cmp::Eq + Copy> MinHeap<T> {
             self.entries[index].1 -= 1;
             self.sift_up(index);
         }
+    }
+}
+
+impl<T: std::hash::Hash + std::cmp::Eq + Copy> From<Vec<(T, Priority)>> for MinHeap<T> {
+    fn from(entries: Vec<(T, Priority)>) -> Self {
+        let mut entries = entries;
+
+        entries.sort_by(|left, right| left.1.cmp(&right.1));
+
+        let index: HashMap<T, usize> = (0..entries.len())
+            .into_iter()
+            .map(|i| (entries[i].0, i))
+            .collect();
+
+        Self { entries, index }
+    }
+}
+
+impl<T: std::hash::Hash + std::cmp::Eq + Copy> std::iter::FromIterator<(T, Priority)>
+    for MinHeap<T>
+{
+    fn from_iter<I: IntoIterator<Item = (T, Priority)>>(iter: I) -> MinHeap<T> {
+        MinHeap::from(iter.into_iter().collect::<Vec<_>>())
     }
 }
