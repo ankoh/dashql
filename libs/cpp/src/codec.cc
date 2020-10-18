@@ -57,7 +57,7 @@ struct SectionsBuilder {
         if constexpr (std::is_same_v<V, proto::program::VizStatement>) {
             return push(proto::program::SectionTag::VizStatement, _viz_statements, v);
         }
-        assert("invalid section");
+        return null();
     }
 
     /// Write as flatbuffer
