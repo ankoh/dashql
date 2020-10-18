@@ -33,14 +33,14 @@ struct Location {
     Position end;
 };
 
-struct String {
+struct StringLiteral {
     /// The location
     Location location;
     /// The string
     std::string string;
 };
 
-struct Boolean {
+struct BooleanLiteral {
     /// The location
     Location location;
     /// The boolean
@@ -62,9 +62,9 @@ struct ParameterDeclaration {
     /// The location
     Location location;
     /// The parameter name
-    String name;
+    StringLiteral name;
     /// The parameter label
-    String label;
+    StringLiteral label;
     /// The parameter type
     ParameterType type;
 };
@@ -74,7 +74,7 @@ struct Variable {
     /// The location
     Location location;
     /// The variable name
-    String name;
+    StringLiteral name;
 };
 
 /// A raw sql statement
@@ -82,9 +82,9 @@ struct QueryStatement {
     /// The location
     Location location;
     /// The query name (if any)
-    std::optional<String> name;
+    std::optional<StringLiteral> name;
     /// The query text
-    String query_text;
+    StringLiteral query_text;
 };
 
 /// A load statement
@@ -107,7 +107,7 @@ struct LoadStatement {
             /// The location
             Location location;
             /// The url
-            String url;
+            StringLiteral url;
         };
 
         using Attribute = std::variant<Method, URL>;
@@ -139,7 +139,7 @@ struct LoadStatement {
     /// The location
     Location location;
     /// The name
-    String name;
+    StringLiteral name;
     /// The method
     LoadMethod method;
 };
@@ -159,7 +159,7 @@ struct ExtractStatement {
             /// The location
             Location location;
             /// The encoding
-            String encoding;
+            StringLiteral encoding;
         };
 
         /// A header
@@ -167,7 +167,7 @@ struct ExtractStatement {
             /// The location
             Location location;
             /// The header
-            std::variant<Boolean, std::vector<String>> header;
+            std::variant<BooleanLiteral, std::vector<StringLiteral>> header;
         };
 
         /// A delimiter
@@ -175,7 +175,7 @@ struct ExtractStatement {
             /// The location
             Location location;
             /// The delimiter
-            String delimiter;
+            StringLiteral delimiter;
         };
 
         /// A quote
@@ -183,7 +183,7 @@ struct ExtractStatement {
             /// The location
             Location location;
             /// The quote
-            String quote;
+            StringLiteral quote;
         };
 
         /// A date format
@@ -191,7 +191,7 @@ struct ExtractStatement {
             /// The location
             Location location;
             /// The date format
-            String date_format;
+            StringLiteral date_format;
         };
 
         /// A timestamp format
@@ -199,7 +199,7 @@ struct ExtractStatement {
             /// The location
             Location location;
             /// The timestamp format
-            String timestamp_format;
+            StringLiteral timestamp_format;
         };
 
         using Attribute = std::variant<Encoding, Header, Delimiter, Quote, DateFormat, TimestampFormat>;
@@ -223,9 +223,9 @@ struct ExtractStatement {
     /// The location
     Location location;
     /// The name
-    String name;
+    StringLiteral name;
     /// The data name
-    String data_name;
+    StringLiteral data_name;
     /// The method
     ExtractMethod method;
 };
@@ -249,9 +249,9 @@ struct VizStatement {
     /// The location
     Location location;
     /// The name
-    String name;
+    StringLiteral name;
     /// The query name
-    String query_name;
+    StringLiteral query_name;
     /// The viz type
     VizType viz_type;
 };
@@ -268,7 +268,7 @@ struct Error {
 };
 
 /// A module
-struct Module {
+struct Program {
     /// The statements
     std::vector<Statement> statements;
     /// The errors

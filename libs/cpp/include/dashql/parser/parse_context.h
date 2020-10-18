@@ -43,7 +43,7 @@ class ParseContext {
     virtual ~ParseContext();
 
     /// Parse an istream
-    Module Parse(std::string_view in);
+    Program Parse(std::string_view in);
     /// Throw an error
     void RaiseError(Location location, const std::string& message);
     /// Define a statement

@@ -8,7 +8,7 @@ using namespace std;
 
 namespace {
 
-TEST(TQLTest, ParameterDeclaration) {
+TEST(ParserTest, ParameterDeclaration) {
     auto in = R"RAW(
     declare parameter days type integer;
 )RAW";
@@ -18,7 +18,7 @@ TEST(TQLTest, ParameterDeclaration) {
     ASSERT_EQ(module.errors.size(), 0);
 }
 
-TEST(TQLTest, LoadHTTP) {
+TEST(ParserTest, LoadHTTP) {
     auto in = R"RAW(
     load raw_data from http (
         url = 'http://www.google.com',
@@ -31,7 +31,7 @@ TEST(TQLTest, LoadHTTP) {
     ASSERT_EQ(module.errors.size(), 0);
 }
 
-TEST(TQLTest, ExtractJsonPath) {
+TEST(ParserTest, ExtractJsonPath) {
     auto in = R"RAW(
     extract weather_data from raw_data using json ();
 )RAW";
@@ -41,7 +41,7 @@ TEST(TQLTest, ExtractJsonPath) {
     ASSERT_EQ(module.errors.size(), 0);
 }
 
-TEST(TQLTest, Query1) {
+TEST(ParserTest, Query1) {
     auto in = R"RAW(
     select 1;
 )RAW";
@@ -51,7 +51,7 @@ TEST(TQLTest, Query1) {
     ASSERT_EQ(module.errors.size(), 0);
 }
 
-TEST(TQLTest, Query2) {
+TEST(ParserTest, Query2) {
     auto in = R"RAW(
     query "foo" as select 1;
 )RAW";
@@ -61,7 +61,7 @@ TEST(TQLTest, Query2) {
     ASSERT_EQ(module.errors.size(), 0);
 }
 
-TEST(TQLTest, SyntaxError) {
+TEST(ParserTest, SyntaxError) {
     auto in = "?";
     ParseContext ctx;
     auto module = ctx.Parse(in);
@@ -69,7 +69,7 @@ TEST(TQLTest, SyntaxError) {
     ASSERT_EQ(module.errors.size(), 1);
 }
 
-TEST(TQLTest, SyntaxErrorRecovery) {
+TEST(ParserTest, SyntaxErrorRecovery) {
     auto in = "?select * from foo;";
     ParseContext ctx;
     auto module = ctx.Parse(in);

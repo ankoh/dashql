@@ -89,7 +89,13 @@ table Sections {
     viz_statements: [VizStatement];
 }
 
+table Error {
+    location: Location;
+    message: string;
+}
+
 table Program {
     statements: [SectionEntry];
     sections: Sections;
+    errors: [Error];
 }

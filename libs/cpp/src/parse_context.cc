@@ -14,7 +14,7 @@ ParseContext::ParseContext(bool trace_scanning, bool trace_parsing): trace_scann
 
 ParseContext::~ParseContext() {}
 
-Module ParseContext::Parse(std::string_view in) {
+Program ParseContext::Parse(std::string_view in) {
     beginScan(in);
     {
         dashql::parser::Parser parser(*this);
@@ -22,7 +22,7 @@ Module ParseContext::Parse(std::string_view in) {
         parser.parse();
     }
     endScan();
-    return Module{std::move(statements), std::move(errors)};
+    return Program{std::move(statements), std::move(errors)};
 }
 
 // Yield an error
