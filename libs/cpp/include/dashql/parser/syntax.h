@@ -37,7 +37,7 @@ struct StringLiteral {
     /// The location
     Location location;
     /// The string
-    std::string string;
+    std::string_view string;
 };
 
 struct BooleanLiteral {
@@ -264,7 +264,7 @@ struct Error {
     /// The location
     Location location;
     /// The message
-    const std::string message;
+    std::string_view message;
 };
 
 /// A module

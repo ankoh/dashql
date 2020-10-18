@@ -27,7 +27,7 @@ struct SectionsBuilder {
     template<typename V>
     proto::program::SectionEntry add(V v) {
         auto push = [&](auto tag, auto& vec, auto&& val) {
-            vec.push_back(std::move(val));
+            vec.push_back(val);
             return proto::program::SectionEntry(tag, vec.size() - 1);
         };
         if constexpr (std::is_same_v<V, int64_t>) {
@@ -37,7 +37,7 @@ struct SectionsBuilder {
             return push(proto::program::SectionTag::F64Literal, _literals_f64, v);
         }
         if constexpr (std::is_same_v<V, std::string>) {
-            return push(proto::program::SectionTag::StringLiteral, _literals_string, std::move(v));
+            return push(proto::program::SectionTag::StringLiteral, _literals_string, v);
         }
         if constexpr (std::is_same_v<V, proto::program::ParameterDeclaration>) {
             return push(proto::program::SectionTag::ParameterDeclaration, _parameter_declarations, v);
@@ -114,16 +114,16 @@ flatbuffers::Offset<proto::program::Program> WriteProgram(flatbuffers::FlatBuffe
         std::visit(overload {
             [&](const ParameterDeclaration& p) {
                 auto loc = encode(p.location);
-                auto name = sections.add<std::string>(p.name.string);
-                auto label = sections.add<std::string>(p.label.string);
+                auto name = sections.add<std::string_view>(p.name.string);
+                auto label = sections.add<std::string_view>(p.label.string);
                 auto tag = encode(p.type);
                 auto decl = proto::program::ParameterDeclaration(loc, tag, name, label, null_entry());
                 stmt_entries.push_back(sections.add(decl));
             },
             [&](const ExtractStatement& e) {
                 auto loc = encode(e.location);
-                auto name = sections.add<std::string>(e.name.string);
-                auto data = sections.add<std::string>(e.data_name.string);
+                auto name = sections.add<std::string_view>(e.name.string);
+                auto data = sections.add<std::string_view>(e.data_name.string);
                 auto method = encode(e.method);
                 auto extract = proto::program::ExtractStatement(loc, name, data, method);
                 stmt_entries.push_back(sections.add(extract));

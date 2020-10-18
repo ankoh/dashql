@@ -196,88 +196,88 @@ parameter_declaration:
     ;
 
 identifier:
-    IDENTIFIER_LITERAL  { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | STRING_LITERAL      { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | PLACEHOLDER_LITERAL { $$ = StringLiteral { locate(@1), std::string($1) }; }
+    IDENTIFIER_LITERAL  { $$ = StringLiteral { locate(@1), $1 }; }
+  | STRING_LITERAL      { $$ = StringLiteral { locate(@1), $1 }; }
+  | PLACEHOLDER_LITERAL { $$ = StringLiteral { locate(@1), $1 }; }
   | keyword             { $$ = $1; }
     ;
 
 keyword:
-    AREA        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | AS          { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | AXES        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | BAR         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | BOX         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | BUBBLE      { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | CHART       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | COLOR       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | COLUMN      { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | CSV         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | DATE        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | DATETIME    { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | DECLARE     { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | DELIMITER   { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | ENCODING    { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | EXTRACT     { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | FALSE       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | FIELD       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | FILE        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | FLOAT       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | FORMAT      { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | FROM        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | GET         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | GRID        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | HEADER      { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | HEIGHT      { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | HISTOGRAM   { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | HORIZONTAL  { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | HTTP        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | INTEGER     { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | JSON        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | LG          { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | LINE        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | LINEAR      { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | LOAD        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | LOG         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | MD          { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | METHOD      { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | NUMBER      { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | PALETTE     { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | PARAMETER   { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | PARQUET     { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | PERCENT     { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | PIE         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | PLOT        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | POINT       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | POST        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | PUT         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | PX          { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | QUERY       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | QUOTE       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | RGB         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | SCALE       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | SCATTER     { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | SHOW        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | SM          { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | STACKED     { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | TABLE       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | TEXT        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | TIME        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | TIMESTAMP   { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | TITLE       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | TRUE        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | TYPE        { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | URL         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | USING       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | VERTICAL    { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | VIS         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | VISUALISE   { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | VISUALIZE   { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | VIZ         { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | WIDTH       { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | X           { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | XL          { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | Y           { $$ = StringLiteral { locate(@1), std::string($1) }; }
+    AREA        { $$ = StringLiteral { locate(@1), $1 }; }
+  | AS          { $$ = StringLiteral { locate(@1), $1 }; }
+  | AXES        { $$ = StringLiteral { locate(@1), $1 }; }
+  | BAR         { $$ = StringLiteral { locate(@1), $1 }; }
+  | BOX         { $$ = StringLiteral { locate(@1), $1 }; }
+  | BUBBLE      { $$ = StringLiteral { locate(@1), $1 }; }
+  | CHART       { $$ = StringLiteral { locate(@1), $1 }; }
+  | COLOR       { $$ = StringLiteral { locate(@1), $1 }; }
+  | COLUMN      { $$ = StringLiteral { locate(@1), $1 }; }
+  | CSV         { $$ = StringLiteral { locate(@1), $1 }; }
+  | DATE        { $$ = StringLiteral { locate(@1), $1 }; }
+  | DATETIME    { $$ = StringLiteral { locate(@1), $1 }; }
+  | DECLARE     { $$ = StringLiteral { locate(@1), $1 }; }
+  | DELIMITER   { $$ = StringLiteral { locate(@1), $1 }; }
+  | ENCODING    { $$ = StringLiteral { locate(@1), $1 }; }
+  | EXTRACT     { $$ = StringLiteral { locate(@1), $1 }; }
+  | FALSE       { $$ = StringLiteral { locate(@1), $1 }; }
+  | FIELD       { $$ = StringLiteral { locate(@1), $1 }; }
+  | FILE        { $$ = StringLiteral { locate(@1), $1 }; }
+  | FLOAT       { $$ = StringLiteral { locate(@1), $1 }; }
+  | FORMAT      { $$ = StringLiteral { locate(@1), $1 }; }
+  | FROM        { $$ = StringLiteral { locate(@1), $1 }; }
+  | GET         { $$ = StringLiteral { locate(@1), $1 }; }
+  | GRID        { $$ = StringLiteral { locate(@1), $1 }; }
+  | HEADER      { $$ = StringLiteral { locate(@1), $1 }; }
+  | HEIGHT      { $$ = StringLiteral { locate(@1), $1 }; }
+  | HISTOGRAM   { $$ = StringLiteral { locate(@1), $1 }; }
+  | HORIZONTAL  { $$ = StringLiteral { locate(@1), $1 }; }
+  | HTTP        { $$ = StringLiteral { locate(@1), $1 }; }
+  | INTEGER     { $$ = StringLiteral { locate(@1), $1 }; }
+  | JSON        { $$ = StringLiteral { locate(@1), $1 }; }
+  | LG          { $$ = StringLiteral { locate(@1), $1 }; }
+  | LINE        { $$ = StringLiteral { locate(@1), $1 }; }
+  | LINEAR      { $$ = StringLiteral { locate(@1), $1 }; }
+  | LOAD        { $$ = StringLiteral { locate(@1), $1 }; }
+  | LOG         { $$ = StringLiteral { locate(@1), $1 }; }
+  | MD          { $$ = StringLiteral { locate(@1), $1 }; }
+  | METHOD      { $$ = StringLiteral { locate(@1), $1 }; }
+  | NUMBER      { $$ = StringLiteral { locate(@1), $1 }; }
+  | PALETTE     { $$ = StringLiteral { locate(@1), $1 }; }
+  | PARAMETER   { $$ = StringLiteral { locate(@1), $1 }; }
+  | PARQUET     { $$ = StringLiteral { locate(@1), $1 }; }
+  | PERCENT     { $$ = StringLiteral { locate(@1), $1 }; }
+  | PIE         { $$ = StringLiteral { locate(@1), $1 }; }
+  | PLOT        { $$ = StringLiteral { locate(@1), $1 }; }
+  | POINT       { $$ = StringLiteral { locate(@1), $1 }; }
+  | POST        { $$ = StringLiteral { locate(@1), $1 }; }
+  | PUT         { $$ = StringLiteral { locate(@1), $1 }; }
+  | PX          { $$ = StringLiteral { locate(@1), $1 }; }
+  | QUERY       { $$ = StringLiteral { locate(@1), $1 }; }
+  | QUOTE       { $$ = StringLiteral { locate(@1), $1 }; }
+  | RGB         { $$ = StringLiteral { locate(@1), $1 }; }
+  | SCALE       { $$ = StringLiteral { locate(@1), $1 }; }
+  | SCATTER     { $$ = StringLiteral { locate(@1), $1 }; }
+  | SHOW        { $$ = StringLiteral { locate(@1), $1 }; }
+  | SM          { $$ = StringLiteral { locate(@1), $1 }; }
+  | STACKED     { $$ = StringLiteral { locate(@1), $1 }; }
+  | TABLE       { $$ = StringLiteral { locate(@1), $1 }; }
+  | TEXT        { $$ = StringLiteral { locate(@1), $1 }; }
+  | TIME        { $$ = StringLiteral { locate(@1), $1 }; }
+  | TIMESTAMP   { $$ = StringLiteral { locate(@1), $1 }; }
+  | TITLE       { $$ = StringLiteral { locate(@1), $1 }; }
+  | TRUE        { $$ = StringLiteral { locate(@1), $1 }; }
+  | TYPE        { $$ = StringLiteral { locate(@1), $1 }; }
+  | URL         { $$ = StringLiteral { locate(@1), $1 }; }
+  | USING       { $$ = StringLiteral { locate(@1), $1 }; }
+  | VERTICAL    { $$ = StringLiteral { locate(@1), $1 }; }
+  | VIS         { $$ = StringLiteral { locate(@1), $1 }; }
+  | VISUALISE   { $$ = StringLiteral { locate(@1), $1 }; }
+  | VISUALIZE   { $$ = StringLiteral { locate(@1), $1 }; }
+  | VIZ         { $$ = StringLiteral { locate(@1), $1 }; }
+  | WIDTH       { $$ = StringLiteral { locate(@1), $1 }; }
+  | X           { $$ = StringLiteral { locate(@1), $1 }; }
+  | XL          { $$ = StringLiteral { locate(@1), $1 }; }
+  | Y           { $$ = StringLiteral { locate(@1), $1 }; }
     ;
 
 alias:
@@ -311,7 +311,7 @@ load_method_http_attribute_list:
 
 load_method_http_attribute:
     METHOD EQUAL http_method    { $$ = $3; }
-  | URL EQUAL STRING_LITERAL    { $$ = LoadStatement::HTTPLoader::URL { locate(@3), StringLiteral { locate(@3), std::string($3) } }; }
+  | URL EQUAL STRING_LITERAL    { $$ = LoadStatement::HTTPLoader::URL { locate(@3), StringLiteral { locate(@3), $3 } }; }
     ;
 
 http_method:
@@ -343,12 +343,12 @@ csv_attribute_list:
     ;
 
 csv_attribute:
-    ENCODING EQUAL STRING_LITERAL           { $$ = ExtractStatement::CSVExtract::Encoding { locate(@1, @3), StringLiteral { locate(@3), std::string($3) } }; }
+    ENCODING EQUAL STRING_LITERAL           { $$ = ExtractStatement::CSVExtract::Encoding { locate(@1, @3), StringLiteral { locate(@3), $3 } }; }
   | HEADER EQUAL csv_header_value           { $$ = ExtractStatement::CSVExtract::Header { locate(@1, @3), $3 }; }
-  | DELIMITER EQUAL STRING_LITERAL          { $$ = ExtractStatement::CSVExtract::Delimiter { locate(@1, @3), StringLiteral { locate(@3), std::string($3) } }; }
-  | QUOTE EQUAL STRING_LITERAL              { $$ = ExtractStatement::CSVExtract::Quote { locate(@1, @3), StringLiteral { locate(@3), std::string($3) } }; }
-  | DATE FORMAT EQUAL STRING_LITERAL        { $$ = ExtractStatement::CSVExtract::DateFormat { locate(@1, @4), StringLiteral { locate(@4), std::string($4) } }; }
-  | TIMESTAMP FORMAT EQUAL STRING_LITERAL   { $$ = ExtractStatement::CSVExtract::TimestampFormat { locate(@1, @4), StringLiteral { locate(@4), std::string($4) } }; }
+  | DELIMITER EQUAL STRING_LITERAL          { $$ = ExtractStatement::CSVExtract::Delimiter { locate(@1, @3), StringLiteral { locate(@3), $3 } }; }
+  | QUOTE EQUAL STRING_LITERAL              { $$ = ExtractStatement::CSVExtract::Quote { locate(@1, @3), StringLiteral { locate(@3), $3 } }; }
+  | DATE FORMAT EQUAL STRING_LITERAL        { $$ = ExtractStatement::CSVExtract::DateFormat { locate(@1, @4), StringLiteral { locate(@4), $4 } }; }
+  | TIMESTAMP FORMAT EQUAL STRING_LITERAL   { $$ = ExtractStatement::CSVExtract::TimestampFormat { locate(@1, @4), StringLiteral { locate(@4), $4 } }; }
     ;
 
 csv_header_value:
@@ -361,8 +361,8 @@ boolean:
     ;
 
 string_list:
-    string_list COMMA STRING_LITERAL    { $1.push_back(StringLiteral { locate(@3), std::string($3) }); $$ = $1; }
-  | STRING_LITERAL                      { $$ = std::vector<StringLiteral> { StringLiteral { locate(@1), std::string($1) } }; }
+    string_list COMMA STRING_LITERAL    { $1.push_back(StringLiteral { locate(@3), $3 }); $$ = $1; }
+  | STRING_LITERAL                      { $$ = std::vector<StringLiteral> { StringLiteral { locate(@1), $1 } }; }
     ;
 
 query_statement:
@@ -371,8 +371,8 @@ query_statement:
     ;
 
 sql_literal:
-    SQL_SELECT  { $$ = StringLiteral { locate(@1), std::string($1) }; }
-  | SQL_WITH    { $$ = StringLiteral { locate(@1), std::string($1) }; }
+    SQL_SELECT  { $$ = StringLiteral { locate(@1), $1 }; }
+  | SQL_WITH    { $$ = StringLiteral { locate(@1), $1 }; }
     ;
 
 viz_statement:
