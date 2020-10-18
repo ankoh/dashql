@@ -2,37 +2,7 @@ use super::dash_graph::{DashGraph, DashNodeHandle};
 use super::heap::MinHeap;
 
 pub struct DashOperations {
-    operations: Vec<DashOperation>,
-}
-
-struct HeapDashNode {
-    graph: *const DashGraph,
-    handle: DashNodeHandle,
-}
-
-impl<'graph> Eq for HeapDashNode {}
-
-impl PartialEq for HeapDashNode {
-    fn eq(&self, other: &Self) -> bool {
-        self.handle == other.handle
-    }
-}
-
-impl Ord for HeapDashNode {
-    fn cmp(&self, other: &HeapDashNode) -> std::cmp::Ordering {
-        let graph = unsafe { &*self.graph };
-
-        let producers_self = graph.get_node(self.handle).get_producers_count();
-        let producers_other = graph.get_node(other.handle).get_producers_count();
-
-        producers_self.cmp(&producers_other).reverse()
-    }
-}
-
-impl<'graph> PartialOrd for HeapDashNode {
-    fn partial_cmp(&self, other: &HeapDashNode) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
+    pub operations: Vec<DashOperation>,
 }
 
 impl From<&DashGraph> for DashOperations {
@@ -66,6 +36,12 @@ impl From<&DashGraph> for DashOperations {
         }
 
         Self { operations }
+    }
+}
+
+impl From<(&DashGraph, &DashGraph)> for DashOperations {
+    fn from(graph: (&DashGraph, &DashGraph)) -> Self {
+        todo!()
     }
 }
 

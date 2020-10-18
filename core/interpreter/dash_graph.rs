@@ -1,6 +1,7 @@
 use super::dash_operations::DashOperation;
 use std::collections::{HashMap, HashSet};
 
+#[derive(Debug, Default)]
 pub struct DashGraph {
     nodes: HashMap<DashNodeHandle, DashNode>,
     consumers: HashSet<DashNodeHandle>,
@@ -38,6 +39,7 @@ impl DashGraph {
     }
 }
 
+#[derive(Debug)]
 pub struct DashNode {
     producers: HashSet<DashNodeHandle>,
     consumers: HashSet<DashNodeHandle>,
@@ -84,5 +86,12 @@ pub struct DashNodeHandle(usize);
 impl DashNodeHandle {
     pub fn new(handle: usize) -> Self {
         Self { 0: handle }
+    }
+}
+
+impl From<&super::super::Ast> for DashGraph {
+    fn from(ast: &super::super::Ast) -> Self {
+        // TODO
+        Default::default()
     }
 }
