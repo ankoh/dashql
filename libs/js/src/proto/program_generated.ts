@@ -7,15 +7,16 @@ import { flatbuffers } from "flatbuffers";
  */
 export namespace dashql.proto.program{
 export enum SectionTag{
-  I64Literal= 0,
-  F64Literal= 1,
-  StringLiteral= 2,
-  JSONPathExtract= 3,
-  CSVExtract= 4,
-  ParameterDeclaration= 5,
-  VizStatement= 6,
-  HTTPLoad= 7,
-  FileLoad= 8
+  NONE= 0,
+  I64Literal= 1,
+  F64Literal= 2,
+  StringLiteral= 3,
+  JSONPathExtract= 4,
+  CSVExtract= 5,
+  ParameterDeclaration= 6,
+  VizStatement= 7,
+  HTTPLoad= 8,
+  FileLoad= 9
 };
 }
 
@@ -24,13 +25,14 @@ export enum SectionTag{
  */
 export namespace dashql.proto.program{
 export enum ParameterTag{
-  INTEGER= 0,
-  FLOAT= 1,
-  TEXT= 2,
-  DATE= 3,
-  DATETIME= 4,
-  TIME= 5,
-  FILE= 6
+  NONE= 0,
+  INTEGER= 1,
+  FLOAT= 2,
+  TEXT= 3,
+  DATE= 4,
+  DATETIME= 5,
+  TIME= 6,
+  FILE= 7
 };
 }
 
@@ -1388,6 +1390,104 @@ static createSections(builder:flatbuffers.Builder, literalsI64Offset:flatbuffers
  * @constructor
  */
 export namespace dashql.proto.program{
+export class Error {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns Error
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):Error {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param Error= obj
+ * @returns Error
+ */
+static getRootAsError(bb:flatbuffers.ByteBuffer, obj?:Error):Error {
+  return (obj || new Error()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param Error= obj
+ * @returns Error
+ */
+static getSizePrefixedRootAsError(bb:flatbuffers.ByteBuffer, obj?:Error):Error {
+  bb.setPosition(bb.position() + flatbuffers.SIZE_PREFIX_LENGTH);
+  return (obj || new Error()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param dashql.proto.program.Location= obj
+ * @returns dashql.proto.program.Location|null
+ */
+location(obj?:dashql.proto.program.Location):dashql.proto.program.Location|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? (obj || new dashql.proto.program.Location()).__init(this.bb_pos + offset, this.bb!) : null;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+message():string|null
+message(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+message(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startError(builder:flatbuffers.Builder) {
+  builder.startObject(2);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset locationOffset
+ */
+static addLocation(builder:flatbuffers.Builder, locationOffset:flatbuffers.Offset) {
+  builder.addFieldStruct(0, locationOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset messageOffset
+ */
+static addMessage(builder:flatbuffers.Builder, messageOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, messageOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endError(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+static createError(builder:flatbuffers.Builder, locationOffset:flatbuffers.Offset, messageOffset:flatbuffers.Offset):flatbuffers.Offset {
+  Error.startError(builder);
+  Error.addLocation(builder, locationOffset);
+  Error.addMessage(builder, messageOffset);
+  return Error.endError(builder);
+}
+}
+}
+/**
+ * @constructor
+ */
+export namespace dashql.proto.program{
 export class Program {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -1450,10 +1550,28 @@ sections(obj?:dashql.proto.program.Sections):dashql.proto.program.Sections|null 
 };
 
 /**
+ * @param number index
+ * @param dashql.proto.program.Error= obj
+ * @returns dashql.proto.program.Error
+ */
+errors(index: number, obj?:dashql.proto.program.Error):dashql.proto.program.Error|null {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? (obj || new dashql.proto.program.Error()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+errorsLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startProgram(builder:flatbuffers.Builder) {
-  builder.startObject(2);
+  builder.startObject(3);
 };
 
 /**
@@ -1478,6 +1596,35 @@ static startStatementsVector(builder:flatbuffers.Builder, numElems:number) {
  */
 static addSections(builder:flatbuffers.Builder, sectionsOffset:flatbuffers.Offset) {
   builder.addFieldOffset(1, sectionsOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset errorsOffset
+ */
+static addErrors(builder:flatbuffers.Builder, errorsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, errorsOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<flatbuffers.Offset> data
+ * @returns flatbuffers.Offset
+ */
+static createErrorsVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startErrorsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
 };
 
 /**

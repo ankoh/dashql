@@ -37,20 +37,21 @@ pub mod program {
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum SectionTag {
-  I64Literal = 0,
-  F64Literal = 1,
-  StringLiteral = 2,
-  JSONPathExtract = 3,
-  CSVExtract = 4,
-  ParameterDeclaration = 5,
-  VizStatement = 6,
-  HTTPLoad = 7,
-  FileLoad = 8,
+  NONE = 0,
+  I64Literal = 1,
+  F64Literal = 2,
+  StringLiteral = 3,
+  JSONPathExtract = 4,
+  CSVExtract = 5,
+  ParameterDeclaration = 6,
+  VizStatement = 7,
+  HTTPLoad = 8,
+  FileLoad = 9,
 
 }
 
 pub const ENUM_MIN_SECTION_TAG: u8 = 0;
-pub const ENUM_MAX_SECTION_TAG: u8 = 8;
+pub const ENUM_MAX_SECTION_TAG: u8 = 9;
 
 impl<'a> flatbuffers::Follow<'a> for SectionTag {
   type Inner = Self;
@@ -84,7 +85,8 @@ impl flatbuffers::Push for SectionTag {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_SECTION_TAG: [SectionTag; 9] = [
+pub const ENUM_VALUES_SECTION_TAG: [SectionTag; 10] = [
+  SectionTag::NONE,
   SectionTag::I64Literal,
   SectionTag::F64Literal,
   SectionTag::StringLiteral,
@@ -97,7 +99,8 @@ pub const ENUM_VALUES_SECTION_TAG: [SectionTag; 9] = [
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_SECTION_TAG: [&str; 9] = [
+pub const ENUM_NAMES_SECTION_TAG: [&str; 10] = [
+    "NONE",
     "I64Literal",
     "F64Literal",
     "StringLiteral",
@@ -118,18 +121,19 @@ pub fn enum_name_section_tag(e: SectionTag) -> &'static str {
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum ParameterTag {
-  INTEGER = 0,
-  FLOAT = 1,
-  TEXT = 2,
-  DATE = 3,
-  DATETIME = 4,
-  TIME = 5,
-  FILE = 6,
+  NONE = 0,
+  INTEGER = 1,
+  FLOAT = 2,
+  TEXT = 3,
+  DATE = 4,
+  DATETIME = 5,
+  TIME = 6,
+  FILE = 7,
 
 }
 
 pub const ENUM_MIN_PARAMETER_TAG: u8 = 0;
-pub const ENUM_MAX_PARAMETER_TAG: u8 = 6;
+pub const ENUM_MAX_PARAMETER_TAG: u8 = 7;
 
 impl<'a> flatbuffers::Follow<'a> for ParameterTag {
   type Inner = Self;
@@ -163,7 +167,8 @@ impl flatbuffers::Push for ParameterTag {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_PARAMETER_TAG: [ParameterTag; 7] = [
+pub const ENUM_VALUES_PARAMETER_TAG: [ParameterTag; 8] = [
+  ParameterTag::NONE,
   ParameterTag::INTEGER,
   ParameterTag::FLOAT,
   ParameterTag::TEXT,
@@ -174,7 +179,8 @@ pub const ENUM_VALUES_PARAMETER_TAG: [ParameterTag; 7] = [
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_PARAMETER_TAG: [&str; 7] = [
+pub const ENUM_NAMES_PARAMETER_TAG: [&str; 8] = [
+    "NONE",
     "INTEGER",
     "FLOAT",
     "TEXT",
@@ -1345,6 +1351,96 @@ impl<'a: 'b, 'b> SectionsBuilder<'a, 'b> {
   }
 }
 
+pub enum ErrorOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct Error<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for Error<'a> {
+    type Inner = Error<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self { _tab: flatbuffers::Table { buf, loc } }
+    }
+}
+
+impl<'a> Error<'a> {
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "dashql.proto.program.Error"
+    }
+
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        Error {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args ErrorArgs<'args>) -> flatbuffers::WIPOffset<Error<'bldr>> {
+      let mut builder = ErrorBuilder::new(_fbb);
+      if let Some(x) = args.message { builder.add_message(x); }
+      if let Some(x) = args.location { builder.add_location(x); }
+      builder.finish()
+    }
+
+    pub const VT_LOCATION: flatbuffers::VOffsetT = 4;
+    pub const VT_MESSAGE: flatbuffers::VOffsetT = 6;
+
+  #[inline]
+  pub fn location(&self) -> Option<&'a Location> {
+    self._tab.get::<Location>(Error::VT_LOCATION, None)
+  }
+  #[inline]
+  pub fn message(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(Error::VT_MESSAGE, None)
+  }
+}
+
+pub struct ErrorArgs<'a> {
+    pub location: Option<&'a Location>,
+    pub message: Option<flatbuffers::WIPOffset<&'a str>>,
+}
+impl<'a> Default for ErrorArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        ErrorArgs {
+            location: None,
+            message: None,
+        }
+    }
+}
+pub struct ErrorBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> ErrorBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_location(&mut self, location: &Location) {
+    self.fbb_.push_slot_always::<&Location>(Error::VT_LOCATION, location);
+  }
+  #[inline]
+  pub fn add_message(&mut self, message: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Error::VT_MESSAGE, message);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ErrorBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    ErrorBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<Error<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
 pub enum ProgramOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
@@ -1376,6 +1472,7 @@ impl<'a> Program<'a> {
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
         args: &'args ProgramArgs<'args>) -> flatbuffers::WIPOffset<Program<'bldr>> {
       let mut builder = ProgramBuilder::new(_fbb);
+      if let Some(x) = args.errors { builder.add_errors(x); }
       if let Some(x) = args.sections { builder.add_sections(x); }
       if let Some(x) = args.statements { builder.add_statements(x); }
       builder.finish()
@@ -1383,6 +1480,7 @@ impl<'a> Program<'a> {
 
     pub const VT_STATEMENTS: flatbuffers::VOffsetT = 4;
     pub const VT_SECTIONS: flatbuffers::VOffsetT = 6;
+    pub const VT_ERRORS: flatbuffers::VOffsetT = 8;
 
   #[inline]
   pub fn statements(&self) -> Option<&'a [SectionEntry]> {
@@ -1392,11 +1490,16 @@ impl<'a> Program<'a> {
   pub fn sections(&self) -> Option<Sections<'a>> {
     self._tab.get::<flatbuffers::ForwardsUOffset<Sections<'a>>>(Program::VT_SECTIONS, None)
   }
+  #[inline]
+  pub fn errors(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<Error<'a>>>>>(Program::VT_ERRORS, None)
+  }
 }
 
 pub struct ProgramArgs<'a> {
     pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, SectionEntry>>>,
     pub sections: Option<flatbuffers::WIPOffset<Sections<'a>>>,
+    pub errors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>>>,
 }
 impl<'a> Default for ProgramArgs<'a> {
     #[inline]
@@ -1404,6 +1507,7 @@ impl<'a> Default for ProgramArgs<'a> {
         ProgramArgs {
             statements: None,
             sections: None,
+            errors: None,
         }
     }
 }
@@ -1419,6 +1523,10 @@ impl<'a: 'b, 'b> ProgramBuilder<'a, 'b> {
   #[inline]
   pub fn add_sections(&mut self, sections: flatbuffers::WIPOffset<Sections<'b >>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Sections>>(Program::VT_SECTIONS, sections);
+  }
+  #[inline]
+  pub fn add_errors(&mut self, errors: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Error<'b >>>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Program::VT_ERRORS, errors);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ProgramBuilder<'a, 'b> {

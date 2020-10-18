@@ -38,6 +38,10 @@ struct Sections;
 struct SectionsBuilder;
 struct SectionsT;
 
+struct Error;
+struct ErrorBuilder;
+struct ErrorT;
+
 struct Program;
 struct ProgramBuilder;
 struct ProgramT;
@@ -68,6 +72,8 @@ bool operator==(const VizStatement &lhs, const VizStatement &rhs);
 bool operator!=(const VizStatement &lhs, const VizStatement &rhs);
 bool operator==(const SectionsT &lhs, const SectionsT &rhs);
 bool operator!=(const SectionsT &lhs, const SectionsT &rhs);
+bool operator==(const ErrorT &lhs, const ErrorT &rhs);
+bool operator!=(const ErrorT &lhs, const ErrorT &rhs);
 bool operator==(const ProgramT &lhs, const ProgramT &rhs);
 bool operator!=(const ProgramT &lhs, const ProgramT &rhs);
 
@@ -97,24 +103,28 @@ inline const flatbuffers::TypeTable *VizStatementTypeTable();
 
 inline const flatbuffers::TypeTable *SectionsTypeTable();
 
+inline const flatbuffers::TypeTable *ErrorTypeTable();
+
 inline const flatbuffers::TypeTable *ProgramTypeTable();
 
 enum class SectionTag : uint8_t {
-  I64Literal = 0,
-  F64Literal = 1,
-  StringLiteral = 2,
-  JSONPathExtract = 3,
-  CSVExtract = 4,
-  ParameterDeclaration = 5,
-  VizStatement = 6,
-  HTTPLoad = 7,
-  FileLoad = 8,
-  MIN = I64Literal,
+  NONE = 0,
+  I64Literal = 1,
+  F64Literal = 2,
+  StringLiteral = 3,
+  JSONPathExtract = 4,
+  CSVExtract = 5,
+  ParameterDeclaration = 6,
+  VizStatement = 7,
+  HTTPLoad = 8,
+  FileLoad = 9,
+  MIN = NONE,
   MAX = FileLoad
 };
 
-inline const SectionTag (&EnumValuesSectionTag())[9] {
+inline const SectionTag (&EnumValuesSectionTag())[10] {
   static const SectionTag values[] = {
+    SectionTag::NONE,
     SectionTag::I64Literal,
     SectionTag::F64Literal,
     SectionTag::StringLiteral,
@@ -129,7 +139,8 @@ inline const SectionTag (&EnumValuesSectionTag())[9] {
 }
 
 inline const char * const *EnumNamesSectionTag() {
-  static const char * const names[10] = {
+  static const char * const names[11] = {
+    "NONE",
     "I64Literal",
     "F64Literal",
     "StringLiteral",
@@ -145,25 +156,27 @@ inline const char * const *EnumNamesSectionTag() {
 }
 
 inline const char *EnumNameSectionTag(SectionTag e) {
-  if (flatbuffers::IsOutRange(e, SectionTag::I64Literal, SectionTag::FileLoad)) return "";
+  if (flatbuffers::IsOutRange(e, SectionTag::NONE, SectionTag::FileLoad)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesSectionTag()[index];
 }
 
 enum class ParameterTag : uint8_t {
-  INTEGER = 0,
-  FLOAT = 1,
-  TEXT = 2,
-  DATE = 3,
-  DATETIME = 4,
-  TIME = 5,
-  FILE = 6,
-  MIN = INTEGER,
+  NONE = 0,
+  INTEGER = 1,
+  FLOAT = 2,
+  TEXT = 3,
+  DATE = 4,
+  DATETIME = 5,
+  TIME = 6,
+  FILE = 7,
+  MIN = NONE,
   MAX = FILE
 };
 
-inline const ParameterTag (&EnumValuesParameterTag())[7] {
+inline const ParameterTag (&EnumValuesParameterTag())[8] {
   static const ParameterTag values[] = {
+    ParameterTag::NONE,
     ParameterTag::INTEGER,
     ParameterTag::FLOAT,
     ParameterTag::TEXT,
@@ -176,7 +189,8 @@ inline const ParameterTag (&EnumValuesParameterTag())[7] {
 }
 
 inline const char * const *EnumNamesParameterTag() {
-  static const char * const names[8] = {
+  static const char * const names[9] = {
+    "NONE",
     "INTEGER",
     "FLOAT",
     "TEXT",
@@ -190,7 +204,7 @@ inline const char * const *EnumNamesParameterTag() {
 }
 
 inline const char *EnumNameParameterTag(ParameterTag e) {
-  if (flatbuffers::IsOutRange(e, ParameterTag::INTEGER, ParameterTag::FILE)) return "";
+  if (flatbuffers::IsOutRange(e, ParameterTag::NONE, ParameterTag::FILE)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesParameterTag()[index];
 }
@@ -1071,6 +1085,103 @@ inline flatbuffers::Offset<Sections> CreateSectionsDirect(
 
 flatbuffers::Offset<Sections> CreateSections(flatbuffers::FlatBufferBuilder &_fbb, const SectionsT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct ErrorT : public flatbuffers::NativeTable {
+  typedef Error TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "dashql.proto.program.ErrorT";
+  }
+  std::unique_ptr<dashql::proto::program::Location> location;
+  std::string message;
+  ErrorT() {
+  }
+};
+
+inline bool operator==(const ErrorT &lhs, const ErrorT &rhs) {
+  return
+      (lhs.location == rhs.location) &&
+      (lhs.message == rhs.message);
+}
+
+inline bool operator!=(const ErrorT &lhs, const ErrorT &rhs) {
+    return !(lhs == rhs);
+}
+
+
+struct Error FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ErrorT NativeTableType;
+  typedef ErrorBuilder Builder;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return ErrorTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "dashql.proto.program.Error";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_LOCATION = 4,
+    VT_MESSAGE = 6
+  };
+  const dashql::proto::program::Location *location() const {
+    return GetStruct<const dashql::proto::program::Location *>(VT_LOCATION);
+  }
+  const flatbuffers::String *message() const {
+    return GetPointer<const flatbuffers::String *>(VT_MESSAGE);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<dashql::proto::program::Location>(verifier, VT_LOCATION) &&
+           VerifyOffset(verifier, VT_MESSAGE) &&
+           verifier.VerifyString(message()) &&
+           verifier.EndTable();
+  }
+  ErrorT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ErrorT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<Error> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ErrorT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct ErrorBuilder {
+  typedef Error Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_location(const dashql::proto::program::Location *location) {
+    fbb_.AddStruct(Error::VT_LOCATION, location);
+  }
+  void add_message(flatbuffers::Offset<flatbuffers::String> message) {
+    fbb_.AddOffset(Error::VT_MESSAGE, message);
+  }
+  explicit ErrorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Error> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Error>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Error> CreateError(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const dashql::proto::program::Location *location = 0,
+    flatbuffers::Offset<flatbuffers::String> message = 0) {
+  ErrorBuilder builder_(_fbb);
+  builder_.add_message(message);
+  builder_.add_location(location);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<Error> CreateErrorDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const dashql::proto::program::Location *location = 0,
+    const char *message = nullptr) {
+  auto message__ = message ? _fbb.CreateString(message) : 0;
+  return dashql::proto::program::CreateError(
+      _fbb,
+      location,
+      message__);
+}
+
+flatbuffers::Offset<Error> CreateError(flatbuffers::FlatBufferBuilder &_fbb, const ErrorT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct ProgramT : public flatbuffers::NativeTable {
   typedef Program TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
@@ -1078,6 +1189,7 @@ struct ProgramT : public flatbuffers::NativeTable {
   }
   std::vector<dashql::proto::program::SectionEntry> statements;
   std::unique_ptr<dashql::proto::program::SectionsT> sections;
+  std::vector<std::unique_ptr<dashql::proto::program::ErrorT>> errors;
   ProgramT() {
   }
 };
@@ -1085,7 +1197,8 @@ struct ProgramT : public flatbuffers::NativeTable {
 inline bool operator==(const ProgramT &lhs, const ProgramT &rhs) {
   return
       (lhs.statements == rhs.statements) &&
-      (lhs.sections == rhs.sections);
+      (lhs.sections == rhs.sections) &&
+      (lhs.errors == rhs.errors);
 }
 
 inline bool operator!=(const ProgramT &lhs, const ProgramT &rhs) {
@@ -1104,7 +1217,8 @@ struct Program FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_STATEMENTS = 4,
-    VT_SECTIONS = 6
+    VT_SECTIONS = 6,
+    VT_ERRORS = 8
   };
   const flatbuffers::Vector<const dashql::proto::program::SectionEntry *> *statements() const {
     return GetPointer<const flatbuffers::Vector<const dashql::proto::program::SectionEntry *> *>(VT_STATEMENTS);
@@ -1112,12 +1226,18 @@ struct Program FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const dashql::proto::program::Sections *sections() const {
     return GetPointer<const dashql::proto::program::Sections *>(VT_SECTIONS);
   }
+  const flatbuffers::Vector<flatbuffers::Offset<dashql::proto::program::Error>> *errors() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<dashql::proto::program::Error>> *>(VT_ERRORS);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_STATEMENTS) &&
            verifier.VerifyVector(statements()) &&
            VerifyOffset(verifier, VT_SECTIONS) &&
            verifier.VerifyTable(sections()) &&
+           VerifyOffset(verifier, VT_ERRORS) &&
+           verifier.VerifyVector(errors()) &&
+           verifier.VerifyVectorOfTables(errors()) &&
            verifier.EndTable();
   }
   ProgramT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1135,6 +1255,9 @@ struct ProgramBuilder {
   void add_sections(flatbuffers::Offset<dashql::proto::program::Sections> sections) {
     fbb_.AddOffset(Program::VT_SECTIONS, sections);
   }
+  void add_errors(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<dashql::proto::program::Error>>> errors) {
+    fbb_.AddOffset(Program::VT_ERRORS, errors);
+  }
   explicit ProgramBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1149,8 +1272,10 @@ struct ProgramBuilder {
 inline flatbuffers::Offset<Program> CreateProgram(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::program::SectionEntry *>> statements = 0,
-    flatbuffers::Offset<dashql::proto::program::Sections> sections = 0) {
+    flatbuffers::Offset<dashql::proto::program::Sections> sections = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<dashql::proto::program::Error>>> errors = 0) {
   ProgramBuilder builder_(_fbb);
+  builder_.add_errors(errors);
   builder_.add_sections(sections);
   builder_.add_statements(statements);
   return builder_.Finish();
@@ -1159,12 +1284,15 @@ inline flatbuffers::Offset<Program> CreateProgram(
 inline flatbuffers::Offset<Program> CreateProgramDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<dashql::proto::program::SectionEntry> *statements = nullptr,
-    flatbuffers::Offset<dashql::proto::program::Sections> sections = 0) {
+    flatbuffers::Offset<dashql::proto::program::Sections> sections = 0,
+    const std::vector<flatbuffers::Offset<dashql::proto::program::Error>> *errors = nullptr) {
   auto statements__ = statements ? _fbb.CreateVectorOfStructs<dashql::proto::program::SectionEntry>(*statements) : 0;
+  auto errors__ = errors ? _fbb.CreateVector<flatbuffers::Offset<dashql::proto::program::Error>>(*errors) : 0;
   return dashql::proto::program::CreateProgram(
       _fbb,
       statements__,
-      sections);
+      sections,
+      errors__);
 }
 
 flatbuffers::Offset<Program> CreateProgram(flatbuffers::FlatBufferBuilder &_fbb, const ProgramT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1219,6 +1347,35 @@ inline flatbuffers::Offset<Sections> CreateSections(flatbuffers::FlatBufferBuild
       _viz_statements);
 }
 
+inline ErrorT *Error::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<dashql::proto::program::ErrorT> _o = std::unique_ptr<dashql::proto::program::ErrorT>(new ErrorT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void Error::UnPackTo(ErrorT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = location(); if (_e) _o->location = std::unique_ptr<dashql::proto::program::Location>(new dashql::proto::program::Location(*_e)); }
+  { auto _e = message(); if (_e) _o->message = _e->str(); }
+}
+
+inline flatbuffers::Offset<Error> Error::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ErrorT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateError(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<Error> CreateError(flatbuffers::FlatBufferBuilder &_fbb, const ErrorT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ErrorT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _location = _o->location ? _o->location.get() : 0;
+  auto _message = _o->message.empty() ? 0 : _fbb.CreateString(_o->message);
+  return dashql::proto::program::CreateError(
+      _fbb,
+      _location,
+      _message);
+}
+
 inline ProgramT *Program::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   std::unique_ptr<dashql::proto::program::ProgramT> _o = std::unique_ptr<dashql::proto::program::ProgramT>(new ProgramT());
   UnPackTo(_o.get(), _resolver);
@@ -1230,6 +1387,7 @@ inline void Program::UnPackTo(ProgramT *_o, const flatbuffers::resolver_function
   (void)_resolver;
   { auto _e = statements(); if (_e) { _o->statements.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->statements[_i] = *_e->Get(_i); } } }
   { auto _e = sections(); if (_e) _o->sections = std::unique_ptr<dashql::proto::program::SectionsT>(_e->UnPack(_resolver)); }
+  { auto _e = errors(); if (_e) { _o->errors.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->errors[_i] = std::unique_ptr<dashql::proto::program::ErrorT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<Program> Program::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ProgramT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -1242,14 +1400,17 @@ inline flatbuffers::Offset<Program> CreateProgram(flatbuffers::FlatBufferBuilder
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ProgramT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _statements = _o->statements.size() ? _fbb.CreateVectorOfStructs(_o->statements) : 0;
   auto _sections = _o->sections ? CreateSections(_fbb, _o->sections.get(), _rehasher) : 0;
+  auto _errors = _o->errors.size() ? _fbb.CreateVector<flatbuffers::Offset<dashql::proto::program::Error>> (_o->errors.size(), [](size_t i, _VectorArgs *__va) { return CreateError(*__va->__fbb, __va->__o->errors[i].get(), __va->__rehasher); }, &_va ) : 0;
   return dashql::proto::program::CreateProgram(
       _fbb,
       _statements,
-      _sections);
+      _sections,
+      _errors);
 }
 
 inline const flatbuffers::TypeTable *SectionTagTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -1264,6 +1425,7 @@ inline const flatbuffers::TypeTable *SectionTagTypeTable() {
     dashql::proto::program::SectionTagTypeTable
   };
   static const char * const names[] = {
+    "NONE",
     "I64Literal",
     "F64Literal",
     "StringLiteral",
@@ -1275,7 +1437,7 @@ inline const flatbuffers::TypeTable *SectionTagTypeTable() {
     "FileLoad"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 9, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 10, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
@@ -1288,12 +1450,14 @@ inline const flatbuffers::TypeTable *ParameterTagTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     dashql::proto::program::ParameterTagTypeTable
   };
   static const char * const names[] = {
+    "NONE",
     "INTEGER",
     "FLOAT",
     "TEXT",
@@ -1303,7 +1467,7 @@ inline const flatbuffers::TypeTable *ParameterTagTypeTable() {
     "FILE"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 7, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 8, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
@@ -1655,21 +1819,42 @@ inline const flatbuffers::TypeTable *SectionsTypeTable() {
   return &tt;
 }
 
-inline const flatbuffers::TypeTable *ProgramTypeTable() {
+inline const flatbuffers::TypeTable *ErrorTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_SEQUENCE, 1, 0 },
-    { flatbuffers::ET_SEQUENCE, 0, 1 }
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_STRING, 0, -1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::program::SectionEntryTypeTable,
-    dashql::proto::program::SectionsTypeTable
+    dashql::proto::program::LocationTypeTable
   };
   static const char * const names[] = {
-    "statements",
-    "sections"
+    "location",
+    "message"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_TABLE, 2, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *ProgramTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 1, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 1 },
+    { flatbuffers::ET_SEQUENCE, 1, 2 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::program::SectionEntryTypeTable,
+    dashql::proto::program::SectionsTypeTable,
+    dashql::proto::program::ErrorTypeTable
+  };
+  static const char * const names[] = {
+    "statements",
+    "sections",
+    "errors"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

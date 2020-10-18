@@ -6,6 +6,7 @@ struct Position { line: uint32; column: uint32; }
 struct Location { begin: Position; end: Position; }
 
 enum SectionTag: uint8 {
+    NONE,
     I64Literal,
     F64Literal,
     StringLiteral,
@@ -23,13 +24,14 @@ struct SectionEntry {
 }
 
 enum ParameterTag: uint8 {
-    INTEGER = 0,
-    FLOAT = 1,
-    TEXT = 2,
-    DATE = 3,
-    DATETIME = 4,
-    TIME = 5,
-    FILE = 6,
+    NONE = 0,
+    INTEGER = 1,
+    FLOAT = 2,
+    TEXT = 3,
+    DATE = 4,
+    DATETIME = 5,
+    TIME = 6,
+    FILE = 7,
 }
 
 struct ParameterDeclaration {
