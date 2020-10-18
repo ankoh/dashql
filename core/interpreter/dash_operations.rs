@@ -1,4 +1,5 @@
 use super::dash_graph::{DashGraph, DashNodeHandle};
+use super::heap::MinHeap;
 
 pub struct DashOperations {
     operations: Vec<DashOperation>,
@@ -34,23 +35,30 @@ impl<'graph> PartialOrd for HeapDashNode {
     }
 }
 
-impl From<DashGraph> for DashOperations {
-    fn from(mut graph: DashGraph) -> Self {
-        let mut heap = (0..graph.get_node_count())
+impl From<&DashGraph> for DashOperations {
+    fn from(graph: &DashGraph) -> Self {
+        let heap_entries = (0..graph.get_node_count())
             .into_iter()
-            .map(|handle| HeapDashNode {
-                graph: &graph,
-                handle: DashNodeHandle::new(handle),
+            .map(|i| {
+                let h = DashNodeHandle::new(i);
+                let c = graph.get_node(h).get_producers_count();
+                (h, c)
             })
-            .collect::<std::collections::BinaryHeap<_>>();
+            .collect::<Vec<_>>();
+        let mut heap = MinHeap::from_entries(heap_entries);
 
-        let mut operations = Vec::new();
+        while let Some((handle, pending)) = heap.pop() {
+            debug_assert!(pending == 0, "top heap element must not have pending dependencies");
 
-        while let Some(top) = heap.pop() {
-            let node = graph.remove_node(top.handle);
+            // Decrement key of consumers
+            for c in graph.get_node(handle).get_consumers() {
+                heap.decrement_key(c);
+            }
 
-            operations.push(node.operation);
+            // XXX do something
         }
+
+        let operations = Vec::new();
 
         Self { operations }
     }
