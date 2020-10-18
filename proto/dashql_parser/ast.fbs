@@ -77,16 +77,6 @@ struct VizStatement {
     query_name: SectionEntry;
 }
 
-table I64LiteralSection { values: [int64]; }
-table F64LiteralSection { values: [double]; }
-table StringLiteralSection { values: [string]; }
-table JSONPathExtractSection { values: [JSONPathExtract]; }
-table CSVExtractSection { values: [CSVExtract]; }
-table ParameterDeclarationSection { values: [ParameterDeclaration]; }
-table VizStatementSection { values: [VizStatement]; }
-table HTTPLoadSection { values: [HTTPLoad]; }
-table FileLoadSection { values: [FileLoad]; }
-
 table Sections {
     literals_i64: [int64];
     literals_f64: [double];
