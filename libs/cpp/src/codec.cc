@@ -13,7 +13,7 @@ struct SectionsBuilder {
     /// The section data
     std::vector<int64_t> _literals_i64 = {};
     std::vector<double> _literals_f64 = {};
-    std::vector<std::string> _literals_string = {};
+    std::vector<std::string_view> _literals_string = {};
     std::vector<proto::program::ParameterDeclaration> _parameter_declarations = {};
     std::vector<proto::program::FileLoad> _loads_file = {};
     std::vector<proto::program::HTTPLoad> _loads_http = {};
