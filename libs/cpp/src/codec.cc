@@ -94,6 +94,10 @@ static proto::program::Location encode(const Location& l) {
     return  proto::program::Location(b, e);
 }
 
+static proto::program::SectionEntry encode(const ExtractStatement::ExtractMethod& method) {
+    // XXX
+}
+
 static proto::program::SectionEntry null_entry() {
     return proto::program::SectionEntry(proto::program::SectionTag::NONE, 0);
 }
@@ -116,7 +120,13 @@ flatbuffers::Offset<proto::program::Program> WriteProgram(flatbuffers::FlatBuffe
                 auto decl = proto::program::ParameterDeclaration(loc, tag, name, label, null_entry());
                 stmt_entries.push_back(sections.add(decl));
             },
-            [&](const ExtractStatement&) {
+            [&](const ExtractStatement& e) {
+                auto loc = encode(e.location);
+                auto name = sections.add<std::string>(e.name.string);
+                auto data = sections.add<std::string>(e.data_name.string);
+                auto method = encode(e.method);
+                auto extract = proto::program::ExtractStatement(loc, name, data, method);
+                stmt_entries.push_back(sections.add(extract));
             },
             [&](const LoadStatement&) {
             },
