@@ -97,12 +97,45 @@ static proto::program::Location encode(const Location& l) {
     return proto::program::Location(b, e);
 }
 
-static proto::program::SectionEntry encode(SectionsBuilder& sections, const ExtractStatement::ExtractMethod& method) {
+static proto::program::HTTPVerb encode(const LoadStatement::HTTPLoader::Method::Verb& l) {
     // XXX
+    return proto::program::HTTPVerb::NONE;
+}
+
+static proto::program::SectionEntry encode(SectionsBuilder& sections, const ExtractStatement::ExtractMethod& method) {
+    auto result = sections.null();
+    std::visit(overload{
+        [&](const ExtractStatement::CSVExtract& c) {
+            auto loc = encode(c.location);
+            auto extract = proto::program::CSVExtract(loc);
+            result = sections.add(extract);
+        },
+        [&](const ExtractStatement::JSONPathExtract& j) {
+            auto loc = encode(j.location);
+            auto extract = proto::program::JSONPathExtract(loc);
+            result = sections.add(extract);
+        },
+    }, method);
+    return result;
 }
 
 static proto::program::SectionEntry encode(SectionsBuilder& sections, const LoadStatement::LoadMethod& method) {
-    // XXX
+    auto result = sections.null();
+    std::visit(overload{
+        [&](const LoadStatement::FileLoader& f) {
+            auto loc = encode(f.location);
+            auto extract = proto::program::FileLoad(loc);
+            result = sections.add(extract);
+        },
+        [&](const LoadStatement::HTTPLoader& h) {
+            auto loc = encode(h.location);
+            auto verb = proto::program::HTTPVerb::NONE;
+            auto url = sections.null();
+            auto load = proto::program::HTTPLoad(loc, verb, url);
+            result = sections.add(load);
+        },
+    }, method);
+    return result;
 }
 
 static proto::program::VizTag encode(SectionsBuilder& sections, const VizStatement::VizType& type) {
