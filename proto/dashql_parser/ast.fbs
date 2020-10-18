@@ -1,7 +1,105 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace dashql_parser.proto;
+namespace dashql.proto.ast;
 
-table HelloWorld {
-    foo: string;
+struct Position { line: uint32; column: uint32; }
+struct Location { begin: Position; end: Position; }
+
+enum SectionTag: uint8 {
+    I64Literal,
+    F64Literal,
+    StringLiteral,
+    JSONPathExtract,
+    CSVExtract,
+    ParameterDeclaration,
+    VizStatement,
+    HTTPLoad,
+    FileLoad,
+}
+
+struct SectionEntry {
+    tag: SectionTag;
+    index: uint32;
+}
+
+enum ParameterTag: uint8 {
+    INTEGER = 0,
+    FLOAT = 1,
+    TEXT = 2,
+    DATE = 3,
+    DATETIME = 4,
+    TIME = 5,
+    FILE = 6,
+}
+
+struct ParameterDeclaration {
+    location: Location;
+    tag: ParameterTag;
+    name: SectionEntry;
+    label: SectionEntry;
+    default_value: SectionEntry;
+}
+
+struct QueryStatement {
+    location: Location;
+    name: SectionEntry;
+    text: SectionEntry;
+}
+
+enum HTTPVerb: uint8 { NONE = 0, GET = 1, PUT = 2, POST = 3, }
+struct HTTPLoad { location: Location; verb: HTTPVerb; url: SectionEntry; }
+struct FileLoad { location: Location; }
+struct LoadStatement { location: Location; name: SectionEntry; method: SectionEntry; }
+
+struct JSONPathExtract { location: Location; }
+struct CSVExtract { location: Location; }
+struct ExtractStatement { location: Location; name: SectionEntry; data: SectionEntry; method: SectionEntry; }
+
+enum VizTag: uint8 {
+    AREA = 0,
+    BAR = 1,
+    BOX = 2,
+    BUBBLE = 3,
+    GRID = 4,
+    HISTOGRAM = 5,
+    LINE = 6,
+    NUMBER = 7,
+    PIE = 8,
+    POINT = 9,
+    SCATTER = 10,
+    TABLE = 11,
+    TEXT = 12,
+}
+struct VizStatement {
+    location: Location;
+    tag: VizTag;
+    name: SectionEntry;
+    query_name: SectionEntry;
+}
+
+table I64LiteralSection { values: [int64]; }
+table F64LiteralSection { values: [double]; }
+table StringLiteralSection { values: [string]; }
+table JSONPathExtractSection { values: [JSONPathExtract]; }
+table CSVExtractSection { values: [CSVExtract]; }
+table ParameterDeclarationSection { values: [ParameterDeclaration]; }
+table VizStatementSection { values: [VizStatement]; }
+table HTTPLoadSection { values: [HTTPLoad]; }
+table FileLoadSection { values: [FileLoad]; }
+
+table Sections {
+    literals_i64: [int64];
+    literals_f64: [double];
+    literals_string: [string];
+    parameter_declarations: [ParameterDeclaration];
+    loads_file: [FileLoad];
+    loads_http: [HTTPLoad];
+    extracts_csv: [CSVExtract];
+    extracts_jsonpath: [JSONPathExtract];
+    viz_statements: [VizStatement];
+}
+
+table Program {
+    statements: [SectionEntry];
+    sections: Sections;
 }

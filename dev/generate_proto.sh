@@ -23,6 +23,7 @@ ${FLATC} --version \
 ${FLATC} -I ${PROTO_DIR} -o ${RS_PROTO_DIR} ${PROTO_AMALGAMATION_FILE} --rust \
         --reflect-types --reflect-names \
         --gen-all \
+        --gen-mutable \
         --gen-object-api --gen-name-strings --gen-compare \
     && { echo "[ OK  ] ${PROTO_AMALGAMATION_FILE}: Rust"; } \
     || { echo "[ ERR ] ${PROTO_AMALGAMATION_FILE}: Rust"; exit 1; }
