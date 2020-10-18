@@ -1,6 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include <string_view>
+#include <optional>
 
 #include "dashql/parser/common/variant.h"
 #include "dashql/parser/proto/program_generated.h"
@@ -8,6 +9,7 @@
 #include "flatbuffers/flatbuffers.h"
 
 using namespace std;
+namespace fb = flatbuffers;
 
 namespace dashql {
 namespace parser {
@@ -38,7 +40,7 @@ struct SectionsBuilder {
         if constexpr (is_same_v<V, double>) {
             return push(proto::program::SectionTag::F64Literal, _literals_f64, v);
         }
-        if constexpr (is_same_v<V, string>) {
+        if constexpr (is_same_v<V, string_view>) {
             return push(proto::program::SectionTag::StringLiteral, _literals_string, v);
         }
         if constexpr (is_same_v<V, proto::program::ParameterDeclaration>) {
@@ -63,8 +65,38 @@ struct SectionsBuilder {
     }
 
     /// Write as flatbuffer
-    flatbuffers::Offset<proto::program::Sections> write(flatbuffers::FlatBufferBuilder& builder) {
+    fb::Offset<proto::program::Sections> write(fb::FlatBufferBuilder& builder) {
+        optional<fb::Offset<fb::Vector<int64_t>>> literals_i64;
+        optional<fb::Offset<fb::Vector<double>>> literals_f64;
+        optional<fb::Offset<fb::Vector<fb::Offset<fb::String>>>> literals_str;
+        optional<fb::Offset<fb::Vector<const proto::program::ParameterDeclaration*>>> parameter_declarations;
+        optional<fb::Offset<fb::Vector<const proto::program::FileLoad*>>> loads_file;
+        optional<fb::Offset<fb::Vector<const proto::program::HTTPLoad*>>> loads_http;
+        optional<fb::Offset<fb::Vector<const proto::program::CSVExtract*>>> extracts_csv;
+        optional<fb::Offset<fb::Vector<const proto::program::JSONPathExtract*>>> extracts_json;
+        optional<fb::Offset<fb::Vector<const proto::program::VizStatement*>>> viz_statements;
+
+        // XXX
+
         proto::program::SectionsBuilder sectionsBuilder{builder};
+        if (literals_i64)
+            sectionsBuilder.add_literals_i64(*literals_i64);
+        if (literals_f64)
+            sectionsBuilder.add_literals_f64(*literals_f64);
+        if (literals_str)
+            sectionsBuilder.add_literals_string(*literals_str);
+        if (parameter_declarations)
+            sectionsBuilder.add_parameter_declarations(*parameter_declarations);
+        if (loads_file)
+            sectionsBuilder.add_loads_file(*loads_file);
+        if (loads_http)
+            sectionsBuilder.add_loads_http(*loads_http);
+        if (extracts_csv)
+            sectionsBuilder.add_extracts_csv(*extracts_csv);
+        if (extracts_json)
+            sectionsBuilder.add_extracts_jsonpath(*extracts_json);
+        if (viz_statements)
+            sectionsBuilder.add_viz_statements(*viz_statements);
         return sectionsBuilder.Finish();
     }
 
@@ -180,7 +212,7 @@ static proto::program::SectionEntry encode(SectionsBuilder& sections, const Load
     return result;
 }
 
-flatbuffers::Offset<proto::program::Program> WriteProgram(flatbuffers::FlatBufferBuilder& builder, Program& program) {
+fb::Offset<proto::program::Program> WriteProgram(fb::FlatBufferBuilder& builder, Program& program) {
     /// The sections
     SectionsBuilder sections;
 
@@ -232,7 +264,7 @@ flatbuffers::Offset<proto::program::Program> WriteProgram(flatbuffers::FlatBuffe
     }
 
     // Encode errors
-    vector<flatbuffers::Offset<proto::program::Error>> errors;
+    vector<fb::Offset<proto::program::Error>> errors;
 
     // Encode program
     auto sec_ofs = sections.write(builder);
