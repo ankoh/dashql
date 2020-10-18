@@ -5,7 +5,7 @@ import { flatbuffers } from "flatbuffers";
 /**
  * @enum {number}
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export enum SectionTag{
   I64Literal= 0,
   F64Literal= 1,
@@ -22,7 +22,7 @@ export enum SectionTag{
 /**
  * @enum {number}
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export enum ParameterTag{
   INTEGER= 0,
   FLOAT= 1,
@@ -37,7 +37,7 @@ export enum ParameterTag{
 /**
  * @enum {number}
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export enum HTTPVerb{
   NONE= 0,
   GET= 1,
@@ -49,7 +49,7 @@ export enum HTTPVerb{
 /**
  * @enum {number}
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export enum VizTag{
   AREA= 0,
   BAR= 1,
@@ -70,7 +70,7 @@ export enum VizTag{
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class Position {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -125,7 +125,7 @@ static createPosition(builder:flatbuffers.Builder, line: number, column: number)
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class Location {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -142,19 +142,19 @@ __init(i:number, bb:flatbuffers.ByteBuffer):Location {
 };
 
 /**
- * @param dashql.proto.ast.Position= obj
- * @returns dashql.proto.ast.Position|null
+ * @param dashql.proto.program.Position= obj
+ * @returns dashql.proto.program.Position|null
  */
-begin(obj?:dashql.proto.ast.Position):dashql.proto.ast.Position|null {
-  return (obj || new dashql.proto.ast.Position()).__init(this.bb_pos, this.bb!);
+begin(obj?:dashql.proto.program.Position):dashql.proto.program.Position|null {
+  return (obj || new dashql.proto.program.Position()).__init(this.bb_pos, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.Position= obj
- * @returns dashql.proto.ast.Position|null
+ * @param dashql.proto.program.Position= obj
+ * @returns dashql.proto.program.Position|null
  */
-end(obj?:dashql.proto.ast.Position):dashql.proto.ast.Position|null {
-  return (obj || new dashql.proto.ast.Position()).__init(this.bb_pos + 8, this.bb!);
+end(obj?:dashql.proto.program.Position):dashql.proto.program.Position|null {
+  return (obj || new dashql.proto.program.Position()).__init(this.bb_pos + 8, this.bb!);
 };
 
 /**
@@ -188,7 +188,7 @@ static createLocation(builder:flatbuffers.Builder, begin_line: number, begin_col
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class SectionEntry {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -205,9 +205,9 @@ __init(i:number, bb:flatbuffers.ByteBuffer):SectionEntry {
 };
 
 /**
- * @returns dashql.proto.ast.SectionTag
+ * @returns dashql.proto.program.SectionTag
  */
-tag():dashql.proto.ast.SectionTag {
+tag():dashql.proto.program.SectionTag {
   return /**  */ (this.bb!.readUint8(this.bb_pos));
 };
 
@@ -227,11 +227,11 @@ static sizeOf():number {
 
 /**
  * @param flatbuffers.Builder builder
- * @param dashql.proto.ast.SectionTag tag
+ * @param dashql.proto.program.SectionTag tag
  * @param number index
  * @returns flatbuffers.Offset
  */
-static createSectionEntry(builder:flatbuffers.Builder, tag: dashql.proto.ast.SectionTag, index: number):flatbuffers.Offset {
+static createSectionEntry(builder:flatbuffers.Builder, tag: dashql.proto.program.SectionTag, index: number):flatbuffers.Offset {
   builder.prep(4, 8);
   builder.writeInt32(index);
   builder.pad(3);
@@ -244,7 +244,7 @@ static createSectionEntry(builder:flatbuffers.Builder, tag: dashql.proto.ast.Sec
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class ParameterDeclaration {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -261,42 +261,42 @@ __init(i:number, bb:flatbuffers.ByteBuffer):ParameterDeclaration {
 };
 
 /**
- * @param dashql.proto.ast.Location= obj
- * @returns dashql.proto.ast.Location|null
+ * @param dashql.proto.program.Location= obj
+ * @returns dashql.proto.program.Location|null
  */
-location(obj?:dashql.proto.ast.Location):dashql.proto.ast.Location|null {
-  return (obj || new dashql.proto.ast.Location()).__init(this.bb_pos, this.bb!);
+location(obj?:dashql.proto.program.Location):dashql.proto.program.Location|null {
+  return (obj || new dashql.proto.program.Location()).__init(this.bb_pos, this.bb!);
 };
 
 /**
- * @returns dashql.proto.ast.ParameterTag
+ * @returns dashql.proto.program.ParameterTag
  */
-tag():dashql.proto.ast.ParameterTag {
+tag():dashql.proto.program.ParameterTag {
   return /**  */ (this.bb!.readUint8(this.bb_pos + 16));
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-name(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 20, this.bb!);
+name(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 20, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-label(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 28, this.bb!);
+label(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 28, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-defaultValue(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 36, this.bb!);
+defaultValue(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 36, this.bb!);
 };
 
 /**
@@ -312,16 +312,16 @@ static sizeOf():number {
  * @param number location_begin_column
  * @param number location_end_line
  * @param number location_end_column
- * @param dashql.proto.ast.ParameterTag tag
- * @param dashql.proto.ast.SectionTag name_tag
+ * @param dashql.proto.program.ParameterTag tag
+ * @param dashql.proto.program.SectionTag name_tag
  * @param number name_index
- * @param dashql.proto.ast.SectionTag label_tag
+ * @param dashql.proto.program.SectionTag label_tag
  * @param number label_index
- * @param dashql.proto.ast.SectionTag default_value_tag
+ * @param dashql.proto.program.SectionTag default_value_tag
  * @param number default_value_index
  * @returns flatbuffers.Offset
  */
-static createParameterDeclaration(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, tag: dashql.proto.ast.ParameterTag, name_tag: dashql.proto.ast.SectionTag, name_index: number, label_tag: dashql.proto.ast.SectionTag, label_index: number, default_value_tag: dashql.proto.ast.SectionTag, default_value_index: number):flatbuffers.Offset {
+static createParameterDeclaration(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, tag: dashql.proto.program.ParameterTag, name_tag: dashql.proto.program.SectionTag, name_index: number, label_tag: dashql.proto.program.SectionTag, label_index: number, default_value_tag: dashql.proto.program.SectionTag, default_value_index: number):flatbuffers.Offset {
   builder.prep(4, 44);
   builder.prep(4, 8);
   builder.writeInt32(default_value_index);
@@ -352,7 +352,7 @@ static createParameterDeclaration(builder:flatbuffers.Builder, location_begin_li
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class QueryStatement {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -369,27 +369,27 @@ __init(i:number, bb:flatbuffers.ByteBuffer):QueryStatement {
 };
 
 /**
- * @param dashql.proto.ast.Location= obj
- * @returns dashql.proto.ast.Location|null
+ * @param dashql.proto.program.Location= obj
+ * @returns dashql.proto.program.Location|null
  */
-location(obj?:dashql.proto.ast.Location):dashql.proto.ast.Location|null {
-  return (obj || new dashql.proto.ast.Location()).__init(this.bb_pos, this.bb!);
+location(obj?:dashql.proto.program.Location):dashql.proto.program.Location|null {
+  return (obj || new dashql.proto.program.Location()).__init(this.bb_pos, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-name(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 16, this.bb!);
+name(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 16, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-text(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 24, this.bb!);
+text(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 24, this.bb!);
 };
 
 /**
@@ -405,13 +405,13 @@ static sizeOf():number {
  * @param number location_begin_column
  * @param number location_end_line
  * @param number location_end_column
- * @param dashql.proto.ast.SectionTag name_tag
+ * @param dashql.proto.program.SectionTag name_tag
  * @param number name_index
- * @param dashql.proto.ast.SectionTag text_tag
+ * @param dashql.proto.program.SectionTag text_tag
  * @param number text_index
  * @returns flatbuffers.Offset
  */
-static createQueryStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, name_tag: dashql.proto.ast.SectionTag, name_index: number, text_tag: dashql.proto.ast.SectionTag, text_index: number):flatbuffers.Offset {
+static createQueryStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, name_tag: dashql.proto.program.SectionTag, name_index: number, text_tag: dashql.proto.program.SectionTag, text_index: number):flatbuffers.Offset {
   builder.prep(4, 32);
   builder.prep(4, 8);
   builder.writeInt32(text_index);
@@ -436,7 +436,7 @@ static createQueryStatement(builder:flatbuffers.Builder, location_begin_line: nu
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class HTTPLoad {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -453,26 +453,26 @@ __init(i:number, bb:flatbuffers.ByteBuffer):HTTPLoad {
 };
 
 /**
- * @param dashql.proto.ast.Location= obj
- * @returns dashql.proto.ast.Location|null
+ * @param dashql.proto.program.Location= obj
+ * @returns dashql.proto.program.Location|null
  */
-location(obj?:dashql.proto.ast.Location):dashql.proto.ast.Location|null {
-  return (obj || new dashql.proto.ast.Location()).__init(this.bb_pos, this.bb!);
+location(obj?:dashql.proto.program.Location):dashql.proto.program.Location|null {
+  return (obj || new dashql.proto.program.Location()).__init(this.bb_pos, this.bb!);
 };
 
 /**
- * @returns dashql.proto.ast.HTTPVerb
+ * @returns dashql.proto.program.HTTPVerb
  */
-verb():dashql.proto.ast.HTTPVerb {
+verb():dashql.proto.program.HTTPVerb {
   return /**  */ (this.bb!.readUint8(this.bb_pos + 16));
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-url(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 20, this.bb!);
+url(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 20, this.bb!);
 };
 
 /**
@@ -488,12 +488,12 @@ static sizeOf():number {
  * @param number location_begin_column
  * @param number location_end_line
  * @param number location_end_column
- * @param dashql.proto.ast.HTTPVerb verb
- * @param dashql.proto.ast.SectionTag url_tag
+ * @param dashql.proto.program.HTTPVerb verb
+ * @param dashql.proto.program.SectionTag url_tag
  * @param number url_index
  * @returns flatbuffers.Offset
  */
-static createHTTPLoad(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, verb: dashql.proto.ast.HTTPVerb, url_tag: dashql.proto.ast.SectionTag, url_index: number):flatbuffers.Offset {
+static createHTTPLoad(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, verb: dashql.proto.program.HTTPVerb, url_tag: dashql.proto.program.SectionTag, url_index: number):flatbuffers.Offset {
   builder.prep(4, 28);
   builder.prep(4, 8);
   builder.writeInt32(url_index);
@@ -516,7 +516,7 @@ static createHTTPLoad(builder:flatbuffers.Builder, location_begin_line: number, 
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class FileLoad {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -533,11 +533,11 @@ __init(i:number, bb:flatbuffers.ByteBuffer):FileLoad {
 };
 
 /**
- * @param dashql.proto.ast.Location= obj
- * @returns dashql.proto.ast.Location|null
+ * @param dashql.proto.program.Location= obj
+ * @returns dashql.proto.program.Location|null
  */
-location(obj?:dashql.proto.ast.Location):dashql.proto.ast.Location|null {
-  return (obj || new dashql.proto.ast.Location()).__init(this.bb_pos, this.bb!);
+location(obj?:dashql.proto.program.Location):dashql.proto.program.Location|null {
+  return (obj || new dashql.proto.program.Location()).__init(this.bb_pos, this.bb!);
 };
 
 /**
@@ -572,7 +572,7 @@ static createFileLoad(builder:flatbuffers.Builder, location_begin_line: number, 
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class LoadStatement {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -589,27 +589,27 @@ __init(i:number, bb:flatbuffers.ByteBuffer):LoadStatement {
 };
 
 /**
- * @param dashql.proto.ast.Location= obj
- * @returns dashql.proto.ast.Location|null
+ * @param dashql.proto.program.Location= obj
+ * @returns dashql.proto.program.Location|null
  */
-location(obj?:dashql.proto.ast.Location):dashql.proto.ast.Location|null {
-  return (obj || new dashql.proto.ast.Location()).__init(this.bb_pos, this.bb!);
+location(obj?:dashql.proto.program.Location):dashql.proto.program.Location|null {
+  return (obj || new dashql.proto.program.Location()).__init(this.bb_pos, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-name(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 16, this.bb!);
+name(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 16, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-method(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 24, this.bb!);
+method(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 24, this.bb!);
 };
 
 /**
@@ -625,13 +625,13 @@ static sizeOf():number {
  * @param number location_begin_column
  * @param number location_end_line
  * @param number location_end_column
- * @param dashql.proto.ast.SectionTag name_tag
+ * @param dashql.proto.program.SectionTag name_tag
  * @param number name_index
- * @param dashql.proto.ast.SectionTag method_tag
+ * @param dashql.proto.program.SectionTag method_tag
  * @param number method_index
  * @returns flatbuffers.Offset
  */
-static createLoadStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, name_tag: dashql.proto.ast.SectionTag, name_index: number, method_tag: dashql.proto.ast.SectionTag, method_index: number):flatbuffers.Offset {
+static createLoadStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, name_tag: dashql.proto.program.SectionTag, name_index: number, method_tag: dashql.proto.program.SectionTag, method_index: number):flatbuffers.Offset {
   builder.prep(4, 32);
   builder.prep(4, 8);
   builder.writeInt32(method_index);
@@ -656,7 +656,7 @@ static createLoadStatement(builder:flatbuffers.Builder, location_begin_line: num
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class JSONPathExtract {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -673,11 +673,11 @@ __init(i:number, bb:flatbuffers.ByteBuffer):JSONPathExtract {
 };
 
 /**
- * @param dashql.proto.ast.Location= obj
- * @returns dashql.proto.ast.Location|null
+ * @param dashql.proto.program.Location= obj
+ * @returns dashql.proto.program.Location|null
  */
-location(obj?:dashql.proto.ast.Location):dashql.proto.ast.Location|null {
-  return (obj || new dashql.proto.ast.Location()).__init(this.bb_pos, this.bb!);
+location(obj?:dashql.proto.program.Location):dashql.proto.program.Location|null {
+  return (obj || new dashql.proto.program.Location()).__init(this.bb_pos, this.bb!);
 };
 
 /**
@@ -712,7 +712,7 @@ static createJSONPathExtract(builder:flatbuffers.Builder, location_begin_line: n
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class CSVExtract {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -729,11 +729,11 @@ __init(i:number, bb:flatbuffers.ByteBuffer):CSVExtract {
 };
 
 /**
- * @param dashql.proto.ast.Location= obj
- * @returns dashql.proto.ast.Location|null
+ * @param dashql.proto.program.Location= obj
+ * @returns dashql.proto.program.Location|null
  */
-location(obj?:dashql.proto.ast.Location):dashql.proto.ast.Location|null {
-  return (obj || new dashql.proto.ast.Location()).__init(this.bb_pos, this.bb!);
+location(obj?:dashql.proto.program.Location):dashql.proto.program.Location|null {
+  return (obj || new dashql.proto.program.Location()).__init(this.bb_pos, this.bb!);
 };
 
 /**
@@ -768,7 +768,7 @@ static createCSVExtract(builder:flatbuffers.Builder, location_begin_line: number
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class ExtractStatement {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -785,35 +785,35 @@ __init(i:number, bb:flatbuffers.ByteBuffer):ExtractStatement {
 };
 
 /**
- * @param dashql.proto.ast.Location= obj
- * @returns dashql.proto.ast.Location|null
+ * @param dashql.proto.program.Location= obj
+ * @returns dashql.proto.program.Location|null
  */
-location(obj?:dashql.proto.ast.Location):dashql.proto.ast.Location|null {
-  return (obj || new dashql.proto.ast.Location()).__init(this.bb_pos, this.bb!);
+location(obj?:dashql.proto.program.Location):dashql.proto.program.Location|null {
+  return (obj || new dashql.proto.program.Location()).__init(this.bb_pos, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-name(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 16, this.bb!);
+name(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 16, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-data(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 24, this.bb!);
+data(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 24, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-method(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 32, this.bb!);
+method(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 32, this.bb!);
 };
 
 /**
@@ -829,15 +829,15 @@ static sizeOf():number {
  * @param number location_begin_column
  * @param number location_end_line
  * @param number location_end_column
- * @param dashql.proto.ast.SectionTag name_tag
+ * @param dashql.proto.program.SectionTag name_tag
  * @param number name_index
- * @param dashql.proto.ast.SectionTag data_tag
+ * @param dashql.proto.program.SectionTag data_tag
  * @param number data_index
- * @param dashql.proto.ast.SectionTag method_tag
+ * @param dashql.proto.program.SectionTag method_tag
  * @param number method_index
  * @returns flatbuffers.Offset
  */
-static createExtractStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, name_tag: dashql.proto.ast.SectionTag, name_index: number, data_tag: dashql.proto.ast.SectionTag, data_index: number, method_tag: dashql.proto.ast.SectionTag, method_index: number):flatbuffers.Offset {
+static createExtractStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, name_tag: dashql.proto.program.SectionTag, name_index: number, data_tag: dashql.proto.program.SectionTag, data_index: number, method_tag: dashql.proto.program.SectionTag, method_index: number):flatbuffers.Offset {
   builder.prep(4, 40);
   builder.prep(4, 8);
   builder.writeInt32(method_index);
@@ -866,7 +866,7 @@ static createExtractStatement(builder:flatbuffers.Builder, location_begin_line: 
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class VizStatement {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -883,34 +883,34 @@ __init(i:number, bb:flatbuffers.ByteBuffer):VizStatement {
 };
 
 /**
- * @param dashql.proto.ast.Location= obj
- * @returns dashql.proto.ast.Location|null
+ * @param dashql.proto.program.Location= obj
+ * @returns dashql.proto.program.Location|null
  */
-location(obj?:dashql.proto.ast.Location):dashql.proto.ast.Location|null {
-  return (obj || new dashql.proto.ast.Location()).__init(this.bb_pos, this.bb!);
+location(obj?:dashql.proto.program.Location):dashql.proto.program.Location|null {
+  return (obj || new dashql.proto.program.Location()).__init(this.bb_pos, this.bb!);
 };
 
 /**
- * @returns dashql.proto.ast.VizTag
+ * @returns dashql.proto.program.VizTag
  */
-tag():dashql.proto.ast.VizTag {
+tag():dashql.proto.program.VizTag {
   return /**  */ (this.bb!.readUint8(this.bb_pos + 16));
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-name(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 20, this.bb!);
+name(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 20, this.bb!);
 };
 
 /**
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry|null
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry|null
  */
-queryName(obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
-  return (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb_pos + 28, this.bb!);
+queryName(obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
+  return (obj || new dashql.proto.program.SectionEntry()).__init(this.bb_pos + 28, this.bb!);
 };
 
 /**
@@ -926,14 +926,14 @@ static sizeOf():number {
  * @param number location_begin_column
  * @param number location_end_line
  * @param number location_end_column
- * @param dashql.proto.ast.VizTag tag
- * @param dashql.proto.ast.SectionTag name_tag
+ * @param dashql.proto.program.VizTag tag
+ * @param dashql.proto.program.SectionTag name_tag
  * @param number name_index
- * @param dashql.proto.ast.SectionTag query_name_tag
+ * @param dashql.proto.program.SectionTag query_name_tag
  * @param number query_name_index
  * @returns flatbuffers.Offset
  */
-static createVizStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, tag: dashql.proto.ast.VizTag, name_tag: dashql.proto.ast.SectionTag, name_index: number, query_name_tag: dashql.proto.ast.SectionTag, query_name_index: number):flatbuffers.Offset {
+static createVizStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, tag: dashql.proto.program.VizTag, name_tag: dashql.proto.program.SectionTag, name_index: number, query_name_tag: dashql.proto.program.SectionTag, query_name_index: number):flatbuffers.Offset {
   builder.prep(4, 36);
   builder.prep(4, 8);
   builder.writeInt32(query_name_index);
@@ -960,7 +960,7 @@ static createVizStatement(builder:flatbuffers.Builder, location_begin_line: numb
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class Sections {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -1059,12 +1059,12 @@ literalsStringLength():number {
 
 /**
  * @param number index
- * @param dashql.proto.ast.ParameterDeclaration= obj
- * @returns dashql.proto.ast.ParameterDeclaration
+ * @param dashql.proto.program.ParameterDeclaration= obj
+ * @returns dashql.proto.program.ParameterDeclaration
  */
-parameterDeclarations(index: number, obj?:dashql.proto.ast.ParameterDeclaration):dashql.proto.ast.ParameterDeclaration|null {
+parameterDeclarations(index: number, obj?:dashql.proto.program.ParameterDeclaration):dashql.proto.program.ParameterDeclaration|null {
   var offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? (obj || new dashql.proto.ast.ParameterDeclaration()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 44, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.program.ParameterDeclaration()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 44, this.bb!) : null;
 };
 
 /**
@@ -1077,12 +1077,12 @@ parameterDeclarationsLength():number {
 
 /**
  * @param number index
- * @param dashql.proto.ast.FileLoad= obj
- * @returns dashql.proto.ast.FileLoad
+ * @param dashql.proto.program.FileLoad= obj
+ * @returns dashql.proto.program.FileLoad
  */
-loadsFile(index: number, obj?:dashql.proto.ast.FileLoad):dashql.proto.ast.FileLoad|null {
+loadsFile(index: number, obj?:dashql.proto.program.FileLoad):dashql.proto.program.FileLoad|null {
   var offset = this.bb!.__offset(this.bb_pos, 12);
-  return offset ? (obj || new dashql.proto.ast.FileLoad()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.program.FileLoad()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
 };
 
 /**
@@ -1095,12 +1095,12 @@ loadsFileLength():number {
 
 /**
  * @param number index
- * @param dashql.proto.ast.HTTPLoad= obj
- * @returns dashql.proto.ast.HTTPLoad
+ * @param dashql.proto.program.HTTPLoad= obj
+ * @returns dashql.proto.program.HTTPLoad
  */
-loadsHttp(index: number, obj?:dashql.proto.ast.HTTPLoad):dashql.proto.ast.HTTPLoad|null {
+loadsHttp(index: number, obj?:dashql.proto.program.HTTPLoad):dashql.proto.program.HTTPLoad|null {
   var offset = this.bb!.__offset(this.bb_pos, 14);
-  return offset ? (obj || new dashql.proto.ast.HTTPLoad()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 28, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.program.HTTPLoad()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 28, this.bb!) : null;
 };
 
 /**
@@ -1113,12 +1113,12 @@ loadsHttpLength():number {
 
 /**
  * @param number index
- * @param dashql.proto.ast.CSVExtract= obj
- * @returns dashql.proto.ast.CSVExtract
+ * @param dashql.proto.program.CSVExtract= obj
+ * @returns dashql.proto.program.CSVExtract
  */
-extractsCsv(index: number, obj?:dashql.proto.ast.CSVExtract):dashql.proto.ast.CSVExtract|null {
+extractsCsv(index: number, obj?:dashql.proto.program.CSVExtract):dashql.proto.program.CSVExtract|null {
   var offset = this.bb!.__offset(this.bb_pos, 16);
-  return offset ? (obj || new dashql.proto.ast.CSVExtract()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.program.CSVExtract()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
 };
 
 /**
@@ -1131,12 +1131,12 @@ extractsCsvLength():number {
 
 /**
  * @param number index
- * @param dashql.proto.ast.JSONPathExtract= obj
- * @returns dashql.proto.ast.JSONPathExtract
+ * @param dashql.proto.program.JSONPathExtract= obj
+ * @returns dashql.proto.program.JSONPathExtract
  */
-extractsJsonpath(index: number, obj?:dashql.proto.ast.JSONPathExtract):dashql.proto.ast.JSONPathExtract|null {
+extractsJsonpath(index: number, obj?:dashql.proto.program.JSONPathExtract):dashql.proto.program.JSONPathExtract|null {
   var offset = this.bb!.__offset(this.bb_pos, 18);
-  return offset ? (obj || new dashql.proto.ast.JSONPathExtract()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.program.JSONPathExtract()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
 };
 
 /**
@@ -1149,12 +1149,12 @@ extractsJsonpathLength():number {
 
 /**
  * @param number index
- * @param dashql.proto.ast.VizStatement= obj
- * @returns dashql.proto.ast.VizStatement
+ * @param dashql.proto.program.VizStatement= obj
+ * @returns dashql.proto.program.VizStatement
  */
-vizStatements(index: number, obj?:dashql.proto.ast.VizStatement):dashql.proto.ast.VizStatement|null {
+vizStatements(index: number, obj?:dashql.proto.program.VizStatement):dashql.proto.program.VizStatement|null {
   var offset = this.bb!.__offset(this.bb_pos, 20);
-  return offset ? (obj || new dashql.proto.ast.VizStatement()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 36, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.program.VizStatement()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 36, this.bb!) : null;
 };
 
 /**
@@ -1387,7 +1387,7 @@ static createSections(builder:flatbuffers.Builder, literalsI64Offset:flatbuffers
 /**
  * @constructor
  */
-export namespace dashql.proto.ast{
+export namespace dashql.proto.program{
 export class Program {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -1424,12 +1424,12 @@ static getSizePrefixedRootAsProgram(bb:flatbuffers.ByteBuffer, obj?:Program):Pro
 
 /**
  * @param number index
- * @param dashql.proto.ast.SectionEntry= obj
- * @returns dashql.proto.ast.SectionEntry
+ * @param dashql.proto.program.SectionEntry= obj
+ * @returns dashql.proto.program.SectionEntry
  */
-statements(index: number, obj?:dashql.proto.ast.SectionEntry):dashql.proto.ast.SectionEntry|null {
+statements(index: number, obj?:dashql.proto.program.SectionEntry):dashql.proto.program.SectionEntry|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new dashql.proto.ast.SectionEntry()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.program.SectionEntry()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
 };
 
 /**
@@ -1441,12 +1441,12 @@ statementsLength():number {
 };
 
 /**
- * @param dashql.proto.ast.Sections= obj
- * @returns dashql.proto.ast.Sections|null
+ * @param dashql.proto.program.Sections= obj
+ * @returns dashql.proto.program.Sections|null
  */
-sections(obj?:dashql.proto.ast.Sections):dashql.proto.ast.Sections|null {
+sections(obj?:dashql.proto.program.Sections):dashql.proto.program.Sections|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? (obj || new dashql.proto.ast.Sections()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? (obj || new dashql.proto.program.Sections()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
 
 /**

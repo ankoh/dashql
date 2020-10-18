@@ -7,7 +7,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 
 PROTO_DIR="${PROJECT_ROOT}/proto"
 PROTO_AMALGAMATION_FILE="${PROTO_DIR}/dashql_parser/proto.fbs"
-CPP_PROTO_DIR="${PROJECT_ROOT}/libs/cpp/include/dashql_parser/proto"
+CPP_PROTO_DIR="${PROJECT_ROOT}/libs/cpp/include/dashql/parser/proto"
 RS_PROTO_DIR="${PROJECT_ROOT}/libs/rs/src/proto"
 TS_PROTO_DIR="${PROJECT_ROOT}/libs/js/src/proto"
 

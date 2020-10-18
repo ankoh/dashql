@@ -25,7 +25,7 @@ pub mod proto {
   extern crate flatbuffers;
   use self::flatbuffers::EndianScalar;
 #[allow(unused_imports, dead_code)]
-pub mod ast {
+pub mod program {
 
   use std::mem;
   use std::cmp::Ordering;
@@ -402,7 +402,7 @@ impl Position {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.Position"
+        "dashql.proto.program.Position"
     }
 
   pub fn line(&self) -> u32 {
@@ -467,7 +467,7 @@ impl Location {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.Location"
+        "dashql.proto.program.Location"
     }
 
   pub fn begin(&self) -> &Position {
@@ -534,7 +534,7 @@ impl SectionEntry {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.SectionEntry"
+        "dashql.proto.program.SectionEntry"
     }
 
   pub fn tag(&self) -> SectionTag {
@@ -607,7 +607,7 @@ impl ParameterDeclaration {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.ParameterDeclaration"
+        "dashql.proto.program.ParameterDeclaration"
     }
 
   pub fn location(&self) -> &Location {
@@ -683,7 +683,7 @@ impl QueryStatement {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.QueryStatement"
+        "dashql.proto.program.QueryStatement"
     }
 
   pub fn location(&self) -> &Location {
@@ -755,7 +755,7 @@ impl HTTPLoad {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.HTTPLoad"
+        "dashql.proto.program.HTTPLoad"
     }
 
   pub fn location(&self) -> &Location {
@@ -821,7 +821,7 @@ impl FileLoad {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.FileLoad"
+        "dashql.proto.program.FileLoad"
     }
 
   pub fn location(&self) -> &Location {
@@ -885,7 +885,7 @@ impl LoadStatement {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.LoadStatement"
+        "dashql.proto.program.LoadStatement"
     }
 
   pub fn location(&self) -> &Location {
@@ -951,7 +951,7 @@ impl JSONPathExtract {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.JSONPathExtract"
+        "dashql.proto.program.JSONPathExtract"
     }
 
   pub fn location(&self) -> &Location {
@@ -1011,7 +1011,7 @@ impl CSVExtract {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.CSVExtract"
+        "dashql.proto.program.CSVExtract"
     }
 
   pub fn location(&self) -> &Location {
@@ -1077,7 +1077,7 @@ impl ExtractStatement {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.ExtractStatement"
+        "dashql.proto.program.ExtractStatement"
     }
 
   pub fn location(&self) -> &Location {
@@ -1154,7 +1154,7 @@ impl VizStatement {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.VizStatement"
+        "dashql.proto.program.VizStatement"
     }
 
   pub fn location(&self) -> &Location {
@@ -1188,7 +1188,7 @@ impl<'a> flatbuffers::Follow<'a> for Sections<'a> {
 
 impl<'a> Sections<'a> {
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.Sections"
+        "dashql.proto.program.Sections"
     }
 
     #[inline]
@@ -1362,7 +1362,7 @@ impl<'a> flatbuffers::Follow<'a> for Program<'a> {
 
 impl<'a> Program<'a> {
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.ast.Program"
+        "dashql.proto.program.Program"
     }
 
     #[inline]
@@ -1435,7 +1435,7 @@ impl<'a: 'b, 'b> ProgramBuilder<'a, 'b> {
   }
 }
 
-}  // pub mod ast
+}  // pub mod program
 }  // pub mod proto
 }  // pub mod dashql
 

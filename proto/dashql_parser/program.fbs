@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace dashql.proto.ast;
+namespace dashql.proto.program;
 
 struct Position { line: uint32; column: uint32; }
 struct Location { begin: Position; end: Position; }
