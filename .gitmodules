@@ -9,7 +9,7 @@
 	url = https://github.com/gabime/spdlog
 [submodule "submodules/flatbuffers"]
 	path = submodules/flatbuffers
-	url = https://github.com/google/flatbuffers
+	url = https://github.com/dashql/flatbuffers
 [submodule "submodules/benchmark"]
 	path = submodules/benchmark
 	url = https://github.com/google/benchmark

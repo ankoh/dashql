@@ -371,6 +371,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) GeneratorArgument FLATBUFFERS_FINAL_CLASS
         padding2__(0),
         value_int_(flatbuffers::EndianScalar(_value_int)),
         value_float_(flatbuffers::EndianScalar(_value_float)) {
+    (void)padding0__;
+    (void)padding1__;
+    (void)padding2__;
   }
   duckdb_webapi::proto::GeneratorArgumentType argument_type() const {
     return static_cast<duckdb_webapi::proto::GeneratorArgumentType>(flatbuffers::EndianScalar(argument_type_));
@@ -428,6 +431,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) GeneratorTransformArg FLATBUFFERS_FINAL_C
         padding2__(0),
         value_int_(flatbuffers::EndianScalar(_value_int)),
         value_float_(flatbuffers::EndianScalar(_value_float)) {
+    (void)padding0__;
+    (void)padding1__;
+    (void)padding2__;
   }
   duckdb_webapi::proto::GeneratorTransformArgType argument_type() const {
     return static_cast<duckdb_webapi::proto::GeneratorTransformArgType>(flatbuffers::EndianScalar(argument_type_));

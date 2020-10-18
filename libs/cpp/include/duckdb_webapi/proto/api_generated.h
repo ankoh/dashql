@@ -259,7 +259,7 @@ inline RawDataT *RawData::UnPack(const flatbuffers::resolver_function_t *_resolv
 inline void RawData::UnPackTo(RawDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = data(); if (_e) { _o->data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->data[_i] = _e->Get(_i); } } }
+  { auto _e = data(); if (_e) { _o->data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->data.begin()); } }
 }
 
 inline flatbuffers::Offset<RawData> RawData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RawDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {

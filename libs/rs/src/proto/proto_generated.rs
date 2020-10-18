@@ -993,10 +993,10 @@ pub fn enum_name_generator_transform_arg_type(e: GeneratorTransformArgType) -> &
 #[repr(C, align(2))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SQLType {
-  type_id_: SQLTypeID,
+  pub type_id_: SQLTypeID,
   padding0__: u8,
-  width_: u16,
-  scale_: u8,
+  pub width_: u16,
+  pub scale_: u8,
   padding1__: u8,
 } // pub struct SQLType
 impl flatbuffers::SafeSliceAccess for SQLType {}
@@ -1067,8 +1067,8 @@ impl SQLType {
 #[repr(C, align(8))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct I128 {
-  lower_: u64,
-  upper_: i64,
+  pub lower_: u64,
+  pub upper_: i64,
 } // pub struct I128
 impl flatbuffers::SafeSliceAccess for I128 {}
 impl<'a> flatbuffers::Follow<'a> for I128 {
@@ -1132,9 +1132,9 @@ impl I128 {
 #[repr(C, align(8))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Interval {
-  months_: i32,
-  days_: i32,
-  msecs_: i64,
+  pub months_: i32,
+  pub days_: i32,
+  pub msecs_: i64,
 } // pub struct Interval
 impl flatbuffers::SafeSliceAccess for Interval {}
 impl<'a> flatbuffers::Follow<'a> for Interval {
@@ -1202,10 +1202,10 @@ impl Interval {
 #[repr(C, align(8))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GeneratorArgument {
-  argument_type_: GeneratorArgumentType,
+  pub argument_type_: GeneratorArgumentType,
   padding0__: u8,  padding1__: u16,  padding2__: u32,
-  value_int_: i64,
-  value_float_: f64,
+  pub value_int_: i64,
+  pub value_float_: f64,
 } // pub struct GeneratorArgument
 impl flatbuffers::SafeSliceAccess for GeneratorArgument {}
 impl<'a> flatbuffers::Follow<'a> for GeneratorArgument {
@@ -1274,10 +1274,10 @@ impl GeneratorArgument {
 #[repr(C, align(8))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GeneratorTransformArg {
-  argument_type_: GeneratorTransformArgType,
+  pub argument_type_: GeneratorTransformArgType,
   padding0__: u8,  padding1__: u16,  padding2__: u32,
-  value_int_: i64,
-  value_float_: f64,
+  pub value_int_: i64,
+  pub value_float_: f64,
 } // pub struct GeneratorTransformArg
 impl flatbuffers::SafeSliceAccess for GeneratorTransformArg {}
 impl<'a> flatbuffers::Follow<'a> for GeneratorTransformArg {

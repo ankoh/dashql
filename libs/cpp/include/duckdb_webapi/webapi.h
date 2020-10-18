@@ -54,7 +54,7 @@ class WebAPI {
             delete bytes.data();
             bytes = std::move(other.bytes);
             return *this;
-        }
+        
         // Delete the copy assignment
         AdoptedBuffer& operator=(const AdoptedBuffer& other) = delete;
     };

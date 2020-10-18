@@ -223,6 +223,8 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) SQLType FLATBUFFERS_FINAL_CLASS {
         width_(flatbuffers::EndianScalar(_width)),
         scale_(flatbuffers::EndianScalar(_scale)),
         padding1__(0) {
+    (void)padding0__;
+    (void)padding1__;
   }
   duckdb_webapi::proto::SQLTypeID type_id() const {
     return static_cast<duckdb_webapi::proto::SQLTypeID>(flatbuffers::EndianScalar(type_id_));
