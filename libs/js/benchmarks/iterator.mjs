@@ -1,5 +1,5 @@
 import { add, cycle, suite, complete } from 'benny';
-import duckdb from '../dist/duckdb_node.js';
+import duckdb from '../dist/targets/node/duckdb.js';
 import kleur from 'kleur';
 
 let db = new duckdb.DuckDB();

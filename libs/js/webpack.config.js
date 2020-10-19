@@ -7,8 +7,8 @@ const browserTarget = {
     target: 'web',
     mode: 'production',
     entry: {
-        "duckdb_web": './src/lib_web.ts',
-        "duckdb_web.worker": './src/lib_web.worker.ts'
+        "targets/web/duckdb": './src/targets/web/duckdb.ts',
+        "targets/web/duckdb_worker": './src/targets/web/duckdb_worker.ts'
     },
     output: {
         filename: '[name].js',
@@ -45,7 +45,7 @@ const browserTarget = {
     plugins: [
         new CleanWebpackPlugin({
             root: "./dist",
-            cleanOnceBeforeBuildPatterns: ["*.wasm", "!.*"],
+            cleanOnceBeforeBuildPatterns: ["*.wasm", "**/*.d.ts", "!.*"],
             cleanOnceAfterBuildPatterns: [],
             verbose: true,
         }),
@@ -59,13 +59,13 @@ const nodeTarget = {
     ...browserTarget,
     target: 'node',
     entry: {
-        "duckdb_node": './src/lib_node.ts',
-        "duckdb_node.worker": './src/lib_node.worker.ts'
+        "targets/node/duckdb": './src/targets/node/duckdb.ts',
+        "targets/node/duckdb_worker": './src/targets/node/duckdb_worker.ts'
     },
     plugins: [
         new CleanWebpackPlugin({
             root: "./dist",
-            cleanOnceBeforeBuildPatterns: ["*.wasm", "!.*"],
+            cleanOnceBeforeBuildPatterns: ["!.*"],
             cleanOnceAfterBuildPatterns: [],
             verbose: true,
         }),

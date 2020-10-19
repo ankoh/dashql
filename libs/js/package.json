@@ -2,10 +2,14 @@
     "name": "@dashql/duckdb",
     "version": "0.0.5",
     "description": "DuckDB powered by WebAssembly",
-    "main": "dist/duckdb_web.js",
-    "types": "dist/duckdb_web.d.ts",
+    "author": "Andre Kohn <kohn.a@outlook.com>",
+    "license": "MIT",
+    "main": "./dist/targets/node/duckdb.js",
+    "types": "./dist/targets/node/duckdb.d.ts",
     "files": [
-        "dist"
+        "dist/**/*.d.ts",
+        "dist/**/*.js",
+        "dist/*.wasm"
     ],
     "dependencies": {
         "flatbuffers": "^1.12.0"
@@ -23,8 +27,8 @@
         "ts-jest": "^26.4.1",
         "ts-loader": "^8.0.4",
         "typescript": "^4.0.3",
-        "webpack": "^4.44.2",
-        "webpack-cli": "^3.3.12",
+        "webpack": "^5.1.3",
+        "webpack-cli": "^4.1.0",
         "webpack-node-externals": "^2.5.2"
     },
     "scripts": {
@@ -33,9 +37,9 @@
         "test": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js",
         "bench.iterator": "node --experimental-wasm-threads --experimental-wasm-bulk-memory benchmarks/iterator.mjs"
     },
-    "author": "",
-    "license": "MIT",
     "browser": {
+        "./dist/targets/node/duckdb.js": "./dist/targets/web/duckdb.js",
+        "./dist/targets/node/duckdb_worker.js": "./dist/targets/web/duckdb_worker.js",
         "worker_threads": false,
         "perf_hooks": false,
         "fs": false,

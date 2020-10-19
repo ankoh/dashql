@@ -5,7 +5,7 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
-DEV_IMAGE="dashql/duckdb.wasm-dev:0.1"
+DEV_IMAGE="dashql/duckdb-dev:0.1"
 
 CPP_BUILD_DIR="${PROJECT_ROOT}/libs/cpp/build/emscripten"
 CPP_SOURCE_DIR="${PROJECT_ROOT}/libs/cpp"

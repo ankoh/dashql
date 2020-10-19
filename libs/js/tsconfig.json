@@ -5,8 +5,8 @@
         "moduleResolution": "node",
         "sourceMap": false,
         "declaration": true,
-        "declarationMap": false,
-        "declarationDir": "dist",
+        "declarationMap": true,
+        "declarationDir": "./dist",
         "noImplicitAny": true,
         "esModuleInterop": true,
         "types": ["emscripten", "jest"]
