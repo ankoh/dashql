@@ -76,7 +76,53 @@ struct SectionsBuilder {
         optional<fb::Offset<fb::Vector<const proto::program::JSONPathExtract*>>> extracts_json;
         optional<fb::Offset<fb::Vector<const proto::program::VizStatement*>>> viz_statements;
 
-        // XXX
+        if (!_literals_i64.empty())
+            literals_i64 = builder.CreateVector(_literals_i64);
+        if (!_literals_f64.empty())
+            literals_f64 = builder.CreateVector(_literals_f64);
+        if (!_literals_string.empty()) {
+            std::vector<fb::Offset<fb::String>> offsets;
+            offsets.reserve(_literals_string.size());
+            for (auto s: _literals_string)
+                offsets.push_back(builder.CreateString(s.data(), s.size()));
+            literals_str = builder.CreateVector(offsets);
+        }
+        if (!_parameter_declarations.empty()) {
+            proto::program::ParameterDeclaration* writer;
+            parameter_declarations = builder.CreateUninitializedVectorOfStructs(_parameter_declarations.size(), &writer);
+            for (auto& p: _parameter_declarations)
+                *writer = p;
+        }
+        if (!_loads_file.empty()) {
+            proto::program::FileLoad* writer;
+            loads_file = builder.CreateUninitializedVectorOfStructs(_loads_file.size(), &writer);
+            for (auto& p: _loads_file)
+                *writer = p;
+        }
+        if (!_loads_http.empty()) {
+            proto::program::HTTPLoad* writer;
+            loads_http = builder.CreateUninitializedVectorOfStructs(_loads_http.size(), &writer);
+            for (auto& p: _loads_http)
+                *writer = p;
+        }
+        if (!_extracts_csv.empty()) {
+            proto::program::CSVExtract* writer;
+            extracts_csv = builder.CreateUninitializedVectorOfStructs(_extracts_csv.size(), &writer);
+            for (auto& p: _extracts_csv)
+                *writer = p;
+        }
+        if (!_extracts_json.empty()) {
+            proto::program::JSONPathExtract* writer;
+            extracts_json = builder.CreateUninitializedVectorOfStructs(_extracts_json.size(), &writer);
+            for (auto& p: _extracts_json)
+                *writer = p;
+        }
+        if (!_viz_statements.empty()) {
+            proto::program::VizStatement* writer;
+            viz_statements = builder.CreateUninitializedVectorOfStructs(_viz_statements.size(), &writer);
+            for (auto& p: _viz_statements)
+                *writer = p;
+        }
 
         proto::program::SectionsBuilder sectionsBuilder{builder};
         if (literals_i64)
