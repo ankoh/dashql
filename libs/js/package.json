@@ -4,13 +4,6 @@
     "description": "DuckDB powered by WebAssembly",
     "author": "Andre Kohn <kohn.a@outlook.com>",
     "license": "MIT",
-    "main": "./dist/targets/node/duckdb.js",
-    "types": "./dist/targets/node/duckdb.d.ts",
-    "files": [
-        "dist/**/*.d.ts",
-        "dist/**/*.js",
-        "dist/*.wasm"
-    ],
     "dependencies": {
         "flatbuffers": "^1.12.0"
     },
@@ -37,6 +30,13 @@
         "test": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js",
         "bench.iterator": "node --experimental-wasm-threads --experimental-wasm-bulk-memory benchmarks/iterator.mjs"
     },
+    "files": [
+        "dist/**/*.d.ts",
+        "dist/**/*.js",
+        "dist/*.wasm"
+    ],
+    "main": "./dist/targets/node/duckdb.js",
+    "types": "./dist/targets/node/duckdb.d.ts",
     "browser": {
         "./dist/targets/node/duckdb.js": "./dist/targets/web/duckdb.js",
         "./dist/targets/node/duckdb_worker.js": "./dist/targets/web/duckdb_worker.js",
