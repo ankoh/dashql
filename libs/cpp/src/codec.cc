@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <optional>
+#include <iostream>
 
 #include "dashql/parser/common/variant.h"
 #include "dashql/parser/proto/program_generated.h"
@@ -243,8 +244,8 @@ static proto::program::SectionEntry encode(SectionsBuilder& sections, const Load
     visit(overload{
               [&](const LoadStatement::FileLoader& f) {
                   auto loc = encode(f.location);
-                  auto extract = proto::program::FileLoad(loc);
-                  result = sections.add(extract);
+                  auto load = proto::program::FileLoad(loc);
+                  result = sections.add(load);
               },
               [&](const LoadStatement::HTTPLoader& h) {
                   auto loc = encode(h.location);

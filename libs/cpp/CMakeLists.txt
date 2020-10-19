@@ -147,6 +147,7 @@ if(NOT EMSCRIPTEN)
     add_executable(tester
         ${CMAKE_SOURCE_DIR}/test/tester.cc
         ${CMAKE_SOURCE_DIR}/test/parser_test.cc
+        ${CMAKE_SOURCE_DIR}/test/codec_test.cc
     )
     target_link_libraries(tester 
         dashql_parser
