@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "target": "esnext",
+        "moduleResolution": "node",
+        "sourceMap": false,
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "dist",
+        "noImplicitAny": true,
+        "esModuleInterop": true,
+        "types": ["emscripten", "jest"]
+    },
+    "exclude": [
+        "./test/**/*.ts",
+        "./node_modules"
+    ]
+}
+
