@@ -114,7 +114,6 @@ target_link_libraries(dashql_parser
 
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
-        -Wl,--shared-memory,--no-check-features \
         -s USE_PTHREADS=0 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
@@ -130,13 +129,13 @@ if (EMSCRIPTEN)
         "
     )
 
-    add_executable(web ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(web dashql_parser)
-    set_target_properties(web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
+    add_executable(dashql_parser_web ${CMAKE_SOURCE_DIR}/src/ffi.cc)
+    target_link_libraries(dashql_parser_web dashql_parser)
+    set_target_properties(dashql_parser_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 
-    add_executable(node ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(node dashql_parser)
-    set_target_properties(node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
+    add_executable(dashql_parser_node ${CMAKE_SOURCE_DIR}/src/ffi.cc)
+    target_link_libraries(dashql_parser_node dashql_parser)
+    set_target_properties(dashql_parser_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
     add_library(dashql_parser_ffi ${CMAKE_SOURCE_DIR}/src/ffi.cc)
     target_link_libraries(dashql_parser_ffi dashql_parser)
