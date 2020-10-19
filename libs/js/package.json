@@ -1,6 +1,6 @@
 {
     "name": "@dashql/duckdb",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "description": "DuckDB powered by WebAssembly",
     "author": "Andre Kohn <kohn.a@outlook.com>",
     "license": "MIT",
