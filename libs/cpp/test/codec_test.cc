@@ -1,10 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/parser/parse_context.h"
 #include "dashql/parser/codec.h"
+
+#include "dashql/parser/parse_context.h"
 #include "dashql/parser/proto/program_generated.h"
-#include "gtest/gtest.h"
 #include "flatbuffers/flatbuffers.h"
+#include "gtest/gtest.h"
 
 using namespace dashql;
 using namespace dashql::parser;
@@ -46,4 +47,4 @@ TEST(CodecTest, ParameterDeclaration) {
     ASSERT_EQ(strings->Get(0)->str(), "days");
 }
 
-}
+}  // namespace
