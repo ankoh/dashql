@@ -16,6 +16,7 @@
         "clean-webpack-plugin": "^3.0.0",
         "file-loader": "^6.1.0",
         "jest": "^26.4.2",
+        "jest-junit": "^12.0.0",
         "kleur": "^4.1.3",
         "ts-jest": "^26.4.1",
         "ts-loader": "^8.0.4",
@@ -28,6 +29,7 @@
         "start": "webpack --progress --colors --watch",
         "build": "webpack --mode=production",
         "test": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js",
+        "test:ci": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js --ci --reporters=default --reporters=jest-junit",
         "bench.iterator": "node --experimental-wasm-threads --experimental-wasm-bulk-memory benchmarks/iterator.mjs"
     },
     "files": [
@@ -44,5 +46,15 @@
         "perf_hooks": false,
         "fs": false,
         "buffer": false
+    },
+    "jest-junit": {
+        "suiteName": "Javascript",
+        "outputDirectory": "../../reports",
+        "outputName": "tests_js.xml",
+        "uniqueOutputName": "false",
+        "classNameTemplate": "{classname}",
+        "titleTemplate": "{title}",
+        "ancestorSeparator": " › ",
+        "usePathForSuiteName": "true"
     }
 }

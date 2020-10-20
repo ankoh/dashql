@@ -20,7 +20,7 @@ pipeline {
             steps {
                 sh 'chown -R "$USER" /mnt/npm_cache /mnt/emscripten_cache'
                 sh 'git submodule update --init --recursive'
-                sh 'mkdir -p ./libs/cpp/build/emscripten'
+                sh 'mkdir -p ./libs/cpp/build/emscripten ./reports'
                 sh './dev/reset_duckdb.sh'
             }
         }
@@ -36,7 +36,7 @@ pipeline {
 
         stage('CPP/Test') {
             steps {
-                sh './libs/cpp/build/debug/tester'
+                sh './libs/cpp/build/debug/tester --gtest_output=xml:./reports/tests_cpp.xml'
             }
         }
 
@@ -87,6 +87,7 @@ pipeline {
             script {
                 env.GIT_COMMIT_MSG = sh (script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()
             }
+            junit 'reports/tests_*.xml'
             discordSend description: env.GIT_COMMIT_MSG, link: env.RUN_DISPLAY_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "https://discordapp.com/api/webhooks/759701192439365652/XK_i40yR6eaX8xhama49DpZvZ8yJZi1BKXrbgeQN176zVbWjCkQERfVt7qAjj88A1PNK"
         }
     }
