@@ -25,10 +25,21 @@ if (EMSCRIPTEN)
 endif ()
 
 # ---------------------------------------------------------------------------
+# Threads
+
+set(THREAD_LIB "")
+if (NOT EMSCRIPTEN)
+    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+    find_package(Threads REQUIRED)
+    set(THREAD_LIB Threads::Threads)
+endif ()
+
+# ---------------------------------------------------------------------------
 # CMake includes
 
-include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
 
 # ---------------------------------------------------------------------------
@@ -107,6 +118,7 @@ add_library(dashql_parser
 
 target_link_libraries(dashql_parser
     flatbuffers
+    ${THREAD_LIB}
 )
 
 # ---------------------------------------------------------------------------
@@ -155,7 +167,8 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(tester 
         dashql_parser
-        flatbuffers gtest gmock )
+        flatbuffers gtest gmock
+        ${THREAD_LIB})
 
     enable_testing()
     add_test(dashql_parser tester)
