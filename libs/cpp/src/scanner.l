@@ -242,7 +242,7 @@ size_t dashql::parser::parser_offset;
 
 // Begin a scan
 void dashql::parser::ParseContext::beginScan(std::string_view s) {
-    dashql__flex_debug = trace_scanning;
+    dashql__flex_debug = _trace_scanning;
     loc = location();
     in = s;
     reader_offset = 0;
