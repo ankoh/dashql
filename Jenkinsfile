@@ -50,7 +50,7 @@ pipeline {
                     source /opt/env.sh
                     emmake make -C./libs/cpp/build/emscripten -j$(nproc) dashql_parser_web dashql_parser_node
                     cp ./libs/cpp/build/emscripten/dashql_parser_web.{wasm,js} ./libs/js/src/parser/
-                    cp ./libs/cpp/build/emscripten/dashql_parser_node.{wasm,js,worker.js} ./libs/js/src/parser/
+                    cp ./libs/cpp/build/emscripten/dashql_parser_node.{wasm,js} ./libs/js/src/parser/
                 '''
             }
         }
