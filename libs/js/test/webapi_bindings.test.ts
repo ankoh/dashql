@@ -1,4 +1,4 @@
-import * as duckdb from '../dist/targets/node/duckdb';
+import * as duckdb from '../';
 
 var db: duckdb.DuckDB;
 var conn: duckdb.DuckDBConnection;
