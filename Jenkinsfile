@@ -75,7 +75,7 @@ pipeline {
                     sh '''#!/bin/bash
                         source /opt/env.sh
                         nvm use default
-                        npm run test
+                        npm run test:ci
                     '''
                 }
             }
