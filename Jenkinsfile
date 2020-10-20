@@ -84,11 +84,9 @@ pipeline {
     post {
         always {
             script {
-                sh 'pwd'
-                sh 'ls ./libs/js/'
                 env.GIT_COMMIT_MSG = sh (script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()
             }
-            junit './libs/js/junit.xml'
+            junit '**/junit.xml'
             xunit (
                 thresholds: [ skipped(failureThreshold: '0'), failed(failureThreshold: '0') ],
                 tools: [ GoogleTest(pattern: './libs/cpp/build/debug/xunit.xml') ]
