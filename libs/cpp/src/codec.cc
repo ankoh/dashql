@@ -312,13 +312,24 @@ fb::Offset<proto::program::Program> WriteProgram(fb::FlatBufferBuilder& builder,
 
     // Encode errors
     vector<fb::Offset<proto::program::Error>> errors;
+    errors.reserve(program.errors.size());
+    for (auto& err: program.errors) {
+        auto loc = encode(err.location);
+        auto msg = builder.CreateString(err.message);
+        proto::program::ErrorBuilder errorBuilder(builder);
+        errorBuilder.add_location(&loc);
+        errorBuilder.add_message(msg);
+        errors.push_back(errorBuilder.Finish());
+    }
 
     // Encode program
     auto sec_ofs = sections.write(builder);
     auto stmt_vec = builder.CreateVectorOfStructs(stmt_entries);
+    auto error_vec = builder.CreateVector(errors);
     proto::program::ProgramBuilder programBuilder{builder};
     programBuilder.add_sections(sec_ofs);
     programBuilder.add_statements(stmt_vec);
+    programBuilder.add_errors(error_vec);
     return programBuilder.Finish();
 }
 

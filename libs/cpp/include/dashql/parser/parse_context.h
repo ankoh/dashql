@@ -23,13 +23,13 @@ class ParseContext {
 
     protected:
     /// Trace the scanning
-    bool trace_scanning;
+    bool _trace_scanning;
     /// Trace the parsing
-    bool trace_parsing;
+    bool _trace_parsing;
     /// The statements
-    std::vector<Statement> statements;
+    std::vector<Statement> _statements;
     /// The errors
-    std::vector<Error> errors;
+    std::vector<Error> _errors;
 
     /// Begin a scan
     void beginScan(std::string_view in);

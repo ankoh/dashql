@@ -10,7 +10,7 @@
 
 using namespace dashql::parser;
 
-ParseContext::ParseContext(bool trace_scanning, bool trace_parsing): trace_scanning(trace_scanning), trace_parsing(trace_parsing), statements() {}
+ParseContext::ParseContext(bool trace_scanning, bool trace_parsing): _trace_scanning(trace_scanning), _trace_parsing(trace_parsing), _statements() {}
 
 ParseContext::~ParseContext() {}
 
@@ -18,16 +18,16 @@ Program ParseContext::Parse(std::string_view in) {
     beginScan(in);
     {
         dashql::parser::Parser parser(*this);
-        parser.set_debug_level(trace_parsing);
+        parser.set_debug_level(_trace_parsing);
         parser.parse();
     }
     endScan();
-    return Program{std::move(statements), std::move(errors)};
+    return Program{std::move(_statements), std::move(_errors)};
 }
 
 // Yield an error
 void ParseContext::RaiseError(Location location, const std::string& message) {
-    errors.push_back({location, message});
+    _errors.push_back({location, message});
 }
 
 /// Define a statement
@@ -44,5 +44,5 @@ void ParseContext::DefineStatement(Statement statement, Location location) {
                         [&](VizStatement& viz) { viz.location = location; }},
                statement);
 
-    statements.push_back(std::move(statement));
+    _statements.push_back(std::move(statement));
 }

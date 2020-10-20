@@ -26,7 +26,8 @@ TEST(CodecTest, ParameterDeclaration) {
     builder.Finish(WriteProgram(builder, ast));
 
     auto p = flatbuffers::GetRoot<proto::program::Program>(builder.GetBufferPointer());
-    ASSERT_EQ(p->errors(), nullptr);
+    ASSERT_NE(p->errors(), nullptr);
+    ASSERT_EQ(p->errors()->size(), 0);
     ASSERT_NE(p->statements(), nullptr);
     ASSERT_EQ(p->statements()->size(), 1);
     auto entry = p->statements()->Get(0);
