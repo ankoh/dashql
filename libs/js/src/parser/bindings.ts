@@ -77,8 +77,8 @@ export abstract class DashQLParserBindings {
 
         // Read the response
         // XXX: wasm64 will break here.
-        let dataPtr = instance.HEAPU32[(response >> 2) + 2];
-        let dataSize = instance.HEAPU32[(response >> 2) + 4];
+        let dataPtr = instance.HEAPU32[(response >> 2) + 0];
+        let dataSize = instance.HEAPU32[(response >> 2) + 2];
         let dataOffset = instance.HEAPU32[(response >> 2) + 4];
 
         // Restore the stack

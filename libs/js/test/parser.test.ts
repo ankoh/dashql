@@ -12,6 +12,7 @@ describe('Parser', () => {
         test('synatx error', async () => {
             let result = await parser.parse("?");
             expect(result.root.errorsLength()).toBe(1);
+            expect(result.root.statementsLength()).toBe(0);
         });
 
         test('error recovery', async () => {
@@ -19,8 +20,8 @@ describe('Parser', () => {
                 ?select * from foo;
             `);
             let program = result.root;
-            expect(program.statementsLength()).toBe(1);
             expect(program.errorsLength()).toBe(1);
+            expect(program.statementsLength()).toBe(1);
         });
     });
 
