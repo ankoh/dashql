@@ -85,6 +85,7 @@ pipeline {
         always {
             script {
                 sh 'pwd'
+                sh 'ls ./libs/js/'
                 env.GIT_COMMIT_MSG = sh (script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()
             }
             junit './libs/js/junit.xml'
