@@ -35,7 +35,7 @@ pipeline {
 
         stage('CPP/Test') {
             steps {
-                sh './libs/cpp/build/debug/tester'
+                sh './libs/cpp/build/debug/tester --gtest_output=xml:./libs/cpp/build/debug/xunit.xml'
             }
         }
 
@@ -74,7 +74,7 @@ pipeline {
                     sh '''#!/bin/bash
                         source /opt/env.sh
                         nvm use default
-                        npm run test
+                        npm run test:ci
                     '''
                 }
             }
@@ -86,6 +86,11 @@ pipeline {
             script {
                 env.GIT_COMMIT_MSG = sh (script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()
             }
+            junit './libs/js/junit.xml'
+            xunit (
+                thresholds: [ skipped(failureThreshold: '0'), failed(failureThreshold: '0') ],
+                tools: [ GoogleTest(pattern: './libs/cpp/build/debug/xunit.xml') ])
+            )
             discordSend description: env.GIT_COMMIT_MSG, link: env.RUN_DISPLAY_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "https://discordapp.com/api/webhooks/759701192439365652/XK_i40yR6eaX8xhama49DpZvZ8yJZi1BKXrbgeQN176zVbWjCkQERfVt7qAjj88A1PNK"
         }
     }
