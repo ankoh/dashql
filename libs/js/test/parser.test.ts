@@ -7,12 +7,6 @@ beforeAll(async () => {
     await parser.init();
 });
 
-beforeEach(async () => {
-});
-
-afterEach(async () => {
-});
-
 describe('Parser', () => {
     test('DUMMY', async () => {
         expect(1).toBe(1);

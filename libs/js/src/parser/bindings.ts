@@ -124,3 +124,43 @@ export class ProgramBuffer extends FlatBuffer<proto.program.Program> {
         return proto.program.Program.getRootAsProgram(buffer);
     }
 }
+
+import Tag = proto.program.SectionTag;
+import Entry = proto.program.SectionEntry;
+
+/// A program sections reader.
+/// We introduce this type from the beginning to migrate to a sections list more easily later.
+export class ProgramSectionsReader {
+    /// The sections
+    sections: proto.program.Sections;
+    /// Constructor
+    constructor(sections: proto.program.Sections) {
+        this.sections = sections;
+    }
+
+    /// Functions to access an entry using the index.
+    public getI64(i: number) { return this.sections.literalsI64(i); }
+    public getF64(i: number) { return this.sections.literalsF64(i); }
+    public getString(i: number) { return this.sections.literalsString(i); }
+    public getParam(i: number) { return this.sections.parameterDeclarations(i); }
+    public getFileLoad(i: number) { return this.sections.loadsFile(i); }
+    public getHTTPLoad(i: number) { return this.sections.loadsHttp(i); }
+    public getCSVExtract(i: number) { return this.sections.extractsCsv(i); }
+    public getJSONExtract(i: number) { return this.sections.extractsJsonpath(i); }
+    public getVizStatement(i: number) { return this.sections.vizStatements(i); }
+
+    /// Assume an entry type.
+    /// Returns null if the type differs.
+    protected assume<T>(e: Entry, tag: Tag, sec: (i: number) => T | null): T | null {
+        return (e.tag() == tag) ? sec(e.index()) : null;
+    }
+    public assumeI64(e: Entry) { this.assume(e, Tag.I64Literal, this.sections.literalsI64); }
+    public assumeF64(e: Entry) { this.assume(e, Tag.F64Literal, this.sections.literalsF64); }
+    public assumeString(e: Entry) { this.assume(e, Tag.StringLiteral, this.sections.literalsString); }
+    public assumeParam(e: Entry) { this.assume(e, Tag.ParameterDeclaration, this.sections.parameterDeclarations); }
+    public assumeFileLoad(e: Entry) { this.assume(e, Tag.FileLoad, this.sections.loadsFile); }
+    public assumeHTTPLoad(e: Entry) { this.assume(e, Tag.HTTPLoad, this.sections.loadsHttp); }
+    public assumeCSVExtract(e: Entry) { this.assume(e, Tag.CSVExtract, this.sections.extractsCsv); }
+    public assumeJSONExtract(e: Entry) { this.assume(e, Tag.JSONPathExtract, this.sections.extractsJsonpath); }
+    public assumeVizStatement(e: Entry) { this.assume(e, Tag.VizStatement, this.sections.vizStatements); }
+};
