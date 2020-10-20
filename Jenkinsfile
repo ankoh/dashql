@@ -75,9 +75,6 @@ pipeline {
                         source /opt/env.sh
                         nvm use default
                         npm run test:ci
-                        ls .
-                        ls ../
-                        ls ../../
                     '''
                 }
             }
@@ -87,6 +84,7 @@ pipeline {
     post {
         always {
             script {
+                sh 'pwd'
                 env.GIT_COMMIT_MSG = sh (script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()
             }
             junit './libs/js/junit.xml'
