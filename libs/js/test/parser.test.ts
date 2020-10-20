@@ -8,8 +8,12 @@ beforeAll(async () => {
 });
 
 describe('Parser', () => {
-    test('DUMMY', async () => {
-        expect(1).toBe(1);
+
+    test('simple integer parameter', async () => {
+        let result = await parser.parse(`
+            declare parameter days type integer;
+        `)
+        expect(result.root.errorsLength()).toBe(0);
     });
 });
 
