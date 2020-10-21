@@ -15,7 +15,7 @@
 }
 
 .topbar {
-    background-color: var(--topbar_background);
+    background-color: var(--topbar-background);
     display: grid;
     grid-row: 1;
     grid-column: 1 / span 5;

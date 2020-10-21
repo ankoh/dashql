@@ -1,5 +1,4 @@
 import * as React from "react";
-//import { NavigationBar } from "../components";
 // import Board from './board';
 // import Editor from './editor';
 // import Outline from './outline';
