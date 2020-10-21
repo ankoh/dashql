@@ -2,6 +2,7 @@
 
 import dashql_parser_wasm from '../../parser/dashql_parser_node.wasm';
 import dashql_parser_init from '../../parser/dashql_parser_node.js';
+export * as proto from '../../proto';
 
 import { DashQLParserModule } from '../../parser/dashql_parser_module';
 import { DashQLParserBindings } from '../../parser/bindings';
