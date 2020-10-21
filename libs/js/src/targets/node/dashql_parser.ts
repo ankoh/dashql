@@ -2,10 +2,10 @@
 
 import dashql_parser_wasm from '../../parser/dashql_parser_node.wasm';
 import dashql_parser_init from '../../parser/dashql_parser_node.js';
-export * as proto from '../../proto';
+import * as proto from '../../proto';
 
 import { DashQLParserModule } from '../../parser/dashql_parser_module';
-import { DashQLParserBindings } from '../../parser/bindings';
+import { DashQLParserBindings, FlatBuffer } from '../../parser/bindings';
 
 export class DashQLParser extends DashQLParserBindings {
     protected instantiate(moduleOverrides: Partial<DashQLParserModule>): Promise<DashQLParserModule> {
@@ -18,4 +18,9 @@ export class DashQLParser extends DashQLParserBindings {
             }
         });
     }
+}
+
+export {
+    proto,
+    FlatBuffer
 }
