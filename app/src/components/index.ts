@@ -1,1 +1,5 @@
-export * from "./navigation_bar";
+import NavigationBar from "./navigation_bar";
+
+export {
+    NavigationBar
+};
