@@ -1,2 +1,2 @@
-export { HelloWorld } from "./HelloWorld";
-export { NotFound } from "./NotFound";
+export { HelloWorld } from "./hello_world";
+export { NotFound } from "./not_found";

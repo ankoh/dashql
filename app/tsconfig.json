@@ -5,7 +5,7 @@
         "module": "es6",
         "moduleResolution": "node",
         "noImplicitAny": true,
-        "types": [],
+        "types": ["node"],
         "jsx": "react",
         "plugins": [{ "name": "typescript-plugin-css-modules" }]
     },

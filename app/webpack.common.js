@@ -4,7 +4,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 function configure(params) {
     return {
         entry: {
-            app: ['./src/App.tsx'],
+            app: ['./src/app.tsx'],
         },
         output: {
             path: params.buildDir,
