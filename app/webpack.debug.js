@@ -4,14 +4,13 @@ const path = require('path');
 const buildDir = path.resolve(__dirname, './build/debug');
 
 module.exports = {
+    mode: 'development',
     entry: common.entry,
     resolve: common.resolve,
     output: {
         ...common.output,
         path: buildDir
     },
-    mode: 'development',
-    devtool: 'inline-source-map',
     module: {
         rules: [
             {
@@ -30,6 +29,7 @@ module.exports = {
     performance: {
         hints: false
     },
+    devtool: 'inline-source-map',
     devServer: {
         contentBase: path.join(__dirname, './build/debug'),
         compress: true,

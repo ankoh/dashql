@@ -4,14 +4,13 @@ const path = require('path');
 const buildDir = path.resolve(__dirname, './build/release');
 
 module.exports = {
+    mode: 'production',
     entry: common.entry,
     resolve: common.resolve,
     output: {
         ...common.output,
         path: buildDir
     },
-    mode: 'production',
-    devtool: false,
     module: {
         rules: [
             {
@@ -27,6 +26,7 @@ module.exports = {
         ]
     },
     plugins: common.plugins,
+    devtool: false,
     optimization: {
         splitChunks: common.optimization.splitChunks,
     },
