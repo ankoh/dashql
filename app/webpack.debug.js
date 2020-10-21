@@ -1,31 +1,16 @@
-const common = require('./webpack.common.js');
+const { configure } = require('./webpack.common.js');
 const path = require('path');
 
-const buildDir = path.resolve(__dirname, './build/debug');
-
 module.exports = {
-    mode: 'development',
-    entry: common.entry,
-    resolve: common.resolve,
-    output: {
-        ...common.output,
-        path: buildDir
-    },
-    module: {
-        rules: [
-            {
-                test: /\.tsx?$/,
-                loader: 'ts-loader',
-                exclude: /node_modules/,
-                options: {
-                    compilerOptions: {
-                        "sourceMap": true,
-                    }
-                }
+    ...configure({
+        buildDir: path.resolve(__dirname, './build/debug'),
+        tsLoaderOptions: {
+            compilerOptions: {
+                'sourceMap': true,
             }
-        ]
-    },
-    plugins: common.plugins,
+        }
+    }),
+    mode: 'development',
     performance: {
         hints: false
     },
