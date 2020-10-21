@@ -40,4 +40,15 @@ class NavigationBar extends React.Component<Props> {
     }
 }
 
-export default withRouter(NavigationBar);
+export const NavBar = withRouter(NavigationBar);
+
+export function withNavBar<P>(Component: React.ComponentType<P>): React.FunctionComponent<P> {
+    return (props: P) => {
+        return (
+            <div className={styles.wrapper}>
+                <NavBar />
+                <Component {...props} />
+            </div>
+        );
+    };
+}

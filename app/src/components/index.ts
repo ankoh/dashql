@@ -1,5 +1,1 @@
-import NavigationBar from "./navigation_bar";
-
-export {
-    NavigationBar
-};
+export {NavBar, withNavBar} from "./navigation_bar";
