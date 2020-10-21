@@ -1,6 +1,6 @@
 {
     "name": "@dashql/parser",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Parser for the DashQL language",
     "author": "Andre Kohn <kohn.a@outlook.com>",
     "license": "AGPL-3.0-or-later",
