@@ -32,7 +32,7 @@ class NavigationBar extends React.Component<Props> {
             <div className={styles.container}>
                 <div className={styles.banner}>DashQL</div>
                 <div className={styles.tabs}>
-                    {this.renderTab('/', 'Explorer')}
+                    {this.renderTab('/explorer', 'Explorer')}
                     {this.renderTab('/workbook', 'Workbook')}
                     {this.renderTab('/library', 'Library')}
                 </div>

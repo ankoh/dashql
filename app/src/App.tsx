@@ -14,9 +14,9 @@ ReactDOM.render(
     <ReduxProvider store={store}>
         <BrowserRouter>
             <Switch>
-                <Route exact path="/" component={HelloWorld} />
+                <Route exact path="/explorer" component={HelloWorld} />
                 <Route path="/404" component={NotFound} />
-                <Redirect to="/404" />
+                <Redirect to="/explorer" />
             </Switch>
         </BrowserRouter>
     </ReduxProvider>,
