@@ -19,3 +19,5 @@ body {
     overflow-x: hidden;
     overflow-y: hidden;
 }
+
+body > div { width: 100%; height: 100%; }

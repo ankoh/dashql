@@ -3,7 +3,7 @@ import * as ReactDOM from "react-dom";
 import * as Store from './store';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
-import { HelloWorld, NotFound } from "./pages";
+import { Explorer, NotFound } from "./pages";
 
 import "./app.module.css";
 import "./fonts/fonts.module.css";
@@ -14,7 +14,7 @@ ReactDOM.render(
     <ReduxProvider store={store}>
         <BrowserRouter>
             <Switch>
-                <Route exact path="/explorer" component={HelloWorld} />
+                <Route exact path="/explorer" component={Explorer} />
                 <Route path="/404" component={NotFound} />
                 <Redirect to="/404" />
             </Switch>
