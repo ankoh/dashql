@@ -9,7 +9,8 @@ module.exports = {
                 configFile: './tsconfig.json',
                 sourceMap: false,
             }
-        }
+        },
+        extractCss: true
     }),
     mode: 'production',
     devtool: false

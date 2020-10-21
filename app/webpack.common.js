@@ -1,5 +1,6 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 function configure(params) {
     return {
@@ -15,16 +16,6 @@ function configure(params) {
         resolve: {
             extensions: [".ts", ".tsx", ".js", ".jsx", ".css"]
         },
-        plugins: [
-            new CleanWebpackPlugin({
-                verbose: false,
-            }),
-            new HtmlWebpackPlugin({
-                template: "./public/index.html",
-                filename: "./index.html",
-                favicon: './public/favicon.ico'
-            })
-        ],
         module: {
             rules: [
                 {
@@ -36,7 +27,7 @@ function configure(params) {
                 {
                     test: /\.css$/,
                     use: [
-                        'style-loader',
+                        params.extractCss ? MiniCssExtractPlugin.loader : 'style-loader',
                         {
                             loader: "css-loader",
                             options: {
@@ -74,7 +65,21 @@ function configure(params) {
                     }
                 }
             }
-        }
+        },
+        plugins: [
+            new CleanWebpackPlugin({
+                verbose: false,
+            }),
+            new HtmlWebpackPlugin({
+                template: "./public/index.html",
+                filename: "./index.html",
+                favicon: './public/favicon.ico'
+            }),
+            new MiniCssExtractPlugin({
+                filename: './static/css/[name].css',
+                chunkFilename: './static/css/[id].css'
+            })
+        ],
     };
 }
 

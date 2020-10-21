@@ -27,7 +27,6 @@ class NavigationBar extends React.Component<Props> {
     }
 
     public render() {
-        console.log(this.props.location.pathname);
         return (
             <div className={styles.container}>
                 <div className={styles.banner}>DashQL</div>
