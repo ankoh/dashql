@@ -7,11 +7,8 @@
 .container {
     display: flex;
     flex-direction: row;
-
     background-color: v_nav_bg;
-
     color: rgb(255, 255, 255);
-
     line-height: 24px;
     text-align: center;
 }
@@ -33,11 +30,9 @@
 
 .tab {
     position: relative;
-
     font-weight: 400;
     font-size: 0.75em;
     padding: 0px 12px;
-
     background-color: v_nav_tab_bg;
     color: v_nav_tab_fg;
     text-decoration: none;
