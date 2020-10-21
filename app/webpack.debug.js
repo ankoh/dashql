@@ -10,7 +10,8 @@ module.exports = {
                 sourceMap: true,
             }
         },
-        extractCss: false
+        extractCss: false,
+        cssIdentifier: '[local]_[hash:base64]'
     }),
     mode: 'development',
     performance: {

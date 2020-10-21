@@ -1,3 +1,4 @@
+const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -31,8 +32,14 @@ function configure(params) {
                         {
                             loader: "css-loader",
                             options: {
-                                modules: true,
-                                sourceMap: true,
+                                modules: {
+                                    compileType: 'module',
+                                    mode: 'local',
+                                    auto: true,
+                                    exportGlobals: true,
+                                    localIdentName: params.cssIdentifier,
+                                    localIdentContext: path.resolve(__dirname, 'src')
+                                },
                             }
                         }
                     ]
