@@ -45,6 +45,13 @@ function configure(params) {
                             }
                         }
                     ]
+                },
+                {
+                    test: /\.(ttf|eot|woff|woff2)$/,
+                    loader: 'file-loader',
+                    options: {
+                        name: 'static/fonts/[name].[ext]'
+                    }
                 }
             ]
         },

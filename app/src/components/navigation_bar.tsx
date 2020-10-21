@@ -9,16 +9,13 @@ interface Props extends RouteComponentProps<RouteParams> {}
 
 class NavigationBar extends React.Component<Props> {
     public renderTab(path: string, name: string) {
-        let active = this.props.location.pathname == path;
-        console.log(this.props.location.pathname);
-        console.log(active);
         return (
             <div key={path}
                 className={classNames(
                     styles.tab,
                     styles.tab_name,
                     {
-                        [styles.active]: active
+                        [styles.active]: this.props.location.pathname == path
                     },
                 )}
             >

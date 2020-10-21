@@ -5,6 +5,9 @@ import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
 import { HelloWorld, NotFound } from "./pages";
 
+import "./app.module.css";
+import "./fonts/fonts.module.css";
+
 const store = Store.createStore();
 
 ReactDOM.render(

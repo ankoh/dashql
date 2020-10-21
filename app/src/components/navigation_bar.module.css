@@ -18,7 +18,7 @@
     text-align: center;
 }
 
-.brand {
+.banner {
     font-weight: 500;
     font-size: 0.75em;
     padding: 0 12px;
@@ -43,6 +43,11 @@
     background-color: var(--nav-tab-bg);
     color: var(--nav-tab-fg);
     text-decoration: none;
+}
+
+.tab > a {
+    text-decoration: none;
+    color: white;
 }
 
 .tab:hover, .tab.active {
