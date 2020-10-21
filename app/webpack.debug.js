@@ -1,8 +1,5 @@
-const common = require('./webpack.config.common.js');
+const common = require('./webpack.common.js');
 const path = require('path');
-const webpack = require('webpack');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 const buildDir = path.resolve(__dirname, './build/debug');
 
@@ -29,16 +26,7 @@ module.exports = {
             }
         ]
     },
-    plugins: [
-        new CleanWebpackPlugin({
-            verbose: false,
-        }),
-        new HtmlWebpackPlugin({
-            template: "./public/index.html",
-            filename: "./index.html",
-            favicon: './public/favicon.ico'
-        })
-    ],
+    plugins: common.plugins,
     performance: {
         hints: false
     },

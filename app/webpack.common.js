@@ -1,3 +1,6 @@
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+
 module.exports = {
     entry: {
         app: ['./src/App.tsx'],
@@ -10,6 +13,16 @@ module.exports = {
     resolve: {
         extensions: [".ts", ".tsx", ".js", ".jsx"]
     },
+    plugins: [
+        new CleanWebpackPlugin({
+            verbose: false,
+        }),
+        new HtmlWebpackPlugin({
+            template: "./public/index.html",
+            filename: "./index.html",
+            favicon: './public/favicon.ico'
+        })
+    ],
     optimization: {
         splitChunks: {
             chunks: 'all',
