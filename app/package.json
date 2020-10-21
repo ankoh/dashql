@@ -4,9 +4,9 @@
     "description": "Analytics powered by WebAssembly",
     "main": "index.js",
     "scripts": {
-        "start": "webpack-dev-server --config webpack.debug.js --open",
-        "dev": "webpack --config webpack.debug.js",
-        "build": "webpack --config webpack.release.js"
+        "start": "webpack serve --config webpack.config.debug.js",
+        "dev": "webpack --config webpack.config.debug.js",
+        "build": "webpack --config webpack.config.release.js"
     },
     "author": "",
     "license": "AGPL-3.0-or-later",
@@ -21,6 +21,7 @@
         "@types/react": "^16.9.53",
         "@types/react-dom": "^16.9.8",
         "@types/react-router-dom": "^5.1.6",
+        "clean-webpack-plugin": "^3.0.0",
         "html-webpack-plugin": "^4.5.0",
         "source-map-loader": "^1.1.1",
         "ts-loader": "^8.0.6",

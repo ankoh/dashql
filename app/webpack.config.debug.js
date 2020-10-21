@@ -1,21 +1,17 @@
-const common = require('./webpack.common.js');
+const common = require('./webpack.config.common.js');
 const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-    entry: {
-        app: ['./src/App.tsx'],
-    },
+    entry: common.entry,
+    resolve: common.resolve,
     output: {
-        path: path.resolve(__dirname, './build/release'),
-        filename: '[name].js'
+        ...common.output,
+        path: buildDir
     },
-    mode: 'production',
-    devtool: false,
-    resolve: {
-        extensions: [".ts", ".tsx", ".js", ".jsx"]
-    },
+    mode: 'development',
+    devtool: 'inline-source-map',
     module: {
         rules: [
             {
@@ -24,7 +20,7 @@ module.exports = {
                 exclude: /node_modules/,
                 options: {
                     compilerOptions: {
-                        "sourceMap": false,
+                        "sourceMap": true,
                     }
                 }
             }
@@ -32,5 +28,13 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin()
-    ]
+    ],
+    performance: {
+        hints: false
+    },
+    devServer: {
+        contentBase: path.join(__dirname, './build/debug'),
+        compress: true,
+        port: 9000
+    }
 }
