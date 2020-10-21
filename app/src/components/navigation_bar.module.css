@@ -1,16 +1,14 @@
-:root {
-    --nav-bg: rgb(0, 0, 0);
-    --nav-tab-bg: rgb(0, 0, 0);
-    --nav-tab-bg-active: rgb(30, 30, 30);
-    --nav-tab-fb: rgb(255, 255, 255);
-    --nav-tab-fb-active: rgb(255, 255, 255);
-}
+@value v_nav_bg: rgb(0, 0, 0);
+@value v_nav_tab_bg: rgb(0, 0, 0);
+@value v_nav_tab_bg_active: rgb(30, 30, 30);
+@value v_nav_tab_fb: rgb(255, 255, 255);
+@value v_nav_tab_fb_active: rgb(255, 255, 255);
 
 .container {
     display: flex;
     flex-direction: row;
 
-    background-color: var(--nav-bg);
+    background-color: v_nav_bg;
 
     color: rgb(255, 255, 255);
 
@@ -40,8 +38,8 @@
     font-size: 0.75em;
     padding: 0px 12px;
 
-    background-color: var(--nav-tab-bg);
-    color: var(--nav-tab-fg);
+    background-color: v_nav_tab_bg;
+    color: v_nav_tab_fg;
     text-decoration: none;
 }
 
@@ -51,8 +49,8 @@
 }
 
 .tab:hover, .tab.active {
-    background-color: var(--nav-tab-bg-active);
-    color: var(--nav-tab-fg-active);
+    background-color: v_nav_tab_bg_active;
+    color: v_nav_tab_fg_active;
 }
 
 .tab_name {

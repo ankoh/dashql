@@ -1,5 +1,5 @@
 import * as React from "react";
-// import Board from './board';
+import { Board } from '../components';
 // import Editor from './editor';
 // import Outline from './outline';
 // import Library from './library';
@@ -41,8 +41,8 @@ class Explorer extends React.Component {
     public render() {
         return (
             <div className={styles.explorer}>
-                <div className={styles.board}>{
-//                    <Board scaleFactor={1.0} />
+                <div className={styles.board}>
+                    <Board scaleFactor={1.0} />{
 //                    <Editor />
                 }</div>
                 <div className={styles.topbar}>

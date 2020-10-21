@@ -1,9 +1,7 @@
-:root {
-    --border-color: rgb(238, 238, 238);
-    --border-radius: 6px;
-    --topbar-background: rgb(46, 46, 46);
-    --box-shadow-2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
-}
+@value v_border_color: rgb(238, 238, 238);
+@value v_border_radius: 6px;
+@value v_topbar_background: rgb(46, 46, 46);
+@value v_box_shadow_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
 
 .explorer {
     width: 100%;
@@ -15,7 +13,7 @@
 }
 
 .topbar {
-    background-color: var(--topbar-background);
+    background-color: v_topbar_background;
     display: grid;
     grid-row: 1;
     grid-column: 1 / span 5;
@@ -43,7 +41,7 @@
 .sidebar {
     grid-row: 2;
     grid-column: 1;
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid v_border_color;
     font-size: 0.75em;
     overflow-y: auto;
 }
@@ -51,7 +49,7 @@
 .toolbar {
     grid-row: 2;
     grid-column: 2;
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid v_border_color;
     background-color: rgb(255, 255, 255);
 }
 
@@ -85,10 +83,10 @@
 .viztypes {
     grid-row: 2;
     grid-column: 4;
-    border-left: 1px solid var(--border-color);
+    border-left: 1px solid v_border_color;
 }
 
-.viztypes_vega { border-top: 1px solid var(--border-color); }
+.viztypes_vega { border-top: 1px solid v_border_color; }
 
 .viztypes_viztype {
     height: 48px;
@@ -103,7 +101,7 @@
 .properties {
     grid-row: 2;
     grid-column: 5;
-    border-left: 1px solid var(--border-color);
+    border-left: 1px solid v_border_color;
     display: flex;
     flex-direction: column;
 }
@@ -116,7 +114,7 @@
 
     padding: 0 12px;
     color: rgb(120, 120, 120);
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid v_border_color;
 }
 
 .input_toggle {
@@ -126,16 +124,16 @@
     height: 32px;
 
     background-color: rgb(0, 0, 0);
-    border-radius: var(--border-radius);
-    background-color: var(--topbar-background);
-    box-shadow: var(--box-shadow-2);
+    border-radius: v_border_radius;
+    background-color: v_topbar_background;
+    box-shadow: v_box_shadow;
 
     display: flex;
     flex-direction: row;
 }
 
 .input_toggle.expanded {
-    border-radius: var(--border-radius) 0 var(--border-radius) 0;
+    border-radius: v_border_radius 0 v_border_radius 0;
     box-shadow: none;
 }
 
