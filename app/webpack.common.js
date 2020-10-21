@@ -31,11 +31,7 @@ function configure(params) {
                     test: /\.tsx?$/,
                     loader: 'ts-loader',
                     exclude: /node_modules/,
-                    options: {
-                        compilerOptions: {
-                            'sourceMap': true,
-                        }
-                    }
+                    options: params.tsLoaderOptions
                 },
                 {
                     test: /\.css$/,
