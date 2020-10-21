@@ -6,7 +6,8 @@ module.exports = {
         buildDir: path.resolve(__dirname, './build/debug'),
         tsLoaderOptions: {
             compilerOptions: {
-                'sourceMap': true,
+                configFile: './tsconfig.json',
+                sourceMap: true,
             }
         }
     }),

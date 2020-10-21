@@ -6,7 +6,8 @@ module.exports = {
         buildDir: path.resolve(__dirname, './build/release'),
         tsLoaderOptions: {
             compilerOptions: {
-                'sourceMap': false,
+                configFile: './tsconfig.json',
+                sourceMap: false,
             }
         }
     }),

@@ -1,0 +1,55 @@
+:root {
+    --nav-bg: rgb(0, 0, 0);
+    --nav-tab-bg: rgb(0, 0, 0);
+    --nav-tab-bg-active: rgb(30, 30, 30);
+    --nav-tab-fb: rgb(255, 255, 255);
+    --nav-tab-fb-active: rgb(255, 255, 255);
+}
+
+.container {
+    display: flex;
+    flex-direction: row;
+
+    background-color: var(--nav-bg);
+
+    color: rgb(255, 255, 255);
+
+    line-height: 24px;
+    text-align: center;
+}
+
+.brand {
+    font-weight: 500;
+    font-size: 0.75em;
+    padding: 0 12px;
+}
+
+.tabs {
+    display: flex;
+    flex-direction: row;
+}
+
+.tab_container {
+    display: block;
+}
+
+.tab {
+    position: relative;
+
+    font-weight: 400;
+    font-size: 0.75em;
+    padding: 0px 12px;
+
+    background-color: var(--nav-tab-bg);
+    color: var(--nav-tab-fg);
+    text-decoration: none;
+}
+
+.tab:hover, .tab.active {
+    background-color: var(--nav-tab-bg-active);
+    color: var(--nav-tab-fg-active);
+}
+
+.tab_name {
+    display: block;
+}

@@ -1,5 +1,5 @@
 {
-      "compilerOptions": {
+    "compilerOptions": {
         "outDir": "./build/ts/",
         "target": "es6",
         "module": "es6",

@@ -9,8 +9,8 @@ function configure(params) {
         output: {
             path: params.buildDir,
             publicPath: '/',
-            filename: 'static/js/[name].[hash:8].js',
-            chunkFilename: 'static/js/[name].[hash:8].chunk.js',
+            filename: 'static/js/[name].[fullhash:8].js',
+            chunkFilename: 'static/js/[name].[fullhash:8].chunk.js',
         },
         resolve: {
             extensions: [".ts", ".tsx", ".js", ".jsx", ".css"]
@@ -35,7 +35,16 @@ function configure(params) {
                 },
                 {
                     test: /\.css$/,
-                    use: ['style-loader', 'css-loader']
+                    use: [
+                        'style-loader',
+                        {
+                            loader: "css-loader",
+                            options: {
+                                modules: true,
+                                sourceMap: true,
+                            }
+                        }
+                    ]
                 }
             ]
         },
