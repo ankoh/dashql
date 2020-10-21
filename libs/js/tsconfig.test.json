@@ -1,9 +1,10 @@
 {
     "compilerOptions": {
         "outDir": "./dist/",
-        "target": "es2019",
-        "strict": true,
+        "target": "es6",
+        "module": "es6",
         "moduleResolution": "node",
+        "strict": true,
         "sourceMap": true,
         "declaration": true,
         "declarationMap": true,
