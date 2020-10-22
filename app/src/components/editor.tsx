@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
 import { AppState, AppStateMutations, Dispatch } from '../store';
 
-import { theme as dark_theme } from './editor_theme_dark';
+import { theme as monaco_theme } from './editor_theme_light';
 import styles from './editor.module.css';
 
 type Props = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps> & {
@@ -65,7 +65,7 @@ class Editor extends React.Component<Props> {
             this.props.appContext.ctrl.editor.registerEditor(this.editor);
 
             // Set theme
-            monaco.editor.defineTheme('dashql', dark_theme);
+            monaco.editor.defineTheme('dashql', monaco_theme);
             monaco.editor.setTheme("dashql");
 
             // Finalize the editor
