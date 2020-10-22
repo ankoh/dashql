@@ -6,6 +6,11 @@ import { DuckDBModule } from '../../duckdb/duckdb_module';
 import * as webapi from '../../webapi';
 
 export class DuckDB extends webapi.DuckDBBindings {
+    protected path: string;
+    constructor(path: string | null = null) {
+        super();
+        this.path = path ?? duckdb_api_wasm;
+    }
     protected instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule> {
         return duckdb_api_init({
             ...moduleOverrides,
