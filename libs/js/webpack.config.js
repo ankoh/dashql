@@ -31,11 +31,11 @@ const browserTarget = {
                 ]
             },
             {
-                test: /\.wasm$/,
+                test: /dashql_parser_(web|node)\.wasm$/,
                 type: 'javascript/auto',
                 loader: 'file-loader',
                 options: {
-                    name: '[hash].[ext]',
+                    name: 'dashql_parser.wasm',
                 }
             }
         ]

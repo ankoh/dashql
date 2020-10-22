@@ -8,6 +8,11 @@ import { DashQLParserModule } from '../../parser/dashql_parser_module';
 import { DashQLParserBindings, FlatBuffer } from '../../parser/bindings';
 
 export class DashQLParser extends DashQLParserBindings {
+    protected path: string;
+    constructor(path: string | null = null) {
+        super();
+        this.path = path ?? dashql_parser_wasm;
+    }
     protected instantiate(moduleOverrides: Partial<DashQLParserModule>): Promise<DashQLParserModule> {
         return dashql_parser_init({
             ...moduleOverrides,

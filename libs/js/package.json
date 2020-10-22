@@ -35,6 +35,7 @@
         "dist/*.wasm"
     ],
     "main": "./dist/targets/node/dashql_parser.js",
+    "module": "./dist/targets/node/dashql_parser.js",
     "types": "./dist/targets/node/dashql_parser.d.ts",
     "browser": {
         "./dist/targets/node/dashql_parser.js": "./dist/targets/web/dashql_parser.js",
