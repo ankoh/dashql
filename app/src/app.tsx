@@ -4,7 +4,7 @@ import { createStore } from './store';
 import { AppController } from './ctrl';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
-import { Studio, NotFound } from "./pages";
+import { Studio, Explorer, NotFound } from "./pages";
 import { withNavBar } from "./components";
 import { AppContextProvider, IAppContext } from './app_context';
 
@@ -25,6 +25,7 @@ ReactDOM.render(
             <BrowserRouter>
                 <Switch>
                     <Route exact path="/studio" component={withNavBar(Studio)} />
+                    <Route exact path="/explorer" component={withNavBar(Explorer)} />
                     <Route path="/404" component={NotFound} />
                     <Redirect to="/404" />
                 </Switch>
