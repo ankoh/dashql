@@ -15,8 +15,8 @@
         "node": ">=14.13"
     },
     "dependencies": {
-        "@dashql/duckdb": "0.0.6",
-        "@dashql/parser": "0.0.7",
+        "@dashql/duckdb": "0.0.8",
+        "@dashql/parser": "0.0.10",
         "classnames": "^2.2.6",
         "dagre": "^0.8.5",
         "idb": "^5.0.7",
@@ -25,7 +25,6 @@
         "react": "^17.0.0",
         "react-custom-scrollbars": "^4.2.1",
         "react-dom": "^17.0.0",
-        "react-loadable": "^5.5.0",
         "react-redux": "^7.2.1",
         "react-router-dom": "^5.2.0",
         "react-vega": "^7.4.1",
@@ -39,7 +38,6 @@
         "@types/react": "^16.9.53",
         "@types/react-custom-scrollbars": "^4.0.7",
         "@types/react-dom": "^16.9.8",
-        "@types/react-loadable": "^5.5.3",
         "@types/react-redux": "^7.1.9",
         "@types/react-router-dom": "^5.1.6",
         "@types/react-virtualized": "^9.21.10",

@@ -53,7 +53,7 @@ function configure(params) {
                     }
                 },
                 {
-                    test: /\.wasm$/,
+                    test: /@dashql.*\.wasm$/,
                     type: 'javascript/auto',
                     loader: 'file-loader',
                     options: {

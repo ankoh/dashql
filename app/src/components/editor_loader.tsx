@@ -1,4 +1,3 @@
-import * as Loadable from 'react-loadable';
 import * as React from 'react';
 import { RectangleWaveSpinner } from './spinners';
 
@@ -12,14 +11,15 @@ function loadingSpinner() {
     );
 }
 
-const Loader = Loadable({
-    loader: () => import('./editor'),
-    loading: loadingSpinner
-});
+const Editor = React.lazy(() => import('./editor'));
 
 export default class EditorLoader extends React.Component {
     public render() {
-        return <Loader />;
+        return (
+            <React.Suspense fallback={loadingSpinner()}>
+                <Editor />
+            </React.Suspense>
+        );
     }
 }
 

@@ -2,7 +2,9 @@ import { AppReduxStore } from '../store';
 import { EditorController } from './editor_ctrl';
 import { LogController } from './log_ctrl';
 import { Interpreter } from './interpreter';
+
 import { DashQLParser } from '@dashql/parser';
+import dashql_parser_wasm from '@dashql/parser/dist/dashql_parser.wasm';
 
 /// The worker interval
 const workerIntervalMS = 400;
@@ -26,7 +28,7 @@ export class AppController {
     // Constructor
     constructor(store: AppReduxStore) {
         this._store = store;
-        this._parser = new DashQLParser();
+        this._parser = new DashQLParser(dashql_parser_wasm);
         this._log = new LogController(store);
         this._editor = new EditorController(this._store, this._parser);
         this._interpreter = new Interpreter(this._store);
