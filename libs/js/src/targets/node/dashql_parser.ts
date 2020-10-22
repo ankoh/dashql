@@ -16,8 +16,8 @@ export class DashQLParser extends DashQLParserBindings {
     protected instantiate(moduleOverrides: Partial<DashQLParserModule>): Promise<DashQLParserModule> {
         return dashql_parser_init({
             ...moduleOverrides,
-            locateFile(path: string) {
-                if (path.endsWith('dashql_parser.wasm'))
+            locateFile: (path: string) => {
+                if (path.endsWith('dashql_parser_node.wasm'))
                     return this.path;
                 return path;
             }
