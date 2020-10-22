@@ -33,13 +33,36 @@ class Terminal extends React.Component<ITerminalProps> {
         );
     }
 
+    /// Evaluate the terminal input
+    protected async eval(text: string) {
+        /// XXX
+        // this.props.appContext.duckdb.query(text);
+    }
+
+    /// Read eval print loop
+    protected async evalLoop(text: string | null = null) {
+        if (text != null) {
+            await this.eval(text)
+        }
+
+        // Schedule next read
+        let term = this.props.appContext.ctrl.terminal;
+        term.read("> ",  "   ",)
+            .then(this.evalLoop.bind(this))
+            .catch(function(text: string) {
+                term.printLine("error: " + text);
+            });       
+    }
+
     /// Component did mount to the dom
     public componentDidMount() {
         if (this.termContainer.current != null) {
             let ctrl = this.props.appContext.ctrl;
             ctrl.terminal.open(this.termContainer.current);
+            ctrl.terminal.fit();
             ctrl.terminal.attach();
             ctrl.terminal.focus();
+            this.evalLoop();
         }
     }
 
