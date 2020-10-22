@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { RootController } from './ctrl';
+import { AppController } from './ctrl';
 
 export interface IAppContext {
-    ctrl: RootController,
+    ctrl: AppController,
 }
 
 const ctx = React.createContext<IAppContext | null>(null);

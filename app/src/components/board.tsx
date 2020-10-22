@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as Store from '../store';
+import { AppReduxStore } from '../store';
 import { connect } from 'react-redux';
 import { AutoSizer, withAutoSizer } from '../util/autosizer';
 import { Scrollbars } from 'react-custom-scrollbars';
@@ -244,11 +244,11 @@ export class Board extends React.Component<IBoardProps, {}> {
     }
 }
 
-function mapStateToProps(_state: Store.RootState) {
+function mapStateToProps(_state: AppReduxStore) {
     return {};
 }
 
-function mapDispatchToProps(_dispatch: Store.RootState) {
+function mapDispatchToProps(_dispatch: AppReduxStore) {
     return {};
 }
 

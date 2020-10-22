@@ -1,6 +1,5 @@
 import * as React from "react";
-import { Board } from '../components';
-// import Editor from './editor';
+import { Board, Editor } from '../components';
 // import Outline from './outline';
 // import Library from './library';
 
@@ -43,7 +42,7 @@ class Explorer extends React.Component {
             <div className={styles.explorer}>
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />{
-//                    <Editor />
+                    <Editor />
                 }</div>
                 <div className={styles.topbar}>
                     <div className={styles.topbar_actionset}>
