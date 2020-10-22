@@ -63,7 +63,7 @@ function configure(params) {
                     test: /\.worker\.js$/,
                     loader: 'worker-loader',
                     options: {
-                        filename: '/static/workers/[hash].worker.js',
+                        filename: 'static/workers/[fullhash].worker.js',
                     },
                 },
             ]
