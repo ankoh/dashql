@@ -73,6 +73,11 @@ export class AppStateMutations {
                         }
                     }),
                 };
+            case ActionType.EDITOR_SET_TEXT:
+                return {
+                    ...state,
+                    editorText: action.payload
+                };
             case ActionType.EDITOR_SET_PROGRAM:
                 return {
                     ...state,

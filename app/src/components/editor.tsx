@@ -56,6 +56,9 @@ class Editor extends React.Component<Props> {
                 fontSize: 14,
                 language: "sql",
                 value: this.props.text,
+                minimap: {
+                    enabled: false
+                }
             });
             this.editor.setPosition({column: 0, lineNumber: 0});
             this.editor.focus();

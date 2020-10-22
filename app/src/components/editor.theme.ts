@@ -1,109 +1,143 @@
 import { editor } from 'monaco-editor';
 
 export const theme: editor.IStandaloneThemeData = {
-    "base": "vs",
+    "base": "vs-dark",
     "inherit": true,
     "rules": [
         {
-            "foreground": "c41a16",
+            "foreground": "75715e",
+            "token": "comment"
+        },
+        {
+            "foreground": "e6db74",
             "token": "string"
         },
         {
-            "foreground": "1c00cf",
+            "foreground": "ae81ff",
             "token": "constant.numeric"
         },
         {
-            "foreground": "4682b4",
-            "token": "keyword"
-        },
-        {
-            "foreground": "000000",
-            "token": "keyword.operator"
-        },
-        {
-            "foreground": "4682b4",
+            "foreground": "ae81ff",
             "token": "constant.language"
         },
         {
-            "foreground": "990000",
-            "token": "support.class.exception"
+            "foreground": "ae81ff",
+            "token": "constant.character"
         },
         {
-            "foreground": "000000",
+            "foreground": "ae81ff",
+            "token": "constant.other"
+        },
+        {
+            "foreground": "f92672",
+            "token": "keyword"
+        },
+        {
+            "foreground": "f92672",
+            "token": "storage"
+        },
+        {
+            "foreground": "66d9ef",
+            "fontStyle": "italic",
+            "token": "storage.type"
+        },
+        {
+            "foreground": "a6e22e",
+            "fontStyle": "underline",
+            "token": "entity.name.class"
+        },
+        {
+            "foreground": "a6e22e",
+            "fontStyle": "italic underline",
+            "token": "entity.other.inherited-class"
+        },
+        {
+            "foreground": "a6e22e",
             "token": "entity.name.function"
         },
         {
-            "fontStyle": "bold underline",
-            "token": "entity.name.type"
-        },
-        {
+            "foreground": "fd971f",
             "fontStyle": "italic",
             "token": "variable.parameter"
         },
         {
-            "foreground": "007400",
-            "token": "comment"
+            "foreground": "f92672",
+            "token": "entity.name.tag"
         },
         {
-            "foreground": "ff0000",
-            "token": "invalid"
-        },
-        {
-            "background": "e71a1100",
-            "token": "invalid.deprecated.trailing-whitespace"
-        },
-        {
-            "foreground": "000000",
-            "background": "fafafafc",
-            "token": "text source"
-        },
-        {
-            "foreground": "4682b4",
-            "token": "meta.tag"
-        },
-        {
-            "foreground": "4682b4",
-            "token": "declaration.tag"
-        },
-        {
-            "foreground": "000000",
-            "fontStyle": "bold",
-            "token": "support"
-        },
-        {
-            "foreground": "4682b4",
-            "token": "storage"
-        },
-        {
-            "fontStyle": "bold underline",
-            "token": "entity.name.section"
-        },
-        {
-            "foreground": "000000",
-            "fontStyle": "bold",
-            "token": "entity.name.function.frame"
-        },
-        {
-            "foreground": "333333",
-            "token": "meta.tag.preprocessor.xml"
-        },
-        {
-            "foreground": "994500",
-            "fontStyle": "italic",
+            "foreground": "a6e22e",
             "token": "entity.other.attribute-name"
         },
         {
-            "foreground": "881280",
-            "token": "entity.name.tag"
+            "foreground": "66d9ef",
+            "token": "support.function"
+        },
+        {
+            "foreground": "66d9ef",
+            "token": "support.constant"
+        },
+        {
+            "foreground": "66d9ef",
+            "fontStyle": "italic",
+            "token": "support.type"
+        },
+        {
+            "foreground": "66d9ef",
+            "fontStyle": "italic",
+            "token": "support.class"
+        },
+        {
+            "foreground": "f8f8f0",
+            "background": "f92672",
+            "token": "invalid"
+        },
+        {
+            "foreground": "f8f8f0",
+            "background": "ae81ff",
+            "token": "invalid.deprecated"
+        },
+        {
+            "foreground": "cfcfc2",
+            "token": "meta.structure.dictionary.json string.quoted.double.json"
+        },
+        {
+            "foreground": "75715e",
+            "token": "meta.diff"
+        },
+        {
+            "foreground": "75715e",
+            "token": "meta.diff.header"
+        },
+        {
+            "foreground": "f92672",
+            "token": "markup.deleted"
+        },
+        {
+            "foreground": "a6e22e",
+            "token": "markup.inserted"
+        },
+        {
+            "foreground": "e6db74",
+            "token": "markup.changed"
+        },
+        {
+            "foreground": "ae81ffa0",
+            "token": "constant.numeric.line-number.find-in-files - match"
+        },
+        {
+            "foreground": "e6db74",
+            "token": "entity.name.filename.find-in-files"
         }
     ],
     "colors": {
-        "editor.foreground": "#000000",
-        "editor.background": "#FFFFFF",
-        "editor.selectionBackground": "#F0F0F0",
-        "editor.lineHighlightBackground": "#F0F0F0",
-        "editorCursor.foreground": "#000000",
-        "editorWhitespace.foreground": "#B3B3B3F4"
+        "editor.foreground": "#F8F8F2",
+        "editor.background": "#272822",
+        "editor.selectionBackground": "#49483E",
+        "editor.lineHighlightBackground": "#3E3D32",
+        "editorCursor.foreground": "#F8F8F0",
+        "editorWhitespace.foreground": "#3B3A32",
+        "editorIndentGuide.activeBackground": "#9D550FB0",
+        "editor.selectionHighlightBorder": "#222218"
     }
 }
 export default theme;
