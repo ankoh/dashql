@@ -1,8 +1,8 @@
 export {NavBar, withNavBar} from "./navigation_bar";
 import Board from "./board";
-import Editor from "./editor";
+import EditorLoader from "./editor_loader";
 
 export {
     Board,
-    Editor
+    EditorLoader
 }
