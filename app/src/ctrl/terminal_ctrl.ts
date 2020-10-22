@@ -148,6 +148,7 @@ class Prompt {
 // A terminal
 export class TerminalController {
     protected term: Terminal;
+    protected termElement: HTMLDivElement | null;
     protected termFitAddon: FitAddon;
     protected termSize: {
         columns: number;
@@ -166,6 +167,7 @@ export class TerminalController {
         this.onResizeHandler = this.onResize.bind(this);
 
         this.term = new Terminal();
+        this.termElement = null; 
         this.termFitAddon = new FitAddon();
         this.term.loadAddon(this.termFitAddon);
         this.term.onData(this.onDataHandler);
@@ -190,22 +192,15 @@ export class TerminalController {
     }
 
     // Fit terminal to div element
-    public fit() {
-        this.termFitAddon.fit();
-    }
-
+    public fit() { this.termFitAddon.fit(); }
     // Focus on the terminal
-    public focus() {
-        this.term.focus();
-    }
-
+    public focus() { this.term.focus(); }
     // Attach to terminal events
-    public attach() {
-    }
-
+    public attach() {}
     // Detach from terminal events
-    public detach() {
-    }
+    public detach() {}
+    // Reset the terminal
+    public reset() { this.term.reset(); }
 
     // Read next input from the terminal
     public read(inputPrompt: string, continuationPrompt: string = "> "): Promise<string> {

@@ -42,7 +42,7 @@ class Terminal extends React.Component<ITerminalProps> {
     /// Read eval print loop
     protected async evalLoop(text: string | null = null) {
         if (text != null) {
-            await this.eval(text)
+            await this.eval(text);
         }
 
         // Schedule next read
@@ -51,13 +51,14 @@ class Terminal extends React.Component<ITerminalProps> {
             .then(this.evalLoop.bind(this))
             .catch(function(text: string) {
                 term.printLine("error: " + text);
-            });       
+            });
     }
 
     /// Component did mount to the dom
     public componentDidMount() {
         if (this.termContainer.current != null) {
             let ctrl = this.props.appContext.ctrl;
+            ctrl.terminal.reset();
             ctrl.terminal.open(this.termContainer.current);
             ctrl.terminal.fit();
             ctrl.terminal.attach();
@@ -67,7 +68,8 @@ class Terminal extends React.Component<ITerminalProps> {
     }
 
     /// Component did update
-    public componentDidUpdate() {}
+    public componentDidUpdate(_prevProps: ITerminalProps) {
+    }
 
     /// Component will unmount from the dom
     public componentWillUnmount() {
