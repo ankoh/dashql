@@ -14,9 +14,9 @@ export class DuckDB extends webapi.DuckDBBindings {
     protected instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule> {
         return duckdb_api_init({
             ...moduleOverrides,
-            locateFile(path: string) {
-                if (path.endsWith('.wasm'))
-                    return duckdb_api_wasm;
+            locateFile: (path: string) => {
+                if (path.endsWith('duckdb_webapi.wasm'))
+                    return this.path;
                 return path;
             }
         });
