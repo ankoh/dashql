@@ -2,6 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 function configure(params) {
     return {
@@ -58,14 +59,7 @@ function configure(params) {
                     options: {
                         name: 'static/wasm/[name].[ext]',
                     }
-                },
-                {
-                    test: /\.worker\.js$/,
-                    loader: 'worker-loader',
-                    options: {
-                        filename: 'static/workers/[fullhash].worker.js',
-                    },
-                },
+                }
             ]
         },
         optimization: {
@@ -100,6 +94,11 @@ function configure(params) {
             new MiniCssExtractPlugin({
                 filename: './static/css/[name].css',
                 chunkFilename: './static/css/[id].css'
+            }),
+            new MonacoWebpackPlugin({
+                languages: ['sql'],
+                features: [],
+                filename: './static/workers/[name].worker.js'
             })
         ],
     };

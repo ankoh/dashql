@@ -1,6 +1,5 @@
 import * as React from 'react';
-import * as monaco from 'monaco-editor';
-import * as EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker.js';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import { AutoSizer } from '../util/autosizer';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
@@ -8,22 +7,6 @@ import { AppState, AppStateMutations, Dispatch } from '../store';
 
 import { theme as monaco_theme } from './editor.theme';
 import styles from './editor.module.css';
-
-/* tslint:disable */
-(window as any)["MonacoEnvironment"] = {
-    getWorker: function(_moduleId: string, label: string) {
-        switch (label) {
-            case "editorWorkerService":
-                return new EditorWorker();
-            default:
-                console.log("Monaco requested worker with unsupported label '" + label + "'")
-                return null;
-        }
-    }
-};
-/* tslint:enable */
-
-
 
 type Props = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps> & {
     appContext: IAppContext;
