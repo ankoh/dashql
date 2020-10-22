@@ -4,12 +4,14 @@ import { AutoSizer } from '../util/autosizer';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
 import { AppState, AppStateMutations, Dispatch } from '../store';
+import classNames from 'classnames';
 
 import { theme as monaco_theme } from './editor_theme_light';
 import styles from './editor.module.css';
 
 type Props = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps> & {
     appContext: IAppContext;
+    className?: string;
 };
 
 class Editor extends React.Component<Props> {
@@ -113,7 +115,7 @@ class Editor extends React.Component<Props> {
     /// Render the monaco editor
     render() {
         return (
-            <div className={styles.editor}>
+            <div className={classNames(styles.editor, this.props.className)}>
                 <AutoSizer onResize={(size: {height: number, width: number}) => {this.resizeEditorDelayed(size.height, size.width)}}>
                     {(_size) =>
                         <div

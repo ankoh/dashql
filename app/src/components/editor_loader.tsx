@@ -1,11 +1,16 @@
 import * as React from 'react';
 import { RectangleWaveSpinner } from './spinners';
+import classnames from 'classnames';
 
 import styles from './editor_loader.module.css';
 
-function loadingSpinner() {
+interface Props {
+    className?: String
+}
+
+function loadingSpinner(props: Props) {
     return (
-        <div className={styles.editor_loader}>
+        <div className={classnames(styles.editor_loader, props.className)}>
             <RectangleWaveSpinner active={true} />
         </div>
     );
@@ -13,11 +18,11 @@ function loadingSpinner() {
 
 const Editor = React.lazy(() => import('./editor'));
 
-export default class EditorLoader extends React.Component {
+export default class EditorLoader extends React.Component<Props> {
     public render() {
         return (
-            <React.Suspense fallback={loadingSpinner()}>
-                <Editor />
+            <React.Suspense fallback={loadingSpinner(this.props)}>
+                <Editor {...this.props} />
             </React.Suspense>
         );
     }
