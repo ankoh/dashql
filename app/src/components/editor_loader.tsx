@@ -5,7 +5,7 @@ import classnames from 'classnames';
 import styles from './editor_loader.module.css';
 
 interface Props {
-    className?: String
+    className?: string
 }
 
 function loadingSpinner(props: Props) {

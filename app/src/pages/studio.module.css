@@ -3,7 +3,7 @@
 @value v_topbar_background: rgb(46, 46, 46);
 @value v_box_shadow_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
 
-.explorer {
+.studio {
     width: 100%;
     height: 100%;
     background: rgb(255, 255, 255);

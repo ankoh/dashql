@@ -1,6 +1,6 @@
-import Explorer from "./explorer";
+import Studio from "./studio";
 export { NotFound } from "./not_found";
 
 export {
-    Explorer
+    Studio
 }

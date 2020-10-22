@@ -27,7 +27,7 @@ import {
     VariableBoxIcon,
 } from '../svg/icons';
 
-import styles from './explorer.module.css';
+import styles from './studio.module.css';
 
 const VIZTYPE_ICON_WIDTH = '20px';
 const VIZTYPE_ICON_HEIGHT = '20px';
@@ -36,10 +36,10 @@ const TOOL_ICON_HEIGHT = '20px';
 const TOPBAR_ICON_WIDTH = '20px';
 const TOPBAR_ICON_HEIGHT = '20px';
 
-class Explorer extends React.Component {
+class Studio extends React.Component {
     public render() {
         return (
-            <div className={styles.explorer}>
+            <div className={styles.studio}>
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />
                     <div className={styles.editor_container}>
@@ -226,5 +226,5 @@ class Explorer extends React.Component {
     }
 }
 
-export default Explorer;
+export default Studio;
 
