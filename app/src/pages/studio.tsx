@@ -44,7 +44,6 @@ class Studio extends React.Component {
                     <Board scaleFactor={1.0} />
                     <div className={styles.editor_container}>
                         <div className={styles.editor_sidebar} />
-                        <div className={styles.editor_header} />
                         <EditorLoader className={styles.editor} />
                     </div>
                 </div>

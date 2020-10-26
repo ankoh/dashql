@@ -13,13 +13,14 @@
 }
 
 .topbar {
-    background-color: v_topbar_background;
+    background-color: rgb(240, 240, 240);
     display: grid;
     grid-row: 1;
     grid-column: 1 / span 5;
     grid-template-columns:
         calc(220px + 48px) auto calc(3 * 48px + 220px - 3 * 48px)
         calc(3 * 48px) 48px;
+    border-bottom: 1px solid rgb(220, 220, 220);
 }
 
 .topbar_actionset {
@@ -33,10 +34,9 @@
     display: grid;
 }
 
-.topbar_icon {
-    justify-self: center;
-    align-self: center;
-}
+.topbar_icon { justify-self: center; align-self: center; }
+.topbar_icon path { fill: hsl(260, 15%, 20%); }
+.topbar_icon circle { fill: hsl(260, 15%, 20%); }
 
 .sidebar {
     grid-row: 2;
@@ -80,24 +80,22 @@
     width: 100%;
     height: 100%;
     display: grid;
-    grid-template-rows: 24px auto;
+    grid-template-rows: auto;
     grid-template-columns: 48px auto;
 }
 
-.editor_header {
-    background: rgb(200, 200, 200);
-    grid-row: 1;
-    grid-column: 2;
-}
-
 .editor_sidebar {
-    background: rgb(160, 160, 160);
-    grid-row: 1 / span 2;
+    background-color: rgb(240, 240, 240);
+    grid-row: 1;
     grid-column: 1;
+    border-right: 1px solid rgb(220, 220, 220);
+    border-top: 1px solid rgb(220, 220, 220);
+    border-left: 1px solid rgb(220, 220, 220);
+    margin-left: -1px;
 }
 
 .editor {
-    grid-row: 2;
+    grid-row: 1;
     grid-column: 2;
 }
 

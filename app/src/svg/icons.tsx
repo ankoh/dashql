@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-interface IIconProps {
+export interface IIconProps {
     className?: string;
     width?: string;
     height?: string;
@@ -612,3 +612,40 @@ export function IconTemplate(props: IIconProps) {
         </svg>
     );
 }
+
+export function StudioIcon(props: IIconProps) {
+    return (
+        <svg
+            className={props.className || 'icon'}
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <path
+                d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"
+                fill={props.fill || '#ffffff'}
+                fillRule="nonzero"
+            />
+        </svg>
+    );
+}
+
+export function ExplorerIcon(props: IIconProps) {
+    return (
+        <svg
+            className={props.className || 'icon'}
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <g
+                fill={props.fill || '#ffffff'}
+                fillRule="nonzero"
+            >
+                <polygon points="0 0 3.03703704 5 0 10 3 10 6 5 3 0" />
+                <polygon points="9 8 9 10 18 10 18 8" />
+            </g>
+        </svg>
+    );
+}
+
