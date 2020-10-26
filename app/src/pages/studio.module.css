@@ -1,4 +1,4 @@
-@value v_border_color: rgb(238, 238, 238);
+@value v_border_color: rgb(220, 220, 220);
 @value v_border_radius: 6px;
 @value v_topbar_background: rgb(46, 46, 46);
 @value v_box_shadow_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
@@ -19,9 +19,8 @@
     display: grid;
     grid-row: 1;
     grid-column: 1 / span 2;
-    grid-template-columns:
-        calc(220px + 48px) auto calc(2 * 48px + 48px) calc(2 * 48px);
-    border-bottom: 1px solid rgb(220, 220, 220);
+    grid-template-columns: calc(220px + 48px) auto calc(2 * 48px + 48px) calc(2 * 48px);
+    border-bottom: 1px solid v_border_color;
 }
 
 .topbar_actionset {
