@@ -1,7 +1,9 @@
-@value v_nav_tab_bg: transparent;
-@value v_nav_tab_bg_active: hsl(260, 15%, 10%);
-@value v_nav_tab_fg: rgb(255, 255, 255);
-@value v_nav_tab_fg_active: rgb(255, 255, 255);
+@value v_tab_bg: transparent;
+@value v_tab_bg_active: hsl(260, 15%, 10%);
+@value v_tab_fg: rgb(255, 255, 255);
+@value v_tab_fg_active: rgb(255, 255, 255);
+@value v_status_bg: hsl(260, 15%, 20%);
+@value v_status_bg_active: hsl(260, 15%, 10%);
 
 .navbar {
     display: flex;
@@ -38,8 +40,8 @@
     position: relative;
     font-weight: 400;
     font-size: 0.75em;
-    background-color: v_nav_tab_bg;
-    color: v_nav_tab_fg;
+    background-color: v_tab_bg;
+    color: v_tab_fg;
     text-decoration: none;
     height: 48px;
 }
@@ -60,8 +62,8 @@
 }
 
 .tab:hover, .tab.active {
-    background-color: v_nav_tab_bg_active;
-    color: v_nav_tab_fg_active;
+    background-color: v_tab_bg_active;
+    color: v_tab_fg_active;
 }
 
 .statuslist {
@@ -72,6 +74,11 @@
     display: grid;
     height: 48px;
     width: 100%;
+}
+
+.status:hover, .status.active {
+    background-color: v_status_bg_active;
+    color: v_status_fg_active;
 }
 
 .status > svg {
