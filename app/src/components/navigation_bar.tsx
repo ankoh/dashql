@@ -16,13 +16,9 @@ function createTab(path: string, Icon: React.FunctionComponent<IIconProps>): Rea
     return (props: TabProps) => {
         return (
             <div key={path}
-                className={classNames(
-                    styles.tab,
-                    {
-                        [styles.active]: props.pathName == path
-                    },
-                )}
-            >
+                className={classNames(styles.tab, {
+                    [styles.active]: props.pathName == path
+                })}>
                 <Link to={path}>
                     {<Icon width="22px" height="22px" {...(props as IIconProps)} />}
                 </Link>
@@ -39,11 +35,7 @@ interface StatusProps extends IIconProps {
 export function createStatus(Icon: React.FunctionComponent<StatusProps>): React.FunctionComponent<StatusProps> {
     return (props: StatusProps) => {
         return (
-            <div
-                className={classNames(
-                    styles.status,
-                )}
-            >
+            <div className={styles.status}>
                 {<Icon width="22px" height="22px" {...(props as StatusProps)} />}
             </div>
         );

@@ -13,8 +13,8 @@ class Studio extends React.Component {
         return (
             <div className={styles.studio}>
                 <div className={styles.editor}>
-                    <ToolBar />
                     <EditorLoader className={styles.editor_monaco} />
+                    <ToolBar />
                     <div className={styles.editor_inspector}>
                     </div>
                 </div>

@@ -4,6 +4,7 @@
 @value v_box_shadow_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
 @value v_action_color: hsl(260, 15%, 40%);
 @value v_tool_color: hsl(260, 15%, 40%);
+@value v_viztype_color: rgb(255, 255, 255);
 
 .studio {
     width: 100%;
@@ -47,14 +48,15 @@
     border-right: 1px solid v_border_color;
 }
 
-.editor_toolbar {
+.toolbar {
+    position: relative;
     grid-row: 1;
     grid-column: 1;
     border-right: 1px solid v_border_color;
     background-color: rgb(255, 255, 255);
 }
 
-.editor_toolbar_tool {
+.tool {
     height: 48px;
     width: 100%;
     box-sizing: border-box;
@@ -62,10 +64,26 @@
     color: rgb(166, 166, 166);
     display: grid;
 }
-.editor_toolbar_tool.small_font { font-size: 9px !important; }
-.editor_toolbar_icon { justify-self: center; align-self: center; }
-.editor_toolbar_icon path { fill: v_tool_color; }
-.editor_toolbar_icon circle { fill: v_tool_color; }
+.tool:hover { background-color: hsl(260, 15%, 30%); }
+.tool:hover path { fill: rgb(255, 255, 255); }
+.tool:hover circle { fill: rgb(255, 255, 255); }
+.tool.active { background-color: hsl(260, 15%, 30%);; }
+.tool.small_font { font-size: 9px !important; }
+.tool_icon { justify-self: center; align-self: center; }
+.tool_icon path { fill: v_tool_color; }
+.tool_icon circle { fill: v_tool_color; }
+.tool_icon.active { justify-self: center; align-self: center; }
+.tool_icon.active path { fill: rgb(255, 255, 255); }
+.tool_icon.active circle { fill: rgb(255, 255, 255); }
+
+.tool_sublist {
+    position: absolute;
+    top: 48px;
+    left: 47px;
+    width: 48px;
+    height: auto;
+    background: hsl(260, 15%, 40%);
+}
 
 .editor_monaco {
     grid-row: 1;
@@ -102,15 +120,16 @@
 
 .viztypes_charts { border-top: 1px solid v_border_color; }
 
-.viztypes_viztype {
+.viztype {
     height: 48px;
     width: 100%;
     box-sizing: border-box;
     display: grid;
 }
-.viztypes_icon { justify-self: center; align-self: center; }
-.viztypes_icon path { fill: rgb(166, 166, 166); }
-.viztypes_icon circle { fill: rgb(166, 166, 166); }
+.viztype:hover { background-color: hsl(260, 15%, 30%); }
+.viztype_icon { justify-self: center; align-self: center; }
+.viztype_icon path { fill: v_viztype_color; }
+.viztype_icon circle { fill: v_viztype_color; }
 
 .properties {
     grid-row: 2;
