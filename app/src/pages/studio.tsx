@@ -5,6 +5,7 @@ import { Board, EditorLoader } from '../components';
 
 import { TopBar } from './studio_topbar';
 import { ToolBar } from './studio_toolbar';
+import { Inspector } from './studio_inspector';
 
 import styles from './studio.module.css';
 
@@ -15,8 +16,7 @@ class Studio extends React.Component {
                 <div className={styles.editor}>
                     <EditorLoader className={styles.editor_monaco} />
                     <ToolBar />
-                    <div className={styles.editor_inspector}>
-                    </div>
+                    <Inspector />
                 </div>
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />

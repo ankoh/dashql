@@ -100,7 +100,7 @@
     background-color: rgb(229, 229, 229);
 }
 
-.editor_inspector {
+.inspector {
     grid-row: 2;
     grid-column: 1 / span 2;
     background: white;
