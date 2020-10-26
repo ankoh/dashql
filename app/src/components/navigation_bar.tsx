@@ -13,7 +13,7 @@ interface TabProps extends IIconProps {
     pathName: string;
 }
 
-export function asTab(path: string, Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps> {
+export function asTab(path: string, Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<TabProps> {
     return (props: TabProps) => {
         return (
             <div key={path}
@@ -68,7 +68,7 @@ class NavigationBar extends React.Component<NavigationBarProps> {
                     <StudioTab pathName={this.props.location.pathname} />
                     <ExplorerTab pathName={this.props.location.pathname} />
                 </div>
-                <div className={styles.statusbar}>
+                <div className={styles.statuslist}>
                     <TaskStatus />
                     <LogStatus />
                     <DatabaseStatus />
