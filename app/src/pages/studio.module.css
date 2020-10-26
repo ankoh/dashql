@@ -69,6 +69,7 @@
 .tool:hover circle { fill: rgb(255, 255, 255); }
 .tool.active { background-color: hsl(260, 15%, 30%);; }
 .tool.small_font { font-size: 9px !important; }
+
 .tool_icon { justify-self: center; align-self: center; }
 .tool_icon path { fill: v_tool_color; }
 .tool_icon circle { fill: v_tool_color; }
