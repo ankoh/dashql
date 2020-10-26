@@ -69,9 +69,9 @@ class NavigationBar extends React.Component<NavigationBarProps> {
                     <ExplorerTab pathName={this.props.location.pathname} />
                 </div>
                 <div className={styles.statuslist}>
+                    <DatabaseStatus />
                     <TaskStatus />
                     <LogStatus />
-                    <DatabaseStatus />
                 </div>
             </div>
         );
