@@ -1,5 +1,5 @@
 @value v_nav_tab_bg: transparent;
-@value v_nav_tab_bg_active: hsl(260, 15%, 15%);
+@value v_nav_tab_bg_active: hsl(260, 15%, 10%);
 @value v_nav_tab_fg: rgb(255, 255, 255);
 @value v_nav_tab_fg_active: rgb(255, 255, 255);
 
@@ -11,7 +11,7 @@
     line-height: 24px;
     text-align: center;
 
-    background-color: hsl(260, 15%, 20%);
+    background-color: hsl(260, 15%, 15%);
 
     grid-template-rows: 48px auto 48px;
 }
@@ -65,6 +65,7 @@
 }
 
 .statuslist {
+    background-color: hsl(260, 15%, 20%);
 }
 
 .status {
