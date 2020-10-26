@@ -2,7 +2,7 @@ import * as React from 'react';
 import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 import classNames from 'classnames';
 import { DashQLLogo } from '../svg/logo';
-import { StudioIcon, ExplorerIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
+import { StudioIcon, ShellIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
 
 import styles from './navigation_bar.module.css';
 
@@ -32,7 +32,7 @@ export function asTab(path: string, Icon: React.FunctionComponent<IIconProps>): 
     };
 }
 const StudioTab = asTab('/studio', StudioIcon);
-const ExplorerTab = asTab('/explorer', ExplorerIcon);
+const ShellTab = asTab('/shell', ShellIcon);
 
 
 interface StatusProps extends IIconProps {
@@ -66,7 +66,7 @@ class NavigationBar extends React.Component<NavigationBarProps> {
                 </div>
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
-                    <ExplorerTab pathName={this.props.location.pathname} />
+                    <ShellTab pathName={this.props.location.pathname} />
                 </div>
                 <div className={styles.statuslist}>
                     <DatabaseStatus />

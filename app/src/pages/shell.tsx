@@ -1,8 +1,8 @@
 import * as React from "react";
 import { TerminalLoader } from "../components";
-import styles from "./explorer.module.css";
+import styles from "./shell.module.css";
 
-class Explorer extends React.Component {
+class Shell extends React.Component {
     public render() {
         return (
             <TerminalLoader className={styles.terminal} />
@@ -10,4 +10,4 @@ class Explorer extends React.Component {
     }
 }
 
-export default Explorer;
+export default Shell;

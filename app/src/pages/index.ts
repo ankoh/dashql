@@ -1,8 +1,8 @@
 import Studio from "./studio";
-import Explorer from "./explorer";
+import Shell from "./shell";
 export { NotFound } from "./not_found";
 
 export {
     Studio,
-    Explorer
+    Shell
 }

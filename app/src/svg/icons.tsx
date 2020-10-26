@@ -630,7 +630,7 @@ export function StudioIcon(props: IIconProps) {
     );
 }
 
-export function ExplorerIcon(props: IIconProps) {
+export function ShellIcon(props: IIconProps) {
     return (
         <svg
             className={props.className || 'icon'}
