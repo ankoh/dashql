@@ -5,53 +5,26 @@ import { Board, EditorLoader } from '../components';
 
 import {
     IIconProps,
-    AddIcon,
     ArcChartIcon,
-    AspectRatioIcon,
     BarChartIcon,
-    CloudUploadIcon,
     DatabaseImportIcon,
     DatabaseSearchIcon,
-    DocumentDownloadIcon,
     FileDocumentBoxPlusIcon,
     LineChartIcon,
     PlanIcon,
-    RefreshIcon,
-    RulerIcon,
     ScatterChartIcon,
     TableChartIcon,
     TextCardIcon,
     VariableBoxIcon,
 } from '../svg/icons';
 
+import { TopBar } from './studio_topbar';
+
 import styles from './studio.module.css';
 
-const VIZTYPE_ICON_WIDTH = '20px';
-const VIZTYPE_ICON_HEIGHT = '20px';
-
-class TopBarActionProps {}
-function createTopBarAction(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & TopBarActionProps> {
-    return (props: IIconProps & TopBarActionProps) => {
-        return (
-            <div className={styles.topbar_action}>
-                <Icon
-                    className={styles.topbar_icon}
-                    width={'20px'}
-                    height={'20px'}
-                    {...props}
-                />
-            </div>
-        );
-    };
-}
-const AddAction = createTopBarAction(AddIcon);
-const RefreshAction = createTopBarAction(RefreshIcon);
-const RulerAction = createTopBarAction(RulerIcon);
-const DeviceAction = createTopBarAction(AspectRatioIcon);
-const DocumentDownloadAction = createTopBarAction(DocumentDownloadIcon);
-const CloudUploadAction = createTopBarAction(CloudUploadIcon);
-
 class ToolBarToolProps {}
+class VizTypeProps {}
+
 function createToolBarTool(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & ToolBarToolProps> {
     return (props: IIconProps & ToolBarToolProps) => {
         return (
@@ -71,7 +44,6 @@ const CreateLoad = createToolBarTool(FileDocumentBoxPlusIcon);
 const CreateExtract = createToolBarTool(DatabaseImportIcon);
 const CreateQuery = createToolBarTool(DatabaseSearchIcon);
 
-class VizTypeProps {}
 function createVizType(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & VizTypeProps> {
     return (props: IIconProps & VizTypeProps) => {
         return (
@@ -105,22 +77,7 @@ class Studio extends React.Component {
                         <EditorLoader className={styles.editor} />
                     </div>
                 </div>
-                <div className={styles.topbar}>
-                    <div className={styles.topbar_actionset}>
-                        <AddAction />
-                        <RefreshAction />
-                    </div>
-                    <div className={styles.topbar_actionset}>
-                        <RulerAction />
-                        <DeviceAction />
-                    </div>
-                    <div className={styles.topbar_actionset}>
-                        <DocumentDownloadAction />
-                        <CloudUploadAction />
-                    </div>
-                    <div className={styles.topbar_actionset}>
-                    </div>
-                </div>
+                <TopBar />
                 <div className={styles.sidebar}>{
 //                    <Outline />
 //                    <Library />
