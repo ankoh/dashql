@@ -2,6 +2,8 @@
 @value v_border_radius: 6px;
 @value v_topbar_background: rgb(46, 46, 46);
 @value v_box_shadow_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
+@value v_action_color: hsl(260, 15%, 40%);
+@value v_tool_color: hsl(260, 15%, 40%);
 
 .studio {
     width: 100%;
@@ -34,8 +36,8 @@
 }
 
 .topbar_icon { justify-self: center; align-self: center; }
-.topbar_icon path { fill: hsl(260, 15%, 40%); }
-.topbar_icon circle { fill: hsl(260, 15%, 40%); }
+.topbar_icon path { fill: v_action_color; }
+.topbar_icon circle { fill: v_action_color; }
 
 .editor {
     grid-row: 2;
@@ -64,8 +66,8 @@
 }
 .editor_toolbar_tool.small_font { font-size: 9px !important; }
 .editor_toolbar_icon { justify-self: center; align-self: center; }
-.editor_toolbar_icon path { fill: rgb(166, 166, 166); }
-.editor_toolbar_icon circle { fill: rgb(166, 166, 166); }
+.editor_toolbar_icon path { fill: v_tool_color; }
+.editor_toolbar_icon circle { fill: v_tool_color; }
 
 .editor_monaco {
     grid-row: 1;
