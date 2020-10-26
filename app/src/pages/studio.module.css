@@ -18,7 +18,7 @@
     grid-row: 1;
     grid-column: 1 / span 2;
     grid-template-columns:
-        calc(220px + 48px) auto calc(2 * 48px) calc(220px + 48px);
+        calc(220px + 48px) auto calc(2 * 48px + 48px) calc(2 * 48px);
     border-bottom: 1px solid rgb(220, 220, 220);
 }
 
@@ -40,19 +40,18 @@
 .editor {
     grid-row: 2;
     grid-column: 1;
-
     display: grid;
     grid-template-rows: auto 50%;
-    grid-template-columns: 48px auto 200px;
-
+    grid-template-columns: 48px auto;
     border-right: 1px solid v_border_color;
 }
 
 .editor_toolbar {
-    grid-row: 1 / span 2;
+    grid-row: 1;
     grid-column: 1;
     border-right: 1px solid v_border_color;
     background-color: rgb(255, 255, 255);
+    border-bottom: 1px solid v_border_color;
 }
 
 .editor_toolbar_tool {
@@ -76,6 +75,12 @@
     flex-flow: column;
     height: 100%;
     background-color: rgb(229, 229, 229);
+    border-bottom: 1px solid v_border_color;
+}
+
+.editor_inspector {
+    grid-row: 2;
+    grid-column: 1 / span 2;
 }
 
 .board {

@@ -7,7 +7,6 @@ import {
     AspectRatioIcon,
     CloudUploadIcon,
     DocumentDownloadIcon,
-    RefreshIcon,
     RulerIcon,
 } from '../svg/icons';
 
@@ -31,7 +30,6 @@ function createTopBarAction(Icon: React.FunctionComponent<IIconProps>): React.Fu
 }
 
 const PlayAction = createTopBarAction(PlayIcon);
-const UndoAction = createTopBarAction(UndoIcon);
 const AutoRunAction = createTopBarAction(AutoRunIcon);
 const RulerAction = createTopBarAction(RulerIcon);
 const DeviceAction = createTopBarAction(AspectRatioIcon);
@@ -45,17 +43,15 @@ export class TopBar extends React.Component<{}> {
                 <div className={styles.topbar_actionset}>
                     <PlayAction />
                     <AutoRunAction />
-                    <UndoAction />
                 </div>
-                <div className={styles.topbar_actionset}>
-                    <RulerAction />
-                    <DeviceAction />
-                </div>
+                <div className={styles.topbar_actionset} />
                 <div className={styles.topbar_actionset}>
                     <DocumentDownloadAction />
                     <CloudUploadAction />
                 </div>
                 <div className={styles.topbar_actionset}>
+                    <RulerAction />
+                    <DeviceAction />
                 </div>
             </div>
         );

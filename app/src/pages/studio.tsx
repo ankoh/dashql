@@ -5,6 +5,7 @@ import { Board, EditorLoader } from '../components';
 
 import {
     IIconProps,
+    AnalyticsIcon,
     ArcChartIcon,
     BarChartIcon,
     DatabaseImportIcon,
@@ -43,6 +44,7 @@ const CreateVariable = createToolBarTool(VariableBoxIcon);
 const CreateLoad = createToolBarTool(FileDocumentBoxPlusIcon);
 const CreateExtract = createToolBarTool(DatabaseImportIcon);
 const CreateQuery = createToolBarTool(DatabaseSearchIcon);
+const CreateViz = createToolBarTool(AnalyticsIcon);
 
 function createVizType(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & VizTypeProps> {
     return (props: IIconProps & VizTypeProps) => {
@@ -76,18 +78,16 @@ class Studio extends React.Component {
                         <CreateLoad />
                         <CreateExtract />
                         <CreateQuery />
+                        <CreateViz />
                     </div>
                     <EditorLoader className={styles.editor_monaco} />
+                    <div className={styles.editor_inspector}>
+                    </div>
                 </div>
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />
                 </div>
                 <TopBar />
-                <div className={styles.sidebar}>{
-//                    <Outline />
-//                    <Library />
-}
-                </div>
                 {
 //                <div className={styles.viztypes}>
 //                    <QueryPlanViz />
