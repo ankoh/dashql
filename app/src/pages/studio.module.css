@@ -34,8 +34,8 @@
 }
 
 .topbar_icon { justify-self: center; align-self: center; }
-.topbar_icon path { fill: hsl(260, 15%, 20%); }
-.topbar_icon circle { fill: hsl(260, 15%, 20%); }
+.topbar_icon path { fill: hsl(260, 15%, 40%); }
+.topbar_icon circle { fill: hsl(260, 15%, 40%); }
 
 .sidebar {
     grid-row: 2;
