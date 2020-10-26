@@ -92,18 +92,18 @@ export class ToolBar extends React.Component<{}, ToolBarState> {
                         width={'20px'}
                         height={'20px'}
                     />
-                    {this.state.vizExpanded && (
-                        <div className={styles.tool_sublist}>
-                            <QueryPlanViz />
-                            <TextCardViz />
-                            <TableViz />
-                            <LineChartViz />
-                            <BarChartViz />
-                            <ScatterChartViz />
-                            <PieChartViz />
-                        </div>
-                    )}
                 </div>
+                {this.state.vizExpanded && (
+                    <div className={styles.tool_sublist}>
+                        <QueryPlanViz />
+                        <TextCardViz />
+                        <TableViz />
+                        <LineChartViz />
+                        <BarChartViz />
+                        <ScatterChartViz />
+                        <PieChartViz />
+                    </div>
+                )}
             </div>
         );
     }
