@@ -9,20 +9,17 @@ import {
     AspectRatioIcon,
     BarChartIcon,
     CloudUploadIcon,
-    DatabaseIcon,
     DatabaseImportIcon,
     DatabaseSearchIcon,
     DocumentDownloadIcon,
     FileDocumentBoxPlusIcon,
     GitHubFaceIcon,
     LineChartIcon,
-    LogIcon,
     PlanIcon,
     RefreshIcon,
     RulerIcon,
     ScatterChartIcon,
     TableChartIcon,
-    TaskListIcon,
     TextCardIcon,
     VariableBoxIcon,
 } from '../svg/icons';
@@ -82,29 +79,6 @@ class Studio extends React.Component {
                     </div>
                     <div className={styles.topbar_actionset}>
                         <div className={styles.topbar_action}>
-                            <DatabaseIcon
-                                className={styles.topbar_icon}
-                                width={TOPBAR_ICON_WIDTH}
-                                height={TOPBAR_ICON_HEIGHT}
-                            />
-                        </div>
-                        <div className={styles.topbar_action}>
-                            <TaskListIcon
-                                className={styles.topbar_icon}
-                                width={TOPBAR_ICON_WIDTH}
-                                height={TOPBAR_ICON_HEIGHT}
-                            />
-                        </div>
-                        <div className={styles.topbar_action}>
-                            <LogIcon
-                                className={styles.topbar_icon}
-                                width={TOPBAR_ICON_WIDTH}
-                                height={TOPBAR_ICON_HEIGHT}
-                            />
-                        </div>
-                    </div>
-                    <div className={styles.topbar_actionset}>
-                        <div className={styles.topbar_action}>
                             <DocumentDownloadIcon
                                 className={styles.topbar_icon}
                                 width={TOPBAR_ICON_WIDTH}
@@ -120,13 +94,6 @@ class Studio extends React.Component {
                         </div>
                     </div>
                     <div className={styles.topbar_actionset}>
-                        <div className={styles.topbar_action}>
-                            <GitHubFaceIcon
-                                className={styles.topbar_icon}
-                                width={TOPBAR_ICON_WIDTH}
-                                height={TOPBAR_ICON_HEIGHT}
-                            />
-                        </div>
                     </div>
                 </div>
                 <div className={styles.sidebar}>{

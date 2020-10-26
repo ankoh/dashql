@@ -18,8 +18,7 @@
     grid-row: 1;
     grid-column: 1 / span 5;
     grid-template-columns:
-        calc(220px + 48px) auto calc(3 * 48px + 220px - 3 * 48px)
-        calc(3 * 48px) 48px;
+        calc(220px + 48px) auto calc(2 * 48px) calc(220px + 48px);
     border-bottom: 1px solid rgb(220, 220, 220);
 }
 

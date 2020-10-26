@@ -2,7 +2,7 @@ import * as React from 'react';
 import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 import classNames from 'classnames';
 import { DashQLLogo } from '../svg/logo';
-import { StudioIcon, ExplorerIcon, IIconProps } from '../svg/icons';
+import { StudioIcon, ExplorerIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
 
 import styles from './navigation_bar.module.css';
 
@@ -13,7 +13,7 @@ interface TabProps extends IIconProps {
     pathName: string;
 }
 
-export function asTab(path: string, Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<P> {
+export function asTab(path: string, Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps> {
     return (props: TabProps) => {
         return (
             <div key={path}
@@ -31,9 +31,30 @@ export function asTab(path: string, Icon: React.FunctionComponent<IIconProps>): 
         );
     };
 }
-
 const StudioTab = asTab('/studio', StudioIcon);
 const ExplorerTab = asTab('/explorer', ExplorerIcon);
+
+
+interface StatusProps extends IIconProps {
+    expanded?: boolean;
+}
+
+export function asStatus(Icon: React.FunctionComponent<StatusProps>): React.FunctionComponent<StatusProps> {
+    return (props: StatusProps) => {
+        return (
+            <div
+                className={classNames(
+                    styles.status,
+                )}
+            >
+                {<Icon width="22px" height="22px" {...(props as StatusProps)} />}
+            </div>
+        );
+    };
+}
+const DatabaseStatus = asStatus(DatabaseIcon);
+const TaskStatus = asStatus(TaskListIcon);
+const LogStatus = asStatus(LogIcon);
 
 class NavigationBar extends React.Component<NavigationBarProps> {
 
@@ -46,6 +67,11 @@ class NavigationBar extends React.Component<NavigationBarProps> {
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
                     <ExplorerTab pathName={this.props.location.pathname} />
+                </div>
+                <div className={styles.statusbar}>
+                    <TaskStatus />
+                    <LogStatus />
+                    <DatabaseStatus />
                 </div>
             </div>
         );
