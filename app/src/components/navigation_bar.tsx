@@ -12,8 +12,7 @@ interface NavigationBarProps extends RouteComponentProps<RouteParams> {}
 interface TabProps extends IIconProps {
     pathName: string;
 }
-
-function asTab(path: string, Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<TabProps> {
+function createTab(path: string, Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<TabProps> {
     return (props: TabProps) => {
         return (
             <div key={path}
@@ -31,15 +30,13 @@ function asTab(path: string, Icon: React.FunctionComponent<IIconProps>): React.F
         );
     };
 }
-const StudioTab = asTab('/studio', StudioIcon);
-const ShellTab = asTab('/shell', ShellIcon);
-
+const StudioTab = createTab('/studio', StudioIcon);
+const ShellTab = createTab('/shell', ShellIcon);
 
 interface StatusProps extends IIconProps {
     expanded?: boolean;
 }
-
-export function asStatus(Icon: React.FunctionComponent<StatusProps>): React.FunctionComponent<StatusProps> {
+export function createStatus(Icon: React.FunctionComponent<StatusProps>): React.FunctionComponent<StatusProps> {
     return (props: StatusProps) => {
         return (
             <div
@@ -52,9 +49,9 @@ export function asStatus(Icon: React.FunctionComponent<StatusProps>): React.Func
         );
     };
 }
-const DatabaseStatus = asStatus(DatabaseIcon);
-const TaskStatus = asStatus(TaskListIcon);
-const LogStatus = asStatus(LogIcon);
+const DatabaseStatus = createStatus(DatabaseIcon);
+const TaskStatus = createStatus(TaskListIcon);
+const LogStatus = createStatus(LogIcon);
 
 class NavigationBar extends React.Component<NavigationBarProps> {
 
@@ -62,7 +59,7 @@ class NavigationBar extends React.Component<NavigationBarProps> {
         return (
             <div className={styles.navbar}>
                 <div className={styles.banner}>
-                    <DashQLLogo width="24px" height="24px" />
+                    <DashQLLogo width="28px" height="28px" />
                 </div>
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
