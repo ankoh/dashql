@@ -13,7 +13,7 @@ interface TabProps extends IIconProps {
     pathName: string;
 }
 
-export function asTab(path: string, Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<TabProps> {
+function asTab(path: string, Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<TabProps> {
     return (props: TabProps) => {
         return (
             <div key={path}

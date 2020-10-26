@@ -4,6 +4,7 @@ import { Board, EditorLoader } from '../components';
 // import Library from './library';
 
 import {
+    IIconProps,
     AddIcon,
     ArcChartIcon,
     AspectRatioIcon,
@@ -13,7 +14,6 @@ import {
     DatabaseSearchIcon,
     DocumentDownloadIcon,
     FileDocumentBoxPlusIcon,
-    GitHubFaceIcon,
     LineChartIcon,
     PlanIcon,
     RefreshIcon,
@@ -28,10 +28,71 @@ import styles from './studio.module.css';
 
 const VIZTYPE_ICON_WIDTH = '20px';
 const VIZTYPE_ICON_HEIGHT = '20px';
-const TOOL_ICON_WIDTH = '20px';
-const TOOL_ICON_HEIGHT = '20px';
-const TOPBAR_ICON_WIDTH = '20px';
-const TOPBAR_ICON_HEIGHT = '20px';
+
+class TopBarActionProps {}
+function createTopBarAction(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & TopBarActionProps> {
+    return (props: IIconProps & TopBarActionProps) => {
+        return (
+            <div className={styles.topbar_action}>
+                <Icon
+                    className={styles.topbar_icon}
+                    width={'20px'}
+                    height={'20px'}
+                    {...props}
+                />
+            </div>
+        );
+    };
+}
+const AddAction = createTopBarAction(AddIcon);
+const RefreshAction = createTopBarAction(RefreshIcon);
+const RulerAction = createTopBarAction(RulerIcon);
+const DeviceAction = createTopBarAction(AspectRatioIcon);
+const DocumentDownloadAction = createTopBarAction(DocumentDownloadIcon);
+const CloudUploadAction = createTopBarAction(CloudUploadIcon);
+
+class ToolBarToolProps {}
+function createToolBarTool(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & ToolBarToolProps> {
+    return (props: IIconProps & ToolBarToolProps) => {
+        return (
+            <div className={styles.toolbar_tool}>
+                <Icon
+                    className={styles.toolbar_icon}
+                    width={'20px'}
+                    height={'20px'}
+                    {...props}
+                />
+            </div>
+        );
+    };
+}
+const CreateVariable = createToolBarTool(VariableBoxIcon);
+const CreateLoad = createToolBarTool(FileDocumentBoxPlusIcon);
+const CreateExtract = createToolBarTool(DatabaseImportIcon);
+const CreateQuery = createToolBarTool(DatabaseSearchIcon);
+
+class VizTypeProps {}
+function createVizType(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & VizTypeProps> {
+    return (props: IIconProps & VizTypeProps) => {
+        return (
+            <div className={styles.viztypes_viztype}>
+                <Icon
+                    className={styles.viztypes_icon}
+                    width={'20px'}
+                    height={'20px'}
+                    {...props}
+                />
+            </div>
+        );
+    };
+}
+const QueryPlanViz = createVizType(PlanIcon);
+const TextCardViz = createVizType(TextCardIcon);
+const TableViz = createVizType(TableChartIcon);
+const LineChartViz = createVizType(LineChartIcon);
+const BarChartViz = createVizType(BarChartIcon);
+const ScatterChartViz = createVizType(ScatterChartIcon);
+const PieChartViz = createVizType(ArcChartIcon);
 
 class Studio extends React.Component {
     public render() {
@@ -46,52 +107,16 @@ class Studio extends React.Component {
                 </div>
                 <div className={styles.topbar}>
                     <div className={styles.topbar_actionset}>
-                        <div className={styles.topbar_action}>
-                            <AddIcon
-                                className={styles.topbar_icon}
-                                width={TOPBAR_ICON_WIDTH}
-                                height={TOPBAR_ICON_HEIGHT}
-                            />
-                        </div>
-                        <div className={styles.topbar_action}>
-                            <RefreshIcon
-                                className={styles.topbar_icon}
-                                width={TOPBAR_ICON_WIDTH}
-                                height={TOPBAR_ICON_HEIGHT}
-                            />
-                        </div>
+                        <AddAction />
+                        <RefreshAction />
                     </div>
                     <div className={styles.topbar_actionset}>
-                        <div className={styles.topbar_action}>
-                            <RulerIcon
-                                className={styles.topbar_icon}
-                                width={TOPBAR_ICON_WIDTH}
-                                height={TOPBAR_ICON_HEIGHT}
-                            />
-                        </div>
-                        <div className={styles.topbar_action}>
-                            <AspectRatioIcon
-                                className={styles.topbar_icon}
-                                width={TOPBAR_ICON_WIDTH}
-                                height={TOPBAR_ICON_HEIGHT}
-                            />
-                        </div>
+                        <RulerAction />
+                        <DeviceAction />
                     </div>
                     <div className={styles.topbar_actionset}>
-                        <div className={styles.topbar_action}>
-                            <DocumentDownloadIcon
-                                className={styles.topbar_icon}
-                                width={TOPBAR_ICON_WIDTH}
-                                height={TOPBAR_ICON_HEIGHT}
-                            />
-                        </div>
-                        <div className={styles.topbar_action}>
-                            <CloudUploadIcon
-                                className={styles.topbar_icon}
-                                width={TOPBAR_ICON_WIDTH}
-                                height={TOPBAR_ICON_HEIGHT}
-                            />
-                        </div>
+                        <DocumentDownloadAction />
+                        <CloudUploadAction />
                     </div>
                     <div className={styles.topbar_actionset}>
                     </div>
@@ -102,86 +127,20 @@ class Studio extends React.Component {
 }
                 </div>
                 <div className={styles.toolbar}>
-                    <div className={styles.toolbar_tool}>
-                        <VariableBoxIcon
-                            className={styles.toolbar_icon}
-                            width={TOOL_ICON_WIDTH}
-                            height={TOOL_ICON_HEIGHT}
-                        />
-                    </div>
-                    <div className={styles.toolbar_tool}>
-                        <FileDocumentBoxPlusIcon
-                            className={styles.toolbar_icon}
-                            width={TOOL_ICON_WIDTH}
-                            height={TOOL_ICON_HEIGHT}
-                        />
-                    </div>
-                    <div className={styles.toolbar_tool}>
-                        <DatabaseImportIcon
-                            className={styles.toolbar_icon}
-                            width={TOOL_ICON_WIDTH}
-                            height={TOOL_ICON_HEIGHT}
-                        />
-                    </div>
-                    <div className={styles.toolbar_tool}>
-                        <DatabaseSearchIcon
-                            className={styles.toolbar_icon}
-                            width={TOOL_ICON_WIDTH}
-                            height={TOOL_ICON_HEIGHT}
-                        />
-                    </div>
+                    <CreateVariable />
+                    <CreateLoad />
+                    <CreateExtract />
+                    <CreateQuery />
                 </div>
                 <div className={styles.viztypes}>
-                    <div className={styles.viztypes_viztype}>
-                        <PlanIcon
-                            className={styles.viztypes_icon}
-                            width={VIZTYPE_ICON_WIDTH}
-                            height={VIZTYPE_ICON_HEIGHT}
-                        />
-                    </div>
-                    <div className={styles.viztypes_viztype}>
-                        <TextCardIcon
-                            className={styles.viztypes_icon}
-                            width={VIZTYPE_ICON_WIDTH}
-                            height={VIZTYPE_ICON_HEIGHT}
-                        />
-                    </div>
-                    <div className={styles.viztypes_viztype}>
-                        <TableChartIcon
-                            className={styles.viztypes_icon}
-                            width={VIZTYPE_ICON_WIDTH}
-                            height={VIZTYPE_ICON_HEIGHT}
-                        />
-                    </div>
-                    <div className={styles.viztypes_vega}>
-                        <div className={styles.viztypes_viztype}>
-                            <LineChartIcon
-                                className={styles.viztypes_icon}
-                                width={VIZTYPE_ICON_WIDTH}
-                                height={VIZTYPE_ICON_HEIGHT}
-                            />
-                        </div>
-                        <div className={styles.viztypes_viztype}>
-                            <BarChartIcon
-                                className={styles.viztypes_icon}
-                                width={VIZTYPE_ICON_WIDTH}
-                                height={VIZTYPE_ICON_HEIGHT}
-                            />
-                        </div>
-                        <div className={styles.viztypes_viztype}>
-                            <ScatterChartIcon
-                                className={styles.viztypes_icon}
-                                width={VIZTYPE_ICON_WIDTH}
-                                height={VIZTYPE_ICON_HEIGHT}
-                            />
-                        </div>
-                        <div className={styles.viztypes_viztype}>
-                            <ArcChartIcon
-                                className={styles.viztypes_icon}
-                                width={VIZTYPE_ICON_WIDTH}
-                                height={VIZTYPE_ICON_HEIGHT}
-                            />
-                        </div>
+                    <QueryPlanViz />
+                    <TextCardViz />
+                    <TableViz />
+                    <div className={styles.viztypes_charts}>
+                        <LineChartViz />
+                        <BarChartViz />
+                        <ScatterChartViz />
+                        <PieChartViz />
                     </div>
                 </div>
                 <div className={styles.properties}>

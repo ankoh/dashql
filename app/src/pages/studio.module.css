@@ -104,7 +104,7 @@
     border-left: 1px solid v_border_color;
 }
 
-.viztypes_vega { border-top: 1px solid v_border_color; }
+.viztypes_charts { border-top: 1px solid v_border_color; }
 
 .viztypes_viztype {
     height: 48px;

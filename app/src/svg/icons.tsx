@@ -649,3 +649,19 @@ export function ShellIcon(props: IIconProps) {
     );
 }
 
+export function PlayIcon(props: IIconProps) {
+    return (
+        <svg
+            className={props.className || 'icon'}
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <path
+                d="M8 5v14l11-7z"
+                fill={props.fill || '#ffffff'}
+                fillRule="nonzero"
+            />
+        </svg>
+    );
+}
