@@ -28,9 +28,9 @@ class VizTypeProps {}
 function createToolBarTool(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & ToolBarToolProps> {
     return (props: IIconProps & ToolBarToolProps) => {
         return (
-            <div className={styles.toolbar_tool}>
+            <div className={styles.editor_toolbar_tool}>
                 <Icon
-                    className={styles.toolbar_icon}
+                    className={styles.editor_toolbar_icon}
                     width={'20px'}
                     height={'20px'}
                     {...props}
@@ -70,12 +70,17 @@ class Studio extends React.Component {
     public render() {
         return (
             <div className={styles.studio}>
+                <div className={styles.editor}>
+                    <div className={styles.editor_toolbar}>
+                        <CreateVariable />
+                        <CreateLoad />
+                        <CreateExtract />
+                        <CreateQuery />
+                    </div>
+                    <EditorLoader className={styles.editor_monaco} />
+                </div>
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />
-                    <div className={styles.editor_container}>
-                        <div className={styles.editor_sidebar} />
-                        <EditorLoader className={styles.editor} />
-                    </div>
                 </div>
                 <TopBar />
                 <div className={styles.sidebar}>{
@@ -83,26 +88,19 @@ class Studio extends React.Component {
 //                    <Library />
 }
                 </div>
-                <div className={styles.toolbar}>
-                    <CreateVariable />
-                    <CreateLoad />
-                    <CreateExtract />
-                    <CreateQuery />
-                </div>
-                <div className={styles.viztypes}>
-                    <QueryPlanViz />
-                    <TextCardViz />
-                    <TableViz />
-                    <div className={styles.viztypes_charts}>
-                        <LineChartViz />
-                        <BarChartViz />
-                        <ScatterChartViz />
-                        <PieChartViz />
-                    </div>
-                </div>
-                <div className={styles.properties}>
-                    <div className={styles.properties_header}>Properties</div>
-                </div>
+                {
+//                <div className={styles.viztypes}>
+//                    <QueryPlanViz />
+//                    <TextCardViz />
+//                    <TableViz />
+//                    <div className={styles.viztypes_charts}>
+//                        <LineChartViz />
+//                        <BarChartViz />
+//                        <ScatterChartViz />
+//                        <PieChartViz />
+//                    </div>
+//                </div>
+                                    }
             </div>
         );
     }

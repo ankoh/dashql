@@ -1,7 +1,9 @@
 import * as React from "react";
 import {
     IIconProps,
-    AddIcon,
+    PlayIcon,
+    UndoIcon,
+    AutoRunIcon,
     AspectRatioIcon,
     CloudUploadIcon,
     DocumentDownloadIcon,
@@ -28,8 +30,9 @@ function createTopBarAction(Icon: React.FunctionComponent<IIconProps>): React.Fu
     };
 }
 
-const AddAction = createTopBarAction(AddIcon);
-const RefreshAction = createTopBarAction(RefreshIcon);
+const PlayAction = createTopBarAction(PlayIcon);
+const UndoAction = createTopBarAction(UndoIcon);
+const AutoRunAction = createTopBarAction(AutoRunIcon);
 const RulerAction = createTopBarAction(RulerIcon);
 const DeviceAction = createTopBarAction(AspectRatioIcon);
 const DocumentDownloadAction = createTopBarAction(DocumentDownloadIcon);
@@ -40,8 +43,9 @@ export class TopBar extends React.Component<{}> {
         return (
             <div className={styles.topbar}>
                 <div className={styles.topbar_actionset}>
-                    <AddAction />
-                    <RefreshAction />
+                    <PlayAction />
+                    <AutoRunAction />
+                    <UndoAction />
                 </div>
                 <div className={styles.topbar_actionset}>
                     <RulerAction />
