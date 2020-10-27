@@ -269,8 +269,8 @@ extract_statement:
     ;
 
 extract_method:
-    CSV opt_csv_attribute_list  { }
-  | JSON LRB RRB                { }
+    CSV opt_csv_attribute_list  { $$ = move($2); }
+  | JSON LRB RRB                { $$ = std::vector<Attr>(); }
     ;
 
 opt_csv_attribute_list:
@@ -293,8 +293,8 @@ csv_attribute:
     ;
 
 csv_header_value:
-    boolean                                                 { }
-  | LRB string_list RRB    { }
+    boolean                 { }
+  | LRB string_list RRB     { }
 
 boolean:
     TRUE    { }
