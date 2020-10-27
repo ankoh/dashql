@@ -30,16 +30,19 @@ class SectionsBuilder {
 
     public:
     /// Constructor
-    SectionsBuilder();
+    SectionsBuilder() = default;
 
     /// Add a value
-    template <typename V> proto::syntax::Value add(V v) {
+    template <typename V> proto::syntax::Value Add(proto::syntax::Location loc, V v) {
         auto push = [&](auto tag, auto& vec, auto&& val) {
             vec.push_back(val);
-            return proto::syntax::Value(tag, vec.size() - 1);
+            return proto::syntax::Value(loc, tag, vec.size() - 1);
         };
         if constexpr (std::is_same_v<V, double>) {
             return push(proto::syntax::ValueType::NUMBER, _numbers, v);
+        }
+        if constexpr (std::is_same_v<V, std::string_view>) {
+            return push(proto::syntax::ValueType::STRING, _strings, v);
         }
         if constexpr (std::is_same_v<V, proto::syntax::Object>) {
             return push(proto::syntax::ValueType::OBJECT, _objects, v);
@@ -48,7 +51,7 @@ class SectionsBuilder {
     }
 
     /// Add a value array
-    template <typename V> proto::syntax::Value add(const std::vector<V>& vs) {
+    template <typename V> proto::syntax::Value Add(proto::syntax::Location loc, const std::vector<V>& vs) {
         auto push = [&](auto tag, auto& val_vec, auto& span_vec, const auto& vs) {
             auto entry = span_vec.size();
             auto begin = val_vec.size();
@@ -58,16 +61,19 @@ class SectionsBuilder {
             return proto::syntax::Value(tag, entry);
         };
         if constexpr (std::is_same_v<V, double>) {
-            return push(proto::syntax::ValueType::NUMBER, _numbers, _number_arrays, vs);
+            return push(proto::syntax::ValueType::NUMBER_ARRAY, _numbers, _number_arrays, vs);
+        }
+        if constexpr (std::is_same_v<V, std::string_view>) {
+            return push(proto::syntax::ValueType::STRING_ARRAY, _strings, _string_arrays, vs);
         }
         if constexpr (std::is_same_v<V, proto::syntax::Object>) {
-            return push(proto::syntax::ValueType::OBJECT, _objects, _object_arrays, vs);
+            return push(proto::syntax::ValueType::OBJECT_ARRAY, _objects, _object_arrays, vs);
         }
         return null();
     }
 
     /// Add node attributes
-    proto::syntax::Span addAttributes(const std::vector<proto::syntax::Attribute>& vs) {
+    proto::syntax::Span AddAttributes(const std::vector<proto::syntax::Attribute>& vs) {
         auto begin = _attributes.size();
         for (auto& v: vs)
             _attributes.push_back(v);
@@ -75,18 +81,16 @@ class SectionsBuilder {
     }
 
     /// Write as flatbuffer
-    flatbuffers::Offset<proto::syntax::ModuleSections> write(flatbuffers::FlatBufferBuilder& builder);
+    flatbuffers::Offset<proto::syntax::ModuleSections> Write(flatbuffers::FlatBufferBuilder& builder);
 };
 
 class ModuleBuilder {
-    /// The flatbuffer
-    proto::syntax::ModuleBuilder _buffer;
     /// The sections
     SectionsBuilder _sections;
     /// The statements
     std::vector<uint32_t> _statements;
     /// The errors
-    std::vector<flatbuffers::Offset<proto::syntax::Error>> _errors;
+    std::vector<std::pair<proto::syntax::Location, std::string>> _errors;
 
     public:
     /// Constructor
@@ -96,11 +100,13 @@ class ModuleBuilder {
     auto& sections() { return _sections; }
     /// Get the statements
     auto& statements() { return _statements; }
-    /// Add an error
-    void addError(proto::syntax::Location loc, const std::string& message);
+    /// Get the errors
+    auto& errors() { return _errors; }
 
+    /// Add an error
+    void AddError(proto::syntax::Location loc, const std::string& message);
     /// Write as flatbuffer
-    flatbuffers::Offset<proto::syntax::Module> write(flatbuffers::FlatBufferBuilder& builder);
+    flatbuffers::Offset<proto::syntax::Module> Write(flatbuffers::FlatBufferBuilder& builder);
 };
 
 }

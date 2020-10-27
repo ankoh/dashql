@@ -196,7 +196,7 @@ with[^;]*               { return Parser::make_SQL_WITH(loc); }
 
                             if (!stream) {
                                 auto message = std::string("Invalid number \"") + yytext + std::string("\"");
-                                ctx.addError(loc, message);
+                                ctx.AddError(loc, message);
                             }
 
                             return Parser::make_INTEGER_LITERAL(value, loc);
@@ -208,7 +208,7 @@ with[^;]*               { return Parser::make_SQL_WITH(loc); }
 <<EOF>> { return Parser::make_EOF(loc); }
 .       {
             auto message = std::string("Invalid character \"") + yytext + std::string("\"");
-            ctx.addError(loc, message);
+            ctx.AddError(loc, message);
         }
 
 %%

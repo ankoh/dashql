@@ -191,9 +191,9 @@ parameter_declaration:
     ;
 
 identifier:
-    IDENTIFIER_LITERAL  { $$ = ctx.addString(@1); }
-  | STRING_LITERAL      { $$ = ctx.addString(@1); }
-  | PLACEHOLDER_LITERAL { $$ = ctx.addString(@1); }
+    IDENTIFIER_LITERAL  { $$ = ctx.AddString(@1); }
+  | STRING_LITERAL      { $$ = ctx.AddString(@1); }
+  | PLACEHOLDER_LITERAL { $$ = ctx.AddString(@1); }
     ;
 
 alias:
@@ -320,3 +320,6 @@ viz_type:
     ;
 
 %%
+void dashql::parser::Parser::error(const location_type& location, const std::string& message) {
+    ctx.AddError(location, message);
+}

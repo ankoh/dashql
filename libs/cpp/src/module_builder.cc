@@ -14,7 +14,7 @@ namespace dashql {
 namespace parser {
 
 /// Write as flatbuffer
-fb::Offset<proto::syntax::ModuleSections> SectionsBuilder::write(fb::FlatBufferBuilder& builder) {
+fb::Offset<proto::syntax::ModuleSections> SectionsBuilder::Write(fb::FlatBufferBuilder& builder) {
     optional<fb::Offset<fb::Vector<double>>> numbers;
     optional<fb::Offset<fb::Vector<const proto::syntax::Span*>>> number_arrays;
     optional<fb::Offset<fb::Vector<const proto::syntax::Attribute*>>> attributes;
@@ -46,11 +46,29 @@ fb::Offset<proto::syntax::ModuleSections> SectionsBuilder::write(fb::FlatBufferB
     return sectionsBuilder.Finish();
 }
 
+/// Constructor
+ModuleBuilder::ModuleBuilder()
+    : _sections(), _statements(), _errors() {}
+
+/// Add an error
+void ModuleBuilder::AddError(proto::syntax::Location loc, const std::string& message) {
+    _errors.push_back({loc, message});
+}
+
 /// Write the module
-fb::Offset<proto::syntax::Module> ModuleBuilder::write(fb::FlatBufferBuilder& builder) {
-    auto sec_ofs = _sections.write(builder);
+fb::Offset<proto::syntax::Module> ModuleBuilder::Write(fb::FlatBufferBuilder& builder) {
+    std::vector<fb::Offset<proto::syntax::Error>> errs;
+    for (auto [loc, msg]: _errors) {
+        auto s = builder.CreateString(msg.data(), msg.length());
+        proto::syntax::ErrorBuilder eb{builder};
+        eb.add_location(&loc);
+        eb.add_message(s);
+        errs.push_back(eb.Finish());
+    }
+
+    auto sec_ofs = _sections.Write(builder);
     auto stmt_vec = builder.CreateVector(_statements);
-    auto error_vec = builder.CreateVector(_errors);
+    auto error_vec = builder.CreateVector(errs);
     proto::syntax::ModuleBuilder moduleBuilder{builder};
     moduleBuilder.add_sections(sec_ofs);
     moduleBuilder.add_statements(stmt_vec);

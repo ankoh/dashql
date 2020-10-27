@@ -23,6 +23,11 @@ struct Location {
     size_t offset;
     size_t length;
 
+    /// Encode the location
+    auto encode() const {
+        return proto::syntax::Location(offset, length);
+    }
+    /// Return the location
     friend std::ostream& operator<<(std::ostream& out, const Location& loc) {
         out << "[" << loc.offset << "," << (loc.offset + loc.length) << "[";
         return out;
@@ -60,13 +65,11 @@ class ParseContext {
     auto& module() { return _module; }
 
     /// Add a string
-    inline auto addString(Location location) { return _module.sections().add(textAt(location)); }
-    /// Add a string
-    inline auto addString(std::string_view v) { return _module.sections().add(v); }
+    inline auto AddString(Location loc) { return _module.sections().Add(loc.encode(), textAt(loc)); }
     /// Add an error
-    void addError(Location location, std::string message);
+    inline auto AddError(Location loc, std::string message) { _module.AddError(loc.encode(), message); }
     /// Add a statement
-    void addStatement(uint32_t object);
+    void AddStatement(uint32_t object);
 
     /// Parse an istream
     ModuleBuilder Parse(std::string_view in);

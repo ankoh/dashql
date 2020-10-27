@@ -1,6 +1,5 @@
 #include <cstdint>
 
-#include "dashql/parser/codec.h"
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/proto/syntax_generated.h"
 #include "flatbuffers/flatbuffers.h"
@@ -32,7 +31,7 @@ void dashql_parse(Response* response, const char* text) {
 
     // Encode the flatbuffer
     flatbuffers::FlatBufferBuilder builder{text_view.size()};
-    builder.Finish(ast.write(builder));
+    builder.Finish(ast.Write(builder));
   
     // Pack the response
     size_t buffer_size;
