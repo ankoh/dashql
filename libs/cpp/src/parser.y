@@ -41,6 +41,8 @@ using Value = syntax::Value;
 using ValueType = syntax::ValueType;
 using ParamType = syntax::ParameterType;
 using LoadMethodType = syntax::LoadMethodType;
+using HTTPVerb = syntax::HTTPVerb;
+using VizType = syntax::VizType;
 
 }
 
@@ -162,7 +164,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <syntax::Value> csv_attribute;
 %type <syntax::Value> extract_method;
 %type <syntax::Value> http_attribute;
-%type <syntax::Value> http_method;
+%type <syntax::Value> http_verb;
 %type <syntax::Value> load_method;
 %type <syntax::Value> parameter_type;
 %type <std::optional<syntax::Value>> opt_alias;
@@ -247,14 +249,14 @@ http_attribute_list:
     ;
 
 http_attribute:
-    METHOD EQUAL http_method    { }
+    METHOD EQUAL http_verb      { }
   | URL EQUAL STRING_LITERAL    { }
     ;
 
-http_method:
-    GET     { }
-  | PUT     { }
-  | POST    { }
+http_verb:
+    GET     { $$ = Value(@$.encode(), ValueType::NUMBER, (int) HTTPVerb::GET); }
+  | PUT     { $$ = Value(@$.encode(), ValueType::NUMBER, (int) HTTPVerb::PUT); }
+  | POST    { $$ = Value(@$.encode(), ValueType::NUMBER, (int) HTTPVerb::POST); }
     ;
 
 variable:
@@ -325,19 +327,19 @@ viz_statement_prefix:
     ;
 
 viz_type:
-    AREA        { }
-  | BAR         { }
-  | BOX         { }
-  | BUBBLE      { }
-  | GRID        { }
-  | HISTOGRAM   { }
-  | LINE        { }
-  | NUMBER      { }
-  | PIE         { }
-  | POINT       { }
-  | SCATTER     { }
-  | TABLE       { }
-  | TEXT        { }
+    AREA        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::AREA); }
+  | BAR         { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::BAR); }
+  | BOX         { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::BOX); }
+  | BUBBLE      { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::BUBBLE); }
+  | GRID        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::GRID); }
+  | HISTOGRAM   { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::HISTOGRAM); }
+  | LINE        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::LINE); }
+  | NUMBER      { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::NUMBER); }
+  | PIE         { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::PIE); }
+  | POINT       { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::POINT); }
+  | SCATTER     { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::SCATTER); }
+  | TABLE       { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::TABLE); }
+  | TEXT        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::TEXT); }
     ;
 
 %%
