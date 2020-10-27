@@ -1,3 +1,3 @@
-import * as p from "./program_generated";
+import * as p from "./syntax_generated";
 
-export import program = p.dashql.proto.program;
+export import syntax = p.dashql.proto.syntax;

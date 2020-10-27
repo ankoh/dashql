@@ -3,15 +3,15 @@
 #ifndef INCLUDE_DASHQL_PARSER_CODEC_H_
 #define INCLUDE_DASHQL_PARSER_CODEC_H_
 
-#include "dashql/parser/proto/program_generated.h"
+#include "dashql/parser/proto/syntax_generated.h"
 #include "dashql/parser/syntax.h"
 #include "flatbuffers/flatbuffers.h"
 
 namespace dashql {
 namespace parser {
 
-flatbuffers::Offset<proto::program::Program> WriteProgram(flatbuffers::FlatBufferBuilder& builder,
-                                                          Program& program);
+flatbuffers::Offset<proto::syntax::Module> WriteProgram(flatbuffers::FlatBufferBuilder& builder,
+                                                        Program& program);
 
 } // namespace parser
 } // namespace dashql

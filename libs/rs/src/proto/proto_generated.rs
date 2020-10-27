@@ -25,7 +25,7 @@ pub mod proto {
   extern crate flatbuffers;
   use self::flatbuffers::EndianScalar;
 #[allow(unused_imports, dead_code)]
-pub mod program {
+pub mod syntax {
 
   use std::mem;
   use std::cmp::Ordering;
@@ -411,7 +411,7 @@ impl Position {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.Position"
+        "dashql.proto.syntax.Position"
     }
 
   pub fn line(&self) -> u32 {
@@ -476,7 +476,7 @@ impl Location {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.Location"
+        "dashql.proto.syntax.Location"
     }
 
   pub fn begin(&self) -> &Position {
@@ -543,7 +543,7 @@ impl SectionEntry {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.SectionEntry"
+        "dashql.proto.syntax.SectionEntry"
     }
 
   pub fn tag(&self) -> SectionTag {
@@ -616,7 +616,7 @@ impl ParameterDeclaration {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.ParameterDeclaration"
+        "dashql.proto.syntax.ParameterDeclaration"
     }
 
   pub fn location(&self) -> &Location {
@@ -692,7 +692,7 @@ impl QueryStatement {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.QueryStatement"
+        "dashql.proto.syntax.QueryStatement"
     }
 
   pub fn location(&self) -> &Location {
@@ -764,7 +764,7 @@ impl HTTPLoad {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.HTTPLoad"
+        "dashql.proto.syntax.HTTPLoad"
     }
 
   pub fn location(&self) -> &Location {
@@ -830,7 +830,7 @@ impl FileLoad {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.FileLoad"
+        "dashql.proto.syntax.FileLoad"
     }
 
   pub fn location(&self) -> &Location {
@@ -894,7 +894,7 @@ impl LoadStatement {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.LoadStatement"
+        "dashql.proto.syntax.LoadStatement"
     }
 
   pub fn location(&self) -> &Location {
@@ -960,7 +960,7 @@ impl JSONPathExtract {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.JSONPathExtract"
+        "dashql.proto.syntax.JSONPathExtract"
     }
 
   pub fn location(&self) -> &Location {
@@ -1020,7 +1020,7 @@ impl CSVExtract {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.CSVExtract"
+        "dashql.proto.syntax.CSVExtract"
     }
 
   pub fn location(&self) -> &Location {
@@ -1086,7 +1086,7 @@ impl ExtractStatement {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.ExtractStatement"
+        "dashql.proto.syntax.ExtractStatement"
     }
 
   pub fn location(&self) -> &Location {
@@ -1163,7 +1163,7 @@ impl VizStatement {
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.VizStatement"
+        "dashql.proto.syntax.VizStatement"
     }
 
   pub fn location(&self) -> &Location {
@@ -1197,7 +1197,7 @@ impl<'a> flatbuffers::Follow<'a> for Sections<'a> {
 
 impl<'a> Sections<'a> {
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.Sections"
+        "dashql.proto.syntax.Sections"
     }
 
     #[inline]
@@ -1371,7 +1371,7 @@ impl<'a> flatbuffers::Follow<'a> for Error<'a> {
 
 impl<'a> Error<'a> {
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.Error"
+        "dashql.proto.syntax.Error"
     }
 
     #[inline]
@@ -1444,37 +1444,37 @@ impl<'a: 'b, 'b> ErrorBuilder<'a, 'b> {
   }
 }
 
-pub enum ProgramOffset {}
+pub enum ModuleOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
-pub struct Program<'a> {
+pub struct Module<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for Program<'a> {
-    type Inner = Program<'a>;
+impl<'a> flatbuffers::Follow<'a> for Module<'a> {
+    type Inner = Module<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
         Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
-impl<'a> Program<'a> {
+impl<'a> Module<'a> {
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.program.Program"
+        "dashql.proto.syntax.Module"
     }
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        Program {
+        Module {
             _tab: table,
         }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        args: &'args ProgramArgs<'args>) -> flatbuffers::WIPOffset<Program<'bldr>> {
-      let mut builder = ProgramBuilder::new(_fbb);
+        args: &'args ModuleArgs<'args>) -> flatbuffers::WIPOffset<Module<'bldr>> {
+      let mut builder = ModuleBuilder::new(_fbb);
       if let Some(x) = args.errors { builder.add_errors(x); }
       if let Some(x) = args.sections { builder.add_sections(x); }
       if let Some(x) = args.statements { builder.add_statements(x); }
@@ -1487,66 +1487,66 @@ impl<'a> Program<'a> {
 
   #[inline]
   pub fn statements(&self) -> Option<&'a [SectionEntry]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<SectionEntry>>>(Program::VT_STATEMENTS, None).map(|v| v.safe_slice() )
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<SectionEntry>>>(Module::VT_STATEMENTS, None).map(|v| v.safe_slice() )
   }
   #[inline]
   pub fn sections(&self) -> Option<Sections<'a>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<Sections<'a>>>(Program::VT_SECTIONS, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<Sections<'a>>>(Module::VT_SECTIONS, None)
   }
   #[inline]
   pub fn errors(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<Error<'a>>>>>(Program::VT_ERRORS, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<Error<'a>>>>>(Module::VT_ERRORS, None)
   }
 }
 
-pub struct ProgramArgs<'a> {
+pub struct ModuleArgs<'a> {
     pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, SectionEntry>>>,
     pub sections: Option<flatbuffers::WIPOffset<Sections<'a>>>,
     pub errors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>>>,
 }
-impl<'a> Default for ProgramArgs<'a> {
+impl<'a> Default for ModuleArgs<'a> {
     #[inline]
     fn default() -> Self {
-        ProgramArgs {
+        ModuleArgs {
             statements: None,
             sections: None,
             errors: None,
         }
     }
 }
-pub struct ProgramBuilder<'a: 'b, 'b> {
+pub struct ModuleBuilder<'a: 'b, 'b> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> ProgramBuilder<'a, 'b> {
+impl<'a: 'b, 'b> ModuleBuilder<'a, 'b> {
   #[inline]
   pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , SectionEntry>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Program::VT_STATEMENTS, statements);
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_STATEMENTS, statements);
   }
   #[inline]
   pub fn add_sections(&mut self, sections: flatbuffers::WIPOffset<Sections<'b >>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Sections>>(Program::VT_SECTIONS, sections);
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Sections>>(Module::VT_SECTIONS, sections);
   }
   #[inline]
   pub fn add_errors(&mut self, errors: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Error<'b >>>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Program::VT_ERRORS, errors);
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_ERRORS, errors);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ProgramBuilder<'a, 'b> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ModuleBuilder<'a, 'b> {
     let start = _fbb.start_table();
-    ProgramBuilder {
+    ModuleBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<Program<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<Module<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-}  // pub mod program
+}  // pub mod syntax
 }  // pub mod proto
 }  // pub mod dashql
 

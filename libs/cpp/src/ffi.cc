@@ -2,7 +2,7 @@
 
 #include "dashql/parser/codec.h"
 #include "dashql/parser/parse_context.h"
-#include "dashql/parser/proto/program_generated.h"
+#include "dashql/parser/proto/syntax_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
 using namespace dashql::parser;

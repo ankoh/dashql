@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace dashql.proto.program;
+namespace dashql.proto.syntax;
 
 struct Position { line: uint32; column: uint32; }
 struct Location { begin: Position; end: Position; }
@@ -97,7 +97,7 @@ table Error {
     message: string;
 }
 
-table Program {
+table Module {
     statements: [SectionEntry];
     sections: Sections;
     errors: [Error];
