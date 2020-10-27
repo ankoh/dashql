@@ -15,8 +15,8 @@
 %locations
 %define api.location.type {Location}
 
-%lex-param { dashql::parser::ParseContext& ctx }
-%parse-param { dashql::parser::ParseContext &ctx }
+%lex-param      { dashql::parser::ParseContext& ctx }
+%parse-param    { dashql::parser::ParseContext &ctx }
 
 %code requires {
 #include <string>
@@ -40,6 +40,7 @@ using AttrKey = syntax::AttributeKey;
 using Value = syntax::Value;
 using ValueType = syntax::ValueType;
 using ParamType = syntax::ParameterType;
+using LoadMethodType = syntax::LoadMethodType;
 
 }
 
@@ -160,7 +161,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <syntax::Value> boolean;
 %type <syntax::Value> csv_attribute;
 %type <syntax::Value> extract_method;
-%type <syntax::Value> load_method_http_attribute;
+%type <syntax::Value> http_attribute;
 %type <syntax::Value> http_method;
 %type <syntax::Value> load_method;
 %type <syntax::Value> parameter_type;
@@ -168,7 +169,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <std::optional<syntax::Value>> csv_header_value;
 %type <std::vector<syntax::Attribute>> csv_attributes;
 %type <std::vector<syntax::Attribute>> csv_attribute_list;
-%type <std::vector<syntax::Attribute>> load_method_http_attribute_list;
+%type <std::vector<syntax::Attribute>> http_attribute_list;
 %type <std::vector<syntax::Value>> string_list;
 %type <syntax::Value> identifier;
 %type <syntax::Value> sql_literal;
@@ -225,20 +226,27 @@ parameter_type:
     ;
 
 load_statement:
-    LOAD identifier FROM load_method    { }
+    LOAD identifier FROM load_method load_attributes {
+    // XXX
+    }
     ;
 
 load_method:
-    HTTP LEFT_ROUND_BRACKETS load_method_http_attribute_list RIGHT_ROUND_BRACKETS   { }
-  | FILE variable                                                                   { }
+    HTTP    { $$ = Value(@$.encode(), ValueType::NUMBER, (int) LoadMethodType::HTTP); }
+  | FILE    { $$ = Value(@$.encode(), ValueType::NUMBER, (int) LoadMethodType::FILE); }
     ;
 
-load_method_http_attribute_list:
-    load_method_http_attribute_list COMMA load_method_http_attribute    { }
-  | load_method_http_attribute                                          { }
+load_attributes:
+    HTTP LEFT_ROUND_BRACKETS http_attribute_list RIGHT_ROUND_BRACKETS   { }
+  | FILE variable                                                       { }
     ;
 
-load_method_http_attribute:
+http_attribute_list:
+    http_attribute_list COMMA http_attribute    { }
+  | http_attribute                              { }
+    ;
+
+http_attribute:
     METHOD EQUAL http_method    { }
   | URL EQUAL STRING_LITERAL    { }
     ;

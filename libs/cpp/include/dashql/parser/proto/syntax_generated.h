@@ -302,6 +302,39 @@ inline const char *EnumNameParameterType(ParameterType e) {
   return EnumNamesParameterType()[index];
 }
 
+enum class LoadMethodType : uint8_t {
+  NONE = 0,
+  HTTP = 1,
+  FILE = 2,
+  MIN = NONE,
+  MAX = FILE
+};
+
+inline const LoadMethodType (&EnumValuesLoadMethodType())[3] {
+  static const LoadMethodType values[] = {
+    LoadMethodType::NONE,
+    LoadMethodType::HTTP,
+    LoadMethodType::FILE
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesLoadMethodType() {
+  static const char * const names[4] = {
+    "NONE",
+    "HTTP",
+    "FILE",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameLoadMethodType(LoadMethodType e) {
+  if (flatbuffers::IsOutRange(e, LoadMethodType::NONE, LoadMethodType::FILE)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesLoadMethodType()[index];
+}
+
 enum class HTTPVerb : uint8_t {
   NONE = 0,
   GET = 1,
@@ -1264,6 +1297,26 @@ inline const flatbuffers::TypeTable *ParameterTypeTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 8, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *LoadMethodTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax::LoadMethodTypeTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "HTTP",
+    "FILE"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

@@ -101,6 +101,12 @@ enum ParameterType: uint8 {
     FILE = 7,
 }
 
+enum LoadMethodType: uint8 {
+    NONE = 0,
+    HTTP = 1,
+    FILE = 2
+}
+
 enum HTTPVerb: uint8 {
     NONE = 0,
     GET = 1,

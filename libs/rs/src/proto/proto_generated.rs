@@ -393,6 +393,69 @@ pub fn enum_name_parameter_type(e: ParameterType) -> &'static str {
 #[allow(non_camel_case_types)]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum LoadMethodType {
+  NONE = 0,
+  HTTP = 1,
+  FILE = 2,
+
+}
+
+pub const ENUM_MIN_LOAD_METHOD_TYPE: u8 = 0;
+pub const ENUM_MAX_LOAD_METHOD_TYPE: u8 = 2;
+
+impl<'a> flatbuffers::Follow<'a> for LoadMethodType {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::read_scalar_at::<Self>(buf, loc)
+  }
+}
+
+impl flatbuffers::EndianScalar for LoadMethodType {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let n = u8::to_le(self as u8);
+    let p = &n as *const u8 as *const LoadMethodType;
+    unsafe { *p }
+  }
+  #[inline]
+  fn from_little_endian(self) -> Self {
+    let n = u8::from_le(self as u8);
+    let p = &n as *const u8 as *const LoadMethodType;
+    unsafe { *p }
+  }
+}
+
+impl flatbuffers::Push for LoadMethodType {
+    type Output = LoadMethodType;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        flatbuffers::emplace_scalar::<LoadMethodType>(dst, *self);
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_LOAD_METHOD_TYPE: [LoadMethodType; 3] = [
+  LoadMethodType::NONE,
+  LoadMethodType::HTTP,
+  LoadMethodType::FILE
+];
+
+#[allow(non_camel_case_types)]
+pub const ENUM_NAMES_LOAD_METHOD_TYPE: [&str; 3] = [
+    "NONE",
+    "HTTP",
+    "FILE"
+];
+
+pub fn enum_name_load_method_type(e: LoadMethodType) -> &'static str {
+  let index = e as u8;
+  ENUM_NAMES_LOAD_METHOD_TYPE[index as usize]
+}
+
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum HTTPVerb {
   NONE = 0,
   GET = 1,

@@ -85,6 +85,17 @@ export enum ParameterType{
  * @enum {number}
  */
 export namespace dashql.proto.syntax{
+export enum LoadMethodType{
+  NONE= 0,
+  HTTP= 1,
+  FILE= 2
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax{
 export enum HTTPVerb{
   NONE= 0,
   GET= 1,
