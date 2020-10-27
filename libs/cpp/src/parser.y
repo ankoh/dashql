@@ -170,8 +170,8 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <syntax::Value> parameter_type;
 %type <syntax::Value> string_value;
 %type <std::optional<syntax::Value>> opt_alias;
-%type <std::vector<syntax::Attribute>> csv_attributes;
 %type <std::vector<syntax::Attribute>> csv_attribute_list;
+%type <std::vector<syntax::Attribute>> opt_csv_attribute_list;
 %type <std::vector<syntax::Attribute>> http_attribute_list;
 %type <std::vector<syntax::Value>> string_list;
 %type <syntax::Value> identifier;
@@ -272,18 +272,18 @@ extract_statement:
     ;
 
 extract_method:
-    CSV csv_attributes                              { }
+    CSV opt_csv_attribute_list                 { }
   | JSON LEFT_ROUND_BRACKETS RIGHT_ROUND_BRACKETS   { }
     ;
 
-csv_attributes:
-    %empty                                                      { }
-  | LEFT_ROUND_BRACKETS csv_attribute_list RIGHT_ROUND_BRACKETS { }
+opt_csv_attribute_list:
+    LEFT_ROUND_BRACKETS csv_attribute_list RIGHT_ROUND_BRACKETS { $$ = move($2); }
+ |  %empty                                                      { $$ = std::vector<Attr>(); }
     ;
 
 csv_attribute_list:
-    csv_attribute_list COMMA csv_attribute  { }
-  | csv_attribute                           { }
+    csv_attribute_list COMMA csv_attribute  { $1.push_back($3); $$ = move($1); }
+  | csv_attribute                           { $$ = std::vector<Attr>{ $1 }; }
     ;
 
 csv_attribute:
