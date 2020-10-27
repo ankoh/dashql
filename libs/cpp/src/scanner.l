@@ -184,10 +184,7 @@ select[^;]*             { return Parser::make_SQL_SELECT(loc); }
 with[^;]*               { return Parser::make_SQL_WITH(loc); }
 [a-z][a-z0-9_]*         { return Parser::make_IDENTIFIER_LITERAL(loc); }
 [<][a-z][a-z0-9_]*[>]   { return Parser::make_PLACEHOLDER_LITERAL(loc); }
-['"][^'"]*['"]          {
-                            auto text = tokenText();
-                            return Parser::make_STRING_LITERAL(text.substr(1, text.size() - 2), loc);
-                        }
+['"][^'"]*['"]          { return Parser::make_STRING_LITERAL(loc); }
 [0-9]+                  {
                             int64_t value = 0;
 

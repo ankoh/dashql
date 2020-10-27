@@ -36,6 +36,7 @@
 
 namespace syntax = dashql::proto::syntax;
 
+using Attr = syntax::Attribute;
 using AttrKey = syntax::AttributeKey;
 using Value = syntax::Value;
 using ValueType = syntax::ValueType;
@@ -59,8 +60,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %token PLACEHOLDER_LITERAL  "placeholder literal"
 %token SQL_SELECT           "SQL select query"
 %token SQL_WITH             "SQL with clause"
-
-%token <std::string_view>   STRING_LITERAL "string literal"
+%token STRING_LITERAL       "string literal"
 
 %token COMMA                    ", token"
 %token DOLLAR                   "$ token"
@@ -160,15 +160,16 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <syntax::Object> viz_statement;
 %type <syntax::Object> load_statement;
 
+%type <syntax::Attribute> csv_attribute;
 %type <syntax::Value> boolean;
-%type <syntax::Value> csv_attribute;
+%type <syntax::Value> csv_header_value;
 %type <syntax::Value> extract_method;
 %type <syntax::Value> http_attribute;
 %type <syntax::Value> http_verb;
 %type <syntax::Value> load_method;
 %type <syntax::Value> parameter_type;
+%type <syntax::Value> string_value;
 %type <std::optional<syntax::Value>> opt_alias;
-%type <std::optional<syntax::Value>> csv_header_value;
 %type <std::vector<syntax::Attribute>> csv_attributes;
 %type <std::vector<syntax::Attribute>> csv_attribute_list;
 %type <std::vector<syntax::Attribute>> http_attribute_list;
@@ -210,6 +211,10 @@ identifier:
     IDENTIFIER_LITERAL  { $$ = ctx.AddString(@1); }
   | STRING_LITERAL      { $$ = ctx.AddString(@1); }
   | PLACEHOLDER_LITERAL { $$ = ctx.AddString(@1); }
+    ;
+
+string_value:
+    STRING_LITERAL { $$ = Value(@1.encode(), ValueType::STRING, 0); }
     ;
 
 opt_alias:
@@ -282,12 +287,12 @@ csv_attribute_list:
     ;
 
 csv_attribute:
-    ENCODING EQUAL STRING_LITERAL           { }
-  | HEADER EQUAL csv_header_value           { }
-  | DELIMITER EQUAL STRING_LITERAL          { }
-  | QUOTE EQUAL STRING_LITERAL              { }
-  | DATE FORMAT EQUAL STRING_LITERAL        { }
-  | TIMESTAMP FORMAT EQUAL STRING_LITERAL   { }
+    ENCODING EQUAL string_value             { $$ = Attr(@$.encode(), AttrKey::CSV_EXTRACT_ENCODING, $3); }
+  | HEADER EQUAL csv_header_value           { $$ = Attr(@$.encode(), AttrKey::CSV_EXTRACT_HEADER, $3); }
+  | DELIMITER EQUAL string_value            { $$ = Attr(@$.encode(), AttrKey::CSV_EXTRACT_DELIMITER, $3); }
+  | QUOTE EQUAL string_value                { $$ = Attr(@$.encode(), AttrKey::CSV_EXTRACT_QUOTE, $3); }
+  | DATE FORMAT EQUAL string_value          { $$ = Attr(@$.encode(), AttrKey::CSV_EXTRACT_DATE_FORMAT, $4); }
+  | TIMESTAMP FORMAT EQUAL string_value     { $$ = Attr(@$.encode(), AttrKey::CSV_EXTRACT_TIMESTAMP_FORMAT, $4); }
     ;
 
 csv_header_value:
