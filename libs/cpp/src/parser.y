@@ -162,10 +162,10 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <syntax::Object> load_statement;
 
 %type <syntax::Attribute> csv_attribute;
+%type <syntax::Attribute> http_attribute;
 %type <syntax::Value> boolean;
 %type <syntax::Value> csv_header_value;
 %type <syntax::Value> extract_method;
-%type <syntax::Attribute> http_attribute;
 %type <syntax::Value> http_verb;
 %type <syntax::Value> parameter_type;
 %type <syntax::Value> string_value;
@@ -249,8 +249,8 @@ http_attribute_list:
     ;
 
 http_attribute:
-    METHOD EQUAL http_verb      { }
-  | URL EQUAL STRING_LITERAL    { }
+    METHOD EQUAL http_verb  { $$ = Attr(@$.encode(), AttrKey::HTTP_LOAD_VERB, $3); }
+  | URL EQUAL string_value  { $$ = Attr(@$.encode(), AttrKey::HTTP_LOAD_URL, $3); }
     ;
 
 http_verb:
