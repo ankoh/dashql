@@ -116,30 +116,31 @@ pub enum AttributeKey {
   PARAMETER_IDENTIFIER = 1,
   PARAMETER_ALIAS = 2,
   PARAMETER_TYPE = 3,
-  FILE_LOAD_NAME = 4,
-  HTTP_LOAD_NAME = 5,
-  HTTP_LOAD_VERB = 6,
-  HTTP_LOAD_URL = 7,
-  HTTP_LOAD_HEADER = 8,
-  EXTRACT_STATEMENT_NAME = 9,
-  EXTRACT_STATEMENT_DATA = 10,
-  EXTRACT_STATEMENT_METHOD = 11,
-  CSV_EXTRACT_ENCODING = 12,
-  CSV_EXTRACT_HEADER = 13,
-  CSV_EXTRACT_DELIMITER = 14,
-  CSV_EXTRACT_QUOTE = 15,
-  CSV_EXTRACT_DATE_FORMAT = 16,
-  CSV_EXTRACT_TIMESTAMP_FORMAT = 17,
-  QUERY_STATEMENT_NAME = 18,
-  QUERY_STATEMENT_TEXT = 19,
-  VIZ_STATEMENT_TAG = 20,
-  VIZ_STATEMENT_NAME = 21,
-  VIZ_STATEMENT_QUERY = 22,
+  LOAD_NAME = 4,
+  FILE_LABEL = 5,
+  HTTP_LOAD_NAME = 6,
+  HTTP_LOAD_VERB = 7,
+  HTTP_LOAD_URL = 8,
+  HTTP_LOAD_HEADER = 9,
+  EXTRACT_STATEMENT_NAME = 10,
+  EXTRACT_STATEMENT_DATA = 11,
+  EXTRACT_STATEMENT_METHOD = 12,
+  CSV_EXTRACT_ENCODING = 13,
+  CSV_EXTRACT_HEADER = 14,
+  CSV_EXTRACT_DELIMITER = 15,
+  CSV_EXTRACT_QUOTE = 16,
+  CSV_EXTRACT_DATE_FORMAT = 17,
+  CSV_EXTRACT_TIMESTAMP_FORMAT = 18,
+  QUERY_STATEMENT_NAME = 19,
+  QUERY_STATEMENT_TEXT = 20,
+  VIZ_STATEMENT_TAG = 21,
+  VIZ_STATEMENT_NAME = 22,
+  VIZ_STATEMENT_QUERY = 23,
 
 }
 
 pub const ENUM_MIN_ATTRIBUTE_KEY: u8 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 22;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 23;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -173,12 +174,13 @@ impl flatbuffers::Push for AttributeKey {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 23] = [
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 24] = [
   AttributeKey::NONE,
   AttributeKey::PARAMETER_IDENTIFIER,
   AttributeKey::PARAMETER_ALIAS,
   AttributeKey::PARAMETER_TYPE,
-  AttributeKey::FILE_LOAD_NAME,
+  AttributeKey::LOAD_NAME,
+  AttributeKey::FILE_LABEL,
   AttributeKey::HTTP_LOAD_NAME,
   AttributeKey::HTTP_LOAD_VERB,
   AttributeKey::HTTP_LOAD_URL,
@@ -200,12 +202,13 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 23] = [
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 23] = [
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 24] = [
     "NONE",
     "PARAMETER_IDENTIFIER",
     "PARAMETER_ALIAS",
     "PARAMETER_TYPE",
-    "FILE_LOAD_NAME",
+    "LOAD_NAME",
+    "FILE_LABEL",
     "HTTP_LOAD_NAME",
     "HTTP_LOAD_VERB",
     "HTTP_LOAD_URL",
@@ -236,19 +239,16 @@ pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum ObjectType {
   NONE = 0,
-  HTTP_LOAD = 1,
-  FILE_LOAD = 2,
-  PARAMETER_DECLARATION = 3,
-  JSONPATH_EXTRACT = 4,
-  CSV_EXTRACT = 5,
-  EXTRACT_STATEMENT = 6,
-  QUERY_STATEMENT = 7,
-  VIZ_STATEMENT = 8,
+  LOAD_STATEMENT = 1,
+  PARAMETER_DECLARATION = 2,
+  EXTRACT_STATEMENT = 3,
+  QUERY_STATEMENT = 4,
+  VIZ_STATEMENT = 5,
 
 }
 
 pub const ENUM_MIN_OBJECT_TYPE: u8 = 0;
-pub const ENUM_MAX_OBJECT_TYPE: u8 = 8;
+pub const ENUM_MAX_OBJECT_TYPE: u8 = 5;
 
 impl<'a> flatbuffers::Follow<'a> for ObjectType {
   type Inner = Self;
@@ -282,26 +282,20 @@ impl flatbuffers::Push for ObjectType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 9] = [
+pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 6] = [
   ObjectType::NONE,
-  ObjectType::HTTP_LOAD,
-  ObjectType::FILE_LOAD,
+  ObjectType::LOAD_STATEMENT,
   ObjectType::PARAMETER_DECLARATION,
-  ObjectType::JSONPATH_EXTRACT,
-  ObjectType::CSV_EXTRACT,
   ObjectType::EXTRACT_STATEMENT,
   ObjectType::QUERY_STATEMENT,
   ObjectType::VIZ_STATEMENT
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_OBJECT_TYPE: [&str; 9] = [
+pub const ENUM_NAMES_OBJECT_TYPE: [&str; 6] = [
     "NONE",
-    "HTTP_LOAD",
-    "FILE_LOAD",
+    "LOAD_STATEMENT",
     "PARAMETER_DECLARATION",
-    "JSONPATH_EXTRACT",
-    "CSV_EXTRACT",
     "EXTRACT_STATEMENT",
     "QUERY_STATEMENT",
     "VIZ_STATEMENT"

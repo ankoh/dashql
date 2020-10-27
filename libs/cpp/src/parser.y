@@ -234,13 +234,14 @@ parameter_type:
 
 load_statement:
     LOAD identifier FROM load_attributes {
-    // XXX
+        $4.push_back(Attr(@2.encode(), AttrKey::LOAD_NAME, $2));
+        $$ = ctx.AddObject(@$, syntax::ObjectType::LOAD_STATEMENT, $4);
     }
     ;
 
 load_attributes:
-    HTTP LRB http_attribute_list RRB   { $$ = move($3); }
-  | FILE string_value                                                   { }
+    HTTP LRB http_attribute_list RRB    { $$ = move($3); }
+  | FILE string_value                   { $$ = std::vector<Attr>{ Attr(@$.encode(), AttrKey::FILE_LABEL, $2) };  }
     ;
 
 http_attribute_list:
