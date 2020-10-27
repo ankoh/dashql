@@ -51,7 +51,7 @@ class NavigationBar extends React.Component<NavigationBarProps> {
         return (
             <div className={styles.navbar}>
                 <div className={styles.banner}>
-                    <DashQLLogo width="28px" height="28px" />
+                    <DashQLLogo width="26px" height="26px" />
                 </div>
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
