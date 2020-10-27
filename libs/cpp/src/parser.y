@@ -161,22 +161,22 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <syntax::Object> viz_statement;
 %type <syntax::Object> load_statement;
 
-%type <syntax::Attribute> csv_attribute;
-%type <syntax::Attribute> http_attribute;
-%type <syntax::Value> boolean;
-%type <syntax::Value> csv_header_value;
-%type <syntax::Value> extract_method;
-%type <syntax::Value> http_verb;
-%type <syntax::Value> parameter_type;
-%type <syntax::Value> string_value;
 %type <std::optional<syntax::Value>> opt_alias;
 %type <std::vector<syntax::Attribute>> csv_attribute_list;
+%type <std::vector<syntax::Attribute>> extract_method;
 %type <std::vector<syntax::Attribute>> http_attribute_list;
 %type <std::vector<syntax::Attribute>> load_attributes;
 %type <std::vector<syntax::Attribute>> opt_csv_attribute_list;
 %type <std::vector<syntax::Value>> string_list;
+%type <syntax::Attribute> csv_attribute;
+%type <syntax::Attribute> http_attribute;
+%type <syntax::Value> boolean;
+%type <syntax::Value> csv_header_value;
+%type <syntax::Value> http_verb;
 %type <syntax::Value> identifier;
+%type <syntax::Value> parameter_type;
 %type <syntax::Value> sql_literal;
+%type <syntax::Value> string_value;
 %type <syntax::Value> viz_type;
 
 %%
@@ -235,7 +235,7 @@ parameter_type:
 load_statement:
     LOAD identifier FROM load_attributes {
         $4.push_back(Attr(@2.encode(), AttrKey::LOAD_NAME, $2));
-        $$ = ctx.AddObject(@$, syntax::ObjectType::LOAD_STATEMENT, $4);
+        $$ = ctx.AddObject(@$, syntax::ObjectType::LOAD_STATEMENT, move($4));
     }
     ;
 
@@ -261,17 +261,21 @@ http_verb:
     ;
 
 extract_statement:
-    EXTRACT identifier FROM identifier USING extract_method { }
+    EXTRACT identifier FROM identifier USING extract_method {
+        $6.push_back(Attr(@2.encode(), AttrKey::EXTRACT_STATEMENT_NAME, $2));
+        $6.push_back(Attr(@4.encode(), AttrKey::EXTRACT_STATEMENT_DATA, $4));
+        $$ = ctx.AddObject(@$, syntax::ObjectType::EXTRACT_STATEMENT, move($6));
+    }
     ;
 
 extract_method:
-    CSV opt_csv_attribute_list                 { }
-  | JSON LRB RRB   { }
+    CSV opt_csv_attribute_list  { }
+  | JSON LRB RRB                { }
     ;
 
 opt_csv_attribute_list:
-    LRB csv_attribute_list RRB { $$ = move($2); }
- |  %empty                                                      { $$ = std::vector<Attr>(); }
+    LRB csv_attribute_list RRB  { $$ = move($2); }
+ |  %empty                      { $$ = std::vector<Attr>(); }
     ;
 
 csv_attribute_list:
