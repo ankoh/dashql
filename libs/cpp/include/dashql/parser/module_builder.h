@@ -103,6 +103,14 @@ class SectionsBuilder {
         return syntax::Span(begin, _attributes.size() - begin);
     }
 
+    /// Add node attributes
+    syntax::Span AddAttributes(const std::vector<syntax::Attribute>& attrs) {
+        size_t begin = _attributes.size();
+        for (auto& attr: attrs)
+            _attributes.push_back(attr);
+        return syntax::Span(begin, _attributes.size() - begin);
+    }
+
     /// Write as flatbuffer
     flatbuffers::Offset<syntax::ModuleSections> Write(flatbuffers::FlatBufferBuilder& builder);
 };
@@ -133,7 +141,10 @@ class ModuleBuilder {
     syntax::Object AddObject(syntax::Location loc, syntax::ObjectType type, std::initializer_list<OptionalAttribute> attrs) {
         return syntax::Object(loc, type, _sections.AddAttributes(attrs));
     }
-
+    /// Start an object
+    syntax::Object AddObject(syntax::Location loc, syntax::ObjectType type, const std::vector<syntax::Attribute>& attrs) {
+        return syntax::Object(loc, type, _sections.AddAttributes(attrs));
+    }
     /// Write as flatbuffer
     flatbuffers::Offset<syntax::Module> Write(flatbuffers::FlatBufferBuilder& builder);
 };

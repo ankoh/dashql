@@ -66,10 +66,10 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %token COMMA                    ", token"
 %token DOLLAR                   "$ token"
 %token EQUAL                    "= token"
-%token LEFT_ROUND_BRACKETS      "( token"
-%token LEFT_SQUARE_BRACKETS     "[ token"
-%token RIGHT_ROUND_BRACKETS     ") token"
-%token RIGHT_SQUARE_BRACKETS    "] token"
+%token LRB                      "( token"
+%token LSB                      "[ token"
+%token RRB                      ") token"
+%token RSB                      "] token"
 %token SEMICOLON                "; token"
 %token SLASH                    "/ token"
 %token STAR                     "* token"
@@ -171,12 +171,12 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <syntax::Value> string_value;
 %type <std::optional<syntax::Value>> opt_alias;
 %type <std::vector<syntax::Attribute>> csv_attribute_list;
-%type <std::vector<syntax::Attribute>> opt_csv_attribute_list;
 %type <std::vector<syntax::Attribute>> http_attribute_list;
+%type <std::vector<syntax::Attribute>> load_attributes;
+%type <std::vector<syntax::Attribute>> opt_csv_attribute_list;
 %type <std::vector<syntax::Value>> string_list;
 %type <syntax::Value> identifier;
 %type <syntax::Value> sql_literal;
-%type <syntax::Value> variable;
 %type <syntax::Value> viz_type;
 
 %%
@@ -239,8 +239,8 @@ load_statement:
     ;
 
 load_attributes:
-    HTTP LEFT_ROUND_BRACKETS http_attribute_list RIGHT_ROUND_BRACKETS   { }
-  | FILE variable                                                       { }
+    HTTP LRB http_attribute_list RRB   { $$ = move($3); }
+  | FILE string_value                                                   { }
     ;
 
 http_attribute_list:
@@ -259,20 +259,17 @@ http_verb:
   | POST    { $$ = Value(@$.encode(), ValueType::NUMBER, (int) HTTPVerb::POST); }
     ;
 
-variable:
-    DOLLAR identifier   { }
-
 extract_statement:
     EXTRACT identifier FROM identifier USING extract_method { }
     ;
 
 extract_method:
     CSV opt_csv_attribute_list                 { }
-  | JSON LEFT_ROUND_BRACKETS RIGHT_ROUND_BRACKETS   { }
+  | JSON LRB RRB   { }
     ;
 
 opt_csv_attribute_list:
-    LEFT_ROUND_BRACKETS csv_attribute_list RIGHT_ROUND_BRACKETS { $$ = move($2); }
+    LRB csv_attribute_list RRB { $$ = move($2); }
  |  %empty                                                      { $$ = std::vector<Attr>(); }
     ;
 
@@ -292,7 +289,7 @@ csv_attribute:
 
 csv_header_value:
     boolean                                                 { }
-  | LEFT_ROUND_BRACKETS string_list RIGHT_ROUND_BRACKETS    { }
+  | LRB string_list RRB    { }
 
 boolean:
     TRUE    { }

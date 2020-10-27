@@ -76,7 +76,10 @@ class ParseContext {
     auto AddObject(Location loc, proto::syntax::ObjectType type, std::initializer_list<OptionalAttribute> attrs) {
         return _module.AddObject(loc.encode(), type, attrs);
     }
-
+    /// Add an object
+    auto AddObject(Location loc, proto::syntax::ObjectType type, const std::vector<proto::syntax::Attribute>& attrs) {
+        return _module.AddObject(loc.encode(), type, attrs);
+    }
     /// Parse an istream
     ModuleBuilder Parse(std::string_view in);
 };
