@@ -32,7 +32,7 @@ void dashql_parse(Response* response, const char* text) {
 
     // Encode the flatbuffer
     flatbuffers::FlatBufferBuilder builder{text_view.size()};
-    builder.Finish(WriteProgram(builder, ast));
+    builder.Finish(ast.write(builder));
   
     // Pack the response
     size_t buffer_size;

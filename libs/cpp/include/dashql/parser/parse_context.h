@@ -12,10 +12,22 @@
 #include <utility>
 #include <variant>
 #include <vector>
-#include "dashql/parser/syntax.h"
+#include <iostream>
+#include "dashql/parser/module_builder.h"
 
 namespace dashql {
 namespace parser {
+
+// The location type
+struct Location {
+    size_t offset;
+    size_t length;
+
+    friend std::ostream& operator<<(std::ostream& out, const Location& loc) {
+        out << "[" << loc.offset << "," << (loc.offset + loc.length) << "[";
+        return out;
+    }
+};
 
 // Schema parse context
 class ParseContext {
@@ -27,14 +39,16 @@ class ParseContext {
     /// Trace the parsing
     bool _trace_parsing;
     /// The statements
-    std::vector<Statement> _statements;
-    /// The errors
-    std::vector<Error> _errors;
+    ModuleBuilder _module;
+    /// The input (if any)
+    std::string_view _input;
 
     /// Begin a scan
     void beginScan(std::string_view in);
     /// End a scan
     void endScan();
+    /// Get the text at location
+    inline std::string_view textAt(Location loc) { return _input.substr(loc.offset, loc.length); }
 
     public:
     /// Constructor
@@ -42,12 +56,20 @@ class ParseContext {
     /// Destructor
     virtual ~ParseContext();
 
+    /// Return the module
+    auto& module() { return _module; }
+
+    /// Add a string
+    inline auto addString(Location location) { return _module.sections().add(textAt(location)); }
+    /// Add a string
+    inline auto addString(std::string_view v) { return _module.sections().add(v); }
+    /// Add an error
+    void addError(Location location, std::string message);
+    /// Add a statement
+    void addStatement(uint32_t object);
+
     /// Parse an istream
-    Program Parse(std::string_view in);
-    /// Throw an error
-    void RaiseError(Location location, const std::string& message);
-    /// Define a statement
-    void DefineStatement(Statement statement, Location location);
+    ModuleBuilder Parse(std::string_view in);
 };
 
 } // namespace parser

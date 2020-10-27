@@ -2,28 +2,91 @@
 
 namespace dashql.proto.syntax;
 
-struct Position { line: uint32; column: uint32; }
-struct Location { begin: Position; end: Position; }
+struct Location { offset: uint32; length: uint32; }
+struct Span { offset: uint32; length: uint32; }
 
-enum SectionTag: uint8 {
+enum ValueType: uint8 {
     NONE,
-    I64Literal,
-    F64Literal,
-    StringLiteral,
-    JSONPathExtract,
-    CSVExtract,
-    ParameterDeclaration,
-    VizStatement,
-    HTTPLoad,
-    FileLoad,
+    NUMBER,
+    NUMBER_ARRAY,
+    STRING,
+    STRING_ARRAY,
+    OBJECT,
+    OBJECT_ARRAY,
 }
 
-struct SectionEntry {
-    tag: SectionTag;
-    index: uint32;
+struct Value {
+    location: Location;
+    type: ValueType;
+    value: double;
 }
 
-enum ParameterTag: uint8 {
+enum AttributeKey: uint8 {
+    NONE = 0,
+    FILE_LOAD_NAME,
+    HTTP_LOAD_NAME,
+    HTTP_LOAD_VERB,
+    HTTP_LOAD_URL,
+    HTTP_LOAD_HEADER,
+    EXTRACT_STATEMENT_NAME,
+    EXTRACT_STATEMENT_DATA,
+    EXTRACT_STATEMENT_METHOD,
+    CSV_EXTRACT_ENCODING,
+    CSV_EXTRACT_HEADER,
+    CSV_EXTRACT_DELIMITER,
+    CSV_EXTRACT_QUOTE,
+    CSV_EXTRACT_DATE_FORMAT,
+    CSV_EXTRACT_TIMESTAMP_FORMAT,
+    QUERY_STATEMENT_NAME,
+    QUERY_STATEMENT_TEXT,
+    VIZ_STATEMENT_TAG,
+    VIZ_STATEMENT_NAME,
+    VIZ_STATEMENT_QUERY,
+}
+
+struct Attribute {
+    location: Location;
+    key: AttributeKey;
+    value: Value;
+}
+
+enum ObjectType: uint8 {
+    NONE = 0,
+    HTTP_LOAD,
+    FILE_LOAD,
+    JSONPATH_EXTRACT,
+    CSV_EXTRACT,
+    EXTRACT_STATEMENT,
+    QUERY_STATEMENT,
+    VIZ_STATEMENT,
+}
+
+struct Object {
+    location: Location;
+    type: ObjectType;
+    attributes: Span;
+}
+
+table Error {
+    location: Location;
+    message: string;
+}
+
+table ModuleSections {
+    numbers: [double];
+    number_arrays: [Span];
+    attributes: [Attribute];
+    objects: [Object];
+    object_arrays: [Span];
+}
+
+table Module {
+    sections: ModuleSections;
+    statements: [uint32];
+    errors: [Error];
+}
+
+enum ParameterType: uint8 {
     NONE = 0,
     INTEGER = 1,
     FLOAT = 2,
@@ -34,30 +97,14 @@ enum ParameterTag: uint8 {
     FILE = 7,
 }
 
-struct ParameterDeclaration {
-    location: Location;
-    tag: ParameterTag;
-    name: SectionEntry;
-    label: SectionEntry;
-    default_value: SectionEntry;
+enum HTTPVerb: uint8 {
+    NONE = 0,
+    GET = 1,
+    PUT = 2,
+    POST = 3,
 }
 
-struct QueryStatement {
-    location: Location;
-    name: SectionEntry;
-    text: SectionEntry;
-}
-
-enum HTTPVerb: uint8 { NONE = 0, GET = 1, PUT = 2, POST = 3, }
-struct HTTPLoad { location: Location; verb: HTTPVerb; url: SectionEntry; }
-struct FileLoad { location: Location; }
-struct LoadStatement { location: Location; name: SectionEntry; method: SectionEntry; }
-
-struct JSONPathExtract { location: Location; }
-struct CSVExtract { location: Location; }
-struct ExtractStatement { location: Location; name: SectionEntry; data: SectionEntry; method: SectionEntry; }
-
-enum VizTag: uint8 {
+enum VizType: uint8 {
     NONE = 0,
     AREA = 1,
     BAR = 2,
@@ -72,33 +119,4 @@ enum VizTag: uint8 {
     SCATTER = 11,
     TABLE = 12,
     TEXT = 13,
-}
-struct VizStatement {
-    location: Location;
-    tag: VizTag;
-    name: SectionEntry;
-    query_name: SectionEntry;
-}
-
-table Sections {
-    literals_i64: [int64];
-    literals_f64: [double];
-    literals_string: [string];
-    parameter_declarations: [ParameterDeclaration];
-    loads_file: [FileLoad];
-    loads_http: [HTTPLoad];
-    extracts_csv: [CSVExtract];
-    extracts_jsonpath: [JSONPathExtract];
-    viz_statements: [VizStatement];
-}
-
-table Error {
-    location: Location;
-    message: string;
-}
-
-table Module {
-    statements: [SectionEntry];
-    sections: Sections;
-    errors: [Error];
 }

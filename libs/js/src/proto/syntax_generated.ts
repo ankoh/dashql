@@ -6,17 +6,14 @@ import { flatbuffers } from "flatbuffers";
  * @enum {number}
  */
 export namespace dashql.proto.syntax{
-export enum SectionTag{
+export enum ValueType{
   NONE= 0,
-  I64Literal= 1,
-  F64Literal= 2,
-  StringLiteral= 3,
-  JSONPathExtract= 4,
-  CSVExtract= 5,
-  ParameterDeclaration= 6,
-  VizStatement= 7,
-  HTTPLoad= 8,
-  FileLoad= 9
+  NUMBER= 1,
+  NUMBER_ARRAY= 2,
+  STRING= 3,
+  STRING_ARRAY= 4,
+  OBJECT= 5,
+  OBJECT_ARRAY= 6
 };
 }
 
@@ -24,7 +21,51 @@ export enum SectionTag{
  * @enum {number}
  */
 export namespace dashql.proto.syntax{
-export enum ParameterTag{
+export enum AttributeKey{
+  NONE= 0,
+  FILE_LOAD_NAME= 1,
+  HTTP_LOAD_NAME= 2,
+  HTTP_LOAD_VERB= 3,
+  HTTP_LOAD_URL= 4,
+  HTTP_LOAD_HEADER= 5,
+  EXTRACT_STATEMENT_NAME= 6,
+  EXTRACT_STATEMENT_DATA= 7,
+  EXTRACT_STATEMENT_METHOD= 8,
+  CSV_EXTRACT_ENCODING= 9,
+  CSV_EXTRACT_HEADER= 10,
+  CSV_EXTRACT_DELIMITER= 11,
+  CSV_EXTRACT_QUOTE= 12,
+  CSV_EXTRACT_DATE_FORMAT= 13,
+  CSV_EXTRACT_TIMESTAMP_FORMAT= 14,
+  QUERY_STATEMENT_NAME= 15,
+  QUERY_STATEMENT_TEXT= 16,
+  VIZ_STATEMENT_TAG= 17,
+  VIZ_STATEMENT_NAME= 18,
+  VIZ_STATEMENT_QUERY= 19
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax{
+export enum ObjectType{
+  NONE= 0,
+  HTTP_LOAD= 1,
+  FILE_LOAD= 2,
+  JSONPATH_EXTRACT= 3,
+  CSV_EXTRACT= 4,
+  EXTRACT_STATEMENT= 5,
+  QUERY_STATEMENT= 6,
+  VIZ_STATEMENT= 7
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax{
+export enum ParameterType{
   NONE= 0,
   INTEGER= 1,
   FLOAT= 2,
@@ -52,7 +93,7 @@ export enum HTTPVerb{
  * @enum {number}
  */
 export namespace dashql.proto.syntax{
-export enum VizTag{
+export enum VizType{
   NONE= 0,
   AREA= 1,
   BAR= 2,
@@ -74,61 +115,6 @@ export enum VizTag{
  * @constructor
  */
 export namespace dashql.proto.syntax{
-export class Position {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns Position
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):Position {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @returns number
- */
-line():number {
-  return this.bb!.readUint32(this.bb_pos);
-};
-
-/**
- * @returns number
- */
-column():number {
-  return this.bb!.readUint32(this.bb_pos + 4);
-};
-
-/**
- * @returns number
- */
-static sizeOf():number {
-  return 8;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param number line
- * @param number column
- * @returns flatbuffers.Offset
- */
-static createPosition(builder:flatbuffers.Builder, line: number, column: number):flatbuffers.Offset {
-  builder.prep(4, 8);
-  builder.writeInt32(column);
-  builder.writeInt32(line);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
 export class Location {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -145,79 +131,16 @@ __init(i:number, bb:flatbuffers.ByteBuffer):Location {
 };
 
 /**
- * @param dashql.proto.syntax.Position= obj
- * @returns dashql.proto.syntax.Position|null
+ * @returns number
  */
-begin(obj?:dashql.proto.syntax.Position):dashql.proto.syntax.Position|null {
-  return (obj || new dashql.proto.syntax.Position()).__init(this.bb_pos, this.bb!);
-};
-
-/**
- * @param dashql.proto.syntax.Position= obj
- * @returns dashql.proto.syntax.Position|null
- */
-end(obj?:dashql.proto.syntax.Position):dashql.proto.syntax.Position|null {
-  return (obj || new dashql.proto.syntax.Position()).__init(this.bb_pos + 8, this.bb!);
+offset():number {
+  return this.bb!.readUint32(this.bb_pos);
 };
 
 /**
  * @returns number
  */
-static sizeOf():number {
-  return 16;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param number begin_line
- * @param number begin_column
- * @param number end_line
- * @param number end_column
- * @returns flatbuffers.Offset
- */
-static createLocation(builder:flatbuffers.Builder, begin_line: number, begin_column: number, end_line: number, end_column: number):flatbuffers.Offset {
-  builder.prep(4, 16);
-  builder.prep(4, 8);
-  builder.writeInt32(end_column);
-  builder.writeInt32(end_line);
-  builder.prep(4, 8);
-  builder.writeInt32(begin_column);
-  builder.writeInt32(begin_line);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class SectionEntry {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns SectionEntry
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):SectionEntry {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @returns dashql.proto.syntax.SectionTag
- */
-tag():dashql.proto.syntax.SectionTag {
-  return /**  */ (this.bb!.readUint8(this.bb_pos));
-};
-
-/**
- * @returns number
- */
-index():number {
+length():number {
   return this.bb!.readUint32(this.bb_pos + 4);
 };
 
@@ -230,15 +153,14 @@ static sizeOf():number {
 
 /**
  * @param flatbuffers.Builder builder
- * @param dashql.proto.syntax.SectionTag tag
- * @param number index
+ * @param number offset
+ * @param number length
  * @returns flatbuffers.Offset
  */
-static createSectionEntry(builder:flatbuffers.Builder, tag: dashql.proto.syntax.SectionTag, index: number):flatbuffers.Offset {
+static createLocation(builder:flatbuffers.Builder, offset: number, length: number):flatbuffers.Offset {
   builder.prep(4, 8);
-  builder.writeInt32(index);
-  builder.pad(3);
-  builder.writeInt8(tag);
+  builder.writeInt32(length);
+  builder.writeInt32(offset);
   return builder.offset();
 };
 
@@ -248,105 +170,52 @@ static createSectionEntry(builder:flatbuffers.Builder, tag: dashql.proto.syntax.
  * @constructor
  */
 export namespace dashql.proto.syntax{
-export class ParameterDeclaration {
+export class Span {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns ParameterDeclaration
+ * @returns Span
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):ParameterDeclaration {
+__init(i:number, bb:flatbuffers.ByteBuffer):Span {
   this.bb_pos = i;
   this.bb = bb;
   return this;
 };
 
 /**
- * @param dashql.proto.syntax.Location= obj
- * @returns dashql.proto.syntax.Location|null
+ * @returns number
  */
-location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  return (obj || new dashql.proto.syntax.Location()).__init(this.bb_pos, this.bb!);
+offset():number {
+  return this.bb!.readUint32(this.bb_pos);
 };
 
 /**
- * @returns dashql.proto.syntax.ParameterTag
+ * @returns number
  */
-tag():dashql.proto.syntax.ParameterTag {
-  return /**  */ (this.bb!.readUint8(this.bb_pos + 16));
-};
-
-/**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
- */
-name(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 20, this.bb!);
-};
-
-/**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
- */
-label(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 28, this.bb!);
-};
-
-/**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
- */
-defaultValue(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 36, this.bb!);
+length():number {
+  return this.bb!.readUint32(this.bb_pos + 4);
 };
 
 /**
  * @returns number
  */
 static sizeOf():number {
-  return 44;
+  return 8;
 }
 
 /**
  * @param flatbuffers.Builder builder
- * @param number location_begin_line
- * @param number location_begin_column
- * @param number location_end_line
- * @param number location_end_column
- * @param dashql.proto.syntax.ParameterTag tag
- * @param dashql.proto.syntax.SectionTag name_tag
- * @param number name_index
- * @param dashql.proto.syntax.SectionTag label_tag
- * @param number label_index
- * @param dashql.proto.syntax.SectionTag default_value_tag
- * @param number default_value_index
+ * @param number offset
+ * @param number length
  * @returns flatbuffers.Offset
  */
-static createParameterDeclaration(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, tag: dashql.proto.syntax.ParameterTag, name_tag: dashql.proto.syntax.SectionTag, name_index: number, label_tag: dashql.proto.syntax.SectionTag, label_index: number, default_value_tag: dashql.proto.syntax.SectionTag, default_value_index: number):flatbuffers.Offset {
-  builder.prep(4, 44);
+static createSpan(builder:flatbuffers.Builder, offset: number, length: number):flatbuffers.Offset {
   builder.prep(4, 8);
-  builder.writeInt32(default_value_index);
-  builder.pad(3);
-  builder.writeInt8(default_value_tag);
-  builder.prep(4, 8);
-  builder.writeInt32(label_index);
-  builder.pad(3);
-  builder.writeInt8(label_tag);
-  builder.prep(4, 8);
-  builder.writeInt32(name_index);
-  builder.pad(3);
-  builder.writeInt8(name_tag);
-  builder.pad(3);
-  builder.writeInt8(tag);
-  builder.prep(4, 16);
-  builder.prep(4, 8);
-  builder.writeInt32(location_end_column);
-  builder.writeInt32(location_end_line);
-  builder.prep(4, 8);
-  builder.writeInt32(location_begin_column);
-  builder.writeInt32(location_begin_line);
+  builder.writeInt32(length);
+  builder.writeInt32(offset);
   return builder.offset();
 };
 
@@ -356,16 +225,16 @@ static createParameterDeclaration(builder:flatbuffers.Builder, location_begin_li
  * @constructor
  */
 export namespace dashql.proto.syntax{
-export class QueryStatement {
+export class Value {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns QueryStatement
+ * @returns Value
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):QueryStatement {
+__init(i:number, bb:flatbuffers.ByteBuffer):Value {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -380,57 +249,42 @@ location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
 };
 
 /**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
+ * @returns dashql.proto.syntax.ValueType
  */
-name(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 16, this.bb!);
+type():dashql.proto.syntax.ValueType {
+  return /**  */ (this.bb!.readUint8(this.bb_pos + 8));
 };
 
 /**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
+ * @returns number
  */
-text(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 24, this.bb!);
+value():number {
+  return this.bb!.readFloat64(this.bb_pos + 16);
 };
 
 /**
  * @returns number
  */
 static sizeOf():number {
-  return 32;
+  return 24;
 }
 
 /**
  * @param flatbuffers.Builder builder
- * @param number location_begin_line
- * @param number location_begin_column
- * @param number location_end_line
- * @param number location_end_column
- * @param dashql.proto.syntax.SectionTag name_tag
- * @param number name_index
- * @param dashql.proto.syntax.SectionTag text_tag
- * @param number text_index
+ * @param number location_offset
+ * @param number location_length
+ * @param dashql.proto.syntax.ValueType type
+ * @param number value
  * @returns flatbuffers.Offset
  */
-static createQueryStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, name_tag: dashql.proto.syntax.SectionTag, name_index: number, text_tag: dashql.proto.syntax.SectionTag, text_index: number):flatbuffers.Offset {
-  builder.prep(4, 32);
+static createValue(builder:flatbuffers.Builder, location_offset: number, location_length: number, type: dashql.proto.syntax.ValueType, value: number):flatbuffers.Offset {
+  builder.prep(8, 24);
+  builder.writeFloat64(value);
+  builder.pad(7);
+  builder.writeInt8(type);
   builder.prep(4, 8);
-  builder.writeInt32(text_index);
-  builder.pad(3);
-  builder.writeInt8(text_tag);
-  builder.prep(4, 8);
-  builder.writeInt32(name_index);
-  builder.pad(3);
-  builder.writeInt8(name_tag);
-  builder.prep(4, 16);
-  builder.prep(4, 8);
-  builder.writeInt32(location_end_column);
-  builder.writeInt32(location_end_line);
-  builder.prep(4, 8);
-  builder.writeInt32(location_begin_column);
-  builder.writeInt32(location_begin_line);
+  builder.writeInt32(location_length);
+  builder.writeInt32(location_offset);
   return builder.offset();
 };
 
@@ -440,16 +294,16 @@ static createQueryStatement(builder:flatbuffers.Builder, location_begin_line: nu
  * @constructor
  */
 export namespace dashql.proto.syntax{
-export class HTTPLoad {
+export class Attribute {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns HTTPLoad
+ * @returns Attribute
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):HTTPLoad {
+__init(i:number, bb:flatbuffers.ByteBuffer):Attribute {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -464,359 +318,18 @@ location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
 };
 
 /**
- * @returns dashql.proto.syntax.HTTPVerb
+ * @returns dashql.proto.syntax.AttributeKey
  */
-verb():dashql.proto.syntax.HTTPVerb {
-  return /**  */ (this.bb!.readUint8(this.bb_pos + 16));
+key():dashql.proto.syntax.AttributeKey {
+  return /**  */ (this.bb!.readUint8(this.bb_pos + 8));
 };
 
 /**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
+ * @param dashql.proto.syntax.Value= obj
+ * @returns dashql.proto.syntax.Value|null
  */
-url(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 20, this.bb!);
-};
-
-/**
- * @returns number
- */
-static sizeOf():number {
-  return 28;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param number location_begin_line
- * @param number location_begin_column
- * @param number location_end_line
- * @param number location_end_column
- * @param dashql.proto.syntax.HTTPVerb verb
- * @param dashql.proto.syntax.SectionTag url_tag
- * @param number url_index
- * @returns flatbuffers.Offset
- */
-static createHTTPLoad(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, verb: dashql.proto.syntax.HTTPVerb, url_tag: dashql.proto.syntax.SectionTag, url_index: number):flatbuffers.Offset {
-  builder.prep(4, 28);
-  builder.prep(4, 8);
-  builder.writeInt32(url_index);
-  builder.pad(3);
-  builder.writeInt8(url_tag);
-  builder.pad(3);
-  builder.writeInt8(verb);
-  builder.prep(4, 16);
-  builder.prep(4, 8);
-  builder.writeInt32(location_end_column);
-  builder.writeInt32(location_end_line);
-  builder.prep(4, 8);
-  builder.writeInt32(location_begin_column);
-  builder.writeInt32(location_begin_line);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class FileLoad {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns FileLoad
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):FileLoad {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param dashql.proto.syntax.Location= obj
- * @returns dashql.proto.syntax.Location|null
- */
-location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  return (obj || new dashql.proto.syntax.Location()).__init(this.bb_pos, this.bb!);
-};
-
-/**
- * @returns number
- */
-static sizeOf():number {
-  return 16;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param number location_begin_line
- * @param number location_begin_column
- * @param number location_end_line
- * @param number location_end_column
- * @returns flatbuffers.Offset
- */
-static createFileLoad(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number):flatbuffers.Offset {
-  builder.prep(4, 16);
-  builder.prep(4, 16);
-  builder.prep(4, 8);
-  builder.writeInt32(location_end_column);
-  builder.writeInt32(location_end_line);
-  builder.prep(4, 8);
-  builder.writeInt32(location_begin_column);
-  builder.writeInt32(location_begin_line);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class LoadStatement {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns LoadStatement
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):LoadStatement {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param dashql.proto.syntax.Location= obj
- * @returns dashql.proto.syntax.Location|null
- */
-location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  return (obj || new dashql.proto.syntax.Location()).__init(this.bb_pos, this.bb!);
-};
-
-/**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
- */
-name(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 16, this.bb!);
-};
-
-/**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
- */
-method(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 24, this.bb!);
-};
-
-/**
- * @returns number
- */
-static sizeOf():number {
-  return 32;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param number location_begin_line
- * @param number location_begin_column
- * @param number location_end_line
- * @param number location_end_column
- * @param dashql.proto.syntax.SectionTag name_tag
- * @param number name_index
- * @param dashql.proto.syntax.SectionTag method_tag
- * @param number method_index
- * @returns flatbuffers.Offset
- */
-static createLoadStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, name_tag: dashql.proto.syntax.SectionTag, name_index: number, method_tag: dashql.proto.syntax.SectionTag, method_index: number):flatbuffers.Offset {
-  builder.prep(4, 32);
-  builder.prep(4, 8);
-  builder.writeInt32(method_index);
-  builder.pad(3);
-  builder.writeInt8(method_tag);
-  builder.prep(4, 8);
-  builder.writeInt32(name_index);
-  builder.pad(3);
-  builder.writeInt8(name_tag);
-  builder.prep(4, 16);
-  builder.prep(4, 8);
-  builder.writeInt32(location_end_column);
-  builder.writeInt32(location_end_line);
-  builder.prep(4, 8);
-  builder.writeInt32(location_begin_column);
-  builder.writeInt32(location_begin_line);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class JSONPathExtract {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns JSONPathExtract
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):JSONPathExtract {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param dashql.proto.syntax.Location= obj
- * @returns dashql.proto.syntax.Location|null
- */
-location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  return (obj || new dashql.proto.syntax.Location()).__init(this.bb_pos, this.bb!);
-};
-
-/**
- * @returns number
- */
-static sizeOf():number {
-  return 16;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param number location_begin_line
- * @param number location_begin_column
- * @param number location_end_line
- * @param number location_end_column
- * @returns flatbuffers.Offset
- */
-static createJSONPathExtract(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number):flatbuffers.Offset {
-  builder.prep(4, 16);
-  builder.prep(4, 16);
-  builder.prep(4, 8);
-  builder.writeInt32(location_end_column);
-  builder.writeInt32(location_end_line);
-  builder.prep(4, 8);
-  builder.writeInt32(location_begin_column);
-  builder.writeInt32(location_begin_line);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class CSVExtract {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns CSVExtract
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):CSVExtract {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param dashql.proto.syntax.Location= obj
- * @returns dashql.proto.syntax.Location|null
- */
-location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  return (obj || new dashql.proto.syntax.Location()).__init(this.bb_pos, this.bb!);
-};
-
-/**
- * @returns number
- */
-static sizeOf():number {
-  return 16;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param number location_begin_line
- * @param number location_begin_column
- * @param number location_end_line
- * @param number location_end_column
- * @returns flatbuffers.Offset
- */
-static createCSVExtract(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number):flatbuffers.Offset {
-  builder.prep(4, 16);
-  builder.prep(4, 16);
-  builder.prep(4, 8);
-  builder.writeInt32(location_end_column);
-  builder.writeInt32(location_end_line);
-  builder.prep(4, 8);
-  builder.writeInt32(location_begin_column);
-  builder.writeInt32(location_begin_line);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class ExtractStatement {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns ExtractStatement
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):ExtractStatement {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param dashql.proto.syntax.Location= obj
- * @returns dashql.proto.syntax.Location|null
- */
-location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  return (obj || new dashql.proto.syntax.Location()).__init(this.bb_pos, this.bb!);
-};
-
-/**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
- */
-name(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 16, this.bb!);
-};
-
-/**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
- */
-data(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 24, this.bb!);
-};
-
-/**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
- */
-method(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 32, this.bb!);
+value(obj?:dashql.proto.syntax.Value):dashql.proto.syntax.Value|null {
+  return (obj || new dashql.proto.syntax.Value()).__init(this.bb_pos + 16, this.bb!);
 };
 
 /**
@@ -828,39 +341,29 @@ static sizeOf():number {
 
 /**
  * @param flatbuffers.Builder builder
- * @param number location_begin_line
- * @param number location_begin_column
- * @param number location_end_line
- * @param number location_end_column
- * @param dashql.proto.syntax.SectionTag name_tag
- * @param number name_index
- * @param dashql.proto.syntax.SectionTag data_tag
- * @param number data_index
- * @param dashql.proto.syntax.SectionTag method_tag
- * @param number method_index
+ * @param number location_offset
+ * @param number location_length
+ * @param dashql.proto.syntax.AttributeKey key
+ * @param number value_location_offset
+ * @param number value_location_length
+ * @param dashql.proto.syntax.ValueType value_type
+ * @param number value_value
  * @returns flatbuffers.Offset
  */
-static createExtractStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, name_tag: dashql.proto.syntax.SectionTag, name_index: number, data_tag: dashql.proto.syntax.SectionTag, data_index: number, method_tag: dashql.proto.syntax.SectionTag, method_index: number):flatbuffers.Offset {
-  builder.prep(4, 40);
+static createAttribute(builder:flatbuffers.Builder, location_offset: number, location_length: number, key: dashql.proto.syntax.AttributeKey, value_location_offset: number, value_location_length: number, value_type: dashql.proto.syntax.ValueType, value_value: number):flatbuffers.Offset {
+  builder.prep(8, 40);
+  builder.prep(8, 24);
+  builder.writeFloat64(value_value);
+  builder.pad(7);
+  builder.writeInt8(value_type);
   builder.prep(4, 8);
-  builder.writeInt32(method_index);
-  builder.pad(3);
-  builder.writeInt8(method_tag);
+  builder.writeInt32(value_location_length);
+  builder.writeInt32(value_location_offset);
+  builder.pad(7);
+  builder.writeInt8(key);
   builder.prep(4, 8);
-  builder.writeInt32(data_index);
-  builder.pad(3);
-  builder.writeInt8(data_tag);
-  builder.prep(4, 8);
-  builder.writeInt32(name_index);
-  builder.pad(3);
-  builder.writeInt8(name_tag);
-  builder.prep(4, 16);
-  builder.prep(4, 8);
-  builder.writeInt32(location_end_column);
-  builder.writeInt32(location_end_line);
-  builder.prep(4, 8);
-  builder.writeInt32(location_begin_column);
-  builder.writeInt32(location_begin_line);
+  builder.writeInt32(location_length);
+  builder.writeInt32(location_offset);
   return builder.offset();
 };
 
@@ -870,16 +373,16 @@ static createExtractStatement(builder:flatbuffers.Builder, location_begin_line: 
  * @constructor
  */
 export namespace dashql.proto.syntax{
-export class VizStatement {
+export class Object {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns VizStatement
+ * @returns Object
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):VizStatement {
+__init(i:number, bb:flatbuffers.ByteBuffer):Object {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -894,497 +397,49 @@ location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
 };
 
 /**
- * @returns dashql.proto.syntax.VizTag
+ * @returns dashql.proto.syntax.ObjectType
  */
-tag():dashql.proto.syntax.VizTag {
-  return /**  */ (this.bb!.readUint8(this.bb_pos + 16));
+type():dashql.proto.syntax.ObjectType {
+  return /**  */ (this.bb!.readUint8(this.bb_pos + 8));
 };
 
 /**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
+ * @param dashql.proto.syntax.Span= obj
+ * @returns dashql.proto.syntax.Span|null
  */
-name(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 20, this.bb!);
-};
-
-/**
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry|null
- */
-queryName(obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
-  return (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb_pos + 28, this.bb!);
+attributes(obj?:dashql.proto.syntax.Span):dashql.proto.syntax.Span|null {
+  return (obj || new dashql.proto.syntax.Span()).__init(this.bb_pos + 12, this.bb!);
 };
 
 /**
  * @returns number
  */
 static sizeOf():number {
-  return 36;
+  return 20;
 }
 
 /**
  * @param flatbuffers.Builder builder
- * @param number location_begin_line
- * @param number location_begin_column
- * @param number location_end_line
- * @param number location_end_column
- * @param dashql.proto.syntax.VizTag tag
- * @param dashql.proto.syntax.SectionTag name_tag
- * @param number name_index
- * @param dashql.proto.syntax.SectionTag query_name_tag
- * @param number query_name_index
+ * @param number location_offset
+ * @param number location_length
+ * @param dashql.proto.syntax.ObjectType type
+ * @param number attributes_offset
+ * @param number attributes_length
  * @returns flatbuffers.Offset
  */
-static createVizStatement(builder:flatbuffers.Builder, location_begin_line: number, location_begin_column: number, location_end_line: number, location_end_column: number, tag: dashql.proto.syntax.VizTag, name_tag: dashql.proto.syntax.SectionTag, name_index: number, query_name_tag: dashql.proto.syntax.SectionTag, query_name_index: number):flatbuffers.Offset {
-  builder.prep(4, 36);
+static createObject(builder:flatbuffers.Builder, location_offset: number, location_length: number, type: dashql.proto.syntax.ObjectType, attributes_offset: number, attributes_length: number):flatbuffers.Offset {
+  builder.prep(4, 20);
   builder.prep(4, 8);
-  builder.writeInt32(query_name_index);
+  builder.writeInt32(attributes_length);
+  builder.writeInt32(attributes_offset);
   builder.pad(3);
-  builder.writeInt8(query_name_tag);
+  builder.writeInt8(type);
   builder.prep(4, 8);
-  builder.writeInt32(name_index);
-  builder.pad(3);
-  builder.writeInt8(name_tag);
-  builder.pad(3);
-  builder.writeInt8(tag);
-  builder.prep(4, 16);
-  builder.prep(4, 8);
-  builder.writeInt32(location_end_column);
-  builder.writeInt32(location_end_line);
-  builder.prep(4, 8);
-  builder.writeInt32(location_begin_column);
-  builder.writeInt32(location_begin_line);
+  builder.writeInt32(location_length);
+  builder.writeInt32(location_offset);
   return builder.offset();
 };
 
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class Sections {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns Sections
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):Sections {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param Sections= obj
- * @returns Sections
- */
-static getRootAsSections(bb:flatbuffers.ByteBuffer, obj?:Sections):Sections {
-  return (obj || new Sections()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param Sections= obj
- * @returns Sections
- */
-static getSizePrefixedRootAsSections(bb:flatbuffers.ByteBuffer, obj?:Sections):Sections {
-  bb.setPosition(bb.position() + flatbuffers.SIZE_PREFIX_LENGTH);
-  return (obj || new Sections()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param number index
- * @returns flatbuffers.Long
- */
-literalsI64(index: number):flatbuffers.Long|null {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.readInt64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : this.bb!.createLong(0, 0);
-};
-
-/**
- * @returns number
- */
-literalsI64Length():number {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @returns number
- */
-literalsF64(index: number):number|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.readFloat64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : 0;
-};
-
-/**
- * @returns number
- */
-literalsF64Length():number {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @returns Float64Array
- */
-literalsF64Array():Float64Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? new Float64Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
-};
-
-/**
- * @param number index
- * @param flatbuffers.Encoding= optionalEncoding
- * @returns string|Uint8Array
- */
-literalsString(index: number):string
-literalsString(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
-literalsString(index: number,optionalEncoding?:any):string|Uint8Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? this.bb!.__string(this.bb!.__vector(this.bb_pos + offset) + index * 4, optionalEncoding) : null;
-};
-
-/**
- * @returns number
- */
-literalsStringLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.ParameterDeclaration= obj
- * @returns dashql.proto.syntax.ParameterDeclaration
- */
-parameterDeclarations(index: number, obj?:dashql.proto.syntax.ParameterDeclaration):dashql.proto.syntax.ParameterDeclaration|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? (obj || new dashql.proto.syntax.ParameterDeclaration()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 44, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-parameterDeclarationsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.FileLoad= obj
- * @returns dashql.proto.syntax.FileLoad
- */
-loadsFile(index: number, obj?:dashql.proto.syntax.FileLoad):dashql.proto.syntax.FileLoad|null {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
-  return offset ? (obj || new dashql.proto.syntax.FileLoad()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-loadsFileLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.HTTPLoad= obj
- * @returns dashql.proto.syntax.HTTPLoad
- */
-loadsHttp(index: number, obj?:dashql.proto.syntax.HTTPLoad):dashql.proto.syntax.HTTPLoad|null {
-  var offset = this.bb!.__offset(this.bb_pos, 14);
-  return offset ? (obj || new dashql.proto.syntax.HTTPLoad()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 28, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-loadsHttpLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 14);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.CSVExtract= obj
- * @returns dashql.proto.syntax.CSVExtract
- */
-extractsCsv(index: number, obj?:dashql.proto.syntax.CSVExtract):dashql.proto.syntax.CSVExtract|null {
-  var offset = this.bb!.__offset(this.bb_pos, 16);
-  return offset ? (obj || new dashql.proto.syntax.CSVExtract()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-extractsCsvLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 16);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.JSONPathExtract= obj
- * @returns dashql.proto.syntax.JSONPathExtract
- */
-extractsJsonpath(index: number, obj?:dashql.proto.syntax.JSONPathExtract):dashql.proto.syntax.JSONPathExtract|null {
-  var offset = this.bb!.__offset(this.bb_pos, 18);
-  return offset ? (obj || new dashql.proto.syntax.JSONPathExtract()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-extractsJsonpathLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 18);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.VizStatement= obj
- * @returns dashql.proto.syntax.VizStatement
- */
-vizStatements(index: number, obj?:dashql.proto.syntax.VizStatement):dashql.proto.syntax.VizStatement|null {
-  var offset = this.bb!.__offset(this.bb_pos, 20);
-  return offset ? (obj || new dashql.proto.syntax.VizStatement()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 36, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-vizStatementsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 20);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param flatbuffers.Builder builder
- */
-static startSections(builder:flatbuffers.Builder) {
-  builder.startObject(9);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset literalsI64Offset
- */
-static addLiteralsI64(builder:flatbuffers.Builder, literalsI64Offset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, literalsI64Offset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param Array.<flatbuffers.Long> data
- * @returns flatbuffers.Offset
- */
-static createLiteralsI64Vector(builder:flatbuffers.Builder, data:flatbuffers.Long[]):flatbuffers.Offset {
-  builder.startVector(8, data.length, 8);
-  for (var i = data.length - 1; i >= 0; i--) {
-    builder.addInt64(data[i]);
-  }
-  return builder.endVector();
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startLiteralsI64Vector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(8, numElems, 8);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset literalsF64Offset
- */
-static addLiteralsF64(builder:flatbuffers.Builder, literalsF64Offset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, literalsF64Offset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param Array.<number> data
- * @returns flatbuffers.Offset
- */
-static createLiteralsF64Vector(builder:flatbuffers.Builder, data:number[]|Float64Array):flatbuffers.Offset;
-/**
- * @deprecated This Uint8Array overload will be removed in the future.
- */
-static createLiteralsF64Vector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
-static createLiteralsF64Vector(builder:flatbuffers.Builder, data:number[]|Float64Array|Uint8Array):flatbuffers.Offset {
-  builder.startVector(8, data.length, 8);
-  for (var i = data.length - 1; i >= 0; i--) {
-    builder.addFloat64(data[i]);
-  }
-  return builder.endVector();
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startLiteralsF64Vector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(8, numElems, 8);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset literalsStringOffset
- */
-static addLiteralsString(builder:flatbuffers.Builder, literalsStringOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, literalsStringOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param Array.<flatbuffers.Offset> data
- * @returns flatbuffers.Offset
- */
-static createLiteralsStringVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
-  builder.startVector(4, data.length, 4);
-  for (var i = data.length - 1; i >= 0; i--) {
-    builder.addOffset(data[i]);
-  }
-  return builder.endVector();
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startLiteralsStringVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(4, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset parameterDeclarationsOffset
- */
-static addParameterDeclarations(builder:flatbuffers.Builder, parameterDeclarationsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, parameterDeclarationsOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startParameterDeclarationsVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(44, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset loadsFileOffset
- */
-static addLoadsFile(builder:flatbuffers.Builder, loadsFileOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(4, loadsFileOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startLoadsFileVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(16, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset loadsHttpOffset
- */
-static addLoadsHttp(builder:flatbuffers.Builder, loadsHttpOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(5, loadsHttpOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startLoadsHttpVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(28, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset extractsCsvOffset
- */
-static addExtractsCsv(builder:flatbuffers.Builder, extractsCsvOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(6, extractsCsvOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startExtractsCsvVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(16, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset extractsJsonpathOffset
- */
-static addExtractsJsonpath(builder:flatbuffers.Builder, extractsJsonpathOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(7, extractsJsonpathOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startExtractsJsonpathVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(16, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset vizStatementsOffset
- */
-static addVizStatements(builder:flatbuffers.Builder, vizStatementsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(8, vizStatementsOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startVizStatementsVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(36, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @returns flatbuffers.Offset
- */
-static endSections(builder:flatbuffers.Builder):flatbuffers.Offset {
-  var offset = builder.endObject();
-  return offset;
-};
-
-static createSections(builder:flatbuffers.Builder, literalsI64Offset:flatbuffers.Offset, literalsF64Offset:flatbuffers.Offset, literalsStringOffset:flatbuffers.Offset, parameterDeclarationsOffset:flatbuffers.Offset, loadsFileOffset:flatbuffers.Offset, loadsHttpOffset:flatbuffers.Offset, extractsCsvOffset:flatbuffers.Offset, extractsJsonpathOffset:flatbuffers.Offset, vizStatementsOffset:flatbuffers.Offset):flatbuffers.Offset {
-  Sections.startSections(builder);
-  Sections.addLiteralsI64(builder, literalsI64Offset);
-  Sections.addLiteralsF64(builder, literalsF64Offset);
-  Sections.addLiteralsString(builder, literalsStringOffset);
-  Sections.addParameterDeclarations(builder, parameterDeclarationsOffset);
-  Sections.addLoadsFile(builder, loadsFileOffset);
-  Sections.addLoadsHttp(builder, loadsHttpOffset);
-  Sections.addExtractsCsv(builder, extractsCsvOffset);
-  Sections.addExtractsJsonpath(builder, extractsJsonpathOffset);
-  Sections.addVizStatements(builder, vizStatementsOffset);
-  return Sections.endSections(builder);
-}
 }
 }
 /**
@@ -1489,6 +544,266 @@ static createError(builder:flatbuffers.Builder, locationOffset:flatbuffers.Offse
  * @constructor
  */
 export namespace dashql.proto.syntax{
+export class ModuleSections {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns ModuleSections
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):ModuleSections {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param ModuleSections= obj
+ * @returns ModuleSections
+ */
+static getRootAsModuleSections(bb:flatbuffers.ByteBuffer, obj?:ModuleSections):ModuleSections {
+  return (obj || new ModuleSections()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param ModuleSections= obj
+ * @returns ModuleSections
+ */
+static getSizePrefixedRootAsModuleSections(bb:flatbuffers.ByteBuffer, obj?:ModuleSections):ModuleSections {
+  bb.setPosition(bb.position() + flatbuffers.SIZE_PREFIX_LENGTH);
+  return (obj || new ModuleSections()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param number index
+ * @returns number
+ */
+numbers(index: number):number|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.readFloat64(this.bb!.__vector(this.bb_pos + offset) + index * 8) : 0;
+};
+
+/**
+ * @returns number
+ */
+numbersLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns Float64Array
+ */
+numbersArray():Float64Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? new Float64Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+};
+
+/**
+ * @param number index
+ * @param dashql.proto.syntax.Span= obj
+ * @returns dashql.proto.syntax.Span
+ */
+numberArrays(index: number, obj?:dashql.proto.syntax.Span):dashql.proto.syntax.Span|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? (obj || new dashql.proto.syntax.Span()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+numberArraysLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number index
+ * @param dashql.proto.syntax.Attribute= obj
+ * @returns dashql.proto.syntax.Attribute
+ */
+attributes(index: number, obj?:dashql.proto.syntax.Attribute):dashql.proto.syntax.Attribute|null {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? (obj || new dashql.proto.syntax.Attribute()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 40, this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+attributesLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number index
+ * @param dashql.proto.syntax.Object= obj
+ * @returns dashql.proto.syntax.Object
+ */
+objects(index: number, obj?:dashql.proto.syntax.Object):dashql.proto.syntax.Object|null {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? (obj || new dashql.proto.syntax.Object()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 20, this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+objectsLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number index
+ * @param dashql.proto.syntax.Span= obj
+ * @returns dashql.proto.syntax.Span
+ */
+objectArrays(index: number, obj?:dashql.proto.syntax.Span):dashql.proto.syntax.Span|null {
+  var offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? (obj || new dashql.proto.syntax.Span()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+objectArraysLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startModuleSections(builder:flatbuffers.Builder) {
+  builder.startObject(5);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset numbersOffset
+ */
+static addNumbers(builder:flatbuffers.Builder, numbersOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, numbersOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<number> data
+ * @returns flatbuffers.Offset
+ */
+static createNumbersVector(builder:flatbuffers.Builder, data:number[]|Float64Array):flatbuffers.Offset;
+/**
+ * @deprecated This Uint8Array overload will be removed in the future.
+ */
+static createNumbersVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
+static createNumbersVector(builder:flatbuffers.Builder, data:number[]|Float64Array|Uint8Array):flatbuffers.Offset {
+  builder.startVector(8, data.length, 8);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addFloat64(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startNumbersVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(8, numElems, 8);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset numberArraysOffset
+ */
+static addNumberArrays(builder:flatbuffers.Builder, numberArraysOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, numberArraysOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startNumberArraysVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(8, numElems, 4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset attributesOffset
+ */
+static addAttributes(builder:flatbuffers.Builder, attributesOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, attributesOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startAttributesVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(40, numElems, 8);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset objectsOffset
+ */
+static addObjects(builder:flatbuffers.Builder, objectsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, objectsOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startObjectsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(20, numElems, 4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset objectArraysOffset
+ */
+static addObjectArrays(builder:flatbuffers.Builder, objectArraysOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(4, objectArraysOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startObjectArraysVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(8, numElems, 4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endModuleSections(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+static createModuleSections(builder:flatbuffers.Builder, numbersOffset:flatbuffers.Offset, numberArraysOffset:flatbuffers.Offset, attributesOffset:flatbuffers.Offset, objectsOffset:flatbuffers.Offset, objectArraysOffset:flatbuffers.Offset):flatbuffers.Offset {
+  ModuleSections.startModuleSections(builder);
+  ModuleSections.addNumbers(builder, numbersOffset);
+  ModuleSections.addNumberArrays(builder, numberArraysOffset);
+  ModuleSections.addAttributes(builder, attributesOffset);
+  ModuleSections.addObjects(builder, objectsOffset);
+  ModuleSections.addObjectArrays(builder, objectArraysOffset);
+  return ModuleSections.endModuleSections(builder);
+}
+}
+}
+/**
+ * @constructor
+ */
+export namespace dashql.proto.syntax{
 export class Module {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -1524,30 +839,37 @@ static getSizePrefixedRootAsModule(bb:flatbuffers.ByteBuffer, obj?:Module):Modul
 };
 
 /**
- * @param number index
- * @param dashql.proto.syntax.SectionEntry= obj
- * @returns dashql.proto.syntax.SectionEntry
+ * @param dashql.proto.syntax.ModuleSections= obj
+ * @returns dashql.proto.syntax.ModuleSections|null
  */
-statements(index: number, obj?:dashql.proto.syntax.SectionEntry):dashql.proto.syntax.SectionEntry|null {
+sections(obj?:dashql.proto.syntax.ModuleSections):dashql.proto.syntax.ModuleSections|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new dashql.proto.syntax.SectionEntry()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.syntax.ModuleSections()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+};
+
+/**
+ * @param number index
+ * @returns number
+ */
+statements(index: number):number|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.readUint32(this.bb!.__vector(this.bb_pos + offset) + index * 4) : 0;
 };
 
 /**
  * @returns number
  */
 statementsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
+  var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
 /**
- * @param dashql.proto.syntax.Sections= obj
- * @returns dashql.proto.syntax.Sections|null
+ * @returns Uint32Array
  */
-sections(obj?:dashql.proto.syntax.Sections):dashql.proto.syntax.Sections|null {
+statementsArray():Uint32Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? (obj || new dashql.proto.syntax.Sections()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? new Uint32Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
 
 /**
@@ -1577,10 +899,36 @@ static startModule(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset sectionsOffset
+ */
+static addSections(builder:flatbuffers.Builder, sectionsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, sectionsOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
  * @param flatbuffers.Offset statementsOffset
  */
 static addStatements(builder:flatbuffers.Builder, statementsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, statementsOffset, 0);
+  builder.addFieldOffset(1, statementsOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<number> data
+ * @returns flatbuffers.Offset
+ */
+static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint32Array):flatbuffers.Offset;
+/**
+ * @deprecated This Uint8Array overload will be removed in the future.
+ */
+static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
+static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint32Array|Uint8Array):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addInt32(data[i]);
+  }
+  return builder.endVector();
 };
 
 /**
@@ -1588,15 +936,7 @@ static addStatements(builder:flatbuffers.Builder, statementsOffset:flatbuffers.O
  * @param number numElems
  */
 static startStatementsVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(8, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset sectionsOffset
- */
-static addSections(builder:flatbuffers.Builder, sectionsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, sectionsOffset, 0);
+  builder.startVector(4, numElems, 4);
 };
 
 /**
@@ -1637,5 +977,12 @@ static endModule(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
+static createModule(builder:flatbuffers.Builder, sectionsOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset):flatbuffers.Offset {
+  Module.startModule(builder);
+  Module.addSections(builder, sectionsOffset);
+  Module.addStatements(builder, statementsOffset);
+  Module.addErrors(builder, errorsOffset);
+  return Module.endModule(builder);
+}
 }
 }

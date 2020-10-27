@@ -8,41 +8,25 @@
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/parser.h"
 
-using namespace dashql::parser;
 
-ParseContext::ParseContext(bool trace_scanning, bool trace_parsing): _trace_scanning(trace_scanning), _trace_parsing(trace_parsing), _statements() {}
+namespace dashql {
+namespace parser {
+
+ParseContext::ParseContext(bool trace_scanning, bool trace_parsing): _trace_scanning(trace_scanning), _trace_parsing(trace_parsing), _module() {}
 
 ParseContext::~ParseContext() {}
 
-Program ParseContext::Parse(std::string_view in) {
-    beginScan(in);
+ModuleBuilder ParseContext::Parse(std::string_view in) {
+    _input = in;
+    beginScan(_input);
     {
         dashql::parser::Parser parser(*this);
         parser.set_debug_level(_trace_parsing);
         parser.parse();
     }
     endScan();
-    return Program{std::move(_statements), std::move(_errors)};
+    return std::move(_module);
 }
 
-// Yield an error
-void ParseContext::RaiseError(Location location, const std::string& message) {
-    _errors.push_back({location, message});
 }
-
-/// Define a statement
-void ParseContext::DefineStatement(Statement statement, Location location) {
-    std::visit(overload{// Parameter declaration
-                        [&](ParameterDeclaration& parameter) { parameter.location = location; },
-                        // Load statement
-                        [&](LoadStatement& load) { load.location = location; },
-                        // Extract statement
-                        [&](ExtractStatement& extract) { extract.location = location; },
-                        // SQL statement
-                        [&](QueryStatement& query) { query.location = location; },
-                        // Viz statement
-                        [&](VizStatement& viz) { viz.location = location; }},
-               statement);
-
-    _statements.push_back(std::move(statement));
 }

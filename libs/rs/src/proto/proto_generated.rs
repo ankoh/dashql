@@ -36,24 +36,21 @@ pub mod syntax {
 #[allow(non_camel_case_types)]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum SectionTag {
+pub enum ValueType {
   NONE = 0,
-  I64Literal = 1,
-  F64Literal = 2,
-  StringLiteral = 3,
-  JSONPathExtract = 4,
-  CSVExtract = 5,
-  ParameterDeclaration = 6,
-  VizStatement = 7,
-  HTTPLoad = 8,
-  FileLoad = 9,
+  NUMBER = 1,
+  NUMBER_ARRAY = 2,
+  STRING = 3,
+  STRING_ARRAY = 4,
+  OBJECT = 5,
+  OBJECT_ARRAY = 6,
 
 }
 
-pub const ENUM_MIN_SECTION_TAG: u8 = 0;
-pub const ENUM_MAX_SECTION_TAG: u8 = 9;
+pub const ENUM_MIN_VALUE_TYPE: u8 = 0;
+pub const ENUM_MAX_VALUE_TYPE: u8 = 6;
 
-impl<'a> flatbuffers::Follow<'a> for SectionTag {
+impl<'a> flatbuffers::Follow<'a> for ValueType {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
@@ -61,66 +58,252 @@ impl<'a> flatbuffers::Follow<'a> for SectionTag {
   }
 }
 
-impl flatbuffers::EndianScalar for SectionTag {
+impl flatbuffers::EndianScalar for ValueType {
   #[inline]
   fn to_little_endian(self) -> Self {
     let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const SectionTag;
+    let p = &n as *const u8 as *const ValueType;
     unsafe { *p }
   }
   #[inline]
   fn from_little_endian(self) -> Self {
     let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const SectionTag;
+    let p = &n as *const u8 as *const ValueType;
     unsafe { *p }
   }
 }
 
-impl flatbuffers::Push for SectionTag {
-    type Output = SectionTag;
+impl flatbuffers::Push for ValueType {
+    type Output = ValueType;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<SectionTag>(dst, *self);
+        flatbuffers::emplace_scalar::<ValueType>(dst, *self);
     }
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_SECTION_TAG: [SectionTag; 10] = [
-  SectionTag::NONE,
-  SectionTag::I64Literal,
-  SectionTag::F64Literal,
-  SectionTag::StringLiteral,
-  SectionTag::JSONPathExtract,
-  SectionTag::CSVExtract,
-  SectionTag::ParameterDeclaration,
-  SectionTag::VizStatement,
-  SectionTag::HTTPLoad,
-  SectionTag::FileLoad
+pub const ENUM_VALUES_VALUE_TYPE: [ValueType; 7] = [
+  ValueType::NONE,
+  ValueType::NUMBER,
+  ValueType::NUMBER_ARRAY,
+  ValueType::STRING,
+  ValueType::STRING_ARRAY,
+  ValueType::OBJECT,
+  ValueType::OBJECT_ARRAY
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_SECTION_TAG: [&str; 10] = [
+pub const ENUM_NAMES_VALUE_TYPE: [&str; 7] = [
     "NONE",
-    "I64Literal",
-    "F64Literal",
-    "StringLiteral",
-    "JSONPathExtract",
-    "CSVExtract",
-    "ParameterDeclaration",
-    "VizStatement",
-    "HTTPLoad",
-    "FileLoad"
+    "NUMBER",
+    "NUMBER_ARRAY",
+    "STRING",
+    "STRING_ARRAY",
+    "OBJECT",
+    "OBJECT_ARRAY"
 ];
 
-pub fn enum_name_section_tag(e: SectionTag) -> &'static str {
+pub fn enum_name_value_type(e: ValueType) -> &'static str {
   let index = e as u8;
-  ENUM_NAMES_SECTION_TAG[index as usize]
+  ENUM_NAMES_VALUE_TYPE[index as usize]
 }
 
 #[allow(non_camel_case_types)]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum ParameterTag {
+pub enum AttributeKey {
+  NONE = 0,
+  FILE_LOAD_NAME = 1,
+  HTTP_LOAD_NAME = 2,
+  HTTP_LOAD_VERB = 3,
+  HTTP_LOAD_URL = 4,
+  HTTP_LOAD_HEADER = 5,
+  EXTRACT_STATEMENT_NAME = 6,
+  EXTRACT_STATEMENT_DATA = 7,
+  EXTRACT_STATEMENT_METHOD = 8,
+  CSV_EXTRACT_ENCODING = 9,
+  CSV_EXTRACT_HEADER = 10,
+  CSV_EXTRACT_DELIMITER = 11,
+  CSV_EXTRACT_QUOTE = 12,
+  CSV_EXTRACT_DATE_FORMAT = 13,
+  CSV_EXTRACT_TIMESTAMP_FORMAT = 14,
+  QUERY_STATEMENT_NAME = 15,
+  QUERY_STATEMENT_TEXT = 16,
+  VIZ_STATEMENT_TAG = 17,
+  VIZ_STATEMENT_NAME = 18,
+  VIZ_STATEMENT_QUERY = 19,
+
+}
+
+pub const ENUM_MIN_ATTRIBUTE_KEY: u8 = 0;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 19;
+
+impl<'a> flatbuffers::Follow<'a> for AttributeKey {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::read_scalar_at::<Self>(buf, loc)
+  }
+}
+
+impl flatbuffers::EndianScalar for AttributeKey {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let n = u8::to_le(self as u8);
+    let p = &n as *const u8 as *const AttributeKey;
+    unsafe { *p }
+  }
+  #[inline]
+  fn from_little_endian(self) -> Self {
+    let n = u8::from_le(self as u8);
+    let p = &n as *const u8 as *const AttributeKey;
+    unsafe { *p }
+  }
+}
+
+impl flatbuffers::Push for AttributeKey {
+    type Output = AttributeKey;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        flatbuffers::emplace_scalar::<AttributeKey>(dst, *self);
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 20] = [
+  AttributeKey::NONE,
+  AttributeKey::FILE_LOAD_NAME,
+  AttributeKey::HTTP_LOAD_NAME,
+  AttributeKey::HTTP_LOAD_VERB,
+  AttributeKey::HTTP_LOAD_URL,
+  AttributeKey::HTTP_LOAD_HEADER,
+  AttributeKey::EXTRACT_STATEMENT_NAME,
+  AttributeKey::EXTRACT_STATEMENT_DATA,
+  AttributeKey::EXTRACT_STATEMENT_METHOD,
+  AttributeKey::CSV_EXTRACT_ENCODING,
+  AttributeKey::CSV_EXTRACT_HEADER,
+  AttributeKey::CSV_EXTRACT_DELIMITER,
+  AttributeKey::CSV_EXTRACT_QUOTE,
+  AttributeKey::CSV_EXTRACT_DATE_FORMAT,
+  AttributeKey::CSV_EXTRACT_TIMESTAMP_FORMAT,
+  AttributeKey::QUERY_STATEMENT_NAME,
+  AttributeKey::QUERY_STATEMENT_TEXT,
+  AttributeKey::VIZ_STATEMENT_TAG,
+  AttributeKey::VIZ_STATEMENT_NAME,
+  AttributeKey::VIZ_STATEMENT_QUERY
+];
+
+#[allow(non_camel_case_types)]
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 20] = [
+    "NONE",
+    "FILE_LOAD_NAME",
+    "HTTP_LOAD_NAME",
+    "HTTP_LOAD_VERB",
+    "HTTP_LOAD_URL",
+    "HTTP_LOAD_HEADER",
+    "EXTRACT_STATEMENT_NAME",
+    "EXTRACT_STATEMENT_DATA",
+    "EXTRACT_STATEMENT_METHOD",
+    "CSV_EXTRACT_ENCODING",
+    "CSV_EXTRACT_HEADER",
+    "CSV_EXTRACT_DELIMITER",
+    "CSV_EXTRACT_QUOTE",
+    "CSV_EXTRACT_DATE_FORMAT",
+    "CSV_EXTRACT_TIMESTAMP_FORMAT",
+    "QUERY_STATEMENT_NAME",
+    "QUERY_STATEMENT_TEXT",
+    "VIZ_STATEMENT_TAG",
+    "VIZ_STATEMENT_NAME",
+    "VIZ_STATEMENT_QUERY"
+];
+
+pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
+  let index = e as u8;
+  ENUM_NAMES_ATTRIBUTE_KEY[index as usize]
+}
+
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum ObjectType {
+  NONE = 0,
+  HTTP_LOAD = 1,
+  FILE_LOAD = 2,
+  JSONPATH_EXTRACT = 3,
+  CSV_EXTRACT = 4,
+  EXTRACT_STATEMENT = 5,
+  QUERY_STATEMENT = 6,
+  VIZ_STATEMENT = 7,
+
+}
+
+pub const ENUM_MIN_OBJECT_TYPE: u8 = 0;
+pub const ENUM_MAX_OBJECT_TYPE: u8 = 7;
+
+impl<'a> flatbuffers::Follow<'a> for ObjectType {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::read_scalar_at::<Self>(buf, loc)
+  }
+}
+
+impl flatbuffers::EndianScalar for ObjectType {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let n = u8::to_le(self as u8);
+    let p = &n as *const u8 as *const ObjectType;
+    unsafe { *p }
+  }
+  #[inline]
+  fn from_little_endian(self) -> Self {
+    let n = u8::from_le(self as u8);
+    let p = &n as *const u8 as *const ObjectType;
+    unsafe { *p }
+  }
+}
+
+impl flatbuffers::Push for ObjectType {
+    type Output = ObjectType;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        flatbuffers::emplace_scalar::<ObjectType>(dst, *self);
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 8] = [
+  ObjectType::NONE,
+  ObjectType::HTTP_LOAD,
+  ObjectType::FILE_LOAD,
+  ObjectType::JSONPATH_EXTRACT,
+  ObjectType::CSV_EXTRACT,
+  ObjectType::EXTRACT_STATEMENT,
+  ObjectType::QUERY_STATEMENT,
+  ObjectType::VIZ_STATEMENT
+];
+
+#[allow(non_camel_case_types)]
+pub const ENUM_NAMES_OBJECT_TYPE: [&str; 8] = [
+    "NONE",
+    "HTTP_LOAD",
+    "FILE_LOAD",
+    "JSONPATH_EXTRACT",
+    "CSV_EXTRACT",
+    "EXTRACT_STATEMENT",
+    "QUERY_STATEMENT",
+    "VIZ_STATEMENT"
+];
+
+pub fn enum_name_object_type(e: ObjectType) -> &'static str {
+  let index = e as u8;
+  ENUM_NAMES_OBJECT_TYPE[index as usize]
+}
+
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum ParameterType {
   NONE = 0,
   INTEGER = 1,
   FLOAT = 2,
@@ -132,10 +315,10 @@ pub enum ParameterTag {
 
 }
 
-pub const ENUM_MIN_PARAMETER_TAG: u8 = 0;
-pub const ENUM_MAX_PARAMETER_TAG: u8 = 7;
+pub const ENUM_MIN_PARAMETER_TYPE: u8 = 0;
+pub const ENUM_MAX_PARAMETER_TYPE: u8 = 7;
 
-impl<'a> flatbuffers::Follow<'a> for ParameterTag {
+impl<'a> flatbuffers::Follow<'a> for ParameterType {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
@@ -143,43 +326,43 @@ impl<'a> flatbuffers::Follow<'a> for ParameterTag {
   }
 }
 
-impl flatbuffers::EndianScalar for ParameterTag {
+impl flatbuffers::EndianScalar for ParameterType {
   #[inline]
   fn to_little_endian(self) -> Self {
     let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const ParameterTag;
+    let p = &n as *const u8 as *const ParameterType;
     unsafe { *p }
   }
   #[inline]
   fn from_little_endian(self) -> Self {
     let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const ParameterTag;
+    let p = &n as *const u8 as *const ParameterType;
     unsafe { *p }
   }
 }
 
-impl flatbuffers::Push for ParameterTag {
-    type Output = ParameterTag;
+impl flatbuffers::Push for ParameterType {
+    type Output = ParameterType;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<ParameterTag>(dst, *self);
+        flatbuffers::emplace_scalar::<ParameterType>(dst, *self);
     }
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_PARAMETER_TAG: [ParameterTag; 8] = [
-  ParameterTag::NONE,
-  ParameterTag::INTEGER,
-  ParameterTag::FLOAT,
-  ParameterTag::TEXT,
-  ParameterTag::DATE,
-  ParameterTag::DATETIME,
-  ParameterTag::TIME,
-  ParameterTag::FILE
+pub const ENUM_VALUES_PARAMETER_TYPE: [ParameterType; 8] = [
+  ParameterType::NONE,
+  ParameterType::INTEGER,
+  ParameterType::FLOAT,
+  ParameterType::TEXT,
+  ParameterType::DATE,
+  ParameterType::DATETIME,
+  ParameterType::TIME,
+  ParameterType::FILE
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_PARAMETER_TAG: [&str; 8] = [
+pub const ENUM_NAMES_PARAMETER_TYPE: [&str; 8] = [
     "NONE",
     "INTEGER",
     "FLOAT",
@@ -190,9 +373,9 @@ pub const ENUM_NAMES_PARAMETER_TAG: [&str; 8] = [
     "FILE"
 ];
 
-pub fn enum_name_parameter_tag(e: ParameterTag) -> &'static str {
+pub fn enum_name_parameter_type(e: ParameterType) -> &'static str {
   let index = e as u8;
-  ENUM_NAMES_PARAMETER_TAG[index as usize]
+  ENUM_NAMES_PARAMETER_TYPE[index as usize]
 }
 
 #[allow(non_camel_case_types)]
@@ -264,7 +447,7 @@ pub fn enum_name_httpverb(e: HTTPVerb) -> &'static str {
 #[allow(non_camel_case_types)]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum VizTag {
+pub enum VizType {
   NONE = 0,
   AREA = 1,
   BAR = 2,
@@ -282,10 +465,10 @@ pub enum VizTag {
 
 }
 
-pub const ENUM_MIN_VIZ_TAG: u8 = 0;
-pub const ENUM_MAX_VIZ_TAG: u8 = 13;
+pub const ENUM_MIN_VIZ_TYPE: u8 = 0;
+pub const ENUM_MAX_VIZ_TYPE: u8 = 13;
 
-impl<'a> flatbuffers::Follow<'a> for VizTag {
+impl<'a> flatbuffers::Follow<'a> for VizType {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
@@ -293,49 +476,49 @@ impl<'a> flatbuffers::Follow<'a> for VizTag {
   }
 }
 
-impl flatbuffers::EndianScalar for VizTag {
+impl flatbuffers::EndianScalar for VizType {
   #[inline]
   fn to_little_endian(self) -> Self {
     let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const VizTag;
+    let p = &n as *const u8 as *const VizType;
     unsafe { *p }
   }
   #[inline]
   fn from_little_endian(self) -> Self {
     let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const VizTag;
+    let p = &n as *const u8 as *const VizType;
     unsafe { *p }
   }
 }
 
-impl flatbuffers::Push for VizTag {
-    type Output = VizTag;
+impl flatbuffers::Push for VizType {
+    type Output = VizType;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<VizTag>(dst, *self);
+        flatbuffers::emplace_scalar::<VizType>(dst, *self);
     }
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_VIZ_TAG: [VizTag; 14] = [
-  VizTag::NONE,
-  VizTag::AREA,
-  VizTag::BAR,
-  VizTag::BOX,
-  VizTag::BUBBLE,
-  VizTag::GRID,
-  VizTag::HISTOGRAM,
-  VizTag::LINE,
-  VizTag::NUMBER,
-  VizTag::PIE,
-  VizTag::POINT,
-  VizTag::SCATTER,
-  VizTag::TABLE,
-  VizTag::TEXT
+pub const ENUM_VALUES_VIZ_TYPE: [VizType; 14] = [
+  VizType::NONE,
+  VizType::AREA,
+  VizType::BAR,
+  VizType::BOX,
+  VizType::BUBBLE,
+  VizType::GRID,
+  VizType::HISTOGRAM,
+  VizType::LINE,
+  VizType::NUMBER,
+  VizType::PIE,
+  VizType::POINT,
+  VizType::SCATTER,
+  VizType::TABLE,
+  VizType::TEXT
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_VIZ_TAG: [&str; 14] = [
+pub const ENUM_NAMES_VIZ_TYPE: [&str; 14] = [
     "NONE",
     "AREA",
     "BAR",
@@ -352,82 +535,17 @@ pub const ENUM_NAMES_VIZ_TAG: [&str; 14] = [
     "TEXT"
 ];
 
-pub fn enum_name_viz_tag(e: VizTag) -> &'static str {
+pub fn enum_name_viz_type(e: VizType) -> &'static str {
   let index = e as u8;
-  ENUM_NAMES_VIZ_TAG[index as usize]
-}
-
-// struct Position, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Position {
-  pub line_: u32,
-  pub column_: u32,
-} // pub struct Position
-impl flatbuffers::SafeSliceAccess for Position {}
-impl<'a> flatbuffers::Follow<'a> for Position {
-  type Inner = &'a Position;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a Position>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a Position {
-  type Inner = &'a Position;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<Position>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for Position {
-    type Output = Position;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const Position as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b Position {
-    type Output = Position;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const Position as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl Position {
-  pub fn new(_line: u32, _column: u32) -> Self {
-    Position {
-      line_: _line.to_little_endian(),
-      column_: _column.to_little_endian(),
-
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.Position"
-    }
-
-  pub fn line(&self) -> u32 {
-    self.line_.from_little_endian()
-  }
-  pub fn column(&self) -> u32 {
-    self.column_.from_little_endian()
-  }
+  ENUM_NAMES_VIZ_TYPE[index as usize]
 }
 
 // struct Location, aligned to 4
 #[repr(C, align(4))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Location {
-  pub begin_: Position,
-  pub end_: Position,
+  pub offset_: u32,
+  pub length_: u32,
 } // pub struct Location
 impl flatbuffers::SafeSliceAccess for Location {}
 impl<'a> flatbuffers::Follow<'a> for Location {
@@ -468,10 +586,10 @@ impl<'b> flatbuffers::Push for &'b Location {
 
 
 impl Location {
-  pub fn new(_begin: &Position, _end: &Position) -> Self {
+  pub fn new(_offset: u32, _length: u32) -> Self {
     Location {
-      begin_: *_begin,
-      end_: *_end,
+      offset_: _offset.to_little_endian(),
+      length_: _length.to_little_endian(),
 
     }
   }
@@ -479,878 +597,292 @@ impl Location {
         "dashql.proto.syntax.Location"
     }
 
-  pub fn begin(&self) -> &Position {
-    &self.begin_
+  pub fn offset(&self) -> u32 {
+    self.offset_.from_little_endian()
   }
-  pub fn end(&self) -> &Position {
-    &self.end_
+  pub fn length(&self) -> u32 {
+    self.length_.from_little_endian()
   }
 }
 
-// struct SectionEntry, aligned to 4
+// struct Span, aligned to 4
 #[repr(C, align(4))]
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct SectionEntry {
-  pub tag_: SectionTag,
+pub struct Span {
+  pub offset_: u32,
+  pub length_: u32,
+} // pub struct Span
+impl flatbuffers::SafeSliceAccess for Span {}
+impl<'a> flatbuffers::Follow<'a> for Span {
+  type Inner = &'a Span;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a Span>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a Span {
+  type Inner = &'a Span;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<Span>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for Span {
+    type Output = Span;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const Span as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b Span {
+    type Output = Span;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const Span as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl Span {
+  pub fn new(_offset: u32, _length: u32) -> Self {
+    Span {
+      offset_: _offset.to_little_endian(),
+      length_: _length.to_little_endian(),
+
+    }
+  }
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "dashql.proto.syntax.Span"
+    }
+
+  pub fn offset(&self) -> u32 {
+    self.offset_.from_little_endian()
+  }
+  pub fn length(&self) -> u32 {
+    self.length_.from_little_endian()
+  }
+}
+
+// struct Value, aligned to 8
+#[repr(C, align(8))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Value {
+  pub location_: Location,
+  pub type__: ValueType,
+  padding0__: u8,  padding1__: u16,  padding2__: u32,
+  pub value_: f64,
+} // pub struct Value
+impl flatbuffers::SafeSliceAccess for Value {}
+impl<'a> flatbuffers::Follow<'a> for Value {
+  type Inner = &'a Value;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a Value>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a Value {
+  type Inner = &'a Value;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<Value>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for Value {
+    type Output = Value;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const Value as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b Value {
+    type Output = Value;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const Value as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl Value {
+  pub fn new(_location: &Location, _type_: ValueType, _value: f64) -> Self {
+    Value {
+      location_: *_location,
+      type__: _type_.to_little_endian(),
+      value_: _value.to_little_endian(),
+
+      padding0__: 0,padding1__: 0,padding2__: 0,
+    }
+  }
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "dashql.proto.syntax.Value"
+    }
+
+  pub fn location(&self) -> &Location {
+    &self.location_
+  }
+  pub fn type_(&self) -> ValueType {
+    self.type__.from_little_endian()
+  }
+  pub fn value(&self) -> f64 {
+    self.value_.from_little_endian()
+  }
+}
+
+// struct Attribute, aligned to 8
+#[repr(C, align(8))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Attribute {
+  pub location_: Location,
+  pub key_: AttributeKey,
+  padding0__: u8,  padding1__: u16,  padding2__: u32,
+  pub value_: Value,
+} // pub struct Attribute
+impl flatbuffers::SafeSliceAccess for Attribute {}
+impl<'a> flatbuffers::Follow<'a> for Attribute {
+  type Inner = &'a Attribute;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a Attribute>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a Attribute {
+  type Inner = &'a Attribute;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<Attribute>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for Attribute {
+    type Output = Attribute;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const Attribute as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b Attribute {
+    type Output = Attribute;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const Attribute as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl Attribute {
+  pub fn new(_location: &Location, _key: AttributeKey, _value: &Value) -> Self {
+    Attribute {
+      location_: *_location,
+      key_: _key.to_little_endian(),
+      value_: *_value,
+
+      padding0__: 0,padding1__: 0,padding2__: 0,
+    }
+  }
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "dashql.proto.syntax.Attribute"
+    }
+
+  pub fn location(&self) -> &Location {
+    &self.location_
+  }
+  pub fn key(&self) -> AttributeKey {
+    self.key_.from_little_endian()
+  }
+  pub fn value(&self) -> &Value {
+    &self.value_
+  }
+}
+
+// struct Object, aligned to 4
+#[repr(C, align(4))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Object {
+  pub location_: Location,
+  pub type__: ObjectType,
   padding0__: u8,  padding1__: u16,
-  pub index_: u32,
-} // pub struct SectionEntry
-impl flatbuffers::SafeSliceAccess for SectionEntry {}
-impl<'a> flatbuffers::Follow<'a> for SectionEntry {
-  type Inner = &'a SectionEntry;
+  pub attributes_: Span,
+} // pub struct Object
+impl flatbuffers::SafeSliceAccess for Object {}
+impl<'a> flatbuffers::Follow<'a> for Object {
+  type Inner = &'a Object;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a SectionEntry>::follow(buf, loc)
+    <&'a Object>::follow(buf, loc)
   }
 }
-impl<'a> flatbuffers::Follow<'a> for &'a SectionEntry {
-  type Inner = &'a SectionEntry;
+impl<'a> flatbuffers::Follow<'a> for &'a Object {
+  type Inner = &'a Object;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<SectionEntry>(buf, loc)
+    flatbuffers::follow_cast_ref::<Object>(buf, loc)
   }
 }
-impl<'b> flatbuffers::Push for SectionEntry {
-    type Output = SectionEntry;
+impl<'b> flatbuffers::Push for Object {
+    type Output = Object;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
         let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const SectionEntry as *const u8, Self::size())
+            ::std::slice::from_raw_parts(self as *const Object as *const u8, Self::size())
         };
         dst.copy_from_slice(src);
     }
 }
-impl<'b> flatbuffers::Push for &'b SectionEntry {
-    type Output = SectionEntry;
+impl<'b> flatbuffers::Push for &'b Object {
+    type Output = Object;
 
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
         let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const SectionEntry as *const u8, Self::size())
+            ::std::slice::from_raw_parts(*self as *const Object as *const u8, Self::size())
         };
         dst.copy_from_slice(src);
     }
 }
 
 
-impl SectionEntry {
-  pub fn new(_tag: SectionTag, _index: u32) -> Self {
-    SectionEntry {
-      tag_: _tag.to_little_endian(),
-      index_: _index.to_little_endian(),
+impl Object {
+  pub fn new(_location: &Location, _type_: ObjectType, _attributes: &Span) -> Self {
+    Object {
+      location_: *_location,
+      type__: _type_.to_little_endian(),
+      attributes_: *_attributes,
 
       padding0__: 0,padding1__: 0,
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.SectionEntry"
-    }
-
-  pub fn tag(&self) -> SectionTag {
-    self.tag_.from_little_endian()
-  }
-  pub fn index(&self) -> u32 {
-    self.index_.from_little_endian()
-  }
-}
-
-// struct ParameterDeclaration, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct ParameterDeclaration {
-  pub location_: Location,
-  pub tag_: ParameterTag,
-  padding0__: u8,  padding1__: u16,
-  pub name_: SectionEntry,
-  pub label_: SectionEntry,
-  pub default_value_: SectionEntry,
-} // pub struct ParameterDeclaration
-impl flatbuffers::SafeSliceAccess for ParameterDeclaration {}
-impl<'a> flatbuffers::Follow<'a> for ParameterDeclaration {
-  type Inner = &'a ParameterDeclaration;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a ParameterDeclaration>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a ParameterDeclaration {
-  type Inner = &'a ParameterDeclaration;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<ParameterDeclaration>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for ParameterDeclaration {
-    type Output = ParameterDeclaration;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const ParameterDeclaration as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b ParameterDeclaration {
-    type Output = ParameterDeclaration;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const ParameterDeclaration as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl ParameterDeclaration {
-  pub fn new(_location: &Location, _tag: ParameterTag, _name: &SectionEntry, _label: &SectionEntry, _default_value: &SectionEntry) -> Self {
-    ParameterDeclaration {
-      location_: *_location,
-      tag_: _tag.to_little_endian(),
-      name_: *_name,
-      label_: *_label,
-      default_value_: *_default_value,
-
-      padding0__: 0,padding1__: 0,
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.ParameterDeclaration"
+        "dashql.proto.syntax.Object"
     }
 
   pub fn location(&self) -> &Location {
     &self.location_
   }
-  pub fn tag(&self) -> ParameterTag {
-    self.tag_.from_little_endian()
-  }
-  pub fn name(&self) -> &SectionEntry {
-    &self.name_
-  }
-  pub fn label(&self) -> &SectionEntry {
-    &self.label_
-  }
-  pub fn default_value(&self) -> &SectionEntry {
-    &self.default_value_
-  }
-}
-
-// struct QueryStatement, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct QueryStatement {
-  pub location_: Location,
-  pub name_: SectionEntry,
-  pub text_: SectionEntry,
-} // pub struct QueryStatement
-impl flatbuffers::SafeSliceAccess for QueryStatement {}
-impl<'a> flatbuffers::Follow<'a> for QueryStatement {
-  type Inner = &'a QueryStatement;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a QueryStatement>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a QueryStatement {
-  type Inner = &'a QueryStatement;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<QueryStatement>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for QueryStatement {
-    type Output = QueryStatement;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const QueryStatement as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b QueryStatement {
-    type Output = QueryStatement;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const QueryStatement as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl QueryStatement {
-  pub fn new(_location: &Location, _name: &SectionEntry, _text: &SectionEntry) -> Self {
-    QueryStatement {
-      location_: *_location,
-      name_: *_name,
-      text_: *_text,
-
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.QueryStatement"
-    }
-
-  pub fn location(&self) -> &Location {
-    &self.location_
-  }
-  pub fn name(&self) -> &SectionEntry {
-    &self.name_
-  }
-  pub fn text(&self) -> &SectionEntry {
-    &self.text_
-  }
-}
-
-// struct HTTPLoad, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct HTTPLoad {
-  pub location_: Location,
-  pub verb_: HTTPVerb,
-  padding0__: u8,  padding1__: u16,
-  pub url_: SectionEntry,
-} // pub struct HTTPLoad
-impl flatbuffers::SafeSliceAccess for HTTPLoad {}
-impl<'a> flatbuffers::Follow<'a> for HTTPLoad {
-  type Inner = &'a HTTPLoad;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a HTTPLoad>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a HTTPLoad {
-  type Inner = &'a HTTPLoad;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<HTTPLoad>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for HTTPLoad {
-    type Output = HTTPLoad;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const HTTPLoad as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b HTTPLoad {
-    type Output = HTTPLoad;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const HTTPLoad as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl HTTPLoad {
-  pub fn new(_location: &Location, _verb: HTTPVerb, _url: &SectionEntry) -> Self {
-    HTTPLoad {
-      location_: *_location,
-      verb_: _verb.to_little_endian(),
-      url_: *_url,
-
-      padding0__: 0,padding1__: 0,
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.HTTPLoad"
-    }
-
-  pub fn location(&self) -> &Location {
-    &self.location_
-  }
-  pub fn verb(&self) -> HTTPVerb {
-    self.verb_.from_little_endian()
-  }
-  pub fn url(&self) -> &SectionEntry {
-    &self.url_
-  }
-}
-
-// struct FileLoad, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct FileLoad {
-  pub location_: Location,
-} // pub struct FileLoad
-impl flatbuffers::SafeSliceAccess for FileLoad {}
-impl<'a> flatbuffers::Follow<'a> for FileLoad {
-  type Inner = &'a FileLoad;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a FileLoad>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a FileLoad {
-  type Inner = &'a FileLoad;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<FileLoad>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for FileLoad {
-    type Output = FileLoad;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const FileLoad as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b FileLoad {
-    type Output = FileLoad;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const FileLoad as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl FileLoad {
-  pub fn new(_location: &Location) -> Self {
-    FileLoad {
-      location_: *_location,
-
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.FileLoad"
-    }
-
-  pub fn location(&self) -> &Location {
-    &self.location_
-  }
-}
-
-// struct LoadStatement, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct LoadStatement {
-  pub location_: Location,
-  pub name_: SectionEntry,
-  pub method_: SectionEntry,
-} // pub struct LoadStatement
-impl flatbuffers::SafeSliceAccess for LoadStatement {}
-impl<'a> flatbuffers::Follow<'a> for LoadStatement {
-  type Inner = &'a LoadStatement;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a LoadStatement>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a LoadStatement {
-  type Inner = &'a LoadStatement;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<LoadStatement>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for LoadStatement {
-    type Output = LoadStatement;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const LoadStatement as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b LoadStatement {
-    type Output = LoadStatement;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const LoadStatement as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl LoadStatement {
-  pub fn new(_location: &Location, _name: &SectionEntry, _method: &SectionEntry) -> Self {
-    LoadStatement {
-      location_: *_location,
-      name_: *_name,
-      method_: *_method,
-
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.LoadStatement"
-    }
-
-  pub fn location(&self) -> &Location {
-    &self.location_
-  }
-  pub fn name(&self) -> &SectionEntry {
-    &self.name_
-  }
-  pub fn method(&self) -> &SectionEntry {
-    &self.method_
-  }
-}
-
-// struct JSONPathExtract, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct JSONPathExtract {
-  pub location_: Location,
-} // pub struct JSONPathExtract
-impl flatbuffers::SafeSliceAccess for JSONPathExtract {}
-impl<'a> flatbuffers::Follow<'a> for JSONPathExtract {
-  type Inner = &'a JSONPathExtract;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a JSONPathExtract>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a JSONPathExtract {
-  type Inner = &'a JSONPathExtract;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<JSONPathExtract>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for JSONPathExtract {
-    type Output = JSONPathExtract;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const JSONPathExtract as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b JSONPathExtract {
-    type Output = JSONPathExtract;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const JSONPathExtract as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl JSONPathExtract {
-  pub fn new(_location: &Location) -> Self {
-    JSONPathExtract {
-      location_: *_location,
-
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.JSONPathExtract"
-    }
-
-  pub fn location(&self) -> &Location {
-    &self.location_
-  }
-}
-
-// struct CSVExtract, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct CSVExtract {
-  pub location_: Location,
-} // pub struct CSVExtract
-impl flatbuffers::SafeSliceAccess for CSVExtract {}
-impl<'a> flatbuffers::Follow<'a> for CSVExtract {
-  type Inner = &'a CSVExtract;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a CSVExtract>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a CSVExtract {
-  type Inner = &'a CSVExtract;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<CSVExtract>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for CSVExtract {
-    type Output = CSVExtract;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const CSVExtract as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b CSVExtract {
-    type Output = CSVExtract;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const CSVExtract as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl CSVExtract {
-  pub fn new(_location: &Location) -> Self {
-    CSVExtract {
-      location_: *_location,
-
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.CSVExtract"
-    }
-
-  pub fn location(&self) -> &Location {
-    &self.location_
-  }
-}
-
-// struct ExtractStatement, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct ExtractStatement {
-  pub location_: Location,
-  pub name_: SectionEntry,
-  pub data_: SectionEntry,
-  pub method_: SectionEntry,
-} // pub struct ExtractStatement
-impl flatbuffers::SafeSliceAccess for ExtractStatement {}
-impl<'a> flatbuffers::Follow<'a> for ExtractStatement {
-  type Inner = &'a ExtractStatement;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a ExtractStatement>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a ExtractStatement {
-  type Inner = &'a ExtractStatement;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<ExtractStatement>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for ExtractStatement {
-    type Output = ExtractStatement;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const ExtractStatement as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b ExtractStatement {
-    type Output = ExtractStatement;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const ExtractStatement as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl ExtractStatement {
-  pub fn new(_location: &Location, _name: &SectionEntry, _data: &SectionEntry, _method: &SectionEntry) -> Self {
-    ExtractStatement {
-      location_: *_location,
-      name_: *_name,
-      data_: *_data,
-      method_: *_method,
-
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.ExtractStatement"
-    }
-
-  pub fn location(&self) -> &Location {
-    &self.location_
-  }
-  pub fn name(&self) -> &SectionEntry {
-    &self.name_
-  }
-  pub fn data(&self) -> &SectionEntry {
-    &self.data_
-  }
-  pub fn method(&self) -> &SectionEntry {
-    &self.method_
-  }
-}
-
-// struct VizStatement, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct VizStatement {
-  pub location_: Location,
-  pub tag_: VizTag,
-  padding0__: u8,  padding1__: u16,
-  pub name_: SectionEntry,
-  pub query_name_: SectionEntry,
-} // pub struct VizStatement
-impl flatbuffers::SafeSliceAccess for VizStatement {}
-impl<'a> flatbuffers::Follow<'a> for VizStatement {
-  type Inner = &'a VizStatement;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a VizStatement>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a VizStatement {
-  type Inner = &'a VizStatement;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<VizStatement>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for VizStatement {
-    type Output = VizStatement;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const VizStatement as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b VizStatement {
-    type Output = VizStatement;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const VizStatement as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl VizStatement {
-  pub fn new(_location: &Location, _tag: VizTag, _name: &SectionEntry, _query_name: &SectionEntry) -> Self {
-    VizStatement {
-      location_: *_location,
-      tag_: _tag.to_little_endian(),
-      name_: *_name,
-      query_name_: *_query_name,
-
-      padding0__: 0,padding1__: 0,
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.VizStatement"
-    }
-
-  pub fn location(&self) -> &Location {
-    &self.location_
-  }
-  pub fn tag(&self) -> VizTag {
-    self.tag_.from_little_endian()
-  }
-  pub fn name(&self) -> &SectionEntry {
-    &self.name_
-  }
-  pub fn query_name(&self) -> &SectionEntry {
-    &self.query_name_
-  }
-}
-
-pub enum SectionsOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
-
-pub struct Sections<'a> {
-  pub _tab: flatbuffers::Table<'a>,
-}
-
-impl<'a> flatbuffers::Follow<'a> for Sections<'a> {
-    type Inner = Sections<'a>;
-    #[inline]
-    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self { _tab: flatbuffers::Table { buf, loc } }
-    }
-}
-
-impl<'a> Sections<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.Sections"
-    }
-
-    #[inline]
-    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        Sections {
-            _tab: table,
-        }
-    }
-    #[allow(unused_mut)]
-    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        args: &'args SectionsArgs<'args>) -> flatbuffers::WIPOffset<Sections<'bldr>> {
-      let mut builder = SectionsBuilder::new(_fbb);
-      if let Some(x) = args.viz_statements { builder.add_viz_statements(x); }
-      if let Some(x) = args.extracts_jsonpath { builder.add_extracts_jsonpath(x); }
-      if let Some(x) = args.extracts_csv { builder.add_extracts_csv(x); }
-      if let Some(x) = args.loads_http { builder.add_loads_http(x); }
-      if let Some(x) = args.loads_file { builder.add_loads_file(x); }
-      if let Some(x) = args.parameter_declarations { builder.add_parameter_declarations(x); }
-      if let Some(x) = args.literals_string { builder.add_literals_string(x); }
-      if let Some(x) = args.literals_f64 { builder.add_literals_f64(x); }
-      if let Some(x) = args.literals_i64 { builder.add_literals_i64(x); }
-      builder.finish()
-    }
-
-    pub const VT_LITERALS_I64: flatbuffers::VOffsetT = 4;
-    pub const VT_LITERALS_F64: flatbuffers::VOffsetT = 6;
-    pub const VT_LITERALS_STRING: flatbuffers::VOffsetT = 8;
-    pub const VT_PARAMETER_DECLARATIONS: flatbuffers::VOffsetT = 10;
-    pub const VT_LOADS_FILE: flatbuffers::VOffsetT = 12;
-    pub const VT_LOADS_HTTP: flatbuffers::VOffsetT = 14;
-    pub const VT_EXTRACTS_CSV: flatbuffers::VOffsetT = 16;
-    pub const VT_EXTRACTS_JSONPATH: flatbuffers::VOffsetT = 18;
-    pub const VT_VIZ_STATEMENTS: flatbuffers::VOffsetT = 20;
-
-  #[inline]
-  pub fn literals_i64(&self) -> Option<flatbuffers::Vector<'a, i64>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, i64>>>(Sections::VT_LITERALS_I64, None)
-  }
-  #[inline]
-  pub fn literals_f64(&self) -> Option<flatbuffers::Vector<'a, f64>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, f64>>>(Sections::VT_LITERALS_F64, None)
-  }
-  #[inline]
-  pub fn literals_string(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<&'a str>>>>(Sections::VT_LITERALS_STRING, None)
-  }
-  #[inline]
-  pub fn parameter_declarations(&self) -> Option<&'a [ParameterDeclaration]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<ParameterDeclaration>>>(Sections::VT_PARAMETER_DECLARATIONS, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn loads_file(&self) -> Option<&'a [FileLoad]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<FileLoad>>>(Sections::VT_LOADS_FILE, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn loads_http(&self) -> Option<&'a [HTTPLoad]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<HTTPLoad>>>(Sections::VT_LOADS_HTTP, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn extracts_csv(&self) -> Option<&'a [CSVExtract]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<CSVExtract>>>(Sections::VT_EXTRACTS_CSV, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn extracts_jsonpath(&self) -> Option<&'a [JSONPathExtract]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<JSONPathExtract>>>(Sections::VT_EXTRACTS_JSONPATH, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn viz_statements(&self) -> Option<&'a [VizStatement]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<VizStatement>>>(Sections::VT_VIZ_STATEMENTS, None).map(|v| v.safe_slice() )
-  }
-}
-
-pub struct SectionsArgs<'a> {
-    pub literals_i64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i64>>>,
-    pub literals_f64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, f64>>>,
-    pub literals_string: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>>,
-    pub parameter_declarations: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, ParameterDeclaration>>>,
-    pub loads_file: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, FileLoad>>>,
-    pub loads_http: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, HTTPLoad>>>,
-    pub extracts_csv: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, CSVExtract>>>,
-    pub extracts_jsonpath: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, JSONPathExtract>>>,
-    pub viz_statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, VizStatement>>>,
-}
-impl<'a> Default for SectionsArgs<'a> {
-    #[inline]
-    fn default() -> Self {
-        SectionsArgs {
-            literals_i64: None,
-            literals_f64: None,
-            literals_string: None,
-            parameter_declarations: None,
-            loads_file: None,
-            loads_http: None,
-            extracts_csv: None,
-            extracts_jsonpath: None,
-            viz_statements: None,
-        }
-    }
-}
-pub struct SectionsBuilder<'a: 'b, 'b> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-}
-impl<'a: 'b, 'b> SectionsBuilder<'a, 'b> {
-  #[inline]
-  pub fn add_literals_i64(&mut self, literals_i64: flatbuffers::WIPOffset<flatbuffers::Vector<'b , i64>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Sections::VT_LITERALS_I64, literals_i64);
-  }
-  #[inline]
-  pub fn add_literals_f64(&mut self, literals_f64: flatbuffers::WIPOffset<flatbuffers::Vector<'b , f64>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Sections::VT_LITERALS_F64, literals_f64);
-  }
-  #[inline]
-  pub fn add_literals_string(&mut self, literals_string: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<&'b  str>>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Sections::VT_LITERALS_STRING, literals_string);
-  }
-  #[inline]
-  pub fn add_parameter_declarations(&mut self, parameter_declarations: flatbuffers::WIPOffset<flatbuffers::Vector<'b , ParameterDeclaration>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Sections::VT_PARAMETER_DECLARATIONS, parameter_declarations);
-  }
-  #[inline]
-  pub fn add_loads_file(&mut self, loads_file: flatbuffers::WIPOffset<flatbuffers::Vector<'b , FileLoad>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Sections::VT_LOADS_FILE, loads_file);
-  }
-  #[inline]
-  pub fn add_loads_http(&mut self, loads_http: flatbuffers::WIPOffset<flatbuffers::Vector<'b , HTTPLoad>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Sections::VT_LOADS_HTTP, loads_http);
-  }
-  #[inline]
-  pub fn add_extracts_csv(&mut self, extracts_csv: flatbuffers::WIPOffset<flatbuffers::Vector<'b , CSVExtract>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Sections::VT_EXTRACTS_CSV, extracts_csv);
-  }
-  #[inline]
-  pub fn add_extracts_jsonpath(&mut self, extracts_jsonpath: flatbuffers::WIPOffset<flatbuffers::Vector<'b , JSONPathExtract>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Sections::VT_EXTRACTS_JSONPATH, extracts_jsonpath);
-  }
-  #[inline]
-  pub fn add_viz_statements(&mut self, viz_statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , VizStatement>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Sections::VT_VIZ_STATEMENTS, viz_statements);
-  }
-  #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> SectionsBuilder<'a, 'b> {
-    let start = _fbb.start_table();
-    SectionsBuilder {
-      fbb_: _fbb,
-      start_: start,
-    }
-  }
-  #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<Sections<'a>> {
-    let o = self.fbb_.end_table(self.start_);
-    flatbuffers::WIPOffset::new(o.value())
+  pub fn type_(&self) -> ObjectType {
+    self.type__.from_little_endian()
+  }
+  pub fn attributes(&self) -> &Span {
+    &self.attributes_
   }
 }
 
@@ -1444,6 +976,132 @@ impl<'a: 'b, 'b> ErrorBuilder<'a, 'b> {
   }
 }
 
+pub enum ModuleSectionsOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct ModuleSections<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for ModuleSections<'a> {
+    type Inner = ModuleSections<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self { _tab: flatbuffers::Table { buf, loc } }
+    }
+}
+
+impl<'a> ModuleSections<'a> {
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "dashql.proto.syntax.ModuleSections"
+    }
+
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        ModuleSections {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args ModuleSectionsArgs<'args>) -> flatbuffers::WIPOffset<ModuleSections<'bldr>> {
+      let mut builder = ModuleSectionsBuilder::new(_fbb);
+      if let Some(x) = args.object_arrays { builder.add_object_arrays(x); }
+      if let Some(x) = args.objects { builder.add_objects(x); }
+      if let Some(x) = args.attributes { builder.add_attributes(x); }
+      if let Some(x) = args.number_arrays { builder.add_number_arrays(x); }
+      if let Some(x) = args.numbers { builder.add_numbers(x); }
+      builder.finish()
+    }
+
+    pub const VT_NUMBERS: flatbuffers::VOffsetT = 4;
+    pub const VT_NUMBER_ARRAYS: flatbuffers::VOffsetT = 6;
+    pub const VT_ATTRIBUTES: flatbuffers::VOffsetT = 8;
+    pub const VT_OBJECTS: flatbuffers::VOffsetT = 10;
+    pub const VT_OBJECT_ARRAYS: flatbuffers::VOffsetT = 12;
+
+  #[inline]
+  pub fn numbers(&self) -> Option<flatbuffers::Vector<'a, f64>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, f64>>>(ModuleSections::VT_NUMBERS, None)
+  }
+  #[inline]
+  pub fn number_arrays(&self) -> Option<&'a [Span]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Span>>>(ModuleSections::VT_NUMBER_ARRAYS, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn attributes(&self) -> Option<&'a [Attribute]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Attribute>>>(ModuleSections::VT_ATTRIBUTES, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn objects(&self) -> Option<&'a [Object]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Object>>>(ModuleSections::VT_OBJECTS, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn object_arrays(&self) -> Option<&'a [Span]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Span>>>(ModuleSections::VT_OBJECT_ARRAYS, None).map(|v| v.safe_slice() )
+  }
+}
+
+pub struct ModuleSectionsArgs<'a> {
+    pub numbers: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, f64>>>,
+    pub number_arrays: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Span>>>,
+    pub attributes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Attribute>>>,
+    pub objects: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
+    pub object_arrays: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Span>>>,
+}
+impl<'a> Default for ModuleSectionsArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        ModuleSectionsArgs {
+            numbers: None,
+            number_arrays: None,
+            attributes: None,
+            objects: None,
+            object_arrays: None,
+        }
+    }
+}
+pub struct ModuleSectionsBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> ModuleSectionsBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_numbers(&mut self, numbers: flatbuffers::WIPOffset<flatbuffers::Vector<'b , f64>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ModuleSections::VT_NUMBERS, numbers);
+  }
+  #[inline]
+  pub fn add_number_arrays(&mut self, number_arrays: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Span>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ModuleSections::VT_NUMBER_ARRAYS, number_arrays);
+  }
+  #[inline]
+  pub fn add_attributes(&mut self, attributes: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Attribute>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ModuleSections::VT_ATTRIBUTES, attributes);
+  }
+  #[inline]
+  pub fn add_objects(&mut self, objects: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Object>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ModuleSections::VT_OBJECTS, objects);
+  }
+  #[inline]
+  pub fn add_object_arrays(&mut self, object_arrays: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Span>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ModuleSections::VT_OBJECT_ARRAYS, object_arrays);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ModuleSectionsBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    ModuleSectionsBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<ModuleSections<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
 pub enum ModuleOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
@@ -1476,22 +1134,22 @@ impl<'a> Module<'a> {
         args: &'args ModuleArgs<'args>) -> flatbuffers::WIPOffset<Module<'bldr>> {
       let mut builder = ModuleBuilder::new(_fbb);
       if let Some(x) = args.errors { builder.add_errors(x); }
-      if let Some(x) = args.sections { builder.add_sections(x); }
       if let Some(x) = args.statements { builder.add_statements(x); }
+      if let Some(x) = args.sections { builder.add_sections(x); }
       builder.finish()
     }
 
-    pub const VT_STATEMENTS: flatbuffers::VOffsetT = 4;
-    pub const VT_SECTIONS: flatbuffers::VOffsetT = 6;
+    pub const VT_SECTIONS: flatbuffers::VOffsetT = 4;
+    pub const VT_STATEMENTS: flatbuffers::VOffsetT = 6;
     pub const VT_ERRORS: flatbuffers::VOffsetT = 8;
 
   #[inline]
-  pub fn statements(&self) -> Option<&'a [SectionEntry]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<SectionEntry>>>(Module::VT_STATEMENTS, None).map(|v| v.safe_slice() )
+  pub fn sections(&self) -> Option<ModuleSections<'a>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<ModuleSections<'a>>>(Module::VT_SECTIONS, None)
   }
   #[inline]
-  pub fn sections(&self) -> Option<Sections<'a>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<Sections<'a>>>(Module::VT_SECTIONS, None)
+  pub fn statements(&self) -> Option<flatbuffers::Vector<'a, u32>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u32>>>(Module::VT_STATEMENTS, None)
   }
   #[inline]
   pub fn errors(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>> {
@@ -1500,16 +1158,16 @@ impl<'a> Module<'a> {
 }
 
 pub struct ModuleArgs<'a> {
-    pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, SectionEntry>>>,
-    pub sections: Option<flatbuffers::WIPOffset<Sections<'a>>>,
+    pub sections: Option<flatbuffers::WIPOffset<ModuleSections<'a>>>,
+    pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u32>>>,
     pub errors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>>>,
 }
 impl<'a> Default for ModuleArgs<'a> {
     #[inline]
     fn default() -> Self {
         ModuleArgs {
-            statements: None,
             sections: None,
+            statements: None,
             errors: None,
         }
     }
@@ -1520,12 +1178,12 @@ pub struct ModuleBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> ModuleBuilder<'a, 'b> {
   #[inline]
-  pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , SectionEntry>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_STATEMENTS, statements);
+  pub fn add_sections(&mut self, sections: flatbuffers::WIPOffset<ModuleSections<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<ModuleSections>>(Module::VT_SECTIONS, sections);
   }
   #[inline]
-  pub fn add_sections(&mut self, sections: flatbuffers::WIPOffset<Sections<'b >>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Sections>>(Module::VT_SECTIONS, sections);
+  pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u32>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_STATEMENTS, statements);
   }
   #[inline]
   pub fn add_errors(&mut self, errors: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Error<'b >>>>) {

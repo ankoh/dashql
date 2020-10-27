@@ -113,7 +113,7 @@ add_library(dashql_parser
     ${DASHQL_PARSER_OUT}
     ${CMAKE_SOURCE_DIR}/src/parse_context.cc
     ${CMAKE_SOURCE_DIR}/src/syntax.cc
-    ${CMAKE_SOURCE_DIR}/src/codec.cc
+    ${CMAKE_SOURCE_DIR}/src/module_builder.cc
 )
 
 target_link_libraries(dashql_parser

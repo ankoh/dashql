@@ -23,7 +23,7 @@ namespace dashql {
 namespace parser {
 
 // The location of the current token
-extern dashql::parser::location loc;
+extern dashql::parser::Location loc;
 // The input string view
 extern std::string_view in;
 // The reader offset
@@ -32,24 +32,13 @@ extern size_t reader_offset;
 extern size_t parser_offset;
 
 // Get the token text
-inline std::string_view getTokenText() { return in.substr(parser_offset - dashql_leng, dashql_leng); }
-
-namespace scanner {
-Location locate(class location location) {
-    return {
-        {static_cast<uint32_t>(location.begin.line), static_cast<uint32_t>(location.begin.column)},
-        {static_cast<uint32_t>(location.end.line), static_cast<uint32_t>(location.end.column)}
-    };
-}
-
-} // namespace scanner
+inline std::string_view tokenText() { return in.substr(parser_offset - yyleng, yyleng); }
 
 } // namespace parser
 } // namespace dashql
 
 using namespace dashql;
 using namespace dashql::parser;
-using namespace dashql::parser::scanner;
 
 // Work around an incompatibility in flex (at least versions
 // 2.5.31 through 2.5.33): it generates code that does
@@ -58,8 +47,10 @@ using namespace dashql::parser::scanner;
 #undef yywrap
 #define yywrap() 1
 
-// Declare the dashql_lex function
-#define YY_DECL Parser::symbol_type dashql_lex(dashql::parser::ParseContext& ctx)
+// Declare the yylex function
+#define YY_DECL Parser::symbol_type yylex(dashql::parser::ParseContext& ctx)
+// Init yyloc
+#define YY_USER_INIT loc.offset = loc.length = 0;
 // Configure the scanner to use string views
 #define YY_INPUT(buffer, bytes_read, max_bytes) \
     bytes_read = in.copy(buffer, max_bytes, reader_offset); \
@@ -83,148 +74,141 @@ using namespace dashql::parser::scanner;
 %option batch
 %option debug
 %option caseless
-%option prefix="dashql_"
 
 %{
 // Code run each time a token is matched.
 // We just update the location of the token.
 #define YY_USER_ACTION { \
-    auto token_text = in.substr(parser_offset, dashql_leng); \
-    for (const char& c : token_text) { \
-        if (c == '\n') { \
-            loc.lines(1); \
-        } else { \
-            loc.columns(1); \
-        } \
-    } \
-    parser_offset += dashql_leng; \
+    loc.offset += yyleng; \
+    parser_offset += yyleng; \
 }
 %}
 
 %%
 
 %{
-// Code runs each time dashql_lex is called.
-// Set the beginning of the token to the end of the previous token.
-loc.step();
+// Code runs each time yylex is called.
+// Start a new token.
+loc.offset += loc.length;
+loc.length = 0;
 %}
 
-"," { return Parser::make_COMMA(loc); }
-";" { return Parser::make_SEMICOLON(loc); }
-"(" { return Parser::make_LEFT_ROUND_BRACKETS(loc); }
-")" { return Parser::make_RIGHT_ROUND_BRACKETS(loc); }
-"[" { return Parser::make_LEFT_SQUARE_BRACKETS(loc); }
-"]" { return Parser::make_RIGHT_SQUARE_BRACKETS(loc); }
-"*" { return Parser::make_STAR(loc); }
-"/" { return Parser::make_SLASH(loc); }
-"=" { return Parser::make_EQUAL(loc); }
-"$" { return Parser::make_DOLLAR(loc); }
+","             { return Parser::make_COMMA(loc); }
+";"             { return Parser::make_SEMICOLON(loc); }
+"("             { return Parser::make_LEFT_ROUND_BRACKETS(loc); }
+")"             { return Parser::make_RIGHT_ROUND_BRACKETS(loc); }
+"["             { return Parser::make_LEFT_SQUARE_BRACKETS(loc); }
+"]"             { return Parser::make_RIGHT_SQUARE_BRACKETS(loc); }
+"*"             { return Parser::make_STAR(loc); }
+"/"             { return Parser::make_SLASH(loc); }
+"="             { return Parser::make_EQUAL(loc); }
+"$"             { return Parser::make_DOLLAR(loc); }
 
-"area"          { return Parser::make_AREA(getTokenText(), loc); }
-"as"            { return Parser::make_AS(getTokenText(), loc); }
-"axes"          { return Parser::make_AXES(getTokenText(), loc); }
-"bar"           { return Parser::make_BAR(getTokenText(), loc); }
-"box"           { return Parser::make_BOX(getTokenText(), loc); }
-"bubble"        { return Parser::make_BUBBLE(getTokenText(), loc); }
-"chart"         { return Parser::make_CHART(getTokenText(), loc); }
-"color"         { return Parser::make_COLOR(getTokenText(), loc); }
-"column"        { return Parser::make_COLUMN(getTokenText(), loc); }
-"csv"           { return Parser::make_CSV(getTokenText(), loc); }
-"date"          { return Parser::make_DATE(getTokenText(), loc); }
-"datetime"      { return Parser::make_DATETIME(getTokenText(), loc); }
-"declare"       { return Parser::make_DECLARE(getTokenText(), loc); }
-"delimiter"     { return Parser::make_DELIMITER(getTokenText(), loc); }
-"encoding"      { return Parser::make_ENCODING(getTokenText(), loc); }
-"extract"       { return Parser::make_EXTRACT(getTokenText(), loc); }
-"false"         { return Parser::make_FALSE(getTokenText(), loc); }
-"field"         { return Parser::make_FIELD(getTokenText(), loc); }
-"file"          { return Parser::make_FILE(getTokenText(), loc); }
-"float"         { return Parser::make_FLOAT(getTokenText(), loc); }
-"format"        { return Parser::make_FORMAT(getTokenText(), loc); }
-"from"          { return Parser::make_FROM(getTokenText(), loc); }
-"get"           { return Parser::make_GET(getTokenText(), loc); }
-"grid"          { return Parser::make_GRID(getTokenText(), loc); }
-"header"        { return Parser::make_HEADER(getTokenText(), loc); }
-"height"        { return Parser::make_HEIGHT(getTokenText(), loc); }
-"histogram"     { return Parser::make_HISTOGRAM(getTokenText(), loc); }
-"horizontal"    { return Parser::make_HORIZONTAL(getTokenText(), loc); }
-"http"          { return Parser::make_HTTP(getTokenText(), loc); }
-"integer"       { return Parser::make_INTEGER(getTokenText(), loc); }
-"json"          { return Parser::make_JSON(getTokenText(), loc); }
-"lg"            { return Parser::make_LG(getTokenText(), loc); }
-"line"          { return Parser::make_LINE(getTokenText(), loc); }
-"linear"        { return Parser::make_LINEAR(getTokenText(), loc); }
-"load"          { return Parser::make_LOAD(getTokenText(), loc); }
-"log"           { return Parser::make_LOG(getTokenText(), loc); }
-"md"            { return Parser::make_MD(getTokenText(), loc); }
-"method"        { return Parser::make_METHOD(getTokenText(), loc); }
-"number"        { return Parser::make_NUMBER(getTokenText(), loc); }
-"palette"       { return Parser::make_PALETTE(getTokenText(), loc); }
-"parameter"     { return Parser::make_PARAMETER(getTokenText(), loc); }
-"parquet"       { return Parser::make_PARQUET(getTokenText(), loc); }
-"percent"       { return Parser::make_PERCENT(getTokenText(), loc); }
-"pie"           { return Parser::make_PIE(getTokenText(), loc); }
-"plot"          { return Parser::make_PLOT(getTokenText(), loc); }
-"point"         { return Parser::make_POINT(getTokenText(), loc); }
-"post"          { return Parser::make_POST(getTokenText(), loc); }
-"put"           { return Parser::make_PUT(getTokenText(), loc); }
-"px"            { return Parser::make_PX(getTokenText(), loc); }
-"query"         { return Parser::make_QUERY(getTokenText(), loc); }
-"quote"         { return Parser::make_QUOTE(getTokenText(), loc); }
-"rgb"           { return Parser::make_RGB(getTokenText(), loc); }
-"scale"         { return Parser::make_SCALE(getTokenText(), loc); }
-"scatter"       { return Parser::make_SCATTER(getTokenText(), loc); }
-"show"          { return Parser::make_SHOW(getTokenText(), loc); }
-"sm"            { return Parser::make_SM(getTokenText(), loc); }
-"stacked"       { return Parser::make_STACKED(getTokenText(), loc); }
-"table"         { return Parser::make_TABLE(getTokenText(), loc); }
-"text"          { return Parser::make_TEXT(getTokenText(), loc); }
-"time"          { return Parser::make_TIME(getTokenText(), loc); }
-"timestamp"     { return Parser::make_TIMESTAMP(getTokenText(), loc); }
-"title"         { return Parser::make_TITLE(getTokenText(), loc); }
-"true"          { return Parser::make_TRUE(getTokenText(), loc); }
-"type"          { return Parser::make_TYPE(getTokenText(), loc); }
-"url"           { return Parser::make_URL(getTokenText(), loc); }
-"using"         { return Parser::make_USING(getTokenText(), loc); }
-"vertical"      { return Parser::make_VERTICAL(getTokenText(), loc); }
-"vis"           { return Parser::make_VIS(getTokenText(), loc); }
-"visualise"     { return Parser::make_VISUALISE(getTokenText(), loc); }
-"visualize"     { return Parser::make_VISUALIZE(getTokenText(), loc); }
-"viz"           { return Parser::make_VIZ(getTokenText(), loc); }
-"width"         { return Parser::make_WIDTH(getTokenText(), loc); }
-"x"             { return Parser::make_X(getTokenText(), loc); }
-"xl"            { return Parser::make_XL(getTokenText(), loc); }
-"y"             { return Parser::make_Y(getTokenText(), loc); }
+"area"          { return Parser::make_AREA(loc); }
+"as"            { return Parser::make_AS(loc); }
+"axes"          { return Parser::make_AXES(loc); }
+"bar"           { return Parser::make_BAR(loc); }
+"box"           { return Parser::make_BOX(loc); }
+"bubble"        { return Parser::make_BUBBLE(loc); }
+"chart"         { return Parser::make_CHART(loc); }
+"color"         { return Parser::make_COLOR(loc); }
+"column"        { return Parser::make_COLUMN(loc); }
+"csv"           { return Parser::make_CSV(loc); }
+"date"          { return Parser::make_DATE(loc); }
+"datetime"      { return Parser::make_DATETIME(loc); }
+"declare"       { return Parser::make_DECLARE(loc); }
+"delimiter"     { return Parser::make_DELIMITER(loc); }
+"encoding"      { return Parser::make_ENCODING(loc); }
+"extract"       { return Parser::make_EXTRACT(loc); }
+"false"         { return Parser::make_FALSE(loc); }
+"field"         { return Parser::make_FIELD(loc); }
+"file"          { return Parser::make_FILE(loc); }
+"float"         { return Parser::make_FLOAT(loc); }
+"format"        { return Parser::make_FORMAT(loc); }
+"from"          { return Parser::make_FROM(loc); }
+"get"           { return Parser::make_GET(loc); }
+"grid"          { return Parser::make_GRID(loc); }
+"header"        { return Parser::make_HEADER(loc); }
+"height"        { return Parser::make_HEIGHT(loc); }
+"histogram"     { return Parser::make_HISTOGRAM(loc); }
+"horizontal"    { return Parser::make_HORIZONTAL(loc); }
+"http"          { return Parser::make_HTTP(loc); }
+"integer"       { return Parser::make_INTEGER(loc); }
+"json"          { return Parser::make_JSON(loc); }
+"lg"            { return Parser::make_LG(loc); }
+"line"          { return Parser::make_LINE(loc); }
+"linear"        { return Parser::make_LINEAR(loc); }
+"load"          { return Parser::make_LOAD(loc); }
+"log"           { return Parser::make_LOG(loc); }
+"md"            { return Parser::make_MD(loc); }
+"method"        { return Parser::make_METHOD(loc); }
+"number"        { return Parser::make_NUMBER(loc); }
+"palette"       { return Parser::make_PALETTE(loc); }
+"parameter"     { return Parser::make_PARAMETER(loc); }
+"parquet"       { return Parser::make_PARQUET(loc); }
+"percent"       { return Parser::make_PERCENT(loc); }
+"pie"           { return Parser::make_PIE(loc); }
+"plot"          { return Parser::make_PLOT(loc); }
+"point"         { return Parser::make_POINT(loc); }
+"post"          { return Parser::make_POST(loc); }
+"put"           { return Parser::make_PUT(loc); }
+"px"            { return Parser::make_PX(loc); }
+"query"         { return Parser::make_QUERY(loc); }
+"quote"         { return Parser::make_QUOTE(loc); }
+"rgb"           { return Parser::make_RGB(loc); }
+"scale"         { return Parser::make_SCALE(loc); }
+"scatter"       { return Parser::make_SCATTER(loc); }
+"show"          { return Parser::make_SHOW(loc); }
+"sm"            { return Parser::make_SM(loc); }
+"stacked"       { return Parser::make_STACKED(loc); }
+"table"         { return Parser::make_TABLE(loc); }
+"text"          { return Parser::make_TEXT(loc); }
+"time"          { return Parser::make_TIME(loc); }
+"timestamp"     { return Parser::make_TIMESTAMP(loc); }
+"title"         { return Parser::make_TITLE(loc); }
+"true"          { return Parser::make_TRUE(loc); }
+"type"          { return Parser::make_TYPE(loc); }
+"url"           { return Parser::make_URL(loc); }
+"using"         { return Parser::make_USING(loc); }
+"vertical"      { return Parser::make_VERTICAL(loc); }
+"vis"           { return Parser::make_VIS(loc); }
+"visualise"     { return Parser::make_VISUALISE(loc); }
+"visualize"     { return Parser::make_VISUALIZE(loc); }
+"viz"           { return Parser::make_VIZ(loc); }
+"width"         { return Parser::make_WIDTH(loc); }
+"x"             { return Parser::make_X(loc); }
+"xl"            { return Parser::make_XL(loc); }
+"y"             { return Parser::make_Y(loc); }
 
-select[^;]*             { return Parser::make_SQL_SELECT(getTokenText(), loc); }
-with[^;]*               { return Parser::make_SQL_WITH(getTokenText(), loc); }
-[a-z][a-z0-9_]*         { return Parser::make_IDENTIFIER_LITERAL(getTokenText(), loc); }
-[<][a-z][a-z0-9_]*[>]   { return Parser::make_PLACEHOLDER_LITERAL(getTokenText(), loc); }
+select[^;]*             { return Parser::make_SQL_SELECT(loc); }
+with[^;]*               { return Parser::make_SQL_WITH(loc); }
+[a-z][a-z0-9_]*         { return Parser::make_IDENTIFIER_LITERAL(loc); }
+[<][a-z][a-z0-9_]*[>]   { return Parser::make_PLACEHOLDER_LITERAL(loc); }
 ['"][^'"]*['"]          {
-                            auto text = getTokenText();
+                            auto text = tokenText();
                             return Parser::make_STRING_LITERAL(text.substr(1, text.size() - 2), loc);
                         }
 [0-9]+                  {
-                            uint32_t value = 0;
+                            int64_t value = 0;
 
-                            auto stream = std::stringstream(dashql_text);
+                            auto stream = std::stringstream(yytext);
                             stream >> value;
 
                             if (!stream) {
-                                auto message = std::string("Invalid number \"") + dashql_text + std::string("\"");
-                                ctx.RaiseError(locate(loc), message);
+                                auto message = std::string("Invalid number \"") + yytext + std::string("\"");
+                                ctx.addError(loc, message);
                             }
 
                             return Parser::make_INTEGER_LITERAL(value, loc);
                         }
 
-[ \t\r]+    { loc.step(); }
-\n          { loc.step(); }
+[ \t\r]+    {}
+\n          {}
 
 <<EOF>> { return Parser::make_EOF(loc); }
 .       {
-            auto message = std::string("Invalid character \"") + dashql_text + std::string("\"");
-            ctx.RaiseError(locate(loc), message);
+            auto message = std::string("Invalid character \"") + yytext + std::string("\"");
+            ctx.addError(loc, message);
         }
 
 %%
@@ -232,7 +216,7 @@ with[^;]*               { return Parser::make_SQL_WITH(getTokenText(), loc); }
 // Code
 
 // The input location
-dashql::parser::location dashql::parser::loc;
+dashql::parser::Location dashql::parser::loc;
 // The input view of the scanner
 std::string_view dashql::parser::in;
 // The reader offset
@@ -242,17 +226,19 @@ size_t dashql::parser::parser_offset;
 
 // Begin a scan
 void dashql::parser::ParseContext::beginScan(std::string_view s) {
-    dashql__flex_debug = _trace_scanning;
-    loc = location();
+    yy_flex_debug = _trace_scanning;
     in = s;
+    loc.offset = 0;
+    loc.length = 0;
     reader_offset = 0;
     parser_offset = 0;
 }
 
 // End a scan
 void dashql::parser::ParseContext::endScan() {
-    loc = location();
     in = {};
+    loc.offset = 0;
+    loc.length = 0;
     reader_offset = 0;
     parser_offset = 0;
 }
