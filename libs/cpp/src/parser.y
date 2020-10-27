@@ -24,8 +24,6 @@
 #include <utility>
 #include "dashql/parser/parse_context.h"
 
-namespace syntax = dashql::proto::syntax;
-
 #define YYLLOC_DEFAULT(Cur, Rhs, N) { \
     if (N) { \
         (Cur).offset = YYRHSLOC(Rhs, 1).offset; \
@@ -35,6 +33,10 @@ namespace syntax = dashql::proto::syntax;
         (Cur).length = 0; \
     } \
 }
+
+namespace syntax = dashql::proto::syntax;
+
+using AttrKey = syntax::AttributeKey;
 
 }
 
@@ -191,9 +193,9 @@ statement:
 parameter_declaration:
     DECLARE PARAMETER identifier opt_alias TYPE parameter_type  {
         $$ = ctx.AddObject(@$, syntax::ObjectType::PARAMETER_DECLARATION, {
-            {@3.encode(), syntax::AttributeKey::PARAMETER_IDENTIFIER, $3},
-            {@4.encode(), syntax::AttributeKey::PARAMETER_ALIAS, $4},
-            {@6.encode(), syntax::AttributeKey::PARAMETER_TYPE, $6},
+            {@3.encode(), AttrKey::PARAMETER_IDENTIFIER, $3},
+            {@4.encode(), AttrKey::PARAMETER_ALIAS, $4},
+            {@6.encode(), AttrKey::PARAMETER_TYPE, $6},
         });
     }
     ;
