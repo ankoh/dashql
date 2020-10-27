@@ -43,6 +43,7 @@ using ValueType = syntax::ValueType;
 using ParamType = syntax::ParameterType;
 using LoadMethodType = syntax::LoadMethodType;
 using HTTPVerb = syntax::HTTPVerb;
+using HTTP = syntax::HTTPVerb;
 using VizType = syntax::VizType;
 
 }
@@ -164,9 +165,8 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <syntax::Value> boolean;
 %type <syntax::Value> csv_header_value;
 %type <syntax::Value> extract_method;
-%type <syntax::Value> http_attribute;
+%type <syntax::Attribute> http_attribute;
 %type <syntax::Value> http_verb;
-%type <syntax::Value> load_method;
 %type <syntax::Value> parameter_type;
 %type <syntax::Value> string_value;
 %type <std::optional<syntax::Value>> opt_alias;
@@ -233,14 +233,9 @@ parameter_type:
     ;
 
 load_statement:
-    LOAD identifier FROM load_method load_attributes {
+    LOAD identifier FROM load_attributes {
     // XXX
     }
-    ;
-
-load_method:
-    HTTP    { $$ = Value(@$.encode(), ValueType::NUMBER, (int) LoadMethodType::HTTP); }
-  | FILE    { $$ = Value(@$.encode(), ValueType::NUMBER, (int) LoadMethodType::FILE); }
     ;
 
 load_attributes:
@@ -249,8 +244,8 @@ load_attributes:
     ;
 
 http_attribute_list:
-    http_attribute_list COMMA http_attribute    { }
-  | http_attribute                              { }
+    http_attribute_list COMMA http_attribute    { $1.push_back($3); $$ = move($1); }
+  | %empty                                      { $$ = std::vector<Attr>(); }
     ;
 
 http_attribute:
