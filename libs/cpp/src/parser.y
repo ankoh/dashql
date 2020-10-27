@@ -37,6 +37,9 @@
 namespace syntax = dashql::proto::syntax;
 
 using AttrKey = syntax::AttributeKey;
+using Value = syntax::Value;
+using ValueType = syntax::ValueType;
+using ParamType = syntax::ParameterType;
 
 }
 
@@ -212,13 +215,13 @@ opt_alias:
     ;
 
 parameter_type:
-    INTEGER     { }
-  | FLOAT       { }
-  | TEXT        { }
-  | DATE        { }
-  | DATETIME    { }
-  | TIME        { }
-  | FILE        { }
+    INTEGER     { $$ = Value(@$.encode(), ValueType::NUMBER, (int) ParamType::INTEGER); }
+  | FLOAT       { $$ = Value(@$.encode(), ValueType::NUMBER, (int) ParamType::FLOAT); }
+  | TEXT        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) ParamType::TEXT); }
+  | DATE        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) ParamType::DATE); }
+  | DATETIME    { $$ = Value(@$.encode(), ValueType::NUMBER, (int) ParamType::DATETIME); }
+  | TIME        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) ParamType::TIME); }
+  | FILE        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) ParamType::FILE); }
     ;
 
 load_statement:
