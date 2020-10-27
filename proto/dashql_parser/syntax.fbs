@@ -23,6 +23,9 @@ struct Value {
 
 enum AttributeKey: uint8 {
     NONE = 0,
+    PARAMETER_IDENTIFIER,
+    PARAMETER_ALIAS,
+    PARAMETER_TYPE,
     FILE_LOAD_NAME,
     HTTP_LOAD_NAME,
     HTTP_LOAD_VERB,
@@ -54,6 +57,7 @@ enum ObjectType: uint8 {
     NONE = 0,
     HTTP_LOAD,
     FILE_LOAD,
+    PARAMETER_DECLARATION,
     JSONPATH_EXTRACT,
     CSV_EXTRACT,
     EXTRACT_STATEMENT,

@@ -20,7 +20,9 @@ namespace parser {
 
 // The location type
 struct Location {
+    /// The offset
     size_t offset;
+    /// The length
     size_t length;
 
     /// Encode the location
@@ -70,6 +72,15 @@ class ParseContext {
     inline auto AddError(Location loc, std::string message) { _module.AddError(loc.encode(), message); }
     /// Add a statement
     void AddStatement(uint32_t object);
+    /// Add an attribute
+    OptionalAttribute AddAttribute(syntax::Location loc, syntax::AttributeKey key, std::optional<syntax::Value> value) {
+        return {loc, key, value};
+    }
+    /// Add an object
+    template <typename... AttrList>
+    auto AddObject(Location loc, proto::syntax::ObjectType type, std::initializer_list<OptionalAttribute> attrs) {
+        return _module.AddObject(loc.encode(), type, attrs);
+    }
 
     /// Parse an istream
     ModuleBuilder Parse(std::string_view in);

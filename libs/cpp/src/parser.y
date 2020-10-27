@@ -24,6 +24,8 @@
 #include <utility>
 #include "dashql/parser/parse_context.h"
 
+namespace syntax = dashql::proto::syntax;
+
 #define YYLLOC_DEFAULT(Cur, Rhs, N) { \
     if (N) { \
         (Cur).offset = YYRHSLOC(Rhs, 1).offset; \
@@ -142,31 +144,31 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %token EOF 0                    "end of file"
 
 
-%type <std::vector<proto::syntax::Object>> statement_list;
-%type <proto::syntax::Object> parameter_declaration;
-%type <proto::syntax::Object> extract_statement;
-%type <proto::syntax::Object> query_statement;
-%type <proto::syntax::Object> statement;
-%type <proto::syntax::Object> viz_statement;
-%type <proto::syntax::Object> load_statement;
+%type <std::vector<syntax::Object>> statement_list;
+%type <syntax::Object> parameter_declaration;
+%type <syntax::Object> extract_statement;
+%type <syntax::Object> query_statement;
+%type <syntax::Object> statement;
+%type <syntax::Object> viz_statement;
+%type <syntax::Object> load_statement;
 
-%type <proto::syntax::Value> boolean;
-%type <proto::syntax::Attribute> csv_attribute;
-%type <proto::syntax::Attribute> extract_method;
-%type <proto::syntax::Attribute> load_method_http_attribute;
-%type <proto::syntax::Attribute> http_method;
-%type <proto::syntax::Attribute> load_method;
-%type <proto::syntax::Attribute> parameter_type;
-%type <std::optional<proto::syntax::Value>> alias;
-%type <std::optional<proto::syntax::Value>> csv_header_value;
-%type <std::vector<proto::syntax::Attribute>> csv_attributes;
-%type <std::vector<proto::syntax::Attribute>> csv_attribute_list;
-%type <std::vector<proto::syntax::Attribute>> load_method_http_attribute_list;
-%type <std::vector<proto::syntax::Value>> string_list;
-%type <proto::syntax::Value> identifier;
-%type <proto::syntax::Value> sql_literal;
-%type <proto::syntax::Value> variable;
-%type <proto::syntax::Value> viz_type;
+%type <syntax::Value> boolean;
+%type <syntax::Value> csv_attribute;
+%type <syntax::Value> extract_method;
+%type <syntax::Value> load_method_http_attribute;
+%type <syntax::Value> http_method;
+%type <syntax::Value> load_method;
+%type <syntax::Value> parameter_type;
+%type <std::optional<syntax::Value>> opt_alias;
+%type <std::optional<syntax::Value>> csv_header_value;
+%type <std::vector<syntax::Attribute>> csv_attributes;
+%type <std::vector<syntax::Attribute>> csv_attribute_list;
+%type <std::vector<syntax::Attribute>> load_method_http_attribute_list;
+%type <std::vector<syntax::Value>> string_list;
+%type <syntax::Value> identifier;
+%type <syntax::Value> sql_literal;
+%type <syntax::Value> variable;
+%type <syntax::Value> viz_type;
 
 %%
 
@@ -175,7 +177,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 statement_list:
     statement_list statement SEMICOLON  { $1.push_back($2); $$ = std::move($1); }
   | statement_list error SEMICOLON      { yyclearin; yyerrok; $$ = std::move($1); }
-  | %empty                              { $$ = std::vector<proto::syntax::Object>(); }
+  | %empty                              { $$ = std::vector<syntax::Object>(); }
     ;
 
 statement:
@@ -187,7 +189,13 @@ statement:
     ;
 
 parameter_declaration:
-    DECLARE PARAMETER identifier alias TYPE parameter_type  {  }
+    DECLARE PARAMETER identifier opt_alias TYPE parameter_type  {
+        $$ = ctx.AddObject(@$, syntax::ObjectType::PARAMETER_DECLARATION, {
+            {@3.encode(), syntax::AttributeKey::PARAMETER_IDENTIFIER, $3},
+            {@4.encode(), syntax::AttributeKey::PARAMETER_ALIAS, $4},
+            {@6.encode(), syntax::AttributeKey::PARAMETER_TYPE, $6},
+        });
+    }
     ;
 
 identifier:
@@ -196,7 +204,7 @@ identifier:
   | PLACEHOLDER_LITERAL { $$ = ctx.AddString(@1); }
     ;
 
-alias:
+opt_alias:
     %empty        { $$ = std::nullopt; }
   | AS identifier { $$ = $2; }
     ;

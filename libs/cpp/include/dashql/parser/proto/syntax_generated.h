@@ -112,32 +112,38 @@ inline const char *EnumNameValueType(ValueType e) {
 
 enum class AttributeKey : uint8_t {
   NONE = 0,
-  FILE_LOAD_NAME = 1,
-  HTTP_LOAD_NAME = 2,
-  HTTP_LOAD_VERB = 3,
-  HTTP_LOAD_URL = 4,
-  HTTP_LOAD_HEADER = 5,
-  EXTRACT_STATEMENT_NAME = 6,
-  EXTRACT_STATEMENT_DATA = 7,
-  EXTRACT_STATEMENT_METHOD = 8,
-  CSV_EXTRACT_ENCODING = 9,
-  CSV_EXTRACT_HEADER = 10,
-  CSV_EXTRACT_DELIMITER = 11,
-  CSV_EXTRACT_QUOTE = 12,
-  CSV_EXTRACT_DATE_FORMAT = 13,
-  CSV_EXTRACT_TIMESTAMP_FORMAT = 14,
-  QUERY_STATEMENT_NAME = 15,
-  QUERY_STATEMENT_TEXT = 16,
-  VIZ_STATEMENT_TAG = 17,
-  VIZ_STATEMENT_NAME = 18,
-  VIZ_STATEMENT_QUERY = 19,
+  PARAMETER_IDENTIFIER = 1,
+  PARAMETER_ALIAS = 2,
+  PARAMETER_TYPE = 3,
+  FILE_LOAD_NAME = 4,
+  HTTP_LOAD_NAME = 5,
+  HTTP_LOAD_VERB = 6,
+  HTTP_LOAD_URL = 7,
+  HTTP_LOAD_HEADER = 8,
+  EXTRACT_STATEMENT_NAME = 9,
+  EXTRACT_STATEMENT_DATA = 10,
+  EXTRACT_STATEMENT_METHOD = 11,
+  CSV_EXTRACT_ENCODING = 12,
+  CSV_EXTRACT_HEADER = 13,
+  CSV_EXTRACT_DELIMITER = 14,
+  CSV_EXTRACT_QUOTE = 15,
+  CSV_EXTRACT_DATE_FORMAT = 16,
+  CSV_EXTRACT_TIMESTAMP_FORMAT = 17,
+  QUERY_STATEMENT_NAME = 18,
+  QUERY_STATEMENT_TEXT = 19,
+  VIZ_STATEMENT_TAG = 20,
+  VIZ_STATEMENT_NAME = 21,
+  VIZ_STATEMENT_QUERY = 22,
   MIN = NONE,
   MAX = VIZ_STATEMENT_QUERY
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[20] {
+inline const AttributeKey (&EnumValuesAttributeKey())[23] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
+    AttributeKey::PARAMETER_IDENTIFIER,
+    AttributeKey::PARAMETER_ALIAS,
+    AttributeKey::PARAMETER_TYPE,
     AttributeKey::FILE_LOAD_NAME,
     AttributeKey::HTTP_LOAD_NAME,
     AttributeKey::HTTP_LOAD_VERB,
@@ -162,8 +168,11 @@ inline const AttributeKey (&EnumValuesAttributeKey())[20] {
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[21] = {
+  static const char * const names[24] = {
     "NONE",
+    "PARAMETER_IDENTIFIER",
+    "PARAMETER_ALIAS",
+    "PARAMETER_TYPE",
     "FILE_LOAD_NAME",
     "HTTP_LOAD_NAME",
     "HTTP_LOAD_VERB",
@@ -198,20 +207,22 @@ enum class ObjectType : uint8_t {
   NONE = 0,
   HTTP_LOAD = 1,
   FILE_LOAD = 2,
-  JSONPATH_EXTRACT = 3,
-  CSV_EXTRACT = 4,
-  EXTRACT_STATEMENT = 5,
-  QUERY_STATEMENT = 6,
-  VIZ_STATEMENT = 7,
+  PARAMETER_DECLARATION = 3,
+  JSONPATH_EXTRACT = 4,
+  CSV_EXTRACT = 5,
+  EXTRACT_STATEMENT = 6,
+  QUERY_STATEMENT = 7,
+  VIZ_STATEMENT = 8,
   MIN = NONE,
   MAX = VIZ_STATEMENT
 };
 
-inline const ObjectType (&EnumValuesObjectType())[8] {
+inline const ObjectType (&EnumValuesObjectType())[9] {
   static const ObjectType values[] = {
     ObjectType::NONE,
     ObjectType::HTTP_LOAD,
     ObjectType::FILE_LOAD,
+    ObjectType::PARAMETER_DECLARATION,
     ObjectType::JSONPATH_EXTRACT,
     ObjectType::CSV_EXTRACT,
     ObjectType::EXTRACT_STATEMENT,
@@ -222,10 +233,11 @@ inline const ObjectType (&EnumValuesObjectType())[8] {
 }
 
 inline const char * const *EnumNamesObjectType() {
-  static const char * const names[9] = {
+  static const char * const names[10] = {
     "NONE",
     "HTTP_LOAD",
     "FILE_LOAD",
+    "PARAMETER_DECLARATION",
     "JSONPATH_EXTRACT",
     "CSV_EXTRACT",
     "EXTRACT_STATEMENT",
@@ -1155,6 +1167,9 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1162,6 +1177,9 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   };
   static const char * const names[] = {
     "NONE",
+    "PARAMETER_IDENTIFIER",
+    "PARAMETER_ALIAS",
+    "PARAMETER_TYPE",
     "FILE_LOAD_NAME",
     "HTTP_LOAD_NAME",
     "HTTP_LOAD_VERB",
@@ -1183,13 +1201,14 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "VIZ_STATEMENT_QUERY"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 20, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 23, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -1206,6 +1225,7 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     "NONE",
     "HTTP_LOAD",
     "FILE_LOAD",
+    "PARAMETER_DECLARATION",
     "JSONPATH_EXTRACT",
     "CSV_EXTRACT",
     "EXTRACT_STATEMENT",
@@ -1213,7 +1233,7 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     "VIZ_STATEMENT"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 8, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 9, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
