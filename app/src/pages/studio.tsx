@@ -5,7 +5,7 @@ import { Board, EditorLoader } from '../components';
 
 import { TopBar } from './studio_topbar';
 import { ToolBar } from './studio_toolbar';
-import { Inspector } from './studio_inspector';
+import { Planner } from './studio_planner';
 
 import styles from './studio.module.css';
 
@@ -13,10 +13,10 @@ class Studio extends React.Component {
     public render() {
         return (
             <div className={styles.studio}>
-                <div className={styles.editor}>
-                    <EditorLoader className={styles.editor_monaco} />
+                <div className={styles.program}>
+                    <EditorLoader className={styles.editor} />
+                    <Planner />
                     <ToolBar />
-                    <Inspector />
                 </div>
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />

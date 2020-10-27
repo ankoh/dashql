@@ -43,7 +43,7 @@
 .topbar_action:hover path { fill: rgb(255, 255, 255); }
 .topbar_action:hover circle { fill: rgb(255, 255, 255); }
 
-.editor {
+.program {
     grid-row: 2;
     grid-column: 1;
     display: grid;
@@ -54,7 +54,7 @@
 
 .toolbar {
     position: relative;
-    grid-row: 1;
+    grid-row: 1 / span 2;
     grid-column: 1;
     border-right: 1px solid v_border_color;
     background-color: rgb(255, 255, 255);
@@ -90,7 +90,7 @@
     background: hsl(260, 15%, 40%);
 }
 
-.editor_monaco {
+.editor {
     grid-row: 1;
     grid-column: 2;
     position: relative;
@@ -102,9 +102,12 @@
 
 .inspector {
     grid-row: 2;
-    grid-column: 1 / span 2;
+    grid-column: 2;
     background: white;
     border-top: 1px solid v_border_color;
+    display:grid;
+    grid-template-rows: 40px calc(100% - 40px);
+    grid-template-columns: 50% auto;
 }
 
 .board {
