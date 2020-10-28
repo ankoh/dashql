@@ -13,9 +13,9 @@ TEST(ParserTest, ParameterDeclaration) {
     declare parameter days type integer;
 )RAW";
     ParseContext ctx;
-    auto module = ctx.Parse(in);
-    ASSERT_EQ(module.statements().size(), 1);
-    ASSERT_EQ(module.errors().size(), 0);
+    ctx.Parse(in);
+    ASSERT_EQ(ctx.statements().size(), 1);
+    ASSERT_EQ(ctx.errors().size(), 0);
 }
 
 TEST(ParserTest, LoadHTTP) {
@@ -26,9 +26,9 @@ TEST(ParserTest, LoadHTTP) {
     );
 )RAW";
     ParseContext ctx;
-    auto module = ctx.Parse(in);
-    ASSERT_EQ(module.statements().size(), 1);
-    ASSERT_EQ(module.errors().size(), 0);
+    ctx.Parse(in);
+    ASSERT_EQ(ctx.statements().size(), 1);
+    ASSERT_EQ(ctx.errors().size(), 0);
 }
 
 TEST(ParserTest, ExtractJsonPath) {
@@ -36,9 +36,9 @@ TEST(ParserTest, ExtractJsonPath) {
     extract weather_data from raw_data using json ();
 )RAW";
     ParseContext ctx;
-    auto module = ctx.Parse(in);
-    ASSERT_EQ(module.statements().size(), 1);
-    ASSERT_EQ(module.errors().size(), 0);
+    ctx.Parse(in);
+    ASSERT_EQ(ctx.statements().size(), 1);
+    ASSERT_EQ(ctx.errors().size(), 0);
 }
 
 TEST(ParserTest, Query1) {
@@ -46,9 +46,9 @@ TEST(ParserTest, Query1) {
     select 1;
 )RAW";
     ParseContext ctx;
-    auto module = ctx.Parse(in);
-    ASSERT_EQ(module.statements().size(), 1);
-    ASSERT_EQ(module.errors().size(), 0);
+    ctx.Parse(in);
+    ASSERT_EQ(ctx.statements().size(), 1);
+    ASSERT_EQ(ctx.errors().size(), 0);
 }
 
 TEST(ParserTest, Query2) {
@@ -56,25 +56,25 @@ TEST(ParserTest, Query2) {
     query "foo" as select 1;
 )RAW";
     ParseContext ctx;
-    auto module = ctx.Parse(in);
-    ASSERT_EQ(module.statements().size(), 1);
-    ASSERT_EQ(module.errors().size(), 0);
+    ctx.Parse(in);
+    ASSERT_EQ(ctx.statements().size(), 1);
+    ASSERT_EQ(ctx.errors().size(), 0);
 }
 
 TEST(ParserTest, SyntaxError) {
     auto in = "?";
     ParseContext ctx;
-    auto module = ctx.Parse(in);
-    ASSERT_EQ(module.statements().size(), 0);
-    ASSERT_EQ(module.errors().size(), 1);
+    ctx.Parse(in);
+    ASSERT_EQ(ctx.statements().size(), 0);
+    ASSERT_EQ(ctx.errors().size(), 1);
 }
 
 TEST(ParserTest, SyntaxErrorRecovery) {
     auto in = "?select * from foo;";
     ParseContext ctx;
-    auto module = ctx.Parse(in);
-    ASSERT_EQ(module.statements().size(), 1);
-    ASSERT_EQ(module.errors().size(), 1);
+    ctx.Parse(in);
+    ASSERT_EQ(ctx.statements().size(), 1);
+    ASSERT_EQ(ctx.errors().size(), 1);
 }
 
 }  // namespace

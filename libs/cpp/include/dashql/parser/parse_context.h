@@ -25,9 +25,18 @@ struct Location {
     /// The length
     size_t length;
 
+    /// Constructor
+    Location()
+        : offset(0), length(0) {}
+    /// Constructor
+    Location(size_t offset, size_t length)
+        : offset(offset), length(length) {}
+
     /// Encode the location
-    auto encode() const {
-        return proto::syntax::Location(offset, length);
+    auto encode() const { return proto::syntax::Location(offset, length); }
+    /// Merge two locations
+    Location operator+(const Location& other) {
+        return {offset, std::max(offset + length, other.offset + other.length) - offset};
     }
     /// Return the location
     friend std::ostream& operator<<(std::ostream& out, const Location& loc) {
@@ -37,7 +46,7 @@ struct Location {
 };
 
 // Schema parse context
-class ParseContext {
+class ParseContext: public ModuleBuilder {
     friend class Parser;
 
     protected:
@@ -45,8 +54,6 @@ class ParseContext {
     bool _trace_scanning;
     /// Trace the parsing
     bool _trace_parsing;
-    /// The statements
-    ModuleBuilder _module;
     /// The input (if any)
     std::string_view _input;
     /// The line breaks
@@ -56,8 +63,6 @@ class ParseContext {
     void beginScan(std::string_view in);
     /// End a scan
     void endScan();
-    /// Get the text at location
-    inline std::string_view textAt(Location loc) { return _input.substr(loc.offset, loc.length); }
 
     public:
     /// Constructor
@@ -65,27 +70,11 @@ class ParseContext {
     /// Destructor
     virtual ~ParseContext();
 
-    /// Return the module
-    auto& module() { return _module; }
+    /// Get the text at location
+    inline std::string_view TextAt(Location loc) { return _input.substr(loc.offset, loc.length); }
 
-    /// Add a line break
-    void AddLineBreak(uint32_t linebreak);
-    /// Add a string
-    inline auto AddString(Location loc) { return _module.sections().Add(loc.encode(), textAt(loc)); }
-    /// Add an error
-    inline auto AddError(Location loc, std::string message) { _module.AddError(loc.encode(), message); }
-    /// Add a statement
-    void AddStatement(uint32_t object);
-    /// Add an object
-    auto AddObject(Location loc, proto::syntax::ObjectType type, std::initializer_list<OptionalAttribute> attrs) {
-        return _module.AddObject(loc.encode(), type, attrs);
-    }
-    /// Add an object
-    auto AddObject(Location loc, proto::syntax::ObjectType type, const std::vector<proto::syntax::Attribute>& attrs) {
-        return _module.AddObject(loc.encode(), type, attrs);
-    }
     /// Parse an istream
-    ModuleBuilder Parse(std::string_view in);
+    void Parse(std::string_view in);
 };
 
 } // namespace parser

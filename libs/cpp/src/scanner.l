@@ -24,15 +24,12 @@ namespace parser {
 
 // The location of the current token
 extern dashql::parser::Location loc;
+// The offset the comment (if any)
+extern dashql::parser::Location comment_begin;
 // The input string view
 extern std::string_view in;
 // The reader offset
-extern size_t reader_offset;
-// The parser offset
-extern size_t parser_offset;
-
-// Get the token text
-inline std::string_view tokenText() { return in.substr(parser_offset - yyleng, yyleng); }
+extern size_t scanner_offset;
 
 } // namespace parser
 } // namespace dashql
@@ -53,8 +50,8 @@ using namespace dashql::parser;
 #define YY_USER_INIT loc.offset = loc.length = 0;
 // Configure the scanner to use string views
 #define YY_INPUT(buffer, bytes_read, max_bytes) \
-    bytes_read = in.copy(buffer, max_bytes, reader_offset); \
-    reader_offset += bytes_read;
+    bytes_read = in.copy(buffer, max_bytes, scanner_offset); \
+    scanner_offset += bytes_read;
 %}
 
 %{
@@ -75,12 +72,13 @@ using namespace dashql::parser;
 %option debug
 %option caseless
 
+%x C_COMMENT
+
 %{
 // Code run each time a token is matched.
 // We just update the location of the token.
 #define YY_USER_ACTION { \
     loc.offset += yyleng; \
-    parser_offset += yyleng; \
 }
 %}
 
@@ -177,65 +175,70 @@ loc.length = 0;
 "x"             { return Parser::make_X(loc); }
 "xl"            { return Parser::make_XL(loc); }
 "y"             { return Parser::make_Y(loc); }
+"true"          { return Parser::make_BOOLEAN_LITERAL(true, loc); }
+"false"         { return Parser::make_BOOLEAN_LITERAL(false, loc); }
 
-select[^;]*             { return Parser::make_SQL_SELECT(loc); }
-with[^;]*               { return Parser::make_SQL_WITH(loc); }
-[a-z][a-z0-9_]*         { return Parser::make_IDENTIFIER_LITERAL(loc); }
-[<][a-z][a-z0-9_]*[>]   { return Parser::make_PLACEHOLDER_LITERAL(loc); }
-['"][^'"]*['"]          { return Parser::make_STRING_LITERAL(loc); }
-"true"                  { return Parser::make_BOOLEAN_LITERAL(true, loc); }
-"false"                 { return Parser::make_BOOLEAN_LITERAL(false, loc); }
-[0-9]+                  {
-                            int64_t value = 0;
+select[^;]*         { return Parser::make_SQL_SELECT(loc); }
+with[^;]*           { return Parser::make_SQL_WITH(loc); }
+[a-z][a-z0-9_]*     { return Parser::make_IDENTIFIER_LITERAL(loc); }
+['"][^'"]*['"]      { return Parser::make_STRING_LITERAL(loc); }
+[0-9]+              {
+                        int64_t value = 0;
 
-                            auto stream = std::stringstream(yytext);
-                            stream >> value;
+                        auto stream = std::stringstream(yytext);
+                        stream >> value;
 
-                            if (!stream) {
-                                auto message = std::string("Invalid number \"") + yytext + std::string("\"");
-                                ctx.AddError(loc, message);
-                            }
-
-                            return Parser::make_INTEGER_LITERAL(value, loc);
+                        if (!stream) {
+                            auto message = std::string("Invalid number \"") + yytext + std::string("\"");
+                            ctx.AddError(loc.encode(), message);
                         }
 
-[ \t\r]     { ctx.AddLineBreak(parser_offset); }
-\n          { ctx.AddLineBreak(parser_offset); }
+                        return Parser::make_INTEGER_LITERAL(value, loc);
+                    }
 
-<<EOF>> { return Parser::make_EOF(loc); }
-.       {
-            auto message = std::string("Invalid character \"") + yytext + std::string("\"");
-            ctx.AddError(loc, message);
-        }
+--[^\n]*            { ctx.AddComment(loc.encode()); }
+"/*"                { BEGIN(C_COMMENT); comment_begin = loc; }
+<C_COMMENT>[^*\n]+  // eat comment in chunks
+<C_COMMENT>"*"      // eat the lone star
+<C_COMMENT>\n       { ctx.AddLineBreak(loc.encode()); }
+<C_COMMENT>"*/"     {
+                        BEGIN(INITIAL);
+                        ctx.AddCComment((comment_begin + loc).encode());
+                    }
 
+[ \t\r]         { ctx.AddLineBreak(loc.encode()); }
+\n              { ctx.AddLineBreak(loc.encode()); }
+<<EOF>>         { return Parser::make_EOF(loc); }
+.               {
+                    auto message = std::string("Invalid character \"") + yytext + std::string("\"");
+                    ctx.AddError(loc.encode(), message);
+                }
 %%
 
 // Code
 
 // The input location
 dashql::parser::Location dashql::parser::loc;
+// The start of the c_comment
+dashql::parser::Location dashql::parser::comment_begin;
 // The input view of the scanner
 std::string_view dashql::parser::in;
-// The reader offset
-size_t dashql::parser::reader_offset;
-// The parser offset
-size_t dashql::parser::parser_offset;
-
+// The scanner offset
+size_t dashql::parser::scanner_offset;
 // Begin a scan
 void dashql::parser::ParseContext::beginScan(std::string_view s) {
     yy_flex_debug = _trace_scanning;
     in = s;
-    loc.offset = 0;
-    loc.length = 0;
-    reader_offset = 0;
-    parser_offset = 0;
+    loc = Location();
+    comment_begin = Location();
+    scanner_offset = 0;
+
 }
 
 // End a scan
 void dashql::parser::ParseContext::endScan() {
     in = {};
-    loc.offset = 0;
-    loc.length = 0;
-    reader_offset = 0;
-    parser_offset = 0;
+    loc = Location();
+    comment_begin = Location();
+    scanner_offset = 0;
 }

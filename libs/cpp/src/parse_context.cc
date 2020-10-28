@@ -12,15 +12,12 @@
 namespace dashql {
 namespace parser {
 
-ParseContext::ParseContext(bool trace_scanning, bool trace_parsing): _trace_scanning(trace_scanning), _trace_parsing(trace_parsing), _module() {}
+ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
+    : ModuleBuilder(), _trace_scanning(trace_scanning), _trace_parsing(trace_parsing) {}
 
 ParseContext::~ParseContext() {}
 
-void ParseContext::AddLineBreak(uint32_t linebreak) {
-    _line_breaks.push_back(linebreak);
-}
-
-ModuleBuilder ParseContext::Parse(std::string_view in) {
+void ParseContext::Parse(std::string_view in) {
     _input = in;
     beginScan(_input);
     {
@@ -29,7 +26,6 @@ ModuleBuilder ParseContext::Parse(std::string_view in) {
         parser.parse();
     }
     endScan();
-    return std::move(_module);
 }
 
 }

@@ -59,7 +59,6 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %token <bool>       BOOLEAN_LITERAL     "boolean literal"
 
 %token IDENTIFIER_LITERAL   "identifier literal"
-%token PLACEHOLDER_LITERAL  "placeholder literal"
 %token SQL_SELECT           "SQL select query"
 %token SQL_WITH             "SQL with clause"
 %token STRING_LITERAL       "string literal"
@@ -165,7 +164,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <std::vector<syntax::Attribute>> http_attribute_list;
 %type <std::vector<syntax::Attribute>> load_attributes;
 %type <std::vector<syntax::Attribute>> opt_csv_attribute_list;
-%type <std::vector<syntax::Value>> string_list;
+%type <std::vector<std::string_view>> string_list;
 %type <syntax::Attribute> csv_attribute;
 %type <syntax::Attribute> http_attribute;
 %type <syntax::Value> boolean_value;
@@ -182,7 +181,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %start statement_list;
 
 statement_list:
-    statement_list statement SEMICOLON  { ctx.module().sections().Add(@$.encode(), $2); }
+    statement_list statement SEMICOLON  { ctx.sections().Add(@$.encode(), $2); }
   | statement_list error SEMICOLON      { yyclearin; yyerrok; }
   | %empty
     ;
@@ -197,7 +196,7 @@ statement:
 
 parameter_declaration:
     DECLARE PARAMETER identifier opt_alias TYPE parameter_type  {
-        $$ = ctx.AddObject(@$, syntax::ObjectType::PARAMETER_DECLARATION, {
+        $$ = ctx.AddObject(@$.encode(), syntax::ObjectType::PARAMETER_DECLARATION, {
             {@3.encode(), AttrKey::PARAMETER_IDENTIFIER, $3},
             {@4.encode(), AttrKey::PARAMETER_ALIAS, $4},
             {@6.encode(), AttrKey::PARAMETER_TYPE, $6},
@@ -206,9 +205,8 @@ parameter_declaration:
     ;
 
 identifier:
-    IDENTIFIER_LITERAL  { $$ = ctx.AddString(@1); }
-  | STRING_LITERAL      { $$ = ctx.AddString(@1); }
-  | PLACEHOLDER_LITERAL { $$ = ctx.AddString(@1); }
+    IDENTIFIER_LITERAL  { $$ = Value(@1.encode(), ValueType::STRING, 0); }
+  | STRING_LITERAL      { $$ = Value(@1.encode(), ValueType::STRING, 0); }
     ;
 
 boolean_value:
@@ -217,6 +215,11 @@ boolean_value:
 
 string_value:
     STRING_LITERAL { $$ = Value(@1.encode(), ValueType::STRING, 0); }
+    ;
+
+string_list:
+    string_list COMMA STRING_LITERAL    { $1.push_back(ctx.TextAt(@3)); $$ = move($1); }
+  | %empty                              { $$ = std::vector<std::string_view>(); }
     ;
 
 opt_alias:
@@ -237,7 +240,7 @@ parameter_type:
 load_statement:
     LOAD identifier FROM load_attributes {
         $4.push_back(Attr(@2.encode(), AttrKey::LOAD_NAME, $2));
-        $$ = ctx.AddObject(@$, syntax::ObjectType::LOAD_STATEMENT, move($4));
+        $$ = ctx.AddObject(@$.encode(), syntax::ObjectType::LOAD_STATEMENT, move($4));
     }
     ;
 
@@ -266,7 +269,7 @@ extract_statement:
     EXTRACT identifier FROM identifier USING extract_method {
         $6.push_back(Attr(@2.encode(), AttrKey::EXTRACT_STATEMENT_NAME, $2));
         $6.push_back(Attr(@4.encode(), AttrKey::EXTRACT_STATEMENT_DATA, $4));
-        $$ = ctx.AddObject(@$, syntax::ObjectType::EXTRACT_STATEMENT, move($6));
+        $$ = ctx.AddObject(@$.encode(), syntax::ObjectType::EXTRACT_STATEMENT, move($6));
     }
     ;
 
@@ -295,13 +298,8 @@ csv_attribute:
     ;
 
 csv_header_value:
-    boolean_value           { }
-  | LRB string_list RRB     { }
-
-string_list:
-    string_list COMMA STRING_LITERAL    { }
-  | STRING_LITERAL                      { }
-    ;
+    boolean_value           { $$ = $1; }
+  | LRB string_list RRB     { $$ = ctx.AddStrings(@$.encode(), $2); }
 
 query_statement:
     QUERY identifier AS sql_literal { }
@@ -342,6 +340,6 @@ viz_type:
     ;
 
 %%
-void dashql::parser::Parser::error(const location_type& location, const std::string& message) {
-    ctx.AddError(location, message);
+void dashql::parser::Parser::error(const location_type& loc, const std::string& message) {
+    ctx.AddError(loc.encode(), message);
 }

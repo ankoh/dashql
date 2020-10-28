@@ -16,9 +16,9 @@ TEST(CodecTest, ParameterDeclaration) {
     declare parameter days type integer;
 )RAW";
     ParseContext ctx;
-    auto module = ctx.Parse(in);
-    ASSERT_EQ(module.statements().size(), 1);
-    ASSERT_EQ(module.errors().size(), 0);
+    ctx.Parse(in);
+    ASSERT_EQ(ctx.statements().size(), 1);
+    ASSERT_EQ(ctx.errors().size(), 0);
 
     // flatbuffers::FlatBufferBuilder builder;
     // builder.Finish(WriteProgram(builder, ast));

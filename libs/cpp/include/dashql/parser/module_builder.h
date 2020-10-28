@@ -79,7 +79,7 @@ class SectionsBuilder {
             for (auto& v: vs)
                 val_vec.push_back(move(v));
             span_vec.push_back(syntax::Span(begin, vs.size()));
-            return syntax::Value(tag, entry);
+            return syntax::Value(loc, tag, entry);
         };
         if constexpr (std::is_same_v<V, double>) {
             return push(syntax::ValueType::NUMBER_ARRAY, _numbers, _number_arrays, vs);
@@ -135,8 +135,15 @@ class ModuleBuilder {
     /// Get the errors
     auto& errors() { return _errors; }
 
-    /// Add a statement
-    // void AddStatement(syntax::Object obj)
+    /// Add a line break
+    void AddLineBreak(syntax::Location loc);
+    /// Add a single-line comment
+    void AddComment(syntax::Location loc);
+    /// Add a c-style comment
+    void AddCComment(syntax::Location loc);
+
+    /// Add a string vector
+    auto AddStrings(syntax::Location loc, const std::vector<std::string_view>& strings) { return _sections.Add(loc, strings); }
     /// Add an error
     void AddError(syntax::Location loc, const std::string& message);
     /// Add an object

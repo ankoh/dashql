@@ -27,11 +27,11 @@ void dashql_parse(Response* response, const char* text) {
     // Parse the text
     std::string_view text_view{text};
     ParseContext ctx;
-    auto ast = ctx.Parse(text);
+    ctx.Parse(text);
 
     // Encode the flatbuffer
     flatbuffers::FlatBufferBuilder builder{text_view.size()};
-    builder.Finish(ast.Write(builder));
+    builder.Finish(ctx.Write(builder));
   
     // Pack the response
     size_t buffer_size;
