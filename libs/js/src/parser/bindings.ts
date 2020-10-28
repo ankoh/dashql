@@ -87,11 +87,11 @@ export abstract class DashQLParserBindings {
     }
 
     /// Parse a string and return a flatbuffer
-    public async parse(text: string): Promise<ProgramBuffer> {
+    public async parse(text: string): Promise<ModuleBuffer> {
         let instance = await this.getInstance();
         let [ptr, size, ofs] = await this.callSRet('dashql_parse', ['string'], [text]);
         let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
-        let program = new ProgramBuffer(mem);
+        let program = new ModuleBuffer(mem);
         instance.ccall('dashql_parser_free', null, ['number'], [ptr]);
         return program;
     }
@@ -119,48 +119,8 @@ export abstract class FlatBuffer<Proto> {
 };
 
 /// A flatbuffer containing a DashQL program
-export class ProgramBuffer extends FlatBuffer<proto.program.Program> {
+export class ModuleBuffer extends FlatBuffer<proto.syntax.Module> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.program.Program.getRootAsProgram(buffer);
+        return proto.syntax.Module.getRootAsModule(buffer);
     }
 }
-
-import Tag = proto.program.SectionTag;
-import Entry = proto.program.SectionEntry;
-
-/// A program sections reader.
-/// We introduce this type from the beginning to migrate to a sections list more easily later.
-export class ProgramSectionsReader {
-    /// The sections
-    _sections: proto.program.Sections;
-    /// Constructor
-    constructor(sections: proto.program.Sections) {
-        this._sections = sections;
-    }
-
-    /// Functions to access an entry using the index.
-    public getI64(i: number) { return this._sections.literalsI64(i); }
-    public getF64(i: number) { return this._sections.literalsF64(i); }
-    public getString(i: number) { return this._sections.literalsString(i); }
-    public getParam(i: number) { return this._sections.parameterDeclarations(i); }
-    public getFileLoad(i: number) { return this._sections.loadsFile(i); }
-    public getHTTPLoad(i: number) { return this._sections.loadsHttp(i); }
-    public getCSVExtract(i: number) { return this._sections.extractsCsv(i); }
-    public getJSONExtract(i: number) { return this._sections.extractsJsonpath(i); }
-    public getVizStatement(i: number) { return this._sections.vizStatements(i); }
-
-    /// Assume an entry type.
-    /// Returns null if the type differs.
-    protected assume<T>(e: Entry, tag: Tag, sec: (i: number) => T | null): T | null {
-        return (e.tag() == tag) ? sec(e.index()) : null;
-    }
-    public assumeI64(e: Entry) { this.assume(e, Tag.I64Literal, this._sections.literalsI64); }
-    public assumeF64(e: Entry) { this.assume(e, Tag.F64Literal, this._sections.literalsF64); }
-    public assumeString(e: Entry) { this.assume(e, Tag.StringLiteral, this._sections.literalsString); }
-    public assumeParam(e: Entry) { this.assume(e, Tag.ParameterDeclaration, this._sections.parameterDeclarations); }
-    public assumeFileLoad(e: Entry) { this.assume(e, Tag.FileLoad, this._sections.loadsFile); }
-    public assumeHTTPLoad(e: Entry) { this.assume(e, Tag.HTTPLoad, this._sections.loadsHttp); }
-    public assumeCSVExtract(e: Entry) { this.assume(e, Tag.CSVExtract, this._sections.extractsCsv); }
-    public assumeJSONExtract(e: Entry) { this.assume(e, Tag.JSONPathExtract, this._sections.extractsJsonpath); }
-    public assumeVizStatement(e: Entry) { this.assume(e, Tag.VizStatement, this._sections.vizStatements); }
-};
