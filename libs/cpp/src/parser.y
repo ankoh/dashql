@@ -163,6 +163,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <std::vector<syntax::Attribute>> csv_attribute_list;
 %type <std::vector<syntax::Attribute>> extract_method;
 %type <std::vector<syntax::Attribute>> http_attribute_list;
+%type <std::vector<syntax::Attribute>> opt_http_attribute_list
 %type <std::vector<syntax::Attribute>> load_attributes;
 %type <std::vector<syntax::Attribute>> opt_csv_attribute_list;
 %type <std::vector<syntax::Attribute>> viz_attributes;
@@ -220,7 +221,7 @@ string_value:
 
 string_list:
     string_list COMMA STRING_LITERAL    { $1.push_back(ctx.TextAt(@3)); $$ = move($1); }
-  | %empty                              { $$ = std::vector<std::string_view>(); }
+  | %empty                              { $$ = {}; }
     ;
 
 opt_alias:
@@ -246,13 +247,17 @@ load_statement:
     ;
 
 load_attributes:
-    HTTP LRB http_attribute_list RRB    { $$ = move($3); }
-  | FILE string_value                   { $$ = std::vector<Attr>{ Attr(@$.encode(), AttrKey::FILE_LABEL, $2) };  }
+    HTTP LRB opt_http_attribute_list RRB    { $$ = move($3); }
+  | FILE string_value                       { $$ = { Attr(@$.encode(), AttrKey::FILE_LABEL, $2) };  }
     ;
+
+opt_http_attribute_list:
+    http_attribute_list     { $$ = move($1); }
+  | %empty                  { $$ = {}; }
 
 http_attribute_list:
     http_attribute_list COMMA http_attribute    { $1.push_back($3); $$ = move($1); }
-  | %empty                                      { $$ = std::vector<Attr>(); }
+  | http_attribute                              { $$ = {$1}; }
     ;
 
 http_attribute:
@@ -276,17 +281,17 @@ extract_statement:
 
 extract_method:
     CSV opt_csv_attribute_list  { $$ = move($2); }
-  | JSON LRB RRB                { $$ = std::vector<Attr>(); }
+  | JSON LRB RRB                { $$ = {}; }
     ;
 
 opt_csv_attribute_list:
     LRB csv_attribute_list RRB  { $$ = move($2); }
- |  %empty                      { $$ = std::vector<Attr>(); }
+ |  %empty                      { $$ = {}; }
     ;
 
 csv_attribute_list:
     csv_attribute_list COMMA csv_attribute  { $1.push_back($3); $$ = move($1); }
-  | csv_attribute                           { $$ = std::vector<Attr>{ $1 }; }
+  | csv_attribute                           { $$ = { $1 }; }
     ;
 
 csv_attribute:
@@ -352,7 +357,7 @@ viz_attributes:
     ;
 
 viz_attrs_all:
-    %empty { $$ = std::vector<Attr>(); }
+    %empty { $$ = {}; }
 
 
 %%
