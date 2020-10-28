@@ -135,16 +135,19 @@ class ModuleBuilder {
     /// Get the errors
     auto& errors() { return _errors; }
 
+    /// Add a statement
+    // void AddStatement(syntax::Object obj)
     /// Add an error
     void AddError(syntax::Location loc, const std::string& message);
-    /// Start an object
+    /// Add an object
     syntax::Object AddObject(syntax::Location loc, syntax::ObjectType type, std::initializer_list<OptionalAttribute> attrs) {
         return syntax::Object(loc, type, _sections.AddAttributes(attrs));
     }
-    /// Start an object
+    /// Add an object
     syntax::Object AddObject(syntax::Location loc, syntax::ObjectType type, const std::vector<syntax::Attribute>& attrs) {
         return syntax::Object(loc, type, _sections.AddAttributes(attrs));
     }
+
     /// Write as flatbuffer
     flatbuffers::Offset<syntax::Module> Write(flatbuffers::FlatBufferBuilder& builder);
 };

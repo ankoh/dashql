@@ -16,6 +16,10 @@ ParseContext::ParseContext(bool trace_scanning, bool trace_parsing): _trace_scan
 
 ParseContext::~ParseContext() {}
 
+void ParseContext::AddLineBreak(uint32_t linebreak) {
+    _line_breaks.push_back(linebreak);
+}
+
 ModuleBuilder ParseContext::Parse(std::string_view in) {
     _input = in;
     beginScan(_input);

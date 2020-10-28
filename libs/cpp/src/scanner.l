@@ -199,8 +199,8 @@ with[^;]*               { return Parser::make_SQL_WITH(loc); }
                             return Parser::make_INTEGER_LITERAL(value, loc);
                         }
 
-[ \t\r]+    {}
-\n          {}
+[ \t\r]     { ctx.AddLineBreak(parser_offset); }
+\n          { ctx.AddLineBreak(parser_offset); }
 
 <<EOF>> { return Parser::make_EOF(loc); }
 .       {

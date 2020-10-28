@@ -49,6 +49,8 @@ class ParseContext {
     ModuleBuilder _module;
     /// The input (if any)
     std::string_view _input;
+    /// The line breaks
+    std::vector<uint32_t> _line_breaks;
 
     /// Begin a scan
     void beginScan(std::string_view in);
@@ -66,6 +68,8 @@ class ParseContext {
     /// Return the module
     auto& module() { return _module; }
 
+    /// Add a line break
+    void AddLineBreak(uint32_t linebreak);
     /// Add a string
     inline auto AddString(Location loc) { return _module.sections().Add(loc.encode(), textAt(loc)); }
     /// Add an error

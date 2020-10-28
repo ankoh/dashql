@@ -153,7 +153,6 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %token EOF 0                    "end of file"
 
 
-%type <std::vector<syntax::Object>> statement_list;
 %type <syntax::Object> parameter_declaration;
 %type <syntax::Object> extract_statement;
 %type <syntax::Object> query_statement;
@@ -184,9 +183,9 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %start statement_list;
 
 statement_list:
-    statement_list statement SEMICOLON  { $1.push_back($2); $$ = std::move($1); }
-  | statement_list error SEMICOLON      { yyclearin; yyerrok; $$ = std::move($1); }
-  | %empty                              { $$ = std::vector<syntax::Object>(); }
+    statement_list statement SEMICOLON  { ctx.module().sections().Add(@$.encode(), $2); }
+  | statement_list error SEMICOLON      { yyclearin; yyerrok; }
+  | %empty
     ;
 
 statement:
