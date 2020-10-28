@@ -126,20 +126,21 @@ enum class AttributeKey : uint8_t {
   EXTRACT_STATEMENT_METHOD = 12,
   CSV_EXTRACT_ENCODING = 13,
   CSV_EXTRACT_HEADER = 14,
-  CSV_EXTRACT_DELIMITER = 15,
-  CSV_EXTRACT_QUOTE = 16,
-  CSV_EXTRACT_DATE_FORMAT = 17,
-  CSV_EXTRACT_TIMESTAMP_FORMAT = 18,
-  QUERY_STATEMENT_NAME = 19,
-  QUERY_STATEMENT_TEXT = 20,
-  VIZ_STATEMENT_TAG = 21,
-  VIZ_STATEMENT_NAME = 22,
-  VIZ_STATEMENT_QUERY = 23,
+  CSV_EXTRACT_HEADER_COLUMNS = 15,
+  CSV_EXTRACT_DELIMITER = 16,
+  CSV_EXTRACT_QUOTE = 17,
+  CSV_EXTRACT_DATE_FORMAT = 18,
+  CSV_EXTRACT_TIMESTAMP_FORMAT = 19,
+  QUERY_STATEMENT_NAME = 20,
+  QUERY_STATEMENT_TEXT = 21,
+  VIZ_STATEMENT_TAG = 22,
+  VIZ_STATEMENT_NAME = 23,
+  VIZ_STATEMENT_QUERY = 24,
   MIN = NONE,
   MAX = VIZ_STATEMENT_QUERY
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[24] {
+inline const AttributeKey (&EnumValuesAttributeKey())[25] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::PARAMETER_IDENTIFIER,
@@ -156,6 +157,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[24] {
     AttributeKey::EXTRACT_STATEMENT_METHOD,
     AttributeKey::CSV_EXTRACT_ENCODING,
     AttributeKey::CSV_EXTRACT_HEADER,
+    AttributeKey::CSV_EXTRACT_HEADER_COLUMNS,
     AttributeKey::CSV_EXTRACT_DELIMITER,
     AttributeKey::CSV_EXTRACT_QUOTE,
     AttributeKey::CSV_EXTRACT_DATE_FORMAT,
@@ -170,7 +172,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[24] {
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[25] = {
+  static const char * const names[26] = {
     "NONE",
     "PARAMETER_IDENTIFIER",
     "PARAMETER_ALIAS",
@@ -186,6 +188,7 @@ inline const char * const *EnumNamesAttributeKey() {
     "EXTRACT_STATEMENT_METHOD",
     "CSV_EXTRACT_ENCODING",
     "CSV_EXTRACT_HEADER",
+    "CSV_EXTRACT_HEADER_COLUMNS",
     "CSV_EXTRACT_DELIMITER",
     "CSV_EXTRACT_QUOTE",
     "CSV_EXTRACT_DATE_FORMAT",
@@ -1198,6 +1201,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1219,6 +1223,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "EXTRACT_STATEMENT_METHOD",
     "CSV_EXTRACT_ENCODING",
     "CSV_EXTRACT_HEADER",
+    "CSV_EXTRACT_HEADER_COLUMNS",
     "CSV_EXTRACT_DELIMITER",
     "CSV_EXTRACT_QUOTE",
     "CSV_EXTRACT_DATE_FORMAT",
@@ -1230,7 +1235,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "VIZ_STATEMENT_QUERY"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 24, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 25, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

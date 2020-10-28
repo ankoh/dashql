@@ -56,6 +56,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 
 %token <int64_t>    INTEGER_LITERAL     "integer literal"
 %token <uint32_t>   HEX_COLOR_LITERAL   "hex color literal"
+%token <bool>       BOOLEAN_LITERAL     "boolean literal"
 
 %token IDENTIFIER_LITERAL   "identifier literal"
 %token PLACEHOLDER_LITERAL  "placeholder literal"
@@ -90,7 +91,6 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %token DELIMITER                "DELIMITER keyword"
 %token ENCODING                 "ENCODING keyword"
 %token EXTRACT                  "EXTRACT keyword"
-%token FALSE                    "FALSE keyword"
 %token FIELD                    "FIELD keyword"
 %token FILE                     "FILE keyword"
 %token FLOAT                    "FLOAT keyword"
@@ -136,7 +136,6 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %token TIME                     "TIME keyword"
 %token TIMESTAMP                "TIMESTAMP keyword"
 %token TITLE                    "TITLE keyword"
-%token TRUE                     "TRUE keyword"
 %token TYPE                     "TYPE keyword"
 %token URL                      "URL keyword"
 %token USING                    "USING keyword"
@@ -169,7 +168,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <std::vector<syntax::Value>> string_list;
 %type <syntax::Attribute> csv_attribute;
 %type <syntax::Attribute> http_attribute;
-%type <syntax::Value> boolean;
+%type <syntax::Value> boolean_value;
 %type <syntax::Value> csv_header_value;
 %type <syntax::Value> http_verb;
 %type <syntax::Value> identifier;
@@ -210,6 +209,10 @@ identifier:
     IDENTIFIER_LITERAL  { $$ = ctx.AddString(@1); }
   | STRING_LITERAL      { $$ = ctx.AddString(@1); }
   | PLACEHOLDER_LITERAL { $$ = ctx.AddString(@1); }
+    ;
+
+boolean_value:
+    BOOLEAN_LITERAL { $$ = Value(@1.encode(), ValueType::NUMBER, $1); }
     ;
 
 string_value:
@@ -292,13 +295,8 @@ csv_attribute:
     ;
 
 csv_header_value:
-    boolean                 { }
+    boolean_value           { }
   | LRB string_list RRB     { }
-
-boolean:
-    TRUE    { }
-  | FALSE   { }
-    ;
 
 string_list:
     string_list COMMA STRING_LITERAL    { }

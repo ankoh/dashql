@@ -120,7 +120,6 @@ loc.length = 0;
 "delimiter"     { return Parser::make_DELIMITER(loc); }
 "encoding"      { return Parser::make_ENCODING(loc); }
 "extract"       { return Parser::make_EXTRACT(loc); }
-"false"         { return Parser::make_FALSE(loc); }
 "field"         { return Parser::make_FIELD(loc); }
 "file"          { return Parser::make_FILE(loc); }
 "float"         { return Parser::make_FLOAT(loc); }
@@ -166,7 +165,6 @@ loc.length = 0;
 "time"          { return Parser::make_TIME(loc); }
 "timestamp"     { return Parser::make_TIMESTAMP(loc); }
 "title"         { return Parser::make_TITLE(loc); }
-"true"          { return Parser::make_TRUE(loc); }
 "type"          { return Parser::make_TYPE(loc); }
 "url"           { return Parser::make_URL(loc); }
 "using"         { return Parser::make_USING(loc); }
@@ -185,6 +183,8 @@ with[^;]*               { return Parser::make_SQL_WITH(loc); }
 [a-z][a-z0-9_]*         { return Parser::make_IDENTIFIER_LITERAL(loc); }
 [<][a-z][a-z0-9_]*[>]   { return Parser::make_PLACEHOLDER_LITERAL(loc); }
 ['"][^'"]*['"]          { return Parser::make_STRING_LITERAL(loc); }
+"true"                  { return Parser::make_BOOLEAN_LITERAL(true, loc); }
+"false"                 { return Parser::make_BOOLEAN_LITERAL(false, loc); }
 [0-9]+                  {
                             int64_t value = 0;
 
