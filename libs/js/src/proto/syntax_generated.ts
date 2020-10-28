@@ -898,10 +898,46 @@ errorsLength():number {
 };
 
 /**
+ * @param number index
+ * @param dashql.proto.syntax.Location= obj
+ * @returns dashql.proto.syntax.Location
+ */
+lineBreaks(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? (obj || new dashql.proto.syntax.Location()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+lineBreaksLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number index
+ * @param dashql.proto.syntax.Location= obj
+ * @returns dashql.proto.syntax.Location
+ */
+comments(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
+  var offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? (obj || new dashql.proto.syntax.Location()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+commentsLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startModule(builder:flatbuffers.Builder) {
-  builder.startObject(3);
+  builder.startObject(5);
 };
 
 /**
@@ -959,6 +995,38 @@ static startErrorsVector(builder:flatbuffers.Builder, numElems:number) {
 
 /**
  * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset lineBreaksOffset
+ */
+static addLineBreaks(builder:flatbuffers.Builder, lineBreaksOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, lineBreaksOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startLineBreaksVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(8, numElems, 4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset commentsOffset
+ */
+static addComments(builder:flatbuffers.Builder, commentsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(4, commentsOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startCommentsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(8, numElems, 4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
 static endModule(builder:flatbuffers.Builder):flatbuffers.Offset {
@@ -966,11 +1034,13 @@ static endModule(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createModule(builder:flatbuffers.Builder, sectionsOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createModule(builder:flatbuffers.Builder, sectionsOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset):flatbuffers.Offset {
   Module.startModule(builder);
   Module.addSections(builder, sectionsOffset);
   Module.addStatements(builder, statementsOffset);
   Module.addErrors(builder, errorsOffset);
+  Module.addLineBreaks(builder, lineBreaksOffset);
+  Module.addComments(builder, commentsOffset);
   return Module.endModule(builder);
 }
 }

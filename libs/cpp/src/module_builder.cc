@@ -101,15 +101,18 @@ fb::Offset<proto::syntax::Module> ModuleBuilder::Write(fb::FlatBufferBuilder& bu
         eb.add_message(s);
         errs.push_back(eb.Finish());
     }
-
     auto sec_ofs = _sections.Write(builder);
     auto stmt_vec = builder.CreateVectorOfStructs(_statements);
     auto error_vec = builder.CreateVector(errs);
-    proto::syntax::ModuleBuilder moduleBuilder{builder};
-    moduleBuilder.add_sections(sec_ofs);
-    moduleBuilder.add_statements(stmt_vec);
-    moduleBuilder.add_errors(error_vec);
-    return moduleBuilder.Finish();
+    auto line_breaks_vec = builder.CreateVectorOfStructs(_line_breaks);
+    auto comments_vec = builder.CreateVectorOfStructs(_comments);
+    proto::syntax::ModuleBuilder b{builder};
+    b.add_sections(sec_ofs);
+    b.add_statements(stmt_vec);
+    b.add_errors(error_vec);
+    b.add_line_breaks(line_breaks_vec);
+    b.add_line_breaks(comments_vec);
+    return b.Finish();
 }
 
 }  // namespace parser

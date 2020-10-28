@@ -1205,6 +1205,8 @@ impl<'a> Module<'a> {
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
         args: &'args ModuleArgs<'args>) -> flatbuffers::WIPOffset<Module<'bldr>> {
       let mut builder = ModuleBuilder::new(_fbb);
+      if let Some(x) = args.comments { builder.add_comments(x); }
+      if let Some(x) = args.line_breaks { builder.add_line_breaks(x); }
       if let Some(x) = args.errors { builder.add_errors(x); }
       if let Some(x) = args.statements { builder.add_statements(x); }
       if let Some(x) = args.sections { builder.add_sections(x); }
@@ -1214,6 +1216,8 @@ impl<'a> Module<'a> {
     pub const VT_SECTIONS: flatbuffers::VOffsetT = 4;
     pub const VT_STATEMENTS: flatbuffers::VOffsetT = 6;
     pub const VT_ERRORS: flatbuffers::VOffsetT = 8;
+    pub const VT_LINE_BREAKS: flatbuffers::VOffsetT = 10;
+    pub const VT_COMMENTS: flatbuffers::VOffsetT = 12;
 
   #[inline]
   pub fn sections(&self) -> Option<ModuleSections<'a>> {
@@ -1227,12 +1231,22 @@ impl<'a> Module<'a> {
   pub fn errors(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<Error<'a>>>>>(Module::VT_ERRORS, None)
   }
+  #[inline]
+  pub fn line_breaks(&self) -> Option<&'a [Location]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Location>>>(Module::VT_LINE_BREAKS, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn comments(&self) -> Option<&'a [Location]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Location>>>(Module::VT_COMMENTS, None).map(|v| v.safe_slice() )
+  }
 }
 
 pub struct ModuleArgs<'a> {
     pub sections: Option<flatbuffers::WIPOffset<ModuleSections<'a>>>,
     pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
     pub errors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>>>,
+    pub line_breaks: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
+    pub comments: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
 }
 impl<'a> Default for ModuleArgs<'a> {
     #[inline]
@@ -1241,6 +1255,8 @@ impl<'a> Default for ModuleArgs<'a> {
             sections: None,
             statements: None,
             errors: None,
+            line_breaks: None,
+            comments: None,
         }
     }
 }
@@ -1260,6 +1276,14 @@ impl<'a: 'b, 'b> ModuleBuilder<'a, 'b> {
   #[inline]
   pub fn add_errors(&mut self, errors: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Error<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_ERRORS, errors);
+  }
+  #[inline]
+  pub fn add_line_breaks(&mut self, line_breaks: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Location>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_LINE_BREAKS, line_breaks);
+  }
+  #[inline]
+  pub fn add_comments(&mut self, comments: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Location>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_COMMENTS, comments);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ModuleBuilder<'a, 'b> {

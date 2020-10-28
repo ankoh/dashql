@@ -87,6 +87,8 @@ table Module {
     sections: ModuleSections;
     statements: [Object];
     errors: [Error];
+    line_breaks: [Location];
+    comments: [Location];
 }
 
 enum ParameterType: uint8 {
