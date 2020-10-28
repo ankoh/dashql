@@ -13,6 +13,24 @@ namespace fb = flatbuffers;
 namespace dashql {
 namespace parser {
 
+/// Add node attributes
+syntax::Span SectionsBuilder::AddAttributes(std::initializer_list<OptionalAttribute> attrs) {
+    size_t begin = _attributes.size();
+    for (auto [loc, key, attr]: attrs) {
+        if (attr)
+            _attributes.push_back(syntax::Attribute(loc, key, *attr));
+    }
+    return syntax::Span(begin, _attributes.size() - begin);
+}
+
+/// Add node attributes
+syntax::Span SectionsBuilder::AddAttributes(const std::vector<syntax::Attribute>& attrs) {
+    size_t begin = _attributes.size();
+    for (auto& attr: attrs)
+        _attributes.push_back(attr);
+    return syntax::Span(begin, _attributes.size() - begin);
+}
+
 /// Write as flatbuffer
 fb::Offset<proto::syntax::ModuleSections> SectionsBuilder::Write(fb::FlatBufferBuilder& builder) {
     optional<fb::Offset<fb::Vector<double>>> numbers;

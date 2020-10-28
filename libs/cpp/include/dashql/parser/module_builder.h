@@ -94,22 +94,9 @@ class SectionsBuilder {
     }
 
     /// Add node attributes
-    syntax::Span AddAttributes(std::initializer_list<OptionalAttribute> attrs) {
-        size_t begin = _attributes.size();
-        for (auto [loc, key, attr]: attrs) {
-            if (attr)
-                _attributes.push_back(syntax::Attribute(loc, key, *attr));
-        }
-        return syntax::Span(begin, _attributes.size() - begin);
-    }
-
+    syntax::Span AddAttributes(std::initializer_list<OptionalAttribute> attrs);
     /// Add node attributes
-    syntax::Span AddAttributes(const std::vector<syntax::Attribute>& attrs) {
-        size_t begin = _attributes.size();
-        for (auto& attr: attrs)
-            _attributes.push_back(attr);
-        return syntax::Span(begin, _attributes.size() - begin);
-    }
+    syntax::Span AddAttributes(const std::vector<syntax::Attribute>& attrs);
 
     /// Write as flatbuffer
     flatbuffers::Offset<syntax::ModuleSections> Write(flatbuffers::FlatBufferBuilder& builder);
