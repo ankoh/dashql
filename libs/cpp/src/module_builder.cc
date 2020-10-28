@@ -78,6 +78,19 @@ syntax::Object ModuleBuilder::CreateObject(syntax::Location loc, syntax::ObjectT
     return syntax::Object(loc, type, _sections.AddAttributes(attrs));
 }
 
+/// Add an object
+std::vector<syntax::Attribute> ModuleBuilder::CollectViz(syntax::Location viz_loc, syntax::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<syntax::Attribute>>> attrs) {
+    auto tag_val = syntax::Value(viz_loc, syntax::ValueType::NUMBER, static_cast<double>(viz_type));
+    auto tag_attr = syntax::Attribute(viz_loc, syntax::AttributeKey::VIZ_STATEMENT_TAG, tag_val);
+    std::vector<syntax::Attribute> result{tag_attr};
+    for (auto& as: attrs) {
+        for (auto& a: as.get()) {
+            result.push_back(a);
+        }
+    }
+    return result;
+}
+
 /// Write the module
 fb::Offset<proto::syntax::Module> ModuleBuilder::Write(fb::FlatBufferBuilder& builder) {
     std::vector<fb::Offset<proto::syntax::Error>> errs;

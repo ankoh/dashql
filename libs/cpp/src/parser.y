@@ -159,12 +159,14 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <syntax::Object> load_statement;
 
 %type <std::optional<syntax::Value>> opt_alias;
+%type <std::vector<std::string_view>> string_list;
 %type <std::vector<syntax::Attribute>> csv_attribute_list;
 %type <std::vector<syntax::Attribute>> extract_method;
 %type <std::vector<syntax::Attribute>> http_attribute_list;
 %type <std::vector<syntax::Attribute>> load_attributes;
 %type <std::vector<syntax::Attribute>> opt_csv_attribute_list;
-%type <std::vector<std::string_view>> string_list;
+%type <std::vector<syntax::Attribute>> viz_attributes;
+%type <std::vector<syntax::Attribute>> viz_attrs_all;
 %type <syntax::Attribute> csv_attribute;
 %type <syntax::Attribute> http_attribute;
 %type <syntax::Value> boolean_value;
@@ -174,7 +176,6 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %type <syntax::Value> parameter_type;
 %type <syntax::Value> sql_literal;
 %type <syntax::Value> string_value;
-%type <syntax::Value> viz_type;
 
 %%
 
@@ -312,7 +313,9 @@ sql_literal:
     ;
 
 viz_statement:
-    viz_statement_prefix identifier FROM identifier USING viz_type  { }
+    viz_statement_prefix identifier FROM identifier USING viz_attributes  {
+        $$ = ctx.CreateObject(@$.encode(), syntax::ObjectType::VIZ_STATEMENT, $6);
+    }
     ;
 
 viz_statement_prefix:
@@ -323,21 +326,25 @@ viz_statement_prefix:
   | SHOW
     ;
 
-viz_type:
-    AREA        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::AREA); }
-  | BAR         { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::BAR); }
-  | BOX         { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::BOX); }
-  | BUBBLE      { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::BUBBLE); }
-  | GRID        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::GRID); }
-  | HISTOGRAM   { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::HISTOGRAM); }
-  | LINE        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::LINE); }
-  | NUMBER      { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::NUMBER); }
-  | PIE         { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::PIE); }
-  | POINT       { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::POINT); }
-  | SCATTER     { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::SCATTER); }
-  | TABLE       { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::TABLE); }
-  | TEXT        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) VizType::TEXT); }
+viz_attributes:
+    AREA viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::AREA, {$2}); }
+  | BAR viz_attrs_all       { $$ = ctx.CollectViz(@1.encode(), VizType::BAR, {$2}); }
+  | BOX viz_attrs_all       { $$ = ctx.CollectViz(@1.encode(), VizType::BOX, {$2}); }
+  | BUBBLE viz_attrs_all    { $$ = ctx.CollectViz(@1.encode(), VizType::BUBBLE, {$2}); }
+  | GRID viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::GRID, {$2}); }
+  | HISTOGRAM viz_attrs_all { $$ = ctx.CollectViz(@1.encode(), VizType::HISTOGRAM, {$2}); }
+  | LINE viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::LINE, {$2}); }
+  | NUMBER viz_attrs_all    { $$ = ctx.CollectViz(@1.encode(), VizType::NUMBER, {$2}); }
+  | PIE viz_attrs_all       { $$ = ctx.CollectViz(@1.encode(), VizType::PIE, {$2}); }
+  | POINT viz_attrs_all     { $$ = ctx.CollectViz(@1.encode(), VizType::POINT, {$2}); }
+  | SCATTER viz_attrs_all   { $$ = ctx.CollectViz(@1.encode(), VizType::SCATTER, {$2}); }
+  | TABLE viz_attrs_all     { $$ = ctx.CollectViz(@1.encode(), VizType::TABLE, {$2}); }
+  | TEXT viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::TEXT, {$2}); }
     ;
+
+viz_attrs_all:
+    %empty { $$ = std::vector<Attr>(); }
+
 
 %%
 void dashql::parser::Parser::error(const location_type& loc, const std::string& message) {
