@@ -120,9 +120,13 @@ class ModuleBuilder {
     /// The sections
     SectionsBuilder _sections;
     /// The statements
-    std::vector<uint32_t> _statements;
+    std::vector<syntax::Object> _statements;
     /// The errors
     std::vector<std::pair<syntax::Location, std::string>> _errors;
+    /// The line breaks
+    std::vector<syntax::Location> _line_breaks;
+    /// The comments
+    std::vector<syntax::Location> _comments;
 
     public:
     /// Constructor
@@ -136,24 +140,20 @@ class ModuleBuilder {
     auto& errors() { return _errors; }
 
     /// Add a line break
-    void AddLineBreak(syntax::Location loc);
-    /// Add a single-line comment
-    void AddComment(syntax::Location loc);
-    /// Add a c-style comment
-    void AddCComment(syntax::Location loc);
-
-    /// Add a string vector
-    auto AddStrings(syntax::Location loc, const std::vector<std::string_view>& strings) { return _sections.Add(loc, strings); }
+    inline void AddLineBreak(syntax::Location loc) { _line_breaks.push_back(loc); }
+    /// Add a comment
+    inline void AddComment(syntax::Location loc) { _comments.push_back(loc); }
     /// Add an error
-    void AddError(syntax::Location loc, const std::string& message);
+    inline void AddError(syntax::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
+    /// Add a string vector
+    inline syntax::Value AddStringArray(syntax::Location loc, const std::vector<std::string_view>& strings) { return _sections.Add(loc, strings); }
+
     /// Add an object
-    syntax::Object AddObject(syntax::Location loc, syntax::ObjectType type, std::initializer_list<OptionalAttribute> attrs) {
-        return syntax::Object(loc, type, _sections.AddAttributes(attrs));
-    }
+    syntax::Object CreateObject(syntax::Location loc, syntax::ObjectType type, std::initializer_list<OptionalAttribute> attrs);
     /// Add an object
-    syntax::Object AddObject(syntax::Location loc, syntax::ObjectType type, const std::vector<syntax::Attribute>& attrs) {
-        return syntax::Object(loc, type, _sections.AddAttributes(attrs));
-    }
+    syntax::Object CreateObject(syntax::Location loc, syntax::ObjectType type, const std::vector<syntax::Attribute>& attrs);
+
+    void AddStatement(syntax::Object object);
 
     /// Write as flatbuffer
     flatbuffers::Offset<syntax::Module> Write(flatbuffers::FlatBufferBuilder& builder);

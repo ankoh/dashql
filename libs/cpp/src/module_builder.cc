@@ -50,9 +50,14 @@ fb::Offset<proto::syntax::ModuleSections> SectionsBuilder::Write(fb::FlatBufferB
 ModuleBuilder::ModuleBuilder()
     : _sections(), _statements(), _errors() {}
 
-/// Add an error
-void ModuleBuilder::AddError(proto::syntax::Location loc, const std::string& message) {
-    _errors.push_back({loc, message});
+/// Add an object
+syntax::Object ModuleBuilder::CreateObject(syntax::Location loc, syntax::ObjectType type, std::initializer_list<OptionalAttribute> attrs) {
+    return syntax::Object(loc, type, _sections.AddAttributes(attrs));
+}
+
+/// Add an object
+syntax::Object ModuleBuilder::CreateObject(syntax::Location loc, syntax::ObjectType type, const std::vector<syntax::Attribute>& attrs) {
+    return syntax::Object(loc, type, _sections.AddAttributes(attrs));
 }
 
 /// Write the module
@@ -67,7 +72,7 @@ fb::Offset<proto::syntax::Module> ModuleBuilder::Write(fb::FlatBufferBuilder& bu
     }
 
     auto sec_ofs = _sections.Write(builder);
-    auto stmt_vec = builder.CreateVector(_statements);
+    auto stmt_vec = builder.CreateVectorOfStructs(_statements);
     auto error_vec = builder.CreateVector(errs);
     proto::syntax::ModuleBuilder moduleBuilder{builder};
     moduleBuilder.add_sections(sec_ofs);

@@ -56,8 +56,6 @@ class ParseContext: public ModuleBuilder {
     bool _trace_parsing;
     /// The input (if any)
     std::string_view _input;
-    /// The line breaks
-    std::vector<uint32_t> _line_breaks;
 
     /// Begin a scan
     void beginScan(std::string_view in);

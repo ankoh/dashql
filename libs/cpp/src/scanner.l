@@ -203,7 +203,7 @@ with[^;]*           { return Parser::make_SQL_WITH(loc); }
 <C_COMMENT>\n       { ctx.AddLineBreak(loc.encode()); }
 <C_COMMENT>"*/"     {
                         BEGIN(INITIAL);
-                        ctx.AddCComment((comment_begin + loc).encode());
+                        ctx.AddComment((comment_begin + loc).encode());
                     }
 
 [ \t\r]         { ctx.AddLineBreak(loc.encode()); }

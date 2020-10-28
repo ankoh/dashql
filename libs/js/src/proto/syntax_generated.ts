@@ -863,11 +863,12 @@ sections(obj?:dashql.proto.syntax.ModuleSections):dashql.proto.syntax.ModuleSect
 
 /**
  * @param number index
- * @returns number
+ * @param dashql.proto.syntax.Object= obj
+ * @returns dashql.proto.syntax.Object
  */
-statements(index: number):number|null {
+statements(index: number, obj?:dashql.proto.syntax.Object):dashql.proto.syntax.Object|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.readUint32(this.bb!.__vector(this.bb_pos + offset) + index * 4) : 0;
+  return offset ? (obj || new dashql.proto.syntax.Object()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 20, this.bb!) : null;
 };
 
 /**
@@ -876,14 +877,6 @@ statements(index: number):number|null {
 statementsLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @returns Uint32Array
- */
-statementsArray():Uint32Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? new Uint32Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
 
 /**
@@ -929,28 +922,10 @@ static addStatements(builder:flatbuffers.Builder, statementsOffset:flatbuffers.O
 
 /**
  * @param flatbuffers.Builder builder
- * @param Array.<number> data
- * @returns flatbuffers.Offset
- */
-static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint32Array):flatbuffers.Offset;
-/**
- * @deprecated This Uint8Array overload will be removed in the future.
- */
-static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
-static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint32Array|Uint8Array):flatbuffers.Offset {
-  builder.startVector(4, data.length, 4);
-  for (var i = data.length - 1; i >= 0; i--) {
-    builder.addInt32(data[i]);
-  }
-  return builder.endVector();
-};
-
-/**
- * @param flatbuffers.Builder builder
  * @param number numElems
  */
 static startStatementsVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(4, numElems, 4);
+  builder.startVector(20, numElems, 4);
 };
 
 /**

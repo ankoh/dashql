@@ -85,7 +85,7 @@ table ModuleSections {
 
 table Module {
     sections: ModuleSections;
-    statements: [uint32];
+    statements: [Object];
     errors: [Error];
 }
 

@@ -940,7 +940,7 @@ struct ModuleT : public flatbuffers::NativeTable {
     return "dashql.proto.syntax.ModuleT";
   }
   std::unique_ptr<dashql::proto::syntax::ModuleSectionsT> sections;
-  std::vector<uint32_t> statements;
+  std::vector<dashql::proto::syntax::Object> statements;
   std::vector<std::unique_ptr<dashql::proto::syntax::ErrorT>> errors;
   ModuleT() {
   }
@@ -975,8 +975,8 @@ struct Module FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const dashql::proto::syntax::ModuleSections *sections() const {
     return GetPointer<const dashql::proto::syntax::ModuleSections *>(VT_SECTIONS);
   }
-  const flatbuffers::Vector<uint32_t> *statements() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_STATEMENTS);
+  const flatbuffers::Vector<const dashql::proto::syntax::Object *> *statements() const {
+    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Object *> *>(VT_STATEMENTS);
   }
   const flatbuffers::Vector<flatbuffers::Offset<dashql::proto::syntax::Error>> *errors() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<dashql::proto::syntax::Error>> *>(VT_ERRORS);
@@ -1004,7 +1004,7 @@ struct ModuleBuilder {
   void add_sections(flatbuffers::Offset<dashql::proto::syntax::ModuleSections> sections) {
     fbb_.AddOffset(Module::VT_SECTIONS, sections);
   }
-  void add_statements(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> statements) {
+  void add_statements(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> statements) {
     fbb_.AddOffset(Module::VT_STATEMENTS, statements);
   }
   void add_errors(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<dashql::proto::syntax::Error>>> errors) {
@@ -1024,7 +1024,7 @@ struct ModuleBuilder {
 inline flatbuffers::Offset<Module> CreateModule(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<dashql::proto::syntax::ModuleSections> sections = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> statements = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> statements = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<dashql::proto::syntax::Error>>> errors = 0) {
   ModuleBuilder builder_(_fbb);
   builder_.add_errors(errors);
@@ -1036,9 +1036,9 @@ inline flatbuffers::Offset<Module> CreateModule(
 inline flatbuffers::Offset<Module> CreateModuleDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<dashql::proto::syntax::ModuleSections> sections = 0,
-    const std::vector<uint32_t> *statements = nullptr,
+    const std::vector<dashql::proto::syntax::Object> *statements = nullptr,
     const std::vector<flatbuffers::Offset<dashql::proto::syntax::Error>> *errors = nullptr) {
-  auto statements__ = statements ? _fbb.CreateVector<uint32_t>(*statements) : 0;
+  auto statements__ = statements ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Object>(*statements) : 0;
   auto errors__ = errors ? _fbb.CreateVector<flatbuffers::Offset<dashql::proto::syntax::Error>>(*errors) : 0;
   return dashql::proto::syntax::CreateModule(
       _fbb,
@@ -1126,7 +1126,7 @@ inline void Module::UnPackTo(ModuleT *_o, const flatbuffers::resolver_function_t
   (void)_o;
   (void)_resolver;
   { auto _e = sections(); if (_e) _o->sections = std::unique_ptr<dashql::proto::syntax::ModuleSectionsT>(_e->UnPack(_resolver)); }
-  { auto _e = statements(); if (_e) { _o->statements.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->statements[_i] = _e->Get(_i); } } }
+  { auto _e = statements(); if (_e) { _o->statements.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->statements[_i] = *_e->Get(_i); } } }
   { auto _e = errors(); if (_e) { _o->errors.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->errors[_i] = std::unique_ptr<dashql::proto::syntax::ErrorT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
@@ -1139,7 +1139,7 @@ inline flatbuffers::Offset<Module> CreateModule(flatbuffers::FlatBufferBuilder &
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ModuleT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _sections = _o->sections ? CreateModuleSections(_fbb, _o->sections.get(), _rehasher) : 0;
-  auto _statements = _o->statements.size() ? _fbb.CreateVector(_o->statements) : 0;
+  auto _statements = _o->statements.size() ? _fbb.CreateVectorOfStructs(_o->statements) : 0;
   auto _errors = _o->errors.size() ? _fbb.CreateVector<flatbuffers::Offset<dashql::proto::syntax::Error>> (_o->errors.size(), [](size_t i, _VectorArgs *__va) { return CreateError(*__va->__fbb, __va->__o->errors[i].get(), __va->__rehasher); }, &_va ) : 0;
   return dashql::proto::syntax::CreateModule(
       _fbb,
@@ -1527,11 +1527,12 @@ inline const flatbuffers::TypeTable *ModuleSectionsTypeTable() {
 inline const flatbuffers::TypeTable *ModuleTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_SEQUENCE, 0, 0 },
-    { flatbuffers::ET_UINT, 1, -1 },
-    { flatbuffers::ET_SEQUENCE, 1, 1 }
+    { flatbuffers::ET_SEQUENCE, 1, 1 },
+    { flatbuffers::ET_SEQUENCE, 1, 2 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     dashql::proto::syntax::ModuleSectionsTypeTable,
+    dashql::proto::syntax::ObjectTypeTable,
     dashql::proto::syntax::ErrorTypeTable
   };
   static const char * const names[] = {

@@ -1220,8 +1220,8 @@ impl<'a> Module<'a> {
     self._tab.get::<flatbuffers::ForwardsUOffset<ModuleSections<'a>>>(Module::VT_SECTIONS, None)
   }
   #[inline]
-  pub fn statements(&self) -> Option<flatbuffers::Vector<'a, u32>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u32>>>(Module::VT_STATEMENTS, None)
+  pub fn statements(&self) -> Option<&'a [Object]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Object>>>(Module::VT_STATEMENTS, None).map(|v| v.safe_slice() )
   }
   #[inline]
   pub fn errors(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>> {
@@ -1231,7 +1231,7 @@ impl<'a> Module<'a> {
 
 pub struct ModuleArgs<'a> {
     pub sections: Option<flatbuffers::WIPOffset<ModuleSections<'a>>>,
-    pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u32>>>,
+    pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
     pub errors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>>>,
 }
 impl<'a> Default for ModuleArgs<'a> {
@@ -1254,7 +1254,7 @@ impl<'a: 'b, 'b> ModuleBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<ModuleSections>>(Module::VT_SECTIONS, sections);
   }
   #[inline]
-  pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u32>>) {
+  pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Object>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_STATEMENTS, statements);
   }
   #[inline]

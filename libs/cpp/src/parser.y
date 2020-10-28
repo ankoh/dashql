@@ -196,7 +196,7 @@ statement:
 
 parameter_declaration:
     DECLARE PARAMETER identifier opt_alias TYPE parameter_type  {
-        $$ = ctx.AddObject(@$.encode(), syntax::ObjectType::PARAMETER_DECLARATION, {
+        $$ = ctx.CreateObject(@$.encode(), syntax::ObjectType::PARAMETER_DECLARATION, {
             {@3.encode(), AttrKey::PARAMETER_IDENTIFIER, $3},
             {@4.encode(), AttrKey::PARAMETER_ALIAS, $4},
             {@6.encode(), AttrKey::PARAMETER_TYPE, $6},
@@ -240,7 +240,7 @@ parameter_type:
 load_statement:
     LOAD identifier FROM load_attributes {
         $4.push_back(Attr(@2.encode(), AttrKey::LOAD_NAME, $2));
-        $$ = ctx.AddObject(@$.encode(), syntax::ObjectType::LOAD_STATEMENT, move($4));
+        $$ = ctx.CreateObject(@$.encode(), syntax::ObjectType::LOAD_STATEMENT, move($4));
     }
     ;
 
@@ -269,7 +269,7 @@ extract_statement:
     EXTRACT identifier FROM identifier USING extract_method {
         $6.push_back(Attr(@2.encode(), AttrKey::EXTRACT_STATEMENT_NAME, $2));
         $6.push_back(Attr(@4.encode(), AttrKey::EXTRACT_STATEMENT_DATA, $4));
-        $$ = ctx.AddObject(@$.encode(), syntax::ObjectType::EXTRACT_STATEMENT, move($6));
+        $$ = ctx.CreateObject(@$.encode(), syntax::ObjectType::EXTRACT_STATEMENT, move($6));
     }
     ;
 
@@ -299,7 +299,7 @@ csv_attribute:
 
 csv_header_value:
     boolean_value           { $$ = $1; }
-  | LRB string_list RRB     { $$ = ctx.AddStrings(@$.encode(), $2); }
+  | LRB string_list RRB     { $$ = ctx.AddStringArray(@$.encode(), $2); }
 
 query_statement:
     QUERY identifier AS sql_literal { }
