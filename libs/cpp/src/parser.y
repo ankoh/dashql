@@ -182,7 +182,7 @@ Parser::symbol_type yylex(ParseContext& ctx);
 %start statement_list;
 
 statement_list:
-    statement_list statement SEMICOLON  { ctx.sections().Add(@$.encode(), $2); }
+    statement_list statement SEMICOLON  { ctx.AddStatement($2); }
   | statement_list error SEMICOLON      { yyclearin; yyerrok; }
   | %empty
     ;
@@ -211,11 +211,11 @@ identifier:
     ;
 
 boolean_value:
-    BOOLEAN_LITERAL { $$ = Value(@1.encode(), ValueType::NUMBER, $1); }
+    BOOLEAN_LITERAL     { $$ = Value(@1.encode(), ValueType::NUMBER, $1); }
     ;
 
 string_value:
-    STRING_LITERAL { $$ = Value(@1.encode(), ValueType::STRING, 0); }
+    STRING_LITERAL      { $$ = Value(@1.encode(), ValueType::STRING, 0); }
     ;
 
 string_list:
@@ -224,8 +224,8 @@ string_list:
     ;
 
 opt_alias:
-    %empty        { $$ = std::nullopt; }
-  | AS identifier { $$ = $2; }
+    %empty          { $$ = std::nullopt; }
+  | AS identifier   { $$ = $2; }
     ;
 
 parameter_type:
@@ -314,7 +314,7 @@ sql_literal:
 
 viz_statement:
     viz_statement_prefix identifier FROM identifier USING viz_attributes  {
-        $$ = ctx.CreateObject(@$.encode(), syntax::ObjectType::VIZ_STATEMENT, $6);
+        $$ = ctx.CreateObject(@$.encode(), syntax::ObjectType::VIZ_STATEMENT, move($6));
     }
     ;
 

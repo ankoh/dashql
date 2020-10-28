@@ -126,6 +126,8 @@ class ModuleBuilder {
     /// Get the errors
     auto& errors() { return _errors; }
 
+    /// Add a statement
+    inline void AddStatement(syntax::Object object) { _statements.push_back(object); }
     /// Add a line break
     inline void AddLineBreak(syntax::Location loc) { _line_breaks.push_back(loc); }
     /// Add a comment
@@ -143,11 +145,8 @@ class ModuleBuilder {
     syntax::Value CreateVizTag(syntax::Location loc, syntax::VizType vizType) const {
         return {loc, syntax::ValueType::NUMBER, static_cast<double>(vizType)};
     }
-
     /// Collect viz attributes
-    std::vector<syntax::Attribute> CollectViz(syntax::Location viz_loc, syntax::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<syntax::Attribute>>> attrs);
-
-    void AddStatement(syntax::Object object);
+    std::vector<syntax::Attribute> CollectViz(syntax::Location viz_loc, syntax::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<syntax::Attribute>>> attributes);
 
     /// Write as flatbuffer
     flatbuffers::Offset<syntax::Module> Write(flatbuffers::FlatBufferBuilder& builder);
