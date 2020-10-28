@@ -133,7 +133,7 @@ enum class AttributeKey : uint8_t {
   CSV_EXTRACT_TIMESTAMP_FORMAT = 19,
   QUERY_STATEMENT_NAME = 20,
   QUERY_STATEMENT_TEXT = 21,
-  VIZ_STATEMENT_TAG = 22,
+  VIZ_STATEMENT_TYPE = 22,
   VIZ_STATEMENT_NAME = 23,
   VIZ_STATEMENT_QUERY = 24,
   MIN = NONE,
@@ -164,7 +164,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[25] {
     AttributeKey::CSV_EXTRACT_TIMESTAMP_FORMAT,
     AttributeKey::QUERY_STATEMENT_NAME,
     AttributeKey::QUERY_STATEMENT_TEXT,
-    AttributeKey::VIZ_STATEMENT_TAG,
+    AttributeKey::VIZ_STATEMENT_TYPE,
     AttributeKey::VIZ_STATEMENT_NAME,
     AttributeKey::VIZ_STATEMENT_QUERY
   };
@@ -195,7 +195,7 @@ inline const char * const *EnumNamesAttributeKey() {
     "CSV_EXTRACT_TIMESTAMP_FORMAT",
     "QUERY_STATEMENT_NAME",
     "QUERY_STATEMENT_TEXT",
-    "VIZ_STATEMENT_TAG",
+    "VIZ_STATEMENT_TYPE",
     "VIZ_STATEMENT_NAME",
     "VIZ_STATEMENT_QUERY",
     nullptr
@@ -1230,7 +1230,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "CSV_EXTRACT_TIMESTAMP_FORMAT",
     "QUERY_STATEMENT_NAME",
     "QUERY_STATEMENT_TEXT",
-    "VIZ_STATEMENT_TAG",
+    "VIZ_STATEMENT_TYPE",
     "VIZ_STATEMENT_NAME",
     "VIZ_STATEMENT_QUERY"
   };
