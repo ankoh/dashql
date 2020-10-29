@@ -1,0 +1,2 @@
+%type <syntax::Object> parameter_declaration;
+%type <syntax::Value> parameter_type;

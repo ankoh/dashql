@@ -1,0 +1,6 @@
+%type <syntax::Object> load_statement;
+%type <std::vector<syntax::Attribute>> load_attributes;
+%type <std::vector<syntax::Attribute>> opt_http_attribute_list
+%type <std::vector<syntax::Attribute>> http_attribute_list;
+%type <syntax::Attribute> http_attribute;
+%type <syntax::Value> http_verb;

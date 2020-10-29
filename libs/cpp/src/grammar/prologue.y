@@ -53,4 +53,3 @@ using namespace dashql::parser;
 
 Parser::symbol_type yylex(ParseContext& ctx);
 }
-

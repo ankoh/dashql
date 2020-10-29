@@ -1,0 +1,5 @@
+%type <std::optional<syntax::Value>> opt_alias;
+%type <syntax::Value> boolean_value;
+%type <syntax::Value> identifier;
+%type <syntax::Value> string_value;
+

@@ -81,11 +81,56 @@ include_directories(
 )
 
 # ---------------------------------------------------------------------------
-# Parser & Scanner
+# Grammar
 
-set(DASHQL_SCANNER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/scanner.cc)
-set(DASHQL_PARSER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/parser.cc)
-set(DASHQL_PARSER_HEADER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/parser.h)
+set(GRAMMAR_OUT ${CMAKE_BINARY_DIR}/dashql.y)
+set(GRAMMAR_DELIMITER ${CMAKE_SOURCE_DIR}/src/grammar/delimiter.y)
+set(GRAMMAR_PROLOGUE ${CMAKE_SOURCE_DIR}/src/grammar/prologue.y)
+set(GRAMMAR_EPILOGUE ${CMAKE_SOURCE_DIR}/src/grammar/epilogue.y)
+set(GRAMMAR_TOKENS ${CMAKE_SOURCE_DIR}/src/grammar/tokens.y)
+
+set(GRAMMAR_RULES
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_common.y
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_extract.y
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_load.y
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_param.y
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_query.y
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_statement.y
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_viz.y
+)
+
+set(GRAMMAR_TYPES
+    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_common.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_extract.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_load.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_param.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_query.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_statement.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_viz.yh
+)
+
+# Build grammar file
+add_custom_command(
+    OUTPUT ${GRAMMAR_OUT}
+    COMMAND ${CMAKE_COMMAND} -E rm -f ${GRAMMAR_OUT}
+    COMMAND ${CMAKE_COMMAND} -E cat ${GRAMMAR_PROLOGUE} >> ${GRAMMAR_OUT}
+    COMMAND ${CMAKE_COMMAND} -E cat ${GRAMMAR_TOKENS} >> ${GRAMMAR_OUT}
+    COMMAND ${CMAKE_COMMAND} -E cat ${GRAMMAR_TYPES} >> ${GRAMMAR_OUT}
+    COMMAND echo "%%" >> ${GRAMMAR_OUT}
+    COMMAND ${CMAKE_COMMAND} -E cat ${GRAMMAR_RULES} >> ${GRAMMAR_OUT}
+    COMMAND echo "%%" >> ${GRAMMAR_OUT}
+    COMMAND ${CMAKE_COMMAND} -E cat ${GRAMMAR_EPILOGUE} >> ${GRAMMAR_OUT}
+    DEPENDS
+        ${GRAMMAR_PROLOGUE}
+        ${GRAMMAR_EPILOGUE}
+        ${GRAMMAR_TOKENS}
+        ${GRAMMAR_RULES}
+        ${GRAMMAR_TYPES}
+)
+
+set(SCANNER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/scanner.cc)
+set(PARSER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/parser.cc)
+set(PARSER_HEADER_OUT ${CMAKE_BINARY_DIR}/include/dashql/parser/parser.h)
 
 IF(NOT EXISTS ${CMAKE_BINARY_DIR}/include/dashql/parser/)
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include/dashql/parser/)
@@ -93,24 +138,27 @@ ENDIF()
 
 # Generate parser & scanner
 add_custom_command(
-    OUTPUT ${DASHQL_SCANNER_OUT} ${DASHQL_PARSER_OUT} ${DASHQL_PARSER_HEADER_OUT}
+    OUTPUT ${SCANNER_OUT} ${PARSER_OUT} ${PARSER_HEADER_OUT}
     COMMAND ${BISON_EXECUTABLE}
-        --defines=${DASHQL_PARSER_HEADER_OUT}
-        --output=${DASHQL_PARSER_OUT}
+        --defines=${PARSER_HEADER_OUT}
+        --output=${PARSER_OUT}
         --report=state
         --report-file=${CMAKE_BINARY_DIR}/bison.log
-        ${CMAKE_SOURCE_DIR}/src/parser.y
+        ${GRAMMAR_OUT}
     COMMAND ${FLEX_EXECUTABLE}
-        --outfile=${DASHQL_SCANNER_OUT}
+        --outfile=${SCANNER_OUT}
         ${CMAKE_SOURCE_DIR}/src/scanner.l
     DEPENDS
-        ${CMAKE_SOURCE_DIR}/src/parser.y
+        ${GRAMMAR_OUT}
         ${CMAKE_SOURCE_DIR}/src/scanner.l
 )
 
+# ---------------------------------------------------------------------------
+# Library
+
 add_library(dashql_parser
-    ${DASHQL_SCANNER_OUT}
-    ${DASHQL_PARSER_OUT}
+    ${SCANNER_OUT}
+    ${PARSER_OUT}
     ${CMAKE_SOURCE_DIR}/src/parse_context.cc
     ${CMAKE_SOURCE_DIR}/src/module_builder.cc
 )

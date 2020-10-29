@@ -1,0 +1,2 @@
+%type <syntax::Object> query_statement;
+%type <syntax::Value> sql_literal;
