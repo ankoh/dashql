@@ -13,10 +13,12 @@ namespace parser {
 
 namespace sx = proto::syntax;
 namespace sxd = proto::syntax_dashql;
-using OptionalAttribute = std::tuple<sx::Location, sx::AttributeKey, std::optional<sx::Value>>;
 
 /// A document builder
 class DocumentBuilder {
+    public: 
+    using OptionalAttribute = std::tuple<sx::Location, sx::AttributeKey, std::optional<sx::Value>>;
+
     protected:
     std::vector<sx::Object> _objects = {};
     std::vector<sx::Attribute> _attributes = {};
@@ -88,7 +90,7 @@ class ModuleBuilder {
     inline sx::Value AddObject(sx::Location loc, sx::Object object) { return _document.AddObject(loc, object); }
 
     /// Add an object
-    sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<OptionalAttribute> attrs);
+    sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
     /// Add an object
     sx::Object CreateObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs);
 

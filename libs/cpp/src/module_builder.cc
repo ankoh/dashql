@@ -91,7 +91,7 @@ ModuleBuilder::ModuleBuilder()
     : _document(), _statements(), _errors() {}
 
 /// Add an object
-sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<OptionalAttribute> attrs) {
+sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs) {
     return sx::Object(loc, type, _document.AddAttributes(attrs));
 }
 
