@@ -1,10 +1,10 @@
-viz_statement:
-    viz_statement_prefix identifier FROM identifier USING viz_attributes  {
+dashql_viz_statement:
+    dashql_viz_statement_prefix dashql_identifier FROM dashql_identifier USING dashql_viz_attributes  {
         $$ = ctx.CreateObject(@$.encode(), syntax::ObjectType::VIZ_STATEMENT, move($6));
     }
     ;
 
-viz_statement_prefix:
+dashql_viz_statement_prefix:
     VIZ
   | VIS
   | VISUALISE
@@ -12,21 +12,21 @@ viz_statement_prefix:
   | SHOW
     ;
 
-viz_attributes:
-    AREA viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::AREA, {$2}); }
-  | BAR viz_attrs_all       { $$ = ctx.CollectViz(@1.encode(), VizType::BAR, {$2}); }
-  | BOX viz_attrs_all       { $$ = ctx.CollectViz(@1.encode(), VizType::BOX, {$2}); }
-  | BUBBLE viz_attrs_all    { $$ = ctx.CollectViz(@1.encode(), VizType::BUBBLE, {$2}); }
-  | GRID viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::GRID, {$2}); }
-  | HISTOGRAM viz_attrs_all { $$ = ctx.CollectViz(@1.encode(), VizType::HISTOGRAM, {$2}); }
-  | LINE viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::LINE, {$2}); }
-  | NUMBER viz_attrs_all    { $$ = ctx.CollectViz(@1.encode(), VizType::NUMBER, {$2}); }
-  | PIE viz_attrs_all       { $$ = ctx.CollectViz(@1.encode(), VizType::PIE, {$2}); }
-  | POINT viz_attrs_all     { $$ = ctx.CollectViz(@1.encode(), VizType::POINT, {$2}); }
-  | SCATTER viz_attrs_all   { $$ = ctx.CollectViz(@1.encode(), VizType::SCATTER, {$2}); }
-  | TABLE viz_attrs_all     { $$ = ctx.CollectViz(@1.encode(), VizType::TABLE, {$2}); }
-  | TEXT viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::TEXT, {$2}); }
+dashql_viz_attributes:
+    AREA dashql_viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::AREA, {$2}); }
+  | BAR dashql_viz_attrs_all       { $$ = ctx.CollectViz(@1.encode(), VizType::BAR, {$2}); }
+  | BOX dashql_viz_attrs_all       { $$ = ctx.CollectViz(@1.encode(), VizType::BOX, {$2}); }
+  | BUBBLE dashql_viz_attrs_all    { $$ = ctx.CollectViz(@1.encode(), VizType::BUBBLE, {$2}); }
+  | GRID dashql_viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::GRID, {$2}); }
+  | HISTOGRAM dashql_viz_attrs_all { $$ = ctx.CollectViz(@1.encode(), VizType::HISTOGRAM, {$2}); }
+  | LINE dashql_viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::LINE, {$2}); }
+  | NUMBER dashql_viz_attrs_all    { $$ = ctx.CollectViz(@1.encode(), VizType::NUMBER, {$2}); }
+  | PIE dashql_viz_attrs_all       { $$ = ctx.CollectViz(@1.encode(), VizType::PIE, {$2}); }
+  | POINT dashql_viz_attrs_all     { $$ = ctx.CollectViz(@1.encode(), VizType::POINT, {$2}); }
+  | SCATTER dashql_viz_attrs_all   { $$ = ctx.CollectViz(@1.encode(), VizType::SCATTER, {$2}); }
+  | TABLE dashql_viz_attrs_all     { $$ = ctx.CollectViz(@1.encode(), VizType::TABLE, {$2}); }
+  | TEXT dashql_viz_attrs_all      { $$ = ctx.CollectViz(@1.encode(), VizType::TEXT, {$2}); }
     ;
 
-viz_attrs_all:
+dashql_viz_attrs_all:
     %empty { $$ = {}; }

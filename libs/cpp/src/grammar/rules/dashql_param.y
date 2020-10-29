@@ -1,5 +1,5 @@
-parameter_declaration:
-    DECLARE PARAMETER identifier opt_alias TYPE parameter_type  {
+dashql_parameter_declaration:
+    DECLARE PARAMETER dashql_identifier dashql_opt_alias TYPE dashql_parameter_type  {
         $$ = ctx.CreateObject(@$.encode(), syntax::ObjectType::PARAMETER_DECLARATION, {
             {@3.encode(), AttrKey::PARAMETER_IDENTIFIER, $3},
             {@4.encode(), AttrKey::PARAMETER_ALIAS, $4},
@@ -8,7 +8,7 @@ parameter_declaration:
     }
     ;
 
-parameter_type:
+dashql_parameter_type:
     INTEGER     { $$ = Value(@$.encode(), ValueType::NUMBER, (int) ParamType::INTEGER); }
   | FLOAT       { $$ = Value(@$.encode(), ValueType::NUMBER, (int) ParamType::FLOAT); }
   | TEXT        { $$ = Value(@$.encode(), ValueType::NUMBER, (int) ParamType::TEXT); }

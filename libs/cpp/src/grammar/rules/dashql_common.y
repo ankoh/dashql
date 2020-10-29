@@ -1,17 +1,17 @@
-identifier:
+dashql_identifier:
     IDENTIFIER_LITERAL  { $$ = Value(@1.encode(), ValueType::STRING, 0); }
   | STRING_LITERAL      { $$ = Value(@1.encode(), ValueType::STRING, 0); }
     ;
 
-boolean_value:
+dashql_boolean_value:
     BOOLEAN_LITERAL     { $$ = Value(@1.encode(), ValueType::NUMBER, $1); }
     ;
 
-string_value:
+dashql_string_value:
     STRING_LITERAL      { $$ = Value(@1.encode(), ValueType::STRING, 0); }
     ;
 
-opt_alias:
-    %empty          { $$ = std::nullopt; }
-  | AS identifier   { $$ = $2; }
+dashql_opt_alias:
+    %empty                  { $$ = std::nullopt; }
+  | AS dashql_identifier    { $$ = $2; }
     ;

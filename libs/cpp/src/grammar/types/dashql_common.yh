@@ -1,5 +1,5 @@
-%type <std::optional<syntax::Value>> opt_alias;
-%type <syntax::Value> boolean_value;
-%type <syntax::Value> identifier;
-%type <syntax::Value> string_value;
+%type <std::optional<syntax::Value>> dashql_opt_alias;
+%type <syntax::Value> dashql_boolean_value;
+%type <syntax::Value> dashql_identifier;
+%type <syntax::Value> dashql_string_value;
 

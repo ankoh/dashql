@@ -1,2 +1,2 @@
-%type <syntax::Object> parameter_declaration;
-%type <syntax::Value> parameter_type;
+%type <syntax::Object> dashql_parameter_declaration;
+%type <syntax::Value> dashql_parameter_type;

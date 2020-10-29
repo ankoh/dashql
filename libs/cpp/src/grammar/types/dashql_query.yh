@@ -1,2 +1,2 @@
-%type <syntax::Object> query_statement;
-%type <syntax::Value> sql_literal;
+%type <syntax::Object> dashql_query_statement;
+%type <syntax::Value> dashql_sql_literal;

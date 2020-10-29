@@ -1,7 +1,7 @@
-%type <syntax::Object> extract_statement;
-%type <std::vector<std::string_view>> csv_string_list;
-%type <std::vector<syntax::Attribute>> extract_method;
-%type <std::vector<syntax::Attribute>> csv_attribute_list;
-%type <std::vector<syntax::Attribute>> opt_csv_attribute_list;
-%type <syntax::Attribute> csv_attribute;
-%type <syntax::Value> csv_header_value;
+%type <syntax::Object> dashql_extract_statement;
+%type <std::vector<std::string_view>> dashql_csv_string_list;
+%type <std::vector<syntax::Attribute>> dashql_extract_method;
+%type <std::vector<syntax::Attribute>> dashql_csv_attribute_list;
+%type <std::vector<syntax::Attribute>> dashql_opt_csv_attribute_list;
+%type <syntax::Attribute> dashql_csv_attribute;
+%type <syntax::Value> dashql_csv_header_value;
