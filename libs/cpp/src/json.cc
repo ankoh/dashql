@@ -70,6 +70,8 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
     // Prepare document
     json::Document doc(json::kObjectType);
     auto& alloc = doc.GetAllocator();
+    auto* obj_type_tt = proto::syntax::ObjectTypeTypeTable();
+    auto* attr_key_tt = proto::syntax::AttributeKeyTypeTable();
 
     // Encode statements
     auto& stmts = *module.statements();
@@ -99,7 +101,7 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
             v.visited = true;
 
             // Register all children
-            auto type_name = proto::syntax::ObjectTypeTypeTable()->names[static_cast<size_t>(v.object->type())];
+            auto type_name = obj_type_tt->names[static_cast<size_t>(v.object->type())];
             v.value.AddMember("location", encode(doc, v.object->location()), alloc);
             v.value.AddMember("type", json::StringRef(type_name), alloc);
 
@@ -107,7 +109,7 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
             auto attr_span = v.object->attributes();
             for (auto i = 0; i < attr_span.length(); ++i) {
                 auto& attr = *attrs[i];
-                auto key_name = proto::syntax::AttributeKeyTypeTable()->names[static_cast<size_t>(attr.key())];
+                auto key_name = attr_key_tt->names[static_cast<size_t>(attr.key())];
                 (void) key_name;
 
                 // XXX
