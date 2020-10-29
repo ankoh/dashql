@@ -16,10 +16,18 @@ namespace {
 
 json::Value encode(json::Document& doc, proto::syntax::Location loc) {
     auto& alloc = doc.GetAllocator();
-    json::Value l{json::kObjectType};
-    l.AddMember("offset", loc.offset(), alloc);
-    l.AddMember("length", loc.length(), alloc);
-    return l;
+    json::Value v{json::kObjectType};
+    v.AddMember("offset", loc.offset(), alloc);
+    v.AddMember("length", loc.length(), alloc);
+    return v;
+}
+
+json::Value encode(json::Document& doc, const proto::syntax::Error& err) {
+    auto& alloc = doc.GetAllocator();
+    json::Value v{json::kObjectType};
+    v.AddMember("message", json::StringRef(err.message()->c_str()), alloc);
+    v.AddMember("location", encode(doc, *err.location()), alloc);
+    return v;
 }
 
 }
@@ -30,13 +38,20 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
     json::Document doc(json::kObjectType);
     auto& alloc = doc.GetAllocator();
 
-    // Add comments
-    {
-        json::Value comments(json::kArrayType);
-        for (auto c: *module.comments())
-            comments.PushBack(encode(doc, *c), alloc);
-        doc.AddMember("comments", comments, alloc);
-    }
+    json::Value errors(json::kArrayType);
+    for (auto err: *module.errors())
+        errors.PushBack(encode(doc, *err), alloc);
+    doc.AddMember("errors", errors, alloc);
+
+    json::Value comments(json::kArrayType);
+    for (auto c: *module.comments())
+        comments.PushBack(encode(doc, *c), alloc);
+    doc.AddMember("comments", comments, alloc);
+
+    json::Value line_breaks(json::kArrayType);
+    for (auto lb: *module.line_breaks())
+        line_breaks.PushBack(encode(doc, *lb), alloc);
+    doc.AddMember("lineBreaks", line_breaks, alloc);
 
     // Write string
     json::StringBuffer buffer;
