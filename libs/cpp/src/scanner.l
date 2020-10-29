@@ -53,7 +53,7 @@ extern size_t scanner_offset;
 #define YY_INPUT(buffer, bytes_read, max_bytes) \
     bytes_read = in.copy(buffer, max_bytes, scanner_offset); \
     scanner_offset += bytes_read;
-// The user action is run  whenever a token is matched
+// The user action is run whenever a token is matched
 #define YY_USER_ACTION \
     loc = syntax::Location(loc.offset(), yyleng);
 %}

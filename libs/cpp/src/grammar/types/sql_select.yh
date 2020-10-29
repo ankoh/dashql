@@ -4,4 +4,7 @@
 
 %type <sx::Value> sql_c_expr;
 %type <sx::Value> sql_a_expr_const;
-%type <sx::Value> sql_fconst_value;
+
+%type <sx::Value> sql_fconst;
+%type <sx::Value> sql_sconst;
+%type <sx::Value> sql_bconst;
