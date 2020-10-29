@@ -5,13 +5,15 @@
 
 #include <string>
 
+#include "rapidjson/stringbuffer.h"
+
 #include "dashql/parser/proto/syntax_generated.h"
 
 namespace dashql {
 namespace parser {
 
 /// Encode json string
-std::string encodeJSON(proto::syntax::Module& module);
+rapidjson::StringBuffer encodeJSON(proto::syntax::Module& module);
 
 }  // namespace parser
 }  // namespace dashql

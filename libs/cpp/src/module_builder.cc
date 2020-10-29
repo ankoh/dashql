@@ -60,39 +60,27 @@ sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Obje
 
 /// Write as flatbuffer
 fb::Offset<sx::Document> DocumentBuilder::Write(fb::FlatBufferBuilder& builder) {
-    optional<fb::Offset<fb::Vector<const sx::Object*>>> entries;
-    optional<fb::Offset<fb::Vector<const sx::Object*>>> objects;
-    optional<fb::Offset<fb::Vector<const sx::Attribute*>>> attributes;
-    optional<fb::Offset<fb::Vector<const sx::Array*>>> arrays;
-    optional<fb::Offset<fb::Vector<int32_t>>> values_i32;
-    optional<fb::Offset<fb::Vector<const sx::Location*>>> values_string;
+    fb::Offset<fb::Vector<const sx::Object*>> entries;
+    fb::Offset<fb::Vector<const sx::Object*>> objects;
+    fb::Offset<fb::Vector<const sx::Attribute*>> attributes;
+    fb::Offset<fb::Vector<const sx::Array*>> arrays;
+    fb::Offset<fb::Vector<int32_t>> values_i32;
+    fb::Offset<fb::Vector<const sx::Location*>> values_string;
 
-    if (!_entries.empty())
-        entries = builder.CreateVectorOfStructs(_entries);
-    if (!_objects.empty())
-        objects = builder.CreateVectorOfStructs(_objects);
-    if (!_attributes.empty())
-        attributes = builder.CreateVectorOfStructs(_attributes);
-    if (!_arrays.empty())
-        arrays = builder.CreateVectorOfStructs(_arrays);
-    if (!_values_i32.empty())
-        values_i32 = builder.CreateVector(_values_i32);
-    if (!_values_string.empty())
-        values_string = builder.CreateVectorOfStructs(_values_string);
+    entries = builder.CreateVectorOfStructs(_entries);
+    objects = builder.CreateVectorOfStructs(_objects);
+    attributes = builder.CreateVectorOfStructs(_attributes);
+    arrays = builder.CreateVectorOfStructs(_arrays);
+    values_i32 = builder.CreateVector(_values_i32);
+    values_string = builder.CreateVectorOfStructs(_values_string);
 
     sx::DocumentBuilder doc{builder};
-    if (entries)
-        doc.add_entries(*entries);
-    if (objects)
-        doc.add_objects(*objects);
-    if (attributes)
-        doc.add_attributes(*attributes);
-    if (arrays)
-        doc.add_arrays(*arrays);
-    if (values_i32)
-        doc.add_values_i32(*values_i32);
-    if (values_i32)
-        doc.add_values_string(*values_string);
+    doc.add_entries(entries);
+    doc.add_objects(objects);
+    doc.add_attributes(attributes);
+    doc.add_arrays(arrays);
+    doc.add_values_i32(values_i32);
+    doc.add_values_string(values_string);
     return doc.Finish();
 }
 
