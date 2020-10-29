@@ -89,22 +89,22 @@ ModuleBuilder::ModuleBuilder()
     : _document(), _errors() {}
 
 /// Add an object
-sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectTag type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs) {
+sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs) {
     return sx::Object(loc, type, _document.AddAttributes(attrs));
 }
 
 /// Add an object
-sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectTag type, const std::vector<sx::Attribute>& attrs) {
+sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs) {
     return sx::Object(loc, type, _document.AddAttributes(attrs));
 }
 
 /// Add an object
-sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectTag type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs) {
+sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs) {
     return _document.AddObject(loc, sx::Object(loc, type, _document.AddAttributes(attrs)));
 }
 
 /// Add an object
-sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectTag type, const std::vector<sx::Attribute>& attrs) {
+sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs) {
     return _document.AddObject(loc, sx::Object(loc, type, _document.AddAttributes(attrs)));
 }
 

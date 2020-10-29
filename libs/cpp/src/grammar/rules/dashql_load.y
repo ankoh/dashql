@@ -1,7 +1,7 @@
 dashql_load_statement:
     LOAD dashql_identifier FROM dashql_load_attributes {
         $4.push_back(sx::Attribute(@2, sx::AttributeKey::DASHQL_LOAD_NAME, $2));
-        $$ = ctx.CreateObject(@$, sx::ObjectTag::DASHQL_LOAD_STATEMENT, move($4));
+        $$ = ctx.CreateObject(@$, sx::ObjectType::DASHQL_LOAD_STATEMENT, move($4));
     }
     ;
 

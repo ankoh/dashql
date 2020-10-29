@@ -5,7 +5,7 @@ namespace dashql.proto.syntax;
 struct Location { offset: uint32; length: uint32; }
 struct Span { offset: uint32; length: uint32; }
 
-enum ObjectTag: uint8 {
+enum ObjectType: uint8 {
     NONE = 0,
 
     DASHQL_LOAD_STATEMENT,
@@ -82,7 +82,7 @@ struct Attribute {
 
 struct Object {
     location: Location;
-    type: ObjectTag;
+    type: ObjectType;
     attributes: Span;
 }
 

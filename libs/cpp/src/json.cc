@@ -98,7 +98,7 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
 
             // Register all children
             v.value.AddMember("location", encode(doc, v.object->location()), alloc);
-            auto type_name = proto::syntax::ObjectTagTypeTable()->names[static_cast<size_t>(v.object->type())];
+            auto type_name = proto::syntax::ObjectTypeTypeTable()->names[static_cast<size_t>(v.object->type())];
             v.value.AddMember("type", json::StringRef(type_name), alloc);
         }
     }

@@ -36,7 +36,7 @@ pub mod syntax {
 #[allow(non_camel_case_types)]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum ObjectTag {
+pub enum ObjectType {
   NONE = 0,
   DASHQL_LOAD_STATEMENT = 1,
   DASHQL_PARAMETER_DECLARATION = 2,
@@ -49,10 +49,10 @@ pub enum ObjectTag {
 
 }
 
-pub const ENUM_MIN_OBJECT_TAG: u8 = 0;
-pub const ENUM_MAX_OBJECT_TAG: u8 = 8;
+pub const ENUM_MIN_OBJECT_TYPE: u8 = 0;
+pub const ENUM_MAX_OBJECT_TYPE: u8 = 8;
 
-impl<'a> flatbuffers::Follow<'a> for ObjectTag {
+impl<'a> flatbuffers::Follow<'a> for ObjectType {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
@@ -60,44 +60,44 @@ impl<'a> flatbuffers::Follow<'a> for ObjectTag {
   }
 }
 
-impl flatbuffers::EndianScalar for ObjectTag {
+impl flatbuffers::EndianScalar for ObjectType {
   #[inline]
   fn to_little_endian(self) -> Self {
     let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const ObjectTag;
+    let p = &n as *const u8 as *const ObjectType;
     unsafe { *p }
   }
   #[inline]
   fn from_little_endian(self) -> Self {
     let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const ObjectTag;
+    let p = &n as *const u8 as *const ObjectType;
     unsafe { *p }
   }
 }
 
-impl flatbuffers::Push for ObjectTag {
-    type Output = ObjectTag;
+impl flatbuffers::Push for ObjectType {
+    type Output = ObjectType;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<ObjectTag>(dst, *self);
+        flatbuffers::emplace_scalar::<ObjectType>(dst, *self);
     }
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_OBJECT_TAG: [ObjectTag; 9] = [
-  ObjectTag::NONE,
-  ObjectTag::DASHQL_LOAD_STATEMENT,
-  ObjectTag::DASHQL_PARAMETER_DECLARATION,
-  ObjectTag::DASHQL_EXTRACT_STATEMENT,
-  ObjectTag::DASHQL_QUERY_STATEMENT,
-  ObjectTag::DASHQL_VIZ_STATEMENT,
-  ObjectTag::SQL_SELECT_STATEMENT,
-  ObjectTag::SQL_ACONST,
-  ObjectTag::SQL_RESULT_TARGET
+pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 9] = [
+  ObjectType::NONE,
+  ObjectType::DASHQL_LOAD_STATEMENT,
+  ObjectType::DASHQL_PARAMETER_DECLARATION,
+  ObjectType::DASHQL_EXTRACT_STATEMENT,
+  ObjectType::DASHQL_QUERY_STATEMENT,
+  ObjectType::DASHQL_VIZ_STATEMENT,
+  ObjectType::SQL_SELECT_STATEMENT,
+  ObjectType::SQL_ACONST,
+  ObjectType::SQL_RESULT_TARGET
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_OBJECT_TAG: [&str; 9] = [
+pub const ENUM_NAMES_OBJECT_TYPE: [&str; 9] = [
     "NONE",
     "DASHQL_LOAD_STATEMENT",
     "DASHQL_PARAMETER_DECLARATION",
@@ -109,9 +109,9 @@ pub const ENUM_NAMES_OBJECT_TAG: [&str; 9] = [
     "SQL_RESULT_TARGET"
 ];
 
-pub fn enum_name_object_tag(e: ObjectTag) -> &'static str {
+pub fn enum_name_object_type(e: ObjectType) -> &'static str {
   let index = e as u8;
-  ENUM_NAMES_OBJECT_TAG[index as usize]
+  ENUM_NAMES_OBJECT_TYPE[index as usize]
 }
 
 #[allow(non_camel_case_types)]
@@ -678,7 +678,7 @@ impl Attribute {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Object {
   pub location_: Location,
-  pub type__: ObjectTag,
+  pub type__: ObjectType,
   padding0__: u8,  padding1__: u16,
   pub attributes_: Span,
 } // pub struct Object
@@ -721,7 +721,7 @@ impl<'b> flatbuffers::Push for &'b Object {
 
 
 impl Object {
-  pub fn new(_location: &Location, _type_: ObjectTag, _attributes: &Span) -> Self {
+  pub fn new(_location: &Location, _type_: ObjectType, _attributes: &Span) -> Self {
     Object {
       location_: *_location,
       type__: _type_.to_little_endian(),
@@ -737,7 +737,7 @@ impl Object {
   pub fn location(&self) -> &Location {
     &self.location_
   }
-  pub fn type_(&self) -> ObjectTag {
+  pub fn type_(&self) -> ObjectType {
     self.type__.from_little_endian()
   }
   pub fn attributes(&self) -> &Span {
