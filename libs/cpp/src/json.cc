@@ -79,7 +79,6 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
     auto& stmts = *module.statements();
     auto& attrs = *module.document()->attributes();
     for (auto iter = stmts.rbegin(); iter != stmts.rend(); ++iter) {
-
         // Traverse the AST with a DFS
         std::vector<ValueBuilder> pending;
         pending.emplace_back(std::nullopt, std::string_view{}, *iter, json::Type::kObjectType);
@@ -100,12 +99,12 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
                 }
                 continue;
             }
-            v.visited = true;
 
             // Register all children
             auto type_name = obj_type_tt->names[static_cast<size_t>(v.object->type())];
             v.value.AddMember("location", encode(doc, v.object->location()), alloc);
             v.value.AddMember("type", json::StringRef(type_name), alloc);
+            v.visited = true;
 
             // Check the attributes
             auto attr_span = v.object->attributes();
@@ -121,15 +120,19 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
                     case sx::ValueType::I32:
                         v.value.AddMember(json::StringRef(key_name), attr_value.value(), alloc);
                         break;
-                    case sx::ValueType::STRING:
-                        v.value.AddMember(json::StringRef(key_name), encode(doc, attr_value.location()), alloc);
+                    case sx::ValueType::STRING: {
+                        auto loc = encode(doc, attr_loc);
+                        v.value.AddMember(json::StringRef(key_name), loc, alloc);
                         break;
-                    case sx::ValueType::OBJECT:
+                    }
+                    case sx::ValueType::OBJECT: {
                         // XXX
                         break;
-                    case sx::ValueType::ARRAY:
+                    }
+                    case sx::ValueType::ARRAY: {
                         // XXX
                         break;
+                    }
                 }
 
                 // XXX
