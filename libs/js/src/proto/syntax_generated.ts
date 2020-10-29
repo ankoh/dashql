@@ -6,14 +6,13 @@ import { flatbuffers } from "flatbuffers";
  * @enum {number}
  */
 export namespace dashql.proto.syntax{
-export enum ValueType{
+export enum ObjectType{
   NONE= 0,
-  NUMBER= 1,
-  NUMBER_ARRAY= 2,
-  STRING= 3,
-  STRING_ARRAY= 4,
-  OBJECT= 5,
-  OBJECT_ARRAY= 6
+  DASHQL_LOAD_STATEMENT= 1,
+  DASHQL_PARAMETER_DECLARATION= 2,
+  DASHQL_EXTRACT_STATEMENT= 3,
+  DASHQL_QUERY_STATEMENT= 4,
+  DASHQL_VIZ_STATEMENT= 5
 };
 }
 
@@ -23,30 +22,30 @@ export enum ValueType{
 export namespace dashql.proto.syntax{
 export enum AttributeKey{
   NONE= 0,
-  PARAMETER_IDENTIFIER= 1,
-  PARAMETER_ALIAS= 2,
-  PARAMETER_TYPE= 3,
-  LOAD_NAME= 4,
-  FILE_LABEL= 5,
-  HTTP_LOAD_NAME= 6,
-  HTTP_LOAD_VERB= 7,
-  HTTP_LOAD_URL= 8,
-  HTTP_LOAD_HEADER= 9,
-  EXTRACT_STATEMENT_NAME= 10,
-  EXTRACT_STATEMENT_DATA= 11,
-  EXTRACT_STATEMENT_METHOD= 12,
-  CSV_EXTRACT_ENCODING= 13,
-  CSV_EXTRACT_HEADER= 14,
-  CSV_EXTRACT_HEADER_COLUMNS= 15,
-  CSV_EXTRACT_DELIMITER= 16,
-  CSV_EXTRACT_QUOTE= 17,
-  CSV_EXTRACT_DATE_FORMAT= 18,
-  CSV_EXTRACT_TIMESTAMP_FORMAT= 19,
-  QUERY_STATEMENT_NAME= 20,
-  QUERY_STATEMENT_TEXT= 21,
-  VIZ_STATEMENT_TYPE= 22,
-  VIZ_STATEMENT_NAME= 23,
-  VIZ_STATEMENT_QUERY= 24
+  DASHQL_PARAMETER_IDENTIFIER= 1,
+  DASHQL_PARAMETER_ALIAS= 2,
+  DASHQL_PARAMETER_TYPE= 3,
+  DASHQL_LOAD_NAME= 4,
+  DASHQL_FILE_LABEL= 5,
+  DASHQL_HTTP_LOAD_NAME= 6,
+  DASHQL_HTTP_LOAD_VERB= 7,
+  DASHQL_HTTP_LOAD_URL= 8,
+  DASHQL_HTTP_LOAD_HEADER= 9,
+  DASHQL_EXTRACT_STATEMENT_NAME= 10,
+  DASHQL_EXTRACT_STATEMENT_DATA= 11,
+  DASHQL_EXTRACT_STATEMENT_METHOD= 12,
+  DASHQL_CSV_EXTRACT_ENCODING= 13,
+  DASHQL_CSV_EXTRACT_HEADER= 14,
+  DASHQL_CSV_EXTRACT_HEADER_COLUMNS= 15,
+  DASHQL_CSV_EXTRACT_DELIMITER= 16,
+  DASHQL_CSV_EXTRACT_QUOTE= 17,
+  DASHQL_CSV_EXTRACT_DATE_FORMAT= 18,
+  DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT= 19,
+  DASHQL_QUERY_STATEMENT_NAME= 20,
+  DASHQL_QUERY_STATEMENT_TEXT= 21,
+  DASHQL_VIZ_STATEMENT_TYPE= 22,
+  DASHQL_VIZ_STATEMENT_NAME= 23,
+  DASHQL_VIZ_STATEMENT_QUERY= 24
 };
 }
 
@@ -54,74 +53,14 @@ export enum AttributeKey{
  * @enum {number}
  */
 export namespace dashql.proto.syntax{
-export enum ObjectType{
+export enum ValueType{
   NONE= 0,
-  LOAD_STATEMENT= 1,
-  PARAMETER_DECLARATION= 2,
-  EXTRACT_STATEMENT= 3,
-  QUERY_STATEMENT= 4,
-  VIZ_STATEMENT= 5
-};
-}
-
-/**
- * @enum {number}
- */
-export namespace dashql.proto.syntax{
-export enum ParameterType{
-  NONE= 0,
-  INTEGER= 1,
-  FLOAT= 2,
-  TEXT= 3,
-  DATE= 4,
-  DATETIME= 5,
-  TIME= 6,
-  FILE= 7
-};
-}
-
-/**
- * @enum {number}
- */
-export namespace dashql.proto.syntax{
-export enum LoadMethodType{
-  NONE= 0,
-  HTTP= 1,
-  FILE= 2
-};
-}
-
-/**
- * @enum {number}
- */
-export namespace dashql.proto.syntax{
-export enum HTTPVerb{
-  NONE= 0,
-  GET= 1,
-  PUT= 2,
-  POST= 3
-};
-}
-
-/**
- * @enum {number}
- */
-export namespace dashql.proto.syntax{
-export enum VizType{
-  NONE= 0,
-  AREA= 1,
-  BAR= 2,
-  BOX= 3,
-  BUBBLE= 4,
-  GRID= 5,
-  HISTOGRAM= 6,
-  LINE= 7,
-  NUMBER= 8,
-  PIE= 9,
-  POINT= 10,
-  SCATTER= 11,
-  TABLE= 12,
-  TEXT= 13
+  NUMBER= 1,
+  NUMBER_ARRAY= 2,
+  STRING= 3,
+  STRING_ARRAY= 4,
+  OBJECT= 5,
+  OBJECT_ARRAY= 6
 };
 }
 

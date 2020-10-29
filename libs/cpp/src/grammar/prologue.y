@@ -13,7 +13,7 @@
 %define parse.error verbose
 
 %locations
-%define api.location.type {syntax::Location}
+%define api.location.type {sx::Location}
 
 %lex-param      { dashql::parser::ParseContext& ctx }
 %parse-param    { dashql::parser::ParseContext &ctx }
@@ -28,25 +28,13 @@
     if (N) { \
         uint32_t o = YYRHSLOC(Rhs, 1).offset(); \
         uint32_t l = YYRHSLOC(Rhs, N).offset() - YYRHSLOC(Rhs, 1).offset() + YYRHSLOC(Rhs, N).length(); \
-        (Cur) = syntax::Location(o, l); \
+        (Cur) = sx::Location(o, l); \
     } else { \
         uint32_t o = YYRHSLOC(Rhs, 0).offset() + YYRHSLOC(Rhs, 0).length(); \
         uint32_t l = 0; \
-        (Cur) = syntax::Location(o, l); \
+        (Cur) = sx::Location(o, l); \
     } \
 }
-
-namespace syntax = dashql::proto::syntax;
-
-using Attr = syntax::Attribute;
-using AttrKey = syntax::AttributeKey;
-using Value = syntax::Value;
-using ValueType = syntax::ValueType;
-using ParamType = syntax::ParameterType;
-using LoadMethodType = syntax::LoadMethodType;
-using HTTPVerb = syntax::HTTPVerb;
-using HTTP = syntax::HTTPVerb;
-using VizType = syntax::VizType;
 
 }
 

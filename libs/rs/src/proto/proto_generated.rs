@@ -36,6 +36,207 @@ pub mod syntax {
 #[allow(non_camel_case_types)]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum ObjectType {
+  NONE = 0,
+  DASHQL_LOAD_STATEMENT = 1,
+  DASHQL_PARAMETER_DECLARATION = 2,
+  DASHQL_EXTRACT_STATEMENT = 3,
+  DASHQL_QUERY_STATEMENT = 4,
+  DASHQL_VIZ_STATEMENT = 5,
+
+}
+
+pub const ENUM_MIN_OBJECT_TYPE: u8 = 0;
+pub const ENUM_MAX_OBJECT_TYPE: u8 = 5;
+
+impl<'a> flatbuffers::Follow<'a> for ObjectType {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::read_scalar_at::<Self>(buf, loc)
+  }
+}
+
+impl flatbuffers::EndianScalar for ObjectType {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let n = u8::to_le(self as u8);
+    let p = &n as *const u8 as *const ObjectType;
+    unsafe { *p }
+  }
+  #[inline]
+  fn from_little_endian(self) -> Self {
+    let n = u8::from_le(self as u8);
+    let p = &n as *const u8 as *const ObjectType;
+    unsafe { *p }
+  }
+}
+
+impl flatbuffers::Push for ObjectType {
+    type Output = ObjectType;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        flatbuffers::emplace_scalar::<ObjectType>(dst, *self);
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 6] = [
+  ObjectType::NONE,
+  ObjectType::DASHQL_LOAD_STATEMENT,
+  ObjectType::DASHQL_PARAMETER_DECLARATION,
+  ObjectType::DASHQL_EXTRACT_STATEMENT,
+  ObjectType::DASHQL_QUERY_STATEMENT,
+  ObjectType::DASHQL_VIZ_STATEMENT
+];
+
+#[allow(non_camel_case_types)]
+pub const ENUM_NAMES_OBJECT_TYPE: [&str; 6] = [
+    "NONE",
+    "DASHQL_LOAD_STATEMENT",
+    "DASHQL_PARAMETER_DECLARATION",
+    "DASHQL_EXTRACT_STATEMENT",
+    "DASHQL_QUERY_STATEMENT",
+    "DASHQL_VIZ_STATEMENT"
+];
+
+pub fn enum_name_object_type(e: ObjectType) -> &'static str {
+  let index = e as u8;
+  ENUM_NAMES_OBJECT_TYPE[index as usize]
+}
+
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum AttributeKey {
+  NONE = 0,
+  DASHQL_PARAMETER_IDENTIFIER = 1,
+  DASHQL_PARAMETER_ALIAS = 2,
+  DASHQL_PARAMETER_TYPE = 3,
+  DASHQL_LOAD_NAME = 4,
+  DASHQL_FILE_LABEL = 5,
+  DASHQL_HTTP_LOAD_NAME = 6,
+  DASHQL_HTTP_LOAD_VERB = 7,
+  DASHQL_HTTP_LOAD_URL = 8,
+  DASHQL_HTTP_LOAD_HEADER = 9,
+  DASHQL_EXTRACT_STATEMENT_NAME = 10,
+  DASHQL_EXTRACT_STATEMENT_DATA = 11,
+  DASHQL_EXTRACT_STATEMENT_METHOD = 12,
+  DASHQL_CSV_EXTRACT_ENCODING = 13,
+  DASHQL_CSV_EXTRACT_HEADER = 14,
+  DASHQL_CSV_EXTRACT_HEADER_COLUMNS = 15,
+  DASHQL_CSV_EXTRACT_DELIMITER = 16,
+  DASHQL_CSV_EXTRACT_QUOTE = 17,
+  DASHQL_CSV_EXTRACT_DATE_FORMAT = 18,
+  DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT = 19,
+  DASHQL_QUERY_STATEMENT_NAME = 20,
+  DASHQL_QUERY_STATEMENT_TEXT = 21,
+  DASHQL_VIZ_STATEMENT_TYPE = 22,
+  DASHQL_VIZ_STATEMENT_NAME = 23,
+  DASHQL_VIZ_STATEMENT_QUERY = 24,
+
+}
+
+pub const ENUM_MIN_ATTRIBUTE_KEY: u8 = 0;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 24;
+
+impl<'a> flatbuffers::Follow<'a> for AttributeKey {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::read_scalar_at::<Self>(buf, loc)
+  }
+}
+
+impl flatbuffers::EndianScalar for AttributeKey {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let n = u8::to_le(self as u8);
+    let p = &n as *const u8 as *const AttributeKey;
+    unsafe { *p }
+  }
+  #[inline]
+  fn from_little_endian(self) -> Self {
+    let n = u8::from_le(self as u8);
+    let p = &n as *const u8 as *const AttributeKey;
+    unsafe { *p }
+  }
+}
+
+impl flatbuffers::Push for AttributeKey {
+    type Output = AttributeKey;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        flatbuffers::emplace_scalar::<AttributeKey>(dst, *self);
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 25] = [
+  AttributeKey::NONE,
+  AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
+  AttributeKey::DASHQL_PARAMETER_ALIAS,
+  AttributeKey::DASHQL_PARAMETER_TYPE,
+  AttributeKey::DASHQL_LOAD_NAME,
+  AttributeKey::DASHQL_FILE_LABEL,
+  AttributeKey::DASHQL_HTTP_LOAD_NAME,
+  AttributeKey::DASHQL_HTTP_LOAD_VERB,
+  AttributeKey::DASHQL_HTTP_LOAD_URL,
+  AttributeKey::DASHQL_HTTP_LOAD_HEADER,
+  AttributeKey::DASHQL_EXTRACT_STATEMENT_NAME,
+  AttributeKey::DASHQL_EXTRACT_STATEMENT_DATA,
+  AttributeKey::DASHQL_EXTRACT_STATEMENT_METHOD,
+  AttributeKey::DASHQL_CSV_EXTRACT_ENCODING,
+  AttributeKey::DASHQL_CSV_EXTRACT_HEADER,
+  AttributeKey::DASHQL_CSV_EXTRACT_HEADER_COLUMNS,
+  AttributeKey::DASHQL_CSV_EXTRACT_DELIMITER,
+  AttributeKey::DASHQL_CSV_EXTRACT_QUOTE,
+  AttributeKey::DASHQL_CSV_EXTRACT_DATE_FORMAT,
+  AttributeKey::DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT,
+  AttributeKey::DASHQL_QUERY_STATEMENT_NAME,
+  AttributeKey::DASHQL_QUERY_STATEMENT_TEXT,
+  AttributeKey::DASHQL_VIZ_STATEMENT_TYPE,
+  AttributeKey::DASHQL_VIZ_STATEMENT_NAME,
+  AttributeKey::DASHQL_VIZ_STATEMENT_QUERY
+];
+
+#[allow(non_camel_case_types)]
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 25] = [
+    "NONE",
+    "DASHQL_PARAMETER_IDENTIFIER",
+    "DASHQL_PARAMETER_ALIAS",
+    "DASHQL_PARAMETER_TYPE",
+    "DASHQL_LOAD_NAME",
+    "DASHQL_FILE_LABEL",
+    "DASHQL_HTTP_LOAD_NAME",
+    "DASHQL_HTTP_LOAD_VERB",
+    "DASHQL_HTTP_LOAD_URL",
+    "DASHQL_HTTP_LOAD_HEADER",
+    "DASHQL_EXTRACT_STATEMENT_NAME",
+    "DASHQL_EXTRACT_STATEMENT_DATA",
+    "DASHQL_EXTRACT_STATEMENT_METHOD",
+    "DASHQL_CSV_EXTRACT_ENCODING",
+    "DASHQL_CSV_EXTRACT_HEADER",
+    "DASHQL_CSV_EXTRACT_HEADER_COLUMNS",
+    "DASHQL_CSV_EXTRACT_DELIMITER",
+    "DASHQL_CSV_EXTRACT_QUOTE",
+    "DASHQL_CSV_EXTRACT_DATE_FORMAT",
+    "DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT",
+    "DASHQL_QUERY_STATEMENT_NAME",
+    "DASHQL_QUERY_STATEMENT_TEXT",
+    "DASHQL_VIZ_STATEMENT_TYPE",
+    "DASHQL_VIZ_STATEMENT_NAME",
+    "DASHQL_VIZ_STATEMENT_QUERY"
+];
+
+pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
+  let index = e as u8;
+  ENUM_NAMES_ATTRIBUTE_KEY[index as usize]
+}
+
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum ValueType {
   NONE = 0,
   NUMBER = 1,
@@ -106,510 +307,6 @@ pub const ENUM_NAMES_VALUE_TYPE: [&str; 7] = [
 pub fn enum_name_value_type(e: ValueType) -> &'static str {
   let index = e as u8;
   ENUM_NAMES_VALUE_TYPE[index as usize]
-}
-
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum AttributeKey {
-  NONE = 0,
-  PARAMETER_IDENTIFIER = 1,
-  PARAMETER_ALIAS = 2,
-  PARAMETER_TYPE = 3,
-  LOAD_NAME = 4,
-  FILE_LABEL = 5,
-  HTTP_LOAD_NAME = 6,
-  HTTP_LOAD_VERB = 7,
-  HTTP_LOAD_URL = 8,
-  HTTP_LOAD_HEADER = 9,
-  EXTRACT_STATEMENT_NAME = 10,
-  EXTRACT_STATEMENT_DATA = 11,
-  EXTRACT_STATEMENT_METHOD = 12,
-  CSV_EXTRACT_ENCODING = 13,
-  CSV_EXTRACT_HEADER = 14,
-  CSV_EXTRACT_HEADER_COLUMNS = 15,
-  CSV_EXTRACT_DELIMITER = 16,
-  CSV_EXTRACT_QUOTE = 17,
-  CSV_EXTRACT_DATE_FORMAT = 18,
-  CSV_EXTRACT_TIMESTAMP_FORMAT = 19,
-  QUERY_STATEMENT_NAME = 20,
-  QUERY_STATEMENT_TEXT = 21,
-  VIZ_STATEMENT_TYPE = 22,
-  VIZ_STATEMENT_NAME = 23,
-  VIZ_STATEMENT_QUERY = 24,
-
-}
-
-pub const ENUM_MIN_ATTRIBUTE_KEY: u8 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 24;
-
-impl<'a> flatbuffers::Follow<'a> for AttributeKey {
-  type Inner = Self;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for AttributeKey {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const AttributeKey;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const AttributeKey;
-    unsafe { *p }
-  }
-}
-
-impl flatbuffers::Push for AttributeKey {
-    type Output = AttributeKey;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<AttributeKey>(dst, *self);
-    }
-}
-
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 25] = [
-  AttributeKey::NONE,
-  AttributeKey::PARAMETER_IDENTIFIER,
-  AttributeKey::PARAMETER_ALIAS,
-  AttributeKey::PARAMETER_TYPE,
-  AttributeKey::LOAD_NAME,
-  AttributeKey::FILE_LABEL,
-  AttributeKey::HTTP_LOAD_NAME,
-  AttributeKey::HTTP_LOAD_VERB,
-  AttributeKey::HTTP_LOAD_URL,
-  AttributeKey::HTTP_LOAD_HEADER,
-  AttributeKey::EXTRACT_STATEMENT_NAME,
-  AttributeKey::EXTRACT_STATEMENT_DATA,
-  AttributeKey::EXTRACT_STATEMENT_METHOD,
-  AttributeKey::CSV_EXTRACT_ENCODING,
-  AttributeKey::CSV_EXTRACT_HEADER,
-  AttributeKey::CSV_EXTRACT_HEADER_COLUMNS,
-  AttributeKey::CSV_EXTRACT_DELIMITER,
-  AttributeKey::CSV_EXTRACT_QUOTE,
-  AttributeKey::CSV_EXTRACT_DATE_FORMAT,
-  AttributeKey::CSV_EXTRACT_TIMESTAMP_FORMAT,
-  AttributeKey::QUERY_STATEMENT_NAME,
-  AttributeKey::QUERY_STATEMENT_TEXT,
-  AttributeKey::VIZ_STATEMENT_TYPE,
-  AttributeKey::VIZ_STATEMENT_NAME,
-  AttributeKey::VIZ_STATEMENT_QUERY
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 25] = [
-    "NONE",
-    "PARAMETER_IDENTIFIER",
-    "PARAMETER_ALIAS",
-    "PARAMETER_TYPE",
-    "LOAD_NAME",
-    "FILE_LABEL",
-    "HTTP_LOAD_NAME",
-    "HTTP_LOAD_VERB",
-    "HTTP_LOAD_URL",
-    "HTTP_LOAD_HEADER",
-    "EXTRACT_STATEMENT_NAME",
-    "EXTRACT_STATEMENT_DATA",
-    "EXTRACT_STATEMENT_METHOD",
-    "CSV_EXTRACT_ENCODING",
-    "CSV_EXTRACT_HEADER",
-    "CSV_EXTRACT_HEADER_COLUMNS",
-    "CSV_EXTRACT_DELIMITER",
-    "CSV_EXTRACT_QUOTE",
-    "CSV_EXTRACT_DATE_FORMAT",
-    "CSV_EXTRACT_TIMESTAMP_FORMAT",
-    "QUERY_STATEMENT_NAME",
-    "QUERY_STATEMENT_TEXT",
-    "VIZ_STATEMENT_TYPE",
-    "VIZ_STATEMENT_NAME",
-    "VIZ_STATEMENT_QUERY"
-];
-
-pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_ATTRIBUTE_KEY[index as usize]
-}
-
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum ObjectType {
-  NONE = 0,
-  LOAD_STATEMENT = 1,
-  PARAMETER_DECLARATION = 2,
-  EXTRACT_STATEMENT = 3,
-  QUERY_STATEMENT = 4,
-  VIZ_STATEMENT = 5,
-
-}
-
-pub const ENUM_MIN_OBJECT_TYPE: u8 = 0;
-pub const ENUM_MAX_OBJECT_TYPE: u8 = 5;
-
-impl<'a> flatbuffers::Follow<'a> for ObjectType {
-  type Inner = Self;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for ObjectType {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const ObjectType;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const ObjectType;
-    unsafe { *p }
-  }
-}
-
-impl flatbuffers::Push for ObjectType {
-    type Output = ObjectType;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<ObjectType>(dst, *self);
-    }
-}
-
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 6] = [
-  ObjectType::NONE,
-  ObjectType::LOAD_STATEMENT,
-  ObjectType::PARAMETER_DECLARATION,
-  ObjectType::EXTRACT_STATEMENT,
-  ObjectType::QUERY_STATEMENT,
-  ObjectType::VIZ_STATEMENT
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_OBJECT_TYPE: [&str; 6] = [
-    "NONE",
-    "LOAD_STATEMENT",
-    "PARAMETER_DECLARATION",
-    "EXTRACT_STATEMENT",
-    "QUERY_STATEMENT",
-    "VIZ_STATEMENT"
-];
-
-pub fn enum_name_object_type(e: ObjectType) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_OBJECT_TYPE[index as usize]
-}
-
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum ParameterType {
-  NONE = 0,
-  INTEGER = 1,
-  FLOAT = 2,
-  TEXT = 3,
-  DATE = 4,
-  DATETIME = 5,
-  TIME = 6,
-  FILE = 7,
-
-}
-
-pub const ENUM_MIN_PARAMETER_TYPE: u8 = 0;
-pub const ENUM_MAX_PARAMETER_TYPE: u8 = 7;
-
-impl<'a> flatbuffers::Follow<'a> for ParameterType {
-  type Inner = Self;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for ParameterType {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const ParameterType;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const ParameterType;
-    unsafe { *p }
-  }
-}
-
-impl flatbuffers::Push for ParameterType {
-    type Output = ParameterType;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<ParameterType>(dst, *self);
-    }
-}
-
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_PARAMETER_TYPE: [ParameterType; 8] = [
-  ParameterType::NONE,
-  ParameterType::INTEGER,
-  ParameterType::FLOAT,
-  ParameterType::TEXT,
-  ParameterType::DATE,
-  ParameterType::DATETIME,
-  ParameterType::TIME,
-  ParameterType::FILE
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_PARAMETER_TYPE: [&str; 8] = [
-    "NONE",
-    "INTEGER",
-    "FLOAT",
-    "TEXT",
-    "DATE",
-    "DATETIME",
-    "TIME",
-    "FILE"
-];
-
-pub fn enum_name_parameter_type(e: ParameterType) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_PARAMETER_TYPE[index as usize]
-}
-
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum LoadMethodType {
-  NONE = 0,
-  HTTP = 1,
-  FILE = 2,
-
-}
-
-pub const ENUM_MIN_LOAD_METHOD_TYPE: u8 = 0;
-pub const ENUM_MAX_LOAD_METHOD_TYPE: u8 = 2;
-
-impl<'a> flatbuffers::Follow<'a> for LoadMethodType {
-  type Inner = Self;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for LoadMethodType {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const LoadMethodType;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const LoadMethodType;
-    unsafe { *p }
-  }
-}
-
-impl flatbuffers::Push for LoadMethodType {
-    type Output = LoadMethodType;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<LoadMethodType>(dst, *self);
-    }
-}
-
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_LOAD_METHOD_TYPE: [LoadMethodType; 3] = [
-  LoadMethodType::NONE,
-  LoadMethodType::HTTP,
-  LoadMethodType::FILE
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_LOAD_METHOD_TYPE: [&str; 3] = [
-    "NONE",
-    "HTTP",
-    "FILE"
-];
-
-pub fn enum_name_load_method_type(e: LoadMethodType) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_LOAD_METHOD_TYPE[index as usize]
-}
-
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum HTTPVerb {
-  NONE = 0,
-  GET = 1,
-  PUT = 2,
-  POST = 3,
-
-}
-
-pub const ENUM_MIN_HTTPVERB: u8 = 0;
-pub const ENUM_MAX_HTTPVERB: u8 = 3;
-
-impl<'a> flatbuffers::Follow<'a> for HTTPVerb {
-  type Inner = Self;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for HTTPVerb {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const HTTPVerb;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const HTTPVerb;
-    unsafe { *p }
-  }
-}
-
-impl flatbuffers::Push for HTTPVerb {
-    type Output = HTTPVerb;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<HTTPVerb>(dst, *self);
-    }
-}
-
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_HTTPVERB: [HTTPVerb; 4] = [
-  HTTPVerb::NONE,
-  HTTPVerb::GET,
-  HTTPVerb::PUT,
-  HTTPVerb::POST
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_HTTPVERB: [&str; 4] = [
-    "NONE",
-    "GET",
-    "PUT",
-    "POST"
-];
-
-pub fn enum_name_httpverb(e: HTTPVerb) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_HTTPVERB[index as usize]
-}
-
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum VizType {
-  NONE = 0,
-  AREA = 1,
-  BAR = 2,
-  BOX = 3,
-  BUBBLE = 4,
-  GRID = 5,
-  HISTOGRAM = 6,
-  LINE = 7,
-  NUMBER = 8,
-  PIE = 9,
-  POINT = 10,
-  SCATTER = 11,
-  TABLE = 12,
-  TEXT = 13,
-
-}
-
-pub const ENUM_MIN_VIZ_TYPE: u8 = 0;
-pub const ENUM_MAX_VIZ_TYPE: u8 = 13;
-
-impl<'a> flatbuffers::Follow<'a> for VizType {
-  type Inner = Self;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for VizType {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const VizType;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const VizType;
-    unsafe { *p }
-  }
-}
-
-impl flatbuffers::Push for VizType {
-    type Output = VizType;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<VizType>(dst, *self);
-    }
-}
-
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_VIZ_TYPE: [VizType; 14] = [
-  VizType::NONE,
-  VizType::AREA,
-  VizType::BAR,
-  VizType::BOX,
-  VizType::BUBBLE,
-  VizType::GRID,
-  VizType::HISTOGRAM,
-  VizType::LINE,
-  VizType::NUMBER,
-  VizType::PIE,
-  VizType::POINT,
-  VizType::SCATTER,
-  VizType::TABLE,
-  VizType::TEXT
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_VIZ_TYPE: [&str; 14] = [
-    "NONE",
-    "AREA",
-    "BAR",
-    "BOX",
-    "BUBBLE",
-    "GRID",
-    "HISTOGRAM",
-    "LINE",
-    "NUMBER",
-    "PIE",
-    "POINT",
-    "SCATTER",
-    "TABLE",
-    "TEXT"
-];
-
-pub fn enum_name_viz_type(e: VizType) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_VIZ_TYPE[index as usize]
 }
 
 // struct Location, aligned to 4

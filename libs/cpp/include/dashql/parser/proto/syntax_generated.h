@@ -65,6 +65,147 @@ inline const flatbuffers::TypeTable *ModuleSectionsTypeTable();
 
 inline const flatbuffers::TypeTable *ModuleTypeTable();
 
+enum class ObjectType : uint8_t {
+  NONE = 0,
+  DASHQL_LOAD_STATEMENT = 1,
+  DASHQL_PARAMETER_DECLARATION = 2,
+  DASHQL_EXTRACT_STATEMENT = 3,
+  DASHQL_QUERY_STATEMENT = 4,
+  DASHQL_VIZ_STATEMENT = 5,
+  MIN = NONE,
+  MAX = DASHQL_VIZ_STATEMENT
+};
+
+inline const ObjectType (&EnumValuesObjectType())[6] {
+  static const ObjectType values[] = {
+    ObjectType::NONE,
+    ObjectType::DASHQL_LOAD_STATEMENT,
+    ObjectType::DASHQL_PARAMETER_DECLARATION,
+    ObjectType::DASHQL_EXTRACT_STATEMENT,
+    ObjectType::DASHQL_QUERY_STATEMENT,
+    ObjectType::DASHQL_VIZ_STATEMENT
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesObjectType() {
+  static const char * const names[7] = {
+    "NONE",
+    "DASHQL_LOAD_STATEMENT",
+    "DASHQL_PARAMETER_DECLARATION",
+    "DASHQL_EXTRACT_STATEMENT",
+    "DASHQL_QUERY_STATEMENT",
+    "DASHQL_VIZ_STATEMENT",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameObjectType(ObjectType e) {
+  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::DASHQL_VIZ_STATEMENT)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesObjectType()[index];
+}
+
+enum class AttributeKey : uint8_t {
+  NONE = 0,
+  DASHQL_PARAMETER_IDENTIFIER = 1,
+  DASHQL_PARAMETER_ALIAS = 2,
+  DASHQL_PARAMETER_TYPE = 3,
+  DASHQL_LOAD_NAME = 4,
+  DASHQL_FILE_LABEL = 5,
+  DASHQL_HTTP_LOAD_NAME = 6,
+  DASHQL_HTTP_LOAD_VERB = 7,
+  DASHQL_HTTP_LOAD_URL = 8,
+  DASHQL_HTTP_LOAD_HEADER = 9,
+  DASHQL_EXTRACT_STATEMENT_NAME = 10,
+  DASHQL_EXTRACT_STATEMENT_DATA = 11,
+  DASHQL_EXTRACT_STATEMENT_METHOD = 12,
+  DASHQL_CSV_EXTRACT_ENCODING = 13,
+  DASHQL_CSV_EXTRACT_HEADER = 14,
+  DASHQL_CSV_EXTRACT_HEADER_COLUMNS = 15,
+  DASHQL_CSV_EXTRACT_DELIMITER = 16,
+  DASHQL_CSV_EXTRACT_QUOTE = 17,
+  DASHQL_CSV_EXTRACT_DATE_FORMAT = 18,
+  DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT = 19,
+  DASHQL_QUERY_STATEMENT_NAME = 20,
+  DASHQL_QUERY_STATEMENT_TEXT = 21,
+  DASHQL_VIZ_STATEMENT_TYPE = 22,
+  DASHQL_VIZ_STATEMENT_NAME = 23,
+  DASHQL_VIZ_STATEMENT_QUERY = 24,
+  MIN = NONE,
+  MAX = DASHQL_VIZ_STATEMENT_QUERY
+};
+
+inline const AttributeKey (&EnumValuesAttributeKey())[25] {
+  static const AttributeKey values[] = {
+    AttributeKey::NONE,
+    AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
+    AttributeKey::DASHQL_PARAMETER_ALIAS,
+    AttributeKey::DASHQL_PARAMETER_TYPE,
+    AttributeKey::DASHQL_LOAD_NAME,
+    AttributeKey::DASHQL_FILE_LABEL,
+    AttributeKey::DASHQL_HTTP_LOAD_NAME,
+    AttributeKey::DASHQL_HTTP_LOAD_VERB,
+    AttributeKey::DASHQL_HTTP_LOAD_URL,
+    AttributeKey::DASHQL_HTTP_LOAD_HEADER,
+    AttributeKey::DASHQL_EXTRACT_STATEMENT_NAME,
+    AttributeKey::DASHQL_EXTRACT_STATEMENT_DATA,
+    AttributeKey::DASHQL_EXTRACT_STATEMENT_METHOD,
+    AttributeKey::DASHQL_CSV_EXTRACT_ENCODING,
+    AttributeKey::DASHQL_CSV_EXTRACT_HEADER,
+    AttributeKey::DASHQL_CSV_EXTRACT_HEADER_COLUMNS,
+    AttributeKey::DASHQL_CSV_EXTRACT_DELIMITER,
+    AttributeKey::DASHQL_CSV_EXTRACT_QUOTE,
+    AttributeKey::DASHQL_CSV_EXTRACT_DATE_FORMAT,
+    AttributeKey::DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT,
+    AttributeKey::DASHQL_QUERY_STATEMENT_NAME,
+    AttributeKey::DASHQL_QUERY_STATEMENT_TEXT,
+    AttributeKey::DASHQL_VIZ_STATEMENT_TYPE,
+    AttributeKey::DASHQL_VIZ_STATEMENT_NAME,
+    AttributeKey::DASHQL_VIZ_STATEMENT_QUERY
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesAttributeKey() {
+  static const char * const names[26] = {
+    "NONE",
+    "DASHQL_PARAMETER_IDENTIFIER",
+    "DASHQL_PARAMETER_ALIAS",
+    "DASHQL_PARAMETER_TYPE",
+    "DASHQL_LOAD_NAME",
+    "DASHQL_FILE_LABEL",
+    "DASHQL_HTTP_LOAD_NAME",
+    "DASHQL_HTTP_LOAD_VERB",
+    "DASHQL_HTTP_LOAD_URL",
+    "DASHQL_HTTP_LOAD_HEADER",
+    "DASHQL_EXTRACT_STATEMENT_NAME",
+    "DASHQL_EXTRACT_STATEMENT_DATA",
+    "DASHQL_EXTRACT_STATEMENT_METHOD",
+    "DASHQL_CSV_EXTRACT_ENCODING",
+    "DASHQL_CSV_EXTRACT_HEADER",
+    "DASHQL_CSV_EXTRACT_HEADER_COLUMNS",
+    "DASHQL_CSV_EXTRACT_DELIMITER",
+    "DASHQL_CSV_EXTRACT_QUOTE",
+    "DASHQL_CSV_EXTRACT_DATE_FORMAT",
+    "DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT",
+    "DASHQL_QUERY_STATEMENT_NAME",
+    "DASHQL_QUERY_STATEMENT_TEXT",
+    "DASHQL_VIZ_STATEMENT_TYPE",
+    "DASHQL_VIZ_STATEMENT_NAME",
+    "DASHQL_VIZ_STATEMENT_QUERY",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameAttributeKey(AttributeKey e) {
+  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::DASHQL_VIZ_STATEMENT_QUERY)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesAttributeKey()[index];
+}
+
 enum class ValueType : uint8_t {
   NONE = 0,
   NUMBER = 1,
@@ -108,330 +249,6 @@ inline const char *EnumNameValueType(ValueType e) {
   if (flatbuffers::IsOutRange(e, ValueType::NONE, ValueType::OBJECT_ARRAY)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesValueType()[index];
-}
-
-enum class AttributeKey : uint8_t {
-  NONE = 0,
-  PARAMETER_IDENTIFIER = 1,
-  PARAMETER_ALIAS = 2,
-  PARAMETER_TYPE = 3,
-  LOAD_NAME = 4,
-  FILE_LABEL = 5,
-  HTTP_LOAD_NAME = 6,
-  HTTP_LOAD_VERB = 7,
-  HTTP_LOAD_URL = 8,
-  HTTP_LOAD_HEADER = 9,
-  EXTRACT_STATEMENT_NAME = 10,
-  EXTRACT_STATEMENT_DATA = 11,
-  EXTRACT_STATEMENT_METHOD = 12,
-  CSV_EXTRACT_ENCODING = 13,
-  CSV_EXTRACT_HEADER = 14,
-  CSV_EXTRACT_HEADER_COLUMNS = 15,
-  CSV_EXTRACT_DELIMITER = 16,
-  CSV_EXTRACT_QUOTE = 17,
-  CSV_EXTRACT_DATE_FORMAT = 18,
-  CSV_EXTRACT_TIMESTAMP_FORMAT = 19,
-  QUERY_STATEMENT_NAME = 20,
-  QUERY_STATEMENT_TEXT = 21,
-  VIZ_STATEMENT_TYPE = 22,
-  VIZ_STATEMENT_NAME = 23,
-  VIZ_STATEMENT_QUERY = 24,
-  MIN = NONE,
-  MAX = VIZ_STATEMENT_QUERY
-};
-
-inline const AttributeKey (&EnumValuesAttributeKey())[25] {
-  static const AttributeKey values[] = {
-    AttributeKey::NONE,
-    AttributeKey::PARAMETER_IDENTIFIER,
-    AttributeKey::PARAMETER_ALIAS,
-    AttributeKey::PARAMETER_TYPE,
-    AttributeKey::LOAD_NAME,
-    AttributeKey::FILE_LABEL,
-    AttributeKey::HTTP_LOAD_NAME,
-    AttributeKey::HTTP_LOAD_VERB,
-    AttributeKey::HTTP_LOAD_URL,
-    AttributeKey::HTTP_LOAD_HEADER,
-    AttributeKey::EXTRACT_STATEMENT_NAME,
-    AttributeKey::EXTRACT_STATEMENT_DATA,
-    AttributeKey::EXTRACT_STATEMENT_METHOD,
-    AttributeKey::CSV_EXTRACT_ENCODING,
-    AttributeKey::CSV_EXTRACT_HEADER,
-    AttributeKey::CSV_EXTRACT_HEADER_COLUMNS,
-    AttributeKey::CSV_EXTRACT_DELIMITER,
-    AttributeKey::CSV_EXTRACT_QUOTE,
-    AttributeKey::CSV_EXTRACT_DATE_FORMAT,
-    AttributeKey::CSV_EXTRACT_TIMESTAMP_FORMAT,
-    AttributeKey::QUERY_STATEMENT_NAME,
-    AttributeKey::QUERY_STATEMENT_TEXT,
-    AttributeKey::VIZ_STATEMENT_TYPE,
-    AttributeKey::VIZ_STATEMENT_NAME,
-    AttributeKey::VIZ_STATEMENT_QUERY
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[26] = {
-    "NONE",
-    "PARAMETER_IDENTIFIER",
-    "PARAMETER_ALIAS",
-    "PARAMETER_TYPE",
-    "LOAD_NAME",
-    "FILE_LABEL",
-    "HTTP_LOAD_NAME",
-    "HTTP_LOAD_VERB",
-    "HTTP_LOAD_URL",
-    "HTTP_LOAD_HEADER",
-    "EXTRACT_STATEMENT_NAME",
-    "EXTRACT_STATEMENT_DATA",
-    "EXTRACT_STATEMENT_METHOD",
-    "CSV_EXTRACT_ENCODING",
-    "CSV_EXTRACT_HEADER",
-    "CSV_EXTRACT_HEADER_COLUMNS",
-    "CSV_EXTRACT_DELIMITER",
-    "CSV_EXTRACT_QUOTE",
-    "CSV_EXTRACT_DATE_FORMAT",
-    "CSV_EXTRACT_TIMESTAMP_FORMAT",
-    "QUERY_STATEMENT_NAME",
-    "QUERY_STATEMENT_TEXT",
-    "VIZ_STATEMENT_TYPE",
-    "VIZ_STATEMENT_NAME",
-    "VIZ_STATEMENT_QUERY",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameAttributeKey(AttributeKey e) {
-  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::VIZ_STATEMENT_QUERY)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesAttributeKey()[index];
-}
-
-enum class ObjectType : uint8_t {
-  NONE = 0,
-  LOAD_STATEMENT = 1,
-  PARAMETER_DECLARATION = 2,
-  EXTRACT_STATEMENT = 3,
-  QUERY_STATEMENT = 4,
-  VIZ_STATEMENT = 5,
-  MIN = NONE,
-  MAX = VIZ_STATEMENT
-};
-
-inline const ObjectType (&EnumValuesObjectType())[6] {
-  static const ObjectType values[] = {
-    ObjectType::NONE,
-    ObjectType::LOAD_STATEMENT,
-    ObjectType::PARAMETER_DECLARATION,
-    ObjectType::EXTRACT_STATEMENT,
-    ObjectType::QUERY_STATEMENT,
-    ObjectType::VIZ_STATEMENT
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesObjectType() {
-  static const char * const names[7] = {
-    "NONE",
-    "LOAD_STATEMENT",
-    "PARAMETER_DECLARATION",
-    "EXTRACT_STATEMENT",
-    "QUERY_STATEMENT",
-    "VIZ_STATEMENT",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameObjectType(ObjectType e) {
-  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::VIZ_STATEMENT)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesObjectType()[index];
-}
-
-enum class ParameterType : uint8_t {
-  NONE = 0,
-  INTEGER = 1,
-  FLOAT = 2,
-  TEXT = 3,
-  DATE = 4,
-  DATETIME = 5,
-  TIME = 6,
-  FILE = 7,
-  MIN = NONE,
-  MAX = FILE
-};
-
-inline const ParameterType (&EnumValuesParameterType())[8] {
-  static const ParameterType values[] = {
-    ParameterType::NONE,
-    ParameterType::INTEGER,
-    ParameterType::FLOAT,
-    ParameterType::TEXT,
-    ParameterType::DATE,
-    ParameterType::DATETIME,
-    ParameterType::TIME,
-    ParameterType::FILE
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesParameterType() {
-  static const char * const names[9] = {
-    "NONE",
-    "INTEGER",
-    "FLOAT",
-    "TEXT",
-    "DATE",
-    "DATETIME",
-    "TIME",
-    "FILE",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameParameterType(ParameterType e) {
-  if (flatbuffers::IsOutRange(e, ParameterType::NONE, ParameterType::FILE)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesParameterType()[index];
-}
-
-enum class LoadMethodType : uint8_t {
-  NONE = 0,
-  HTTP = 1,
-  FILE = 2,
-  MIN = NONE,
-  MAX = FILE
-};
-
-inline const LoadMethodType (&EnumValuesLoadMethodType())[3] {
-  static const LoadMethodType values[] = {
-    LoadMethodType::NONE,
-    LoadMethodType::HTTP,
-    LoadMethodType::FILE
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesLoadMethodType() {
-  static const char * const names[4] = {
-    "NONE",
-    "HTTP",
-    "FILE",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameLoadMethodType(LoadMethodType e) {
-  if (flatbuffers::IsOutRange(e, LoadMethodType::NONE, LoadMethodType::FILE)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesLoadMethodType()[index];
-}
-
-enum class HTTPVerb : uint8_t {
-  NONE = 0,
-  GET = 1,
-  PUT = 2,
-  POST = 3,
-  MIN = NONE,
-  MAX = POST
-};
-
-inline const HTTPVerb (&EnumValuesHTTPVerb())[4] {
-  static const HTTPVerb values[] = {
-    HTTPVerb::NONE,
-    HTTPVerb::GET,
-    HTTPVerb::PUT,
-    HTTPVerb::POST
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesHTTPVerb() {
-  static const char * const names[5] = {
-    "NONE",
-    "GET",
-    "PUT",
-    "POST",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameHTTPVerb(HTTPVerb e) {
-  if (flatbuffers::IsOutRange(e, HTTPVerb::NONE, HTTPVerb::POST)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesHTTPVerb()[index];
-}
-
-enum class VizType : uint8_t {
-  NONE = 0,
-  AREA = 1,
-  BAR = 2,
-  BOX = 3,
-  BUBBLE = 4,
-  GRID = 5,
-  HISTOGRAM = 6,
-  LINE = 7,
-  NUMBER = 8,
-  PIE = 9,
-  POINT = 10,
-  SCATTER = 11,
-  TABLE = 12,
-  TEXT = 13,
-  MIN = NONE,
-  MAX = TEXT
-};
-
-inline const VizType (&EnumValuesVizType())[14] {
-  static const VizType values[] = {
-    VizType::NONE,
-    VizType::AREA,
-    VizType::BAR,
-    VizType::BOX,
-    VizType::BUBBLE,
-    VizType::GRID,
-    VizType::HISTOGRAM,
-    VizType::LINE,
-    VizType::NUMBER,
-    VizType::PIE,
-    VizType::POINT,
-    VizType::SCATTER,
-    VizType::TABLE,
-    VizType::TEXT
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesVizType() {
-  static const char * const names[15] = {
-    "NONE",
-    "AREA",
-    "BAR",
-    "BOX",
-    "BUBBLE",
-    "GRID",
-    "HISTOGRAM",
-    "LINE",
-    "NUMBER",
-    "PIE",
-    "POINT",
-    "SCATTER",
-    "TABLE",
-    "TEXT",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameVizType(VizType e) {
-  if (flatbuffers::IsOutRange(e, VizType::NONE, VizType::TEXT)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesVizType()[index];
 }
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Location FLATBUFFERS_FINAL_CLASS {
@@ -1186,9 +1003,8 @@ inline flatbuffers::Offset<Module> CreateModule(flatbuffers::FlatBufferBuilder &
       _comments);
 }
 
-inline const flatbuffers::TypeTable *ValueTypeTypeTable() {
+inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -1197,19 +1013,18 @@ inline const flatbuffers::TypeTable *ValueTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax::ValueTypeTypeTable
+    dashql::proto::syntax::ObjectTypeTypeTable
   };
   static const char * const names[] = {
     "NONE",
-    "NUMBER",
-    "NUMBER_ARRAY",
-    "STRING",
-    "STRING_ARRAY",
-    "OBJECT",
-    "OBJECT_ARRAY"
+    "DASHQL_LOAD_STATEMENT",
+    "DASHQL_PARAMETER_DECLARATION",
+    "DASHQL_EXTRACT_STATEMENT",
+    "DASHQL_QUERY_STATEMENT",
+    "DASHQL_VIZ_STATEMENT"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 7, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 6, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
@@ -1247,30 +1062,30 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   };
   static const char * const names[] = {
     "NONE",
-    "PARAMETER_IDENTIFIER",
-    "PARAMETER_ALIAS",
-    "PARAMETER_TYPE",
-    "LOAD_NAME",
-    "FILE_LABEL",
-    "HTTP_LOAD_NAME",
-    "HTTP_LOAD_VERB",
-    "HTTP_LOAD_URL",
-    "HTTP_LOAD_HEADER",
-    "EXTRACT_STATEMENT_NAME",
-    "EXTRACT_STATEMENT_DATA",
-    "EXTRACT_STATEMENT_METHOD",
-    "CSV_EXTRACT_ENCODING",
-    "CSV_EXTRACT_HEADER",
-    "CSV_EXTRACT_HEADER_COLUMNS",
-    "CSV_EXTRACT_DELIMITER",
-    "CSV_EXTRACT_QUOTE",
-    "CSV_EXTRACT_DATE_FORMAT",
-    "CSV_EXTRACT_TIMESTAMP_FORMAT",
-    "QUERY_STATEMENT_NAME",
-    "QUERY_STATEMENT_TEXT",
-    "VIZ_STATEMENT_TYPE",
-    "VIZ_STATEMENT_NAME",
-    "VIZ_STATEMENT_QUERY"
+    "DASHQL_PARAMETER_IDENTIFIER",
+    "DASHQL_PARAMETER_ALIAS",
+    "DASHQL_PARAMETER_TYPE",
+    "DASHQL_LOAD_NAME",
+    "DASHQL_FILE_LABEL",
+    "DASHQL_HTTP_LOAD_NAME",
+    "DASHQL_HTTP_LOAD_VERB",
+    "DASHQL_HTTP_LOAD_URL",
+    "DASHQL_HTTP_LOAD_HEADER",
+    "DASHQL_EXTRACT_STATEMENT_NAME",
+    "DASHQL_EXTRACT_STATEMENT_DATA",
+    "DASHQL_EXTRACT_STATEMENT_METHOD",
+    "DASHQL_CSV_EXTRACT_ENCODING",
+    "DASHQL_CSV_EXTRACT_HEADER",
+    "DASHQL_CSV_EXTRACT_HEADER_COLUMNS",
+    "DASHQL_CSV_EXTRACT_DELIMITER",
+    "DASHQL_CSV_EXTRACT_QUOTE",
+    "DASHQL_CSV_EXTRACT_DATE_FORMAT",
+    "DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT",
+    "DASHQL_QUERY_STATEMENT_NAME",
+    "DASHQL_QUERY_STATEMENT_TEXT",
+    "DASHQL_VIZ_STATEMENT_TYPE",
+    "DASHQL_VIZ_STATEMENT_NAME",
+    "DASHQL_VIZ_STATEMENT_QUERY"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 25, type_codes, type_refs, nullptr, nullptr, names
@@ -1278,35 +1093,8 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   return &tt;
 }
 
-inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
+inline const flatbuffers::TypeTable *ValueTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax::ObjectTypeTypeTable
-  };
-  static const char * const names[] = {
-    "NONE",
-    "LOAD_STATEMENT",
-    "PARAMETER_DECLARATION",
-    "EXTRACT_STATEMENT",
-    "QUERY_STATEMENT",
-    "VIZ_STATEMENT"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 6, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *ParameterTypeTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -1316,104 +1104,19 @@ inline const flatbuffers::TypeTable *ParameterTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax::ParameterTypeTypeTable
+    dashql::proto::syntax::ValueTypeTypeTable
   };
   static const char * const names[] = {
     "NONE",
-    "INTEGER",
-    "FLOAT",
-    "TEXT",
-    "DATE",
-    "DATETIME",
-    "TIME",
-    "FILE"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 8, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *LoadMethodTypeTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax::LoadMethodTypeTypeTable
-  };
-  static const char * const names[] = {
-    "NONE",
-    "HTTP",
-    "FILE"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *HTTPVerbTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax::HTTPVerbTypeTable
-  };
-  static const char * const names[] = {
-    "NONE",
-    "GET",
-    "PUT",
-    "POST"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *VizTypeTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax::VizTypeTypeTable
-  };
-  static const char * const names[] = {
-    "NONE",
-    "AREA",
-    "BAR",
-    "BOX",
-    "BUBBLE",
-    "GRID",
-    "HISTOGRAM",
-    "LINE",
     "NUMBER",
-    "PIE",
-    "POINT",
-    "SCATTER",
-    "TABLE",
-    "TEXT"
+    "NUMBER_ARRAY",
+    "STRING",
+    "STRING_ARRAY",
+    "OBJECT",
+    "OBJECT_ARRAY"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 14, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 7, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

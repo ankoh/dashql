@@ -1,1 +1,1 @@
-%type <syntax::Object> dashql_statement;
+%type <sx::Object> dashql_statement;

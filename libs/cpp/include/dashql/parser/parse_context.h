@@ -13,12 +13,17 @@
 #include <variant>
 #include <vector>
 #include <iostream>
+#include "dashql/parser/proto/syntax_generated.h"
+#include "dashql/parser/proto/syntax_dashql_generated.h"
+#include "dashql/parser/proto/syntax_sql_generated.h"
 #include "dashql/parser/module_builder.h"
 
 namespace dashql {
 namespace parser {
 
-using Location = syntax::Location;
+namespace sx = dashql::proto::syntax;
+namespace sxd = dashql::proto::syntax_dashql;
+using Location = sx::Location;
 
 /// Return the location
 std::ostream& operator<<(std::ostream& out, const Location& loc);

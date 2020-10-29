@@ -1,8 +1,8 @@
 dashql_extract_statement:
     EXTRACT dashql_identifier FROM dashql_identifier USING dashql_extract_method {
-        $6.push_back(Attr(@2, AttrKey::EXTRACT_STATEMENT_NAME, $2));
-        $6.push_back(Attr(@4, AttrKey::EXTRACT_STATEMENT_DATA, $4));
-        $$ = ctx.CreateObject(@$, syntax::ObjectType::EXTRACT_STATEMENT, move($6));
+        $6.push_back(sx::Attribute(@2, sx::AttributeKey::DASHQL_EXTRACT_STATEMENT_NAME, $2));
+        $6.push_back(sx::Attribute(@4, sx::AttributeKey::DASHQL_EXTRACT_STATEMENT_DATA, $4));
+        $$ = ctx.CreateObject(@$, sx::ObjectType::DASHQL_EXTRACT_STATEMENT, move($6));
     }
     ;
 
@@ -22,12 +22,12 @@ dashql_csv_attribute_list:
     ;
 
 dashql_csv_attribute:
-    ENCODING EQUAL dashql_string_value             { $$ = Attr(@$, AttrKey::CSV_EXTRACT_ENCODING, $3); }
-  | HEADER EQUAL dashql_csv_header_value           { $$ = Attr(@$, AttrKey::CSV_EXTRACT_HEADER, $3); }
-  | DELIMITER EQUAL dashql_string_value            { $$ = Attr(@$, AttrKey::CSV_EXTRACT_DELIMITER, $3); }
-  | QUOTE EQUAL dashql_string_value                { $$ = Attr(@$, AttrKey::CSV_EXTRACT_QUOTE, $3); }
-  | DATE FORMAT EQUAL dashql_string_value          { $$ = Attr(@$, AttrKey::CSV_EXTRACT_DATE_FORMAT, $4); }
-  | TIMESTAMP FORMAT EQUAL dashql_string_value     { $$ = Attr(@$, AttrKey::CSV_EXTRACT_TIMESTAMP_FORMAT, $4); }
+    ENCODING EQUAL dashql_string_value             { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_CSV_EXTRACT_ENCODING, $3); }
+  | HEADER EQUAL dashql_csv_header_value           { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_CSV_EXTRACT_HEADER, $3); }
+  | DELIMITER EQUAL dashql_string_value            { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_CSV_EXTRACT_DELIMITER, $3); }
+  | QUOTE EQUAL dashql_string_value                { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_CSV_EXTRACT_QUOTE, $3); }
+  | DATE FORMAT EQUAL dashql_string_value          { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_CSV_EXTRACT_DATE_FORMAT, $4); }
+  | TIMESTAMP FORMAT EQUAL dashql_string_value     { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT, $4); }
     ;
 
 dashql_csv_header_value:

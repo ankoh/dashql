@@ -1,14 +1,14 @@
 dashql_identifier:
-    IDENTIFIER_LITERAL  { $$ = Value(@1, ValueType::STRING, 0); }
-  | STRING_LITERAL      { $$ = Value(@1, ValueType::STRING, 0); }
+    IDENTIFIER_LITERAL  { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+  | STRING_LITERAL      { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
     ;
 
 dashql_boolean_value:
-    BOOLEAN_LITERAL     { $$ = Value(@1, ValueType::NUMBER, $1); }
+    BOOLEAN_LITERAL     { $$ = sx::Value(@1, sx::ValueType::NUMBER, $1); }
     ;
 
 dashql_string_value:
-    STRING_LITERAL      { $$ = Value(@1, ValueType::STRING, 0); }
+    STRING_LITERAL      { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
     ;
 
 dashql_opt_alias:

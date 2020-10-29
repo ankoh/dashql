@@ -5,6 +5,45 @@ namespace dashql.proto.syntax;
 struct Location { offset: uint32; length: uint32; }
 struct Span { offset: uint32; length: uint32; }
 
+enum ObjectType: uint8 {
+    NONE = 0,
+    DASHQL_LOAD_STATEMENT,
+    DASHQL_PARAMETER_DECLARATION,
+    DASHQL_EXTRACT_STATEMENT,
+    DASHQL_QUERY_STATEMENT,
+    DASHQL_VIZ_STATEMENT,
+}
+
+enum AttributeKey: uint8 {
+    NONE = 0,
+
+    DASHQL_PARAMETER_IDENTIFIER,
+    DASHQL_PARAMETER_ALIAS,
+    DASHQL_PARAMETER_TYPE,
+    DASHQL_LOAD_NAME,
+    DASHQL_FILE_LABEL,
+    DASHQL_HTTP_LOAD_NAME,
+    DASHQL_HTTP_LOAD_VERB,
+    DASHQL_HTTP_LOAD_URL,
+    DASHQL_HTTP_LOAD_HEADER,
+    DASHQL_EXTRACT_STATEMENT_NAME,
+    DASHQL_EXTRACT_STATEMENT_DATA,
+    DASHQL_EXTRACT_STATEMENT_METHOD,
+    DASHQL_CSV_EXTRACT_ENCODING,
+    DASHQL_CSV_EXTRACT_HEADER,
+    DASHQL_CSV_EXTRACT_HEADER_COLUMNS,
+    DASHQL_CSV_EXTRACT_DELIMITER,
+    DASHQL_CSV_EXTRACT_QUOTE,
+    DASHQL_CSV_EXTRACT_DATE_FORMAT,
+    DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT,
+    DASHQL_QUERY_STATEMENT_NAME,
+    DASHQL_QUERY_STATEMENT_TEXT,
+    DASHQL_VIZ_STATEMENT_TYPE,
+    DASHQL_VIZ_STATEMENT_NAME,
+    DASHQL_VIZ_STATEMENT_QUERY,
+
+}
+
 enum ValueType: uint8 {
     NONE,
     NUMBER,
@@ -17,51 +56,14 @@ enum ValueType: uint8 {
 
 struct Value {
     location: Location;
-    type: ValueType;
-    value: double;
-}
-
-enum AttributeKey: uint8 {
-    NONE = 0,
-    PARAMETER_IDENTIFIER,
-    PARAMETER_ALIAS,
-    PARAMETER_TYPE,
-    LOAD_NAME,
-    FILE_LABEL,
-    HTTP_LOAD_NAME,
-    HTTP_LOAD_VERB,
-    HTTP_LOAD_URL,
-    HTTP_LOAD_HEADER,
-    EXTRACT_STATEMENT_NAME,
-    EXTRACT_STATEMENT_DATA,
-    EXTRACT_STATEMENT_METHOD,
-    CSV_EXTRACT_ENCODING,
-    CSV_EXTRACT_HEADER,
-    CSV_EXTRACT_HEADER_COLUMNS,
-    CSV_EXTRACT_DELIMITER,
-    CSV_EXTRACT_QUOTE,
-    CSV_EXTRACT_DATE_FORMAT,
-    CSV_EXTRACT_TIMESTAMP_FORMAT,
-    QUERY_STATEMENT_NAME,
-    QUERY_STATEMENT_TEXT,
-    VIZ_STATEMENT_TYPE,
-    VIZ_STATEMENT_NAME,
-    VIZ_STATEMENT_QUERY,
+    type: ValueType = NONE;
+    value: double = 0;
 }
 
 struct Attribute {
     location: Location;
     key: AttributeKey;
     value: Value;
-}
-
-enum ObjectType: uint8 {
-    NONE = 0,
-    LOAD_STATEMENT,
-    PARAMETER_DECLARATION,
-    EXTRACT_STATEMENT,
-    QUERY_STATEMENT,
-    VIZ_STATEMENT,
 }
 
 struct Object {
@@ -89,45 +91,4 @@ table Module {
     errors: [Error];
     line_breaks: [Location];
     comments: [Location];
-}
-
-enum ParameterType: uint8 {
-    NONE = 0,
-    INTEGER = 1,
-    FLOAT = 2,
-    TEXT = 3,
-    DATE = 4,
-    DATETIME = 5,
-    TIME = 6,
-    FILE = 7,
-}
-
-enum LoadMethodType: uint8 {
-    NONE = 0,
-    HTTP = 1,
-    FILE = 2
-}
-
-enum HTTPVerb: uint8 {
-    NONE = 0,
-    GET = 1,
-    PUT = 2,
-    POST = 3,
-}
-
-enum VizType: uint8 {
-    NONE = 0,
-    AREA = 1,
-    BAR = 2,
-    BOX = 3,
-    BUBBLE = 4,
-    GRID = 5,
-    HISTOGRAM = 6,
-    LINE = 7,
-    NUMBER = 8,
-    PIE = 9,
-    POINT = 10,
-    SCATTER = 11,
-    TABLE = 12,
-    TEXT = 13,
 }

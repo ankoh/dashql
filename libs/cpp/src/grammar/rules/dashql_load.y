@@ -1,13 +1,13 @@
 dashql_load_statement:
     LOAD dashql_identifier FROM dashql_load_attributes {
-        $4.push_back(Attr(@2, AttrKey::LOAD_NAME, $2));
-        $$ = ctx.CreateObject(@$, syntax::ObjectType::LOAD_STATEMENT, move($4));
+        $4.push_back(sx::Attribute(@2, sx::AttributeKey::DASHQL_LOAD_NAME, $2));
+        $$ = ctx.CreateObject(@$, sx::ObjectType::DASHQL_LOAD_STATEMENT, move($4));
     }
     ;
 
 dashql_load_attributes:
-    HTTP LRB dashql_opt_http_attribute_list RRB    { $$ = move($3); }
-  | FILE dashql_string_value                       { $$ = { Attr(@$, AttrKey::FILE_LABEL, $2) };  }
+    HTTP LRB dashql_opt_http_attribute_list RRB     { $$ = move($3); }
+  | FILE dashql_string_value                        { $$ = { sx::Attribute(@$, sx::AttributeKey::DASHQL_FILE_LABEL, $2) };  }
     ;
 
 dashql_opt_http_attribute_list:
@@ -20,12 +20,12 @@ dashql_http_attribute_list:
     ;
 
 dashql_http_attribute:
-    METHOD EQUAL dashql_http_verb   { $$ = Attr(@$, AttrKey::HTTP_LOAD_VERB, $3); }
-  | URL EQUAL dashql_string_value   { $$ = Attr(@$, AttrKey::HTTP_LOAD_URL, $3); }
+    METHOD EQUAL dashql_http_verb   { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_HTTP_LOAD_VERB, $3); }
+  | URL EQUAL dashql_string_value   { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_HTTP_LOAD_URL, $3); }
     ;
 
 dashql_http_verb:
-    GET     { $$ = Value(@$, ValueType::NUMBER, (int) HTTPVerb::GET); }
-  | PUT     { $$ = Value(@$, ValueType::NUMBER, (int) HTTPVerb::PUT); }
-  | POST    { $$ = Value(@$, ValueType::NUMBER, (int) HTTPVerb::POST); }
+    GET     { $$ = sx::Value(@$, sx::ValueType::NUMBER, (int) sxd::HTTPVerb::GET); }
+  | PUT     { $$ = sx::Value(@$, sx::ValueType::NUMBER, (int) sxd::HTTPVerb::PUT); }
+  | POST    { $$ = sx::Value(@$, sx::ValueType::NUMBER, (int) sxd::HTTPVerb::POST); }
     ;
