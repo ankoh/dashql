@@ -13,7 +13,7 @@
 %define parse.error verbose
 
 %locations
-%define api.location.type {Location}
+%define api.location.type {syntax::Location}
 
 %lex-param      { dashql::parser::ParseContext& ctx }
 %parse-param    { dashql::parser::ParseContext &ctx }
@@ -26,11 +26,13 @@
 
 #define YYLLOC_DEFAULT(Cur, Rhs, N) { \
     if (N) { \
-        (Cur).offset = YYRHSLOC(Rhs, 1).offset; \
-        (Cur).length = YYRHSLOC(Rhs, N).offset - YYRHSLOC(Rhs, 1).offset + YYRHSLOC(Rhs, N).length; \
+        uint32_t o = YYRHSLOC(Rhs, 1).offset(); \
+        uint32_t l = YYRHSLOC(Rhs, N).offset() - YYRHSLOC(Rhs, 1).offset() + YYRHSLOC(Rhs, N).length(); \
+        (Cur) = syntax::Location(o, l); \
     } else { \
-        (Cur).offset = YYRHSLOC(Rhs, 0).offset + YYRHSLOC(Rhs, 0).length; \
-        (Cur).length = 0; \
+        uint32_t o = YYRHSLOC(Rhs, 0).offset() + YYRHSLOC(Rhs, 0).length(); \
+        uint32_t l = 0; \
+        (Cur) = syntax::Location(o, l); \
     } \
 }
 

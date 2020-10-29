@@ -12,6 +12,12 @@
 namespace dashql {
 namespace parser {
 
+/// Return the location
+std::ostream& operator<<(std::ostream& out, const Location& loc) {
+    out << "[" << loc.offset() << "," << (loc.offset() + loc.length()) << "[";
+    return out;
+}
+
 ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
     : ModuleBuilder(), _trace_scanning(trace_scanning), _trace_parsing(trace_parsing) {}
 

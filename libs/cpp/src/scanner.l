@@ -19,13 +19,17 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wregister"
 
+using namespace dashql;
+using namespace dashql::parser;
+namespace syntax = dashql::proto::syntax;
+
 namespace dashql {
 namespace parser {
 
 // The location of the current token
-extern dashql::parser::Location loc;
+extern syntax::Location loc;
 // The offset the comment (if any)
-extern dashql::parser::Location comment_begin;
+extern syntax::Location comment_begin;
 // The input string view
 extern std::string_view in;
 // The reader offset
@@ -33,9 +37,6 @@ extern size_t scanner_offset;
 
 } // namespace parser
 } // namespace dashql
-
-using namespace dashql;
-using namespace dashql::parser;
 
 // Work around an incompatibility in flex (at least versions
 // 2.5.31 through 2.5.33): it generates code that does
@@ -47,7 +48,7 @@ using namespace dashql::parser;
 // Declare the yylex function
 #define YY_DECL Parser::symbol_type yylex(dashql::parser::ParseContext& ctx)
 // Init yyloc
-#define YY_USER_INIT loc.offset = loc.length = 0;
+#define YY_USER_INIT loc = syntax::Location();
 // Configure the scanner to use string views
 #define YY_INPUT(buffer, bytes_read, max_bytes) \
     bytes_read = in.copy(buffer, max_bytes, scanner_offset); \
@@ -78,7 +79,7 @@ using namespace dashql::parser;
 // Code run each time a token is matched.
 // We just update the location of the token.
 #define YY_USER_ACTION { \
-    loc.offset += yyleng; \
+    loc = syntax::Location(loc.offset() + yyleng, 0); \
 }
 %}
 
@@ -87,8 +88,7 @@ using namespace dashql::parser;
 %{
 // Code runs each time yylex is called.
 // Start a new token.
-loc.offset += loc.length;
-loc.length = 0;
+loc =  syntax::Location(loc.offset(), 0);
 %}
 
 ","             { return Parser::make_COMMA(loc); }
@@ -190,37 +190,37 @@ with[^;]*           { return Parser::make_SQL_WITH(loc); }
 
                         if (!stream) {
                             auto message = std::string("Invalid number \"") + yytext + std::string("\"");
-                            ctx.AddError(loc.encode(), message);
+                            ctx.AddError(loc, message);
                         }
 
                         return Parser::make_INTEGER_LITERAL(value, loc);
                     }
 
---[^\n]*            { ctx.AddComment(loc.encode()); }
+--[^\n]*            { ctx.AddComment(loc); }
 "/*"                { BEGIN(C_COMMENT); comment_begin = loc; }
 <C_COMMENT>[^*\n]+  // eat comment in chunks
 <C_COMMENT>"*"      // eat the lone star
-<C_COMMENT>\n       { ctx.AddLineBreak(loc.encode()); }
+<C_COMMENT>\n       { ctx.AddLineBreak(loc); }
 <C_COMMENT>"*/"     {
                         BEGIN(INITIAL);
-                        ctx.AddComment((comment_begin + loc).encode());
+                        ctx.AddComment(syntax::Location(comment_begin.offset(), loc.offset() + loc.length() - comment_begin.offset()));
                     }
 
-[ \t\r]         { ctx.AddLineBreak(loc.encode()); }
-\n              { ctx.AddLineBreak(loc.encode()); }
+[ \t\r]         { ctx.AddLineBreak(loc); }
+\n              { ctx.AddLineBreak(loc); }
 <<EOF>>         { return Parser::make_EOF(loc); }
 .               {
                     auto message = std::string("Invalid character \"") + yytext + std::string("\"");
-                    ctx.AddError(loc.encode(), message);
+                    ctx.AddError(loc, message);
                 }
 %%
 
 // Code
 
 // The input location
-dashql::parser::Location dashql::parser::loc;
+syntax::Location dashql::parser::loc;
 // The start of the c_comment
-dashql::parser::Location dashql::parser::comment_begin;
+syntax::Location dashql::parser::comment_begin;
 // The input view of the scanner
 std::string_view dashql::parser::in;
 // The scanner offset
@@ -229,8 +229,8 @@ size_t dashql::parser::scanner_offset;
 void dashql::parser::ParseContext::beginScan(std::string_view s) {
     yy_flex_debug = _trace_scanning;
     in = s;
-    loc = Location();
-    comment_begin = Location();
+    loc = syntax::Location();
+    comment_begin = syntax::Location();
     scanner_offset = 0;
 
 }
@@ -238,7 +238,7 @@ void dashql::parser::ParseContext::beginScan(std::string_view s) {
 // End a scan
 void dashql::parser::ParseContext::endScan() {
     in = {};
-    loc = Location();
-    comment_begin = Location();
+    loc = syntax::Location();
+    comment_begin = syntax::Location();
     scanner_offset = 0;
 }
