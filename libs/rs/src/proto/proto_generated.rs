@@ -239,17 +239,15 @@ pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum ValueType {
   NONE = 0,
-  NUMBER = 1,
-  NUMBER_ARRAY = 2,
-  STRING = 3,
-  STRING_ARRAY = 4,
-  OBJECT = 5,
-  OBJECT_ARRAY = 6,
+  I32 = 1,
+  STRING = 2,
+  OBJECT = 3,
+  ARRAY = 4,
 
 }
 
 pub const ENUM_MIN_VALUE_TYPE: u8 = 0;
-pub const ENUM_MAX_VALUE_TYPE: u8 = 6;
+pub const ENUM_MAX_VALUE_TYPE: u8 = 4;
 
 impl<'a> flatbuffers::Follow<'a> for ValueType {
   type Inner = Self;
@@ -283,25 +281,21 @@ impl flatbuffers::Push for ValueType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_VALUE_TYPE: [ValueType; 7] = [
+pub const ENUM_VALUES_VALUE_TYPE: [ValueType; 5] = [
   ValueType::NONE,
-  ValueType::NUMBER,
-  ValueType::NUMBER_ARRAY,
+  ValueType::I32,
   ValueType::STRING,
-  ValueType::STRING_ARRAY,
   ValueType::OBJECT,
-  ValueType::OBJECT_ARRAY
+  ValueType::ARRAY
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_VALUE_TYPE: [&str; 7] = [
+pub const ENUM_NAMES_VALUE_TYPE: [&str; 5] = [
     "NONE",
-    "NUMBER",
-    "NUMBER_ARRAY",
+    "I32",
     "STRING",
-    "STRING_ARRAY",
     "OBJECT",
-    "OBJECT_ARRAY"
+    "ARRAY"
 ];
 
 pub fn enum_name_value_type(e: ValueType) -> &'static str {
@@ -439,14 +433,14 @@ impl Span {
   }
 }
 
-// struct Value, aligned to 8
-#[repr(C, align(8))]
+// struct Value, aligned to 4
+#[repr(C, align(4))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Value {
   pub location_: Location,
   pub type__: ValueType,
-  padding0__: u8,  padding1__: u16,  padding2__: u32,
-  pub value_: f64,
+  padding0__: u8,  padding1__: u16,
+  pub value_: i32,
 } // pub struct Value
 impl flatbuffers::SafeSliceAccess for Value {}
 impl<'a> flatbuffers::Follow<'a> for Value {
@@ -487,13 +481,13 @@ impl<'b> flatbuffers::Push for &'b Value {
 
 
 impl Value {
-  pub fn new(_location: &Location, _type_: ValueType, _value: f64) -> Self {
+  pub fn new(_location: &Location, _type_: ValueType, _value: i32) -> Self {
     Value {
       location_: *_location,
       type__: _type_.to_little_endian(),
       value_: _value.to_little_endian(),
 
-      padding0__: 0,padding1__: 0,padding2__: 0,
+      padding0__: 0,padding1__: 0,
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
@@ -506,18 +500,90 @@ impl Value {
   pub fn type_(&self) -> ValueType {
     self.type__.from_little_endian()
   }
-  pub fn value(&self) -> f64 {
+  pub fn value(&self) -> i32 {
     self.value_.from_little_endian()
   }
 }
 
-// struct Attribute, aligned to 8
-#[repr(C, align(8))]
+// struct Array, aligned to 4
+#[repr(C, align(4))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Array {
+  pub type__: ValueType,
+  padding0__: u8,  padding1__: u16,
+  pub offset_: u32,
+  pub length_: u32,
+} // pub struct Array
+impl flatbuffers::SafeSliceAccess for Array {}
+impl<'a> flatbuffers::Follow<'a> for Array {
+  type Inner = &'a Array;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a Array>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a Array {
+  type Inner = &'a Array;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<Array>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for Array {
+    type Output = Array;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const Array as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b Array {
+    type Output = Array;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const Array as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl Array {
+  pub fn new(_type_: ValueType, _offset: u32, _length: u32) -> Self {
+    Array {
+      type__: _type_.to_little_endian(),
+      offset_: _offset.to_little_endian(),
+      length_: _length.to_little_endian(),
+
+      padding0__: 0,padding1__: 0,
+    }
+  }
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "dashql.proto.syntax.Array"
+    }
+
+  pub fn type_(&self) -> ValueType {
+    self.type__.from_little_endian()
+  }
+  pub fn offset(&self) -> u32 {
+    self.offset_.from_little_endian()
+  }
+  pub fn length(&self) -> u32 {
+    self.length_.from_little_endian()
+  }
+}
+
+// struct Attribute, aligned to 4
+#[repr(C, align(4))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Attribute {
   pub location_: Location,
   pub key_: AttributeKey,
-  padding0__: u8,  padding1__: u16,  padding2__: u32,
+  padding0__: u8,  padding1__: u16,
   pub value_: Value,
 } // pub struct Attribute
 impl flatbuffers::SafeSliceAccess for Attribute {}
@@ -565,7 +631,7 @@ impl Attribute {
       key_: _key.to_little_endian(),
       value_: *_value,
 
-      padding0__: 0,padding1__: 0,padding2__: 0,
+      padding0__: 0,padding1__: 0,
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
@@ -652,6 +718,132 @@ impl Object {
   }
   pub fn attributes(&self) -> &Span {
     &self.attributes_
+  }
+}
+
+pub enum DocumentOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct Document<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for Document<'a> {
+    type Inner = Document<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self { _tab: flatbuffers::Table { buf, loc } }
+    }
+}
+
+impl<'a> Document<'a> {
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "dashql.proto.syntax.Document"
+    }
+
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        Document {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args DocumentArgs<'args>) -> flatbuffers::WIPOffset<Document<'bldr>> {
+      let mut builder = DocumentBuilder::new(_fbb);
+      if let Some(x) = args.values_string { builder.add_values_string(x); }
+      if let Some(x) = args.values_i32 { builder.add_values_i32(x); }
+      if let Some(x) = args.arrays { builder.add_arrays(x); }
+      if let Some(x) = args.attributes { builder.add_attributes(x); }
+      if let Some(x) = args.objects { builder.add_objects(x); }
+      builder.finish()
+    }
+
+    pub const VT_OBJECTS: flatbuffers::VOffsetT = 4;
+    pub const VT_ATTRIBUTES: flatbuffers::VOffsetT = 6;
+    pub const VT_ARRAYS: flatbuffers::VOffsetT = 8;
+    pub const VT_VALUES_I32: flatbuffers::VOffsetT = 10;
+    pub const VT_VALUES_STRING: flatbuffers::VOffsetT = 12;
+
+  #[inline]
+  pub fn objects(&self) -> Option<&'a [Object]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Object>>>(Document::VT_OBJECTS, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn attributes(&self) -> Option<&'a [Attribute]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Attribute>>>(Document::VT_ATTRIBUTES, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn arrays(&self) -> Option<&'a [Array]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Array>>>(Document::VT_ARRAYS, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn values_i32(&self) -> Option<flatbuffers::Vector<'a, i32>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, i32>>>(Document::VT_VALUES_I32, None)
+  }
+  #[inline]
+  pub fn values_string(&self) -> Option<&'a [Location]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Location>>>(Document::VT_VALUES_STRING, None).map(|v| v.safe_slice() )
+  }
+}
+
+pub struct DocumentArgs<'a> {
+    pub objects: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
+    pub attributes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Attribute>>>,
+    pub arrays: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Array>>>,
+    pub values_i32: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i32>>>,
+    pub values_string: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
+}
+impl<'a> Default for DocumentArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        DocumentArgs {
+            objects: None,
+            attributes: None,
+            arrays: None,
+            values_i32: None,
+            values_string: None,
+        }
+    }
+}
+pub struct DocumentBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> DocumentBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_objects(&mut self, objects: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Object>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_OBJECTS, objects);
+  }
+  #[inline]
+  pub fn add_attributes(&mut self, attributes: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Attribute>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_ATTRIBUTES, attributes);
+  }
+  #[inline]
+  pub fn add_arrays(&mut self, arrays: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Array>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_ARRAYS, arrays);
+  }
+  #[inline]
+  pub fn add_values_i32(&mut self, values_i32: flatbuffers::WIPOffset<flatbuffers::Vector<'b , i32>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_VALUES_I32, values_i32);
+  }
+  #[inline]
+  pub fn add_values_string(&mut self, values_string: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Location>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_VALUES_STRING, values_string);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> DocumentBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    DocumentBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<Document<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
   }
 }
 
@@ -745,132 +937,6 @@ impl<'a: 'b, 'b> ErrorBuilder<'a, 'b> {
   }
 }
 
-pub enum ModuleSectionsOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
-
-pub struct ModuleSections<'a> {
-  pub _tab: flatbuffers::Table<'a>,
-}
-
-impl<'a> flatbuffers::Follow<'a> for ModuleSections<'a> {
-    type Inner = ModuleSections<'a>;
-    #[inline]
-    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self { _tab: flatbuffers::Table { buf, loc } }
-    }
-}
-
-impl<'a> ModuleSections<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.ModuleSections"
-    }
-
-    #[inline]
-    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        ModuleSections {
-            _tab: table,
-        }
-    }
-    #[allow(unused_mut)]
-    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        args: &'args ModuleSectionsArgs<'args>) -> flatbuffers::WIPOffset<ModuleSections<'bldr>> {
-      let mut builder = ModuleSectionsBuilder::new(_fbb);
-      if let Some(x) = args.object_arrays { builder.add_object_arrays(x); }
-      if let Some(x) = args.objects { builder.add_objects(x); }
-      if let Some(x) = args.attributes { builder.add_attributes(x); }
-      if let Some(x) = args.number_arrays { builder.add_number_arrays(x); }
-      if let Some(x) = args.numbers { builder.add_numbers(x); }
-      builder.finish()
-    }
-
-    pub const VT_NUMBERS: flatbuffers::VOffsetT = 4;
-    pub const VT_NUMBER_ARRAYS: flatbuffers::VOffsetT = 6;
-    pub const VT_ATTRIBUTES: flatbuffers::VOffsetT = 8;
-    pub const VT_OBJECTS: flatbuffers::VOffsetT = 10;
-    pub const VT_OBJECT_ARRAYS: flatbuffers::VOffsetT = 12;
-
-  #[inline]
-  pub fn numbers(&self) -> Option<flatbuffers::Vector<'a, f64>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, f64>>>(ModuleSections::VT_NUMBERS, None)
-  }
-  #[inline]
-  pub fn number_arrays(&self) -> Option<&'a [Span]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Span>>>(ModuleSections::VT_NUMBER_ARRAYS, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn attributes(&self) -> Option<&'a [Attribute]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Attribute>>>(ModuleSections::VT_ATTRIBUTES, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn objects(&self) -> Option<&'a [Object]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Object>>>(ModuleSections::VT_OBJECTS, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn object_arrays(&self) -> Option<&'a [Span]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Span>>>(ModuleSections::VT_OBJECT_ARRAYS, None).map(|v| v.safe_slice() )
-  }
-}
-
-pub struct ModuleSectionsArgs<'a> {
-    pub numbers: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, f64>>>,
-    pub number_arrays: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Span>>>,
-    pub attributes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Attribute>>>,
-    pub objects: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
-    pub object_arrays: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Span>>>,
-}
-impl<'a> Default for ModuleSectionsArgs<'a> {
-    #[inline]
-    fn default() -> Self {
-        ModuleSectionsArgs {
-            numbers: None,
-            number_arrays: None,
-            attributes: None,
-            objects: None,
-            object_arrays: None,
-        }
-    }
-}
-pub struct ModuleSectionsBuilder<'a: 'b, 'b> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-}
-impl<'a: 'b, 'b> ModuleSectionsBuilder<'a, 'b> {
-  #[inline]
-  pub fn add_numbers(&mut self, numbers: flatbuffers::WIPOffset<flatbuffers::Vector<'b , f64>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ModuleSections::VT_NUMBERS, numbers);
-  }
-  #[inline]
-  pub fn add_number_arrays(&mut self, number_arrays: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Span>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ModuleSections::VT_NUMBER_ARRAYS, number_arrays);
-  }
-  #[inline]
-  pub fn add_attributes(&mut self, attributes: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Attribute>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ModuleSections::VT_ATTRIBUTES, attributes);
-  }
-  #[inline]
-  pub fn add_objects(&mut self, objects: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Object>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ModuleSections::VT_OBJECTS, objects);
-  }
-  #[inline]
-  pub fn add_object_arrays(&mut self, object_arrays: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Span>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ModuleSections::VT_OBJECT_ARRAYS, object_arrays);
-  }
-  #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ModuleSectionsBuilder<'a, 'b> {
-    let start = _fbb.start_table();
-    ModuleSectionsBuilder {
-      fbb_: _fbb,
-      start_: start,
-    }
-  }
-  #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<ModuleSections<'a>> {
-    let o = self.fbb_.end_table(self.start_);
-    flatbuffers::WIPOffset::new(o.value())
-  }
-}
-
 pub enum ModuleOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
@@ -906,19 +972,19 @@ impl<'a> Module<'a> {
       if let Some(x) = args.line_breaks { builder.add_line_breaks(x); }
       if let Some(x) = args.errors { builder.add_errors(x); }
       if let Some(x) = args.statements { builder.add_statements(x); }
-      if let Some(x) = args.sections { builder.add_sections(x); }
+      if let Some(x) = args.document { builder.add_document(x); }
       builder.finish()
     }
 
-    pub const VT_SECTIONS: flatbuffers::VOffsetT = 4;
+    pub const VT_DOCUMENT: flatbuffers::VOffsetT = 4;
     pub const VT_STATEMENTS: flatbuffers::VOffsetT = 6;
     pub const VT_ERRORS: flatbuffers::VOffsetT = 8;
     pub const VT_LINE_BREAKS: flatbuffers::VOffsetT = 10;
     pub const VT_COMMENTS: flatbuffers::VOffsetT = 12;
 
   #[inline]
-  pub fn sections(&self) -> Option<ModuleSections<'a>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<ModuleSections<'a>>>(Module::VT_SECTIONS, None)
+  pub fn document(&self) -> Option<Document<'a>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<Document<'a>>>(Module::VT_DOCUMENT, None)
   }
   #[inline]
   pub fn statements(&self) -> Option<&'a [Object]> {
@@ -939,7 +1005,7 @@ impl<'a> Module<'a> {
 }
 
 pub struct ModuleArgs<'a> {
-    pub sections: Option<flatbuffers::WIPOffset<ModuleSections<'a>>>,
+    pub document: Option<flatbuffers::WIPOffset<Document<'a>>>,
     pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
     pub errors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>>>,
     pub line_breaks: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
@@ -949,7 +1015,7 @@ impl<'a> Default for ModuleArgs<'a> {
     #[inline]
     fn default() -> Self {
         ModuleArgs {
-            sections: None,
+            document: None,
             statements: None,
             errors: None,
             line_breaks: None,
@@ -963,8 +1029,8 @@ pub struct ModuleBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> ModuleBuilder<'a, 'b> {
   #[inline]
-  pub fn add_sections(&mut self, sections: flatbuffers::WIPOffset<ModuleSections<'b >>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<ModuleSections>>(Module::VT_SECTIONS, sections);
+  pub fn add_document(&mut self, document: flatbuffers::WIPOffset<Document<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Document>>(Module::VT_DOCUMENT, document);
   }
   #[inline]
   pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Object>>) {

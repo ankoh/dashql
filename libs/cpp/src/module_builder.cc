@@ -14,7 +14,7 @@ namespace dashql {
 namespace parser {
 
 /// Add node attributes
-sx::Span SectionsBuilder::AddAttributes(std::initializer_list<OptionalAttribute> attrs) {
+sx::Span DocumentBuilder::AddAttributes(std::initializer_list<OptionalAttribute> attrs) {
     size_t begin = _attributes.size();
     for (auto [loc, key, attr]: attrs) {
         if (attr)
@@ -24,63 +24,85 @@ sx::Span SectionsBuilder::AddAttributes(std::initializer_list<OptionalAttribute>
 }
 
 /// Add node attributes
-sx::Span SectionsBuilder::AddAttributes(const std::vector<sx::Attribute>& attrs) {
+sx::Span DocumentBuilder::AddAttributes(const std::vector<sx::Attribute>& attrs) {
     size_t begin = _attributes.size();
     for (auto& attr: attrs)
         _attributes.push_back(attr);
     return sx::Span(begin, _attributes.size() - begin);
 }
 
-/// Write as flatbuffer
-fb::Offset<sx::ModuleSections> SectionsBuilder::Write(fb::FlatBufferBuilder& builder) {
-    optional<fb::Offset<fb::Vector<double>>> numbers;
-    optional<fb::Offset<fb::Vector<const sx::Span*>>> number_arrays;
-    optional<fb::Offset<fb::Vector<const sx::Attribute*>>> attributes;
-    optional<fb::Offset<fb::Vector<const sx::Object*>>> objects;
-    optional<fb::Offset<fb::Vector<const sx::Span*>>> object_arrays;
+/// Add an object
+sx::Value DocumentBuilder::AddObject(sx::Location loc, sx::Object object) {
+    _objects.push_back(object);
+    return sx::Value(loc, sx::ValueType::OBJECT, _objects.size() - 1);
+}
 
-    if (!_numbers.empty())
-        numbers = builder.CreateVector(_numbers);
-    if (!_number_arrays.empty())
-        number_arrays = builder.CreateVectorOfStructs(_number_arrays);
-    if (!_attributes.empty())
-        attributes = builder.CreateVectorOfStructs(_attributes);
+/// Add an object
+sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Location>& strings) {
+    _arrays.push_back(sx::Array(sx::ValueType::ARRAY, _values_string.size(), strings.size()));
+    for (auto& loc: strings)
+        _values_string.push_back(loc);
+    return sx::Value(loc, sx::ValueType::ARRAY, _arrays.size() - 1);
+}
+
+/// Add an object
+sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Object>& objects) {
+    _arrays.push_back(sx::Array(sx::ValueType::ARRAY, _objects.size(), objects.size()));
+    for (auto& loc: objects)
+        _objects.push_back(loc);
+    return sx::Value(loc, sx::ValueType::ARRAY, _arrays.size() - 1);
+}
+
+/// Write as flatbuffer
+fb::Offset<sx::Document> DocumentBuilder::Write(fb::FlatBufferBuilder& builder) {
+    optional<fb::Offset<fb::Vector<const sx::Object*>>> objects;
+    optional<fb::Offset<fb::Vector<const sx::Attribute*>>> attributes;
+    optional<fb::Offset<fb::Vector<const sx::Array*>>> arrays;
+    optional<fb::Offset<fb::Vector<int32_t>>> values_i32;
+    optional<fb::Offset<fb::Vector<const sx::Location*>>> values_string;
+
     if (!_objects.empty())
         objects = builder.CreateVectorOfStructs(_objects);
-    if (!_object_arrays.empty())
-        object_arrays = builder.CreateVectorOfStructs(_object_arrays);
+    if (!_attributes.empty())
+        attributes = builder.CreateVectorOfStructs(_attributes);
+    if (!_arrays.empty())
+        arrays = builder.CreateVectorOfStructs(_arrays);
+    if (!_values_i32.empty())
+        values_i32 = builder.CreateVector(_values_i32);
+    if (!_values_string.empty())
+        values_string = builder.CreateVectorOfStructs(_values_string);
 
-    sx::ModuleSectionsBuilder sectionsBuilder{builder};
-    if (numbers)
-        sectionsBuilder.add_numbers(*numbers);
-    if (number_arrays)
-        sectionsBuilder.add_number_arrays(*number_arrays);
-    if (attributes)
-        sectionsBuilder.add_attributes(*attributes);
+    sx::DocumentBuilder doc{builder};
     if (objects)
-        sectionsBuilder.add_objects(*objects);
-    if (object_arrays)
-        sectionsBuilder.add_object_arrays(*object_arrays);
-    return sectionsBuilder.Finish();
+        doc.add_objects(*objects);
+    if (attributes)
+        doc.add_attributes(*attributes);
+    if (arrays)
+        doc.add_arrays(*arrays);
+    if (values_i32)
+        doc.add_values_i32(*values_i32);
+    if (values_i32)
+        doc.add_values_string(*values_string);
+    return doc.Finish();
 }
 
 /// Constructor
 ModuleBuilder::ModuleBuilder()
-    : _sections(), _statements(), _errors() {}
+    : _document(), _statements(), _errors() {}
 
 /// Add an object
 sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<OptionalAttribute> attrs) {
-    return sx::Object(loc, type, _sections.AddAttributes(attrs));
+    return sx::Object(loc, type, _document.AddAttributes(attrs));
 }
 
 /// Add an object
 sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs) {
-    return sx::Object(loc, type, _sections.AddAttributes(attrs));
+    return sx::Object(loc, type, _document.AddAttributes(attrs));
 }
 
 /// Add an object
 std::vector<sx::Attribute> ModuleBuilder::CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<sx::Attribute>>> attrs) {
-    auto type_val = sx::Value(viz_loc, sx::ValueType::NUMBER, static_cast<double>(viz_type));
+    auto type_val = sx::Value(viz_loc, sx::ValueType::I32, static_cast<int32_t>(viz_type));
     auto type_attr = sx::Attribute(viz_loc, sx::AttributeKey::DASHQL_VIZ_STATEMENT_TYPE, type_val);
     std::vector<sx::Attribute> result{type_attr};
     for (auto& as: attrs) {
@@ -101,17 +123,17 @@ fb::Offset<sx::Module> ModuleBuilder::Write(fb::FlatBufferBuilder& builder) {
         eb.add_message(s);
         errs.push_back(eb.Finish());
     }
-    auto sec_ofs = _sections.Write(builder);
+    auto doc_ofs = _document.Write(builder);
     auto stmt_vec = builder.CreateVectorOfStructs(_statements);
     auto error_vec = builder.CreateVector(errs);
     auto line_breaks_vec = builder.CreateVectorOfStructs(_line_breaks);
     auto comments_vec = builder.CreateVectorOfStructs(_comments);
     sx::ModuleBuilder b{builder};
-    b.add_sections(sec_ofs);
+    b.add_document(doc_ofs);
     b.add_statements(stmt_vec);
     b.add_errors(error_vec);
     b.add_line_breaks(line_breaks_vec);
-    b.add_line_breaks(comments_vec);
+    b.add_comments(comments_vec);
     return b.Finish();
 }
 

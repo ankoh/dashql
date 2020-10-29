@@ -16,17 +16,19 @@ struct Span;
 
 struct Value;
 
+struct Array;
+
 struct Attribute;
 
 struct Object;
 
+struct Document;
+struct DocumentBuilder;
+struct DocumentT;
+
 struct Error;
 struct ErrorBuilder;
 struct ErrorT;
-
-struct ModuleSections;
-struct ModuleSectionsBuilder;
-struct ModuleSectionsT;
 
 struct Module;
 struct ModuleBuilder;
@@ -38,14 +40,16 @@ bool operator==(const Span &lhs, const Span &rhs);
 bool operator!=(const Span &lhs, const Span &rhs);
 bool operator==(const Value &lhs, const Value &rhs);
 bool operator!=(const Value &lhs, const Value &rhs);
+bool operator==(const Array &lhs, const Array &rhs);
+bool operator!=(const Array &lhs, const Array &rhs);
 bool operator==(const Attribute &lhs, const Attribute &rhs);
 bool operator!=(const Attribute &lhs, const Attribute &rhs);
 bool operator==(const Object &lhs, const Object &rhs);
 bool operator!=(const Object &lhs, const Object &rhs);
+bool operator==(const DocumentT &lhs, const DocumentT &rhs);
+bool operator!=(const DocumentT &lhs, const DocumentT &rhs);
 bool operator==(const ErrorT &lhs, const ErrorT &rhs);
 bool operator!=(const ErrorT &lhs, const ErrorT &rhs);
-bool operator==(const ModuleSectionsT &lhs, const ModuleSectionsT &rhs);
-bool operator!=(const ModuleSectionsT &lhs, const ModuleSectionsT &rhs);
 bool operator==(const ModuleT &lhs, const ModuleT &rhs);
 bool operator!=(const ModuleT &lhs, const ModuleT &rhs);
 
@@ -55,13 +59,15 @@ inline const flatbuffers::TypeTable *SpanTypeTable();
 
 inline const flatbuffers::TypeTable *ValueTypeTable();
 
+inline const flatbuffers::TypeTable *ArrayTypeTable();
+
 inline const flatbuffers::TypeTable *AttributeTypeTable();
 
 inline const flatbuffers::TypeTable *ObjectTypeTable();
 
-inline const flatbuffers::TypeTable *ErrorTypeTable();
+inline const flatbuffers::TypeTable *DocumentTypeTable();
 
-inline const flatbuffers::TypeTable *ModuleSectionsTypeTable();
+inline const flatbuffers::TypeTable *ErrorTypeTable();
 
 inline const flatbuffers::TypeTable *ModuleTypeTable();
 
@@ -208,45 +214,39 @@ inline const char *EnumNameAttributeKey(AttributeKey e) {
 
 enum class ValueType : uint8_t {
   NONE = 0,
-  NUMBER = 1,
-  NUMBER_ARRAY = 2,
-  STRING = 3,
-  STRING_ARRAY = 4,
-  OBJECT = 5,
-  OBJECT_ARRAY = 6,
+  I32 = 1,
+  STRING = 2,
+  OBJECT = 3,
+  ARRAY = 4,
   MIN = NONE,
-  MAX = OBJECT_ARRAY
+  MAX = ARRAY
 };
 
-inline const ValueType (&EnumValuesValueType())[7] {
+inline const ValueType (&EnumValuesValueType())[5] {
   static const ValueType values[] = {
     ValueType::NONE,
-    ValueType::NUMBER,
-    ValueType::NUMBER_ARRAY,
+    ValueType::I32,
     ValueType::STRING,
-    ValueType::STRING_ARRAY,
     ValueType::OBJECT,
-    ValueType::OBJECT_ARRAY
+    ValueType::ARRAY
   };
   return values;
 }
 
 inline const char * const *EnumNamesValueType() {
-  static const char * const names[8] = {
+  static const char * const names[6] = {
     "NONE",
-    "NUMBER",
-    "NUMBER_ARRAY",
+    "I32",
     "STRING",
-    "STRING_ARRAY",
     "OBJECT",
-    "OBJECT_ARRAY",
+    "ARRAY",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameValueType(ValueType e) {
-  if (flatbuffers::IsOutRange(e, ValueType::NONE, ValueType::OBJECT_ARRAY)) return "";
+  if (flatbuffers::IsOutRange(e, ValueType::NONE, ValueType::ARRAY)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesValueType()[index];
 }
@@ -331,12 +331,12 @@ inline bool operator!=(const Span &lhs, const Span &rhs) {
 }
 
 
-FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Value FLATBUFFERS_FINAL_CLASS {
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Value FLATBUFFERS_FINAL_CLASS {
  private:
   dashql::proto::syntax::Location location_;
   uint8_t type_;
-  int8_t padding0__;  int16_t padding1__;  int32_t padding2__;
-  double value_;
+  int8_t padding0__;  int16_t padding1__;
+  int32_t value_;
 
  public:
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
@@ -350,22 +350,18 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Value FLATBUFFERS_FINAL_CLASS {
         type_(0),
         padding0__(0),
         padding1__(0),
-        padding2__(0),
         value_(0) {
     (void)padding0__;
     (void)padding1__;
-    (void)padding2__;
   }
-  Value(const dashql::proto::syntax::Location &_location, dashql::proto::syntax::ValueType _type, double _value)
+  Value(const dashql::proto::syntax::Location &_location, dashql::proto::syntax::ValueType _type, int32_t _value)
       : location_(_location),
         type_(flatbuffers::EndianScalar(static_cast<uint8_t>(_type))),
         padding0__(0),
         padding1__(0),
-        padding2__(0),
         value_(flatbuffers::EndianScalar(_value)) {
     (void)padding0__;
     (void)padding1__;
-    (void)padding2__;
   }
   const dashql::proto::syntax::Location &location() const {
     return location_;
@@ -373,11 +369,11 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Value FLATBUFFERS_FINAL_CLASS {
   dashql::proto::syntax::ValueType type() const {
     return static_cast<dashql::proto::syntax::ValueType>(flatbuffers::EndianScalar(type_));
   }
-  double value() const {
+  int32_t value() const {
     return flatbuffers::EndianScalar(value_);
   }
 };
-FLATBUFFERS_STRUCT_END(Value, 24);
+FLATBUFFERS_STRUCT_END(Value, 16);
 
 inline bool operator==(const Value &lhs, const Value &rhs) {
   return
@@ -391,11 +387,67 @@ inline bool operator!=(const Value &lhs, const Value &rhs) {
 }
 
 
-FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Attribute FLATBUFFERS_FINAL_CLASS {
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Array FLATBUFFERS_FINAL_CLASS {
+ private:
+  uint8_t type_;
+  int8_t padding0__;  int16_t padding1__;
+  uint32_t offset_;
+  uint32_t length_;
+
+ public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return ArrayTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "dashql.proto.syntax.Array";
+  }
+  Array()
+      : type_(0),
+        padding0__(0),
+        padding1__(0),
+        offset_(0),
+        length_(0) {
+    (void)padding0__;
+    (void)padding1__;
+  }
+  Array(dashql::proto::syntax::ValueType _type, uint32_t _offset, uint32_t _length)
+      : type_(flatbuffers::EndianScalar(static_cast<uint8_t>(_type))),
+        padding0__(0),
+        padding1__(0),
+        offset_(flatbuffers::EndianScalar(_offset)),
+        length_(flatbuffers::EndianScalar(_length)) {
+    (void)padding0__;
+    (void)padding1__;
+  }
+  dashql::proto::syntax::ValueType type() const {
+    return static_cast<dashql::proto::syntax::ValueType>(flatbuffers::EndianScalar(type_));
+  }
+  uint32_t offset() const {
+    return flatbuffers::EndianScalar(offset_);
+  }
+  uint32_t length() const {
+    return flatbuffers::EndianScalar(length_);
+  }
+};
+FLATBUFFERS_STRUCT_END(Array, 12);
+
+inline bool operator==(const Array &lhs, const Array &rhs) {
+  return
+      (lhs.type() == rhs.type()) &&
+      (lhs.offset() == rhs.offset()) &&
+      (lhs.length() == rhs.length());
+}
+
+inline bool operator!=(const Array &lhs, const Array &rhs) {
+    return !(lhs == rhs);
+}
+
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Attribute FLATBUFFERS_FINAL_CLASS {
  private:
   dashql::proto::syntax::Location location_;
   uint8_t key_;
-  int8_t padding0__;  int16_t padding1__;  int32_t padding2__;
+  int8_t padding0__;  int16_t padding1__;
   dashql::proto::syntax::Value value_;
 
  public:
@@ -410,22 +462,18 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Attribute FLATBUFFERS_FINAL_CLASS {
         key_(0),
         padding0__(0),
         padding1__(0),
-        padding2__(0),
         value_() {
     (void)padding0__;
     (void)padding1__;
-    (void)padding2__;
   }
   Attribute(const dashql::proto::syntax::Location &_location, dashql::proto::syntax::AttributeKey _key, const dashql::proto::syntax::Value &_value)
       : location_(_location),
         key_(flatbuffers::EndianScalar(static_cast<uint8_t>(_key))),
         padding0__(0),
         padding1__(0),
-        padding2__(0),
         value_(_value) {
     (void)padding0__;
     (void)padding1__;
-    (void)padding2__;
   }
   const dashql::proto::syntax::Location &location() const {
     return location_;
@@ -437,7 +485,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Attribute FLATBUFFERS_FINAL_CLASS {
     return value_;
   }
 };
-FLATBUFFERS_STRUCT_END(Attribute, 40);
+FLATBUFFERS_STRUCT_END(Attribute, 28);
 
 inline bool operator==(const Attribute &lhs, const Attribute &rhs) {
   return
@@ -506,6 +554,153 @@ inline bool operator!=(const Object &lhs, const Object &rhs) {
     return !(lhs == rhs);
 }
 
+
+struct DocumentT : public flatbuffers::NativeTable {
+  typedef Document TableType;
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "dashql.proto.syntax.DocumentT";
+  }
+  std::vector<dashql::proto::syntax::Object> objects;
+  std::vector<dashql::proto::syntax::Attribute> attributes;
+  std::vector<dashql::proto::syntax::Array> arrays;
+  std::vector<int32_t> values_i32;
+  std::vector<dashql::proto::syntax::Location> values_string;
+  DocumentT() {
+  }
+};
+
+inline bool operator==(const DocumentT &lhs, const DocumentT &rhs) {
+  return
+      (lhs.objects == rhs.objects) &&
+      (lhs.attributes == rhs.attributes) &&
+      (lhs.arrays == rhs.arrays) &&
+      (lhs.values_i32 == rhs.values_i32) &&
+      (lhs.values_string == rhs.values_string);
+}
+
+inline bool operator!=(const DocumentT &lhs, const DocumentT &rhs) {
+    return !(lhs == rhs);
+}
+
+
+struct Document FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef DocumentT NativeTableType;
+  typedef DocumentBuilder Builder;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return DocumentTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "dashql.proto.syntax.Document";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_OBJECTS = 4,
+    VT_ATTRIBUTES = 6,
+    VT_ARRAYS = 8,
+    VT_VALUES_I32 = 10,
+    VT_VALUES_STRING = 12
+  };
+  const flatbuffers::Vector<const dashql::proto::syntax::Object *> *objects() const {
+    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Object *> *>(VT_OBJECTS);
+  }
+  const flatbuffers::Vector<const dashql::proto::syntax::Attribute *> *attributes() const {
+    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Attribute *> *>(VT_ATTRIBUTES);
+  }
+  const flatbuffers::Vector<const dashql::proto::syntax::Array *> *arrays() const {
+    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Array *> *>(VT_ARRAYS);
+  }
+  const flatbuffers::Vector<int32_t> *values_i32() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_VALUES_I32);
+  }
+  const flatbuffers::Vector<const dashql::proto::syntax::Location *> *values_string() const {
+    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Location *> *>(VT_VALUES_STRING);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_OBJECTS) &&
+           verifier.VerifyVector(objects()) &&
+           VerifyOffset(verifier, VT_ATTRIBUTES) &&
+           verifier.VerifyVector(attributes()) &&
+           VerifyOffset(verifier, VT_ARRAYS) &&
+           verifier.VerifyVector(arrays()) &&
+           VerifyOffset(verifier, VT_VALUES_I32) &&
+           verifier.VerifyVector(values_i32()) &&
+           VerifyOffset(verifier, VT_VALUES_STRING) &&
+           verifier.VerifyVector(values_string()) &&
+           verifier.EndTable();
+  }
+  DocumentT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(DocumentT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<Document> Pack(flatbuffers::FlatBufferBuilder &_fbb, const DocumentT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct DocumentBuilder {
+  typedef Document Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_objects(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> objects) {
+    fbb_.AddOffset(Document::VT_OBJECTS, objects);
+  }
+  void add_attributes(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Attribute *>> attributes) {
+    fbb_.AddOffset(Document::VT_ATTRIBUTES, attributes);
+  }
+  void add_arrays(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Array *>> arrays) {
+    fbb_.AddOffset(Document::VT_ARRAYS, arrays);
+  }
+  void add_values_i32(flatbuffers::Offset<flatbuffers::Vector<int32_t>> values_i32) {
+    fbb_.AddOffset(Document::VT_VALUES_I32, values_i32);
+  }
+  void add_values_string(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Location *>> values_string) {
+    fbb_.AddOffset(Document::VT_VALUES_STRING, values_string);
+  }
+  explicit DocumentBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Document> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Document>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Document> CreateDocument(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> objects = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Attribute *>> attributes = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Array *>> arrays = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> values_i32 = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Location *>> values_string = 0) {
+  DocumentBuilder builder_(_fbb);
+  builder_.add_values_string(values_string);
+  builder_.add_values_i32(values_i32);
+  builder_.add_arrays(arrays);
+  builder_.add_attributes(attributes);
+  builder_.add_objects(objects);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<Document> CreateDocumentDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<dashql::proto::syntax::Object> *objects = nullptr,
+    const std::vector<dashql::proto::syntax::Attribute> *attributes = nullptr,
+    const std::vector<dashql::proto::syntax::Array> *arrays = nullptr,
+    const std::vector<int32_t> *values_i32 = nullptr,
+    const std::vector<dashql::proto::syntax::Location> *values_string = nullptr) {
+  auto objects__ = objects ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Object>(*objects) : 0;
+  auto attributes__ = attributes ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Attribute>(*attributes) : 0;
+  auto arrays__ = arrays ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Array>(*arrays) : 0;
+  auto values_i32__ = values_i32 ? _fbb.CreateVector<int32_t>(*values_i32) : 0;
+  auto values_string__ = values_string ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Location>(*values_string) : 0;
+  return dashql::proto::syntax::CreateDocument(
+      _fbb,
+      objects__,
+      attributes__,
+      arrays__,
+      values_i32__,
+      values_string__);
+}
+
+flatbuffers::Offset<Document> CreateDocument(flatbuffers::FlatBufferBuilder &_fbb, const DocumentT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct ErrorT : public flatbuffers::NativeTable {
   typedef Error TableType;
@@ -604,159 +799,12 @@ inline flatbuffers::Offset<Error> CreateErrorDirect(
 
 flatbuffers::Offset<Error> CreateError(flatbuffers::FlatBufferBuilder &_fbb, const ErrorT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct ModuleSectionsT : public flatbuffers::NativeTable {
-  typedef ModuleSections TableType;
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "dashql.proto.syntax.ModuleSectionsT";
-  }
-  std::vector<double> numbers;
-  std::vector<dashql::proto::syntax::Span> number_arrays;
-  std::vector<dashql::proto::syntax::Attribute> attributes;
-  std::vector<dashql::proto::syntax::Object> objects;
-  std::vector<dashql::proto::syntax::Span> object_arrays;
-  ModuleSectionsT() {
-  }
-};
-
-inline bool operator==(const ModuleSectionsT &lhs, const ModuleSectionsT &rhs) {
-  return
-      (lhs.numbers == rhs.numbers) &&
-      (lhs.number_arrays == rhs.number_arrays) &&
-      (lhs.attributes == rhs.attributes) &&
-      (lhs.objects == rhs.objects) &&
-      (lhs.object_arrays == rhs.object_arrays);
-}
-
-inline bool operator!=(const ModuleSectionsT &lhs, const ModuleSectionsT &rhs) {
-    return !(lhs == rhs);
-}
-
-
-struct ModuleSections FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ModuleSectionsT NativeTableType;
-  typedef ModuleSectionsBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return ModuleSectionsTypeTable();
-  }
-  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
-    return "dashql.proto.syntax.ModuleSections";
-  }
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NUMBERS = 4,
-    VT_NUMBER_ARRAYS = 6,
-    VT_ATTRIBUTES = 8,
-    VT_OBJECTS = 10,
-    VT_OBJECT_ARRAYS = 12
-  };
-  const flatbuffers::Vector<double> *numbers() const {
-    return GetPointer<const flatbuffers::Vector<double> *>(VT_NUMBERS);
-  }
-  const flatbuffers::Vector<const dashql::proto::syntax::Span *> *number_arrays() const {
-    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Span *> *>(VT_NUMBER_ARRAYS);
-  }
-  const flatbuffers::Vector<const dashql::proto::syntax::Attribute *> *attributes() const {
-    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Attribute *> *>(VT_ATTRIBUTES);
-  }
-  const flatbuffers::Vector<const dashql::proto::syntax::Object *> *objects() const {
-    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Object *> *>(VT_OBJECTS);
-  }
-  const flatbuffers::Vector<const dashql::proto::syntax::Span *> *object_arrays() const {
-    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Span *> *>(VT_OBJECT_ARRAYS);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NUMBERS) &&
-           verifier.VerifyVector(numbers()) &&
-           VerifyOffset(verifier, VT_NUMBER_ARRAYS) &&
-           verifier.VerifyVector(number_arrays()) &&
-           VerifyOffset(verifier, VT_ATTRIBUTES) &&
-           verifier.VerifyVector(attributes()) &&
-           VerifyOffset(verifier, VT_OBJECTS) &&
-           verifier.VerifyVector(objects()) &&
-           VerifyOffset(verifier, VT_OBJECT_ARRAYS) &&
-           verifier.VerifyVector(object_arrays()) &&
-           verifier.EndTable();
-  }
-  ModuleSectionsT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ModuleSectionsT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ModuleSections> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ModuleSectionsT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct ModuleSectionsBuilder {
-  typedef ModuleSections Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_numbers(flatbuffers::Offset<flatbuffers::Vector<double>> numbers) {
-    fbb_.AddOffset(ModuleSections::VT_NUMBERS, numbers);
-  }
-  void add_number_arrays(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Span *>> number_arrays) {
-    fbb_.AddOffset(ModuleSections::VT_NUMBER_ARRAYS, number_arrays);
-  }
-  void add_attributes(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Attribute *>> attributes) {
-    fbb_.AddOffset(ModuleSections::VT_ATTRIBUTES, attributes);
-  }
-  void add_objects(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> objects) {
-    fbb_.AddOffset(ModuleSections::VT_OBJECTS, objects);
-  }
-  void add_object_arrays(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Span *>> object_arrays) {
-    fbb_.AddOffset(ModuleSections::VT_OBJECT_ARRAYS, object_arrays);
-  }
-  explicit ModuleSectionsBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<ModuleSections> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<ModuleSections>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<ModuleSections> CreateModuleSections(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<double>> numbers = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Span *>> number_arrays = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Attribute *>> attributes = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> objects = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Span *>> object_arrays = 0) {
-  ModuleSectionsBuilder builder_(_fbb);
-  builder_.add_object_arrays(object_arrays);
-  builder_.add_objects(objects);
-  builder_.add_attributes(attributes);
-  builder_.add_number_arrays(number_arrays);
-  builder_.add_numbers(numbers);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<ModuleSections> CreateModuleSectionsDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<double> *numbers = nullptr,
-    const std::vector<dashql::proto::syntax::Span> *number_arrays = nullptr,
-    const std::vector<dashql::proto::syntax::Attribute> *attributes = nullptr,
-    const std::vector<dashql::proto::syntax::Object> *objects = nullptr,
-    const std::vector<dashql::proto::syntax::Span> *object_arrays = nullptr) {
-  auto numbers__ = numbers ? _fbb.CreateVector<double>(*numbers) : 0;
-  auto number_arrays__ = number_arrays ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Span>(*number_arrays) : 0;
-  auto attributes__ = attributes ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Attribute>(*attributes) : 0;
-  auto objects__ = objects ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Object>(*objects) : 0;
-  auto object_arrays__ = object_arrays ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Span>(*object_arrays) : 0;
-  return dashql::proto::syntax::CreateModuleSections(
-      _fbb,
-      numbers__,
-      number_arrays__,
-      attributes__,
-      objects__,
-      object_arrays__);
-}
-
-flatbuffers::Offset<ModuleSections> CreateModuleSections(flatbuffers::FlatBufferBuilder &_fbb, const ModuleSectionsT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
 struct ModuleT : public flatbuffers::NativeTable {
   typedef Module TableType;
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "dashql.proto.syntax.ModuleT";
   }
-  std::unique_ptr<dashql::proto::syntax::ModuleSectionsT> sections;
+  std::unique_ptr<dashql::proto::syntax::DocumentT> document;
   std::vector<dashql::proto::syntax::Object> statements;
   std::vector<std::unique_ptr<dashql::proto::syntax::ErrorT>> errors;
   std::vector<dashql::proto::syntax::Location> line_breaks;
@@ -767,7 +815,7 @@ struct ModuleT : public flatbuffers::NativeTable {
 
 inline bool operator==(const ModuleT &lhs, const ModuleT &rhs) {
   return
-      (lhs.sections == rhs.sections) &&
+      (lhs.document == rhs.document) &&
       (lhs.statements == rhs.statements) &&
       (lhs.errors == rhs.errors) &&
       (lhs.line_breaks == rhs.line_breaks) &&
@@ -789,14 +837,14 @@ struct Module FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return "dashql.proto.syntax.Module";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_SECTIONS = 4,
+    VT_DOCUMENT = 4,
     VT_STATEMENTS = 6,
     VT_ERRORS = 8,
     VT_LINE_BREAKS = 10,
     VT_COMMENTS = 12
   };
-  const dashql::proto::syntax::ModuleSections *sections() const {
-    return GetPointer<const dashql::proto::syntax::ModuleSections *>(VT_SECTIONS);
+  const dashql::proto::syntax::Document *document() const {
+    return GetPointer<const dashql::proto::syntax::Document *>(VT_DOCUMENT);
   }
   const flatbuffers::Vector<const dashql::proto::syntax::Object *> *statements() const {
     return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Object *> *>(VT_STATEMENTS);
@@ -812,8 +860,8 @@ struct Module FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_SECTIONS) &&
-           verifier.VerifyTable(sections()) &&
+           VerifyOffset(verifier, VT_DOCUMENT) &&
+           verifier.VerifyTable(document()) &&
            VerifyOffset(verifier, VT_STATEMENTS) &&
            verifier.VerifyVector(statements()) &&
            VerifyOffset(verifier, VT_ERRORS) &&
@@ -834,8 +882,8 @@ struct ModuleBuilder {
   typedef Module Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_sections(flatbuffers::Offset<dashql::proto::syntax::ModuleSections> sections) {
-    fbb_.AddOffset(Module::VT_SECTIONS, sections);
+  void add_document(flatbuffers::Offset<dashql::proto::syntax::Document> document) {
+    fbb_.AddOffset(Module::VT_DOCUMENT, document);
   }
   void add_statements(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> statements) {
     fbb_.AddOffset(Module::VT_STATEMENTS, statements);
@@ -862,7 +910,7 @@ struct ModuleBuilder {
 
 inline flatbuffers::Offset<Module> CreateModule(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<dashql::proto::syntax::ModuleSections> sections = 0,
+    flatbuffers::Offset<dashql::proto::syntax::Document> document = 0,
     flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> statements = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<dashql::proto::syntax::Error>>> errors = 0,
     flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Location *>> line_breaks = 0,
@@ -872,13 +920,13 @@ inline flatbuffers::Offset<Module> CreateModule(
   builder_.add_line_breaks(line_breaks);
   builder_.add_errors(errors);
   builder_.add_statements(statements);
-  builder_.add_sections(sections);
+  builder_.add_document(document);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Module> CreateModuleDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<dashql::proto::syntax::ModuleSections> sections = 0,
+    flatbuffers::Offset<dashql::proto::syntax::Document> document = 0,
     const std::vector<dashql::proto::syntax::Object> *statements = nullptr,
     const std::vector<flatbuffers::Offset<dashql::proto::syntax::Error>> *errors = nullptr,
     const std::vector<dashql::proto::syntax::Location> *line_breaks = nullptr,
@@ -889,7 +937,7 @@ inline flatbuffers::Offset<Module> CreateModuleDirect(
   auto comments__ = comments ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Location>(*comments) : 0;
   return dashql::proto::syntax::CreateModule(
       _fbb,
-      sections,
+      document,
       statements__,
       errors__,
       line_breaks__,
@@ -897,6 +945,44 @@ inline flatbuffers::Offset<Module> CreateModuleDirect(
 }
 
 flatbuffers::Offset<Module> CreateModule(flatbuffers::FlatBufferBuilder &_fbb, const ModuleT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+inline DocumentT *Document::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<dashql::proto::syntax::DocumentT> _o = std::unique_ptr<dashql::proto::syntax::DocumentT>(new DocumentT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void Document::UnPackTo(DocumentT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = objects(); if (_e) { _o->objects.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->objects[_i] = *_e->Get(_i); } } }
+  { auto _e = attributes(); if (_e) { _o->attributes.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->attributes[_i] = *_e->Get(_i); } } }
+  { auto _e = arrays(); if (_e) { _o->arrays.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->arrays[_i] = *_e->Get(_i); } } }
+  { auto _e = values_i32(); if (_e) { _o->values_i32.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->values_i32[_i] = _e->Get(_i); } } }
+  { auto _e = values_string(); if (_e) { _o->values_string.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->values_string[_i] = *_e->Get(_i); } } }
+}
+
+inline flatbuffers::Offset<Document> Document::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DocumentT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateDocument(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<Document> CreateDocument(flatbuffers::FlatBufferBuilder &_fbb, const DocumentT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const DocumentT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _objects = _o->objects.size() ? _fbb.CreateVectorOfStructs(_o->objects) : 0;
+  auto _attributes = _o->attributes.size() ? _fbb.CreateVectorOfStructs(_o->attributes) : 0;
+  auto _arrays = _o->arrays.size() ? _fbb.CreateVectorOfStructs(_o->arrays) : 0;
+  auto _values_i32 = _o->values_i32.size() ? _fbb.CreateVector(_o->values_i32) : 0;
+  auto _values_string = _o->values_string.size() ? _fbb.CreateVectorOfStructs(_o->values_string) : 0;
+  return dashql::proto::syntax::CreateDocument(
+      _fbb,
+      _objects,
+      _attributes,
+      _arrays,
+      _values_i32,
+      _values_string);
+}
 
 inline ErrorT *Error::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   std::unique_ptr<dashql::proto::syntax::ErrorT> _o = std::unique_ptr<dashql::proto::syntax::ErrorT>(new ErrorT());
@@ -927,44 +1013,6 @@ inline flatbuffers::Offset<Error> CreateError(flatbuffers::FlatBufferBuilder &_f
       _message);
 }
 
-inline ModuleSectionsT *ModuleSections::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<dashql::proto::syntax::ModuleSectionsT> _o = std::unique_ptr<dashql::proto::syntax::ModuleSectionsT>(new ModuleSectionsT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void ModuleSections::UnPackTo(ModuleSectionsT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = numbers(); if (_e) { _o->numbers.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->numbers[_i] = _e->Get(_i); } } }
-  { auto _e = number_arrays(); if (_e) { _o->number_arrays.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->number_arrays[_i] = *_e->Get(_i); } } }
-  { auto _e = attributes(); if (_e) { _o->attributes.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->attributes[_i] = *_e->Get(_i); } } }
-  { auto _e = objects(); if (_e) { _o->objects.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->objects[_i] = *_e->Get(_i); } } }
-  { auto _e = object_arrays(); if (_e) { _o->object_arrays.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->object_arrays[_i] = *_e->Get(_i); } } }
-}
-
-inline flatbuffers::Offset<ModuleSections> ModuleSections::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ModuleSectionsT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateModuleSections(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<ModuleSections> CreateModuleSections(flatbuffers::FlatBufferBuilder &_fbb, const ModuleSectionsT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ModuleSectionsT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _numbers = _o->numbers.size() ? _fbb.CreateVector(_o->numbers) : 0;
-  auto _number_arrays = _o->number_arrays.size() ? _fbb.CreateVectorOfStructs(_o->number_arrays) : 0;
-  auto _attributes = _o->attributes.size() ? _fbb.CreateVectorOfStructs(_o->attributes) : 0;
-  auto _objects = _o->objects.size() ? _fbb.CreateVectorOfStructs(_o->objects) : 0;
-  auto _object_arrays = _o->object_arrays.size() ? _fbb.CreateVectorOfStructs(_o->object_arrays) : 0;
-  return dashql::proto::syntax::CreateModuleSections(
-      _fbb,
-      _numbers,
-      _number_arrays,
-      _attributes,
-      _objects,
-      _object_arrays);
-}
-
 inline ModuleT *Module::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   std::unique_ptr<dashql::proto::syntax::ModuleT> _o = std::unique_ptr<dashql::proto::syntax::ModuleT>(new ModuleT());
   UnPackTo(_o.get(), _resolver);
@@ -974,7 +1022,7 @@ inline ModuleT *Module::UnPack(const flatbuffers::resolver_function_t *_resolver
 inline void Module::UnPackTo(ModuleT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = sections(); if (_e) _o->sections = std::unique_ptr<dashql::proto::syntax::ModuleSectionsT>(_e->UnPack(_resolver)); }
+  { auto _e = document(); if (_e) _o->document = std::unique_ptr<dashql::proto::syntax::DocumentT>(_e->UnPack(_resolver)); }
   { auto _e = statements(); if (_e) { _o->statements.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->statements[_i] = *_e->Get(_i); } } }
   { auto _e = errors(); if (_e) { _o->errors.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->errors[_i] = std::unique_ptr<dashql::proto::syntax::ErrorT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = line_breaks(); if (_e) { _o->line_breaks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->line_breaks[_i] = *_e->Get(_i); } } }
@@ -989,14 +1037,14 @@ inline flatbuffers::Offset<Module> CreateModule(flatbuffers::FlatBufferBuilder &
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ModuleT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _sections = _o->sections ? CreateModuleSections(_fbb, _o->sections.get(), _rehasher) : 0;
+  auto _document = _o->document ? CreateDocument(_fbb, _o->document.get(), _rehasher) : 0;
   auto _statements = _o->statements.size() ? _fbb.CreateVectorOfStructs(_o->statements) : 0;
   auto _errors = _o->errors.size() ? _fbb.CreateVector<flatbuffers::Offset<dashql::proto::syntax::Error>> (_o->errors.size(), [](size_t i, _VectorArgs *__va) { return CreateError(*__va->__fbb, __va->__o->errors[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _line_breaks = _o->line_breaks.size() ? _fbb.CreateVectorOfStructs(_o->line_breaks) : 0;
   auto _comments = _o->comments.size() ? _fbb.CreateVectorOfStructs(_o->comments) : 0;
   return dashql::proto::syntax::CreateModule(
       _fbb,
-      _sections,
+      _document,
       _statements,
       _errors,
       _line_breaks,
@@ -1099,8 +1147,6 @@ inline const flatbuffers::TypeTable *ValueTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1108,15 +1154,13 @@ inline const flatbuffers::TypeTable *ValueTypeTypeTable() {
   };
   static const char * const names[] = {
     "NONE",
-    "NUMBER",
-    "NUMBER_ARRAY",
+    "I32",
     "STRING",
-    "STRING_ARRAY",
     "OBJECT",
-    "OBJECT_ARRAY"
+    "ARRAY"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 7, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 5, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
@@ -1157,17 +1201,38 @@ inline const flatbuffers::TypeTable *ValueTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_SEQUENCE, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 1 },
-    { flatbuffers::ET_DOUBLE, 0, -1 }
+    { flatbuffers::ET_INT, 0, -1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     dashql::proto::syntax::LocationTypeTable,
     dashql::proto::syntax::ValueTypeTypeTable
   };
-  static const int64_t values[] = { 0, 8, 16, 24 };
+  static const int64_t values[] = { 0, 8, 12, 16 };
   static const char * const names[] = {
     "location",
     "type",
     "value"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_STRUCT, 3, type_codes, type_refs, nullptr, values, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *ArrayTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UINT, 0, -1 },
+    { flatbuffers::ET_UINT, 0, -1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax::ValueTypeTypeTable
+  };
+  static const int64_t values[] = { 0, 4, 8, 12 };
+  static const char * const names[] = {
+    "type",
+    "offset",
+    "length"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_STRUCT, 3, type_codes, type_refs, nullptr, values, names
@@ -1186,7 +1251,7 @@ inline const flatbuffers::TypeTable *AttributeTypeTable() {
     dashql::proto::syntax::AttributeKeyTypeTable,
     dashql::proto::syntax::ValueTypeTable
   };
-  static const int64_t values[] = { 0, 8, 16, 40 };
+  static const int64_t values[] = { 0, 8, 12, 28 };
   static const char * const names[] = {
     "location",
     "key",
@@ -1221,6 +1286,33 @@ inline const flatbuffers::TypeTable *ObjectTypeTable() {
   return &tt;
 }
 
+inline const flatbuffers::TypeTable *DocumentTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 1, 0 },
+    { flatbuffers::ET_SEQUENCE, 1, 1 },
+    { flatbuffers::ET_SEQUENCE, 1, 2 },
+    { flatbuffers::ET_INT, 1, -1 },
+    { flatbuffers::ET_SEQUENCE, 1, 3 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax::ObjectTypeTable,
+    dashql::proto::syntax::AttributeTypeTable,
+    dashql::proto::syntax::ArrayTypeTable,
+    dashql::proto::syntax::LocationTypeTable
+  };
+  static const char * const names[] = {
+    "objects",
+    "attributes",
+    "arrays",
+    "values_i32",
+    "values_string"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 5, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
 inline const flatbuffers::TypeTable *ErrorTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_SEQUENCE, 0, 0 },
@@ -1239,32 +1331,6 @@ inline const flatbuffers::TypeTable *ErrorTypeTable() {
   return &tt;
 }
 
-inline const flatbuffers::TypeTable *ModuleSectionsTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_DOUBLE, 1, -1 },
-    { flatbuffers::ET_SEQUENCE, 1, 0 },
-    { flatbuffers::ET_SEQUENCE, 1, 1 },
-    { flatbuffers::ET_SEQUENCE, 1, 2 },
-    { flatbuffers::ET_SEQUENCE, 1, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax::SpanTypeTable,
-    dashql::proto::syntax::AttributeTypeTable,
-    dashql::proto::syntax::ObjectTypeTable
-  };
-  static const char * const names[] = {
-    "numbers",
-    "number_arrays",
-    "attributes",
-    "objects",
-    "object_arrays"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 5, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
 inline const flatbuffers::TypeTable *ModuleTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_SEQUENCE, 0, 0 },
@@ -1274,13 +1340,13 @@ inline const flatbuffers::TypeTable *ModuleTypeTable() {
     { flatbuffers::ET_SEQUENCE, 1, 3 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax::ModuleSectionsTypeTable,
+    dashql::proto::syntax::DocumentTypeTable,
     dashql::proto::syntax::ObjectTypeTable,
     dashql::proto::syntax::ErrorTypeTable,
     dashql::proto::syntax::LocationTypeTable
   };
   static const char * const names[] = {
-    "sections",
+    "document",
     "statements",
     "errors",
     "line_breaks",

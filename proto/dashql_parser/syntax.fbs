@@ -46,18 +46,22 @@ enum AttributeKey: uint8 {
 
 enum ValueType: uint8 {
     NONE,
-    NUMBER,
-    NUMBER_ARRAY,
+    I32,
     STRING,
-    STRING_ARRAY,
     OBJECT,
-    OBJECT_ARRAY,
+    ARRAY,
 }
 
 struct Value {
     location: Location;
     type: ValueType = NONE;
-    value: double = 0;
+    value: int32;
+}
+
+struct Array {
+    type: ValueType;
+    offset: uint32;
+    length: uint32;
 }
 
 struct Attribute {
@@ -72,21 +76,21 @@ struct Object {
     attributes: Span;
 }
 
+table Document {
+    objects: [Object];
+    attributes: [Attribute];
+    arrays: [Array];
+    values_i32: [int32];
+    values_string: [Location];
+}
+
 table Error {
     location: Location;
     message: string;
 }
 
-table ModuleSections {
-    numbers: [double];
-    number_arrays: [Span];
-    attributes: [Attribute];
-    objects: [Object];
-    object_arrays: [Span];
-}
-
 table Module {
-    sections: ModuleSections;
+    document: Document;
     statements: [Object];
     errors: [Error];
     line_breaks: [Location];

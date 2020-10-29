@@ -32,10 +32,10 @@ dashql_csv_attribute:
 
 dashql_csv_header_value:
     dashql_boolean_value               { $$ = $1; }
-  | LRB dashql_csv_string_list RRB     { $$ = ctx.AddStringArray(@$, $2); }
+  | LRB dashql_csv_string_list RRB     { $$ = ctx.AddArray(@$, $2); }
 
 dashql_csv_string_list:
-    dashql_csv_string_list COMMA STRING_LITERAL     { $1.push_back(ctx.TextAt(@3)); $$ = move($1); }
+    dashql_csv_string_list COMMA STRING_LITERAL     { $1.push_back(@3); $$ = move($1); }
   | %empty                                          { $$ = {}; }
     ;
 

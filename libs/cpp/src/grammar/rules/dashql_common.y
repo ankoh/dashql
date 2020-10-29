@@ -4,7 +4,7 @@ dashql_identifier:
     ;
 
 dashql_boolean_value:
-    BOOLEAN_LITERAL     { $$ = sx::Value(@1, sx::ValueType::NUMBER, $1); }
+    BOOLEAN_LITERAL     { $$ = sx::Value(@1, sx::ValueType::I32, $1); }
     ;
 
 dashql_string_value:
