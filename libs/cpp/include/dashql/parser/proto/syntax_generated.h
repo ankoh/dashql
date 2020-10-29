@@ -78,37 +78,40 @@ enum class ObjectType : uint8_t {
   DASHQL_EXTRACT_STATEMENT = 3,
   DASHQL_QUERY_STATEMENT = 4,
   DASHQL_VIZ_STATEMENT = 5,
+  SQL_SELECT_STATEMENT = 6,
   MIN = NONE,
-  MAX = DASHQL_VIZ_STATEMENT
+  MAX = SQL_SELECT_STATEMENT
 };
 
-inline const ObjectType (&EnumValuesObjectType())[6] {
+inline const ObjectType (&EnumValuesObjectType())[7] {
   static const ObjectType values[] = {
     ObjectType::NONE,
     ObjectType::DASHQL_LOAD_STATEMENT,
     ObjectType::DASHQL_PARAMETER_DECLARATION,
     ObjectType::DASHQL_EXTRACT_STATEMENT,
     ObjectType::DASHQL_QUERY_STATEMENT,
-    ObjectType::DASHQL_VIZ_STATEMENT
+    ObjectType::DASHQL_VIZ_STATEMENT,
+    ObjectType::SQL_SELECT_STATEMENT
   };
   return values;
 }
 
 inline const char * const *EnumNamesObjectType() {
-  static const char * const names[7] = {
+  static const char * const names[8] = {
     "NONE",
     "DASHQL_LOAD_STATEMENT",
     "DASHQL_PARAMETER_DECLARATION",
     "DASHQL_EXTRACT_STATEMENT",
     "DASHQL_QUERY_STATEMENT",
     "DASHQL_VIZ_STATEMENT",
+    "SQL_SELECT_STATEMENT",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameObjectType(ObjectType e) {
-  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::DASHQL_VIZ_STATEMENT)) return "";
+  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::SQL_SELECT_STATEMENT)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesObjectType()[index];
 }
@@ -1058,6 +1061,7 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1069,10 +1073,11 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     "DASHQL_PARAMETER_DECLARATION",
     "DASHQL_EXTRACT_STATEMENT",
     "DASHQL_QUERY_STATEMENT",
-    "DASHQL_VIZ_STATEMENT"
+    "DASHQL_VIZ_STATEMENT",
+    "SQL_SELECT_STATEMENT"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 6, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 7, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

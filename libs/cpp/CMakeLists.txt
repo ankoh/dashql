@@ -97,6 +97,7 @@ set(GRAMMAR_RULES
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_query.y
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_statement.y
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_viz.y
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/sql_select.y
 )
 
 set(GRAMMAR_TYPES
@@ -107,6 +108,7 @@ set(GRAMMAR_TYPES
     ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_query.yh
     ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_statement.yh
     ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_viz.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/types/sql_select.yh
 )
 
 # Build grammar file

@@ -43,11 +43,12 @@ pub enum ObjectType {
   DASHQL_EXTRACT_STATEMENT = 3,
   DASHQL_QUERY_STATEMENT = 4,
   DASHQL_VIZ_STATEMENT = 5,
+  SQL_SELECT_STATEMENT = 6,
 
 }
 
 pub const ENUM_MIN_OBJECT_TYPE: u8 = 0;
-pub const ENUM_MAX_OBJECT_TYPE: u8 = 5;
+pub const ENUM_MAX_OBJECT_TYPE: u8 = 6;
 
 impl<'a> flatbuffers::Follow<'a> for ObjectType {
   type Inner = Self;
@@ -81,23 +82,25 @@ impl flatbuffers::Push for ObjectType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 6] = [
+pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 7] = [
   ObjectType::NONE,
   ObjectType::DASHQL_LOAD_STATEMENT,
   ObjectType::DASHQL_PARAMETER_DECLARATION,
   ObjectType::DASHQL_EXTRACT_STATEMENT,
   ObjectType::DASHQL_QUERY_STATEMENT,
-  ObjectType::DASHQL_VIZ_STATEMENT
+  ObjectType::DASHQL_VIZ_STATEMENT,
+  ObjectType::SQL_SELECT_STATEMENT
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_OBJECT_TYPE: [&str; 6] = [
+pub const ENUM_NAMES_OBJECT_TYPE: [&str; 7] = [
     "NONE",
     "DASHQL_LOAD_STATEMENT",
     "DASHQL_PARAMETER_DECLARATION",
     "DASHQL_EXTRACT_STATEMENT",
     "DASHQL_QUERY_STATEMENT",
-    "DASHQL_VIZ_STATEMENT"
+    "DASHQL_VIZ_STATEMENT",
+    "SQL_SELECT_STATEMENT"
 ];
 
 pub fn enum_name_object_type(e: ObjectType) -> &'static str {

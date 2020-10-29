@@ -18,6 +18,7 @@
 %token SLASH                    "/ token"
 %token STAR                     "* token"
 
+%token SELECT                   "SELECT keyword"
 %token AREA                     "AREA keyword"
 %token AS                       "AS keyword"
 %token AXES                     "AXES keyword"

@@ -7,11 +7,14 @@ struct Span { offset: uint32; length: uint32; }
 
 enum ObjectType: uint8 {
     NONE = 0,
+
     DASHQL_LOAD_STATEMENT,
     DASHQL_PARAMETER_DECLARATION,
     DASHQL_EXTRACT_STATEMENT,
     DASHQL_QUERY_STATEMENT,
     DASHQL_VIZ_STATEMENT,
+
+    SQL_SELECT_STATEMENT,
 }
 
 enum AttributeKey: uint8 {
@@ -41,7 +44,6 @@ enum AttributeKey: uint8 {
     DASHQL_VIZ_STATEMENT_TYPE,
     DASHQL_VIZ_STATEMENT_NAME,
     DASHQL_VIZ_STATEMENT_QUERY,
-
 }
 
 enum ValueType: uint8 {

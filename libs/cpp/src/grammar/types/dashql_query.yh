@@ -1,2 +1,1 @@
 %type <sx::Object> dashql_query_statement;
-%type <sx::Value> dashql_sql_literal;

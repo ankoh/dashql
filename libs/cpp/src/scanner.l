@@ -118,6 +118,7 @@ loc =  syntax::Location(loc.offset(), 0);
 "delimiter"     { return Parser::make_DELIMITER(loc); }
 "encoding"      { return Parser::make_ENCODING(loc); }
 "extract"       { return Parser::make_EXTRACT(loc); }
+"false"         { return Parser::make_BOOLEAN_LITERAL(false, loc); }
 "field"         { return Parser::make_FIELD(loc); }
 "file"          { return Parser::make_FILE(loc); }
 "float"         { return Parser::make_FLOAT(loc); }
@@ -155,6 +156,7 @@ loc =  syntax::Location(loc.offset(), 0);
 "rgb"           { return Parser::make_RGB(loc); }
 "scale"         { return Parser::make_SCALE(loc); }
 "scatter"       { return Parser::make_SCATTER(loc); }
+"select"        { return Parser::make_SELECT(loc); }
 "show"          { return Parser::make_SHOW(loc); }
 "sm"            { return Parser::make_SM(loc); }
 "stacked"       { return Parser::make_STACKED(loc); }
@@ -163,6 +165,7 @@ loc =  syntax::Location(loc.offset(), 0);
 "time"          { return Parser::make_TIME(loc); }
 "timestamp"     { return Parser::make_TIMESTAMP(loc); }
 "title"         { return Parser::make_TITLE(loc); }
+"true"          { return Parser::make_BOOLEAN_LITERAL(true, loc); }
 "type"          { return Parser::make_TYPE(loc); }
 "url"           { return Parser::make_URL(loc); }
 "using"         { return Parser::make_USING(loc); }
@@ -175,8 +178,6 @@ loc =  syntax::Location(loc.offset(), 0);
 "x"             { return Parser::make_X(loc); }
 "xl"            { return Parser::make_XL(loc); }
 "y"             { return Parser::make_Y(loc); }
-"true"          { return Parser::make_BOOLEAN_LITERAL(true, loc); }
-"false"         { return Parser::make_BOOLEAN_LITERAL(false, loc); }
 
 select[^;]*         { return Parser::make_SQL_SELECT(loc); }
 with[^;]*           { return Parser::make_SQL_WITH(loc); }
