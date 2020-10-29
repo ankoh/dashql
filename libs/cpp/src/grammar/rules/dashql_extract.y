@@ -7,7 +7,7 @@ dashql_extract_statement:
     ;
 
 dashql_extract_method:
-    CSV dashql_opt_csv_attribute_list  { $$ = move($2); }
+    CSV dashql_opt_csv_attribute_list   { $$ = move($2); }
   | JSON LRB RRB                        { $$ = {}; }
     ;
 
@@ -17,7 +17,7 @@ dashql_opt_csv_attribute_list:
     ;
 
 dashql_csv_attribute_list:
-    dashql_csv_attribute_list COMMA dashql_csv_attribute  { $1.push_back($3); $$ = move($1); }
+    dashql_csv_attribute_list COMMA dashql_csv_attribute    { $1.push_back($3); $$ = move($1); }
   | dashql_csv_attribute                                    { $$ = { $1 }; }
     ;
 
