@@ -80,11 +80,12 @@ enum class ObjectType : uint8_t {
   DASHQL_VIZ_STATEMENT = 5,
   SQL_SELECT_STATEMENT = 6,
   SQL_ACONST = 7,
+  SQL_RESULT_TARGET = 8,
   MIN = NONE,
-  MAX = SQL_ACONST
+  MAX = SQL_RESULT_TARGET
 };
 
-inline const ObjectType (&EnumValuesObjectType())[8] {
+inline const ObjectType (&EnumValuesObjectType())[9] {
   static const ObjectType values[] = {
     ObjectType::NONE,
     ObjectType::DASHQL_LOAD_STATEMENT,
@@ -93,13 +94,14 @@ inline const ObjectType (&EnumValuesObjectType())[8] {
     ObjectType::DASHQL_QUERY_STATEMENT,
     ObjectType::DASHQL_VIZ_STATEMENT,
     ObjectType::SQL_SELECT_STATEMENT,
-    ObjectType::SQL_ACONST
+    ObjectType::SQL_ACONST,
+    ObjectType::SQL_RESULT_TARGET
   };
   return values;
 }
 
 inline const char * const *EnumNamesObjectType() {
-  static const char * const names[9] = {
+  static const char * const names[10] = {
     "NONE",
     "DASHQL_LOAD_STATEMENT",
     "DASHQL_PARAMETER_DECLARATION",
@@ -108,13 +110,14 @@ inline const char * const *EnumNamesObjectType() {
     "DASHQL_VIZ_STATEMENT",
     "SQL_SELECT_STATEMENT",
     "SQL_ACONST",
+    "SQL_RESULT_TARGET",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameObjectType(ObjectType e) {
-  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::SQL_ACONST)) return "";
+  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::SQL_RESULT_TARGET)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesObjectType()[index];
 }
@@ -145,13 +148,16 @@ enum class AttributeKey : uint8_t {
   DASHQL_VIZ_STATEMENT_TYPE = 22,
   DASHQL_VIZ_STATEMENT_NAME = 23,
   DASHQL_VIZ_STATEMENT_QUERY = 24,
-  SQL_ACONST_TYPE = 25,
-  SQL_ACONST_VALUE = 26,
+  SQL_SELECT_STMT_TARGETS = 25,
+  SQL_ACONST_TYPE = 26,
+  SQL_ACONST_VALUE = 27,
+  SQL_RESULT_TARGET_NAME = 28,
+  SQL_RESULT_TARGET_VALUE = 29,
   MIN = NONE,
-  MAX = SQL_ACONST_VALUE
+  MAX = SQL_RESULT_TARGET_VALUE
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[27] {
+inline const AttributeKey (&EnumValuesAttributeKey())[30] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -178,14 +184,17 @@ inline const AttributeKey (&EnumValuesAttributeKey())[27] {
     AttributeKey::DASHQL_VIZ_STATEMENT_TYPE,
     AttributeKey::DASHQL_VIZ_STATEMENT_NAME,
     AttributeKey::DASHQL_VIZ_STATEMENT_QUERY,
+    AttributeKey::SQL_SELECT_STMT_TARGETS,
     AttributeKey::SQL_ACONST_TYPE,
-    AttributeKey::SQL_ACONST_VALUE
+    AttributeKey::SQL_ACONST_VALUE,
+    AttributeKey::SQL_RESULT_TARGET_NAME,
+    AttributeKey::SQL_RESULT_TARGET_VALUE
   };
   return values;
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[28] = {
+  static const char * const names[31] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -211,15 +220,18 @@ inline const char * const *EnumNamesAttributeKey() {
     "DASHQL_VIZ_STATEMENT_TYPE",
     "DASHQL_VIZ_STATEMENT_NAME",
     "DASHQL_VIZ_STATEMENT_QUERY",
+    "SQL_SELECT_STMT_TARGETS",
     "SQL_ACONST_TYPE",
     "SQL_ACONST_VALUE",
+    "SQL_RESULT_TARGET_NAME",
+    "SQL_RESULT_TARGET_VALUE",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAttributeKey(AttributeKey e) {
-  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_ACONST_VALUE)) return "";
+  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_RESULT_TARGET_VALUE)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAttributeKey()[index];
 }
@@ -1072,6 +1084,7 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1085,16 +1098,20 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     "DASHQL_QUERY_STATEMENT",
     "DASHQL_VIZ_STATEMENT",
     "SQL_SELECT_STATEMENT",
-    "SQL_ACONST"
+    "SQL_ACONST",
+    "SQL_RESULT_TARGET"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 8, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 9, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -1152,11 +1169,14 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "DASHQL_VIZ_STATEMENT_TYPE",
     "DASHQL_VIZ_STATEMENT_NAME",
     "DASHQL_VIZ_STATEMENT_QUERY",
+    "SQL_SELECT_STMT_TARGETS",
     "SQL_ACONST_TYPE",
-    "SQL_ACONST_VALUE"
+    "SQL_ACONST_VALUE",
+    "SQL_RESULT_TARGET_NAME",
+    "SQL_RESULT_TARGET_VALUE"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 27, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 30, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

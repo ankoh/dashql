@@ -86,10 +86,12 @@ class ModuleBuilder {
     /// Add an error
     inline void AddError(sx::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
 
+    /// Add an object vector
+    inline sx::Value AddArray(sx::Location loc, const std::vector<sx::Object>& objects) { return _document.AddArray(loc, objects); }
     /// Add a string vector
     inline sx::Value AddArray(sx::Location loc, const std::vector<sx::Location>& strings) { return _document.AddArray(loc, strings); }
     /// Add a string vector
-    inline sx::Value AddObject(sx::Location loc, sx::Object object) { return _document.AddObject(loc, object); }
+    inline sx::Value AddObject(sx::Object object) { return _document.AddObject(object.location(), object); }
     /// Create an enum
     template <typename Enum>
     inline sx::Value CreateEnum(sx::Location loc, Enum e) const { return sx::Value(loc, sx::ValueType::I32, static_cast<int32_t>(e)); }

@@ -45,11 +45,12 @@ pub enum ObjectType {
   DASHQL_VIZ_STATEMENT = 5,
   SQL_SELECT_STATEMENT = 6,
   SQL_ACONST = 7,
+  SQL_RESULT_TARGET = 8,
 
 }
 
 pub const ENUM_MIN_OBJECT_TYPE: u8 = 0;
-pub const ENUM_MAX_OBJECT_TYPE: u8 = 7;
+pub const ENUM_MAX_OBJECT_TYPE: u8 = 8;
 
 impl<'a> flatbuffers::Follow<'a> for ObjectType {
   type Inner = Self;
@@ -83,7 +84,7 @@ impl flatbuffers::Push for ObjectType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 8] = [
+pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 9] = [
   ObjectType::NONE,
   ObjectType::DASHQL_LOAD_STATEMENT,
   ObjectType::DASHQL_PARAMETER_DECLARATION,
@@ -91,11 +92,12 @@ pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 8] = [
   ObjectType::DASHQL_QUERY_STATEMENT,
   ObjectType::DASHQL_VIZ_STATEMENT,
   ObjectType::SQL_SELECT_STATEMENT,
-  ObjectType::SQL_ACONST
+  ObjectType::SQL_ACONST,
+  ObjectType::SQL_RESULT_TARGET
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_OBJECT_TYPE: [&str; 8] = [
+pub const ENUM_NAMES_OBJECT_TYPE: [&str; 9] = [
     "NONE",
     "DASHQL_LOAD_STATEMENT",
     "DASHQL_PARAMETER_DECLARATION",
@@ -103,7 +105,8 @@ pub const ENUM_NAMES_OBJECT_TYPE: [&str; 8] = [
     "DASHQL_QUERY_STATEMENT",
     "DASHQL_VIZ_STATEMENT",
     "SQL_SELECT_STATEMENT",
-    "SQL_ACONST"
+    "SQL_ACONST",
+    "SQL_RESULT_TARGET"
 ];
 
 pub fn enum_name_object_type(e: ObjectType) -> &'static str {
@@ -140,13 +143,16 @@ pub enum AttributeKey {
   DASHQL_VIZ_STATEMENT_TYPE = 22,
   DASHQL_VIZ_STATEMENT_NAME = 23,
   DASHQL_VIZ_STATEMENT_QUERY = 24,
-  SQL_ACONST_TYPE = 25,
-  SQL_ACONST_VALUE = 26,
+  SQL_SELECT_STMT_TARGETS = 25,
+  SQL_ACONST_TYPE = 26,
+  SQL_ACONST_VALUE = 27,
+  SQL_RESULT_TARGET_NAME = 28,
+  SQL_RESULT_TARGET_VALUE = 29,
 
 }
 
 pub const ENUM_MIN_ATTRIBUTE_KEY: u8 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 26;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 29;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -180,7 +186,7 @@ impl flatbuffers::Push for AttributeKey {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 27] = [
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 30] = [
   AttributeKey::NONE,
   AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
   AttributeKey::DASHQL_PARAMETER_ALIAS,
@@ -206,12 +212,15 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 27] = [
   AttributeKey::DASHQL_VIZ_STATEMENT_TYPE,
   AttributeKey::DASHQL_VIZ_STATEMENT_NAME,
   AttributeKey::DASHQL_VIZ_STATEMENT_QUERY,
+  AttributeKey::SQL_SELECT_STMT_TARGETS,
   AttributeKey::SQL_ACONST_TYPE,
-  AttributeKey::SQL_ACONST_VALUE
+  AttributeKey::SQL_ACONST_VALUE,
+  AttributeKey::SQL_RESULT_TARGET_NAME,
+  AttributeKey::SQL_RESULT_TARGET_VALUE
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 27] = [
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 30] = [
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -237,8 +246,11 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 27] = [
     "DASHQL_VIZ_STATEMENT_TYPE",
     "DASHQL_VIZ_STATEMENT_NAME",
     "DASHQL_VIZ_STATEMENT_QUERY",
+    "SQL_SELECT_STMT_TARGETS",
     "SQL_ACONST_TYPE",
-    "SQL_ACONST_VALUE"
+    "SQL_ACONST_VALUE",
+    "SQL_RESULT_TARGET_NAME",
+    "SQL_RESULT_TARGET_VALUE"
 ];
 
 pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {

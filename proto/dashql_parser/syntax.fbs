@@ -16,6 +16,7 @@ enum ObjectType: uint8 {
 
     SQL_SELECT_STATEMENT,
     SQL_ACONST,
+    SQL_RESULT_TARGET,
 }
 
 enum AttributeKey: uint8 {
@@ -46,8 +47,11 @@ enum AttributeKey: uint8 {
     DASHQL_VIZ_STATEMENT_NAME,
     DASHQL_VIZ_STATEMENT_QUERY,
 
+    SQL_SELECT_STMT_TARGETS,
     SQL_ACONST_TYPE,
     SQL_ACONST_VALUE,
+    SQL_RESULT_TARGET_NAME,
+    SQL_RESULT_TARGET_VALUE,
 }
 
 enum ValueType: uint8 {

@@ -2,9 +2,16 @@
 %type <sx::Object> sql_select_no_parens;
 %type <sx::Object> sql_simple_select;
 
-%type <sx::Value> sql_c_expr;
-%type <sx::Value> sql_a_expr_const;
+%type <sx::Object> sql_a_expr;
+%type <sx::Object> sql_c_expr;
+%type <sx::Object> sql_a_expr_const;
 
 %type <sx::Value> sql_fconst;
 %type <sx::Value> sql_sconst;
 %type <sx::Value> sql_bconst;
+%type <sx::Value> sql_ident;
+
+%type <std::vector<sx::Object>> sql_opt_target_list;
+%type <std::vector<sx::Object>> sql_target_list;
+
+%type <sx::Object> sql_target_el;
