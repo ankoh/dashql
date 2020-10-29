@@ -30,24 +30,6 @@ class DocumentBuilder {
         return sx::Value(sx::Location(), sx::ValueType::NONE, 0);
     }
 
-    /// Push variadic attributes
-    template <typename... Tail> inline size_t PushAttributes(size_t&) { return 0; }
-    template <typename Head, typename... Tail>
-    inline void PushAttributes(size_t& n, Head head, Tail... tail) {
-        if constexpr (std::is_same_v<Head, sx::Attribute>) {
-            _attributes.push_back(head);
-            ++n;
-        } else if constexpr (std::is_same_v<Head, std::optional<sx::Attribute>>) {
-            if (head) {
-                _attributes.push_back(*head);
-                ++n;
-            }
-        } else {
-            assert(false);
-        }
-        PushAttributes(n, tail...);
-    }
-
     public:
     /// Constructor
     DocumentBuilder() = default;
