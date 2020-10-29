@@ -14,6 +14,8 @@ namespace json = rapidjson;
 namespace dashql {
 namespace parser {
 
+namespace sx = proto::syntax;
+
 namespace {
 
 json::Value encode(json::Document& doc, proto::syntax::Location loc) {
@@ -109,8 +111,26 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
             auto attr_span = v.object->attributes();
             for (auto i = 0; i < attr_span.length(); ++i) {
                 auto& attr = *attrs[i];
+                auto& attr_value = attr.value();
+                auto& attr_loc = attr.location();
                 auto key_name = attr_key_tt->names[static_cast<size_t>(attr.key())];
-                (void) key_name;
+
+                switch (attr_value.type()) {
+                    case sx::ValueType::NONE:
+                        break;
+                    case sx::ValueType::I32:
+                        v.value.AddMember(json::StringRef(key_name), attr_value.value(), alloc);
+                        break;
+                    case sx::ValueType::STRING:
+                        v.value.AddMember(json::StringRef(key_name), encode(doc, attr_value.location()), alloc);
+                        break;
+                    case sx::ValueType::OBJECT:
+                        // XXX
+                        break;
+                    case sx::ValueType::ARRAY:
+                        // XXX
+                        break;
+                }
 
                 // XXX
             }
