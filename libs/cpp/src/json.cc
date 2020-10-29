@@ -78,6 +78,7 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
     // Encode statements
     auto& stmts = *module.statements();
     auto& attrs = *module.document()->attributes();
+    auto& objs = *module.document()->objects();
     for (auto iter = stmts.rbegin(); iter != stmts.rend(); ++iter) {
         // Traverse the AST with a DFS
         std::vector<ValueBuilder> pending;
@@ -87,6 +88,7 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
             // Alread visited?
             auto& v = pending.back();
             if (v.visited) {
+                // Add the value as member in the parent (if any)
                 if (v.parent) {
                     auto& parent = pending[*v.parent].value;
                     if (!v.parent_member.empty()) {
@@ -97,19 +99,25 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
                 } else {
                     doc.PushBack(std::move(v.value), alloc);
                 }
+
+                // Remove the last element and continue
+                pending.pop_back();
                 continue;
             }
 
             // Register all children
             auto type_name = obj_type_tt->names[static_cast<size_t>(v.object->type())];
-            v.value.AddMember("location", encode(doc, v.object->location()), alloc);
             v.value.AddMember("type", json::StringRef(type_name), alloc);
+            v.value.AddMember("location", encode(doc, v.object->location()), alloc);
             v.visited = true;
+
+            // Collect the children
+            std::vector<ValueBuilder> children;
 
             // Check the attributes
             auto attr_span = v.object->attributes();
             for (auto i = 0; i < attr_span.length(); ++i) {
-                auto& attr = *attrs[i];
+                auto& attr = *attrs[attr_span.offset() + i];
                 auto& attr_value = attr.value();
                 auto& attr_loc = attr.location();
                 auto key_name = attr_key_tt->names[static_cast<size_t>(attr.key())];
@@ -117,18 +125,27 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
                 switch (attr_value.type()) {
                     case sx::ValueType::NONE:
                         break;
+
+                    // Add I32 values directly
                     case sx::ValueType::I32:
                         v.value.AddMember(json::StringRef(key_name), attr_value.value(), alloc);
                         break;
+
+                    // Add STRING values directly
                     case sx::ValueType::STRING: {
                         auto loc = encode(doc, attr_loc);
                         v.value.AddMember(json::StringRef(key_name), loc, alloc);
                         break;
                     }
+
+                    // Visit child object later
                     case sx::ValueType::OBJECT: {
-                        // XXX
+                        auto obj = objs[attr_value.value()];
+                        children.emplace_back(pending.size() - 1, key_name, obj, json::Type::kObjectType);
                         break;
                     }
+
+                    // Check array content type
                     case sx::ValueType::ARRAY: {
                         // XXX
                         break;
@@ -137,6 +154,8 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
 
                 // XXX
             }
+
+            // Add the children to the stack of pending values
         }
     }
 
