@@ -73,14 +73,16 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
 
     // Encode statements
     auto& stmts = *module.statements();
+    auto& attrs = *module.document()->attributes();
     for (auto iter = stmts.rbegin(); iter != stmts.rend(); ++iter) {
+
         // Traverse the AST with a DFS
         std::vector<ValueBuilder> pending;
         pending.emplace_back(std::nullopt, std::string_view{}, *iter, json::Type::kObjectType);
         while (!pending.empty()) {
-            auto& v = pending.back();
 
             // Alread visited?
+            auto& v = pending.back();
             if (v.visited) {
                 if (v.parent) {
                     auto& parent = pending[*v.parent].value;
@@ -97,9 +99,19 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
             v.visited = true;
 
             // Register all children
-            v.value.AddMember("location", encode(doc, v.object->location()), alloc);
             auto type_name = proto::syntax::ObjectTypeTypeTable()->names[static_cast<size_t>(v.object->type())];
+            v.value.AddMember("location", encode(doc, v.object->location()), alloc);
             v.value.AddMember("type", json::StringRef(type_name), alloc);
+
+            // Check the attributes
+            auto attr_span = v.object->attributes();
+            for (auto i = 0; i < attr_span.length(); ++i) {
+                auto& attr = *attrs[i];
+                auto key_name = proto::syntax::AttributeKeyTypeTable()->names[static_cast<size_t>(attr.key())];
+                (void) key_name;
+
+                // XXX
+            }
         }
     }
 
