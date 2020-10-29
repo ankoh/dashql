@@ -32,6 +32,11 @@ sx::Span DocumentBuilder::AddAttributes(const std::vector<sx::Attribute>& attrs)
 }
 
 /// Add an object
+void DocumentBuilder::AddEntry(sx::Object object) {
+    _entries.push_back(object);
+}
+
+/// Add an object
 sx::Value DocumentBuilder::AddObject(sx::Location loc, sx::Object object) {
     _objects.push_back(object);
     return sx::Value(loc, sx::ValueType::OBJECT, _objects.size() - 1);
@@ -55,12 +60,15 @@ sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Obje
 
 /// Write as flatbuffer
 fb::Offset<sx::Document> DocumentBuilder::Write(fb::FlatBufferBuilder& builder) {
+    optional<fb::Offset<fb::Vector<const sx::Object*>>> entries;
     optional<fb::Offset<fb::Vector<const sx::Object*>>> objects;
     optional<fb::Offset<fb::Vector<const sx::Attribute*>>> attributes;
     optional<fb::Offset<fb::Vector<const sx::Array*>>> arrays;
     optional<fb::Offset<fb::Vector<int32_t>>> values_i32;
     optional<fb::Offset<fb::Vector<const sx::Location*>>> values_string;
 
+    if (!_entries.empty())
+        entries = builder.CreateVectorOfStructs(_entries);
     if (!_objects.empty())
         objects = builder.CreateVectorOfStructs(_objects);
     if (!_attributes.empty())
@@ -73,6 +81,8 @@ fb::Offset<sx::Document> DocumentBuilder::Write(fb::FlatBufferBuilder& builder) 
         values_string = builder.CreateVectorOfStructs(_values_string);
 
     sx::DocumentBuilder doc{builder};
+    if (entries)
+        doc.add_entries(*entries);
     if (objects)
         doc.add_objects(*objects);
     if (attributes)
@@ -88,7 +98,7 @@ fb::Offset<sx::Document> DocumentBuilder::Write(fb::FlatBufferBuilder& builder) 
 
 /// Constructor
 ModuleBuilder::ModuleBuilder()
-    : _document(), _statements(), _errors() {}
+    : _document(), _errors() {}
 
 /// Add an object
 sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs) {
@@ -134,13 +144,11 @@ fb::Offset<sx::Module> ModuleBuilder::Write(fb::FlatBufferBuilder& builder) {
         errs.push_back(eb.Finish());
     }
     auto doc_ofs = _document.Write(builder);
-    auto stmt_vec = builder.CreateVectorOfStructs(_statements);
     auto error_vec = builder.CreateVector(errs);
     auto line_breaks_vec = builder.CreateVectorOfStructs(_line_breaks);
     auto comments_vec = builder.CreateVectorOfStructs(_comments);
     sx::ModuleBuilder b{builder};
     b.add_document(doc_ofs);
-    b.add_statements(stmt_vec);
     b.add_errors(error_vec);
     b.add_line_breaks(line_breaks_vec);
     b.add_comments(comments_vec);

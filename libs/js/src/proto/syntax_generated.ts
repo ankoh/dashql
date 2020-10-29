@@ -509,7 +509,7 @@ static getSizePrefixedRootAsDocument(bb:flatbuffers.ByteBuffer, obj?:Document):D
  * @param dashql.proto.syntax.Object= obj
  * @returns dashql.proto.syntax.Object
  */
-objects(index: number, obj?:dashql.proto.syntax.Object):dashql.proto.syntax.Object|null {
+entries(index: number, obj?:dashql.proto.syntax.Object):dashql.proto.syntax.Object|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? (obj || new dashql.proto.syntax.Object()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 20, this.bb!) : null;
 };
@@ -517,8 +517,26 @@ objects(index: number, obj?:dashql.proto.syntax.Object):dashql.proto.syntax.Obje
 /**
  * @returns number
  */
-objectsLength():number {
+entriesLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number index
+ * @param dashql.proto.syntax.Object= obj
+ * @returns dashql.proto.syntax.Object
+ */
+objects(index: number, obj?:dashql.proto.syntax.Object):dashql.proto.syntax.Object|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? (obj || new dashql.proto.syntax.Object()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 20, this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+objectsLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -528,7 +546,7 @@ objectsLength():number {
  * @returns dashql.proto.syntax.Attribute
  */
 attributes(index: number, obj?:dashql.proto.syntax.Attribute):dashql.proto.syntax.Attribute|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
+  var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? (obj || new dashql.proto.syntax.Attribute()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 28, this.bb!) : null;
 };
 
@@ -536,7 +554,7 @@ attributes(index: number, obj?:dashql.proto.syntax.Attribute):dashql.proto.synta
  * @returns number
  */
 attributesLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
+  var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -546,7 +564,7 @@ attributesLength():number {
  * @returns dashql.proto.syntax.Array
  */
 arrays(index: number, obj?:dashql.proto.syntax.Array):dashql.proto.syntax.Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
+  var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? (obj || new dashql.proto.syntax.Array()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 12, this.bb!) : null;
 };
 
@@ -554,7 +572,7 @@ arrays(index: number, obj?:dashql.proto.syntax.Array):dashql.proto.syntax.Array|
  * @returns number
  */
 arraysLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
+  var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -563,7 +581,7 @@ arraysLength():number {
  * @returns number
  */
 valuesI32(index: number):number|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+  var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.readInt32(this.bb!.__vector(this.bb_pos + offset) + index * 4) : 0;
 };
 
@@ -571,7 +589,7 @@ valuesI32(index: number):number|null {
  * @returns number
  */
 valuesI32Length():number {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+  var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -579,7 +597,7 @@ valuesI32Length():number {
  * @returns Int32Array
  */
 valuesI32Array():Int32Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+  var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? new Int32Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
 
@@ -589,7 +607,7 @@ valuesI32Array():Int32Array|null {
  * @returns dashql.proto.syntax.Location
  */
 valuesString(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
+  var offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? (obj || new dashql.proto.syntax.Location()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
 };
 
@@ -597,7 +615,7 @@ valuesString(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.synt
  * @returns number
  */
 valuesStringLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
+  var offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -605,7 +623,23 @@ valuesStringLength():number {
  * @param flatbuffers.Builder builder
  */
 static startDocument(builder:flatbuffers.Builder) {
-  builder.startObject(5);
+  builder.startObject(6);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset entriesOffset
+ */
+static addEntries(builder:flatbuffers.Builder, entriesOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, entriesOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startEntriesVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(20, numElems, 4);
 };
 
 /**
@@ -613,7 +647,7 @@ static startDocument(builder:flatbuffers.Builder) {
  * @param flatbuffers.Offset objectsOffset
  */
 static addObjects(builder:flatbuffers.Builder, objectsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, objectsOffset, 0);
+  builder.addFieldOffset(1, objectsOffset, 0);
 };
 
 /**
@@ -629,7 +663,7 @@ static startObjectsVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset attributesOffset
  */
 static addAttributes(builder:flatbuffers.Builder, attributesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, attributesOffset, 0);
+  builder.addFieldOffset(2, attributesOffset, 0);
 };
 
 /**
@@ -645,7 +679,7 @@ static startAttributesVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset arraysOffset
  */
 static addArrays(builder:flatbuffers.Builder, arraysOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, arraysOffset, 0);
+  builder.addFieldOffset(3, arraysOffset, 0);
 };
 
 /**
@@ -661,7 +695,7 @@ static startArraysVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset valuesI32Offset
  */
 static addValuesI32(builder:flatbuffers.Builder, valuesI32Offset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, valuesI32Offset, 0);
+  builder.addFieldOffset(4, valuesI32Offset, 0);
 };
 
 /**
@@ -695,7 +729,7 @@ static startValuesI32Vector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset valuesStringOffset
  */
 static addValuesString(builder:flatbuffers.Builder, valuesStringOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(4, valuesStringOffset, 0);
+  builder.addFieldOffset(5, valuesStringOffset, 0);
 };
 
 /**
@@ -715,8 +749,9 @@ static endDocument(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDocument(builder:flatbuffers.Builder, objectsOffset:flatbuffers.Offset, attributesOffset:flatbuffers.Offset, arraysOffset:flatbuffers.Offset, valuesI32Offset:flatbuffers.Offset, valuesStringOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createDocument(builder:flatbuffers.Builder, entriesOffset:flatbuffers.Offset, objectsOffset:flatbuffers.Offset, attributesOffset:flatbuffers.Offset, arraysOffset:flatbuffers.Offset, valuesI32Offset:flatbuffers.Offset, valuesStringOffset:flatbuffers.Offset):flatbuffers.Offset {
   Document.startDocument(builder);
+  Document.addEntries(builder, entriesOffset);
   Document.addObjects(builder, objectsOffset);
   Document.addAttributes(builder, attributesOffset);
   Document.addArrays(builder, arraysOffset);

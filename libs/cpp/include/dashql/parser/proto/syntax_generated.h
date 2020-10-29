@@ -584,6 +584,7 @@ struct DocumentT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "dashql.proto.syntax.DocumentT";
   }
+  std::vector<dashql::proto::syntax::Object> entries;
   std::vector<dashql::proto::syntax::Object> objects;
   std::vector<dashql::proto::syntax::Attribute> attributes;
   std::vector<dashql::proto::syntax::Array> arrays;
@@ -595,6 +596,7 @@ struct DocumentT : public flatbuffers::NativeTable {
 
 inline bool operator==(const DocumentT &lhs, const DocumentT &rhs) {
   return
+      (lhs.entries == rhs.entries) &&
       (lhs.objects == rhs.objects) &&
       (lhs.attributes == rhs.attributes) &&
       (lhs.arrays == rhs.arrays) &&
@@ -617,12 +619,16 @@ struct Document FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return "dashql.proto.syntax.Document";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_OBJECTS = 4,
-    VT_ATTRIBUTES = 6,
-    VT_ARRAYS = 8,
-    VT_VALUES_I32 = 10,
-    VT_VALUES_STRING = 12
+    VT_ENTRIES = 4,
+    VT_OBJECTS = 6,
+    VT_ATTRIBUTES = 8,
+    VT_ARRAYS = 10,
+    VT_VALUES_I32 = 12,
+    VT_VALUES_STRING = 14
   };
+  const flatbuffers::Vector<const dashql::proto::syntax::Object *> *entries() const {
+    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Object *> *>(VT_ENTRIES);
+  }
   const flatbuffers::Vector<const dashql::proto::syntax::Object *> *objects() const {
     return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Object *> *>(VT_OBJECTS);
   }
@@ -640,6 +646,8 @@ struct Document FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_ENTRIES) &&
+           verifier.VerifyVector(entries()) &&
            VerifyOffset(verifier, VT_OBJECTS) &&
            verifier.VerifyVector(objects()) &&
            VerifyOffset(verifier, VT_ATTRIBUTES) &&
@@ -661,6 +669,9 @@ struct DocumentBuilder {
   typedef Document Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_entries(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> entries) {
+    fbb_.AddOffset(Document::VT_ENTRIES, entries);
+  }
   void add_objects(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> objects) {
     fbb_.AddOffset(Document::VT_OBJECTS, objects);
   }
@@ -689,6 +700,7 @@ struct DocumentBuilder {
 
 inline flatbuffers::Offset<Document> CreateDocument(
     flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> entries = 0,
     flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Object *>> objects = 0,
     flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Attribute *>> attributes = 0,
     flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Array *>> arrays = 0,
@@ -700,16 +712,19 @@ inline flatbuffers::Offset<Document> CreateDocument(
   builder_.add_arrays(arrays);
   builder_.add_attributes(attributes);
   builder_.add_objects(objects);
+  builder_.add_entries(entries);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Document> CreateDocumentDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<dashql::proto::syntax::Object> *entries = nullptr,
     const std::vector<dashql::proto::syntax::Object> *objects = nullptr,
     const std::vector<dashql::proto::syntax::Attribute> *attributes = nullptr,
     const std::vector<dashql::proto::syntax::Array> *arrays = nullptr,
     const std::vector<int32_t> *values_i32 = nullptr,
     const std::vector<dashql::proto::syntax::Location> *values_string = nullptr) {
+  auto entries__ = entries ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Object>(*entries) : 0;
   auto objects__ = objects ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Object>(*objects) : 0;
   auto attributes__ = attributes ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Attribute>(*attributes) : 0;
   auto arrays__ = arrays ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Array>(*arrays) : 0;
@@ -717,6 +732,7 @@ inline flatbuffers::Offset<Document> CreateDocumentDirect(
   auto values_string__ = values_string ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Location>(*values_string) : 0;
   return dashql::proto::syntax::CreateDocument(
       _fbb,
+      entries__,
       objects__,
       attributes__,
       arrays__,
@@ -979,6 +995,7 @@ inline DocumentT *Document::UnPack(const flatbuffers::resolver_function_t *_reso
 inline void Document::UnPackTo(DocumentT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = entries(); if (_e) { _o->entries.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->entries[_i] = *_e->Get(_i); } } }
   { auto _e = objects(); if (_e) { _o->objects.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->objects[_i] = *_e->Get(_i); } } }
   { auto _e = attributes(); if (_e) { _o->attributes.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->attributes[_i] = *_e->Get(_i); } } }
   { auto _e = arrays(); if (_e) { _o->arrays.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->arrays[_i] = *_e->Get(_i); } } }
@@ -994,6 +1011,7 @@ inline flatbuffers::Offset<Document> CreateDocument(flatbuffers::FlatBufferBuild
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const DocumentT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _entries = _o->entries.size() ? _fbb.CreateVectorOfStructs(_o->entries) : 0;
   auto _objects = _o->objects.size() ? _fbb.CreateVectorOfStructs(_o->objects) : 0;
   auto _attributes = _o->attributes.size() ? _fbb.CreateVectorOfStructs(_o->attributes) : 0;
   auto _arrays = _o->arrays.size() ? _fbb.CreateVectorOfStructs(_o->arrays) : 0;
@@ -1001,6 +1019,7 @@ inline flatbuffers::Offset<Document> CreateDocument(flatbuffers::FlatBufferBuild
   auto _values_string = _o->values_string.size() ? _fbb.CreateVectorOfStructs(_o->values_string) : 0;
   return dashql::proto::syntax::CreateDocument(
       _fbb,
+      _entries,
       _objects,
       _attributes,
       _arrays,
@@ -1329,6 +1348,7 @@ inline const flatbuffers::TypeTable *ObjectTypeTable() {
 inline const flatbuffers::TypeTable *DocumentTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_SEQUENCE, 1, 0 },
+    { flatbuffers::ET_SEQUENCE, 1, 0 },
     { flatbuffers::ET_SEQUENCE, 1, 1 },
     { flatbuffers::ET_SEQUENCE, 1, 2 },
     { flatbuffers::ET_INT, 1, -1 },
@@ -1341,6 +1361,7 @@ inline const flatbuffers::TypeTable *DocumentTypeTable() {
     dashql::proto::syntax::LocationTypeTable
   };
   static const char * const names[] = {
+    "entries",
     "objects",
     "attributes",
     "arrays",
@@ -1348,7 +1369,7 @@ inline const flatbuffers::TypeTable *DocumentTypeTable() {
     "values_string"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 5, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_TABLE, 6, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

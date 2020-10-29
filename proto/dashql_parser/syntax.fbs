@@ -87,6 +87,7 @@ struct Object {
 }
 
 table Document {
+    entries: [Object];
     objects: [Object];
     attributes: [Attribute];
     arrays: [Array];

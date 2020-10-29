@@ -7,3 +7,6 @@
 [submodule "submodules/benchmark"]
 	path = submodules/benchmark
 	url = https://github.com/google/benchmark
+[submodule "submodules/rapidjson"]
+	path = submodules/rapidjson
+	url = https://github.com/Tencent/rapidjson

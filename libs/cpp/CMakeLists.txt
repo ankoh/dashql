@@ -41,6 +41,7 @@ endif ()
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
 
 # ---------------------------------------------------------------------------
 # Parallelism
@@ -161,11 +162,13 @@ add_custom_command(
 add_library(dashql_parser
     ${SCANNER_OUT}
     ${PARSER_OUT}
+    ${CMAKE_SOURCE_DIR}/src/json.cc
     ${CMAKE_SOURCE_DIR}/src/parse_context.cc
     ${CMAKE_SOURCE_DIR}/src/module_builder.cc
 )
 
 target_link_libraries(dashql_parser
+    rapidjson
     flatbuffers
     ${THREAD_LIB}
 )

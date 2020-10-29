@@ -22,6 +22,7 @@ class DocumentBuilder {
     using OptionalAttribute = std::tuple<sx::Location, sx::AttributeKey, std::optional<sx::Value>>;
 
     protected:
+    std::vector<sx::Object> _entries = {};
     std::vector<sx::Object> _objects = {};
     std::vector<sx::Attribute> _attributes = {};
     std::vector<sx::Array> _arrays = {};
@@ -38,6 +39,11 @@ class DocumentBuilder {
     /// Constructor
     DocumentBuilder() = default;
 
+    /// Get entries
+    auto& entries() const { return _entries; }
+
+    /// Add an entry
+    void AddEntry(sx::Object object);
     /// Add an object
     sx::Value AddObject(sx::Location loc, sx::Object object);
     /// Add an array
@@ -57,8 +63,6 @@ class ModuleBuilder {
     protected:
     /// The document
     DocumentBuilder _document;
-    /// The statements
-    std::vector<sx::Object> _statements;
     /// The errors
     std::vector<std::pair<sx::Location, std::string>> _errors;
     /// The line breaks
@@ -72,13 +76,13 @@ class ModuleBuilder {
 
     /// Get the sections
     auto& document() { return _document; }
-    /// Get the statements
-    auto& statements() { return _statements; }
+    /// Get the sections
+    auto& statements() { return _document.entries(); }
     /// Get the errors
     auto& errors() { return _errors; }
 
     /// Add a statement
-    inline void AddStatement(sx::Object object) { _statements.push_back(object); }
+    inline void AddStatement(sx::Object object) { _document.AddEntry(object); }
     /// Add a line break
     inline void AddLineBreak(sx::Location loc) { _line_breaks.push_back(loc); }
     /// Add a comment

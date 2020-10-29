@@ -781,15 +781,21 @@ impl<'a> Document<'a> {
       if let Some(x) = args.arrays { builder.add_arrays(x); }
       if let Some(x) = args.attributes { builder.add_attributes(x); }
       if let Some(x) = args.objects { builder.add_objects(x); }
+      if let Some(x) = args.entries { builder.add_entries(x); }
       builder.finish()
     }
 
-    pub const VT_OBJECTS: flatbuffers::VOffsetT = 4;
-    pub const VT_ATTRIBUTES: flatbuffers::VOffsetT = 6;
-    pub const VT_ARRAYS: flatbuffers::VOffsetT = 8;
-    pub const VT_VALUES_I32: flatbuffers::VOffsetT = 10;
-    pub const VT_VALUES_STRING: flatbuffers::VOffsetT = 12;
+    pub const VT_ENTRIES: flatbuffers::VOffsetT = 4;
+    pub const VT_OBJECTS: flatbuffers::VOffsetT = 6;
+    pub const VT_ATTRIBUTES: flatbuffers::VOffsetT = 8;
+    pub const VT_ARRAYS: flatbuffers::VOffsetT = 10;
+    pub const VT_VALUES_I32: flatbuffers::VOffsetT = 12;
+    pub const VT_VALUES_STRING: flatbuffers::VOffsetT = 14;
 
+  #[inline]
+  pub fn entries(&self) -> Option<&'a [Object]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Object>>>(Document::VT_ENTRIES, None).map(|v| v.safe_slice() )
+  }
   #[inline]
   pub fn objects(&self) -> Option<&'a [Object]> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Object>>>(Document::VT_OBJECTS, None).map(|v| v.safe_slice() )
@@ -813,6 +819,7 @@ impl<'a> Document<'a> {
 }
 
 pub struct DocumentArgs<'a> {
+    pub entries: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
     pub objects: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
     pub attributes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Attribute>>>,
     pub arrays: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Array>>>,
@@ -823,6 +830,7 @@ impl<'a> Default for DocumentArgs<'a> {
     #[inline]
     fn default() -> Self {
         DocumentArgs {
+            entries: None,
             objects: None,
             attributes: None,
             arrays: None,
@@ -836,6 +844,10 @@ pub struct DocumentBuilder<'a: 'b, 'b> {
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
 impl<'a: 'b, 'b> DocumentBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_entries(&mut self, entries: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Object>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_ENTRIES, entries);
+  }
   #[inline]
   pub fn add_objects(&mut self, objects: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Object>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_OBJECTS, objects);
