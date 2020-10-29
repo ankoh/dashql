@@ -101,13 +101,13 @@ class ModuleBuilder {
     inline sx::Value CreateEnum(sx::Location loc, Enum e) const { return sx::Value(loc, sx::ValueType::I32, static_cast<int32_t>(e)); }
 
     /// Add an object
-    sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
+    sx::Object CreateObject(sx::Location loc, sx::ObjectTag type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
     /// Add an object
-    sx::Object CreateObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs);
+    sx::Object CreateObject(sx::Location loc, sx::ObjectTag type, const std::vector<sx::Attribute>& attrs);
     /// Add an object
-    sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
+    sx::Value AddObject(sx::Location loc, sx::ObjectTag type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
     /// Add an object
-    sx::Value AddObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs);
+    sx::Value AddObject(sx::Location loc, sx::ObjectTag type, const std::vector<sx::Attribute>& attrs);
 
     /// Collect viz attributes
     std::vector<sx::Attribute> CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<sx::Attribute>>> attributes);

@@ -1,6 +1,6 @@
 dashql_viz_statement:
     dashql_viz_statement_prefix dashql_identifier FROM dashql_identifier USING dashql_viz_attributes  {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::DASHQL_VIZ_STATEMENT, move($6));
+        $$ = ctx.CreateObject(@$, sx::ObjectTag::DASHQL_VIZ_STATEMENT, move($6));
     }
     ;
 

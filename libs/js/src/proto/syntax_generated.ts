@@ -6,7 +6,7 @@ import { flatbuffers } from "flatbuffers";
  * @enum {number}
  */
 export namespace dashql.proto.syntax{
-export enum ObjectType{
+export enum ObjectTag{
   NONE= 0,
   DASHQL_LOAD_STATEMENT= 1,
   DASHQL_PARAMETER_DECLARATION= 2,
@@ -421,9 +421,9 @@ location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
 };
 
 /**
- * @returns dashql.proto.syntax.ObjectType
+ * @returns dashql.proto.syntax.ObjectTag
  */
-type():dashql.proto.syntax.ObjectType {
+type():dashql.proto.syntax.ObjectTag {
   return /**  */ (this.bb!.readUint8(this.bb_pos + 8));
 };
 
@@ -446,12 +446,12 @@ static sizeOf():number {
  * @param flatbuffers.Builder builder
  * @param number location_offset
  * @param number location_length
- * @param dashql.proto.syntax.ObjectType type
+ * @param dashql.proto.syntax.ObjectTag type
  * @param number attributes_offset
  * @param number attributes_length
  * @returns flatbuffers.Offset
  */
-static createObject(builder:flatbuffers.Builder, location_offset: number, location_length: number, type: dashql.proto.syntax.ObjectType, attributes_offset: number, attributes_length: number):flatbuffers.Offset {
+static createObject(builder:flatbuffers.Builder, location_offset: number, location_length: number, type: dashql.proto.syntax.ObjectTag, attributes_offset: number, attributes_length: number):flatbuffers.Offset {
   builder.prep(4, 20);
   builder.prep(4, 8);
   builder.writeInt32(attributes_length);

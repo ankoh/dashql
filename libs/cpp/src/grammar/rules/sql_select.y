@@ -47,7 +47,7 @@ sql_select_no_parens:
 
 sql_simple_select:
     SELECT sql_opt_target_list {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_SELECT_STATEMENT, {
+        $$ = ctx.CreateObject(@$, sx::ObjectTag::SQL_SELECT_STATEMENT, {
             {@2, sx::AttributeKey::SQL_SELECT_STMT_TARGETS, ctx.AddArray(@2, $2)},
         });
     }
@@ -97,19 +97,19 @@ sql_c_expr:
  */
 sql_a_expr_const:
     sql_fconst {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
+        $$ = ctx.CreateObject(@$, sx::ObjectTag::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::FLOAT)},
             {@1, sx::AttributeKey::SQL_ACONST_VALUE, $1},
         });
     }
   | sql_sconst {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
+        $$ = ctx.CreateObject(@$, sx::ObjectTag::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::STRING)},
             {@1, sx::AttributeKey::SQL_ACONST_VALUE, $1},
         });
     }
   | sql_bconst {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
+        $$ = ctx.CreateObject(@$, sx::ObjectTag::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::BITSTRING)},
             {@1, sx::AttributeKey::SQL_ACONST_VALUE, $1},
         });
@@ -138,12 +138,12 @@ sql_target_list:
 
 sql_target_el:
     sql_a_expr {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
+        $$ = ctx.CreateObject(@$, sx::ObjectTag::SQL_RESULT_TARGET, {
             {@$, sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
         });
     }
   | sql_a_expr sql_ident {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
+        $$ = ctx.CreateObject(@$, sx::ObjectTag::SQL_RESULT_TARGET, {
             {@$, sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
             {@$, sx::AttributeKey::SQL_RESULT_TARGET_NAME, $2},
         });

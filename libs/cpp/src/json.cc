@@ -1,4 +1,6 @@
 #include <cstdint>
+#include <stack>
+#include <unordered_set>
 
 #include "rapidjson/document.h"
 #include "rapidjson/istreamwrapper.h"
@@ -30,6 +32,37 @@ json::Value encode(json::Document& doc, const proto::syntax::Error& err) {
     return v;
 }
 
+struct ValueBuilder {
+    /// The parent
+    std::optional<unsigned> parent;
+    /// The parent member
+    std::string_view parent_member;
+    /// The object
+    const proto::syntax::Object* object;
+    /// The object value
+    json::Value value;
+    /// Has been visited?
+    bool visited;
+
+    /// Constructor
+    ValueBuilder(std::optional<unsigned> parent, std::string_view member, const proto::syntax::Object* object, json::Type t)
+        : parent(parent), parent_member(member), object(object), visited(false), value(t) {}
+    /// Move constructor
+    ValueBuilder(ValueBuilder&& other)
+        : parent(other.parent), parent_member(other.parent_member), object(other.object), value(std::move(other.value)), visited(false) {}
+    /// Move assignment
+    ValueBuilder& operator=(ValueBuilder&& other) {
+        parent = other.parent;
+        parent_member = other.parent_member;
+        object = other.object;
+        value = std::move(other.value);
+        visited = other.visited;
+        return *this;
+    }
+    /// Get the member ref
+    auto getParentMember() const { return json::StringRef(parent_member.data(), parent_member.size()); }
+};
+
 }
 
 /// Encode JSON
@@ -38,20 +71,55 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
     json::Document doc(json::kObjectType);
     auto& alloc = doc.GetAllocator();
 
+    // Encode statements
+    auto& stmts = *module.statements();
+    for (auto iter = stmts.rbegin(); iter != stmts.rend(); ++iter) {
+        // Traverse the AST with a DFS
+        std::vector<ValueBuilder> pending;
+        pending.emplace_back(std::nullopt, std::string_view{}, *iter, json::Type::kObjectType);
+        while (!pending.empty()) {
+            auto& v = pending.back();
+
+            // Alread visited?
+            if (v.visited) {
+                if (v.parent) {
+                    auto& parent = pending[*v.parent].value;
+                    if (!v.parent_member.empty()) {
+                        parent.AddMember(v.getParentMember(), std::move(v.value), alloc);
+                    } else {
+                        parent.PushBack(std::move(v.value), alloc);
+                    }
+                } else {
+                    doc.PushBack(std::move(v.value), alloc);
+                }
+                continue;
+            }
+            v.visited = true;
+
+            // Register all children
+            v.value.AddMember("location", encode(doc, v.object->location()), alloc);
+            auto type_name = proto::syntax::ObjectTagTypeTable()->names[static_cast<size_t>(v.object->type())];
+            v.value.AddMember("type", json::StringRef(type_name), alloc);
+        }
+    }
+
+    // Add errors
     json::Value errors(json::kArrayType);
     for (auto err: *module.errors())
         errors.PushBack(encode(doc, *err), alloc);
     doc.AddMember("errors", errors, alloc);
 
-    json::Value comments(json::kArrayType);
-    for (auto c: *module.comments())
-        comments.PushBack(encode(doc, *c), alloc);
-    doc.AddMember("comments", comments, alloc);
-
+    // Add line breaks
     json::Value line_breaks(json::kArrayType);
     for (auto lb: *module.line_breaks())
         line_breaks.PushBack(encode(doc, *lb), alloc);
     doc.AddMember("lineBreaks", line_breaks, alloc);
+
+    // Add comments
+    json::Value comments(json::kArrayType);
+    for (auto c: *module.comments())
+        comments.PushBack(encode(doc, *c), alloc);
+    doc.AddMember("comments", comments, alloc);
 
     // Write string
     json::StringBuffer buffer;

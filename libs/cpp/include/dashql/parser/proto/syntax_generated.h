@@ -71,7 +71,7 @@ inline const flatbuffers::TypeTable *ErrorTypeTable();
 
 inline const flatbuffers::TypeTable *ModuleTypeTable();
 
-enum class ObjectType : uint8_t {
+enum class ObjectTag : uint8_t {
   NONE = 0,
   DASHQL_LOAD_STATEMENT = 1,
   DASHQL_PARAMETER_DECLARATION = 2,
@@ -85,22 +85,22 @@ enum class ObjectType : uint8_t {
   MAX = SQL_RESULT_TARGET
 };
 
-inline const ObjectType (&EnumValuesObjectType())[9] {
-  static const ObjectType values[] = {
-    ObjectType::NONE,
-    ObjectType::DASHQL_LOAD_STATEMENT,
-    ObjectType::DASHQL_PARAMETER_DECLARATION,
-    ObjectType::DASHQL_EXTRACT_STATEMENT,
-    ObjectType::DASHQL_QUERY_STATEMENT,
-    ObjectType::DASHQL_VIZ_STATEMENT,
-    ObjectType::SQL_SELECT_STATEMENT,
-    ObjectType::SQL_ACONST,
-    ObjectType::SQL_RESULT_TARGET
+inline const ObjectTag (&EnumValuesObjectTag())[9] {
+  static const ObjectTag values[] = {
+    ObjectTag::NONE,
+    ObjectTag::DASHQL_LOAD_STATEMENT,
+    ObjectTag::DASHQL_PARAMETER_DECLARATION,
+    ObjectTag::DASHQL_EXTRACT_STATEMENT,
+    ObjectTag::DASHQL_QUERY_STATEMENT,
+    ObjectTag::DASHQL_VIZ_STATEMENT,
+    ObjectTag::SQL_SELECT_STATEMENT,
+    ObjectTag::SQL_ACONST,
+    ObjectTag::SQL_RESULT_TARGET
   };
   return values;
 }
 
-inline const char * const *EnumNamesObjectType() {
+inline const char * const *EnumNamesObjectTag() {
   static const char * const names[10] = {
     "NONE",
     "DASHQL_LOAD_STATEMENT",
@@ -116,10 +116,10 @@ inline const char * const *EnumNamesObjectType() {
   return names;
 }
 
-inline const char *EnumNameObjectType(ObjectType e) {
-  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::SQL_RESULT_TARGET)) return "";
+inline const char *EnumNameObjectTag(ObjectTag e) {
+  if (flatbuffers::IsOutRange(e, ObjectTag::NONE, ObjectTag::SQL_RESULT_TARGET)) return "";
   const size_t index = static_cast<size_t>(e);
-  return EnumNamesObjectType()[index];
+  return EnumNamesObjectTag()[index];
 }
 
 enum class AttributeKey : uint8_t {
@@ -546,7 +546,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Object FLATBUFFERS_FINAL_CLASS {
     (void)padding0__;
     (void)padding1__;
   }
-  Object(const dashql::proto::syntax::Location &_location, dashql::proto::syntax::ObjectType _type, const dashql::proto::syntax::Span &_attributes)
+  Object(const dashql::proto::syntax::Location &_location, dashql::proto::syntax::ObjectTag _type, const dashql::proto::syntax::Span &_attributes)
       : location_(_location),
         type_(flatbuffers::EndianScalar(static_cast<uint8_t>(_type))),
         padding0__(0),
@@ -558,8 +558,8 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Object FLATBUFFERS_FINAL_CLASS {
   const dashql::proto::syntax::Location &location() const {
     return location_;
   }
-  dashql::proto::syntax::ObjectType type() const {
-    return static_cast<dashql::proto::syntax::ObjectType>(flatbuffers::EndianScalar(type_));
+  dashql::proto::syntax::ObjectTag type() const {
+    return static_cast<dashql::proto::syntax::ObjectTag>(flatbuffers::EndianScalar(type_));
   }
   const dashql::proto::syntax::Span &attributes() const {
     return attributes_;
@@ -1094,7 +1094,7 @@ inline flatbuffers::Offset<Module> CreateModule(flatbuffers::FlatBufferBuilder &
       _comments);
 }
 
-inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
+inline const flatbuffers::TypeTable *ObjectTagTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -1107,7 +1107,7 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax::ObjectTypeTypeTable
+    dashql::proto::syntax::ObjectTagTypeTable
   };
   static const char * const names[] = {
     "NONE",
@@ -1330,7 +1330,7 @@ inline const flatbuffers::TypeTable *ObjectTypeTable() {
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     dashql::proto::syntax::LocationTypeTable,
-    dashql::proto::syntax::ObjectTypeTypeTable,
+    dashql::proto::syntax::ObjectTagTypeTable,
     dashql::proto::syntax::SpanTypeTable
   };
   static const int64_t values[] = { 0, 8, 12, 20 };
