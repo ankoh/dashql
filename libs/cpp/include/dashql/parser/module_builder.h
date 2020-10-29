@@ -6,6 +6,7 @@
 #include <string_view>
 #include "dashql/parser/proto/syntax_generated.h"
 #include "dashql/parser/proto/syntax_dashql_generated.h"
+#include "dashql/parser/proto/syntax_sql_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
 namespace dashql {
@@ -13,6 +14,7 @@ namespace parser {
 
 namespace sx = proto::syntax;
 namespace sxd = proto::syntax_dashql;
+namespace sxs = proto::syntax_sql;
 
 /// A document builder
 class DocumentBuilder {
@@ -88,11 +90,18 @@ class ModuleBuilder {
     inline sx::Value AddArray(sx::Location loc, const std::vector<sx::Location>& strings) { return _document.AddArray(loc, strings); }
     /// Add a string vector
     inline sx::Value AddObject(sx::Location loc, sx::Object object) { return _document.AddObject(loc, object); }
+    /// Create an enum
+    template <typename Enum>
+    inline sx::Value CreateEnum(sx::Location loc, Enum e) const { return sx::Value(loc, sx::ValueType::I32, static_cast<int32_t>(e)); }
 
     /// Add an object
     sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
     /// Add an object
     sx::Object CreateObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs);
+    /// Add an object
+    sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
+    /// Add an object
+    sx::Value AddObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs);
 
     /// Collect viz attributes
     std::vector<sx::Attribute> CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<sx::Attribute>>> attributes);

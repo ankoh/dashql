@@ -15,6 +15,7 @@ enum ObjectType: uint8 {
     DASHQL_VIZ_STATEMENT,
 
     SQL_SELECT_STATEMENT,
+    SQL_ACONST,
 }
 
 enum AttributeKey: uint8 {
@@ -44,6 +45,9 @@ enum AttributeKey: uint8 {
     DASHQL_VIZ_STATEMENT_TYPE,
     DASHQL_VIZ_STATEMENT_NAME,
     DASHQL_VIZ_STATEMENT_QUERY,
+
+    SQL_ACONST_TYPE,
+    SQL_ACONST_VALUE,
 }
 
 enum ValueType: uint8 {
@@ -57,7 +61,7 @@ enum ValueType: uint8 {
 struct Value {
     location: Location;
     type: ValueType = NONE;
-    value: int32;
+    value: int32 = 0;
 }
 
 struct Array {

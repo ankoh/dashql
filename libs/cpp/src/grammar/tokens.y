@@ -2,10 +2,15 @@
 %token <uint32_t>   HEX_COLOR_LITERAL   "hex color literal"
 %token <bool>       BOOLEAN_LITERAL     "boolean literal"
 
-%token IDENTIFIER_LITERAL   "identifier literal"
-%token SQL_SELECT           "SQL select query"
-%token SQL_WITH             "SQL with clause"
+%token IDENTIFIER           "identifier literal"
 %token STRING_LITERAL       "string literal"
+
+%token              IDENT FCONST SCONST BCONST XCONST Op
+%token <int64_t>    ICONST PARAM
+%token              TYPECAST DOT_DOT COLON_EQUALS EQUALS_GREATER
+%token              LESS_EQUALS GREATER_EQUALS NOT_EQUALS
+
+
 
 %token COMMA                    ", token"
 %token DOLLAR                   "$ token"

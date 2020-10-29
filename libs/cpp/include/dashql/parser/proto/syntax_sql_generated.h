@@ -7,4 +7,75 @@
 #include "flatbuffers/flatbuffers.h"
 
 
+namespace dashql {
+namespace proto {
+namespace syntax_sql {
+
+enum class AConstType : uint8_t {
+  INTEGER = 0,
+  FLOAT = 1,
+  STRING = 2,
+  BITSTRING = 3,
+  NULL_ = 4,
+  MIN = INTEGER,
+  MAX = NULL_
+};
+
+inline const AConstType (&EnumValuesAConstType())[5] {
+  static const AConstType values[] = {
+    AConstType::INTEGER,
+    AConstType::FLOAT,
+    AConstType::STRING,
+    AConstType::BITSTRING,
+    AConstType::NULL_
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesAConstType() {
+  static const char * const names[6] = {
+    "INTEGER",
+    "FLOAT",
+    "STRING",
+    "BITSTRING",
+    "NULL_",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameAConstType(AConstType e) {
+  if (flatbuffers::IsOutRange(e, AConstType::INTEGER, AConstType::NULL_)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesAConstType()[index];
+}
+
+inline const flatbuffers::TypeTable *AConstTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::AConstTypeTypeTable
+  };
+  static const char * const names[] = {
+    "INTEGER",
+    "FLOAT",
+    "STRING",
+    "BITSTRING",
+    "NULL_"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 5, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+}  // namespace syntax_sql
+}  // namespace proto
+}  // namespace dashql
+
 #endif  // FLATBUFFERS_GENERATED_SYNTAXSQL_DASHQL_PROTO_SYNTAX_SQL_H_
