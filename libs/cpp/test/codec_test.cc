@@ -11,39 +11,39 @@ using namespace std;
 
 namespace {
 
-TEST(CodecTest, ParameterDeclaration) {
-    auto in = R"RAW(
-    declare parameter days type integer;
-)RAW";
-    ParseContext ctx;
-    ctx.Parse(in);
-    ASSERT_EQ(ctx.statements().size(), 1);
-    ASSERT_EQ(ctx.errors().size(), 0);
-
-    // flatbuffers::FlatBufferBuilder builder;
-    // builder.Finish(WriteProgram(builder, ast));
-
-    // auto p = flatbuffers::GetRoot<proto::syntax::Module>(builder.GetBufferPointer());
-    // ASSERT_NE(p->errors(), nullptr);
-    // ASSERT_EQ(p->errors()->size(), 0);
-    // ASSERT_NE(p->statements(), nullptr);
-    // ASSERT_EQ(p->statements()->size(), 1);
-    // auto entry = p->statements()->Get(0);
-    // ASSERT_EQ(entry->index(), 0);
-    // ASSERT_EQ(entry->tag(), proto::syntax::SectionTag::ParameterDeclaration);
-    // ASSERT_NE(p->sections(), nullptr);
-    // auto params = p->sections()->parameter_declarations();
-    // ASSERT_NE(params, nullptr);
-    // ASSERT_EQ(params->size(), 1);
-    // auto param = params->Get(0);
-    // ASSERT_NE(param, nullptr);
-    // ASSERT_EQ(param->tag(), proto::syntax::ParameterTag::INTEGER);
-    // ASSERT_EQ(param->name().tag(), proto::syntax::SectionTag::StringLiteral);
-    // ASSERT_EQ(param->name().index(), 0);
-    // auto strings = p->sections()->literals_string();
-    // ASSERT_NE(strings, nullptr);
-    // ASSERT_EQ(strings->size(), 2);
-    // ASSERT_EQ(strings->Get(0)->str(), "days");
-}
+// TEST(CodecTest, ParameterDeclaration) {
+//     auto in = R"RAW(
+//     declare parameter days type integer;
+// )RAW";
+//     ParseContext ctx;
+//     ctx.Parse(in);
+//     ASSERT_EQ(ctx.statements().size(), 1);
+//     ASSERT_EQ(ctx.errors().size(), 0);
+// 
+//     // flatbuffers::FlatBufferBuilder builder;
+//     // builder.Finish(WriteProgram(builder, ast));
+// 
+//     // auto p = flatbuffers::GetRoot<proto::syntax::Module>(builder.GetBufferPointer());
+//     // ASSERT_NE(p->errors(), nullptr);
+//     // ASSERT_EQ(p->errors()->size(), 0);
+//     // ASSERT_NE(p->statements(), nullptr);
+//     // ASSERT_EQ(p->statements()->size(), 1);
+//     // auto entry = p->statements()->Get(0);
+//     // ASSERT_EQ(entry->index(), 0);
+//     // ASSERT_EQ(entry->tag(), proto::syntax::SectionTag::ParameterDeclaration);
+//     // ASSERT_NE(p->sections(), nullptr);
+//     // auto params = p->sections()->parameter_declarations();
+//     // ASSERT_NE(params, nullptr);
+//     // ASSERT_EQ(params->size(), 1);
+//     // auto param = params->Get(0);
+//     // ASSERT_NE(param, nullptr);
+//     // ASSERT_EQ(param->tag(), proto::syntax::ParameterTag::INTEGER);
+//     // ASSERT_EQ(param->name().tag(), proto::syntax::SectionTag::StringLiteral);
+//     // ASSERT_EQ(param->name().index(), 0);
+//     // auto strings = p->sections()->literals_string();
+//     // ASSERT_NE(strings, nullptr);
+//     // ASSERT_EQ(strings->size(), 2);
+//     // ASSERT_EQ(strings->Get(0)->str(), "days");
+// }
 
 }  // namespace
