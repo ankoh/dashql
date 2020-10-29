@@ -99,8 +99,11 @@ class ModuleBuilder {
     inline void AddComment(sx::Location loc) { _comments.push_back(loc); }
     /// Add an error
     inline void AddError(sx::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
+
     /// Add a string vector
     inline sx::Value AddArray(sx::Location loc, const std::vector<sx::Location>& strings) { return _document.AddArray(loc, strings); }
+    /// Add a string vector
+    inline sx::Value AddObject(sx::Location loc, sx::Object object) { return _document.AddObject(loc, object); }
 
     /// Add an object
     sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<OptionalAttribute> attrs);
