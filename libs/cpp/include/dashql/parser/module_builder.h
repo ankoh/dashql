@@ -141,10 +141,7 @@ class ModuleBuilder {
     syntax::Object CreateObject(syntax::Location loc, syntax::ObjectType type, std::initializer_list<OptionalAttribute> attrs);
     /// Add an object
     syntax::Object CreateObject(syntax::Location loc, syntax::ObjectType type, const std::vector<syntax::Attribute>& attrs);
-    /// Create viz tag
-    syntax::Value CreateVizTag(syntax::Location loc, syntax::VizType vizType) const {
-        return {loc, syntax::ValueType::NUMBER, static_cast<double>(vizType)};
-    }
+
     /// Collect viz attributes
     std::vector<syntax::Attribute> CollectViz(syntax::Location viz_loc, syntax::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<syntax::Attribute>>> attributes);
 
