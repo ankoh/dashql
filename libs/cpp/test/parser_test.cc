@@ -23,7 +23,8 @@ TEST(ParserTest, SELECT_FCONST) {
     ASSERT_EQ(m->errors()->size(), 0) << m->errors()->Get(0)->message()->c_str();
     ASSERT_EQ(m->statements()->entries()->size(), 1);
 
-    encodeJSON(*m);
+    auto s = encodeJSON(*m, true);
+    ASSERT_EQ(std::string(s.GetString(), s.GetLength()), "");
 }
 
 // TEST(ParserTest, ParameterDeclaration) {

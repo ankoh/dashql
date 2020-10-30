@@ -60,8 +60,8 @@ json::StringBuffer encodeJSON(const proto::syntax::Module& module, bool pretty) 
             return std::min(size, v);
         };
         auto assert_within = [](unsigned& begin, unsigned& end, unsigned size) {
-            assert(begin < end);
-            assert(end < size);
+            assert(begin <= end);
+            assert(end <= size);
             end = std::min(end, size);
             begin = std::min(begin, end);
             return;
@@ -114,7 +114,7 @@ json::StringBuffer encodeJSON(const proto::syntax::Module& module, bool pretty) 
                             // Already visited?
                             if (!array_ptr) {
                                 // Nested array? - Push into parent
-                                if (!parent_id) {
+                                if (parent_id) {
                                     std::get<1>(nested_arrays[*parent_id]).PushBack(std::move(value), alloc);
                                 } else {
                                     // Add root attribute

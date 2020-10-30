@@ -45,7 +45,7 @@ sx::Value DocumentBuilder::AddObject(sx::Location loc, sx::Object object) {
 
 /// Add an object
 sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Location>& strings) {
-    _arrays.push_back(sx::Array(sx::ValueType::ARRAY, _values_string.size(), strings.size()));
+    _arrays.push_back(sx::Array(sx::ValueType::STRING, _values_string.size(), strings.size()));
     for (auto& loc: strings)
         _values_string.push_back(loc);
     return sx::Value(loc, sx::ValueType::ARRAY, _arrays.size() - 1);
@@ -53,7 +53,7 @@ sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Loca
 
 /// Add an object
 sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Object>& objects) {
-    _arrays.push_back(sx::Array(sx::ValueType::ARRAY, _objects.size(), objects.size()));
+    _arrays.push_back(sx::Array(sx::ValueType::OBJECT, _objects.size(), objects.size()));
     for (auto& loc: objects)
         _objects.push_back(loc);
     return sx::Value(loc, sx::ValueType::ARRAY, _arrays.size() - 1);
