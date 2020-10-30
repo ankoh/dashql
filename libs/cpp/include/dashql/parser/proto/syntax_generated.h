@@ -844,7 +844,7 @@ struct ModuleT : public flatbuffers::NativeTable {
   static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
     return "dashql.proto.syntax.ModuleT";
   }
-  std::unique_ptr<dashql::proto::syntax::DocumentT> document;
+  std::unique_ptr<dashql::proto::syntax::DocumentT> statements;
   std::vector<std::unique_ptr<dashql::proto::syntax::ErrorT>> errors;
   std::vector<dashql::proto::syntax::Location> line_breaks;
   std::vector<dashql::proto::syntax::Location> comments;
@@ -854,7 +854,7 @@ struct ModuleT : public flatbuffers::NativeTable {
 
 inline bool operator==(const ModuleT &lhs, const ModuleT &rhs) {
   return
-      (lhs.document == rhs.document) &&
+      (lhs.statements == rhs.statements) &&
       (lhs.errors == rhs.errors) &&
       (lhs.line_breaks == rhs.line_breaks) &&
       (lhs.comments == rhs.comments);
@@ -875,13 +875,13 @@ struct Module FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return "dashql.proto.syntax.Module";
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_DOCUMENT = 4,
+    VT_STATEMENTS = 4,
     VT_ERRORS = 6,
     VT_LINE_BREAKS = 8,
     VT_COMMENTS = 10
   };
-  const dashql::proto::syntax::Document *document() const {
-    return GetPointer<const dashql::proto::syntax::Document *>(VT_DOCUMENT);
+  const dashql::proto::syntax::Document *statements() const {
+    return GetPointer<const dashql::proto::syntax::Document *>(VT_STATEMENTS);
   }
   const flatbuffers::Vector<flatbuffers::Offset<dashql::proto::syntax::Error>> *errors() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<dashql::proto::syntax::Error>> *>(VT_ERRORS);
@@ -894,8 +894,8 @@ struct Module FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_DOCUMENT) &&
-           verifier.VerifyTable(document()) &&
+           VerifyOffset(verifier, VT_STATEMENTS) &&
+           verifier.VerifyTable(statements()) &&
            VerifyOffset(verifier, VT_ERRORS) &&
            verifier.VerifyVector(errors()) &&
            verifier.VerifyVectorOfTables(errors()) &&
@@ -914,8 +914,8 @@ struct ModuleBuilder {
   typedef Module Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_document(flatbuffers::Offset<dashql::proto::syntax::Document> document) {
-    fbb_.AddOffset(Module::VT_DOCUMENT, document);
+  void add_statements(flatbuffers::Offset<dashql::proto::syntax::Document> statements) {
+    fbb_.AddOffset(Module::VT_STATEMENTS, statements);
   }
   void add_errors(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<dashql::proto::syntax::Error>>> errors) {
     fbb_.AddOffset(Module::VT_ERRORS, errors);
@@ -939,7 +939,7 @@ struct ModuleBuilder {
 
 inline flatbuffers::Offset<Module> CreateModule(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<dashql::proto::syntax::Document> document = 0,
+    flatbuffers::Offset<dashql::proto::syntax::Document> statements = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<dashql::proto::syntax::Error>>> errors = 0,
     flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Location *>> line_breaks = 0,
     flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Location *>> comments = 0) {
@@ -947,13 +947,13 @@ inline flatbuffers::Offset<Module> CreateModule(
   builder_.add_comments(comments);
   builder_.add_line_breaks(line_breaks);
   builder_.add_errors(errors);
-  builder_.add_document(document);
+  builder_.add_statements(statements);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Module> CreateModuleDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<dashql::proto::syntax::Document> document = 0,
+    flatbuffers::Offset<dashql::proto::syntax::Document> statements = 0,
     const std::vector<flatbuffers::Offset<dashql::proto::syntax::Error>> *errors = nullptr,
     const std::vector<dashql::proto::syntax::Location> *line_breaks = nullptr,
     const std::vector<dashql::proto::syntax::Location> *comments = nullptr) {
@@ -962,7 +962,7 @@ inline flatbuffers::Offset<Module> CreateModuleDirect(
   auto comments__ = comments ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Location>(*comments) : 0;
   return dashql::proto::syntax::CreateModule(
       _fbb,
-      document,
+      statements,
       errors__,
       line_breaks__,
       comments__);
@@ -1049,7 +1049,7 @@ inline ModuleT *Module::UnPack(const flatbuffers::resolver_function_t *_resolver
 inline void Module::UnPackTo(ModuleT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = document(); if (_e) _o->document = std::unique_ptr<dashql::proto::syntax::DocumentT>(_e->UnPack(_resolver)); }
+  { auto _e = statements(); if (_e) _o->statements = std::unique_ptr<dashql::proto::syntax::DocumentT>(_e->UnPack(_resolver)); }
   { auto _e = errors(); if (_e) { _o->errors.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->errors[_i] = std::unique_ptr<dashql::proto::syntax::ErrorT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = line_breaks(); if (_e) { _o->line_breaks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->line_breaks[_i] = *_e->Get(_i); } } }
   { auto _e = comments(); if (_e) { _o->comments.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->comments[_i] = *_e->Get(_i); } } }
@@ -1063,13 +1063,13 @@ inline flatbuffers::Offset<Module> CreateModule(flatbuffers::FlatBufferBuilder &
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ModuleT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _document = _o->document ? CreateDocument(_fbb, _o->document.get(), _rehasher) : 0;
+  auto _statements = _o->statements ? CreateDocument(_fbb, _o->statements.get(), _rehasher) : 0;
   auto _errors = _o->errors.size() ? _fbb.CreateVector<flatbuffers::Offset<dashql::proto::syntax::Error>> (_o->errors.size(), [](size_t i, _VectorArgs *__va) { return CreateError(*__va->__fbb, __va->__o->errors[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _line_breaks = _o->line_breaks.size() ? _fbb.CreateVectorOfStructs(_o->line_breaks) : 0;
   auto _comments = _o->comments.size() ? _fbb.CreateVectorOfStructs(_o->comments) : 0;
   return dashql::proto::syntax::CreateModule(
       _fbb,
-      _document,
+      _statements,
       _errors,
       _line_breaks,
       _comments);
@@ -1386,7 +1386,7 @@ inline const flatbuffers::TypeTable *ModuleTypeTable() {
     dashql::proto::syntax::LocationTypeTable
   };
   static const char * const names[] = {
-    "document",
+    "statements",
     "errors",
     "line_breaks",
     "comments"

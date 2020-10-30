@@ -62,7 +62,7 @@ class DocumentBuilder {
 class ModuleBuilder {
     protected:
     /// The document
-    DocumentBuilder _document;
+    DocumentBuilder _statements;
     /// The errors
     std::vector<std::pair<sx::Location, std::string>> _errors;
     /// The line breaks
@@ -75,14 +75,12 @@ class ModuleBuilder {
     ModuleBuilder();
 
     /// Get the sections
-    auto& document() { return _document; }
-    /// Get the sections
-    auto& statements() { return _document.entries(); }
+    auto& statements() { return _statements; }
     /// Get the errors
     auto& errors() { return _errors; }
 
     /// Add a statement
-    inline void AddStatement(sx::Object object) { _document.AddEntry(object); }
+    inline void AddStatement(sx::Object object) { _statements.AddEntry(object); }
     /// Add a line break
     inline void AddLineBreak(sx::Location loc) { _line_breaks.push_back(loc); }
     /// Add a comment
@@ -91,11 +89,11 @@ class ModuleBuilder {
     inline void AddError(sx::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
 
     /// Add an object vector
-    inline sx::Value AddArray(sx::Location loc, const std::vector<sx::Object>& objects) { return _document.AddArray(loc, objects); }
+    inline sx::Value AddArray(sx::Location loc, const std::vector<sx::Object>& objects) { return _statements.AddArray(loc, objects); }
     /// Add a string vector
-    inline sx::Value AddArray(sx::Location loc, const std::vector<sx::Location>& strings) { return _document.AddArray(loc, strings); }
+    inline sx::Value AddArray(sx::Location loc, const std::vector<sx::Location>& strings) { return _statements.AddArray(loc, strings); }
     /// Add a string vector
-    inline sx::Value AddObject(sx::Object object) { return _document.AddObject(object.location(), object); }
+    inline sx::Value AddObject(sx::Object object) { return _statements.AddObject(object.location(), object); }
     /// Create an enum
     template <typename Enum>
     inline sx::Value CreateEnum(sx::Location loc, Enum e) const { return sx::Value(loc, sx::ValueType::I32, static_cast<int32_t>(e)); }

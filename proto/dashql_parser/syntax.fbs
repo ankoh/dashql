@@ -101,7 +101,7 @@ table Error {
 }
 
 table Module {
-    document: Document;
+    statements: Document;
     errors: [Error];
     line_breaks: [Location];
     comments: [Location];

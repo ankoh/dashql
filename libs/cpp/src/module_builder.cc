@@ -87,26 +87,26 @@ fb::Offset<sx::Document> DocumentBuilder::Write(fb::FlatBufferBuilder& builder) 
 
 /// Constructor
 ModuleBuilder::ModuleBuilder()
-    : _document(), _errors() {}
+    : _statements(), _errors() {}
 
 /// Add an object
 sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs) {
-    return sx::Object(loc, type, _document.AddAttributes(attrs));
+    return sx::Object(loc, type, _statements.AddAttributes(attrs));
 }
 
 /// Add an object
 sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs) {
-    return sx::Object(loc, type, _document.AddAttributes(attrs));
+    return sx::Object(loc, type, _statements.AddAttributes(attrs));
 }
 
 /// Add an object
 sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs) {
-    return _document.AddObject(loc, sx::Object(loc, type, _document.AddAttributes(attrs)));
+    return _statements.AddObject(loc, sx::Object(loc, type, _statements.AddAttributes(attrs)));
 }
 
 /// Add an object
 sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs) {
-    return _document.AddObject(loc, sx::Object(loc, type, _document.AddAttributes(attrs)));
+    return _statements.AddObject(loc, sx::Object(loc, type, _statements.AddAttributes(attrs)));
 }
 
 /// Add an object
@@ -132,12 +132,12 @@ fb::Offset<sx::Module> ModuleBuilder::Write(fb::FlatBufferBuilder& builder) {
         eb.add_message(s);
         errs.push_back(eb.Finish());
     }
-    auto doc_ofs = _document.Write(builder);
+    auto doc_ofs = _statements.Write(builder);
     auto error_vec = builder.CreateVector(errs);
     auto line_breaks_vec = builder.CreateVectorOfStructs(_line_breaks);
     auto comments_vec = builder.CreateVectorOfStructs(_comments);
     sx::ModuleBuilder b{builder};
-    b.add_document(doc_ofs);
+    b.add_statements(doc_ofs);
     b.add_errors(error_vec);
     b.add_line_breaks(line_breaks_vec);
     b.add_comments(comments_vec);

@@ -926,7 +926,7 @@ static getSizePrefixedRootAsModule(bb:flatbuffers.ByteBuffer, obj?:Module):Modul
  * @param dashql.proto.syntax.Document= obj
  * @returns dashql.proto.syntax.Document|null
  */
-document(obj?:dashql.proto.syntax.Document):dashql.proto.syntax.Document|null {
+statements(obj?:dashql.proto.syntax.Document):dashql.proto.syntax.Document|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? (obj || new dashql.proto.syntax.Document()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 };
@@ -994,10 +994,10 @@ static startModule(builder:flatbuffers.Builder) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset documentOffset
+ * @param flatbuffers.Offset statementsOffset
  */
-static addDocument(builder:flatbuffers.Builder, documentOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, documentOffset, 0);
+static addStatements(builder:flatbuffers.Builder, statementsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, statementsOffset, 0);
 };
 
 /**
@@ -1070,9 +1070,9 @@ static endModule(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createModule(builder:flatbuffers.Builder, documentOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createModule(builder:flatbuffers.Builder, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset):flatbuffers.Offset {
   Module.startModule(builder);
-  Module.addDocument(builder, documentOffset);
+  Module.addStatements(builder, statementsOffset);
   Module.addErrors(builder, errorsOffset);
   Module.addLineBreaks(builder, lineBreaksOffset);
   Module.addComments(builder, commentsOffset);
