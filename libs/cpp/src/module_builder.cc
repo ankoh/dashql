@@ -112,7 +112,7 @@ sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, const 
 /// Add an object
 std::vector<sx::Attribute> ModuleBuilder::CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<sx::Attribute>>> attrs) {
     auto type_val = sx::Value(viz_loc, sx::ValueType::I32, static_cast<int32_t>(viz_type));
-    auto type_attr = sx::Attribute(viz_loc, sx::AttributeKey::DASHQL_VIZ_STATEMENT_TYPE, type_val);
+    auto type_attr = sx::Attribute(viz_loc, sx::AttributeKey::DASHQL_VIZ_TYPE, type_val);
     std::vector<sx::Attribute> result{type_attr};
     for (auto& as: attrs) {
         for (auto& a: as.get()) {

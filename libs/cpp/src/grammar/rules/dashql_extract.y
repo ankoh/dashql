@@ -1,8 +1,8 @@
 dashql_extract_statement:
     EXTRACT dashql_identifier FROM dashql_identifier USING dashql_extract_method {
-        $6.push_back(sx::Attribute(@2, sx::AttributeKey::DASHQL_EXTRACT_STATEMENT_NAME, $2));
-        $6.push_back(sx::Attribute(@4, sx::AttributeKey::DASHQL_EXTRACT_STATEMENT_DATA, $4));
-        $$ = ctx.CreateObject(@$, sx::ObjectType::DASHQL_EXTRACT_STATEMENT, move($6));
+        $6.push_back(sx::Attribute(@2, sx::AttributeKey::DASHQL_EXTRACT_NAME, $2));
+        $6.push_back(sx::Attribute(@4, sx::AttributeKey::DASHQL_EXTRACT_DATA, $4));
+        $$ = ctx.CreateObject(@$, sx::ObjectType::DASHQL_EXTRACT, move($6));
     }
     ;
 

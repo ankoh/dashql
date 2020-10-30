@@ -47,7 +47,7 @@ sql_select_no_parens:
 
 sql_simple_select:
     SELECT sql_opt_target_list {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_SELECT_STATEMENT, {
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_SELECT, {
             {@2, sx::AttributeKey::SQL_SELECT_STMT_TARGETS, ctx.AddArray(@2, $2)},
         });
     }
