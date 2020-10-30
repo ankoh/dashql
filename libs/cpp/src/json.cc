@@ -166,8 +166,10 @@ json::StringBuffer encodeJSON(const proto::syntax::Module& module, bool pretty) 
 
         // Build the document entries
         auto statements = json::Value(json::Type::kArrayType);
-        for (unsigned eid = 0; eid < entries->size(); ++eid)
-            statements.PushBack(std::move(obj_values[eid]), alloc);
+        for (unsigned eid = 0; eid < entries->size(); ++eid) {
+            assert_less_than(eid, entries->size());
+            statements.PushBack(std::move(obj_values[entries->Get(eid)]), alloc);
+        }
         doc.AddMember("statements", statements, alloc);
     }
 
