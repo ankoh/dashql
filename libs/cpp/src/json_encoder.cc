@@ -1,4 +1,4 @@
-#include "dashql/parser/json.h"
+#include "dashql/parser/json_encoder.h"
 
 #include <cstdint>
 #include <stack>

@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_PARSER_JSON_H_
-#define INCLUDE_DASHQL_PARSER_JSON_H_
+#ifndef INCLUDE_DASHQL_PARSER_JSON_ENCODER_H_
+#define INCLUDE_DASHQL_PARSER_JSON_ENCODER_H_
 
 #include <string>
 
