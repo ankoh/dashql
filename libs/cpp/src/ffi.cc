@@ -1,6 +1,6 @@
 #include <cstdint>
 
-#include "dashql/parser/parse_context.h"
+#include "dashql/parser/parser_driver.h"
 #include "dashql/parser/proto/syntax_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
@@ -27,7 +27,7 @@ void dashql_parse(Response* response, const char* text) {
     // Parse the text
     std::string_view text_view{text};
     flatbuffers::FlatBufferBuilder builder{text_view.size()};
-    auto module = Parse(builder, text_view);
+    auto module = ParserDriver::Parse(builder, text_view);
 
     // Finish the buffer
     builder.Finish(module);

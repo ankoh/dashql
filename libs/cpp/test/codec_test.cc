@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/parser/parse_context.h"
+#include "dashql/parser/parser_driver.h"
 #include "dashql/parser/proto/syntax_generated.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"

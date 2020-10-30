@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_PARSER_PARSE_CONTEXT_H_
-#define INCLUDE_DASHQL_PARSER_PARSE_CONTEXT_H_
+#ifndef INCLUDE_DASHQL_PARSER_PARSER_DRIVER_H_
+#define INCLUDE_DASHQL_PARSER_PARSER_DRIVER_H_
 
 #include <map>
 #include <memory>
@@ -29,7 +29,7 @@ using Location = sx::Location;
 std::ostream& operator<<(std::ostream& out, const Location& loc);
 
 // Schema parse context
-class ParseContext: public ModuleBuilder {
+class ParserDriver: public ModuleBuilder {
     friend class Parser;
 
     protected:
@@ -42,9 +42,9 @@ class ParseContext: public ModuleBuilder {
 
     public:
     /// Constructor
-    explicit ParseContext(std::string_view text, bool trace_scanning = false, bool trace_parsing = false);
+    explicit ParserDriver(std::string_view text, bool trace_scanning = false, bool trace_parsing = false);
     /// Destructor
-    ~ParseContext();
+    ~ParserDriver();
 
     /// Trace scanning
     auto trace_scanning() const { return _trace_scanning; }
@@ -59,14 +59,11 @@ class ParseContext: public ModuleBuilder {
     /// Get the text at location
     inline std::string_view TextAt(Location loc) { return _input.substr(loc.offset(), loc.length()); }
 
-    /// Parse an istream
+    /// Parse a module
     static flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
 };
-
-/// Parse a module
-flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
 
 } // namespace parser
 } // namespace dashql
 
-#endif // INCLUDE_DASHQL_PARSER_PARSE_CONTEXT_H_
+#endif // INCLUDE_DASHQL_PARSER_PARSER_DRIVER_H_

@@ -15,14 +15,14 @@
 %locations
 %define api.location.type {sx::Location}
 
-%lex-param      { dashql::parser::ParseContext& ctx }
-%parse-param    { dashql::parser::ParseContext &ctx }
+%lex-param      { dashql::parser::ParserDriver& ctx }
+%parse-param    { dashql::parser::ParserDriver &ctx }
 
 %code requires {
 #include <string>
 #include <cstdlib>
 #include <utility>
-#include "dashql/parser/parse_context.h"
+#include "dashql/parser/parser_driver.h"
 
 #define YYLLOC_DEFAULT(Cur, Rhs, N) { \
     if (N) { \
@@ -41,5 +41,5 @@
 %code {
 using namespace dashql::parser;
 
-Parser::symbol_type yylex(ParseContext& ctx);
+Parser::symbol_type yylex(ParserDriver& ctx);
 }

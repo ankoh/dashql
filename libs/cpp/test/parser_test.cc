@@ -1,12 +1,21 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/parser/parse_context.h"
+#include "dashql/parser/parser_driver.h"
 #include "gtest/gtest.h"
 
 using namespace dashql::parser;
 using namespace std;
 
 namespace {
+
+// TEST(ParserTest, SELECT1) {
+//     auto in = R"RAW(
+//     select 1;
+// )RAW";
+//     Parse(in);
+//     ASSERT_EQ(ctx.statements().size(), 1);
+//     ASSERT_EQ(ctx.errors().size(), 0);
+// }
 
 // TEST(ParserTest, ParameterDeclaration) {
 //     auto in = R"RAW(

@@ -163,7 +163,7 @@ add_library(dashql_parser
     ${SCANNER_OUT}
     ${PARSER_OUT}
     ${CMAKE_SOURCE_DIR}/src/json.cc
-    ${CMAKE_SOURCE_DIR}/src/parse_context.cc
+    ${CMAKE_SOURCE_DIR}/src/parser_driver.cc
     ${CMAKE_SOURCE_DIR}/src/module_builder.cc
 )
 

@@ -10,7 +10,7 @@
 #include <sstream>
 #include <string_view>
 #include <string>
-#include "dashql/parser/parse_context.h"
+#include "dashql/parser/parser_driver.h"
 #include "dashql/parser/parser.h"
 
 // ISO C++17 does not allow 'register' storage class specifier
@@ -46,7 +46,7 @@ extern size_t scanner_offset;
 #define yywrap() 1
 
 // Declare the yylex function
-#define YY_DECL Parser::symbol_type yylex(dashql::parser::ParseContext& ctx)
+#define YY_DECL Parser::symbol_type yylex(dashql::parser::ParserDriver& ctx)
 // Init yyloc
 #define YY_USER_INIT loc = syntax::Location();
 // Configure the scanner to use string views
@@ -331,7 +331,7 @@ std::string_view dashql::parser::in;
 // The scanner offset
 size_t dashql::parser::scanner_offset;
 // Begin a scan
-void dashql::parser::ParseContext::BeginScan() {
+void dashql::parser::ParserDriver::BeginScan() {
     yy_flex_debug = _trace_scanning;
     loc = syntax::Location();
     comment_begin = syntax::Location();
@@ -339,7 +339,7 @@ void dashql::parser::ParseContext::BeginScan() {
 }
 
 // End a scan
-void dashql::parser::ParseContext::EndScan() {
+void dashql::parser::ParserDriver::EndScan() {
     loc = syntax::Location();
     comment_begin = syntax::Location();
     scanner_offset = 0;
