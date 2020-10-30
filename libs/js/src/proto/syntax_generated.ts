@@ -506,12 +506,11 @@ static getSizePrefixedRootAsDocument(bb:flatbuffers.ByteBuffer, obj?:Document):D
 
 /**
  * @param number index
- * @param dashql.proto.syntax.Object= obj
- * @returns dashql.proto.syntax.Object
+ * @returns number
  */
-entries(index: number, obj?:dashql.proto.syntax.Object):dashql.proto.syntax.Object|null {
+entries(index: number):number|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new dashql.proto.syntax.Object()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 20, this.bb!) : null;
+  return offset ? this.bb!.readUint32(this.bb!.__vector(this.bb_pos + offset) + index * 4) : 0;
 };
 
 /**
@@ -520,6 +519,14 @@ entries(index: number, obj?:dashql.proto.syntax.Object):dashql.proto.syntax.Obje
 entriesLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns Uint32Array
+ */
+entriesArray():Uint32Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? new Uint32Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
 
 /**
@@ -636,10 +643,28 @@ static addEntries(builder:flatbuffers.Builder, entriesOffset:flatbuffers.Offset)
 
 /**
  * @param flatbuffers.Builder builder
+ * @param Array.<number> data
+ * @returns flatbuffers.Offset
+ */
+static createEntriesVector(builder:flatbuffers.Builder, data:number[]|Uint32Array):flatbuffers.Offset;
+/**
+ * @deprecated This Uint8Array overload will be removed in the future.
+ */
+static createEntriesVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
+static createEntriesVector(builder:flatbuffers.Builder, data:number[]|Uint32Array|Uint8Array):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addInt32(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
  * @param number numElems
  */
 static startEntriesVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(20, numElems, 4);
+  builder.startVector(4, numElems, 4);
 };
 
 /**
@@ -908,29 +933,11 @@ document(obj?:dashql.proto.syntax.Document):dashql.proto.syntax.Document|null {
 
 /**
  * @param number index
- * @param dashql.proto.syntax.Object= obj
- * @returns dashql.proto.syntax.Object
- */
-statements(index: number, obj?:dashql.proto.syntax.Object):dashql.proto.syntax.Object|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? (obj || new dashql.proto.syntax.Object()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 20, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-statementsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
  * @param dashql.proto.syntax.Error= obj
  * @returns dashql.proto.syntax.Error
  */
 errors(index: number, obj?:dashql.proto.syntax.Error):dashql.proto.syntax.Error|null {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
+  var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? (obj || new dashql.proto.syntax.Error()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
 };
 
@@ -938,7 +945,7 @@ errors(index: number, obj?:dashql.proto.syntax.Error):dashql.proto.syntax.Error|
  * @returns number
  */
 errorsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
+  var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -948,7 +955,7 @@ errorsLength():number {
  * @returns dashql.proto.syntax.Location
  */
 lineBreaks(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+  var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? (obj || new dashql.proto.syntax.Location()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
 };
 
@@ -956,7 +963,7 @@ lineBreaks(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax
  * @returns number
  */
 lineBreaksLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+  var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -966,7 +973,7 @@ lineBreaksLength():number {
  * @returns dashql.proto.syntax.Location
  */
 comments(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
+  var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? (obj || new dashql.proto.syntax.Location()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
 };
 
@@ -974,7 +981,7 @@ comments(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax.L
  * @returns number
  */
 commentsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
+  var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -982,7 +989,7 @@ commentsLength():number {
  * @param flatbuffers.Builder builder
  */
 static startModule(builder:flatbuffers.Builder) {
-  builder.startObject(5);
+  builder.startObject(4);
 };
 
 /**
@@ -995,26 +1002,10 @@ static addDocument(builder:flatbuffers.Builder, documentOffset:flatbuffers.Offse
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset statementsOffset
- */
-static addStatements(builder:flatbuffers.Builder, statementsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, statementsOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startStatementsVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(20, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
  * @param flatbuffers.Offset errorsOffset
  */
 static addErrors(builder:flatbuffers.Builder, errorsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, errorsOffset, 0);
+  builder.addFieldOffset(1, errorsOffset, 0);
 };
 
 /**
@@ -1043,7 +1034,7 @@ static startErrorsVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset lineBreaksOffset
  */
 static addLineBreaks(builder:flatbuffers.Builder, lineBreaksOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, lineBreaksOffset, 0);
+  builder.addFieldOffset(2, lineBreaksOffset, 0);
 };
 
 /**
@@ -1059,7 +1050,7 @@ static startLineBreaksVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset commentsOffset
  */
 static addComments(builder:flatbuffers.Builder, commentsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(4, commentsOffset, 0);
+  builder.addFieldOffset(3, commentsOffset, 0);
 };
 
 /**
@@ -1079,10 +1070,9 @@ static endModule(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createModule(builder:flatbuffers.Builder, documentOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createModule(builder:flatbuffers.Builder, documentOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset):flatbuffers.Offset {
   Module.startModule(builder);
   Module.addDocument(builder, documentOffset);
-  Module.addStatements(builder, statementsOffset);
   Module.addErrors(builder, errorsOffset);
   Module.addLineBreaks(builder, lineBreaksOffset);
   Module.addComments(builder, commentsOffset);

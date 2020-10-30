@@ -33,7 +33,8 @@ sx::Span DocumentBuilder::AddAttributes(const std::vector<sx::Attribute>& attrs)
 
 /// Add an object
 void DocumentBuilder::AddEntry(sx::Object object) {
-    _entries.push_back(object);
+    _objects.push_back(object);
+    _entries.push_back(_objects.size() - 1);
 }
 
 /// Add an object
@@ -60,14 +61,14 @@ sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Obje
 
 /// Write as flatbuffer
 fb::Offset<sx::Document> DocumentBuilder::Write(fb::FlatBufferBuilder& builder) {
-    fb::Offset<fb::Vector<const sx::Object*>> entries;
+    fb::Offset<fb::Vector<uint32_t>> entries;
     fb::Offset<fb::Vector<const sx::Object*>> objects;
     fb::Offset<fb::Vector<const sx::Attribute*>> attributes;
     fb::Offset<fb::Vector<const sx::Array*>> arrays;
     fb::Offset<fb::Vector<int32_t>> values_i32;
     fb::Offset<fb::Vector<const sx::Location*>> values_string;
 
-    entries = builder.CreateVectorOfStructs(_entries);
+    entries = builder.CreateVector(_entries);
     objects = builder.CreateVectorOfStructs(_objects);
     attributes = builder.CreateVectorOfStructs(_attributes);
     arrays = builder.CreateVectorOfStructs(_arrays);

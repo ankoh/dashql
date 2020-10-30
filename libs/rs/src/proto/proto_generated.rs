@@ -793,8 +793,8 @@ impl<'a> Document<'a> {
     pub const VT_VALUES_STRING: flatbuffers::VOffsetT = 14;
 
   #[inline]
-  pub fn entries(&self) -> Option<&'a [Object]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Object>>>(Document::VT_ENTRIES, None).map(|v| v.safe_slice() )
+  pub fn entries(&self) -> Option<flatbuffers::Vector<'a, u32>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u32>>>(Document::VT_ENTRIES, None)
   }
   #[inline]
   pub fn objects(&self) -> Option<&'a [Object]> {
@@ -819,7 +819,7 @@ impl<'a> Document<'a> {
 }
 
 pub struct DocumentArgs<'a> {
-    pub entries: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
+    pub entries: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u32>>>,
     pub objects: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
     pub attributes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Attribute>>>,
     pub arrays: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Array>>>,
@@ -845,7 +845,7 @@ pub struct DocumentBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> DocumentBuilder<'a, 'b> {
   #[inline]
-  pub fn add_entries(&mut self, entries: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Object>>) {
+  pub fn add_entries(&mut self, entries: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u32>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_ENTRIES, entries);
   }
   #[inline]
@@ -1007,24 +1007,18 @@ impl<'a> Module<'a> {
       if let Some(x) = args.comments { builder.add_comments(x); }
       if let Some(x) = args.line_breaks { builder.add_line_breaks(x); }
       if let Some(x) = args.errors { builder.add_errors(x); }
-      if let Some(x) = args.statements { builder.add_statements(x); }
       if let Some(x) = args.document { builder.add_document(x); }
       builder.finish()
     }
 
     pub const VT_DOCUMENT: flatbuffers::VOffsetT = 4;
-    pub const VT_STATEMENTS: flatbuffers::VOffsetT = 6;
-    pub const VT_ERRORS: flatbuffers::VOffsetT = 8;
-    pub const VT_LINE_BREAKS: flatbuffers::VOffsetT = 10;
-    pub const VT_COMMENTS: flatbuffers::VOffsetT = 12;
+    pub const VT_ERRORS: flatbuffers::VOffsetT = 6;
+    pub const VT_LINE_BREAKS: flatbuffers::VOffsetT = 8;
+    pub const VT_COMMENTS: flatbuffers::VOffsetT = 10;
 
   #[inline]
   pub fn document(&self) -> Option<Document<'a>> {
     self._tab.get::<flatbuffers::ForwardsUOffset<Document<'a>>>(Module::VT_DOCUMENT, None)
-  }
-  #[inline]
-  pub fn statements(&self) -> Option<&'a [Object]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Object>>>(Module::VT_STATEMENTS, None).map(|v| v.safe_slice() )
   }
   #[inline]
   pub fn errors(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>> {
@@ -1042,7 +1036,6 @@ impl<'a> Module<'a> {
 
 pub struct ModuleArgs<'a> {
     pub document: Option<flatbuffers::WIPOffset<Document<'a>>>,
-    pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
     pub errors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>>>,
     pub line_breaks: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
     pub comments: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
@@ -1052,7 +1045,6 @@ impl<'a> Default for ModuleArgs<'a> {
     fn default() -> Self {
         ModuleArgs {
             document: None,
-            statements: None,
             errors: None,
             line_breaks: None,
             comments: None,
@@ -1067,10 +1059,6 @@ impl<'a: 'b, 'b> ModuleBuilder<'a, 'b> {
   #[inline]
   pub fn add_document(&mut self, document: flatbuffers::WIPOffset<Document<'b >>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Document>>(Module::VT_DOCUMENT, document);
-  }
-  #[inline]
-  pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Object>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_STATEMENTS, statements);
   }
   #[inline]
   pub fn add_errors(&mut self, errors: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Error<'b >>>>) {

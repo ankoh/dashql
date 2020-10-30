@@ -87,7 +87,7 @@ struct Object {
 }
 
 table Document {
-    entries: [Object];
+    entries: [uint32];
     objects: [Object];
     attributes: [Attribute];
     arrays: [Array];
@@ -102,7 +102,6 @@ table Error {
 
 table Module {
     document: Document;
-    statements: [Object];
     errors: [Error];
     line_breaks: [Location];
     comments: [Location];

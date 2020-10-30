@@ -22,7 +22,7 @@ class DocumentBuilder {
     using OptionalAttribute = std::tuple<sx::Location, sx::AttributeKey, std::optional<sx::Value>>;
 
     protected:
-    std::vector<sx::Object> _entries = {};
+    std::vector<uint32_t> _entries = {};
     std::vector<sx::Object> _objects = {};
     std::vector<sx::Attribute> _attributes = {};
     std::vector<sx::Array> _arrays = {};
