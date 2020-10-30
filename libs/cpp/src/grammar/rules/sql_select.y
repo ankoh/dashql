@@ -99,19 +99,16 @@ sql_a_expr_const:
     sql_fconst {
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::FLOAT)},
-            {@1, sx::AttributeKey::SQL_ACONST_VALUE, $1},
         });
     }
   | sql_sconst {
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::STRING)},
-            {@1, sx::AttributeKey::SQL_ACONST_VALUE, $1},
         });
     }
   | sql_bconst {
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::BITSTRING)},
-            {@1, sx::AttributeKey::SQL_ACONST_VALUE, $1},
         });
     }
     ;
