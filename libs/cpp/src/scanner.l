@@ -311,12 +311,14 @@ other           .
 loc =  syntax::Location(loc.offset() + loc.length(), 0);
 %}
 
+"select"        { return Parser::make_SELECT(loc); }
+
 {real}          { return Parser::make_FCONST(loc); }
 
 {whitespace}    {}
 
 <<EOF>>         { return Parser::make_EOF(loc); }
-
+{other}         {}
 
 %%
 
@@ -334,6 +336,7 @@ size_t dashql::parser::scanner_offset;
 void dashql::parser::ParserDriver::BeginScan() {
     yy_flex_debug = _trace_scanning;
     loc = syntax::Location();
+    in = _input;
     comment_begin = syntax::Location();
     scanner_offset = 0;
 }
@@ -341,6 +344,7 @@ void dashql::parser::ParserDriver::BeginScan() {
 // End a scan
 void dashql::parser::ParserDriver::EndScan() {
     loc = syntax::Location();
+    in = _input;
     comment_begin = syntax::Location();
     scanner_offset = 0;
 }

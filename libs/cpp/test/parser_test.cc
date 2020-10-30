@@ -2,20 +2,24 @@
 
 #include "dashql/parser/parser_driver.h"
 #include "gtest/gtest.h"
+#include "flatbuffers/flatbuffers.h"
 
 using namespace dashql::parser;
 using namespace std;
 
 namespace {
 
-// TEST(ParserTest, SELECT1) {
-//     auto in = R"RAW(
-//     select 1;
-// )RAW";
-//     Parse(in);
-//     ASSERT_EQ(ctx.statements().size(), 1);
-//     ASSERT_EQ(ctx.errors().size(), 0);
-// }
+TEST(ParserTest, SELECT_FCONST) {
+    auto in = R"RAW(
+    select 1e-04;
+)RAW";
+    flatbuffers::FlatBufferBuilder builder;
+    auto mo = ParserDriver::Parse(builder, in);
+    builder.Finish(mo);
+    auto m = flatbuffers::GetRoot<sx::Module>(builder.GetBufferPointer());
+    ASSERT_EQ(m->errors()->size(), 0) << m->errors()->Get(0)->message()->c_str();
+    ASSERT_EQ(m->statements()->entries()->size(), 1);
+}
 
 // TEST(ParserTest, ParameterDeclaration) {
 //     auto in = R"RAW(
