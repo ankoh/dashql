@@ -38,7 +38,7 @@ json::Value encode(json::Document& doc, const proto::syntax::Error& err) {
 }  // namespace
 
 /// Encode JSON
-json::StringBuffer encodeJSON(proto::syntax::Module& module, bool pretty) {
+json::StringBuffer encodeJSON(const proto::syntax::Module& module, bool pretty) {
     // Prepare document
     json::Document doc(json::kObjectType);
     auto& alloc = doc.GetAllocator();
@@ -54,6 +54,18 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module, bool pretty) {
         auto* arrays = module.statements()->arrays();
         auto* values_str = module.statements()->values_string();
         auto* values_i32 = module.statements()->values_i32();
+
+        auto assert_less_than = [](unsigned v, unsigned size) {
+            assert(v < size);
+            return std::min(size, v);
+        };
+        auto assert_within = [](unsigned& begin, unsigned& end, unsigned size) {
+            assert(begin < end);
+            assert(end < size);
+            end = std::min(end, size);
+            begin = std::min(begin, end);
+            return;
+        };
 
         // Translate objects
         std::vector<json::Value> obj_values;
@@ -86,14 +98,11 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module, bool pretty) {
                     case sx::ValueType::STRING:
                         v.AddMember(attr_key, encode(doc, attr_value.location()), alloc);
                         break;
-                    case sx::ValueType::OBJECT:
-                        if (attr_value.value() >= oid) {
-                            // XXX Invalid object reference.
-                            // This means the referenced object would have been encoded AFTER the referencing object.
-                            // Cannot happen with our flatbuffer schema.
-                        }
-                        v.AddMember(attr_key, std::move(obj_values[oid]), alloc);
+                    case sx::ValueType::OBJECT: {
+                        auto aid = assert_less_than(attr_value.value(), oid);
+                        v.AddMember(attr_key, std::move(obj_values[aid]), alloc);
                         break;
+                    }
                     case sx::ValueType::ARRAY: {
                         // Translate arrays with a stack since array can be nested
                         std::vector<std::tuple<std::optional<size_t>, json::Value, const sx::Array*>> nested_arrays;
@@ -124,31 +133,26 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module, bool pretty) {
                             // Push on next visit
                             array_ptr = nullptr;
 
-                            auto check_bounds = [](unsigned size, unsigned begin, unsigned end) {
-                                // XXX
-                                return;
-                            };
-
                             switch (array_type) {
                                 case sx::ValueType::NONE:
                                     break;
                                 case sx::ValueType::ARRAY:
-                                    check_bounds(arrays->size(), array_begin, array_end);
+                                    assert_within(array_begin, array_end, arrays->size());
                                     for (auto i = array_begin; i < array_end; ++i)
                                         nested_arrays.push_back({array_id, json::Value(json::Type::kArrayType), arrays->Get(i)});
                                     break;
                                 case sx::ValueType::OBJECT:
-                                    check_bounds(oid, array_begin, array_end);
+                                    assert_within(array_begin, array_end, oid);
                                     for (auto i = array_begin; i < array_end; ++i)
                                         value.PushBack(std::move(obj_values[i]), alloc);
                                     break;
                                 case sx::ValueType::STRING:
-                                    check_bounds(values_str->size(), array_begin, array_end);
+                                    assert_within(array_begin, array_end, values_str->size());
                                     for (auto i = array_begin; i < array_end; ++i)
                                         value.PushBack(encode(doc, *values_str->Get(i)), alloc);
                                     break;
                                 case sx::ValueType::I32:
-                                    check_bounds(values_i32->size(), array_begin, array_end);
+                                    assert_within(array_begin, array_end, values_i32->size());
                                     for (auto i = array_begin; i < array_end; ++i)
                                         value.PushBack(values_i32->Get(i), alloc);
                                     break;

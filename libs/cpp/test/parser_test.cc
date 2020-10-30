@@ -1,6 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "dashql/parser/parser_driver.h"
+#include "dashql/parser/json.h"
 #include "gtest/gtest.h"
 #include "flatbuffers/flatbuffers.h"
 
@@ -8,6 +9,8 @@ using namespace dashql::parser;
 using namespace std;
 
 namespace {
+
+
 
 TEST(ParserTest, SELECT_FCONST) {
     auto in = R"RAW(
@@ -19,6 +22,8 @@ TEST(ParserTest, SELECT_FCONST) {
     auto m = flatbuffers::GetRoot<sx::Module>(builder.GetBufferPointer());
     ASSERT_EQ(m->errors()->size(), 0) << m->errors()->Get(0)->message()->c_str();
     ASSERT_EQ(m->statements()->entries()->size(), 1);
+
+    encodeJSON(*m);
 }
 
 // TEST(ParserTest, ParameterDeclaration) {
