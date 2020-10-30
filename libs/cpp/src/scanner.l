@@ -331,18 +331,15 @@ std::string_view dashql::parser::in;
 // The scanner offset
 size_t dashql::parser::scanner_offset;
 // Begin a scan
-void dashql::parser::ParseContext::beginScan(std::string_view s) {
+void dashql::parser::ParseContext::BeginScan() {
     yy_flex_debug = _trace_scanning;
-    in = s;
     loc = syntax::Location();
     comment_begin = syntax::Location();
     scanner_offset = 0;
-
 }
 
 // End a scan
-void dashql::parser::ParseContext::endScan() {
-    in = {};
+void dashql::parser::ParseContext::EndScan() {
     loc = syntax::Location();
     comment_begin = syntax::Location();
     scanner_offset = 0;

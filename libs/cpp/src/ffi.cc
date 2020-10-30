@@ -26,12 +26,11 @@ extern "C" {
 void dashql_parse(Response* response, const char* text) {
     // Parse the text
     std::string_view text_view{text};
-    ParseContext ctx;
-    ctx.Parse(text);
-
-    // Encode the flatbuffer
     flatbuffers::FlatBufferBuilder builder{text_view.size()};
-    builder.Finish(ctx.Write(builder));
+    auto module = Parse(builder, text_view);
+
+    // Finish the buffer
+    builder.Finish(module);
   
     // Pack the response
     size_t buffer_size;

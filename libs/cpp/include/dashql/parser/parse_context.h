@@ -33,30 +33,38 @@ class ParseContext: public ModuleBuilder {
     friend class Parser;
 
     protected:
+    /// The input (if any)
+    std::string_view _input;
     /// Trace the scanning
     bool _trace_scanning;
     /// Trace the parsing
     bool _trace_parsing;
-    /// The input (if any)
-    std::string_view _input;
-
-    /// Begin a scan
-    void beginScan(std::string_view in);
-    /// End a scan
-    void endScan();
 
     public:
     /// Constructor
-    explicit ParseContext(bool trace_scanning = false, bool trace_parsing = false);
+    explicit ParseContext(std::string_view text, bool trace_scanning = false, bool trace_parsing = false);
     /// Destructor
-    virtual ~ParseContext();
+    ~ParseContext();
+
+    /// Trace scanning
+    auto trace_scanning() const { return _trace_scanning; }
+    /// Trace parsing?
+    auto trace_parsing() const { return _trace_parsing; }
+
+    /// Begin a scan
+    void BeginScan();
+    /// End a scan
+    void EndScan();
 
     /// Get the text at location
     inline std::string_view TextAt(Location loc) { return _input.substr(loc.offset(), loc.length()); }
 
     /// Parse an istream
-    void Parse(std::string_view in);
+    static flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
 };
+
+/// Parse a module
+flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
 
 } // namespace parser
 } // namespace dashql

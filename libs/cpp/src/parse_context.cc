@@ -18,20 +18,21 @@ std::ostream& operator<<(std::ostream& out, const Location& loc) {
     return out;
 }
 
-ParseContext::ParseContext(bool trace_scanning, bool trace_parsing)
-    : ModuleBuilder(), _trace_scanning(trace_scanning), _trace_parsing(trace_parsing) {}
+ParseContext::ParseContext(std::string_view text, bool trace_scanning, bool trace_parsing)
+    : ModuleBuilder(), _input(text), _trace_scanning(trace_scanning), _trace_parsing(trace_parsing) {}
 
 ParseContext::~ParseContext() {}
 
-void ParseContext::Parse(std::string_view in) {
-    _input = in;
-    beginScan(_input);
+flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning, bool trace_parsing) {
+    ParseContext ctx{in, trace_scanning, trace_parsing};
+    ctx.BeginScan();
     {
-        dashql::parser::Parser parser(*this);
-        parser.set_debug_level(_trace_parsing);
+        dashql::parser::Parser parser(ctx);
+        parser.set_debug_level(ctx.trace_parsing());
         parser.parse();
     }
-    endScan();
+    ctx.EndScan();
+    return ctx.Write(builder);
 }
 
 }
