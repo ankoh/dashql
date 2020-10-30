@@ -8,6 +8,7 @@
 #include "rapidjson/istreamwrapper.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "rapidjson/prettywriter.h"
 
 namespace json = rapidjson;
 
@@ -37,7 +38,7 @@ json::Value encode(json::Document& doc, const proto::syntax::Error& err) {
 }  // namespace
 
 /// Encode JSON
-json::StringBuffer encodeJSON(proto::syntax::Module& module) {
+json::StringBuffer encodeJSON(proto::syntax::Module& module, bool pretty) {
     // Prepare document
     json::Document doc(json::kObjectType);
     auto& alloc = doc.GetAllocator();
@@ -183,8 +184,13 @@ json::StringBuffer encodeJSON(proto::syntax::Module& module) {
 
     // Write string
     json::StringBuffer buffer;
-    json::Writer<json::StringBuffer> writer(buffer);
-    doc.Accept(writer);
+    if (pretty) {
+        json::PrettyWriter<json::StringBuffer> writer(buffer);
+        doc.Accept(writer);
+    } else {
+        json::Writer<json::StringBuffer> writer(buffer);
+        doc.Accept(writer);
+    }
     return buffer;
 }
 

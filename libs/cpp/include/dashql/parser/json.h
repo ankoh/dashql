@@ -13,7 +13,7 @@ namespace dashql {
 namespace parser {
 
 /// Encode json string
-rapidjson::StringBuffer encodeJSON(proto::syntax::Module& module);
+rapidjson::StringBuffer encodeJSON(proto::syntax::Module& module, bool pretty = false);
 
 }  // namespace parser
 }  // namespace dashql
