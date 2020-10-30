@@ -28,7 +28,7 @@ using Location = sx::Location;
 /// Return the location
 std::ostream& operator<<(std::ostream& out, const Location& loc);
 
-// Schema parse context
+// Schema parser driver
 class ParserDriver: public ModuleBuilder {
     friend class Parser;
 
