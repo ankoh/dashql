@@ -17,8 +17,8 @@ expected:
               SQL_ACONST_TYPE: 1
   errors: []
   line_breaks:
-    - "0..1|'\n'"
-    - "18..19|'\n'"
+    - 0..1|'\n'
+    - 18..19|'\n'
   comments: []
 ----
 name: select_fconst_2
@@ -40,6 +40,6 @@ expected:
               SQL_ACONST_TYPE: 1
   errors: []
   line_breaks:
-    - "0..1|'\n'"
-    - "18..19|'\n'"
+    - 0..1|'\n'
+    - 18..19|'\n'
   comments: []

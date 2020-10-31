@@ -224,18 +224,14 @@ endif()
 
 if(NOT EMSCRIPTEN)
 
-    add_executable(tester
-        ${CMAKE_SOURCE_DIR}/test/tester.cc
-        ${CMAKE_SOURCE_DIR}/test/grammar_test.cc
+    add_executable(grammar_tests
+        ${CMAKE_SOURCE_DIR}/test/grammar_tests.cc
     )
-    target_link_libraries(tester 
+    target_link_libraries(grammar_tests
         dashql_parser
         dashql_parser_test
         flatbuffers gtest gmock
         ${THREAD_LIB})
-
-    enable_testing()
-    add_test(dashql_parser tester)
 
 endif()
 
