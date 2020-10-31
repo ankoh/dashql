@@ -53,6 +53,20 @@ nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* na
 
 TEST_P(GrammarParamTests, Test) {
     auto& param = GetParam();
+
+    flatbuffers::FlatBufferBuilder builder;
+    auto m_ofs = ParserDriver::Parse(builder, param.input);
+    builder.Finish(m_ofs);
+    auto module = flatbuffers::GetRoot<sx::Module>(builder.GetBufferPointer());
+    ASSERT_EQ(module->statements()->entries()->size(), 1);
+
+    ryml::Tree out;
+    EncodeTestExpectation(out.rootref(), *module, param.input);
+
+    auto out_str = ryml::emitrs<std::string>(out);
+    auto expected_str = ryml::emitrs<std::string>(param.expected);
+
+    ASSERT_EQ(out_str, expected_str);
 }
 
 INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")));
@@ -119,8 +133,6 @@ int main(int argc, char* argv[]) {
             test.name = {name.data(), name.size()};
             test.input = {input.data(), input.size()};
 
-            std::cout << "[" << filename << "] test=" << test.name << std::endl;
-
             // Skip delimiter
             if (next != std::string::npos)
                 next += DELIMITER.size();
@@ -133,4 +145,3 @@ int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
-

@@ -4,21 +4,20 @@ input: |
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: "5..17|'select 1e-04'"
+      location: "0..12|'select 1e-04'"
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: "5..17|'select 1e-04'"
+        location: "0..12|'select 1e-04'"
         SQL_SELECT_TARGETS:
           - type: SQL_RESULT_TARGET
-            location: "12..17|'1e-04'"
+            location: "7..12|'1e-04'"
             SQL_RESULT_TARGET_VALUE:
               type: SQL_ACONST
-              location: "12..17|'1e-04'"
+              location: "7..12|'1e-04'"
               SQL_ACONST_TYPE: 1
   errors: []
   line_breaks:
-    - 0..1|'\n'
-    - 18..19|'\n'
+    - 13..14|'\n'
   comments: []
 ----
 name: select_fconst_2
@@ -27,19 +26,18 @@ input: |
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: "5..17|'select 2e-04'"
+      location: "0..12|'select 2e-04'"
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: "5..17|'select 2e-04'"
+        location: "0..12|'select 2e-04'"
         SQL_SELECT_TARGETS:
           - type: SQL_RESULT_TARGET
-            location: "12..17|'2e-04'"
+            location: "7..12|'2e-04'"
             SQL_RESULT_TARGET_VALUE:
               type: SQL_ACONST
-              location: "12..17|'2e-04'"
+              location: "7..12|'2e-04'"
               SQL_ACONST_TYPE: 1
   errors: []
   line_breaks:
-    - 0..1|'\n'
-    - 18..19|'\n'
+    - 13..14|'\n'
   comments: []

@@ -7,13 +7,14 @@
 #include <string>
 
 #include "dashql/parser/proto/syntax_generated.h"
+#include "ryml_std.hpp"
 #include "ryml.hpp"
 
 namespace dashql {
 namespace parser {
 
 
-static void EncodeTestExpectation(ryml::NodeRef ref, const proto::syntax::Module& module, std::string_view text);
+void EncodeTestExpectation(ryml::NodeRef ref, const proto::syntax::Module& module, std::string_view text);
 
 
 }  // namespace parser

@@ -58,9 +58,8 @@ void encode(ryml::NodeRef e, const proto::syntax::Error& err, std::string_view t
 }  // namespace
 
 /// Encode yaml
-void EncodeTestExpectation(ryml::NodeRef ref, const proto::syntax::Module& module, std::string_view text) {
-    ryml::Tree tree;
-    auto root = tree.rootref();
+void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& module, std::string_view text) {
+    auto& tree = *root.tree();
     root |= ryml::MAP;
 
     auto* obj_type_tt = proto::syntax::ObjectTypeTypeTable();
@@ -221,9 +220,6 @@ void EncodeTestExpectation(ryml::NodeRef ref, const proto::syntax::Module& modul
     auto comments = root["comments"];
     comments |= ryml::SEQ;
     for (auto err : *module.comments()) encode(comments.append_child(), *err, text);
-
-    // Write the yaml
-    ryml::emit(tree);
 }
 
 }  // namespace parser
