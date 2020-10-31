@@ -56,9 +56,17 @@ extern size_t parser_offset;
     bytes_read = in.copy(buffer, max_bytes, scanner_offset); \
     scanner_offset += bytes_read;
 // The user action is run whenever a token is matched
-#define YY_USER_ACTION \
+#define YY_USER_ACTION { \
+    auto token_text = in.substr(parser_offset, yyleng); \
+    for (unsigned i = 0; i < yyleng; ++i) { \
+        if (token_text[i] == '\n') { \
+            ctx.AddLineBreak(syntax::Location(parser_offset + i, 1)); \
+        } \
+    } \
     loc = syntax::Location(parser_offset, yyleng); \
-    parser_offset += yyleng;
+    parser_offset += yyleng; \
+}
+
 %}
 
 %{
