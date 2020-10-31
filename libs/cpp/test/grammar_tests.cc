@@ -36,6 +36,12 @@ struct GrammarParamTestsParam {
         : buffer(), text(), tree(), name(), input(), expected() {}
 };
 
+struct PrintToStringParamName {
+    std::string operator()(const ::testing::TestParamInfo<GrammarParamTestsParam>& info) const {
+        return std::string{info.param.name};
+    }
+};
+
 struct GrammarParamTests : public testing::TestWithParam<GrammarParamTestsParam> {
     /// The grammar tests
     static std::unordered_map<std::string, std::vector<GrammarParamTestsParam>> tests;
@@ -69,7 +75,7 @@ TEST_P(GrammarParamTests, Test) {
     ASSERT_EQ(out_str, expected_str);
 }
 
-INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")));
+INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintToStringParamName());
 
 }
 
