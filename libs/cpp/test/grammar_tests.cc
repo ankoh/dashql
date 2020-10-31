@@ -73,6 +73,8 @@ int main(int argc, char* argv[]) {
     auto grammar_dir = std::filesystem::path{argv[1]};
     for(auto& p: std::filesystem::directory_iterator(grammar_dir)) {
         auto filename = p.path().filename().string();
+        if (p.path().extension().string() != ".test")
+            continue;
 
         // Read the file
         auto buffer = std::make_shared<std::string>();
