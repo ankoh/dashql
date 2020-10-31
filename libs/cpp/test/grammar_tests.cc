@@ -17,7 +17,7 @@ using namespace std;
 
 namespace {
 
-struct GrammarTest {
+struct GrammarParamTestsParam {
     /// The shared string
     std::shared_ptr<std::string> buffer;
     /// The full test case
@@ -29,37 +29,39 @@ struct GrammarTest {
     /// The input
     std::string_view input;
     /// The expected output
-    ryml::NodeRef expectedOutput;
+    ryml::Tree expected;
+
+    /// Constructor
+    GrammarParamTestsParam()
+        : buffer(), text(), tree(), name(), input(), expected() {}
 };
 
-struct GrammarTestSuite : public testing::TestWithParam<GrammarTest> {
+struct GrammarParamTests : public testing::TestWithParam<GrammarParamTestsParam> {
     /// The grammar tests
-    static std::unordered_map<std::string, std::vector<GrammarTest>> tests;
+    static std::unordered_map<std::string, std::vector<GrammarParamTestsParam>> tests;
     /// Parse tests
-    static nonstd::span<GrammarTest> FindTests(const char* name);
+    static nonstd::span<GrammarParamTestsParam> FindTests(const char* name);
 };
 
 /// The grammar tests
-std::unordered_map<std::string, std::vector<GrammarTest>> GrammarTestSuite::tests;
+std::unordered_map<std::string, std::vector<GrammarParamTestsParam>> GrammarParamTests::tests = {};
 /// Find test files
-nonstd::span<GrammarTest> GrammarTestSuite::FindTests(const char* name) {
+nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* name) {
     auto iter = tests.find(name);
-    return (iter != tests.end()) ? iter->second : nonstd::span<GrammarTest>{};
+    return (iter != tests.end()) ? iter->second : nonstd::span<GrammarParamTestsParam>{};
 }
 
-TEST_P(GrammarTestSuite, OutputMatchesExpectation) {
-    
+TEST_P(GrammarParamTests, Test) {
+    auto& param = GetParam();
 }
 
-INSTANTIATE_TEST_SUITE_P(GrammarSQLSelect, GrammarTestSuite, testing::ValuesIn(GrammarTestSuite::FindTests("select_sql.test")));
+INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")));
 
 }
 
 
 int main(int argc, char* argv[]) {
     constexpr std::string_view DELIMITER = "\n----\n";
-
-    testing::InitGoogleTest(&argc, argv);
     if (argc < 2) {
         std::cout << "Usage: ./grammar_test <dir>" << std::endl;
         exit(1);
@@ -70,46 +72,63 @@ int main(int argc, char* argv[]) {
     }
     auto grammar_dir = std::filesystem::path{argv[1]};
     for(auto& p: std::filesystem::directory_iterator(grammar_dir)) {
-        std::cout << "Grammar Test: " << p.path() << std::endl;
+        auto filename = p.path().filename().string();
 
         // Read the file
-        std::string buffer;
+        auto buffer = std::make_shared<std::string>();
         std::ifstream in(p.path(), std::ios::in | std::ios::binary);
-        if (!in)
+        if (!in) {
+            std::cout << "[" << filename << "] failed to read file" << std::endl;
             continue;
+        }
 
         // Read file
         in.seekg(0, std::ios::end);
-        buffer.resize(in.tellg());
+        buffer->resize(in.tellg());
         in.seekg(0, std::ios::beg);
-        in.read(&buffer[0], buffer.size());
+        in.read(buffer->data(), buffer->size());
         in.close();
 
+        std::vector<GrammarParamTestsParam> tests;
+
         // Split sections
-        for (size_t prev = 0, next = 0; prev != std::string::npos && prev < buffer.size(); prev = next) {
-            next = buffer.find(DELIMITER, prev);
-            next = (next == std::string::npos) ? buffer.size() : next;
+        for (size_t prev = 0, next = 0; prev != std::string::npos && prev < buffer->size(); prev = next) {
+            next = buffer->find(DELIMITER, prev);
+            next = (next == std::string::npos) ? buffer->size() : next;
 
             // Is empty?
-            std::string_view text{buffer.data() + prev, next - prev};
+            std::string_view text{buffer->data() + prev, next - prev};
             if (text.empty())
                 break;
 
-            // Copy expected
-            auto tree = ryml::parse(c4::csubstr(text.data(), text.length()));
-            auto tmp = ryml::Tree();
-            tmp.rootref() |= ryml::MAP;
-            tmp.merge_with(&tree, tree["expected"].id(), tmp.root_id());
+            tests.emplace_back();
+            auto& test = tests.back();
 
-            std::cout << tree["name"].val() << std::endl;
-            std::cout << tree["input"].val() << std::endl;
-            std::cout << tmp << std::endl;
+            // Copy expected
+            test.tree = ryml::parse(c4::csubstr(text.data(), text.length()));
+            auto name = test.tree["name"].val();
+            auto input = test.tree["input"].val();
+
+            // Create test
+            test.buffer = buffer;
+            test.text = text;
+            test.expected.rootref() |= ryml::MAP;
+            test.expected.merge_with(&test.tree, test.tree["expected"].id(), test.tree.root_id());
+            test.name = {name.data(), name.size()};
+            test.input = {input.data(), input.size()};
+
+            std::cout << "[" << filename << "] test=" << test.name << std::endl;
 
             // Skip delimiter
             if (next != std::string::npos)
                 next += DELIMITER.size();
         }
+
+        // Register test
+        GrammarParamTests::tests.insert({filename, move(tests)});
     }
+
+    testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
 
