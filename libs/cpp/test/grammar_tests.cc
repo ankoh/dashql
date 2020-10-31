@@ -17,6 +17,7 @@ using namespace std;
 
 namespace {
 
+/// A grammar param
 struct GrammarParamTestsParam {
     /// The shared string
     std::shared_ptr<std::string> buffer;
@@ -41,12 +42,14 @@ struct GrammarParamTestsParam {
     }
 };
 
-struct PrintToStringParamName {
+/// Print a test name
+struct PrintTestName {
     std::string operator()(const ::testing::TestParamInfo<GrammarParamTestsParam>& info) const {
         return std::string{info.param.name};
     }
 };
 
+/// Parameterized parameter test
 struct GrammarParamTests : public testing::TestWithParam<GrammarParamTestsParam> {
     /// The grammar tests
     static std::unordered_map<std::string, std::vector<GrammarParamTestsParam>> tests;
@@ -80,7 +83,7 @@ TEST_P(GrammarParamTests, Test) {
     ASSERT_EQ(out_str, expected_str);
 }
 
-INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintToStringParamName());
+INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintTestName());
 
 }
 
