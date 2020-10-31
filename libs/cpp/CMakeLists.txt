@@ -42,6 +42,7 @@ include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/rapidyaml.cmake")
 
 # ---------------------------------------------------------------------------
 # Parallelism
@@ -163,12 +164,14 @@ add_library(dashql_parser
     ${SCANNER_OUT}
     ${PARSER_OUT}
     ${CMAKE_SOURCE_DIR}/src/json_encoder.cc
+    ${CMAKE_SOURCE_DIR}/src/yaml_encoder.cc
     ${CMAKE_SOURCE_DIR}/src/parser_driver.cc
     ${CMAKE_SOURCE_DIR}/src/module_builder.cc
 )
 
 target_link_libraries(dashql_parser
     rapidjson
+    ryml ryml_c4core
     flatbuffers
     ${THREAD_LIB}
 )
