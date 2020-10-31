@@ -103,14 +103,14 @@ set(GRAMMAR_RULES
 )
 
 set(GRAMMAR_TYPES
-    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_common.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_extract.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_load.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_param.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_query.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_statement.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/types/dashql_viz.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/types/sql_select.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_common.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_extract.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_load.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_param.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_query.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_statement.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_viz.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/sql_select.yh
 )
 
 # Build grammar file
