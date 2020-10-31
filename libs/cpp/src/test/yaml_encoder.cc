@@ -1,16 +1,16 @@
-#include "dashql/parser/test/grammar_tester.h"
+#include "dashql/parser/test/yaml_encoder.h"
 
-#include "ryml_std.hpp"
-#include "ryml.hpp"
+#include <cstdint>
+#include <regex>
+#include <sstream>
+#include <stack>
+#include <unordered_set>
+
 #include "c4/yml/emit.hpp"
 #include "c4/yml/std/string.hpp"
 #include "c4/yml/yml.hpp"
-
-#include <cstdint>
-#include <stack>
-#include <unordered_set>
-#include <sstream>
-#include <regex>
+#include "ryml.hpp"
+#include "ryml_std.hpp"
 
 namespace dashql {
 namespace parser {
@@ -24,7 +24,7 @@ constexpr size_t LOCATION_HINT_LENGTH = 10;
 
 std::string escape(std::string_view in) {
     std::string out{in};
-    for (size_t i = out.find("\n", 0); i != std::string::npos; i = out.find("\n", 0)) {
+    for (size_t i = out.find("\n", 0); i != std::string::npos; i = out.find("\n", i)) {
         out.replace(i, 2, "\\n");
         i += 1;
     }
@@ -38,7 +38,7 @@ void encode(ryml::NodeRef n, proto::syntax::Location loc, std::string_view text)
     auto end = loc.offset() + loc.length();
 
     std::stringstream ss;
-    ss << begin << ".." <<  end;
+    ss << begin << ".." << end;
     if (loc.length() < INLINE_LOCATION_CAP) {
         ss << "|'" << escape(text.substr(loc.offset(), loc.length())) << "'";
     } else {
@@ -58,7 +58,7 @@ void encode(ryml::NodeRef e, const proto::syntax::Error& err, std::string_view t
 }  // namespace
 
 /// Encode yaml
-void GrammarTester::EncodeExpect(ryml::NodeRef ref, const proto::syntax::Module& module, std::string_view text) {
+void EncodeTestExpectation(ryml::NodeRef ref, const proto::syntax::Module& module, std::string_view text) {
     ryml::Tree tree;
     auto root = tree.rootref();
     root |= ryml::MAP;
@@ -168,7 +168,8 @@ void GrammarTester::EncodeExpect(ryml::NodeRef ref, const proto::syntax::Module&
                                 case sx::ValueType::OBJECT:
                                     assert_within(array_begin, array_end, oid);
                                     for (unsigned i = array_begin; i < array_end; ++i) {
-                                        tree.move(tmp_values[i].id(), array_node.id(), tree.last_child(array_node.id()));
+                                        tree.move(tmp_values[i].id(), array_node.id(),
+                                                  tree.last_child(array_node.id()));
                                     }
                                     break;
                                 case sx::ValueType::STRING:
@@ -209,20 +210,17 @@ void GrammarTester::EncodeExpect(ryml::NodeRef ref, const proto::syntax::Module&
     // Add errors
     auto errors = root["errors"];
     errors |= ryml::SEQ;
-    for (auto err : *module.errors())
-        encode(errors.append_child(), *err, text);
+    for (auto err : *module.errors()) encode(errors.append_child(), *err, text);
 
     // Add line breaks
     auto line_breaks = root["line_breaks"];
     line_breaks |= ryml::SEQ;
-    for (auto err : *module.line_breaks())
-        encode(line_breaks.append_child(), *err, text);
+    for (auto err : *module.line_breaks()) encode(line_breaks.append_child(), *err, text);
 
     // Add comments
     auto comments = root["comments"];
     comments |= ryml::SEQ;
-    for (auto err : *module.comments())
-        encode(comments.append_child(), *err, text);
+    for (auto err : *module.comments()) encode(comments.append_child(), *err, text);
 
     // Write the yaml
     ryml::emit(tree);

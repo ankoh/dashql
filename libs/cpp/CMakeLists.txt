@@ -175,7 +175,7 @@ target_link_libraries(dashql_parser
 )
 
 add_library(dashql_parser_test
-    ${CMAKE_SOURCE_DIR}/src/test/grammar_tester.cc
+    ${CMAKE_SOURCE_DIR}/src/test/yaml_encoder.cc
 )
 
 target_link_libraries(dashql_parser_test
@@ -226,8 +226,7 @@ if(NOT EMSCRIPTEN)
 
     add_executable(tester
         ${CMAKE_SOURCE_DIR}/test/tester.cc
-        ${CMAKE_SOURCE_DIR}/test/parser_test.cc
-        ${CMAKE_SOURCE_DIR}/test/codec_test.cc
+        ${CMAKE_SOURCE_DIR}/test/grammar_test.cc
     )
     target_link_libraries(tester 
         dashql_parser
