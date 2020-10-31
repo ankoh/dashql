@@ -9,10 +9,12 @@ import { DashQLParserBindings, FlatBuffer } from '../../parser/bindings';
 
 export class DashQLParser extends DashQLParserBindings {
     protected path: string;
+
     constructor(path: string | null = null) {
         super();
         this.path = path ?? dashql_parser_wasm;
     }
+
     protected instantiate(moduleOverrides: Partial<DashQLParserModule>): Promise<DashQLParserModule> {
         return dashql_parser_init({
             ...moduleOverrides,
@@ -22,6 +24,12 @@ export class DashQLParser extends DashQLParserBindings {
                 return path;
             }
         });
+    }
+
+    public static async create(path: string | null = null): Promise<DashQLParser> {
+        const parser = new DashQLParser(path);
+        await DashQLParserBindings.init(parser);
+        return parser;
     }
 }
 

@@ -3,14 +3,13 @@ import * as dashql_parser from '../';
 var parser: dashql_parser.DashQLParser;
 
 beforeAll(async () => {
-    parser = new dashql_parser.DashQLParser();
-    await parser.init();
+    parser = await dashql_parser.DashQLParser.create();
 });
 
 describe('Parser', () => {
     describe('foo', () => {
-        test('synatx error', async () => {
-            let result = await parser.parse("select 1e-04");
+        test('synatx error', () => {
+            const result = parser.parse("select 1e-04");
             expect(result.root.errorsLength()).toBe(0);
             expect(result.root.statements()!.entriesLength()).toBe(1);
         });

@@ -11,60 +11,47 @@ export abstract class DashQLParserBindings {
     /// The loading promise
     private _openPromise: Promise<void> | null = null;
     /// The resolver for the open promise (called by onRuntimeInitialized)
-    private _openPromiseResolver: () => void = () => { };
+    private _openPromiseResolver: () => void = () => {};
 
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<DashQLParserModule>): Promise<DashQLParserModule>;
 
     /// Init the parser
-    public async init() {
+    public static async init(derived: DashQLParserBindings) {
         // Already opened?
-        if (this._instance != null) {
+        if (derived._instance != null) {
             return;
         }
         // Open in progress?
-        if (this._openPromise != null) {
-            await this._openPromise;
+        if (derived._openPromise != null) {
+            await derived._openPromise;
         }
 
         // Create a promise that we can await
-        this._openPromise = new Promise(resolve => {
-            this._openPromiseResolver = resolve;
+        derived._openPromise = new Promise(resolve => {
+            derived._openPromiseResolver = resolve;
         });
 
         // Initialize duckdb
-        this._instance = await this.instantiate({
+        derived._instance = await derived.instantiate({
             print: console.log.bind(console),
             printErr: console.log.bind(console),
-            onRuntimeInitialized: this._openPromiseResolver,
+            onRuntimeInitialized: derived._openPromiseResolver,
         });
 
         // Wait for onRuntimeInitialized
-        await this._openPromise;
-        this._openPromise = null;
-    }
-
-    /// Get the instance
-    protected async getInstance(): Promise<DashQLParserModule> {
-        if (this._instance != null)
-            return this._instance;
-        if (this._openPromise != null) {
-            await this._openPromise;
-            if (this._instance == null)
-                throw new Error('instance initialization failed');
-            return this._instance;
-        }
-        throw new Error('instance not initialized');
+        await derived._openPromise;
+        derived._openPromise = null;
     }
 
     // Call a core function with packed response buffer
-    protected async callSRet(
+    protected callSRet(
         funcName: string,
         argTypes: Array<Emscripten.JSType>,
         args: Array<any>,
-    ): Promise<[number, number, number]> {
+    ): [number, number, number] {
         // Save the stack
-        let instance = await this.getInstance();
+        let instance = this._instance;
         let stackPointer = instance.stackSave();
 
         // Allocate the packed response buffer
@@ -87,9 +74,9 @@ export abstract class DashQLParserBindings {
     }
 
     /// Parse a string and return a flatbuffer
-    public async parse(text: string): Promise<ModuleBuffer> {
-        let instance = await this.getInstance();
-        let [ptr, size, ofs] = await this.callSRet('dashql_parse', ['string'], [text]);
+    public parse(text: string): ModuleBuffer {
+        let instance = this._instance;
+        let [ptr, size, ofs] = this.callSRet('dashql_parse', ['string'], [text]);
         let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
         let program = new ModuleBuffer(mem);
         instance.ccall('dashql_parser_free', null, ['number'], [ptr]);
