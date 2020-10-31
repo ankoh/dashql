@@ -1,4 +1,4 @@
-#include "dashql/parser/yaml_encoder.h"
+#include "dashql/parser/test/grammar_tester.h"
 
 #include "ryml_std.hpp"
 #include "ryml.hpp"
@@ -9,6 +9,8 @@
 #include <cstdint>
 #include <stack>
 #include <unordered_set>
+#include <sstream>
+#include <regex>
 
 namespace dashql {
 namespace parser {
@@ -17,22 +19,46 @@ namespace sx = proto::syntax;
 
 namespace {
 
-void encode(ryml::NodeRef n, proto::syntax::Location loc) {
-    n |= ryml::MAP;
-    n["offset"] << loc.offset();
-    n["length"] << loc.length();
+constexpr size_t INLINE_LOCATION_CAP = 20;
+constexpr size_t LOCATION_HINT_LENGTH = 10;
+
+std::string escape(std::string_view in) {
+    std::string out{in};
+    for (size_t i = out.find("\n", 0); i != std::string::npos; i = out.find("\n", 0)) {
+        out.replace(i, 2, "\\n");
+        i += 1;
+    }
+    return out;
 }
 
-void encode(ryml::NodeRef e, const proto::syntax::Error& err) {
+void encode(ryml::NodeRef n, proto::syntax::Location loc, std::string_view text) {
+    n |= ryml::VAL;
+
+    auto begin = loc.offset();
+    auto end = loc.offset() + loc.length();
+
+    std::stringstream ss;
+    ss << begin << ".." <<  end;
+    if (loc.length() < INLINE_LOCATION_CAP) {
+        ss << " '" << escape(text.substr(loc.offset(), loc.length())) << "'";
+    } else {
+        auto prefix = escape(text.substr(loc.offset(), LOCATION_HINT_LENGTH));
+        auto suffix = escape(text.substr(loc.offset() + loc.length() - LOCATION_HINT_LENGTH, LOCATION_HINT_LENGTH));
+        ss << " '" << prefix << "'..'" << suffix << "'";
+    }
+    n << ss.str();
+}
+
+void encode(ryml::NodeRef e, const proto::syntax::Error& err, std::string_view text) {
     e |= ryml::MAP;
     e["message"] = c4::to_csubstr(err.message()->c_str());
-    encode(e["location"], *err.location());
+    encode(e["location"], *err.location(), text);
 }
 
 }  // namespace
 
 /// Encode yaml
-std::string encodeYAML(const proto::syntax::Module& module, bool pretty) {
+void GrammarTester::EncodeExpect(ryml::NodeRef ref, const proto::syntax::Module& module, std::string_view text) {
     ryml::Tree tree;
     auto root = tree.rootref();
     root |= ryml::MAP;
@@ -76,7 +102,7 @@ std::string encodeYAML(const proto::syntax::Module& module, bool pretty) {
             auto v = tmp_values.back();
             v |= ryml::MAP;
             v["type"] = c4::to_csubstr(obj_type_tt->names[static_cast<size_t>(o->type())]);
-            encode(v["location"], o->location());
+            encode(v["location"], o->location(), text);
 
             // Translate attributes
             auto& attr_span = o->attributes();
@@ -99,7 +125,7 @@ std::string encodeYAML(const proto::syntax::Module& module, bool pretty) {
                     }
                     case sx::ValueType::STRING: {
                         auto n = v[attr_key];
-                        encode(n, attr_value.location());
+                        encode(n, attr_value.location(), text);
                         break;
                     }
                     case sx::ValueType::OBJECT: {
@@ -150,7 +176,7 @@ std::string encodeYAML(const proto::syntax::Module& module, bool pretty) {
                                     for (auto i = array_begin; i < array_end; ++i) {
                                         auto nested_val = array_node.append_child();
                                         nested_val |= ryml::VAL;
-                                        encode(nested_val, *values_str->Get(i));
+                                        encode(nested_val, *values_str->Get(i), text);
                                     }
                                     break;
                                 case sx::ValueType::I32:
@@ -184,23 +210,22 @@ std::string encodeYAML(const proto::syntax::Module& module, bool pretty) {
     auto errors = root["errors"];
     errors |= ryml::SEQ;
     for (auto err : *module.errors())
-        encode(errors.append_child(), *err);
+        encode(errors.append_child(), *err, text);
 
     // Add line breaks
     auto line_breaks = root["line_breaks"];
     line_breaks |= ryml::SEQ;
     for (auto err : *module.line_breaks())
-        encode(line_breaks.append_child(), *err);
+        encode(line_breaks.append_child(), *err, text);
 
     // Add comments
     auto comments = root["comments"];
     comments |= ryml::SEQ;
     for (auto err : *module.comments())
-        encode(comments.append_child(), *err);
+        encode(comments.append_child(), *err, text);
 
     // Write the yaml
     ryml::emit(tree);
-    return "";
 }
 
 }  // namespace parser

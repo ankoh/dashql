@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "dashql/parser/parser_driver.h"
-#include "dashql/parser/yaml_encoder.h"
+#include "dashql/parser/test/grammar_tester.h"
 #include "gtest/gtest.h"
 #include "flatbuffers/flatbuffers.h"
 
@@ -23,8 +23,8 @@ TEST(ParserTest, SELECT_FCONST) {
     ASSERT_EQ(m->errors()->size(), 0) << m->errors()->Get(0)->message()->c_str();
     ASSERT_EQ(m->statements()->entries()->size(), 1);
 
-    auto s = encodeYAML(*m);
-    ASSERT_EQ(s, "");
+    ryml::Tree tree;
+    GrammarTester::EncodeExpect(tree.rootref(), *m, in);
 }
 
 // TEST(ParserTest, ParameterDeclaration) {

@@ -164,13 +164,22 @@ add_library(dashql_parser
     ${SCANNER_OUT}
     ${PARSER_OUT}
     ${CMAKE_SOURCE_DIR}/src/json_encoder.cc
-    ${CMAKE_SOURCE_DIR}/src/yaml_encoder.cc
     ${CMAKE_SOURCE_DIR}/src/parser_driver.cc
     ${CMAKE_SOURCE_DIR}/src/module_builder.cc
 )
 
 target_link_libraries(dashql_parser
     rapidjson
+    flatbuffers
+    ${THREAD_LIB}
+)
+
+add_library(dashql_parser_test
+    ${CMAKE_SOURCE_DIR}/src/test/grammar_tester.cc
+)
+
+target_link_libraries(dashql_parser_test
+    dashql_parser
     ryml ryml_c4core
     flatbuffers
     ${THREAD_LIB}
@@ -222,6 +231,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(tester 
         dashql_parser
+        dashql_parser_test
         flatbuffers gtest gmock
         ${THREAD_LIB})
 
