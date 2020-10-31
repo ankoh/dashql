@@ -9,7 +9,7 @@ endif (POLICY CMP0048)
 # ---------------------------------------------------------------------------
 
 project(dashql_parser VERSION 0.1)
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
@@ -116,14 +116,14 @@ set(GRAMMAR_TYPES
 # Build grammar file
 add_custom_command(
     OUTPUT ${GRAMMAR_OUT}
-    COMMAND ${CMAKE_COMMAND} -E rm -f ${GRAMMAR_OUT}
-    COMMAND ${CMAKE_COMMAND} -E cat ${GRAMMAR_PROLOGUE} >> ${GRAMMAR_OUT}
-    COMMAND ${CMAKE_COMMAND} -E cat ${GRAMMAR_TOKENS} >> ${GRAMMAR_OUT}
-    COMMAND ${CMAKE_COMMAND} -E cat ${GRAMMAR_TYPES} >> ${GRAMMAR_OUT}
+    COMMAND rm -f ${GRAMMAR_OUT}
+    COMMAND cat ${GRAMMAR_PROLOGUE} >> ${GRAMMAR_OUT}
+    COMMAND cat ${GRAMMAR_TOKENS} >> ${GRAMMAR_OUT}
+    COMMAND cat ${GRAMMAR_TYPES} >> ${GRAMMAR_OUT}
     COMMAND echo "%%" >> ${GRAMMAR_OUT}
-    COMMAND ${CMAKE_COMMAND} -E cat ${GRAMMAR_RULES} >> ${GRAMMAR_OUT}
+    COMMAND cat ${GRAMMAR_RULES} >> ${GRAMMAR_OUT}
     COMMAND echo "%%" >> ${GRAMMAR_OUT}
-    COMMAND ${CMAKE_COMMAND} -E cat ${GRAMMAR_EPILOGUE} >> ${GRAMMAR_OUT}
+    COMMAND cat ${GRAMMAR_EPILOGUE} >> ${GRAMMAR_OUT}
     DEPENDS
         ${GRAMMAR_PROLOGUE}
         ${GRAMMAR_EPILOGUE}
