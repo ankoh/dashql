@@ -34,6 +34,8 @@ extern syntax::Location comment_begin;
 extern std::string_view in;
 // The reader offset
 extern size_t scanner_offset;
+// The parser offset
+extern size_t parser_offset;
 
 } // namespace parser
 } // namespace dashql
@@ -55,7 +57,8 @@ extern size_t scanner_offset;
     scanner_offset += bytes_read;
 // The user action is run whenever a token is matched
 #define YY_USER_ACTION \
-    loc = syntax::Location(loc.offset(), yyleng);
+    loc = syntax::Location(parser_offset, yyleng); \
+    parser_offset += yyleng;
 %}
 
 %{
@@ -332,6 +335,9 @@ syntax::Location dashql::parser::comment_begin;
 std::string_view dashql::parser::in;
 // The scanner offset
 size_t dashql::parser::scanner_offset;
+// The parser offset
+size_t dashql::parser::parser_offset;
+
 // Begin a scan
 void dashql::parser::ParserDriver::BeginScan() {
     yy_flex_debug = _trace_scanning;
@@ -339,6 +345,7 @@ void dashql::parser::ParserDriver::BeginScan() {
     in = _input;
     comment_begin = syntax::Location();
     scanner_offset = 0;
+    parser_offset = 0;
 }
 
 // End a scan
@@ -347,4 +354,5 @@ void dashql::parser::ParserDriver::EndScan() {
     in = _input;
     comment_begin = syntax::Location();
     scanner_offset = 0;
+    parser_offset = 0;
 }

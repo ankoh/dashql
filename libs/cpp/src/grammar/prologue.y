@@ -27,7 +27,7 @@
 #define YYLLOC_DEFAULT(Cur, Rhs, N) { \
     if (N) { \
         uint32_t o = YYRHSLOC(Rhs, 1).offset(); \
-        uint32_t l = YYRHSLOC(Rhs, N).offset() - YYRHSLOC(Rhs, 1).offset() + YYRHSLOC(Rhs, N).length(); \
+        uint32_t l = YYRHSLOC(Rhs, N).offset() + YYRHSLOC(Rhs, N).length() - YYRHSLOC(Rhs, 1).offset(); \
         (Cur) = sx::Location(o, l); \
     } else { \
         uint32_t o = YYRHSLOC(Rhs, 0).offset() + YYRHSLOC(Rhs, 0).length(); \
