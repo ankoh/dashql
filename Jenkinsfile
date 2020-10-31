@@ -35,7 +35,7 @@ pipeline {
 
         stage('CPP/Test') {
             steps {
-                sh './libs/cpp/build/debug/tester --gtest_output=xml:./reports/tests_cpp.xml'
+                sh './libs/cpp/build/debug/grammar_tests ./libs/cpp/test/grammar --gtest_output=xml:./reports/tests_cpp.xml'
             }
         }
 
