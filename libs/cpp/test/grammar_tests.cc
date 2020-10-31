@@ -34,6 +34,11 @@ struct GrammarParamTestsParam {
     /// Constructor
     GrammarParamTestsParam()
         : buffer(), text(), tree(), name(), input(), expected() {}
+
+    friend std::ostream& operator<<(std::ostream& out, const GrammarParamTestsParam& param) {
+        out << param.input;
+        return out;
+    }
 };
 
 struct PrintToStringParamName {
@@ -78,7 +83,6 @@ TEST_P(GrammarParamTests, Test) {
 INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintToStringParamName());
 
 }
-
 
 int main(int argc, char* argv[]) {
     constexpr std::string_view DELIMITER = "\n----\n";
