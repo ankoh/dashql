@@ -10,6 +10,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <string_view>
 
 using namespace dashql::parser;
 using namespace std;
@@ -54,7 +55,10 @@ INSTANTIATE_TEST_SUITE_P(GrammarSQLSelect, GrammarTestSuite, testing::ValuesIn(G
 
 }
 
+
 int main(int argc, char* argv[]) {
+    constexpr std::string_view DELIMITER = "\n----\n";
+
     testing::InitGoogleTest(&argc, argv);
     if (argc < 2) {
         std::cout << "Usage: ./grammar_test <dir>" << std::endl;
@@ -81,13 +85,17 @@ int main(int argc, char* argv[]) {
         in.read(&buffer[0], buffer.size());
         in.close();
 
-        const auto DELIMITER = "\n----\n";
-        for (size_t prev = 0, next = buffer.find(DELIMITER, 0); prev != std::string::npos; prev = next, next = buffer.find("\n", prev)) {
-            // Read test
+        // Split sections
+        for (size_t prev = 0, next = 0; prev != std::string::npos && prev < buffer.size(); prev = next) {
+            next = buffer.find(DELIMITER, prev);
+            next = (next == std::string::npos) ? buffer.size() : next;
+
+            // Is empty?
             std::string_view text{buffer.data() + prev, next - prev};
             if (text.empty())
                 break;
 
+            // Copy expected
             auto tree = ryml::parse(c4::csubstr(text.data(), text.length()));
             auto tmp = ryml::Tree();
             tmp.rootref() |= ryml::MAP;
@@ -96,6 +104,10 @@ int main(int argc, char* argv[]) {
             std::cout << tree["name"].val() << std::endl;
             std::cout << tree["input"].val() << std::endl;
             std::cout << tmp << std::endl;
+
+            // Skip delimiter
+            if (next != std::string::npos)
+                next += DELIMITER.size();
         }
     }
     return RUN_ALL_TESTS();
