@@ -3,9 +3,7 @@ import { EditorController } from './editor';
 import { LogController } from './log';
 import { TerminalController } from './terminal';
 import { InterpreterController } from './interpreter';
-
-import { DashQLParser } from '@dashql/parser';
-import dashql_parser_wasm from '@dashql/parser/dist/dashql_parser.wasm';
+import { ParserController } from './parser';
 
 /// The worker interval
 const workerIntervalMS = 400;
@@ -15,7 +13,7 @@ export class AppController {
     /// The Store
     protected _store: AppReduxStore;
     /// The parser
-    protected _parser: DashQLParser;
+    protected _parser: ParserController;
     /// The logger
     protected _log: LogController;
     /// The editor controller
@@ -31,7 +29,7 @@ export class AppController {
     // Constructor
     constructor(store: AppReduxStore) {
         this._store = store;
-        this._parser = new DashQLParser(dashql_parser_wasm);
+        this._parser = new ParserController();
         this._log = new LogController(store);
         this._editor = new EditorController(this._store, this._parser);
         this._interpreter = new InterpreterController(this._store);
@@ -47,9 +45,7 @@ export class AppController {
     public async init(): Promise<void> {
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
 
-        this._parser.init();
-
-        return Promise.resolve();
+        await this._parser.init();
     }
 
     // The worker function

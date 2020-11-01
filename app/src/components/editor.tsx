@@ -64,7 +64,7 @@ class Editor extends React.Component<Props> {
             });
             this.editor.setPosition({column: 0, lineNumber: 0});
             this.editor.focus();
-            this.props.appContext.ctrl.editor.registerEditor(this.editor);
+            this.props.appContext.controller.editor.registerEditor(this.editor);
 
             // Set theme
             monaco.editor.defineTheme('dashql', monaco_theme);
@@ -130,8 +130,7 @@ class Editor extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    text: state.editorText,
-    program: state.editorProgram
+    text: state.editorText
 });
 
 const mapDispatchToProps = (dispatch: Dispatch) => ({

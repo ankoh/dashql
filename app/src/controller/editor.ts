@@ -1,6 +1,7 @@
 import * as monaco from 'monaco-editor';
-import * as parser from '@dashql/parser';
 import { AppReduxStore, AppStateMutations } from '../store';
+import { ParserController } from './parser';
+import * as parser from '@dashql/parser';
 
 export class EditorController {
     /// The editor
@@ -8,13 +9,24 @@ export class EditorController {
     /// The store
     protected _store: AppReduxStore;
     /// The parser
-    protected _parser: parser.DashQLParser;
+    protected _parser: ParserController;
 
     /// Constructor
-    constructor(store: AppReduxStore, parser: parser.DashQLParser) {
+    constructor(store: AppReduxStore, parser: ParserController) {
         this._store = store;
-        this._parser = parser;
         this._editor = null;
+        this._parser = parser;
+
+        let previousEditorText = "";
+
+        this._store.subscribe(() => {
+            const { editorText } = this._store.getState();
+
+            if (editorText != previousEditorText) {
+                previousEditorText = editorText;
+                this.evaluate(editorText);
+            }
+        });
     }
 
     public registerEditor(editor: monaco.editor.IStandaloneCodeEditor) {
@@ -22,28 +34,28 @@ export class EditorController {
     }
 
     /// Evaluate an editor
-    public async evaluate(input: string) {
-        let program = await this._parser.parse(input);
-        this.displayErrors(program.root);
-        this._store.dispatch(AppStateMutations.setEditorProgram(program));
+    public evaluate(input: string) {
+        const module = this._parser.parse(input);
+        this.displayErrors(module.root);
+        this._store.dispatch(AppStateMutations.setEditorModule(module));
     }
 
-    /// Display program errors
-    protected displayErrors(program: parser.proto.program.Program): void {
+    /// Display module errors
+    protected displayErrors(module: parser.proto.syntax.Module): void {
         const model = this._editor?.getModel();
         if (!model) {
             return;
         }
-        let markers = new Array<monaco.editor.IMarkerData>();
-        for (let i = 0; i < program.errorsLength(); ++i) {
-            const error = program.errors(i);
-            const location = error?.location();
-            const begin = location?.begin();
-            const startLineNumber = begin?.line();
-            const startColumn = begin?.column();
-            const end = location?.end();
-            const endLineNumber = end?.line();
-            const endColumn = end?.column();
+        const markers = new Array<monaco.editor.IMarkerData>();
+        for (let i = 0; i < module.errorsLength(); ++i) {
+            const error = module.errors(i)!;
+            const location = error.location()!;
+            const begin = model.getPositionAt(location.offset());
+            const startLineNumber = begin.lineNumber;
+            const startColumn = begin.column;
+            const end = model.getPositionAt(location.offset() + location.length());
+            const endLineNumber = end.lineNumber;
+            const endColumn = end.column;
             if (!startLineNumber || !startColumn || !endLineNumber || !endColumn) {
                 return undefined;
             }
@@ -52,14 +64,14 @@ export class EditorController {
                 startColumn,
                 endLineNumber,
                 endColumn,
-                message: error.message(),
+                message: error.message() ?? "",
                 severity: monaco.MarkerSeverity.Error,
             });
         }
-        monaco.editor.setModelMarkers(model, 'TQL', markers);
+        monaco.editor.setModelMarkers(model, 'DashQL', markers);
     }
 
-    public replace(location: parser.proto.program.Location, text: string | null) {
+    public replace(location: parser.proto.syntax.Location, text: string | null) {
         /// Get monaco editor
         const editor = this._editor;
         if (!editor) {
@@ -73,13 +85,13 @@ export class EditorController {
         }
 
         // Determine edit range
-        const begin = location.begin();
-        const end = location.end();
+        const begin = model.getPositionAt(location.offset());
+        const end = model.getPositionAt(location.offset() + location.length());
         const range = {
-            startLineNumber: begin?.line() ?? 1,
-            startColumn: begin?.column() ?? 1,
-            endLineNumber: end?.line() ?? 1,
-            endColumn: end?.column() ?? 1,
+            startLineNumber: begin.lineNumber,
+            startColumn: begin.column,
+            endLineNumber: end.lineNumber,
+            endColumn: end.column,
         };
         while (true) {
             const nextCharacterRange = {
@@ -132,4 +144,3 @@ export class EditorController {
         );
     }
 }
-

@@ -60,7 +60,7 @@ const BarChartViz = createVizType(BarChartIcon);
 const ScatterChartViz = createVizType(ScatterChartIcon);
 const PieChartViz = createVizType(ArcChartIcon);
 
-class ToolBarState {
+type ToolBarState = {
     vizExpanded: boolean;
 };
 export class ToolBar extends React.Component<{}, ToolBarState> {

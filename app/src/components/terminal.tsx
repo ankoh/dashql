@@ -46,7 +46,7 @@ class Terminal extends React.Component<ITerminalProps> {
         }
 
         // Schedule next read
-        let term = this.props.appContext.ctrl.terminal;
+        let term = this.props.appContext.controller.terminal;
         term.read("> ",  "   ",)
             .then(this.evalLoop.bind(this))
             .catch(function(text: string) {
@@ -57,12 +57,12 @@ class Terminal extends React.Component<ITerminalProps> {
     /// Component did mount to the dom
     public componentDidMount() {
         if (this.termContainer.current != null) {
-            let ctrl = this.props.appContext.ctrl;
-            ctrl.terminal.reset();
-            ctrl.terminal.open(this.termContainer.current);
-            ctrl.terminal.fit();
-            ctrl.terminal.attach();
-            ctrl.terminal.focus();
+            const terminal = this.props.appContext.controller.terminal;
+            terminal.reset();
+            terminal.open(this.termContainer.current);
+            terminal.fit();
+            terminal.attach();
+            terminal.focus();
             this.evalLoop();
         }
     }
@@ -73,8 +73,8 @@ class Terminal extends React.Component<ITerminalProps> {
 
     /// Component will unmount from the dom
     public componentWillUnmount() {
-        let ctrl = this.props.appContext.ctrl;
-        ctrl.terminal.detach();
+        let terminal = this.props.appContext.controller.terminal;
+        terminal.detach();
     }
 }
 

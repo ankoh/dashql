@@ -16,9 +16,9 @@ export class AppState {
     // The log entries
     public logEntries: Immutable.List<LogEntry>;
     /// The editor text
-    public editorText: string | null;
-    /// The current program
-    public editorProgram: parser.FlatBuffer<parser.proto.program.Program> | null;
+    public editorText: string;
+    /// The current module
+    public editorModule: parser.FlatBuffer<parser.proto.syntax.Module> | null;
     // The focused viz
     public focusedViz: number | null;
 
@@ -28,8 +28,8 @@ export class AppState {
         this.appSettings = null;
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logEntries = Immutable.List<LogEntry>();
-        this.editorText = null;
-        this.editorProgram = null;
+        this.editorText = "";
+        this.editorModule = null;
         this.focusedViz = null;
         return;
     }

@@ -6,16 +6,16 @@ import { AppSettings } from "./app_settings";
 const MAX_LOG_SIZE = 100;
 
 /// An action
-export class Action<T, P> {
-    public readonly type: T;
-    public readonly payload: P;
+export type Action<T, P> = {
+    readonly type: T;
+    readonly payload: P;
 }
 
 /// An action type
 export enum ActionType {
     CONFIGURE_APP           = 'CONFIGURE_APP',
     LOG_PUSH_ENTRY          = 'LOG_PUSH_ENTRY',
-    EDITOR_SET_PROGRAM      = 'EDITOR_SET_PROGRAM',
+    EDITOR_SET_MODULE       = 'EDITOR_SET_MODULE',
     EDITOR_SET_TEXT         = 'EDITOR_SET_TEXT',
     EDITOR_CLEAR_PROGRAM    = 'EDITOR_CLEAR_PROGRAM',
     OTHER                   = 'OTHER',
@@ -26,7 +26,7 @@ export type ActionVariant =
     | Action<ActionType.CONFIGURE_APP, AppSettings>
     | Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
     | Action<ActionType.EDITOR_SET_TEXT, string>
-    | Action<ActionType.EDITOR_SET_PROGRAM, parser.FlatBuffer<parser.proto.program.Program>>
+    | Action<ActionType.EDITOR_SET_MODULE, parser.FlatBuffer<parser.proto.syntax.Module>>
     | Action<ActionType.EDITOR_CLEAR_PROGRAM, {}>
     ;
 
@@ -47,9 +47,9 @@ export class AppStateMutations {
         return { type: ActionType.EDITOR_SET_TEXT, payload: text };
     }
 
-    /// Set the editor program
-    public static setEditorProgram(program: parser.FlatBuffer<parser.proto.program.Program>): ActionVariant {
-        return { type: ActionType.EDITOR_SET_PROGRAM, payload: program };
+    /// Set the editor module
+    public static setEditorModule(module: parser.FlatBuffer<parser.proto.syntax.Module>): ActionVariant {
+        return { type: ActionType.EDITOR_SET_MODULE, payload: module };
     }
 
     /// Set the editor program
@@ -78,15 +78,15 @@ export class AppStateMutations {
                     ...state,
                     editorText: action.payload
                 };
-            case ActionType.EDITOR_SET_PROGRAM:
+            case ActionType.EDITOR_SET_MODULE:
                 return {
                     ...state,
-                    editorProgram: action.payload
+                    editorModule: action.payload
                 };
             case ActionType.EDITOR_CLEAR_PROGRAM:
                 return {
                     ...state,
-                    editorProgram: null 
+                    editorModule: null
                 };
             default:
                 return state;

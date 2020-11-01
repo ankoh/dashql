@@ -16,7 +16,7 @@ const controller = new AppController(store);
 controller.init();
 
 const appContext: IAppContext = {
-    ctrl: controller,
+    controller: controller,
 };
 
 ReactDOM.render(

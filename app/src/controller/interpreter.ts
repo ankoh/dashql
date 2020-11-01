@@ -1,9 +1,6 @@
 import { AppReduxStore } from '../store';
 import * as parser from '@dashql/parser';
 
-import Program = parser.proto.program.Program;
-import FlatBuffer = parser.FlatBuffer;
-
 export class InterpreterController {
     /// The store
     protected _store: AppReduxStore;
@@ -14,5 +11,5 @@ export class InterpreterController {
     }
 
     /// Evaluate a program
-    public async eval(_program: FlatBuffer<Program>) {}
+    public async eval(_program: parser.FlatBuffer<parser.proto.syntax.Module>) {}
 }

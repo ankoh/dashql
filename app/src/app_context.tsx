@@ -2,7 +2,7 @@ import * as React from 'react';
 import { AppController } from './controller';
 
 export interface IAppContext {
-    ctrl: AppController,
+    controller: AppController,
 }
 
 const ctx = React.createContext<IAppContext | null>(null);
