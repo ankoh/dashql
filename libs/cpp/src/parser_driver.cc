@@ -13,40 +13,6 @@
 namespace dashql {
 namespace parser {
 
-namespace {
-
-/// A keyword category
-enum class KeywordCategory {
-    DASHQL,
-    SQL_COLUMN_NAME,
-    SQL_RESERVED,
-    SQL_TYPE_FUNC,
-    SQL_UNRESERVED
-};
-
-/// A keyword
-struct Keyword {
-    /// The name
-    std::string_view name;
-    /// The token
-    Parser::token::token_kind_type token;
-    /// The category
-    KeywordCategory category;
-};
-
-/// The keyword map
-static const std::unordered_map<std::string_view, Keyword> keywords = {
-#define X(CATEGORY, NAME, TOKEN) { NAME, Keyword{ NAME, Parser::token::DQL_##TOKEN, KeywordCategory::CATEGORY } },
-#include "./grammar/keywords/dashql_keywords.list"
-#include "./grammar/keywords/sql_column_name_keywords.list"
-#include "./grammar/keywords/sql_reserved_keywords.list"
-#include "./grammar/keywords/sql_type_func_keywords.list"
-#include "./grammar/keywords/sql_unreserved_keywords.list"
-#undef X
-};
-
-}
-
 /// Return the location
 std::ostream& operator<<(std::ostream& out, const Location& loc) {
     out << "[" << loc.offset() << "," << (loc.offset() + loc.length()) << "[";

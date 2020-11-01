@@ -13,10 +13,10 @@
 #include <variant>
 #include <vector>
 #include <iostream>
-#include "dashql/parser/proto/syntax_generated.h"
-#include "dashql/parser/proto/syntax_dashql_generated.h"
-#include "dashql/parser/proto/syntax_sql_generated.h"
 #include "dashql/parser/module_builder.h"
+#include "dashql/parser/proto/syntax_dashql_generated.h"
+#include "dashql/parser/proto/syntax_generated.h"
+#include "dashql/parser/proto/syntax_sql_generated.h"
 
 namespace dashql {
 namespace parser {
@@ -58,6 +58,8 @@ class ParserDriver: public ModuleBuilder {
 
     /// Get the text at location
     inline std::string_view TextAt(Location loc) { return _input.substr(loc.offset(), loc.length()); }
+
+
 
     /// Parse a module
     static flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
