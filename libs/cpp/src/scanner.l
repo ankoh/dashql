@@ -33,6 +33,8 @@ namespace parser {
 extern sx::Location loc;
 // The offset the comment (if any)
 extern sx::Location comment_begin;
+// The comment depth (to match the appropriate */)
+extern int comment_depth;
 // The offset the literal (if any)
 extern sx::Location literal_begin;
 // The input string view
@@ -371,16 +373,24 @@ other           .
 loc =  sx::Location(loc.offset() + loc.length(), 0);
 %}
 
-{xbstart}       {
-                    /* Binary bit type.
-                     * At some point we should simply pass the string
-                     * forward to the parser and label it there.
-                     * In the meantime, place a leading "b" on the string
-                     * to mark it for the input routine as a binary string.
-                     */
-                    BEGIN(xb);
-                    literal_begin = loc;
+{whitespace}    {}
+
+
+{xcstart}       { BEGIN(xc); comment_begin = loc; comment_depth = 0; }
+<xc>{xcstart}   { ++comment_depth; }
+<xc>{xcstop}    { 
+                    if (comment_depth-- <= 0) {
+                        BEGIN(INITIAL);
+                        ctx.AddComment(sx::Location(comment_begin.offset(), loc.offset() + loc.length() - comment_begin.offset()));
+                    }
                 }
+<xc>{xcinside}  {}
+<xc>{op_chars}  {}
+<xc>\*+         {}
+<xc><<EOF>>     { ctx.AddError(loc, "unterminated bit string literal"); }
+
+
+{xbstart}       { BEGIN(xb); literal_begin = loc; }
 <xb>{quotestop}  |
 <xb>{quotefail} {
                     BEGIN(INITIAL);
@@ -389,36 +399,24 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 <xh>{xhinside}  |
 <xb>{xbinside}  {}
 <xh>{quotecontinue} |
-<xb>{quotecontinue} {
-                    /* ignore */
-                }
+<xb>{quotecontinue} {}
 <xb><<EOF>>     { ctx.AddError(loc, "unterminated bit string literal"); }
 
-{xhstart}       {
-                    /* Hexadecimal bit type.
-                    * At some point we should simply pass the string
-                    * forward to the parser and label it there.
-                    * In the meantime, place a leading "x" on the string
-                    * to mark it for the input routine as a hex string.
-                    */
-                    BEGIN(xh);
-                    literal_begin = loc;
-                }
-<xh>{quotestop}  |
+
+{xhstart}       { BEGIN(xh); literal_begin = loc; }
+<xh>{quotestop} |
 <xh>{quotefail} {
-                    yyless(1);
                     BEGIN(INITIAL);
                     return Parser::make_XCONST(sx::Location(literal_begin.offset(), loc.offset() + loc.length() - literal_begin.offset()));
                 }
 <xh><<EOF>>     { ctx.AddError(loc, "unterminated hexadecimal bit string literal"); }
 
 
+
 "select"        { return Parser::make_SELECT(loc); }
 
 {real}          { return Parser::make_FCONST(loc); }
 {integer}       { return ReadInteger(ctx, loc); }
-
-{whitespace}    {}
 
 <<EOF>>         { return Parser::make_EOF(loc); }
 {other}         {}
@@ -430,17 +428,12 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 namespace dashql {
 namespace parser {
 
-// The input location
 sx::Location loc;
-// The start of the c_comment
 sx::Location comment_begin;
-// The start of the literal
+int comment_depth;
 sx::Location literal_begin;
-// The input view of the scanner
 std::string_view in;
-// The scanner offset
 size_t scanner_offset;
-// The parser offset
 size_t parser_offset;
 
 // Begin a scan

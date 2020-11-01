@@ -82,3 +82,23 @@ expected:
   errors: []
   line_breaks: []
   comments: []
+----
+name: comments_cstyle
+input: |-
+  /* foo */
+expected:
+  statements: []
+  errors: []
+  line_breaks: []
+  comments:
+    - "0..9|'/* foo */'" 
+----
+name: comments_cstyle_nested
+input: |-
+  /* foo /* bar */ */
+expected:
+  statements: []
+  errors: []
+  line_breaks: []
+  comments:
+    - "0..19|'/* foo /* bar */ */'"
