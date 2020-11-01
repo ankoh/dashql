@@ -10,6 +10,7 @@
 %type <sx::Value> sql_fconst;
 %type <sx::Value> sql_sconst;
 %type <sx::Value> sql_bconst;
+%type <sx::Value> sql_xconst;
 %type <sx::Value> sql_ident;
 
 %type <std::vector<sx::Object>> sql_opt_target_list;

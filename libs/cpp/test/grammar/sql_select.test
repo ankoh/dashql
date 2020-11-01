@@ -61,3 +61,24 @@ expected:
   errors: []
   line_breaks: []
   comments: []
+----
+name: select_bconst_x2a
+input: |-
+  select x'2a';
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: "0..12|'select x'2a''"
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: "0..12|'select x'2a''"
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: "7..12|'x'2a''"
+            SQL_RESULT_TARGET_VALUE:
+              type: SQL_ACONST
+              location: "7..12|'x'2a''"
+              SQL_ACONST_TYPE: 3
+  errors: []
+  line_breaks: []
+  comments: []

@@ -381,18 +381,36 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
                     BEGIN(xb);
                     literal_begin = loc;
                 }
-<xb>{quotestop}	|
+<xb>{quotestop}  |
 <xb>{quotefail} {
                     BEGIN(INITIAL);
                     return Parser::make_BCONST(sx::Location(literal_begin.offset(), loc.offset() + loc.length() - literal_begin.offset()));
                 }
-<xh>{xhinside}	|
-<xb>{xbinside}	{}
+<xh>{xhinside}  |
+<xb>{xbinside}  {}
 <xh>{quotecontinue} |
 <xb>{quotecontinue} {
                     /* ignore */
                 }
 <xb><<EOF>>     { ctx.AddError(loc, "unterminated bit string literal"); }
+
+{xhstart}       {
+                    /* Hexadecimal bit type.
+                    * At some point we should simply pass the string
+                    * forward to the parser and label it there.
+                    * In the meantime, place a leading "x" on the string
+                    * to mark it for the input routine as a hex string.
+                    */
+                    BEGIN(xh);
+                    literal_begin = loc;
+                }
+<xh>{quotestop}  |
+<xh>{quotefail} {
+                    yyless(1);
+                    BEGIN(INITIAL);
+                    return Parser::make_XCONST(sx::Location(literal_begin.offset(), loc.offset() + loc.length() - literal_begin.offset()));
+                }
+<xh><<EOF>>     { ctx.AddError(loc, "unterminated hexadecimal bit string literal"); }
 
 
 "select"        { return Parser::make_SELECT(loc); }

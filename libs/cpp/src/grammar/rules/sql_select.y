@@ -10,9 +10,9 @@
  * the decision is staved off as long as possible: as long as we can keep
  * absorbing parentheses into the sub-SELECT, we will do so, and only when
  * it's no longer possible to do that will we decide that parens belong to
- * the expression.	For example, in "SELECT (((SELECT 2)) + 3)" the extra
+ * the expression.  For example, in "SELECT (((SELECT 2)) + 3)" the extra
  * parentheses are treated as part of the sub-select.  The necessity of doing
- * it that way is shown by "SELECT (((SELECT 2)) UNION SELECT 2)".	Had we
+ * it that way is shown by "SELECT (((SELECT 2)) UNION SELECT 2)".  Had we
  * parsed "((SELECT 2))" as an a_expr, it'd be too late to go back to the
  * SELECT viewpoint when we see the UNION.
  *
@@ -84,7 +84,7 @@ sql_a_expr:
  * Productions that can be used in both a_expr and b_expr.
  *
  * Note: productions that refer recursively to a_expr or b_expr mostly
- * cannot appear here.	However, it's OK to refer to a_exprs that occur
+ * cannot appear here.  However, it's OK to refer to a_exprs that occur
  * inside parentheses, such as function arguments; that cannot introduce
  * ambiguity to the b_expr syntax.
  */
@@ -116,6 +116,16 @@ sql_a_expr_const:
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::BITSTRING)},
         });
+   }
+  | sql_xconst {
+        /* This is a bit constant per SQL99:
+        * Without Feature F511, "BIT data type",
+        * a <general literal> shall not be a
+        * <bit string literal> or a <hex string literal>.
+        */
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
+            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::BITSTRING)},
+        });
     }
     ;
 
@@ -123,6 +133,7 @@ sql_iconst: ICONST { $$ = sx::Value(@1, sx::ValueType::I64, $1); };
 sql_fconst: FCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
 sql_sconst: SCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
 sql_bconst: BCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
+sql_xconst: XCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
 sql_ident: IDENT { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
 
 /*
