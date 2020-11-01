@@ -84,7 +84,7 @@ nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* na
     std::vector<std::string> expected_lines, actual_lines;
     ::testing::internal::SplitString(expected_str, '\n', &expected_lines);
     ::testing::internal::SplitString(actual_str, '\n', &actual_lines);
-    err << ::testing::internal::edit_distance::CreateUnifiedDiff(expected_lines, actual_lines);
+    err << ::testing::internal::edit_distance::CreateUnifiedDiff(actual_lines, expected_lines);
     err << std::endl;
 
     return ::testing::AssertionFailure() << err.str();
