@@ -46,6 +46,8 @@ extern size_t parser_offset;
 
 // Read an integer
 Parser::symbol_type ReadInteger(ParserDriver& ctx, sx::Location loc);
+// Read a parameter
+Parser::symbol_type ReadParameter(ParserDriver& ctx, sx::Location loc);
 // Begin a literal
 void BeginLiteral(ParserDriver& ctx, sx::Location loc);
 // End a literal
@@ -80,6 +82,8 @@ sx::Location EndLiteral(ParserDriver& ctx, sx::Location loc);
     loc = sx::Location(parser_offset, yyleng); \
     parser_offset += yyleng; \
 }
+// Return EOF token in yyterminate
+#define yyterminate() return Parser::make_EOF(loc)
 
 %}
 
@@ -315,6 +319,8 @@ other           .
 loc =  sx::Location(loc.offset() + loc.length(), 0);
 %}
 
+"select"        { return Parser::make_SELECT(loc); }
+
 {whitespace}    {}
 
 
@@ -378,15 +384,20 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 {not_equals}        { return Parser::make_NOT_EQUALS(loc); }
 {self}              { /* XXX how to forward self? */ }
 
+{operator}      { /* TODO */ }
 
-"select"        { return Parser::make_SELECT(loc); }
-
-{real}          { return Parser::make_FCONST(loc); }
+{param}         { return ReadParameter(ctx, loc); }
+{param2}        { return ReadParameter(ctx, loc); }
 {integer}       { return ReadInteger(ctx, loc); }
+{decimal}       { return Parser::make_FCONST(loc); }
+{decimalfail}   { return Parser::make_FCONST(loc); /* TODO yyless suffix */ }
+{real}          { return Parser::make_FCONST(loc); }
+{realfail1}     { return Parser::make_FCONST(loc); /* TODO yyless suffix */ }
+{realfail2}     { return Parser::make_FCONST(loc); /* TODO yyless suffix */ }
 
-<<EOF>>         { return Parser::make_EOF(loc); }
-{other}         {}
+{identifier}    { /* TODO */ }
 
+{other}         { /* TODO */ }
 %%
 
 // Code
@@ -415,6 +426,16 @@ void ParserDriver::EndScan() {
     in = _input;
     scanner_offset = 0;
     parser_offset = 0;
+}
+
+Parser::symbol_type ReadParameter(ParserDriver& ctx, sx::Location loc) {
+    auto text = ctx.TextAt(loc);
+    int64_t value;
+    auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (result.ec == std::errc::invalid_argument) {
+        ctx.AddError(loc, "invalid parameter");
+    }
+    return Parser::make_PARAM(value, loc);
 }
 
 Parser::symbol_type ReadInteger(ParserDriver& ctx, sx::Location loc) {

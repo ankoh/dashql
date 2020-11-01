@@ -6,7 +6,7 @@ dashql_load_statement:
     ;
 
 dashql_load_attributes:
-    HTTP LRB dashql_opt_http_attribute_list RRB     { $$ = move($3); }
+    HTTP '(' dashql_opt_http_attribute_list ')'     { $$ = move($3); }
   | FILE dashql_string_value                        { $$ = { sx::Attribute(@$, sx::AttributeKey::DASHQL_FILE_LABEL, $2) };  }
     ;
 
@@ -15,13 +15,13 @@ dashql_opt_http_attribute_list:
   | %empty                          { $$ = {}; }
 
 dashql_http_attribute_list:
-    dashql_http_attribute_list COMMA dashql_http_attribute      { $1.push_back($3); $$ = move($1); }
+    dashql_http_attribute_list ',' dashql_http_attribute      { $1.push_back($3); $$ = move($1); }
   | dashql_http_attribute                                       { $$ = {$1}; }
     ;
 
 dashql_http_attribute:
-    METHOD EQUAL dashql_http_verb   { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_HTTP_LOAD_VERB, $3); }
-  | URL EQUAL dashql_string_value   { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_HTTP_LOAD_URL, $3); }
+    METHOD '=' dashql_http_verb   { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_HTTP_LOAD_VERB, $3); }
+  | URL '=' dashql_string_value   { $$ = sx::Attribute(@$, sx::AttributeKey::DASHQL_HTTP_LOAD_URL, $3); }
     ;
 
 dashql_http_verb:

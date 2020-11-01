@@ -89,7 +89,15 @@ set(GRAMMAR_OUT ${CMAKE_BINARY_DIR}/dashql.y)
 set(GRAMMAR_DELIMITER ${CMAKE_SOURCE_DIR}/src/grammar/delimiter.y)
 set(GRAMMAR_PROLOGUE ${CMAKE_SOURCE_DIR}/src/grammar/prologue.y)
 set(GRAMMAR_EPILOGUE ${CMAKE_SOURCE_DIR}/src/grammar/epilogue.y)
-set(GRAMMAR_TOKENS ${CMAKE_SOURCE_DIR}/src/grammar/tokens.y)
+set(GRAMMAR_KEYWORDS ${CMAKE_SOURCE_DIR}/src/grammar/keywords.list)
+
+set(GRAMMAR_KEYWORDS
+    ${CMAKE_SOURCE_DIR}/src/grammar/keywords/dashql_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/grammar/keywords/sql_column_name_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/grammar/keywords/sql_reserved_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/grammar/keywords/sql_type_func_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/grammar/keywords/sql_unreserved_keywords.list
+)
 
 set(GRAMMAR_RULES
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_common.y
@@ -118,7 +126,7 @@ add_custom_command(
     OUTPUT ${GRAMMAR_OUT}
     COMMAND rm -f ${GRAMMAR_OUT}
     COMMAND cat ${GRAMMAR_PROLOGUE} >> ${GRAMMAR_OUT}
-    COMMAND cat ${GRAMMAR_TOKENS} >> ${GRAMMAR_OUT}
+    COMMAND awk -F, '{print \"%token \" substr($$3, 1, length($$3)-1)}' ${GRAMMAR_KEYWORDS} >> ${GRAMMAR_OUT}
     COMMAND cat ${GRAMMAR_TYPES} >> ${GRAMMAR_OUT}
     COMMAND echo "%%" >> ${GRAMMAR_OUT}
     COMMAND cat ${GRAMMAR_RULES} >> ${GRAMMAR_OUT}
@@ -127,7 +135,7 @@ add_custom_command(
     DEPENDS
         ${GRAMMAR_PROLOGUE}
         ${GRAMMAR_EPILOGUE}
-        ${GRAMMAR_TOKENS}
+        ${GRAMMAR_KEYWORDS}
         ${GRAMMAR_RULES}
         ${GRAMMAR_TYPES}
 )
