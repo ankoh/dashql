@@ -76,7 +76,7 @@ nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* na
 
     err << std::endl;
     err << "----------------------------------------" << std::endl;
-    err << "EXEPECTED" << std::endl;
+    err << "EXPECTED" << std::endl;
     err << "----------------------------------------" << std::endl;
     err << expected_str << std::endl;
 
