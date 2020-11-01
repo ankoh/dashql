@@ -51,7 +51,7 @@ export abstract class DashQLParserBindings {
         args: Array<any>,
     ): [number, number, number] {
         // Save the stack
-        let instance = this._instance;
+        let instance = this._instance!;
         let stackPointer = instance.stackSave();
 
         // Allocate the packed response buffer
@@ -75,7 +75,7 @@ export abstract class DashQLParserBindings {
 
     /// Parse a string and return a flatbuffer
     public parse(text: string): ModuleBuffer {
-        let instance = this._instance;
+        let instance = this._instance!;
         let [ptr, size, ofs] = this.callSRet('dashql_parse', ['string'], [text]);
         let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
         let program = new ModuleBuffer(mem);
