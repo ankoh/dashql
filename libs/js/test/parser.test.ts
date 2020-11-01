@@ -9,7 +9,7 @@ beforeAll(async () => {
 describe('Parser', () => {
     describe('foo', () => {
         test('synatx error', () => {
-            const result = parser.parse("select 1e-04");
+            const result = parser.parse("select 1e-04;");
             expect(result.root.errorsLength()).toBe(0);
             expect(result.root.statements()!.entriesLength()).toBe(1);
         });
