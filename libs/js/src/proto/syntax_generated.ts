@@ -63,7 +63,7 @@ export enum AttributeKey{
 export namespace dashql.proto.syntax{
 export enum ValueType{
   NONE= 0,
-  I32= 1,
+  I64= 1,
   STRING= 2,
   OBJECT= 3,
   ARRAY= 4
@@ -215,17 +215,17 @@ type():dashql.proto.syntax.ValueType {
 };
 
 /**
- * @returns number
+ * @returns flatbuffers.Long
  */
-value():number {
-  return this.bb!.readInt32(this.bb_pos + 12);
+value():flatbuffers.Long {
+  return this.bb!.readInt64(this.bb_pos + 16);
 };
 
 /**
  * @returns number
  */
 static sizeOf():number {
-  return 16;
+  return 24;
 }
 
 /**
@@ -233,13 +233,13 @@ static sizeOf():number {
  * @param number location_offset
  * @param number location_length
  * @param dashql.proto.syntax.ValueType type
- * @param number value
+ * @param flatbuffers.Long value
  * @returns flatbuffers.Offset
  */
-static createValue(builder:flatbuffers.Builder, location_offset: number, location_length: number, type: dashql.proto.syntax.ValueType, value: number):flatbuffers.Offset {
-  builder.prep(4, 16);
-  builder.writeInt32(value);
-  builder.pad(3);
+static createValue(builder:flatbuffers.Builder, location_offset: number, location_length: number, type: dashql.proto.syntax.ValueType, value: flatbuffers.Long):flatbuffers.Offset {
+  builder.prep(8, 24);
+  builder.writeInt64(value);
+  builder.pad(7);
   builder.writeInt8(type);
   builder.prep(4, 8);
   builder.writeInt32(location_length);
@@ -353,14 +353,14 @@ key():dashql.proto.syntax.AttributeKey {
  * @returns dashql.proto.syntax.Value|null
  */
 value(obj?:dashql.proto.syntax.Value):dashql.proto.syntax.Value|null {
-  return (obj || new dashql.proto.syntax.Value()).__init(this.bb_pos + 12, this.bb!);
+  return (obj || new dashql.proto.syntax.Value()).__init(this.bb_pos + 16, this.bb!);
 };
 
 /**
  * @returns number
  */
 static sizeOf():number {
-  return 28;
+  return 40;
 }
 
 /**
@@ -371,19 +371,19 @@ static sizeOf():number {
  * @param number value_location_offset
  * @param number value_location_length
  * @param dashql.proto.syntax.ValueType value_type
- * @param number value_value
+ * @param flatbuffers.Long value_value
  * @returns flatbuffers.Offset
  */
-static createAttribute(builder:flatbuffers.Builder, location_offset: number, location_length: number, key: dashql.proto.syntax.AttributeKey, value_location_offset: number, value_location_length: number, value_type: dashql.proto.syntax.ValueType, value_value: number):flatbuffers.Offset {
-  builder.prep(4, 28);
-  builder.prep(4, 16);
-  builder.writeInt32(value_value);
-  builder.pad(3);
+static createAttribute(builder:flatbuffers.Builder, location_offset: number, location_length: number, key: dashql.proto.syntax.AttributeKey, value_location_offset: number, value_location_length: number, value_type: dashql.proto.syntax.ValueType, value_value: flatbuffers.Long):flatbuffers.Offset {
+  builder.prep(8, 40);
+  builder.prep(8, 24);
+  builder.writeInt64(value_value);
+  builder.pad(7);
   builder.writeInt8(value_type);
   builder.prep(4, 8);
   builder.writeInt32(value_location_length);
   builder.writeInt32(value_location_offset);
-  builder.pad(3);
+  builder.pad(7);
   builder.writeInt8(key);
   builder.prep(4, 8);
   builder.writeInt32(location_length);
@@ -554,7 +554,7 @@ objectsLength():number {
  */
 attributes(index: number, obj?:dashql.proto.syntax.Attribute):dashql.proto.syntax.Attribute|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? (obj || new dashql.proto.syntax.Attribute()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 28, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.syntax.Attribute()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 40, this.bb!) : null;
 };
 
 /**
@@ -587,7 +587,7 @@ arraysLength():number {
  * @param number index
  * @returns number
  */
-valuesI32(index: number):number|null {
+valuesI64(index: number):number|null {
   var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.readInt32(this.bb!.__vector(this.bb_pos + offset) + index * 4) : 0;
 };
@@ -595,7 +595,7 @@ valuesI32(index: number):number|null {
 /**
  * @returns number
  */
-valuesI32Length():number {
+valuesI64Length():number {
   var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
@@ -603,7 +603,7 @@ valuesI32Length():number {
 /**
  * @returns Int32Array
  */
-valuesI32Array():Int32Array|null {
+valuesI64Array():Int32Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? new Int32Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
@@ -696,7 +696,7 @@ static addAttributes(builder:flatbuffers.Builder, attributesOffset:flatbuffers.O
  * @param number numElems
  */
 static startAttributesVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(28, numElems, 4);
+  builder.startVector(40, numElems, 8);
 };
 
 /**
@@ -717,10 +717,10 @@ static startArraysVector(builder:flatbuffers.Builder, numElems:number) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset valuesI32Offset
+ * @param flatbuffers.Offset valuesI64Offset
  */
-static addValuesI32(builder:flatbuffers.Builder, valuesI32Offset:flatbuffers.Offset) {
-  builder.addFieldOffset(4, valuesI32Offset, 0);
+static addValuesI64(builder:flatbuffers.Builder, valuesI64Offset:flatbuffers.Offset) {
+  builder.addFieldOffset(4, valuesI64Offset, 0);
 };
 
 /**
@@ -728,12 +728,12 @@ static addValuesI32(builder:flatbuffers.Builder, valuesI32Offset:flatbuffers.Off
  * @param Array.<number> data
  * @returns flatbuffers.Offset
  */
-static createValuesI32Vector(builder:flatbuffers.Builder, data:number[]|Int32Array):flatbuffers.Offset;
+static createValuesI64Vector(builder:flatbuffers.Builder, data:number[]|Int32Array):flatbuffers.Offset;
 /**
  * @deprecated This Uint8Array overload will be removed in the future.
  */
-static createValuesI32Vector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
-static createValuesI32Vector(builder:flatbuffers.Builder, data:number[]|Int32Array|Uint8Array):flatbuffers.Offset {
+static createValuesI64Vector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
+static createValuesI64Vector(builder:flatbuffers.Builder, data:number[]|Int32Array|Uint8Array):flatbuffers.Offset {
   builder.startVector(4, data.length, 4);
   for (var i = data.length - 1; i >= 0; i--) {
     builder.addInt32(data[i]);
@@ -745,7 +745,7 @@ static createValuesI32Vector(builder:flatbuffers.Builder, data:number[]|Int32Arr
  * @param flatbuffers.Builder builder
  * @param number numElems
  */
-static startValuesI32Vector(builder:flatbuffers.Builder, numElems:number) {
+static startValuesI64Vector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
 };
 
@@ -774,13 +774,13 @@ static endDocument(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createDocument(builder:flatbuffers.Builder, entriesOffset:flatbuffers.Offset, objectsOffset:flatbuffers.Offset, attributesOffset:flatbuffers.Offset, arraysOffset:flatbuffers.Offset, valuesI32Offset:flatbuffers.Offset, valuesStringOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createDocument(builder:flatbuffers.Builder, entriesOffset:flatbuffers.Offset, objectsOffset:flatbuffers.Offset, attributesOffset:flatbuffers.Offset, arraysOffset:flatbuffers.Offset, valuesI64Offset:flatbuffers.Offset, valuesStringOffset:flatbuffers.Offset):flatbuffers.Offset {
   Document.startDocument(builder);
   Document.addEntries(builder, entriesOffset);
   Document.addObjects(builder, objectsOffset);
   Document.addAttributes(builder, attributesOffset);
   Document.addArrays(builder, arraysOffset);
-  Document.addValuesI32(builder, valuesI32Offset);
+  Document.addValuesI64(builder, valuesI64Offset);
   Document.addValuesString(builder, valuesStringOffset);
   return Document.endDocument(builder);
 }

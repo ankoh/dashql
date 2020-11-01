@@ -9,12 +9,12 @@ dashql_parameter_declaration:
     ;
 
 dashql_parameter_type:
-    INTEGER     { $$ = sx::Value(@$, sx::ValueType::I32, (int) sxd::ParameterType::INTEGER); }
-  | FLOAT       { $$ = sx::Value(@$, sx::ValueType::I32, (int) sxd::ParameterType::FLOAT); }
-  | TEXT        { $$ = sx::Value(@$, sx::ValueType::I32, (int) sxd::ParameterType::TEXT); }
-  | DATE        { $$ = sx::Value(@$, sx::ValueType::I32, (int) sxd::ParameterType::DATE); }
-  | DATETIME    { $$ = sx::Value(@$, sx::ValueType::I32, (int) sxd::ParameterType::DATETIME); }
-  | TIME        { $$ = sx::Value(@$, sx::ValueType::I32, (int) sxd::ParameterType::TIME); }
-  | FILE        { $$ = sx::Value(@$, sx::ValueType::I32, (int) sxd::ParameterType::FILE); }
+    INTEGER     { $$ = sx::Value(@$, sx::ValueType::I64, (int) sxd::ParameterType::INTEGER); }
+  | FLOAT       { $$ = sx::Value(@$, sx::ValueType::I64, (int) sxd::ParameterType::FLOAT); }
+  | TEXT        { $$ = sx::Value(@$, sx::ValueType::I64, (int) sxd::ParameterType::TEXT); }
+  | DATE        { $$ = sx::Value(@$, sx::ValueType::I64, (int) sxd::ParameterType::DATE); }
+  | DATETIME    { $$ = sx::Value(@$, sx::ValueType::I64, (int) sxd::ParameterType::DATETIME); }
+  | TIME        { $$ = sx::Value(@$, sx::ValueType::I64, (int) sxd::ParameterType::TIME); }
+  | FILE        { $$ = sx::Value(@$, sx::ValueType::I64, (int) sxd::ParameterType::FILE); }
     ;
 

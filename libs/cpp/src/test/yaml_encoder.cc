@@ -76,7 +76,7 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
         auto* attrs = module.statements()->attributes();
         auto* arrays = module.statements()->arrays();
         auto* values_str = module.statements()->values_string();
-        auto* values_i32 = module.statements()->values_i32();
+        auto* values_i64 = module.statements()->values_i64();
 
         auto assert_less_than = [](unsigned v, unsigned size) {
             assert(v < size);
@@ -116,7 +116,7 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
                 switch (attr_value.type()) {
                     case sx::ValueType::NONE:
                         break;
-                    case sx::ValueType::I32: {
+                    case sx::ValueType::I64: {
                         auto n = v[attr_key];
                         n |= ryml::VAL;
                         n << attr_value.value();
@@ -179,12 +179,12 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
                                         encode(nested_val, *values_str->Get(i), text);
                                     }
                                     break;
-                                case sx::ValueType::I32:
-                                    assert_within(array_begin, array_end, values_i32->size());
+                                case sx::ValueType::I64:
+                                    assert_within(array_begin, array_end, values_i64->size());
                                     for (auto i = array_begin; i < array_end; ++i) {
                                         auto nested_val = array_node.append_child();
                                         nested_val |= ryml::VAL;
-                                        nested_val << values_i32->Get(i);
+                                        nested_val << values_i64->Get(i);
                                     }
                                     break;
                             }

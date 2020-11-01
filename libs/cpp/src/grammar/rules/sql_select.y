@@ -96,7 +96,13 @@ sql_c_expr:
  * Constants
  */
 sql_a_expr_const:
-    sql_fconst {
+    sql_iconst {
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
+            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::INTEGER)},
+            {@$, sx::AttributeKey::SQL_ACONST_VALUE, $1},
+        });
+    }
+  | sql_fconst {
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::FLOAT)},
         });
@@ -113,7 +119,7 @@ sql_a_expr_const:
     }
     ;
 
-
+sql_iconst: ICONST { $$ = sx::Value(@1, sx::ValueType::I64, $1); };
 sql_fconst: FCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
 sql_sconst: SCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
 sql_bconst: BCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };

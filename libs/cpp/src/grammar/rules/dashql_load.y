@@ -25,7 +25,7 @@ dashql_http_attribute:
     ;
 
 dashql_http_verb:
-    GET     { $$ = sx::Value(@$, sx::ValueType::I32, (int) sxd::HTTPVerb::GET); }
-  | PUT     { $$ = sx::Value(@$, sx::ValueType::I32, (int) sxd::HTTPVerb::PUT); }
-  | POST    { $$ = sx::Value(@$, sx::ValueType::I32, (int) sxd::HTTPVerb::POST); }
+    GET     { $$ = sx::Value(@$, sx::ValueType::I64, (int) sxd::HTTPVerb::GET); }
+  | PUT     { $$ = sx::Value(@$, sx::ValueType::I64, (int) sxd::HTTPVerb::PUT); }
+  | POST    { $$ = sx::Value(@$, sx::ValueType::I64, (int) sxd::HTTPVerb::POST); }
     ;

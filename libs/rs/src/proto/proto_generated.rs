@@ -263,7 +263,7 @@ pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum ValueType {
   NONE = 0,
-  I32 = 1,
+  I64 = 1,
   STRING = 2,
   OBJECT = 3,
   ARRAY = 4,
@@ -307,7 +307,7 @@ impl flatbuffers::Push for ValueType {
 #[allow(non_camel_case_types)]
 pub const ENUM_VALUES_VALUE_TYPE: [ValueType; 5] = [
   ValueType::NONE,
-  ValueType::I32,
+  ValueType::I64,
   ValueType::STRING,
   ValueType::OBJECT,
   ValueType::ARRAY
@@ -316,7 +316,7 @@ pub const ENUM_VALUES_VALUE_TYPE: [ValueType; 5] = [
 #[allow(non_camel_case_types)]
 pub const ENUM_NAMES_VALUE_TYPE: [&str; 5] = [
     "NONE",
-    "I32",
+    "I64",
     "STRING",
     "OBJECT",
     "ARRAY"
@@ -457,14 +457,14 @@ impl Span {
   }
 }
 
-// struct Value, aligned to 4
-#[repr(C, align(4))]
+// struct Value, aligned to 8
+#[repr(C, align(8))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Value {
   pub location_: Location,
   pub type__: ValueType,
-  padding0__: u8,  padding1__: u16,
-  pub value_: i32,
+  padding0__: u8,  padding1__: u16,  padding2__: u32,
+  pub value_: i64,
 } // pub struct Value
 impl flatbuffers::SafeSliceAccess for Value {}
 impl<'a> flatbuffers::Follow<'a> for Value {
@@ -505,13 +505,13 @@ impl<'b> flatbuffers::Push for &'b Value {
 
 
 impl Value {
-  pub fn new(_location: &Location, _type_: ValueType, _value: i32) -> Self {
+  pub fn new(_location: &Location, _type_: ValueType, _value: i64) -> Self {
     Value {
       location_: *_location,
       type__: _type_.to_little_endian(),
       value_: _value.to_little_endian(),
 
-      padding0__: 0,padding1__: 0,
+      padding0__: 0,padding1__: 0,padding2__: 0,
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
@@ -524,7 +524,7 @@ impl Value {
   pub fn type_(&self) -> ValueType {
     self.type__.from_little_endian()
   }
-  pub fn value(&self) -> i32 {
+  pub fn value(&self) -> i64 {
     self.value_.from_little_endian()
   }
 }
@@ -601,13 +601,13 @@ impl Array {
   }
 }
 
-// struct Attribute, aligned to 4
-#[repr(C, align(4))]
+// struct Attribute, aligned to 8
+#[repr(C, align(8))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Attribute {
   pub location_: Location,
   pub key_: AttributeKey,
-  padding0__: u8,  padding1__: u16,
+  padding0__: u8,  padding1__: u16,  padding2__: u32,
   pub value_: Value,
 } // pub struct Attribute
 impl flatbuffers::SafeSliceAccess for Attribute {}
@@ -655,7 +655,7 @@ impl Attribute {
       key_: _key.to_little_endian(),
       value_: *_value,
 
-      padding0__: 0,padding1__: 0,
+      padding0__: 0,padding1__: 0,padding2__: 0,
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
@@ -777,7 +777,7 @@ impl<'a> Document<'a> {
         args: &'args DocumentArgs<'args>) -> flatbuffers::WIPOffset<Document<'bldr>> {
       let mut builder = DocumentBuilder::new(_fbb);
       if let Some(x) = args.values_string { builder.add_values_string(x); }
-      if let Some(x) = args.values_i32 { builder.add_values_i32(x); }
+      if let Some(x) = args.values_i64 { builder.add_values_i64(x); }
       if let Some(x) = args.arrays { builder.add_arrays(x); }
       if let Some(x) = args.attributes { builder.add_attributes(x); }
       if let Some(x) = args.objects { builder.add_objects(x); }
@@ -789,7 +789,7 @@ impl<'a> Document<'a> {
     pub const VT_OBJECTS: flatbuffers::VOffsetT = 6;
     pub const VT_ATTRIBUTES: flatbuffers::VOffsetT = 8;
     pub const VT_ARRAYS: flatbuffers::VOffsetT = 10;
-    pub const VT_VALUES_I32: flatbuffers::VOffsetT = 12;
+    pub const VT_VALUES_I64: flatbuffers::VOffsetT = 12;
     pub const VT_VALUES_STRING: flatbuffers::VOffsetT = 14;
 
   #[inline]
@@ -809,8 +809,8 @@ impl<'a> Document<'a> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Array>>>(Document::VT_ARRAYS, None).map(|v| v.safe_slice() )
   }
   #[inline]
-  pub fn values_i32(&self) -> Option<flatbuffers::Vector<'a, i32>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, i32>>>(Document::VT_VALUES_I32, None)
+  pub fn values_i64(&self) -> Option<flatbuffers::Vector<'a, i32>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, i32>>>(Document::VT_VALUES_I64, None)
   }
   #[inline]
   pub fn values_string(&self) -> Option<&'a [Location]> {
@@ -823,7 +823,7 @@ pub struct DocumentArgs<'a> {
     pub objects: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
     pub attributes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Attribute>>>,
     pub arrays: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Array>>>,
-    pub values_i32: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i32>>>,
+    pub values_i64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i32>>>,
     pub values_string: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
 }
 impl<'a> Default for DocumentArgs<'a> {
@@ -834,7 +834,7 @@ impl<'a> Default for DocumentArgs<'a> {
             objects: None,
             attributes: None,
             arrays: None,
-            values_i32: None,
+            values_i64: None,
             values_string: None,
         }
     }
@@ -861,8 +861,8 @@ impl<'a: 'b, 'b> DocumentBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_ARRAYS, arrays);
   }
   #[inline]
-  pub fn add_values_i32(&mut self, values_i32: flatbuffers::WIPOffset<flatbuffers::Vector<'b , i32>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_VALUES_I32, values_i32);
+  pub fn add_values_i64(&mut self, values_i64: flatbuffers::WIPOffset<flatbuffers::Vector<'b , i32>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_VALUES_I64, values_i64);
   }
   #[inline]
   pub fn add_values_string(&mut self, values_string: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Location>>) {

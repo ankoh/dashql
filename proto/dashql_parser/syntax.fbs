@@ -56,7 +56,7 @@ enum AttributeKey: uint8 {
 
 enum ValueType: uint8 {
     NONE,
-    I32,
+    I64,
     STRING,
     OBJECT,
     ARRAY,
@@ -65,7 +65,7 @@ enum ValueType: uint8 {
 struct Value {
     location: Location;
     type: ValueType = NONE;
-    value: int32 = 0;
+    value: int64 = 0;
 }
 
 struct Array {
@@ -91,7 +91,7 @@ table Document {
     objects: [Object];
     attributes: [Attribute];
     arrays: [Array];
-    values_i32: [int32];
+    values_i64: [int32];
     values_string: [Location];
 }
 

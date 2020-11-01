@@ -10,6 +10,7 @@
 #include <sstream>
 #include <string_view>
 #include <string>
+#include <charconv>
 #include "dashql/parser/parser_driver.h"
 #include "dashql/parser/parser.h"
 
@@ -21,21 +22,26 @@
 
 using namespace dashql;
 using namespace dashql::parser;
-namespace syntax = dashql::proto::syntax;
+namespace sx = proto::syntax;
+namespace sxd = proto::syntax_dashql;
+namespace sxs = proto::syntax_sql;
 
 namespace dashql {
 namespace parser {
 
 // The location of the current token
-extern syntax::Location loc;
+extern sx::Location loc;
 // The offset the comment (if any)
-extern syntax::Location comment_begin;
+extern sx::Location comment_begin;
 // The input string view
 extern std::string_view in;
 // The reader offset
 extern size_t scanner_offset;
 // The parser offset
 extern size_t parser_offset;
+
+// Read an integer
+Parser::symbol_type ReadInteger(ParserDriver& ctx, sx::Location loc);
 
 } // namespace parser
 } // namespace dashql
@@ -50,7 +56,7 @@ extern size_t parser_offset;
 // Declare the yylex function
 #define YY_DECL Parser::symbol_type yylex(dashql::parser::ParserDriver& ctx)
 // Init yyloc
-#define YY_USER_INIT loc = syntax::Location();
+#define YY_USER_INIT loc = sx::Location();
 // Configure the scanner to use string views
 #define YY_INPUT(buffer, bytes_read, max_bytes) \
     bytes_read = in.copy(buffer, max_bytes, scanner_offset); \
@@ -60,10 +66,10 @@ extern size_t parser_offset;
     auto token_text = in.substr(parser_offset, yyleng); \
     for (unsigned i = 0; i < yyleng; ++i) { \
         if (token_text[i] == '\n') { \
-            ctx.AddLineBreak(syntax::Location(parser_offset + i, 1)); \
+            ctx.AddLineBreak(sx::Location(parser_offset + i, 1)); \
         } \
     } \
-    loc = syntax::Location(parser_offset, yyleng); \
+    loc = sx::Location(parser_offset, yyleng); \
     parser_offset += yyleng; \
 }
 
@@ -319,12 +325,13 @@ other           .
 %{
 // Code runs each time yylex is called.
 // Start a new token at the end of the previous token.
-loc =  syntax::Location(loc.offset() + loc.length(), 0);
+loc =  sx::Location(loc.offset() + loc.length(), 0);
 %}
 
 "select"        { return Parser::make_SELECT(loc); }
 
 {real}          { return Parser::make_FCONST(loc); }
+{integer}       { return ReadInteger(ctx, loc); }
 
 {whitespace}    {}
 
@@ -335,32 +342,50 @@ loc =  syntax::Location(loc.offset() + loc.length(), 0);
 
 // Code
 
+namespace dashql {
+namespace parser {
+
 // The input location
-syntax::Location dashql::parser::loc;
+sx::Location loc;
 // The start of the c_comment
-syntax::Location dashql::parser::comment_begin;
+sx::Location comment_begin;
 // The input view of the scanner
-std::string_view dashql::parser::in;
+std::string_view in;
 // The scanner offset
-size_t dashql::parser::scanner_offset;
+size_t scanner_offset;
 // The parser offset
-size_t dashql::parser::parser_offset;
+size_t parser_offset;
 
 // Begin a scan
-void dashql::parser::ParserDriver::BeginScan() {
+void ParserDriver::BeginScan() {
     yy_flex_debug = _trace_scanning;
-    loc = syntax::Location();
+    loc = sx::Location();
     in = _input;
-    comment_begin = syntax::Location();
+    comment_begin = sx::Location();
     scanner_offset = 0;
     parser_offset = 0;
 }
 
 // End a scan
-void dashql::parser::ParserDriver::EndScan() {
-    loc = syntax::Location();
+void ParserDriver::EndScan() {
+    loc = sx::Location();
     in = _input;
-    comment_begin = syntax::Location();
+    comment_begin = sx::Location();
     scanner_offset = 0;
     parser_offset = 0;
+}
+
+// Read an integer
+Parser::symbol_type ReadInteger(ParserDriver& ctx, sx::Location loc) {
+    auto text = ctx.TextAt(loc);
+    int64_t value;
+    auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (result.ec == std::errc::invalid_argument) {
+        return Parser::make_FCONST(loc);
+    } else {
+        return Parser::make_ICONST(value, loc);
+    }
+}
+
+}
 }

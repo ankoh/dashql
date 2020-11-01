@@ -53,7 +53,7 @@ json::StringBuffer encodeJSON(const proto::syntax::Module& module, bool pretty) 
         auto* attrs = module.statements()->attributes();
         auto* arrays = module.statements()->arrays();
         auto* values_str = module.statements()->values_string();
-        auto* values_i32 = module.statements()->values_i32();
+        auto* values_i64 = module.statements()->values_i64();
 
         auto assert_less_than = [](unsigned v, unsigned size) {
             assert(v < size);
@@ -92,7 +92,7 @@ json::StringBuffer encodeJSON(const proto::syntax::Module& module, bool pretty) 
                 switch (attr_value.type()) {
                     case sx::ValueType::NONE:
                         break;
-                    case sx::ValueType::I32:
+                    case sx::ValueType::I64:
                         v.AddMember(attr_key, attr_value.value(), alloc);
                         break;
                     case sx::ValueType::STRING:
@@ -151,10 +151,10 @@ json::StringBuffer encodeJSON(const proto::syntax::Module& module, bool pretty) 
                                     for (auto i = array_begin; i < array_end; ++i)
                                         value.PushBack(encode(doc, *values_str->Get(i)), alloc);
                                     break;
-                                case sx::ValueType::I32:
-                                    assert_within(array_begin, array_end, values_i32->size());
+                                case sx::ValueType::I64:
+                                    assert_within(array_begin, array_end, values_i64->size());
                                     for (auto i = array_begin; i < array_end; ++i)
-                                        value.PushBack(values_i32->Get(i), alloc);
+                                        value.PushBack(values_i64->Get(i), alloc);
                                     break;
                             }
                         }

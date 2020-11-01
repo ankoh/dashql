@@ -26,7 +26,7 @@ class DocumentBuilder {
     std::vector<sx::Object> _objects = {};
     std::vector<sx::Attribute> _attributes = {};
     std::vector<sx::Array> _arrays = {};
-    std::vector<int32_t> _values_i32 = {};
+    std::vector<int32_t> _values_i64 = {};
     std::vector<sx::Location> _values_string = {};
 
     /// A null entry
@@ -96,7 +96,7 @@ class ModuleBuilder {
     inline sx::Value AddObject(sx::Object object) { return _statements.AddObject(object.location(), object); }
     /// Create an enum
     template <typename Enum>
-    inline sx::Value CreateEnum(sx::Location loc, Enum e) const { return sx::Value(loc, sx::ValueType::I32, static_cast<int32_t>(e)); }
+    inline sx::Value CreateEnum(sx::Location loc, Enum e) const { return sx::Value(loc, sx::ValueType::I64, static_cast<int64_t>(e)); }
 
     /// Add an object
     sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);

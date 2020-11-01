@@ -65,14 +65,14 @@ fb::Offset<sx::Document> DocumentBuilder::Write(fb::FlatBufferBuilder& builder) 
     fb::Offset<fb::Vector<const sx::Object*>> objects;
     fb::Offset<fb::Vector<const sx::Attribute*>> attributes;
     fb::Offset<fb::Vector<const sx::Array*>> arrays;
-    fb::Offset<fb::Vector<int32_t>> values_i32;
+    fb::Offset<fb::Vector<int32_t>> values_i64;
     fb::Offset<fb::Vector<const sx::Location*>> values_string;
 
     entries = builder.CreateVector(_entries);
     objects = builder.CreateVectorOfStructs(_objects);
     attributes = builder.CreateVectorOfStructs(_attributes);
     arrays = builder.CreateVectorOfStructs(_arrays);
-    values_i32 = builder.CreateVector(_values_i32);
+    values_i64 = builder.CreateVector(_values_i64);
     values_string = builder.CreateVectorOfStructs(_values_string);
 
     sx::DocumentBuilder doc{builder};
@@ -80,7 +80,7 @@ fb::Offset<sx::Document> DocumentBuilder::Write(fb::FlatBufferBuilder& builder) 
     doc.add_objects(objects);
     doc.add_attributes(attributes);
     doc.add_arrays(arrays);
-    doc.add_values_i32(values_i32);
+    doc.add_values_i64(values_i64);
     doc.add_values_string(values_string);
     return doc.Finish();
 }
@@ -111,7 +111,7 @@ sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, const 
 
 /// Add an object
 std::vector<sx::Attribute> ModuleBuilder::CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<sx::Attribute>>> attrs) {
-    auto type_val = sx::Value(viz_loc, sx::ValueType::I32, static_cast<int32_t>(viz_type));
+    auto type_val = sx::Value(viz_loc, sx::ValueType::I64, static_cast<int64_t>(viz_type));
     auto type_attr = sx::Attribute(viz_loc, sx::AttributeKey::DASHQL_VIZ_TYPE, type_val);
     std::vector<sx::Attribute> result{type_attr};
     for (auto& as: attrs) {
