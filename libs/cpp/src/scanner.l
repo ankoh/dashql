@@ -46,6 +46,8 @@ extern size_t scanner_offset;
 // The parser offset
 extern size_t parser_offset;
 
+// Put back characters
+void PutBack(ParserDriver& ctx, size_t n);
 // Read an integer
 Parser::symbol_type ReadInteger(ParserDriver& ctx, sx::Location loc);
 // Read a parameter
@@ -392,8 +394,8 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 {decimal}       { return Parser::make_FCONST(loc); }
 {decimalfail}   { return Parser::make_FCONST(loc); /* TODO yyless suffix */ }
 {real}          { return Parser::make_FCONST(loc); }
-{realfail1}     { return Parser::make_FCONST(sx::Location(loc.offset(), loc.length() - 1)); }
-{realfail2}     { return Parser::make_FCONST(sx::Location(loc.offset(), loc.length() - 2)); }
+{realfail1}     { PutBack(ctx, 1); return Parser::make_FCONST(loc); }
+{realfail2}     { PutBack(ctx, 2); return Parser::make_FCONST(loc); }
 
 {identifier}    {
                     if (auto k = Keyword::Find(ctx.TextAt(loc)); !!k) {
@@ -431,6 +433,12 @@ void ParserDriver::EndScan() {
     in = _input;
     scanner_offset = 0;
     parser_offset = 0;
+}
+
+void PutBack(ParserDriver& ctx, size_t n) {
+    yyless(loc.length() - n);
+    parser_offset -= n;
+    loc = sx::Location(loc.offset(), loc.length() - n);
 }
 
 Parser::symbol_type ReadParameter(ParserDriver& ctx, sx::Location loc) {
