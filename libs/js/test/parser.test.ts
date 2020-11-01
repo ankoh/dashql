@@ -11,7 +11,7 @@ describe('Parser', () => {
         test('synatx error', () => {
             const result = parser.parse("select 1e-04");
             expect(result.root.errorsLength()).toBe(0);
-            expect(result.root.statements().entriesLength()).toBe(1);
+            expect(result.root.statements()!.entriesLength()).toBe(1);
         });
     });
 //    describe('errors', () => {
