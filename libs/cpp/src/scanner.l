@@ -392,7 +392,7 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 {param2}        { return ReadParameter(ctx, loc); }
 {integer}       { return ReadInteger(ctx, loc); }
 {decimal}       { return Parser::make_FCONST(loc); }
-{decimalfail}   { return Parser::make_FCONST(loc); /* TODO yyless suffix */ }
+{decimalfail}   { PutBack(ctx, 2); return Parser::make_FCONST(loc); }
 {real}          { return Parser::make_FCONST(loc); }
 {realfail1}     { PutBack(ctx, 1); return Parser::make_FCONST(loc); }
 {realfail2}     { PutBack(ctx, 2); return Parser::make_FCONST(loc); }

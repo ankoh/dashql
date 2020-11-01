@@ -20,6 +20,27 @@ expected:
   line_breaks: []
   comments: []
 ----
+name: select_fconst_1e04
+input: |-
+  select 1e-04;
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: "0..12|`select 1e-04`"
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: "0..12|`select 1e-04`"
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: "7..12|`1e-04`"
+            SQL_RESULT_TARGET_VALUE:
+              type: SQL_ACONST
+              location: "7..12|`1e-04`"
+              SQL_ACONST_TYPE: 1
+  errors: []
+  line_breaks: []
+  comments: []
+----
 name: select_fconst_realfail1
 input: |-
   select 1e;
@@ -60,27 +81,6 @@ expected:
               location: 7..8|`1`
               SQL_ACONST_TYPE: 1
             SQL_RESULT_TARGET_NAME: 8..9|`e`
-  errors: []
-  line_breaks: []
-  comments: []
-----
-name: select_fconst_1e04
-input: |-
-  select 1e-04;
-expected:
-  statements:
-    - type: DASHQL_QUERY
-      location: "0..12|`select 1e-04`"
-      DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
-        location: "0..12|`select 1e-04`"
-        SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
-            location: "7..12|`1e-04`"
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: "7..12|`1e-04`"
-              SQL_ACONST_TYPE: 1
   errors: []
   line_breaks: []
   comments: []
