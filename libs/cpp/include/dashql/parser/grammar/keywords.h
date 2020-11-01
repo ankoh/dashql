@@ -21,6 +21,9 @@ struct Keyword {
     Parser::token::token_kind_type token;
     /// The category
     KeywordCategory category;
+
+    /// Find a keyword
+    static const Keyword* Find(std::string_view text);
 };
 
 }  // namespace parser

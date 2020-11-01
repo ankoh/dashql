@@ -15,5 +15,12 @@ static const std::unordered_map<std::string_view, Keyword> keywords = {
 #undef X
 };
 
+/// Find a keyword
+const Keyword* Keyword::Find(std::string_view text) {
+    if (auto iter = keywords.find(text); iter != keywords.end())
+        return &iter->second;
+    return nullptr;
+}
+
 }
 }
