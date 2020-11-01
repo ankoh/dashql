@@ -1,5 +1,5 @@
 name: select_fconst_1
-input: |
+input: |-
   select 1e-04;
 expected:
   statements:
@@ -16,12 +16,11 @@ expected:
               location: "7..12|'1e-04'"
               SQL_ACONST_TYPE: 1
   errors: []
-  line_breaks:
-    - 13..14|'\n'
+  line_breaks: []
   comments: []
 ----
 name: select_fconst_2
-input: |
+input: |-
   select 2e-04;
 expected:
   statements:
@@ -38,6 +37,5 @@ expected:
               location: "7..12|'2e-04'"
               SQL_ACONST_TYPE: 1
   errors: []
-  line_breaks:
-    - 13..14|'\n'
+  line_breaks: []
   comments: []
