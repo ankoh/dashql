@@ -386,7 +386,111 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 {not_equals}        { return Parser::make_NOT_EQUALS(loc); }
 {self}              { return Parser::symbol_type(yytext[0], loc); }
 
-{operator}      { /* TODO */ }
+{operator}      {
+                    /*
+                     * Check for embedded slash-star or dash-dash; those
+                     * are comment starts, so operator must stop there.
+                     * Note that slash-star or dash-dash at the first
+                     * character will match a prior rule, not this one.
+                     */
+                    int nchars = yyleng;
+                    char* slashstar = strstr(yytext, "/*"); /* slash star */
+                    char* dashdash = strstr(yytext, "--");
+
+                    if (slashstar && dashdash) {
+                        /* if both appear, take the first one */
+                        if (slashstar > dashdash)
+                            slashstar = dashdash;
+                    } else if (!slashstar) {
+                        slashstar = dashdash;
+                    }
+                    if (slashstar) {
+                        nchars = slashstar - yytext;
+                    }
+
+                    /*
+                     * For SQL compatibility, '+' and '-' cannot be the
+                     * last char of a multi-char operator unless the operator
+                     * contains chars that are not in SQL operators.
+                     * The idea is to lex '=-' as two operators, but not
+                     * to forbid operator names like '?-' that could not be
+                     * sequences of SQL operators.
+                     */
+                    while (nchars > 1 && (yytext[nchars - 1] == '+' || yytext[nchars - 1] == '-')) {
+                        int ic;
+                        for (ic = nchars - 2; ic >= 0; ic--) {
+                            if (strchr("~!@#^&|`?%", yytext[ic]))
+                                break;
+                        }
+                        if (ic >= 0)
+                            break; /* found a char that makes it OK */
+                        nchars--; /* else remove the +/-, and check again */
+                    }
+
+                    /* We don't accept leading ? in any multi-character operators
+                    * except for those in use by hstore, JSON and geometric operators.
+                    *
+                    * We don't accept contained or trailing ? in any
+                    * multi-character operators.
+                    *
+                    * This is necessary in order to support normalized queries without
+                    * spacing between ? as a substition character and a simple operator (e.g. "?=?")
+                    */
+                    if (yytext[0] == '?' &&
+                        strcmp(yytext, "?|") != 0 && strcmp(yytext, "?&") != 0 &&
+                        strcmp(yytext, "?#") != 0 && strcmp(yytext, "?-") != 0 &&
+                        strcmp(yytext, "?-|") != 0 && strcmp(yytext, "?||") != 0) {
+                        nchars = 1;
+                    }
+
+                    if (yytext[0] != '?' && strchr(yytext, '?')) {
+                        /* Lex up to just before the ? character */
+                        nchars = strchr(yytext, '?') - yytext;
+                    }
+
+                    if ((yy_size_t) nchars < yyleng) {
+                        /* Strip the unwanted chars from the token */
+                        PutBack(ctx, yyleng - nchars);
+                        /*
+                         * If what we have left is only one char, and it's
+                         * one of the characters matching "self", then
+                         * return it as a character token the same way
+                         * that the "self" rule would have.
+                         */
+                        if (nchars == 1 &&
+                            strchr(",()[].;:+-*/%^<>=?", yytext[0])) {
+                            return Parser::symbol_type(yytext[0], loc);
+                        }
+                        /*
+                         * Likewise, if what we have left is two chars, and
+                         * those match the tokens ">=", "<=", "=>", "<>" or
+                         * "!=", then we must return the appropriate token
+                         * rather than the generic Op.
+                         */
+                        if (nchars == 2) {
+                            if (yytext[0] == '=' && yytext[1] == '>')
+                                return Parser::make_EQUALS_GREATER(loc);
+                            if (yytext[0] == '>' && yytext[1] == '=')
+                                return Parser::make_GREATER_EQUALS(loc);
+                            if (yytext[0] == '<' && yytext[1] == '=')
+                                return Parser::make_LESS_EQUALS(loc);
+                            if (yytext[0] == '<' && yytext[1] == '>')
+                                return Parser::make_NOT_EQUALS(loc);
+                            if (yytext[0] == '!' && yytext[1] == '=')
+                                return Parser::make_NOT_EQUALS(loc);
+                        }
+                    }
+                    /*
+                     * Complain if operator is too long.  Unlike the case
+                     * for identifiers, we make this an error not a notice-
+                     * and-truncate, because the odds are we are looking at
+                     * a syntactic mistake anyway. NAMEDDATALEN
+                     */
+                    if (nchars >= 64)
+                        ctx.AddError(loc, "operator too long: operators longer than 64 bytes are not supported");
+
+                    return Parser::make_Op(loc);
+                }
 
 {param}         { return ReadParameter(ctx, loc); }
 {param2}        { return ReadParameter(ctx, loc); }
