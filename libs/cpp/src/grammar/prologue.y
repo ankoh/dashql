@@ -66,3 +66,15 @@ Parser::symbol_type yylex(ParserDriver& ctx);
 %token STRING_LITERAL           "string literal"
 
 %token EOF 0
+
+/*
+ * The grammar thinks these are keywords, but they are not in the kwlist.h
+ * list and so can never be entered directly.  The filter in parser.c
+ * creates these tokens when required (based on looking one token ahead).
+ *
+ * NOT_LA exists so that productions such as NOT LIKE can be given the same
+ * precedence as LIKE; otherwise they'd effectively have the same precedence
+ * as NOT, at least with respect to their left-hand subexpression.
+ * NULLS_LA and WITH_LA are needed to make the grammar LALR(1).
+ */
+%token        NOT_LA NULLS_LA WITH_LA
