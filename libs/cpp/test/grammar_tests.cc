@@ -66,7 +66,7 @@ nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* na
     return (iter != tests.end()) ? iter->second : nonstd::span<GrammarParamTestsParam>{};
 }
 
-::testing::AssertionResult IsEqual(const ryml::Tree& expected, const ryml::Tree& actual) {
+::testing::AssertionResult IsEqual(const ryml::Tree& actual, const ryml::Tree& expected) {
     auto expected_str = ryml::emitrs<std::string>(expected);
     auto actual_str = ryml::emitrs<std::string>(actual);
     if (expected_str == actual_str)
@@ -75,18 +75,11 @@ nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* na
     std::stringstream err;
 
     err << std::endl;
-    err << "----------------------------------------" << std::endl;
-    err << "EXPECTED" << std::endl;
-    err << "----------------------------------------" << std::endl;
-    err << expected_str << std::endl;
-
-    err << "----------------------------------------" << std::endl;
-    err << "ACTUAL" << std::endl;
+    err << "OUTPUT" << std::endl;
     err << "----------------------------------------" << std::endl;
     err << actual_str << std::endl;
 
-    err << "----------------------------------------" << std::endl;
-    err << "DIFF" << std::endl;
+    err << "EXPECTED" << std::endl;
     err << "----------------------------------------" << std::endl;
     std::vector<std::string> expected_lines, actual_lines;
     ::testing::internal::SplitString(expected_str, '\n', &expected_lines);
@@ -109,7 +102,7 @@ TEST_P(GrammarParamTests, Test) {
     ryml::Tree out;
     EncodeTestExpectation(out.rootref(), *module, param.input);
 
-    ASSERT_TRUE(IsEqual(param.expected, out));
+    ASSERT_TRUE(IsEqual(out, param.expected));
 }
 
 INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintTestName());
