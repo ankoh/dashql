@@ -321,8 +321,6 @@ other           .
 loc =  sx::Location(loc.offset() + loc.length(), 0);
 %}
 
-"select"        { return Parser::make_SELECT(loc); }
-
 {whitespace}    {}
 
 
