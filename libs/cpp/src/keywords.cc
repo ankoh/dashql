@@ -29,6 +29,10 @@ constexpr size_t MAX_KEYWORD_LENGTH = std::max<size_t>({
 
 /// Find a keyword
 const Keyword* Keyword::Find(std::string_view text) {
+    // Abort early if the keyword exceeds the max keyword size
+    if (text.size() > MAX_KEYWORD_LENGTH)
+        return nullptr;
+
     // Convert to lowercase
     std::array<char, MAX_KEYWORD_LENGTH + 1> buffer;
     for (unsigned i = 0; i < text.size(); ++i)
