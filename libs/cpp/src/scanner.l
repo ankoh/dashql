@@ -368,6 +368,17 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
                 }
 <xd><<EOF>>     { ctx.AddError(EndLiteral(ctx, loc), "unterminated delimited identifier"); }
 
+{typecast}          { return Parser::make_TYPECAST(loc); }
+{dot_dot}           { return Parser::make_DOT_DOT(loc); }
+{colon_equals}      { return Parser::make_COLON_EQUALS(loc); }
+{equals_greater}    { return Parser::make_EQUALS_GREATER(loc); }
+{less_equals}       { return Parser::make_LESS_EQUALS(loc); }
+{greater_equals}    { return Parser::make_GREATER_EQUALS(loc); }
+{less_greater}      { return Parser::make_NOT_EQUALS(loc); }
+{not_equals}        { return Parser::make_NOT_EQUALS(loc); }
+{self}              { /* XXX how to forward self? */ }
+
+
 "select"        { return Parser::make_SELECT(loc); }
 
 {real}          { return Parser::make_FCONST(loc); }

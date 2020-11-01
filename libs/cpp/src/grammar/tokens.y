@@ -1,14 +1,18 @@
+%token              IDENT FCONST SCONST BCONST XCONST Op
+%token <int64_t>    ICONST PARAM
+%token              TYPECAST DOT_DOT COLON_EQUALS EQUALS_GREATER
+%token              LESS_EQUALS GREATER_EQUALS NOT_EQUALS
+
+
+
+
+
 %token <int64_t>    INTEGER_LITERAL     "integer literal"
 %token <uint32_t>   HEX_COLOR_LITERAL   "hex color literal"
 %token <bool>       BOOLEAN_LITERAL     "boolean literal"
 
 %token IDENTIFIER           "identifier literal"
 %token STRING_LITERAL       "string literal"
-
-%token              IDENT FCONST SCONST BCONST XCONST Op
-%token <int64_t>    ICONST PARAM
-%token              TYPECAST DOT_DOT COLON_EQUALS EQUALS_GREATER
-%token              LESS_EQUALS GREATER_EQUALS NOT_EQUALS
 
 %token COMMA                    ", token"
 %token DOLLAR                   "$ token"
