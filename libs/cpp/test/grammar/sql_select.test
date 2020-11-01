@@ -20,6 +20,48 @@ expected:
   line_breaks: []
   comments: []
 ----
+name: select_fconst_realfail1
+input: |-
+  select 1e;
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..8|`select 1`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..8|`select 1`
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: 7..8|`1`
+            SQL_RESULT_TARGET_VALUE:
+              type: SQL_ACONST
+              location: 7..8|`1`
+              SQL_ACONST_TYPE: 1
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: select_fconst_realfail2
+input: |-
+  select 1e+;
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..8|`select 1`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..8|`select 1`
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: 7..8|`1`
+            SQL_RESULT_TARGET_VALUE:
+              type: SQL_ACONST
+              location: 7..8|`1`
+              SQL_ACONST_TYPE: 1
+  errors: []
+  line_breaks: []
+  comments: [] 
+----
 name: select_fconst_1e04
 input: |-
   select 1e-04;

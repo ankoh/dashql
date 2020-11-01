@@ -392,8 +392,8 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 {decimal}       { return Parser::make_FCONST(loc); }
 {decimalfail}   { return Parser::make_FCONST(loc); /* TODO yyless suffix */ }
 {real}          { return Parser::make_FCONST(loc); }
-{realfail1}     { return Parser::make_FCONST(loc); /* TODO yyless suffix */ }
-{realfail2}     { return Parser::make_FCONST(loc); /* TODO yyless suffix */ }
+{realfail1}     { return Parser::make_FCONST(sx::Location(loc.offset(), loc.length() - 1)); }
+{realfail2}     { return Parser::make_FCONST(sx::Location(loc.offset(), loc.length() - 2)); }
 
 {identifier}    {
                     if (auto k = Keyword::Find(ctx.TextAt(loc)); !!k) {
