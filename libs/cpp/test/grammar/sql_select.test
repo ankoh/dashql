@@ -67,21 +67,10 @@ name: select_fconst_realfail2
 input: |-
   select 1e+;
 expected:
-  statements:
-    - type: DASHQL_QUERY
-      location: 0..9|`select 1e`
-      DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
-        location: 0..9|`select 1e`
-        SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
-            location: 7..9|`1e`
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: 7..8|`1`
-              SQL_ACONST_TYPE: 1
-            SQL_RESULT_TARGET_NAME: 8..9|`e`
-  errors: []
+  statements: []
+  errors:
+    - message: "syntax error, unexpected '+', expecting ';'"
+      location: 9..10|`+`
   line_breaks: []
   comments: []
 ----
@@ -232,3 +221,32 @@ expected:
   line_breaks: []
   comments:
     - 0..19|`/* foo /* bar */ */`
+----
+name: select_iconst_list
+input: |-
+  select 1, 2;
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: '0..11|`select 1, 2`'
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: '0..11|`select 1, 2`'
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: 7..8|`1`
+            SQL_RESULT_TARGET_VALUE:
+              type: SQL_ACONST
+              location: 7..8|`1`
+              SQL_ACONST_TYPE: 0
+              SQL_ACONST_VALUE: 1
+          - type: SQL_RESULT_TARGET
+            location: 10..11|`2`
+            SQL_RESULT_TARGET_VALUE:
+              type: SQL_ACONST
+              location: 10..11|`2`
+              SQL_ACONST_TYPE: 0
+              SQL_ACONST_VALUE: 2
+  errors: []
+  line_breaks: []
+  comments: []

@@ -1,9 +1,8 @@
 %start dashql_statement_list;
 
 dashql_statement_list:
-    dashql_statement_list ';' dashql_statement { ctx.AddStatement($3); }
-  | dashql_statement_list error     { yyclearin; yyerrok; }
-  | dashql_statement                { ctx.AddStatement($1); }
+    dashql_statement_list dashql_statement ';' { ctx.AddStatement($2); }
+  | dashql_statement_list error ';' { yyclearin; yyerrok; }
   | %empty
     ;
 

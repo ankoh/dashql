@@ -384,7 +384,7 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 {greater_equals}    { return Parser::make_GREATER_EQUALS(loc); }
 {less_greater}      { return Parser::make_NOT_EQUALS(loc); }
 {not_equals}        { return Parser::make_NOT_EQUALS(loc); }
-{self}              { /* XXX how to forward self? */ }
+{self}              { return Parser::symbol_type(yytext[0], loc); }
 
 {operator}      { /* TODO */ }
 
@@ -404,7 +404,9 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
                     return Parser::make_IDENT(loc);
                 }
 
-{other}         { /* TODO */ }
+{other}         { return Parser::symbol_type(yytext[0], loc); }
+
+<<EOF>>         { return Parser::make_EOF(loc); }
 %%
 
 // Code
