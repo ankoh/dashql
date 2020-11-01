@@ -1,8 +1,8 @@
 import { AppReduxStore } from '../store';
-import { EditorController } from './editor_ctrl';
-import { LogController } from './log_ctrl';
-import { TerminalController } from './terminal_ctrl';
-import { Interpreter } from './interpreter';
+import { EditorController } from './editor';
+import { LogController } from './log';
+import { TerminalController } from './terminal';
+import { InterpreterController } from './interpreter';
 
 import { DashQLParser } from '@dashql/parser';
 import dashql_parser_wasm from '@dashql/parser/dist/dashql_parser.wasm';
@@ -21,7 +21,7 @@ export class AppController {
     /// The editor controller
     protected _editor: EditorController;
     /// The interpreter controller
-    protected _interpreter: Interpreter;
+    protected _interpreter: InterpreterController;
     /// The terminal controller
     protected _terminal: TerminalController;
 
@@ -34,7 +34,7 @@ export class AppController {
         this._parser = new DashQLParser(dashql_parser_wasm);
         this._log = new LogController(store);
         this._editor = new EditorController(this._store, this._parser);
-        this._interpreter = new Interpreter(this._store);
+        this._interpreter = new InterpreterController(this._store);
         this._terminal = new TerminalController();
         this.workerTimer = null;
     }
