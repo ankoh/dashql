@@ -1,6 +1,6 @@
 name: select_iconst_1
 input: |-
-  select 1;
+  select 1
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -22,7 +22,7 @@ expected:
 ----
 name: select_fconst_1e04
 input: |-
-  select 1e-04;
+  select 1e-04
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -43,7 +43,7 @@ expected:
 ----
 name: select_fconst_realfail1
 input: |-
-  select 1e;
+  select 1e
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -65,18 +65,18 @@ expected:
 ----
 name: select_fconst_realfail2
 input: |-
-  select 1e+;
+  select 1e+
 expected:
   statements: []
   errors:
-    - message: "syntax error, unexpected '+', expecting ';'"
+    - message: "syntax error, unexpected '+', expecting EOF or ';'"
       location: 9..10|`+`
   line_breaks: []
   comments: []
 ----
 name: select_bconst_b1010
 input: |-
-  select b'1010';
+  select b'1010'
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -97,7 +97,7 @@ expected:
 ----
 name: select_bconst_x2a
 input: |-
-  select x'2a';
+  select x'2a'
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -118,7 +118,7 @@ expected:
 ----
 name: select_sconst_quotes
 input: |-
-  select 'foo';
+  select 'foo'
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -139,7 +139,7 @@ expected:
 ----
 name: select_sconst_quotes_nested_quote
 input: |-
-  select '''foo''';
+  select '''foo'''
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -160,7 +160,7 @@ expected:
 ----
 name: select_sconst_quotes_nested_dquote
 input: |-
-  select '"foo"';
+  select '"foo"'
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -181,7 +181,7 @@ expected:
 ----
 name: select_iconst_1_ident
 input: |-
-  select 1 "foo";
+  select 1 "foo"
 expected:
   statements:
     - type: DASHQL_QUERY 
@@ -247,6 +247,8 @@ expected:
               location: 10..11|`2`
               SQL_ACONST_TYPE: 0
               SQL_ACONST_VALUE: 2
+    - type: NONE
+      location: 12..12|``
   errors: []
   line_breaks: []
   comments: []

@@ -1,10 +1,18 @@
-%start dashql_statement_list;
+%start opt_dashql_statement_list;
+
+opt_dashql_statement_list:
+    dashql_statement_list
+  | %empty
 
 dashql_statement_list:
-    dashql_statement_list dashql_statement ';' { ctx.AddStatement($2); }
-  | dashql_statement_list error ';' { yyclearin; yyerrok; }
-  | %empty
+    dashql_statement_list ';' opt_dashql_statement  { ctx.AddStatement($3); }
+  | dashql_statement error ';'                      { yyclearin; yyerrok; }
+  | dashql_statement                                { ctx.AddStatement($1); }
     ;
+
+opt_dashql_statement:
+    dashql_statement               { $$ = $1; }
+  | %empty                         { $$ = sx::Object(@$, sx::ObjectType::NONE, sx::Span(0, 0)); }
 
 dashql_statement:
     dashql_parameter_declaration   { $$ = $1; }
