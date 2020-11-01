@@ -151,15 +151,15 @@ sql_target_list:
     ;
 
 sql_target_el:
-    sql_a_expr {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
-            {@$, sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
-        });
-    }
-  | sql_a_expr sql_ident {
+    sql_a_expr sql_ident {
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
             {@$, sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
             {@$, sx::AttributeKey::SQL_RESULT_TARGET_NAME, $2},
+        });
+    }
+  | sql_a_expr {
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
+            {@$, sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
         });
     }
     ;

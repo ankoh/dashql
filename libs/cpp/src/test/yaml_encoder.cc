@@ -6,7 +6,6 @@
 #include <stack>
 #include <unordered_set>
 
-#include "c4/yml/emit.hpp"
 #include "c4/yml/std/string.hpp"
 #include "c4/yml/yml.hpp"
 #include "ryml.hpp"
@@ -25,8 +24,8 @@ constexpr size_t LOCATION_HINT_LENGTH = 10;
 std::string escape(std::string_view in) {
     std::string out{in};
     for (size_t i = out.find("\n", 0); i != std::string::npos; i = out.find("\n", i)) {
-        out.replace(i, 2, "\\n");
-        i += 1;
+        out.replace(i, 1, "\\n");
+        i += 2;
     }
     return out;
 }
@@ -40,11 +39,11 @@ void encode(ryml::NodeRef n, proto::syntax::Location loc, std::string_view text)
     std::stringstream ss;
     ss << begin << ".." << end;
     if (loc.length() < INLINE_LOCATION_CAP) {
-        ss << "|'" << escape(text.substr(loc.offset(), loc.length())) << "'";
+        ss << "|`" << escape(text.substr(loc.offset(), loc.length())) << "`";
     } else {
         auto prefix = escape(text.substr(loc.offset(), LOCATION_HINT_LENGTH));
         auto suffix = escape(text.substr(loc.offset() + loc.length() - LOCATION_HINT_LENGTH, LOCATION_HINT_LENGTH));
-        ss << "|'" << prefix << "'..'" << suffix << "'";
+        ss << "|`" << prefix << "`..`" << suffix << "`";
     }
     n << ss.str();
 }

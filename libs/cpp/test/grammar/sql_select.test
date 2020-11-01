@@ -4,16 +4,16 @@ input: |-
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: "0..8|'select 1'"
+      location: "0..8|`select 1`"
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: "0..8|'select 1'"
+        location: "0..8|`select 1`"
         SQL_SELECT_TARGETS:
           - type: SQL_RESULT_TARGET
-            location: "7..8|'1'"
+            location: "7..8|`1`"
             SQL_RESULT_TARGET_VALUE:
               type: SQL_ACONST
-              location: "7..8|'1'"
+              location: "7..8|`1`"
               SQL_ACONST_TYPE: 0
               SQL_ACONST_VALUE: 1
   errors: []
@@ -26,16 +26,16 @@ input: |-
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: "0..12|'select 1e-04'"
+      location: "0..12|`select 1e-04`"
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: "0..12|'select 1e-04'"
+        location: "0..12|`select 1e-04`"
         SQL_SELECT_TARGETS:
           - type: SQL_RESULT_TARGET
-            location: "7..12|'1e-04'"
+            location: "7..12|`1e-04`"
             SQL_RESULT_TARGET_VALUE:
               type: SQL_ACONST
-              location: "7..12|'1e-04'"
+              location: "7..12|`1e-04`"
               SQL_ACONST_TYPE: 1
   errors: []
   line_breaks: []
@@ -47,16 +47,16 @@ input: |-
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: "0..14|'select b'1010''"
+      location: "0..14|`select b'1010'`"
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: "0..14|'select b'1010''"
+        location: "0..14|`select b'1010'`"
         SQL_SELECT_TARGETS:
           - type: SQL_RESULT_TARGET
-            location: "7..14|'b'1010''"
+            location: "7..14|`b'1010'`"
             SQL_RESULT_TARGET_VALUE:
               type: SQL_ACONST
-              location: "7..14|'b'1010''"
+              location: "7..14|`b'1010'`"
               SQL_ACONST_TYPE: 3
   errors: []
   line_breaks: []
@@ -68,17 +68,103 @@ input: |-
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: "0..12|'select x'2a''"
+      location: "0..12|`select x'2a'`"
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: "0..12|'select x'2a''"
+        location: "0..12|`select x'2a'`"
         SQL_SELECT_TARGETS:
           - type: SQL_RESULT_TARGET
-            location: "7..12|'x'2a''"
+            location: "7..12|`x'2a'`"
             SQL_RESULT_TARGET_VALUE:
               type: SQL_ACONST
-              location: "7..12|'x'2a''"
+              location: "7..12|`x'2a'`"
               SQL_ACONST_TYPE: 3
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: select_sconst_quotes
+input: |-
+  select 'foo';
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: "0..12|`select 'foo'`"
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: "0..12|`select 'foo'`"
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: "7..12|`'foo'`"
+            SQL_RESULT_TARGET_VALUE:
+              type: SQL_ACONST
+              location: "7..12|`'foo'`"
+              SQL_ACONST_TYPE: 2
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: select_sconst_quotes_nested_quote
+input: |-
+  select '''foo''';
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: "0..16|`select '''foo'''`"
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: "0..16|`select '''foo'''`"
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: "7..16|`'''foo'''`"
+            SQL_RESULT_TARGET_VALUE:
+              type: SQL_ACONST
+              location: "7..16|`'''foo'''`"
+              SQL_ACONST_TYPE: 2
+  errors: []
+  line_breaks: []
+  comments: [] 
+----
+name: select_sconst_quotes_nested_dquote
+input: |-
+  select '"foo"';
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: '0..14|`select ''"foo"''`'
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: '0..14|`select ''"foo"''`'
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: '7..14|`''"foo"''`'
+            SQL_RESULT_TARGET_VALUE:
+              type: SQL_ACONST
+              location: '7..14|`''"foo"''`'
+              SQL_ACONST_TYPE: 2
+  errors: []
+  line_breaks: []
+  comments: [] 
+----
+name: select_iconst_1_ident
+input: |-
+  select 1 "foo";
+expected:
+  statements:
+    - type: DASHQL_QUERY 
+      location: '0..14|`select 1 "foo"`'
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: '0..14|`select 1 "foo"`'
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: '7..14|`1 "foo"`'
+            SQL_RESULT_TARGET_VALUE:
+              type: SQL_ACONST
+              location: 7..8|`1`
+              SQL_ACONST_TYPE: 0
+              SQL_ACONST_VALUE: 1
+            SQL_RESULT_TARGET_NAME: '9..14|`"foo"`'
   errors: []
   line_breaks: []
   comments: []
@@ -91,7 +177,7 @@ expected:
   errors: []
   line_breaks: []
   comments:
-    - "0..9|'/* foo */'" 
+    - 0..9|`/* foo */`
 ----
 name: comments_cstyle_nested
 input: |-
@@ -101,4 +187,4 @@ expected:
   errors: []
   line_breaks: []
   comments:
-    - "0..19|'/* foo /* bar */ */'"
+    - 0..19|`/* foo /* bar */ */`

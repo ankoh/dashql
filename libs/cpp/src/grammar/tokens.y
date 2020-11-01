@@ -10,8 +10,6 @@
 %token              TYPECAST DOT_DOT COLON_EQUALS EQUALS_GREATER
 %token              LESS_EQUALS GREATER_EQUALS NOT_EQUALS
 
-
-
 %token COMMA                    ", token"
 %token DOLLAR                   "$ token"
 %token EQUAL                    "= token"
