@@ -3,9 +3,9 @@
 namespace dashql.proto.syntax_sql;
 
 enum AConstType: uint8 {
-    INTEGER,
-    FLOAT,
-    STRING,
-    BITSTRING,
-    NULL_,
+    INTEGER = 0,
+    FLOAT = 1,
+    STRING = 2,
+    BITSTRING = 3,
+    NULL_ = 4,
 }

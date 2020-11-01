@@ -33,6 +33,8 @@ namespace parser {
 extern sx::Location loc;
 // The offset the comment (if any)
 extern sx::Location comment_begin;
+// The offset the literal (if any)
+extern sx::Location literal_begin;
 // The input string view
 extern std::string_view in;
 // The reader offset
@@ -92,6 +94,47 @@ Parser::symbol_type ReadInteger(ParserDriver& ctx, sx::Location loc);
 %option batch
 %option debug
 %option caseless
+
+/*
+ * OK, here is a short description of lex/flex rules behavior.
+ * The longest pattern which matches an input string is always chosen.
+ * For equal-length patterns, the first occurring in the rules list is chosen.
+ * INITIAL is the starting state, to which all non-conditional rules apply.
+ * Exclusive states change parsing rules while the state is active.  When in
+ * an exclusive state, only those rules defined for that state apply.
+ *
+ * We use exclusive states for quoted strings, extended comments,
+ * and to eliminate parsing troubles for numeric strings.
+ * Exclusive states:
+ *  <xb> bit string literal
+ *  <xc> extended C-style comments
+ *  <xd> delimited identifiers (double-quoted identifiers)
+ *  <xh> hexadecimal numeric string
+ *  <xq> standard quoted strings
+ *  <xe> extended quoted strings (support backslash escape sequences)
+ *  <xdolq> $foo$ quoted strings
+ *  <xui> quoted identifier with Unicode escapes
+ *  <xuiend> end of a quoted identifier with Unicode escapes, UESCAPE can follow
+ *  <xus> quoted string with Unicode escapes
+ *  <xusend> end of a quoted string with Unicode escapes, UESCAPE can follow
+ *  <xeu> Unicode surrogate pair in extended quoted string
+ *
+ * Remember to add an <<EOF>> case whenever you add a new exclusive state!
+ * The default one is probably not the right thing.
+ */
+
+%x xb
+%x xc
+%x xd
+%x xh
+%x xe
+%x xq
+%x xdolq
+%x xui
+%x xuiend
+%x xus
+%x xusend
+%x xeu
 
 /*
  * In order to make the world safe for Windows and Mac clients as well as
@@ -328,6 +371,30 @@ other           .
 loc =  sx::Location(loc.offset() + loc.length(), 0);
 %}
 
+{xbstart}       {
+                    /* Binary bit type.
+                     * At some point we should simply pass the string
+                     * forward to the parser and label it there.
+                     * In the meantime, place a leading "b" on the string
+                     * to mark it for the input routine as a binary string.
+                     */
+                    BEGIN(xb);
+                    literal_begin = loc;
+                }
+<xb>{quotestop}	|
+<xb>{quotefail} {
+                    BEGIN(INITIAL);
+                    return Parser::make_BCONST(sx::Location(literal_begin.offset(), loc.offset() + loc.length() - literal_begin.offset()));
+                }
+<xh>{xhinside}	|
+<xb>{xbinside}	{}
+<xh>{quotecontinue} |
+<xb>{quotecontinue} {
+                    /* ignore */
+                }
+<xb><<EOF>>     { ctx.AddError(loc, "unterminated bit string literal"); }
+
+
 "select"        { return Parser::make_SELECT(loc); }
 
 {real}          { return Parser::make_FCONST(loc); }
@@ -349,6 +416,8 @@ namespace parser {
 sx::Location loc;
 // The start of the c_comment
 sx::Location comment_begin;
+// The start of the literal
+sx::Location literal_begin;
 // The input view of the scanner
 std::string_view in;
 // The scanner offset
@@ -361,7 +430,6 @@ void ParserDriver::BeginScan() {
     yy_flex_debug = _trace_scanning;
     loc = sx::Location();
     in = _input;
-    comment_begin = sx::Location();
     scanner_offset = 0;
     parser_offset = 0;
 }
@@ -370,7 +438,6 @@ void ParserDriver::BeginScan() {
 void ParserDriver::EndScan() {
     loc = sx::Location();
     in = _input;
-    comment_begin = sx::Location();
     scanner_offset = 0;
     parser_offset = 0;
 }
