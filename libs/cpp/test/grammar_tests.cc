@@ -4,6 +4,7 @@
 #include "dashql/parser/parser_driver.h"
 #include "dashql/parser/test/yaml_encoder.h"
 #include "gtest/gtest.h"
+#include "gtest/internal/gtest-internal.h"
 #include "flatbuffers/flatbuffers.h"
 
 #include <fstream>
@@ -65,6 +66,37 @@ nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* na
     return (iter != tests.end()) ? iter->second : nonstd::span<GrammarParamTestsParam>{};
 }
 
+::testing::AssertionResult IsEqual(const ryml::Tree& expected, const ryml::Tree& actual) {
+    auto expected_str = ryml::emitrs<std::string>(expected);
+    auto actual_str = ryml::emitrs<std::string>(actual);
+    if (expected_str == actual_str)
+        return ::testing::AssertionSuccess();
+
+    std::stringstream err;
+
+    err << std::endl;
+    err << "----------------------------------------" << std::endl;
+    err << "EXEPECTED" << std::endl;
+    err << "----------------------------------------" << std::endl;
+    err << expected_str << std::endl;
+
+    err << "----------------------------------------" << std::endl;
+    err << "ACTUAL" << std::endl;
+    err << "----------------------------------------" << std::endl;
+    err << actual_str << std::endl;
+
+    err << "----------------------------------------" << std::endl;
+    err << "DIFF" << std::endl;
+    err << "----------------------------------------" << std::endl;
+    std::vector<std::string> expected_lines, actual_lines;
+    ::testing::internal::SplitString(expected_str, '\n', &expected_lines);
+    ::testing::internal::SplitString(actual_str, '\n', &actual_lines);
+    err << ::testing::internal::edit_distance::CreateUnifiedDiff(expected_lines, actual_lines);
+    err << std::endl;
+
+    return ::testing::AssertionFailure() << err.str();
+}
+
 TEST_P(GrammarParamTests, Test) {
     auto& param = GetParam();
 
@@ -77,10 +109,7 @@ TEST_P(GrammarParamTests, Test) {
     ryml::Tree out;
     EncodeTestExpectation(out.rootref(), *module, param.input);
 
-    auto out_str = ryml::emitrs<std::string>(out);
-    auto expected_str = ryml::emitrs<std::string>(param.expected);
-
-    ASSERT_EQ(out_str, expected_str);
+    ASSERT_TRUE(IsEqual(param.expected, out));
 }
 
 INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintTestName());
