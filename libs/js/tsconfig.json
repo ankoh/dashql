@@ -5,6 +5,7 @@
         "module": "es6",
         "moduleResolution": "node",
         "sourceMap": false,
+        "strict": true,
         "declaration": true,
         "declarationMap": true,
         "declarationDir": "dist",
@@ -17,4 +18,3 @@
         "./node_modules"
     ]
 }
-
