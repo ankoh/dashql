@@ -26,8 +26,11 @@ enum class KeywordCategory {
 
 /// A keyword
 struct Keyword {
+    /// The name
     std::string_view name;
+    /// The token
     Parser::token::token_kind_type token;
+    /// The category
     KeywordCategory category;
 };
 
