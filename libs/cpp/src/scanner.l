@@ -13,6 +13,8 @@
 #include <charconv>
 #include "dashql/parser/parser_driver.h"
 #include "dashql/parser/parser.h"
+#include "dashql/parser/grammar/keywords.h"
+
 
 // ISO C++17 does not allow 'register' storage class specifier
 #pragma GCC diagnostic push
@@ -395,7 +397,12 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 {realfail1}     { return Parser::make_FCONST(loc); /* TODO yyless suffix */ }
 {realfail2}     { return Parser::make_FCONST(loc); /* TODO yyless suffix */ }
 
-{identifier}    { /* TODO */ }
+{identifier}    {
+                    if (auto k = Keyword::Find(ctx.TextAt(loc)); !!k) {
+                        return Parser::symbol_type(k->token, loc);
+                    }
+                    return Parser::make_IDENT(loc);
+                }
 
 {other}         { /* TODO */ }
 %%

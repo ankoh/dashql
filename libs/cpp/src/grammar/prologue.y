@@ -39,8 +39,6 @@
 }
 
 %code {
-#include "dashql/parser/grammar/keywords.h"
-
 using namespace dashql::parser;
 
 Parser::symbol_type yylex(ParserDriver& ctx);
