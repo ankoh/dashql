@@ -301,6 +301,9 @@ sql_first_or_next:
     ;
 
 
+// ---------------------------------------------------------------------------
+// Group clause
+
 // This syntax for group_clause tries to follow the spec quite closely.
 // However, the spec allows only column references, not expressions,
 // which introduces an ambiguity between implicit row constructors
@@ -765,11 +768,8 @@ sql_interval_second:
     ;
 
 
-/*****************************************************************************
- *
- *    expression grammar
- *
- *****************************************************************************/
+// ---------------------------------------------------------------------------
+// Expression grammar
 
 // General expressions
 // This is the heart of the expression syntax.
@@ -1324,11 +1324,8 @@ sql_opt_asymmetric:
     ;
 
 
-/*****************************************************************************
- *
- *    target list for SELECT
- *
- *****************************************************************************/
+// ---------------------------------------------------------------------------
+// Target list for SELECT
 
 sql_opt_target_list:
     sql_target_list     { $$ = $1; }
@@ -1365,11 +1362,8 @@ sql_target_el:
     ;
 
 
-/*****************************************************************************
- *
- *    Names and constants
- *
- *****************************************************************************/
+// ---------------------------------------------------------------------------
+// Names and constants
 
 sql_qualified_name_list:
     sql_qualified_name
