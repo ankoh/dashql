@@ -1297,9 +1297,9 @@ sql_columnref:
     ;
 
 sql_indirection_el:
-    '.' sql_attr_name       { $$ = ctx.CreateString(@$, @2); }
-  | '.' '*'                 { $$ = ctx.CreateString(@$, @2); }
-  | '[' sql_a_expr ']'      { $$ = ctx.AddObject(@$, $2); }
+    '.' sql_attr_name       { $$ = ctx.CreateString(@2); }
+  | '.' '*'                 { $$ = ctx.CreateString(@2); }
+  | '[' sql_a_expr ']'      { $$ = ctx.CreateIndirection(@$, $2); }
   | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = ctx.CreateIndirection(@$, $2, $4); }
     ;
 
@@ -1382,8 +1382,8 @@ sql_qualified_name:
     ;
 
 sql_name_list:
-    sql_name                        { $$ = {}; $$.push_back(@1); }
-  | sql_name_list ',' sql_name      { $1.push_back(@3); $$ = move($1); }
+    sql_name                        { $$ = {}; $$.push_back(ctx.CreateString(@1)); }
+  | sql_name_list ',' sql_name      { $1.push_back(ctx.CreateString(@3)); $$ = move($1); }
     ;
 
 sql_name: sql_col_id;
