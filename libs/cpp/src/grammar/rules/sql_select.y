@@ -36,8 +36,8 @@
 // with or without outer parentheses.
 
 sql_select_stmt:
-    sql_select_no_parens        %prec UMINUS
-  | sql_select_with_parens      %prec UMINUS
+    sql_select_no_parens        %prec UMINUS    { $$ = {}; }
+  | sql_select_with_parens      %prec UMINUS    { $$ = {}; }
     ;
 
 sql_select_with_parens:
@@ -101,7 +101,7 @@ sql_simple_select:
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause
   | sql_values_clause
-  | TABLE relation_expr
+  | TABLE sql_relation_expr
   | sql_select_clause UNION sql_all_or_distinct sql_select_clause
   | sql_select_clause INTERSECT sql_all_or_distinct sql_select_clause
   | sql_select_clause EXCEPT sql_all_or_distinct sql_select_clause
@@ -132,10 +132,14 @@ sql_common_table_expr:
     ;
 
 sql_into_clause:
-    INTO opt_temp_table_name
+    INTO sql_opt_temp_table_name
   | %empty
+    ;
 
-;
+// XXX PreparableStmt: select | insert | update | delete
+sql_preparable_stmt:
+    sql_select_stmt
+    ;
 
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.
@@ -168,7 +172,7 @@ sql_all_or_distinct:
 
 sql_distinct_clause:
     DISTINCT
-  | DISTINCT ON '(' expr_list ')'
+  | DISTINCT ON '(' sql_expr_list ')'
     ;
 
 sql_opt_all_clause:
@@ -177,7 +181,7 @@ sql_opt_all_clause:
     ;
 
 sql_opt_sort_clause:
-    sort_clause
+    sql_sort_clause
   | %empty
     ;
 
@@ -269,7 +273,7 @@ sql_select_fetch_first_value:
         ;
 
 sql_i_or_f_const:
-    sql_i_const
+    sql_iconst
   | FCONST
     ;
 
@@ -544,7 +548,7 @@ sql_opt_ordinality:
 
 
 sql_where_clause:
-    WHERE a_expr
+    WHERE sql_a_expr
   | %empty
     ;
 
@@ -592,7 +596,7 @@ sql_simple_typename:
   | sql_bit
   | sql_character
   | sql_const_datetime
-  | sql_const_interval sql_interval
+  | sql_const_interval sql_opt_interval
   | sql_const_interval '(' sql_iconst ')'
     ;
 
@@ -654,7 +658,7 @@ sql_opt_float:
 // SQL bit-field data types
 // The following implements BIT() and BIT VARYING().
 
-sql_bit;
+sql_bit:
     sql_bit_with_length
   | sql_bit_without_length
     ;
@@ -679,12 +683,12 @@ sql_bit_without_length:
 // SQL character data types
 // The following implements CHAR() and VARCHAR().
 
-sql_character;
+sql_character:
     sql_character_with_length
   | sql_character_without_length
     ;
 
-sql_const_charater:
+sql_const_character:
     sql_character_with_length
   | sql_character_without_length
     ;
@@ -736,14 +740,14 @@ sql_opt_interval:
   | DAY_P
   | HOUR_P
   | MINUTE_P
-  | interval_second
+  | sql_interval_second
   | YEAR_P TO MONTH_P
   | DAY_P TO HOUR_P
   | DAY_P TO MINUTE_P
-  | DAY_P TO interval_second
+  | DAY_P TO sql_interval_second
   | HOUR_P TO MINUTE_P
-  | HOUR_P TO interval_second
-  | MINUTE_P TO interval_second
+  | HOUR_P TO sql_interval_second
+  | MINUTE_P TO sql_interval_second
   | %empty
     ;
 
@@ -817,16 +821,16 @@ sql_a_expr:
   | NOT_LA sql_a_expr                         %prec NOT
   | sql_a_expr GLOB sql_a_expr                %prec GLOB
   | sql_a_expr LIKE sql_a_expr
-  | sql_a_expr LIKE sql_a_expr ESCAPE sql_a_expr          %prec LIKE
-  | sql_a_expr NOT_LA sql_LIKE a_expr                     %prec NOT_LA
-  | sql_a_expr NOT_LA LIKE sql_a_expr ESCAPE sql_a_expr   %prec NOT_LA
+  | sql_a_expr LIKE sql_a_expr ESCAPE sql_a_expr            %prec LIKE
+  | sql_a_expr NOT_LA LIKE sql_a_expr                       %prec NOT_LA
+  | sql_a_expr NOT_LA LIKE sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA
   | sql_a_expr ILIKE sql_a_expr
-  | sql_a_expr ILIKE sql_a_expr ESCAPE sql_a_expr         %prec ILIKE
-  | sql_a_expr NOT_LA ILIKE sql_a_expr                    %prec NOT_LA
-  | sql_a_expr NOT_LA ILIKE sql_a_expr ESCAPE sql_a_expr  %prec NOT_LA
-  | sql_a_expr SIMILAR TO sql_a_expr                      %prec SIMILAR
-  | sql_a_expr SIMILAR TO sql_a_expr ESCAPE sql_a_expr    %prec SIMILAR
-  | sql_a_expr NOT_LA SIMILAR TO sql_a_expr               %prec NOT_LA
+  | sql_a_expr ILIKE sql_a_expr ESCAPE sql_a_expr           %prec ILIKE
+  | sql_a_expr NOT_LA ILIKE sql_a_expr                      %prec NOT_LA
+  | sql_a_expr NOT_LA ILIKE sql_a_expr ESCAPE sql_a_expr    %prec NOT_LA
+  | sql_a_expr SIMILAR TO sql_a_expr                        %prec SIMILAR
+  | sql_a_expr SIMILAR TO sql_a_expr ESCAPE sql_a_expr      %prec SIMILAR
+  | sql_a_expr NOT_LA SIMILAR TO sql_a_expr                 %prec NOT_LA
   | sql_a_expr NOT_LA SIMILAR TO sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA
 
   // PGNullTest clause
@@ -845,16 +849,16 @@ sql_a_expr:
   | sql_a_expr NOTNULL
 
   | sql_row OVERLAPS sql_row
-  | sql_a_expr IS TRUE_P                          %prec IS
-  | sql_a_expr IS NOT TRUE_P                      %prec IS
-  | sql_a_expr IS FALSE_P                         %prec IS
-  | sql_a_expr IS NOT FALSE_P                     %prec IS
-  | sql_a_expr IS UNKNOWN                         %prec IS
-  | sql_a_expr IS NOT UNKNOWN                     %prec IS
-  | sql_a_expr IS DISTINCT FROM a_expr            %prec IS
-  | sql_a_expr IS NOT DISTINCT FROM a_expr        %prec IS
-  | sql_a_expr IS OF '(' sql_type_list ')'        %prec IS
-  | sql_a_expr IS NOT OF '(' sql_type_list ')'    %prec IS
+  | sql_a_expr IS TRUE_P                            %prec IS
+  | sql_a_expr IS NOT TRUE_P                        %prec IS
+  | sql_a_expr IS FALSE_P                           %prec IS
+  | sql_a_expr IS NOT FALSE_P                       %prec IS
+  | sql_a_expr IS UNKNOWN                           %prec IS
+  | sql_a_expr IS NOT UNKNOWN                       %prec IS
+  | sql_a_expr IS DISTINCT FROM sql_a_expr          %prec IS
+  | sql_a_expr IS NOT DISTINCT FROM sql_a_expr      %prec IS
+  | sql_a_expr IS OF '(' sql_type_list ')'          %prec IS
+  | sql_a_expr IS NOT OF '(' sql_type_list ')'      %prec IS
 
   | sql_a_expr BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr           %prec BETWEEN
   | sql_a_expr NOT_LA BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr    %prec NOT_LA
@@ -862,8 +866,8 @@ sql_a_expr:
   | sql_a_expr NOT_LA BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr             %prec NOT_LA
   | sql_a_expr IN_P sql_in_expr
   | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA
-  | sql_a_expr sql_subquery_Op sql_sub_type sql_select_with_parens    %prec Op
-  | sql_a_expr sql_subquery_Op sql_sub_type '(' sql_a_expr ')'        %prec Op
+  | sql_a_expr sql_subquery_op sql_sub_type sql_select_with_parens    %prec Op
+  | sql_a_expr sql_subquery_op sql_sub_type '(' sql_a_expr ')'        %prec Op
   | DEFAULT
     ;
 
@@ -1096,7 +1100,7 @@ sql_sub_type:
     ;
 
 sql_all_op:
-    sql_op
+    Op
   | sql_math_op
     ;
 
@@ -1113,10 +1117,9 @@ sql_math_op:
   | LESS_EQUALS
   | GREATER_EQUALS
   | NOT_EQUALS
-    ;
-
+    ; 
 sql_qual_op:
-    sql_op
+    Op
   | OPERATOR '(' sql_any_operator ')'
     ;
 
@@ -1282,7 +1285,7 @@ sql_case_arg:
 
 sql_columnref:
     sql_col_id
-  | sql_col_id indirection
+  | sql_col_id sql_indirection
     ;
 
 sql_indirection_el:
@@ -1408,7 +1411,6 @@ sql_a_expr_const:
     ;
 
 sql_iconst: ICONST;
-sql_sconst: SCONST;
 
 // Name classification hierarchy.
 //
@@ -1470,9 +1472,10 @@ sql_col_label:
   | sql_column_name_keywords
   | sql_type_func_keywords
   | sql_reserved_keywords
+  | dashql_keywords
     ;
 
-sql_col_label_or_string;
+sql_col_label_or_string:
     sql_col_label
   | SCONST
     ;

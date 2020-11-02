@@ -37,20 +37,20 @@
  * keywords anywhere else in the grammar, but it's definitely risky.  We can
  * blame any funny behavior of UNBOUNDED on the SQL standard, though.
  */
-%nonassoc    UNBOUNDED        /* ideally should have same precedence as IDENT */
-%nonassoc    IDENT GENERATED NULL_P PARTITION RANGE ROWS PRECEDING FOLLOWING CUBE ROLLUP
-%left        Op OPERATOR        /* multi-character ops and user-defined operators */
-%left        '+' '-'
-%left        '*' '/' '%'
-%left        '^'
+%nonassoc   UNBOUNDED        /* ideally should have same precedence as IDENT */
+%nonassoc   IDENT GENERATED NULL_P PARTITION RANGE ROWS PRECEDING FOLLOWING CUBE ROLLUP
+%left       Op OPERATOR        /* multi-character ops and user-defined operators */
+%left       '+' '-'
+%left       '*' '/' '%'
+%left       '^'
 /* Unary Operators */
-%left        AT                /* sets precedence for AT TIME ZONE */
-%left        COLLATE
-%right        UMINUS
-%left        '[' ']'
-%left        '(' ')'
-%left        TYPECAST
-%left        '.'
+%left       AT                /* sets precedence for AT TIME ZONE */
+%left       COLLATE
+%right      UMINUS
+%left       '[' ']'
+%left       '(' ')'
+%left       TYPECAST
+%left       '.'
 
 /*
  * These might seem to be low-precedence, but actually they are not part
@@ -59,6 +59,6 @@
  * They wouldn't be given a precedence at all, were it not that we need
  * left-associativity among the JOIN rules themselves.
  */
-%left        JOIN CROSS LEFT FULL RIGHT INNER_P NATURAL
+%left       JOIN CROSS LEFT FULL RIGHT INNER_P NATURAL
 /* kluge to keep from causing shift/reduce conflicts */
-%right        PRESERVE STRIP_P
+%right      PRESERVE STRIP_P
