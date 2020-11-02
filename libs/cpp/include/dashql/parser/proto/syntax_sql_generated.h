@@ -50,6 +50,81 @@ inline const char *EnumNameAConstType(AConstType e) {
   return EnumNamesAConstType()[index];
 }
 
+enum class AExprKind : uint8_t {
+  AEXPR_OP = 0,
+  AEXPR_OP_ANY = 1,
+  AEXPR_OP_ALL = 2,
+  AEXPR_DISTINCT = 3,
+  AEXPR_NOT_DISTINCT = 4,
+  AEXPR_NULLIF = 5,
+  AEXPR_OF = 6,
+  AEXPR_IN = 7,
+  AEXPR_LIKE = 8,
+  AEXPR_ILIKE = 9,
+  AEXPR_GLOB = 10,
+  AEXPR_SIMILAR = 11,
+  AEXPR_BETWEEN = 12,
+  AEXPR_NOT_BETWEEN = 13,
+  AEXPR_BETWEEN_SYM = 14,
+  AEXPR_NOT_BETWEEN_SYM = 15,
+  AEXPR_PAREN = 16,
+  MIN = AEXPR_OP,
+  MAX = AEXPR_PAREN
+};
+
+inline const AExprKind (&EnumValuesAExprKind())[17] {
+  static const AExprKind values[] = {
+    AExprKind::AEXPR_OP,
+    AExprKind::AEXPR_OP_ANY,
+    AExprKind::AEXPR_OP_ALL,
+    AExprKind::AEXPR_DISTINCT,
+    AExprKind::AEXPR_NOT_DISTINCT,
+    AExprKind::AEXPR_NULLIF,
+    AExprKind::AEXPR_OF,
+    AExprKind::AEXPR_IN,
+    AExprKind::AEXPR_LIKE,
+    AExprKind::AEXPR_ILIKE,
+    AExprKind::AEXPR_GLOB,
+    AExprKind::AEXPR_SIMILAR,
+    AExprKind::AEXPR_BETWEEN,
+    AExprKind::AEXPR_NOT_BETWEEN,
+    AExprKind::AEXPR_BETWEEN_SYM,
+    AExprKind::AEXPR_NOT_BETWEEN_SYM,
+    AExprKind::AEXPR_PAREN
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesAExprKind() {
+  static const char * const names[18] = {
+    "AEXPR_OP",
+    "AEXPR_OP_ANY",
+    "AEXPR_OP_ALL",
+    "AEXPR_DISTINCT",
+    "AEXPR_NOT_DISTINCT",
+    "AEXPR_NULLIF",
+    "AEXPR_OF",
+    "AEXPR_IN",
+    "AEXPR_LIKE",
+    "AEXPR_ILIKE",
+    "AEXPR_GLOB",
+    "AEXPR_SIMILAR",
+    "AEXPR_BETWEEN",
+    "AEXPR_NOT_BETWEEN",
+    "AEXPR_BETWEEN_SYM",
+    "AEXPR_NOT_BETWEEN_SYM",
+    "AEXPR_PAREN",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameAExprKind(AExprKind e) {
+  if (flatbuffers::IsOutRange(e, AExprKind::AEXPR_OP, AExprKind::AEXPR_PAREN)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesAExprKind()[index];
+}
+
 inline const flatbuffers::TypeTable *AConstTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -70,6 +145,54 @@ inline const flatbuffers::TypeTable *AConstTypeTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 5, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *AExprKindTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::AExprKindTypeTable
+  };
+  static const char * const names[] = {
+    "AEXPR_OP",
+    "AEXPR_OP_ANY",
+    "AEXPR_OP_ALL",
+    "AEXPR_DISTINCT",
+    "AEXPR_NOT_DISTINCT",
+    "AEXPR_NULLIF",
+    "AEXPR_OF",
+    "AEXPR_IN",
+    "AEXPR_LIKE",
+    "AEXPR_ILIKE",
+    "AEXPR_GLOB",
+    "AEXPR_SIMILAR",
+    "AEXPR_BETWEEN",
+    "AEXPR_NOT_BETWEEN",
+    "AEXPR_BETWEEN_SYM",
+    "AEXPR_NOT_BETWEEN_SYM",
+    "AEXPR_PAREN"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 17, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

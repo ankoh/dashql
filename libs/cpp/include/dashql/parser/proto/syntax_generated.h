@@ -148,16 +148,33 @@ enum class AttributeKey : uint8_t {
   DASHQL_VIZ_TYPE = 22,
   DASHQL_VIZ_NAME = 23,
   DASHQL_VIZ_QUERY = 24,
-  SQL_SELECT_TARGETS = 25,
-  SQL_ACONST_TYPE = 26,
-  SQL_ACONST_VALUE = 27,
-  SQL_RESULT_TARGET_NAME = 28,
-  SQL_RESULT_TARGET_VALUE = 29,
+  SQL_SELECT_DISTINCT = 25,
+  SQL_SELECT_INTO = 26,
+  SQL_SELECT_TARGETS = 27,
+  SQL_SELECT_FROM = 28,
+  SQL_SELECT_WHERE = 29,
+  SQL_SELECT_GROUPS = 30,
+  SQL_SELECT_HAVING = 31,
+  SQL_SELECT_WINDOWS = 32,
+  SQL_SELECT_VALUES = 33,
+  SQL_SELECT_SORT = 34,
+  SQL_SELECT_LIMIT_OFFSET = 35,
+  SQL_SELECT_LIMIT_COUNT = 36,
+  SQL_SELECT_WITH = 37,
+  SQL_ACONST_VALUE = 38,
+  SQL_ACONST_TYPE = 39,
+  SQL_AEXPR_KIND = 40,
+  SQL_AEXPR_NAME = 41,
+  SQL_AEXPR_LEXPR = 42,
+  SQL_AEXPR_REXPR = 43,
+  SQL_RESULT_TARGET_NAME = 44,
+  SQL_RESULT_TARGET_INDIRECTION = 45,
+  SQL_RESULT_TARGET_VALUE = 46,
   MIN = NONE,
   MAX = SQL_RESULT_TARGET_VALUE
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[30] {
+inline const AttributeKey (&EnumValuesAttributeKey())[47] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -184,17 +201,34 @@ inline const AttributeKey (&EnumValuesAttributeKey())[30] {
     AttributeKey::DASHQL_VIZ_TYPE,
     AttributeKey::DASHQL_VIZ_NAME,
     AttributeKey::DASHQL_VIZ_QUERY,
+    AttributeKey::SQL_SELECT_DISTINCT,
+    AttributeKey::SQL_SELECT_INTO,
     AttributeKey::SQL_SELECT_TARGETS,
-    AttributeKey::SQL_ACONST_TYPE,
+    AttributeKey::SQL_SELECT_FROM,
+    AttributeKey::SQL_SELECT_WHERE,
+    AttributeKey::SQL_SELECT_GROUPS,
+    AttributeKey::SQL_SELECT_HAVING,
+    AttributeKey::SQL_SELECT_WINDOWS,
+    AttributeKey::SQL_SELECT_VALUES,
+    AttributeKey::SQL_SELECT_SORT,
+    AttributeKey::SQL_SELECT_LIMIT_OFFSET,
+    AttributeKey::SQL_SELECT_LIMIT_COUNT,
+    AttributeKey::SQL_SELECT_WITH,
     AttributeKey::SQL_ACONST_VALUE,
+    AttributeKey::SQL_ACONST_TYPE,
+    AttributeKey::SQL_AEXPR_KIND,
+    AttributeKey::SQL_AEXPR_NAME,
+    AttributeKey::SQL_AEXPR_LEXPR,
+    AttributeKey::SQL_AEXPR_REXPR,
     AttributeKey::SQL_RESULT_TARGET_NAME,
+    AttributeKey::SQL_RESULT_TARGET_INDIRECTION,
     AttributeKey::SQL_RESULT_TARGET_VALUE
   };
   return values;
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[31] = {
+  static const char * const names[48] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -220,10 +254,27 @@ inline const char * const *EnumNamesAttributeKey() {
     "DASHQL_VIZ_TYPE",
     "DASHQL_VIZ_NAME",
     "DASHQL_VIZ_QUERY",
+    "SQL_SELECT_DISTINCT",
+    "SQL_SELECT_INTO",
     "SQL_SELECT_TARGETS",
-    "SQL_ACONST_TYPE",
+    "SQL_SELECT_FROM",
+    "SQL_SELECT_WHERE",
+    "SQL_SELECT_GROUPS",
+    "SQL_SELECT_HAVING",
+    "SQL_SELECT_WINDOWS",
+    "SQL_SELECT_VALUES",
+    "SQL_SELECT_SORT",
+    "SQL_SELECT_LIMIT_OFFSET",
+    "SQL_SELECT_LIMIT_COUNT",
+    "SQL_SELECT_WITH",
     "SQL_ACONST_VALUE",
+    "SQL_ACONST_TYPE",
+    "SQL_AEXPR_KIND",
+    "SQL_AEXPR_NAME",
+    "SQL_AEXPR_LEXPR",
+    "SQL_AEXPR_REXPR",
     "SQL_RESULT_TARGET_NAME",
+    "SQL_RESULT_TARGET_INDIRECTION",
     "SQL_RESULT_TARGET_VALUE",
     nullptr
   };
@@ -1139,6 +1190,23 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1170,14 +1238,31 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "DASHQL_VIZ_TYPE",
     "DASHQL_VIZ_NAME",
     "DASHQL_VIZ_QUERY",
+    "SQL_SELECT_DISTINCT",
+    "SQL_SELECT_INTO",
     "SQL_SELECT_TARGETS",
-    "SQL_ACONST_TYPE",
+    "SQL_SELECT_FROM",
+    "SQL_SELECT_WHERE",
+    "SQL_SELECT_GROUPS",
+    "SQL_SELECT_HAVING",
+    "SQL_SELECT_WINDOWS",
+    "SQL_SELECT_VALUES",
+    "SQL_SELECT_SORT",
+    "SQL_SELECT_LIMIT_OFFSET",
+    "SQL_SELECT_LIMIT_COUNT",
+    "SQL_SELECT_WITH",
     "SQL_ACONST_VALUE",
+    "SQL_ACONST_TYPE",
+    "SQL_AEXPR_KIND",
+    "SQL_AEXPR_NAME",
+    "SQL_AEXPR_LEXPR",
+    "SQL_AEXPR_REXPR",
     "SQL_RESULT_TARGET_NAME",
+    "SQL_RESULT_TARGET_INDIRECTION",
     "SQL_RESULT_TARGET_VALUE"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 30, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 47, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

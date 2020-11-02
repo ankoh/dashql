@@ -15,3 +15,28 @@ export enum AConstType{
 };
 }
 
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum AExprKind{
+  AEXPR_OP= 0,
+  AEXPR_OP_ANY= 1,
+  AEXPR_OP_ALL= 2,
+  AEXPR_DISTINCT= 3,
+  AEXPR_NOT_DISTINCT= 4,
+  AEXPR_NULLIF= 5,
+  AEXPR_OF= 6,
+  AEXPR_IN= 7,
+  AEXPR_LIKE= 8,
+  AEXPR_ILIKE= 9,
+  AEXPR_GLOB= 10,
+  AEXPR_SIMILAR= 11,
+  AEXPR_BETWEEN= 12,
+  AEXPR_NOT_BETWEEN= 13,
+  AEXPR_BETWEEN_SYM= 14,
+  AEXPR_NOT_BETWEEN_SYM= 15,
+  AEXPR_PAREN= 16
+};
+}
+
