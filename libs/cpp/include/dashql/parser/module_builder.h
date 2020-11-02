@@ -47,19 +47,48 @@ class DocumentBuilder {
     /// Add an object
     sx::Value AddObject(sx::Location loc, sx::Object object);
     /// Add an array
-    sx::Value AddArray(sx::Location loc, const std::vector<sx::Location>& strings);
+    sx::Value AddArray(sx::Location loc, std::vector<sx::Location>&& strings);
     /// Add an array
-    sx::Value AddArray(sx::Location loc, const std::vector<sx::Object>& objects);
+    sx::Value AddArray(sx::Location loc, std::vector<sx::Object>&& objects);
     /// Add node attributes
     sx::Span AddAttributes(std::initializer_list<OptionalAttribute> attrs);
     /// Add node attributes
-    sx::Span AddAttributes(const std::vector<sx::Attribute>& attrs);
+    sx::Span AddAttributes(std::vector<sx::Attribute>&& attrs);
 
     /// Write as flatbuffer
     flatbuffers::Offset<sx::Document> Write(flatbuffers::FlatBufferBuilder& builder);
 };
 
 class ModuleBuilder {
+    public:
+    /// An object builder
+    class ObjectBuilder {
+        protected:
+        /// The context
+        ModuleBuilder& builder;
+        /// The object type
+        sx::ObjectType type;
+        /// The attributes
+        std::vector<sx::Attribute> attributes;
+
+        public:
+        /// Constructor
+        ObjectBuilder(ModuleBuilder& builder, sx::ObjectType type);
+        /// Constructor
+        ObjectBuilder(ModuleBuilder& builder, sx::ObjectType type, std::initializer_list<sx::Attribute> attrs);
+        /// Constructor
+        ObjectBuilder(ModuleBuilder& builder, sx::ObjectType type, std::vector<sx::Attribute>&& attrs);
+
+        /// Add a single attribute 
+        void AddAttribute(sx::Attribute attr);
+        /// Add attributes
+        void AddAttributes(std::initializer_list<sx::Attribute> attrs);
+        /// Add attributes
+        void AddAttributes(std::vector<sx::Attribute>&& attrs);
+
+        sx::Object Finish(sx::Location loc);
+    };
+
     protected:
     /// The document
     DocumentBuilder _statements;
@@ -89,9 +118,9 @@ class ModuleBuilder {
     inline void AddError(sx::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
 
     /// Add an object vector
-    inline sx::Value AddArray(sx::Location loc, const std::vector<sx::Object>& objects) { return _statements.AddArray(loc, objects); }
+    inline sx::Value AddArray(sx::Location loc, std::vector<sx::Object>&& objects) { return _statements.AddArray(loc, move(objects)); }
     /// Add a string vector
-    inline sx::Value AddArray(sx::Location loc, const std::vector<sx::Location>& strings) { return _statements.AddArray(loc, strings); }
+    inline sx::Value AddArray(sx::Location loc, std::vector<sx::Location>&& strings) { return _statements.AddArray(loc, move(strings)); }
     /// Add a string vector
     inline sx::Value AddObject(sx::Object object) { return _statements.AddObject(object.location(), object); }
     /// Create an enum
@@ -101,11 +130,11 @@ class ModuleBuilder {
     /// Add an object
     sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
     /// Add an object
-    sx::Object CreateObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs);
+    sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::vector<sx::Attribute>&& attrs);
     /// Add an object
     sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
     /// Add an object
-    sx::Value AddObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs);
+    sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::vector<sx::Attribute>&& attrs);
 
     /// Collect viz attributes
     std::vector<sx::Attribute> CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<sx::Attribute>>> attributes);

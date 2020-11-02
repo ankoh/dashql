@@ -32,7 +32,7 @@ dashql_csv_attribute:
 
 dashql_csv_header_value:
     dashql_boolean_value               { $$ = $1; }
-  | '(' dashql_csv_string_list ')'     { $$ = ctx.AddArray(@$, $2); }
+  | '(' dashql_csv_string_list ')'     { $$ = ctx.AddArray(@$, move($2)); }
 
 dashql_csv_string_list:
     dashql_csv_string_list ',' STRING_LITERAL     { $1.push_back(@3); $$ = move($1); }

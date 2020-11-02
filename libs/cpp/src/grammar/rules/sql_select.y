@@ -103,7 +103,7 @@ sql_simple_select:
         sql_group_clause sql_having_clause sql_window_clause {
 
             $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_SELECT, {
-                {@2, sx::AttributeKey::SQL_SELECT_TARGETS, ctx.AddArray(@3, $3)},
+                {@2, sx::AttributeKey::SQL_SELECT_TARGETS, ctx.AddArray(@3, move($3))},
             });
         }
   | SELECT sql_distinct_clause sql_target_list

@@ -24,7 +24,7 @@ sx::Span DocumentBuilder::AddAttributes(std::initializer_list<OptionalAttribute>
 }
 
 /// Add node attributes
-sx::Span DocumentBuilder::AddAttributes(const std::vector<sx::Attribute>& attrs) {
+sx::Span DocumentBuilder::AddAttributes(std::vector<sx::Attribute>&& attrs) {
     size_t begin = _attributes.size();
     for (auto& attr: attrs)
         _attributes.push_back(attr);
@@ -44,7 +44,7 @@ sx::Value DocumentBuilder::AddObject(sx::Location loc, sx::Object object) {
 }
 
 /// Add an object
-sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Location>& strings) {
+sx::Value DocumentBuilder::AddArray(sx::Location loc, std::vector<sx::Location>&& strings) {
     _arrays.push_back(sx::Array(sx::ValueType::STRING, _values_string.size(), strings.size()));
     for (auto& loc: strings)
         _values_string.push_back(loc);
@@ -52,7 +52,7 @@ sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Loca
 }
 
 /// Add an object
-sx::Value DocumentBuilder::AddArray(sx::Location loc, const std::vector<sx::Object>& objects) {
+sx::Value DocumentBuilder::AddArray(sx::Location loc, std::vector<sx::Object>&& objects) {
     _arrays.push_back(sx::Array(sx::ValueType::OBJECT, _objects.size(), objects.size()));
     for (auto& loc: objects)
         _objects.push_back(loc);
@@ -95,8 +95,8 @@ sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, st
 }
 
 /// Add an object
-sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs) {
-    return sx::Object(loc, type, _statements.AddAttributes(attrs));
+sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, std::vector<sx::Attribute>&& attrs) {
+    return sx::Object(loc, type, _statements.AddAttributes(move(attrs)));
 }
 
 /// Add an object
@@ -105,8 +105,8 @@ sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, std::i
 }
 
 /// Add an object
-sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, const std::vector<sx::Attribute>& attrs) {
-    return _statements.AddObject(loc, sx::Object(loc, type, _statements.AddAttributes(attrs)));
+sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, std::vector<sx::Attribute>&& attrs) {
+    return _statements.AddObject(loc, sx::Object(loc, type, _statements.AddAttributes(move(attrs))));
 }
 
 /// Add an object
