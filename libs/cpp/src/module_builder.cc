@@ -24,7 +24,7 @@ sx::Span DocumentBuilder::AddAttributes(std::initializer_list<OptionalAttribute>
 }
 
 /// Add node attributes
-sx::Span DocumentBuilder::AddAttributes(std::vector<sx::Attribute>&& attrs) {
+sx::Span DocumentBuilder::AddAttributes(AttributeVector&& attrs) {
     size_t begin = _attributes.size();
     for (auto& attr: attrs)
         _attributes.push_back(attr);
@@ -44,7 +44,7 @@ sx::Value DocumentBuilder::AddObject(sx::Location loc, sx::Object object) {
 }
 
 /// Add an object
-sx::Value DocumentBuilder::AddArray(sx::Location loc, std::vector<sx::Location>&& strings) {
+sx::Value DocumentBuilder::AddArray(sx::Location loc, LocationVector&& strings) {
     _arrays.push_back(sx::Array(sx::ValueType::STRING, _values_string.size(), strings.size()));
     for (auto& loc: strings)
         _values_string.push_back(loc);
@@ -52,7 +52,7 @@ sx::Value DocumentBuilder::AddArray(sx::Location loc, std::vector<sx::Location>&
 }
 
 /// Add an object
-sx::Value DocumentBuilder::AddArray(sx::Location loc, std::vector<sx::Object>&& objects) {
+sx::Value DocumentBuilder::AddArray(sx::Location loc, ObjectVector&& objects) {
     _arrays.push_back(sx::Array(sx::ValueType::OBJECT, _objects.size(), objects.size()));
     for (auto& loc: objects)
         _objects.push_back(loc);
@@ -95,7 +95,7 @@ sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, st
 }
 
 /// Add an object
-sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, std::vector<sx::Attribute>&& attrs) {
+sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, AttributeVector&& attrs) {
     return sx::Object(loc, type, _statements.AddAttributes(move(attrs)));
 }
 
@@ -105,15 +105,15 @@ sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, std::i
 }
 
 /// Add an object
-sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, std::vector<sx::Attribute>&& attrs) {
+sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, AttributeVector&& attrs) {
     return _statements.AddObject(loc, sx::Object(loc, type, _statements.AddAttributes(move(attrs))));
 }
 
 /// Add an object
-std::vector<sx::Attribute> ModuleBuilder::CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<sx::Attribute>>> attrs) {
+AttributeVector ModuleBuilder::CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<AttributeVector>> attrs) {
     auto type_val = sx::Value(viz_loc, sx::ValueType::I64, static_cast<int64_t>(viz_type));
     auto type_attr = sx::Attribute(sx::AttributeKey::DASHQL_VIZ_TYPE, type_val);
-    std::vector<sx::Attribute> result{type_attr};
+    AttributeVector result{type_attr};
     for (auto& as: attrs) {
         for (auto& a: as.get()) {
             result.push_back(a);

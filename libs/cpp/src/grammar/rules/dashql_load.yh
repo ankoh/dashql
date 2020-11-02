@@ -1,6 +1,6 @@
 %type <sx::Object> dashql_load_statement;
-%type <std::vector<sx::Attribute>> dashql_load_attributes;
-%type <std::vector<sx::Attribute>> dashql_opt_http_attribute_list
-%type <std::vector<sx::Attribute>> dashql_http_attribute_list;
+%type <AttributeVector> dashql_load_attributes;
+%type <AttributeVector> dashql_opt_http_attribute_list
+%type <AttributeVector> dashql_http_attribute_list;
 %type <sx::Attribute> dashql_http_attribute;
 %type <sx::Value> dashql_http_verb;

@@ -23,6 +23,7 @@ namespace parser {
 
 namespace sx = dashql::proto::syntax;
 namespace sxd = dashql::proto::syntax_dashql;
+
 using Location = sx::Location;
 
 /// Return the location

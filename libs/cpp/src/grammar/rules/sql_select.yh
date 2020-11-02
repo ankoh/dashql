@@ -8,9 +8,9 @@
 
 %type <sx::Value> sql_iconst;
 
-%type <std::vector<sx::Object>> sql_opt_target_list;
-%type <std::vector<sx::Object>> sql_target_list;
+%type <ObjectVector> sql_opt_target_list;
+%type <ObjectVector> sql_target_list;
 
 %type <sx::Object> sql_target_el;
 
-%type <std::vector<sx::Location>> sql_name_list;
+%type <LocationVector> sql_name_list;

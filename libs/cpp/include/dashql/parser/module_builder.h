@@ -16,6 +16,12 @@ namespace sx = proto::syntax;
 namespace sxd = proto::syntax_dashql;
 namespace sxs = proto::syntax_sql;
 
+/// Use vector types to switch to small-vectors later
+using AttributeVector = std::vector<sx::Attribute>;
+using ObjectVector = std::vector<sx::Object>;
+using ValueVector = std::vector<sx::Value>;
+using LocationVector = std::vector<sx::Location>;
+
 /// A document builder
 class DocumentBuilder {
     public: 
@@ -47,13 +53,13 @@ class DocumentBuilder {
     /// Add an object
     sx::Value AddObject(sx::Location loc, sx::Object object);
     /// Add an array
-    sx::Value AddArray(sx::Location loc, std::vector<sx::Location>&& strings);
+    sx::Value AddArray(sx::Location loc, LocationVector&& strings);
     /// Add an array
-    sx::Value AddArray(sx::Location loc, std::vector<sx::Object>&& objects);
+    sx::Value AddArray(sx::Location loc, ObjectVector&& objects);
     /// Add node attributes
     sx::Span AddAttributes(std::initializer_list<OptionalAttribute> attrs);
     /// Add node attributes
-    sx::Span AddAttributes(std::vector<sx::Attribute>&& attrs);
+    sx::Span AddAttributes(AttributeVector&& attrs);
 
     /// Write as flatbuffer
     flatbuffers::Offset<sx::Document> Write(flatbuffers::FlatBufferBuilder& builder);
@@ -69,20 +75,20 @@ class ModuleBuilder {
         /// The object type
         sx::ObjectType type;
         /// The attributes
-        std::vector<sx::Attribute> attributes;
+        AttributeVector attributes;
 
         public:
         /// Constructor
         PartialObject(ModuleBuilder& builder, sx::ObjectType type, std::initializer_list<sx::Attribute> attrs);
         /// Constructor
-        PartialObject(ModuleBuilder& builder, sx::ObjectType type, std::vector<sx::Attribute>&& attrs);
+        PartialObject(ModuleBuilder& builder, sx::ObjectType type, AttributeVector&& attrs);
 
         /// Add a single attribute 
         PartialObject& AddAttribute(sx::Attribute attr);
         /// Add attributes
         PartialObject& AddAttributes(std::initializer_list<sx::Attribute> attrs);
         /// Add attributes
-        PartialObject& AddAttributes(std::vector<sx::Attribute>&& attrs);
+        PartialObject& AddAttributes(AttributeVector&& attrs);
 
         /// Finish the object
         sx::Object Finish(sx::Location loc);
@@ -94,9 +100,9 @@ class ModuleBuilder {
     /// The errors
     std::vector<std::pair<sx::Location, std::string>> _errors;
     /// The line breaks
-    std::vector<sx::Location> _line_breaks;
+    LocationVector _line_breaks;
     /// The comments
-    std::vector<sx::Location> _comments;
+    LocationVector _comments;
 
     public:
     /// Constructor
@@ -117,9 +123,9 @@ class ModuleBuilder {
     inline void AddError(sx::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
 
     /// Add an object vector
-    inline sx::Value AddArray(sx::Location loc, std::vector<sx::Object>&& objects) { return _statements.AddArray(loc, move(objects)); }
+    inline sx::Value AddArray(sx::Location loc, ObjectVector&& objects) { return _statements.AddArray(loc, move(objects)); }
     /// Add a string vector
-    inline sx::Value AddArray(sx::Location loc, std::vector<sx::Location>&& strings) { return _statements.AddArray(loc, move(strings)); }
+    inline sx::Value AddArray(sx::Location loc, LocationVector&& strings) { return _statements.AddArray(loc, move(strings)); }
     /// Add a string vector
     inline sx::Value AddObject(sx::Object object) { return _statements.AddObject(object.location(), object); }
     /// Create an enum
@@ -129,19 +135,19 @@ class ModuleBuilder {
     /// Add an object
     sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
     /// Add an object
-    sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::vector<sx::Attribute>&& attrs);
+    sx::Object CreateObject(sx::Location loc, sx::ObjectType type, AttributeVector&& attrs);
     /// Add an object
     sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
     /// Add an object
-    sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::vector<sx::Attribute>&& attrs);
+    sx::Value AddObject(sx::Location loc, sx::ObjectType type, AttributeVector&& attrs);
 
     /// Start an object
     PartialObject StartObject(sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
     /// Start an object with attributes
-    PartialObject StartObject(sx::ObjectType type, std::vector<sx::Attribute>&& attrs);
+    PartialObject StartObject(sx::ObjectType type, AttributeVector&& attrs);
 
     /// Collect viz attributes
-    std::vector<sx::Attribute> CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<sx::Attribute>>> attributes);
+    AttributeVector CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<AttributeVector>> attributes);
 
     /// Write as flatbuffer
     flatbuffers::Offset<sx::Module> Write(flatbuffers::FlatBufferBuilder& builder);

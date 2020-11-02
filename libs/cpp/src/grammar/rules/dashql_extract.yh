@@ -1,7 +1,7 @@
 %type <sx::Object> dashql_extract_statement;
-%type <std::vector<sx::Location>> dashql_csv_string_list;
-%type <std::vector<sx::Attribute>> dashql_extract_method;
-%type <std::vector<sx::Attribute>> dashql_csv_attribute_list;
-%type <std::vector<sx::Attribute>> dashql_opt_csv_attribute_list;
+%type <LocationVector> dashql_csv_string_list;
+%type <AttributeVector> dashql_extract_method;
+%type <AttributeVector> dashql_csv_attribute_list;
+%type <AttributeVector> dashql_opt_csv_attribute_list;
 %type <sx::Attribute> dashql_csv_attribute;
 %type <sx::Value> dashql_csv_header_value;
