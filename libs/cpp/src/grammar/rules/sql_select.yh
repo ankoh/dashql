@@ -17,3 +17,6 @@
 %type <std::vector<sx::Object>> sql_target_list;
 
 %type <sx::Object> sql_target_el;
+
+%type <sx::Value> sql_col_label;
+%type <sx::Value> sql_col_label_or_string;

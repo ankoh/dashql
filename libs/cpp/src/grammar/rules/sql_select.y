@@ -164,3 +164,23 @@ sql_target_el:
     }
     ;
 
+
+/* Any not-fully-reserved word --- these names can be, eg, role names.
+ *
+ * Column label --- allowed labels in "AS" clauses.
+ * This presently includes *all* Postgres keywords.
+ */
+
+sql_col_label:
+    IDENT                       { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+  | sql_unreserved_keywords     { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+  | sql_column_name_keywords    { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+  | sql_type_func_keywords      { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+  | sql_reserved_keywords       { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+  | dashql_keywords             { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+    ;
+
+sql_col_label_or_string:
+    sql_col_label           { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+  | SCONST                  { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+    ;
