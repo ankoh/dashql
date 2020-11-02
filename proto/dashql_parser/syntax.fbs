@@ -16,7 +16,11 @@ enum ObjectType: uint8 {
 
     SQL_SELECT,
     SQL_ACONST,
+    SQL_AEXPR,
     SQL_RESULT_TARGET,
+    SQL_QUALIFIED_NAME,
+    SQL_INDIRECTION_SLICE,
+    SQL_INDIRECTION_INDEX,
 }
 
 enum AttributeKey: uint8 {
@@ -76,6 +80,17 @@ enum AttributeKey: uint8 {
     SQL_RESULT_TARGET_NAME,
     SQL_RESULT_TARGET_INDIRECTION,
     SQL_RESULT_TARGET_VALUE,
+
+    // PGRangeVar
+    SQL_QUALIFIED_NAME_CATALOG,
+    SQL_QUALIFIED_NAME_SCHEMA,
+    SQL_QUALIFIED_NAME_RELATION,
+
+    // Indirection
+    SQL_INDIRECTION_NAME,           // ".<name>" ".*"
+    SQL_INDIRECTION_INDEX,          // "[lb]"
+    SQL_INDIRECTION_LOWER_BOUND,    // "[lb:ub]"
+    SQL_INDIRECTION_UPPER_BOUND,    // "[lb:ub]" 
 }
 
 enum ValueType: uint8 {

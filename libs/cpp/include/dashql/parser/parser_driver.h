@@ -61,15 +61,40 @@ class ParserDriver: public ModuleBuilder {
     inline std::string_view TextAt(Location loc) { return _input.substr(loc.offset(), loc.length()); }
 
 
+    /// Create an integer constant
     inline sx::Object CreateIntConst(sx::Location loc, int64_t v) {
         return CreateObject(loc, sx::ObjectType::SQL_ACONST, {
             {sx::AttributeKey::SQL_ACONST_TYPE, CreateEnum(loc, sxs::AConstType::INTEGER)},
             {sx::AttributeKey::SQL_ACONST_VALUE, sx::Value{loc, sx::ValueType::I64, v}},
         });
     }
+
+    /// Create a constant
     inline sx::Object CreateConst(sx::Location loc, sxs::AConstType type) {
         return CreateObject(loc, sx::ObjectType::SQL_ACONST, {
             {sx::AttributeKey::SQL_ACONST_TYPE, CreateEnum(loc, type)},
+        });
+    }
+
+    /// Create an indirection
+    inline sx::Object CreateIndirection(sx::Location loc, sx::Location name) {
+        return CreateObject(loc, sx::ObjectType::SQL_INDIRECTION_INDEX, {
+            {sx::AttributeKey::SQL_INDIRECTION_NAME, sx::Value{loc, sx::ValueType::STRING, 0}},
+        });
+    }
+
+    /// Create indirection
+    inline sx::Object CreateIndirection(sx::Location loc, sx::Object index) {
+        return CreateObject(loc, sx::ObjectType::SQL_INDIRECTION_INDEX, {
+            {sx::AttributeKey::SQL_INDIRECTION_INDEX, sx::Value{loc, sx::ValueType::STRING, 0}},
+        });
+    }
+
+    /// Create indirection
+    inline sx::Object CreateIndirection(sx::Location loc, std::optional<sx::Object> lower_bound, std::optional<sx::Object> upper_bound) {
+        return CreateObject(loc, sx::ObjectType::SQL_INDIRECTION_SLICE, {
+            {sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND, AddObject(lower_bound)},
+            {sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND, AddObject(upper_bound)},
         });
     }
 

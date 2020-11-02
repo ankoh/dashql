@@ -80,12 +80,16 @@ enum class ObjectType : uint8_t {
   DASHQL_VIZ = 5,
   SQL_SELECT = 6,
   SQL_ACONST = 7,
-  SQL_RESULT_TARGET = 8,
+  SQL_AEXPR = 8,
+  SQL_RESULT_TARGET = 9,
+  SQL_QUALIFIED_NAME = 10,
+  SQL_INDIRECTION_SLICE = 11,
+  SQL_INDIRECTION_INDEX = 12,
   MIN = NONE,
-  MAX = SQL_RESULT_TARGET
+  MAX = SQL_INDIRECTION_INDEX
 };
 
-inline const ObjectType (&EnumValuesObjectType())[9] {
+inline const ObjectType (&EnumValuesObjectType())[13] {
   static const ObjectType values[] = {
     ObjectType::NONE,
     ObjectType::DASHQL_LOAD,
@@ -95,13 +99,17 @@ inline const ObjectType (&EnumValuesObjectType())[9] {
     ObjectType::DASHQL_VIZ,
     ObjectType::SQL_SELECT,
     ObjectType::SQL_ACONST,
-    ObjectType::SQL_RESULT_TARGET
+    ObjectType::SQL_AEXPR,
+    ObjectType::SQL_RESULT_TARGET,
+    ObjectType::SQL_QUALIFIED_NAME,
+    ObjectType::SQL_INDIRECTION_SLICE,
+    ObjectType::SQL_INDIRECTION_INDEX
   };
   return values;
 }
 
 inline const char * const *EnumNamesObjectType() {
-  static const char * const names[10] = {
+  static const char * const names[14] = {
     "NONE",
     "DASHQL_LOAD",
     "DASHQL_PARAMTER",
@@ -110,14 +118,18 @@ inline const char * const *EnumNamesObjectType() {
     "DASHQL_VIZ",
     "SQL_SELECT",
     "SQL_ACONST",
+    "SQL_AEXPR",
     "SQL_RESULT_TARGET",
+    "SQL_QUALIFIED_NAME",
+    "SQL_INDIRECTION_SLICE",
+    "SQL_INDIRECTION_INDEX",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameObjectType(ObjectType e) {
-  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::SQL_RESULT_TARGET)) return "";
+  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::SQL_INDIRECTION_INDEX)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesObjectType()[index];
 }
@@ -170,11 +182,18 @@ enum class AttributeKey : uint8_t {
   SQL_RESULT_TARGET_NAME = 44,
   SQL_RESULT_TARGET_INDIRECTION = 45,
   SQL_RESULT_TARGET_VALUE = 46,
+  SQL_QUALIFIED_NAME_CATALOG = 47,
+  SQL_QUALIFIED_NAME_SCHEMA = 48,
+  SQL_QUALIFIED_NAME_RELATION = 49,
+  SQL_INDIRECTION_NAME = 50,
+  SQL_INDIRECTION_INDEX = 51,
+  SQL_INDIRECTION_LOWER_BOUND = 52,
+  SQL_INDIRECTION_UPPER_BOUND = 53,
   MIN = NONE,
-  MAX = SQL_RESULT_TARGET_VALUE
+  MAX = SQL_INDIRECTION_UPPER_BOUND
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[47] {
+inline const AttributeKey (&EnumValuesAttributeKey())[54] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -222,13 +241,20 @@ inline const AttributeKey (&EnumValuesAttributeKey())[47] {
     AttributeKey::SQL_AEXPR_REXPR,
     AttributeKey::SQL_RESULT_TARGET_NAME,
     AttributeKey::SQL_RESULT_TARGET_INDIRECTION,
-    AttributeKey::SQL_RESULT_TARGET_VALUE
+    AttributeKey::SQL_RESULT_TARGET_VALUE,
+    AttributeKey::SQL_QUALIFIED_NAME_CATALOG,
+    AttributeKey::SQL_QUALIFIED_NAME_SCHEMA,
+    AttributeKey::SQL_QUALIFIED_NAME_RELATION,
+    AttributeKey::SQL_INDIRECTION_NAME,
+    AttributeKey::SQL_INDIRECTION_INDEX,
+    AttributeKey::SQL_INDIRECTION_LOWER_BOUND,
+    AttributeKey::SQL_INDIRECTION_UPPER_BOUND
   };
   return values;
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[48] = {
+  static const char * const names[55] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -276,13 +302,20 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_RESULT_TARGET_NAME",
     "SQL_RESULT_TARGET_INDIRECTION",
     "SQL_RESULT_TARGET_VALUE",
+    "SQL_QUALIFIED_NAME_CATALOG",
+    "SQL_QUALIFIED_NAME_SCHEMA",
+    "SQL_QUALIFIED_NAME_RELATION",
+    "SQL_INDIRECTION_NAME",
+    "SQL_INDIRECTION_INDEX",
+    "SQL_INDIRECTION_LOWER_BOUND",
+    "SQL_INDIRECTION_UPPER_BOUND",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAttributeKey(AttributeKey e) {
-  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_RESULT_TARGET_VALUE)) return "";
+  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_INDIRECTION_UPPER_BOUND)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAttributeKey()[index];
 }
@@ -1137,6 +1170,10 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1151,16 +1188,27 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     "DASHQL_VIZ",
     "SQL_SELECT",
     "SQL_ACONST",
-    "SQL_RESULT_TARGET"
+    "SQL_AEXPR",
+    "SQL_RESULT_TARGET",
+    "SQL_QUALIFIED_NAME",
+    "SQL_INDIRECTION_SLICE",
+    "SQL_INDIRECTION_INDEX"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 9, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 13, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -1259,10 +1307,17 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_AEXPR_REXPR",
     "SQL_RESULT_TARGET_NAME",
     "SQL_RESULT_TARGET_INDIRECTION",
-    "SQL_RESULT_TARGET_VALUE"
+    "SQL_RESULT_TARGET_VALUE",
+    "SQL_QUALIFIED_NAME_CATALOG",
+    "SQL_QUALIFIED_NAME_SCHEMA",
+    "SQL_QUALIFIED_NAME_RELATION",
+    "SQL_INDIRECTION_NAME",
+    "SQL_INDIRECTION_INDEX",
+    "SQL_INDIRECTION_LOWER_BOUND",
+    "SQL_INDIRECTION_UPPER_BOUND"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 47, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 54, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

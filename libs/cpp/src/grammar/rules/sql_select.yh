@@ -14,3 +14,8 @@
 %type <sx::Object> sql_target_el;
 
 %type <LocationVector> sql_name_list;
+
+%type <ObjectVector> sql_indirection;
+%type <ObjectVector> sql_opt_indirection;
+%type <sx::Object> sql_indirection_el;
+%type <std::optional<sx::Object>> sql_opt_slice_bound;

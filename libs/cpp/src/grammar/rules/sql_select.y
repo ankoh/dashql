@@ -1297,25 +1297,25 @@ sql_columnref:
     ;
 
 sql_indirection_el:
-    '.' sql_attr_name
-  | '.' '*'
-  | '[' sql_a_expr ']'
-  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'
+    '.' sql_attr_name       { $$ = ctx.CreateIndirection(@$, @2); }
+  | '.' '*'                 { $$ = ctx.CreateIndirection(@$, @2); }
+  | '[' sql_a_expr ']'      { $$ = ctx.CreateIndirection(@$, $2); }
+  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = ctx.CreateIndirection(@$, $2, $4); }
     ;
 
 sql_opt_slice_bound:
-    sql_a_expr
-  | %empty
+    sql_a_expr          { $$ = $1; }
+  | %empty              { $$ = std::nullopt; }
     ;
 
 sql_indirection:
-    sql_indirection_el
-  | sql_indirection sql_indirection_el
+    sql_indirection_el                      { $$ = { $1 }; }
+  | sql_indirection sql_indirection_el      { $1.push_back($2); $$ = move($1); }
     ;
 
 sql_opt_indirection:
-    %empty
-  | sql_opt_indirection sql_indirection_el
+    %empty                                  { $$ = {}; }
+  | sql_opt_indirection sql_indirection_el  { $1.push_back($2); $$ = move($1); }
     ;
 
 sql_opt_asymmetric:

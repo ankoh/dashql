@@ -45,12 +45,16 @@ pub enum ObjectType {
   DASHQL_VIZ = 5,
   SQL_SELECT = 6,
   SQL_ACONST = 7,
-  SQL_RESULT_TARGET = 8,
+  SQL_AEXPR = 8,
+  SQL_RESULT_TARGET = 9,
+  SQL_QUALIFIED_NAME = 10,
+  SQL_INDIRECTION_SLICE = 11,
+  SQL_INDIRECTION_INDEX = 12,
 
 }
 
 pub const ENUM_MIN_OBJECT_TYPE: u8 = 0;
-pub const ENUM_MAX_OBJECT_TYPE: u8 = 8;
+pub const ENUM_MAX_OBJECT_TYPE: u8 = 12;
 
 impl<'a> flatbuffers::Follow<'a> for ObjectType {
   type Inner = Self;
@@ -84,7 +88,7 @@ impl flatbuffers::Push for ObjectType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 9] = [
+pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 13] = [
   ObjectType::NONE,
   ObjectType::DASHQL_LOAD,
   ObjectType::DASHQL_PARAMTER,
@@ -93,11 +97,15 @@ pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 9] = [
   ObjectType::DASHQL_VIZ,
   ObjectType::SQL_SELECT,
   ObjectType::SQL_ACONST,
-  ObjectType::SQL_RESULT_TARGET
+  ObjectType::SQL_AEXPR,
+  ObjectType::SQL_RESULT_TARGET,
+  ObjectType::SQL_QUALIFIED_NAME,
+  ObjectType::SQL_INDIRECTION_SLICE,
+  ObjectType::SQL_INDIRECTION_INDEX
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_OBJECT_TYPE: [&str; 9] = [
+pub const ENUM_NAMES_OBJECT_TYPE: [&str; 13] = [
     "NONE",
     "DASHQL_LOAD",
     "DASHQL_PARAMTER",
@@ -106,7 +114,11 @@ pub const ENUM_NAMES_OBJECT_TYPE: [&str; 9] = [
     "DASHQL_VIZ",
     "SQL_SELECT",
     "SQL_ACONST",
-    "SQL_RESULT_TARGET"
+    "SQL_AEXPR",
+    "SQL_RESULT_TARGET",
+    "SQL_QUALIFIED_NAME",
+    "SQL_INDIRECTION_SLICE",
+    "SQL_INDIRECTION_INDEX"
 ];
 
 pub fn enum_name_object_type(e: ObjectType) -> &'static str {
@@ -165,11 +177,18 @@ pub enum AttributeKey {
   SQL_RESULT_TARGET_NAME = 44,
   SQL_RESULT_TARGET_INDIRECTION = 45,
   SQL_RESULT_TARGET_VALUE = 46,
+  SQL_QUALIFIED_NAME_CATALOG = 47,
+  SQL_QUALIFIED_NAME_SCHEMA = 48,
+  SQL_QUALIFIED_NAME_RELATION = 49,
+  SQL_INDIRECTION_NAME = 50,
+  SQL_INDIRECTION_INDEX = 51,
+  SQL_INDIRECTION_LOWER_BOUND = 52,
+  SQL_INDIRECTION_UPPER_BOUND = 53,
 
 }
 
 pub const ENUM_MIN_ATTRIBUTE_KEY: u8 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 46;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 53;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -203,7 +222,7 @@ impl flatbuffers::Push for AttributeKey {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 47] = [
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 54] = [
   AttributeKey::NONE,
   AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
   AttributeKey::DASHQL_PARAMETER_ALIAS,
@@ -250,11 +269,18 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 47] = [
   AttributeKey::SQL_AEXPR_REXPR,
   AttributeKey::SQL_RESULT_TARGET_NAME,
   AttributeKey::SQL_RESULT_TARGET_INDIRECTION,
-  AttributeKey::SQL_RESULT_TARGET_VALUE
+  AttributeKey::SQL_RESULT_TARGET_VALUE,
+  AttributeKey::SQL_QUALIFIED_NAME_CATALOG,
+  AttributeKey::SQL_QUALIFIED_NAME_SCHEMA,
+  AttributeKey::SQL_QUALIFIED_NAME_RELATION,
+  AttributeKey::SQL_INDIRECTION_NAME,
+  AttributeKey::SQL_INDIRECTION_INDEX,
+  AttributeKey::SQL_INDIRECTION_LOWER_BOUND,
+  AttributeKey::SQL_INDIRECTION_UPPER_BOUND
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 47] = [
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 54] = [
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -301,7 +327,14 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 47] = [
     "SQL_AEXPR_REXPR",
     "SQL_RESULT_TARGET_NAME",
     "SQL_RESULT_TARGET_INDIRECTION",
-    "SQL_RESULT_TARGET_VALUE"
+    "SQL_RESULT_TARGET_VALUE",
+    "SQL_QUALIFIED_NAME_CATALOG",
+    "SQL_QUALIFIED_NAME_SCHEMA",
+    "SQL_QUALIFIED_NAME_RELATION",
+    "SQL_INDIRECTION_NAME",
+    "SQL_INDIRECTION_INDEX",
+    "SQL_INDIRECTION_LOWER_BOUND",
+    "SQL_INDIRECTION_UPPER_BOUND"
 ];
 
 pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {

@@ -128,6 +128,12 @@ class ModuleBuilder {
     inline sx::Value AddArray(sx::Location loc, LocationVector&& strings) { return _statements.AddArray(loc, move(strings)); }
     /// Add a string vector
     inline sx::Value AddObject(sx::Object object) { return _statements.AddObject(object.location(), object); }
+    /// Add an object
+    inline std::optional<sx::Value> AddObject(std::optional<sx::Object> object) {
+        if (!object)
+            return std::nullopt;
+        return AddObject(*object);
+    }
     /// Create an enum
     template <typename Enum>
     inline sx::Value CreateEnum(sx::Location loc, Enum e) const { return sx::Value(loc, sx::ValueType::I64, static_cast<int64_t>(e)); }
