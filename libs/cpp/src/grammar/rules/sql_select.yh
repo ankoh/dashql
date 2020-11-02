@@ -1,21 +1,21 @@
-%type <sx::Object> sql_select_stmt;
-%type <sx::Object> sql_select_no_parens;
-%type <sx::Object> sql_simple_select;
+%type <sx::Value> sql_select_stmt;
+%type <sx::Value> sql_select_no_parens;
+%type <sx::Value> sql_simple_select;
 
-%type <sx::Object> sql_a_expr;
-%type <sx::Object> sql_c_expr;
-%type <sx::Object> sql_a_expr_const;
+%type <sx::Value> sql_a_expr;
+%type <sx::Value> sql_c_expr;
+%type <sx::Value> sql_a_expr_const;
 
 %type <sx::Value> sql_iconst;
 
-%type <ObjectVector> sql_opt_target_list;
-%type <ObjectVector> sql_target_list;
+%type <ValueVector> sql_opt_target_list;
+%type <ValueVector> sql_target_list;
 
-%type <sx::Object> sql_target_el;
+%type <sx::Value> sql_target_el;
 
-%type <LocationVector> sql_name_list;
+%type <ValueVector> sql_name_list;
 
-%type <ObjectVector> sql_indirection;
-%type <ObjectVector> sql_opt_indirection;
-%type <sx::Object> sql_indirection_el;
-%type <std::optional<sx::Object>> sql_opt_slice_bound;
+%type <ValueVector> sql_indirection;
+%type <ValueVector> sql_opt_indirection;
+%type <sx::Value> sql_indirection_el;
+%type <std::optional<sx::Value>> sql_opt_slice_bound;

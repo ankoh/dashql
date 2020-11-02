@@ -87,7 +87,6 @@ enum AttributeKey: uint8 {
     SQL_QUALIFIED_NAME_RELATION,
 
     // Indirection
-    SQL_INDIRECTION_NAME,           // ".<name>" ".*"
     SQL_INDIRECTION_INDEX,          // "[lb]"
     SQL_INDIRECTION_LOWER_BOUND,    // "[lb:ub]"
     SQL_INDIRECTION_UPPER_BOUND,    // "[lb:ub]" 
@@ -108,7 +107,6 @@ struct Value {
 }
 
 struct Array {
-    type: ValueType;
     offset: uint32;
     length: uint32;
 }
@@ -125,12 +123,11 @@ struct Object {
 }
 
 table Document {
-    entries: [uint32];
+    entries: [Value];
     objects: [Object];
     attributes: [Attribute];
     arrays: [Array];
-    values_i64: [int32];
-    values_string: [Location];
+    array_values: [Value];
 }
 
 table Error {

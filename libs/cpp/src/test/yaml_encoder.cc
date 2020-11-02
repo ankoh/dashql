@@ -74,8 +74,7 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
         auto* objs = module.statements()->objects();
         auto* attrs = module.statements()->attributes();
         auto* arrays = module.statements()->arrays();
-        auto* values_str = module.statements()->values_string();
-        auto* values_i64 = module.statements()->values_i64();
+        auto* array_values = module.statements()->array_values();
 
         auto assert_less_than = [](unsigned v, unsigned size) {
             assert(v < size);
@@ -109,86 +108,52 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
                 // Unpack attribute
                 auto* attr = attrs->Get(i);
                 auto& attr_value = attr->value();
-                auto attr_key = c4::to_csubstr(attr_key_tt->names[static_cast<size_t>(attr->key())]);
+                auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr->key())]);
 
-                // Check attribute type
-                switch (attr_value.type()) {
-                    case sx::ValueType::NONE:
-                        break;
-                    case sx::ValueType::I64: {
-                        auto n = v[attr_key];
-                        n |= ryml::VAL;
-                        n << attr_value.value();
-                        break;
-                    }
-                    case sx::ValueType::STRING: {
-                        auto n = v[attr_key];
-                        encode(n, attr_value.location(), text);
-                        break;
-                    }
-                    case sx::ValueType::OBJECT: {
-                        auto aid = assert_less_than(attr_value.value(), oid);
-                        tree.move(tmp_values[aid].id(), v.id(), tree.last_child(v.id()));
-                        tmp_values[aid].set_key(attr_key);
-                        break;
-                    }
-                    case sx::ValueType::ARRAY: {
-                        // Translate arrays with a stack since array can be nested
-                        auto n = v[attr_key];
-                        n |= ryml::SEQ;
-                        std::vector<std::tuple<ryml::NodeRef, const sx::Array*>> nested_arrays;
-                        nested_arrays.push_back({n, arrays->Get(attr_value.value())});
+                std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Value*>> pending;
+                pending.push_back({v, attr_key, &attr_value});
 
-                        while (!nested_arrays.empty()) {
-                            auto& [array_node, array_ptr] = nested_arrays.back();
-                            nested_arrays.pop_back();
+                while (!pending.empty()) {
+                    auto [parent, key, target] = pending.back();
+                    auto k = c4::csubstr(key.data(), key.size());
+                    pending.pop_back();
 
-                            // Unpack the array
-                            auto array_id = nested_arrays.size() - 1;
-                            auto array_type = array_ptr->type();
+                    // Check attribute type
+                    switch (target->type()) {
+                        case sx::ValueType::NONE:
+                            break;
+                        case sx::ValueType::I64: {
+                            auto n = key.empty() ? parent.append_child() : parent[k];
+                            n |= ryml::VAL;
+                            n << target->value();
+                            break;
+                        }
+                        case sx::ValueType::STRING: {
+                            encode(key.empty() ? parent.append_child() : parent[k], target->location(), text);
+                            break;
+                        }
+                        case sx::ValueType::OBJECT: {
+                            auto aid = assert_less_than(target->value(), oid);
+                            tree.move(tmp_values[aid].id(), parent.id(), tree.last_child(parent.id()));
+                            if (!key.empty()) {
+                                tmp_values[aid].set_key(k);
+                            }
+                            break;
+                        }
+                        case sx::ValueType::ARRAY: {
+                            auto n = key.empty() ? parent.append_child() : parent[k];
+                            n |= ryml::SEQ;
+
+                            auto array_id = target->value();
+                            auto array_ptr = arrays->Get(array_id);
                             auto array_begin = array_ptr->offset();
                             auto array_end = array_begin + array_ptr->length();
 
-                            // Push on next visit
-                            array_ptr = nullptr;
-
-                            switch (array_type) {
-                                case sx::ValueType::NONE:
-                                    break;
-                                case sx::ValueType::ARRAY:
-                                    assert_within(array_begin, array_end, arrays->size());
-                                    for (auto i = array_begin; i < array_end; ++i) {
-                                        auto nested_array = array_node.append_child();
-                                        nested_array |= ryml::SEQ;
-                                        nested_arrays.push_back({nested_array, arrays->Get(i)});
-                                    }
-                                    break;
-                                case sx::ValueType::OBJECT:
-                                    assert_within(array_begin, array_end, oid);
-                                    for (unsigned i = array_begin; i < array_end; ++i) {
-                                        tree.move(tmp_values[i].id(), array_node.id(),
-                                                  tree.last_child(array_node.id()));
-                                    }
-                                    break;
-                                case sx::ValueType::STRING:
-                                    assert_within(array_begin, array_end, values_str->size());
-                                    for (auto i = array_begin; i < array_end; ++i) {
-                                        auto nested_val = array_node.append_child();
-                                        nested_val |= ryml::VAL;
-                                        encode(nested_val, *values_str->Get(i), text);
-                                    }
-                                    break;
-                                case sx::ValueType::I64:
-                                    assert_within(array_begin, array_end, values_i64->size());
-                                    for (auto i = array_begin; i < array_end; ++i) {
-                                        auto nested_val = array_node.append_child();
-                                        nested_val |= ryml::VAL;
-                                        nested_val << values_i64->Get(i);
-                                    }
-                                    break;
+                            for (auto i = array_begin; i < array_end; ++i) {
+                                auto array_elem = array_values->Get(array_end - i - 1);
+                                pending.push_back({n, {}, array_elem});
                             }
                         }
-                        break;
                     }
                 }
             }
@@ -198,8 +163,11 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
         auto statements = root["statements"];
         statements |= ryml::SEQ;
         for (unsigned id = 0; id < entries->size(); ++id) {
+            auto entry = entries->Get(id);
+            if (entry->type() != sx::ValueType::OBJECT)
+                continue;
             assert_less_than(id, entries->size());
-            auto child = tmp_values[entries->Get(id)].id();
+            auto child = tmp_values[entry->value()].id();
             tree.move(child, statements.id(), tree.last_child(statements.id()));
         }
     }

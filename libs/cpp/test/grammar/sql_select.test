@@ -213,7 +213,7 @@ expected:
 ----
 name: select_iconst_list
 input: |-
-  select 1, 2;
+  select 1, 2
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -236,8 +236,6 @@ expected:
               location: 10..11|`2`
               SQL_ACONST_TYPE: 0
               SQL_ACONST_VALUE: 2
-    - type: NONE
-      location: 12..12|``
   errors: []
   line_breaks: []
   comments: []

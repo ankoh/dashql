@@ -15,12 +15,8 @@ namespace parser {
 namespace sx = proto::syntax;
 namespace sxd = proto::syntax_dashql;
 namespace sxs = proto::syntax_sql;
-
-/// Use vector types to switch to small-vectors later
 using AttributeVector = std::vector<sx::Attribute>;
-using ObjectVector = std::vector<sx::Object>;
 using ValueVector = std::vector<sx::Value>;
-using LocationVector = std::vector<sx::Location>;
 
 /// A document builder
 class DocumentBuilder {
@@ -28,12 +24,11 @@ class DocumentBuilder {
     using OptionalAttribute = std::pair<sx::AttributeKey, std::optional<sx::Value>>;
 
     protected:
-    std::vector<uint32_t> _entries = {};
+    std::vector<sx::Value> _entries = {};
     std::vector<sx::Object> _objects = {};
     std::vector<sx::Attribute> _attributes = {};
     std::vector<sx::Array> _arrays = {};
-    std::vector<int32_t> _values_i64 = {};
-    std::vector<sx::Location> _values_string = {};
+    std::vector<sx::Value> _array_values = {};
 
     /// A null entry
     inline auto null() {
@@ -49,13 +44,11 @@ class DocumentBuilder {
     auto& entries() const { return _entries; }
 
     /// Add an entry
-    void AddEntry(sx::Object object);
+    void AddEntry(sx::Value object);
     /// Add an object
     sx::Value AddObject(sx::Location loc, sx::Object object);
     /// Add an array
-    sx::Value AddArray(sx::Location loc, LocationVector&& strings);
-    /// Add an array
-    sx::Value AddArray(sx::Location loc, ObjectVector&& objects);
+    sx::Value AddArray(sx::Location loc, ValueVector&& values);
     /// Add node attributes
     sx::Span AddAttributes(std::initializer_list<OptionalAttribute> attrs);
     /// Add node attributes
@@ -91,7 +84,7 @@ class ModuleBuilder {
         PartialObject& AddAttributes(AttributeVector&& attrs);
 
         /// Finish the object
-        sx::Object Finish(sx::Location loc);
+        sx::Value Finish(sx::Location loc);
     };
 
     protected:
@@ -100,9 +93,9 @@ class ModuleBuilder {
     /// The errors
     std::vector<std::pair<sx::Location, std::string>> _errors;
     /// The line breaks
-    LocationVector _line_breaks;
+    std::vector<sx::Location> _line_breaks;
     /// The comments
-    LocationVector _comments;
+    std::vector<sx::Location> _comments;
 
     public:
     /// Constructor
@@ -114,7 +107,7 @@ class ModuleBuilder {
     auto& errors() { return _errors; }
 
     /// Add a statement
-    inline void AddStatement(sx::Object object) { _statements.AddEntry(object); }
+    inline void AddStatement(sx::Value value) { _statements.AddEntry(value); }
     /// Add a line break
     inline void AddLineBreak(sx::Location loc) { _line_breaks.push_back(loc); }
     /// Add a comment
@@ -122,10 +115,8 @@ class ModuleBuilder {
     /// Add an error
     inline void AddError(sx::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
 
-    /// Add an object vector
-    inline sx::Value AddArray(sx::Location loc, ObjectVector&& objects) { return _statements.AddArray(loc, move(objects)); }
     /// Add a string vector
-    inline sx::Value AddArray(sx::Location loc, LocationVector&& strings) { return _statements.AddArray(loc, move(strings)); }
+    inline sx::Value AddArray(sx::Location loc, ValueVector&& values) { return _statements.AddArray(loc, move(values)); }
     /// Add a string vector
     inline sx::Value AddObject(sx::Object object) { return _statements.AddObject(object.location(), object); }
     /// Add an object
@@ -137,13 +128,10 @@ class ModuleBuilder {
     /// Create an enum
     template <typename Enum>
     inline sx::Value CreateEnum(sx::Location loc, Enum e) const { return sx::Value(loc, sx::ValueType::I64, static_cast<int64_t>(e)); }
-
+    /// Create a string
+    sx::Value CreateString(sx::Location loc) const { return sx::Value(loc, sx::ValueType::STRING, 0); }
     /// Add an object
-    sx::Object CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
-    /// Add an object
-    sx::Object CreateObject(sx::Location loc, sx::ObjectType type, AttributeVector&& attrs);
-    /// Add an object
-    sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
+    sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs = {});
     /// Add an object
     sx::Value AddObject(sx::Location loc, sx::ObjectType type, AttributeVector&& attrs);
 

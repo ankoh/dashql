@@ -12,7 +12,7 @@ dashql_statement_list:
 
 opt_dashql_statement:
     dashql_statement               { $$ = $1; }
-  | %empty                         { $$ = sx::Object(@$, sx::ObjectType::NONE, sx::Span(0, 0)); }
+  | %empty                         { $$ = sx::Value(@$, sx::ValueType::NONE, 0); }
 
 dashql_statement:
     dashql_parameter_declaration   { $$ = $1; }

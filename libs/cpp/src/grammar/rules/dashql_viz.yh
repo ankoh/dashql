@@ -1,3 +1,3 @@
-%type <sx::Object> dashql_viz_statement;
+%type <sx::Value> dashql_viz_statement;
 %type <AttributeVector> dashql_viz_attributes;
 %type <AttributeVector> dashql_viz_attrs_all;

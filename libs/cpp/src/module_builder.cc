@@ -32,9 +32,8 @@ sx::Span DocumentBuilder::AddAttributes(AttributeVector&& attrs) {
 }
 
 /// Add an object
-void DocumentBuilder::AddEntry(sx::Object object) {
-    _objects.push_back(object);
-    _entries.push_back(_objects.size() - 1);
+void DocumentBuilder::AddEntry(sx::Value value) {
+    _entries.push_back(value);
 }
 
 /// Add an object
@@ -44,60 +43,39 @@ sx::Value DocumentBuilder::AddObject(sx::Location loc, sx::Object object) {
 }
 
 /// Add an object
-sx::Value DocumentBuilder::AddArray(sx::Location loc, LocationVector&& strings) {
-    _arrays.push_back(sx::Array(sx::ValueType::STRING, _values_string.size(), strings.size()));
-    for (auto& loc: strings)
-        _values_string.push_back(loc);
-    return sx::Value(loc, sx::ValueType::ARRAY, _arrays.size() - 1);
-}
-
-/// Add an object
-sx::Value DocumentBuilder::AddArray(sx::Location loc, ObjectVector&& objects) {
-    _arrays.push_back(sx::Array(sx::ValueType::OBJECT, _objects.size(), objects.size()));
-    for (auto& loc: objects)
-        _objects.push_back(loc);
+sx::Value DocumentBuilder::AddArray(sx::Location loc, ValueVector&& values) {
+    _arrays.push_back(sx::Array(_array_values.size(), values.size()));
+    for (auto& v: values)
+        _array_values.push_back(v);
     return sx::Value(loc, sx::ValueType::ARRAY, _arrays.size() - 1);
 }
 
 /// Write as flatbuffer
 fb::Offset<sx::Document> DocumentBuilder::Write(fb::FlatBufferBuilder& builder) {
-    fb::Offset<fb::Vector<uint32_t>> entries;
+    fb::Offset<fb::Vector<const sx::Value*>> entries;
     fb::Offset<fb::Vector<const sx::Object*>> objects;
     fb::Offset<fb::Vector<const sx::Attribute*>> attributes;
     fb::Offset<fb::Vector<const sx::Array*>> arrays;
-    fb::Offset<fb::Vector<int32_t>> values_i64;
-    fb::Offset<fb::Vector<const sx::Location*>> values_string;
+    fb::Offset<fb::Vector<const sx::Value*>> array_values;
 
-    entries = builder.CreateVector(_entries);
+    entries = builder.CreateVectorOfStructs(_entries);
     objects = builder.CreateVectorOfStructs(_objects);
     attributes = builder.CreateVectorOfStructs(_attributes);
     arrays = builder.CreateVectorOfStructs(_arrays);
-    values_i64 = builder.CreateVector(_values_i64);
-    values_string = builder.CreateVectorOfStructs(_values_string);
+    array_values = builder.CreateVectorOfStructs(_array_values);
 
     sx::DocumentBuilder doc{builder};
     doc.add_entries(entries);
     doc.add_objects(objects);
     doc.add_attributes(attributes);
     doc.add_arrays(arrays);
-    doc.add_values_i64(values_i64);
-    doc.add_values_string(values_string);
+    doc.add_array_values(array_values);
     return doc.Finish();
 }
 
 /// Constructor
 ModuleBuilder::ModuleBuilder()
     : _statements(), _errors() {}
-
-/// Add an object
-sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs) {
-    return sx::Object(loc, type, _statements.AddAttributes(attrs));
-}
-
-/// Add an object
-sx::Object ModuleBuilder::CreateObject(sx::Location loc, sx::ObjectType type, AttributeVector&& attrs) {
-    return sx::Object(loc, type, _statements.AddAttributes(move(attrs)));
-}
 
 /// Add an object
 sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs) {

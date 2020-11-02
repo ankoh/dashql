@@ -102,7 +102,7 @@ sql_simple_select:
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause {
 
-            $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_SELECT, {
+            $$ = ctx.AddObject(@$, sx::ObjectType::SQL_SELECT, {
                 {sx::AttributeKey::SQL_SELECT_TARGETS, ctx.AddArray(@3, move($3))},
             });
         }
@@ -1297,9 +1297,9 @@ sql_columnref:
     ;
 
 sql_indirection_el:
-    '.' sql_attr_name       { $$ = ctx.CreateIndirection(@$, @2); }
-  | '.' '*'                 { $$ = ctx.CreateIndirection(@$, @2); }
-  | '[' sql_a_expr ']'      { $$ = ctx.CreateIndirection(@$, $2); }
+    '.' sql_attr_name       { $$ = ctx.CreateString(@$, @2); }
+  | '.' '*'                 { $$ = ctx.CreateString(@$, @2); }
+  | '[' sql_a_expr ']'      { $$ = ctx.AddObject(@$, $2); }
   | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = ctx.CreateIndirection(@$, $2, $4); }
     ;
 
@@ -1348,14 +1348,14 @@ sql_target_el:
     // IDENT a precedence higher than POSTFIXOP.
 
   | sql_a_expr IDENT {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
-            {sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
-            {sx::AttributeKey::SQL_RESULT_TARGET_NAME, sx::Value(@2, sx::ValueType::STRING, 0)},
+        $$ = ctx.AddObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
+            {sx::AttributeKey::SQL_RESULT_TARGET_VALUE, $1},
+            {sx::AttributeKey::SQL_RESULT_TARGET_NAME, ctx.CreateString(@2)},
         });
     }
   | sql_a_expr {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
-            {sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
+        $$ = ctx.AddObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
+            {sx::AttributeKey::SQL_RESULT_TARGET_VALUE, $1},
         });
     }
   | '*'         { $$ = {}; }

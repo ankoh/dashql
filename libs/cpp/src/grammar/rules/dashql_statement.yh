@@ -1,2 +1,2 @@
-%type <sx::Object> dashql_statement;
-%type <sx::Object> opt_dashql_statement;
+%type <sx::Value> dashql_statement;
+%type <sx::Value> opt_dashql_statement;

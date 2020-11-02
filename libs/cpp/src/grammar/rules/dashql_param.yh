@@ -1,2 +1,2 @@
-%type <sx::Object> dashql_parameter_declaration;
+%type <sx::Value> dashql_parameter_declaration;
 %type <sx::Value> dashql_parameter_type;
