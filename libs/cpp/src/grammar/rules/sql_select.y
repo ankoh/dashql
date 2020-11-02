@@ -132,17 +132,40 @@ sql_a_expr_const:
 sql_iconst: ICONST { $$ = sx::Value(@1, sx::ValueType::I64, $1); };
 sql_ident: IDENT { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
 
-/*
- * Define SQL-style CASE clause.
- * - Full specification
- *	CASE WHEN a = b THEN c ... ELSE d END
- * - Implicit argument
- *	CASE a WHEN b THEN c ... ELSE d END
- */
+// ---------------------------------------------------------------------------
+// Define SQL-style CASE clause.
+//  - Full specification
+//    CASE WHEN a = b THEN c ... ELSE d END
+//  - Implicit argument
+//    CASE a WHEN b THEN c ... ELSE d END
+
+sql_case_expr:
+    CASE sql_case_arg sql_when_clause_list sql_case_default END_P
+    ;
+
+sql_when_clause_list:
+    sql_when_clause
+  | sql_when_clause_list sql_when_clause
+    ;
+
+sql_when_clause:
+    WHEN sql_a_expr THEN sql_a_expr
+    ;
+
+sql_case_default:
+    ELSE sql_a_expr
+  | %empty
+    ;
+
+sql_case_arg:
+    sql_a_expr
+  | %empty
+    ;
 
 sql_column_ref:
     sql_col_id
   | sql_col_id sql_indirection
+    ;
 
 sql_indirection_el:
     '.' sql_attr_name
@@ -153,6 +176,7 @@ sql_indirection_el:
 
 sql_opt_slice_bound:
     sql_a_expr
+  | %empty
     ;
 
 sql_indirection:
@@ -204,21 +228,17 @@ sql_name: sql_col_id;
 sql_attr_name: sql_col_label;
 
 
-/* Role specifications */
-/*
- * Name classification hierarchy.
- *
- * IDENT is the lexeme returned by the lexer for identifiers that match
- * no known keyword.  In most cases, we can accept certain keywords as
- * names, not only IDENTs.	We prefer to accept as many such keywords
- * as possible to minimize the impact of "reserved words" on programmers.
- * So, we divide names into several possible classes.  The classification
- * is chosen in part to make keywords acceptable as names wherever possible.
- */
+// ---------------------------------------------------------------------------
+// Name classification hierarchy.
+// 
+// IDENT is the lexeme returned by the lexer for identifiers that match
+// no known keyword.  In most cases, we can accept certain keywords as
+// names, not only IDENTs.	We prefer to accept as many such keywords
+// as possible to minimize the impact of "reserved words" on programmers.
+// So, we divide names into several possible classes.  The classification
+// is chosen in part to make keywords acceptable as names wherever possible.
 
-/* Column identifier --- names that can be column, table, etc names.
- */
-
+// Column identifier --- names that can be column, table, etc names.
 sql_col_id:
     IDENT
   | sql_unreserved_keywords
@@ -230,11 +250,10 @@ sql_col_id_or_string:
   | SCONST
     ;
 
-/* Any not-fully-reserved word --- these names can be, eg, role names.
- *
- * Column label --- allowed labels in "AS" clauses.
- * This presently includes *all* Postgres keywords.
- */
+// Any not-fully-reserved word --- these names can be, eg, role names.
+// 
+// Column label --- allowed labels in "AS" clauses.
+// This presently includes *all* Postgres keywords.
 
 sql_col_label:
     IDENT
