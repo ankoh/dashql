@@ -63,17 +63,6 @@ expected:
   line_breaks: []
   comments: []
 ----
-name: select_fconst_realfail2
-input: |-
-  select 1e+
-expected:
-  statements: []
-  errors:
-    - message: "syntax error, unexpected '+', expecting EOF or ';'"
-      location: 9..10|`+`
-  line_breaks: []
-  comments: []
-----
 name: select_bconst_b1010
 input: |-
   select b'1010'

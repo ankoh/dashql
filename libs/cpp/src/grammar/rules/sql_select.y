@@ -36,7 +36,7 @@
 // with or without outer parentheses.
 
 sql_select_stmt:
-    sql_select_no_parens        %prec UMINUS    { $$ = {}; }
+    sql_select_no_parens        %prec UMINUS    { $$ = $1; }
   | sql_select_with_parens      %prec UMINUS    { $$ = {}; }
     ;
 
@@ -56,14 +56,18 @@ sql_select_with_parens:
 //    2002-08-28 bjm
 
 sql_select_no_parens:
-    sql_simple_select
-  | sql_select_clause sql_sort_clause
-  | sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit
-  | sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause
-  | sql_with_clause sql_select_clause
-  | sql_with_clause sql_select_clause sql_sort_clause
-  | sql_with_clause sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit
-  | sql_with_clause sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause
+    sql_simple_select                       { $$ = $1; }
+  | sql_select_clause sql_sort_clause       { $$ = {}; }
+  | sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit   { $$ = {}; }
+  | sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause   { $$ = {}; }
+  | sql_with_clause sql_select_clause                                                   { $$ = {}; }
+  | sql_with_clause sql_select_clause sql_sort_clause                                   { $$ = {}; }
+  | sql_with_clause sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit {
+        $$ = {};
+    }
+  | sql_with_clause sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause {
+        $$ = {};
+    }
     ;
 
 sql_select_clause:
@@ -96,15 +100,23 @@ sql_select_clause:
 sql_simple_select:
     SELECT sql_opt_all_clause sql_opt_target_list
         sql_into_clause sql_from_clause sql_where_clause
-        sql_group_clause sql_having_clause sql_window_clause
+        sql_group_clause sql_having_clause sql_window_clause {
+
+            $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_SELECT, {
+                {@2, sx::AttributeKey::SQL_SELECT_TARGETS, ctx.AddArray(@3, $3)},
+            });
+        }
   | SELECT sql_distinct_clause sql_target_list
         sql_into_clause sql_from_clause sql_where_clause
-        sql_group_clause sql_having_clause sql_window_clause
-  | sql_values_clause
-  | TABLE sql_relation_expr
-  | sql_select_clause UNION sql_all_or_distinct sql_select_clause
-  | sql_select_clause INTERSECT sql_all_or_distinct sql_select_clause
-  | sql_select_clause EXCEPT sql_all_or_distinct sql_select_clause
+        sql_group_clause sql_having_clause sql_window_clause {
+
+            $$ = {};
+        }
+  | sql_values_clause           { $$ = {}; }
+  | TABLE sql_relation_expr     { $$ = {}; }
+  | sql_select_clause UNION sql_all_or_distinct sql_select_clause       { $$ = {}; }
+  | sql_select_clause INTERSECT sql_all_or_distinct sql_select_clause   { $$ = {}; }
+  | sql_select_clause EXCEPT sql_all_or_distinct sql_select_clause      { $$ = {}; }
     ;
 
 // SQL standard WITH clause looks like:
@@ -781,10 +793,10 @@ sql_interval_second:
 // you expect!  So we use %prec annotations freely to set precedences.
 
 sql_a_expr:
-    sql_c_expr
-  | sql_a_expr TYPECAST sql_typename
-  | sql_a_expr COLLATE sql_any_name
-  | sql_a_expr AT TIME ZONE sql_a_expr      %prec AT
+    sql_c_expr                                                  { $$ = $1; }
+  | sql_a_expr TYPECAST sql_typename                            { $$ = {}; }
+  | sql_a_expr COLLATE sql_any_name                             { $$ = {}; }
+  | sql_a_expr AT TIME ZONE sql_a_expr      %prec AT            { $$ = {}; }
 
   // These operators must be called out explicitly in order to make use
   // of bison's automatic operator-precedence handling.  All other
@@ -794,40 +806,40 @@ sql_a_expr:
   // If you add more explicitly-known operators, be sure to add them
   // also to b_expr and to the MathOp list below.
 
-  | '+' sql_a_expr                %prec UMINUS
-  | '-' sql_a_expr                %prec UMINUS
-  | sql_a_expr '+' sql_a_expr
-  | sql_a_expr '-' sql_a_expr
-  | sql_a_expr '*' sql_a_expr
-  | sql_a_expr '/' sql_a_expr
-  | sql_a_expr '%' sql_a_expr
-  | sql_a_expr '^' sql_a_expr
-  | sql_a_expr '<' sql_a_expr
-  | sql_a_expr '>' sql_a_expr
-  | sql_a_expr '=' sql_a_expr
-  | sql_a_expr LESS_EQUALS sql_a_expr
-  | sql_a_expr GREATER_EQUALS sql_a_expr
-  | sql_a_expr NOT_EQUALS sql_a_expr
-  | sql_a_expr sql_qual_op sql_a_expr         %prec Op
-  | sql_qual_op sql_a_expr                    %prec Op
-  | sql_a_expr sql_qual_op                    %prec POSTFIXOP
-  | sql_a_expr AND sql_a_expr
-  | sql_a_expr OR sql_a_expr
-  | NOT sql_a_expr
-  | NOT_LA sql_a_expr                         %prec NOT
-  | sql_a_expr GLOB sql_a_expr                %prec GLOB
-  | sql_a_expr LIKE sql_a_expr
-  | sql_a_expr LIKE sql_a_expr ESCAPE sql_a_expr            %prec LIKE
-  | sql_a_expr NOT_LA LIKE sql_a_expr                       %prec NOT_LA
-  | sql_a_expr NOT_LA LIKE sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA
-  | sql_a_expr ILIKE sql_a_expr
-  | sql_a_expr ILIKE sql_a_expr ESCAPE sql_a_expr           %prec ILIKE
-  | sql_a_expr NOT_LA ILIKE sql_a_expr                      %prec NOT_LA
-  | sql_a_expr NOT_LA ILIKE sql_a_expr ESCAPE sql_a_expr    %prec NOT_LA
-  | sql_a_expr SIMILAR TO sql_a_expr                        %prec SIMILAR
-  | sql_a_expr SIMILAR TO sql_a_expr ESCAPE sql_a_expr      %prec SIMILAR
-  | sql_a_expr NOT_LA SIMILAR TO sql_a_expr                 %prec NOT_LA
-  | sql_a_expr NOT_LA SIMILAR TO sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA
+  | '+' sql_a_expr                %prec UMINUS                  { $$ = {}; }
+  | '-' sql_a_expr                %prec UMINUS                  { $$ = {}; }
+  | sql_a_expr '+' sql_a_expr                                   { $$ = {}; }
+  | sql_a_expr '-' sql_a_expr                                   { $$ = {}; }
+  | sql_a_expr '*' sql_a_expr                                   { $$ = {}; }
+  | sql_a_expr '/' sql_a_expr                                   { $$ = {}; }
+  | sql_a_expr '%' sql_a_expr                                   { $$ = {}; }
+  | sql_a_expr '^' sql_a_expr                                   { $$ = {}; }
+  | sql_a_expr '<' sql_a_expr                                   { $$ = {}; }
+  | sql_a_expr '>' sql_a_expr                                   { $$ = {}; }
+  | sql_a_expr '=' sql_a_expr                                   { $$ = {}; }
+  | sql_a_expr LESS_EQUALS sql_a_expr                           { $$ = {}; }
+  | sql_a_expr GREATER_EQUALS sql_a_expr                        { $$ = {}; }
+  | sql_a_expr NOT_EQUALS sql_a_expr                            { $$ = {}; }
+  | sql_a_expr sql_qual_op sql_a_expr         %prec Op          { $$ = {}; }
+  | sql_qual_op sql_a_expr                    %prec Op          { $$ = {}; }
+  | sql_a_expr sql_qual_op                    %prec POSTFIXOP   { $$ = {}; }
+  | sql_a_expr AND sql_a_expr                                   { $$ = {}; }
+  | sql_a_expr OR sql_a_expr                                    { $$ = {}; }
+  | NOT sql_a_expr                                              { $$ = {}; }
+  | NOT_LA sql_a_expr                         %prec NOT         { $$ = {}; }
+  | sql_a_expr GLOB sql_a_expr                %prec GLOB        { $$ = {}; }
+  | sql_a_expr LIKE sql_a_expr                                  { $$ = {}; }
+  | sql_a_expr LIKE sql_a_expr ESCAPE sql_a_expr            %prec LIKE          { $$ = {}; }
+  | sql_a_expr NOT_LA LIKE sql_a_expr                       %prec NOT_LA        { $$ = {}; }
+  | sql_a_expr NOT_LA LIKE sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA        { $$ = {}; }
+  | sql_a_expr ILIKE sql_a_expr                                                 { $$ = {}; }
+  | sql_a_expr ILIKE sql_a_expr ESCAPE sql_a_expr           %prec ILIKE         { $$ = {}; }
+  | sql_a_expr NOT_LA ILIKE sql_a_expr                      %prec NOT_LA        { $$ = {}; }
+  | sql_a_expr NOT_LA ILIKE sql_a_expr ESCAPE sql_a_expr    %prec NOT_LA        { $$ = {}; }
+  | sql_a_expr SIMILAR TO sql_a_expr                        %prec SIMILAR       { $$ = {}; }
+  | sql_a_expr SIMILAR TO sql_a_expr ESCAPE sql_a_expr      %prec SIMILAR       { $$ = {}; }
+  | sql_a_expr NOT_LA SIMILAR TO sql_a_expr                 %prec NOT_LA        { $$ = {}; }
+  | sql_a_expr NOT_LA SIMILAR TO sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA  { $$ = {}; }
 
   // PGNullTest clause
   //  Define SQL-style Null test clause.
@@ -838,33 +850,33 @@ sql_a_expr:
   //     a ISNULL
   //     a NOTNULL
   //  
-  | sql_a_expr IS NULL_P                            %prec IS
-  | sql_a_expr ISNULL
-  | sql_a_expr IS NOT NULL_P                        %prec IS
-  | sql_a_expr NOT NULL_P
-  | sql_a_expr NOTNULL
+  | sql_a_expr IS NULL_P                            %prec IS    { $$ = {}; }
+  | sql_a_expr ISNULL                                           { $$ = {}; }
+  | sql_a_expr IS NOT NULL_P                        %prec IS    { $$ = {}; }
+  | sql_a_expr NOT NULL_P                                       { $$ = {}; }
+  | sql_a_expr NOTNULL                                          { $$ = {}; }
 
-  | sql_row OVERLAPS sql_row
-  | sql_a_expr IS TRUE_P                            %prec IS
-  | sql_a_expr IS NOT TRUE_P                        %prec IS
-  | sql_a_expr IS FALSE_P                           %prec IS
-  | sql_a_expr IS NOT FALSE_P                       %prec IS
-  | sql_a_expr IS UNKNOWN                           %prec IS
-  | sql_a_expr IS NOT UNKNOWN                       %prec IS
-  | sql_a_expr IS DISTINCT FROM sql_a_expr          %prec IS
-  | sql_a_expr IS NOT DISTINCT FROM sql_a_expr      %prec IS
-  | sql_a_expr IS OF '(' sql_type_list ')'          %prec IS
-  | sql_a_expr IS NOT OF '(' sql_type_list ')'      %prec IS
+  | sql_row OVERLAPS sql_row  { $$ = {}; }
+  | sql_a_expr IS TRUE_P                            %prec IS    { $$ = {}; }
+  | sql_a_expr IS NOT TRUE_P                        %prec IS    { $$ = {}; }
+  | sql_a_expr IS FALSE_P                           %prec IS    { $$ = {}; }
+  | sql_a_expr IS NOT FALSE_P                       %prec IS    { $$ = {}; }
+  | sql_a_expr IS UNKNOWN                           %prec IS    { $$ = {}; }
+  | sql_a_expr IS NOT UNKNOWN                       %prec IS    { $$ = {}; }
+  | sql_a_expr IS DISTINCT FROM sql_a_expr          %prec IS    { $$ = {}; }
+  | sql_a_expr IS NOT DISTINCT FROM sql_a_expr      %prec IS    { $$ = {}; }
+  | sql_a_expr IS OF '(' sql_type_list ')'          %prec IS    { $$ = {}; }
+  | sql_a_expr IS NOT OF '(' sql_type_list ')'      %prec IS    { $$ = {}; }
 
-  | sql_a_expr BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr           %prec BETWEEN
-  | sql_a_expr NOT_LA BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr    %prec NOT_LA
-  | sql_a_expr BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr                    %prec BETWEEN
-  | sql_a_expr NOT_LA BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr             %prec NOT_LA
-  | sql_a_expr IN_P sql_in_expr
-  | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA
-  | sql_a_expr sql_subquery_op sql_sub_type sql_select_with_parens    %prec Op
-  | sql_a_expr sql_subquery_op sql_sub_type '(' sql_a_expr ')'        %prec Op
-  | DEFAULT
+  | sql_a_expr BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr           %prec BETWEEN     { $$ = {}; }
+  | sql_a_expr NOT_LA BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr    %prec NOT_LA      { $$ = {}; }
+  | sql_a_expr BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr                    %prec BETWEEN     { $$ = {}; }
+  | sql_a_expr NOT_LA BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr             %prec NOT_LA      { $$ = {}; }
+  | sql_a_expr IN_P sql_in_expr                                                                 { $$ = {}; }
+  | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA              { $$ = {}; }
+  | sql_a_expr sql_subquery_op sql_sub_type sql_select_with_parens    %prec Op                  { $$ = {}; }
+  | sql_a_expr sql_subquery_op sql_sub_type '(' sql_a_expr ')'        %prec Op                  { $$ = {}; }
+  | DEFAULT                                                                                     { $$ = {}; }
     ;
 
 // Restricted expressions
@@ -909,16 +921,16 @@ sql_b_expr:
 // ambiguity to the b_expr syntax.
 
 sql_c_expr:
-    sql_columnref
-  | sql_a_expr_const
-  | '?' sql_opt_indirection
-  | PARAM sql_opt_indirection
-  | '(' sql_a_expr ')' sql_opt_indirection
-  | sql_case_expr
-  | sql_func_expr
-  | sql_select_with_parens      %prec UMINUS
-  | sql_select_with_parens sql_indirection
-  | EXISTS sql_select_with_parens
+    sql_columnref                                   { $$ = {}; }
+  | sql_a_expr_const                                { $$ = $1; }
+  | '?' sql_opt_indirection                         { $$ = {}; }
+  | PARAM sql_opt_indirection                       { $$ = {}; }
+  | '(' sql_a_expr ')' sql_opt_indirection          { $$ = {}; }
+  | sql_case_expr                                   { $$ = {}; }
+  | sql_func_expr                                   { $$ = {}; }
+  | sql_select_with_parens      %prec UMINUS        { $$ = {}; }
+  | sql_select_with_parens sql_indirection          { $$ = {}; }
+  | EXISTS sql_select_with_parens                   { $$ = {}; }
     ;
 
 sql_func_application:
@@ -1319,17 +1331,17 @@ sql_opt_asymmetric:
  *****************************************************************************/
 
 sql_opt_target_list:
-    sql_target_list
-  | %empty
+    sql_target_list     { $$ = $1; }
+  | %empty              { $$ = {}; }
     ;
 
 sql_target_list:
-    sql_target_el
-  | sql_target_list ',' sql_target_el
+    sql_target_el                       { $$ = { $1 }; }
+  | sql_target_list ',' sql_target_el   { $1.push_back($3); $$ = move($1); }
     ;
 
 sql_target_el:
-    sql_a_expr AS sql_col_label_or_string
+    sql_a_expr AS sql_col_label_or_string       { $$ = {}; }
 
     // We support omitting AS only for column labels that aren't
     // any known keyword.  There is an ambiguity against postfix
@@ -1338,9 +1350,18 @@ sql_target_el:
     // as an infix expression, which we accomplish by assigning
     // IDENT a precedence higher than POSTFIXOP.
 
-  | sql_a_expr IDENT
-  | sql_a_expr
-  | '*'
+  | sql_a_expr IDENT {
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
+            {@$, sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
+            {@$, sx::AttributeKey::SQL_RESULT_TARGET_NAME, sx::Value(@2, sx::ValueType::STRING, 0)},
+        });
+    }
+  | sql_a_expr {
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
+            {@$, sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
+        });
+    }
+  | '*'         { $$ = {}; }
     ;
 
 
@@ -1367,8 +1388,8 @@ sql_qualified_name:
     ;
 
 sql_name_list:
-    sql_name
-  | sql_name_list ',' sql_name
+    sql_name                        { $$ = {}; $$.push_back(@1); }
+  | sql_name_list ',' sql_name      { $1.push_back(@3); $$ = move($1); }
     ;
 
 sql_name: sql_col_id;
@@ -1388,25 +1409,46 @@ sql_func_name:
 
 // Constants
 sql_a_expr_const:
-    sql_iconst
-  | FCONST
-  | SCONST
-  | BCONST
-  | XCONST
-  | sql_func_name SCONST
-  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST
-  | sql_const_typename SCONST
-  | sql_const_interval SCONST sql_opt_interval
-  | sql_const_interval '(' sql_iconst ')' SCONST
+    sql_iconst {
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
+            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::INTEGER)},
+            {@$, sx::AttributeKey::SQL_ACONST_VALUE, $1},
+        });
+    }
+  | FCONST {
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
+            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::FLOAT)},
+        });
+    }
+  | SCONST {
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
+            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::STRING)},
+        });
+    }
+  | BCONST {
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
+            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::BITSTRING)},
+        });
+    }
+  | XCONST {
+        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
+            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::BITSTRING)},
+        });
+    }
+  | sql_func_name SCONST                                                        { $$ = {}; }
+  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST          { $$ = {}; }
+  | sql_const_typename SCONST                                                   { $$ = {}; }
+  | sql_const_interval SCONST sql_opt_interval                                  { $$ = {}; }
+  | sql_const_interval '(' sql_iconst ')' SCONST                                { $$ = {}; }
 
     // Version without () is handled in a_expr/b_expr logic due to ? mis-parsing as operator */
-  | sql_const_interval '(' '?' ')' '?' sql_opt_interval
-  | TRUE_P
-  | FALSE_P
-  | NULL_P
+  | sql_const_interval '(' '?' ')' '?' sql_opt_interval                         { $$ = {}; }
+  | TRUE_P                  { $$ = {}; }
+  | FALSE_P                 { $$ = {}; }
+  | NULL_P                  { $$ = {}; }
     ;
 
-sql_iconst: ICONST;
+sql_iconst: ICONST { $$ = sx::Value(@1, sx::ValueType::I64, $1); };
 
 // Name classification hierarchy.
 //
