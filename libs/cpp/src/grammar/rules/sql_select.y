@@ -1409,32 +1409,11 @@ sql_func_name:
 
 // Constants
 sql_a_expr_const:
-    sql_iconst {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
-            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::INTEGER)},
-            {@$, sx::AttributeKey::SQL_ACONST_VALUE, $1},
-        });
-    }
-  | FCONST {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
-            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::FLOAT)},
-        });
-    }
-  | SCONST {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
-            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::STRING)},
-        });
-    }
-  | BCONST {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
-            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::BITSTRING)},
-        });
-    }
-  | XCONST {
-        $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
-            {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::BITSTRING)},
-        });
-    }
+    ICONST  { $$ = ctx.CreateIntConst(@1, $1); }
+  | FCONST  { $$ = ctx.CreateConst(@1, sxs::AConstType::FLOAT); }
+  | SCONST  { $$ = ctx.CreateConst(@1, sxs::AConstType::STRING); }
+  | BCONST  { $$ = ctx.CreateConst(@1, sxs::AConstType::BITSTRING); }
+  | XCONST  { $$ = ctx.CreateConst(@1, sxs::AConstType::BITSTRING); }
   | sql_func_name SCONST                                                        { $$ = {}; }
   | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST          { $$ = {}; }
   | sql_const_typename SCONST                                                   { $$ = {}; }

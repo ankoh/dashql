@@ -60,6 +60,17 @@ class ParserDriver: public ModuleBuilder {
     inline std::string_view TextAt(Location loc) { return _input.substr(loc.offset(), loc.length()); }
 
 
+    inline sx::Object CreateIntConst(sx::Location loc, int64_t v) {
+        return CreateObject(loc, sx::ObjectType::SQL_ACONST, {
+            {loc, sx::AttributeKey::SQL_ACONST_TYPE, CreateEnum(loc, sxs::AConstType::INTEGER)},
+            {loc, sx::AttributeKey::SQL_ACONST_VALUE, sx::Value{loc, sx::ValueType::I64, v}},
+        });
+    }
+    inline sx::Object CreateConst(sx::Location loc, sxs::AConstType type) {
+        return CreateObject(loc, sx::ObjectType::SQL_ACONST, {
+            {loc, sx::AttributeKey::SQL_ACONST_TYPE, CreateEnum(loc, type)},
+        });
+    }
 
     /// Parse a module
     static flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
