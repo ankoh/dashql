@@ -132,8 +132,8 @@ add_custom_command(
     COMMAND cat ${GRAMMAR_PROLOGUE} >> ${GRAMMAR_OUT}
     # Write the keyword token definitions
     # Output:
-    #   %token KEYWORD1_FILE1 KEYWORD2_FILE1
-    #   %token KEYWORD1_FILE2 KEYWORD2_FILE2
+    #   %token FILE1_KEYWORD1 FILE1_KEYWORD2
+    #   %token FILE2_KEYWORD1 FILE2_KEYWORD2
     COMMAND awk -F, "{t=substr($3, 1, length($3)-1); if (FNR == 1) { printf \"\\n%%token \" t } else { printf t }} END {print \"\\n\"}" ${GRAMMAR_KEYWORDS} >> ${GRAMMAR_OUT}
     # Write precedence rules
     COMMAND cat ${GRAMMAR_PRECEDENCES} >> ${GRAMMAR_OUT}
@@ -145,8 +145,8 @@ add_custom_command(
     COMMAND echo "%%" >> ${GRAMMAR_OUT}
     # Write the keyword bison rules
     # Output:
-    #   file1: KEYWORD1_FILE1 | KEYWORD2_FILE1;
-    #   file2: KEYWORD1_FILE2 | KEYWORD2_FILE2;
+    #   file1: FILE1_KEYWORD1 | FILE1_KEYWORD2;
+    #   file2: FILE2_KEYWORD1 | FILE2_KEYWORD2;
     COMMAND awk -F, "{n = split(FILENAME, p, \"/\"); bn=p[n]; bn=substr(bn, 1, length(bn)-5); t=substr($3, 1, length($3) - 1); if (NR == 1 && FNR == 1) {printf \"\\n\" bn \":\" t} else if (FNR == 1) {printf \";\\n\" bn \":\" t} else {printf \"|\" t}} END {printf \";\\n\\n\"}" ${GRAMMAR_KEYWORDS} >> ${GRAMMAR_OUT}
     # Write all the grammar rules
     COMMAND cat ${GRAMMAR_RULES} >> ${GRAMMAR_OUT}
