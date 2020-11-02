@@ -164,6 +164,39 @@ sql_target_el:
     }
     ;
 
+sql_name_list:
+    sql_name                    { $$ = {}; $$.push_back(@1); }
+  | sql_name_list ',' sql_name  { $1.push_back(@3); $$ = move($1); }
+    ;
+
+sql_name: sql_col_id;
+sql_attr_name: sql_col_label;
+
+
+/* Role specifications */
+/*
+ * Name classification hierarchy.
+ *
+ * IDENT is the lexeme returned by the lexer for identifiers that match
+ * no known keyword.  In most cases, we can accept certain keywords as
+ * names, not only IDENTs.	We prefer to accept as many such keywords
+ * as possible to minimize the impact of "reserved words" on programmers.
+ * So, we divide names into several possible classes.  The classification
+ * is chosen in part to make keywords acceptable as names wherever possible.
+ */
+
+/* Column identifier --- names that can be column, table, etc names.
+ */
+sql_col_id:
+    IDENT
+  | sql_unreserved_keywords
+  | sql_column_name_keywords
+  ;
+
+sql_col_id_or_string:
+    sql_col_id
+  | SCONST
+
 
 /* Any not-fully-reserved word --- these names can be, eg, role names.
  *
@@ -172,15 +205,15 @@ sql_target_el:
  */
 
 sql_col_label:
-    IDENT                       { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
-  | sql_unreserved_keywords     { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
-  | sql_column_name_keywords    { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
-  | sql_type_func_keywords      { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
-  | sql_reserved_keywords       { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
-  | dashql_keywords             { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+    IDENT
+  | sql_unreserved_keywords
+  | sql_column_name_keywords
+  | sql_type_func_keywords
+  | sql_reserved_keywords
+  | dashql_keywords
     ;
 
 sql_col_label_or_string:
-    sql_col_label           { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
-  | SCONST                  { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+    sql_col_label
+  | SCONST
     ;
