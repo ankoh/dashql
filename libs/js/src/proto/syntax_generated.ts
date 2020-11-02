@@ -334,18 +334,10 @@ __init(i:number, bb:flatbuffers.ByteBuffer):Attribute {
 };
 
 /**
- * @param dashql.proto.syntax.Location= obj
- * @returns dashql.proto.syntax.Location|null
- */
-location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  return (obj || new dashql.proto.syntax.Location()).__init(this.bb_pos, this.bb!);
-};
-
-/**
  * @returns dashql.proto.syntax.AttributeKey
  */
 key():dashql.proto.syntax.AttributeKey {
-  return /**  */ (this.bb!.readUint8(this.bb_pos + 8));
+  return /**  */ (this.bb!.readUint8(this.bb_pos));
 };
 
 /**
@@ -353,20 +345,18 @@ key():dashql.proto.syntax.AttributeKey {
  * @returns dashql.proto.syntax.Value|null
  */
 value(obj?:dashql.proto.syntax.Value):dashql.proto.syntax.Value|null {
-  return (obj || new dashql.proto.syntax.Value()).__init(this.bb_pos + 16, this.bb!);
+  return (obj || new dashql.proto.syntax.Value()).__init(this.bb_pos + 8, this.bb!);
 };
 
 /**
  * @returns number
  */
 static sizeOf():number {
-  return 40;
+  return 32;
 }
 
 /**
  * @param flatbuffers.Builder builder
- * @param number location_offset
- * @param number location_length
  * @param dashql.proto.syntax.AttributeKey key
  * @param number value_location_offset
  * @param number value_location_length
@@ -374,8 +364,8 @@ static sizeOf():number {
  * @param flatbuffers.Long value_value
  * @returns flatbuffers.Offset
  */
-static createAttribute(builder:flatbuffers.Builder, location_offset: number, location_length: number, key: dashql.proto.syntax.AttributeKey, value_location_offset: number, value_location_length: number, value_type: dashql.proto.syntax.ValueType, value_value: flatbuffers.Long):flatbuffers.Offset {
-  builder.prep(8, 40);
+static createAttribute(builder:flatbuffers.Builder, key: dashql.proto.syntax.AttributeKey, value_location_offset: number, value_location_length: number, value_type: dashql.proto.syntax.ValueType, value_value: flatbuffers.Long):flatbuffers.Offset {
+  builder.prep(8, 32);
   builder.prep(8, 24);
   builder.writeInt64(value_value);
   builder.pad(7);
@@ -385,9 +375,6 @@ static createAttribute(builder:flatbuffers.Builder, location_offset: number, loc
   builder.writeInt32(value_location_offset);
   builder.pad(7);
   builder.writeInt8(key);
-  builder.prep(4, 8);
-  builder.writeInt32(location_length);
-  builder.writeInt32(location_offset);
   return builder.offset();
 };
 
@@ -554,7 +541,7 @@ objectsLength():number {
  */
 attributes(index: number, obj?:dashql.proto.syntax.Attribute):dashql.proto.syntax.Attribute|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? (obj || new dashql.proto.syntax.Attribute()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 40, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.syntax.Attribute()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 32, this.bb!) : null;
 };
 
 /**
@@ -696,7 +683,7 @@ static addAttributes(builder:flatbuffers.Builder, attributesOffset:flatbuffers.O
  * @param number numElems
  */
 static startAttributesVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(40, numElems, 8);
+  builder.startVector(32, numElems, 8);
 };
 
 /**

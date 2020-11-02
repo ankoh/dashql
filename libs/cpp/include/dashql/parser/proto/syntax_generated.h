@@ -473,7 +473,6 @@ inline bool operator!=(const Array &lhs, const Array &rhs) {
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Attribute FLATBUFFERS_FINAL_CLASS {
  private:
-  dashql::proto::syntax::Location location_;
   uint8_t key_;
   int8_t padding0__;  int16_t padding1__;  int32_t padding2__;
   dashql::proto::syntax::Value value_;
@@ -486,8 +485,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Attribute FLATBUFFERS_FINAL_CLASS {
     return "dashql.proto.syntax.Attribute";
   }
   Attribute()
-      : location_(),
-        key_(0),
+      : key_(0),
         padding0__(0),
         padding1__(0),
         padding2__(0),
@@ -496,9 +494,8 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Attribute FLATBUFFERS_FINAL_CLASS {
     (void)padding1__;
     (void)padding2__;
   }
-  Attribute(const dashql::proto::syntax::Location &_location, dashql::proto::syntax::AttributeKey _key, const dashql::proto::syntax::Value &_value)
-      : location_(_location),
-        key_(flatbuffers::EndianScalar(static_cast<uint8_t>(_key))),
+  Attribute(dashql::proto::syntax::AttributeKey _key, const dashql::proto::syntax::Value &_value)
+      : key_(flatbuffers::EndianScalar(static_cast<uint8_t>(_key))),
         padding0__(0),
         padding1__(0),
         padding2__(0),
@@ -507,9 +504,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Attribute FLATBUFFERS_FINAL_CLASS {
     (void)padding1__;
     (void)padding2__;
   }
-  const dashql::proto::syntax::Location &location() const {
-    return location_;
-  }
   dashql::proto::syntax::AttributeKey key() const {
     return static_cast<dashql::proto::syntax::AttributeKey>(flatbuffers::EndianScalar(key_));
   }
@@ -517,11 +511,10 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Attribute FLATBUFFERS_FINAL_CLASS {
     return value_;
   }
 };
-FLATBUFFERS_STRUCT_END(Attribute, 40);
+FLATBUFFERS_STRUCT_END(Attribute, 32);
 
 inline bool operator==(const Attribute &lhs, const Attribute &rhs) {
   return
-      (lhs.location() == rhs.location()) &&
       (lhs.key() == rhs.key()) &&
       (lhs.value() == rhs.value());
 }
@@ -1290,23 +1283,20 @@ inline const flatbuffers::TypeTable *ArrayTypeTable() {
 
 inline const flatbuffers::TypeTable *AttributeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_SEQUENCE, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 1 },
-    { flatbuffers::ET_SEQUENCE, 0, 2 }
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax::LocationTypeTable,
     dashql::proto::syntax::AttributeKeyTypeTable,
     dashql::proto::syntax::ValueTypeTable
   };
-  static const int64_t values[] = { 0, 8, 16, 40 };
+  static const int64_t values[] = { 0, 8, 32 };
   static const char * const names[] = {
-    "location",
     "key",
     "value"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_STRUCT, 3, type_codes, type_refs, nullptr, values, names
+    flatbuffers::ST_STRUCT, 2, type_codes, type_refs, nullptr, values, names
   };
   return &tt;
 }

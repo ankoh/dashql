@@ -75,7 +75,6 @@ struct Array {
 }
 
 struct Attribute {
-    location: Location;
     key: AttributeKey;
     value: Value;
 }

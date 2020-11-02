@@ -19,7 +19,7 @@ namespace sxs = proto::syntax_sql;
 /// A document builder
 class DocumentBuilder {
     public: 
-    using OptionalAttribute = std::tuple<sx::Location, sx::AttributeKey, std::optional<sx::Value>>;
+    using OptionalAttribute = std::pair<sx::AttributeKey, std::optional<sx::Value>>;
 
     protected:
     std::vector<uint32_t> _entries = {};

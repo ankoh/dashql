@@ -16,9 +16,9 @@ namespace parser {
 /// Add node attributes
 sx::Span DocumentBuilder::AddAttributes(std::initializer_list<OptionalAttribute> attrs) {
     size_t begin = _attributes.size();
-    for (auto [loc, key, attr]: attrs) {
+    for (auto [key, attr]: attrs) {
         if (attr)
-            _attributes.push_back(sx::Attribute(loc, key, *attr));
+            _attributes.push_back(sx::Attribute(key, *attr));
     }
     return sx::Span(begin, _attributes.size() - begin);
 }
@@ -112,7 +112,7 @@ sx::Value ModuleBuilder::AddObject(sx::Location loc, sx::ObjectType type, std::v
 /// Add an object
 std::vector<sx::Attribute> ModuleBuilder::CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<sx::Attribute>>> attrs) {
     auto type_val = sx::Value(viz_loc, sx::ValueType::I64, static_cast<int64_t>(viz_type));
-    auto type_attr = sx::Attribute(viz_loc, sx::AttributeKey::DASHQL_VIZ_TYPE, type_val);
+    auto type_attr = sx::Attribute(sx::AttributeKey::DASHQL_VIZ_TYPE, type_val);
     std::vector<sx::Attribute> result{type_attr};
     for (auto& as: attrs) {
         for (auto& a: as.get()) {

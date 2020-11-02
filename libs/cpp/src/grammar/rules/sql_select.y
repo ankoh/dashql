@@ -103,7 +103,7 @@ sql_simple_select:
         sql_group_clause sql_having_clause sql_window_clause {
 
             $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_SELECT, {
-                {@2, sx::AttributeKey::SQL_SELECT_TARGETS, ctx.AddArray(@3, move($3))},
+                {sx::AttributeKey::SQL_SELECT_TARGETS, ctx.AddArray(@3, move($3))},
             });
         }
   | SELECT sql_distinct_clause sql_target_list
@@ -1352,13 +1352,13 @@ sql_target_el:
 
   | sql_a_expr IDENT {
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
-            {@$, sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
-            {@$, sx::AttributeKey::SQL_RESULT_TARGET_NAME, sx::Value(@2, sx::ValueType::STRING, 0)},
+            {sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
+            {sx::AttributeKey::SQL_RESULT_TARGET_NAME, sx::Value(@2, sx::ValueType::STRING, 0)},
         });
     }
   | sql_a_expr {
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
-            {@$, sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
+            {sx::AttributeKey::SQL_RESULT_TARGET_VALUE, ctx.AddObject($1)},
         });
     }
   | '*'         { $$ = {}; }
