@@ -102,22 +102,22 @@ sql_a_expr_const:
             {@$, sx::AttributeKey::SQL_ACONST_VALUE, $1},
         });
     }
-  | sql_fconst {
+  | FCONST {
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::FLOAT)},
         });
     }
-  | sql_sconst {
+  | SCONST {
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::STRING)},
         });
     }
-  | sql_bconst {
+  | BCONST {
         $$ = ctx.CreateObject(@$, sx::ObjectType::SQL_ACONST, {
             {@$, sx::AttributeKey::SQL_ACONST_TYPE, ctx.CreateEnum(@$, sxs::AConstType::BITSTRING)},
         });
    }
-  | sql_xconst {
+  | XCONST {
         /* This is a bit constant per SQL99:
         * Without Feature F511, "BIT data type",
         * a <general literal> shall not be a
@@ -130,11 +130,42 @@ sql_a_expr_const:
     ;
 
 sql_iconst: ICONST { $$ = sx::Value(@1, sx::ValueType::I64, $1); };
-sql_fconst: FCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
-sql_sconst: SCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
-sql_bconst: BCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
-sql_xconst: XCONST { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
 sql_ident: IDENT { $$ = sx::Value(@1, sx::ValueType::STRING, 0); };
+
+/*
+ * Define SQL-style CASE clause.
+ * - Full specification
+ *	CASE WHEN a = b THEN c ... ELSE d END
+ * - Implicit argument
+ *	CASE a WHEN b THEN c ... ELSE d END
+ */
+
+sql_column_ref:
+    sql_col_id
+  | sql_col_id sql_indirection
+
+sql_indirection_el:
+    '.' sql_attr_name
+  | '.' '*'
+  | '[' sql_a_expr ']'
+  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'
+    ;
+
+sql_opt_slice_bound:
+    sql_a_expr
+    ;
+
+sql_indirection:
+    sql_indirection_el
+  | sql_indirection sql_indirection_el
+    ;
+
+sql_opt_indirection:
+    %empty
+  | sql_opt_indirection sql_indirection_el
+    ;
+
+sql_opt_asymmetric: ASYMMETRIC | %empty;
 
 /*
  * Target list for SELECT
@@ -187,16 +218,17 @@ sql_attr_name: sql_col_label;
 
 /* Column identifier --- names that can be column, table, etc names.
  */
+
 sql_col_id:
     IDENT
   | sql_unreserved_keywords
   | sql_column_name_keywords
-  ;
+    ;
 
 sql_col_id_or_string:
     sql_col_id
   | SCONST
-
+    ;
 
 /* Any not-fully-reserved word --- these names can be, eg, role names.
  *
