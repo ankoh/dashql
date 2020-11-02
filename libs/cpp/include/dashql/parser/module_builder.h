@@ -73,19 +73,18 @@ class ModuleBuilder {
 
         public:
         /// Constructor
-        ObjectBuilder(ModuleBuilder& builder, sx::ObjectType type);
-        /// Constructor
         ObjectBuilder(ModuleBuilder& builder, sx::ObjectType type, std::initializer_list<sx::Attribute> attrs);
         /// Constructor
         ObjectBuilder(ModuleBuilder& builder, sx::ObjectType type, std::vector<sx::Attribute>&& attrs);
 
         /// Add a single attribute 
-        void AddAttribute(sx::Attribute attr);
+        ObjectBuilder& AddAttribute(sx::Attribute attr);
         /// Add attributes
-        void AddAttributes(std::initializer_list<sx::Attribute> attrs);
+        ObjectBuilder& AddAttributes(std::initializer_list<sx::Attribute> attrs);
         /// Add attributes
-        void AddAttributes(std::vector<sx::Attribute>&& attrs);
+        ObjectBuilder& AddAttributes(std::vector<sx::Attribute>&& attrs);
 
+        /// Finish the object
         sx::Object Finish(sx::Location loc);
     };
 
@@ -135,6 +134,11 @@ class ModuleBuilder {
     sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
     /// Add an object
     sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::vector<sx::Attribute>&& attrs);
+
+    /// Start an object
+    ObjectBuilder StartObject(sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs);
+    /// Start an object with attributes
+    ObjectBuilder StartObject(sx::ObjectType type, std::vector<sx::Attribute>&& attrs);
 
     /// Collect viz attributes
     std::vector<sx::Attribute> CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<std::vector<sx::Attribute>>> attributes);
