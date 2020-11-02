@@ -594,7 +594,7 @@ sql_simple_typename:
     sql_generic_type
   | sql_numeric
   | sql_bit
-  | sql_character
+  | sql_const_character
   | sql_const_datetime
   | sql_const_interval sql_opt_interval
   | sql_const_interval '(' sql_iconst ')'
@@ -614,7 +614,7 @@ sql_simple_typename:
 sql_const_typename:
     sql_numeric
   | sql_const_bit
-  | sql_const_character
+  | sql_character
   | sql_const_datetime
     ;
 
@@ -698,10 +698,6 @@ sql_character_with_length:
     ;
 
 sql_character_without_length:
-    sql_character
-    ;
-
-sql_character:
     CHARACTER sql_opt_varying
   | CHAR_P sql_opt_varying
   | VARCHAR
