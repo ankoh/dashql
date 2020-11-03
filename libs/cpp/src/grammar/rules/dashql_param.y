@@ -1,5 +1,5 @@
 dashql_parameter_declaration:
-    DECLARE PARAMETER dashql_identifier dashql_opt_alias TYPE_P dashql_parameter_type  {
+    DECLARE PARAMETER dashql_identifier dashql_opt_alias TYPE dashql_parameter_type  {
         $$ = ctx.AddObject(@$, sx::ObjectType::DASHQL_PARAMTER, {
             {sx::AttributeKey::DASHQL_PARAMETER_IDENTIFIER, $3},
             {sx::AttributeKey::DASHQL_PARAMETER_ALIAS, $4},
