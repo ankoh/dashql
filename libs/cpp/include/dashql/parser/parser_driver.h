@@ -99,7 +99,7 @@ class ParserDriver: public ModuleBuilder {
     };
 
     /// Add a table ref
-    inline sx::Value AddTableRef(sx::Location loc, RelationExpr expr) {
+    inline sx::Value AddTableRef(sx::Location loc, const RelationExpr& expr) {
         return AddObject(loc, sx::ObjectType::SQL_TABLE_REF, {
             {sx::AttributeKey::SQL_TABLE_REF_NAME, expr.name},
             {sx::AttributeKey::SQL_TABLE_REF_INHERIT, expr.inherit},
