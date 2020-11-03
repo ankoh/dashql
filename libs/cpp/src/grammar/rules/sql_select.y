@@ -1377,8 +1377,8 @@ sql_qualified_name_list:
 // which may contain subscripts, and reject that case in the C code.
 
 sql_qualified_name:
-    sql_col_id
-  | sql_col_id sql_indirection
+    sql_col_id                      { $$ = { ctx.CreateString(@1) }; };
+  | sql_col_id sql_indirection      { $2.insert($2.begin(), ctx.CreateString(@1)); $$ = move($2); };
     ;
 
 sql_name_list:

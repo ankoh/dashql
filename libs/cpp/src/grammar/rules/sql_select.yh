@@ -19,3 +19,5 @@
 %type <ValueVector> sql_opt_indirection;
 %type <sx::Value> sql_indirection_el;
 %type <std::optional<sx::Value>> sql_opt_slice_bound;
+
+%type <ValueVector> sql_qualified_name;
