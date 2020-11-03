@@ -99,6 +99,14 @@ class ParserDriver: public ModuleBuilder {
         });
     }
 
+    /// Create relation expression
+    inline sx::Value CreateAlias(sx::Location loc, sx::Value name, sx::Value columns) {
+        return AddObject(loc, sx::ObjectType::SQL_RELATION_EXPR, {
+            {sx::AttributeKey::SQL_ALIAS_NAME, name},
+            {sx::AttributeKey::SQL_ALIAS_COLUMNS, columns},
+        });
+    }
+
     /// Parse a module
     static flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
 };

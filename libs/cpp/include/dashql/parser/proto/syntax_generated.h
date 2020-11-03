@@ -190,11 +190,13 @@ enum class AttributeKey : uint8_t {
   SQL_INDIRECTION_UPPER_BOUND = 52,
   SQL_RELATION_EXPR_NAME = 53,
   SQL_RELATION_EXPR_INHERIT = 54,
+  SQL_ALIAS_NAME = 55,
+  SQL_ALIAS_COLUMNS = 56,
   MIN = NONE,
-  MAX = SQL_RELATION_EXPR_INHERIT
+  MAX = SQL_ALIAS_COLUMNS
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[55] {
+inline const AttributeKey (&EnumValuesAttributeKey())[57] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -250,13 +252,15 @@ inline const AttributeKey (&EnumValuesAttributeKey())[55] {
     AttributeKey::SQL_INDIRECTION_LOWER_BOUND,
     AttributeKey::SQL_INDIRECTION_UPPER_BOUND,
     AttributeKey::SQL_RELATION_EXPR_NAME,
-    AttributeKey::SQL_RELATION_EXPR_INHERIT
+    AttributeKey::SQL_RELATION_EXPR_INHERIT,
+    AttributeKey::SQL_ALIAS_NAME,
+    AttributeKey::SQL_ALIAS_COLUMNS
   };
   return values;
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[56] = {
+  static const char * const names[58] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -312,13 +316,15 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_INDIRECTION_UPPER_BOUND",
     "SQL_RELATION_EXPR_NAME",
     "SQL_RELATION_EXPR_INHERIT",
+    "SQL_ALIAS_NAME",
+    "SQL_ALIAS_COLUMNS",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAttributeKey(AttributeKey e) {
-  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_RELATION_EXPR_INHERIT)) return "";
+  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_ALIAS_COLUMNS)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAttributeKey()[index];
 }
@@ -1224,6 +1230,8 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1284,10 +1292,12 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND",
     "SQL_RELATION_EXPR_NAME",
-    "SQL_RELATION_EXPR_INHERIT"
+    "SQL_RELATION_EXPR_INHERIT",
+    "SQL_ALIAS_NAME",
+    "SQL_ALIAS_COLUMNS"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 55, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 57, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

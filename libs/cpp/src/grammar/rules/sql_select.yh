@@ -24,3 +24,4 @@
 %type <ValueVector> sql_qualified_name;
 %type <ValueVector> sql_columnref;
 %type <sx::Value> sql_relation_expr;
+%type <sx::Value> sql_alias_clause;

@@ -185,11 +185,13 @@ pub enum AttributeKey {
   SQL_INDIRECTION_UPPER_BOUND = 52,
   SQL_RELATION_EXPR_NAME = 53,
   SQL_RELATION_EXPR_INHERIT = 54,
+  SQL_ALIAS_NAME = 55,
+  SQL_ALIAS_COLUMNS = 56,
 
 }
 
 pub const ENUM_MIN_ATTRIBUTE_KEY: u8 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 54;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 56;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -223,7 +225,7 @@ impl flatbuffers::Push for AttributeKey {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 55] = [
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 57] = [
   AttributeKey::NONE,
   AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
   AttributeKey::DASHQL_PARAMETER_ALIAS,
@@ -278,11 +280,13 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 55] = [
   AttributeKey::SQL_INDIRECTION_LOWER_BOUND,
   AttributeKey::SQL_INDIRECTION_UPPER_BOUND,
   AttributeKey::SQL_RELATION_EXPR_NAME,
-  AttributeKey::SQL_RELATION_EXPR_INHERIT
+  AttributeKey::SQL_RELATION_EXPR_INHERIT,
+  AttributeKey::SQL_ALIAS_NAME,
+  AttributeKey::SQL_ALIAS_COLUMNS
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 55] = [
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 57] = [
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -337,7 +341,9 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 55] = [
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND",
     "SQL_RELATION_EXPR_NAME",
-    "SQL_RELATION_EXPR_INHERIT"
+    "SQL_RELATION_EXPR_INHERIT",
+    "SQL_ALIAS_NAME",
+    "SQL_ALIAS_COLUMNS"
 ];
 
 pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {

@@ -93,6 +93,9 @@ enum AttributeKey: uint8 {
 
     SQL_RELATION_EXPR_NAME,
     SQL_RELATION_EXPR_INHERIT,
+
+    SQL_ALIAS_NAME,
+    SQL_ALIAS_COLUMNS,
 }
 
 enum ValueType: uint8 {

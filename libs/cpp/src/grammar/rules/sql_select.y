@@ -452,10 +452,10 @@ sql_joined_table:
     ;
 
 sql_alias_clause:
-    AS sql_col_id '(' sql_name_list ')'
-  | AS sql_col_id_or_string
-  | sql_col_id '(' sql_name_list ')'
-  | sql_col_id
+    AS sql_col_id '(' sql_name_list ')'     { $$ = ctx.CreateAlias(@$, ctx.CreateString(@2), ctx.AddArray(@4, move($4))); }
+  | AS sql_col_id_or_string                 { $$ = ctx.CreateString(@2); }
+  | sql_col_id '(' sql_name_list ')'        { $$ = ctx.CreateAlias(@$, ctx.CreateString(@1), ctx.AddArray(@3, move($3))); }
+  | sql_col_id                              { $$ = ctx.CreateString(@1); }
     ;
 
 sql_opt_alias_clause:
@@ -468,7 +468,7 @@ sql_opt_alias_clause:
 sql_func_alias_clause:
     sql_alias_clause
   | AS '(' sql_table_func_element_list ')'
-  | AS sql_col_id '(' sql_table_func_element_list ')'
+  | AS sql_col_id '(' sql_table_func_element_list ')' 
   | sql_col_id '(' sql_table_func_element_list ')' ')'
   | %empty
     ;
