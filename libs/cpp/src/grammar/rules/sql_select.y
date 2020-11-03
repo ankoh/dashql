@@ -500,10 +500,10 @@ sql_join_qual:
     ;
 
 sql_relation_expr:
-    sql_qualified_name
-  | sql_qualified_name '*'
-  | ONLY sql_qualified_name
-  | ONLY '(' sql_qualified_name ')'
+    sql_qualified_name              { $$ = ctx.CreateRelationExpr(@$, ctx.AddArray(@1, move($1)), ctx.CreateBool(@$, true)); }
+  | sql_qualified_name '*'          { $$ = ctx.CreateRelationExpr(@$, ctx.AddArray(@1, move($1)), ctx.CreateBool(@2, true)); }
+  | ONLY sql_qualified_name         { $$ = ctx.CreateRelationExpr(@$, ctx.AddArray(@1, move($2)), ctx.CreateBool(@1, false)); }
+  | ONLY '(' sql_qualified_name ')' { $$ = ctx.CreateRelationExpr(@$, ctx.AddArray(@1, move($3)), ctx.CreateBool(@1, false)); }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any
@@ -1292,8 +1292,8 @@ sql_case_arg:
     ;
 
 sql_columnref:
-    sql_col_id
-  | sql_col_id sql_indirection
+    sql_col_id                      { $$ = { ctx.CreateString(@1) }; }
+  | sql_col_id sql_indirection      { $2.push_back(ctx.CreateString(@1)); $$ = move($2); }
     ;
 
 sql_indirection_el:
@@ -1366,8 +1366,8 @@ sql_target_el:
 // Names and constants
 
 sql_qualified_name_list:
-    sql_qualified_name
-  | sql_qualified_name_list ',' sql_qualified_name
+    sql_qualified_name                              { $$ = { move($1) }; }
+  | sql_qualified_name_list ',' sql_qualified_name  { $1.push_back(move($3)); $$ = move($1); }
     ;
 
 // The production for a qualified relation name has to exactly match the

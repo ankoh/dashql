@@ -82,11 +82,20 @@ class ParserDriver: public ModuleBuilder {
             {sx::AttributeKey::SQL_INDIRECTION_INDEX, lower_bound},
         });
     }
+
     /// Create indirection
     inline sx::Value CreateIndirection(sx::Location loc, std::optional<sx::Value> lower_bound, std::optional<sx::Value> upper_bound) {
         return AddObject(loc, sx::ObjectType::SQL_INDIRECTION, {
             {sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND, lower_bound},
             {sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND, upper_bound},
+        });
+    }
+
+    /// Create relation expression
+    inline sx::Value CreateRelationExpr(sx::Location loc, sx::Value name, sx::Value inherit) {
+        return AddObject(loc, sx::ObjectType::SQL_RELATION_EXPR, {
+            {sx::AttributeKey::SQL_RELATION_EXPR_NAME, name},
+            {sx::AttributeKey::SQL_RELATION_EXPR_INHERIT, inherit},
         });
     }
 

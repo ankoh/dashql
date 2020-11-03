@@ -130,6 +130,8 @@ class ModuleBuilder {
     inline sx::Value CreateEnum(sx::Location loc, Enum e) const { return sx::Value(loc, sx::ValueType::I64, static_cast<int64_t>(e)); }
     /// Create a string
     sx::Value CreateString(sx::Location loc) const { return sx::Value(loc, sx::ValueType::STRING, 0); }
+    /// Create a bool
+    sx::Value CreateBool(sx::Location loc, bool v) const { return sx::Value(loc, sx::ValueType::I64, 0); }
     /// Add an object
     sx::Value AddObject(sx::Location loc, sx::ObjectType type, std::initializer_list<DocumentBuilder::OptionalAttribute> attrs = {});
     /// Add an object

@@ -20,4 +20,7 @@
 %type <sx::Value> sql_indirection_el;
 %type <std::optional<sx::Value>> sql_opt_slice_bound;
 
+%type <std::vector<ValueVector>> sql_qualified_name_list;
 %type <ValueVector> sql_qualified_name;
+%type <ValueVector> sql_columnref;
+%type <sx::Value> sql_relation_expr;
