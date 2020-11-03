@@ -452,9 +452,9 @@ sql_joined_table:
     ;
 
 sql_alias_clause:
-    AS sql_col_id '(' sql_name_list ')'     { $$ = ctx.CreateAlias(@$, ctx.CreateString(@2), ctx.AddArray(@4, move($4))); }
+    AS sql_col_id '(' sql_name_list ')'     { $$ = ctx.AddAlias(@$, ctx.CreateString(@2), ctx.AddArray(@4, move($4))); }
   | AS sql_col_id_or_string                 { $$ = ctx.CreateString(@2); }
-  | sql_col_id '(' sql_name_list ')'        { $$ = ctx.CreateAlias(@$, ctx.CreateString(@1), ctx.AddArray(@3, move($3))); }
+  | sql_col_id '(' sql_name_list ')'        { $$ = ctx.AddAlias(@$, ctx.CreateString(@1), ctx.AddArray(@3, move($3))); }
   | sql_col_id                              { $$ = ctx.CreateString(@1); }
     ;
 
@@ -500,10 +500,10 @@ sql_join_qual:
     ;
 
 sql_relation_expr:
-    sql_qualified_name              { $$ = ctx.CreateRelationExpr(@$, ctx.AddArray(@1, move($1)), ctx.CreateBool(@$, true)); }
-  | sql_qualified_name '*'          { $$ = ctx.CreateRelationExpr(@$, ctx.AddArray(@1, move($1)), ctx.CreateBool(@2, true)); }
-  | ONLY sql_qualified_name         { $$ = ctx.CreateRelationExpr(@$, ctx.AddArray(@1, move($2)), ctx.CreateBool(@1, false)); }
-  | ONLY '(' sql_qualified_name ')' { $$ = ctx.CreateRelationExpr(@$, ctx.AddArray(@1, move($3)), ctx.CreateBool(@1, false)); }
+    sql_qualified_name              { $$ = ctx.AddRelationExpr(@$, ctx.AddArray(@1, move($1)), ctx.CreateBool(@$, true)); }
+  | sql_qualified_name '*'          { $$ = ctx.AddRelationExpr(@$, ctx.AddArray(@1, move($1)), ctx.CreateBool(@2, true)); }
+  | ONLY sql_qualified_name         { $$ = ctx.AddRelationExpr(@$, ctx.AddArray(@1, move($2)), ctx.CreateBool(@1, false)); }
+  | ONLY '(' sql_qualified_name ')' { $$ = ctx.AddRelationExpr(@$, ctx.AddArray(@1, move($3)), ctx.CreateBool(@1, false)); }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any
@@ -1299,8 +1299,8 @@ sql_columnref:
 sql_indirection_el:
     '.' sql_attr_name       { $$ = ctx.CreateString(@2); }
   | '.' '*'                 { $$ = ctx.CreateString(@2); }
-  | '[' sql_a_expr ']'      { $$ = ctx.CreateIndirection(@$, $2); }
-  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = ctx.CreateIndirection(@$, $2, $4); }
+  | '[' sql_a_expr ']'      { $$ = ctx.AddIndirection(@$, $2); }
+  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = ctx.AddIndirection(@$, $2, $4); }
     ;
 
 sql_opt_slice_bound:
@@ -1403,11 +1403,11 @@ sql_func_name:
 
 // Constants
 sql_a_expr_const:
-    ICONST  { $$ = ctx.CreateIntConst(@1, $1); }
-  | FCONST  { $$ = ctx.CreateConst(@1, sxs::AConstType::FLOAT); }
-  | SCONST  { $$ = ctx.CreateConst(@1, sxs::AConstType::STRING); }
-  | BCONST  { $$ = ctx.CreateConst(@1, sxs::AConstType::BITSTRING); }
-  | XCONST  { $$ = ctx.CreateConst(@1, sxs::AConstType::BITSTRING); }
+    ICONST  { $$ = ctx.AddIntConst(@1, $1); }
+  | FCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::FLOAT); }
+  | SCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::STRING); }
+  | BCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::BITSTRING); }
+  | XCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::BITSTRING); }
   | sql_func_name SCONST                                                        { $$ = {}; }
   | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST          { $$ = {}; }
   | sql_const_typename SCONST                                                   { $$ = {}; }

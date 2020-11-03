@@ -62,7 +62,7 @@ class ParserDriver: public ModuleBuilder {
 
 
     /// Create an integer constant
-    inline sx::Value CreateIntConst(sx::Location loc, int64_t v) {
+    inline sx::Value AddIntConst(sx::Location loc, int64_t v) {
         return AddObject(loc, sx::ObjectType::SQL_ACONST, {
             {sx::AttributeKey::SQL_ACONST_TYPE, CreateEnum(loc, sxs::AConstType::INTEGER)},
             {sx::AttributeKey::SQL_ACONST_VALUE, sx::Value{loc, sx::ValueType::I64, v}},
@@ -70,21 +70,21 @@ class ParserDriver: public ModuleBuilder {
     }
 
     /// Create a constant
-    inline sx::Value CreateConst(sx::Location loc, sxs::AConstType type) {
+    inline sx::Value AddConst(sx::Location loc, sxs::AConstType type) {
         return AddObject(loc, sx::ObjectType::SQL_ACONST, {
             {sx::AttributeKey::SQL_ACONST_TYPE, CreateEnum(loc, type)},
         });
     }
 
     /// Create indirection
-    inline sx::Value CreateIndirection(sx::Location loc, std::optional<sx::Value> lower_bound) {
+    inline sx::Value AddIndirection(sx::Location loc, std::optional<sx::Value> lower_bound) {
         return AddObject(loc, sx::ObjectType::SQL_INDIRECTION, {
             {sx::AttributeKey::SQL_INDIRECTION_INDEX, lower_bound},
         });
     }
 
     /// Create indirection
-    inline sx::Value CreateIndirection(sx::Location loc, std::optional<sx::Value> lower_bound, std::optional<sx::Value> upper_bound) {
+    inline sx::Value AddIndirection(sx::Location loc, std::optional<sx::Value> lower_bound, std::optional<sx::Value> upper_bound) {
         return AddObject(loc, sx::ObjectType::SQL_INDIRECTION, {
             {sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND, lower_bound},
             {sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND, upper_bound},
@@ -92,7 +92,7 @@ class ParserDriver: public ModuleBuilder {
     }
 
     /// Create relation expression
-    inline sx::Value CreateRelationExpr(sx::Location loc, sx::Value name, sx::Value inherit) {
+    inline sx::Value AddRelationExpr(sx::Location loc, sx::Value name, sx::Value inherit) {
         return AddObject(loc, sx::ObjectType::SQL_RELATION_EXPR, {
             {sx::AttributeKey::SQL_RELATION_EXPR_NAME, name},
             {sx::AttributeKey::SQL_RELATION_EXPR_INHERIT, inherit},
@@ -100,7 +100,7 @@ class ParserDriver: public ModuleBuilder {
     }
 
     /// Create relation expression
-    inline sx::Value CreateAlias(sx::Location loc, sx::Value name, sx::Value columns) {
+    inline sx::Value AddAlias(sx::Location loc, sx::Value name, sx::Value columns) {
         return AddObject(loc, sx::ObjectType::SQL_RELATION_EXPR, {
             {sx::AttributeKey::SQL_ALIAS_NAME, name},
             {sx::AttributeKey::SQL_ALIAS_COLUMNS, columns},
