@@ -19,8 +19,7 @@ enum ObjectType: uint8 {
     SQL_AEXPR,
     SQL_RESULT_TARGET,
     SQL_QUALIFIED_NAME,
-    SQL_INDIRECTION_SLICE,
-    SQL_INDIRECTION_INDEX,
+    SQL_INDIRECTION,
 }
 
 enum AttributeKey: uint8 {

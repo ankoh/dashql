@@ -83,13 +83,12 @@ enum class ObjectType : uint8_t {
   SQL_AEXPR = 8,
   SQL_RESULT_TARGET = 9,
   SQL_QUALIFIED_NAME = 10,
-  SQL_INDIRECTION_SLICE = 11,
-  SQL_INDIRECTION_INDEX = 12,
+  SQL_INDIRECTION = 11,
   MIN = NONE,
-  MAX = SQL_INDIRECTION_INDEX
+  MAX = SQL_INDIRECTION
 };
 
-inline const ObjectType (&EnumValuesObjectType())[13] {
+inline const ObjectType (&EnumValuesObjectType())[12] {
   static const ObjectType values[] = {
     ObjectType::NONE,
     ObjectType::DASHQL_LOAD,
@@ -102,14 +101,13 @@ inline const ObjectType (&EnumValuesObjectType())[13] {
     ObjectType::SQL_AEXPR,
     ObjectType::SQL_RESULT_TARGET,
     ObjectType::SQL_QUALIFIED_NAME,
-    ObjectType::SQL_INDIRECTION_SLICE,
-    ObjectType::SQL_INDIRECTION_INDEX
+    ObjectType::SQL_INDIRECTION
   };
   return values;
 }
 
 inline const char * const *EnumNamesObjectType() {
-  static const char * const names[14] = {
+  static const char * const names[13] = {
     "NONE",
     "DASHQL_LOAD",
     "DASHQL_PARAMTER",
@@ -121,15 +119,14 @@ inline const char * const *EnumNamesObjectType() {
     "SQL_AEXPR",
     "SQL_RESULT_TARGET",
     "SQL_QUALIFIED_NAME",
-    "SQL_INDIRECTION_SLICE",
-    "SQL_INDIRECTION_INDEX",
+    "SQL_INDIRECTION",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameObjectType(ObjectType e) {
-  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::SQL_INDIRECTION_INDEX)) return "";
+  if (flatbuffers::IsOutRange(e, ObjectType::NONE, ObjectType::SQL_INDIRECTION)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesObjectType()[index];
 }
@@ -185,15 +182,14 @@ enum class AttributeKey : uint8_t {
   SQL_QUALIFIED_NAME_CATALOG = 47,
   SQL_QUALIFIED_NAME_SCHEMA = 48,
   SQL_QUALIFIED_NAME_RELATION = 49,
-  SQL_INDIRECTION_NAME = 50,
-  SQL_INDIRECTION_INDEX = 51,
-  SQL_INDIRECTION_LOWER_BOUND = 52,
-  SQL_INDIRECTION_UPPER_BOUND = 53,
+  SQL_INDIRECTION_INDEX = 50,
+  SQL_INDIRECTION_LOWER_BOUND = 51,
+  SQL_INDIRECTION_UPPER_BOUND = 52,
   MIN = NONE,
   MAX = SQL_INDIRECTION_UPPER_BOUND
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[54] {
+inline const AttributeKey (&EnumValuesAttributeKey())[53] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -245,7 +241,6 @@ inline const AttributeKey (&EnumValuesAttributeKey())[54] {
     AttributeKey::SQL_QUALIFIED_NAME_CATALOG,
     AttributeKey::SQL_QUALIFIED_NAME_SCHEMA,
     AttributeKey::SQL_QUALIFIED_NAME_RELATION,
-    AttributeKey::SQL_INDIRECTION_NAME,
     AttributeKey::SQL_INDIRECTION_INDEX,
     AttributeKey::SQL_INDIRECTION_LOWER_BOUND,
     AttributeKey::SQL_INDIRECTION_UPPER_BOUND
@@ -254,7 +249,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[54] {
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[55] = {
+  static const char * const names[54] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -305,7 +300,6 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_QUALIFIED_NAME_CATALOG",
     "SQL_QUALIFIED_NAME_SCHEMA",
     "SQL_QUALIFIED_NAME_RELATION",
-    "SQL_INDIRECTION_NAME",
     "SQL_INDIRECTION_INDEX",
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND",
@@ -1138,7 +1132,6 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1156,18 +1149,16 @@ inline const flatbuffers::TypeTable *ObjectTypeTypeTable() {
     "SQL_AEXPR",
     "SQL_RESULT_TARGET",
     "SQL_QUALIFIED_NAME",
-    "SQL_INDIRECTION_SLICE",
-    "SQL_INDIRECTION_INDEX"
+    "SQL_INDIRECTION"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 13, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 12, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -1276,13 +1267,12 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_QUALIFIED_NAME_CATALOG",
     "SQL_QUALIFIED_NAME_SCHEMA",
     "SQL_QUALIFIED_NAME_RELATION",
-    "SQL_INDIRECTION_NAME",
     "SQL_INDIRECTION_INDEX",
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 54, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 53, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
