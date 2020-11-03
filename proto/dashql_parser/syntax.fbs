@@ -21,6 +21,7 @@ enum ObjectType: uint8 {
     SQL_QUALIFIED_NAME,
     SQL_INDIRECTION,
     SQL_RELATION_EXPR,
+    SQL_TABLE_REF,
 }
 
 enum AttributeKey: uint8 {
@@ -91,11 +92,12 @@ enum AttributeKey: uint8 {
     SQL_INDIRECTION_LOWER_BOUND,    // "[lb:ub]"
     SQL_INDIRECTION_UPPER_BOUND,    // "[lb:ub]" 
 
-    SQL_RELATION_EXPR_NAME,
-    SQL_RELATION_EXPR_INHERIT,
-
     SQL_ALIAS_NAME,
     SQL_ALIAS_COLUMNS,
+
+    SQL_TABLE_REF_NAME,
+    SQL_TABLE_REF_ALIAS,
+    SQL_TABLE_REF_INHERIT,
 }
 
 enum ValueType: uint8 {

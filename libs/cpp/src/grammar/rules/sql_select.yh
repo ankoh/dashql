@@ -23,5 +23,8 @@
 %type <std::vector<ValueVector>> sql_qualified_name_list;
 %type <ValueVector> sql_qualified_name;
 %type <ValueVector> sql_columnref;
-%type <sx::Value> sql_relation_expr;
+
+%type <ParserDriver::RelationExpr> sql_relation_expr;
 %type <sx::Value> sql_alias_clause;
+%type <std::optional<sx::Value>> sql_opt_alias_clause;
+%type <sx::Value> sql_table_ref;

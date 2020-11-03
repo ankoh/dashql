@@ -416,14 +416,14 @@ sql_from_list:
 // table_ref is where an alias clause can be attached.
 
 sql_table_ref:
-    sql_relation_expr sql_opt_alias_clause
-  | sql_relation_expr sql_opt_alias_clause sql_tablesample_clause
-  | sql_func_table sql_func_alias_clause
-  | LATERAL_P sql_func_table sql_func_alias_clause
-  | sql_select_with_parens sql_opt_alias_clause
-  | LATERAL_P sql_select_with_parens sql_opt_alias_clause
-  | sql_joined_table
-  | '(' sql_joined_table ')' sql_alias_clause
+    sql_relation_expr sql_opt_alias_clause                          { $1.alias = $2; $$ = ctx.AddTableRef(@$, $1); }
+  | sql_relation_expr sql_opt_alias_clause sql_tablesample_clause   { $$ = {}; }
+  | sql_func_table sql_func_alias_clause                            { $$ = {}; }
+  | LATERAL_P sql_func_table sql_func_alias_clause                  { $$ = {}; }
+  | sql_select_with_parens sql_opt_alias_clause                     { $$ = {}; }
+  | LATERAL_P sql_select_with_parens sql_opt_alias_clause           { $$ = {}; }
+  | sql_joined_table                                                { $$ = {}; }
+  | '(' sql_joined_table ')' sql_alias_clause                       { $$ = {}; }
     ;
 
 
@@ -459,8 +459,8 @@ sql_alias_clause:
     ;
 
 sql_opt_alias_clause:
-    sql_alias_clause
-  | %empty
+    sql_alias_clause    { $$ = $1; }
+  | %empty              { $$ = std::nullopt; }
     ;
 
 // func_alias_clause can include both an PGAlias and a coldeflist, so we make it
@@ -500,10 +500,10 @@ sql_join_qual:
     ;
 
 sql_relation_expr:
-    sql_qualified_name              { $$ = ctx.AddRelationExpr(@$, ctx.AddArray(@1, move($1)), ctx.CreateBool(@$, true)); }
-  | sql_qualified_name '*'          { $$ = ctx.AddRelationExpr(@$, ctx.AddArray(@1, move($1)), ctx.CreateBool(@2, true)); }
-  | ONLY sql_qualified_name         { $$ = ctx.AddRelationExpr(@$, ctx.AddArray(@1, move($2)), ctx.CreateBool(@1, false)); }
-  | ONLY '(' sql_qualified_name ')' { $$ = ctx.AddRelationExpr(@$, ctx.AddArray(@1, move($3)), ctx.CreateBool(@1, false)); }
+    sql_qualified_name              { $$ = { ctx.AddArray(@1, move($1)), ctx.CreateBool(@$, true), std::nullopt }; }
+  | sql_qualified_name '*'          { $$ = { ctx.AddArray(@1, move($1)), ctx.CreateBool(@2, true), std::nullopt }; }
+  | ONLY sql_qualified_name         { $$ = { ctx.AddArray(@1, move($2)), ctx.CreateBool(@1, false), std::nullopt }; }
+  | ONLY '(' sql_qualified_name ')' { $$ = { ctx.AddArray(@1, move($3)), ctx.CreateBool(@1, false), std::nullopt }; }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any
@@ -1292,8 +1292,8 @@ sql_case_arg:
     ;
 
 sql_columnref:
-    sql_col_id                      { $$ = { ctx.CreateString(@1) }; }
-  | sql_col_id sql_indirection      { $2.push_back(ctx.CreateString(@1)); $$ = move($2); }
+    sql_col_id                  { $$ = { ctx.CreateString(@1) }; }
+  | sql_col_id sql_indirection  { $2.push_back(ctx.CreateString(@1)); $$ = move($2); }
     ;
 
 sql_indirection_el:

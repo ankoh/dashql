@@ -91,11 +91,19 @@ class ParserDriver: public ModuleBuilder {
         });
     }
 
-    /// Create relation expression
-    inline sx::Value AddRelationExpr(sx::Location loc, sx::Value name, sx::Value inherit) {
-        return AddObject(loc, sx::ObjectType::SQL_RELATION_EXPR, {
-            {sx::AttributeKey::SQL_RELATION_EXPR_NAME, name},
-            {sx::AttributeKey::SQL_RELATION_EXPR_INHERIT, inherit},
+    /// A relation expression
+    struct RelationExpr {
+        sx::Value name;
+        sx::Value inherit;
+        std::optional<sx::Value> alias;
+    };
+
+    /// Add a table ref
+    inline sx::Value AddTableRef(sx::Location loc, RelationExpr expr) {
+        return AddObject(loc, sx::ObjectType::SQL_TABLE_REF, {
+            {sx::AttributeKey::SQL_TABLE_REF_NAME, expr.name},
+            {sx::AttributeKey::SQL_TABLE_REF_INHERIT, expr.inherit},
+            {sx::AttributeKey::SQL_TABLE_REF_ALIAS, expr.alias},
         });
     }
 

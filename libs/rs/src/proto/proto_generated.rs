@@ -50,11 +50,12 @@ pub enum ObjectType {
   SQL_QUALIFIED_NAME = 10,
   SQL_INDIRECTION = 11,
   SQL_RELATION_EXPR = 12,
+  SQL_TABLE_REF = 13,
 
 }
 
 pub const ENUM_MIN_OBJECT_TYPE: u8 = 0;
-pub const ENUM_MAX_OBJECT_TYPE: u8 = 12;
+pub const ENUM_MAX_OBJECT_TYPE: u8 = 13;
 
 impl<'a> flatbuffers::Follow<'a> for ObjectType {
   type Inner = Self;
@@ -88,7 +89,7 @@ impl flatbuffers::Push for ObjectType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 13] = [
+pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 14] = [
   ObjectType::NONE,
   ObjectType::DASHQL_LOAD,
   ObjectType::DASHQL_PARAMTER,
@@ -101,11 +102,12 @@ pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 13] = [
   ObjectType::SQL_RESULT_TARGET,
   ObjectType::SQL_QUALIFIED_NAME,
   ObjectType::SQL_INDIRECTION,
-  ObjectType::SQL_RELATION_EXPR
+  ObjectType::SQL_RELATION_EXPR,
+  ObjectType::SQL_TABLE_REF
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_OBJECT_TYPE: [&str; 13] = [
+pub const ENUM_NAMES_OBJECT_TYPE: [&str; 14] = [
     "NONE",
     "DASHQL_LOAD",
     "DASHQL_PARAMTER",
@@ -118,7 +120,8 @@ pub const ENUM_NAMES_OBJECT_TYPE: [&str; 13] = [
     "SQL_RESULT_TARGET",
     "SQL_QUALIFIED_NAME",
     "SQL_INDIRECTION",
-    "SQL_RELATION_EXPR"
+    "SQL_RELATION_EXPR",
+    "SQL_TABLE_REF"
 ];
 
 pub fn enum_name_object_type(e: ObjectType) -> &'static str {
@@ -183,15 +186,16 @@ pub enum AttributeKey {
   SQL_INDIRECTION_INDEX = 50,
   SQL_INDIRECTION_LOWER_BOUND = 51,
   SQL_INDIRECTION_UPPER_BOUND = 52,
-  SQL_RELATION_EXPR_NAME = 53,
-  SQL_RELATION_EXPR_INHERIT = 54,
-  SQL_ALIAS_NAME = 55,
-  SQL_ALIAS_COLUMNS = 56,
+  SQL_ALIAS_NAME = 53,
+  SQL_ALIAS_COLUMNS = 54,
+  SQL_TABLE_REF_NAME = 55,
+  SQL_TABLE_REF_ALIAS = 56,
+  SQL_TABLE_REF_INHERIT = 57,
 
 }
 
 pub const ENUM_MIN_ATTRIBUTE_KEY: u8 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 56;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 57;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -225,7 +229,7 @@ impl flatbuffers::Push for AttributeKey {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 57] = [
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 58] = [
   AttributeKey::NONE,
   AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
   AttributeKey::DASHQL_PARAMETER_ALIAS,
@@ -279,14 +283,15 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 57] = [
   AttributeKey::SQL_INDIRECTION_INDEX,
   AttributeKey::SQL_INDIRECTION_LOWER_BOUND,
   AttributeKey::SQL_INDIRECTION_UPPER_BOUND,
-  AttributeKey::SQL_RELATION_EXPR_NAME,
-  AttributeKey::SQL_RELATION_EXPR_INHERIT,
   AttributeKey::SQL_ALIAS_NAME,
-  AttributeKey::SQL_ALIAS_COLUMNS
+  AttributeKey::SQL_ALIAS_COLUMNS,
+  AttributeKey::SQL_TABLE_REF_NAME,
+  AttributeKey::SQL_TABLE_REF_ALIAS,
+  AttributeKey::SQL_TABLE_REF_INHERIT
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 57] = [
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 58] = [
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -340,10 +345,11 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 57] = [
     "SQL_INDIRECTION_INDEX",
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND",
-    "SQL_RELATION_EXPR_NAME",
-    "SQL_RELATION_EXPR_INHERIT",
     "SQL_ALIAS_NAME",
-    "SQL_ALIAS_COLUMNS"
+    "SQL_ALIAS_COLUMNS",
+    "SQL_TABLE_REF_NAME",
+    "SQL_TABLE_REF_ALIAS",
+    "SQL_TABLE_REF_INHERIT"
 ];
 
 pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
