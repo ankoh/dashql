@@ -212,12 +212,12 @@ sql_sortby:
     ;
 
 sql_opt_asc_desc:
-    ASC | DESC | %empty
+    ASC_P | DESC_P | %empty
     ;
 
 sql_opt_nulls_order:
-    NULLS_LA FIRST
-  | NULLS_LA LAST
+    NULLS_LA FIRST_P
+  | NULLS_LA LAST_P
   | %empty
     ;
 
@@ -296,7 +296,7 @@ sql_row_or_rows:
     ;
 
 sql_first_or_next:
-    FIRST
+    FIRST_P
   | NEXT
     ;
 
@@ -324,7 +324,7 @@ sql_first_or_next:
 // PGGroupingSet node of some type.
 
 sql_group_clause:
-    GROUP BY sql_group_by_list
+    GROUP_P BY sql_group_by_list
   | %empty
     ;
 
@@ -353,7 +353,7 @@ sql_having_clause:
 
 sql_for_locking_clause:
     sql_for_locking_items
-  | FOR READ ONLY
+  | FOR READ_P ONLY
     ;
 
 sql_opt_for_locking_clause:
@@ -419,9 +419,9 @@ sql_table_ref:
     sql_relation_expr sql_opt_alias_clause
   | sql_relation_expr sql_opt_alias_clause sql_tablesample_clause
   | sql_func_table sql_func_alias_clause
-  | LATERAL sql_func_table sql_func_alias_clause
+  | LATERAL_P sql_func_table sql_func_alias_clause
   | sql_select_with_parens sql_opt_alias_clause
-  | LATERAL sql_select_with_parens sql_opt_alias_clause
+  | LATERAL_P sql_select_with_parens sql_opt_alias_clause
   | sql_joined_table
   | '(' sql_joined_table ')' sql_alias_clause
     ;
@@ -477,12 +477,12 @@ sql_join_type:
     FULL sql_join_outer
   | LEFT sql_join_outer
   | RIGHT sql_join_outer
-  | INNER
+  | INNER_P
     ;
 
 /* OUTER is just noise... */
 sql_join_outer:
-    OUTER
+    OUTER_P
   | %empty
     ;
 
@@ -652,17 +652,17 @@ sql_opt_type_modifiers:
 // SQL numeric data types
 
 sql_numeric:
-    INT
+    INT_P
   | INTEGER
   | SMALLINT
   | BIGINT
   | REAL
-  | FLOAT sql_opt_float
-  | DOUBLE PRECISION
-  | DECIMAL sql_opt_type_modifiers
+  | FLOAT_P sql_opt_float
+  | DOUBLE_P PRECISION
+  | DECIMAL_P sql_opt_type_modifiers
   | DEC sql_opt_type_modifiers
   | NUMERIC sql_opt_type_modifiers
-  | BOOLEAN
+  | BOOLEAN_P
     ;
 
 sql_opt_float:
@@ -714,10 +714,10 @@ sql_character_with_length:
 
 sql_character_without_length:
     CHARACTER sql_opt_varying
-  | CHAR sql_opt_varying
+  | CHAR_P sql_opt_varying
   | VARCHAR
   | NATIONAL CHARACTER sql_opt_varying
-  | NATIONAL CHAR sql_opt_varying 
+  | NATIONAL CHAR_P sql_opt_varying 
   | NCHAR sql_opt_varying
     ;
 
@@ -746,25 +746,25 @@ sql_opt_timezone:
     ;
 
 sql_opt_interval:
-    YEAR
-  | MONTH
-  | DAY
-  | HOUR
-  | MINUTE
+    YEAR_P
+  | MONTH_P
+  | DAY_P
+  | HOUR_P
+  | MINUTE_P
   | sql_interval_second
-  | YEAR TO MONTH
-  | DAY TO HOUR
-  | DAY TO MINUTE
-  | DAY TO sql_interval_second
-  | HOUR TO MINUTE
-  | HOUR TO sql_interval_second
-  | MINUTE TO sql_interval_second
+  | YEAR_P TO MONTH_P
+  | DAY_P TO HOUR_P
+  | DAY_P TO MINUTE_P
+  | DAY_P TO sql_interval_second
+  | HOUR_P TO MINUTE_P
+  | HOUR_P TO sql_interval_second
+  | MINUTE_P TO sql_interval_second
   | %empty
     ;
 
 sql_interval_second:
-    SECOND
-  | SECOND '(' sql_iconst ')'
+    SECOND_P
+  | SECOND_P '(' sql_iconst ')'
     ;
 
 
@@ -850,17 +850,17 @@ sql_a_expr:
   //     a ISNULL
   //     a NOTNULL
   //  
-  | sql_a_expr IS NULL                            %prec IS    { $$ = {}; }
+  | sql_a_expr IS NULL_P                            %prec IS    { $$ = {}; }
   | sql_a_expr ISNULL                                           { $$ = {}; }
-  | sql_a_expr IS NOT NULL                        %prec IS    { $$ = {}; }
-  | sql_a_expr NOT NULL                                       { $$ = {}; }
+  | sql_a_expr IS NOT NULL_P                        %prec IS    { $$ = {}; }
+  | sql_a_expr NOT NULL_P                                       { $$ = {}; }
   | sql_a_expr NOTNULL                                          { $$ = {}; }
 
   | sql_row OVERLAPS sql_row  { $$ = {}; }
-  | sql_a_expr IS TRUE                            %prec IS    { $$ = {}; }
-  | sql_a_expr IS NOT TRUE                        %prec IS    { $$ = {}; }
-  | sql_a_expr IS FALSE                           %prec IS    { $$ = {}; }
-  | sql_a_expr IS NOT FALSE                       %prec IS    { $$ = {}; }
+  | sql_a_expr IS TRUE_P                            %prec IS    { $$ = {}; }
+  | sql_a_expr IS NOT TRUE_P                        %prec IS    { $$ = {}; }
+  | sql_a_expr IS FALSE_P                           %prec IS    { $$ = {}; }
+  | sql_a_expr IS NOT FALSE_P                       %prec IS    { $$ = {}; }
   | sql_a_expr IS UNKNOWN                           %prec IS    { $$ = {}; }
   | sql_a_expr IS NOT UNKNOWN                       %prec IS    { $$ = {}; }
   | sql_a_expr IS DISTINCT FROM sql_a_expr          %prec IS    { $$ = {}; }
@@ -872,8 +872,8 @@ sql_a_expr:
   | sql_a_expr NOT_LA BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr    %prec NOT_LA      { $$ = {}; }
   | sql_a_expr BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr                    %prec BETWEEN     { $$ = {}; }
   | sql_a_expr NOT_LA BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr             %prec NOT_LA      { $$ = {}; }
-  | sql_a_expr IN sql_in_expr                                                                 { $$ = {}; }
-  | sql_a_expr NOT_LA IN sql_in_expr                                %prec NOT_LA              { $$ = {}; }
+  | sql_a_expr IN_P sql_in_expr                                                                 { $$ = {}; }
+  | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA              { $$ = {}; }
   | sql_a_expr sql_subquery_op sql_sub_type sql_select_with_parens    %prec Op                  { $$ = {}; }
   | sql_a_expr sql_subquery_op sql_sub_type '(' sql_a_expr ')'        %prec Op                  { $$ = {}; }
   | DEFAULT                                                                                     { $$ = {}; }
@@ -1006,7 +1006,7 @@ sql_func_expr_common_subexpr:
 // Aggregate decoration clauses
 
 sql_within_group_clause:
-    WITHIN GROUP '(' sql_sort_clause ')'
+    WITHIN GROUP_P '(' sql_sort_clause ')'
   | %empty
     ;
 
@@ -1081,7 +1081,7 @@ sql_frame_extent:
 sql_frame_bound:
     UNBOUNDED PRECEDING
   | UNBOUNDED FOLLOWING
-  | CURRENT ROW
+  | CURRENT_P ROW
   | sql_a_expr PRECEDING
   | sql_a_expr FOLLOWING
     ;
@@ -1190,12 +1190,12 @@ sql_extract_list:
 // - thomas 2001-04-12
 sql_extract_arg:
     IDENT
-  | YEAR
-  | MONTH
-  | DAY
-  | HOUR
-  | MINUTE
-  | SECOND
+  | YEAR_P
+  | MONTH_P
+  | DAY_P
+  | HOUR_P
+  | MINUTE_P
+  | SECOND_P
   | SCONST
     ;
 
@@ -1217,7 +1217,7 @@ sql_overlay_placing:
 // position_list uses b_expr not a_expr to avoid conflict with general IN
 
 sql_position_list:
-    sql_b_expr IN sql_b_expr
+    sql_b_expr IN_P sql_b_expr
   | %empty
     ;
 
@@ -1268,7 +1268,7 @@ sql_in_expr:
 //    CASE a WHEN b THEN c ... ELSE d END
 
 sql_case_expr:
-    CASE sql_case_arg sql_when_clause_list sql_case_default END
+    CASE sql_case_arg sql_when_clause_list sql_case_default END_P
     ;
 
 sql_when_clause_list:
@@ -1416,9 +1416,9 @@ sql_a_expr_const:
 
     // Version without () is handled in a_expr/b_expr logic due to ? mis-parsing as operator */
   | sql_const_interval '(' '?' ')' '?' sql_opt_interval                         { $$ = {}; }
-  | TRUE                  { $$ = {}; }
-  | FALSE                 { $$ = {}; }
-  | NULL                  { $$ = {}; }
+  | TRUE_P                  { $$ = {}; }
+  | FALSE_P                 { $$ = {}; }
+  | NULL_P                  { $$ = {}; }
     ;
 
 sql_iconst: ICONST { $$ = sx::Value(@1, sx::ValueType::I64, $1); };
