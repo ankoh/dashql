@@ -246,7 +246,7 @@ expected:
   line_breaks: []
   comments: []
 ----
-name: select_from_single
+name: select_from_1rel
 input: |-
   select a from b
 expected:
@@ -269,7 +269,7 @@ expected:
   line_breaks: []
   comments: []
 ----
-name: select_from_single_indirect
+name: select_from_1rel_indirect1
 input: |-
   select a from b.c
 expected:
@@ -293,7 +293,7 @@ expected:
   line_breaks: []
   comments: []
 ----
-name: select_from_single_indirect1_noinherit
+name: select_from_1rel_indirect1_noinherit
 input: |-
   select a from only b.c
 expected:
@@ -317,53 +317,55 @@ expected:
   line_breaks: []
   comments: []
 ----
-name: select_from_single_indirect1_alias
+name: select_from_1rel_indirect1_alias
 input: |-
-  select a from only b.c as d
+  select a from b.c as d
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: 0..27|`select a f`..`y b.c as d`
+      location: 0..22|`select a f`..`m b.c as d`
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: 0..27|`select a f`..`y b.c as d`
+        location: 0..22|`select a f`..`m b.c as d`
         SQL_SELECT_TARGETS:
           - type: SQL_RESULT_TARGET
             location: 7..8|`a`
         SQL_SELECT_FROM:
           - type: SQL_TABLE_REF
-            location: 14..27|`only b.c as d`
+            location: 14..22|`b.c as d`
             SQL_TABLE_NAME:
-              - 19..20|`b`
-              - 21..22|`c`
-            SQL_TABLE_INHERIT: 0
-            SQL_TABLE_ALIAS: 26..27|`d`
+              - 14..15|`b`
+              - 16..17|`c`
+            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_ALIAS: 21..22|`d`
   errors: []
   line_breaks: []
   comments: []
 ----
-name: select_from_single_indirect2_alias
+name: select_from_2rel
 input: |-
-  select a from only b.c.d e
+  select a from b, c
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: 0..26|`select a f`..`ly b.c.d e`
+      location: '0..18|`select a from b, c`'
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: 0..26|`select a f`..`ly b.c.d e`
+        location: '0..18|`select a from b, c`'
         SQL_SELECT_TARGETS:
           - type: SQL_RESULT_TARGET
             location: 7..8|`a`
         SQL_SELECT_FROM:
           - type: SQL_TABLE_REF
-            location: 14..26|`only b.c.d e`
+            location: 14..15|`b`
             SQL_TABLE_NAME:
-              - 19..20|`b`
-              - 21..22|`c`
-              - 23..24|`d`
-            SQL_TABLE_INHERIT: 0
-            SQL_TABLE_ALIAS: 25..26|`e`
+              - 14..15|`b`
+            SQL_TABLE_INHERIT: 1
+          - type: SQL_TABLE_REF
+            location: 17..18|`c`
+            SQL_TABLE_NAME:
+              - 17..18|`c`
+            SQL_TABLE_INHERIT: 1
   errors: []
   line_breaks: []
   comments: []
