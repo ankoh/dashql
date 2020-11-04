@@ -16,6 +16,7 @@ expected:
               location: "7..8|`1`"
               SQL_ACONST_TYPE: 0
         SQL_SELECT_FROM: []
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -38,6 +39,7 @@ expected:
               location: "7..12|`1e-04`"
               SQL_ACONST_TYPE: 1
         SQL_SELECT_FROM: []
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -61,6 +63,7 @@ expected:
               SQL_ACONST_TYPE: 1
             SQL_RESULT_TARGET_NAME: 8..9|`e`
         SQL_SELECT_FROM: []
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -83,6 +86,7 @@ expected:
               location: "7..14|`b'1010'`"
               SQL_ACONST_TYPE: 3
         SQL_SELECT_FROM: []
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -105,6 +109,7 @@ expected:
               location: "7..12|`x'2a'`"
               SQL_ACONST_TYPE: 3
         SQL_SELECT_FROM: []
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -127,6 +132,7 @@ expected:
               location: "7..12|`'foo'`"
               SQL_ACONST_TYPE: 2
         SQL_SELECT_FROM: []
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -149,6 +155,7 @@ expected:
               location: "7..16|`'''foo'''`"
               SQL_ACONST_TYPE: 2
         SQL_SELECT_FROM: []
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -171,6 +178,7 @@ expected:
               location: '7..14|`''"foo"''`'
               SQL_ACONST_TYPE: 2
         SQL_SELECT_FROM: []
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -194,6 +202,7 @@ expected:
               SQL_ACONST_TYPE: 0
             SQL_RESULT_TARGET_NAME: '9..14|`"foo"`'
         SQL_SELECT_FROM: []
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -242,6 +251,7 @@ expected:
               location: 10..11|`2`
               SQL_ACONST_TYPE: 0
         SQL_SELECT_FROM: []
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -265,6 +275,7 @@ expected:
             SQL_TABLE_NAME:
               - 14..15|`b`
             SQL_TABLE_INHERIT: 1
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -289,6 +300,7 @@ expected:
               - 14..15|`b`
               - 16..17|`c`
             SQL_TABLE_INHERIT: 1
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -313,6 +325,7 @@ expected:
               - 19..20|`b`
               - 21..22|`c`
             SQL_TABLE_INHERIT: 0
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -338,6 +351,7 @@ expected:
               - 16..17|`c`
             SQL_TABLE_INHERIT: 1
             SQL_TABLE_ALIAS: 21..22|`d`
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -366,6 +380,7 @@ expected:
             SQL_TABLE_NAME:
               - 17..18|`c`
             SQL_TABLE_INHERIT: 1
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -400,6 +415,7 @@ expected:
             SQL_TABLE_NAME:
               - 24..25|`d`
             SQL_TABLE_INHERIT: 1
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
@@ -427,6 +443,7 @@ expected:
           type: SQL_ACONST
           location: 22..23|`1`
           SQL_ACONST_TYPE: 0
+        SQL_SELECT_GROUPS: [] 
   errors: []
   line_breaks: []
   comments: []
