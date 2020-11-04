@@ -77,11 +77,11 @@ class ModuleBuilder {
     }
     /// Create an unsigned value
     inline sx::Node U32(sx::Location loc, uint32_t value) const {
-        return sx::Node(loc, sx::NodeType::UI32, sx::AttributeKey::NONE, value, 0);
+        return sx::Node(loc, sx::NodeType::UI32, Key::NONE, value, 0);
     }
     /// Create a string
     inline sx::Node String(sx::Location loc) const {
-        return sx::Node(loc, sx::NodeType::STRING, sx::AttributeKey::NONE, 0, 0);
+        return sx::Node(loc, sx::NodeType::STRING, Key::NONE, 0, 0);
     }
     /// Create an enum
     template <typename E>
