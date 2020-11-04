@@ -293,7 +293,7 @@ expected:
   line_breaks: []
   comments: []
 ----
-name: select_from_single_indirect_noinherit
+name: select_from_single_indirect1_noinherit
 input: |-
   select a from only b.c
 expected:
@@ -317,7 +317,7 @@ expected:
   line_breaks: []
   comments: []
 ----
-name: select_from_single_indirect_alias
+name: select_from_single_indirect1_alias
 input: |-
   select a from only b.c as d
 expected:
@@ -338,6 +338,32 @@ expected:
               - 21..22|`c`
             SQL_TABLE_INHERIT: 0
             SQL_TABLE_ALIAS: 26..27|`d`
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: select_from_single_indirect2_alias
+input: |-
+  select a from only b.c.d e
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..26|`select a f`..`ly b.c.d e`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..26|`select a f`..`ly b.c.d e`
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: 7..8|`a`
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 14..26|`only b.c.d e`
+            SQL_TABLE_NAME:
+              - 19..20|`b`
+              - 21..22|`c`
+              - 23..24|`d`
+            SQL_TABLE_INHERIT: 0
+            SQL_TABLE_ALIAS: 25..26|`e`
   errors: []
   line_breaks: []
   comments: []
