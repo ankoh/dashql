@@ -107,6 +107,7 @@ sql_simple_select:
                 Key::SQL_SELECT_INTO << $4,
                 Key::SQL_SELECT_FROM << ctx.Add(@5, move($5)),
                 Key::SQL_SELECT_WHERE << $6,
+                Key::SQL_SELECT_GROUPS << ctx.Add(@7, move($7)),
                 Key::SQL_SELECT_HAVING << $8,
             });
         }
@@ -327,18 +328,18 @@ sql_first_or_next:
 // PGGroupingSet node of some type.
 
 sql_group_clause:
-    GROUP_P BY sql_group_by_list
-  | %empty
+    GROUP_P BY sql_group_by_list    { $$ = move($3); }
+  | %empty                          { $$ = {}; }
     ;
 
 sql_group_by_list:
-    sql_group_by_item
-  | sql_group_by_list ',' sql_group_by_item
+    sql_group_by_item                           { $$ = { $1 }; }
+  | sql_group_by_list ',' sql_group_by_item     { $1.push_back($3); $$ = move($1); }
     ;
 
 sql_group_by_item:
-    sql_a_expr
-  | sql_empty_grouping_set
+    sql_a_expr              { $$ = std::move($1); }
+  | sql_empty_grouping_set  { $$ = {}; }
     ;
 
 sql_empty_grouping_set:

@@ -36,6 +36,17 @@ sx::Node ModuleBuilder::Add(sx::Location loc, NodeVector&& values) {
     return sx::Node(loc, sx::NodeType::ARRAY, sx::AttributeKey::NONE, begin, _nodes.size() - begin);
 }
 
+/// Add an array
+sx::Node ModuleBuilder::Add(sx::Location loc, OptNodeVector&& values) {
+    NodeVector nodes;
+    nodes.reserve(values.size());
+    for (auto& v: values) {
+        if (v)
+            nodes.push_back(*v);
+    }
+    return Add(loc, move(nodes));
+}
+
 /// Add an object
 sx::Node ModuleBuilder::Add(sx::Location loc, sx::NodeType type, std::initializer_list<OptNode> nodes) {
     NodeVector attributes;

@@ -1,1 +1,1 @@
-%type <std::optional<sx::Node>> dashql_opt_alias;
+%type <OptNode> dashql_opt_alias;

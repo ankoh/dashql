@@ -8,11 +8,11 @@
 %type <NodeVector> sql_qualified_name;
 %type <NodeVector> sql_target_list;
 %type <OptNodeVector> sql_relation_expr;
-%type <std::optional<sx::Node>> sql_having_clause;
-%type <std::optional<sx::Node>> sql_into_clause;
-%type <std::optional<sx::Node>> sql_opt_alias_clause;
-%type <std::optional<sx::Node>> sql_opt_slice_bound;
-%type <std::optional<sx::Node>> sql_where_clause;
+%type <OptNode> sql_having_clause;
+%type <OptNode> sql_into_clause;
+%type <OptNode> sql_opt_alias_clause;
+%type <OptNode> sql_opt_slice_bound;
+%type <OptNode> sql_where_clause;
 %type <std::vector<NodeVector>> sql_qualified_name_list;
 %type <sx::Node> sql_a_expr;
 %type <sx::Node> sql_a_expr_const;
@@ -25,3 +25,6 @@
 %type <sx::Node> sql_simple_select;
 %type <sx::Node> sql_table_ref;
 %type <sx::Node> sql_target_el;
+%type <OptNodeVector> sql_group_clause;
+%type <OptNodeVector> sql_group_by_list;
+%type <OptNode> sql_group_by_item;

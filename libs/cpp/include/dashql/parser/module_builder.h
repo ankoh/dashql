@@ -105,6 +105,8 @@ class ModuleBuilder {
     }
     /// Add a an array
     sx::Node Add(sx::Location loc, NodeVector&& values);
+    /// Add a an array
+    sx::Node Add(sx::Location loc, OptNodeVector&& values);
     /// Add an object
     sx::Node Add(sx::Location loc, sx::NodeType type, std::initializer_list<OptNode> attrs = {});
     /// Add an object
