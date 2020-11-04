@@ -420,16 +420,16 @@ expected:
   line_breaks: []
   comments: []
 ----
-name: select_from_1rel_where_const
+name: select_from_1rel_group1
 input: |-
-  select a from b where 1
+  select a from b group by 1
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: 0..23|`select a f`..` b where 1`
+      location: 0..26|`select a f`..`group by 1`
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: 0..23|`select a f`..` b where 1`
+        location: 0..26|`select a f`..`group by 1`
         SQL_SELECT_TARGETS:
           - type: SQL_RESULT_TARGET
             location: 7..8|`a`
@@ -439,11 +439,10 @@ expected:
             SQL_TABLE_NAME:
               - 14..15|`b`
             SQL_TABLE_INHERIT: 1
-        SQL_SELECT_WHERE:
-          type: SQL_ACONST
-          location: 22..23|`1`
-          SQL_ACONST_TYPE: 0
-        SQL_SELECT_GROUPS: [] 
+        SQL_SELECT_GROUPS:
+          - type: SQL_ACONST
+            location: 25..26|`1`
+            SQL_ACONST_TYPE: 0
   errors: []
   line_breaks: []
   comments: []
