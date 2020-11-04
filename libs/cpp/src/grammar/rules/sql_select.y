@@ -1409,14 +1409,14 @@ sql_a_expr_const:
   | SCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::STRING); }
   | BCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::BITSTRING); }
   | XCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::BITSTRING); }
-  | sql_func_name SCONST                                                        { $$ = {}; }
-  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST          { $$ = {}; }
-  | sql_const_typename SCONST                                                   { $$ = {}; }
-  | sql_const_interval SCONST sql_opt_interval                                  { $$ = {}; }
-  | sql_const_interval '(' ICONST ')' SCONST                                    { $$ = {}; }
+  | sql_func_name SCONST                                                { $$ = {}; }
+  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST  { $$ = {}; }
+  | sql_const_typename SCONST                                           { $$ = {}; }
+  | sql_const_interval SCONST sql_opt_interval                          { $$ = {}; }
+  | sql_const_interval '(' ICONST ')' SCONST                            { $$ = {}; }
 
     // Version without () is handled in a_expr/b_expr logic due to ? mis-parsing as operator */
-  | sql_const_interval '(' '?' ')' '?' sql_opt_interval                         { $$ = {}; }
+  | sql_const_interval '(' '?' ')' '?' sql_opt_interval                 { $$ = {}; }
   | TRUE_P                  { $$ = {}; }
   | FALSE_P                 { $$ = {}; }
   | NULL_P                  { $$ = {}; }
