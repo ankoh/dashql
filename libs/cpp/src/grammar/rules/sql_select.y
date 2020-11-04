@@ -145,8 +145,8 @@ sql_common_table_expr:
     ;
 
 sql_into_clause:
-    INTO sql_opt_temp_table_name
-  | %empty
+    INTO sql_opt_temp_table_name    { $$ = $2; }
+  | %empty                          { $$ = std::nullopt; }
     ;
 
 // XXX PreparableStmt: select | insert | update | delete
@@ -156,17 +156,16 @@ sql_preparable_stmt:
 
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.
-
 sql_opt_temp_table_name:
-    TEMPORARY sql_opt_table sql_qualified_name
-  | TEMP sql_opt_table sql_qualified_name
-  | LOCAL TEMPORARY sql_opt_table sql_qualified_name
-  | LOCAL TEMP sql_opt_table sql_qualified_name
-  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name
-  | GLOBAL TEMP sql_opt_table sql_qualified_name
-  | UNLOGGED sql_opt_table sql_qualified_name
-  | TABLE sql_qualified_name
-  | sql_qualified_name
+    TEMPORARY sql_opt_table sql_qualified_name          { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_DEFAULT), ctx.Add(@3, move($3))); }
+  | TEMP sql_opt_table sql_qualified_name               { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_DEFAULT), ctx.Add(@3, move($3))); }
+  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_LOCAL), ctx.Add(@4, move($4))); }
+  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_LOCAL), ctx.Add(@4, move($4))); }
+  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_GLOBAL), ctx.Add(@4, move($4))); }
+  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_GLOBAL), ctx.Add(@4, move($4))); }
+  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_UNLOGGED), ctx.Add(@3, move($3))); }
+  | TABLE sql_qualified_name                            { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_DEFAULT), ctx.Add(@2, move($2))); }
+  | sql_qualified_name                                  { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_DEFAULT), ctx.Add(@1, move($1))); }
     ;
 
 sql_opt_table:

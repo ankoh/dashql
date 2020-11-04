@@ -90,6 +90,14 @@ class ParserDriver: public ModuleBuilder {
         });
     }
 
+    /// Create a temp table name
+    inline sx::Node AddInto(sx::Location loc, sx::Node type, sx::Node name) {
+        return Add(loc, sx::NodeType::SQL_INTO, {
+            sx::AttributeKey::SQL_TEMP_TYPE << type,
+            sx::AttributeKey::SQL_TEMP_NAME << name,
+        });
+    }
+
     /// Parse a module
     static flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
 };

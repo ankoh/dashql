@@ -40,3 +40,15 @@ export enum AExprKind{
 };
 }
 
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum TempType{
+  TEMP_DEFAULT= 0,
+  TEMP_GLOBAL= 1,
+  TEMP_LOCAL= 2,
+  TEMP_UNLOGGED= 3
+};
+}
+

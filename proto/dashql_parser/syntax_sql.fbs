@@ -30,3 +30,10 @@ enum AExprKind: uint8 {
     AEXPR_NOT_BETWEEN_SYM,
     AEXPR_PAREN,
 }
+
+enum TempType: uint8 {
+    TEMP_DEFAULT,
+    TEMP_GLOBAL,
+    TEMP_LOCAL,
+    TEMP_UNLOGGED,
+}

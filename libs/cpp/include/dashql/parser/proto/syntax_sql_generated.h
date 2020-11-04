@@ -125,6 +125,42 @@ inline const char *EnumNameAExprKind(AExprKind e) {
   return EnumNamesAExprKind()[index];
 }
 
+enum class TempType : uint8_t {
+  TEMP_DEFAULT = 0,
+  TEMP_GLOBAL = 1,
+  TEMP_LOCAL = 2,
+  TEMP_UNLOGGED = 3,
+  MIN = TEMP_DEFAULT,
+  MAX = TEMP_UNLOGGED
+};
+
+inline const TempType (&EnumValuesTempType())[4] {
+  static const TempType values[] = {
+    TempType::TEMP_DEFAULT,
+    TempType::TEMP_GLOBAL,
+    TempType::TEMP_LOCAL,
+    TempType::TEMP_UNLOGGED
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesTempType() {
+  static const char * const names[5] = {
+    "TEMP_DEFAULT",
+    "TEMP_GLOBAL",
+    "TEMP_LOCAL",
+    "TEMP_UNLOGGED",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameTempType(TempType e) {
+  if (flatbuffers::IsOutRange(e, TempType::TEMP_DEFAULT, TempType::TEMP_UNLOGGED)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesTempType()[index];
+}
+
 inline const flatbuffers::TypeTable *AConstTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -193,6 +229,28 @@ inline const flatbuffers::TypeTable *AExprKindTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 17, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *TempTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::TempTypeTypeTable
+  };
+  static const char * const names[] = {
+    "TEMP_DEFAULT",
+    "TEMP_GLOBAL",
+    "TEMP_LOCAL",
+    "TEMP_UNLOGGED"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
