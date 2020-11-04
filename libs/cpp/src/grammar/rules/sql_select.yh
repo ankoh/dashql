@@ -1,28 +1,23 @@
-%type <sx::Node> sql_select_stmt;
-%type <sx::Node> sql_select_no_parens;
-%type <sx::Node> sql_simple_select;
-
-%type <sx::Node> sql_a_expr;
-%type <sx::Node> sql_c_expr;
-%type <sx::Node> sql_a_expr_const;
-
-%type <NodeVector> sql_opt_target_list;
-%type <NodeVector> sql_target_list;
-
-%type <sx::Node> sql_target_el;
-
-%type <NodeVector> sql_name_list;
-
-%type <NodeVector> sql_indirection;
-%type <NodeVector> sql_opt_indirection;
-%type <sx::Node> sql_indirection_el;
-%type <std::optional<sx::Node>> sql_opt_slice_bound;
-
-%type <std::vector<NodeVector>> sql_qualified_name_list;
-%type <NodeVector> sql_qualified_name;
 %type <NodeVector> sql_columnref;
-
+%type <NodeVector> sql_from_clause;
+%type <NodeVector> sql_from_list;
+%type <NodeVector> sql_indirection;
+%type <NodeVector> sql_name_list;
+%type <NodeVector> sql_opt_indirection;
+%type <NodeVector> sql_opt_target_list;
+%type <NodeVector> sql_qualified_name;
+%type <NodeVector> sql_target_list;
 %type <OptNodeVector> sql_relation_expr;
-%type <sx::Node> sql_alias_clause;
 %type <std::optional<sx::Node>> sql_opt_alias_clause;
+%type <std::optional<sx::Node>> sql_opt_slice_bound;
+%type <std::vector<NodeVector>> sql_qualified_name_list;
+%type <sx::Node> sql_a_expr;
+%type <sx::Node> sql_a_expr_const;
+%type <sx::Node> sql_alias_clause;
+%type <sx::Node> sql_c_expr;
+%type <sx::Node> sql_indirection_el;
+%type <sx::Node> sql_select_no_parens;
+%type <sx::Node> sql_select_stmt;
+%type <sx::Node> sql_simple_select;
 %type <sx::Node> sql_table_ref;
+%type <sx::Node> sql_target_el;

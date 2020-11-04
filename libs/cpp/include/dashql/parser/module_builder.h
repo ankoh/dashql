@@ -15,14 +15,16 @@ namespace parser {
 namespace sx = proto::syntax;
 namespace sxd = proto::syntax_dashql;
 namespace sxs = proto::syntax_sql;
+
 using NodeVector = std::vector<sx::Node>;
 using OptNode = std::optional<sx::Node>;
 using OptNodeVector = std::vector<std::optional<sx::Node>>;
 using Attribute = std::pair<sx::AttributeKey, sx::Node>;
 using Key = sx::AttributeKey;
 
-/// Set an attribute key
+/// Get an attribute node
 sx::Node operator<<(sx::AttributeKey key, const sx::Node& node);
+/// Get an attribute node
 std::optional<sx::Node> operator<<(sx::AttributeKey key, const std::optional<sx::Node>& node);
 
 /// A module builder

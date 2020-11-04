@@ -171,8 +171,8 @@ enum class AttributeKey : uint16_t {
   SQL_INDIRECTION_INDEX = 50,
   SQL_INDIRECTION_LOWER_BOUND = 51,
   SQL_INDIRECTION_UPPER_BOUND = 52,
-  SQL_TABLE_REF_NAME = 53,
-  SQL_TABLE_REF_INHERIT = 54,
+  SQL_TABLE_NAME = 53,
+  SQL_TABLE_INHERIT = 54,
   SQL_ALIAS_NAME = 55,
   SQL_ALIAS_COLUMNS = 56,
   MIN = NONE,
@@ -234,8 +234,8 @@ inline const AttributeKey (&EnumValuesAttributeKey())[57] {
     AttributeKey::SQL_INDIRECTION_INDEX,
     AttributeKey::SQL_INDIRECTION_LOWER_BOUND,
     AttributeKey::SQL_INDIRECTION_UPPER_BOUND,
-    AttributeKey::SQL_TABLE_REF_NAME,
-    AttributeKey::SQL_TABLE_REF_INHERIT,
+    AttributeKey::SQL_TABLE_NAME,
+    AttributeKey::SQL_TABLE_INHERIT,
     AttributeKey::SQL_ALIAS_NAME,
     AttributeKey::SQL_ALIAS_COLUMNS
   };
@@ -297,8 +297,8 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_INDIRECTION_INDEX",
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND",
-    "SQL_TABLE_REF_NAME",
-    "SQL_TABLE_REF_INHERIT",
+    "SQL_TABLE_NAME",
+    "SQL_TABLE_INHERIT",
     "SQL_ALIAS_NAME",
     "SQL_ALIAS_COLUMNS",
     nullptr
@@ -892,8 +892,8 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_INDIRECTION_INDEX",
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND",
-    "SQL_TABLE_REF_NAME",
-    "SQL_TABLE_REF_INHERIT",
+    "SQL_TABLE_NAME",
+    "SQL_TABLE_INHERIT",
     "SQL_ALIAS_NAME",
     "SQL_ALIAS_COLUMNS"
   };

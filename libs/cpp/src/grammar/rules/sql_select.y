@@ -104,6 +104,7 @@ sql_simple_select:
 
             $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
                 Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
+                Key::SQL_SELECT_FROM << ctx.Add(@5, move($5))
             });
         }
   | SELECT sql_distinct_clause sql_target_list
@@ -404,13 +405,13 @@ sql_values_clause:
 // where_clause     - qualifications for joins or restrictions
 
 sql_from_clause:
-    FROM sql_from_list
-  | %empty
+    FROM sql_from_list  { $$ = move($2); }
+  | %empty              { $$ = {}; }
     ;
 
 sql_from_list:
-    sql_table_ref
-  | sql_from_list ',' sql_table_ref
+    sql_table_ref                       { $$ = { $1 }; }
+  | sql_from_list ',' sql_table_ref     { $1.push_back($3); $$ = move($1); }
     ;
 
 // table_ref is where an alias clause can be attached.
@@ -500,10 +501,10 @@ sql_join_qual:
     ;
 
 sql_relation_expr:
-    sql_qualified_name              { $$ = { Key::SQL_TABLE_REF_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_REF_INHERIT << ctx.Ref(@$, true) }; }
-  | sql_qualified_name '*'          { $$ = { Key::SQL_TABLE_REF_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_REF_INHERIT << ctx.Ref(@2, true) }; }
-  | ONLY sql_qualified_name         { $$ = { Key::SQL_TABLE_REF_NAME << ctx.Add(@1, move($2)), Key::SQL_TABLE_REF_INHERIT << ctx.Ref(@1, false) }; }
-  | ONLY '(' sql_qualified_name ')' { $$ = { Key::SQL_TABLE_REF_NAME << ctx.Add(@1, move($3)), Key::SQL_TABLE_REF_INHERIT << ctx.Ref(@1, false) }; }
+    sql_qualified_name              { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_INHERIT << ctx.Ref(@$, true) }; }
+  | sql_qualified_name '*'          { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_INHERIT << ctx.Ref(@2, true) }; }
+  | ONLY sql_qualified_name         { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($2)), Key::SQL_TABLE_INHERIT << ctx.Ref(@1, false) }; }
+  | ONLY '(' sql_qualified_name ')' { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($3)), Key::SQL_TABLE_INHERIT << ctx.Ref(@1, false) }; }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any

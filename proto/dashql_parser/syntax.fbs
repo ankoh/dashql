@@ -96,8 +96,8 @@ enum AttributeKey: uint16 {
     SQL_INDIRECTION_LOWER_BOUND,    // "[lb:ub]"
     SQL_INDIRECTION_UPPER_BOUND,    // "[lb:ub]" 
 
-    SQL_TABLE_REF_NAME,
-    SQL_TABLE_REF_INHERIT,
+    SQL_TABLE_NAME,
+    SQL_TABLE_INHERIT,
     SQL_ALIAS_NAME,
     SQL_ALIAS_COLUMNS,
 }

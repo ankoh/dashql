@@ -15,6 +15,7 @@ expected:
               type: SQL_ACONST
               location: "7..8|`1`"
               SQL_ACONST_TYPE: 0
+        SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
   comments: []
@@ -36,6 +37,7 @@ expected:
               type: SQL_ACONST
               location: "7..12|`1e-04`"
               SQL_ACONST_TYPE: 1
+        SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
   comments: []
@@ -58,6 +60,7 @@ expected:
               location: 7..8|`1`
               SQL_ACONST_TYPE: 1
             SQL_RESULT_TARGET_NAME: 8..9|`e`
+        SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
   comments: []
@@ -79,6 +82,7 @@ expected:
               type: SQL_ACONST
               location: "7..14|`b'1010'`"
               SQL_ACONST_TYPE: 3
+        SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
   comments: []
@@ -100,6 +104,7 @@ expected:
               type: SQL_ACONST
               location: "7..12|`x'2a'`"
               SQL_ACONST_TYPE: 3
+        SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
   comments: []
@@ -121,6 +126,7 @@ expected:
               type: SQL_ACONST
               location: "7..12|`'foo'`"
               SQL_ACONST_TYPE: 2
+        SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
   comments: []
@@ -142,6 +148,7 @@ expected:
               type: SQL_ACONST
               location: "7..16|`'''foo'''`"
               SQL_ACONST_TYPE: 2
+        SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
   comments: [] 
@@ -163,6 +170,7 @@ expected:
               type: SQL_ACONST
               location: '7..14|`''"foo"''`'
               SQL_ACONST_TYPE: 2
+        SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
   comments: [] 
@@ -185,6 +193,7 @@ expected:
               location: 7..8|`1`
               SQL_ACONST_TYPE: 0
             SQL_RESULT_TARGET_NAME: '9..14|`"foo"`'
+        SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
   comments: []
@@ -232,6 +241,7 @@ expected:
               type: SQL_ACONST
               location: 10..11|`2`
               SQL_ACONST_TYPE: 0
+        SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
   comments: []
