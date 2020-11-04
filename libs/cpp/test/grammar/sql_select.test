@@ -15,7 +15,6 @@ expected:
               type: SQL_ACONST
               location: "7..8|`1`"
               SQL_ACONST_TYPE: 0
-              SQL_ACONST_VALUE: 1
   errors: []
   line_breaks: []
   comments: []
@@ -185,7 +184,6 @@ expected:
               type: SQL_ACONST
               location: 7..8|`1`
               SQL_ACONST_TYPE: 0
-              SQL_ACONST_VALUE: 1
             SQL_RESULT_TARGET_NAME: '9..14|`"foo"`'
   errors: []
   line_breaks: []
@@ -228,14 +226,12 @@ expected:
               type: SQL_ACONST
               location: 7..8|`1`
               SQL_ACONST_TYPE: 0
-              SQL_ACONST_VALUE: 1
           - type: SQL_RESULT_TARGET
             location: 10..11|`2`
             SQL_RESULT_TARGET_VALUE:
               type: SQL_ACONST
               location: 10..11|`2`
               SQL_ACONST_TYPE: 0
-              SQL_ACONST_VALUE: 2
   errors: []
   line_breaks: []
   comments: []

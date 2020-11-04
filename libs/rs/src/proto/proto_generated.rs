@@ -34,30 +34,33 @@ pub mod syntax {
   use self::flatbuffers::EndianScalar;
 
 #[allow(non_camel_case_types)]
-#[repr(u8)]
+#[repr(u16)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum ObjectType {
+pub enum NodeType {
   NONE = 0,
-  DASHQL_LOAD = 1,
-  DASHQL_PARAMTER = 2,
-  DASHQL_EXTRACT = 3,
-  DASHQL_QUERY = 4,
-  DASHQL_VIZ = 5,
-  SQL_SELECT = 6,
-  SQL_ACONST = 7,
-  SQL_AEXPR = 8,
-  SQL_RESULT_TARGET = 9,
-  SQL_QUALIFIED_NAME = 10,
-  SQL_INDIRECTION = 11,
-  SQL_RELATION_EXPR = 12,
-  SQL_TABLE_REF = 13,
+  UI32 = 1,
+  STRING = 2,
+  ARRAY = 3,
+  DASHQL_LOAD = 4,
+  DASHQL_PARAMTER = 5,
+  DASHQL_EXTRACT = 6,
+  DASHQL_QUERY = 7,
+  DASHQL_VIZ = 8,
+  SQL_SELECT = 9,
+  SQL_ACONST = 10,
+  SQL_AEXPR = 11,
+  SQL_RESULT_TARGET = 12,
+  SQL_QUALIFIED_NAME = 13,
+  SQL_INDIRECTION = 14,
+  SQL_RELATION_EXPR = 15,
+  SQL_TABLE_REF = 16,
 
 }
 
-pub const ENUM_MIN_OBJECT_TYPE: u8 = 0;
-pub const ENUM_MAX_OBJECT_TYPE: u8 = 13;
+pub const ENUM_MIN_NODE_TYPE: u16 = 0;
+pub const ENUM_MAX_NODE_TYPE: u16 = 16;
 
-impl<'a> flatbuffers::Follow<'a> for ObjectType {
+impl<'a> flatbuffers::Follow<'a> for NodeType {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
@@ -65,50 +68,56 @@ impl<'a> flatbuffers::Follow<'a> for ObjectType {
   }
 }
 
-impl flatbuffers::EndianScalar for ObjectType {
+impl flatbuffers::EndianScalar for NodeType {
   #[inline]
   fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const ObjectType;
+    let n = u16::to_le(self as u16);
+    let p = &n as *const u16 as *const NodeType;
     unsafe { *p }
   }
   #[inline]
   fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const ObjectType;
+    let n = u16::from_le(self as u16);
+    let p = &n as *const u16 as *const NodeType;
     unsafe { *p }
   }
 }
 
-impl flatbuffers::Push for ObjectType {
-    type Output = ObjectType;
+impl flatbuffers::Push for NodeType {
+    type Output = NodeType;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<ObjectType>(dst, *self);
+        flatbuffers::emplace_scalar::<NodeType>(dst, *self);
     }
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_OBJECT_TYPE: [ObjectType; 14] = [
-  ObjectType::NONE,
-  ObjectType::DASHQL_LOAD,
-  ObjectType::DASHQL_PARAMTER,
-  ObjectType::DASHQL_EXTRACT,
-  ObjectType::DASHQL_QUERY,
-  ObjectType::DASHQL_VIZ,
-  ObjectType::SQL_SELECT,
-  ObjectType::SQL_ACONST,
-  ObjectType::SQL_AEXPR,
-  ObjectType::SQL_RESULT_TARGET,
-  ObjectType::SQL_QUALIFIED_NAME,
-  ObjectType::SQL_INDIRECTION,
-  ObjectType::SQL_RELATION_EXPR,
-  ObjectType::SQL_TABLE_REF
+pub const ENUM_VALUES_NODE_TYPE: [NodeType; 17] = [
+  NodeType::NONE,
+  NodeType::UI32,
+  NodeType::STRING,
+  NodeType::ARRAY,
+  NodeType::DASHQL_LOAD,
+  NodeType::DASHQL_PARAMTER,
+  NodeType::DASHQL_EXTRACT,
+  NodeType::DASHQL_QUERY,
+  NodeType::DASHQL_VIZ,
+  NodeType::SQL_SELECT,
+  NodeType::SQL_ACONST,
+  NodeType::SQL_AEXPR,
+  NodeType::SQL_RESULT_TARGET,
+  NodeType::SQL_QUALIFIED_NAME,
+  NodeType::SQL_INDIRECTION,
+  NodeType::SQL_RELATION_EXPR,
+  NodeType::SQL_TABLE_REF
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_OBJECT_TYPE: [&str; 14] = [
+pub const ENUM_NAMES_NODE_TYPE: [&str; 17] = [
     "NONE",
+    "UI32",
+    "STRING",
+    "ARRAY",
     "DASHQL_LOAD",
     "DASHQL_PARAMTER",
     "DASHQL_EXTRACT",
@@ -124,13 +133,13 @@ pub const ENUM_NAMES_OBJECT_TYPE: [&str; 14] = [
     "SQL_TABLE_REF"
 ];
 
-pub fn enum_name_object_type(e: ObjectType) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_OBJECT_TYPE[index as usize]
+pub fn enum_name_node_type(e: NodeType) -> &'static str {
+  let index = e as u16;
+  ENUM_NAMES_NODE_TYPE[index as usize]
 }
 
 #[allow(non_camel_case_types)]
-#[repr(u8)]
+#[repr(u16)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum AttributeKey {
   NONE = 0,
@@ -194,8 +203,8 @@ pub enum AttributeKey {
 
 }
 
-pub const ENUM_MIN_ATTRIBUTE_KEY: u8 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u8 = 57;
+pub const ENUM_MIN_ATTRIBUTE_KEY: u16 = 0;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 57;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -208,14 +217,14 @@ impl<'a> flatbuffers::Follow<'a> for AttributeKey {
 impl flatbuffers::EndianScalar for AttributeKey {
   #[inline]
   fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const AttributeKey;
+    let n = u16::to_le(self as u16);
+    let p = &n as *const u16 as *const AttributeKey;
     unsafe { *p }
   }
   #[inline]
   fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const AttributeKey;
+    let n = u16::from_le(self as u16);
+    let p = &n as *const u16 as *const AttributeKey;
     unsafe { *p }
   }
 }
@@ -353,77 +362,8 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 58] = [
 ];
 
 pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
-  let index = e as u8;
+  let index = e as u16;
   ENUM_NAMES_ATTRIBUTE_KEY[index as usize]
-}
-
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum ValueType {
-  NONE = 0,
-  I64 = 1,
-  STRING = 2,
-  OBJECT = 3,
-  ARRAY = 4,
-
-}
-
-pub const ENUM_MIN_VALUE_TYPE: u8 = 0;
-pub const ENUM_MAX_VALUE_TYPE: u8 = 4;
-
-impl<'a> flatbuffers::Follow<'a> for ValueType {
-  type Inner = Self;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for ValueType {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const ValueType;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const ValueType;
-    unsafe { *p }
-  }
-}
-
-impl flatbuffers::Push for ValueType {
-    type Output = ValueType;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<ValueType>(dst, *self);
-    }
-}
-
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_VALUE_TYPE: [ValueType; 5] = [
-  ValueType::NONE,
-  ValueType::I64,
-  ValueType::STRING,
-  ValueType::OBJECT,
-  ValueType::ARRAY
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_VALUE_TYPE: [&str; 5] = [
-    "NONE",
-    "I64",
-    "STRING",
-    "OBJECT",
-    "ARRAY"
-];
-
-pub fn enum_name_value_type(e: ValueType) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_VALUE_TYPE[index as usize]
 }
 
 // struct Location, aligned to 4
@@ -491,470 +431,83 @@ impl Location {
   }
 }
 
-// struct Span, aligned to 4
+// struct Node, aligned to 4
 #[repr(C, align(4))]
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Span {
-  pub offset_: u32,
-  pub length_: u32,
-} // pub struct Span
-impl flatbuffers::SafeSliceAccess for Span {}
-impl<'a> flatbuffers::Follow<'a> for Span {
-  type Inner = &'a Span;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a Span>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a Span {
-  type Inner = &'a Span;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<Span>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for Span {
-    type Output = Span;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const Span as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b Span {
-    type Output = Span;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const Span as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl Span {
-  pub fn new(_offset: u32, _length: u32) -> Self {
-    Span {
-      offset_: _offset.to_little_endian(),
-      length_: _length.to_little_endian(),
-
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.Span"
-    }
-
-  pub fn offset(&self) -> u32 {
-    self.offset_.from_little_endian()
-  }
-  pub fn length(&self) -> u32 {
-    self.length_.from_little_endian()
-  }
-}
-
-// struct Value, aligned to 8
-#[repr(C, align(8))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Value {
+pub struct Node {
   pub location_: Location,
-  pub type__: ValueType,
-  padding0__: u8,  padding1__: u16,  padding2__: u32,
-  pub value_: i64,
-} // pub struct Value
-impl flatbuffers::SafeSliceAccess for Value {}
-impl<'a> flatbuffers::Follow<'a> for Value {
-  type Inner = &'a Value;
+  pub node_type_: NodeType,
+  pub attribute_key_: AttributeKey,
+  pub children_begin_or_value_: u32,
+  pub children_count_: u32,
+} // pub struct Node
+impl flatbuffers::SafeSliceAccess for Node {}
+impl<'a> flatbuffers::Follow<'a> for Node {
+  type Inner = &'a Node;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a Value>::follow(buf, loc)
+    <&'a Node>::follow(buf, loc)
   }
 }
-impl<'a> flatbuffers::Follow<'a> for &'a Value {
-  type Inner = &'a Value;
+impl<'a> flatbuffers::Follow<'a> for &'a Node {
+  type Inner = &'a Node;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<Value>(buf, loc)
+    flatbuffers::follow_cast_ref::<Node>(buf, loc)
   }
 }
-impl<'b> flatbuffers::Push for Value {
-    type Output = Value;
+impl<'b> flatbuffers::Push for Node {
+    type Output = Node;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
         let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const Value as *const u8, Self::size())
+            ::std::slice::from_raw_parts(self as *const Node as *const u8, Self::size())
         };
         dst.copy_from_slice(src);
     }
 }
-impl<'b> flatbuffers::Push for &'b Value {
-    type Output = Value;
+impl<'b> flatbuffers::Push for &'b Node {
+    type Output = Node;
 
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
         let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const Value as *const u8, Self::size())
+            ::std::slice::from_raw_parts(*self as *const Node as *const u8, Self::size())
         };
         dst.copy_from_slice(src);
     }
 }
 
 
-impl Value {
-  pub fn new(_location: &Location, _type_: ValueType, _value: i64) -> Self {
-    Value {
+impl Node {
+  pub fn new(_location: &Location, _node_type: NodeType, _attribute_key: AttributeKey, _children_begin_or_value: u32, _children_count: u32) -> Self {
+    Node {
       location_: *_location,
-      type__: _type_.to_little_endian(),
-      value_: _value.to_little_endian(),
+      node_type_: _node_type.to_little_endian(),
+      attribute_key_: _attribute_key.to_little_endian(),
+      children_begin_or_value_: _children_begin_or_value.to_little_endian(),
+      children_count_: _children_count.to_little_endian(),
 
-      padding0__: 0,padding1__: 0,padding2__: 0,
     }
   }
     pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.Value"
+        "dashql.proto.syntax.Node"
     }
 
   pub fn location(&self) -> &Location {
     &self.location_
   }
-  pub fn type_(&self) -> ValueType {
-    self.type__.from_little_endian()
+  pub fn node_type(&self) -> NodeType {
+    self.node_type_.from_little_endian()
   }
-  pub fn value(&self) -> i64 {
-    self.value_.from_little_endian()
+  pub fn attribute_key(&self) -> AttributeKey {
+    self.attribute_key_.from_little_endian()
   }
-}
-
-// struct Array, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Array {
-  pub offset_: u32,
-  pub length_: u32,
-} // pub struct Array
-impl flatbuffers::SafeSliceAccess for Array {}
-impl<'a> flatbuffers::Follow<'a> for Array {
-  type Inner = &'a Array;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a Array>::follow(buf, loc)
+  pub fn children_begin_or_value(&self) -> u32 {
+    self.children_begin_or_value_.from_little_endian()
   }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a Array {
-  type Inner = &'a Array;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<Array>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for Array {
-    type Output = Array;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const Array as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b Array {
-    type Output = Array;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const Array as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl Array {
-  pub fn new(_offset: u32, _length: u32) -> Self {
-    Array {
-      offset_: _offset.to_little_endian(),
-      length_: _length.to_little_endian(),
-
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.Array"
-    }
-
-  pub fn offset(&self) -> u32 {
-    self.offset_.from_little_endian()
-  }
-  pub fn length(&self) -> u32 {
-    self.length_.from_little_endian()
-  }
-}
-
-// struct Attribute, aligned to 8
-#[repr(C, align(8))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Attribute {
-  pub key_: AttributeKey,
-  padding0__: u8,  padding1__: u16,  padding2__: u32,
-  pub value_: Value,
-} // pub struct Attribute
-impl flatbuffers::SafeSliceAccess for Attribute {}
-impl<'a> flatbuffers::Follow<'a> for Attribute {
-  type Inner = &'a Attribute;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a Attribute>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a Attribute {
-  type Inner = &'a Attribute;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<Attribute>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for Attribute {
-    type Output = Attribute;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const Attribute as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b Attribute {
-    type Output = Attribute;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const Attribute as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl Attribute {
-  pub fn new(_key: AttributeKey, _value: &Value) -> Self {
-    Attribute {
-      key_: _key.to_little_endian(),
-      value_: *_value,
-
-      padding0__: 0,padding1__: 0,padding2__: 0,
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.Attribute"
-    }
-
-  pub fn key(&self) -> AttributeKey {
-    self.key_.from_little_endian()
-  }
-  pub fn value(&self) -> &Value {
-    &self.value_
-  }
-}
-
-// struct Object, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Object {
-  pub location_: Location,
-  pub type__: ObjectType,
-  padding0__: u8,  padding1__: u16,
-  pub attributes_: Span,
-} // pub struct Object
-impl flatbuffers::SafeSliceAccess for Object {}
-impl<'a> flatbuffers::Follow<'a> for Object {
-  type Inner = &'a Object;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    <&'a Object>::follow(buf, loc)
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for &'a Object {
-  type Inner = &'a Object;
-  #[inline]
-  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::follow_cast_ref::<Object>(buf, loc)
-  }
-}
-impl<'b> flatbuffers::Push for Object {
-    type Output = Object;
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const Object as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-impl<'b> flatbuffers::Push for &'b Object {
-    type Output = Object;
-
-    #[inline]
-    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const Object as *const u8, Self::size())
-        };
-        dst.copy_from_slice(src);
-    }
-}
-
-
-impl Object {
-  pub fn new(_location: &Location, _type_: ObjectType, _attributes: &Span) -> Self {
-    Object {
-      location_: *_location,
-      type__: _type_.to_little_endian(),
-      attributes_: *_attributes,
-
-      padding0__: 0,padding1__: 0,
-    }
-  }
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.Object"
-    }
-
-  pub fn location(&self) -> &Location {
-    &self.location_
-  }
-  pub fn type_(&self) -> ObjectType {
-    self.type__.from_little_endian()
-  }
-  pub fn attributes(&self) -> &Span {
-    &self.attributes_
-  }
-}
-
-pub enum DocumentOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
-
-pub struct Document<'a> {
-  pub _tab: flatbuffers::Table<'a>,
-}
-
-impl<'a> flatbuffers::Follow<'a> for Document<'a> {
-    type Inner = Document<'a>;
-    #[inline]
-    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self { _tab: flatbuffers::Table { buf, loc } }
-    }
-}
-
-impl<'a> Document<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "dashql.proto.syntax.Document"
-    }
-
-    #[inline]
-    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        Document {
-            _tab: table,
-        }
-    }
-    #[allow(unused_mut)]
-    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        args: &'args DocumentArgs<'args>) -> flatbuffers::WIPOffset<Document<'bldr>> {
-      let mut builder = DocumentBuilder::new(_fbb);
-      if let Some(x) = args.array_values { builder.add_array_values(x); }
-      if let Some(x) = args.arrays { builder.add_arrays(x); }
-      if let Some(x) = args.attributes { builder.add_attributes(x); }
-      if let Some(x) = args.objects { builder.add_objects(x); }
-      if let Some(x) = args.entries { builder.add_entries(x); }
-      builder.finish()
-    }
-
-    pub const VT_ENTRIES: flatbuffers::VOffsetT = 4;
-    pub const VT_OBJECTS: flatbuffers::VOffsetT = 6;
-    pub const VT_ATTRIBUTES: flatbuffers::VOffsetT = 8;
-    pub const VT_ARRAYS: flatbuffers::VOffsetT = 10;
-    pub const VT_ARRAY_VALUES: flatbuffers::VOffsetT = 12;
-
-  #[inline]
-  pub fn entries(&self) -> Option<&'a [Value]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Value>>>(Document::VT_ENTRIES, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn objects(&self) -> Option<&'a [Object]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Object>>>(Document::VT_OBJECTS, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn attributes(&self) -> Option<&'a [Attribute]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Attribute>>>(Document::VT_ATTRIBUTES, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn arrays(&self) -> Option<&'a [Array]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Array>>>(Document::VT_ARRAYS, None).map(|v| v.safe_slice() )
-  }
-  #[inline]
-  pub fn array_values(&self) -> Option<&'a [Value]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Value>>>(Document::VT_ARRAY_VALUES, None).map(|v| v.safe_slice() )
-  }
-}
-
-pub struct DocumentArgs<'a> {
-    pub entries: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Value>>>,
-    pub objects: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Object>>>,
-    pub attributes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Attribute>>>,
-    pub arrays: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Array>>>,
-    pub array_values: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Value>>>,
-}
-impl<'a> Default for DocumentArgs<'a> {
-    #[inline]
-    fn default() -> Self {
-        DocumentArgs {
-            entries: None,
-            objects: None,
-            attributes: None,
-            arrays: None,
-            array_values: None,
-        }
-    }
-}
-pub struct DocumentBuilder<'a: 'b, 'b> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-}
-impl<'a: 'b, 'b> DocumentBuilder<'a, 'b> {
-  #[inline]
-  pub fn add_entries(&mut self, entries: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Value>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_ENTRIES, entries);
-  }
-  #[inline]
-  pub fn add_objects(&mut self, objects: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Object>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_OBJECTS, objects);
-  }
-  #[inline]
-  pub fn add_attributes(&mut self, attributes: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Attribute>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_ATTRIBUTES, attributes);
-  }
-  #[inline]
-  pub fn add_arrays(&mut self, arrays: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Array>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_ARRAYS, arrays);
-  }
-  #[inline]
-  pub fn add_array_values(&mut self, array_values: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Value>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Document::VT_ARRAY_VALUES, array_values);
-  }
-  #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> DocumentBuilder<'a, 'b> {
-    let start = _fbb.start_table();
-    DocumentBuilder {
-      fbb_: _fbb,
-      start_: start,
-    }
-  }
-  #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<Document<'a>> {
-    let o = self.fbb_.end_table(self.start_);
-    flatbuffers::WIPOffset::new(o.value())
+  pub fn children_count(&self) -> u32 {
+    self.children_count_.from_little_endian()
   }
 }
 
@@ -1083,17 +636,23 @@ impl<'a> Module<'a> {
       if let Some(x) = args.line_breaks { builder.add_line_breaks(x); }
       if let Some(x) = args.errors { builder.add_errors(x); }
       if let Some(x) = args.statements { builder.add_statements(x); }
+      if let Some(x) = args.nodes { builder.add_nodes(x); }
       builder.finish()
     }
 
-    pub const VT_STATEMENTS: flatbuffers::VOffsetT = 4;
-    pub const VT_ERRORS: flatbuffers::VOffsetT = 6;
-    pub const VT_LINE_BREAKS: flatbuffers::VOffsetT = 8;
-    pub const VT_COMMENTS: flatbuffers::VOffsetT = 10;
+    pub const VT_NODES: flatbuffers::VOffsetT = 4;
+    pub const VT_STATEMENTS: flatbuffers::VOffsetT = 6;
+    pub const VT_ERRORS: flatbuffers::VOffsetT = 8;
+    pub const VT_LINE_BREAKS: flatbuffers::VOffsetT = 10;
+    pub const VT_COMMENTS: flatbuffers::VOffsetT = 12;
 
   #[inline]
-  pub fn statements(&self) -> Option<Document<'a>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<Document<'a>>>(Module::VT_STATEMENTS, None)
+  pub fn nodes(&self) -> Option<&'a [Node]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Node>>>(Module::VT_NODES, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn statements(&self) -> Option<flatbuffers::Vector<'a, u32>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u32>>>(Module::VT_STATEMENTS, None)
   }
   #[inline]
   pub fn errors(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>> {
@@ -1110,7 +669,8 @@ impl<'a> Module<'a> {
 }
 
 pub struct ModuleArgs<'a> {
-    pub statements: Option<flatbuffers::WIPOffset<Document<'a>>>,
+    pub nodes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Node>>>,
+    pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u32>>>,
     pub errors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>>>,
     pub line_breaks: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
     pub comments: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
@@ -1119,6 +679,7 @@ impl<'a> Default for ModuleArgs<'a> {
     #[inline]
     fn default() -> Self {
         ModuleArgs {
+            nodes: None,
             statements: None,
             errors: None,
             line_breaks: None,
@@ -1132,8 +693,12 @@ pub struct ModuleBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> ModuleBuilder<'a, 'b> {
   #[inline]
-  pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<Document<'b >>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Document>>(Module::VT_STATEMENTS, statements);
+  pub fn add_nodes(&mut self, nodes: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Node>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_NODES, nodes);
+  }
+  #[inline]
+  pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u32>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_STATEMENTS, statements);
   }
   #[inline]
   pub fn add_errors(&mut self, errors: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Error<'b >>>>) {

@@ -3,10 +3,12 @@
 namespace dashql.proto.syntax;
 
 struct Location { offset: uint32; length: uint32; }
-struct Span { offset: uint32; length: uint32; }
 
-enum ObjectType: uint8 {
+enum NodeType: uint16 {
     NONE = 0,
+    UI32,
+    STRING,
+    ARRAY,
 
     DASHQL_LOAD,
     DASHQL_PARAMTER,
@@ -24,7 +26,7 @@ enum ObjectType: uint8 {
     SQL_TABLE_REF,
 }
 
-enum AttributeKey: uint8 {
+enum AttributeKey: uint16 {
     NONE = 0,
 
     DASHQL_PARAMETER_IDENTIFIER,
@@ -100,42 +102,12 @@ enum AttributeKey: uint8 {
     SQL_TABLE_REF_INHERIT,
 }
 
-enum ValueType: uint8 {
-    NONE,
-    I64,
-    STRING,
-    OBJECT,
-    ARRAY,
-}
-
-struct Value {
+struct Node {
     location: Location;
-    type: ValueType = NONE;
-    value: int64 = 0;
-}
-
-struct Array {
-    offset: uint32;
-    length: uint32;
-}
-
-struct Attribute {
-    key: AttributeKey;
-    value: Value;
-}
-
-struct Object {
-    location: Location;
-    type: ObjectType;
-    attributes: Span;
-}
-
-table Document {
-    entries: [Value];
-    objects: [Object];
-    attributes: [Attribute];
-    arrays: [Array];
-    array_values: [Value];
+    node_type: NodeType = NONE;
+    attribute_key: AttributeKey = NONE;
+    children_begin_or_value: uint32 = 0;
+    children_count: uint32 = 0;
 }
 
 table Error {
@@ -144,7 +116,8 @@ table Error {
 }
 
 table Module {
-    statements: Document;
+    nodes: [Node];
+    statements: [uint32];
     errors: [Error];
     line_breaks: [Location];
     comments: [Location];

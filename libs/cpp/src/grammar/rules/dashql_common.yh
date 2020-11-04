@@ -1,5 +1,1 @@
-%type <std::optional<sx::Value>> dashql_opt_alias;
-%type <sx::Value> dashql_boolean_value;
-%type <sx::Value> dashql_identifier;
-%type <sx::Value> dashql_string_value;
-
+%type <std::optional<sx::Node>> dashql_opt_alias;

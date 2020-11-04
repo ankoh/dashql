@@ -57,7 +57,7 @@ Parser::symbol_type yylex(ParserDriver& ctx);
  * parse errors.  It is needed by PL/pgSQL.
  */
 %token              IDENT UIDENT FCONST SCONST USCONST BCONST XCONST Op
-%token <int64_t>    ICONST PARAM
+%token              ICONST PARAM
 %token              TYPECAST DOT_DOT COLON_EQUALS EQUALS_GREATER
 %token              LESS_EQUALS GREATER_EQUALS NOT_EQUALS
 

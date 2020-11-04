@@ -554,7 +554,7 @@ Parser::symbol_type ReadParameter(ParserDriver& ctx, sx::Location loc) {
     if (result.ec == std::errc::invalid_argument) {
         ctx.AddError(loc, "invalid parameter");
     }
-    return Parser::make_PARAM(value, loc);
+    return Parser::make_PARAM(loc);
 }
 
 Parser::symbol_type ReadInteger(ParserDriver& ctx, sx::Location loc) {
@@ -564,7 +564,7 @@ Parser::symbol_type ReadInteger(ParserDriver& ctx, sx::Location loc) {
     if (result.ec == std::errc::invalid_argument) {
         return Parser::make_FCONST(loc);
     } else {
-        return Parser::make_ICONST(value, loc);
+        return Parser::make_ICONST(loc);
     }
 }
 

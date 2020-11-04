@@ -60,32 +60,23 @@ class ParserDriver: public ModuleBuilder {
     /// Get the text at location
     inline std::string_view TextAt(Location loc) { return _input.substr(loc.offset(), loc.length()); }
 
-
-    /// Create an integer constant
-    inline sx::Value AddIntConst(sx::Location loc, int64_t v) {
-        return AddObject(loc, sx::ObjectType::SQL_ACONST, {
-            {sx::AttributeKey::SQL_ACONST_TYPE, CreateEnum(loc, sxs::AConstType::INTEGER)},
-            {sx::AttributeKey::SQL_ACONST_VALUE, sx::Value{loc, sx::ValueType::I64, v}},
-        });
-    }
-
     /// Create a constant
-    inline sx::Value AddConst(sx::Location loc, sxs::AConstType type) {
-        return AddObject(loc, sx::ObjectType::SQL_ACONST, {
-            {sx::AttributeKey::SQL_ACONST_TYPE, CreateEnum(loc, type)},
+    inline sx::Node AddConst(sx::Location loc, sxs::AConstType type) {
+        return Object(loc, sx::NodeType::SQL_ACONST, {
+            {sx::AttributeKey::SQL_ACONST_TYPE, Enum(loc, type)},
         });
     }
 
     /// Create indirection
-    inline sx::Value AddIndirection(sx::Location loc, std::optional<sx::Value> lower_bound) {
-        return AddObject(loc, sx::ObjectType::SQL_INDIRECTION, {
-            {sx::AttributeKey::SQL_INDIRECTION_INDEX, lower_bound},
+    inline sx::Node AddIndirection(sx::Location loc, std::optional<sx::Node> index) {
+        return Object(loc, sx::NodeType::SQL_INDIRECTION, {
+            {sx::AttributeKey::SQL_INDIRECTION_INDEX, index},
         });
     }
 
     /// Create indirection
-    inline sx::Value AddIndirection(sx::Location loc, std::optional<sx::Value> lower_bound, std::optional<sx::Value> upper_bound) {
-        return AddObject(loc, sx::ObjectType::SQL_INDIRECTION, {
+    inline sx::Node AddIndirection(sx::Location loc, std::optional<sx::Node> lower_bound, std::optional<sx::Node> upper_bound) {
+        return Object(loc, sx::NodeType::SQL_INDIRECTION, {
             {sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND, lower_bound},
             {sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND, upper_bound},
         });
@@ -93,14 +84,14 @@ class ParserDriver: public ModuleBuilder {
 
     /// A relation expression
     struct RelationExpr {
-        sx::Value name;
-        sx::Value inherit;
-        std::optional<sx::Value> alias;
+        sx::Node name;
+        sx::Node inherit;
+        std::optional<sx::Node> alias;
     };
 
     /// Add a table ref
-    inline sx::Value AddTableRef(sx::Location loc, const RelationExpr& expr) {
-        return AddObject(loc, sx::ObjectType::SQL_TABLE_REF, {
+    inline sx::Node AddTableRef(sx::Location loc, const RelationExpr& expr) {
+        return Object(loc, sx::NodeType::SQL_TABLE_REF, {
             {sx::AttributeKey::SQL_TABLE_REF_NAME, expr.name},
             {sx::AttributeKey::SQL_TABLE_REF_INHERIT, expr.inherit},
             {sx::AttributeKey::SQL_TABLE_REF_ALIAS, expr.alias},
@@ -108,8 +99,8 @@ class ParserDriver: public ModuleBuilder {
     }
 
     /// Create relation expression
-    inline sx::Value AddAlias(sx::Location loc, sx::Value name, sx::Value columns) {
-        return AddObject(loc, sx::ObjectType::SQL_RELATION_EXPR, {
+    inline sx::Node AddAlias(sx::Location loc, sx::Node name, sx::Node columns) {
+        return Object(loc, sx::NodeType::SQL_RELATION_EXPR, {
             {sx::AttributeKey::SQL_ALIAS_NAME, name},
             {sx::AttributeKey::SQL_ALIAS_COLUMNS, columns},
         });

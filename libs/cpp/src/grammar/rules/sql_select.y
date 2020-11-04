@@ -102,8 +102,8 @@ sql_simple_select:
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause {
 
-            $$ = ctx.AddObject(@$, sx::ObjectType::SQL_SELECT, {
-                {sx::AttributeKey::SQL_SELECT_TARGETS, ctx.AddArray(@3, move($3))},
+            $$ = ctx.Object(@$, sx::NodeType::SQL_SELECT, {
+                {Key::SQL_SELECT_TARGETS, ctx.Array(@3, move($3))},
             });
         }
   | SELECT sql_distinct_clause sql_target_list
@@ -285,7 +285,7 @@ sql_select_fetch_first_value:
         ;
 
 sql_i_or_f_const:
-    sql_iconst
+    ICONST
   | FCONST
     ;
 
@@ -452,10 +452,10 @@ sql_joined_table:
     ;
 
 sql_alias_clause:
-    AS sql_col_id '(' sql_name_list ')'     { $$ = ctx.AddAlias(@$, ctx.CreateString(@2), ctx.AddArray(@4, move($4))); }
-  | AS sql_col_id_or_string                 { $$ = ctx.CreateString(@2); }
-  | sql_col_id '(' sql_name_list ')'        { $$ = ctx.AddAlias(@$, ctx.CreateString(@1), ctx.AddArray(@3, move($3))); }
-  | sql_col_id                              { $$ = ctx.CreateString(@1); }
+    AS sql_col_id '(' sql_name_list ')'     { $$ = ctx.AddAlias(@$, ctx.String(@2), ctx.Array(@4, move($4))); }
+  | AS sql_col_id_or_string                 { $$ = ctx.String(@2); }
+  | sql_col_id '(' sql_name_list ')'        { $$ = ctx.AddAlias(@$, ctx.String(@1), ctx.Array(@3, move($3))); }
+  | sql_col_id                              { $$ = ctx.String(@1); }
     ;
 
 sql_opt_alias_clause:
@@ -500,10 +500,10 @@ sql_join_qual:
     ;
 
 sql_relation_expr:
-    sql_qualified_name              { $$ = { ctx.AddArray(@1, move($1)), ctx.CreateBool(@$, true), std::nullopt }; }
-  | sql_qualified_name '*'          { $$ = { ctx.AddArray(@1, move($1)), ctx.CreateBool(@2, true), std::nullopt }; }
-  | ONLY sql_qualified_name         { $$ = { ctx.AddArray(@1, move($2)), ctx.CreateBool(@1, false), std::nullopt }; }
-  | ONLY '(' sql_qualified_name ')' { $$ = { ctx.AddArray(@1, move($3)), ctx.CreateBool(@1, false), std::nullopt }; }
+    sql_qualified_name              { $$ = { ctx.Array(@1, move($1)), ctx.Bool(@$, true), std::nullopt }; }
+  | sql_qualified_name '*'          { $$ = { ctx.Array(@1, move($1)), ctx.Bool(@2, true), std::nullopt }; }
+  | ONLY sql_qualified_name         { $$ = { ctx.Array(@1, move($2)), ctx.Bool(@1, false), std::nullopt }; }
+  | ONLY '(' sql_qualified_name ')' { $$ = { ctx.Array(@1, move($3)), ctx.Bool(@1, false), std::nullopt }; }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any
@@ -593,15 +593,15 @@ sql_typename:
     sql_simple_typename sql_opt_array_bounds
   | SETOF sql_simple_typename sql_opt_array_bounds
     // SQL standard syntax, currently only one-dimensional
-  | sql_simple_typename ARRAY '[' sql_iconst ']'
-  | SETOF sql_simple_typename ARRAY '[' sql_iconst ']'
+  | sql_simple_typename ARRAY '[' ICONST ']'
+  | SETOF sql_simple_typename ARRAY '[' ICONST ']'
   | sql_simple_typename ARRAY
   | SETOF sql_simple_typename ARRAY
     ;
 
 sql_opt_array_bounds:
     sql_opt_array_bounds '[' ']'
-  | sql_opt_array_bounds '[' sql_iconst ']'
+  | sql_opt_array_bounds '[' ICONST ']'
   | %empty
     ;
 
@@ -612,7 +612,7 @@ sql_simple_typename:
   | sql_const_character
   | sql_const_datetime
   | sql_const_interval sql_opt_interval
-  | sql_const_interval '(' sql_iconst ')'
+  | sql_const_interval '(' ICONST ')'
     ;
 
 // We have a separate ConstTypename to allow defaulting fixed-length
@@ -666,7 +666,7 @@ sql_numeric:
     ;
 
 sql_opt_float:
-    '(' sql_iconst ')'
+    '(' ICONST ')'
   | %empty
     ;
 
@@ -709,7 +709,7 @@ sql_const_character:
     ;
 
 sql_character_with_length:
-    sql_character '(' sql_iconst ')'
+    sql_character '(' ICONST ')'
     ;
 
 sql_character_without_length:
@@ -729,9 +729,9 @@ sql_opt_varying:
 // SQL date/time types
 
 sql_const_datetime:
-    TIMESTAMP '(' sql_iconst ')' sql_opt_timezone
+    TIMESTAMP '(' ICONST ')' sql_opt_timezone
   | TIMESTAMP sql_opt_timezone
-  | TIME '(' sql_iconst ')' sql_opt_timezone
+  | TIME '(' ICONST ')' sql_opt_timezone
   | TIME sql_opt_timezone
     ;
 
@@ -764,7 +764,7 @@ sql_opt_interval:
 
 sql_interval_second:
     SECOND_P
-  | SECOND_P '(' sql_iconst ')'
+  | SECOND_P '(' ICONST ')'
     ;
 
 
@@ -974,13 +974,13 @@ sql_func_expr_common_subexpr:
     COLLATION FOR '(' sql_a_expr ')'
   | CURRENT_DATE
   | CURRENT_TIME
-  | CURRENT_TIME '(' sql_iconst ')'
+  | CURRENT_TIME '(' ICONST ')'
   | CURRENT_TIMESTAMP
-  | CURRENT_TIMESTAMP '(' sql_iconst ')'
+  | CURRENT_TIMESTAMP '(' ICONST ')'
   | LOCALTIME
-  | LOCALTIME '(' sql_iconst ')'
+  | LOCALTIME '(' ICONST ')'
   | LOCALTIMESTAMP
-  | LOCALTIMESTAMP '(' sql_iconst ')'
+  | LOCALTIMESTAMP '(' ICONST ')'
   | CURRENT_ROLE
   | CURRENT_USER
   | SESSION_USER
@@ -1292,13 +1292,13 @@ sql_case_arg:
     ;
 
 sql_columnref:
-    sql_col_id                  { $$ = { ctx.CreateString(@1) }; }
-  | sql_col_id sql_indirection  { $2.push_back(ctx.CreateString(@1)); $$ = move($2); }
+    sql_col_id                  { $$ = { ctx.String(@1) }; }
+  | sql_col_id sql_indirection  { $2.push_back(ctx.String(@1)); $$ = move($2); }
     ;
 
 sql_indirection_el:
-    '.' sql_attr_name       { $$ = ctx.CreateString(@2); }
-  | '.' '*'                 { $$ = ctx.CreateString(@2); }
+    '.' sql_attr_name       { $$ = ctx.String(@2); }
+  | '.' '*'                 { $$ = ctx.String(@2); }
   | '[' sql_a_expr ']'      { $$ = ctx.AddIndirection(@$, $2); }
   | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = ctx.AddIndirection(@$, $2, $4); }
     ;
@@ -1348,14 +1348,14 @@ sql_target_el:
     // IDENT a precedence higher than POSTFIXOP.
 
   | sql_a_expr IDENT {
-        $$ = ctx.AddObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
-            {sx::AttributeKey::SQL_RESULT_TARGET_VALUE, $1},
-            {sx::AttributeKey::SQL_RESULT_TARGET_NAME, ctx.CreateString(@2)},
+        $$ = ctx.Object(@$, sx::NodeType::SQL_RESULT_TARGET, {
+            {Key::SQL_RESULT_TARGET_VALUE, $1},
+            {Key::SQL_RESULT_TARGET_NAME, ctx.String(@2)},
         });
     }
   | sql_a_expr {
-        $$ = ctx.AddObject(@$, sx::ObjectType::SQL_RESULT_TARGET, {
-            {sx::AttributeKey::SQL_RESULT_TARGET_VALUE, $1},
+        $$ = ctx.Object(@$, sx::NodeType::SQL_RESULT_TARGET, {
+            {Key::SQL_RESULT_TARGET_VALUE, $1},
         });
     }
   | '*'         { $$ = {}; }
@@ -1377,13 +1377,13 @@ sql_qualified_name_list:
 // which may contain subscripts, and reject that case in the C code.
 
 sql_qualified_name:
-    sql_col_id                      { $$ = { ctx.CreateString(@1) }; };
-  | sql_col_id sql_indirection      { $2.insert($2.begin(), ctx.CreateString(@1)); $$ = move($2); };
+    sql_col_id                      { $$ = { ctx.String(@1) }; };
+  | sql_col_id sql_indirection      { $2.insert($2.begin(), ctx.String(@1)); $$ = move($2); };
     ;
 
 sql_name_list:
-    sql_name                        { $$ = {}; $$.push_back(ctx.CreateString(@1)); }
-  | sql_name_list ',' sql_name      { $1.push_back(ctx.CreateString(@3)); $$ = move($1); }
+    sql_name                        { $$ = {}; $$.push_back(ctx.String(@1)); }
+  | sql_name_list ',' sql_name      { $1.push_back(ctx.String(@3)); $$ = move($1); }
     ;
 
 sql_name: sql_col_id;
@@ -1403,7 +1403,7 @@ sql_func_name:
 
 // Constants
 sql_a_expr_const:
-    ICONST  { $$ = ctx.AddIntConst(@1, $1); }
+    ICONST  { $$ = ctx.AddConst(@1, sxs::AConstType::INTEGER); }
   | FCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::FLOAT); }
   | SCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::STRING); }
   | BCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::BITSTRING); }
@@ -1412,7 +1412,7 @@ sql_a_expr_const:
   | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST          { $$ = {}; }
   | sql_const_typename SCONST                                                   { $$ = {}; }
   | sql_const_interval SCONST sql_opt_interval                                  { $$ = {}; }
-  | sql_const_interval '(' sql_iconst ')' SCONST                                { $$ = {}; }
+  | sql_const_interval '(' ICONST ')' SCONST                                    { $$ = {}; }
 
     // Version without () is handled in a_expr/b_expr logic due to ? mis-parsing as operator */
   | sql_const_interval '(' '?' ')' '?' sql_opt_interval                         { $$ = {}; }
@@ -1420,8 +1420,6 @@ sql_a_expr_const:
   | FALSE_P                 { $$ = {}; }
   | NULL_P                  { $$ = {}; }
     ;
-
-sql_iconst: ICONST { $$ = sx::Value(@1, sx::ValueType::I64, $1); };
 
 // Name classification hierarchy.
 //

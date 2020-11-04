@@ -1,2 +1,2 @@
-%type <sx::Value> dashql_statement;
-%type <sx::Value> opt_dashql_statement;
+%type <sx::Node> dashql_statement;
+%type <std::optional<sx::Node>> opt_dashql_statement;

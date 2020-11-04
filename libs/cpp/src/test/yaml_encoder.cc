@@ -5,6 +5,7 @@
 #include <sstream>
 #include <stack>
 #include <unordered_set>
+#include <iostream>
 
 #include "c4/yml/std/string.hpp"
 #include "c4/yml/yml.hpp"
@@ -61,117 +62,68 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
     auto& tree = *root.tree();
     root |= ryml::MAP;
 
-    auto* obj_type_tt = proto::syntax::ObjectTypeTypeTable();
-    auto* attr_key_tt = proto::syntax::AttributeKeyTypeTable();
-
-    auto tmp = root["tmp"];
-    tmp |= ryml::SEQ;
-
-    // Translate document
+    // Translate statements
     {
-        // Unpack document
-        auto* entries = module.statements()->entries();
-        auto* objs = module.statements()->objects();
-        auto* attrs = module.statements()->attributes();
-        auto* arrays = module.statements()->arrays();
-        auto* array_values = module.statements()->array_values();
+        auto* nodes = module.nodes();
+        auto* statements = module.statements();
+        auto* node_type_tt = proto::syntax::NodeTypeTypeTable();
+        auto* attr_key_tt = proto::syntax::AttributeKeyTypeTable();
 
-        auto assert_less_than = [](unsigned v, unsigned size) {
-            assert(v < size);
-            return std::min(size, v);
-        };
-        auto assert_within = [](unsigned& begin, unsigned& end, unsigned size) {
-            assert(begin <= end);
-            assert(end <= size);
-            end = std::min(end, size);
-            begin = std::min(begin, end);
-            return;
-        };
+        // Add the statements list
+        auto stmts_seq = root["statements"];
+        stmts_seq |= ryml::SEQ;
 
-        // Translate objects
-        std::vector<ryml::NodeRef> tmp_values;
-        tmp_values.reserve(module.statements()->objects()->size());
-        for (unsigned oid = 0; oid < objs->size(); ++oid) {
-            auto o = objs->Get(oid);
+        // Translate statements
+        for (unsigned stmt_id = 0; stmt_id < statements->size(); ++stmt_id) {
+            // Translate the statement tree with a DFS
+            auto n = nodes->Get(statements->Get(stmt_id));
+            std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Node*>> pending;
+            pending.push_back({stmts_seq, {}, n});
 
-            // Create object
-            tmp_values.push_back(tmp.append_child());
-            auto v = tmp_values.back();
-            v |= ryml::MAP;
-            v["type"] = c4::to_csubstr(obj_type_tt->names[static_cast<size_t>(o->type())]);
-            encode(v["location"], o->location(), text);
+            while (!pending.empty()) {
+                auto [parent, key, target] = pending.back();
+                pending.pop_back();
 
-            // Translate attributes
-            auto& attr_span = o->attributes();
-            auto attr_end = attr_span.offset() + attr_span.length();
-            for (unsigned i = attr_span.offset(); i < attr_end; ++i) {
-                // Unpack attribute
-                auto* attr = attrs->Get(i);
-                auto& attr_value = attr->value();
-                auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr->key())]);
+                // Add or append to parent
+                auto n = key.empty() ? parent.append_child() : parent[c4::csubstr(key.data(), key.size())];
 
-                std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Value*>> pending;
-                pending.push_back({v, attr_key, &attr_value});
-
-                while (!pending.empty()) {
-                    auto [parent, key, target] = pending.back();
-                    auto k = c4::csubstr(key.data(), key.size());
-                    pending.pop_back();
-
-                    // Check attribute type
-                    switch (target->type()) {
-                        case sx::ValueType::NONE:
-                            break;
-                        case sx::ValueType::I64: {
-                            auto n = key.empty() ? parent.append_child() : parent[k];
-                            n |= ryml::VAL;
-                            n << target->value();
-                            break;
+                // Check node type
+                switch (target->node_type()) {
+                    case sx::NodeType::NONE:
+                        break;
+                    case sx::NodeType::UI32: {
+                        n |= ryml::VAL;
+                        n << target->children_begin_or_value();
+                        break;
+                    }
+                    case sx::NodeType::STRING: {
+                        encode(n, target->location(), text);
+                        break;
+                    }
+                    case sx::NodeType::ARRAY: {
+                        n |= ryml::SEQ;
+                        auto end = target->children_begin_or_value() + target->children_count();
+                        for (auto i = 0; i < target->children_count(); ++i) {
+                            pending.push_back({n, {}, nodes->Get(end - i - 1)});
                         }
-                        case sx::ValueType::STRING: {
-                            encode(key.empty() ? parent.append_child() : parent[k], target->location(), text);
-                            break;
+                        break;
+                    }
+                    default: {
+                        n |= ryml::MAP;
+                        auto end = target->children_begin_or_value() + target->children_count();
+                        n["type"] = c4::to_csubstr(node_type_tt->names[static_cast<size_t>(target->node_type())]);
+                        encode(n["location"], target->location(), text);
+                        for (auto i = 0; i < target->children_count(); ++i) {
+                            auto attr = nodes->Get(end - i - 1);
+                            auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr->attribute_key())]);
+                            pending.push_back({n, attr_key, attr});
                         }
-                        case sx::ValueType::OBJECT: {
-                            auto aid = assert_less_than(target->value(), oid);
-                            tree.move(tmp_values[aid].id(), parent.id(), tree.last_child(parent.id()));
-                            if (!key.empty()) {
-                                tmp_values[aid].set_key(k);
-                            }
-                            break;
-                        }
-                        case sx::ValueType::ARRAY: {
-                            auto n = key.empty() ? parent.append_child() : parent[k];
-                            n |= ryml::SEQ;
-
-                            auto array_id = target->value();
-                            auto array_ptr = arrays->Get(array_id);
-                            auto array_begin = array_ptr->offset();
-                            auto array_end = array_begin + array_ptr->length();
-
-                            for (auto i = array_begin; i < array_end; ++i) {
-                                auto array_elem = array_values->Get(array_end - i - 1);
-                                pending.push_back({n, {}, array_elem});
-                            }
-                        }
+                        break;
                     }
                 }
             }
         }
-
-        // Build the document entries
-        auto statements = root["statements"];
-        statements |= ryml::SEQ;
-        for (unsigned id = 0; id < entries->size(); ++id) {
-            auto entry = entries->Get(id);
-            if (entry->type() != sx::ValueType::OBJECT)
-                continue;
-            assert_less_than(id, entries->size());
-            auto child = tmp_values[entry->value()].id();
-            tree.move(child, statements.id(), tree.last_child(statements.id()));
-        }
     }
-    tree.remove(tmp.id());
 
     // Add errors
     auto errors = root["errors"];

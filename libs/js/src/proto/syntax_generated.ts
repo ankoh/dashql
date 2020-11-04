@@ -6,21 +6,24 @@ import { flatbuffers } from "flatbuffers";
  * @enum {number}
  */
 export namespace dashql.proto.syntax{
-export enum ObjectType{
+export enum NodeType{
   NONE= 0,
-  DASHQL_LOAD= 1,
-  DASHQL_PARAMTER= 2,
-  DASHQL_EXTRACT= 3,
-  DASHQL_QUERY= 4,
-  DASHQL_VIZ= 5,
-  SQL_SELECT= 6,
-  SQL_ACONST= 7,
-  SQL_AEXPR= 8,
-  SQL_RESULT_TARGET= 9,
-  SQL_QUALIFIED_NAME= 10,
-  SQL_INDIRECTION= 11,
-  SQL_RELATION_EXPR= 12,
-  SQL_TABLE_REF= 13
+  UI32= 1,
+  STRING= 2,
+  ARRAY= 3,
+  DASHQL_LOAD= 4,
+  DASHQL_PARAMTER= 5,
+  DASHQL_EXTRACT= 6,
+  DASHQL_QUERY= 7,
+  DASHQL_VIZ= 8,
+  SQL_SELECT= 9,
+  SQL_ACONST= 10,
+  SQL_AEXPR= 11,
+  SQL_RESULT_TARGET= 12,
+  SQL_QUALIFIED_NAME= 13,
+  SQL_INDIRECTION= 14,
+  SQL_RELATION_EXPR= 15,
+  SQL_TABLE_REF= 16
 };
 }
 
@@ -91,19 +94,6 @@ export enum AttributeKey{
 }
 
 /**
- * @enum {number}
- */
-export namespace dashql.proto.syntax{
-export enum ValueType{
-  NONE= 0,
-  I64= 1,
-  STRING= 2,
-  OBJECT= 3,
-  ARRAY= 4
-};
-}
-
-/**
  * @constructor
  */
 export namespace dashql.proto.syntax{
@@ -162,71 +152,16 @@ static createLocation(builder:flatbuffers.Builder, offset: number, length: numbe
  * @constructor
  */
 export namespace dashql.proto.syntax{
-export class Span {
+export class Node {
   bb: flatbuffers.ByteBuffer|null = null;
 
   bb_pos:number = 0;
 /**
  * @param number i
  * @param flatbuffers.ByteBuffer bb
- * @returns Span
+ * @returns Node
  */
-__init(i:number, bb:flatbuffers.ByteBuffer):Span {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @returns number
- */
-offset():number {
-  return this.bb!.readUint32(this.bb_pos);
-};
-
-/**
- * @returns number
- */
-length():number {
-  return this.bb!.readUint32(this.bb_pos + 4);
-};
-
-/**
- * @returns number
- */
-static sizeOf():number {
-  return 8;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param number offset
- * @param number length
- * @returns flatbuffers.Offset
- */
-static createSpan(builder:flatbuffers.Builder, offset: number, length: number):flatbuffers.Offset {
-  builder.prep(4, 8);
-  builder.writeInt32(length);
-  builder.writeInt32(offset);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class Value {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns Value
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):Value {
+__init(i:number, bb:flatbuffers.ByteBuffer):Node {
   this.bb_pos = i;
   this.bb = bb;
   return this;
@@ -241,208 +176,31 @@ location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
 };
 
 /**
- * @returns dashql.proto.syntax.ValueType
+ * @returns dashql.proto.syntax.NodeType
  */
-type():dashql.proto.syntax.ValueType {
-  return /**  */ (this.bb!.readUint8(this.bb_pos + 8));
-};
-
-/**
- * @returns flatbuffers.Long
- */
-value():flatbuffers.Long {
-  return this.bb!.readInt64(this.bb_pos + 16);
-};
-
-/**
- * @returns number
- */
-static sizeOf():number {
-  return 24;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param number location_offset
- * @param number location_length
- * @param dashql.proto.syntax.ValueType type
- * @param flatbuffers.Long value
- * @returns flatbuffers.Offset
- */
-static createValue(builder:flatbuffers.Builder, location_offset: number, location_length: number, type: dashql.proto.syntax.ValueType, value: flatbuffers.Long):flatbuffers.Offset {
-  builder.prep(8, 24);
-  builder.writeInt64(value);
-  builder.pad(7);
-  builder.writeInt8(type);
-  builder.prep(4, 8);
-  builder.writeInt32(location_length);
-  builder.writeInt32(location_offset);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class Array {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns Array
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):Array {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @returns number
- */
-offset():number {
-  return this.bb!.readUint32(this.bb_pos);
-};
-
-/**
- * @returns number
- */
-length():number {
-  return this.bb!.readUint32(this.bb_pos + 4);
-};
-
-/**
- * @returns number
- */
-static sizeOf():number {
-  return 8;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param number offset
- * @param number length
- * @returns flatbuffers.Offset
- */
-static createArray(builder:flatbuffers.Builder, offset: number, length: number):flatbuffers.Offset {
-  builder.prep(4, 8);
-  builder.writeInt32(length);
-  builder.writeInt32(offset);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class Attribute {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns Attribute
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):Attribute {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
+nodeType():dashql.proto.syntax.NodeType {
+  return /**  */ (this.bb!.readUint16(this.bb_pos + 8));
 };
 
 /**
  * @returns dashql.proto.syntax.AttributeKey
  */
-key():dashql.proto.syntax.AttributeKey {
-  return /**  */ (this.bb!.readUint8(this.bb_pos));
-};
-
-/**
- * @param dashql.proto.syntax.Value= obj
- * @returns dashql.proto.syntax.Value|null
- */
-value(obj?:dashql.proto.syntax.Value):dashql.proto.syntax.Value|null {
-  return (obj || new dashql.proto.syntax.Value()).__init(this.bb_pos + 8, this.bb!);
+attributeKey():dashql.proto.syntax.AttributeKey {
+  return /**  */ (this.bb!.readUint16(this.bb_pos + 10));
 };
 
 /**
  * @returns number
  */
-static sizeOf():number {
-  return 32;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param dashql.proto.syntax.AttributeKey key
- * @param number value_location_offset
- * @param number value_location_length
- * @param dashql.proto.syntax.ValueType value_type
- * @param flatbuffers.Long value_value
- * @returns flatbuffers.Offset
- */
-static createAttribute(builder:flatbuffers.Builder, key: dashql.proto.syntax.AttributeKey, value_location_offset: number, value_location_length: number, value_type: dashql.proto.syntax.ValueType, value_value: flatbuffers.Long):flatbuffers.Offset {
-  builder.prep(8, 32);
-  builder.prep(8, 24);
-  builder.writeInt64(value_value);
-  builder.pad(7);
-  builder.writeInt8(value_type);
-  builder.prep(4, 8);
-  builder.writeInt32(value_location_length);
-  builder.writeInt32(value_location_offset);
-  builder.pad(7);
-  builder.writeInt8(key);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class Object {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns Object
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):Object {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
+childrenBeginOrValue():number {
+  return this.bb!.readUint32(this.bb_pos + 12);
 };
 
 /**
- * @param dashql.proto.syntax.Location= obj
- * @returns dashql.proto.syntax.Location|null
+ * @returns number
  */
-location(obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  return (obj || new dashql.proto.syntax.Location()).__init(this.bb_pos, this.bb!);
-};
-
-/**
- * @returns dashql.proto.syntax.ObjectType
- */
-type():dashql.proto.syntax.ObjectType {
-  return /**  */ (this.bb!.readUint8(this.bb_pos + 8));
-};
-
-/**
- * @param dashql.proto.syntax.Span= obj
- * @returns dashql.proto.syntax.Span|null
- */
-attributes(obj?:dashql.proto.syntax.Span):dashql.proto.syntax.Span|null {
-  return (obj || new dashql.proto.syntax.Span()).__init(this.bb_pos + 12, this.bb!);
+childrenCount():number {
+  return this.bb!.readUint32(this.bb_pos + 16);
 };
 
 /**
@@ -456,259 +214,24 @@ static sizeOf():number {
  * @param flatbuffers.Builder builder
  * @param number location_offset
  * @param number location_length
- * @param dashql.proto.syntax.ObjectType type
- * @param number attributes_offset
- * @param number attributes_length
+ * @param dashql.proto.syntax.NodeType node_type
+ * @param dashql.proto.syntax.AttributeKey attribute_key
+ * @param number children_begin_or_value
+ * @param number children_count
  * @returns flatbuffers.Offset
  */
-static createObject(builder:flatbuffers.Builder, location_offset: number, location_length: number, type: dashql.proto.syntax.ObjectType, attributes_offset: number, attributes_length: number):flatbuffers.Offset {
+static createNode(builder:flatbuffers.Builder, location_offset: number, location_length: number, node_type: dashql.proto.syntax.NodeType, attribute_key: dashql.proto.syntax.AttributeKey, children_begin_or_value: number, children_count: number):flatbuffers.Offset {
   builder.prep(4, 20);
-  builder.prep(4, 8);
-  builder.writeInt32(attributes_length);
-  builder.writeInt32(attributes_offset);
-  builder.pad(3);
-  builder.writeInt8(type);
+  builder.writeInt32(children_count);
+  builder.writeInt32(children_begin_or_value);
+  builder.writeInt16(attribute_key);
+  builder.writeInt16(node_type);
   builder.prep(4, 8);
   builder.writeInt32(location_length);
   builder.writeInt32(location_offset);
   return builder.offset();
 };
 
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
-export class Document {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns Document
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):Document {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param Document= obj
- * @returns Document
- */
-static getRootAsDocument(bb:flatbuffers.ByteBuffer, obj?:Document):Document {
-  return (obj || new Document()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param flatbuffers.ByteBuffer bb
- * @param Document= obj
- * @returns Document
- */
-static getSizePrefixedRootAsDocument(bb:flatbuffers.ByteBuffer, obj?:Document):Document {
-  bb.setPosition(bb.position() + flatbuffers.SIZE_PREFIX_LENGTH);
-  return (obj || new Document()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.Value= obj
- * @returns dashql.proto.syntax.Value
- */
-entries(index: number, obj?:dashql.proto.syntax.Value):dashql.proto.syntax.Value|null {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new dashql.proto.syntax.Value()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 24, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-entriesLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.Object= obj
- * @returns dashql.proto.syntax.Object
- */
-objects(index: number, obj?:dashql.proto.syntax.Object):dashql.proto.syntax.Object|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? (obj || new dashql.proto.syntax.Object()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 20, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-objectsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.Attribute= obj
- * @returns dashql.proto.syntax.Attribute
- */
-attributes(index: number, obj?:dashql.proto.syntax.Attribute):dashql.proto.syntax.Attribute|null {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? (obj || new dashql.proto.syntax.Attribute()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 32, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-attributesLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.Array= obj
- * @returns dashql.proto.syntax.Array
- */
-arrays(index: number, obj?:dashql.proto.syntax.Array):dashql.proto.syntax.Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? (obj || new dashql.proto.syntax.Array()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-arraysLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
- * @param dashql.proto.syntax.Value= obj
- * @returns dashql.proto.syntax.Value
- */
-arrayValues(index: number, obj?:dashql.proto.syntax.Value):dashql.proto.syntax.Value|null {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
-  return offset ? (obj || new dashql.proto.syntax.Value()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 24, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-arrayValuesLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 12);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param flatbuffers.Builder builder
- */
-static startDocument(builder:flatbuffers.Builder) {
-  builder.startObject(5);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset entriesOffset
- */
-static addEntries(builder:flatbuffers.Builder, entriesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, entriesOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startEntriesVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(24, numElems, 8);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset objectsOffset
- */
-static addObjects(builder:flatbuffers.Builder, objectsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, objectsOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startObjectsVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(20, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset attributesOffset
- */
-static addAttributes(builder:flatbuffers.Builder, attributesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, attributesOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startAttributesVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(32, numElems, 8);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset arraysOffset
- */
-static addArrays(builder:flatbuffers.Builder, arraysOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, arraysOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startArraysVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(8, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset arrayValuesOffset
- */
-static addArrayValues(builder:flatbuffers.Builder, arrayValuesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(4, arrayValuesOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startArrayValuesVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(24, numElems, 8);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @returns flatbuffers.Offset
- */
-static endDocument(builder:flatbuffers.Builder):flatbuffers.Offset {
-  var offset = builder.endObject();
-  return offset;
-};
-
-static createDocument(builder:flatbuffers.Builder, entriesOffset:flatbuffers.Offset, objectsOffset:flatbuffers.Offset, attributesOffset:flatbuffers.Offset, arraysOffset:flatbuffers.Offset, arrayValuesOffset:flatbuffers.Offset):flatbuffers.Offset {
-  Document.startDocument(builder);
-  Document.addEntries(builder, entriesOffset);
-  Document.addObjects(builder, objectsOffset);
-  Document.addAttributes(builder, attributesOffset);
-  Document.addArrays(builder, arraysOffset);
-  Document.addArrayValues(builder, arrayValuesOffset);
-  return Document.endDocument(builder);
-}
 }
 }
 /**
@@ -848,12 +371,46 @@ static getSizePrefixedRootAsModule(bb:flatbuffers.ByteBuffer, obj?:Module):Modul
 };
 
 /**
- * @param dashql.proto.syntax.Document= obj
- * @returns dashql.proto.syntax.Document|null
+ * @param number index
+ * @param dashql.proto.syntax.Node= obj
+ * @returns dashql.proto.syntax.Node
  */
-statements(obj?:dashql.proto.syntax.Document):dashql.proto.syntax.Document|null {
+nodes(index: number, obj?:dashql.proto.syntax.Node):dashql.proto.syntax.Node|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new dashql.proto.syntax.Document()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+  return offset ? (obj || new dashql.proto.syntax.Node()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 20, this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+nodesLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param number index
+ * @returns number
+ */
+statements(index: number):number|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.readUint32(this.bb!.__vector(this.bb_pos + offset) + index * 4) : 0;
+};
+
+/**
+ * @returns number
+ */
+statementsLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns Uint32Array
+ */
+statementsArray():Uint32Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? new Uint32Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
 
 /**
@@ -862,7 +419,7 @@ statements(obj?:dashql.proto.syntax.Document):dashql.proto.syntax.Document|null 
  * @returns dashql.proto.syntax.Error
  */
 errors(index: number, obj?:dashql.proto.syntax.Error):dashql.proto.syntax.Error|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
+  var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? (obj || new dashql.proto.syntax.Error()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
 };
 
@@ -870,7 +427,7 @@ errors(index: number, obj?:dashql.proto.syntax.Error):dashql.proto.syntax.Error|
  * @returns number
  */
 errorsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
+  var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -880,7 +437,7 @@ errorsLength():number {
  * @returns dashql.proto.syntax.Location
  */
 lineBreaks(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
+  var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? (obj || new dashql.proto.syntax.Location()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
 };
 
@@ -888,7 +445,7 @@ lineBreaks(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax
  * @returns number
  */
 lineBreaksLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 8);
+  var offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -898,7 +455,7 @@ lineBreaksLength():number {
  * @returns dashql.proto.syntax.Location
  */
 comments(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+  var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? (obj || new dashql.proto.syntax.Location()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
 };
 
@@ -906,7 +463,7 @@ comments(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax.L
  * @returns number
  */
 commentsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 10);
+  var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -914,7 +471,23 @@ commentsLength():number {
  * @param flatbuffers.Builder builder
  */
 static startModule(builder:flatbuffers.Builder) {
-  builder.startObject(4);
+  builder.startObject(5);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset nodesOffset
+ */
+static addNodes(builder:flatbuffers.Builder, nodesOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, nodesOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startNodesVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(20, numElems, 4);
 };
 
 /**
@@ -922,7 +495,33 @@ static startModule(builder:flatbuffers.Builder) {
  * @param flatbuffers.Offset statementsOffset
  */
 static addStatements(builder:flatbuffers.Builder, statementsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(0, statementsOffset, 0);
+  builder.addFieldOffset(1, statementsOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param Array.<number> data
+ * @returns flatbuffers.Offset
+ */
+static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint32Array):flatbuffers.Offset;
+/**
+ * @deprecated This Uint8Array overload will be removed in the future.
+ */
+static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
+static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint32Array|Uint8Array):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (var i = data.length - 1; i >= 0; i--) {
+    builder.addInt32(data[i]);
+  }
+  return builder.endVector();
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startStatementsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
 };
 
 /**
@@ -930,7 +529,7 @@ static addStatements(builder:flatbuffers.Builder, statementsOffset:flatbuffers.O
  * @param flatbuffers.Offset errorsOffset
  */
 static addErrors(builder:flatbuffers.Builder, errorsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(1, errorsOffset, 0);
+  builder.addFieldOffset(2, errorsOffset, 0);
 };
 
 /**
@@ -959,7 +558,7 @@ static startErrorsVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset lineBreaksOffset
  */
 static addLineBreaks(builder:flatbuffers.Builder, lineBreaksOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(2, lineBreaksOffset, 0);
+  builder.addFieldOffset(3, lineBreaksOffset, 0);
 };
 
 /**
@@ -975,7 +574,7 @@ static startLineBreaksVector(builder:flatbuffers.Builder, numElems:number) {
  * @param flatbuffers.Offset commentsOffset
  */
 static addComments(builder:flatbuffers.Builder, commentsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, commentsOffset, 0);
+  builder.addFieldOffset(4, commentsOffset, 0);
 };
 
 /**
@@ -995,8 +594,9 @@ static endModule(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createModule(builder:flatbuffers.Builder, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createModule(builder:flatbuffers.Builder, nodesOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset):flatbuffers.Offset {
   Module.startModule(builder);
+  Module.addNodes(builder, nodesOffset);
   Module.addStatements(builder, statementsOffset);
   Module.addErrors(builder, errorsOffset);
   Module.addLineBreaks(builder, lineBreaksOffset);

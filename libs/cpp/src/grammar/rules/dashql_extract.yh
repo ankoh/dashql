@@ -1,7 +1,7 @@
-%type <sx::Value> dashql_extract_statement;
-%type <ValueVector> dashql_csv_string_list;
-%type <AttributeVector> dashql_extract_method;
-%type <AttributeVector> dashql_csv_attribute_list;
-%type <AttributeVector> dashql_opt_csv_attribute_list;
-%type <sx::Attribute> dashql_csv_attribute;
-%type <sx::Value> dashql_csv_header_value;
+%type <sx::Node> dashql_extract_statement;
+%type <NodeVector> dashql_csv_string_list;
+%type <NodeVector> dashql_extract_method;
+%type <NodeVector> dashql_csv_attribute_list;
+%type <NodeVector> dashql_opt_csv_attribute_list;
+%type <sx::Node> dashql_csv_attribute;
+%type <sx::Node> dashql_csv_header_value;

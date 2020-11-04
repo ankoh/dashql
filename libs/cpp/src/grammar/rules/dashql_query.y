@@ -1,13 +1,13 @@
 dashql_query_statement:
     QUERY dashql_identifier AS sql_select_stmt {
-        $$ = ctx.AddObject(@$, sx::ObjectType::DASHQL_QUERY, {
-            {sx::AttributeKey::DASHQL_QUERY_NAME, $2},
-            {sx::AttributeKey::DASHQL_QUERY_STATEMENT, $4},
+        $$ = ctx.Object(@$, sx::NodeType::DASHQL_QUERY, {
+            {Key::DASHQL_QUERY_NAME, ctx.String(@2)},
+            {Key::DASHQL_QUERY_STATEMENT, $4},
         });
     }
   | sql_select_stmt {
-        $$ = ctx.AddObject(@$, sx::ObjectType::DASHQL_QUERY, {
-            {sx::AttributeKey::DASHQL_QUERY_STATEMENT, $1},
+        $$ = ctx.Object(@$, sx::NodeType::DASHQL_QUERY, {
+            {Key::DASHQL_QUERY_STATEMENT, $1},
         });
   }
     ;

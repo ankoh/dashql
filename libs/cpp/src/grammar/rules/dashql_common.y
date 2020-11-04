@@ -1,17 +1,9 @@
 dashql_identifier:
-    IDENTIFIER          { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
-  | STRING_LITERAL      { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
-    ;
-
-dashql_boolean_value:
-    BOOLEAN_LITERAL     { $$ = sx::Value(@1, sx::ValueType::I64, $1); }
-    ;
-
-dashql_string_value:
-    STRING_LITERAL      { $$ = sx::Value(@1, sx::ValueType::STRING, 0); }
+    IDENTIFIER
+  | SCONST
     ;
 
 dashql_opt_alias:
     %empty                  { $$ = std::nullopt; }
-  | AS dashql_identifier    { $$ = $2; }
+  | AS dashql_identifier    { $$ = ctx.String(@2); }
     ;
