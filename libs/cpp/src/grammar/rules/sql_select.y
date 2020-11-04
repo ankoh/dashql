@@ -417,7 +417,7 @@ sql_from_list:
 // table_ref is where an alias clause can be attached.
 
 sql_table_ref:
-    sql_relation_expr sql_opt_alias_clause                          { $1.push_back($2); $$ = ctx.Add(@$, sx::NodeType::SQL_TABLE_REF, move($1)); }
+    sql_relation_expr sql_opt_alias_clause                          { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::SQL_TABLE_REF, move($1)); }
   | sql_relation_expr sql_opt_alias_clause sql_tablesample_clause   { $$ = {}; }
   | sql_func_table sql_func_alias_clause                            { $$ = {}; }
   | LATERAL_P sql_func_table sql_func_alias_clause                  { $$ = {}; }

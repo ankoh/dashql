@@ -200,13 +200,14 @@ pub enum AttributeKey {
   SQL_INDIRECTION_UPPER_BOUND = 52,
   SQL_TABLE_NAME = 53,
   SQL_TABLE_INHERIT = 54,
-  SQL_ALIAS_NAME = 55,
-  SQL_ALIAS_COLUMNS = 56,
+  SQL_TABLE_ALIAS = 55,
+  SQL_ALIAS_NAME = 56,
+  SQL_ALIAS_COLUMNS = 57,
 
 }
 
 pub const ENUM_MIN_ATTRIBUTE_KEY: u16 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 56;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 57;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -240,7 +241,7 @@ impl flatbuffers::Push for AttributeKey {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 57] = [
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 58] = [
   AttributeKey::NONE,
   AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
   AttributeKey::DASHQL_PARAMETER_ALIAS,
@@ -296,12 +297,13 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 57] = [
   AttributeKey::SQL_INDIRECTION_UPPER_BOUND,
   AttributeKey::SQL_TABLE_NAME,
   AttributeKey::SQL_TABLE_INHERIT,
+  AttributeKey::SQL_TABLE_ALIAS,
   AttributeKey::SQL_ALIAS_NAME,
   AttributeKey::SQL_ALIAS_COLUMNS
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 57] = [
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 58] = [
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -357,6 +359,7 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 57] = [
     "SQL_INDIRECTION_UPPER_BOUND",
     "SQL_TABLE_NAME",
     "SQL_TABLE_INHERIT",
+    "SQL_TABLE_ALIAS",
     "SQL_ALIAS_NAME",
     "SQL_ALIAS_COLUMNS"
 ];

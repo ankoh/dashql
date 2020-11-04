@@ -98,6 +98,7 @@ enum AttributeKey: uint16 {
 
     SQL_TABLE_NAME,
     SQL_TABLE_INHERIT,
+    SQL_TABLE_ALIAS,
     SQL_ALIAS_NAME,
     SQL_ALIAS_COLUMNS,
 }

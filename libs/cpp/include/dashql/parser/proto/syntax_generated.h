@@ -173,13 +173,14 @@ enum class AttributeKey : uint16_t {
   SQL_INDIRECTION_UPPER_BOUND = 52,
   SQL_TABLE_NAME = 53,
   SQL_TABLE_INHERIT = 54,
-  SQL_ALIAS_NAME = 55,
-  SQL_ALIAS_COLUMNS = 56,
+  SQL_TABLE_ALIAS = 55,
+  SQL_ALIAS_NAME = 56,
+  SQL_ALIAS_COLUMNS = 57,
   MIN = NONE,
   MAX = SQL_ALIAS_COLUMNS
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[57] {
+inline const AttributeKey (&EnumValuesAttributeKey())[58] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -236,6 +237,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[57] {
     AttributeKey::SQL_INDIRECTION_UPPER_BOUND,
     AttributeKey::SQL_TABLE_NAME,
     AttributeKey::SQL_TABLE_INHERIT,
+    AttributeKey::SQL_TABLE_ALIAS,
     AttributeKey::SQL_ALIAS_NAME,
     AttributeKey::SQL_ALIAS_COLUMNS
   };
@@ -243,7 +245,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[57] {
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[58] = {
+  static const char * const names[59] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -299,6 +301,7 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_INDIRECTION_UPPER_BOUND",
     "SQL_TABLE_NAME",
     "SQL_TABLE_INHERIT",
+    "SQL_TABLE_ALIAS",
     "SQL_ALIAS_NAME",
     "SQL_ALIAS_COLUMNS",
     nullptr
@@ -833,6 +836,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -894,11 +898,12 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_INDIRECTION_UPPER_BOUND",
     "SQL_TABLE_NAME",
     "SQL_TABLE_INHERIT",
+    "SQL_TABLE_ALIAS",
     "SQL_ALIAS_NAME",
     "SQL_ALIAS_COLUMNS"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 57, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 58, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
