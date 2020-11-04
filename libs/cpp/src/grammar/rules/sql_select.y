@@ -107,6 +107,7 @@ sql_simple_select:
                 Key::SQL_SELECT_INTO << $4,
                 Key::SQL_SELECT_FROM << ctx.Add(@5, move($5)),
                 Key::SQL_SELECT_WHERE << $6,
+                Key::SQL_SELECT_HAVING << $8,
             });
         }
   | SELECT sql_distinct_clause sql_target_list
@@ -349,8 +350,8 @@ sql_empty_grouping_set:
 // unreserved_keyword rule.
 
 sql_having_clause:
-    HAVING sql_a_expr
-  | %empty
+    HAVING sql_a_expr   { $$ = $2; }
+  | %empty              { $$ = std::nullopt; }
     ;
 
 sql_for_locking_clause:

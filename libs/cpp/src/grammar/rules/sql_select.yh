@@ -8,6 +8,7 @@
 %type <NodeVector> sql_qualified_name;
 %type <NodeVector> sql_target_list;
 %type <OptNodeVector> sql_relation_expr;
+%type <std::optional<sx::Node>> sql_having_clause;
 %type <std::optional<sx::Node>> sql_into_clause;
 %type <std::optional<sx::Node>> sql_opt_alias_clause;
 %type <std::optional<sx::Node>> sql_opt_slice_bound;
