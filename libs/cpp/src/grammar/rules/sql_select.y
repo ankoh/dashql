@@ -103,7 +103,7 @@ sql_simple_select:
         sql_group_clause sql_having_clause sql_window_clause {
 
             $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
-                {Key::SQL_SELECT_TARGETS, ctx.Add(@3, move($3))},
+                Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
             });
         }
   | SELECT sql_distinct_clause sql_target_list
@@ -416,7 +416,7 @@ sql_from_list:
 // table_ref is where an alias clause can be attached.
 
 sql_table_ref:
-    sql_relation_expr sql_opt_alias_clause                          { $1.alias = $2; $$ = ctx.AddTableRef(@$, $1); }
+    sql_relation_expr sql_opt_alias_clause                          { $1.push_back($2); $$ = ctx.Add(@$, sx::NodeType::SQL_TABLE_REF, move($1)); }
   | sql_relation_expr sql_opt_alias_clause sql_tablesample_clause   { $$ = {}; }
   | sql_func_table sql_func_alias_clause                            { $$ = {}; }
   | LATERAL_P sql_func_table sql_func_alias_clause                  { $$ = {}; }
@@ -500,10 +500,10 @@ sql_join_qual:
     ;
 
 sql_relation_expr:
-    sql_qualified_name              { $$ = { ctx.Add(@1, move($1)), ctx.Ref(@$, true), std::nullopt }; }
-  | sql_qualified_name '*'          { $$ = { ctx.Add(@1, move($1)), ctx.Ref(@2, true), std::nullopt }; }
-  | ONLY sql_qualified_name         { $$ = { ctx.Add(@1, move($2)), ctx.Ref(@1, false), std::nullopt }; }
-  | ONLY '(' sql_qualified_name ')' { $$ = { ctx.Add(@1, move($3)), ctx.Ref(@1, false), std::nullopt }; }
+    sql_qualified_name              { $$ = { Key::SQL_TABLE_REF_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_REF_INHERIT << ctx.Ref(@$, true) }; }
+  | sql_qualified_name '*'          { $$ = { Key::SQL_TABLE_REF_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_REF_INHERIT << ctx.Ref(@2, true) }; }
+  | ONLY sql_qualified_name         { $$ = { Key::SQL_TABLE_REF_NAME << ctx.Add(@1, move($2)), Key::SQL_TABLE_REF_INHERIT << ctx.Ref(@1, false) }; }
+  | ONLY '(' sql_qualified_name ')' { $$ = { Key::SQL_TABLE_REF_NAME << ctx.Add(@1, move($3)), Key::SQL_TABLE_REF_INHERIT << ctx.Ref(@1, false) }; }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any
@@ -1349,13 +1349,13 @@ sql_target_el:
 
   | sql_a_expr IDENT {
         $$ = ctx.Add(@$, sx::NodeType::SQL_RESULT_TARGET, {
-            {Key::SQL_RESULT_TARGET_VALUE, $1},
-            {Key::SQL_RESULT_TARGET_NAME, ctx.Ref(@2)},
+            Key::SQL_RESULT_TARGET_VALUE << $1,
+            Key::SQL_RESULT_TARGET_NAME << ctx.Ref(@2),
         });
     }
   | sql_a_expr {
         $$ = ctx.Add(@$, sx::NodeType::SQL_RESULT_TARGET, {
-            {Key::SQL_RESULT_TARGET_VALUE, $1},
+            Key::SQL_RESULT_TARGET_VALUE << $1,
         });
     }
   | '*'         { $$ = {}; }

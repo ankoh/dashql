@@ -16,9 +16,14 @@ namespace sx = proto::syntax;
 namespace sxd = proto::syntax_dashql;
 namespace sxs = proto::syntax_sql;
 using NodeVector = std::vector<sx::Node>;
+using OptNode = std::optional<sx::Node>;
+using OptNodeVector = std::vector<std::optional<sx::Node>>;
 using Attribute = std::pair<sx::AttributeKey, sx::Node>;
-using OptionalAttribute = std::pair<sx::AttributeKey, std::optional<sx::Node>>;
 using Key = sx::AttributeKey;
+
+/// Set an attribute key
+sx::Node operator<<(sx::AttributeKey key, const sx::Node& node);
+std::optional<sx::Node> operator<<(sx::AttributeKey key, const std::optional<sx::Node>& node);
 
 /// A module builder
 class ModuleBuilder {
@@ -75,6 +80,10 @@ class ModuleBuilder {
     inline sx::Node Label(sx::AttributeKey key, sx::Node node) const {
         return sx::Node(node.location(), node.node_type(), key, node.children_begin_or_value(), node.children_count());
     }
+    /// Create an attribute
+    inline std::optional<sx::Node> Label(sx::AttributeKey key, std::optional<sx::Node> node) const {
+        return node ? std::optional<sx::Node>{*node} : std::nullopt;
+    }
     /// Create a string
     inline sx::Node Ref(sx::Location loc) const {
         return sx::Node(loc, sx::NodeType::STRING, Key::NONE, 0, 0);
@@ -95,11 +104,13 @@ class ModuleBuilder {
     /// Add a an array
     sx::Node Add(sx::Location loc, NodeVector&& values);
     /// Add an object
-    sx::Node Add(sx::Location loc, sx::NodeType type, std::initializer_list<OptionalAttribute> attrs = {});
+    sx::Node Add(sx::Location loc, sx::NodeType type, std::initializer_list<OptNode> attrs = {});
+    /// Add an object
+    sx::Node Add(sx::Location loc, sx::NodeType type, OptNodeVector&& attrs);
     /// Add an object
     sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs);
     /// Start an object
-    NodeBuilder StartNode(sx::NodeType type, std::initializer_list<OptionalAttribute> attrs);
+    NodeBuilder StartNode(sx::NodeType type, std::initializer_list<OptNode> attrs);
     /// Start an object
     NodeBuilder StartNode(sx::NodeType type, NodeVector&& attrs);
 

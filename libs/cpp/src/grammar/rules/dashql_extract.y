@@ -1,7 +1,7 @@
 dashql_extract_statement:
     EXTRACT dashql_identifier FROM dashql_identifier USING dashql_extract_method {
-        $6.push_back(ctx.Label(Key::DASHQL_EXTRACT_NAME, ctx.Ref(@2)));
-        $6.push_back(ctx.Label(Key::DASHQL_EXTRACT_DATA, ctx.Ref(@4)));
+        $6.push_back(Key::DASHQL_EXTRACT_NAME << ctx.Ref(@2));
+        $6.push_back(Key::DASHQL_EXTRACT_DATA << ctx.Ref(@4));
         $$ = ctx.Add(@$, sx::NodeType::DASHQL_EXTRACT, move($6));
     }
     ;
@@ -22,12 +22,12 @@ dashql_csv_attribute_list:
     ;
 
 dashql_csv_attribute:
-    ENCODING '=' SCONST                 { $$ = ctx.Label(Key::DASHQL_CSV_EXTRACT_ENCODING, ctx.Ref(@3)); }
-  | HEADER '=' dashql_csv_header_value  { $$ = ctx.Label(Key::DASHQL_CSV_EXTRACT_HEADER, $3); }
-  | DELIMITER '=' SCONST                { $$ = ctx.Label(Key::DASHQL_CSV_EXTRACT_DELIMITER, ctx.Ref(@3)); }
-  | QUOTE '=' SCONST                    { $$ = ctx.Label(Key::DASHQL_CSV_EXTRACT_QUOTE, ctx.Ref(@3)); }
-  | DATE FORMAT '=' SCONST              { $$ = ctx.Label(Key::DASHQL_CSV_EXTRACT_DATE_FORMAT, ctx.Ref(@4)); }
-  | TIMESTAMP FORMAT '=' SCONST         { $$ = ctx.Label(Key::DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT, ctx.Ref(@4)); }
+    ENCODING '=' SCONST                 { $$ = Key::DASHQL_CSV_EXTRACT_ENCODING << ctx.Ref(@3); }
+  | HEADER '=' dashql_csv_header_value  { $$ = Key::DASHQL_CSV_EXTRACT_HEADER << $3; }
+  | DELIMITER '=' SCONST                { $$ = Key::DASHQL_CSV_EXTRACT_DELIMITER << ctx.Ref(@3); }
+  | QUOTE '=' SCONST                    { $$ = Key::DASHQL_CSV_EXTRACT_QUOTE << ctx.Ref(@3); }
+  | DATE FORMAT '=' SCONST              { $$ = Key::DASHQL_CSV_EXTRACT_DATE_FORMAT << ctx.Ref(@4); }
+  | TIMESTAMP FORMAT '=' SCONST         { $$ = Key::DASHQL_CSV_EXTRACT_TIMESTAMP_FORMAT << ctx.Ref(@4); }
     ;
 
 dashql_csv_header_value:

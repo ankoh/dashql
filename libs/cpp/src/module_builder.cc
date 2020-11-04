@@ -13,6 +13,18 @@ namespace fb = flatbuffers;
 namespace dashql {
 namespace parser {
 
+/// Syntactic sugar to set the key of a node
+sx::Node operator<<(sx::AttributeKey key, const sx::Node& node) {
+    return sx::Node(node.location(), node.node_type(), key, node.children_begin_or_value(), node.children_count());
+}
+/// Syntactic sugar to set the key of a node
+std::optional<sx::Node> operator<<(sx::AttributeKey key, const std::optional<sx::Node>& node) {
+    if (node) {
+        return key << *node;
+    }
+    return std::nullopt;
+}
+
 /// Constructor
 ModuleBuilder::ModuleBuilder()
     : _statements(), _errors() {}
@@ -25,11 +37,22 @@ sx::Node ModuleBuilder::Add(sx::Location loc, NodeVector&& values) {
 }
 
 /// Add an object
-sx::Node ModuleBuilder::Add(sx::Location loc, sx::NodeType type, std::initializer_list<OptionalAttribute> attrs) {
+sx::Node ModuleBuilder::Add(sx::Location loc, sx::NodeType type, std::initializer_list<OptNode> nodes) {
     NodeVector attributes;
-    for (auto& [key, node]: attrs) {
+    for (auto& node: nodes) {
         if (node) {
-            attributes.push_back(sx::Node(node->location(), node->node_type(), key, node->children_begin_or_value(), node->children_count()));
+            attributes.push_back(*node);
+        }
+    }
+    return Add(loc, type, move(attributes));
+}
+
+/// Add an object
+sx::Node ModuleBuilder::Add(sx::Location loc, sx::NodeType type, OptNodeVector&& attrs) {
+    NodeVector attributes;
+    for (auto& node: attrs) {
+        if (node) {
+            attributes.push_back(*node);
         }
     }
     return Add(loc, type, move(attributes));

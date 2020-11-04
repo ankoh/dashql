@@ -63,46 +63,30 @@ class ParserDriver: public ModuleBuilder {
     /// Create a constant
     inline sx::Node AddConst(sx::Location loc, sxs::AConstType type) {
         return Add(loc, sx::NodeType::SQL_ACONST, {
-            {sx::AttributeKey::SQL_ACONST_TYPE, RefEnum(loc, type)},
+            sx::AttributeKey::SQL_ACONST_TYPE << RefEnum(loc, type),
         });
     }
 
     /// Create indirection
     inline sx::Node AddIndirection(sx::Location loc, std::optional<sx::Node> index) {
         return Add(loc, sx::NodeType::SQL_INDIRECTION, {
-            {sx::AttributeKey::SQL_INDIRECTION_INDEX, index},
+            sx::AttributeKey::SQL_INDIRECTION_INDEX << index,
         });
     }
 
     /// Create indirection
     inline sx::Node AddIndirection(sx::Location loc, std::optional<sx::Node> lower_bound, std::optional<sx::Node> upper_bound) {
         return Add(loc, sx::NodeType::SQL_INDIRECTION, {
-            {sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND, lower_bound},
-            {sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND, upper_bound},
-        });
-    }
-
-    /// A relation expression
-    struct RelationExpr {
-        sx::Node name;
-        sx::Node inherit;
-        std::optional<sx::Node> alias;
-    };
-
-    /// Add a table ref
-    inline sx::Node AddTableRef(sx::Location loc, const RelationExpr& expr) {
-        return Add(loc, sx::NodeType::SQL_TABLE_REF, {
-            {sx::AttributeKey::SQL_TABLE_REF_NAME, expr.name},
-            {sx::AttributeKey::SQL_TABLE_REF_INHERIT, expr.inherit},
-            {sx::AttributeKey::SQL_TABLE_REF_ALIAS, expr.alias},
+            sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND << lower_bound,
+            sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND << upper_bound,
         });
     }
 
     /// Create relation expression
     inline sx::Node AddAlias(sx::Location loc, sx::Node name, sx::Node columns) {
-        return Add(loc, sx::NodeType::SQL_RELATION_EXPR, {
-            {sx::AttributeKey::SQL_ALIAS_NAME, name},
-            {sx::AttributeKey::SQL_ALIAS_COLUMNS, columns},
+        return Add(loc, sx::NodeType::SQL_ALIAS, {
+            sx::AttributeKey::SQL_ALIAS_NAME << name,
+            sx::AttributeKey::SQL_ALIAS_COLUMNS << columns,
         });
     }
 

@@ -22,7 +22,7 @@
 %type <NodeVector> sql_qualified_name;
 %type <NodeVector> sql_columnref;
 
-%type <ParserDriver::RelationExpr> sql_relation_expr;
+%type <OptNodeVector> sql_relation_expr;
 %type <sx::Node> sql_alias_clause;
 %type <std::optional<sx::Node>> sql_opt_alias_clause;
 %type <sx::Node> sql_table_ref;

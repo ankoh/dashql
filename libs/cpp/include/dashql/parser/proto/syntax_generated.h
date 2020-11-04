@@ -57,11 +57,12 @@ enum class NodeType : uint16_t {
   SQL_INDIRECTION = 14,
   SQL_RELATION_EXPR = 15,
   SQL_TABLE_REF = 16,
+  SQL_ALIAS = 17,
   MIN = NONE,
-  MAX = SQL_TABLE_REF
+  MAX = SQL_ALIAS
 };
 
-inline const NodeType (&EnumValuesNodeType())[17] {
+inline const NodeType (&EnumValuesNodeType())[18] {
   static const NodeType values[] = {
     NodeType::NONE,
     NodeType::UI32,
@@ -79,13 +80,14 @@ inline const NodeType (&EnumValuesNodeType())[17] {
     NodeType::SQL_QUALIFIED_NAME,
     NodeType::SQL_INDIRECTION,
     NodeType::SQL_RELATION_EXPR,
-    NodeType::SQL_TABLE_REF
+    NodeType::SQL_TABLE_REF,
+    NodeType::SQL_ALIAS
   };
   return values;
 }
 
 inline const char * const *EnumNamesNodeType() {
-  static const char * const names[18] = {
+  static const char * const names[19] = {
     "NONE",
     "UI32",
     "STRING",
@@ -103,13 +105,14 @@ inline const char * const *EnumNamesNodeType() {
     "SQL_INDIRECTION",
     "SQL_RELATION_EXPR",
     "SQL_TABLE_REF",
+    "SQL_ALIAS",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameNodeType(NodeType e) {
-  if (flatbuffers::IsOutRange(e, NodeType::NONE, NodeType::SQL_TABLE_REF)) return "";
+  if (flatbuffers::IsOutRange(e, NodeType::NONE, NodeType::SQL_ALIAS)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesNodeType()[index];
 }
@@ -168,16 +171,15 @@ enum class AttributeKey : uint16_t {
   SQL_INDIRECTION_INDEX = 50,
   SQL_INDIRECTION_LOWER_BOUND = 51,
   SQL_INDIRECTION_UPPER_BOUND = 52,
-  SQL_ALIAS_NAME = 53,
-  SQL_ALIAS_COLUMNS = 54,
-  SQL_TABLE_REF_NAME = 55,
-  SQL_TABLE_REF_ALIAS = 56,
-  SQL_TABLE_REF_INHERIT = 57,
+  SQL_TABLE_REF_NAME = 53,
+  SQL_TABLE_REF_INHERIT = 54,
+  SQL_ALIAS_NAME = 55,
+  SQL_ALIAS_COLUMNS = 56,
   MIN = NONE,
-  MAX = SQL_TABLE_REF_INHERIT
+  MAX = SQL_ALIAS_COLUMNS
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[58] {
+inline const AttributeKey (&EnumValuesAttributeKey())[57] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -232,17 +234,16 @@ inline const AttributeKey (&EnumValuesAttributeKey())[58] {
     AttributeKey::SQL_INDIRECTION_INDEX,
     AttributeKey::SQL_INDIRECTION_LOWER_BOUND,
     AttributeKey::SQL_INDIRECTION_UPPER_BOUND,
-    AttributeKey::SQL_ALIAS_NAME,
-    AttributeKey::SQL_ALIAS_COLUMNS,
     AttributeKey::SQL_TABLE_REF_NAME,
-    AttributeKey::SQL_TABLE_REF_ALIAS,
-    AttributeKey::SQL_TABLE_REF_INHERIT
+    AttributeKey::SQL_TABLE_REF_INHERIT,
+    AttributeKey::SQL_ALIAS_NAME,
+    AttributeKey::SQL_ALIAS_COLUMNS
   };
   return values;
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[59] = {
+  static const char * const names[58] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -296,18 +297,17 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_INDIRECTION_INDEX",
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND",
+    "SQL_TABLE_REF_NAME",
+    "SQL_TABLE_REF_INHERIT",
     "SQL_ALIAS_NAME",
     "SQL_ALIAS_COLUMNS",
-    "SQL_TABLE_REF_NAME",
-    "SQL_TABLE_REF_ALIAS",
-    "SQL_TABLE_REF_INHERIT",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAttributeKey(AttributeKey e) {
-  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_TABLE_REF_INHERIT)) return "";
+  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_ALIAS_COLUMNS)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAttributeKey()[index];
 }
@@ -743,6 +743,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -765,17 +766,17 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     "SQL_QUALIFIED_NAME",
     "SQL_INDIRECTION",
     "SQL_RELATION_EXPR",
-    "SQL_TABLE_REF"
+    "SQL_TABLE_REF",
+    "SQL_ALIAS"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 17, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 18, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
@@ -891,14 +892,13 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_INDIRECTION_INDEX",
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND",
-    "SQL_ALIAS_NAME",
-    "SQL_ALIAS_COLUMNS",
     "SQL_TABLE_REF_NAME",
-    "SQL_TABLE_REF_ALIAS",
-    "SQL_TABLE_REF_INHERIT"
+    "SQL_TABLE_REF_INHERIT",
+    "SQL_ALIAS_NAME",
+    "SQL_ALIAS_COLUMNS"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 58, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 57, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
