@@ -369,3 +369,37 @@ expected:
   errors: []
   line_breaks: []
   comments: []
+----
+name: select_from_into_2rel
+input: |-
+  select a into b from c, d
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: '0..25|`select a i`..` from c, d`'
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: '0..25|`select a i`..` from c, d`'
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: 7..8|`a`
+        SQL_SELECT_INTO:
+          type: SQL_INTO
+          location: 14..15|`b`
+          SQL_TEMP_TYPE: 0
+          SQL_TEMP_NAME:
+            - 14..15|`b`
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 21..22|`c`
+            SQL_TABLE_NAME:
+              - 21..22|`c`
+            SQL_TABLE_INHERIT: 1
+          - type: SQL_TABLE_REF
+            location: 24..25|`d`
+            SQL_TABLE_NAME:
+              - 24..25|`d`
+            SQL_TABLE_INHERIT: 1
+  errors: []
+  line_breaks: []
+  comments: []

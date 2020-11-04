@@ -104,7 +104,8 @@ sql_simple_select:
 
             $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
                 Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
-                Key::SQL_SELECT_FROM << ctx.Add(@5, move($5))
+                Key::SQL_SELECT_INTO << $4,
+                Key::SQL_SELECT_FROM << ctx.Add(@5, move($5)),
             });
         }
   | SELECT sql_distinct_clause sql_target_list
