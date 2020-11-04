@@ -5,5 +5,5 @@ dashql_identifier:
 
 dashql_opt_alias:
     %empty                  { $$ = std::nullopt; }
-  | AS dashql_identifier    { $$ = ctx.String(@2); }
+  | AS dashql_identifier    { $$ = ctx.Ref(@2); }
     ;

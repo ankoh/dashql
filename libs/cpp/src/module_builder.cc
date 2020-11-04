@@ -18,25 +18,25 @@ ModuleBuilder::ModuleBuilder()
     : _statements(), _errors() {}
 
 /// Add an array
-sx::Node ModuleBuilder::Array(sx::Location loc, NodeVector&& values) {
+sx::Node ModuleBuilder::Add(sx::Location loc, NodeVector&& values) {
     auto begin = _nodes.size();
     std::copy(values.begin(), values.end(), std::back_inserter(_nodes));
     return sx::Node(loc, sx::NodeType::ARRAY, sx::AttributeKey::NONE, begin, _nodes.size() - begin);
 }
 
 /// Add an object
-sx::Node ModuleBuilder::Object(sx::Location loc, sx::NodeType type, std::initializer_list<OptionalAttribute> attrs) {
+sx::Node ModuleBuilder::Add(sx::Location loc, sx::NodeType type, std::initializer_list<OptionalAttribute> attrs) {
     NodeVector attributes;
     for (auto& [key, node]: attrs) {
         if (node) {
             attributes.push_back(sx::Node(node->location(), node->node_type(), key, node->children_begin_or_value(), node->children_count()));
         }
     }
-    return Object(loc, type, move(attributes));
+    return Add(loc, type, move(attributes));
 }
 
 /// Add an object
-sx::Node ModuleBuilder::Object(sx::Location loc, sx::NodeType type, NodeVector&& attrs) {
+sx::Node ModuleBuilder::Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs) {
     auto begin = _nodes.size();
     std::copy(attrs.begin(), attrs.end(), std::back_inserter(_nodes));
     return sx::Node(loc, type, sx::AttributeKey::NONE, begin, _nodes.size() - begin);
@@ -44,8 +44,8 @@ sx::Node ModuleBuilder::Object(sx::Location loc, sx::NodeType type, NodeVector&&
 
 /// Add an object
 NodeVector ModuleBuilder::CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attrs) {
-    auto type_val = Enum(viz_loc, viz_type);
-    auto type_attr = Attr(sx::AttributeKey::DASHQL_VIZ_TYPE, type_val);
+    auto type_val = RefEnum(viz_loc, viz_type);
+    auto type_attr = Label(sx::AttributeKey::DASHQL_VIZ_TYPE, type_val);
     NodeVector result{type_attr};
     for (auto& as: attrs) {
         for (auto& a: as.get()) {

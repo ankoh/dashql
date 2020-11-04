@@ -72,36 +72,36 @@ class ModuleBuilder {
     auto& errors() { return _errors; }
 
     /// Create an attribute
-    inline sx::Node Attr(sx::AttributeKey key, sx::Node node) const {
+    inline sx::Node Label(sx::AttributeKey key, sx::Node node) const {
         return sx::Node(node.location(), node.node_type(), key, node.children_begin_or_value(), node.children_count());
     }
-    /// Create an unsigned value
-    inline sx::Node U32(sx::Location loc, uint32_t value) const {
-        return sx::Node(loc, sx::NodeType::UI32, Key::NONE, value, 0);
-    }
     /// Create a string
-    inline sx::Node String(sx::Location loc) const {
+    inline sx::Node Ref(sx::Location loc) const {
         return sx::Node(loc, sx::NodeType::STRING, Key::NONE, 0, 0);
+    }
+    /// Create an unsigned value
+    inline sx::Node Ref(sx::Location loc, uint32_t value) const {
+        return sx::Node(loc, sx::NodeType::UI32, Key::NONE, value, 0);
     }
     /// Create an enum
     template <typename E>
-    inline sx::Node Enum(sx::Location loc, E e) const {
-        return U32(loc, static_cast<uint32_t>(e));
+    inline sx::Node RefEnum(sx::Location loc, E e) const {
+        return Ref(loc, static_cast<uint32_t>(e));
     }
     /// Create a bool
-    inline sx::Node Bool(sx::Location loc, bool v) const {
-        return U32(loc, v);
+    inline sx::Node Ref(sx::Location loc, bool v) const {
+        return Ref(loc, v);
     }
     /// Add a an array
-    sx::Node Array(sx::Location loc, NodeVector&& values);
+    sx::Node Add(sx::Location loc, NodeVector&& values);
     /// Add an object
-    sx::Node Object(sx::Location loc, sx::NodeType type, std::initializer_list<OptionalAttribute> attrs = {});
+    sx::Node Add(sx::Location loc, sx::NodeType type, std::initializer_list<OptionalAttribute> attrs = {});
     /// Add an object
-    sx::Node Object(sx::Location loc, sx::NodeType type, NodeVector&& attrs);
+    sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs);
     /// Start an object
-    NodeBuilder StartObject(sx::NodeType type, std::initializer_list<OptionalAttribute> attrs);
+    NodeBuilder StartNode(sx::NodeType type, std::initializer_list<OptionalAttribute> attrs);
     /// Start an object
-    NodeBuilder StartObject(sx::NodeType type, NodeVector&& attrs);
+    NodeBuilder StartNode(sx::NodeType type, NodeVector&& attrs);
 
     /// Collect viz attributes
     NodeVector CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attributes);

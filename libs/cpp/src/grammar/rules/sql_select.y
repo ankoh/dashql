@@ -102,8 +102,8 @@ sql_simple_select:
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause {
 
-            $$ = ctx.Object(@$, sx::NodeType::SQL_SELECT, {
-                {Key::SQL_SELECT_TARGETS, ctx.Array(@3, move($3))},
+            $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
+                {Key::SQL_SELECT_TARGETS, ctx.Add(@3, move($3))},
             });
         }
   | SELECT sql_distinct_clause sql_target_list
@@ -452,10 +452,10 @@ sql_joined_table:
     ;
 
 sql_alias_clause:
-    AS sql_col_id '(' sql_name_list ')'     { $$ = ctx.AddAlias(@$, ctx.String(@2), ctx.Array(@4, move($4))); }
-  | AS sql_col_id_or_string                 { $$ = ctx.String(@2); }
-  | sql_col_id '(' sql_name_list ')'        { $$ = ctx.AddAlias(@$, ctx.String(@1), ctx.Array(@3, move($3))); }
-  | sql_col_id                              { $$ = ctx.String(@1); }
+    AS sql_col_id '(' sql_name_list ')'     { $$ = ctx.AddAlias(@$, ctx.Ref(@2), ctx.Add(@4, move($4))); }
+  | AS sql_col_id_or_string                 { $$ = ctx.Ref(@2); }
+  | sql_col_id '(' sql_name_list ')'        { $$ = ctx.AddAlias(@$, ctx.Ref(@1), ctx.Add(@3, move($3))); }
+  | sql_col_id                              { $$ = ctx.Ref(@1); }
     ;
 
 sql_opt_alias_clause:
@@ -500,10 +500,10 @@ sql_join_qual:
     ;
 
 sql_relation_expr:
-    sql_qualified_name              { $$ = { ctx.Array(@1, move($1)), ctx.Bool(@$, true), std::nullopt }; }
-  | sql_qualified_name '*'          { $$ = { ctx.Array(@1, move($1)), ctx.Bool(@2, true), std::nullopt }; }
-  | ONLY sql_qualified_name         { $$ = { ctx.Array(@1, move($2)), ctx.Bool(@1, false), std::nullopt }; }
-  | ONLY '(' sql_qualified_name ')' { $$ = { ctx.Array(@1, move($3)), ctx.Bool(@1, false), std::nullopt }; }
+    sql_qualified_name              { $$ = { ctx.Add(@1, move($1)), ctx.Ref(@$, true), std::nullopt }; }
+  | sql_qualified_name '*'          { $$ = { ctx.Add(@1, move($1)), ctx.Ref(@2, true), std::nullopt }; }
+  | ONLY sql_qualified_name         { $$ = { ctx.Add(@1, move($2)), ctx.Ref(@1, false), std::nullopt }; }
+  | ONLY '(' sql_qualified_name ')' { $$ = { ctx.Add(@1, move($3)), ctx.Ref(@1, false), std::nullopt }; }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any
@@ -1292,13 +1292,13 @@ sql_case_arg:
     ;
 
 sql_columnref:
-    sql_col_id                  { $$ = { ctx.String(@1) }; }
-  | sql_col_id sql_indirection  { $2.push_back(ctx.String(@1)); $$ = move($2); }
+    sql_col_id                  { $$ = { ctx.Ref(@1) }; }
+  | sql_col_id sql_indirection  { $2.push_back(ctx.Ref(@1)); $$ = move($2); }
     ;
 
 sql_indirection_el:
-    '.' sql_attr_name       { $$ = ctx.String(@2); }
-  | '.' '*'                 { $$ = ctx.String(@2); }
+    '.' sql_attr_name       { $$ = ctx.Ref(@2); }
+  | '.' '*'                 { $$ = ctx.Ref(@2); }
   | '[' sql_a_expr ']'      { $$ = ctx.AddIndirection(@$, $2); }
   | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = ctx.AddIndirection(@$, $2, $4); }
     ;
@@ -1348,13 +1348,13 @@ sql_target_el:
     // IDENT a precedence higher than POSTFIXOP.
 
   | sql_a_expr IDENT {
-        $$ = ctx.Object(@$, sx::NodeType::SQL_RESULT_TARGET, {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_RESULT_TARGET, {
             {Key::SQL_RESULT_TARGET_VALUE, $1},
-            {Key::SQL_RESULT_TARGET_NAME, ctx.String(@2)},
+            {Key::SQL_RESULT_TARGET_NAME, ctx.Ref(@2)},
         });
     }
   | sql_a_expr {
-        $$ = ctx.Object(@$, sx::NodeType::SQL_RESULT_TARGET, {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_RESULT_TARGET, {
             {Key::SQL_RESULT_TARGET_VALUE, $1},
         });
     }
@@ -1377,13 +1377,13 @@ sql_qualified_name_list:
 // which may contain subscripts, and reject that case in the C code.
 
 sql_qualified_name:
-    sql_col_id                      { $$ = { ctx.String(@1) }; };
-  | sql_col_id sql_indirection      { $2.insert($2.begin(), ctx.String(@1)); $$ = move($2); };
+    sql_col_id                      { $$ = { ctx.Ref(@1) }; };
+  | sql_col_id sql_indirection      { $2.insert($2.begin(), ctx.Ref(@1)); $$ = move($2); };
     ;
 
 sql_name_list:
-    sql_name                        { $$ = {}; $$.push_back(ctx.String(@1)); }
-  | sql_name_list ',' sql_name      { $1.push_back(ctx.String(@3)); $$ = move($1); }
+    sql_name                        { $$ = {}; $$.push_back(ctx.Ref(@1)); }
+  | sql_name_list ',' sql_name      { $1.push_back(ctx.Ref(@3)); $$ = move($1); }
     ;
 
 sql_name: sql_col_id;

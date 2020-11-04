@@ -62,21 +62,21 @@ class ParserDriver: public ModuleBuilder {
 
     /// Create a constant
     inline sx::Node AddConst(sx::Location loc, sxs::AConstType type) {
-        return Object(loc, sx::NodeType::SQL_ACONST, {
-            {sx::AttributeKey::SQL_ACONST_TYPE, Enum(loc, type)},
+        return Add(loc, sx::NodeType::SQL_ACONST, {
+            {sx::AttributeKey::SQL_ACONST_TYPE, RefEnum(loc, type)},
         });
     }
 
     /// Create indirection
     inline sx::Node AddIndirection(sx::Location loc, std::optional<sx::Node> index) {
-        return Object(loc, sx::NodeType::SQL_INDIRECTION, {
+        return Add(loc, sx::NodeType::SQL_INDIRECTION, {
             {sx::AttributeKey::SQL_INDIRECTION_INDEX, index},
         });
     }
 
     /// Create indirection
     inline sx::Node AddIndirection(sx::Location loc, std::optional<sx::Node> lower_bound, std::optional<sx::Node> upper_bound) {
-        return Object(loc, sx::NodeType::SQL_INDIRECTION, {
+        return Add(loc, sx::NodeType::SQL_INDIRECTION, {
             {sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND, lower_bound},
             {sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND, upper_bound},
         });
@@ -91,7 +91,7 @@ class ParserDriver: public ModuleBuilder {
 
     /// Add a table ref
     inline sx::Node AddTableRef(sx::Location loc, const RelationExpr& expr) {
-        return Object(loc, sx::NodeType::SQL_TABLE_REF, {
+        return Add(loc, sx::NodeType::SQL_TABLE_REF, {
             {sx::AttributeKey::SQL_TABLE_REF_NAME, expr.name},
             {sx::AttributeKey::SQL_TABLE_REF_INHERIT, expr.inherit},
             {sx::AttributeKey::SQL_TABLE_REF_ALIAS, expr.alias},
@@ -100,7 +100,7 @@ class ParserDriver: public ModuleBuilder {
 
     /// Create relation expression
     inline sx::Node AddAlias(sx::Location loc, sx::Node name, sx::Node columns) {
-        return Object(loc, sx::NodeType::SQL_RELATION_EXPR, {
+        return Add(loc, sx::NodeType::SQL_RELATION_EXPR, {
             {sx::AttributeKey::SQL_ALIAS_NAME, name},
             {sx::AttributeKey::SQL_ALIAS_COLUMNS, columns},
         });
