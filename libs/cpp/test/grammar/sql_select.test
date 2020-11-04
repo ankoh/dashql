@@ -151,7 +151,7 @@ expected:
         SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
-  comments: [] 
+  comments: []
 ----
 name: select_sconst_quotes_nested_dquote
 input: |-
@@ -173,14 +173,14 @@ expected:
         SQL_SELECT_FROM: []
   errors: []
   line_breaks: []
-  comments: [] 
+  comments: []
 ----
 name: select_iconst_1_ident
 input: |-
   select 1 "foo"
 expected:
   statements:
-    - type: DASHQL_QUERY 
+    - type: DASHQL_QUERY
       location: '0..14|`select 1 "foo"`'
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
@@ -242,6 +242,29 @@ expected:
               location: 10..11|`2`
               SQL_ACONST_TYPE: 0
         SQL_SELECT_FROM: []
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: select_from_single
+input: |-
+  select a from b
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..15|`select a from b`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..15|`select a from b`
+        SQL_SELECT_TARGETS:
+          - type: SQL_RESULT_TARGET
+            location: 7..8|`a`
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 14..15|`b`
+            SQL_TABLE_NAME:
+              - 14..15|`b`
+            SQL_TABLE_INHERIT: 1
   errors: []
   line_breaks: []
   comments: []

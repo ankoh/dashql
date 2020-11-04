@@ -101,7 +101,7 @@ class ModuleBuilder {
     }
     /// Create a bool
     inline sx::Node Ref(sx::Location loc, bool v) const {
-        return Ref(loc, v);
+        return Ref(loc, static_cast<uint32_t>(v));
     }
     /// Add a an array
     sx::Node Add(sx::Location loc, NodeVector&& values);
