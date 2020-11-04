@@ -99,8 +99,8 @@ class ModuleBuilder {
     /// Add an object
     sx::Node Object(sx::Location loc, sx::NodeType type, NodeVector&& attrs);
     /// Start an object
-    NodeBuilder StartNode(sx::NodeType type, std::initializer_list<OptionalAttribute> attrs);
-    /// Start an object with attributes
+    NodeBuilder StartObject(sx::NodeType type, std::initializer_list<OptionalAttribute> attrs);
+    /// Start an object
     NodeBuilder StartObject(sx::NodeType type, NodeVector&& attrs);
 
     /// Collect viz attributes
