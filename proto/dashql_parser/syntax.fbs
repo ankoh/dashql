@@ -26,7 +26,6 @@ enum NodeType: uint16 {
 
     SQL_TABLE_REF,
     SQL_ALIAS,
-
     SQL_INTO,
 }
 

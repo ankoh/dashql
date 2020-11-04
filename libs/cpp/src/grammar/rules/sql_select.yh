@@ -11,6 +11,7 @@
 %type <std::optional<sx::Node>> sql_into_clause;
 %type <std::optional<sx::Node>> sql_opt_alias_clause;
 %type <std::optional<sx::Node>> sql_opt_slice_bound;
+%type <std::optional<sx::Node>> sql_where_clause;
 %type <std::vector<NodeVector>> sql_qualified_name_list;
 %type <sx::Node> sql_a_expr;
 %type <sx::Node> sql_a_expr_const;

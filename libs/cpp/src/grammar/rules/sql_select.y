@@ -106,6 +106,7 @@ sql_simple_select:
                 Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
                 Key::SQL_SELECT_INTO << $4,
                 Key::SQL_SELECT_FROM << ctx.Add(@5, move($5)),
+                Key::SQL_SELECT_WHERE << $6,
             });
         }
   | SELECT sql_distinct_clause sql_target_list
@@ -564,8 +565,8 @@ sql_opt_ordinality:
 
 
 sql_where_clause:
-    WHERE sql_a_expr
-  | %empty
+    WHERE sql_a_expr    { $$ = $2; }
+  | %empty              { $$ = std::nullopt; }
     ;
 
 /* variant for UPDATE and DELETE */
