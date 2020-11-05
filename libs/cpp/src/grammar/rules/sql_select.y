@@ -176,7 +176,13 @@ sql_cte_list:
     ;
 
 sql_common_table_expr:
-    sql_name sql_opt_name_list AS '(' sql_preparable_stmt ')'
+    sql_name sql_opt_name_list AS '(' sql_preparable_stmt ')' {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_CTE, {
+            Key::SQL_CTE_NAME << ctx.Ref(@1),
+            Key::SQL_CTE_COLUMNS << ctx.Add(@2, move($2)),
+            Key::SQL_CTE_STATEMENT << $5,
+        });
+    }
     ;
 
 sql_into_clause:
@@ -186,7 +192,7 @@ sql_into_clause:
 
 // XXX PreparableStmt: select | insert | update | delete
 sql_preparable_stmt:
-    sql_select_stmt
+    sql_select_stmt                 { $$ = $1; }
     ;
 
 // Redundancy here is needed to avoid shift/reduce conflicts,
@@ -1525,8 +1531,8 @@ sql_attrs:
     ;
 
 sql_opt_name_list:
-    '(' sql_name_list ')'
-  | %empty
+    '(' sql_name_list ')'   { $$ = move($2); }
+  | %empty                  { $$ = {}; }
     ;
 
 sql_param_name:
