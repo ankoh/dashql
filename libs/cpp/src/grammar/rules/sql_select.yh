@@ -14,6 +14,8 @@
 %type <NodeVector> sql_qualified_name;
 %type <NodeVector> sql_relation_expr;
 %type <NodeVector> sql_target_list;
+%type <NodeVector> sql_window_clause;
+%type <NodeVector> sql_window_definition_list;
 %type <sx::Node> sql_a_expr;
 %type <sx::Node> sql_a_expr_const;
 %type <sx::Node> sql_alias_clause;
@@ -27,6 +29,7 @@
 %type <sx::Node> sql_opt_alias_clause;
 %type <sx::Node> sql_opt_slice_bound;
 %type <sx::Node> sql_opt_temp_table_name;
+%type <sx::Node> sql_over_clause;
 %type <sx::Node> sql_select_no_parens;
 %type <sx::Node> sql_select_stmt;
 %type <sx::Node> sql_simple_select;
@@ -34,3 +37,4 @@
 %type <sx::Node> sql_target_el;
 %type <sx::Node> sql_where_clause;
 %type <sx::Node> sql_window_specification;
+%type <sx::Node> sql_window_definition;

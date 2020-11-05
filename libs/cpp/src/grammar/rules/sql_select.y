@@ -109,6 +109,7 @@ sql_simple_select:
                 Key::SQL_SELECT_WHERE << $6,
                 Key::SQL_SELECT_GROUPS << ctx.Add(@7, move($7)),
                 Key::SQL_SELECT_HAVING << $8,
+                Key::SQL_SELECT_WINDOWS << ctx.Add(@9, move($9)),
             });
         }
   | SELECT sql_distinct_clause sql_target_list
@@ -1023,23 +1024,28 @@ sql_filter_clause:
 // Window Definitions
 
 sql_window_clause:
-    WINDOW sql_window_definition_list
-  | %empty
+    WINDOW sql_window_definition_list   { $$ = move($2); }
+  | %empty                              { $$ = {}; }
     ;
 
 sql_window_definition_list:
-    sql_window_definition
-  | sql_window_definition_list ',' sql_window_definition
+    sql_window_definition                                   { $$ = { $1 }; }
+  | sql_window_definition_list ',' sql_window_definition    { $1.push_back($3); $$ = move($1); }
     ;
 
 sql_window_definition:
-    sql_col_id AS sql_window_specification
+    sql_col_id AS sql_window_specification {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW, {
+            Key::SQL_WINDOW_NAME << ctx.Ref(@1),
+            Key::SQL_WINDOW_FRAME << $3,
+        });
+    }
     ;
 
 sql_over_clause:
-    OVER sql_window_specification
-  | OVER sql_col_id
-  | %empty
+    OVER sql_window_specification   { $$ = $2; }
+  | OVER sql_col_id                 { $$ = ctx.Ref(@2); }
+  | %empty                          { $$ = ctx.Null(); }
     ;
 
 sql_window_specification:
