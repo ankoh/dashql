@@ -66,14 +66,12 @@ class ParserDriver: public ModuleBuilder {
             sx::AttributeKey::SQL_ACONST_TYPE << RefEnum(loc, type),
         });
     }
-
     /// Create indirection
     inline sx::Node AddIndirection(sx::Location loc, sx::Node index) {
         return Add(loc, sx::NodeType::SQL_INDIRECTION, {
             sx::AttributeKey::SQL_INDIRECTION_INDEX << index,
         });
     }
-
     /// Create indirection
     inline sx::Node AddIndirection(sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
         return Add(loc, sx::NodeType::SQL_INDIRECTION, {
@@ -81,7 +79,6 @@ class ParserDriver: public ModuleBuilder {
             sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND << upper_bound,
         });
     }
-
     /// Create relation expression
     inline sx::Node AddAlias(sx::Location loc, sx::Node name, sx::Node columns) {
         return Add(loc, sx::NodeType::SQL_ALIAS, {
@@ -89,7 +86,6 @@ class ParserDriver: public ModuleBuilder {
             sx::AttributeKey::SQL_ALIAS_COLUMNS << columns,
         });
     }
-
     /// Create a temp table name
     inline sx::Node AddInto(sx::Location loc, sx::Node type, sx::Node name) {
         return Add(loc, sx::NodeType::SQL_INTO, {
@@ -97,7 +93,6 @@ class ParserDriver: public ModuleBuilder {
             sx::AttributeKey::SQL_TEMP_NAME << name,
         });
     }
-
     /// Create a column ref
     inline sx::Node AddColumnRef(sx::Location loc, NodeVector&& path) {
         return Add(loc, sx::NodeType::SQL_COLUMN_REF, {
