@@ -65,11 +65,12 @@ enum class NodeType : uint16_t {
   SQL_WINDOW_BOUND = 22,
   SQL_WINDOW_DEF = 23,
   SQL_WINDOW_FRAME = 24,
+  SQL_WITH = 25,
   MIN = NONE,
-  MAX = SQL_WINDOW_FRAME
+  MAX = SQL_WITH
 };
 
-inline const NodeType (&EnumValuesNodeType())[25] {
+inline const NodeType (&EnumValuesNodeType())[26] {
   static const NodeType values[] = {
     NodeType::NONE,
     NodeType::UI32,
@@ -95,13 +96,14 @@ inline const NodeType (&EnumValuesNodeType())[25] {
     NodeType::SQL_TABLE_REF,
     NodeType::SQL_WINDOW_BOUND,
     NodeType::SQL_WINDOW_DEF,
-    NodeType::SQL_WINDOW_FRAME
+    NodeType::SQL_WINDOW_FRAME,
+    NodeType::SQL_WITH
   };
   return values;
 }
 
 inline const char * const *EnumNamesNodeType() {
-  static const char * const names[26] = {
+  static const char * const names[27] = {
     "NONE",
     "UI32",
     "STRING",
@@ -127,13 +129,14 @@ inline const char * const *EnumNamesNodeType() {
     "SQL_WINDOW_BOUND",
     "SQL_WINDOW_DEF",
     "SQL_WINDOW_FRAME",
+    "SQL_WITH",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameNodeType(NodeType e) {
-  if (flatbuffers::IsOutRange(e, NodeType::NONE, NodeType::SQL_WINDOW_FRAME)) return "";
+  if (flatbuffers::IsOutRange(e, NodeType::NONE, NodeType::SQL_WITH)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesNodeType()[index];
 }
@@ -217,11 +220,13 @@ enum class AttributeKey : uint16_t {
   SQL_WINDOW_FRAME_MODE = 75,
   SQL_WINDOW_FRAME_NAME = 76,
   SQL_WINDOW_FRAME_PARTITION = 77,
+  SQL_WITH_RECURSIVE = 78,
+  SQL_WITH_CTES = 79,
   MIN = NONE,
-  MAX = SQL_WINDOW_FRAME_PARTITION
+  MAX = SQL_WITH_CTES
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[78] {
+inline const AttributeKey (&EnumValuesAttributeKey())[80] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -300,13 +305,15 @@ inline const AttributeKey (&EnumValuesAttributeKey())[78] {
     AttributeKey::SQL_WINDOW_FRAME_EXCLUDE,
     AttributeKey::SQL_WINDOW_FRAME_MODE,
     AttributeKey::SQL_WINDOW_FRAME_NAME,
-    AttributeKey::SQL_WINDOW_FRAME_PARTITION
+    AttributeKey::SQL_WINDOW_FRAME_PARTITION,
+    AttributeKey::SQL_WITH_RECURSIVE,
+    AttributeKey::SQL_WITH_CTES
   };
   return values;
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[79] = {
+  static const char * const names[81] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -385,13 +392,15 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_WINDOW_FRAME_MODE",
     "SQL_WINDOW_FRAME_NAME",
     "SQL_WINDOW_FRAME_PARTITION",
+    "SQL_WITH_RECURSIVE",
+    "SQL_WITH_CTES",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAttributeKey(AttributeKey e) {
-  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_WINDOW_FRAME_PARTITION)) return "";
+  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_WITH_CTES)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAttributeKey()[index];
 }
@@ -835,6 +844,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -865,16 +875,19 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     "SQL_TABLE_REF",
     "SQL_WINDOW_BOUND",
     "SQL_WINDOW_DEF",
-    "SQL_WINDOW_FRAME"
+    "SQL_WINDOW_FRAME",
+    "SQL_WITH"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 25, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 26, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
@@ -1035,10 +1048,12 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_WINDOW_FRAME_EXCLUDE",
     "SQL_WINDOW_FRAME_MODE",
     "SQL_WINDOW_FRAME_NAME",
-    "SQL_WINDOW_FRAME_PARTITION"
+    "SQL_WINDOW_FRAME_PARTITION",
+    "SQL_WITH_RECURSIVE",
+    "SQL_WITH_CTES"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 78, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 80, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

@@ -32,6 +32,7 @@ enum NodeType: uint16 {
     SQL_WINDOW_BOUND,
     SQL_WINDOW_DEF,
     SQL_WINDOW_FRAME,
+    SQL_WITH,
 }
 
 enum AttributeKey: uint16 {
@@ -115,6 +116,8 @@ enum AttributeKey: uint16 {
     SQL_WINDOW_FRAME_MODE,
     SQL_WINDOW_FRAME_NAME,
     SQL_WINDOW_FRAME_PARTITION,
+    SQL_WITH_RECURSIVE,
+    SQL_WITH_CTES,
 }
 
 struct Node {

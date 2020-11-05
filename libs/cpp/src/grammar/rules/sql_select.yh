@@ -1,3 +1,4 @@
+%type <NodeVector> sql_cte_list;
 %type <NodeVector> sql_expr_list;
 %type <NodeVector> sql_frame_extent;
 %type <NodeVector> sql_from_clause;
@@ -47,3 +48,4 @@
 %type <sx::Node> sql_where_clause;
 %type <sx::Node> sql_window_definition;
 %type <sx::Node> sql_window_specification;
+%type <sx::Node> sql_with_clause;
