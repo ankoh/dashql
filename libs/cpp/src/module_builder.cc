@@ -18,6 +18,20 @@ sx::Node operator<<(sx::AttributeKey key, const sx::Node& node) {
     return sx::Node(node.location(), node.node_type(), key, node.children_begin_or_value(), node.children_count());
 }
 
+/// Syntactic sugar concatenate vectors
+NodeVector& operator<<(NodeVector& attrs, const sx::Node& node) {
+    attrs.push_back(node);
+    return attrs;
+}
+
+/// Syntactic sugar concatenate vectors
+NodeVector& operator<<(NodeVector& attrs, NodeVector&& other) {
+    for (auto& node: other) {
+        attrs.push_back(node);
+    }
+    return attrs;
+}
+
 /// Constructor
 ModuleBuilder::ModuleBuilder()
     : _statements(), _errors() {}

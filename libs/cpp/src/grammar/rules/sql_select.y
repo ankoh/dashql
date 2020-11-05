@@ -1043,7 +1043,9 @@ sql_over_clause:
     ;
 
 sql_window_specification:
-    '(' sql_opt_existing_window_name sql_opt_partition_clause sql_opt_sort_clause sql_opt_frame_clause ')'
+    '(' sql_opt_existing_window_name sql_opt_partition_clause sql_opt_sort_clause sql_opt_frame_clause ')' {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_FRAME, move($2 << move($3) << move($5)));
+    }
     ;
 
 // If we see PARTITION, RANGE, or ROWS as the first token after the '('

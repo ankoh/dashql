@@ -6,6 +6,7 @@
 %type <NodeVector> sql_group_clause;
 %type <NodeVector> sql_indirection;
 %type <NodeVector> sql_name_list;
+%type <NodeVector> sql_opt_existing_window_name;
 %type <NodeVector> sql_opt_frame_clause;
 %type <NodeVector> sql_opt_indirection;
 %type <NodeVector> sql_opt_partition_clause;
@@ -24,7 +25,6 @@
 %type <sx::Node> sql_indirection_el;
 %type <sx::Node> sql_into_clause;
 %type <sx::Node> sql_opt_alias_clause;
-%type <sx::Node> sql_opt_existing_window_name;
 %type <sx::Node> sql_opt_slice_bound;
 %type <sx::Node> sql_opt_temp_table_name;
 %type <sx::Node> sql_select_no_parens;
@@ -33,3 +33,4 @@
 %type <sx::Node> sql_table_ref;
 %type <sx::Node> sql_target_el;
 %type <sx::Node> sql_where_clause;
+%type <sx::Node> sql_window_specification;

@@ -21,6 +21,10 @@ using Key = sx::AttributeKey;
 
 /// Get an attribute node
 sx::Node operator<<(sx::AttributeKey key, const sx::Node& node);
+/// Collect attributes
+NodeVector& operator<<(NodeVector& attrs, const sx::Node& node);
+/// Collect attributes
+NodeVector& operator<<(NodeVector& attrs, NodeVector&& other);
 
 /// A module builder
 class ModuleBuilder {
