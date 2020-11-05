@@ -108,8 +108,9 @@ INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(Grammar
 
 }
 
+constexpr std::string_view DELIMITER = "\n----\n";
+
 int main(int argc, char* argv[]) {
-    constexpr std::string_view DELIMITER = "\n----\n";
     if (argc < 2) {
         std::cout << "Usage: ./grammar_test <dir>" << std::endl;
         exit(1);

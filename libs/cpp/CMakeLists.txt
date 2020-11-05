@@ -267,6 +267,15 @@ if(NOT EMSCRIPTEN)
         flatbuffers gtest gmock
         ${THREAD_LIB})
 
+    add_executable(grammar_testgen
+        ${CMAKE_SOURCE_DIR}/test/grammar_testgen.cc
+    )
+    target_link_libraries(grammar_testgen
+        dashql_parser
+        dashql_parser_test
+        flatbuffers gtest gmock
+        ${THREAD_LIB})
+
 endif()
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 name: select_iconst_1
-input: |-
-  select 1
+input: select 1
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -17,8 +16,7 @@ expected:
   comments: []
 ----
 name: select_fconst_1e04
-input: |-
-  select 1e-04
+input: 'select 1e-04'
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -35,8 +33,7 @@ expected:
   comments: []
 ----
 name: select_fconst_realfail1
-input: |-
-  select 1e
+input: select 1e
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -57,8 +54,7 @@ expected:
   comments: []
 ----
 name: select_bconst_b1010
-input: |-
-  select b'1010'
+input: "select b'1010'"
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -75,8 +71,7 @@ expected:
   comments: []
 ----
 name: select_bconst_x2a
-input: |-
-  select x'2a'
+input: "select x'2a'"
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -93,8 +88,7 @@ expected:
   comments: []
 ----
 name: select_sconst_quotes
-input: |-
-  select 'foo'
+input: "select 'foo'"
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -111,8 +105,7 @@ expected:
   comments: []
 ----
 name: select_sconst_quotes_nested_quote
-input: |-
-  select '''foo'''
+input: "select '''foo'''"
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -129,8 +122,7 @@ expected:
   comments: []
 ----
 name: select_sconst_quotes_nested_dquote
-input: |-
-  select '"foo"'
+input: 'select ''"foo"'''
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -147,8 +139,7 @@ expected:
   comments: []
 ----
 name: select_iconst_1_ident
-input: |-
-  select 1 "foo"
+input: 'select 1 "foo"'
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -169,8 +160,7 @@ expected:
   comments: []
 ----
 name: comments_cstyle
-input: |-
-  /* foo */
+input: /* foo */
 expected:
   statements: []
   errors: []
@@ -179,8 +169,7 @@ expected:
     - 0..9|`/* foo */`
 ----
 name: comments_cstyle_nested
-input: |-
-  /* foo /* bar */ */
+input: /* foo /* bar */ */
 expected:
   statements: []
   errors: []
@@ -189,8 +178,7 @@ expected:
     - 0..19|`/* foo /* bar */ */`
 ----
 name: select_iconst_list
-input: |-
-  select 1, 2
+input: 'select 1, 2'
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -210,8 +198,7 @@ expected:
   comments: []
 ----
 name: select_from_1rel
-input: |-
-  select a from b
+input: select a from b
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -235,8 +222,7 @@ expected:
   comments: []
 ----
 name: select_from_1rel_indirect1
-input: |-
-  select a from b.c
+input: select a from b.c
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -261,8 +247,7 @@ expected:
   comments: []
 ----
 name: select_from_1rel_indirect1_noinherit
-input: |-
-  select a from only b.c
+input: select a from only b.c
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -287,8 +272,7 @@ expected:
   comments: []
 ----
 name: select_from_1rel_indirect1_alias
-input: |-
-  select a from b.c as d
+input: select a from b.c as d
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -314,8 +298,7 @@ expected:
   comments: []
 ----
 name: select_from_2rel
-input: |-
-  select a from b, c
+input: 'select a from b, c'
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -344,8 +327,7 @@ expected:
   comments: []
 ----
 name: select_from_into_2rel
-input: |-
-  select a into b from c, d
+input: 'select a into b from c, d'
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -380,8 +362,7 @@ expected:
   comments: []
 ----
 name: select_from_1rel_group1
-input: |-
-  select a from b group by 1
+input: select a from b group by 1
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -409,8 +390,7 @@ expected:
   comments: []
 ----
 name: select_from_1rel_window_empty
-input: |-
-  select a from b window c as ()
+input: select a from b window c as ()
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -438,8 +418,7 @@ expected:
   comments: []
 ----
 name: select_from_1rel_window_partition1
-input: |-
-  select a from b window c as (partition by d)
+input: select a from b window c as (partition by d)
 expected:
   statements:
     - type: DASHQL_QUERY
