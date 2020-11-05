@@ -1056,13 +1056,13 @@ sql_window_specification:
 // are not reserved for any other purpose.
 
 sql_opt_existing_window_name:
-    sql_col_id
-  | %empty                %prec Op
+    sql_col_id                  { $$ = { Key::SQL_WINDOW_FRAME_NAME << ctx.Ref(@1) }; }
+  | %empty          %prec Op    { $$ = {};}
     ;
 
 sql_opt_partition_clause:
-    PARTITION BY sql_expr_list
-  | %empty
+    PARTITION BY sql_expr_list  { $$ = move($3); }
+  | %empty                      { $$ = {}; }
     ;
 
 // For frame clauses, we return a PGWindowDef, but only some fields are used:
@@ -1190,8 +1190,8 @@ sql_any_operator:
     ;
 
 sql_expr_list:
-    sql_a_expr
-  | sql_expr_list ',' sql_a_expr
+    sql_a_expr                      { $$ = { $1 }; }
+  | sql_expr_list ',' sql_a_expr    { $1.push_back($3); $$ = move($1); }
     ;
 
 sql_func_arg_list:

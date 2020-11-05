@@ -224,11 +224,13 @@ pub enum AttributeKey {
   SQL_WINDOW_FRAME_BOUNDS = 64,
   SQL_WINDOW_FRAME_EXCLUDE = 65,
   SQL_WINDOW_FRAME_MODE = 66,
+  SQL_WINDOW_FRAME_NAME = 67,
+  SQL_WINDOW_FRAME_PARTITIONING = 68,
 
 }
 
 pub const ENUM_MIN_ATTRIBUTE_KEY: u16 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 66;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 68;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -262,7 +264,7 @@ impl flatbuffers::Push for AttributeKey {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 67] = [
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 69] = [
   AttributeKey::NONE,
   AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
   AttributeKey::DASHQL_PARAMETER_ALIAS,
@@ -329,11 +331,13 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 67] = [
   AttributeKey::SQL_WINDOW_BOUND_VALUE,
   AttributeKey::SQL_WINDOW_FRAME_BOUNDS,
   AttributeKey::SQL_WINDOW_FRAME_EXCLUDE,
-  AttributeKey::SQL_WINDOW_FRAME_MODE
+  AttributeKey::SQL_WINDOW_FRAME_MODE,
+  AttributeKey::SQL_WINDOW_FRAME_NAME,
+  AttributeKey::SQL_WINDOW_FRAME_PARTITIONING
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 67] = [
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 69] = [
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -400,7 +404,9 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 67] = [
     "SQL_WINDOW_BOUND_VALUE",
     "SQL_WINDOW_FRAME_BOUNDS",
     "SQL_WINDOW_FRAME_EXCLUDE",
-    "SQL_WINDOW_FRAME_MODE"
+    "SQL_WINDOW_FRAME_MODE",
+    "SQL_WINDOW_FRAME_NAME",
+    "SQL_WINDOW_FRAME_PARTITIONING"
 ];
 
 pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
