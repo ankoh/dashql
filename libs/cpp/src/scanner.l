@@ -108,6 +108,7 @@ sx::Location EndLiteral(ParserDriver& ctx, sx::Location loc);
 %option batch
 %option debug
 %option caseless
+%option prefix="dashql_yy"
 
 /*
  * OK, here is a short description of lex/flex rules behavior.
