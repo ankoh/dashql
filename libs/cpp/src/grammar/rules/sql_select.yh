@@ -32,8 +32,10 @@
 %type <sx::Node> sql_opt_slice_bound;
 %type <sx::Node> sql_opt_temp_table_name;
 %type <sx::Node> sql_over_clause;
-%type <sx::Node> sql_select_no_parens;
 %type <sx::Node> sql_select_stmt;
+%type <sx::Node> sql_select_clause;
+%type <sx::Node> sql_select_no_parens;
+%type <sx::Node> sql_select_with_parens;
 %type <sx::Node> sql_simple_select;
 %type <sx::Node> sql_table_ref;
 %type <sx::Node> sql_target_el;

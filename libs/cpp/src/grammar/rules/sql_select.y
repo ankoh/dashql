@@ -36,13 +36,13 @@
 // with or without outer parentheses.
 
 sql_select_stmt:
-    sql_select_no_parens        %prec UMINUS    { $$ = $1; }
-  | sql_select_with_parens      %prec UMINUS    { $$ = {}; }
+    sql_select_no_parens    %prec UMINUS    { $$ = $1; }
+  | sql_select_with_parens  %prec UMINUS    { $$ = $1; }
     ;
 
 sql_select_with_parens:
-    '(' sql_select_no_parens ')'
-  | '(' sql_select_with_parens ')'
+    '(' sql_select_no_parens ')'    { $$ = $2; }
+  | '(' sql_select_with_parens ')'  { $$ = $2; }
         ;
 
 // This rule parses the equivalent of the standard's <query expression>.
@@ -71,8 +71,8 @@ sql_select_no_parens:
     ;
 
 sql_select_clause:
-    sql_simple_select
-  | sql_select_with_parens
+    sql_simple_select       { $$ = $1; }
+  | sql_select_with_parens  { $$ = $1; }
     ;
 
 // This rule parses SELECT statements that can appear within set operations,
