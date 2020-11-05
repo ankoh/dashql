@@ -225,7 +225,7 @@ pub enum AttributeKey {
   SQL_WINDOW_FRAME_EXCLUDE = 65,
   SQL_WINDOW_FRAME_MODE = 66,
   SQL_WINDOW_FRAME_NAME = 67,
-  SQL_WINDOW_FRAME_PARTITIONING = 68,
+  SQL_WINDOW_FRAME_PARTITION = 68,
 
 }
 
@@ -333,7 +333,7 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 69] = [
   AttributeKey::SQL_WINDOW_FRAME_EXCLUDE,
   AttributeKey::SQL_WINDOW_FRAME_MODE,
   AttributeKey::SQL_WINDOW_FRAME_NAME,
-  AttributeKey::SQL_WINDOW_FRAME_PARTITIONING
+  AttributeKey::SQL_WINDOW_FRAME_PARTITION
 ];
 
 #[allow(non_camel_case_types)]
@@ -406,7 +406,7 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 69] = [
     "SQL_WINDOW_FRAME_EXCLUDE",
     "SQL_WINDOW_FRAME_MODE",
     "SQL_WINDOW_FRAME_NAME",
-    "SQL_WINDOW_FRAME_PARTITIONING"
+    "SQL_WINDOW_FRAME_PARTITION"
 ];
 
 pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {

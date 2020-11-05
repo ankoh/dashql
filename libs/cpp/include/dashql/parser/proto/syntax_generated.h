@@ -198,9 +198,9 @@ enum class AttributeKey : uint16_t {
   SQL_WINDOW_FRAME_EXCLUDE = 65,
   SQL_WINDOW_FRAME_MODE = 66,
   SQL_WINDOW_FRAME_NAME = 67,
-  SQL_WINDOW_FRAME_PARTITIONING = 68,
+  SQL_WINDOW_FRAME_PARTITION = 68,
   MIN = NONE,
-  MAX = SQL_WINDOW_FRAME_PARTITIONING
+  MAX = SQL_WINDOW_FRAME_PARTITION
 };
 
 inline const AttributeKey (&EnumValuesAttributeKey())[69] {
@@ -273,7 +273,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[69] {
     AttributeKey::SQL_WINDOW_FRAME_EXCLUDE,
     AttributeKey::SQL_WINDOW_FRAME_MODE,
     AttributeKey::SQL_WINDOW_FRAME_NAME,
-    AttributeKey::SQL_WINDOW_FRAME_PARTITIONING
+    AttributeKey::SQL_WINDOW_FRAME_PARTITION
   };
   return values;
 }
@@ -348,14 +348,14 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_WINDOW_FRAME_EXCLUDE",
     "SQL_WINDOW_FRAME_MODE",
     "SQL_WINDOW_FRAME_NAME",
-    "SQL_WINDOW_FRAME_PARTITIONING",
+    "SQL_WINDOW_FRAME_PARTITION",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAttributeKey(AttributeKey e) {
-  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_WINDOW_FRAME_PARTITIONING)) return "";
+  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_WINDOW_FRAME_PARTITION)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAttributeKey()[index];
 }
@@ -975,7 +975,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_WINDOW_FRAME_EXCLUDE",
     "SQL_WINDOW_FRAME_MODE",
     "SQL_WINDOW_FRAME_NAME",
-    "SQL_WINDOW_FRAME_PARTITIONING"
+    "SQL_WINDOW_FRAME_PARTITION"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 69, type_codes, type_refs, nullptr, nullptr, names

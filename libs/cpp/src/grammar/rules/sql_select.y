@@ -1061,7 +1061,7 @@ sql_opt_existing_window_name:
     ;
 
 sql_opt_partition_clause:
-    PARTITION BY sql_expr_list  { $$ = move($3); }
+    PARTITION BY sql_expr_list  { $$ = { Key::SQL_WINDOW_FRAME_PARTITION << ctx.Add(@3, move($3)) }; }
   | %empty                      { $$ = {}; }
     ;
 
