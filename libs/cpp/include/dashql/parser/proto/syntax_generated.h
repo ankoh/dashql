@@ -177,38 +177,39 @@ enum class AttributeKey : uint16_t {
   SQL_RESULT_TARGET_NAME = 41,
   SQL_RESULT_TARGET_VALUE = 42,
   SQL_SELECT_DISTINCT = 43,
-  SQL_SELECT_FROM = 44,
-  SQL_SELECT_GROUPS = 45,
-  SQL_SELECT_HAVING = 46,
-  SQL_SELECT_INTO = 47,
-  SQL_SELECT_LIMIT_COUNT = 48,
-  SQL_SELECT_LIMIT_OFFSET = 49,
-  SQL_SELECT_SORT = 50,
-  SQL_SELECT_TARGETS = 51,
-  SQL_SELECT_VALUES = 52,
-  SQL_SELECT_WHERE = 53,
-  SQL_SELECT_WINDOWS = 54,
-  SQL_SELECT_WITH = 55,
-  SQL_TABLE_ALIAS = 56,
-  SQL_TABLE_INHERIT = 57,
-  SQL_TABLE_NAME = 58,
-  SQL_TEMP_NAME = 59,
-  SQL_TEMP_TYPE = 60,
-  SQL_WINDOW_BOUND_DIRECTION = 61,
-  SQL_WINDOW_BOUND_MODE = 62,
-  SQL_WINDOW_BOUND_VALUE = 63,
-  SQL_WINDOW_DEF_FRAME = 64,
-  SQL_WINDOW_DEF_NAME = 65,
-  SQL_WINDOW_FRAME_BOUNDS = 66,
-  SQL_WINDOW_FRAME_EXCLUDE = 67,
-  SQL_WINDOW_FRAME_MODE = 68,
-  SQL_WINDOW_FRAME_NAME = 69,
-  SQL_WINDOW_FRAME_PARTITION = 70,
+  SQL_SELECT_ALL = 44,
+  SQL_SELECT_FROM = 45,
+  SQL_SELECT_GROUPS = 46,
+  SQL_SELECT_HAVING = 47,
+  SQL_SELECT_INTO = 48,
+  SQL_SELECT_LIMIT_COUNT = 49,
+  SQL_SELECT_LIMIT_OFFSET = 50,
+  SQL_SELECT_SORT = 51,
+  SQL_SELECT_TARGETS = 52,
+  SQL_SELECT_VALUES = 53,
+  SQL_SELECT_WHERE = 54,
+  SQL_SELECT_WINDOWS = 55,
+  SQL_SELECT_WITH = 56,
+  SQL_TABLE_ALIAS = 57,
+  SQL_TABLE_INHERIT = 58,
+  SQL_TABLE_NAME = 59,
+  SQL_TEMP_NAME = 60,
+  SQL_TEMP_TYPE = 61,
+  SQL_WINDOW_BOUND_DIRECTION = 62,
+  SQL_WINDOW_BOUND_MODE = 63,
+  SQL_WINDOW_BOUND_VALUE = 64,
+  SQL_WINDOW_DEF_FRAME = 65,
+  SQL_WINDOW_DEF_NAME = 66,
+  SQL_WINDOW_FRAME_BOUNDS = 67,
+  SQL_WINDOW_FRAME_EXCLUDE = 68,
+  SQL_WINDOW_FRAME_MODE = 69,
+  SQL_WINDOW_FRAME_NAME = 70,
+  SQL_WINDOW_FRAME_PARTITION = 71,
   MIN = NONE,
   MAX = SQL_WINDOW_FRAME_PARTITION
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[71] {
+inline const AttributeKey (&EnumValuesAttributeKey())[72] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -254,6 +255,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[71] {
     AttributeKey::SQL_RESULT_TARGET_NAME,
     AttributeKey::SQL_RESULT_TARGET_VALUE,
     AttributeKey::SQL_SELECT_DISTINCT,
+    AttributeKey::SQL_SELECT_ALL,
     AttributeKey::SQL_SELECT_FROM,
     AttributeKey::SQL_SELECT_GROUPS,
     AttributeKey::SQL_SELECT_HAVING,
@@ -286,7 +288,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[71] {
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[72] = {
+  static const char * const names[73] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -331,6 +333,7 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_RESULT_TARGET_NAME",
     "SQL_RESULT_TARGET_VALUE",
     "SQL_SELECT_DISTINCT",
+    "SQL_SELECT_ALL",
     "SQL_SELECT_FROM",
     "SQL_SELECT_GROUPS",
     "SQL_SELECT_HAVING",
@@ -914,6 +917,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -964,6 +968,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_RESULT_TARGET_NAME",
     "SQL_RESULT_TARGET_VALUE",
     "SQL_SELECT_DISTINCT",
+    "SQL_SELECT_ALL",
     "SQL_SELECT_FROM",
     "SQL_SELECT_GROUPS",
     "SQL_SELECT_HAVING",
@@ -993,7 +998,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_WINDOW_FRAME_PARTITION"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 71, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 72, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

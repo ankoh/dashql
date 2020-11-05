@@ -672,3 +672,23 @@ expected:
   errors: []
   line_breaks: []
   comments: []
+----
+name: select_all_from_1rel
+input: select all from b
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..17|`select all from b`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..17|`select all from b`
+        SQL_SELECT_ALL: 1
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 16..17|`b`
+            SQL_TABLE_NAME:
+              - 16..17|`b`
+            SQL_TABLE_INHERIT: 1
+  errors: []
+  line_breaks: []
+  comments: []

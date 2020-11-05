@@ -28,6 +28,7 @@
 %type <sx::Node> sql_indirection_el;
 %type <sx::Node> sql_into_clause;
 %type <sx::Node> sql_opt_alias_clause;
+%type <sx::Node> sql_opt_all_clause;
 %type <sx::Node> sql_opt_slice_bound;
 %type <sx::Node> sql_opt_temp_table_name;
 %type <sx::Node> sql_over_clause;
@@ -37,5 +38,5 @@
 %type <sx::Node> sql_table_ref;
 %type <sx::Node> sql_target_el;
 %type <sx::Node> sql_where_clause;
-%type <sx::Node> sql_window_specification;
 %type <sx::Node> sql_window_definition;
+%type <sx::Node> sql_window_specification;

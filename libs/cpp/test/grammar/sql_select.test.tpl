@@ -105,3 +105,7 @@ input: |-
 name: select_distinct_on_from_1rel
 input: |-
   select distinct on (a) a from b
+----
+name: select_all_from_1rel
+input: |-
+  select all from b

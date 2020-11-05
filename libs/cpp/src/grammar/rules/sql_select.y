@@ -103,6 +103,7 @@ sql_simple_select:
         sql_group_clause sql_having_clause sql_window_clause {
 
             $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
+                Key::SQL_SELECT_ALL << $2,
                 Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
                 Key::SQL_SELECT_INTO << $4,
                 Key::SQL_SELECT_FROM << ctx.Add(@5, move($5)),
@@ -202,8 +203,8 @@ sql_distinct_clause:
     ;
 
 sql_opt_all_clause:
-    ALL
-  | %empty
+    ALL     { $$ = ctx.Ref(@1, true); }
+  | %empty  { $$ = ctx.Null(); }
     ;
 
 sql_opt_sort_clause:
