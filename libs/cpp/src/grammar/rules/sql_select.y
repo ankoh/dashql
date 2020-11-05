@@ -1035,9 +1035,9 @@ sql_window_definition_list:
 
 sql_window_definition:
     sql_col_id AS sql_window_specification {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW, {
-            Key::SQL_WINDOW_NAME << ctx.Ref(@1),
-            Key::SQL_WINDOW_FRAME << $3,
+        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_DEF, {
+            Key::SQL_WINDOW_DEF_NAME << ctx.Ref(@1),
+            Key::SQL_WINDOW_DEF_FRAME << $3,
         });
     }
     ;

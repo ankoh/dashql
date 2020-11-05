@@ -60,8 +60,8 @@ enum class NodeType : uint16_t {
   SQL_RESULT_TARGET = 17,
   SQL_SELECT = 18,
   SQL_TABLE_REF = 19,
-  SQL_WINDOW = 20,
-  SQL_WINDOW_BOUND = 21,
+  SQL_WINDOW_BOUND = 20,
+  SQL_WINDOW_DEF = 21,
   SQL_WINDOW_FRAME = 22,
   MIN = NONE,
   MAX = SQL_WINDOW_FRAME
@@ -89,8 +89,8 @@ inline const NodeType (&EnumValuesNodeType())[23] {
     NodeType::SQL_RESULT_TARGET,
     NodeType::SQL_SELECT,
     NodeType::SQL_TABLE_REF,
-    NodeType::SQL_WINDOW,
     NodeType::SQL_WINDOW_BOUND,
+    NodeType::SQL_WINDOW_DEF,
     NodeType::SQL_WINDOW_FRAME
   };
   return values;
@@ -118,8 +118,8 @@ inline const char * const *EnumNamesNodeType() {
     "SQL_RESULT_TARGET",
     "SQL_SELECT",
     "SQL_TABLE_REF",
-    "SQL_WINDOW",
     "SQL_WINDOW_BOUND",
+    "SQL_WINDOW_DEF",
     "SQL_WINDOW_FRAME",
     nullptr
   };
@@ -197,15 +197,15 @@ enum class AttributeKey : uint16_t {
   SQL_WINDOW_BOUND_DIRECTION = 61,
   SQL_WINDOW_BOUND_MODE = 62,
   SQL_WINDOW_BOUND_VALUE = 63,
-  SQL_WINDOW_FRAME = 64,
-  SQL_WINDOW_FRAME_BOUNDS = 65,
-  SQL_WINDOW_FRAME_EXCLUDE = 66,
-  SQL_WINDOW_FRAME_MODE = 67,
-  SQL_WINDOW_FRAME_NAME = 68,
-  SQL_WINDOW_FRAME_PARTITION = 69,
-  SQL_WINDOW_NAME = 70,
+  SQL_WINDOW_DEF_FRAME = 64,
+  SQL_WINDOW_DEF_NAME = 65,
+  SQL_WINDOW_FRAME_BOUNDS = 66,
+  SQL_WINDOW_FRAME_EXCLUDE = 67,
+  SQL_WINDOW_FRAME_MODE = 68,
+  SQL_WINDOW_FRAME_NAME = 69,
+  SQL_WINDOW_FRAME_PARTITION = 70,
   MIN = NONE,
-  MAX = SQL_WINDOW_NAME
+  MAX = SQL_WINDOW_FRAME_PARTITION
 };
 
 inline const AttributeKey (&EnumValuesAttributeKey())[71] {
@@ -274,13 +274,13 @@ inline const AttributeKey (&EnumValuesAttributeKey())[71] {
     AttributeKey::SQL_WINDOW_BOUND_DIRECTION,
     AttributeKey::SQL_WINDOW_BOUND_MODE,
     AttributeKey::SQL_WINDOW_BOUND_VALUE,
-    AttributeKey::SQL_WINDOW_FRAME,
+    AttributeKey::SQL_WINDOW_DEF_FRAME,
+    AttributeKey::SQL_WINDOW_DEF_NAME,
     AttributeKey::SQL_WINDOW_FRAME_BOUNDS,
     AttributeKey::SQL_WINDOW_FRAME_EXCLUDE,
     AttributeKey::SQL_WINDOW_FRAME_MODE,
     AttributeKey::SQL_WINDOW_FRAME_NAME,
-    AttributeKey::SQL_WINDOW_FRAME_PARTITION,
-    AttributeKey::SQL_WINDOW_NAME
+    AttributeKey::SQL_WINDOW_FRAME_PARTITION
   };
   return values;
 }
@@ -351,20 +351,20 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_WINDOW_BOUND_DIRECTION",
     "SQL_WINDOW_BOUND_MODE",
     "SQL_WINDOW_BOUND_VALUE",
-    "SQL_WINDOW_FRAME",
+    "SQL_WINDOW_DEF_FRAME",
+    "SQL_WINDOW_DEF_NAME",
     "SQL_WINDOW_FRAME_BOUNDS",
     "SQL_WINDOW_FRAME_EXCLUDE",
     "SQL_WINDOW_FRAME_MODE",
     "SQL_WINDOW_FRAME_NAME",
     "SQL_WINDOW_FRAME_PARTITION",
-    "SQL_WINDOW_NAME",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAttributeKey(AttributeKey e) {
-  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_WINDOW_NAME)) return "";
+  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_WINDOW_FRAME_PARTITION)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAttributeKey()[index];
 }
@@ -832,8 +832,8 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     "SQL_RESULT_TARGET",
     "SQL_SELECT",
     "SQL_TABLE_REF",
-    "SQL_WINDOW",
     "SQL_WINDOW_BOUND",
+    "SQL_WINDOW_DEF",
     "SQL_WINDOW_FRAME"
   };
   static const flatbuffers::TypeTable tt = {
@@ -984,13 +984,13 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_WINDOW_BOUND_DIRECTION",
     "SQL_WINDOW_BOUND_MODE",
     "SQL_WINDOW_BOUND_VALUE",
-    "SQL_WINDOW_FRAME",
+    "SQL_WINDOW_DEF_FRAME",
+    "SQL_WINDOW_DEF_NAME",
     "SQL_WINDOW_FRAME_BOUNDS",
     "SQL_WINDOW_FRAME_EXCLUDE",
     "SQL_WINDOW_FRAME_MODE",
     "SQL_WINDOW_FRAME_NAME",
-    "SQL_WINDOW_FRAME_PARTITION",
-    "SQL_WINDOW_NAME"
+    "SQL_WINDOW_FRAME_PARTITION"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 71, type_codes, type_refs, nullptr, nullptr, names

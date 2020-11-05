@@ -407,3 +407,118 @@ expected:
   errors: []
   line_breaks: []
   comments: []
+----
+name: select_from_1rel_window_empty
+input: |-
+  select a from b window c as ()
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..30|`select a f`..`ow c as ()`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..30|`select a f`..`ow c as ()`
+        SQL_SELECT_TARGETS:
+          - type: SQL_COLUMN_REF
+            location: 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 14..15|`b`
+            SQL_TABLE_NAME:
+              - 14..15|`b`
+            SQL_TABLE_INHERIT: 1
+        SQL_SELECT_WINDOWS:
+          - type: SQL_WINDOW_DEF
+            location: 23..30|`c as ()`
+            SQL_WINDOW_DEF_NAME: 23..24|`c`
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: select_from_1rel_window_partition1
+input: |-
+  select a from b window c as (partition by d)
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..44|`select a f`..`tion by d)`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..44|`select a f`..`tion by d)`
+        SQL_SELECT_TARGETS:
+          - type: SQL_COLUMN_REF
+            location: 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 14..15|`b`
+            SQL_TABLE_NAME:
+              - 14..15|`b`
+            SQL_TABLE_INHERIT: 1
+        SQL_SELECT_WINDOWS:
+          - type: SQL_WINDOW_DEF
+            location: 23..44|`c as (part`..`tion by d)`
+            SQL_WINDOW_DEF_NAME: 23..24|`c`
+            SQL_WINDOW_DEF_FRAME:
+              type: SQL_WINDOW_FRAME
+              location: 28..44|`(partition by d)`
+              SQL_WINDOW_FRAME_PARTITION:
+                - type: SQL_COLUMN_REF
+                  location: 42..43|`d`
+                  SQL_COLUMN_REF_PATH:
+                    - 42..43|`d`
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: select_from_1rel_window_partition1_rows_unbounded
+input: |-
+  select a from b
+  window c as (partition by d rows between unbounded preceding and unbounded following)
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..101|`select a f`..`following)`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..101|`select a f`..`following)`
+        SQL_SELECT_TARGETS:
+          - type: SQL_COLUMN_REF
+            location: 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 14..15|`b`
+            SQL_TABLE_NAME:
+              - 14..15|`b`
+            SQL_TABLE_INHERIT: 1
+        SQL_SELECT_WINDOWS:
+          - type: SQL_WINDOW_DEF
+            location: 23..101|`c as (part`..`following)`
+            SQL_WINDOW_DEF_NAME: 23..24|`c`
+            SQL_WINDOW_DEF_FRAME:
+              type: SQL_WINDOW_FRAME
+              location: 28..101|`(partition`..`following)`
+              SQL_WINDOW_FRAME_PARTITION:
+                - type: SQL_COLUMN_REF
+                  location: 42..43|`d`
+                  SQL_COLUMN_REF_PATH:
+                    - 42..43|`d`
+              SQL_WINDOW_FRAME_MODE: 2
+              SQL_WINDOW_FRAME_BOUNDS:
+                - type: SQL_WINDOW_BOUND
+                  location: 57..76|`unbounded preceding`
+                  SQL_WINDOW_BOUND_MODE: 1
+                  SQL_WINDOW_BOUND_DIRECTION: 1
+                - type: SQL_WINDOW_BOUND
+                  location: 81..100|`unbounded following`
+                  SQL_WINDOW_BOUND_MODE: 1
+                  SQL_WINDOW_BOUND_DIRECTION: 2
+  errors: []
+  line_breaks:
+    - 15..16|`\n`
+  comments: []
