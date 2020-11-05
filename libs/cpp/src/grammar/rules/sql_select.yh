@@ -1,9 +1,11 @@
+%type <NodeVector> sql_frame_extent;
 %type <NodeVector> sql_from_clause;
 %type <NodeVector> sql_from_list;
 %type <NodeVector> sql_group_by_list;
 %type <NodeVector> sql_group_clause;
 %type <NodeVector> sql_indirection;
 %type <NodeVector> sql_name_list;
+%type <NodeVector> sql_opt_frame_clause;
 %type <NodeVector> sql_opt_indirection;
 %type <NodeVector> sql_opt_target_list;
 %type <NodeVector> sql_qualified_name;

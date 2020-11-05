@@ -1072,14 +1072,18 @@ sql_opt_partition_clause:
 // We don't support <window frame exclusion> yet.
 
 sql_opt_frame_clause:
-    RANGE sql_frame_extent
-  | ROWS sql_frame_extent
-  | %empty
+    RANGE sql_frame_extent { $$ = {
+        Key::SQL_WINDOW_FRAME_MODE << ctx.RefEnum(@1, sxs::WindowRangeMode::RANGE),
+        Key::SQL_WINDOW_FRAME_BOUNDS << ctx.Add(@2, move($2)), }; }
+  | ROWS sql_frame_extent { $$ = {
+        Key::SQL_WINDOW_FRAME_MODE << ctx.RefEnum(@1, sxs::WindowRangeMode::ROWS),
+        Key::SQL_WINDOW_FRAME_BOUNDS << ctx.Add(@2, move($2)), }; }
+  | %empty { $$ = {}; }
     ;
 
 sql_frame_extent:
-    sql_frame_bound
-  | BETWEEN sql_frame_bound AND sql_frame_bound
+    sql_frame_bound                                 { $$ = { $1 }; }
+  | BETWEEN sql_frame_bound AND sql_frame_bound     { $$ = { $2, $4 }; }
     ;
 
 sql_frame_bound:
