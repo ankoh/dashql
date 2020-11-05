@@ -522,3 +522,120 @@ expected:
   line_breaks:
     - 15..16|`\n`
   comments: []
+----
+name: select_from_1rel_window_partition1_rows_1preceding_current
+input: |-
+  select a from b
+  window c as (partition by d rows between 1 preceding and current row)
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..85|`select a f`..`rrent row)`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..85|`select a f`..`rrent row)`
+        SQL_SELECT_TARGETS:
+          - type: SQL_COLUMN_REF
+            location: 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 14..15|`b`
+            SQL_TABLE_NAME:
+              - 14..15|`b`
+            SQL_TABLE_INHERIT: 1
+        SQL_SELECT_WINDOWS:
+          - type: SQL_WINDOW_DEF
+            location: 23..85|`c as (part`..`rrent row)`
+            SQL_WINDOW_DEF_NAME: 23..24|`c`
+            SQL_WINDOW_DEF_FRAME:
+              type: SQL_WINDOW_FRAME
+              location: 28..85|`(partition`..`rrent row)`
+              SQL_WINDOW_FRAME_PARTITION:
+                - type: SQL_COLUMN_REF
+                  location: 42..43|`d`
+                  SQL_COLUMN_REF_PATH:
+                    - 42..43|`d`
+              SQL_WINDOW_FRAME_MODE: 2
+              SQL_WINDOW_FRAME_BOUNDS:
+                - type: SQL_WINDOW_BOUND
+                  location: 57..68|`1 preceding`
+                  SQL_WINDOW_BOUND_MODE: 3
+                  SQL_WINDOW_BOUND_DIRECTION: 1
+                  SQL_WINDOW_BOUND_VALUE:
+                    type: SQL_ACONST
+                    location: 57..58|`1`
+                    SQL_ACONST_TYPE: 0
+                - type: SQL_WINDOW_BOUND
+                  location: 73..84|`current row`
+                  SQL_WINDOW_BOUND_MODE: 2
+  errors: []
+  line_breaks:
+    - 15..16|`\n`
+  comments: []
+----
+name: select_from_1rel_2windows
+input: |-
+  select a from b
+  window c as (partition by d range between 1 preceding and current row),
+         e as (partition by f)
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..116|`select a f`..`tion by f)`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..116|`select a f`..`tion by f)`
+        SQL_SELECT_TARGETS:
+          - type: SQL_COLUMN_REF
+            location: 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 14..15|`b`
+            SQL_TABLE_NAME:
+              - 14..15|`b`
+            SQL_TABLE_INHERIT: 1
+        SQL_SELECT_WINDOWS:
+          - type: SQL_WINDOW_DEF
+            location: 23..86|`c as (part`..`rrent row)`
+            SQL_WINDOW_DEF_NAME: 23..24|`c`
+            SQL_WINDOW_DEF_FRAME:
+              type: SQL_WINDOW_FRAME
+              location: 28..86|`(partition`..`rrent row)`
+              SQL_WINDOW_FRAME_PARTITION:
+                - type: SQL_COLUMN_REF
+                  location: 42..43|`d`
+                  SQL_COLUMN_REF_PATH:
+                    - 42..43|`d`
+              SQL_WINDOW_FRAME_MODE: 1
+              SQL_WINDOW_FRAME_BOUNDS:
+                - type: SQL_WINDOW_BOUND
+                  location: 58..69|`1 preceding`
+                  SQL_WINDOW_BOUND_MODE: 3
+                  SQL_WINDOW_BOUND_DIRECTION: 1
+                  SQL_WINDOW_BOUND_VALUE:
+                    type: SQL_ACONST
+                    location: 58..59|`1`
+                    SQL_ACONST_TYPE: 0
+                - type: SQL_WINDOW_BOUND
+                  location: 74..85|`current row`
+                  SQL_WINDOW_BOUND_MODE: 2
+          - type: SQL_WINDOW_DEF
+            location: 95..116|`e as (part`..`tion by f)`
+            SQL_WINDOW_DEF_NAME: 95..96|`e`
+            SQL_WINDOW_DEF_FRAME:
+              type: SQL_WINDOW_FRAME
+              location: 100..116|`(partition by f)`
+              SQL_WINDOW_FRAME_PARTITION:
+                - type: SQL_COLUMN_REF
+                  location: 114..115|`f`
+                  SQL_COLUMN_REF_PATH:
+                    - 114..115|`f`
+  errors: []
+  line_breaks:
+    - 15..16|`\n`
+    - 87..88|`\n`
+  comments: []
