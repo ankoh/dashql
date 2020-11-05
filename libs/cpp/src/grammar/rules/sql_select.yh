@@ -21,6 +21,7 @@
 %type <sx::Node> sql_alias_clause;
 %type <sx::Node> sql_c_expr;
 %type <sx::Node> sql_columnref;
+%type <sx::Node> sql_distinct_clause;
 %type <sx::Node> sql_frame_bound;
 %type <sx::Node> sql_group_by_item;
 %type <sx::Node> sql_having_clause;

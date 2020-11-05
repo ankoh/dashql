@@ -97,3 +97,11 @@ input: |-
   select a from b
   window c as (partition by d range between current row and 1 following),
          e as (partition by f)
+----
+name: select_distinct_from_1rel
+input: |-
+  select distinct a from b
+----
+name: select_distinct_on_from_1rel
+input: |-
+  select distinct on (a) a from b

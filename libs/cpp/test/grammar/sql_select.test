@@ -618,3 +618,57 @@ expected:
     - 15..16|`\n`
     - 87..88|`\n`
   comments: []
+----
+name: select_distinct_from_1rel
+input: select distinct a from b
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..24|`select dis`..`t a from b`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..24|`select dis`..`t a from b`
+        SQL_SELECT_DISTINCT: 1
+        SQL_SELECT_TARGETS:
+          - type: SQL_COLUMN_REF
+            location: 16..17|`a`
+            SQL_COLUMN_REF_PATH:
+              - 16..17|`a`
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 23..24|`b`
+            SQL_TABLE_NAME:
+              - 23..24|`b`
+            SQL_TABLE_INHERIT: 1
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: select_distinct_on_from_1rel
+input: select distinct on (a) a from b
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..31|`select dis`..`) a from b`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..31|`select dis`..`) a from b`
+        SQL_SELECT_DISTINCT:
+          - type: SQL_COLUMN_REF
+            location: 20..21|`a`
+            SQL_COLUMN_REF_PATH:
+              - 20..21|`a`
+        SQL_SELECT_TARGETS:
+          - type: SQL_COLUMN_REF
+            location: 23..24|`a`
+            SQL_COLUMN_REF_PATH:
+              - 23..24|`a`
+        SQL_SELECT_FROM:
+          - type: SQL_TABLE_REF
+            location: 30..31|`b`
+            SQL_TABLE_NAME:
+              - 30..31|`b`
+            SQL_TABLE_INHERIT: 1
+  errors: []
+  line_breaks: []
+  comments: []

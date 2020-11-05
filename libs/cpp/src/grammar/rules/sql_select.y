@@ -116,7 +116,16 @@ sql_simple_select:
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause {
 
-            $$ = {};
+            $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
+                Key::SQL_SELECT_DISTINCT << $2,
+                Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
+                Key::SQL_SELECT_INTO << $4,
+                Key::SQL_SELECT_FROM << ctx.Add(@5, move($5)),
+                Key::SQL_SELECT_WHERE << $6,
+                Key::SQL_SELECT_GROUPS << ctx.Add(@7, move($7)),
+                Key::SQL_SELECT_HAVING << $8,
+                Key::SQL_SELECT_WINDOWS << ctx.Add(@9, move($9)),
+            });
         }
   | sql_values_clause           { $$ = {}; }
   | TABLE sql_relation_expr     { $$ = {}; }
@@ -188,8 +197,8 @@ sql_all_or_distinct:
 // should be placed in the DISTINCT list during parsetree analysis.
 
 sql_distinct_clause:
-    DISTINCT
-  | DISTINCT ON '(' sql_expr_list ')'
+    DISTINCT                            { $$ = ctx.Ref(@1, true); }
+  | DISTINCT ON '(' sql_expr_list ')'   { $$ = ctx.Add(@$, move($4)); }
     ;
 
 sql_opt_all_clause:
