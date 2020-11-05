@@ -37,3 +37,30 @@ enum TempType: uint8 {
     TEMP_LOCAL,
     TEMP_UNLOGGED,
 }
+
+enum WindowBoundMode: uint8 {
+    NONE,
+    UNBOUNDED,
+    CURRENT_ROW,
+    VALUE,
+}
+
+enum WindowBoundDirection: uint8 {
+    NONE,
+    PRECEDING,
+    FOLLOWING,
+}
+
+enum WindowRangeMode: uint8 {
+    NONE,
+    RANGE,
+    ROWS,
+    GROUPS,
+}
+
+enum WindowExclusionMode: uint8 {
+    NONE,
+    CURRENT_ROW,
+    GROUP,
+    TIES
+}

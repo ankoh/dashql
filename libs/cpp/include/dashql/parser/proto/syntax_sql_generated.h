@@ -161,6 +161,147 @@ inline const char *EnumNameTempType(TempType e) {
   return EnumNamesTempType()[index];
 }
 
+enum class WindowBoundMode : uint8_t {
+  NONE = 0,
+  UNBOUNDED = 1,
+  CURRENT_ROW = 2,
+  VALUE = 3,
+  MIN = NONE,
+  MAX = VALUE
+};
+
+inline const WindowBoundMode (&EnumValuesWindowBoundMode())[4] {
+  static const WindowBoundMode values[] = {
+    WindowBoundMode::NONE,
+    WindowBoundMode::UNBOUNDED,
+    WindowBoundMode::CURRENT_ROW,
+    WindowBoundMode::VALUE
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesWindowBoundMode() {
+  static const char * const names[5] = {
+    "NONE",
+    "UNBOUNDED",
+    "CURRENT_ROW",
+    "VALUE",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameWindowBoundMode(WindowBoundMode e) {
+  if (flatbuffers::IsOutRange(e, WindowBoundMode::NONE, WindowBoundMode::VALUE)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesWindowBoundMode()[index];
+}
+
+enum class WindowBoundDirection : uint8_t {
+  NONE = 0,
+  PRECEDING = 1,
+  FOLLOWING = 2,
+  MIN = NONE,
+  MAX = FOLLOWING
+};
+
+inline const WindowBoundDirection (&EnumValuesWindowBoundDirection())[3] {
+  static const WindowBoundDirection values[] = {
+    WindowBoundDirection::NONE,
+    WindowBoundDirection::PRECEDING,
+    WindowBoundDirection::FOLLOWING
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesWindowBoundDirection() {
+  static const char * const names[4] = {
+    "NONE",
+    "PRECEDING",
+    "FOLLOWING",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameWindowBoundDirection(WindowBoundDirection e) {
+  if (flatbuffers::IsOutRange(e, WindowBoundDirection::NONE, WindowBoundDirection::FOLLOWING)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesWindowBoundDirection()[index];
+}
+
+enum class WindowRangeMode : uint8_t {
+  NONE = 0,
+  RANGE = 1,
+  ROWS = 2,
+  GROUPS = 3,
+  MIN = NONE,
+  MAX = GROUPS
+};
+
+inline const WindowRangeMode (&EnumValuesWindowRangeMode())[4] {
+  static const WindowRangeMode values[] = {
+    WindowRangeMode::NONE,
+    WindowRangeMode::RANGE,
+    WindowRangeMode::ROWS,
+    WindowRangeMode::GROUPS
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesWindowRangeMode() {
+  static const char * const names[5] = {
+    "NONE",
+    "RANGE",
+    "ROWS",
+    "GROUPS",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameWindowRangeMode(WindowRangeMode e) {
+  if (flatbuffers::IsOutRange(e, WindowRangeMode::NONE, WindowRangeMode::GROUPS)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesWindowRangeMode()[index];
+}
+
+enum class WindowExclusionMode : uint8_t {
+  NONE = 0,
+  CURRENT_ROW = 1,
+  GROUP = 2,
+  TIES = 3,
+  MIN = NONE,
+  MAX = TIES
+};
+
+inline const WindowExclusionMode (&EnumValuesWindowExclusionMode())[4] {
+  static const WindowExclusionMode values[] = {
+    WindowExclusionMode::NONE,
+    WindowExclusionMode::CURRENT_ROW,
+    WindowExclusionMode::GROUP,
+    WindowExclusionMode::TIES
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesWindowExclusionMode() {
+  static const char * const names[5] = {
+    "NONE",
+    "CURRENT_ROW",
+    "GROUP",
+    "TIES",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameWindowExclusionMode(WindowExclusionMode e) {
+  if (flatbuffers::IsOutRange(e, WindowExclusionMode::NONE, WindowExclusionMode::TIES)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesWindowExclusionMode()[index];
+}
+
 inline const flatbuffers::TypeTable *AConstTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -248,6 +389,92 @@ inline const flatbuffers::TypeTable *TempTypeTypeTable() {
     "TEMP_GLOBAL",
     "TEMP_LOCAL",
     "TEMP_UNLOGGED"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *WindowBoundModeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::WindowBoundModeTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "UNBOUNDED",
+    "CURRENT_ROW",
+    "VALUE"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *WindowBoundDirectionTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::WindowBoundDirectionTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "PRECEDING",
+    "FOLLOWING"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *WindowRangeModeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::WindowRangeModeTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "RANGE",
+    "ROWS",
+    "GROUPS"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *WindowExclusionModeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::WindowExclusionModeTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "CURRENT_ROW",
+    "GROUP",
+    "TIES"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names

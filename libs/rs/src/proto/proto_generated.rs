@@ -57,11 +57,13 @@ pub enum NodeType {
   SQL_RESULT_TARGET = 17,
   SQL_SELECT = 18,
   SQL_TABLE_REF = 19,
+  SQL_WINDOW_BOUND = 20,
+  SQL_WINDOW_FRAME = 21,
 
 }
 
 pub const ENUM_MIN_NODE_TYPE: u16 = 0;
-pub const ENUM_MAX_NODE_TYPE: u16 = 19;
+pub const ENUM_MAX_NODE_TYPE: u16 = 21;
 
 impl<'a> flatbuffers::Follow<'a> for NodeType {
   type Inner = Self;
@@ -95,7 +97,7 @@ impl flatbuffers::Push for NodeType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_NODE_TYPE: [NodeType; 20] = [
+pub const ENUM_VALUES_NODE_TYPE: [NodeType; 22] = [
   NodeType::NONE,
   NodeType::UI32,
   NodeType::STRING,
@@ -115,11 +117,13 @@ pub const ENUM_VALUES_NODE_TYPE: [NodeType; 20] = [
   NodeType::SQL_RELATION_EXPR,
   NodeType::SQL_RESULT_TARGET,
   NodeType::SQL_SELECT,
-  NodeType::SQL_TABLE_REF
+  NodeType::SQL_TABLE_REF,
+  NodeType::SQL_WINDOW_BOUND,
+  NodeType::SQL_WINDOW_FRAME
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_NODE_TYPE: [&str; 20] = [
+pub const ENUM_NAMES_NODE_TYPE: [&str; 22] = [
     "NONE",
     "UI32",
     "STRING",
@@ -139,7 +143,9 @@ pub const ENUM_NAMES_NODE_TYPE: [&str; 20] = [
     "SQL_RELATION_EXPR",
     "SQL_RESULT_TARGET",
     "SQL_SELECT",
-    "SQL_TABLE_REF"
+    "SQL_TABLE_REF",
+    "SQL_WINDOW_BOUND",
+    "SQL_WINDOW_FRAME"
 ];
 
 pub fn enum_name_node_type(e: NodeType) -> &'static str {
@@ -212,11 +218,18 @@ pub enum AttributeKey {
   SQL_TABLE_NAME = 58,
   SQL_TEMP_NAME = 59,
   SQL_TEMP_TYPE = 60,
+  SQL_WINDOW_BOUND_DIRECTION = 61,
+  SQL_WINDOW_BOUND_MODE = 62,
+  SQL_WINDOW_BOUND_VALUE = 63,
+  SQL_WINDOW_FRAME_BEGIN = 64,
+  SQL_WINDOW_FRAME_END = 65,
+  SQL_WINDOW_FRAME_EXCLUDE = 66,
+  SQL_WINDOW_FRAME_MODE = 67,
 
 }
 
 pub const ENUM_MIN_ATTRIBUTE_KEY: u16 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 60;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 67;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -250,7 +263,7 @@ impl flatbuffers::Push for AttributeKey {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 61] = [
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 68] = [
   AttributeKey::NONE,
   AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
   AttributeKey::DASHQL_PARAMETER_ALIAS,
@@ -311,11 +324,18 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 61] = [
   AttributeKey::SQL_TABLE_INHERIT,
   AttributeKey::SQL_TABLE_NAME,
   AttributeKey::SQL_TEMP_NAME,
-  AttributeKey::SQL_TEMP_TYPE
+  AttributeKey::SQL_TEMP_TYPE,
+  AttributeKey::SQL_WINDOW_BOUND_DIRECTION,
+  AttributeKey::SQL_WINDOW_BOUND_MODE,
+  AttributeKey::SQL_WINDOW_BOUND_VALUE,
+  AttributeKey::SQL_WINDOW_FRAME_BEGIN,
+  AttributeKey::SQL_WINDOW_FRAME_END,
+  AttributeKey::SQL_WINDOW_FRAME_EXCLUDE,
+  AttributeKey::SQL_WINDOW_FRAME_MODE
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 61] = [
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 68] = [
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -376,7 +396,14 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 61] = [
     "SQL_TABLE_INHERIT",
     "SQL_TABLE_NAME",
     "SQL_TEMP_NAME",
-    "SQL_TEMP_TYPE"
+    "SQL_TEMP_TYPE",
+    "SQL_WINDOW_BOUND_DIRECTION",
+    "SQL_WINDOW_BOUND_MODE",
+    "SQL_WINDOW_BOUND_VALUE",
+    "SQL_WINDOW_FRAME_BEGIN",
+    "SQL_WINDOW_FRAME_END",
+    "SQL_WINDOW_FRAME_EXCLUDE",
+    "SQL_WINDOW_FRAME_MODE"
 ];
 
 pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {

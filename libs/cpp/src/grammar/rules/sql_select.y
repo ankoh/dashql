@@ -1083,11 +1083,32 @@ sql_frame_extent:
     ;
 
 sql_frame_bound:
-    UNBOUNDED PRECEDING
-  | UNBOUNDED FOLLOWING
-  | CURRENT_P ROW
-  | sql_a_expr PRECEDING
-  | sql_a_expr FOLLOWING
+    UNBOUNDED PRECEDING {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_BOUND, {
+            Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::UNBOUNDED),
+            Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::PRECEDING)
+        });}
+  | UNBOUNDED FOLLOWING {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_BOUND, {
+            Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::UNBOUNDED),
+            Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::FOLLOWING)
+        });}
+  | CURRENT_P ROW {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_BOUND, {
+            Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::CURRENT_ROW),
+        });}
+  | sql_a_expr PRECEDING {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_BOUND, {
+            Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::VALUE),
+            Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::PRECEDING),
+            Key::SQL_WINDOW_BOUND_VALUE << $1,
+        });}
+  | sql_a_expr FOLLOWING {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_BOUND, {
+            Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::VALUE),
+            Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::FOLLOWING),
+            Key::SQL_WINDOW_BOUND_VALUE << $1,
+        });}
     ;
 
 

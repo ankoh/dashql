@@ -52,3 +52,50 @@ export enum TempType{
 };
 }
 
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum WindowBoundMode{
+  NONE= 0,
+  UNBOUNDED= 1,
+  CURRENT_ROW= 2,
+  VALUE= 3
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum WindowBoundDirection{
+  NONE= 0,
+  PRECEDING= 1,
+  FOLLOWING= 2
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum WindowRangeMode{
+  NONE= 0,
+  RANGE= 1,
+  ROWS= 2,
+  GROUPS= 3
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum WindowExclusionMode{
+  NONE= 0,
+  CURRENT_ROW= 1,
+  GROUP= 2,
+  TIES= 3
+};
+}
+
