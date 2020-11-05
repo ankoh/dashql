@@ -171,8 +171,16 @@ sql_simple_select:
 // Recognizing WITH_LA here allows a CTE to be named TIME or ORDINALITY.
 
 sql_with_clause:
-    WITH sql_cte_list           { $$ = move($2); }
-  | WITH_LA sql_cte_list        { $$ = move($2); }
+    WITH sql_cte_list {
+        $$ = {
+            Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)),
+        };
+    }
+  | WITH_LA sql_cte_list {
+        $$ = {
+            Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)),
+        };
+    }
   | WITH RECURSIVE sql_cte_list {
         $$ = {
             Key::SQL_SELECT_WITH_RECURSIVE << ctx.Ref(@2, true),

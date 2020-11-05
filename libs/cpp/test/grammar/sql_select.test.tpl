@@ -141,3 +141,15 @@ input: |-
 name: intersect_select1_select2
 input: |-
   SELECT 1 INTERSECT SELECT 2
+----
+name: with_1cte_select2
+input: |-
+  WITH a AS (SELECT 1) SELECT 2
+----
+name: with_2ctes_select3
+input: |-
+  WITH a AS (SELECT 1), b AS (SELECT 2) SELECT 3
+----
+name: with_recursive_2ctes_select3
+input: |-
+  WITH RECURSIVE a AS (SELECT 1), b AS (SELECT 2) SELECT 3
