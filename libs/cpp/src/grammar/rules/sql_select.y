@@ -172,14 +172,10 @@ sql_simple_select:
 
 sql_with_clause:
     WITH sql_cte_list {
-        $$ = {
-            Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)),
-        };
+        $$ = { Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)) };
     }
   | WITH_LA sql_cte_list {
-        $$ = {
-            Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)),
-        };
+        $$ = { Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)) };
     }
   | WITH RECURSIVE sql_cte_list {
         $$ = {
@@ -190,8 +186,8 @@ sql_with_clause:
     ;
 
 sql_cte_list:
-    sql_common_table_expr                       { $$ = { $1 }; }
-  | sql_cte_list ',' sql_common_table_expr      { $1.push_back($3); $$ = move($1); }
+    sql_common_table_expr                   { $$ = { $1 }; }
+  | sql_cte_list ',' sql_common_table_expr  { $1.push_back($3); $$ = move($1); }
     ;
 
 sql_common_table_expr:
@@ -217,15 +213,15 @@ sql_preparable_stmt:
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.
 sql_opt_temp_table_name:
-    TEMPORARY sql_opt_table sql_qualified_name          { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_DEFAULT), ctx.Add(@3, move($3))); }
-  | TEMP sql_opt_table sql_qualified_name               { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_DEFAULT), ctx.Add(@3, move($3))); }
-  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_LOCAL), ctx.Add(@4, move($4))); }
-  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_LOCAL), ctx.Add(@4, move($4))); }
-  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_GLOBAL), ctx.Add(@4, move($4))); }
-  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_GLOBAL), ctx.Add(@4, move($4))); }
-  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_UNLOGGED), ctx.Add(@3, move($3))); }
-  | TABLE sql_qualified_name                            { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_DEFAULT), ctx.Add(@2, move($2))); }
-  | sql_qualified_name                                  { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::TEMP_DEFAULT), ctx.Add(@1, move($1))); }
+    TEMPORARY sql_opt_table sql_qualified_name          { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
+  | TEMP sql_opt_table sql_qualified_name               { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
+  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
+  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
+  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
+  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
+  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::UNLOGGED), ctx.Add(@3, move($3))); }
+  | TABLE sql_qualified_name                            { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@2, move($2))); }
+  | sql_qualified_name                                  { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@1, move($1))); }
     ;
 
 sql_opt_table:
@@ -262,23 +258,36 @@ sql_sort_clause:
     ;
 
 sql_sortby_list:
-    sql_sortby
-  | sql_sortby_list ',' sql_sortby
+    sql_sortby                      { $$ = { $1 }; }
+  | sql_sortby_list ',' sql_sortby  { $1.push_back($3); $$ = move($1); }
     ;
 
 sql_sortby:
-    sql_a_expr USING sql_qual_all_op sql_opt_nulls_order
-  | sql_a_expr sql_opt_asc_desc sql_opt_nulls_order
+    sql_a_expr USING sql_qual_all_op sql_opt_nulls_order {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_ORDER, {
+            Key::SQL_ORDER_VALUE << $1,
+            Key::SQL_ORDER_NULLRULE << $4,
+        });
+    }
+  | sql_a_expr sql_opt_asc_desc sql_opt_nulls_order {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_ORDER, {
+            Key::SQL_ORDER_VALUE << $1,
+            Key::SQL_ORDER_DIRECTION << $1,
+            Key::SQL_ORDER_NULLRULE << $3,
+        });
+    }
     ;
 
 sql_opt_asc_desc:
-    ASC_P | DESC_P | %empty
+    ASC_P   { $$ = ctx.RefEnum(@$, sxs::OrderDirection::ASCENDING); }
+  | DESC_P  { $$ = ctx.RefEnum(@$, sxs::OrderDirection::DESCENDING); }
+  | %empty  { $$ = ctx.Null(); }
     ;
 
 sql_opt_nulls_order:
-    NULLS_LA FIRST_P
-  | NULLS_LA LAST_P
-  | %empty
+    NULLS_LA FIRST_P    { $$ = ctx.RefEnum(@$, sxs::OrderNullRule::NULLS_FIRST); }
+  | NULLS_LA LAST_P     { $$ = ctx.RefEnum(@$, sxs::OrderNullRule::NULLS_LAST); }
+  | %empty              { $$ = ctx.Null(); }
     ;
 
 sql_select_limit:
@@ -1200,23 +1209,23 @@ sql_sub_type:
     ;
 
 sql_all_op:
-    Op
-  | sql_math_op
+    Op              { $$ = ctx.Ref(@1); }
+  | sql_math_op     { $$ = $1; }
     ;
 
 sql_math_op:
-    '+'
-  | '-'
-  | '*'
-  | '/'
-  | '%'
-  | '^'
-  | '<'
-  | '>'
-  | '='
-  | LESS_EQUALS
-  | GREATER_EQUALS
-  | NOT_EQUALS
+    '+'             { $$ = ctx.RefEnum(@1, sxs::MathOp::PLUS); }
+  | '-'             { $$ = ctx.RefEnum(@1, sxs::MathOp::MINUS); }
+  | '*'             { $$ = ctx.RefEnum(@1, sxs::MathOp::MULTIPLY); }
+  | '/'             { $$ = ctx.RefEnum(@1, sxs::MathOp::DIVIDE); }
+  | '%'             { $$ = ctx.RefEnum(@1, sxs::MathOp::MODULUS); }
+  | '^'             { $$ = ctx.RefEnum(@1, sxs::MathOp::XOR); }
+  | '<'             { $$ = ctx.RefEnum(@1, sxs::MathOp::LESS_THAN); }
+  | '>'             { $$ = ctx.RefEnum(@1, sxs::MathOp::GREATER_THAN); }
+  | '='             { $$ = ctx.RefEnum(@1, sxs::MathOp::EQUAL); }
+  | LESS_EQUALS     { $$ = ctx.RefEnum(@1, sxs::MathOp::LESS_EQUAL); }
+  | GREATER_EQUALS  { $$ = ctx.RefEnum(@1, sxs::MathOp::GREATER_EQUAL); }
+  | NOT_EQUALS      { $$ = ctx.RefEnum(@1, sxs::MathOp::NOT_EQUAL); }
     ; 
 sql_qual_op:
     Op

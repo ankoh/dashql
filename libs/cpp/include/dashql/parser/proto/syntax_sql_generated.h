@@ -120,128 +120,126 @@ inline const char *EnumNameAConstType(AConstType e) {
 }
 
 enum class AExprKind : uint8_t {
-  AEXPR_OP = 0,
-  AEXPR_OP_ANY = 1,
-  AEXPR_OP_ALL = 2,
-  AEXPR_DISTINCT = 3,
-  AEXPR_NOT_DISTINCT = 4,
-  AEXPR_NULLIF = 5,
-  AEXPR_OF = 6,
-  AEXPR_IN = 7,
-  AEXPR_LIKE = 8,
-  AEXPR_ILIKE = 9,
-  AEXPR_GLOB = 10,
-  AEXPR_SIMILAR = 11,
-  AEXPR_BETWEEN = 12,
-  AEXPR_NOT_BETWEEN = 13,
-  AEXPR_BETWEEN_SYM = 14,
-  AEXPR_NOT_BETWEEN_SYM = 15,
-  AEXPR_PAREN = 16,
-  MIN = AEXPR_OP,
-  MAX = AEXPR_PAREN
+  OP = 0,
+  OP_ANY = 1,
+  OP_ALL = 2,
+  DISTINCT = 3,
+  NOT_DISTINCT = 4,
+  NULLIF = 5,
+  OF = 6,
+  IN = 7,
+  LIKE = 8,
+  ILIKE = 9,
+  GLOB = 10,
+  SIMILAR = 11,
+  BETWEEN = 12,
+  NOT_BETWEEN = 13,
+  BETWEEN_SYM = 14,
+  NOT_BETWEEN_SYM = 15,
+  PAREN = 16,
+  MIN = OP,
+  MAX = PAREN
 };
 
 inline const AExprKind (&EnumValuesAExprKind())[17] {
   static const AExprKind values[] = {
-    AExprKind::AEXPR_OP,
-    AExprKind::AEXPR_OP_ANY,
-    AExprKind::AEXPR_OP_ALL,
-    AExprKind::AEXPR_DISTINCT,
-    AExprKind::AEXPR_NOT_DISTINCT,
-    AExprKind::AEXPR_NULLIF,
-    AExprKind::AEXPR_OF,
-    AExprKind::AEXPR_IN,
-    AExprKind::AEXPR_LIKE,
-    AExprKind::AEXPR_ILIKE,
-    AExprKind::AEXPR_GLOB,
-    AExprKind::AEXPR_SIMILAR,
-    AExprKind::AEXPR_BETWEEN,
-    AExprKind::AEXPR_NOT_BETWEEN,
-    AExprKind::AEXPR_BETWEEN_SYM,
-    AExprKind::AEXPR_NOT_BETWEEN_SYM,
-    AExprKind::AEXPR_PAREN
+    AExprKind::OP,
+    AExprKind::OP_ANY,
+    AExprKind::OP_ALL,
+    AExprKind::DISTINCT,
+    AExprKind::NOT_DISTINCT,
+    AExprKind::NULLIF,
+    AExprKind::OF,
+    AExprKind::IN,
+    AExprKind::LIKE,
+    AExprKind::ILIKE,
+    AExprKind::GLOB,
+    AExprKind::SIMILAR,
+    AExprKind::BETWEEN,
+    AExprKind::NOT_BETWEEN,
+    AExprKind::BETWEEN_SYM,
+    AExprKind::NOT_BETWEEN_SYM,
+    AExprKind::PAREN
   };
   return values;
 }
 
 inline const char * const *EnumNamesAExprKind() {
   static const char * const names[18] = {
-    "AEXPR_OP",
-    "AEXPR_OP_ANY",
-    "AEXPR_OP_ALL",
-    "AEXPR_DISTINCT",
-    "AEXPR_NOT_DISTINCT",
-    "AEXPR_NULLIF",
-    "AEXPR_OF",
-    "AEXPR_IN",
-    "AEXPR_LIKE",
-    "AEXPR_ILIKE",
-    "AEXPR_GLOB",
-    "AEXPR_SIMILAR",
-    "AEXPR_BETWEEN",
-    "AEXPR_NOT_BETWEEN",
-    "AEXPR_BETWEEN_SYM",
-    "AEXPR_NOT_BETWEEN_SYM",
-    "AEXPR_PAREN",
+    "OP",
+    "OP_ANY",
+    "OP_ALL",
+    "DISTINCT",
+    "NOT_DISTINCT",
+    "NULLIF",
+    "OF",
+    "IN",
+    "LIKE",
+    "ILIKE",
+    "GLOB",
+    "SIMILAR",
+    "BETWEEN",
+    "NOT_BETWEEN",
+    "BETWEEN_SYM",
+    "NOT_BETWEEN_SYM",
+    "PAREN",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAExprKind(AExprKind e) {
-  if (flatbuffers::IsOutRange(e, AExprKind::AEXPR_OP, AExprKind::AEXPR_PAREN)) return "";
+  if (flatbuffers::IsOutRange(e, AExprKind::OP, AExprKind::PAREN)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAExprKind()[index];
 }
 
 enum class TempType : uint8_t {
-  TEMP_DEFAULT = 0,
-  TEMP_GLOBAL = 1,
-  TEMP_LOCAL = 2,
-  TEMP_UNLOGGED = 3,
-  MIN = TEMP_DEFAULT,
-  MAX = TEMP_UNLOGGED
+  DEFAULT = 0,
+  GLOBAL = 1,
+  LOCAL = 2,
+  UNLOGGED = 3,
+  MIN = DEFAULT,
+  MAX = UNLOGGED
 };
 
 inline const TempType (&EnumValuesTempType())[4] {
   static const TempType values[] = {
-    TempType::TEMP_DEFAULT,
-    TempType::TEMP_GLOBAL,
-    TempType::TEMP_LOCAL,
-    TempType::TEMP_UNLOGGED
+    TempType::DEFAULT,
+    TempType::GLOBAL,
+    TempType::LOCAL,
+    TempType::UNLOGGED
   };
   return values;
 }
 
 inline const char * const *EnumNamesTempType() {
   static const char * const names[5] = {
-    "TEMP_DEFAULT",
-    "TEMP_GLOBAL",
-    "TEMP_LOCAL",
-    "TEMP_UNLOGGED",
+    "DEFAULT",
+    "GLOBAL",
+    "LOCAL",
+    "UNLOGGED",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameTempType(TempType e) {
-  if (flatbuffers::IsOutRange(e, TempType::TEMP_DEFAULT, TempType::TEMP_UNLOGGED)) return "";
+  if (flatbuffers::IsOutRange(e, TempType::DEFAULT, TempType::UNLOGGED)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesTempType()[index];
 }
 
 enum class WindowBoundMode : uint8_t {
-  NONE = 0,
-  UNBOUNDED = 1,
-  CURRENT_ROW = 2,
-  VALUE = 3,
-  MIN = NONE,
+  UNBOUNDED = 0,
+  CURRENT_ROW = 1,
+  VALUE = 2,
+  MIN = UNBOUNDED,
   MAX = VALUE
 };
 
-inline const WindowBoundMode (&EnumValuesWindowBoundMode())[4] {
+inline const WindowBoundMode (&EnumValuesWindowBoundMode())[3] {
   static const WindowBoundMode values[] = {
-    WindowBoundMode::NONE,
     WindowBoundMode::UNBOUNDED,
     WindowBoundMode::CURRENT_ROW,
     WindowBoundMode::VALUE
@@ -250,8 +248,7 @@ inline const WindowBoundMode (&EnumValuesWindowBoundMode())[4] {
 }
 
 inline const char * const *EnumNamesWindowBoundMode() {
-  static const char * const names[5] = {
-    "NONE",
+  static const char * const names[4] = {
     "UNBOUNDED",
     "CURRENT_ROW",
     "VALUE",
@@ -261,22 +258,20 @@ inline const char * const *EnumNamesWindowBoundMode() {
 }
 
 inline const char *EnumNameWindowBoundMode(WindowBoundMode e) {
-  if (flatbuffers::IsOutRange(e, WindowBoundMode::NONE, WindowBoundMode::VALUE)) return "";
+  if (flatbuffers::IsOutRange(e, WindowBoundMode::UNBOUNDED, WindowBoundMode::VALUE)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesWindowBoundMode()[index];
 }
 
 enum class WindowBoundDirection : uint8_t {
-  NONE = 0,
-  PRECEDING = 1,
-  FOLLOWING = 2,
-  MIN = NONE,
+  PRECEDING = 0,
+  FOLLOWING = 1,
+  MIN = PRECEDING,
   MAX = FOLLOWING
 };
 
-inline const WindowBoundDirection (&EnumValuesWindowBoundDirection())[3] {
+inline const WindowBoundDirection (&EnumValuesWindowBoundDirection())[2] {
   static const WindowBoundDirection values[] = {
-    WindowBoundDirection::NONE,
     WindowBoundDirection::PRECEDING,
     WindowBoundDirection::FOLLOWING
   };
@@ -284,8 +279,7 @@ inline const WindowBoundDirection (&EnumValuesWindowBoundDirection())[3] {
 }
 
 inline const char * const *EnumNamesWindowBoundDirection() {
-  static const char * const names[4] = {
-    "NONE",
+  static const char * const names[3] = {
     "PRECEDING",
     "FOLLOWING",
     nullptr
@@ -294,23 +288,21 @@ inline const char * const *EnumNamesWindowBoundDirection() {
 }
 
 inline const char *EnumNameWindowBoundDirection(WindowBoundDirection e) {
-  if (flatbuffers::IsOutRange(e, WindowBoundDirection::NONE, WindowBoundDirection::FOLLOWING)) return "";
+  if (flatbuffers::IsOutRange(e, WindowBoundDirection::PRECEDING, WindowBoundDirection::FOLLOWING)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesWindowBoundDirection()[index];
 }
 
 enum class WindowRangeMode : uint8_t {
-  NONE = 0,
-  RANGE = 1,
-  ROWS = 2,
-  GROUPS = 3,
-  MIN = NONE,
+  RANGE = 0,
+  ROWS = 1,
+  GROUPS = 2,
+  MIN = RANGE,
   MAX = GROUPS
 };
 
-inline const WindowRangeMode (&EnumValuesWindowRangeMode())[4] {
+inline const WindowRangeMode (&EnumValuesWindowRangeMode())[3] {
   static const WindowRangeMode values[] = {
-    WindowRangeMode::NONE,
     WindowRangeMode::RANGE,
     WindowRangeMode::ROWS,
     WindowRangeMode::GROUPS
@@ -319,8 +311,7 @@ inline const WindowRangeMode (&EnumValuesWindowRangeMode())[4] {
 }
 
 inline const char * const *EnumNamesWindowRangeMode() {
-  static const char * const names[5] = {
-    "NONE",
+  static const char * const names[4] = {
     "RANGE",
     "ROWS",
     "GROUPS",
@@ -330,23 +321,21 @@ inline const char * const *EnumNamesWindowRangeMode() {
 }
 
 inline const char *EnumNameWindowRangeMode(WindowRangeMode e) {
-  if (flatbuffers::IsOutRange(e, WindowRangeMode::NONE, WindowRangeMode::GROUPS)) return "";
+  if (flatbuffers::IsOutRange(e, WindowRangeMode::RANGE, WindowRangeMode::GROUPS)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesWindowRangeMode()[index];
 }
 
 enum class WindowExclusionMode : uint8_t {
-  NONE = 0,
-  CURRENT_ROW = 1,
-  GROUP = 2,
-  TIES = 3,
-  MIN = NONE,
+  CURRENT_ROW = 0,
+  GROUP = 1,
+  TIES = 2,
+  MIN = CURRENT_ROW,
   MAX = TIES
 };
 
-inline const WindowExclusionMode (&EnumValuesWindowExclusionMode())[4] {
+inline const WindowExclusionMode (&EnumValuesWindowExclusionMode())[3] {
   static const WindowExclusionMode values[] = {
-    WindowExclusionMode::NONE,
     WindowExclusionMode::CURRENT_ROW,
     WindowExclusionMode::GROUP,
     WindowExclusionMode::TIES
@@ -355,8 +344,7 @@ inline const WindowExclusionMode (&EnumValuesWindowExclusionMode())[4] {
 }
 
 inline const char * const *EnumNamesWindowExclusionMode() {
-  static const char * const names[5] = {
-    "NONE",
+  static const char * const names[4] = {
     "CURRENT_ROW",
     "GROUP",
     "TIES",
@@ -366,9 +354,129 @@ inline const char * const *EnumNamesWindowExclusionMode() {
 }
 
 inline const char *EnumNameWindowExclusionMode(WindowExclusionMode e) {
-  if (flatbuffers::IsOutRange(e, WindowExclusionMode::NONE, WindowExclusionMode::TIES)) return "";
+  if (flatbuffers::IsOutRange(e, WindowExclusionMode::CURRENT_ROW, WindowExclusionMode::TIES)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesWindowExclusionMode()[index];
+}
+
+enum class OrderDirection : uint8_t {
+  ASCENDING = 0,
+  DESCENDING = 1,
+  MIN = ASCENDING,
+  MAX = DESCENDING
+};
+
+inline const OrderDirection (&EnumValuesOrderDirection())[2] {
+  static const OrderDirection values[] = {
+    OrderDirection::ASCENDING,
+    OrderDirection::DESCENDING
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesOrderDirection() {
+  static const char * const names[3] = {
+    "ASCENDING",
+    "DESCENDING",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameOrderDirection(OrderDirection e) {
+  if (flatbuffers::IsOutRange(e, OrderDirection::ASCENDING, OrderDirection::DESCENDING)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesOrderDirection()[index];
+}
+
+enum class OrderNullRule : uint8_t {
+  NULLS_FIRST = 0,
+  NULLS_LAST = 1,
+  MIN = NULLS_FIRST,
+  MAX = NULLS_LAST
+};
+
+inline const OrderNullRule (&EnumValuesOrderNullRule())[2] {
+  static const OrderNullRule values[] = {
+    OrderNullRule::NULLS_FIRST,
+    OrderNullRule::NULLS_LAST
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesOrderNullRule() {
+  static const char * const names[3] = {
+    "NULLS_FIRST",
+    "NULLS_LAST",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameOrderNullRule(OrderNullRule e) {
+  if (flatbuffers::IsOutRange(e, OrderNullRule::NULLS_FIRST, OrderNullRule::NULLS_LAST)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesOrderNullRule()[index];
+}
+
+enum class MathOp : uint8_t {
+  PLUS = 0,
+  MINUS = 1,
+  MULTIPLY = 2,
+  DIVIDE = 3,
+  MODULUS = 4,
+  XOR = 5,
+  LESS_THAN = 6,
+  LESS_EQUAL = 7,
+  GREATER_THAN = 8,
+  GREATER_EQUAL = 9,
+  EQUAL = 10,
+  NOT_EQUAL = 11,
+  MIN = PLUS,
+  MAX = NOT_EQUAL
+};
+
+inline const MathOp (&EnumValuesMathOp())[12] {
+  static const MathOp values[] = {
+    MathOp::PLUS,
+    MathOp::MINUS,
+    MathOp::MULTIPLY,
+    MathOp::DIVIDE,
+    MathOp::MODULUS,
+    MathOp::XOR,
+    MathOp::LESS_THAN,
+    MathOp::LESS_EQUAL,
+    MathOp::GREATER_THAN,
+    MathOp::GREATER_EQUAL,
+    MathOp::EQUAL,
+    MathOp::NOT_EQUAL
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesMathOp() {
+  static const char * const names[13] = {
+    "PLUS",
+    "MINUS",
+    "MULTIPLY",
+    "DIVIDE",
+    "MODULUS",
+    "XOR",
+    "LESS_THAN",
+    "LESS_EQUAL",
+    "GREATER_THAN",
+    "GREATER_EQUAL",
+    "EQUAL",
+    "NOT_EQUAL",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameMathOp(MathOp e) {
+  if (flatbuffers::IsOutRange(e, MathOp::PLUS, MathOp::NOT_EQUAL)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesMathOp()[index];
 }
 
 inline const flatbuffers::TypeTable *CombineModifierTypeTable() {
@@ -461,23 +569,23 @@ inline const flatbuffers::TypeTable *AExprKindTypeTable() {
     dashql::proto::syntax_sql::AExprKindTypeTable
   };
   static const char * const names[] = {
-    "AEXPR_OP",
-    "AEXPR_OP_ANY",
-    "AEXPR_OP_ALL",
-    "AEXPR_DISTINCT",
-    "AEXPR_NOT_DISTINCT",
-    "AEXPR_NULLIF",
-    "AEXPR_OF",
-    "AEXPR_IN",
-    "AEXPR_LIKE",
-    "AEXPR_ILIKE",
-    "AEXPR_GLOB",
-    "AEXPR_SIMILAR",
-    "AEXPR_BETWEEN",
-    "AEXPR_NOT_BETWEEN",
-    "AEXPR_BETWEEN_SYM",
-    "AEXPR_NOT_BETWEEN_SYM",
-    "AEXPR_PAREN"
+    "OP",
+    "OP_ANY",
+    "OP_ALL",
+    "DISTINCT",
+    "NOT_DISTINCT",
+    "NULLIF",
+    "OF",
+    "IN",
+    "LIKE",
+    "ILIKE",
+    "GLOB",
+    "SIMILAR",
+    "BETWEEN",
+    "NOT_BETWEEN",
+    "BETWEEN_SYM",
+    "NOT_BETWEEN_SYM",
+    "PAREN"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 17, type_codes, type_refs, nullptr, nullptr, names
@@ -496,10 +604,10 @@ inline const flatbuffers::TypeTable *TempTypeTypeTable() {
     dashql::proto::syntax_sql::TempTypeTypeTable
   };
   static const char * const names[] = {
-    "TEMP_DEFAULT",
-    "TEMP_GLOBAL",
-    "TEMP_LOCAL",
-    "TEMP_UNLOGGED"
+    "DEFAULT",
+    "GLOBAL",
+    "LOCAL",
+    "UNLOGGED"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
@@ -511,20 +619,18 @@ inline const flatbuffers::TypeTable *WindowBoundModeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     dashql::proto::syntax_sql::WindowBoundModeTypeTable
   };
   static const char * const names[] = {
-    "NONE",
     "UNBOUNDED",
     "CURRENT_ROW",
     "VALUE"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
@@ -532,19 +638,17 @@ inline const flatbuffers::TypeTable *WindowBoundModeTypeTable() {
 inline const flatbuffers::TypeTable *WindowBoundDirectionTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     dashql::proto::syntax_sql::WindowBoundDirectionTypeTable
   };
   static const char * const names[] = {
-    "NONE",
     "PRECEDING",
     "FOLLOWING"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
@@ -553,20 +657,18 @@ inline const flatbuffers::TypeTable *WindowRangeModeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     dashql::proto::syntax_sql::WindowRangeModeTypeTable
   };
   static const char * const names[] = {
-    "NONE",
     "RANGE",
     "ROWS",
     "GROUPS"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
@@ -575,20 +677,92 @@ inline const flatbuffers::TypeTable *WindowExclusionModeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     dashql::proto::syntax_sql::WindowExclusionModeTypeTable
   };
   static const char * const names[] = {
-    "NONE",
     "CURRENT_ROW",
     "GROUP",
     "TIES"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *OrderDirectionTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::OrderDirectionTypeTable
+  };
+  static const char * const names[] = {
+    "ASCENDING",
+    "DESCENDING"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *OrderNullRuleTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::OrderNullRuleTypeTable
+  };
+  static const char * const names[] = {
+    "NULLS_FIRST",
+    "NULLS_LAST"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *MathOpTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::MathOpTypeTable
+  };
+  static const char * const names[] = {
+    "PLUS",
+    "MINUS",
+    "MULTIPLY",
+    "DIVIDE",
+    "MODULUS",
+    "XOR",
+    "LESS_THAN",
+    "LESS_EQUAL",
+    "GREATER_THAN",
+    "GREATER_EQUAL",
+    "EQUAL",
+    "NOT_EQUAL"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 12, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

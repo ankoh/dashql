@@ -487,16 +487,16 @@ expected:
                   location: 42..43|`d`
                   SQL_COLUMN_REF_PATH:
                     - 42..43|`d`
-              SQL_WINDOW_FRAME_MODE: 2
+              SQL_WINDOW_FRAME_MODE: 1
               SQL_WINDOW_FRAME_BOUNDS:
                 - type: SQL_WINDOW_BOUND
                   location: 57..76|`unbounded preceding`
-                  SQL_WINDOW_BOUND_MODE: 1
-                  SQL_WINDOW_BOUND_DIRECTION: 1
+                  SQL_WINDOW_BOUND_MODE: 0
+                  SQL_WINDOW_BOUND_DIRECTION: 0
                 - type: SQL_WINDOW_BOUND
                   location: 81..100|`unbounded following`
-                  SQL_WINDOW_BOUND_MODE: 1
-                  SQL_WINDOW_BOUND_DIRECTION: 2
+                  SQL_WINDOW_BOUND_MODE: 0
+                  SQL_WINDOW_BOUND_DIRECTION: 1
   errors: []
   line_breaks:
     - 15..16|`\n`
@@ -536,19 +536,19 @@ expected:
                   location: 42..43|`d`
                   SQL_COLUMN_REF_PATH:
                     - 42..43|`d`
-              SQL_WINDOW_FRAME_MODE: 2
+              SQL_WINDOW_FRAME_MODE: 1
               SQL_WINDOW_FRAME_BOUNDS:
                 - type: SQL_WINDOW_BOUND
                   location: 57..68|`1 preceding`
-                  SQL_WINDOW_BOUND_MODE: 3
-                  SQL_WINDOW_BOUND_DIRECTION: 1
+                  SQL_WINDOW_BOUND_MODE: 2
+                  SQL_WINDOW_BOUND_DIRECTION: 0
                   SQL_WINDOW_BOUND_VALUE:
                     type: SQL_ACONST
                     location: 57..58|`1`
                     SQL_ACONST_TYPE: 0
                 - type: SQL_WINDOW_BOUND
                   location: 73..84|`current row`
-                  SQL_WINDOW_BOUND_MODE: 2
+                  SQL_WINDOW_BOUND_MODE: 1
   errors: []
   line_breaks:
     - 15..16|`\n`
@@ -589,15 +589,15 @@ expected:
                   location: 42..43|`d`
                   SQL_COLUMN_REF_PATH:
                     - 42..43|`d`
-              SQL_WINDOW_FRAME_MODE: 1
+              SQL_WINDOW_FRAME_MODE: 0
               SQL_WINDOW_FRAME_BOUNDS:
                 - type: SQL_WINDOW_BOUND
                   location: 58..69|`current row`
-                  SQL_WINDOW_BOUND_MODE: 2
+                  SQL_WINDOW_BOUND_MODE: 1
                 - type: SQL_WINDOW_BOUND
                   location: 74..85|`1 following`
-                  SQL_WINDOW_BOUND_MODE: 3
-                  SQL_WINDOW_BOUND_DIRECTION: 2
+                  SQL_WINDOW_BOUND_MODE: 2
+                  SQL_WINDOW_BOUND_DIRECTION: 1
                   SQL_WINDOW_BOUND_VALUE:
                     type: SQL_ACONST
                     location: 74..75|`1`

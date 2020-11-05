@@ -43,23 +43,23 @@ export enum AConstType{
  */
 export namespace dashql.proto.syntax_sql{
 export enum AExprKind{
-  AEXPR_OP= 0,
-  AEXPR_OP_ANY= 1,
-  AEXPR_OP_ALL= 2,
-  AEXPR_DISTINCT= 3,
-  AEXPR_NOT_DISTINCT= 4,
-  AEXPR_NULLIF= 5,
-  AEXPR_OF= 6,
-  AEXPR_IN= 7,
-  AEXPR_LIKE= 8,
-  AEXPR_ILIKE= 9,
-  AEXPR_GLOB= 10,
-  AEXPR_SIMILAR= 11,
-  AEXPR_BETWEEN= 12,
-  AEXPR_NOT_BETWEEN= 13,
-  AEXPR_BETWEEN_SYM= 14,
-  AEXPR_NOT_BETWEEN_SYM= 15,
-  AEXPR_PAREN= 16
+  OP= 0,
+  OP_ANY= 1,
+  OP_ALL= 2,
+  DISTINCT= 3,
+  NOT_DISTINCT= 4,
+  NULLIF= 5,
+  OF= 6,
+  IN= 7,
+  LIKE= 8,
+  ILIKE= 9,
+  GLOB= 10,
+  SIMILAR= 11,
+  BETWEEN= 12,
+  NOT_BETWEEN= 13,
+  BETWEEN_SYM= 14,
+  NOT_BETWEEN_SYM= 15,
+  PAREN= 16
 };
 }
 
@@ -68,10 +68,10 @@ export enum AExprKind{
  */
 export namespace dashql.proto.syntax_sql{
 export enum TempType{
-  TEMP_DEFAULT= 0,
-  TEMP_GLOBAL= 1,
-  TEMP_LOCAL= 2,
-  TEMP_UNLOGGED= 3
+  DEFAULT= 0,
+  GLOBAL= 1,
+  LOCAL= 2,
+  UNLOGGED= 3
 };
 }
 
@@ -80,10 +80,9 @@ export enum TempType{
  */
 export namespace dashql.proto.syntax_sql{
 export enum WindowBoundMode{
-  NONE= 0,
-  UNBOUNDED= 1,
-  CURRENT_ROW= 2,
-  VALUE= 3
+  UNBOUNDED= 0,
+  CURRENT_ROW= 1,
+  VALUE= 2
 };
 }
 
@@ -92,9 +91,8 @@ export enum WindowBoundMode{
  */
 export namespace dashql.proto.syntax_sql{
 export enum WindowBoundDirection{
-  NONE= 0,
-  PRECEDING= 1,
-  FOLLOWING= 2
+  PRECEDING= 0,
+  FOLLOWING= 1
 };
 }
 
@@ -103,10 +101,9 @@ export enum WindowBoundDirection{
  */
 export namespace dashql.proto.syntax_sql{
 export enum WindowRangeMode{
-  NONE= 0,
-  RANGE= 1,
-  ROWS= 2,
-  GROUPS= 3
+  RANGE= 0,
+  ROWS= 1,
+  GROUPS= 2
 };
 }
 
@@ -115,10 +112,49 @@ export enum WindowRangeMode{
  */
 export namespace dashql.proto.syntax_sql{
 export enum WindowExclusionMode{
-  NONE= 0,
-  CURRENT_ROW= 1,
-  GROUP= 2,
-  TIES= 3
+  CURRENT_ROW= 0,
+  GROUP= 1,
+  TIES= 2
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum OrderDirection{
+  ASCENDING= 0,
+  DESCENDING= 1
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum OrderNullRule{
+  NULLS_FIRST= 0,
+  NULLS_LAST= 1
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum MathOp{
+  PLUS= 0,
+  MINUS= 1,
+  MULTIPLY= 2,
+  DIVIDE= 3,
+  MODULUS= 4,
+  XOR= 5,
+  LESS_THAN= 6,
+  LESS_EQUAL= 7,
+  GREATER_THAN= 8,
+  GREATER_EQUAL= 9,
+  EQUAL= 10,
+  NOT_EQUAL= 11
 };
 }
 

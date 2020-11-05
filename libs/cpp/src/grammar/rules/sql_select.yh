@@ -19,6 +19,7 @@
 %type <NodeVector> sql_select_no_parens;
 %type <NodeVector> sql_select_with_parens;
 %type <NodeVector> sql_simple_select;
+%type <NodeVector> sql_sortby_list;
 %type <NodeVector> sql_target_list;
 %type <NodeVector> sql_values_clause;
 %type <NodeVector> sql_window_clause;
@@ -27,6 +28,7 @@
 %type <sx::Node> sql_a_expr;
 %type <sx::Node> sql_a_expr_const;
 %type <sx::Node> sql_alias_clause;
+%type <sx::Node> sql_all_op;
 %type <sx::Node> sql_all_or_distinct;
 %type <sx::Node> sql_c_expr;
 %type <sx::Node> sql_columnref;
@@ -37,13 +39,17 @@
 %type <sx::Node> sql_having_clause;
 %type <sx::Node> sql_indirection_el;
 %type <sx::Node> sql_into_clause;
+%type <sx::Node> sql_math_op;
 %type <sx::Node> sql_opt_alias_clause;
 %type <sx::Node> sql_opt_all_clause;
+%type <sx::Node> sql_opt_asc_desc;
+%type <sx::Node> sql_opt_nulls_order;
 %type <sx::Node> sql_opt_slice_bound;
 %type <sx::Node> sql_opt_temp_table_name;
 %type <sx::Node> sql_over_clause;
 %type <sx::Node> sql_preparable_stmt;
 %type <sx::Node> sql_select_stmt;
+%type <sx::Node> sql_sortby;
 %type <sx::Node> sql_table_ref;
 %type <sx::Node> sql_target_el;
 %type <sx::Node> sql_where_clause;
