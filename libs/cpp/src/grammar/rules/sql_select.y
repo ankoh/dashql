@@ -60,7 +60,7 @@ sql_select_no_parens:
   | sql_select_clause sql_sort_clause       { $$ = {}; }
   | sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit   { $$ = {}; }
   | sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause   { $$ = {}; }
-  | sql_with_clause sql_select_clause                                                   { $$ = {}; }
+  | sql_with_clause sql_select_clause                                                   { $$ = $1 << move($2); }
   | sql_with_clause sql_select_clause sql_sort_clause                                   { $$ = {}; }
   | sql_with_clause sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit {
         $$ = {};
@@ -171,13 +171,13 @@ sql_simple_select:
 // Recognizing WITH_LA here allows a CTE to be named TIME or ORDINALITY.
 
 sql_with_clause:
-    WITH sql_cte_list           { $$ = ctx.Add(@2, move($2)); }
-  | WITH_LA sql_cte_list        { $$ = ctx.Add(@2, move($2)); }
+    WITH sql_cte_list           { $$ = move($2); }
+  | WITH_LA sql_cte_list        { $$ = move($2); }
   | WITH RECURSIVE sql_cte_list {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_WITH, {
-            Key::SQL_WITH_RECURSIVE << ctx.Ref(@2, true),
-            Key::SQL_WITH_CTES << ctx.Add(@3, move($3)),
-        });
+        $$ = {
+            Key::SQL_SELECT_WITH_RECURSIVE << ctx.Ref(@2, true),
+            Key::SQL_SELECT_WITH_CTES << ctx.Add(@3, move($3)),
+        };
     }
     ;
 

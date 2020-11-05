@@ -205,29 +205,28 @@ enum class AttributeKey : uint16_t {
   SQL_SELECT_VALUES = 60,
   SQL_SELECT_WHERE = 61,
   SQL_SELECT_WINDOWS = 62,
-  SQL_SELECT_WITH = 63,
-  SQL_TABLE_ALIAS = 64,
-  SQL_TABLE_INHERIT = 65,
-  SQL_TABLE_NAME = 66,
-  SQL_TEMP_NAME = 67,
-  SQL_TEMP_TYPE = 68,
-  SQL_WINDOW_BOUND_DIRECTION = 69,
-  SQL_WINDOW_BOUND_MODE = 70,
-  SQL_WINDOW_BOUND_VALUE = 71,
-  SQL_WINDOW_DEF_FRAME = 72,
-  SQL_WINDOW_DEF_NAME = 73,
-  SQL_WINDOW_FRAME_BOUNDS = 74,
-  SQL_WINDOW_FRAME_EXCLUDE = 75,
-  SQL_WINDOW_FRAME_MODE = 76,
-  SQL_WINDOW_FRAME_NAME = 77,
-  SQL_WINDOW_FRAME_PARTITION = 78,
-  SQL_WITH_RECURSIVE = 79,
-  SQL_WITH_CTES = 80,
+  SQL_SELECT_WITH_CTES = 63,
+  SQL_SELECT_WITH_RECURSIVE = 64,
+  SQL_TABLE_ALIAS = 65,
+  SQL_TABLE_INHERIT = 66,
+  SQL_TABLE_NAME = 67,
+  SQL_TEMP_NAME = 68,
+  SQL_TEMP_TYPE = 69,
+  SQL_WINDOW_BOUND_DIRECTION = 70,
+  SQL_WINDOW_BOUND_MODE = 71,
+  SQL_WINDOW_BOUND_VALUE = 72,
+  SQL_WINDOW_DEF_FRAME = 73,
+  SQL_WINDOW_DEF_NAME = 74,
+  SQL_WINDOW_FRAME_BOUNDS = 75,
+  SQL_WINDOW_FRAME_EXCLUDE = 76,
+  SQL_WINDOW_FRAME_MODE = 77,
+  SQL_WINDOW_FRAME_NAME = 78,
+  SQL_WINDOW_FRAME_PARTITION = 79,
   MIN = NONE,
-  MAX = SQL_WITH_CTES
+  MAX = SQL_WINDOW_FRAME_PARTITION
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[81] {
+inline const AttributeKey (&EnumValuesAttributeKey())[80] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -292,7 +291,8 @@ inline const AttributeKey (&EnumValuesAttributeKey())[81] {
     AttributeKey::SQL_SELECT_VALUES,
     AttributeKey::SQL_SELECT_WHERE,
     AttributeKey::SQL_SELECT_WINDOWS,
-    AttributeKey::SQL_SELECT_WITH,
+    AttributeKey::SQL_SELECT_WITH_CTES,
+    AttributeKey::SQL_SELECT_WITH_RECURSIVE,
     AttributeKey::SQL_TABLE_ALIAS,
     AttributeKey::SQL_TABLE_INHERIT,
     AttributeKey::SQL_TABLE_NAME,
@@ -307,15 +307,13 @@ inline const AttributeKey (&EnumValuesAttributeKey())[81] {
     AttributeKey::SQL_WINDOW_FRAME_EXCLUDE,
     AttributeKey::SQL_WINDOW_FRAME_MODE,
     AttributeKey::SQL_WINDOW_FRAME_NAME,
-    AttributeKey::SQL_WINDOW_FRAME_PARTITION,
-    AttributeKey::SQL_WITH_RECURSIVE,
-    AttributeKey::SQL_WITH_CTES
+    AttributeKey::SQL_WINDOW_FRAME_PARTITION
   };
   return values;
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[82] = {
+  static const char * const names[81] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -379,7 +377,8 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_SELECT_VALUES",
     "SQL_SELECT_WHERE",
     "SQL_SELECT_WINDOWS",
-    "SQL_SELECT_WITH",
+    "SQL_SELECT_WITH_CTES",
+    "SQL_SELECT_WITH_RECURSIVE",
     "SQL_TABLE_ALIAS",
     "SQL_TABLE_INHERIT",
     "SQL_TABLE_NAME",
@@ -395,15 +394,13 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_WINDOW_FRAME_MODE",
     "SQL_WINDOW_FRAME_NAME",
     "SQL_WINDOW_FRAME_PARTITION",
-    "SQL_WITH_RECURSIVE",
-    "SQL_WITH_CTES",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAttributeKey(AttributeKey e) {
-  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_WITH_CTES)) return "";
+  if (flatbuffers::IsOutRange(e, AttributeKey::NONE, AttributeKey::SQL_WINDOW_FRAME_PARTITION)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAttributeKey()[index];
 }
@@ -968,7 +965,6 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
-    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1038,7 +1034,8 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_SELECT_VALUES",
     "SQL_SELECT_WHERE",
     "SQL_SELECT_WINDOWS",
-    "SQL_SELECT_WITH",
+    "SQL_SELECT_WITH_CTES",
+    "SQL_SELECT_WITH_RECURSIVE",
     "SQL_TABLE_ALIAS",
     "SQL_TABLE_INHERIT",
     "SQL_TABLE_NAME",
@@ -1053,12 +1050,10 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_WINDOW_FRAME_EXCLUDE",
     "SQL_WINDOW_FRAME_MODE",
     "SQL_WINDOW_FRAME_NAME",
-    "SQL_WINDOW_FRAME_PARTITION",
-    "SQL_WITH_RECURSIVE",
-    "SQL_WITH_CTES"
+    "SQL_WINDOW_FRAME_PARTITION"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 81, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 80, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
