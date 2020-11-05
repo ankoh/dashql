@@ -694,7 +694,7 @@ expected:
   comments: []
 ----
 name: values_1
-input: values (1);
+input: values (1)
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -731,7 +731,7 @@ expected:
   comments: []
 ----
 name: values_12_34
-input: 'values (1, 2), (3, 4);'
+input: 'values (1, 2), (3, 4)'
 expected:
   statements:
     - type: DASHQL_QUERY
@@ -757,7 +757,7 @@ expected:
   comments: []
 ----
 name: table_a
-input: TABLE a;
+input: TABLE a
 expected:
   statements:
     - type: DASHQL_QUERY

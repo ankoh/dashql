@@ -112,7 +112,7 @@ input: |-
 ----
 name: values_1
 input: |-
-  values (1);
+  values (1)
 ----
 name: values_1_2
 input: |-
@@ -120,8 +120,8 @@ input: |-
 ----
 name: values_12_34
 input: |-
-  values (1, 2), (3, 4);
+  values (1, 2), (3, 4)
 ----
 name: table_a
 input: |-
-  TABLE a;
+  TABLE a
