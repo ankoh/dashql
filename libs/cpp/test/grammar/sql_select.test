@@ -763,11 +763,14 @@ expected:
     - type: DASHQL_QUERY
       location: 0..7|`TABLE a`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_TABLE_REF
+        type: SQL_SELECT
         location: 0..7|`TABLE a`
-        SQL_TABLE_NAME:
-          - 6..7|`a`
-        SQL_TABLE_INHERIT: 1
+        SQL_SELECT_TABLE:
+          type: SQL_TABLE_REF
+          location: 0..7|`TABLE a`
+          SQL_TABLE_NAME:
+            - 6..7|`a`
+          SQL_TABLE_INHERIT: 1
   errors: []
   line_breaks: []
   comments: []
@@ -779,7 +782,7 @@ expected:
     - type: DASHQL_QUERY
       location: 0..23|`SELECT 1 U`..`N SELECT 2`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_COMBINE
+        type: SQL_SELECT
         location: 0..23|`SELECT 1 U`..`N SELECT 2`
         SQL_COMBINE_OPERATION: 2
         SQL_COMBINE_INPUT:
@@ -806,7 +809,7 @@ expected:
     - type: DASHQL_QUERY
       location: 0..27|`SELECT 1 U`..`L SELECT 2`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_COMBINE
+        type: SQL_SELECT
         location: 0..27|`SELECT 1 U`..`L SELECT 2`
         SQL_COMBINE_OPERATION: 2
         SQL_COMBINE_MODIFIER: 1
@@ -834,7 +837,7 @@ expected:
     - type: DASHQL_QUERY
       location: 0..32|`SELECT 1 U`..`T SELECT 2`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_COMBINE
+        type: SQL_SELECT
         location: 0..32|`SELECT 1 U`..`T SELECT 2`
         SQL_COMBINE_OPERATION: 2
         SQL_COMBINE_MODIFIER: 2
@@ -862,7 +865,7 @@ expected:
     - type: DASHQL_QUERY
       location: 0..27|`SELECT 1 I`..`T SELECT 2`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_COMBINE
+        type: SQL_SELECT
         location: 0..27|`SELECT 1 I`..`T SELECT 2`
         SQL_COMBINE_OPERATION: 1
         SQL_COMBINE_INPUT:

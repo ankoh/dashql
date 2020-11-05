@@ -15,6 +15,10 @@
 %type <NodeVector> sql_opt_target_list;
 %type <NodeVector> sql_qualified_name;
 %type <NodeVector> sql_relation_expr;
+%type <NodeVector> sql_select_clause;
+%type <NodeVector> sql_select_no_parens;
+%type <NodeVector> sql_select_with_parens;
+%type <NodeVector> sql_simple_select;
 %type <NodeVector> sql_target_list;
 %type <NodeVector> sql_values_clause;
 %type <NodeVector> sql_window_clause;
@@ -38,11 +42,7 @@
 %type <sx::Node> sql_opt_temp_table_name;
 %type <sx::Node> sql_over_clause;
 %type <sx::Node> sql_preparable_stmt;
-%type <sx::Node> sql_select_clause;
-%type <sx::Node> sql_select_no_parens;
 %type <sx::Node> sql_select_stmt;
-%type <sx::Node> sql_select_with_parens;
-%type <sx::Node> sql_simple_select;
 %type <sx::Node> sql_table_ref;
 %type <sx::Node> sql_target_el;
 %type <sx::Node> sql_where_clause;

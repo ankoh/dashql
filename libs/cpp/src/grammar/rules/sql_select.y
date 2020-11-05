@@ -36,13 +36,13 @@
 // with or without outer parentheses.
 
 sql_select_stmt:
-    sql_select_no_parens    %prec UMINUS    { $$ = $1; }
-  | sql_select_with_parens  %prec UMINUS    { $$ = $1; }
+    sql_select_no_parens    %prec UMINUS { $$ = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1)); }
+  | sql_select_with_parens  %prec UMINUS { $$ = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1)); }
     ;
 
 sql_select_with_parens:
-    '(' sql_select_no_parens ')'    { $$ = $2; }
-  | '(' sql_select_with_parens ')'  { $$ = $2; }
+    '(' sql_select_no_parens ')'    { $$ = move($2); }
+  | '(' sql_select_with_parens ')'  { $$ = move($2); }
         ;
 
 // This rule parses the equivalent of the standard's <query expression>.
@@ -56,7 +56,7 @@ sql_select_with_parens:
 //    2002-08-28 bjm
 
 sql_select_no_parens:
-    sql_simple_select                       { $$ = $1; }
+    sql_simple_select                       { $$ = move($1); }
   | sql_select_clause sql_sort_clause       { $$ = {}; }
   | sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit   { $$ = {}; }
   | sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause   { $$ = {}; }
@@ -101,7 +101,7 @@ sql_simple_select:
     SELECT sql_opt_all_clause sql_opt_target_list
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause {
-            $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
+            $$ = {
                 Key::SQL_SELECT_ALL << $2,
                 Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
                 Key::SQL_SELECT_INTO << $4,
@@ -110,12 +110,12 @@ sql_simple_select:
                 Key::SQL_SELECT_GROUPS << ctx.Add(@7, move($7)),
                 Key::SQL_SELECT_HAVING << $8,
                 Key::SQL_SELECT_WINDOWS << ctx.Add(@9, move($9)),
-            });
+            };
         }
   | SELECT sql_distinct_clause sql_target_list
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause {
-            $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
+            $$ = {
                 Key::SQL_SELECT_DISTINCT << $2,
                 Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
                 Key::SQL_SELECT_INTO << $4,
@@ -124,34 +124,42 @@ sql_simple_select:
                 Key::SQL_SELECT_GROUPS << ctx.Add(@7, move($7)),
                 Key::SQL_SELECT_HAVING << $8,
                 Key::SQL_SELECT_WINDOWS << ctx.Add(@9, move($9)),
-            });
+            };
         }
   | sql_values_clause {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
+        $$ = {
             Key::SQL_SELECT_VALUES << ctx.Add(@1, move($1)),
-        });
+        };
     }
-  | TABLE sql_relation_expr { $$ = ctx.Add(@$, sx::NodeType::SQL_TABLE_REF, move($2));; }
+  | TABLE sql_relation_expr {
+        $$ = { sx::NodeType::SQL_TABLE_REF, move($2) };
+    }
   | sql_select_clause UNION sql_all_or_distinct sql_select_clause {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_COMBINE, NodeVector{
+        auto l = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1));
+        auto r = ctx.Add(@4, sx::NodeType::SQL_SELECT, move($4));
+        $$ = {
             Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::UNION),
             Key::SQL_COMBINE_MODIFIER << $3,
-            Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{$1, $4}),
-        });
+            Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{l, r}),
+        };
     }
   | sql_select_clause INTERSECT sql_all_or_distinct sql_select_clause {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_COMBINE, NodeVector{
+        auto l = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1));
+        auto r = ctx.Add(@4, sx::NodeType::SQL_SELECT, move($4));
+        $$ = {
             Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::INTERSECT),
             Key::SQL_COMBINE_MODIFIER << $3,
-            Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{$1, $4}),
-        });
+            Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{l, r}),
+        };
     }
   | sql_select_clause EXCEPT sql_all_or_distinct sql_select_clause {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_COMBINE, NodeVector{
+        auto l = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1));
+        auto r = ctx.Add(@4, sx::NodeType::SQL_SELECT, move($4));
+        $$ = {
             Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::EXCEPT),
             Key::SQL_COMBINE_MODIFIER << $3,
-            Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{$1, $4}),
-        });
+            Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{l, r}),
+        };
     }
     ;
 

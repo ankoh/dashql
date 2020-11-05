@@ -200,33 +200,34 @@ enum class AttributeKey : uint16_t {
   SQL_SELECT_LIMIT_COUNT = 55,
   SQL_SELECT_LIMIT_OFFSET = 56,
   SQL_SELECT_SORT = 57,
-  SQL_SELECT_TARGETS = 58,
-  SQL_SELECT_VALUES = 59,
-  SQL_SELECT_WHERE = 60,
-  SQL_SELECT_WINDOWS = 61,
-  SQL_SELECT_WITH = 62,
-  SQL_TABLE_ALIAS = 63,
-  SQL_TABLE_INHERIT = 64,
-  SQL_TABLE_NAME = 65,
-  SQL_TEMP_NAME = 66,
-  SQL_TEMP_TYPE = 67,
-  SQL_WINDOW_BOUND_DIRECTION = 68,
-  SQL_WINDOW_BOUND_MODE = 69,
-  SQL_WINDOW_BOUND_VALUE = 70,
-  SQL_WINDOW_DEF_FRAME = 71,
-  SQL_WINDOW_DEF_NAME = 72,
-  SQL_WINDOW_FRAME_BOUNDS = 73,
-  SQL_WINDOW_FRAME_EXCLUDE = 74,
-  SQL_WINDOW_FRAME_MODE = 75,
-  SQL_WINDOW_FRAME_NAME = 76,
-  SQL_WINDOW_FRAME_PARTITION = 77,
-  SQL_WITH_RECURSIVE = 78,
-  SQL_WITH_CTES = 79,
+  SQL_SELECT_TABLE = 58,
+  SQL_SELECT_TARGETS = 59,
+  SQL_SELECT_VALUES = 60,
+  SQL_SELECT_WHERE = 61,
+  SQL_SELECT_WINDOWS = 62,
+  SQL_SELECT_WITH = 63,
+  SQL_TABLE_ALIAS = 64,
+  SQL_TABLE_INHERIT = 65,
+  SQL_TABLE_NAME = 66,
+  SQL_TEMP_NAME = 67,
+  SQL_TEMP_TYPE = 68,
+  SQL_WINDOW_BOUND_DIRECTION = 69,
+  SQL_WINDOW_BOUND_MODE = 70,
+  SQL_WINDOW_BOUND_VALUE = 71,
+  SQL_WINDOW_DEF_FRAME = 72,
+  SQL_WINDOW_DEF_NAME = 73,
+  SQL_WINDOW_FRAME_BOUNDS = 74,
+  SQL_WINDOW_FRAME_EXCLUDE = 75,
+  SQL_WINDOW_FRAME_MODE = 76,
+  SQL_WINDOW_FRAME_NAME = 77,
+  SQL_WINDOW_FRAME_PARTITION = 78,
+  SQL_WITH_RECURSIVE = 79,
+  SQL_WITH_CTES = 80,
   MIN = NONE,
   MAX = SQL_WITH_CTES
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[80] {
+inline const AttributeKey (&EnumValuesAttributeKey())[81] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -286,6 +287,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[80] {
     AttributeKey::SQL_SELECT_LIMIT_COUNT,
     AttributeKey::SQL_SELECT_LIMIT_OFFSET,
     AttributeKey::SQL_SELECT_SORT,
+    AttributeKey::SQL_SELECT_TABLE,
     AttributeKey::SQL_SELECT_TARGETS,
     AttributeKey::SQL_SELECT_VALUES,
     AttributeKey::SQL_SELECT_WHERE,
@@ -313,7 +315,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[80] {
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[81] = {
+  static const char * const names[82] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -372,6 +374,7 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_SELECT_LIMIT_COUNT",
     "SQL_SELECT_LIMIT_OFFSET",
     "SQL_SELECT_SORT",
+    "SQL_SELECT_TABLE",
     "SQL_SELECT_TARGETS",
     "SQL_SELECT_VALUES",
     "SQL_SELECT_WHERE",
@@ -965,6 +968,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1029,6 +1033,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_SELECT_LIMIT_COUNT",
     "SQL_SELECT_LIMIT_OFFSET",
     "SQL_SELECT_SORT",
+    "SQL_SELECT_TABLE",
     "SQL_SELECT_TARGETS",
     "SQL_SELECT_VALUES",
     "SQL_SELECT_WHERE",
@@ -1053,7 +1058,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_WITH_CTES"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 80, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 81, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
