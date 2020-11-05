@@ -125,3 +125,19 @@ input: |-
 name: table_a
 input: |-
   TABLE a
+----
+name: union_select1_select2
+input: |-
+  SELECT 1 UNION SELECT 2
+----
+name: union_all_select1_select2
+input: |-
+  SELECT 1 UNION ALL SELECT 2
+----
+name: union_distinct_select1_select2
+input: |-
+  SELECT 1 UNION DISTINCT SELECT 2
+----
+name: intersect_select1_select2
+input: |-
+  SELECT 1 INTERSECT SELECT 2

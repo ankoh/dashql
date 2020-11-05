@@ -771,3 +771,113 @@ expected:
   errors: []
   line_breaks: []
   comments: []
+----
+name: union_select1_select2
+input: SELECT 1 UNION SELECT 2
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..23|`SELECT 1 U`..`N SELECT 2`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_COMBINE
+        location: 0..23|`SELECT 1 U`..`N SELECT 2`
+        SQL_COMBINE_OPERATION: 2
+        SQL_COMBINE_INPUT:
+          - type: SQL_SELECT
+            location: 0..8|`SELECT 1`
+            SQL_SELECT_TARGETS:
+              - type: SQL_ACONST
+                location: 7..8|`1`
+                SQL_ACONST_TYPE: 0
+          - type: SQL_SELECT
+            location: 15..23|`SELECT 2`
+            SQL_SELECT_TARGETS:
+              - type: SQL_ACONST
+                location: 22..23|`2`
+                SQL_ACONST_TYPE: 0
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: union_all_select1_select2
+input: SELECT 1 UNION ALL SELECT 2
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..27|`SELECT 1 U`..`L SELECT 2`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_COMBINE
+        location: 0..27|`SELECT 1 U`..`L SELECT 2`
+        SQL_COMBINE_OPERATION: 2
+        SQL_COMBINE_MODIFIER: 1
+        SQL_COMBINE_INPUT:
+          - type: SQL_SELECT
+            location: 0..8|`SELECT 1`
+            SQL_SELECT_TARGETS:
+              - type: SQL_ACONST
+                location: 7..8|`1`
+                SQL_ACONST_TYPE: 0
+          - type: SQL_SELECT
+            location: 19..27|`SELECT 2`
+            SQL_SELECT_TARGETS:
+              - type: SQL_ACONST
+                location: 26..27|`2`
+                SQL_ACONST_TYPE: 0
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: union_distinct_select1_select2
+input: SELECT 1 UNION DISTINCT SELECT 2
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..32|`SELECT 1 U`..`T SELECT 2`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_COMBINE
+        location: 0..32|`SELECT 1 U`..`T SELECT 2`
+        SQL_COMBINE_OPERATION: 2
+        SQL_COMBINE_MODIFIER: 2
+        SQL_COMBINE_INPUT:
+          - type: SQL_SELECT
+            location: 0..8|`SELECT 1`
+            SQL_SELECT_TARGETS:
+              - type: SQL_ACONST
+                location: 7..8|`1`
+                SQL_ACONST_TYPE: 0
+          - type: SQL_SELECT
+            location: 24..32|`SELECT 2`
+            SQL_SELECT_TARGETS:
+              - type: SQL_ACONST
+                location: 31..32|`2`
+                SQL_ACONST_TYPE: 0
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: intersect_select1_select2
+input: SELECT 1 INTERSECT SELECT 2
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..27|`SELECT 1 I`..`T SELECT 2`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_COMBINE
+        location: 0..27|`SELECT 1 I`..`T SELECT 2`
+        SQL_COMBINE_OPERATION: 1
+        SQL_COMBINE_INPUT:
+          - type: SQL_SELECT
+            location: 0..8|`SELECT 1`
+            SQL_SELECT_TARGETS:
+              - type: SQL_ACONST
+                location: 7..8|`1`
+                SQL_ACONST_TYPE: 0
+          - type: SQL_SELECT
+            location: 19..27|`SELECT 2`
+            SQL_SELECT_TARGETS:
+              - type: SQL_ACONST
+                location: 26..27|`2`
+                SQL_ACONST_TYPE: 0
+  errors: []
+  line_breaks: []
+  comments: []
