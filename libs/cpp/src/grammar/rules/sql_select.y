@@ -127,12 +127,10 @@ sql_simple_select:
             };
         }
   | sql_values_clause {
-        $$ = {
-            Key::SQL_SELECT_VALUES << ctx.Add(@1, move($1)),
-        };
+        $$ = { Key::SQL_SELECT_VALUES << ctx.Add(@1, move($1)) };
     }
   | TABLE sql_relation_expr {
-        $$ = { sx::NodeType::SQL_TABLE_REF, move($2) };
+        $$ = { Key::SQL_SELECT_TABLE << ctx.Add(@$, sx::NodeType::SQL_TABLE_REF, move($2)) };
     }
   | sql_select_clause UNION sql_all_or_distinct sql_select_clause {
         auto l = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1));
