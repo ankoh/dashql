@@ -45,10 +45,12 @@
 %type <sx::Node> sql_opt_asc_desc;
 %type <sx::Node> sql_opt_nulls_order;
 %type <sx::Node> sql_opt_slice_bound;
+%type <sx::Node> sql_opt_sort_clause;
 %type <sx::Node> sql_opt_temp_table_name;
 %type <sx::Node> sql_over_clause;
 %type <sx::Node> sql_preparable_stmt;
 %type <sx::Node> sql_select_stmt;
+%type <sx::Node> sql_sort_clause;
 %type <sx::Node> sql_sortby;
 %type <sx::Node> sql_table_ref;
 %type <sx::Node> sql_target_el;

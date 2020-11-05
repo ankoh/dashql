@@ -153,3 +153,15 @@ input: |-
 name: with_recursive_2ctes_select3
 input: |-
   WITH RECURSIVE a AS (SELECT 1), b AS (SELECT 2) SELECT 3
+----
+name: select_a_orderby_b
+input: |-
+  select a order by b
+----
+name: select_a_orderby_b_c
+input: |-
+  select a order by b, c
+----
+name: select_a_orderby_b_c_directions
+input: |-
+  select a order by b asc, c desc

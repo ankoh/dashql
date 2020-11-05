@@ -56,8 +56,8 @@ sql_select_with_parens:
 //    2002-08-28 bjm
 
 sql_select_no_parens:
-    sql_simple_select                       { $$ = move($1); }
-  | sql_select_clause sql_sort_clause       { $$ = {}; }
+    sql_simple_select                   { $$ = move($1); }
+  | sql_select_clause sql_sort_clause   { $1.push_back(Key::SQL_SELECT_ORDER << $2); $$ = move($1); }
   | sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit   { $$ = {}; }
   | sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause   { $$ = {}; }
   | sql_with_clause sql_select_clause                                                   { $$ = $1 << move($2); }
@@ -249,12 +249,12 @@ sql_opt_all_clause:
     ;
 
 sql_opt_sort_clause:
-    sql_sort_clause
-  | %empty
+    sql_sort_clause     { $$ = $1; }
+  | %empty              { $$ = ctx.Null(); }
     ;
 
 sql_sort_clause:
-    ORDER BY sql_sortby_list
+    ORDER BY sql_sortby_list    { $$ = ctx.Add(@$, move($3)); }
     ;
 
 sql_sortby_list:
@@ -272,7 +272,7 @@ sql_sortby:
   | sql_a_expr sql_opt_asc_desc sql_opt_nulls_order {
         $$ = ctx.Add(@$, sx::NodeType::SQL_ORDER, {
             Key::SQL_ORDER_VALUE << $1,
-            Key::SQL_ORDER_DIRECTION << $1,
+            Key::SQL_ORDER_DIRECTION << $2,
             Key::SQL_ORDER_NULLRULE << $3,
         });
     }
