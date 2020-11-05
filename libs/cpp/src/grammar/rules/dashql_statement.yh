@@ -1,2 +1,2 @@
 %type <sx::Node> dashql_statement;
-%type <OptNode> opt_dashql_statement;
+%type <sx::Node> opt_dashql_statement;

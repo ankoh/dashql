@@ -17,46 +17,13 @@ namespace sxd = proto::syntax_dashql;
 namespace sxs = proto::syntax_sql;
 
 using NodeVector = std::vector<sx::Node>;
-using OptNode = std::optional<sx::Node>;
-using OptNodeVector = std::vector<std::optional<sx::Node>>;
-using Attribute = std::pair<sx::AttributeKey, sx::Node>;
 using Key = sx::AttributeKey;
 
 /// Get an attribute node
 sx::Node operator<<(sx::AttributeKey key, const sx::Node& node);
-/// Get an attribute node
-std::optional<sx::Node> operator<<(sx::AttributeKey key, const std::optional<sx::Node>& node);
 
 /// A module builder
 class ModuleBuilder {
-    public:
-    /// An object builder
-    class NodeBuilder {
-        protected:
-        /// The context
-        ModuleBuilder& builder;
-        /// The object type
-        sx::NodeType type;
-        /// The attributes
-        NodeVector attributes;
-
-        public:
-        /// Constructor
-        NodeBuilder(ModuleBuilder& builder, sx::NodeType type, std::initializer_list<Attribute> attrs);
-        /// Constructor
-        NodeBuilder(ModuleBuilder& builder, sx::NodeType type, NodeVector&& attrs);
-
-        /// Add a single attribute 
-        NodeBuilder& AddAttribute(sx::NodeType type, sx::Node value);
-        /// Add attributes
-        NodeBuilder& AddAttributes(std::initializer_list<Attribute> attrs);
-        /// Add attributes
-        NodeBuilder& AddAttributes(NodeVector&& attrs);
-
-        /// Finish the object
-        sx::Node Finish(sx::Location loc);
-    };
-
     protected:
     /// The nodes
     std::vector<sx::Node> _nodes;
@@ -78,13 +45,9 @@ class ModuleBuilder {
     /// Get the errors
     auto& errors() { return _errors; }
 
-    /// Create an attribute
-    inline sx::Node Label(sx::AttributeKey key, sx::Node node) const {
-        return sx::Node(node.location(), node.node_type(), key, node.children_begin_or_value(), node.children_count());
-    }
-    /// Create an attribute
-    inline std::optional<sx::Node> Label(sx::AttributeKey key, std::optional<sx::Node> node) const {
-        return node ? std::optional<sx::Node>{*node} : std::nullopt;
+    /// Create a null node
+    inline sx::Node Null() const {
+        return sx::Node(sx::Location(), sx::NodeType::NONE, Key::NONE, 0, 0);
     }
     /// Create a string
     inline sx::Node Ref(sx::Location loc) const {
@@ -104,32 +67,19 @@ class ModuleBuilder {
         return Ref(loc, static_cast<uint32_t>(v));
     }
     /// Add a an array
-    sx::Node Add(sx::Location loc, NodeVector&& values);
-    /// Add a an array
-    sx::Node Add(sx::Location loc, OptNodeVector&& values);
+    sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true);
     /// Add an object
-    sx::Node Add(sx::Location loc, sx::NodeType type, std::initializer_list<OptNode> attrs = {});
-    /// Add an object
-    sx::Node Add(sx::Location loc, sx::NodeType type, OptNodeVector&& attrs);
-    /// Add an object
-    sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs);
-    /// Start an object
-    NodeBuilder StartNode(sx::NodeType type, std::initializer_list<OptNode> attrs);
-    /// Start an object
-    NodeBuilder StartNode(sx::NodeType type, NodeVector&& attrs);
+    sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty = true);
 
     /// Collect viz attributes
     NodeVector CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attributes);
 
     /// Add a statement
     inline void AddStatement(sx::Node node) {
-        _nodes.push_back(node);
-        _statements.push_back(_nodes.size() - 1);
-    }
-    /// Add a statement
-    inline void AddStatement(std::optional<sx::Node> node) {
-        if (node)
-            AddStatement(*node);
+        if (node.node_type() != sx::NodeType::NONE) {
+            _nodes.push_back(node);
+            _statements.push_back(_nodes.size() - 1);
+        }
     }
     /// Add a line break
     inline void AddLineBreak(sx::Location loc) { _line_breaks.push_back(loc); }

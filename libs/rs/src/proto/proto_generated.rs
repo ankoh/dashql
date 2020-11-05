@@ -56,11 +56,12 @@ pub enum NodeType {
   SQL_TABLE_REF = 16,
   SQL_ALIAS = 17,
   SQL_INTO = 18,
+  SQL_COLUMN_REF = 19,
 
 }
 
 pub const ENUM_MIN_NODE_TYPE: u16 = 0;
-pub const ENUM_MAX_NODE_TYPE: u16 = 18;
+pub const ENUM_MAX_NODE_TYPE: u16 = 19;
 
 impl<'a> flatbuffers::Follow<'a> for NodeType {
   type Inner = Self;
@@ -94,7 +95,7 @@ impl flatbuffers::Push for NodeType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_NODE_TYPE: [NodeType; 19] = [
+pub const ENUM_VALUES_NODE_TYPE: [NodeType; 20] = [
   NodeType::NONE,
   NodeType::UI32,
   NodeType::STRING,
@@ -113,11 +114,12 @@ pub const ENUM_VALUES_NODE_TYPE: [NodeType; 19] = [
   NodeType::SQL_RELATION_EXPR,
   NodeType::SQL_TABLE_REF,
   NodeType::SQL_ALIAS,
-  NodeType::SQL_INTO
+  NodeType::SQL_INTO,
+  NodeType::SQL_COLUMN_REF
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_NODE_TYPE: [&str; 19] = [
+pub const ENUM_NAMES_NODE_TYPE: [&str; 20] = [
     "NONE",
     "UI32",
     "STRING",
@@ -136,7 +138,8 @@ pub const ENUM_NAMES_NODE_TYPE: [&str; 19] = [
     "SQL_RELATION_EXPR",
     "SQL_TABLE_REF",
     "SQL_ALIAS",
-    "SQL_INTO"
+    "SQL_INTO",
+    "SQL_COLUMN_REF"
 ];
 
 pub fn enum_name_node_type(e: NodeType) -> &'static str {
@@ -208,11 +211,12 @@ pub enum AttributeKey {
   SQL_ALIAS_COLUMNS = 57,
   SQL_TEMP_TYPE = 58,
   SQL_TEMP_NAME = 59,
+  SQL_COLUMN_REF_PATH = 60,
 
 }
 
 pub const ENUM_MIN_ATTRIBUTE_KEY: u16 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 59;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 60;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -246,7 +250,7 @@ impl flatbuffers::Push for AttributeKey {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 60] = [
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 61] = [
   AttributeKey::NONE,
   AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
   AttributeKey::DASHQL_PARAMETER_ALIAS,
@@ -306,11 +310,12 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 60] = [
   AttributeKey::SQL_ALIAS_NAME,
   AttributeKey::SQL_ALIAS_COLUMNS,
   AttributeKey::SQL_TEMP_TYPE,
-  AttributeKey::SQL_TEMP_NAME
+  AttributeKey::SQL_TEMP_NAME,
+  AttributeKey::SQL_COLUMN_REF_PATH
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 60] = [
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 61] = [
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -370,7 +375,8 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 60] = [
     "SQL_ALIAS_NAME",
     "SQL_ALIAS_COLUMNS",
     "SQL_TEMP_TYPE",
-    "SQL_TEMP_NAME"
+    "SQL_TEMP_NAME",
+    "SQL_COLUMN_REF_PATH"
 ];
 
 pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {

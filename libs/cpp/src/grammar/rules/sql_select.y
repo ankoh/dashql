@@ -150,7 +150,7 @@ sql_common_table_expr:
 
 sql_into_clause:
     INTO sql_opt_temp_table_name    { $$ = $2; }
-  | %empty                          { $$ = std::nullopt; }
+  | %empty                          { $$ = ctx.Null(); }
     ;
 
 // XXX PreparableStmt: select | insert | update | delete
@@ -352,7 +352,7 @@ sql_empty_grouping_set:
 
 sql_having_clause:
     HAVING sql_a_expr   { $$ = $2; }
-  | %empty              { $$ = std::nullopt; }
+  | %empty              { $$ = ctx.Null(); }
     ;
 
 sql_for_locking_clause:
@@ -464,7 +464,7 @@ sql_alias_clause:
 
 sql_opt_alias_clause:
     sql_alias_clause    { $$ = $1; }
-  | %empty              { $$ = std::nullopt; }
+  | %empty              { $$ = ctx.Null(); }
     ;
 
 // func_alias_clause can include both an PGAlias and a coldeflist, so we make it
@@ -568,7 +568,7 @@ sql_opt_ordinality:
 
 sql_where_clause:
     WHERE sql_a_expr    { $$ = $2; }
-  | %empty              { $$ = std::nullopt; }
+  | %empty              { $$ = ctx.Null(); }
     ;
 
 /* variant for UPDATE and DELETE */
@@ -925,7 +925,7 @@ sql_b_expr:
 // ambiguity to the b_expr syntax.
 
 sql_c_expr:
-    sql_columnref                                   { $$ = {}; }
+    sql_columnref                                   { $$ = $1; }
   | sql_a_expr_const                                { $$ = $1; }
   | '?' sql_opt_indirection                         { $$ = {}; }
   | PARAM sql_opt_indirection                       { $$ = {}; }
@@ -1296,8 +1296,8 @@ sql_case_arg:
     ;
 
 sql_columnref:
-    sql_col_id                  { $$ = { ctx.Ref(@1) }; }
-  | sql_col_id sql_indirection  { $2.push_back(ctx.Ref(@1)); $$ = move($2); }
+    sql_col_id                  { $$ = ctx.AddColumnRef(@$, {ctx.Ref(@1)}); }
+  | sql_col_id sql_indirection  { $2.push_back(ctx.Ref(@1)); $$ = ctx.AddColumnRef(@$, move($2)); }
     ;
 
 sql_indirection_el:
@@ -1309,7 +1309,7 @@ sql_indirection_el:
 
 sql_opt_slice_bound:
     sql_a_expr          { $$ = $1; }
-  | %empty              { $$ = std::nullopt; }
+  | %empty              { $$ = ctx.Null(); }
     ;
 
 sql_indirection:
@@ -1370,8 +1370,8 @@ sql_target_el:
 // Names and constants
 
 sql_qualified_name_list:
-    sql_qualified_name                              { $$ = { move($1) }; }
-  | sql_qualified_name_list ',' sql_qualified_name  { $1.push_back(move($3)); $$ = move($1); }
+    sql_qualified_name
+  | sql_qualified_name_list ',' sql_qualified_name
     ;
 
 // The production for a qualified relation name has to exactly match the

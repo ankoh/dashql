@@ -27,6 +27,8 @@ enum NodeType: uint16 {
     SQL_TABLE_REF,
     SQL_ALIAS,
     SQL_INTO,
+
+    SQL_COLUMN_REF,
 }
 
 enum AttributeKey: uint16 {
@@ -105,6 +107,8 @@ enum AttributeKey: uint16 {
 
     SQL_TEMP_TYPE,
     SQL_TEMP_NAME,
+
+    SQL_COLUMN_REF_PATH,
 }
 
 struct Node {

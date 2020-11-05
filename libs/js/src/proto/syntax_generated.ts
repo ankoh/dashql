@@ -25,7 +25,8 @@ export enum NodeType{
   SQL_RELATION_EXPR= 15,
   SQL_TABLE_REF= 16,
   SQL_ALIAS= 17,
-  SQL_INTO= 18
+  SQL_INTO= 18,
+  SQL_COLUMN_REF= 19
 };
 }
 
@@ -93,7 +94,8 @@ export enum AttributeKey{
   SQL_ALIAS_NAME= 56,
   SQL_ALIAS_COLUMNS= 57,
   SQL_TEMP_TYPE= 58,
-  SQL_TEMP_NAME= 59
+  SQL_TEMP_NAME= 59,
+  SQL_COLUMN_REF_PATH= 60
 };
 }
 

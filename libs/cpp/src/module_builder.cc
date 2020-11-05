@@ -17,69 +17,47 @@ namespace parser {
 sx::Node operator<<(sx::AttributeKey key, const sx::Node& node) {
     return sx::Node(node.location(), node.node_type(), key, node.children_begin_or_value(), node.children_count());
 }
-/// Syntactic sugar to set the key of a node
-std::optional<sx::Node> operator<<(sx::AttributeKey key, const std::optional<sx::Node>& node) {
-    if (node) {
-        return key << *node;
-    }
-    return std::nullopt;
-}
 
 /// Constructor
 ModuleBuilder::ModuleBuilder()
     : _statements(), _errors() {}
 
 /// Add an array
-sx::Node ModuleBuilder::Add(sx::Location loc, NodeVector&& values) {
+sx::Node ModuleBuilder::Add(sx::Location loc, NodeVector&& values, bool null_if_empty) {
     auto begin = _nodes.size();
-    std::copy(values.begin(), values.end(), std::back_inserter(_nodes));
-    return sx::Node(loc, sx::NodeType::ARRAY, sx::AttributeKey::NONE, begin, _nodes.size() - begin);
-}
-
-/// Add an array
-sx::Node ModuleBuilder::Add(sx::Location loc, OptNodeVector&& values) {
-    NodeVector nodes;
-    nodes.reserve(values.size());
+    _nodes.reserve(_nodes.size() + values.size());
     for (auto& v: values) {
-        if (v)
-            nodes.push_back(*v);
-    }
-    return Add(loc, move(nodes));
-}
-
-/// Add an object
-sx::Node ModuleBuilder::Add(sx::Location loc, sx::NodeType type, std::initializer_list<OptNode> nodes) {
-    NodeVector attributes;
-    for (auto& node: nodes) {
-        if (node) {
-            attributes.push_back(*node);
+        if (v.node_type() != sx::NodeType::NONE) {
+            _nodes.push_back(v);
         }
     }
-    return Add(loc, type, move(attributes));
-}
-
-/// Add an object
-sx::Node ModuleBuilder::Add(sx::Location loc, sx::NodeType type, OptNodeVector&& attrs) {
-    NodeVector attributes;
-    for (auto& node: attrs) {
-        if (node) {
-            attributes.push_back(*node);
-        }
+    auto n = _nodes.size() - begin;
+    if ((n == 0) && null_if_empty) {
+        return Null();
     }
-    return Add(loc, type, move(attributes));
+    return sx::Node(loc, sx::NodeType::ARRAY, sx::AttributeKey::NONE, begin, n);
 }
 
 /// Add an object
-sx::Node ModuleBuilder::Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs) {
+sx::Node ModuleBuilder::Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty) {
     auto begin = _nodes.size();
-    std::copy(attrs.begin(), attrs.end(), std::back_inserter(_nodes));
-    return sx::Node(loc, type, sx::AttributeKey::NONE, begin, _nodes.size() - begin);
+    _nodes.reserve(_nodes.size() + attrs.size());
+    for (auto& v: attrs) {
+        if (v.node_type() != sx::NodeType::NONE) {
+            _nodes.push_back(v);
+        }
+    }
+    auto n = _nodes.size() - begin;
+    if ((n == 0) && null_if_empty) {
+        return Null();
+    }
+    return sx::Node(loc, type, sx::AttributeKey::NONE, begin, n);
 }
 
 /// Add an object
 NodeVector ModuleBuilder::CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attrs) {
     auto type_val = RefEnum(viz_loc, viz_type);
-    auto type_attr = Label(sx::AttributeKey::DASHQL_VIZ_TYPE, type_val);
+    auto type_attr = sx::AttributeKey::DASHQL_VIZ_TYPE << type_val;
     NodeVector result{type_attr};
     for (auto& as: attrs) {
         for (auto& a: as.get()) {

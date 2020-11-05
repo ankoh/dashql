@@ -68,14 +68,14 @@ class ParserDriver: public ModuleBuilder {
     }
 
     /// Create indirection
-    inline sx::Node AddIndirection(sx::Location loc, std::optional<sx::Node> index) {
+    inline sx::Node AddIndirection(sx::Location loc, sx::Node index) {
         return Add(loc, sx::NodeType::SQL_INDIRECTION, {
             sx::AttributeKey::SQL_INDIRECTION_INDEX << index,
         });
     }
 
     /// Create indirection
-    inline sx::Node AddIndirection(sx::Location loc, std::optional<sx::Node> lower_bound, std::optional<sx::Node> upper_bound) {
+    inline sx::Node AddIndirection(sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
         return Add(loc, sx::NodeType::SQL_INDIRECTION, {
             sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND << lower_bound,
             sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND << upper_bound,
@@ -95,6 +95,13 @@ class ParserDriver: public ModuleBuilder {
         return Add(loc, sx::NodeType::SQL_INTO, {
             sx::AttributeKey::SQL_TEMP_TYPE << type,
             sx::AttributeKey::SQL_TEMP_NAME << name,
+        });
+    }
+
+    /// Create a column ref
+    inline sx::Node AddColumnRef(sx::Location loc, NodeVector&& path) {
+        return Add(loc, sx::NodeType::SQL_COLUMN_REF, {
+            sx::AttributeKey::SQL_COLUMN_REF_PATH << Add(loc, move(path)),
         });
     }
 
