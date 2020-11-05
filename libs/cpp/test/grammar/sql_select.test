@@ -755,3 +755,19 @@ expected:
   errors: []
   line_breaks: []
   comments: []
+----
+name: table_a
+input: TABLE a;
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..7|`TABLE a`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_TABLE_REF
+        location: 0..7|`TABLE a`
+        SQL_TABLE_NAME:
+          - 6..7|`a`
+        SQL_TABLE_INHERIT: 1
+  errors: []
+  line_breaks: []
+  comments: []

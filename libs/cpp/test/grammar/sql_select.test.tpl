@@ -121,3 +121,7 @@ input: |-
 name: values_12_34
 input: |-
   values (1, 2), (3, 4);
+----
+name: table_a
+input: |-
+  TABLE a;

@@ -131,7 +131,7 @@ sql_simple_select:
             Key::SQL_SELECT_VALUES << ctx.Add(@1, move($1)),
         });
     }
-  | TABLE sql_relation_expr     { $$ = {}; }
+  | TABLE sql_relation_expr { $$ = ctx.Add(@$, sx::NodeType::SQL_TABLE_REF, move($2));; }
   | sql_select_clause UNION sql_all_or_distinct sql_select_clause       { $$ = {}; }
   | sql_select_clause INTERSECT sql_all_or_distinct sql_select_clause   { $$ = {}; }
   | sql_select_clause EXCEPT sql_all_or_distinct sql_select_clause      { $$ = {}; }
