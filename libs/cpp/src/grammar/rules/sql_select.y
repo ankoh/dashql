@@ -1357,11 +1357,7 @@ sql_target_el:
             Key::SQL_RESULT_TARGET_NAME << ctx.Ref(@2),
         });
     }
-  | sql_a_expr {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_RESULT_TARGET, {
-            Key::SQL_RESULT_TARGET_VALUE << $1,
-        });
-    }
+  | sql_a_expr  { $$ = $1; }
   | '*'         { $$ = {}; }
     ;
 

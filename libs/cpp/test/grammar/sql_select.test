@@ -4,17 +4,14 @@ input: |-
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: "0..8|`select 1`"
+      location: 0..8|`select 1`
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: "0..8|`select 1`"
+        location: 0..8|`select 1`
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
-            location: "7..8|`1`"
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: "7..8|`1`"
-              SQL_ACONST_TYPE: 0
+          - type: SQL_ACONST
+            location: 7..8|`1`
+            SQL_ACONST_TYPE: 0
   errors: []
   line_breaks: []
   comments: []
@@ -25,17 +22,14 @@ input: |-
 expected:
   statements:
     - type: DASHQL_QUERY
-      location: "0..12|`select 1e-04`"
+      location: '0..12|`select 1e-04`'
       DASHQL_QUERY_STATEMENT:
         type: SQL_SELECT
-        location: "0..12|`select 1e-04`"
+        location: '0..12|`select 1e-04`'
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
-            location: "7..12|`1e-04`"
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: "7..12|`1e-04`"
-              SQL_ACONST_TYPE: 1
+          - type: SQL_ACONST
+            location: '7..12|`1e-04`'
+            SQL_ACONST_TYPE: 1
   errors: []
   line_breaks: []
   comments: []
@@ -73,12 +67,9 @@ expected:
         type: SQL_SELECT
         location: "0..14|`select b'1010'`"
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_ACONST
             location: "7..14|`b'1010'`"
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: "7..14|`b'1010'`"
-              SQL_ACONST_TYPE: 3
+            SQL_ACONST_TYPE: 3
   errors: []
   line_breaks: []
   comments: []
@@ -94,12 +85,9 @@ expected:
         type: SQL_SELECT
         location: "0..12|`select x'2a'`"
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_ACONST
             location: "7..12|`x'2a'`"
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: "7..12|`x'2a'`"
-              SQL_ACONST_TYPE: 3
+            SQL_ACONST_TYPE: 3
   errors: []
   line_breaks: []
   comments: []
@@ -115,12 +103,9 @@ expected:
         type: SQL_SELECT
         location: "0..12|`select 'foo'`"
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_ACONST
             location: "7..12|`'foo'`"
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: "7..12|`'foo'`"
-              SQL_ACONST_TYPE: 2
+            SQL_ACONST_TYPE: 2
   errors: []
   line_breaks: []
   comments: []
@@ -136,12 +121,9 @@ expected:
         type: SQL_SELECT
         location: "0..16|`select '''foo'''`"
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_ACONST
             location: "7..16|`'''foo'''`"
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: "7..16|`'''foo'''`"
-              SQL_ACONST_TYPE: 2
+            SQL_ACONST_TYPE: 2
   errors: []
   line_breaks: []
   comments: []
@@ -157,12 +139,9 @@ expected:
         type: SQL_SELECT
         location: '0..14|`select ''"foo"''`'
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_ACONST
             location: '7..14|`''"foo"''`'
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: '7..14|`''"foo"''`'
-              SQL_ACONST_TYPE: 2
+            SQL_ACONST_TYPE: 2
   errors: []
   line_breaks: []
   comments: []
@@ -220,18 +199,12 @@ expected:
         type: SQL_SELECT
         location: '0..11|`select 1, 2`'
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_ACONST
             location: 7..8|`1`
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: 7..8|`1`
-              SQL_ACONST_TYPE: 0
-          - type: SQL_RESULT_TARGET
+            SQL_ACONST_TYPE: 0
+          - type: SQL_ACONST
             location: 10..11|`2`
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
-              location: 10..11|`2`
-              SQL_ACONST_TYPE: 0
+            SQL_ACONST_TYPE: 0
   errors: []
   line_breaks: []
   comments: []
@@ -247,13 +220,10 @@ expected:
         type: SQL_SELECT
         location: 0..15|`select a from b`
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_COLUMN_REF
             location: 7..8|`a`
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_COLUMN_REF
-              location: 7..8|`a`
-              SQL_COLUMN_REF_PATH:
-                - 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
         SQL_SELECT_FROM:
           - type: SQL_TABLE_REF
             location: 14..15|`b`
@@ -275,13 +245,10 @@ expected:
         type: SQL_SELECT
         location: 0..17|`select a from b.c`
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_COLUMN_REF
             location: 7..8|`a`
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_COLUMN_REF
-              location: 7..8|`a`
-              SQL_COLUMN_REF_PATH:
-                - 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
         SQL_SELECT_FROM:
           - type: SQL_TABLE_REF
             location: 14..17|`b.c`
@@ -304,13 +271,10 @@ expected:
         type: SQL_SELECT
         location: 0..22|`select a f`..`m only b.c`
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_COLUMN_REF
             location: 7..8|`a`
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_COLUMN_REF
-              location: 7..8|`a`
-              SQL_COLUMN_REF_PATH:
-                - 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
         SQL_SELECT_FROM:
           - type: SQL_TABLE_REF
             location: 14..22|`only b.c`
@@ -333,13 +297,10 @@ expected:
         type: SQL_SELECT
         location: 0..22|`select a f`..`m b.c as d`
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_COLUMN_REF
             location: 7..8|`a`
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_COLUMN_REF
-              location: 7..8|`a`
-              SQL_COLUMN_REF_PATH:
-                - 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
         SQL_SELECT_FROM:
           - type: SQL_TABLE_REF
             location: 14..22|`b.c as d`
@@ -363,13 +324,10 @@ expected:
         type: SQL_SELECT
         location: '0..18|`select a from b, c`'
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_COLUMN_REF
             location: 7..8|`a`
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_COLUMN_REF
-              location: 7..8|`a`
-              SQL_COLUMN_REF_PATH:
-                - 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
         SQL_SELECT_FROM:
           - type: SQL_TABLE_REF
             location: 14..15|`b`
@@ -396,13 +354,10 @@ expected:
         type: SQL_SELECT
         location: '0..25|`select a i`..` from c, d`'
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_COLUMN_REF
             location: 7..8|`a`
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_COLUMN_REF
-              location: 7..8|`a`
-              SQL_COLUMN_REF_PATH:
-                - 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
         SQL_SELECT_INTO:
           type: SQL_INTO
           location: 14..15|`b`
@@ -435,13 +390,10 @@ expected:
         type: SQL_SELECT
         location: 0..26|`select a f`..`group by 1`
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: SQL_COLUMN_REF
             location: 7..8|`a`
-            SQL_RESULT_TARGET_VALUE:
-              type: SQL_COLUMN_REF
-              location: 7..8|`a`
-              SQL_COLUMN_REF_PATH:
-                - 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
         SQL_SELECT_FROM:
           - type: SQL_TABLE_REF
             location: 14..15|`b`
