@@ -578,7 +578,7 @@ expected:
 name: select_from_1rel_2windows
 input: |-
   select a from b
-  window c as (partition by d range between 1 preceding and current row),
+  window c as (partition by d range between current row and 1 following),
          e as (partition by f)
 expected:
   statements:
@@ -600,11 +600,11 @@ expected:
             SQL_TABLE_INHERIT: 1
         SQL_SELECT_WINDOWS:
           - type: SQL_WINDOW_DEF
-            location: 23..86|`c as (part`..`rrent row)`
+            location: 23..86|`c as (part`..`following)`
             SQL_WINDOW_DEF_NAME: 23..24|`c`
             SQL_WINDOW_DEF_FRAME:
               type: SQL_WINDOW_FRAME
-              location: 28..86|`(partition`..`rrent row)`
+              location: 28..86|`(partition`..`following)`
               SQL_WINDOW_FRAME_PARTITION:
                 - type: SQL_COLUMN_REF
                   location: 42..43|`d`
@@ -613,16 +613,16 @@ expected:
               SQL_WINDOW_FRAME_MODE: 1
               SQL_WINDOW_FRAME_BOUNDS:
                 - type: SQL_WINDOW_BOUND
-                  location: 58..69|`1 preceding`
+                  location: 58..69|`current row`
+                  SQL_WINDOW_BOUND_MODE: 2
+                - type: SQL_WINDOW_BOUND
+                  location: 74..85|`1 following`
                   SQL_WINDOW_BOUND_MODE: 3
-                  SQL_WINDOW_BOUND_DIRECTION: 1
+                  SQL_WINDOW_BOUND_DIRECTION: 2
                   SQL_WINDOW_BOUND_VALUE:
                     type: SQL_ACONST
-                    location: 58..59|`1`
+                    location: 74..75|`1`
                     SQL_ACONST_TYPE: 0
-                - type: SQL_WINDOW_BOUND
-                  location: 74..85|`current row`
-                  SQL_WINDOW_BOUND_MODE: 2
           - type: SQL_WINDOW_DEF
             location: 95..116|`e as (part`..`tion by f)`
             SQL_WINDOW_DEF_NAME: 95..96|`e`
