@@ -692,3 +692,66 @@ expected:
   errors: []
   line_breaks: []
   comments: []
+----
+name: values_1
+input: values (1);
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..10|`values (1)`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..10|`values (1)`
+        SQL_SELECT_VALUES:
+          - - type: SQL_ACONST
+              location: 8..9|`1`
+              SQL_ACONST_TYPE: 0
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: values_1_2
+input: 'values (1), (2);'
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: '0..15|`values (1), (2)`'
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: '0..15|`values (1), (2)`'
+        SQL_SELECT_VALUES:
+          - - type: SQL_ACONST
+              location: 8..9|`1`
+              SQL_ACONST_TYPE: 0
+          - - type: SQL_ACONST
+              location: 13..14|`2`
+              SQL_ACONST_TYPE: 0
+  errors: []
+  line_breaks: []
+  comments: []
+----
+name: values_12_34
+input: 'values (1, 2), (3, 4);'
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: '0..21|`values (1,`..`2), (3, 4)`'
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: '0..21|`values (1,`..`2), (3, 4)`'
+        SQL_SELECT_VALUES:
+          - - type: SQL_ACONST
+              location: 8..9|`1`
+              SQL_ACONST_TYPE: 0
+            - type: SQL_ACONST
+              location: 11..12|`2`
+              SQL_ACONST_TYPE: 0
+          - - type: SQL_ACONST
+              location: 16..17|`3`
+              SQL_ACONST_TYPE: 0
+            - type: SQL_ACONST
+              location: 19..20|`4`
+              SQL_ACONST_TYPE: 0
+  errors: []
+  line_breaks: []
+  comments: []

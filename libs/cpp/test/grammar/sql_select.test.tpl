@@ -109,3 +109,15 @@ input: |-
 name: select_all_from_1rel
 input: |-
   select all from b
+----
+name: values_1
+input: |-
+  values (1);
+----
+name: values_1_2
+input: |-
+  values (1), (2);
+----
+name: values_12_34
+input: |-
+  values (1, 2), (3, 4);

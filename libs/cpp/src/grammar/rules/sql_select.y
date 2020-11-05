@@ -101,7 +101,6 @@ sql_simple_select:
     SELECT sql_opt_all_clause sql_opt_target_list
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause {
-
             $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
                 Key::SQL_SELECT_ALL << $2,
                 Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
@@ -116,7 +115,6 @@ sql_simple_select:
   | SELECT sql_distinct_clause sql_target_list
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause {
-
             $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
                 Key::SQL_SELECT_DISTINCT << $2,
                 Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
@@ -128,7 +126,11 @@ sql_simple_select:
                 Key::SQL_SELECT_WINDOWS << ctx.Add(@9, move($9)),
             });
         }
-  | sql_values_clause           { $$ = {}; }
+  | sql_values_clause {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_SELECT, {
+            Key::SQL_SELECT_VALUES << ctx.Add(@1, move($1)),
+        });
+    }
   | TABLE sql_relation_expr     { $$ = {}; }
   | sql_select_clause UNION sql_all_or_distinct sql_select_clause       { $$ = {}; }
   | sql_select_clause INTERSECT sql_all_or_distinct sql_select_clause   { $$ = {}; }
@@ -409,8 +411,8 @@ sql_opt_nowait_or_skip:
 // than allowing the noise-word is worth.
 
 sql_values_clause:
-    VALUES '(' sql_expr_list ')'
-  | sql_values_clause ',' '(' sql_expr_list ')'
+    VALUES '(' sql_expr_list ')'                    { $$ = { ctx.Add(@3, move($3)) }; }
+  | sql_values_clause ',' '(' sql_expr_list ')'     { $1.push_back(ctx.Add(@4, move($4))); $$ = move($1); }
     ;
 
 

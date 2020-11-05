@@ -60,14 +60,15 @@ enum class NodeType : uint16_t {
   SQL_RESULT_TARGET = 17,
   SQL_SELECT = 18,
   SQL_TABLE_REF = 19,
-  SQL_WINDOW_BOUND = 20,
-  SQL_WINDOW_DEF = 21,
-  SQL_WINDOW_FRAME = 22,
+  SQL_VALUES_ENTRY = 20,
+  SQL_WINDOW_BOUND = 21,
+  SQL_WINDOW_DEF = 22,
+  SQL_WINDOW_FRAME = 23,
   MIN = NONE,
   MAX = SQL_WINDOW_FRAME
 };
 
-inline const NodeType (&EnumValuesNodeType())[23] {
+inline const NodeType (&EnumValuesNodeType())[24] {
   static const NodeType values[] = {
     NodeType::NONE,
     NodeType::UI32,
@@ -89,6 +90,7 @@ inline const NodeType (&EnumValuesNodeType())[23] {
     NodeType::SQL_RESULT_TARGET,
     NodeType::SQL_SELECT,
     NodeType::SQL_TABLE_REF,
+    NodeType::SQL_VALUES_ENTRY,
     NodeType::SQL_WINDOW_BOUND,
     NodeType::SQL_WINDOW_DEF,
     NodeType::SQL_WINDOW_FRAME
@@ -97,7 +99,7 @@ inline const NodeType (&EnumValuesNodeType())[23] {
 }
 
 inline const char * const *EnumNamesNodeType() {
-  static const char * const names[24] = {
+  static const char * const names[25] = {
     "NONE",
     "UI32",
     "STRING",
@@ -118,6 +120,7 @@ inline const char * const *EnumNamesNodeType() {
     "SQL_RESULT_TARGET",
     "SQL_SELECT",
     "SQL_TABLE_REF",
+    "SQL_VALUES_ENTRY",
     "SQL_WINDOW_BOUND",
     "SQL_WINDOW_DEF",
     "SQL_WINDOW_FRAME",
@@ -809,6 +812,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -835,12 +839,13 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     "SQL_RESULT_TARGET",
     "SQL_SELECT",
     "SQL_TABLE_REF",
+    "SQL_VALUES_ENTRY",
     "SQL_WINDOW_BOUND",
     "SQL_WINDOW_DEF",
     "SQL_WINDOW_FRAME"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 23, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 24, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

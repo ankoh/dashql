@@ -57,14 +57,15 @@ pub enum NodeType {
   SQL_RESULT_TARGET = 17,
   SQL_SELECT = 18,
   SQL_TABLE_REF = 19,
-  SQL_WINDOW_BOUND = 20,
-  SQL_WINDOW_DEF = 21,
-  SQL_WINDOW_FRAME = 22,
+  SQL_VALUES_ENTRY = 20,
+  SQL_WINDOW_BOUND = 21,
+  SQL_WINDOW_DEF = 22,
+  SQL_WINDOW_FRAME = 23,
 
 }
 
 pub const ENUM_MIN_NODE_TYPE: u16 = 0;
-pub const ENUM_MAX_NODE_TYPE: u16 = 22;
+pub const ENUM_MAX_NODE_TYPE: u16 = 23;
 
 impl<'a> flatbuffers::Follow<'a> for NodeType {
   type Inner = Self;
@@ -98,7 +99,7 @@ impl flatbuffers::Push for NodeType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_NODE_TYPE: [NodeType; 23] = [
+pub const ENUM_VALUES_NODE_TYPE: [NodeType; 24] = [
   NodeType::NONE,
   NodeType::UI32,
   NodeType::STRING,
@@ -119,13 +120,14 @@ pub const ENUM_VALUES_NODE_TYPE: [NodeType; 23] = [
   NodeType::SQL_RESULT_TARGET,
   NodeType::SQL_SELECT,
   NodeType::SQL_TABLE_REF,
+  NodeType::SQL_VALUES_ENTRY,
   NodeType::SQL_WINDOW_BOUND,
   NodeType::SQL_WINDOW_DEF,
   NodeType::SQL_WINDOW_FRAME
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_NODE_TYPE: [&str; 23] = [
+pub const ENUM_NAMES_NODE_TYPE: [&str; 24] = [
     "NONE",
     "UI32",
     "STRING",
@@ -146,6 +148,7 @@ pub const ENUM_NAMES_NODE_TYPE: [&str; 23] = [
     "SQL_RESULT_TARGET",
     "SQL_SELECT",
     "SQL_TABLE_REF",
+    "SQL_VALUES_ENTRY",
     "SQL_WINDOW_BOUND",
     "SQL_WINDOW_DEF",
     "SQL_WINDOW_FRAME"
