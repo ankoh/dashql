@@ -20,6 +20,7 @@
 %type <sx::Node> sql_a_expr;
 %type <sx::Node> sql_a_expr_const;
 %type <sx::Node> sql_alias_clause;
+%type <sx::Node> sql_all_or_distinct;
 %type <sx::Node> sql_c_expr;
 %type <sx::Node> sql_columnref;
 %type <sx::Node> sql_distinct_clause;
@@ -33,9 +34,9 @@
 %type <sx::Node> sql_opt_slice_bound;
 %type <sx::Node> sql_opt_temp_table_name;
 %type <sx::Node> sql_over_clause;
-%type <sx::Node> sql_select_stmt;
 %type <sx::Node> sql_select_clause;
 %type <sx::Node> sql_select_no_parens;
+%type <sx::Node> sql_select_stmt;
 %type <sx::Node> sql_select_with_parens;
 %type <sx::Node> sql_simple_select;
 %type <sx::Node> sql_table_ref;

@@ -132,9 +132,27 @@ sql_simple_select:
         });
     }
   | TABLE sql_relation_expr { $$ = ctx.Add(@$, sx::NodeType::SQL_TABLE_REF, move($2));; }
-  | sql_select_clause UNION sql_all_or_distinct sql_select_clause       { $$ = {}; }
-  | sql_select_clause INTERSECT sql_all_or_distinct sql_select_clause   { $$ = {}; }
-  | sql_select_clause EXCEPT sql_all_or_distinct sql_select_clause      { $$ = {}; }
+  | sql_select_clause UNION sql_all_or_distinct sql_select_clause {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_COMBINE, NodeVector{
+            Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::UNION),
+            Key::SQL_COMBINE_MODIFIER << $3,
+            Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{$1, $4}),
+        });
+    }
+  | sql_select_clause INTERSECT sql_all_or_distinct sql_select_clause {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_COMBINE, NodeVector{
+            Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::INTERSECT),
+            Key::SQL_COMBINE_MODIFIER << $3,
+            Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{$1, $4}),
+        });
+    }
+  | sql_select_clause EXCEPT sql_all_or_distinct sql_select_clause {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_COMBINE, NodeVector{
+            Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::EXCEPT),
+            Key::SQL_COMBINE_MODIFIER << $3,
+            Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{$1, $4}),
+        });
+    }
     ;
 
 // SQL standard WITH clause looks like:
@@ -191,9 +209,9 @@ sql_opt_table:
     ;
 
 sql_all_or_distinct:
-    ALL
-  | DISTINCT
-  | %empty
+    ALL         { $$ = ctx.RefEnum(@1, sxs::CombineModifier::ALL); }
+  | DISTINCT    { $$ = ctx.RefEnum(@1, sxs::CombineModifier::DISTINCT); }
+  | %empty      { $$ = ctx.Null(); }
     ;
 
 // We use (NIL) as a placeholder to indicate that all target expressions

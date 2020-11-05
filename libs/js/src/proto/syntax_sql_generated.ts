@@ -6,6 +6,29 @@ import { flatbuffers } from "flatbuffers";
  * @enum {number}
  */
 export namespace dashql.proto.syntax_sql{
+export enum CombineModifier{
+  NONE= 0,
+  ALL= 1,
+  DISTINCT= 2
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum CombineOperation{
+  NONE= 0,
+  INTERSECT= 1,
+  UNION= 2,
+  EXCEPT= 3
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
 export enum AConstType{
   INTEGER= 0,
   FLOAT= 1,

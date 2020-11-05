@@ -2,6 +2,19 @@
 
 namespace dashql.proto.syntax_sql;
 
+enum CombineModifier: uint8 {
+    NONE,
+    ALL,
+    DISTINCT,
+}
+
+enum CombineOperation: uint8 {
+    NONE,
+    INTERSECT,
+    UNION,
+    EXCEPT
+}
+
 enum AConstType: uint8 {
     INTEGER = 0,
     FLOAT = 1,
@@ -10,7 +23,6 @@ enum AConstType: uint8 {
     NULL_ = 4,
 }
 
-// PGAExpr_Kind
 enum AExprKind: uint8 {
     AEXPR_OP,
     AEXPR_OP_ANY,

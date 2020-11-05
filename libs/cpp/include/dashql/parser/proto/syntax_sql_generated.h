@@ -11,6 +11,75 @@ namespace dashql {
 namespace proto {
 namespace syntax_sql {
 
+enum class CombineModifier : uint8_t {
+  NONE = 0,
+  ALL = 1,
+  DISTINCT = 2,
+  MIN = NONE,
+  MAX = DISTINCT
+};
+
+inline const CombineModifier (&EnumValuesCombineModifier())[3] {
+  static const CombineModifier values[] = {
+    CombineModifier::NONE,
+    CombineModifier::ALL,
+    CombineModifier::DISTINCT
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesCombineModifier() {
+  static const char * const names[4] = {
+    "NONE",
+    "ALL",
+    "DISTINCT",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameCombineModifier(CombineModifier e) {
+  if (flatbuffers::IsOutRange(e, CombineModifier::NONE, CombineModifier::DISTINCT)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesCombineModifier()[index];
+}
+
+enum class CombineOperation : uint8_t {
+  NONE = 0,
+  INTERSECT = 1,
+  UNION = 2,
+  EXCEPT = 3,
+  MIN = NONE,
+  MAX = EXCEPT
+};
+
+inline const CombineOperation (&EnumValuesCombineOperation())[4] {
+  static const CombineOperation values[] = {
+    CombineOperation::NONE,
+    CombineOperation::INTERSECT,
+    CombineOperation::UNION,
+    CombineOperation::EXCEPT
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesCombineOperation() {
+  static const char * const names[5] = {
+    "NONE",
+    "INTERSECT",
+    "UNION",
+    "EXCEPT",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameCombineOperation(CombineOperation e) {
+  if (flatbuffers::IsOutRange(e, CombineOperation::NONE, CombineOperation::EXCEPT)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesCombineOperation()[index];
+}
+
 enum class AConstType : uint8_t {
   INTEGER = 0,
   FLOAT = 1,
@@ -300,6 +369,48 @@ inline const char *EnumNameWindowExclusionMode(WindowExclusionMode e) {
   if (flatbuffers::IsOutRange(e, WindowExclusionMode::NONE, WindowExclusionMode::TIES)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesWindowExclusionMode()[index];
+}
+
+inline const flatbuffers::TypeTable *CombineModifierTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::CombineModifierTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "ALL",
+    "DISTINCT"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *CombineOperationTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::CombineOperationTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "INTERSECT",
+    "UNION",
+    "EXCEPT"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
 }
 
 inline const flatbuffers::TypeTable *AConstTypeTypeTable() {
