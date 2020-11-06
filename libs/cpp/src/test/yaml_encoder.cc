@@ -62,64 +62,62 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
     auto& tree = *root.tree();
     root |= ryml::MAP;
 
+    // Unpack modules
+    auto* nodes = module.nodes();
+    auto* statements = module.statements();
+    auto* node_type_tt = proto::syntax::NodeTypeTypeTable();
+    auto* attr_key_tt = proto::syntax::AttributeKeyTypeTable();
+
+    // Add the statements list
+    auto stmts_seq = root["statements"];
+    stmts_seq |= ryml::SEQ;
+
     // Translate statements
-    {
-        auto* nodes = module.nodes();
-        auto* statements = module.statements();
-        auto* node_type_tt = proto::syntax::NodeTypeTypeTable();
-        auto* attr_key_tt = proto::syntax::AttributeKeyTypeTable();
+    for (unsigned stmt_id = 0; stmt_id < statements->size(); ++stmt_id) {
+        // Translate the statement tree with a DFS
+        auto n = nodes->Get(statements->Get(stmt_id));
+        std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Node*>> pending;
+        pending.push_back({stmts_seq, {}, n});
 
-        // Add the statements list
-        auto stmts_seq = root["statements"];
-        stmts_seq |= ryml::SEQ;
+        while (!pending.empty()) {
+            auto [parent, key, target] = pending.back();
+            pending.pop_back();
 
-        // Translate statements
-        for (unsigned stmt_id = 0; stmt_id < statements->size(); ++stmt_id) {
-            // Translate the statement tree with a DFS
-            auto n = nodes->Get(statements->Get(stmt_id));
-            std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Node*>> pending;
-            pending.push_back({stmts_seq, {}, n});
+            // Add or append to parent
+            auto n = key.empty() ? parent.append_child() : parent[c4::csubstr(key.data(), key.size())];
 
-            while (!pending.empty()) {
-                auto [parent, key, target] = pending.back();
-                pending.pop_back();
-
-                // Add or append to parent
-                auto n = key.empty() ? parent.append_child() : parent[c4::csubstr(key.data(), key.size())];
-
-                // Check node type
-                switch (target->node_type()) {
-                    case sx::NodeType::NONE:
-                        break;
-                    case sx::NodeType::UI32: {
-                        n |= ryml::VAL;
-                        n << target->children_begin_or_value();
-                        break;
+            // Check node type
+            switch (target->node_type()) {
+                case sx::NodeType::NONE:
+                    break;
+                case sx::NodeType::UI32: {
+                    n |= ryml::VAL;
+                    n << target->children_begin_or_value();
+                    break;
+                }
+                case sx::NodeType::STRING: {
+                    encode(n, target->location(), text);
+                    break;
+                }
+                case sx::NodeType::ARRAY: {
+                    n |= ryml::SEQ;
+                    auto end = target->children_begin_or_value() + target->children_count();
+                    for (auto i = 0; i < target->children_count(); ++i) {
+                        pending.push_back({n, {}, nodes->Get(end - i - 1)});
                     }
-                    case sx::NodeType::STRING: {
-                        encode(n, target->location(), text);
-                        break;
+                    break;
+                }
+                default: {
+                    n |= ryml::MAP;
+                    auto end = target->children_begin_or_value() + target->children_count();
+                    n["type"] = c4::to_csubstr(node_type_tt->names[static_cast<size_t>(target->node_type())]);
+                    encode(n["location"], target->location(), text);
+                    for (auto i = 0; i < target->children_count(); ++i) {
+                        auto attr = nodes->Get(end - i - 1);
+                        auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr->attribute_key())]);
+                        pending.push_back({n, attr_key, attr});
                     }
-                    case sx::NodeType::ARRAY: {
-                        n |= ryml::SEQ;
-                        auto end = target->children_begin_or_value() + target->children_count();
-                        for (auto i = 0; i < target->children_count(); ++i) {
-                            pending.push_back({n, {}, nodes->Get(end - i - 1)});
-                        }
-                        break;
-                    }
-                    default: {
-                        n |= ryml::MAP;
-                        auto end = target->children_begin_or_value() + target->children_count();
-                        n["type"] = c4::to_csubstr(node_type_tt->names[static_cast<size_t>(target->node_type())]);
-                        encode(n["location"], target->location(), text);
-                        for (auto i = 0; i < target->children_count(); ++i) {
-                            auto attr = nodes->Get(end - i - 1);
-                            auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr->attribute_key())]);
-                            pending.push_back({n, attr_key, attr});
-                        }
-                        break;
-                    }
+                    break;
                 }
             }
         }
