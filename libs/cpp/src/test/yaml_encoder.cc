@@ -72,9 +72,8 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
     auto stmts_seq = root["statements"];
     stmts_seq |= ryml::SEQ;
 
-    // Translate statements
+    // Translate the statement tree with a DFS
     for (unsigned stmt_id = 0; stmt_id < statements->size(); ++stmt_id) {
-        // Translate the statement tree with a DFS
         auto n = nodes->Get(statements->Get(stmt_id));
         std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Node*>> pending;
         pending.push_back({stmts_seq, {}, n});
