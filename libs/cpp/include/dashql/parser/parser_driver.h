@@ -24,43 +24,27 @@ namespace parser {
 namespace sx = dashql::proto::syntax;
 namespace sxd = dashql::proto::syntax_dashql;
 
+class Scanner;
+
 using Location = sx::Location;
 
 /// Return the location
-std::ostream& operator<<(std::ostream& out, const Location& loc);
+std::ostream& operator<<(std::ostream& out, const sx::Location& loc);
 
 // Schema parser driver
 class ParserDriver: public ModuleBuilder {
     friend class Parser;
 
     protected:
-    /// The input (if any)
-    std::string_view _input;
-    /// Trace the scanning
-    bool _trace_scanning;
-    /// Trace the parsing
-    bool _trace_parsing;
     /// The scanner
-    void* _scanner;
+    Scanner& _scanner;
 
     public:
     /// Constructor
-    explicit ParserDriver(std::string_view text, bool trace_scanning = false, bool trace_parsing = false);
+    explicit ParserDriver(Scanner& scanner);
     /// Destructor
     ~ParserDriver();
 
-    /// Trace scanning
-    auto trace_scanning() const { return _trace_scanning; }
-    /// Trace parsing?
-    auto trace_parsing() const { return _trace_parsing; }
-
-    /// Begin a scan
-    void BeginScan();
-    /// End a scan
-    void EndScan();
-
-    /// Get the text at location
-    inline std::string_view TextAt(Location loc) { return _input.substr(loc.offset(), loc.length()); }
 
     /// Create a constant
     inline sx::Node AddConst(sx::Location loc, sxs::AConstType type) {

@@ -13,7 +13,7 @@
 #include <charconv>
 #include "dashql/parser/grammar/keywords.h"
 #include "dashql/parser/parser.h"
-#include "dashql/parser/parser_driver.h"
+#include "dashql/parser/scanner.h"
 
 // ISO C++17 does not allow 'register' storage class specifier
 #pragma GCC diagnostic push
@@ -27,57 +27,32 @@ namespace sx = proto::syntax;
 namespace sxd = proto::syntax_dashql;
 namespace sxs = proto::syntax_sql;
 
-namespace dashql {
-namespace parser {
-
-// The location of the current token
-extern sx::Location loc;
-// The offset the comment (if any)
-extern sx::Location comment_begin;
-// The comment depth (to match the appropriate */)
-extern int comment_depth;
-// The offset the literal (if any)
-extern sx::Location literal_begin;
-// The input string view
-extern std::string_view in;
-// The reader offset
-extern size_t scanner_offset;
-// The parser offset
-extern size_t parser_offset;
-
-// Put back characters
-void PutBack(ParserDriver& ctx, size_t n);
-// Read an integer
-Parser::symbol_type ReadInteger(ParserDriver& ctx, sx::Location loc);
-// Read a parameter
-Parser::symbol_type ReadParameter(ParserDriver& ctx, sx::Location loc);
-// Begin a literal
-void BeginLiteral(ParserDriver& ctx, sx::Location loc);
-// End a literal
-sx::Location EndLiteral(ParserDriver& ctx, sx::Location loc);
-
-} // namespace parser
-} // namespace dashql
-
 // Declare the yylex function
-#define YY_DECL Parser::symbol_type yylex(YYSTYPE* yylval_param, YYLTYPE* yylloc_param, void* yyscanner, dashql::parser::ParserDriver& ctx)
-// Init yyloc
-#define YY_USER_INIT loc = sx::Location();
-// Configure the scanner to use string views
-#define YY_INPUT(buffer, bytes_read, max_bytes) \
-    bytes_read = in.copy(buffer, max_bytes, scanner_offset); \
-    scanner_offset += bytes_read;
+#define YY_DECL Parser::symbol_type yylex(YYSTYPE* yylval_param, YYLTYPE* yylloc_param, void* yyscanner)
+// Declare yy_extra_type
+#define YY_EXTRA_TYPE dashql::parser::Scanner*
+
+// Done after the current pattern has been matched and before the corrsponding action.
+// We update yylloc here and not in YY_USER_ACTION so that yyless picks it up.
+#undef YY_DO_BEFORE_ACTION
+#define YY_DO_BEFORE_ACTION { \
+    yyg->yytext_ptr = yy_bp; \
+    yyleng = (yy_size_t) (yy_cp - yy_bp); \
+    yyg->yy_hold_char = *yy_cp; \
+    *yy_cp = '\0'; \
+    yyg->yy_c_buf_p = yy_cp; \
+    *yylloc = sx::Location(yy_bp - YY_CURRENT_BUFFER_LVALUE->yy_ch_buf, yyleng); \
+}
+
 // The user action is run whenever a token is matched
 #define YY_USER_ACTION { \
-    auto token_text = in.substr(parser_offset, yyleng); \
     for (unsigned i = 0; i < yyleng; ++i) { \
-        if (token_text[i] == '\n') { \
-            ctx.AddLineBreak(sx::Location(parser_offset + i, 1)); \
+        if (yytext[i] == '\n') { \
+            ctx.AddLineBreak(sx::Location(yylloc->offset() + i, 1)); \
         } \
     } \
-    loc = sx::Location(parser_offset, yyleng); \
-    parser_offset += yyleng; \
 }
+
 // Return EOF token in yyterminate
 #define yyterminate() return Parser::make_EOF(loc)
 
@@ -96,11 +71,16 @@ using YYSTYPE = dashql::parser::Parser::symbol_type;
 // batch:       Scanner in batch-mode (vs. interactive)
 // caseless:    Case-insensitive pattern matching
 %}
+%option bison-bridge
+%option bison-locations
 %option reentrant
 %option nodefault
 %option noinput
 %option nounput
 %option noyywrap
+%option noyyalloc
+%option noyyrealloc
+%option noyyfree
 %option batch
 %option caseless
 %option prefix="dashql_yy"
@@ -314,63 +294,65 @@ other           .
 %%
 
 %{
-// Code runs each time yylex is called.
-// Start a new token at the end of the previous token.
-loc =  sx::Location(loc.offset() + loc.length(), 0);
+// This code is inlined at the beginning of yylex()
+
+Scanner& ctx = *dashql_yyget_extra(yyscanner);
+auto& loc = *yylloc;
+
 %}
 
 {whitespace}    {}
 
 
-{xcstart}       { BEGIN(xc); comment_begin = loc; comment_depth = 0; }
-<xc>{xcstart}   { ++comment_depth; }
+{xcstart}       { BEGIN(xc); ctx.BeginComment(loc); }
+<xc>{xcstart}   { ctx.BeginComment(loc); }
 <xc>{xcstop}    { 
-                    if (comment_depth-- <= 0) {
+                    if (auto comment = ctx.EndComment(loc)) {
                         BEGIN(INITIAL);
-                        ctx.AddComment(sx::Location(comment_begin.offset(), loc.offset() + loc.length() - comment_begin.offset()));
+                        ctx.AddComment(*comment);
                     }
                 }
 <xc>{xcinside}  {}
 <xc>{op_chars}  {}
 <xc>\*+         {}
-<xc><<EOF>>     { ctx.AddError(EndLiteral(ctx, loc), "unterminated bit string literal"); }
+<xc><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated bit string literal"); }
 
 
-{xbstart}       { BEGIN(xb); BeginLiteral(ctx, loc); }
+{xbstart}       { BEGIN(xb); ctx.BeginLiteral(loc); }
 <xb>{quotestop} |
-<xb>{quotefail} { BEGIN(INITIAL); return Parser::make_BCONST(EndLiteral(ctx, loc)); }
+<xb>{quotefail} { BEGIN(INITIAL); return Parser::make_BCONST(ctx.EndLiteral(loc)); }
 <xh>{xhinside}  |
 <xb>{xbinside}  {}
 <xh>{quotecontinue} |
 <xb>{quotecontinue} {}
-<xb><<EOF>>     { ctx.AddError(EndLiteral(ctx, loc), "unterminated bit string literal"); }
+<xb><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated bit string literal"); }
 
 
-{xhstart}       { BEGIN(xh); BeginLiteral(ctx, loc); }
+{xhstart}       { BEGIN(xh); ctx.BeginLiteral(loc); }
 <xh>{quotestop} |
-<xh>{quotefail} { BEGIN(INITIAL); return Parser::make_XCONST(EndLiteral(ctx, loc)); }
-<xh><<EOF>>     { ctx.AddError(EndLiteral(ctx, loc), "unterminated hexadecimal bit string literal"); }
+<xh>{quotefail} { BEGIN(INITIAL); return Parser::make_XCONST(ctx.EndLiteral(loc)); }
+<xh><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated hexadecimal bit string literal"); }
 
 
-{xqstart}       { BEGIN(xq); BeginLiteral(ctx, loc); }
+{xqstart}       { BEGIN(xq); ctx.BeginLiteral(loc); }
 <xq>{quotestop} |
-<xq>{quotefail} { BEGIN(INITIAL); return Parser::make_SCONST(EndLiteral(ctx, loc)); }
+<xq>{quotefail} { BEGIN(INITIAL); return Parser::make_SCONST(ctx.EndLiteral(loc)); }
 <xq>{xqdouble}  {}
 <xq>{xqinside}  {}
-<xq><<EOF>>     { ctx.AddError(EndLiteral(ctx, loc), "unterminated quoted string"); }
+<xq><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated quoted string"); }
 
 
-{xdstart}       { BEGIN(xd); BeginLiteral(ctx, loc); }
+{xdstart}       { BEGIN(xd); ctx.BeginLiteral(loc); }
 <xd>{xddouble}  {}
 <xd>{xdinside}  {}
 <xd>{xdstop}    { 
                     BEGIN(INITIAL); 
-                    auto l = EndLiteral(ctx, loc);
+                    auto l = ctx.EndLiteral(loc);
                     if (l.length() == 2)
                         ctx.AddError(l, "zero-length delimited identifier");
                     return Parser::make_IDENT(l);
                 }
-<xd><<EOF>>     { ctx.AddError(EndLiteral(ctx, loc), "unterminated delimited identifier"); }
+<xd><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated delimited identifier"); }
 
 {typecast}          { return Parser::make_TYPECAST(loc); }
 {dot_dot}           { return Parser::make_DOT_DOT(loc); }
@@ -446,7 +428,7 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 
                     if ((yy_size_t) nchars < yyleng) {
                         /* Strip the unwanted chars from the token */
-                        PutBack(ctx, yyleng - nchars);
+                        yyless(yyleng - nchars);
                         /*
                          * If what we have left is only one char, and it's
                          * one of the characters matching "self", then
@@ -488,14 +470,14 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
                     return Parser::make_Op(loc);
                 }
 
-{param}         { return ReadParameter(ctx, loc); }
-{param2}        { return ReadParameter(ctx, loc); }
-{integer}       { return ReadInteger(ctx, loc); }
+{param}         { return ctx.ReadParameter(loc); }
+{param2}        { return ctx.ReadParameter(loc); }
+{integer}       { return ctx.ReadInteger(loc); }
 {decimal}       { return Parser::make_FCONST(loc); }
-{decimalfail}   { PutBack(ctx, 2); return Parser::make_FCONST(loc); }
+{decimalfail}   { yyless(yyleng - 2); return Parser::make_FCONST(loc); }
 {real}          { return Parser::make_FCONST(loc); }
-{realfail1}     { PutBack(ctx, 1); return Parser::make_FCONST(loc); }
-{realfail2}     { PutBack(ctx, 2); return Parser::make_FCONST(loc); }
+{realfail1}     { yyless(yyleng - 1); return Parser::make_FCONST(loc); }
+{realfail2}     { yyless(yyleng - 2); return Parser::make_FCONST(loc); }
 
 {identifier}    {
                     if (auto k = Keyword::Find(ctx.TextAt(loc)); !!k) {
@@ -511,86 +493,72 @@ loc =  sx::Location(loc.offset() + loc.length(), 0);
 
 // Code
 
+void *dashql_yyalloc (yy_size_t ,yyscan_t yyscanner ) {
+    assert(false && "flex tried to allocate memory");
+}
+
+void *dashql_yyrealloc (void *,yy_size_t ,yyscan_t yyscanner ) {
+    assert(false && "flex tried to reallocate memory");
+}
+
+void dashql_yyfree (void * ,yyscan_t yyscanner ) {
+    assert(false && "flex tried to free memory");
+}
+
 namespace dashql {
 namespace parser {
 
-sx::Location loc;
-sx::Location comment_begin;
-int comment_depth;
-sx::Location literal_begin;
-std::string_view in;
-size_t scanner_offset;
-size_t parser_offset;
+Scanner::Scanner(nonstd::span<char> input_buffer)
+    : _input_buffer(input_buffer), _null_buffer(), _scanner_state_mem(), _scanner_buffer_stack(), _buffer_state_mem(), _scanner_state_ptr(), _buffer_state_ptr(0), _comment_begin(), _comment_depth(0), _literal_begin(), _errors(), _line_breaks()
+{
+    static_assert(YY_SCANNER_STATE_SIZE >= (alignof(yyguts_t) + sizeof(yyguts_t)), "YY_SCANNER_STATE_SIZE is too small");
+    static_assert(YY_BUFFER_STATE_SIZE >= (alignof(yy_buffer_state) + sizeof(yy_buffer_state)), "YY_BUFFER_STATE_SIZE is too small");
 
-void ParserDriver::BeginScan() {
-    loc = sx::Location();
-    in = _input;
-    scanner_offset = 0;
-    parser_offset = 0;
-}
-
-void ParserDriver::EndScan() {
-    loc = sx::Location();
-    in = _input;
-    scanner_offset = 0;
-    parser_offset = 0;
-}
-
-void PutBack(yyscan_t yyscanner, ParserDriver& ctx, size_t n) {
-    struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
-    yyless(loc.length() - n);
-    parser_offset -= n;
-    loc = sx::Location(loc.offset(), loc.length() - n);
-}
-
-Parser::symbol_type ReadParameter(ParserDriver& ctx, sx::Location loc) {
-    auto text = ctx.TextAt(loc);
-    int64_t value;
-    auto result = std::from_chars(text.data(), text.data() + text.size(), value);
-    if (result.ec == std::errc::invalid_argument) {
-        ctx.AddError(loc, "invalid parameter");
-    }
-    return Parser::make_PARAM(loc);
-}
-
-Parser::symbol_type ReadInteger(ParserDriver& ctx, sx::Location loc) {
-    auto text = ctx.TextAt(loc);
-    int64_t value;
-    auto result = std::from_chars(text.data(), text.data() + text.size(), value);
-    if (result.ec == std::errc::invalid_argument) {
-        return Parser::make_FCONST(loc);
-    } else {
-        return Parser::make_ICONST(loc);
-    }
-}
-
-void BeginLiteral(ParserDriver& ctx, sx::Location loc) {
-    literal_begin = loc;
-}
-
-sx::Location EndLiteral(ParserDriver& ctx, sx::Location loc) {
-    return sx::Location(literal_begin.offset(), loc.offset() + loc.length() - literal_begin.offset());
-}
-
-flatbuffers::Offset<sx::Module> ParserDriver::Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning, bool trace_parsing) {
-
-    ParserDriver ctx{in, trace_scanning, trace_parsing};
-    ctx.BeginScan();
+    // Get scanner and buffer pointers
     {
-        void* scanner;
-        dashql_yylex_init(&scanner);
-
-        // https://stackoverflow.com/questions/780676/string-input-to-flex-lexer
-        // auto buffer = dashql_yy_scan_buffer(in.data(), in.size(), &scanner);
-
-        dashql::parser::Parser parser(&scanner, ctx);
-        parser.set_debug_level(ctx.trace_parsing());
-        parser.parse();
-
-        dashql_yylex_destroy(&scanner);
+        void* p = _scanner_state_mem.data();
+        size_t n = _scanner_state_mem.size();
+        _scanner_state_ptr = std::align(alignof(yyguts_t), sizeof(yyguts_t), p, n);
+        p = _buffer_state_mem.data();
+        n = _buffer_state_mem.size();
+        _buffer_state_ptr = std::align(alignof(yy_buffer_state), sizeof(yy_buffer_state), p, n);
+        assert(!!_scanner_state_ptr);
+        assert(!!_buffer_state_ptr);
     }
-    ctx.EndScan();
-    return ctx.Write(builder);
+
+    // Write end-of-buffer markers
+    if (_input_buffer.size() < 2) {
+        _input_buffer = nonstd::span{_null_buffer.data(), _null_buffer.size()};
+    }
+    _input_buffer[_input_buffer.size() - 2] = YY_END_OF_BUFFER_CHAR;
+    _input_buffer[_input_buffer.size() - 1] = YY_END_OF_BUFFER_CHAR;
+
+    // Configure the initial scanner state
+    auto yyg = static_cast<yyguts_t*>(_scanner_state_ptr);
+    yyg->yy_buffer_stack = reinterpret_cast<yy_buffer_state**>(_scanner_buffer_stack.data());
+    yyg->yy_buffer_stack_top = 0;
+    yyg->yy_buffer_stack_max = 1;
+    yyg->yy_c_buf_p = nullptr;
+    yyg->yy_init = 0;
+    yyg->yy_start = 0;
+    yyg->yy_start_stack_ptr = 0;
+    yyg->yy_start_stack_depth = 0;
+    yyg->yy_start_stack =  NULL;
+
+    // Configure the initial buffer state
+    auto yyb = static_cast<yy_buffer_state*>(_buffer_state_ptr);
+    yyb->yy_buf_size = _input_buffer.size() - 2; /* "- 2" to take care of EOB's */
+    yyb->yy_buf_pos = yyb->yy_ch_buf = _input_buffer.data();
+    yyb->yy_is_our_buffer = 0;
+    yyb->yy_input_file = 0;
+    yyb->yy_n_chars = yyb->yy_buf_size;
+    yyb->yy_is_interactive = 0;
+    yyb->yy_at_bol = 1;
+    yyb->yy_fill_buffer = 0;
+    yyb->yy_buffer_status = YY_BUFFER_NEW;
+
+    // Set the buffer
+    dashql_yy_switch_to_buffer(yyb, yyg);
 }
 
 }

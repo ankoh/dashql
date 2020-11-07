@@ -8,21 +8,36 @@
 #include "dashql/parser/common/variant.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/parser_driver.h"
-
+#include "dashql/parser/scanner.h"
 
 namespace dashql {
 namespace parser {
 
-/// Return the location
 std::ostream& operator<<(std::ostream& out, const Location& loc) {
     out << "[" << loc.offset() << "," << (loc.offset() + loc.length()) << "[";
     return out;
 }
 
-ParserDriver::ParserDriver(std::string_view text, bool trace_scanning, bool trace_parsing)
-    : ModuleBuilder(), _input(text), _trace_scanning(trace_scanning), _trace_parsing(trace_parsing), _scanner(nullptr) {}
+ParserDriver::ParserDriver(Scanner& scanner)
+    : ModuleBuilder(), _scanner(scanner) {}
 
 ParserDriver::~ParserDriver() {}
+
+flatbuffers::Offset<sx::Module> ParserDriver::Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning, bool trace_parsing) {
+
+    // XXX shortcut until tests are migrated
+    std::vector<char> padded_buffer{in.begin(), in.end()};
+    padded_buffer.push_back(0);
+    padded_buffer.push_back(0);
+
+    Scanner scanner{padded_buffer};
+    ParserDriver driver{scanner};
+
+    dashql::parser::Parser parser(scanner.state(), driver);
+    parser.parse();
+
+    return driver.Write(builder);
+}
 
 }
 }
