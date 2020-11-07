@@ -63,7 +63,9 @@ class Scanner {
     /// Access the scanner state pointer
     auto* state() { return _scanner_state_ptr; } 
     /// Access the input
-    std::string_view input_text() { return std::string_view{_input_buffer.data(), _input_buffer.size() - 2}; }
+    std::string_view input_text() {
+        assert(_input_buffer.size() >= 2);
+        return std::string_view{_input_buffer.data(), _input_buffer.size() - 2}; }
 
     /// Get the next symbol
     Parser::symbol_type Next();

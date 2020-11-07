@@ -557,6 +557,8 @@ Scanner::Scanner(nonstd::span<char> input_buffer)
 
     // Set the buffer
     dashql_yy_switch_to_buffer(yyb, yyg);
+    // Set scanner ref
+    dashql_yyset_extra(this, yyg);
 }
 
 }
