@@ -33,14 +33,13 @@ using NodeVector = std::vector<sx::Node>;
 /// Return the location
 std::ostream& operator<<(std::ostream& out, const sx::Location& loc);
 
-/// Get an attribute node
+/// Helper to configure an attribute node
 sx::Node operator<<(sx::AttributeKey key, const sx::Node& node);
-/// Collect attributes
+/// Helper to append a node to a node vector
 NodeVector& operator<<(NodeVector& attrs, const sx::Node& node);
-/// Collect attributes
+/// Helper to concatenate node vectors
 NodeVector& operator<<(NodeVector& attrs, NodeVector&& other);
 
-// Schema parser driver
 class ParserDriver {
     friend class Parser;
 
@@ -89,58 +88,25 @@ class ParserDriver {
     /// Add an object
     sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty = true);
 
-    /// Collect viz attributes
-    NodeVector CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attributes);
-
     /// Add a statement
-    inline void AddStatement(sx::Node node) {
-        if (node.node_type() != sx::NodeType::NONE) {
-            _nodes.push_back(node);
-            _statements.push_back(_nodes.size() - 1);
-        }
-    }
+    void AddStatement(sx::Node node);
     /// Add an error
-    inline void AddError(sx::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
+    void AddError(sx::Location loc, const std::string& message);
 
     /// Create a constant inline
-    sx::Node AddConst(sx::Location loc, sxs::AConstType type) {
-        return Add(loc, sx::NodeType::SQL_ACONST, {
-            sx::AttributeKey::SQL_ACONST_TYPE << RefEnum(loc, type),
-        });
-    }
+    sx::Node AddConst(sx::Location loc, sxs::AConstType type);
     /// Create indirection
-    inline sx::Node AddIndirection(sx::Location loc, sx::Node index) {
-        return Add(loc, sx::NodeType::SQL_INDIRECTION, {
-            sx::AttributeKey::SQL_INDIRECTION_INDEX << index,
-        });
-    }
+    sx::Node AddIndirection(sx::Location loc, sx::Node index);
     /// Create indirection
-    inline sx::Node AddIndirection(sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
-        return Add(loc, sx::NodeType::SQL_INDIRECTION, {
-            sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND << lower_bound,
-            sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND << upper_bound,
-        });
-    }
+    sx::Node AddIndirection(sx::Location loc, sx::Node lower_bound, sx::Node upper_bound);
     /// Create relation expression
-    inline sx::Node AddAlias(sx::Location loc, sx::Node name, sx::Node columns) {
-        return Add(loc, sx::NodeType::SQL_ALIAS, {
-            sx::AttributeKey::SQL_ALIAS_NAME << name,
-            sx::AttributeKey::SQL_ALIAS_COLUMNS << columns,
-        });
-    }
+    sx::Node AddAlias(sx::Location loc, sx::Node name, sx::Node columns);
     /// Create a temp table name
-    inline sx::Node AddInto(sx::Location loc, sx::Node type, sx::Node name) {
-        return Add(loc, sx::NodeType::SQL_INTO, {
-            sx::AttributeKey::SQL_TEMP_TYPE << type,
-            sx::AttributeKey::SQL_TEMP_NAME << name,
-        });
-    }
+    sx::Node AddInto(sx::Location loc, sx::Node type, sx::Node name);
     /// Create a column ref
-    inline sx::Node AddColumnRef(sx::Location loc, NodeVector&& path) {
-        return Add(loc, sx::NodeType::SQL_COLUMN_REF, {
-            sx::AttributeKey::SQL_COLUMN_REF_PATH << Add(loc, move(path)),
-        });
-    }
+    sx::Node AddColumnRef(sx::Location loc, NodeVector&& path);
+    /// Collect viz attributes
+    NodeVector CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attributes);
 
     /// Write as flatbuffer
     flatbuffers::Offset<sx::Module> Write(flatbuffers::FlatBufferBuilder& builder);

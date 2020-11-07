@@ -77,6 +77,58 @@ sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& att
     return sx::Node(loc, type, sx::AttributeKey::NONE, begin, n);
 }
 
+/// Add a statement
+void ParserDriver::AddStatement(sx::Node node) {
+    if (node.node_type() != sx::NodeType::NONE) {
+        _nodes.push_back(node);
+        _statements.push_back(_nodes.size() - 1);
+    }
+}
+/// Add an error
+void ParserDriver::AddError(sx::Location loc, const std::string& message) {
+    _errors.push_back({loc, message});
+}
+
+/// Create a constant inline
+sx::Node ParserDriver::AddConst(sx::Location loc, sxs::AConstType type) {
+    return Add(loc, sx::NodeType::SQL_ACONST, {
+        sx::AttributeKey::SQL_ACONST_TYPE << RefEnum(loc, type),
+    });
+}
+/// Create indirection
+sx::Node ParserDriver::AddIndirection(sx::Location loc, sx::Node index) {
+    return Add(loc, sx::NodeType::SQL_INDIRECTION, {
+        sx::AttributeKey::SQL_INDIRECTION_INDEX << index,
+    });
+}
+/// Create indirection
+sx::Node ParserDriver::AddIndirection(sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
+    return Add(loc, sx::NodeType::SQL_INDIRECTION, {
+        sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND << lower_bound,
+        sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND << upper_bound,
+    });
+}
+/// Create relation expression
+sx::Node ParserDriver::AddAlias(sx::Location loc, sx::Node name, sx::Node columns) {
+    return Add(loc, sx::NodeType::SQL_ALIAS, {
+        sx::AttributeKey::SQL_ALIAS_NAME << name,
+        sx::AttributeKey::SQL_ALIAS_COLUMNS << columns,
+    });
+}
+/// Create a temp table name
+sx::Node ParserDriver::AddInto(sx::Location loc, sx::Node type, sx::Node name) {
+    return Add(loc, sx::NodeType::SQL_INTO, {
+        sx::AttributeKey::SQL_TEMP_TYPE << type,
+        sx::AttributeKey::SQL_TEMP_NAME << name,
+    });
+}
+/// Create a column ref
+sx::Node ParserDriver::AddColumnRef(sx::Location loc, NodeVector&& path) {
+    return Add(loc, sx::NodeType::SQL_COLUMN_REF, {
+        sx::AttributeKey::SQL_COLUMN_REF_PATH << Add(loc, move(path)),
+    });
+}
+
 /// Add an object
 NodeVector ParserDriver::CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attrs) {
     auto type_val = RefEnum(viz_loc, viz_type);
