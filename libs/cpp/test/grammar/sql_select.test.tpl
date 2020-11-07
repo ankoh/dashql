@@ -165,3 +165,7 @@ input: |-
 name: select_a_orderby_b_c_directions
 input: |-
   select a order by b asc, c desc
+----
+name: select_a_orderby_b_c_directions_nulls
+input: |-
+  select a order by b asc nulls first, c desc nulls last

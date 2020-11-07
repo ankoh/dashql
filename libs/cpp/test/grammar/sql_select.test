@@ -1083,3 +1083,40 @@ expected:
   errors: []
   line_breaks: []
   comments: []
+----
+name: select_a_orderby_b_c_directions_nulls
+input: 'select a order by b asc nulls first, c desc nulls last'
+expected:
+  statements:
+    - type: DASHQL_QUERY
+      location: 0..54|`select a o`..`nulls last`
+      DASHQL_QUERY_STATEMENT:
+        type: SQL_SELECT
+        location: 0..54|`select a o`..`nulls last`
+        SQL_SELECT_TARGETS:
+          - type: SQL_COLUMN_REF
+            location: 7..8|`a`
+            SQL_COLUMN_REF_PATH:
+              - 7..8|`a`
+        SQL_SELECT_ORDER:
+          - type: SQL_ORDER
+            location: 18..35|`b asc nulls first`
+            SQL_ORDER_VALUE:
+              type: SQL_COLUMN_REF
+              location: 18..19|`b`
+              SQL_COLUMN_REF_PATH:
+                - 18..19|`b`
+            SQL_ORDER_DIRECTION: 0
+            SQL_ORDER_NULLRULE: 0
+          - type: SQL_ORDER
+            location: 37..54|`c desc nulls last`
+            SQL_ORDER_VALUE:
+              type: SQL_COLUMN_REF
+              location: 37..38|`c`
+              SQL_COLUMN_REF_PATH:
+                - 37..38|`c`
+            SQL_ORDER_DIRECTION: 1
+            SQL_ORDER_NULLRULE: 1
+  errors: []
+  line_breaks: []
+  comments: []
