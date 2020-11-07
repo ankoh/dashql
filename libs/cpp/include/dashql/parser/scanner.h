@@ -60,8 +60,15 @@ class Scanner {
     /// Delete the copy assignment
     Scanner& operator=(const Scanner& other) = delete;
 
-    /// Access the scanner state pointer
+    /// Get the scanner state pointer
     auto* state() { return _scanner_state_ptr; } 
+    /// Get the errors
+    auto& errors() { return _errors; } 
+    /// Get the line breaks
+    auto& line_breaks() { return _line_breaks; } 
+    /// Get the comments
+    auto& comments() { return _comments; } 
+
     /// Access the input
     std::string_view input_text() {
         assert(_input_buffer.size() >= 2);
