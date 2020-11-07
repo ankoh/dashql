@@ -3,9 +3,16 @@
 #include "dashql/parser/scanner.h"
 #include "dashql/parser/parser_driver.h"
 
+using Parser = dashql::parser::Parser;
+
+extern Parser::symbol_type dashql_yylex(void* state);
 
 namespace dashql {
 namespace parser {
+
+Parser::symbol_type Scanner::Next() {
+    return dashql_yylex(_scanner_state_ptr);
+}
 
 void Scanner::AddError(sx::Location location, const char* message) {
     _errors.push_back({location, message});

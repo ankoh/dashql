@@ -15,8 +15,10 @@
 %locations
 %define api.location.type {sx::Location}
 
-%lex-param      { dashql::parser::ParserDriver& ctx }
 %parse-param    { dashql::parser::ParserDriver& ctx }
+
+// ---------------------------------------------------------------------------
+// HEADER
 
 %code requires {
 #include <string>
@@ -35,15 +37,23 @@
         (Cur) = sx::Location(o, l); \
     } \
 }
-
 }
+
+
+// ---------------------------------------------------------------------------
+// IMPLEMENTATION
 
 %code {
+#include "dashql/parser/scanner.h"
+
+#undef yylex
+#define yylex ctx.scanner().Next
+
 using namespace dashql::parser;
-
-
-Parser::symbol_type yylex(ParserDriver& ctx);
 }
+
+// ---------------------------------------------------------------------------
+// TOKENS
 
 /*
  * Non-keyword token types.  These are hard-wired into the "flex" lexer.

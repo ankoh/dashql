@@ -57,8 +57,6 @@ class Scanner {
     public:
     /// Constructor
     Scanner(nonstd::span<char> input);
-    /// Destructor
-    ~Scanner();
     /// Delete the copy constructor
     Scanner(const Scanner& other) = delete;
     /// Delete the copy assignment
@@ -70,7 +68,7 @@ class Scanner {
     std::string_view input_text() { return std::string_view{_input_buffer.data(), _input_buffer.size() - 2}; }
 
     /// Get the next symbol
-    Parser::symbol_type Lex();
+    Parser::symbol_type Next();
 
     /// Get the text at location
     inline std::string_view TextAt(sx::Location loc) {

@@ -28,12 +28,12 @@ namespace sxd = proto::syntax_dashql;
 namespace sxs = proto::syntax_sql;
 
 // Declare the yylex function
-#define YY_DECL Parser::symbol_type yylex(YYSTYPE* yylval_param, YYLTYPE* yylloc_param, void* yyscanner)
+#define YY_DECL Parser::symbol_type yylex(void* yyscanner)
 // Declare yy_extra_type
 #define YY_EXTRA_TYPE dashql::parser::Scanner*
 
 // Done after the current pattern has been matched and before the corrsponding action.
-// We update yylloc here and not in YY_USER_ACTION so that yyless picks it up.
+// We update the location here and not in YY_USER_ACTION so that yyless picks it up.
 #undef YY_DO_BEFORE_ACTION
 #define YY_DO_BEFORE_ACTION { \
     yyg->yytext_ptr = yy_bp; \
@@ -41,14 +41,14 @@ namespace sxs = proto::syntax_sql;
     yyg->yy_hold_char = *yy_cp; \
     *yy_cp = '\0'; \
     yyg->yy_c_buf_p = yy_cp; \
-    *yylloc = sx::Location(yy_bp - YY_CURRENT_BUFFER_LVALUE->yy_ch_buf, yyleng); \
+    loc = sx::Location(yy_bp - YY_CURRENT_BUFFER_LVALUE->yy_ch_buf, yyleng); \
 }
 
 // The user action is run whenever a token is matched
 #define YY_USER_ACTION { \
     for (unsigned i = 0; i < yyleng; ++i) { \
         if (yytext[i] == '\n') { \
-            ctx.AddLineBreak(sx::Location(yylloc->offset() + i, 1)); \
+            ctx.AddLineBreak(sx::Location(loc.offset() + i, 1)); \
         } \
     } \
 }
@@ -71,8 +71,6 @@ using YYSTYPE = dashql::parser::Parser::symbol_type;
 // batch:       Scanner in batch-mode (vs. interactive)
 // caseless:    Case-insensitive pattern matching
 %}
-%option bison-bridge
-%option bison-locations
 %option reentrant
 %option nodefault
 %option noinput
@@ -297,7 +295,7 @@ other           .
 // This code is inlined at the beginning of yylex()
 
 Scanner& ctx = *dashql_yyget_extra(yyscanner);
-auto& loc = *yylloc;
+auto loc = sx::Location();
 
 %}
 
