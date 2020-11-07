@@ -33,7 +33,7 @@ flatbuffers::Offset<sx::Module> ParserDriver::Parse(flatbuffers::FlatBufferBuild
     Scanner scanner{padded_buffer};
     ParserDriver driver{scanner};
 
-    dashql::parser::Parser parser(scanner.state(), driver);
+    dashql::parser::Parser parser(driver);
     parser.parse();
 
     return driver.Write(builder);

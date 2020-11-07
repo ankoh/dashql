@@ -15,8 +15,8 @@
 %locations
 %define api.location.type {sx::Location}
 
-%lex-param      { void* yyscanner } { dashql::parser::ParserDriver& ctx }
-%parse-param    { void* yyscanner } { dashql::parser::ParserDriver& ctx }
+%lex-param      { dashql::parser::ParserDriver& ctx }
+%parse-param    { dashql::parser::ParserDriver& ctx }
 
 %code requires {
 #include <string>
@@ -41,7 +41,8 @@
 %code {
 using namespace dashql::parser;
 
-Parser::symbol_type yylex(void* yyscanner, ParserDriver& ctx);
+
+Parser::symbol_type yylex(ParserDriver& ctx);
 }
 
 /*

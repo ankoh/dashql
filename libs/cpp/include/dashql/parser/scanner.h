@@ -69,6 +69,9 @@ class Scanner {
     /// Access the input
     std::string_view input_text() { return std::string_view{_input_buffer.data(), _input_buffer.size() - 2}; }
 
+    /// Get the next symbol
+    Parser::symbol_type Lex();
+
     /// Get the text at location
     inline std::string_view TextAt(sx::Location loc) {
         return input_text().substr(loc.offset(), loc.length());

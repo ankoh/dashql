@@ -45,6 +45,8 @@ class ParserDriver: public ModuleBuilder {
     /// Destructor
     ~ParserDriver();
 
+    /// Return the scanner
+    auto& scanner() { return _scanner; }
 
     /// Create a constant
     inline sx::Node AddConst(sx::Location loc, sxs::AConstType type) {
