@@ -507,21 +507,23 @@ namespace dashql {
 namespace parser {
 
 Scanner::Scanner(nonstd::span<char> input_buffer)
-    : _input_buffer(input_buffer), _null_buffer(), _scanner_state_mem(), _scanner_buffer_stack(), _buffer_state_mem(), _scanner_state_ptr(), _buffer_state_ptr(0), _comment_begin(), _comment_depth(0), _literal_begin(), _errors(), _line_breaks()
+    : _input_buffer(input_buffer), _null_buffer(), _scanner_state_mem(), _scanner_buffer_stack(), _scanner_buffer_state_mem(), _scanner_state_ptr(), _comment_begin(), _comment_depth(0), _literal_begin(), _errors(), _line_breaks()
 {
     static_assert(YY_SCANNER_STATE_SIZE >= (alignof(yyguts_t) + sizeof(yyguts_t)), "YY_SCANNER_STATE_SIZE is too small");
     static_assert(YY_BUFFER_STATE_SIZE >= (alignof(yy_buffer_state) + sizeof(yy_buffer_state)), "YY_BUFFER_STATE_SIZE is too small");
 
     // Get scanner and buffer pointers
+    yyguts_t* yyg;
+    yy_buffer_state* yyb;
     {
         void* p = _scanner_state_mem.data();
         size_t n = _scanner_state_mem.size();
         _scanner_state_ptr = std::align(alignof(yyguts_t), sizeof(yyguts_t), p, n);
-        p = _buffer_state_mem.data();
-        n = _buffer_state_mem.size();
-        _buffer_state_ptr = std::align(alignof(yy_buffer_state), sizeof(yy_buffer_state), p, n);
-        assert(!!_scanner_state_ptr);
-        assert(!!_buffer_state_ptr);
+        yyg = reinterpret_cast<yyguts_t*>(_scanner_state_ptr);
+        p = _scanner_buffer_state_mem.data();
+        n = _scanner_buffer_state_mem.size();
+        auto b = std::align(alignof(yy_buffer_state), sizeof(yy_buffer_state), p, n);
+        yyb = reinterpret_cast<yy_buffer_state*>(b);
     }
 
     // Write end-of-buffer markers
@@ -532,7 +534,6 @@ Scanner::Scanner(nonstd::span<char> input_buffer)
     _input_buffer[_input_buffer.size() - 1] = YY_END_OF_BUFFER_CHAR;
 
     // Configure the initial scanner state
-    auto yyg = static_cast<yyguts_t*>(_scanner_state_ptr);
     yyg->yy_buffer_stack = reinterpret_cast<yy_buffer_state**>(_scanner_buffer_stack.data());
     yyg->yy_buffer_stack_top = 0;
     yyg->yy_buffer_stack_max = _scanner_buffer_stack.size();
@@ -544,7 +545,6 @@ Scanner::Scanner(nonstd::span<char> input_buffer)
     yyg->yy_start_stack =  NULL;
 
     // Configure the initial buffer state
-    auto yyb = static_cast<yy_buffer_state*>(_buffer_state_ptr);
     yyb->yy_buf_size = _input_buffer.size() - 2; /* "- 2" to take care of EOB's */
     yyb->yy_buf_pos = yyb->yy_ch_buf = _input_buffer.data();
     yyb->yy_is_our_buffer = 0;

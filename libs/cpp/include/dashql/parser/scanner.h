@@ -34,11 +34,9 @@ class Scanner {
     /// The scanner buffer stack
     std::array<void*, 2> _scanner_buffer_stack;
     /// The buffer state
-    std::array<char, YY_BUFFER_STATE_SIZE> _buffer_state_mem;
+    std::array<char, YY_BUFFER_STATE_SIZE> _scanner_buffer_state_mem;
     /// The address of the scanner state
     void* _scanner_state_ptr;
-    /// The address of the buffer state
-    void* _buffer_state_ptr;
 
     /// The begin of the comment
     sx::Location _comment_begin;
