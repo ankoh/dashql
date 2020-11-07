@@ -14,6 +14,31 @@ Parser::symbol_type Scanner::Next() {
     return dashql_yylex(_scanner_state_ptr);
 }
 
+/// Get the text at location
+std::string_view Scanner::TextAt(sx::Location loc) {
+    return input_text().substr(loc.offset(), loc.length());
+}
+/// Begin a literal
+void Scanner::BeginLiteral(sx::Location loc) { _literal_begin = loc; }
+
+/// End a literal
+sx::Location Scanner::EndLiteral(sx::Location loc) {
+    return sx::Location(_literal_begin.offset(), loc.offset() + loc.length() - _literal_begin.offset());
+}
+/// Begin a comment
+void Scanner::BeginComment(sx::Location loc) {
+    if (_comment_depth++ == 0) {
+        _comment_begin = loc;
+    }
+}
+/// End a comment
+std::optional<sx::Location> Scanner::EndComment(sx::Location loc) {
+    if (--_comment_depth == 0) {
+        return sx::Location(_literal_begin.offset(), loc.offset() + loc.length() - _literal_begin.offset());
+    }
+    return std::nullopt;
+}
+
 void Scanner::AddError(sx::Location location, const char* message) {
     _errors.push_back({location, message});
 }

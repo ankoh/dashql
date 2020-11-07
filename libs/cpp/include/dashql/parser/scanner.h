@@ -68,38 +68,23 @@ class Scanner {
     auto& line_breaks() { return _line_breaks; } 
     /// Get the comments
     auto& comments() { return _comments; } 
-
     /// Access the input
     std::string_view input_text() {
         assert(_input_buffer.size() >= 2);
         return std::string_view{_input_buffer.data(), _input_buffer.size() - 2}; }
 
-    /// Get the next symbol
-    Parser::symbol_type Next();
-
     /// Get the text at location
-    inline std::string_view TextAt(sx::Location loc) {
-        return input_text().substr(loc.offset(), loc.length());
-    }
+    std::string_view TextAt(sx::Location loc);
+
     /// Begin a literal
-    inline void BeginLiteral(sx::Location loc) { _literal_begin = loc; }
+    void BeginLiteral(sx::Location loc);
     /// End a literal
-    inline sx::Location EndLiteral(sx::Location loc) {
-        return sx::Location(_literal_begin.offset(), loc.offset() + loc.length() - _literal_begin.offset());
-    }
+    sx::Location EndLiteral(sx::Location loc);
+
     /// Begin a comment
-    inline void BeginComment(sx::Location loc) {
-        if (_comment_depth++ == 0) {
-            _comment_begin = loc;
-        }
-    }
+    void BeginComment(sx::Location loc);
     /// End a comment
-    inline std::optional<sx::Location> EndComment(sx::Location loc) {
-        if (--_comment_depth == 0) {
-            return sx::Location(_literal_begin.offset(), loc.offset() + loc.length() - _literal_begin.offset());
-        }
-        return std::nullopt;
-    }
+    std::optional<sx::Location> EndComment(sx::Location loc);
 
     /// Add an error
     void AddError(sx::Location location, const char* message);
@@ -114,6 +99,9 @@ class Scanner {
     Parser::symbol_type ReadParameter(sx::Location loc);
     /// Read an integer
     Parser::symbol_type ReadInteger(sx::Location loc);
+
+    /// Get the next symbol
+    Parser::symbol_type Next();
 };
 
 } // namespace parser
