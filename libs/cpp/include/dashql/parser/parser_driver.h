@@ -40,6 +40,8 @@ class ParserDriver: public ModuleBuilder {
     bool _trace_scanning;
     /// Trace the parsing
     bool _trace_parsing;
+    /// The scanner
+    void* _scanner;
 
     public:
     /// Constructor

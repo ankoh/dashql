@@ -11,10 +11,9 @@
 #include <string_view>
 #include <string>
 #include <charconv>
-#include "dashql/parser/parser_driver.h"
-#include "dashql/parser/parser.h"
 #include "dashql/parser/grammar/keywords.h"
-
+#include "dashql/parser/parser.h"
+#include "dashql/parser/parser_driver.h"
 
 // ISO C++17 does not allow 'register' storage class specifier
 #pragma GCC diagnostic push
@@ -60,15 +59,8 @@ sx::Location EndLiteral(ParserDriver& ctx, sx::Location loc);
 } // namespace parser
 } // namespace dashql
 
-// Work around an incompatibility in flex (at least versions
-// 2.5.31 through 2.5.33): it generates code that does
-// not conform to C89.  See Debian bug 333231
-// <http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=333231>.
-#undef yywrap
-#define yywrap() 1
-
 // Declare the yylex function
-#define YY_DECL Parser::symbol_type yylex(dashql::parser::ParserDriver& ctx)
+#define YY_DECL Parser::symbol_type yylex(YYSTYPE* yylval_param, YYLTYPE* yylloc_param, void* yyscanner, dashql::parser::ParserDriver& ctx)
 // Init yyloc
 #define YY_USER_INIT loc = sx::Location();
 // Configure the scanner to use string views
@@ -89,6 +81,9 @@ sx::Location EndLiteral(ParserDriver& ctx, sx::Location loc);
 // Return EOF token in yyterminate
 #define yyterminate() return Parser::make_EOF(loc)
 
+using YYLTYPE = sx::Location;
+using YYSTYPE = dashql::parser::Parser::symbol_type;
+
 %}
 
 %{
@@ -99,14 +94,14 @@ sx::Location EndLiteral(ParserDriver& ctx, sx::Location loc);
 // nounput:     Disable manipulation of input stream
 // noinput:     Disable explicit fetch of the next character
 // batch:       Scanner in batch-mode (vs. interactive)
-// debug:       Write debug info to stderr
 // caseless:    Case-insensitive pattern matching
 %}
-%option noyywrap
-%option nounput
+%option reentrant
+%option nodefault
 %option noinput
+%option nounput
+%option noyywrap
 %option batch
-%option debug
 %option caseless
 %option prefix="dashql_yy"
 
@@ -528,7 +523,6 @@ size_t scanner_offset;
 size_t parser_offset;
 
 void ParserDriver::BeginScan() {
-    yy_flex_debug = _trace_scanning;
     loc = sx::Location();
     in = _input;
     scanner_offset = 0;
@@ -542,7 +536,8 @@ void ParserDriver::EndScan() {
     parser_offset = 0;
 }
 
-void PutBack(ParserDriver& ctx, size_t n) {
+void PutBack(yyscan_t yyscanner, ParserDriver& ctx, size_t n) {
+    struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     yyless(loc.length() - n);
     parser_offset -= n;
     loc = sx::Location(loc.offset(), loc.length() - n);
@@ -575,6 +570,27 @@ void BeginLiteral(ParserDriver& ctx, sx::Location loc) {
 
 sx::Location EndLiteral(ParserDriver& ctx, sx::Location loc) {
     return sx::Location(literal_begin.offset(), loc.offset() + loc.length() - literal_begin.offset());
+}
+
+flatbuffers::Offset<sx::Module> ParserDriver::Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning, bool trace_parsing) {
+
+    ParserDriver ctx{in, trace_scanning, trace_parsing};
+    ctx.BeginScan();
+    {
+        void* scanner;
+        dashql_yylex_init(&scanner);
+
+        // https://stackoverflow.com/questions/780676/string-input-to-flex-lexer
+        // auto buffer = dashql_yy_scan_buffer(in.data(), in.size(), &scanner);
+
+        dashql::parser::Parser parser(&scanner, ctx);
+        parser.set_debug_level(ctx.trace_parsing());
+        parser.parse();
+
+        dashql_yylex_destroy(&scanner);
+    }
+    ctx.EndScan();
+    return ctx.Write(builder);
 }
 
 }
