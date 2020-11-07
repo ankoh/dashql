@@ -535,7 +535,7 @@ Scanner::Scanner(nonstd::span<char> input_buffer)
     auto yyg = static_cast<yyguts_t*>(_scanner_state_ptr);
     yyg->yy_buffer_stack = reinterpret_cast<yy_buffer_state**>(_scanner_buffer_stack.data());
     yyg->yy_buffer_stack_top = 0;
-    yyg->yy_buffer_stack_max = 1;
+    yyg->yy_buffer_stack_max = _scanner_buffer_stack.size();
     yyg->yy_c_buf_p = nullptr;
     yyg->yy_init = 0;
     yyg->yy_start = 0;
