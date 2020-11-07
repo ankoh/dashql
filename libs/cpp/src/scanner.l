@@ -507,7 +507,7 @@ namespace dashql {
 namespace parser {
 
 Scanner::Scanner(nonstd::span<char> input_buffer)
-    : _input_buffer(input_buffer), _null_buffer(), _scanner_state_mem(), _scanner_buffer_stack(), _scanner_buffer_state_mem(), _scanner_state_ptr(), _comment_begin(), _comment_depth(0), _literal_begin(), _errors(), _line_breaks()
+    : _input_buffer(input_buffer), _null_buffer(), _scanner_state_mem(), _scanner_buffer_stack(), _scanner_buffer_state_mem(), _scanner_state_ptr(), lookahead_token(), _comment_begin(), _comment_depth(0), _literal_begin(), _errors(), _line_breaks()
 {
     static_assert(YY_SCANNER_STATE_SIZE >= (alignof(yyguts_t) + sizeof(yyguts_t)), "YY_SCANNER_STATE_SIZE is too small");
     static_assert(YY_BUFFER_STATE_SIZE >= (alignof(yy_buffer_state) + sizeof(yy_buffer_state)), "YY_BUFFER_STATE_SIZE is too small");

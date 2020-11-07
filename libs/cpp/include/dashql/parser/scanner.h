@@ -38,6 +38,9 @@ class Scanner {
     /// The address of the scanner state
     void* _scanner_state_ptr;
 
+    /// The lookahead token (if any)
+    std::optional<Parser::symbol_type> lookahead_token;
+
     /// The begin of the comment
     sx::Location _comment_begin;
     /// The comment depth
