@@ -82,9 +82,9 @@ Parser::symbol_type Scanner::ReadInteger(sx::Location loc) {
 Parser::symbol_type Scanner::Next() {
     // Have lookahead?
     Parser::symbol_type current_token;
-    if (lookahead_token) {
-        current_token.move(*lookahead_token);
-        lookahead_token.reset();
+    if (_lookahead_token) {
+        current_token.move(*_lookahead_token);
+        _lookahead_token.reset();
     } else {
         auto t = dashql_yylex(_scanner_state_ptr);
         current_token.move(t);
@@ -103,7 +103,7 @@ Parser::symbol_type Scanner::Next() {
     // Get next token
     auto next_token = dashql_yylex(_scanner_state_ptr);
     auto next_token_kind = next_token.kind();
-    lookahead_token.emplace(std::move(next_token));
+    _lookahead_token.emplace(std::move(next_token));
 
     // Should replace current token?
     switch (current_token.kind()) {
