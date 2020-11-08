@@ -101,7 +101,7 @@ Parser::symbol_type Scanner::Next() {
     // Should replace current token?
     switch (current_token.kind()) {
         case Parser::symbol_kind::S_NOT:
-            /* Replace NOT by NOT_LA if it's followed by BETWEEN, IN, etc */
+            // Replace NOT by NOT_LA if it's followed by BETWEEN, IN, etc
             switch (next_token_kind) {
                 case Parser::symbol_kind::S_BETWEEN:
                 case Parser::symbol_kind::S_IN_P:
@@ -115,7 +115,7 @@ Parser::symbol_type Scanner::Next() {
             break;
 
         case Parser::symbol_kind::S_NULLS_P:
-            /* Replace NULLS_P by NULLS_LA if it's followed by FIRST or LAST */
+            // Replace NULLS_P by NULLS_LA if it's followed by FIRST or LAST
             switch (next_token_kind) {
                 case Parser::symbol_kind::S_FIRST_P:
                 case Parser::symbol_kind::S_LAST_P:
@@ -125,7 +125,7 @@ Parser::symbol_type Scanner::Next() {
             }
             break;
         case Parser::symbol_kind::S_WITH:
-            /* Replace WITH by WITH_LA if it's followed by TIME or ORDINALITY */
+            // Replace WITH by WITH_LA if it's followed by TIME or ORDINALITY
             switch (next_token_kind) {
                 case Parser::symbol_kind::S_TIME:
                 case Parser::symbol_kind::S_ORDINALITY:
