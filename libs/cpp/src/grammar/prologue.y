@@ -44,6 +44,7 @@
 // IMPLEMENTATION
 
 %code {
+#include "dashql/parser/parser_nodes.h"
 #include "dashql/parser/scanner.h"
 
 #undef yylex

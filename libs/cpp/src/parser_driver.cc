@@ -1,13 +1,15 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include "dashql/parser/parser_driver.h"
+
 #include <iostream>
 #include <sstream>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
+
 #include "dashql/parser/common/error.h"
 #include "dashql/parser/common/variant.h"
 #include "dashql/parser/parser.h"
-#include "dashql/parser/parser_driver.h"
 #include "dashql/parser/scanner.h"
 
 namespace fb = flatbuffers;
@@ -15,6 +17,7 @@ namespace fb = flatbuffers;
 namespace dashql {
 namespace parser {
 
+/// Printing locations
 std::ostream& operator<<(std::ostream& out, const Location& loc) {
     out << "[" << loc.offset() << "," << (loc.offset() + loc.length()) << "[";
     return out;
@@ -33,23 +36,23 @@ NodeVector& operator<<(NodeVector& attrs, const sx::Node& node) {
 
 /// Syntactic sugar concatenate vectors
 NodeVector& operator<<(NodeVector& attrs, NodeVector&& other) {
-    for (auto& node: other) {
+    for (auto& node : other) {
         attrs.push_back(node);
     }
     return attrs;
 }
 
+/// Constructor
+ParserDriver::ParserDriver(Scanner& scanner) : _scanner(scanner), _nodes(), _statements(), _errors() {}
 
-ParserDriver::ParserDriver(Scanner& scanner)
-    : _scanner(scanner), _nodes(), _statements(), _errors() {}
-
+/// Destructor
 ParserDriver::~ParserDriver() {}
 
 /// Add an array
 sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_empty) {
     auto begin = _nodes.size();
     _nodes.reserve(_nodes.size() + values.size());
-    for (auto& v: values) {
+    for (auto& v : values) {
         if (v.node_type() != sx::NodeType::NONE) {
             _nodes.push_back(v);
         }
@@ -65,7 +68,7 @@ sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_e
 sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty) {
     auto begin = _nodes.size();
     _nodes.reserve(_nodes.size() + attrs.size());
-    for (auto& v: attrs) {
+    for (auto& v : attrs) {
         if (v.node_type() != sx::NodeType::NONE) {
             _nodes.push_back(v);
         }
@@ -84,68 +87,14 @@ void ParserDriver::AddStatement(sx::Node node) {
         _statements.push_back(_nodes.size() - 1);
     }
 }
+
 /// Add an error
-void ParserDriver::AddError(sx::Location loc, const std::string& message) {
-    _errors.push_back({loc, message});
-}
-
-/// Create a constant inline
-sx::Node ParserDriver::AddConst(sx::Location loc, sxs::AConstType type) {
-    return Add(loc, sx::NodeType::SQL_ACONST, {
-        sx::AttributeKey::SQL_ACONST_TYPE << RefEnum(loc, type),
-    });
-}
-/// Create indirection
-sx::Node ParserDriver::AddIndirection(sx::Location loc, sx::Node index) {
-    return Add(loc, sx::NodeType::SQL_INDIRECTION, {
-        sx::AttributeKey::SQL_INDIRECTION_INDEX << index,
-    });
-}
-/// Create indirection
-sx::Node ParserDriver::AddIndirection(sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
-    return Add(loc, sx::NodeType::SQL_INDIRECTION, {
-        sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND << lower_bound,
-        sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND << upper_bound,
-    });
-}
-/// Create relation expression
-sx::Node ParserDriver::AddAlias(sx::Location loc, sx::Node name, sx::Node columns) {
-    return Add(loc, sx::NodeType::SQL_ALIAS, {
-        sx::AttributeKey::SQL_ALIAS_NAME << name,
-        sx::AttributeKey::SQL_ALIAS_COLUMNS << columns,
-    });
-}
-/// Create a temp table name
-sx::Node ParserDriver::AddInto(sx::Location loc, sx::Node type, sx::Node name) {
-    return Add(loc, sx::NodeType::SQL_INTO, {
-        sx::AttributeKey::SQL_TEMP_TYPE << type,
-        sx::AttributeKey::SQL_TEMP_NAME << name,
-    });
-}
-/// Create a column ref
-sx::Node ParserDriver::AddColumnRef(sx::Location loc, NodeVector&& path) {
-    return Add(loc, sx::NodeType::SQL_COLUMN_REF, {
-        sx::AttributeKey::SQL_COLUMN_REF_PATH << Add(loc, move(path)),
-    });
-}
-
-/// Add an object
-NodeVector ParserDriver::CollectViz(sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attrs) {
-    auto type_val = RefEnum(viz_loc, viz_type);
-    auto type_attr = sx::AttributeKey::DASHQL_VIZ_TYPE << type_val;
-    NodeVector result{type_attr};
-    for (auto& as: attrs) {
-        for (auto& a: as.get()) {
-            result.push_back(a);
-        }
-    }
-    return result;
-}
+void ParserDriver::AddError(sx::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
 
 /// Write the module
 fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
     std::vector<fb::Offset<sx::Error>> errs;
-    for (auto [loc, msg]: _errors) {
+    for (auto [loc, msg] : _errors) {
         auto s = builder.CreateString(msg.data(), msg.length());
         sx::ErrorBuilder eb{builder};
         eb.add_location(&loc);
@@ -166,9 +115,8 @@ fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
     return b.Finish();
 }
 
-
-flatbuffers::Offset<sx::Module> ParserDriver::Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in, bool trace_scanning, bool trace_parsing) {
-
+flatbuffers::Offset<sx::Module> ParserDriver::Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in,
+                                                    bool trace_scanning, bool trace_parsing) {
     // XXX shortcut until tests are migrated
     std::vector<char> padded_buffer{in.begin(), in.end()};
     padded_buffer.push_back(0);
@@ -183,5 +131,5 @@ flatbuffers::Offset<sx::Module> ParserDriver::Parse(flatbuffers::FlatBufferBuild
     return driver.Write(builder);
 }
 
-}
-}
+}  // namespace parser
+}  // namespace dashql

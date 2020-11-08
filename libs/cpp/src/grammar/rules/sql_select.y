@@ -213,15 +213,15 @@ sql_preparable_stmt:
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.
 sql_opt_temp_table_name:
-    TEMPORARY sql_opt_table sql_qualified_name          { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
-  | TEMP sql_opt_table sql_qualified_name               { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
-  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
-  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
-  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
-  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
-  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::UNLOGGED), ctx.Add(@3, move($3))); }
-  | TABLE sql_qualified_name                            { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@2, move($2))); }
-  | sql_qualified_name                                  { $$ = ctx.AddInto(@$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@1, move($1))); }
+    TEMPORARY sql_opt_table sql_qualified_name          { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
+  | TEMP sql_opt_table sql_qualified_name               { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
+  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
+  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
+  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
+  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
+  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::UNLOGGED), ctx.Add(@3, move($3))); }
+  | TABLE sql_qualified_name                            { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@2, move($2))); }
+  | sql_qualified_name                                  { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@1, move($1))); }
     ;
 
 sql_opt_table:
@@ -521,9 +521,9 @@ sql_joined_table:
     ;
 
 sql_alias_clause:
-    AS sql_col_id '(' sql_name_list ')'     { $$ = ctx.AddAlias(@$, ctx.Ref(@2), ctx.Add(@4, move($4))); }
+    AS sql_col_id '(' sql_name_list ')'     { $$ = AddAlias(ctx, @$, ctx.Ref(@2), ctx.Add(@4, move($4))); }
   | AS sql_col_id_or_string                 { $$ = ctx.Ref(@2); }
-  | sql_col_id '(' sql_name_list ')'        { $$ = ctx.AddAlias(@$, ctx.Ref(@1), ctx.Add(@3, move($3))); }
+  | sql_col_id '(' sql_name_list ')'        { $$ = AddAlias(ctx, @$, ctx.Ref(@1), ctx.Add(@3, move($3))); }
   | sql_col_id                              { $$ = ctx.Ref(@1); }
     ;
 
@@ -1393,15 +1393,15 @@ sql_case_arg:
     ;
 
 sql_columnref:
-    sql_col_id                  { $$ = ctx.AddColumnRef(@$, {ctx.Ref(@1)}); }
-  | sql_col_id sql_indirection  { $2.push_back(ctx.Ref(@1)); $$ = ctx.AddColumnRef(@$, move($2)); }
+    sql_col_id                  { $$ = AddColumnRef(ctx, @$, {ctx.Ref(@1)}); }
+  | sql_col_id sql_indirection  { $2.push_back(ctx.Ref(@1)); $$ = AddColumnRef(ctx, @$, move($2)); }
     ;
 
 sql_indirection_el:
     '.' sql_attr_name       { $$ = ctx.Ref(@2); }
   | '.' '*'                 { $$ = ctx.Ref(@2); }
-  | '[' sql_a_expr ']'      { $$ = ctx.AddIndirection(@$, $2); }
-  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = ctx.AddIndirection(@$, $2, $4); }
+  | '[' sql_a_expr ']'      { $$ = AddIndirection(ctx, @$, $2); }
+  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = AddIndirection(ctx, @$, $2, $4); }
     ;
 
 sql_opt_slice_bound:
@@ -1500,11 +1500,11 @@ sql_func_name:
 
 // Constants
 sql_a_expr_const:
-    ICONST  { $$ = ctx.AddConst(@1, sxs::AConstType::INTEGER); }
-  | FCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::FLOAT); }
-  | SCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::STRING); }
-  | BCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::BITSTRING); }
-  | XCONST  { $$ = ctx.AddConst(@1, sxs::AConstType::BITSTRING); }
+    ICONST  { $$ = AddConst(ctx, @1, sxs::AConstType::INTEGER); }
+  | FCONST  { $$ = AddConst(ctx, @1, sxs::AConstType::FLOAT); }
+  | SCONST  { $$ = AddConst(ctx, @1, sxs::AConstType::STRING); }
+  | BCONST  { $$ = AddConst(ctx, @1, sxs::AConstType::BITSTRING); }
+  | XCONST  { $$ = AddConst(ctx, @1, sxs::AConstType::BITSTRING); }
   | sql_func_name SCONST                                                { $$ = {}; }
   | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST  { $$ = {}; }
   | sql_const_typename SCONST                                           { $$ = {}; }
