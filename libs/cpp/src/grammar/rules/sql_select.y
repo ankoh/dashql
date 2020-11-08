@@ -58,15 +58,29 @@ sql_select_with_parens:
 sql_select_no_parens:
     sql_simple_select                   { $$ = move($1); }
   | sql_select_clause sql_sort_clause   { $1.push_back(Key::SQL_SELECT_ORDER << $2); $$ = move($1); }
-  | sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit   { $$ = {}; }
-  | sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause   { $$ = {}; }
-  | sql_with_clause sql_select_clause                                                   { $$ = $1 << move($2); }
-  | sql_with_clause sql_select_clause sql_sort_clause                                   { $$ = {}; }
+  | sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit {
+        $1.push_back(Key::SQL_SELECT_ORDER << $2);
+        $$ = move($1);
+    }
+  | sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause {
+        $1.push_back(Key::SQL_SELECT_ORDER << $2);
+        $$ = move($1);
+    }
+  | sql_with_clause sql_select_clause { $1 << move($2); $$ = move($1); }
+  | sql_with_clause sql_select_clause sql_sort_clause {
+        $1 << move($2);
+        $1.push_back(Key::SQL_SELECT_ORDER << $3);
+        $$ = move($1);
+    }
   | sql_with_clause sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit {
-        $$ = {};
+        $1 << move($2);
+        $1.push_back(Key::SQL_SELECT_ORDER << $3);
+        $$ = move($1);
     }
   | sql_with_clause sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause {
-        $$ = {};
+        $1 << move($2);
+        $1.push_back(Key::SQL_SELECT_ORDER << $3);
+        $$ = move($1);
     }
     ;
 
