@@ -31,10 +31,10 @@ class Scanner {
 
     /// The scanner state
     std::array<char, YY_SCANNER_STATE_SIZE> _scanner_state_mem;
-    /// The scanner buffer stack
-    std::array<void*, 2> _scanner_buffer_stack;
     /// The buffer state
     std::array<char, YY_BUFFER_STATE_SIZE> _scanner_buffer_state_mem;
+    /// The scanner buffer stack
+    std::array<void*, 2> _scanner_buffer_stack;
     /// The address of the scanner state
     void* _scanner_state_ptr;
 
