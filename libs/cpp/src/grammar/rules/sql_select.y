@@ -317,8 +317,13 @@ sql_opt_select_limit:
         ;
 
 sql_limit_clause:
-    LIMIT sql_select_limit_value
-  | LIMIT sql_select_limit_value ',' sql_select_offset_value
+    LIMIT sql_select_limit_value { $$ = { Key::SQL_SELECT_LIMIT_COUNT << $2 }; }
+  | LIMIT sql_select_limit_value ',' sql_select_offset_value {
+        $$ = {
+            Key::SQL_SELECT_LIMIT_COUNT << $2,
+            Key::SQL_SELECT_LIMIT_OFFSET << $4,
+        };
+    }
     // SQL:2008 syntax
     // to avoid shift/reduce conflicts, handle the optional value with
     //   a separate production rather than an opt_ expression.  The fact
@@ -326,8 +331,12 @@ sql_limit_clause:
     //   decision about what rule reduces ROW or ROWS to the point where
     //   we can see the ONLY token in the lookahead slot.
     //  
-  | FETCH sql_first_or_next sql_select_fetch_first_value sql_row_or_rows ONLY
-  | FETCH sql_first_or_next sql_row_or_rows ONLY
+  | FETCH sql_first_or_next sql_select_fetch_first_value sql_row_or_rows ONLY {
+        $$ = {};
+    }
+  | FETCH sql_first_or_next sql_row_or_rows ONLY {
+        $$ = {};
+    }
     ;
 
 sql_offset_clause:
@@ -337,12 +346,12 @@ sql_offset_clause:
     ;
 
 sql_select_limit_value:
-    sql_a_expr
-  | ALL
+    sql_a_expr  { $$ = $1; }
+  | ALL         { $$ = ctx.Null(); }
     ;
 
 sql_select_offset_value:
-    sql_a_expr
+    sql_a_expr  { $$ = $1; }
     ;
 
 // Allowing full expressions without parentheses causes various parsing

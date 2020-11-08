@@ -6,6 +6,7 @@
 %type <NodeVector> sql_group_by_list;
 %type <NodeVector> sql_group_clause;
 %type <NodeVector> sql_indirection;
+%type <NodeVector> sql_limit_clause;
 %type <NodeVector> sql_name_list;
 %type <NodeVector> sql_opt_existing_window_name;
 %type <NodeVector> sql_opt_frame_clause;
@@ -49,6 +50,8 @@
 %type <sx::Node> sql_opt_temp_table_name;
 %type <sx::Node> sql_over_clause;
 %type <sx::Node> sql_preparable_stmt;
+%type <sx::Node> sql_select_limit_value;
+%type <sx::Node> sql_select_offset_value;
 %type <sx::Node> sql_select_stmt;
 %type <sx::Node> sql_sort_clause;
 %type <sx::Node> sql_sortby;
