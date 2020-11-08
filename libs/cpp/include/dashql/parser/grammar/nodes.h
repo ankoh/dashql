@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_PARSER_PARSER_NODES_H_
-#define INCLUDE_DASHQL_PARSER_PARSER_NODES_H_
+#ifndef INCLUDE_DASHQL_PARSER_GRAMMAR_NODES_H_
+#define INCLUDE_DASHQL_PARSER_GRAMMAR_NODES_H_
 
 #include "dashql/parser/parser_driver.h"
 
@@ -69,4 +69,4 @@ inline NodeVector CollectViz(ParserDriver& driver, sx::Location viz_loc, sxd::Vi
 } // namespace parser
 } // namespace dashql
 
-#endif // INCLUDE_DASHQL_PARSER_PARSER_NODES_H_
+#endif // INCLUDE_DASHQL_PARSER_GRAMMAR_NODES_H_
