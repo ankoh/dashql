@@ -35,22 +35,27 @@ std::optional<sx::Location> Scanner::EndComment(sx::Location loc) {
     return std::nullopt;
 }
 
+/// Add an error
 void Scanner::AddError(sx::Location location, const char* message) {
     _errors.push_back({location, message});
 }
 
+/// Add an error
 void Scanner::AddError(sx::Location location, std::string&& message) {
     _errors.push_back({location, move(message)});
 }
 
+/// Add a line break
 void Scanner::AddLineBreak(sx::Location location) {
     _line_breaks.push_back(location);
 }
 
+/// Add a comment
 void Scanner::AddComment(sx::Location location) {
     _comments.push_back(location);
 }
 
+/// Read a parameter
 Parser::symbol_type Scanner::ReadParameter(sx::Location loc) {
     auto text = TextAt(loc);
     int64_t value;
@@ -61,6 +66,7 @@ Parser::symbol_type Scanner::ReadParameter(sx::Location loc) {
     return Parser::make_PARAM(loc);
 }
 
+/// Read an integer
 Parser::symbol_type Scanner::ReadInteger(sx::Location loc) {
     auto text = TextAt(loc);
     int64_t value;
@@ -72,6 +78,7 @@ Parser::symbol_type Scanner::ReadInteger(sx::Location loc) {
     }
 }
 
+/// Get the next symbole
 Parser::symbol_type Scanner::Next() {
     // Have lookahead?
     Parser::symbol_type current_token;
