@@ -105,6 +105,7 @@ TEST_P(GrammarParamTests, Test) {
 }
 
 INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintTestName());
+INSTANTIATE_TEST_SUITE_P(DashQLStatement, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("dashql_statement.test")), PrintTestName());
 
 }
 

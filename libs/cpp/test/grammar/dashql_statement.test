@@ -1,0 +1,9 @@
+name: dashql_syntax_error
+input: '?'
+expected:
+  statements: []
+  errors:
+    - message: "syntax error, unexpected '?', expecting EOF"
+      location: '0..1|`?`'
+  line_breaks: []
+  comments: []
