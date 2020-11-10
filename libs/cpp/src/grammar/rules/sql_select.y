@@ -758,8 +758,16 @@ sql_numeric:
         });
     }
   | DEC sql_opt_type_modifiers {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_NUMERIC_TYPE, {
+            Key::SQL_NUMERIC_TYPE_TAG << ctx.RefEnum(@1, sxs::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
+        });
     }
   | NUMERIC sql_opt_type_modifiers {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_NUMERIC_TYPE, {
+            Key::SQL_NUMERIC_TYPE_TAG << ctx.RefEnum(@1, sxs::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
+        });
     }
   | BOOLEAN_P   { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::BOOL); }
     ;
