@@ -107,14 +107,21 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
                     break;
                 }
                 default: {
-                    n |= ryml::MAP;
-                    auto end = target->children_begin_or_value() + target->children_count();
-                    n["type"] = c4::to_csubstr(node_type_tt->names[static_cast<size_t>(target->node_type())]);
-                    encode(n["location"], target->location(), text);
-                    for (auto i = 0; i < target->children_count(); ++i) {
-                        auto attr = nodes->Get(end - i - 1);
-                        auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr->attribute_key())]);
-                        pending.push_back({n, attr_key, attr});
+                    auto node_type_id = static_cast<uint32_t>(target->node_type());
+                    auto min_object = static_cast<uint32_t>(sx::NodeType::OBJECT_MIN);
+                    if (node_type_id > min_object) {
+                        n |= ryml::MAP;
+                        auto end = target->children_begin_or_value() + target->children_count();
+                        n["type"] = c4::to_csubstr(node_type_tt->names[static_cast<size_t>(target->node_type())]);
+                        encode(n["location"], target->location(), text);
+                        for (auto i = 0; i < target->children_count(); ++i) {
+                            auto attr = nodes->Get(end - i - 1);
+                            auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr->attribute_key())]);
+                            pending.push_back({n, attr_key, attr});
+                        }
+                    } else {
+                        n |= ryml::VAL;
+                        n << target->children_begin_or_value();
                     }
                     break;
                 }

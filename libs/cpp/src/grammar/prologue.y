@@ -44,6 +44,7 @@
 // IMPLEMENTATION
 
 %code {
+#include "dashql/parser/grammar/enums.h"
 #include "dashql/parser/grammar/nodes.h"
 #include "dashql/parser/scanner.h"
 

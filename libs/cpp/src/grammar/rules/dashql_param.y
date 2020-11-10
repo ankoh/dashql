@@ -9,12 +9,12 @@ dashql_parameter_declaration:
     ;
 
 dashql_parameter_type:
-    INTEGER     { $$ = ctx.RefEnum(@$, sxd::ParameterType::INTEGER); }
-  | FLOAT       { $$ = ctx.RefEnum(@$, sxd::ParameterType::FLOAT); }
-  | TEXT        { $$ = ctx.RefEnum(@$, sxd::ParameterType::TEXT); }
-  | DATE        { $$ = ctx.RefEnum(@$, sxd::ParameterType::DATE); }
-  | DATETIME    { $$ = ctx.RefEnum(@$, sxd::ParameterType::DATETIME); }
-  | TIME        { $$ = ctx.RefEnum(@$, sxd::ParameterType::TIME); }
-  | FILE        { $$ = ctx.RefEnum(@$, sxd::ParameterType::FILE); }
+    INTEGER     { $$ = EnumNode(@$, sxd::ParameterType::INTEGER); }
+  | FLOAT       { $$ = EnumNode(@$, sxd::ParameterType::FLOAT); }
+  | TEXT        { $$ = EnumNode(@$, sxd::ParameterType::TEXT); }
+  | DATE        { $$ = EnumNode(@$, sxd::ParameterType::DATE); }
+  | DATETIME    { $$ = EnumNode(@$, sxd::ParameterType::DATETIME); }
+  | TIME        { $$ = EnumNode(@$, sxd::ParameterType::TIME); }
+  | FILE        { $$ = EnumNode(@$, sxd::ParameterType::FILE); }
     ;
 

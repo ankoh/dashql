@@ -3,8 +3,9 @@
 #ifndef INCLUDE_DASHQL_PARSER_GRAMMAR_NODES_H_
 #define INCLUDE_DASHQL_PARSER_GRAMMAR_NODES_H_
 
-#include "dashql/parser/scanner.h"
+#include "dashql/parser/grammar/enums.h"
 #include "dashql/parser/parser_driver.h"
+#include "dashql/parser/scanner.h"
 #include <charconv>
 
 namespace dashql {
@@ -13,7 +14,7 @@ namespace parser {
 /// Create a constant inline
 inline sx::Node AddConst(ParserDriver& driver, sx::Location loc, sxs::AConstType type) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_ACONST, {
-        sx::AttributeKey::SQL_ACONST_TYPE << driver.RefEnum(loc, type),
+        sx::AttributeKey::SQL_ACONST_TYPE << EnumNode(loc, type),
     });
 }
 
@@ -57,7 +58,7 @@ inline sx::Node AddColumnRef(ParserDriver& driver, sx::Location loc, NodeVector&
 
 /// Collect viz attributes
 inline NodeVector CollectViz(ParserDriver& driver, sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attrs) {
-    auto type_val = driver.RefEnum(viz_loc, viz_type);
+    auto type_val = EnumNode(viz_loc, viz_type);
     auto type_attr = sx::AttributeKey::DASHQL_VIZ_TYPE << type_val;
     NodeVector result{type_attr};
     for (auto& as: attrs) {

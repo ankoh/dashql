@@ -150,7 +150,7 @@ sql_simple_select:
         auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
         auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
-            Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::UNION),
+            Key::SQL_COMBINE_OPERATION << EnumNode(@2, sxs::CombineOperation::UNION),
             Key::SQL_COMBINE_MODIFIER << $3,
             Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{l, r}),
         };
@@ -159,7 +159,7 @@ sql_simple_select:
         auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
         auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
-            Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::INTERSECT),
+            Key::SQL_COMBINE_OPERATION << EnumNode(@2, sxs::CombineOperation::INTERSECT),
             Key::SQL_COMBINE_MODIFIER << $3,
             Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{l, r}),
         };
@@ -168,7 +168,7 @@ sql_simple_select:
         auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
         auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
-            Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::EXCEPT),
+            Key::SQL_COMBINE_OPERATION << EnumNode(@2, sxs::CombineOperation::EXCEPT),
             Key::SQL_COMBINE_MODIFIER << $3,
             Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{l, r}),
         };
@@ -227,15 +227,15 @@ sql_preparable_stmt:
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.
 sql_opt_temp_table_name:
-    TEMPORARY sql_opt_table sql_qualified_name          { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
-  | TEMP sql_opt_table sql_qualified_name               { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
-  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
-  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
-  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
-  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
-  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::UNLOGGED), ctx.Add(@3, move($3))); }
-  | TABLE sql_qualified_name                            { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@2, move($2))); }
-  | sql_qualified_name                                  { $$ = AddInto(ctx, @$, ctx.RefEnum(@1, sxs::TempType::DEFAULT), ctx.Add(@1, move($1))); }
+    TEMPORARY sql_opt_table sql_qualified_name          { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
+  | TEMP sql_opt_table sql_qualified_name               { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
+  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
+  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
+  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
+  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
+  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::UNLOGGED), ctx.Add(@3, move($3))); }
+  | TABLE sql_qualified_name                            { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::DEFAULT), ctx.Add(@2, move($2))); }
+  | sql_qualified_name                                  { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::DEFAULT), ctx.Add(@1, move($1))); }
     ;
 
 sql_opt_table:
@@ -244,8 +244,8 @@ sql_opt_table:
     ;
 
 sql_all_or_distinct:
-    ALL         { $$ = ctx.RefEnum(@1, sxs::CombineModifier::ALL); }
-  | DISTINCT    { $$ = ctx.RefEnum(@1, sxs::CombineModifier::DISTINCT); }
+    ALL         { $$ = EnumNode(@1, sxs::CombineModifier::ALL); }
+  | DISTINCT    { $$ = EnumNode(@1, sxs::CombineModifier::DISTINCT); }
   | %empty      { $$ = ctx.Null(); }
     ;
 
@@ -293,14 +293,14 @@ sql_sortby:
     ;
 
 sql_opt_asc_desc:
-    ASC_P   { $$ = ctx.RefEnum(@$, sxs::OrderDirection::ASCENDING); }
-  | DESC_P  { $$ = ctx.RefEnum(@$, sxs::OrderDirection::DESCENDING); }
+    ASC_P   { $$ = EnumNode(@$, sxs::OrderDirection::ASCENDING); }
+  | DESC_P  { $$ = EnumNode(@$, sxs::OrderDirection::DESCENDING); }
   | %empty  { $$ = ctx.Null(); }
     ;
 
 sql_opt_nulls_order:
-    NULLS_LA FIRST_P    { $$ = ctx.RefEnum(@$, sxs::OrderNullRule::NULLS_FIRST); }
-  | NULLS_LA LAST_P     { $$ = ctx.RefEnum(@$, sxs::OrderNullRule::NULLS_LAST); }
+    NULLS_LA FIRST_P    { $$ = EnumNode(@$, sxs::OrderNullRule::NULLS_FIRST); }
+  | NULLS_LA LAST_P     { $$ = EnumNode(@$, sxs::OrderNullRule::NULLS_LAST); }
   | %empty              { $$ = ctx.Null(); }
     ;
 
@@ -744,32 +744,32 @@ sql_opt_type_modifiers:
 // SQL numeric data types
 
 sql_numeric:
-    INT_P       { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::INT4); }
-  | INTEGER     { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::INT4); }
-  | SMALLINT    { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::INT2); }
-  | BIGINT      { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::INT8); }
-  | REAL        { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::FLOAT4); }
-  | FLOAT_P sql_opt_float   { $$ = ctx.RefEnum(@$, $2); }
-  | DOUBLE_P PRECISION      { $$ = ctx.RefEnum(@$, sxs::NumericTypeTag::FLOAT4); }
+    INT_P       { $$ = EnumNode(@1, sxs::NumericTypeTag::INT4); }
+  | INTEGER     { $$ = EnumNode(@1, sxs::NumericTypeTag::INT4); }
+  | SMALLINT    { $$ = EnumNode(@1, sxs::NumericTypeTag::INT2); }
+  | BIGINT      { $$ = EnumNode(@1, sxs::NumericTypeTag::INT8); }
+  | REAL        { $$ = EnumNode(@1, sxs::NumericTypeTag::FLOAT4); }
+  | FLOAT_P sql_opt_float   { $$ = EnumNode(@$, $2); }
+  | DOUBLE_P PRECISION      { $$ = EnumNode(@$, sxs::NumericTypeTag::FLOAT4); }
   | DECIMAL_P sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Key::SQL_NUMERIC_TYPE_TAG << ctx.RefEnum(@1, sxs::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE_TAG << EnumNode(@1, sxs::NumericTypeTag::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
   | DEC sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Key::SQL_NUMERIC_TYPE_TAG << ctx.RefEnum(@1, sxs::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE_TAG << EnumNode(@1, sxs::NumericTypeTag::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
   | NUMERIC sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Key::SQL_NUMERIC_TYPE_TAG << ctx.RefEnum(@1, sxs::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE_TAG << EnumNode(@1, sxs::NumericTypeTag::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
-  | BOOLEAN_P   { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::BOOL); }
+  | BOOLEAN_P   { $$ = EnumNode(@1, sxs::NumericTypeTag::BOOL); }
     ;
 
 sql_opt_float:
@@ -1183,10 +1183,10 @@ sql_opt_partition_clause:
 
 sql_opt_frame_clause:
     RANGE sql_frame_extent { $$ = {
-        Key::SQL_WINDOW_FRAME_MODE << ctx.RefEnum(@1, sxs::WindowRangeMode::RANGE),
+        Key::SQL_WINDOW_FRAME_MODE << EnumNode(@1, sxs::WindowRangeMode::RANGE),
         Key::SQL_WINDOW_FRAME_BOUNDS << ctx.Add(@2, move($2)), }; }
   | ROWS sql_frame_extent { $$ = {
-        Key::SQL_WINDOW_FRAME_MODE << ctx.RefEnum(@1, sxs::WindowRangeMode::ROWS),
+        Key::SQL_WINDOW_FRAME_MODE << EnumNode(@1, sxs::WindowRangeMode::ROWS),
         Key::SQL_WINDOW_FRAME_BOUNDS << ctx.Add(@2, move($2)), }; }
   | %empty { $$ = {}; }
     ;
@@ -1199,28 +1199,28 @@ sql_frame_extent:
 sql_frame_bound:
     UNBOUNDED PRECEDING {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::UNBOUNDED),
-            Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::PRECEDING)
+            Key::SQL_WINDOW_BOUND_MODE << EnumNode(@1, sxs::WindowBoundMode::UNBOUNDED),
+            Key::SQL_WINDOW_BOUND_DIRECTION << EnumNode(@1, sxs::WindowBoundDirection::PRECEDING)
         });}
   | UNBOUNDED FOLLOWING {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::UNBOUNDED),
-            Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::FOLLOWING)
+            Key::SQL_WINDOW_BOUND_MODE << EnumNode(@1, sxs::WindowBoundMode::UNBOUNDED),
+            Key::SQL_WINDOW_BOUND_DIRECTION << EnumNode(@1, sxs::WindowBoundDirection::FOLLOWING)
         });}
   | CURRENT_P ROW {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::CURRENT_ROW),
+            Key::SQL_WINDOW_BOUND_MODE << EnumNode(@1, sxs::WindowBoundMode::CURRENT_ROW),
         });}
   | sql_a_expr PRECEDING {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::VALUE),
-            Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::PRECEDING),
+            Key::SQL_WINDOW_BOUND_MODE << EnumNode(@1, sxs::WindowBoundMode::VALUE),
+            Key::SQL_WINDOW_BOUND_DIRECTION << EnumNode(@1, sxs::WindowBoundDirection::PRECEDING),
             Key::SQL_WINDOW_BOUND_VALUE << $1,
         });}
   | sql_a_expr FOLLOWING {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::VALUE),
-            Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::FOLLOWING),
+            Key::SQL_WINDOW_BOUND_MODE << EnumNode(@1, sxs::WindowBoundMode::VALUE),
+            Key::SQL_WINDOW_BOUND_DIRECTION << EnumNode(@1, sxs::WindowBoundDirection::FOLLOWING),
             Key::SQL_WINDOW_BOUND_VALUE << $1,
         });}
     ;
@@ -1252,18 +1252,18 @@ sql_all_op:
     ;
 
 sql_math_op:
-    '+'             { $$ = ctx.RefEnum(@1, sxs::MathOp::PLUS); }
-  | '-'             { $$ = ctx.RefEnum(@1, sxs::MathOp::MINUS); }
-  | '*'             { $$ = ctx.RefEnum(@1, sxs::MathOp::MULTIPLY); }
-  | '/'             { $$ = ctx.RefEnum(@1, sxs::MathOp::DIVIDE); }
-  | '%'             { $$ = ctx.RefEnum(@1, sxs::MathOp::MODULUS); }
-  | '^'             { $$ = ctx.RefEnum(@1, sxs::MathOp::XOR); }
-  | '<'             { $$ = ctx.RefEnum(@1, sxs::MathOp::LESS_THAN); }
-  | '>'             { $$ = ctx.RefEnum(@1, sxs::MathOp::GREATER_THAN); }
-  | '='             { $$ = ctx.RefEnum(@1, sxs::MathOp::EQUAL); }
-  | LESS_EQUALS     { $$ = ctx.RefEnum(@1, sxs::MathOp::LESS_EQUAL); }
-  | GREATER_EQUALS  { $$ = ctx.RefEnum(@1, sxs::MathOp::GREATER_EQUAL); }
-  | NOT_EQUALS      { $$ = ctx.RefEnum(@1, sxs::MathOp::NOT_EQUAL); }
+    '+'             { $$ = EnumNode(@1, sxs::MathOp::PLUS); }
+  | '-'             { $$ = EnumNode(@1, sxs::MathOp::MINUS); }
+  | '*'             { $$ = EnumNode(@1, sxs::MathOp::MULTIPLY); }
+  | '/'             { $$ = EnumNode(@1, sxs::MathOp::DIVIDE); }
+  | '%'             { $$ = EnumNode(@1, sxs::MathOp::MODULUS); }
+  | '^'             { $$ = EnumNode(@1, sxs::MathOp::XOR); }
+  | '<'             { $$ = EnumNode(@1, sxs::MathOp::LESS_THAN); }
+  | '>'             { $$ = EnumNode(@1, sxs::MathOp::GREATER_THAN); }
+  | '='             { $$ = EnumNode(@1, sxs::MathOp::EQUAL); }
+  | LESS_EQUALS     { $$ = EnumNode(@1, sxs::MathOp::LESS_EQUAL); }
+  | GREATER_EQUALS  { $$ = EnumNode(@1, sxs::MathOp::GREATER_EQUAL); }
+  | NOT_EQUALS      { $$ = EnumNode(@1, sxs::MathOp::NOT_EQUAL); }
     ; 
 sql_qual_op:
     Op

@@ -70,10 +70,6 @@ class ParserDriver {
     inline sx::Node Ref(sx::Location loc, uint32_t value) const {
         return sx::Node(loc, sx::NodeType::UI32, Key::NONE, value, 0);
     }
-    /// Create an enum
-    template <typename E> inline sx::Node RefEnum(sx::Location loc, E e) const {
-        return Ref(loc, static_cast<uint32_t>(e));
-    }
     /// Create a bool
     inline sx::Node Ref(sx::Location loc, bool v) const { return Ref(loc, static_cast<uint32_t>(v)); }
 
