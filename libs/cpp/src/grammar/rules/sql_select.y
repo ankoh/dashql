@@ -737,7 +737,7 @@ sql_generic_type:
     ;
 
 sql_opt_type_modifiers:
-    '(' sql_expr_list ')'   { $$ = {}; }
+    '(' sql_expr_list ')'   { $$ = $2; }
   | %empty                  { $$ = {}; }
     ;
 
