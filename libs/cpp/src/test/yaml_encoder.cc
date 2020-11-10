@@ -95,6 +95,11 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
             switch (target->node_type()) {
                 case sx::NodeType::NONE:
                     break;
+                case sx::NodeType::BOOL: {
+                    n |= ryml::VAL;
+                    n << (target->children_begin_or_value() != 0 ? "true" : "false");
+                    break;
+                }
                 case sx::NodeType::UI32: {
                     n |= ryml::VAL;
                     n << target->children_begin_or_value();

@@ -216,7 +216,7 @@ expected:
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
   errors: []
   line_breaks: []
   comments: []
@@ -241,7 +241,7 @@ expected:
             SQL_TABLE_NAME:
               - 14..15|`b`
               - 16..17|`c`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
   errors: []
   line_breaks: []
   comments: []
@@ -266,7 +266,7 @@ expected:
             SQL_TABLE_NAME:
               - 19..20|`b`
               - 21..22|`c`
-            SQL_TABLE_INHERIT: 0
+            SQL_TABLE_INHERIT: false
   errors: []
   line_breaks: []
   comments: []
@@ -291,7 +291,7 @@ expected:
             SQL_TABLE_NAME:
               - 14..15|`b`
               - 16..17|`c`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
             SQL_TABLE_ALIAS: 21..22|`d`
   errors: []
   line_breaks: []
@@ -316,12 +316,12 @@ expected:
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
           - type: OBJECT_SQL_TABLE_REF
             location: 17..18|`c`
             SQL_TABLE_NAME:
               - 17..18|`c`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
   errors: []
   line_breaks: []
   comments: []
@@ -351,12 +351,12 @@ expected:
             location: 21..22|`c`
             SQL_TABLE_NAME:
               - 21..22|`c`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
           - type: OBJECT_SQL_TABLE_REF
             location: 24..25|`d`
             SQL_TABLE_NAME:
               - 24..25|`d`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
   errors: []
   line_breaks: []
   comments: []
@@ -380,7 +380,7 @@ expected:
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
         SQL_SELECT_GROUPS:
           - type: OBJECT_SQL_ACONST
             location: 25..26|`1`
@@ -408,7 +408,7 @@ expected:
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
         SQL_SELECT_WINDOWS:
           - type: OBJECT_SQL_WINDOW_DEF
             location: 23..30|`c as ()`
@@ -436,7 +436,7 @@ expected:
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
         SQL_SELECT_WINDOWS:
           - type: OBJECT_SQL_WINDOW_DEF
             location: 23..44|`c as (part`..`tion by d)`
@@ -474,7 +474,7 @@ expected:
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
         SQL_SELECT_WINDOWS:
           - type: OBJECT_SQL_WINDOW_DEF
             location: 23..101|`c as (part`..`following)`
@@ -523,7 +523,7 @@ expected:
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
         SQL_SELECT_WINDOWS:
           - type: OBJECT_SQL_WINDOW_DEF
             location: 23..85|`c as (part`..`rrent row)`
@@ -576,7 +576,7 @@ expected:
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
         SQL_SELECT_WINDOWS:
           - type: OBJECT_SQL_WINDOW_DEF
             location: 23..86|`c as (part`..`following)`
@@ -628,7 +628,7 @@ expected:
       DASHQL_QUERY_STATEMENT:
         type: OBJECT_SQL_SELECT
         location: 0..24|`select dis`..`t a from b`
-        SQL_SELECT_DISTINCT: 1
+        SQL_SELECT_DISTINCT: true
         SQL_SELECT_TARGETS:
           - type: OBJECT_SQL_COLUMN_REF
             location: 16..17|`a`
@@ -639,7 +639,7 @@ expected:
             location: 23..24|`b`
             SQL_TABLE_NAME:
               - 23..24|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
   errors: []
   line_breaks: []
   comments: []
@@ -668,7 +668,7 @@ expected:
             location: 30..31|`b`
             SQL_TABLE_NAME:
               - 30..31|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
   errors: []
   line_breaks: []
   comments: []
@@ -682,13 +682,13 @@ expected:
       DASHQL_QUERY_STATEMENT:
         type: OBJECT_SQL_SELECT
         location: 0..17|`select all from b`
-        SQL_SELECT_ALL: 1
+        SQL_SELECT_ALL: true
         SQL_SELECT_FROM:
           - type: OBJECT_SQL_TABLE_REF
             location: 16..17|`b`
             SQL_TABLE_NAME:
               - 16..17|`b`
-            SQL_TABLE_INHERIT: 1
+            SQL_TABLE_INHERIT: true
   errors: []
   line_breaks: []
   comments: []
@@ -770,7 +770,7 @@ expected:
           location: 0..7|`TABLE a`
           SQL_TABLE_NAME:
             - 6..7|`a`
-          SQL_TABLE_INHERIT: 1
+          SQL_TABLE_INHERIT: true
   errors: []
   line_breaks: []
   comments: []
@@ -960,7 +960,7 @@ expected:
       DASHQL_QUERY_STATEMENT:
         type: OBJECT_SQL_SELECT
         location: 0..56|`WITH RECUR`..`) SELECT 3`
-        SQL_SELECT_WITH_RECURSIVE: 1
+        SQL_SELECT_WITH_RECURSIVE: true
         SQL_SELECT_WITH_CTES:
           - type: OBJECT_SQL_CTE
             location: 15..30|`a AS (SELECT 1)`

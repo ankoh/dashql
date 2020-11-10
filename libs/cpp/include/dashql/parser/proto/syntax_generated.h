@@ -41,59 +41,61 @@ inline const flatbuffers::TypeTable *ModuleTypeTable();
 
 enum class NodeType : uint16_t {
   NONE = 0,
-  UI32 = 1,
-  STRING = 2,
-  ARRAY = 3,
-  ENUM_MIN = 4,
-  ENUM_DASHQL_HTTP_VERB = 5,
-  ENUM_DASHQL_LOAD_METHOD_TYPE = 6,
-  ENUM_DASHQL_PARAMETER_TYPE = 7,
-  ENUM_DASHQL_VIZ_TYPE = 8,
-  ENUM_SQL_ACONST_TYPE = 9,
-  ENUM_SQL_AEXPR_KIND = 10,
-  ENUM_SQL_COMBINE_MODIFIER = 11,
-  ENUM_SQL_COMBINE_OPERATION = 12,
-  ENUM_SQL_MATH_OPERATION = 13,
-  ENUM_SQL_NUMERIC_TYPE_TAG = 14,
-  ENUM_SQL_ORDER_DIRECTION = 15,
-  ENUM_SQL_ORDER_NULL_RULE = 16,
-  ENUM_SQL_TEMP_TYPE = 17,
-  ENUM_SQL_WINDOW_BOUND_DIRECTION = 18,
-  ENUM_SQL_WINDOW_BOUND_MODE = 19,
-  ENUM_SQL_WINDOW_EXCLUSION_MODE = 20,
-  ENUM_SQL_WINDOW_RANGE_MODE = 21,
-  OBJECT_MIN = 22,
-  OBJECT_DASHQL_LOAD = 23,
-  OBJECT_DASHQL_PARAMTER = 24,
-  OBJECT_DASHQL_EXTRACT = 25,
-  OBJECT_DASHQL_QUERY = 26,
-  OBJECT_DASHQL_VIZ = 27,
-  OBJECT_SQL_ACONST = 28,
-  OBJECT_SQL_AEXPR = 29,
-  OBJECT_SQL_ALIAS = 30,
-  OBJECT_SQL_COLUMN_REF = 31,
-  OBJECT_SQL_COMBINE = 32,
-  OBJECT_SQL_CTE = 33,
-  OBJECT_SQL_INDIRECTION = 34,
-  OBJECT_SQL_INTO = 35,
-  OBJECT_SQL_NUMERIC_TYPE = 36,
-  OBJECT_SQL_ORDER = 37,
-  OBJECT_SQL_QUALIFIED_NAME = 38,
-  OBJECT_SQL_RELATION_EXPR = 39,
-  OBJECT_SQL_RESULT_TARGET = 40,
-  OBJECT_SQL_SELECT = 41,
-  OBJECT_SQL_TABLE_REF = 42,
-  OBJECT_SQL_WINDOW_BOUND = 43,
-  OBJECT_SQL_WINDOW_DEF = 44,
-  OBJECT_SQL_WINDOW_FRAME = 45,
-  OBJECT_SQL_WITH = 46,
+  BOOL = 1,
+  UI32 = 2,
+  STRING = 3,
+  ARRAY = 4,
+  ENUM_MIN = 5,
+  ENUM_DASHQL_HTTP_VERB = 6,
+  ENUM_DASHQL_LOAD_METHOD_TYPE = 7,
+  ENUM_DASHQL_PARAMETER_TYPE = 8,
+  ENUM_DASHQL_VIZ_TYPE = 9,
+  ENUM_SQL_ACONST_TYPE = 10,
+  ENUM_SQL_AEXPR_KIND = 11,
+  ENUM_SQL_COMBINE_MODIFIER = 12,
+  ENUM_SQL_COMBINE_OPERATION = 13,
+  ENUM_SQL_MATH_OPERATION = 14,
+  ENUM_SQL_NUMERIC_TYPE_TAG = 15,
+  ENUM_SQL_ORDER_DIRECTION = 16,
+  ENUM_SQL_ORDER_NULL_RULE = 17,
+  ENUM_SQL_TEMP_TYPE = 18,
+  ENUM_SQL_WINDOW_BOUND_DIRECTION = 19,
+  ENUM_SQL_WINDOW_BOUND_MODE = 20,
+  ENUM_SQL_WINDOW_EXCLUSION_MODE = 21,
+  ENUM_SQL_WINDOW_RANGE_MODE = 22,
+  OBJECT_MIN = 23,
+  OBJECT_DASHQL_LOAD = 24,
+  OBJECT_DASHQL_PARAMTER = 25,
+  OBJECT_DASHQL_EXTRACT = 26,
+  OBJECT_DASHQL_QUERY = 27,
+  OBJECT_DASHQL_VIZ = 28,
+  OBJECT_SQL_ACONST = 29,
+  OBJECT_SQL_AEXPR = 30,
+  OBJECT_SQL_ALIAS = 31,
+  OBJECT_SQL_COLUMN_REF = 32,
+  OBJECT_SQL_COMBINE = 33,
+  OBJECT_SQL_CTE = 34,
+  OBJECT_SQL_INDIRECTION = 35,
+  OBJECT_SQL_INTO = 36,
+  OBJECT_SQL_NUMERIC_TYPE = 37,
+  OBJECT_SQL_ORDER = 38,
+  OBJECT_SQL_QUALIFIED_NAME = 39,
+  OBJECT_SQL_RELATION_EXPR = 40,
+  OBJECT_SQL_RESULT_TARGET = 41,
+  OBJECT_SQL_SELECT = 42,
+  OBJECT_SQL_TABLE_REF = 43,
+  OBJECT_SQL_WINDOW_BOUND = 44,
+  OBJECT_SQL_WINDOW_DEF = 45,
+  OBJECT_SQL_WINDOW_FRAME = 46,
+  OBJECT_SQL_WITH = 47,
   MIN = NONE,
   MAX = OBJECT_SQL_WITH
 };
 
-inline const NodeType (&EnumValuesNodeType())[47] {
+inline const NodeType (&EnumValuesNodeType())[48] {
   static const NodeType values[] = {
     NodeType::NONE,
+    NodeType::BOOL,
     NodeType::UI32,
     NodeType::STRING,
     NodeType::ARRAY,
@@ -145,8 +147,9 @@ inline const NodeType (&EnumValuesNodeType())[47] {
 }
 
 inline const char * const *EnumNamesNodeType() {
-  static const char * const names[48] = {
+  static const char * const names[49] = {
     "NONE",
+    "BOOL",
     "UI32",
     "STRING",
     "ARRAY",
@@ -944,6 +947,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -951,6 +955,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
   };
   static const char * const names[] = {
     "NONE",
+    "BOOL",
     "UI32",
     "STRING",
     "ARRAY",
@@ -999,7 +1004,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     "OBJECT_SQL_WITH"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 47, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 48, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

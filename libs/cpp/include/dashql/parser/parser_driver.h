@@ -71,7 +71,9 @@ class ParserDriver {
         return sx::Node(loc, sx::NodeType::UI32, Key::NONE, value, 0);
     }
     /// Create a bool
-    inline sx::Node Ref(sx::Location loc, bool v) const { return Ref(loc, static_cast<uint32_t>(v)); }
+    inline sx::Node Ref(sx::Location loc, bool v) const {
+        return sx::Node(loc, sx::NodeType::BOOL, Key::NONE, static_cast<uint32_t>(v), 0);
+    }
 
     /// Add a an array
     sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true);
