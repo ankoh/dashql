@@ -1517,8 +1517,8 @@ sql_attr_name: sql_col_label;
 // ever implement SQL99-like methods, such syntax may actually become legal!)
 
 sql_func_name:
-    sql_type_function_name
-  | sql_col_id sql_indirection
+    sql_type_function_name      { $$ = { ctx.Ref(@1) }; }
+  | sql_col_id sql_indirection  { $2.insert($2.begin(), ctx.Ref(@1)); $$ = move($2); }
     ;
 
 // Constants
