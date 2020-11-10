@@ -1462,7 +1462,12 @@ sql_target_list:
     ;
 
 sql_target_el:
-    sql_a_expr AS sql_col_label_or_string       { $$ = {}; }
+    sql_a_expr AS sql_col_label_or_string {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_RESULT_TARGET, {
+            Key::SQL_RESULT_TARGET_VALUE << $1,
+            Key::SQL_RESULT_TARGET_NAME << ctx.Ref(@3),
+        });
+    }
 
     // We support omitting AS only for column labels that aren't
     // any known keyword.  There is an ambiguity against postfix
@@ -1486,8 +1491,8 @@ sql_target_el:
 // Names and constants
 
 sql_qualified_name_list:
-    sql_qualified_name
-  | sql_qualified_name_list ',' sql_qualified_name
+    sql_qualified_name                              { $$ = { ctx.Add(@1, move($1)) }; }
+  | sql_qualified_name_list ',' sql_qualified_name  { $1.push_back(ctx.Add(@1, move($1))); $$ = move($1); }
     ;
 
 // The production for a qualified relation name has to exactly match the

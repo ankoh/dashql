@@ -16,6 +16,7 @@
 %type <NodeVector> sql_opt_partition_clause;
 %type <NodeVector> sql_opt_target_list;
 %type <NodeVector> sql_qualified_name;
+%type <NodeVector> sql_qualified_name_list;
 %type <NodeVector> sql_relation_expr;
 %type <NodeVector> sql_select_clause;
 %type <NodeVector> sql_select_no_parens;
