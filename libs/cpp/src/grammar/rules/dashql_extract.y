@@ -2,7 +2,7 @@ dashql_extract_statement:
     EXTRACT dashql_identifier FROM dashql_identifier USING dashql_extract_method {
         $6.push_back(Key::DASHQL_EXTRACT_NAME << ctx.Ref(@2));
         $6.push_back(Key::DASHQL_EXTRACT_DATA << ctx.Ref(@4));
-        $$ = ctx.Add(@$, sx::NodeType::DASHQL_EXTRACT, move($6));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_EXTRACT, move($6));
     }
     ;
 

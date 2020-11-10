@@ -36,8 +36,8 @@
 // with or without outer parentheses.
 
 sql_select_stmt:
-    sql_select_no_parens    %prec UMINUS { $$ = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1)); }
-  | sql_select_with_parens  %prec UMINUS { $$ = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1)); }
+    sql_select_no_parens    %prec UMINUS { $$ = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1)); }
+  | sql_select_with_parens  %prec UMINUS { $$ = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1)); }
     ;
 
 sql_select_with_parens:
@@ -144,11 +144,11 @@ sql_simple_select:
         $$ = { Key::SQL_SELECT_VALUES << ctx.Add(@1, move($1)) };
     }
   | TABLE sql_relation_expr {
-        $$ = { Key::SQL_SELECT_TABLE << ctx.Add(@$, sx::NodeType::SQL_TABLE_REF, move($2)) };
+        $$ = { Key::SQL_SELECT_TABLE << ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_REF, move($2)) };
     }
   | sql_select_clause UNION sql_all_or_distinct sql_select_clause {
-        auto l = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1));
-        auto r = ctx.Add(@4, sx::NodeType::SQL_SELECT, move($4));
+        auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
+        auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
             Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::UNION),
             Key::SQL_COMBINE_MODIFIER << $3,
@@ -156,8 +156,8 @@ sql_simple_select:
         };
     }
   | sql_select_clause INTERSECT sql_all_or_distinct sql_select_clause {
-        auto l = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1));
-        auto r = ctx.Add(@4, sx::NodeType::SQL_SELECT, move($4));
+        auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
+        auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
             Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::INTERSECT),
             Key::SQL_COMBINE_MODIFIER << $3,
@@ -165,8 +165,8 @@ sql_simple_select:
         };
     }
   | sql_select_clause EXCEPT sql_all_or_distinct sql_select_clause {
-        auto l = ctx.Add(@1, sx::NodeType::SQL_SELECT, move($1));
-        auto r = ctx.Add(@4, sx::NodeType::SQL_SELECT, move($4));
+        auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
+        auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
             Key::SQL_COMBINE_OPERATION << ctx.RefEnum(@2, sxs::CombineOperation::EXCEPT),
             Key::SQL_COMBINE_MODIFIER << $3,
@@ -206,7 +206,7 @@ sql_cte_list:
 
 sql_common_table_expr:
     sql_name sql_opt_name_list AS '(' sql_preparable_stmt ')' {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_CTE, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CTE, {
             Key::SQL_CTE_NAME << ctx.Ref(@1),
             Key::SQL_CTE_COLUMNS << ctx.Add(@2, move($2)),
             Key::SQL_CTE_STATEMENT << $5,
@@ -278,13 +278,13 @@ sql_sortby_list:
 
 sql_sortby:
     sql_a_expr USING sql_qual_all_op sql_opt_nulls_order {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_ORDER, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ORDER, {
             Key::SQL_ORDER_VALUE << $1,
             Key::SQL_ORDER_NULLRULE << $4,
         });
     }
   | sql_a_expr sql_opt_asc_desc sql_opt_nulls_order {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_ORDER, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ORDER, {
             Key::SQL_ORDER_VALUE << $1,
             Key::SQL_ORDER_DIRECTION << $2,
             Key::SQL_ORDER_NULLRULE << $3,
@@ -508,7 +508,7 @@ sql_from_list:
 // table_ref is where an alias clause can be attached.
 
 sql_table_ref:
-    sql_relation_expr sql_opt_alias_clause                          { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::SQL_TABLE_REF, move($1)); }
+    sql_relation_expr sql_opt_alias_clause                          { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_REF, move($1)); }
   | sql_relation_expr sql_opt_alias_clause sql_tablesample_clause   { $$ = {}; }
   | sql_func_table sql_func_alias_clause                            { $$ = {}; }
   | LATERAL_P sql_func_table sql_func_alias_clause                  { $$ = {}; }
@@ -752,19 +752,19 @@ sql_numeric:
   | FLOAT_P sql_opt_float   { $$ = ctx.RefEnum(@$, $2); }
   | DOUBLE_P PRECISION      { $$ = ctx.RefEnum(@$, sxs::NumericTypeTag::FLOAT4); }
   | DECIMAL_P sql_opt_type_modifiers {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_NUMERIC_TYPE, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
             Key::SQL_NUMERIC_TYPE_TAG << ctx.RefEnum(@1, sxs::NumericTypeTag::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
   | DEC sql_opt_type_modifiers {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_NUMERIC_TYPE, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
             Key::SQL_NUMERIC_TYPE_TAG << ctx.RefEnum(@1, sxs::NumericTypeTag::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
   | NUMERIC sql_opt_type_modifiers {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_NUMERIC_TYPE, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
             Key::SQL_NUMERIC_TYPE_TAG << ctx.RefEnum(@1, sxs::NumericTypeTag::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
@@ -1137,7 +1137,7 @@ sql_window_definition_list:
 
 sql_window_definition:
     sql_col_id AS sql_window_specification {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_DEF, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_DEF, {
             Key::SQL_WINDOW_DEF_NAME << ctx.Ref(@1),
             Key::SQL_WINDOW_DEF_FRAME << $3,
         });
@@ -1152,7 +1152,7 @@ sql_over_clause:
 
 sql_window_specification:
     '(' sql_opt_existing_window_name sql_opt_partition_clause sql_opt_sort_clause sql_opt_frame_clause ')' {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_FRAME, move($2 << move($3) << move($5)));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_FRAME, move($2 << move($3) << move($5)));
     }
     ;
 
@@ -1198,27 +1198,27 @@ sql_frame_extent:
 
 sql_frame_bound:
     UNBOUNDED PRECEDING {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_BOUND, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
             Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::UNBOUNDED),
             Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::PRECEDING)
         });}
   | UNBOUNDED FOLLOWING {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_BOUND, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
             Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::UNBOUNDED),
             Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::FOLLOWING)
         });}
   | CURRENT_P ROW {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_BOUND, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
             Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::CURRENT_ROW),
         });}
   | sql_a_expr PRECEDING {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_BOUND, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
             Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::VALUE),
             Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::PRECEDING),
             Key::SQL_WINDOW_BOUND_VALUE << $1,
         });}
   | sql_a_expr FOLLOWING {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_WINDOW_BOUND, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
             Key::SQL_WINDOW_BOUND_MODE << ctx.RefEnum(@1, sxs::WindowBoundMode::VALUE),
             Key::SQL_WINDOW_BOUND_DIRECTION << ctx.RefEnum(@1, sxs::WindowBoundDirection::FOLLOWING),
             Key::SQL_WINDOW_BOUND_VALUE << $1,
@@ -1478,7 +1478,7 @@ sql_target_list:
 
 sql_target_el:
     sql_a_expr AS sql_col_label_or_string {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_RESULT_TARGET, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_RESULT_TARGET, {
             Key::SQL_RESULT_TARGET_VALUE << $1,
             Key::SQL_RESULT_TARGET_NAME << ctx.Ref(@3),
         });
@@ -1492,7 +1492,7 @@ sql_target_el:
     // IDENT a precedence higher than POSTFIXOP.
 
   | sql_a_expr IDENT {
-        $$ = ctx.Add(@$, sx::NodeType::SQL_RESULT_TARGET, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_RESULT_TARGET, {
             Key::SQL_RESULT_TARGET_VALUE << $1,
             Key::SQL_RESULT_TARGET_NAME << ctx.Ref(@2),
         });

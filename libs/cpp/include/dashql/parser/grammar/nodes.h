@@ -12,21 +12,21 @@ namespace parser {
 
 /// Create a constant inline
 inline sx::Node AddConst(ParserDriver& driver, sx::Location loc, sxs::AConstType type) {
-    return driver.Add(loc, sx::NodeType::SQL_ACONST, {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_ACONST, {
         sx::AttributeKey::SQL_ACONST_TYPE << driver.RefEnum(loc, type),
     });
 }
 
 /// Create indirection
 inline sx::Node AddIndirection(ParserDriver& driver, sx::Location loc, sx::Node index) {
-    return driver.Add(loc, sx::NodeType::SQL_INDIRECTION, {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_INDIRECTION, {
         sx::AttributeKey::SQL_INDIRECTION_INDEX << index,
     });
 }
 
 /// Create indirection
 inline sx::Node AddIndirection(ParserDriver& driver, sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
-    return driver.Add(loc, sx::NodeType::SQL_INDIRECTION, {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_INDIRECTION, {
         sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND << lower_bound,
         sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND << upper_bound,
     });
@@ -34,7 +34,7 @@ inline sx::Node AddIndirection(ParserDriver& driver, sx::Location loc, sx::Node 
 
 /// Create relation expression
 inline sx::Node AddAlias(ParserDriver& driver, sx::Location loc, sx::Node name, sx::Node columns) {
-    return driver.Add(loc, sx::NodeType::SQL_ALIAS, {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_ALIAS, {
         sx::AttributeKey::SQL_ALIAS_NAME << name,
         sx::AttributeKey::SQL_ALIAS_COLUMNS << columns,
     });
@@ -42,7 +42,7 @@ inline sx::Node AddAlias(ParserDriver& driver, sx::Location loc, sx::Node name, 
 
 /// Create a temp table name
 inline sx::Node AddInto(ParserDriver& driver, sx::Location loc, sx::Node type, sx::Node name) {
-    return driver.Add(loc, sx::NodeType::SQL_INTO, {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_INTO, {
         sx::AttributeKey::SQL_TEMP_TYPE << type,
         sx::AttributeKey::SQL_TEMP_NAME << name,
     });
@@ -50,7 +50,7 @@ inline sx::Node AddInto(ParserDriver& driver, sx::Location loc, sx::Node type, s
 
 /// Create a column ref
 inline sx::Node AddColumnRef(ParserDriver& driver, sx::Location loc, NodeVector&& path) {
-    return driver.Add(loc, sx::NodeType::SQL_COLUMN_REF, {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_COLUMN_REF, {
         sx::AttributeKey::SQL_COLUMN_REF_PATH << driver.Add(loc, move(path)),
     });
 }

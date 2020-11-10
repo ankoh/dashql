@@ -2,13 +2,13 @@ name: select_iconst_1
 input: select 1
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..8|`select 1`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..8|`select 1`
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: 7..8|`1`
             SQL_ACONST_TYPE: 0
   errors: []
@@ -19,13 +19,13 @@ name: select_fconst_1e04
 input: 'select 1e-04'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: '0..12|`select 1e-04`'
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: '0..12|`select 1e-04`'
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: '7..12|`1e-04`'
             SQL_ACONST_TYPE: 1
   errors: []
@@ -36,16 +36,16 @@ name: select_fconst_realfail1
 input: select 1e
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..9|`select 1e`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..9|`select 1e`
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: OBJECT_SQL_RESULT_TARGET
             location: 7..9|`1e`
             SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
+              type: OBJECT_SQL_ACONST
               location: 7..8|`1`
               SQL_ACONST_TYPE: 1
             SQL_RESULT_TARGET_NAME: 8..9|`e`
@@ -57,13 +57,13 @@ name: select_bconst_b1010
 input: "select b'1010'"
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: "0..14|`select b'1010'`"
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: "0..14|`select b'1010'`"
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: "7..14|`b'1010'`"
             SQL_ACONST_TYPE: 3
   errors: []
@@ -74,13 +74,13 @@ name: select_bconst_x2a
 input: "select x'2a'"
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: "0..12|`select x'2a'`"
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: "0..12|`select x'2a'`"
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: "7..12|`x'2a'`"
             SQL_ACONST_TYPE: 3
   errors: []
@@ -91,13 +91,13 @@ name: select_sconst_quotes
 input: "select 'foo'"
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: "0..12|`select 'foo'`"
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: "0..12|`select 'foo'`"
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: "7..12|`'foo'`"
             SQL_ACONST_TYPE: 2
   errors: []
@@ -108,13 +108,13 @@ name: select_sconst_quotes_nested_quote
 input: "select '''foo'''"
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: "0..16|`select '''foo'''`"
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: "0..16|`select '''foo'''`"
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: "7..16|`'''foo'''`"
             SQL_ACONST_TYPE: 2
   errors: []
@@ -125,13 +125,13 @@ name: select_sconst_quotes_nested_dquote
 input: 'select ''"foo"'''
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: '0..14|`select ''"foo"''`'
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: '0..14|`select ''"foo"''`'
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: '7..14|`''"foo"''`'
             SQL_ACONST_TYPE: 2
   errors: []
@@ -142,16 +142,16 @@ name: select_iconst_1_ident
 input: 'select 1 "foo"'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: '0..14|`select 1 "foo"`'
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: '0..14|`select 1 "foo"`'
         SQL_SELECT_TARGETS:
-          - type: SQL_RESULT_TARGET
+          - type: OBJECT_SQL_RESULT_TARGET
             location: '7..14|`1 "foo"`'
             SQL_RESULT_TARGET_VALUE:
-              type: SQL_ACONST
+              type: OBJECT_SQL_ACONST
               location: 7..8|`1`
               SQL_ACONST_TYPE: 0
             SQL_RESULT_TARGET_NAME: '9..14|`"foo"`'
@@ -181,16 +181,16 @@ name: select_iconst_list
 input: 'select 1, 2'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: '0..11|`select 1, 2`'
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: '0..11|`select 1, 2`'
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: 7..8|`1`
             SQL_ACONST_TYPE: 0
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: 10..11|`2`
             SQL_ACONST_TYPE: 0
   errors: []
@@ -201,18 +201,18 @@ name: select_from_1rel
 input: select a from b
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..15|`select a from b`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..15|`select a from b`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
@@ -225,18 +225,18 @@ name: select_from_1rel_indirect1
 input: select a from b.c
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..17|`select a from b.c`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..17|`select a from b.c`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..17|`b.c`
             SQL_TABLE_NAME:
               - 14..15|`b`
@@ -250,18 +250,18 @@ name: select_from_1rel_indirect1_noinherit
 input: select a from only b.c
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..22|`select a f`..`m only b.c`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..22|`select a f`..`m only b.c`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..22|`only b.c`
             SQL_TABLE_NAME:
               - 19..20|`b`
@@ -275,18 +275,18 @@ name: select_from_1rel_indirect1_alias
 input: select a from b.c as d
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..22|`select a f`..`m b.c as d`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..22|`select a f`..`m b.c as d`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..22|`b.c as d`
             SQL_TABLE_NAME:
               - 14..15|`b`
@@ -301,23 +301,23 @@ name: select_from_2rel
 input: 'select a from b, c'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: '0..18|`select a from b, c`'
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: '0..18|`select a from b, c`'
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
             SQL_TABLE_INHERIT: 1
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 17..18|`c`
             SQL_TABLE_NAME:
               - 17..18|`c`
@@ -330,29 +330,29 @@ name: select_from_into_2rel
 input: 'select a into b from c, d'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: '0..25|`select a i`..` from c, d`'
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: '0..25|`select a i`..` from c, d`'
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_INTO:
-          type: SQL_INTO
+          type: OBJECT_SQL_INTO
           location: 14..15|`b`
           SQL_TEMP_TYPE: 0
           SQL_TEMP_NAME:
             - 14..15|`b`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 21..22|`c`
             SQL_TABLE_NAME:
               - 21..22|`c`
             SQL_TABLE_INHERIT: 1
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 24..25|`d`
             SQL_TABLE_NAME:
               - 24..25|`d`
@@ -365,24 +365,24 @@ name: select_from_1rel_group1
 input: select a from b group by 1
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..26|`select a f`..`group by 1`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..26|`select a f`..`group by 1`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
             SQL_TABLE_INHERIT: 1
         SQL_SELECT_GROUPS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: 25..26|`1`
             SQL_ACONST_TYPE: 0
   errors: []
@@ -393,24 +393,24 @@ name: select_from_1rel_window_empty
 input: select a from b window c as ()
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..30|`select a f`..`ow c as ()`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..30|`select a f`..`ow c as ()`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
             SQL_TABLE_INHERIT: 1
         SQL_SELECT_WINDOWS:
-          - type: SQL_WINDOW_DEF
+          - type: OBJECT_SQL_WINDOW_DEF
             location: 23..30|`c as ()`
             SQL_WINDOW_DEF_NAME: 23..24|`c`
   errors: []
@@ -421,31 +421,31 @@ name: select_from_1rel_window_partition1
 input: select a from b window c as (partition by d)
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..44|`select a f`..`tion by d)`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..44|`select a f`..`tion by d)`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
             SQL_TABLE_INHERIT: 1
         SQL_SELECT_WINDOWS:
-          - type: SQL_WINDOW_DEF
+          - type: OBJECT_SQL_WINDOW_DEF
             location: 23..44|`c as (part`..`tion by d)`
             SQL_WINDOW_DEF_NAME: 23..24|`c`
             SQL_WINDOW_DEF_FRAME:
-              type: SQL_WINDOW_FRAME
+              type: OBJECT_SQL_WINDOW_FRAME
               location: 28..44|`(partition by d)`
               SQL_WINDOW_FRAME_PARTITION:
-                - type: SQL_COLUMN_REF
+                - type: OBJECT_SQL_COLUMN_REF
                   location: 42..43|`d`
                   SQL_COLUMN_REF_PATH:
                     - 42..43|`d`
@@ -459,41 +459,41 @@ input: |-
   window c as (partition by d rows between unbounded preceding and unbounded following)
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..101|`select a f`..`following)`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..101|`select a f`..`following)`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
             SQL_TABLE_INHERIT: 1
         SQL_SELECT_WINDOWS:
-          - type: SQL_WINDOW_DEF
+          - type: OBJECT_SQL_WINDOW_DEF
             location: 23..101|`c as (part`..`following)`
             SQL_WINDOW_DEF_NAME: 23..24|`c`
             SQL_WINDOW_DEF_FRAME:
-              type: SQL_WINDOW_FRAME
+              type: OBJECT_SQL_WINDOW_FRAME
               location: 28..101|`(partition`..`following)`
               SQL_WINDOW_FRAME_PARTITION:
-                - type: SQL_COLUMN_REF
+                - type: OBJECT_SQL_COLUMN_REF
                   location: 42..43|`d`
                   SQL_COLUMN_REF_PATH:
                     - 42..43|`d`
               SQL_WINDOW_FRAME_MODE: 1
               SQL_WINDOW_FRAME_BOUNDS:
-                - type: SQL_WINDOW_BOUND
+                - type: OBJECT_SQL_WINDOW_BOUND
                   location: 57..76|`unbounded preceding`
                   SQL_WINDOW_BOUND_MODE: 0
                   SQL_WINDOW_BOUND_DIRECTION: 0
-                - type: SQL_WINDOW_BOUND
+                - type: OBJECT_SQL_WINDOW_BOUND
                   location: 81..100|`unbounded following`
                   SQL_WINDOW_BOUND_MODE: 0
                   SQL_WINDOW_BOUND_DIRECTION: 1
@@ -508,45 +508,45 @@ input: |-
   window c as (partition by d rows between 1 preceding and current row)
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..85|`select a f`..`rrent row)`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..85|`select a f`..`rrent row)`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
             SQL_TABLE_INHERIT: 1
         SQL_SELECT_WINDOWS:
-          - type: SQL_WINDOW_DEF
+          - type: OBJECT_SQL_WINDOW_DEF
             location: 23..85|`c as (part`..`rrent row)`
             SQL_WINDOW_DEF_NAME: 23..24|`c`
             SQL_WINDOW_DEF_FRAME:
-              type: SQL_WINDOW_FRAME
+              type: OBJECT_SQL_WINDOW_FRAME
               location: 28..85|`(partition`..`rrent row)`
               SQL_WINDOW_FRAME_PARTITION:
-                - type: SQL_COLUMN_REF
+                - type: OBJECT_SQL_COLUMN_REF
                   location: 42..43|`d`
                   SQL_COLUMN_REF_PATH:
                     - 42..43|`d`
               SQL_WINDOW_FRAME_MODE: 1
               SQL_WINDOW_FRAME_BOUNDS:
-                - type: SQL_WINDOW_BOUND
+                - type: OBJECT_SQL_WINDOW_BOUND
                   location: 57..68|`1 preceding`
                   SQL_WINDOW_BOUND_MODE: 2
                   SQL_WINDOW_BOUND_DIRECTION: 0
                   SQL_WINDOW_BOUND_VALUE:
-                    type: SQL_ACONST
+                    type: OBJECT_SQL_ACONST
                     location: 57..58|`1`
                     SQL_ACONST_TYPE: 0
-                - type: SQL_WINDOW_BOUND
+                - type: OBJECT_SQL_WINDOW_BOUND
                   location: 73..84|`current row`
                   SQL_WINDOW_BOUND_MODE: 1
   errors: []
@@ -561,55 +561,55 @@ input: |-
          e as (partition by f)
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..116|`select a f`..`tion by f)`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..116|`select a f`..`tion by f)`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 14..15|`b`
             SQL_TABLE_NAME:
               - 14..15|`b`
             SQL_TABLE_INHERIT: 1
         SQL_SELECT_WINDOWS:
-          - type: SQL_WINDOW_DEF
+          - type: OBJECT_SQL_WINDOW_DEF
             location: 23..86|`c as (part`..`following)`
             SQL_WINDOW_DEF_NAME: 23..24|`c`
             SQL_WINDOW_DEF_FRAME:
-              type: SQL_WINDOW_FRAME
+              type: OBJECT_SQL_WINDOW_FRAME
               location: 28..86|`(partition`..`following)`
               SQL_WINDOW_FRAME_PARTITION:
-                - type: SQL_COLUMN_REF
+                - type: OBJECT_SQL_COLUMN_REF
                   location: 42..43|`d`
                   SQL_COLUMN_REF_PATH:
                     - 42..43|`d`
               SQL_WINDOW_FRAME_MODE: 0
               SQL_WINDOW_FRAME_BOUNDS:
-                - type: SQL_WINDOW_BOUND
+                - type: OBJECT_SQL_WINDOW_BOUND
                   location: 58..69|`current row`
                   SQL_WINDOW_BOUND_MODE: 1
-                - type: SQL_WINDOW_BOUND
+                - type: OBJECT_SQL_WINDOW_BOUND
                   location: 74..85|`1 following`
                   SQL_WINDOW_BOUND_MODE: 2
                   SQL_WINDOW_BOUND_DIRECTION: 1
                   SQL_WINDOW_BOUND_VALUE:
-                    type: SQL_ACONST
+                    type: OBJECT_SQL_ACONST
                     location: 74..75|`1`
                     SQL_ACONST_TYPE: 0
-          - type: SQL_WINDOW_DEF
+          - type: OBJECT_SQL_WINDOW_DEF
             location: 95..116|`e as (part`..`tion by f)`
             SQL_WINDOW_DEF_NAME: 95..96|`e`
             SQL_WINDOW_DEF_FRAME:
-              type: SQL_WINDOW_FRAME
+              type: OBJECT_SQL_WINDOW_FRAME
               location: 100..116|`(partition by f)`
               SQL_WINDOW_FRAME_PARTITION:
-                - type: SQL_COLUMN_REF
+                - type: OBJECT_SQL_COLUMN_REF
                   location: 114..115|`f`
                   SQL_COLUMN_REF_PATH:
                     - 114..115|`f`
@@ -623,19 +623,19 @@ name: select_distinct_from_1rel
 input: select distinct a from b
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..24|`select dis`..`t a from b`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..24|`select dis`..`t a from b`
         SQL_SELECT_DISTINCT: 1
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 16..17|`a`
             SQL_COLUMN_REF_PATH:
               - 16..17|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 23..24|`b`
             SQL_TABLE_NAME:
               - 23..24|`b`
@@ -648,23 +648,23 @@ name: select_distinct_on_from_1rel
 input: select distinct on (a) a from b
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..31|`select dis`..`) a from b`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..31|`select dis`..`) a from b`
         SQL_SELECT_DISTINCT:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 20..21|`a`
             SQL_COLUMN_REF_PATH:
               - 20..21|`a`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 23..24|`a`
             SQL_COLUMN_REF_PATH:
               - 23..24|`a`
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 30..31|`b`
             SQL_TABLE_NAME:
               - 30..31|`b`
@@ -677,14 +677,14 @@ name: select_all_from_1rel
 input: select all from b
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..17|`select all from b`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..17|`select all from b`
         SQL_SELECT_ALL: 1
         SQL_SELECT_FROM:
-          - type: SQL_TABLE_REF
+          - type: OBJECT_SQL_TABLE_REF
             location: 16..17|`b`
             SQL_TABLE_NAME:
               - 16..17|`b`
@@ -697,13 +697,13 @@ name: values_1
 input: values (1)
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..10|`values (1)`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..10|`values (1)`
         SQL_SELECT_VALUES:
-          - - type: SQL_ACONST
+          - - type: OBJECT_SQL_ACONST
               location: 8..9|`1`
               SQL_ACONST_TYPE: 0
   errors: []
@@ -714,16 +714,16 @@ name: values_1_2
 input: 'values (1), (2);'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: '0..15|`values (1), (2)`'
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: '0..15|`values (1), (2)`'
         SQL_SELECT_VALUES:
-          - - type: SQL_ACONST
+          - - type: OBJECT_SQL_ACONST
               location: 8..9|`1`
               SQL_ACONST_TYPE: 0
-          - - type: SQL_ACONST
+          - - type: OBJECT_SQL_ACONST
               location: 13..14|`2`
               SQL_ACONST_TYPE: 0
   errors: []
@@ -734,22 +734,22 @@ name: values_12_34
 input: 'values (1, 2), (3, 4)'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: '0..21|`values (1,`..`2), (3, 4)`'
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: '0..21|`values (1,`..`2), (3, 4)`'
         SQL_SELECT_VALUES:
-          - - type: SQL_ACONST
+          - - type: OBJECT_SQL_ACONST
               location: 8..9|`1`
               SQL_ACONST_TYPE: 0
-            - type: SQL_ACONST
+            - type: OBJECT_SQL_ACONST
               location: 11..12|`2`
               SQL_ACONST_TYPE: 0
-          - - type: SQL_ACONST
+          - - type: OBJECT_SQL_ACONST
               location: 16..17|`3`
               SQL_ACONST_TYPE: 0
-            - type: SQL_ACONST
+            - type: OBJECT_SQL_ACONST
               location: 19..20|`4`
               SQL_ACONST_TYPE: 0
   errors: []
@@ -760,13 +760,13 @@ name: table_a
 input: TABLE a
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..7|`TABLE a`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..7|`TABLE a`
         SQL_SELECT_TABLE:
-          type: SQL_TABLE_REF
+          type: OBJECT_SQL_TABLE_REF
           location: 0..7|`TABLE a`
           SQL_TABLE_NAME:
             - 6..7|`a`
@@ -779,23 +779,23 @@ name: union_select1_select2
 input: SELECT 1 UNION SELECT 2
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..23|`SELECT 1 U`..`N SELECT 2`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..23|`SELECT 1 U`..`N SELECT 2`
         SQL_COMBINE_OPERATION: 2
         SQL_COMBINE_INPUT:
-          - type: SQL_SELECT
+          - type: OBJECT_SQL_SELECT
             location: 0..8|`SELECT 1`
             SQL_SELECT_TARGETS:
-              - type: SQL_ACONST
+              - type: OBJECT_SQL_ACONST
                 location: 7..8|`1`
                 SQL_ACONST_TYPE: 0
-          - type: SQL_SELECT
+          - type: OBJECT_SQL_SELECT
             location: 15..23|`SELECT 2`
             SQL_SELECT_TARGETS:
-              - type: SQL_ACONST
+              - type: OBJECT_SQL_ACONST
                 location: 22..23|`2`
                 SQL_ACONST_TYPE: 0
   errors: []
@@ -806,24 +806,24 @@ name: union_all_select1_select2
 input: SELECT 1 UNION ALL SELECT 2
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..27|`SELECT 1 U`..`L SELECT 2`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..27|`SELECT 1 U`..`L SELECT 2`
         SQL_COMBINE_OPERATION: 2
         SQL_COMBINE_MODIFIER: 1
         SQL_COMBINE_INPUT:
-          - type: SQL_SELECT
+          - type: OBJECT_SQL_SELECT
             location: 0..8|`SELECT 1`
             SQL_SELECT_TARGETS:
-              - type: SQL_ACONST
+              - type: OBJECT_SQL_ACONST
                 location: 7..8|`1`
                 SQL_ACONST_TYPE: 0
-          - type: SQL_SELECT
+          - type: OBJECT_SQL_SELECT
             location: 19..27|`SELECT 2`
             SQL_SELECT_TARGETS:
-              - type: SQL_ACONST
+              - type: OBJECT_SQL_ACONST
                 location: 26..27|`2`
                 SQL_ACONST_TYPE: 0
   errors: []
@@ -834,24 +834,24 @@ name: union_distinct_select1_select2
 input: SELECT 1 UNION DISTINCT SELECT 2
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..32|`SELECT 1 U`..`T SELECT 2`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..32|`SELECT 1 U`..`T SELECT 2`
         SQL_COMBINE_OPERATION: 2
         SQL_COMBINE_MODIFIER: 2
         SQL_COMBINE_INPUT:
-          - type: SQL_SELECT
+          - type: OBJECT_SQL_SELECT
             location: 0..8|`SELECT 1`
             SQL_SELECT_TARGETS:
-              - type: SQL_ACONST
+              - type: OBJECT_SQL_ACONST
                 location: 7..8|`1`
                 SQL_ACONST_TYPE: 0
-          - type: SQL_SELECT
+          - type: OBJECT_SQL_SELECT
             location: 24..32|`SELECT 2`
             SQL_SELECT_TARGETS:
-              - type: SQL_ACONST
+              - type: OBJECT_SQL_ACONST
                 location: 31..32|`2`
                 SQL_ACONST_TYPE: 0
   errors: []
@@ -862,23 +862,23 @@ name: intersect_select1_select2
 input: SELECT 1 INTERSECT SELECT 2
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..27|`SELECT 1 I`..`T SELECT 2`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..27|`SELECT 1 I`..`T SELECT 2`
         SQL_COMBINE_OPERATION: 1
         SQL_COMBINE_INPUT:
-          - type: SQL_SELECT
+          - type: OBJECT_SQL_SELECT
             location: 0..8|`SELECT 1`
             SQL_SELECT_TARGETS:
-              - type: SQL_ACONST
+              - type: OBJECT_SQL_ACONST
                 location: 7..8|`1`
                 SQL_ACONST_TYPE: 0
-          - type: SQL_SELECT
+          - type: OBJECT_SQL_SELECT
             location: 19..27|`SELECT 2`
             SQL_SELECT_TARGETS:
-              - type: SQL_ACONST
+              - type: OBJECT_SQL_ACONST
                 location: 26..27|`2`
                 SQL_ACONST_TYPE: 0
   errors: []
@@ -889,24 +889,24 @@ name: with_1cte_select2
 input: WITH a AS (SELECT 1) SELECT 2
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..29|`WITH a AS `..`) SELECT 2`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..29|`WITH a AS `..`) SELECT 2`
         SQL_SELECT_WITH_CTES:
-          - type: SQL_CTE
+          - type: OBJECT_SQL_CTE
             location: 5..20|`a AS (SELECT 1)`
             SQL_CTE_NAME: 5..6|`a`
             SQL_CTE_STATEMENT:
-              type: SQL_SELECT
+              type: OBJECT_SQL_SELECT
               location: 11..19|`SELECT 1`
               SQL_SELECT_TARGETS:
-                - type: SQL_ACONST
+                - type: OBJECT_SQL_ACONST
                   location: 18..19|`1`
                   SQL_ACONST_TYPE: 0
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: 28..29|`2`
             SQL_ACONST_TYPE: 0
   errors: []
@@ -917,34 +917,34 @@ name: with_2ctes_select3
 input: 'WITH a AS (SELECT 1), b AS (SELECT 2) SELECT 3'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..46|`WITH a AS `..`) SELECT 3`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..46|`WITH a AS `..`) SELECT 3`
         SQL_SELECT_WITH_CTES:
-          - type: SQL_CTE
+          - type: OBJECT_SQL_CTE
             location: 5..20|`a AS (SELECT 1)`
             SQL_CTE_NAME: 5..6|`a`
             SQL_CTE_STATEMENT:
-              type: SQL_SELECT
+              type: OBJECT_SQL_SELECT
               location: 11..19|`SELECT 1`
               SQL_SELECT_TARGETS:
-                - type: SQL_ACONST
+                - type: OBJECT_SQL_ACONST
                   location: 18..19|`1`
                   SQL_ACONST_TYPE: 0
-          - type: SQL_CTE
+          - type: OBJECT_SQL_CTE
             location: 22..37|`b AS (SELECT 2)`
             SQL_CTE_NAME: 22..23|`b`
             SQL_CTE_STATEMENT:
-              type: SQL_SELECT
+              type: OBJECT_SQL_SELECT
               location: 28..36|`SELECT 2`
               SQL_SELECT_TARGETS:
-                - type: SQL_ACONST
+                - type: OBJECT_SQL_ACONST
                   location: 35..36|`2`
                   SQL_ACONST_TYPE: 0
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: 45..46|`3`
             SQL_ACONST_TYPE: 0
   errors: []
@@ -955,35 +955,35 @@ name: with_recursive_2ctes_select3
 input: 'WITH RECURSIVE a AS (SELECT 1), b AS (SELECT 2) SELECT 3'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..56|`WITH RECUR`..`) SELECT 3`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..56|`WITH RECUR`..`) SELECT 3`
         SQL_SELECT_WITH_RECURSIVE: 1
         SQL_SELECT_WITH_CTES:
-          - type: SQL_CTE
+          - type: OBJECT_SQL_CTE
             location: 15..30|`a AS (SELECT 1)`
             SQL_CTE_NAME: 15..16|`a`
             SQL_CTE_STATEMENT:
-              type: SQL_SELECT
+              type: OBJECT_SQL_SELECT
               location: 21..29|`SELECT 1`
               SQL_SELECT_TARGETS:
-                - type: SQL_ACONST
+                - type: OBJECT_SQL_ACONST
                   location: 28..29|`1`
                   SQL_ACONST_TYPE: 0
-          - type: SQL_CTE
+          - type: OBJECT_SQL_CTE
             location: 32..47|`b AS (SELECT 2)`
             SQL_CTE_NAME: 32..33|`b`
             SQL_CTE_STATEMENT:
-              type: SQL_SELECT
+              type: OBJECT_SQL_SELECT
               location: 38..46|`SELECT 2`
               SQL_SELECT_TARGETS:
-                - type: SQL_ACONST
+                - type: OBJECT_SQL_ACONST
                   location: 45..46|`2`
                   SQL_ACONST_TYPE: 0
         SQL_SELECT_TARGETS:
-          - type: SQL_ACONST
+          - type: OBJECT_SQL_ACONST
             location: 55..56|`3`
             SQL_ACONST_TYPE: 0
   errors: []
@@ -994,21 +994,21 @@ name: select_a_orderby_b
 input: select a order by b
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..19|`select a order by b`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..19|`select a order by b`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_ORDER:
-          - type: SQL_ORDER
+          - type: OBJECT_SQL_ORDER
             location: 18..19|`b`
             SQL_ORDER_VALUE:
-              type: SQL_COLUMN_REF
+              type: OBJECT_SQL_COLUMN_REF
               location: 18..19|`b`
               SQL_COLUMN_REF_PATH:
                 - 18..19|`b`
@@ -1020,28 +1020,28 @@ name: select_a_orderby_b_c
 input: 'select a order by b, c'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: '0..22|`select a o`..`er by b, c`'
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: '0..22|`select a o`..`er by b, c`'
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_ORDER:
-          - type: SQL_ORDER
+          - type: OBJECT_SQL_ORDER
             location: 18..19|`b`
             SQL_ORDER_VALUE:
-              type: SQL_COLUMN_REF
+              type: OBJECT_SQL_COLUMN_REF
               location: 18..19|`b`
               SQL_COLUMN_REF_PATH:
                 - 18..19|`b`
-          - type: SQL_ORDER
+          - type: OBJECT_SQL_ORDER
             location: 21..22|`c`
             SQL_ORDER_VALUE:
-              type: SQL_COLUMN_REF
+              type: OBJECT_SQL_COLUMN_REF
               location: 21..22|`c`
               SQL_COLUMN_REF_PATH:
                 - 21..22|`c`
@@ -1053,29 +1053,29 @@ name: select_a_orderby_b_c_directions
 input: 'select a order by b asc, c desc'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: '0..31|`select a o`..`sc, c desc`'
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: '0..31|`select a o`..`sc, c desc`'
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_ORDER:
-          - type: SQL_ORDER
+          - type: OBJECT_SQL_ORDER
             location: 18..23|`b asc`
             SQL_ORDER_VALUE:
-              type: SQL_COLUMN_REF
+              type: OBJECT_SQL_COLUMN_REF
               location: 18..19|`b`
               SQL_COLUMN_REF_PATH:
                 - 18..19|`b`
             SQL_ORDER_DIRECTION: 0
-          - type: SQL_ORDER
+          - type: OBJECT_SQL_ORDER
             location: 25..31|`c desc`
             SQL_ORDER_VALUE:
-              type: SQL_COLUMN_REF
+              type: OBJECT_SQL_COLUMN_REF
               location: 25..26|`c`
               SQL_COLUMN_REF_PATH:
                 - 25..26|`c`
@@ -1088,30 +1088,30 @@ name: select_a_orderby_b_c_directions_nulls
 input: 'select a order by b asc nulls first, c desc nulls last'
 expected:
   statements:
-    - type: DASHQL_QUERY
+    - type: OBJECT_DASHQL_QUERY
       location: 0..54|`select a o`..`nulls last`
       DASHQL_QUERY_STATEMENT:
-        type: SQL_SELECT
+        type: OBJECT_SQL_SELECT
         location: 0..54|`select a o`..`nulls last`
         SQL_SELECT_TARGETS:
-          - type: SQL_COLUMN_REF
+          - type: OBJECT_SQL_COLUMN_REF
             location: 7..8|`a`
             SQL_COLUMN_REF_PATH:
               - 7..8|`a`
         SQL_SELECT_ORDER:
-          - type: SQL_ORDER
+          - type: OBJECT_SQL_ORDER
             location: 18..35|`b asc nulls first`
             SQL_ORDER_VALUE:
-              type: SQL_COLUMN_REF
+              type: OBJECT_SQL_COLUMN_REF
               location: 18..19|`b`
               SQL_COLUMN_REF_PATH:
                 - 18..19|`b`
             SQL_ORDER_DIRECTION: 0
             SQL_ORDER_NULLRULE: 0
-          - type: SQL_ORDER
+          - type: OBJECT_SQL_ORDER
             location: 37..54|`c desc nulls last`
             SQL_ORDER_VALUE:
-              type: SQL_COLUMN_REF
+              type: OBJECT_SQL_COLUMN_REF
               location: 37..38|`c`
               SQL_COLUMN_REF_PATH:
                 - 37..38|`c`
