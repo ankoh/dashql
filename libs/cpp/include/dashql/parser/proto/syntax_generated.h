@@ -57,21 +57,22 @@ enum class NodeType : uint16_t {
   SQL_CTE = 14,
   SQL_INDIRECTION = 15,
   SQL_INTO = 16,
-  SQL_ORDER = 17,
-  SQL_QUALIFIED_NAME = 18,
-  SQL_RELATION_EXPR = 19,
-  SQL_RESULT_TARGET = 20,
-  SQL_SELECT = 21,
-  SQL_TABLE_REF = 22,
-  SQL_WINDOW_BOUND = 23,
-  SQL_WINDOW_DEF = 24,
-  SQL_WINDOW_FRAME = 25,
-  SQL_WITH = 26,
+  SQL_NUMERIC_TYPE = 17,
+  SQL_ORDER = 18,
+  SQL_QUALIFIED_NAME = 19,
+  SQL_RELATION_EXPR = 20,
+  SQL_RESULT_TARGET = 21,
+  SQL_SELECT = 22,
+  SQL_TABLE_REF = 23,
+  SQL_WINDOW_BOUND = 24,
+  SQL_WINDOW_DEF = 25,
+  SQL_WINDOW_FRAME = 26,
+  SQL_WITH = 27,
   MIN = NONE,
   MAX = SQL_WITH
 };
 
-inline const NodeType (&EnumValuesNodeType())[27] {
+inline const NodeType (&EnumValuesNodeType())[28] {
   static const NodeType values[] = {
     NodeType::NONE,
     NodeType::UI32,
@@ -90,6 +91,7 @@ inline const NodeType (&EnumValuesNodeType())[27] {
     NodeType::SQL_CTE,
     NodeType::SQL_INDIRECTION,
     NodeType::SQL_INTO,
+    NodeType::SQL_NUMERIC_TYPE,
     NodeType::SQL_ORDER,
     NodeType::SQL_QUALIFIED_NAME,
     NodeType::SQL_RELATION_EXPR,
@@ -105,7 +107,7 @@ inline const NodeType (&EnumValuesNodeType())[27] {
 }
 
 inline const char * const *EnumNamesNodeType() {
-  static const char * const names[28] = {
+  static const char * const names[29] = {
     "NONE",
     "UI32",
     "STRING",
@@ -123,6 +125,7 @@ inline const char * const *EnumNamesNodeType() {
     "SQL_CTE",
     "SQL_INDIRECTION",
     "SQL_INTO",
+    "SQL_NUMERIC_TYPE",
     "SQL_ORDER",
     "SQL_QUALIFIED_NAME",
     "SQL_RELATION_EXPR",
@@ -185,54 +188,56 @@ enum class AttributeKey : uint16_t {
   SQL_CTE_COLUMNS = 37,
   SQL_CTE_NAME = 38,
   SQL_CTE_STATEMENT = 39,
-  SQL_ORDER_VALUE = 40,
-  SQL_ORDER_DIRECTION = 41,
-  SQL_ORDER_NULLRULE = 42,
-  SQL_INDIRECTION_INDEX = 43,
-  SQL_INDIRECTION_LOWER_BOUND = 44,
-  SQL_INDIRECTION_UPPER_BOUND = 45,
-  SQL_QUALIFIED_NAME_CATALOG = 46,
-  SQL_QUALIFIED_NAME_RELATION = 47,
-  SQL_QUALIFIED_NAME_SCHEMA = 48,
-  SQL_RESULT_TARGET_INDIRECTION = 49,
-  SQL_RESULT_TARGET_NAME = 50,
-  SQL_RESULT_TARGET_VALUE = 51,
-  SQL_SELECT_ALL = 52,
-  SQL_SELECT_DISTINCT = 53,
-  SQL_SELECT_FROM = 54,
-  SQL_SELECT_GROUPS = 55,
-  SQL_SELECT_HAVING = 56,
-  SQL_SELECT_INTO = 57,
-  SQL_SELECT_LIMIT_COUNT = 58,
-  SQL_SELECT_LIMIT_OFFSET = 59,
-  SQL_SELECT_ORDER = 60,
-  SQL_SELECT_TABLE = 61,
-  SQL_SELECT_TARGETS = 62,
-  SQL_SELECT_VALUES = 63,
-  SQL_SELECT_WHERE = 64,
-  SQL_SELECT_WINDOWS = 65,
-  SQL_SELECT_WITH_CTES = 66,
-  SQL_SELECT_WITH_RECURSIVE = 67,
-  SQL_TABLE_ALIAS = 68,
-  SQL_TABLE_INHERIT = 69,
-  SQL_TABLE_NAME = 70,
-  SQL_TEMP_NAME = 71,
-  SQL_TEMP_TYPE = 72,
-  SQL_WINDOW_BOUND_DIRECTION = 73,
-  SQL_WINDOW_BOUND_MODE = 74,
-  SQL_WINDOW_BOUND_VALUE = 75,
-  SQL_WINDOW_DEF_FRAME = 76,
-  SQL_WINDOW_DEF_NAME = 77,
-  SQL_WINDOW_FRAME_BOUNDS = 78,
-  SQL_WINDOW_FRAME_EXCLUDE = 79,
-  SQL_WINDOW_FRAME_MODE = 80,
-  SQL_WINDOW_FRAME_NAME = 81,
-  SQL_WINDOW_FRAME_PARTITION = 82,
+  SQL_INDIRECTION_INDEX = 40,
+  SQL_INDIRECTION_LOWER_BOUND = 41,
+  SQL_INDIRECTION_UPPER_BOUND = 42,
+  SQL_NUMERIC_TYPE_MODIFIERS = 43,
+  SQL_NUMERIC_TYPE_TAG = 44,
+  SQL_ORDER_DIRECTION = 45,
+  SQL_ORDER_NULLRULE = 46,
+  SQL_ORDER_VALUE = 47,
+  SQL_QUALIFIED_NAME_CATALOG = 48,
+  SQL_QUALIFIED_NAME_RELATION = 49,
+  SQL_QUALIFIED_NAME_SCHEMA = 50,
+  SQL_RESULT_TARGET_INDIRECTION = 51,
+  SQL_RESULT_TARGET_NAME = 52,
+  SQL_RESULT_TARGET_VALUE = 53,
+  SQL_SELECT_ALL = 54,
+  SQL_SELECT_DISTINCT = 55,
+  SQL_SELECT_FROM = 56,
+  SQL_SELECT_GROUPS = 57,
+  SQL_SELECT_HAVING = 58,
+  SQL_SELECT_INTO = 59,
+  SQL_SELECT_LIMIT_COUNT = 60,
+  SQL_SELECT_LIMIT_OFFSET = 61,
+  SQL_SELECT_ORDER = 62,
+  SQL_SELECT_TABLE = 63,
+  SQL_SELECT_TARGETS = 64,
+  SQL_SELECT_VALUES = 65,
+  SQL_SELECT_WHERE = 66,
+  SQL_SELECT_WINDOWS = 67,
+  SQL_SELECT_WITH_CTES = 68,
+  SQL_SELECT_WITH_RECURSIVE = 69,
+  SQL_TABLE_ALIAS = 70,
+  SQL_TABLE_INHERIT = 71,
+  SQL_TABLE_NAME = 72,
+  SQL_TEMP_NAME = 73,
+  SQL_TEMP_TYPE = 74,
+  SQL_WINDOW_BOUND_DIRECTION = 75,
+  SQL_WINDOW_BOUND_MODE = 76,
+  SQL_WINDOW_BOUND_VALUE = 77,
+  SQL_WINDOW_DEF_FRAME = 78,
+  SQL_WINDOW_DEF_NAME = 79,
+  SQL_WINDOW_FRAME_BOUNDS = 80,
+  SQL_WINDOW_FRAME_EXCLUDE = 81,
+  SQL_WINDOW_FRAME_MODE = 82,
+  SQL_WINDOW_FRAME_NAME = 83,
+  SQL_WINDOW_FRAME_PARTITION = 84,
   MIN = NONE,
   MAX = SQL_WINDOW_FRAME_PARTITION
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[83] {
+inline const AttributeKey (&EnumValuesAttributeKey())[85] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -274,12 +279,14 @@ inline const AttributeKey (&EnumValuesAttributeKey())[83] {
     AttributeKey::SQL_CTE_COLUMNS,
     AttributeKey::SQL_CTE_NAME,
     AttributeKey::SQL_CTE_STATEMENT,
-    AttributeKey::SQL_ORDER_VALUE,
-    AttributeKey::SQL_ORDER_DIRECTION,
-    AttributeKey::SQL_ORDER_NULLRULE,
     AttributeKey::SQL_INDIRECTION_INDEX,
     AttributeKey::SQL_INDIRECTION_LOWER_BOUND,
     AttributeKey::SQL_INDIRECTION_UPPER_BOUND,
+    AttributeKey::SQL_NUMERIC_TYPE_MODIFIERS,
+    AttributeKey::SQL_NUMERIC_TYPE_TAG,
+    AttributeKey::SQL_ORDER_DIRECTION,
+    AttributeKey::SQL_ORDER_NULLRULE,
+    AttributeKey::SQL_ORDER_VALUE,
     AttributeKey::SQL_QUALIFIED_NAME_CATALOG,
     AttributeKey::SQL_QUALIFIED_NAME_RELATION,
     AttributeKey::SQL_QUALIFIED_NAME_SCHEMA,
@@ -322,7 +329,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[83] {
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[84] = {
+  static const char * const names[86] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -363,12 +370,14 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_CTE_COLUMNS",
     "SQL_CTE_NAME",
     "SQL_CTE_STATEMENT",
-    "SQL_ORDER_VALUE",
-    "SQL_ORDER_DIRECTION",
-    "SQL_ORDER_NULLRULE",
     "SQL_INDIRECTION_INDEX",
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND",
+    "SQL_NUMERIC_TYPE_MODIFIERS",
+    "SQL_NUMERIC_TYPE_TAG",
+    "SQL_ORDER_DIRECTION",
+    "SQL_ORDER_NULLRULE",
+    "SQL_ORDER_VALUE",
     "SQL_QUALIFIED_NAME_CATALOG",
     "SQL_QUALIFIED_NAME_RELATION",
     "SQL_QUALIFIED_NAME_SCHEMA",
@@ -858,6 +867,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -881,6 +891,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     "SQL_CTE",
     "SQL_INDIRECTION",
     "SQL_INTO",
+    "SQL_NUMERIC_TYPE",
     "SQL_ORDER",
     "SQL_QUALIFIED_NAME",
     "SQL_RELATION_EXPR",
@@ -893,13 +904,15 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     "SQL_WITH"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 27, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 28, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
@@ -1028,12 +1041,14 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_CTE_COLUMNS",
     "SQL_CTE_NAME",
     "SQL_CTE_STATEMENT",
-    "SQL_ORDER_VALUE",
-    "SQL_ORDER_DIRECTION",
-    "SQL_ORDER_NULLRULE",
     "SQL_INDIRECTION_INDEX",
     "SQL_INDIRECTION_LOWER_BOUND",
     "SQL_INDIRECTION_UPPER_BOUND",
+    "SQL_NUMERIC_TYPE_MODIFIERS",
+    "SQL_NUMERIC_TYPE_TAG",
+    "SQL_ORDER_DIRECTION",
+    "SQL_ORDER_NULLRULE",
+    "SQL_ORDER_VALUE",
     "SQL_QUALIFIED_NAME_CATALOG",
     "SQL_QUALIFIED_NAME_RELATION",
     "SQL_QUALIFIED_NAME_SCHEMA",
@@ -1073,7 +1088,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_WINDOW_FRAME_PARTITION"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 83, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 85, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

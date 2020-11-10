@@ -98,3 +98,13 @@ enum MathOp: uint8 {
     NOT_EQUAL
 }
 
+enum NumericTypeTag: uint8 {
+    INT2,
+    INT4,
+    INT8,
+    FLOAT4,
+    FLOAT8,
+    NUMERIC,
+    BOOL,
+}
+

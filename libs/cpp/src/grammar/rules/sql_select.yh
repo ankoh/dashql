@@ -15,6 +15,7 @@
 %type <NodeVector> sql_opt_name_list;
 %type <NodeVector> sql_opt_partition_clause;
 %type <NodeVector> sql_opt_target_list;
+%type <NodeVector> sql_opt_type_modifiers;
 %type <NodeVector> sql_qualified_name;
 %type <NodeVector> sql_qualified_name_list;
 %type <NodeVector> sql_relation_expr;
@@ -43,6 +44,7 @@
 %type <sx::Node> sql_indirection_el;
 %type <sx::Node> sql_into_clause;
 %type <sx::Node> sql_math_op;
+%type <sx::Node> sql_numeric;
 %type <sx::Node> sql_opt_alias_clause;
 %type <sx::Node> sql_opt_all_clause;
 %type <sx::Node> sql_opt_asc_desc;
@@ -62,3 +64,4 @@
 %type <sx::Node> sql_where_clause;
 %type <sx::Node> sql_window_definition;
 %type <sx::Node> sql_window_specification;
+%type <sxs::NumericTypeTag> sql_opt_float;

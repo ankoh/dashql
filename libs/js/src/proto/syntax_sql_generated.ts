@@ -158,3 +158,18 @@ export enum MathOp{
 };
 }
 
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
+export enum NumericTypeTag{
+  INT2= 0,
+  INT4= 1,
+  INT8= 2,
+  FLOAT4= 3,
+  FLOAT8= 4,
+  NUMERIC= 5,
+  BOOL= 6
+};
+}
+

@@ -737,29 +737,36 @@ sql_generic_type:
     ;
 
 sql_opt_type_modifiers:
-    '(' sql_expr_list ')'
-  | %empty
+    '(' sql_expr_list ')'   { $$ = {}; }
+  | %empty                  { $$ = {}; }
     ;
 
 // SQL numeric data types
 
 sql_numeric:
-    INT_P
-  | INTEGER
-  | SMALLINT
-  | BIGINT
-  | REAL
-  | FLOAT_P sql_opt_float
-  | DOUBLE_P PRECISION
-  | DECIMAL_P sql_opt_type_modifiers
-  | DEC sql_opt_type_modifiers
-  | NUMERIC sql_opt_type_modifiers
-  | BOOLEAN_P
+    INT_P       { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::INT4); }
+  | INTEGER     { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::INT4); }
+  | SMALLINT    { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::INT2); }
+  | BIGINT      { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::INT8); }
+  | REAL        { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::FLOAT4); }
+  | FLOAT_P sql_opt_float   { $$ = ctx.RefEnum(@$, $2); }
+  | DOUBLE_P PRECISION      { $$ = ctx.RefEnum(@$, sxs::NumericTypeTag::FLOAT4); }
+  | DECIMAL_P sql_opt_type_modifiers {
+        $$ = ctx.Add(@$, sx::NodeType::SQL_NUMERIC_TYPE, {
+            Key::SQL_NUMERIC_TYPE_TAG << ctx.RefEnum(@1, sxs::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
+        });
+    }
+  | DEC sql_opt_type_modifiers {
+    }
+  | NUMERIC sql_opt_type_modifiers {
+    }
+  | BOOLEAN_P   { $$ = ctx.RefEnum(@1, sxs::NumericTypeTag::BOOL); }
     ;
 
 sql_opt_float:
-    '(' ICONST ')'
-  | %empty
+    '(' ICONST ')'  { $$ = ReadFloatType(ctx, @2); }
+  | %empty          { $$ = sxs::NumericTypeTag::FLOAT4; }
     ;
 
 // SQL bit-field data types

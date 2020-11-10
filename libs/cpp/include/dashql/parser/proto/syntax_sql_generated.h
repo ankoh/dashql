@@ -479,6 +479,51 @@ inline const char *EnumNameMathOp(MathOp e) {
   return EnumNamesMathOp()[index];
 }
 
+enum class NumericTypeTag : uint8_t {
+  INT2 = 0,
+  INT4 = 1,
+  INT8 = 2,
+  FLOAT4 = 3,
+  FLOAT8 = 4,
+  NUMERIC = 5,
+  BOOL = 6,
+  MIN = INT2,
+  MAX = BOOL
+};
+
+inline const NumericTypeTag (&EnumValuesNumericTypeTag())[7] {
+  static const NumericTypeTag values[] = {
+    NumericTypeTag::INT2,
+    NumericTypeTag::INT4,
+    NumericTypeTag::INT8,
+    NumericTypeTag::FLOAT4,
+    NumericTypeTag::FLOAT8,
+    NumericTypeTag::NUMERIC,
+    NumericTypeTag::BOOL
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesNumericTypeTag() {
+  static const char * const names[8] = {
+    "INT2",
+    "INT4",
+    "INT8",
+    "FLOAT4",
+    "FLOAT8",
+    "NUMERIC",
+    "BOOL",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameNumericTypeTag(NumericTypeTag e) {
+  if (flatbuffers::IsOutRange(e, NumericTypeTag::INT2, NumericTypeTag::BOOL)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesNumericTypeTag()[index];
+}
+
 inline const flatbuffers::TypeTable *CombineModifierTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UCHAR, 0, 0 },
@@ -763,6 +808,34 @@ inline const flatbuffers::TypeTable *MathOpTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 12, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *NumericTypeTagTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::NumericTypeTagTypeTable
+  };
+  static const char * const names[] = {
+    "INT2",
+    "INT4",
+    "INT8",
+    "FLOAT4",
+    "FLOAT8",
+    "NUMERIC",
+    "BOOL"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 7, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
