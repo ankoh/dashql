@@ -20,12 +20,12 @@ enum ExpressionFunction: uint8 {
     GLOB,
 
     IS_NULL,
-    NOT_NULL,
     LIKE,
-    NOT_LIKE,
     ILIKE,
-    NOT_ILIKE,
     SIMILAR_TO,
+    NOT_NULL,
+    NOT_LIKE,
+    NOT_ILIKE,
     NOT_SIMILAR_TO,
 
 
