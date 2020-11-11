@@ -11,6 +11,9 @@
 namespace dashql {
 namespace parser {
 
+/// Create a null node
+inline sx::Node Null() { return sx::Node(sx::Location(), sx::NodeType::NONE, Key::NONE, 0, 0); }
+
 /// Create a constant inline
 inline sx::Node Const(ParserDriver& driver, sx::Location loc, sxs::AConstType type) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_ACONST, {
@@ -65,11 +68,13 @@ inline sx::Node UnaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func,
 }
 
 /// Add an binary expression
-inline sx::Node BinaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node left, sx::Node right) {
+inline sx::Node BinaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node left, sx::Node right, std::optional<sx::Location> not_loc = std::nullopt) {
+    auto n = not_loc ? sx::Node(*not_loc, sx::NodeType::BOOL, Key::NONE, 1, 0) : Null();
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
         Key::SQL_EXPRESSION_FUNCTION << func,
         Key::SQL_EXPRESSION_ARG0 << left,
         Key::SQL_EXPRESSION_ARG1 << right,
+        Key::SQL_EXPRESSION_NOT << n,
     });
 }
 

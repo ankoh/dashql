@@ -4,6 +4,6 @@ dashql_identifier:
     ;
 
 dashql_opt_alias:
-    %empty                  { $$ = ctx.Null(); }
+    %empty                  { $$ = Null(); }
   | AS dashql_identifier    { $$ = ctx.Ref(@2); }
     ;

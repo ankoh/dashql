@@ -19,14 +19,23 @@ enum ExpressionFunction: uint8 {
     XOR,
     GLOB,
 
+    IS_NULL,
     LIKE,
+    ILIKE,
+    SIMILAR_TO,
 
-    COMPARE_LESS_THAN,
-    COMPARE_LESS_EQUAL,
-    COMPARE_GREATER_THAN,
-    COMPARE_GREATER_EQUAL,
-    COMPARE_EQUAL,
-    COMPARE_NOT_EQUAL
+    IS_TRUE,
+    IS_FALSE,
+    IS_UNKNOWN,
+    IS_DISTINCT_FROM,
+    IS_OF,
+
+    EQUAL,
+    NOT_EQUAL,
+    GREATER_EQUAL,
+    GREATER_THAN,
+    LESS_EQUAL,
+    LESS_THAN,
 }
 
 enum CombineModifier: uint8 {

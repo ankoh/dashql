@@ -62,8 +62,6 @@ class ParserDriver {
     /// Return the scanner
     auto& scanner() { return _scanner; }
 
-    /// Create a null node
-    inline sx::Node Null() const { return sx::Node(sx::Location(), sx::NodeType::NONE, Key::NONE, 0, 0); }
     /// Create a string
     inline sx::Node Ref(sx::Location loc) const { return sx::Node(loc, sx::NodeType::STRING, Key::NONE, 0, 0); }
     /// Create an unsigned value

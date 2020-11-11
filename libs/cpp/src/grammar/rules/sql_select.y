@@ -212,7 +212,7 @@ sql_common_table_expr:
 
 sql_into_clause:
     INTO sql_opt_temp_table_name    { $$ = $2; }
-  | %empty                          { $$ = ctx.Null(); }
+  | %empty                          { $$ = Null(); }
     ;
 
 // XXX PreparableStmt: select | insert | update | delete
@@ -242,7 +242,7 @@ sql_opt_table:
 sql_all_or_distinct:
     ALL         { $$ = Enum(@1, sxs::CombineModifier::ALL); }
   | DISTINCT    { $$ = Enum(@1, sxs::CombineModifier::DISTINCT); }
-  | %empty      { $$ = ctx.Null(); }
+  | %empty      { $$ = Null(); }
     ;
 
 // We use (NIL) as a placeholder to indicate that all target expressions
@@ -255,12 +255,12 @@ sql_distinct_clause:
 
 sql_opt_all_clause:
     ALL     { $$ = ctx.Ref(@1, true); }
-  | %empty  { $$ = ctx.Null(); }
+  | %empty  { $$ = Null(); }
     ;
 
 sql_opt_sort_clause:
     sql_sort_clause     { $$ = $1; }
-  | %empty              { $$ = ctx.Null(); }
+  | %empty              { $$ = Null(); }
     ;
 
 sql_sort_clause:
@@ -291,13 +291,13 @@ sql_sortby:
 sql_opt_asc_desc:
     ASC_P   { $$ = Enum(@$, sxs::OrderDirection::ASCENDING); }
   | DESC_P  { $$ = Enum(@$, sxs::OrderDirection::DESCENDING); }
-  | %empty  { $$ = ctx.Null(); }
+  | %empty  { $$ = Null(); }
     ;
 
 sql_opt_nulls_order:
     NULLS_LA FIRST_P    { $$ = Enum(@$, sxs::OrderNullRule::NULLS_FIRST); }
   | NULLS_LA LAST_P     { $$ = Enum(@$, sxs::OrderNullRule::NULLS_LAST); }
-  | %empty              { $$ = ctx.Null(); }
+  | %empty              { $$ = Null(); }
     ;
 
 sql_select_limit:
@@ -345,7 +345,7 @@ sql_offset_clause:
 
 sql_select_limit_value:
     sql_a_expr  { $$ = $1; }
-  | ALL         { $$ = ctx.Null(); }
+  | ALL         { $$ = Null(); }
     ;
 
 sql_select_offset_value:
@@ -438,7 +438,7 @@ sql_empty_grouping_set:
 
 sql_having_clause:
     HAVING sql_a_expr   { $$ = $2; }
-  | %empty              { $$ = ctx.Null(); }
+  | %empty              { $$ = Null(); }
     ;
 
 sql_for_locking_clause:
@@ -550,7 +550,7 @@ sql_alias_clause:
 
 sql_opt_alias_clause:
     sql_alias_clause    { $$ = $1; }
-  | %empty              { $$ = ctx.Null(); }
+  | %empty              { $$ = Null(); }
     ;
 
 // func_alias_clause can include both an PGAlias and a coldeflist, so we make it
@@ -654,7 +654,7 @@ sql_opt_ordinality:
 
 sql_where_clause:
     WHERE sql_a_expr    { $$ = $2; }
-  | %empty              { $$ = ctx.Null(); }
+  | %empty              { $$ = Null(); }
     ;
 
 /* variant for UPDATE and DELETE */
@@ -919,12 +919,12 @@ sql_a_expr:
   | sql_a_expr '/' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::DIVIDE), $1, $3); }
   | sql_a_expr '%' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::MODULUS), $1, $3); }
   | sql_a_expr '^' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::XOR), $1, $3); }
-  | sql_a_expr '<' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_LESS_THAN), $1, $3); }
-  | sql_a_expr '>' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_GREATER_THAN), $1, $3); }
-  | sql_a_expr '=' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_EQUAL), $1, $3); }
-  | sql_a_expr LESS_EQUALS sql_a_expr       { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_LESS_EQUAL), $1, $3); }
-  | sql_a_expr GREATER_EQUALS sql_a_expr    { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_GREATER_EQUAL), $1, $3); }
-  | sql_a_expr NOT_EQUALS sql_a_expr        { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_NOT_EQUAL), $1, $3); }
+  | sql_a_expr '<' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::LESS_THAN), $1, $3); }
+  | sql_a_expr '>' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::GREATER_THAN), $1, $3); }
+  | sql_a_expr '=' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::EQUAL), $1, $3); }
+  | sql_a_expr LESS_EQUALS sql_a_expr       { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::LESS_EQUAL), $1, $3); }
+  | sql_a_expr GREATER_EQUALS sql_a_expr    { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::GREATER_EQUAL), $1, $3); }
+  | sql_a_expr NOT_EQUALS sql_a_expr        { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::NOT_EQUAL), $1, $3); }
   | sql_a_expr sql_qual_op sql_a_expr   %prec Op          { $$ = {}; }
   | sql_qual_op sql_a_expr              %prec Op          { $$ = {}; }
   | sql_a_expr sql_qual_op              %prec POSTFIXOP   { $$ = {}; }
@@ -1145,7 +1145,7 @@ sql_window_definition:
 sql_over_clause:
     OVER sql_window_specification   { $$ = $2; }
   | OVER sql_col_id                 { $$ = ctx.Ref(@2); }
-  | %empty                          { $$ = ctx.Null(); }
+  | %empty                          { $$ = Null(); }
     ;
 
 sql_window_specification:
@@ -1256,12 +1256,12 @@ sql_math_op:
   | '/'             { $$ = Enum(@1, sxs::ExpressionFunction::DIVIDE); }
   | '%'             { $$ = Enum(@1, sxs::ExpressionFunction::MODULUS); }
   | '^'             { $$ = Enum(@1, sxs::ExpressionFunction::XOR); }
-  | '<'             { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_LESS_THAN); }
-  | '>'             { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_GREATER_THAN); }
-  | '='             { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_EQUAL); }
-  | LESS_EQUALS     { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_LESS_EQUAL); }
-  | GREATER_EQUALS  { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_GREATER_EQUAL); }
-  | NOT_EQUALS      { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_NOT_EQUAL); }
+  | '<'             { $$ = Enum(@1, sxs::ExpressionFunction::LESS_THAN); }
+  | '>'             { $$ = Enum(@1, sxs::ExpressionFunction::GREATER_THAN); }
+  | '='             { $$ = Enum(@1, sxs::ExpressionFunction::EQUAL); }
+  | LESS_EQUALS     { $$ = Enum(@1, sxs::ExpressionFunction::LESS_EQUAL); }
+  | GREATER_EQUALS  { $$ = Enum(@1, sxs::ExpressionFunction::GREATER_EQUAL); }
+  | NOT_EQUALS      { $$ = Enum(@1, sxs::ExpressionFunction::NOT_EQUAL); }
     ; 
 sql_qual_op:
     Op
@@ -1442,7 +1442,7 @@ sql_indirection_el:
 
 sql_opt_slice_bound:
     sql_a_expr          { $$ = $1; }
-  | %empty              { $$ = ctx.Null(); }
+  | %empty              { $$ = Null(); }
     ;
 
 sql_indirection:

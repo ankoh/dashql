@@ -12,7 +12,7 @@ dashql_statement_list:
 
 opt_dashql_statement:
     dashql_statement               { $$ = $1; }
-  | %empty                         { $$ = ctx.Null(); }
+  | %empty                         { $$ = Null(); }
 
 dashql_statement:
     dashql_parameter_declaration   { $$ = $1; }

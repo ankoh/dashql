@@ -9,6 +9,7 @@
 
 #include "dashql/parser/common/error.h"
 #include "dashql/parser/common/variant.h"
+#include "dashql/parser/grammar/nodes.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
 
