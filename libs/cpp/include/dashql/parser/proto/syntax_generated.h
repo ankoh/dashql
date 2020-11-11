@@ -14,6 +14,8 @@ struct Location;
 
 struct Node;
 
+struct Dependency;
+
 struct Error;
 struct ErrorBuilder;
 struct ErrorT;
@@ -26,6 +28,8 @@ bool operator==(const Location &lhs, const Location &rhs);
 bool operator!=(const Location &lhs, const Location &rhs);
 bool operator==(const Node &lhs, const Node &rhs);
 bool operator!=(const Node &lhs, const Node &rhs);
+bool operator==(const Dependency &lhs, const Dependency &rhs);
+bool operator!=(const Dependency &lhs, const Dependency &rhs);
 bool operator==(const ErrorT &lhs, const ErrorT &rhs);
 bool operator!=(const ErrorT &lhs, const ErrorT &rhs);
 bool operator==(const ModuleT &lhs, const ModuleT &rhs);
@@ -34,6 +38,8 @@ bool operator!=(const ModuleT &lhs, const ModuleT &rhs);
 inline const flatbuffers::TypeTable *LocationTypeTable();
 
 inline const flatbuffers::TypeTable *NodeTypeTable();
+
+inline const flatbuffers::TypeTable *DependencyTypeTable();
 
 inline const flatbuffers::TypeTable *ErrorTypeTable();
 
@@ -504,6 +510,33 @@ inline const char *EnumNameAttributeKey(AttributeKey e) {
   return EnumNamesAttributeKey()[index];
 }
 
+enum class DependencyType : uint8_t {
+  TABLE_REF = 0,
+  MIN = TABLE_REF,
+  MAX = TABLE_REF
+};
+
+inline const DependencyType (&EnumValuesDependencyType())[1] {
+  static const DependencyType values[] = {
+    DependencyType::TABLE_REF
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesDependencyType() {
+  static const char * const names[2] = {
+    "TABLE_REF",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameDependencyType(DependencyType e) {
+  if (flatbuffers::IsOutRange(e, DependencyType::TABLE_REF, DependencyType::TABLE_REF)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesDependencyType()[index];
+}
+
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Location FLATBUFFERS_FINAL_CLASS {
  private:
   uint32_t offset_;
@@ -601,6 +634,69 @@ inline bool operator==(const Node &lhs, const Node &rhs) {
 }
 
 inline bool operator!=(const Node &lhs, const Node &rhs) {
+    return !(lhs == rhs);
+}
+
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Dependency FLATBUFFERS_FINAL_CLASS {
+ private:
+  uint8_t type_;
+  int8_t padding0__;  int16_t padding1__;
+  uint32_t source_statement_;
+  uint32_t target_statement_;
+  uint32_t target_value_;
+
+ public:
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return DependencyTypeTable();
+  }
+  static FLATBUFFERS_CONSTEXPR const char *GetFullyQualifiedName() {
+    return "dashql.proto.syntax.Dependency";
+  }
+  Dependency()
+      : type_(0),
+        padding0__(0),
+        padding1__(0),
+        source_statement_(0),
+        target_statement_(0),
+        target_value_(0) {
+    (void)padding0__;
+    (void)padding1__;
+  }
+  Dependency(dashql::proto::syntax::DependencyType _type, uint32_t _source_statement, uint32_t _target_statement, uint32_t _target_value)
+      : type_(flatbuffers::EndianScalar(static_cast<uint8_t>(_type))),
+        padding0__(0),
+        padding1__(0),
+        source_statement_(flatbuffers::EndianScalar(_source_statement)),
+        target_statement_(flatbuffers::EndianScalar(_target_statement)),
+        target_value_(flatbuffers::EndianScalar(_target_value)) {
+    (void)padding0__;
+    (void)padding1__;
+  }
+  dashql::proto::syntax::DependencyType type() const {
+    return static_cast<dashql::proto::syntax::DependencyType>(flatbuffers::EndianScalar(type_));
+  }
+  uint32_t source_statement() const {
+    return flatbuffers::EndianScalar(source_statement_);
+  }
+  uint32_t target_statement() const {
+    return flatbuffers::EndianScalar(target_statement_);
+  }
+  uint32_t target_value() const {
+    return flatbuffers::EndianScalar(target_value_);
+  }
+};
+FLATBUFFERS_STRUCT_END(Dependency, 16);
+
+inline bool operator==(const Dependency &lhs, const Dependency &rhs) {
+  return
+      (lhs.type() == rhs.type()) &&
+      (lhs.source_statement() == rhs.source_statement()) &&
+      (lhs.target_statement() == rhs.target_statement()) &&
+      (lhs.target_value() == rhs.target_value());
+}
+
+inline bool operator!=(const Dependency &lhs, const Dependency &rhs) {
     return !(lhs == rhs);
 }
 
@@ -712,6 +808,7 @@ struct ModuleT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<dashql::proto::syntax::ErrorT>> errors;
   std::vector<dashql::proto::syntax::Location> line_breaks;
   std::vector<dashql::proto::syntax::Location> comments;
+  std::vector<dashql::proto::syntax::Dependency> dependencies;
   ModuleT() {
   }
 };
@@ -722,7 +819,8 @@ inline bool operator==(const ModuleT &lhs, const ModuleT &rhs) {
       (lhs.statements == rhs.statements) &&
       (lhs.errors == rhs.errors) &&
       (lhs.line_breaks == rhs.line_breaks) &&
-      (lhs.comments == rhs.comments);
+      (lhs.comments == rhs.comments) &&
+      (lhs.dependencies == rhs.dependencies);
 }
 
 inline bool operator!=(const ModuleT &lhs, const ModuleT &rhs) {
@@ -744,7 +842,8 @@ struct Module FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_STATEMENTS = 6,
     VT_ERRORS = 8,
     VT_LINE_BREAKS = 10,
-    VT_COMMENTS = 12
+    VT_COMMENTS = 12,
+    VT_DEPENDENCIES = 14
   };
   const flatbuffers::Vector<const dashql::proto::syntax::Node *> *nodes() const {
     return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Node *> *>(VT_NODES);
@@ -761,6 +860,9 @@ struct Module FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<const dashql::proto::syntax::Location *> *comments() const {
     return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Location *> *>(VT_COMMENTS);
   }
+  const flatbuffers::Vector<const dashql::proto::syntax::Dependency *> *dependencies() const {
+    return GetPointer<const flatbuffers::Vector<const dashql::proto::syntax::Dependency *> *>(VT_DEPENDENCIES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NODES) &&
@@ -774,6 +876,8 @@ struct Module FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(line_breaks()) &&
            VerifyOffset(verifier, VT_COMMENTS) &&
            verifier.VerifyVector(comments()) &&
+           VerifyOffset(verifier, VT_DEPENDENCIES) &&
+           verifier.VerifyVector(dependencies()) &&
            verifier.EndTable();
   }
   ModuleT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -800,6 +904,9 @@ struct ModuleBuilder {
   void add_comments(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Location *>> comments) {
     fbb_.AddOffset(Module::VT_COMMENTS, comments);
   }
+  void add_dependencies(flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Dependency *>> dependencies) {
+    fbb_.AddOffset(Module::VT_DEPENDENCIES, dependencies);
+  }
   explicit ModuleBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -817,8 +924,10 @@ inline flatbuffers::Offset<Module> CreateModule(
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> statements = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<dashql::proto::syntax::Error>>> errors = 0,
     flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Location *>> line_breaks = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Location *>> comments = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Location *>> comments = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const dashql::proto::syntax::Dependency *>> dependencies = 0) {
   ModuleBuilder builder_(_fbb);
+  builder_.add_dependencies(dependencies);
   builder_.add_comments(comments);
   builder_.add_line_breaks(line_breaks);
   builder_.add_errors(errors);
@@ -833,19 +942,22 @@ inline flatbuffers::Offset<Module> CreateModuleDirect(
     const std::vector<uint32_t> *statements = nullptr,
     const std::vector<flatbuffers::Offset<dashql::proto::syntax::Error>> *errors = nullptr,
     const std::vector<dashql::proto::syntax::Location> *line_breaks = nullptr,
-    const std::vector<dashql::proto::syntax::Location> *comments = nullptr) {
+    const std::vector<dashql::proto::syntax::Location> *comments = nullptr,
+    const std::vector<dashql::proto::syntax::Dependency> *dependencies = nullptr) {
   auto nodes__ = nodes ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Node>(*nodes) : 0;
   auto statements__ = statements ? _fbb.CreateVector<uint32_t>(*statements) : 0;
   auto errors__ = errors ? _fbb.CreateVector<flatbuffers::Offset<dashql::proto::syntax::Error>>(*errors) : 0;
   auto line_breaks__ = line_breaks ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Location>(*line_breaks) : 0;
   auto comments__ = comments ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Location>(*comments) : 0;
+  auto dependencies__ = dependencies ? _fbb.CreateVectorOfStructs<dashql::proto::syntax::Dependency>(*dependencies) : 0;
   return dashql::proto::syntax::CreateModule(
       _fbb,
       nodes__,
       statements__,
       errors__,
       line_breaks__,
-      comments__);
+      comments__,
+      dependencies__);
 }
 
 flatbuffers::Offset<Module> CreateModule(flatbuffers::FlatBufferBuilder &_fbb, const ModuleT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -893,6 +1005,7 @@ inline void Module::UnPackTo(ModuleT *_o, const flatbuffers::resolver_function_t
   { auto _e = errors(); if (_e) { _o->errors.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->errors[_i] = std::unique_ptr<dashql::proto::syntax::ErrorT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = line_breaks(); if (_e) { _o->line_breaks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->line_breaks[_i] = *_e->Get(_i); } } }
   { auto _e = comments(); if (_e) { _o->comments.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->comments[_i] = *_e->Get(_i); } } }
+  { auto _e = dependencies(); if (_e) { _o->dependencies.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->dependencies[_i] = *_e->Get(_i); } } }
 }
 
 inline flatbuffers::Offset<Module> Module::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ModuleT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -908,13 +1021,15 @@ inline flatbuffers::Offset<Module> CreateModule(flatbuffers::FlatBufferBuilder &
   auto _errors = _o->errors.size() ? _fbb.CreateVector<flatbuffers::Offset<dashql::proto::syntax::Error>> (_o->errors.size(), [](size_t i, _VectorArgs *__va) { return CreateError(*__va->__fbb, __va->__o->errors[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _line_breaks = _o->line_breaks.size() ? _fbb.CreateVectorOfStructs(_o->line_breaks) : 0;
   auto _comments = _o->comments.size() ? _fbb.CreateVectorOfStructs(_o->comments) : 0;
+  auto _dependencies = _o->dependencies.size() ? _fbb.CreateVectorOfStructs(_o->dependencies) : 0;
   return dashql::proto::syntax::CreateModule(
       _fbb,
       _nodes,
       _statements,
       _errors,
       _line_breaks,
-      _comments);
+      _comments,
+      _dependencies);
 }
 
 inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
@@ -1223,6 +1338,22 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   return &tt;
 }
 
+inline const flatbuffers::TypeTable *DependencyTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax::DependencyTypeTypeTable
+  };
+  static const char * const names[] = {
+    "TABLE_REF"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 1, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
 inline const flatbuffers::TypeTable *LocationTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_UINT, 0, -1 },
@@ -1266,6 +1397,29 @@ inline const flatbuffers::TypeTable *NodeTypeTable() {
   return &tt;
 }
 
+inline const flatbuffers::TypeTable *DependencyTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UINT, 0, -1 },
+    { flatbuffers::ET_UINT, 0, -1 },
+    { flatbuffers::ET_UINT, 0, -1 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax::DependencyTypeTypeTable
+  };
+  static const int64_t values[] = { 0, 4, 8, 12, 16 };
+  static const char * const names[] = {
+    "type",
+    "source_statement",
+    "target_statement",
+    "target_value"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_STRUCT, 4, type_codes, type_refs, nullptr, values, names
+  };
+  return &tt;
+}
+
 inline const flatbuffers::TypeTable *ErrorTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_SEQUENCE, 0, 0 },
@@ -1290,22 +1444,25 @@ inline const flatbuffers::TypeTable *ModuleTypeTable() {
     { flatbuffers::ET_UINT, 1, -1 },
     { flatbuffers::ET_SEQUENCE, 1, 1 },
     { flatbuffers::ET_SEQUENCE, 1, 2 },
-    { flatbuffers::ET_SEQUENCE, 1, 2 }
+    { flatbuffers::ET_SEQUENCE, 1, 2 },
+    { flatbuffers::ET_SEQUENCE, 1, 3 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     dashql::proto::syntax::NodeTypeTable,
     dashql::proto::syntax::ErrorTypeTable,
-    dashql::proto::syntax::LocationTypeTable
+    dashql::proto::syntax::LocationTypeTable,
+    dashql::proto::syntax::DependencyTypeTable
   };
   static const char * const names[] = {
     "nodes",
     "statements",
     "errors",
     "line_breaks",
-    "comments"
+    "comments",
+    "dependencies"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 5, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_TABLE, 6, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

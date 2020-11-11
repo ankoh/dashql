@@ -158,6 +158,15 @@ export enum AttributeKey{
 }
 
 /**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax{
+export enum DependencyType{
+  TABLE_REF= 0
+};
+}
+
+/**
  * @constructor
  */
 export namespace dashql.proto.syntax{
@@ -293,6 +302,80 @@ static createNode(builder:flatbuffers.Builder, location_offset: number, location
   builder.prep(4, 8);
   builder.writeInt32(location_length);
   builder.writeInt32(location_offset);
+  return builder.offset();
+};
+
+}
+}
+/**
+ * @constructor
+ */
+export namespace dashql.proto.syntax{
+export class Dependency {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns Dependency
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):Dependency {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @returns dashql.proto.syntax.DependencyType
+ */
+type():dashql.proto.syntax.DependencyType {
+  return /**  */ (this.bb!.readUint8(this.bb_pos));
+};
+
+/**
+ * @returns number
+ */
+sourceStatement():number {
+  return this.bb!.readUint32(this.bb_pos + 4);
+};
+
+/**
+ * @returns number
+ */
+targetStatement():number {
+  return this.bb!.readUint32(this.bb_pos + 8);
+};
+
+/**
+ * @returns number
+ */
+targetValue():number {
+  return this.bb!.readUint32(this.bb_pos + 12);
+};
+
+/**
+ * @returns number
+ */
+static sizeOf():number {
+  return 16;
+}
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param dashql.proto.syntax.DependencyType type
+ * @param number source_statement
+ * @param number target_statement
+ * @param number target_value
+ * @returns flatbuffers.Offset
+ */
+static createDependency(builder:flatbuffers.Builder, type: dashql.proto.syntax.DependencyType, source_statement: number, target_statement: number, target_value: number):flatbuffers.Offset {
+  builder.prep(4, 16);
+  builder.writeInt32(target_value);
+  builder.writeInt32(target_statement);
+  builder.writeInt32(source_statement);
+  builder.pad(3);
+  builder.writeInt8(type);
   return builder.offset();
 };
 
@@ -532,10 +615,28 @@ commentsLength():number {
 };
 
 /**
+ * @param number index
+ * @param dashql.proto.syntax.Dependency= obj
+ * @returns dashql.proto.syntax.Dependency
+ */
+dependencies(index: number, obj?:dashql.proto.syntax.Dependency):dashql.proto.syntax.Dependency|null {
+  var offset = this.bb!.__offset(this.bb_pos, 14);
+  return offset ? (obj || new dashql.proto.syntax.Dependency()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
+};
+
+/**
+ * @returns number
+ */
+dependenciesLength():number {
+  var offset = this.bb!.__offset(this.bb_pos, 14);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+};
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startModule(builder:flatbuffers.Builder) {
-  builder.startObject(5);
+  builder.startObject(6);
 };
 
 /**
@@ -651,6 +752,22 @@ static startCommentsVector(builder:flatbuffers.Builder, numElems:number) {
 
 /**
  * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset dependenciesOffset
+ */
+static addDependencies(builder:flatbuffers.Builder, dependenciesOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(5, dependenciesOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number numElems
+ */
+static startDependenciesVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(16, numElems, 4);
+};
+
+/**
+ * @param flatbuffers.Builder builder
  * @returns flatbuffers.Offset
  */
 static endModule(builder:flatbuffers.Builder):flatbuffers.Offset {
@@ -658,13 +775,14 @@ static endModule(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createModule(builder:flatbuffers.Builder, nodesOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createModule(builder:flatbuffers.Builder, nodesOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset, dependenciesOffset:flatbuffers.Offset):flatbuffers.Offset {
   Module.startModule(builder);
   Module.addNodes(builder, nodesOffset);
   Module.addStatements(builder, statementsOffset);
   Module.addErrors(builder, errorsOffset);
   Module.addLineBreaks(builder, lineBreaksOffset);
   Module.addComments(builder, commentsOffset);
+  Module.addDependencies(builder, dependenciesOffset);
   return Module.endModule(builder);
 }
 }

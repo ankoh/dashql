@@ -165,6 +165,17 @@ struct Node {
     children_count: uint32 = 0;
 }
 
+enum DependencyType: uint8 {
+    TABLE_REF
+}
+
+struct Dependency {
+    type: DependencyType;
+    source_statement: uint32;
+    target_statement: uint32;
+    target_value: uint32;
+}
+
 table Error {
     location: Location;
     message: string;
@@ -176,4 +187,5 @@ table Module {
     errors: [Error];
     line_breaks: [Location];
     comments: [Location];
+    dependencies: [Dependency];
 }

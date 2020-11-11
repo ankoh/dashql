@@ -558,6 +558,63 @@ pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
   ENUM_NAMES_ATTRIBUTE_KEY[index as usize]
 }
 
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum DependencyType {
+  TABLE_REF = 0,
+
+}
+
+pub const ENUM_MIN_DEPENDENCY_TYPE: u8 = 0;
+pub const ENUM_MAX_DEPENDENCY_TYPE: u8 = 0;
+
+impl<'a> flatbuffers::Follow<'a> for DependencyType {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::read_scalar_at::<Self>(buf, loc)
+  }
+}
+
+impl flatbuffers::EndianScalar for DependencyType {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let n = u8::to_le(self as u8);
+    let p = &n as *const u8 as *const DependencyType;
+    unsafe { *p }
+  }
+  #[inline]
+  fn from_little_endian(self) -> Self {
+    let n = u8::from_le(self as u8);
+    let p = &n as *const u8 as *const DependencyType;
+    unsafe { *p }
+  }
+}
+
+impl flatbuffers::Push for DependencyType {
+    type Output = DependencyType;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        flatbuffers::emplace_scalar::<DependencyType>(dst, *self);
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_DEPENDENCY_TYPE: [DependencyType; 1] = [
+  DependencyType::TABLE_REF
+];
+
+#[allow(non_camel_case_types)]
+pub const ENUM_NAMES_DEPENDENCY_TYPE: [&str; 1] = [
+    "TABLE_REF"
+];
+
+pub fn enum_name_dependency_type(e: DependencyType) -> &'static str {
+  let index = e as u8;
+  ENUM_NAMES_DEPENDENCY_TYPE[index as usize]
+}
+
 // struct Location, aligned to 4
 #[repr(C, align(4))]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -703,6 +760,83 @@ impl Node {
   }
 }
 
+// struct Dependency, aligned to 4
+#[repr(C, align(4))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Dependency {
+  pub type__: DependencyType,
+  padding0__: u8,  padding1__: u16,
+  pub source_statement_: u32,
+  pub target_statement_: u32,
+  pub target_value_: u32,
+} // pub struct Dependency
+impl flatbuffers::SafeSliceAccess for Dependency {}
+impl<'a> flatbuffers::Follow<'a> for Dependency {
+  type Inner = &'a Dependency;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a Dependency>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a Dependency {
+  type Inner = &'a Dependency;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<Dependency>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for Dependency {
+    type Output = Dependency;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const Dependency as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b Dependency {
+    type Output = Dependency;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const Dependency as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl Dependency {
+  pub fn new(_type_: DependencyType, _source_statement: u32, _target_statement: u32, _target_value: u32) -> Self {
+    Dependency {
+      type__: _type_.to_little_endian(),
+      source_statement_: _source_statement.to_little_endian(),
+      target_statement_: _target_statement.to_little_endian(),
+      target_value_: _target_value.to_little_endian(),
+
+      padding0__: 0,padding1__: 0,
+    }
+  }
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "dashql.proto.syntax.Dependency"
+    }
+
+  pub fn type_(&self) -> DependencyType {
+    self.type__.from_little_endian()
+  }
+  pub fn source_statement(&self) -> u32 {
+    self.source_statement_.from_little_endian()
+  }
+  pub fn target_statement(&self) -> u32 {
+    self.target_statement_.from_little_endian()
+  }
+  pub fn target_value(&self) -> u32 {
+    self.target_value_.from_little_endian()
+  }
+}
+
 pub enum ErrorOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
@@ -824,6 +958,7 @@ impl<'a> Module<'a> {
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
         args: &'args ModuleArgs<'args>) -> flatbuffers::WIPOffset<Module<'bldr>> {
       let mut builder = ModuleBuilder::new(_fbb);
+      if let Some(x) = args.dependencies { builder.add_dependencies(x); }
       if let Some(x) = args.comments { builder.add_comments(x); }
       if let Some(x) = args.line_breaks { builder.add_line_breaks(x); }
       if let Some(x) = args.errors { builder.add_errors(x); }
@@ -837,6 +972,7 @@ impl<'a> Module<'a> {
     pub const VT_ERRORS: flatbuffers::VOffsetT = 8;
     pub const VT_LINE_BREAKS: flatbuffers::VOffsetT = 10;
     pub const VT_COMMENTS: flatbuffers::VOffsetT = 12;
+    pub const VT_DEPENDENCIES: flatbuffers::VOffsetT = 14;
 
   #[inline]
   pub fn nodes(&self) -> Option<&'a [Node]> {
@@ -858,6 +994,10 @@ impl<'a> Module<'a> {
   pub fn comments(&self) -> Option<&'a [Location]> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Location>>>(Module::VT_COMMENTS, None).map(|v| v.safe_slice() )
   }
+  #[inline]
+  pub fn dependencies(&self) -> Option<&'a [Dependency]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Dependency>>>(Module::VT_DEPENDENCIES, None).map(|v| v.safe_slice() )
+  }
 }
 
 pub struct ModuleArgs<'a> {
@@ -866,6 +1006,7 @@ pub struct ModuleArgs<'a> {
     pub errors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>>>,
     pub line_breaks: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
     pub comments: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
+    pub dependencies: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Dependency>>>,
 }
 impl<'a> Default for ModuleArgs<'a> {
     #[inline]
@@ -876,6 +1017,7 @@ impl<'a> Default for ModuleArgs<'a> {
             errors: None,
             line_breaks: None,
             comments: None,
+            dependencies: None,
         }
     }
 }
@@ -903,6 +1045,10 @@ impl<'a: 'b, 'b> ModuleBuilder<'a, 'b> {
   #[inline]
   pub fn add_comments(&mut self, comments: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Location>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_COMMENTS, comments);
+  }
+  #[inline]
+  pub fn add_dependencies(&mut self, dependencies: flatbuffers::WIPOffset<flatbuffers::Vector<'b , Dependency>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_DEPENDENCIES, dependencies);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ModuleBuilder<'a, 'b> {
