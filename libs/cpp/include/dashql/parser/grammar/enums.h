@@ -11,69 +11,24 @@ namespace parser {
 
 using ExprFunc = sxs::ExpressionFunction;
 
-inline sx::Node Enum(sx::Location loc, sxd::HTTPVerb e) {
-    return sx::Node(loc, sx::NodeType::ENUM_DASHQL_HTTP_VERB, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxd::LoadMethodType e) {
-    return sx::Node(loc, sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxd::ParameterType e) {
-    return sx::Node(loc, sx::NodeType::ENUM_DASHQL_PARAMETER_TYPE, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxd::VizType e) {
-    return sx::Node(loc, sx::NodeType::ENUM_DASHQL_VIZ_TYPE, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::CombineModifier e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_COMBINE_MODIFIER, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::CombineOperation e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_COMBINE_OPERATION, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::AConstType e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_ACONST_TYPE, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::TempType e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_TEMP_TYPE, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::WindowBoundMode e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::WindowBoundDirection e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::WindowRangeMode e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::WindowExclusionMode e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::OrderDirection e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_ORDER_DIRECTION, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::OrderNullRule e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_ORDER_NULL_RULE, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::NumericTypeTag e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_NUMERIC_TYPE_TAG, Key::NONE, static_cast<uint32_t>(e), 0);
-}
-
-inline sx::Node Enum(sx::Location loc, sxs::ExpressionFunction e) {
-    return sx::Node(loc, sx::NodeType::ENUM_SQL_EXPRESSION_FUNCTION, Key::NONE, static_cast<uint32_t>(e), 0);
-}
+#define X(ENUM_TYPE, NODE_TYPE) inline sx::Node Enum(sx::Location loc, ENUM_TYPE e) { return sx::Node(loc, NODE_TYPE, Key::NONE, static_cast<uint32_t>(e), 0); }
+    X(sxd::HTTPVerb, sx::NodeType::ENUM_DASHQL_HTTP_VERB)
+    X(sxd::LoadMethodType, sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE)
+    X(sxd::ParameterType, sx::NodeType::ENUM_DASHQL_PARAMETER_TYPE)
+    X(sxd::VizType, sx::NodeType::ENUM_DASHQL_VIZ_TYPE)
+    X(sxs::CombineModifier, sx::NodeType::ENUM_SQL_COMBINE_MODIFIER)
+    X(sxs::CombineOperation, sx::NodeType::ENUM_SQL_COMBINE_OPERATION)
+    X(sxs::AConstType, sx::NodeType::ENUM_SQL_ACONST_TYPE)
+    X(sxs::TempType, sx::NodeType::ENUM_SQL_TEMP_TYPE)
+    X(sxs::WindowBoundMode, sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE)
+    X(sxs::WindowBoundDirection, sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION)
+    X(sxs::WindowRangeMode, sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE)
+    X(sxs::WindowExclusionMode, sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE)
+    X(sxs::OrderDirection, sx::NodeType::ENUM_SQL_ORDER_DIRECTION)
+    X(sxs::OrderNullRule, sx::NodeType::ENUM_SQL_ORDER_NULL_RULE)
+    X(sxs::NumericTypeTag, sx::NodeType::ENUM_SQL_NUMERIC_TYPE_TAG)
+    X(sxs::ExpressionFunction, sx::NodeType::ENUM_SQL_EXPRESSION_FUNCTION)
+#undef X
 
 } // namespace parser
 } // namespace dashql

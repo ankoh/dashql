@@ -4,6 +4,7 @@ namespace dashql.proto.syntax_sql;
 
 enum ExpressionFunction: uint8 {
     NEGATE,
+    NOT,
     TYPECAST,
     COLLATE,
     AT_TIMEZONE,
@@ -16,6 +17,9 @@ enum ExpressionFunction: uint8 {
     AND,
     OR,
     XOR,
+    GLOB,
+
+    LIKE,
 
     COMPARE_LESS_THAN,
     COMPARE_LESS_EQUAL,
