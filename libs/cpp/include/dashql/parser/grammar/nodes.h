@@ -60,32 +60,26 @@ inline sx::Node ColumnRef(ParserDriver& driver, sx::Location loc, NodeVector&& p
 }
 
 /// Add an unary expression
-inline sx::Node UnaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg, std::optional<sx::Location> inverted_loc = std::nullopt) {
-    auto inverted = inverted_loc ? sx::Node(*inverted_loc, sx::NodeType::BOOL, Key::NONE, 1, 0) : Null();
+inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
         Key::SQL_EXPRESSION_FUNCTION << func,
-        Key::SQL_EXPRESSION_INVERTED << inverted,
         Key::SQL_EXPRESSION_ARG0 << arg,
     });
 }
 
 /// Add a binary expression
-inline sx::Node BinaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node left, sx::Node right, std::optional<sx::Location> inverted_loc = std::nullopt) {
-    auto inverted = inverted_loc ? sx::Node(*inverted_loc, sx::NodeType::BOOL, Key::NONE, 1, 0) : Null();
+inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node left, sx::Node right) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
         Key::SQL_EXPRESSION_FUNCTION << func,
-        Key::SQL_EXPRESSION_INVERTED << inverted,
         Key::SQL_EXPRESSION_ARG0 << left,
         Key::SQL_EXPRESSION_ARG1 << right,
     });
 }
 
 /// Add a ternary expression
-inline sx::Node TernaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg0, sx::Node arg1, sx::Node arg2, std::optional<sx::Location> inverted_loc = std::nullopt) {
-    auto inverted = inverted_loc ? sx::Node(*inverted_loc, sx::NodeType::BOOL, Key::NONE, 1, 0) : Null();
+inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg0, sx::Node arg1, sx::Node arg2) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
         Key::SQL_EXPRESSION_FUNCTION << func,
-        Key::SQL_EXPRESSION_INVERTED << inverted,
         Key::SQL_EXPRESSION_ARG0 << arg0,
         Key::SQL_EXPRESSION_ARG1 << arg1,
         Key::SQL_EXPRESSION_ARG2 << arg2,

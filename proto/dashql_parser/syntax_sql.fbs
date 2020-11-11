@@ -25,6 +25,10 @@ enum ExpressionFunction: uint8 {
     ILIKE,
     SIMILAR_TO,
 
+    NOT_LIKE,
+    NOT_ILIKE,
+    NOT_SIMILAR_TO,
+
     IS_TRUE,
     IS_FALSE,
     IS_UNKNOWN,
