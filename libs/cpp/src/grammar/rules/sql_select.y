@@ -973,15 +973,15 @@ sql_a_expr:
   | sql_a_expr IS OF '(' sql_type_list ')'          %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_OF), $1, ctx.Add(@5, move($5))); }
   | sql_a_expr IS NOT OF '(' sql_type_list ')'      %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_NOT_OF), $1, ctx.Add(@6, move($6))); }
 
-  | sql_a_expr BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr           %prec BETWEEN     { $$ = {}; }
-  | sql_a_expr NOT_LA BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr    %prec NOT_LA      { $$ = {}; }
-  | sql_a_expr BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr                    %prec BETWEEN     { $$ = {}; }
-  | sql_a_expr NOT_LA BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr             %prec NOT_LA      { $$ = {}; }
-  | sql_a_expr IN_P sql_in_expr                                                                 { $$ = {}; }
-  | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA              { $$ = {}; }
-  | sql_a_expr sql_subquery_op sql_sub_type sql_select_with_parens    %prec Op                  { $$ = {}; }
-  | sql_a_expr sql_subquery_op sql_sub_type '(' sql_a_expr ')'        %prec Op                  { $$ = {}; }
-  | DEFAULT                                                                                     { $$ = {}; }
+  | sql_a_expr BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr         %prec BETWEEN   { $$ = {}; }
+  | sql_a_expr NOT_LA BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr  %prec NOT_LA    { $$ = {}; }
+  | sql_a_expr BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr                  %prec BETWEEN   { $$ = {}; }
+  | sql_a_expr NOT_LA BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr           %prec NOT_LA    { $$ = {}; }
+  | sql_a_expr IN_P sql_in_expr                                                             { $$ = {}; }
+  | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA          { $$ = {}; }
+  | sql_a_expr sql_subquery_op sql_sub_type sql_select_with_parens    %prec Op              { $$ = {}; }
+  | sql_a_expr sql_subquery_op sql_sub_type '(' sql_a_expr ')'        %prec Op              { $$ = {}; }
+  | DEFAULT                                                                                 { $$ = {}; }
     ;
 
 // Restricted expressions
