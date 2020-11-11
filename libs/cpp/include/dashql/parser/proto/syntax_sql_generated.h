@@ -13,30 +13,40 @@ namespace syntax_sql {
 
 enum class ExpressionFunction : uint8_t {
   NEGATE = 0,
-  PLUS = 1,
-  MINUS = 2,
-  MULTIPLY = 3,
-  DIVIDE = 4,
-  MODULUS = 5,
-  XOR = 6,
-  COMPARE_LESS_THAN = 7,
-  COMPARE_LESS_EQUAL = 8,
-  COMPARE_GREATER_THAN = 9,
-  COMPARE_GREATER_EQUAL = 10,
-  COMPARE_EQUAL = 11,
-  COMPARE_NOT_EQUAL = 12,
+  TYPECAST = 1,
+  COLLATE = 2,
+  AT_TIMEZONE = 3,
+  PLUS = 4,
+  MINUS = 5,
+  MULTIPLY = 6,
+  DIVIDE = 7,
+  MODULUS = 8,
+  AND = 9,
+  OR = 10,
+  XOR = 11,
+  COMPARE_LESS_THAN = 12,
+  COMPARE_LESS_EQUAL = 13,
+  COMPARE_GREATER_THAN = 14,
+  COMPARE_GREATER_EQUAL = 15,
+  COMPARE_EQUAL = 16,
+  COMPARE_NOT_EQUAL = 17,
   MIN = NEGATE,
   MAX = COMPARE_NOT_EQUAL
 };
 
-inline const ExpressionFunction (&EnumValuesExpressionFunction())[13] {
+inline const ExpressionFunction (&EnumValuesExpressionFunction())[18] {
   static const ExpressionFunction values[] = {
     ExpressionFunction::NEGATE,
+    ExpressionFunction::TYPECAST,
+    ExpressionFunction::COLLATE,
+    ExpressionFunction::AT_TIMEZONE,
     ExpressionFunction::PLUS,
     ExpressionFunction::MINUS,
     ExpressionFunction::MULTIPLY,
     ExpressionFunction::DIVIDE,
     ExpressionFunction::MODULUS,
+    ExpressionFunction::AND,
+    ExpressionFunction::OR,
     ExpressionFunction::XOR,
     ExpressionFunction::COMPARE_LESS_THAN,
     ExpressionFunction::COMPARE_LESS_EQUAL,
@@ -49,13 +59,18 @@ inline const ExpressionFunction (&EnumValuesExpressionFunction())[13] {
 }
 
 inline const char * const *EnumNamesExpressionFunction() {
-  static const char * const names[14] = {
+  static const char * const names[19] = {
     "NEGATE",
+    "TYPECAST",
+    "COLLATE",
+    "AT_TIMEZONE",
     "PLUS",
     "MINUS",
     "MULTIPLY",
     "DIVIDE",
     "MODULUS",
+    "AND",
+    "OR",
     "XOR",
     "COMPARE_LESS_THAN",
     "COMPARE_LESS_EQUAL",
@@ -466,6 +481,11 @@ inline const flatbuffers::TypeTable *ExpressionFunctionTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -473,11 +493,16 @@ inline const flatbuffers::TypeTable *ExpressionFunctionTypeTable() {
   };
   static const char * const names[] = {
     "NEGATE",
+    "TYPECAST",
+    "COLLATE",
+    "AT_TIMEZONE",
     "PLUS",
     "MINUS",
     "MULTIPLY",
     "DIVIDE",
     "MODULUS",
+    "AND",
+    "OR",
     "XOR",
     "COMPARE_LESS_THAN",
     "COMPARE_LESS_EQUAL",
@@ -487,7 +512,7 @@ inline const flatbuffers::TypeTable *ExpressionFunctionTypeTable() {
     "COMPARE_NOT_EQUAL"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 13, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 18, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

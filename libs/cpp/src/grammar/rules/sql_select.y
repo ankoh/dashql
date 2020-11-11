@@ -922,14 +922,14 @@ sql_a_expr:
   | sql_a_expr '<' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_LESS_THAN), $1, $3); }
   | sql_a_expr '>' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_GREATER_THAN), $1, $3); }
   | sql_a_expr '=' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_EQUAL), $1, $3); }
-  | sql_a_expr LESS_EQUALS sql_a_expr                           { $$ = {}; }
-  | sql_a_expr GREATER_EQUALS sql_a_expr                        { $$ = {}; }
-  | sql_a_expr NOT_EQUALS sql_a_expr                            { $$ = {}; }
-  | sql_a_expr sql_qual_op sql_a_expr         %prec Op          { $$ = {}; }
-  | sql_qual_op sql_a_expr                    %prec Op          { $$ = {}; }
-  | sql_a_expr sql_qual_op                    %prec POSTFIXOP   { $$ = {}; }
-  | sql_a_expr AND sql_a_expr                                   { $$ = {}; }
-  | sql_a_expr OR sql_a_expr                                    { $$ = {}; }
+  | sql_a_expr LESS_EQUALS sql_a_expr       { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_LESS_EQUAL), $1, $3); }
+  | sql_a_expr GREATER_EQUALS sql_a_expr    { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_GREATER_EQUAL), $1, $3); }
+  | sql_a_expr NOT_EQUALS sql_a_expr        { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_NOT_EQUAL), $1, $3); }
+  | sql_a_expr sql_qual_op sql_a_expr   %prec Op          { $$ = {}; }
+  | sql_qual_op sql_a_expr              %prec Op          { $$ = {}; }
+  | sql_a_expr sql_qual_op              %prec POSTFIXOP   { $$ = {}; }
+  | sql_a_expr AND sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::AND), $1, $3); }
+  | sql_a_expr OR sql_a_expr    { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::OR), $1, $3); }
   | NOT sql_a_expr                                              { $$ = {}; }
   | NOT_LA sql_a_expr                         %prec NOT         { $$ = {}; }
   | sql_a_expr GLOB sql_a_expr                %prec GLOB        { $$ = {}; }

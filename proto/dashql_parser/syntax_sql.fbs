@@ -13,6 +13,8 @@ enum ExpressionFunction: uint8 {
     MULTIPLY,
     DIVIDE,
     MODULUS,
+    AND,
+    OR,
     XOR,
 
     COMPARE_LESS_THAN,

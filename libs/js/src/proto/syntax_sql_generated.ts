@@ -8,18 +8,23 @@ import { flatbuffers } from "flatbuffers";
 export namespace dashql.proto.syntax_sql{
 export enum ExpressionFunction{
   NEGATE= 0,
-  PLUS= 1,
-  MINUS= 2,
-  MULTIPLY= 3,
-  DIVIDE= 4,
-  MODULUS= 5,
-  XOR= 6,
-  COMPARE_LESS_THAN= 7,
-  COMPARE_LESS_EQUAL= 8,
-  COMPARE_GREATER_THAN= 9,
-  COMPARE_GREATER_EQUAL= 10,
-  COMPARE_EQUAL= 11,
-  COMPARE_NOT_EQUAL= 12
+  TYPECAST= 1,
+  COLLATE= 2,
+  AT_TIMEZONE= 3,
+  PLUS= 4,
+  MINUS= 5,
+  MULTIPLY= 6,
+  DIVIDE= 7,
+  MODULUS= 8,
+  AND= 9,
+  OR= 10,
+  XOR= 11,
+  COMPARE_LESS_THAN= 12,
+  COMPARE_LESS_EQUAL= 13,
+  COMPARE_GREATER_THAN= 14,
+  COMPARE_GREATER_EQUAL= 15,
+  COMPARE_EQUAL= 16,
+  COMPARE_NOT_EQUAL= 17
 };
 }
 
