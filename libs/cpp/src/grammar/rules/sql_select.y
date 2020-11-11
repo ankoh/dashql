@@ -935,15 +935,15 @@ sql_a_expr:
   | sql_a_expr GLOB sql_a_expr  %prec GLOB  { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::GLOB), $1, $3); }
   | sql_a_expr LIKE sql_a_expr              { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::LIKE), $1, $3); }
   | sql_a_expr LIKE sql_a_expr ESCAPE sql_a_expr            %prec LIKE      { $$ = {}; }
-  | sql_a_expr NOT_LA LIKE sql_a_expr                       %prec NOT_LA    { $$ = {}; }
+  | sql_a_expr NOT_LA LIKE sql_a_expr                       %prec NOT_LA    { $$ = BinaryExpr(ctx, @$, Enum(@3, ExprFunc::LIKE), $1, $4, @2); }
   | sql_a_expr NOT_LA LIKE sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA    { $$ = {}; }
-  | sql_a_expr ILIKE sql_a_expr                                                 { $$ = {}; }
+  | sql_a_expr ILIKE sql_a_expr                                                 { $$ = BinaryExpr(ctx, @$, Enum(@3, ExprFunc::ILIKE), $1, $3); }
   | sql_a_expr ILIKE sql_a_expr ESCAPE sql_a_expr           %prec ILIKE         { $$ = {}; }
-  | sql_a_expr NOT_LA ILIKE sql_a_expr                      %prec NOT_LA        { $$ = {}; }
+  | sql_a_expr NOT_LA ILIKE sql_a_expr                      %prec NOT_LA        { $$ = BinaryExpr(ctx, @$, Enum(@3, ExprFunc::ILIKE), $1, $4, @2); }
   | sql_a_expr NOT_LA ILIKE sql_a_expr ESCAPE sql_a_expr    %prec NOT_LA        { $$ = {}; }
-  | sql_a_expr SIMILAR TO sql_a_expr                        %prec SIMILAR       { $$ = {}; }
+  | sql_a_expr SIMILAR TO sql_a_expr                        %prec SIMILAR       { $$ = BinaryExpr(ctx, @$, Enum(Loc({@3, @4}), ExprFunc::SIMILAR_TO), $1, $4); }
   | sql_a_expr SIMILAR TO sql_a_expr ESCAPE sql_a_expr      %prec SIMILAR       { $$ = {}; }
-  | sql_a_expr NOT_LA SIMILAR TO sql_a_expr                 %prec NOT_LA        { $$ = {}; }
+  | sql_a_expr NOT_LA SIMILAR TO sql_a_expr                 %prec NOT_LA        { $$ = BinaryExpr(ctx, @$, Enum(Loc({@3, @4}), ExprFunc::SIMILAR_TO), $1, $5, @2); }
   | sql_a_expr NOT_LA SIMILAR TO sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA  { $$ = {}; }
 
   // PGNullTest clause
