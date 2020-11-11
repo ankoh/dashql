@@ -52,6 +52,8 @@ class ParserDriver {
     std::vector<uint32_t> _statements;
     /// The errors
     std::vector<std::pair<sx::Location, std::string>> _errors;
+    /// The dependencies
+    std::vector<sx::Dependency> _dependencies;
 
    public:
     /// Constructor

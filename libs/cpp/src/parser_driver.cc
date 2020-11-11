@@ -44,7 +44,7 @@ NodeVector& operator<<(NodeVector& attrs, NodeVector&& other) {
 }
 
 /// Constructor
-ParserDriver::ParserDriver(Scanner& scanner) : _scanner(scanner), _nodes(), _statements(), _errors() {}
+ParserDriver::ParserDriver(Scanner& scanner) : _scanner(scanner), _nodes(), _statements(), _errors(), _dependencies() {}
 
 /// Destructor
 ParserDriver::~ParserDriver() {}
