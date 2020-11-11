@@ -29,27 +29,28 @@ enum class ExpressionFunction : uint8_t {
   IS_NULL = 14,
   NOT_NULL = 15,
   LIKE = 16,
-  ILIKE = 17,
-  SIMILAR_TO = 18,
-  NOT_LIKE = 19,
-  NOT_ILIKE = 20,
+  NOT_LIKE = 17,
+  ILIKE = 18,
+  NOT_ILIKE = 19,
+  SIMILAR_TO = 20,
   NOT_SIMILAR_TO = 21,
   IS_TRUE = 22,
-  IS_FALSE = 23,
-  IS_UNKNOWN = 24,
-  IS_DISTINCT_FROM = 25,
-  IS_OF = 26,
-  EQUAL = 27,
-  NOT_EQUAL = 28,
-  GREATER_EQUAL = 29,
-  GREATER_THAN = 30,
-  LESS_EQUAL = 31,
-  LESS_THAN = 32,
+  IS_NOT_TRUE = 23,
+  IS_FALSE = 24,
+  IS_UNKNOWN = 25,
+  IS_DISTINCT_FROM = 26,
+  IS_OF = 27,
+  EQUAL = 28,
+  NOT_EQUAL = 29,
+  GREATER_EQUAL = 30,
+  GREATER_THAN = 31,
+  LESS_EQUAL = 32,
+  LESS_THAN = 33,
   MIN = NEGATE,
   MAX = LESS_THAN
 };
 
-inline const ExpressionFunction (&EnumValuesExpressionFunction())[33] {
+inline const ExpressionFunction (&EnumValuesExpressionFunction())[34] {
   static const ExpressionFunction values[] = {
     ExpressionFunction::NEGATE,
     ExpressionFunction::NOT,
@@ -68,12 +69,13 @@ inline const ExpressionFunction (&EnumValuesExpressionFunction())[33] {
     ExpressionFunction::IS_NULL,
     ExpressionFunction::NOT_NULL,
     ExpressionFunction::LIKE,
-    ExpressionFunction::ILIKE,
-    ExpressionFunction::SIMILAR_TO,
     ExpressionFunction::NOT_LIKE,
+    ExpressionFunction::ILIKE,
     ExpressionFunction::NOT_ILIKE,
+    ExpressionFunction::SIMILAR_TO,
     ExpressionFunction::NOT_SIMILAR_TO,
     ExpressionFunction::IS_TRUE,
+    ExpressionFunction::IS_NOT_TRUE,
     ExpressionFunction::IS_FALSE,
     ExpressionFunction::IS_UNKNOWN,
     ExpressionFunction::IS_DISTINCT_FROM,
@@ -89,7 +91,7 @@ inline const ExpressionFunction (&EnumValuesExpressionFunction())[33] {
 }
 
 inline const char * const *EnumNamesExpressionFunction() {
-  static const char * const names[34] = {
+  static const char * const names[35] = {
     "NEGATE",
     "NOT",
     "TYPECAST",
@@ -107,12 +109,13 @@ inline const char * const *EnumNamesExpressionFunction() {
     "IS_NULL",
     "NOT_NULL",
     "LIKE",
-    "ILIKE",
-    "SIMILAR_TO",
     "NOT_LIKE",
+    "ILIKE",
     "NOT_ILIKE",
+    "SIMILAR_TO",
     "NOT_SIMILAR_TO",
     "IS_TRUE",
+    "IS_NOT_TRUE",
     "IS_FALSE",
     "IS_UNKNOWN",
     "IS_DISTINCT_FROM",
@@ -546,6 +549,7 @@ inline const flatbuffers::TypeTable *ExpressionFunctionTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -569,12 +573,13 @@ inline const flatbuffers::TypeTable *ExpressionFunctionTypeTable() {
     "IS_NULL",
     "NOT_NULL",
     "LIKE",
-    "ILIKE",
-    "SIMILAR_TO",
     "NOT_LIKE",
+    "ILIKE",
     "NOT_ILIKE",
+    "SIMILAR_TO",
     "NOT_SIMILAR_TO",
     "IS_TRUE",
+    "IS_NOT_TRUE",
     "IS_FALSE",
     "IS_UNKNOWN",
     "IS_DISTINCT_FROM",
@@ -587,7 +592,7 @@ inline const flatbuffers::TypeTable *ExpressionFunctionTypeTable() {
     "LESS_THAN"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 33, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 34, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

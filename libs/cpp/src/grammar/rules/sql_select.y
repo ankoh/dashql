@@ -937,13 +937,13 @@ sql_a_expr:
   | sql_a_expr LIKE sql_a_expr ESCAPE sql_a_expr            %prec LIKE      { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::LIKE), $1, $3, $5); }
   | sql_a_expr NOT_LA LIKE sql_a_expr                       %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_LIKE), $1, $4); }
   | sql_a_expr NOT_LA LIKE sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_LIKE), $1, $4, $6); }
-  | sql_a_expr ILIKE sql_a_expr                                                 { $$ = Expr(ctx, @$, Enum(@3, ExprFunc::ILIKE), $1, $3); }
-  | sql_a_expr ILIKE sql_a_expr ESCAPE sql_a_expr           %prec ILIKE         { $$ = Expr(ctx, @$, Enum(@3, ExprFunc::ILIKE), $1, $3, $5); }
-  | sql_a_expr NOT_LA ILIKE sql_a_expr                      %prec NOT_LA        { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_ILIKE), $1, $4); }
-  | sql_a_expr NOT_LA ILIKE sql_a_expr ESCAPE sql_a_expr    %prec NOT_LA        { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_ILIKE), $1, $4, $6); }
-  | sql_a_expr SIMILAR TO sql_a_expr                        %prec SIMILAR       { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::SIMILAR_TO), $1, $4); }
-  | sql_a_expr SIMILAR TO sql_a_expr ESCAPE sql_a_expr      %prec SIMILAR       { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::SIMILAR_TO), $1, $4, $6); }
-  | sql_a_expr NOT_LA SIMILAR TO sql_a_expr                 %prec NOT_LA        { $$ = Expr(ctx, @$, Enum(Loc({@3, @4}), ExprFunc::NOT_SIMILAR_TO), $1, $5); }
+  | sql_a_expr ILIKE sql_a_expr                                             { $$ = Expr(ctx, @$, Enum(@3, ExprFunc::ILIKE), $1, $3); }
+  | sql_a_expr ILIKE sql_a_expr ESCAPE sql_a_expr           %prec ILIKE     { $$ = Expr(ctx, @$, Enum(@3, ExprFunc::ILIKE), $1, $3, $5); }
+  | sql_a_expr NOT_LA ILIKE sql_a_expr                      %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_ILIKE), $1, $4); }
+  | sql_a_expr NOT_LA ILIKE sql_a_expr ESCAPE sql_a_expr    %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_ILIKE), $1, $4, $6); }
+  | sql_a_expr SIMILAR TO sql_a_expr                        %prec SIMILAR   { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::SIMILAR_TO), $1, $4); }
+  | sql_a_expr SIMILAR TO sql_a_expr ESCAPE sql_a_expr      %prec SIMILAR   { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::SIMILAR_TO), $1, $4, $6); }
+  | sql_a_expr NOT_LA SIMILAR TO sql_a_expr                 %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@3, @4}), ExprFunc::NOT_SIMILAR_TO), $1, $5); }
   | sql_a_expr NOT_LA SIMILAR TO sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA  { $$ = Expr(ctx, @$, Enum(Loc({@3, @4}), ExprFunc::NOT_SIMILAR_TO), $1, $5, $7); }
 
   // PGNullTest clause
@@ -962,8 +962,8 @@ sql_a_expr:
   | sql_a_expr NOTNULL                      { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::NOT_NULL), $1); }
 
   | sql_row OVERLAPS sql_row  { $$ = {}; }
-  | sql_a_expr IS TRUE_P                            %prec IS    { $$ = {}; }
-  | sql_a_expr IS NOT TRUE_P                        %prec IS    { $$ = {}; }
+  | sql_a_expr IS TRUE_P                            %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_TRUE), $1); }
+  | sql_a_expr IS NOT TRUE_P                        %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_NOT_TRUE), $1); }
   | sql_a_expr IS FALSE_P                           %prec IS    { $$ = {}; }
   | sql_a_expr IS NOT FALSE_P                       %prec IS    { $$ = {}; }
   | sql_a_expr IS UNKNOWN                           %prec IS    { $$ = {}; }

@@ -22,14 +22,15 @@ enum ExpressionFunction: uint8 {
     IS_NULL,
     NOT_NULL,
     LIKE,
-    ILIKE,
-    SIMILAR_TO,
-
     NOT_LIKE,
+    ILIKE,
     NOT_ILIKE,
+    SIMILAR_TO,
     NOT_SIMILAR_TO,
 
+
     IS_TRUE,
+    IS_NOT_TRUE,
     IS_FALSE,
     IS_UNKNOWN,
     IS_DISTINCT_FROM,
