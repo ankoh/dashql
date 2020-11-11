@@ -963,15 +963,15 @@ sql_a_expr:
 
   | sql_row OVERLAPS sql_row  { $$ = {}; }
   | sql_a_expr IS TRUE_P                            %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_TRUE), $1); }
-  | sql_a_expr IS NOT TRUE_P                        %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_NOT_TRUE), $1); }
-  | sql_a_expr IS FALSE_P                           %prec IS    { $$ = {}; }
-  | sql_a_expr IS NOT FALSE_P                       %prec IS    { $$ = {}; }
-  | sql_a_expr IS UNKNOWN                           %prec IS    { $$ = {}; }
-  | sql_a_expr IS NOT UNKNOWN                       %prec IS    { $$ = {}; }
-  | sql_a_expr IS DISTINCT FROM sql_a_expr          %prec IS    { $$ = {}; }
-  | sql_a_expr IS NOT DISTINCT FROM sql_a_expr      %prec IS    { $$ = {}; }
-  | sql_a_expr IS OF '(' sql_type_list ')'          %prec IS    { $$ = {}; }
-  | sql_a_expr IS NOT OF '(' sql_type_list ')'      %prec IS    { $$ = {}; }
+  | sql_a_expr IS NOT TRUE_P                        %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_NOT_TRUE), $1); }
+  | sql_a_expr IS FALSE_P                           %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_FALSE), $1); }
+  | sql_a_expr IS NOT FALSE_P                       %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_NOT_FALSE), $1); }
+  | sql_a_expr IS UNKNOWN                           %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_UNKNOWN), $1); }
+  | sql_a_expr IS NOT UNKNOWN                       %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_NOT_UNKNOWN), $1); }
+  | sql_a_expr IS DISTINCT FROM sql_a_expr          %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_DISTINCT_FROM), $1, $5); }
+  | sql_a_expr IS NOT DISTINCT FROM sql_a_expr      %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4, @5}), ExprFunc::IS_NOT_DISTINCT_FROM), $1, $6); }
+  | sql_a_expr IS OF '(' sql_type_list ')'          %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_OF), $1, ctx.Add(@5, move($5))); }
+  | sql_a_expr IS NOT OF '(' sql_type_list ')'      %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_NOT_OF), $1, ctx.Add(@6, move($6))); }
 
   | sql_a_expr BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr           %prec BETWEEN     { $$ = {}; }
   | sql_a_expr NOT_LA BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr    %prec NOT_LA      { $$ = {}; }

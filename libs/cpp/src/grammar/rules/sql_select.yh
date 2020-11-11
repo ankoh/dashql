@@ -27,6 +27,7 @@
 %type <NodeVector> sql_simple_select;
 %type <NodeVector> sql_sortby_list;
 %type <NodeVector> sql_target_list;
+%type <NodeVector> sql_type_list;
 %type <NodeVector> sql_values_clause;
 %type <NodeVector> sql_window_clause;
 %type <NodeVector> sql_window_definition_list;
