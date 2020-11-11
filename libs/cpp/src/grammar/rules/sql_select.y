@@ -680,10 +680,26 @@ sql_opt_collate_clause:
 //  - thomas 1997-10-10
 
 sql_typename:
-    sql_simple_typename sql_opt_array_bounds
-  | SETOF sql_simple_typename sql_opt_array_bounds
+    sql_simple_typename sql_opt_array_bounds {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+            Key::SQL_TYPENAME_TYPE << $1,
+            Key::SQL_TYPENAME_ARRAY << $2,
+        });
+    }
+  | SETOF sql_simple_typename sql_opt_array_bounds {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+            Key::SQL_TYPENAME_TYPE << $2,
+            Key::SQL_TYPENAME_ARRAY << $3,
+            Key::SQL_TYPENAME_SETOF << ctx.Ref(@1, true),
+        });
+    }
     // SQL standard syntax, currently only one-dimensional
-  | sql_simple_typename ARRAY '[' ICONST ']'
+  | sql_simple_typename ARRAY '[' ICONST ']' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+            Key::SQL_TYPENAME_TYPE << $1,
+            Key::SQL_TYPENAME_ARRAY << ctx.Add(Loc({@2, @3, @4, @5}), {ctx.Ref(@4)}),
+        });
+    }
   | SETOF sql_simple_typename ARRAY '[' ICONST ']'
   | sql_simple_typename ARRAY
   | SETOF sql_simple_typename ARRAY
@@ -697,7 +713,7 @@ sql_opt_array_bounds:
 
 sql_simple_typename:
     sql_generic_type
-  | sql_numeric
+  | sql_numeric                         { $$ = $1; }
   | sql_bit
   | sql_const_character
   | sql_const_datetime
@@ -717,7 +733,7 @@ sql_simple_typename:
 // reduce/reduce conflicts against function names.
 
 sql_const_typename:
-    sql_numeric
+    sql_numeric         { $$ = $1; }
   | sql_const_bit
   | sql_character
   | sql_const_datetime
@@ -1314,8 +1330,8 @@ sql_func_arg_expr:
     ;
 
 sql_type_list:
-    sql_typename
-  | sql_type_list ',' sql_typename
+    sql_typename                    { $$ = { $1 }; }
+  | sql_type_list ',' sql_typename  { $1.push_back($3); $$ = move($1); }
     ;
 
 sql_extract_list:

@@ -81,15 +81,16 @@ pub enum NodeType {
   OBJECT_SQL_RESULT_TARGET = 41,
   OBJECT_SQL_SELECT = 42,
   OBJECT_SQL_TABLE_REF = 43,
-  OBJECT_SQL_WINDOW_BOUND = 44,
-  OBJECT_SQL_WINDOW_DEF = 45,
-  OBJECT_SQL_WINDOW_FRAME = 46,
-  OBJECT_SQL_WITH = 47,
+  OBJECT_SQL_TYPENAME = 44,
+  OBJECT_SQL_WINDOW_BOUND = 45,
+  OBJECT_SQL_WINDOW_DEF = 46,
+  OBJECT_SQL_WINDOW_FRAME = 47,
+  OBJECT_SQL_WITH = 48,
 
 }
 
 pub const ENUM_MIN_NODE_TYPE: u16 = 0;
-pub const ENUM_MAX_NODE_TYPE: u16 = 47;
+pub const ENUM_MAX_NODE_TYPE: u16 = 48;
 
 impl<'a> flatbuffers::Follow<'a> for NodeType {
   type Inner = Self;
@@ -123,7 +124,7 @@ impl flatbuffers::Push for NodeType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_NODE_TYPE: [NodeType; 48] = [
+pub const ENUM_VALUES_NODE_TYPE: [NodeType; 49] = [
   NodeType::NONE,
   NodeType::BOOL,
   NodeType::UI32,
@@ -168,6 +169,7 @@ pub const ENUM_VALUES_NODE_TYPE: [NodeType; 48] = [
   NodeType::OBJECT_SQL_RESULT_TARGET,
   NodeType::OBJECT_SQL_SELECT,
   NodeType::OBJECT_SQL_TABLE_REF,
+  NodeType::OBJECT_SQL_TYPENAME,
   NodeType::OBJECT_SQL_WINDOW_BOUND,
   NodeType::OBJECT_SQL_WINDOW_DEF,
   NodeType::OBJECT_SQL_WINDOW_FRAME,
@@ -175,7 +177,7 @@ pub const ENUM_VALUES_NODE_TYPE: [NodeType; 48] = [
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_NODE_TYPE: [&str; 48] = [
+pub const ENUM_NAMES_NODE_TYPE: [&str; 49] = [
     "NONE",
     "BOOL",
     "UI32",
@@ -220,6 +222,7 @@ pub const ENUM_NAMES_NODE_TYPE: [&str; 48] = [
     "OBJECT_SQL_RESULT_TARGET",
     "OBJECT_SQL_SELECT",
     "OBJECT_SQL_TABLE_REF",
+    "OBJECT_SQL_TYPENAME",
     "OBJECT_SQL_WINDOW_BOUND",
     "OBJECT_SQL_WINDOW_DEF",
     "OBJECT_SQL_WINDOW_FRAME",
@@ -312,21 +315,24 @@ pub enum AttributeKey {
   SQL_TABLE_NAME = 74,
   SQL_TEMP_NAME = 75,
   SQL_TEMP_TYPE = 76,
-  SQL_WINDOW_BOUND_DIRECTION = 77,
-  SQL_WINDOW_BOUND_MODE = 78,
-  SQL_WINDOW_BOUND_VALUE = 79,
-  SQL_WINDOW_DEF_FRAME = 80,
-  SQL_WINDOW_DEF_NAME = 81,
-  SQL_WINDOW_FRAME_BOUNDS = 82,
-  SQL_WINDOW_FRAME_EXCLUDE = 83,
-  SQL_WINDOW_FRAME_MODE = 84,
-  SQL_WINDOW_FRAME_NAME = 85,
-  SQL_WINDOW_FRAME_PARTITION = 86,
+  SQL_TYPENAME_ARRAY = 77,
+  SQL_TYPENAME_SETOF = 78,
+  SQL_TYPENAME_TYPE = 79,
+  SQL_WINDOW_BOUND_DIRECTION = 80,
+  SQL_WINDOW_BOUND_MODE = 81,
+  SQL_WINDOW_BOUND_VALUE = 82,
+  SQL_WINDOW_DEF_FRAME = 83,
+  SQL_WINDOW_DEF_NAME = 84,
+  SQL_WINDOW_FRAME_BOUNDS = 85,
+  SQL_WINDOW_FRAME_EXCLUDE = 86,
+  SQL_WINDOW_FRAME_MODE = 87,
+  SQL_WINDOW_FRAME_NAME = 88,
+  SQL_WINDOW_FRAME_PARTITION = 89,
 
 }
 
 pub const ENUM_MIN_ATTRIBUTE_KEY: u16 = 0;
-pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 86;
+pub const ENUM_MAX_ATTRIBUTE_KEY: u16 = 89;
 
 impl<'a> flatbuffers::Follow<'a> for AttributeKey {
   type Inner = Self;
@@ -360,7 +366,7 @@ impl flatbuffers::Push for AttributeKey {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 87] = [
+pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 90] = [
   AttributeKey::NONE,
   AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
   AttributeKey::DASHQL_PARAMETER_ALIAS,
@@ -438,6 +444,9 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 87] = [
   AttributeKey::SQL_TABLE_NAME,
   AttributeKey::SQL_TEMP_NAME,
   AttributeKey::SQL_TEMP_TYPE,
+  AttributeKey::SQL_TYPENAME_ARRAY,
+  AttributeKey::SQL_TYPENAME_SETOF,
+  AttributeKey::SQL_TYPENAME_TYPE,
   AttributeKey::SQL_WINDOW_BOUND_DIRECTION,
   AttributeKey::SQL_WINDOW_BOUND_MODE,
   AttributeKey::SQL_WINDOW_BOUND_VALUE,
@@ -451,7 +460,7 @@ pub const ENUM_VALUES_ATTRIBUTE_KEY: [AttributeKey; 87] = [
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 87] = [
+pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 90] = [
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -529,6 +538,9 @@ pub const ENUM_NAMES_ATTRIBUTE_KEY: [&str; 87] = [
     "SQL_TABLE_NAME",
     "SQL_TEMP_NAME",
     "SQL_TEMP_TYPE",
+    "SQL_TYPENAME_ARRAY",
+    "SQL_TYPENAME_SETOF",
+    "SQL_TYPENAME_TYPE",
     "SQL_WINDOW_BOUND_DIRECTION",
     "SQL_WINDOW_BOUND_MODE",
     "SQL_WINDOW_BOUND_VALUE",

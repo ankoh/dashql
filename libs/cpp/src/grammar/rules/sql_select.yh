@@ -40,6 +40,7 @@
 %type <sx::Node> sql_c_expr;
 %type <sx::Node> sql_columnref;
 %type <sx::Node> sql_common_table_expr;
+%type <sx::Node> sql_const_typename;
 %type <sx::Node> sql_distinct_clause;
 %type <sx::Node> sql_frame_bound;
 %type <sx::Node> sql_group_by_item;
@@ -50,6 +51,7 @@
 %type <sx::Node> sql_numeric;
 %type <sx::Node> sql_opt_alias_clause;
 %type <sx::Node> sql_opt_all_clause;
+%type <sx::Node> sql_opt_array_bounds;
 %type <sx::Node> sql_opt_asc_desc;
 %type <sx::Node> sql_opt_nulls_order;
 %type <sx::Node> sql_opt_slice_bound;
@@ -60,10 +62,12 @@
 %type <sx::Node> sql_select_limit_value;
 %type <sx::Node> sql_select_offset_value;
 %type <sx::Node> sql_select_stmt;
+%type <sx::Node> sql_simple_typename;
 %type <sx::Node> sql_sort_clause;
 %type <sx::Node> sql_sortby;
 %type <sx::Node> sql_table_ref;
 %type <sx::Node> sql_target_el;
+%type <sx::Node> sql_typename;
 %type <sx::Node> sql_where_clause;
 %type <sx::Node> sql_window_definition;
 %type <sx::Node> sql_window_specification;

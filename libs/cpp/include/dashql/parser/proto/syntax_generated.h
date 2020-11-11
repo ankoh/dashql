@@ -84,15 +84,16 @@ enum class NodeType : uint16_t {
   OBJECT_SQL_RESULT_TARGET = 41,
   OBJECT_SQL_SELECT = 42,
   OBJECT_SQL_TABLE_REF = 43,
-  OBJECT_SQL_WINDOW_BOUND = 44,
-  OBJECT_SQL_WINDOW_DEF = 45,
-  OBJECT_SQL_WINDOW_FRAME = 46,
-  OBJECT_SQL_WITH = 47,
+  OBJECT_SQL_TYPENAME = 44,
+  OBJECT_SQL_WINDOW_BOUND = 45,
+  OBJECT_SQL_WINDOW_DEF = 46,
+  OBJECT_SQL_WINDOW_FRAME = 47,
+  OBJECT_SQL_WITH = 48,
   MIN = NONE,
   MAX = OBJECT_SQL_WITH
 };
 
-inline const NodeType (&EnumValuesNodeType())[48] {
+inline const NodeType (&EnumValuesNodeType())[49] {
   static const NodeType values[] = {
     NodeType::NONE,
     NodeType::BOOL,
@@ -138,6 +139,7 @@ inline const NodeType (&EnumValuesNodeType())[48] {
     NodeType::OBJECT_SQL_RESULT_TARGET,
     NodeType::OBJECT_SQL_SELECT,
     NodeType::OBJECT_SQL_TABLE_REF,
+    NodeType::OBJECT_SQL_TYPENAME,
     NodeType::OBJECT_SQL_WINDOW_BOUND,
     NodeType::OBJECT_SQL_WINDOW_DEF,
     NodeType::OBJECT_SQL_WINDOW_FRAME,
@@ -147,7 +149,7 @@ inline const NodeType (&EnumValuesNodeType())[48] {
 }
 
 inline const char * const *EnumNamesNodeType() {
-  static const char * const names[49] = {
+  static const char * const names[50] = {
     "NONE",
     "BOOL",
     "UI32",
@@ -192,6 +194,7 @@ inline const char * const *EnumNamesNodeType() {
     "OBJECT_SQL_RESULT_TARGET",
     "OBJECT_SQL_SELECT",
     "OBJECT_SQL_TABLE_REF",
+    "OBJECT_SQL_TYPENAME",
     "OBJECT_SQL_WINDOW_BOUND",
     "OBJECT_SQL_WINDOW_DEF",
     "OBJECT_SQL_WINDOW_FRAME",
@@ -285,21 +288,24 @@ enum class AttributeKey : uint16_t {
   SQL_TABLE_NAME = 74,
   SQL_TEMP_NAME = 75,
   SQL_TEMP_TYPE = 76,
-  SQL_WINDOW_BOUND_DIRECTION = 77,
-  SQL_WINDOW_BOUND_MODE = 78,
-  SQL_WINDOW_BOUND_VALUE = 79,
-  SQL_WINDOW_DEF_FRAME = 80,
-  SQL_WINDOW_DEF_NAME = 81,
-  SQL_WINDOW_FRAME_BOUNDS = 82,
-  SQL_WINDOW_FRAME_EXCLUDE = 83,
-  SQL_WINDOW_FRAME_MODE = 84,
-  SQL_WINDOW_FRAME_NAME = 85,
-  SQL_WINDOW_FRAME_PARTITION = 86,
+  SQL_TYPENAME_ARRAY = 77,
+  SQL_TYPENAME_SETOF = 78,
+  SQL_TYPENAME_TYPE = 79,
+  SQL_WINDOW_BOUND_DIRECTION = 80,
+  SQL_WINDOW_BOUND_MODE = 81,
+  SQL_WINDOW_BOUND_VALUE = 82,
+  SQL_WINDOW_DEF_FRAME = 83,
+  SQL_WINDOW_DEF_NAME = 84,
+  SQL_WINDOW_FRAME_BOUNDS = 85,
+  SQL_WINDOW_FRAME_EXCLUDE = 86,
+  SQL_WINDOW_FRAME_MODE = 87,
+  SQL_WINDOW_FRAME_NAME = 88,
+  SQL_WINDOW_FRAME_PARTITION = 89,
   MIN = NONE,
   MAX = SQL_WINDOW_FRAME_PARTITION
 };
 
-inline const AttributeKey (&EnumValuesAttributeKey())[87] {
+inline const AttributeKey (&EnumValuesAttributeKey())[90] {
   static const AttributeKey values[] = {
     AttributeKey::NONE,
     AttributeKey::DASHQL_PARAMETER_IDENTIFIER,
@@ -378,6 +384,9 @@ inline const AttributeKey (&EnumValuesAttributeKey())[87] {
     AttributeKey::SQL_TABLE_NAME,
     AttributeKey::SQL_TEMP_NAME,
     AttributeKey::SQL_TEMP_TYPE,
+    AttributeKey::SQL_TYPENAME_ARRAY,
+    AttributeKey::SQL_TYPENAME_SETOF,
+    AttributeKey::SQL_TYPENAME_TYPE,
     AttributeKey::SQL_WINDOW_BOUND_DIRECTION,
     AttributeKey::SQL_WINDOW_BOUND_MODE,
     AttributeKey::SQL_WINDOW_BOUND_VALUE,
@@ -393,7 +402,7 @@ inline const AttributeKey (&EnumValuesAttributeKey())[87] {
 }
 
 inline const char * const *EnumNamesAttributeKey() {
-  static const char * const names[88] = {
+  static const char * const names[91] = {
     "NONE",
     "DASHQL_PARAMETER_IDENTIFIER",
     "DASHQL_PARAMETER_ALIAS",
@@ -471,6 +480,9 @@ inline const char * const *EnumNamesAttributeKey() {
     "SQL_TABLE_NAME",
     "SQL_TEMP_NAME",
     "SQL_TEMP_TYPE",
+    "SQL_TYPENAME_ARRAY",
+    "SQL_TYPENAME_SETOF",
+    "SQL_TYPENAME_TYPE",
     "SQL_WINDOW_BOUND_DIRECTION",
     "SQL_WINDOW_BOUND_MODE",
     "SQL_WINDOW_BOUND_VALUE",
@@ -954,6 +966,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1004,19 +1017,23 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     "OBJECT_SQL_RESULT_TARGET",
     "OBJECT_SQL_SELECT",
     "OBJECT_SQL_TABLE_REF",
+    "OBJECT_SQL_TYPENAME",
     "OBJECT_SQL_WINDOW_BOUND",
     "OBJECT_SQL_WINDOW_DEF",
     "OBJECT_SQL_WINDOW_FRAME",
     "OBJECT_SQL_WITH"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 48, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 49, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
 
 inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
@@ -1186,6 +1203,9 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_TABLE_NAME",
     "SQL_TEMP_NAME",
     "SQL_TEMP_TYPE",
+    "SQL_TYPENAME_ARRAY",
+    "SQL_TYPENAME_SETOF",
+    "SQL_TYPENAME_TYPE",
     "SQL_WINDOW_BOUND_DIRECTION",
     "SQL_WINDOW_BOUND_MODE",
     "SQL_WINDOW_BOUND_VALUE",
@@ -1198,7 +1218,7 @@ inline const flatbuffers::TypeTable *AttributeKeyTypeTable() {
     "SQL_WINDOW_FRAME_PARTITION"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 87, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 90, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
