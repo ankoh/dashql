@@ -69,7 +69,7 @@ inline sx::Node UnaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func,
     });
 }
 
-/// Add an binary expression
+/// Add a binary expression
 inline sx::Node BinaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node left, sx::Node right, std::optional<sx::Location> inverted_loc = std::nullopt) {
     auto inverted = inverted_loc ? sx::Node(*inverted_loc, sx::NodeType::BOOL, Key::NONE, 1, 0) : Null();
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
@@ -79,6 +79,19 @@ inline sx::Node BinaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func
         Key::SQL_EXPRESSION_ARG1 << right,
     });
 }
+
+/// Add a ternary expression
+inline sx::Node TernaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg0, sx::Node arg1, sx::Node arg2, std::optional<sx::Location> inverted_loc = std::nullopt) {
+    auto inverted = inverted_loc ? sx::Node(*inverted_loc, sx::NodeType::BOOL, Key::NONE, 1, 0) : Null();
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
+        Key::SQL_EXPRESSION_FUNCTION << func,
+        Key::SQL_EXPRESSION_INVERTED << inverted,
+        Key::SQL_EXPRESSION_ARG0 << arg0,
+        Key::SQL_EXPRESSION_ARG1 << arg1,
+        Key::SQL_EXPRESSION_ARG2 << arg2,
+    });
+}
+
 
 /// Negate a value
 inline sx::Node Negate(ParserDriver& driver, sx::Location loc, sx::Location loc_minus, sx::Node value) {
