@@ -12,54 +12,82 @@ namespace dashql {
 namespace parser {
 
 /// Create a constant inline
-inline sx::Node AddConst(ParserDriver& driver, sx::Location loc, sxs::AConstType type) {
+inline sx::Node Const(ParserDriver& driver, sx::Location loc, sxs::AConstType type) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_ACONST, {
-        sx::AttributeKey::SQL_ACONST_TYPE << EnumNode(loc, type),
+        Key::SQL_ACONST_TYPE << Enum(loc, type),
     });
 }
 
 /// Create indirection
-inline sx::Node AddIndirection(ParserDriver& driver, sx::Location loc, sx::Node index) {
+inline sx::Node Indirection(ParserDriver& driver, sx::Location loc, sx::Node index) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_INDIRECTION, {
-        sx::AttributeKey::SQL_INDIRECTION_INDEX << index,
+        Key::SQL_INDIRECTION_INDEX << index,
     });
 }
 
 /// Create indirection
-inline sx::Node AddIndirection(ParserDriver& driver, sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
+inline sx::Node Indirection(ParserDriver& driver, sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_INDIRECTION, {
-        sx::AttributeKey::SQL_INDIRECTION_LOWER_BOUND << lower_bound,
-        sx::AttributeKey::SQL_INDIRECTION_UPPER_BOUND << upper_bound,
+        Key::SQL_INDIRECTION_LOWER_BOUND << lower_bound,
+        Key::SQL_INDIRECTION_UPPER_BOUND << upper_bound,
     });
 }
 
 /// Create relation expression
-inline sx::Node AddAlias(ParserDriver& driver, sx::Location loc, sx::Node name, sx::Node columns) {
+inline sx::Node Alias(ParserDriver& driver, sx::Location loc, sx::Node name, sx::Node columns) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_ALIAS, {
-        sx::AttributeKey::SQL_ALIAS_NAME << name,
-        sx::AttributeKey::SQL_ALIAS_COLUMNS << columns,
+        Key::SQL_ALIAS_NAME << name,
+        Key::SQL_ALIAS_COLUMNS << columns,
     });
 }
 
 /// Create a temp table name
-inline sx::Node AddInto(ParserDriver& driver, sx::Location loc, sx::Node type, sx::Node name) {
+inline sx::Node Into(ParserDriver& driver, sx::Location loc, sx::Node type, sx::Node name) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_INTO, {
-        sx::AttributeKey::SQL_TEMP_TYPE << type,
-        sx::AttributeKey::SQL_TEMP_NAME << name,
+        Key::SQL_TEMP_TYPE << type,
+        Key::SQL_TEMP_NAME << name,
     });
 }
 
 /// Create a column ref
-inline sx::Node AddColumnRef(ParserDriver& driver, sx::Location loc, NodeVector&& path) {
+inline sx::Node ColumnRef(ParserDriver& driver, sx::Location loc, NodeVector&& path) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_COLUMN_REF, {
-        sx::AttributeKey::SQL_COLUMN_REF_PATH << driver.Add(loc, move(path)),
+        Key::SQL_COLUMN_REF_PATH << driver.Add(loc, move(path)),
+    });
+}
+
+/// Add an unary expression
+inline sx::Node UnaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg) {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
+        Key::SQL_EXPRESSION_FUNCTION << func,
+        Key::SQL_EXPRESSION_ARG << arg,
+    });
+}
+
+/// Add an binary expression
+inline sx::Node BinaryExpr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node left, sx::Node right) {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
+        Key::SQL_EXPRESSION_FUNCTION << func,
+        Key::SQL_EXPRESSION_ARG_LEFT << left,
+        Key::SQL_EXPRESSION_ARG_RIGHT << right,
+    });
+}
+
+/// Negate a value
+inline sx::Node Negate(ParserDriver& driver, sx::Location loc, sx::Location loc_minus, sx::Node value) {
+    // XXX If node_type == OBJECT_SQL_ACONST inspect the attributes and expand the value
+
+    // Otherwise fall back to an unary negation
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
+        Key::SQL_EXPRESSION_FUNCTION << Enum(loc_minus, sxs::ExpressionFunction::NEGATE),
+        Key::SQL_EXPRESSION_ARG << value,
     });
 }
 
 /// Collect viz attributes
 inline NodeVector CollectViz(ParserDriver& driver, sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attrs) {
-    auto type_val = EnumNode(viz_loc, viz_type);
-    auto type_attr = sx::AttributeKey::DASHQL_VIZ_TYPE << type_val;
+    auto type_val = Enum(viz_loc, viz_type);
+    auto type_attr = Key::DASHQL_VIZ_TYPE << type_val;
     NodeVector result{type_attr};
     for (auto& as: attrs) {
         for (auto& a: as.get()) {

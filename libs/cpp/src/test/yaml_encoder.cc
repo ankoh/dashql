@@ -147,12 +147,10 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
 
                                 case sx::NodeType::ENUM_SQL_TEMP_TYPE:
                                     return sxs::TempTypeTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_AEXPR_KIND:
-                                    return sxs::AExprKindTypeTable()->names[v];
                                 case sx::NodeType::ENUM_SQL_ACONST_TYPE:
                                     return sxs::AConstTypeTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_MATH_OPERATION:
-                                    return sxs::MathOpTypeTable()->names[v];
+                                case sx::NodeType::ENUM_SQL_EXPRESSION_FUNCTION:
+                                    return sxs::ExpressionFunctionTypeTable()->names[v];
                                 case sx::NodeType::ENUM_SQL_ORDER_DIRECTION:
                                     return sxs::OrderDirectionTypeTable()->names[v];
                                 case sx::NodeType::ENUM_SQL_ORDER_NULL_RULE:

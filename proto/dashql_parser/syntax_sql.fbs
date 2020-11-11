@@ -2,6 +2,27 @@
 
 namespace dashql.proto.syntax_sql;
 
+enum ExpressionFunction: uint8 {
+    NEGATE,
+    TYPECAST,
+    COLLATE,
+    AT_TIMEZONE,
+
+    PLUS,
+    MINUS,
+    MULTIPLY,
+    DIVIDE,
+    MODULUS,
+    XOR,
+
+    COMPARE_LESS_THAN,
+    COMPARE_LESS_EQUAL,
+    COMPARE_GREATER_THAN,
+    COMPARE_GREATER_EQUAL,
+    COMPARE_EQUAL,
+    COMPARE_NOT_EQUAL
+}
+
 enum CombineModifier: uint8 {
     NONE,
     ALL,
@@ -21,26 +42,6 @@ enum AConstType: uint8 {
     STRING = 2,
     BITSTRING = 3,
     NULL_ = 4,
-}
-
-enum AExprKind: uint8 {
-    OP,
-    OP_ANY,
-    OP_ALL,
-    DISTINCT,
-    NOT_DISTINCT,
-    NULLIF,
-    OF,
-    IN,
-    LIKE,
-    ILIKE,
-    GLOB,
-    SIMILAR,
-    BETWEEN,
-    NOT_BETWEEN,
-    BETWEEN_SYM,
-    NOT_BETWEEN_SYM,
-    PAREN,
 }
 
 enum TempType: uint8 {
@@ -83,21 +84,6 @@ enum OrderNullRule: uint8 {
     NULLS_LAST
 }
 
-enum MathOp: uint8 {
-    PLUS,
-    MINUS,
-    MULTIPLY,
-    DIVIDE,
-    MODULUS,
-    XOR,
-    LESS_THAN,
-    LESS_EQUAL,
-    GREATER_THAN,
-    GREATER_EQUAL,
-    EQUAL,
-    NOT_EQUAL
-}
-
 enum NumericTypeTag: uint8 {
     INT2,
     INT4,
@@ -107,4 +93,3 @@ enum NumericTypeTag: uint8 {
     NUMERIC,
     BOOL,
 }
-

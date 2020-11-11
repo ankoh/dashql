@@ -150,7 +150,7 @@ sql_simple_select:
         auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
         auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
-            Key::SQL_COMBINE_OPERATION << EnumNode(@2, sxs::CombineOperation::UNION),
+            Key::SQL_COMBINE_OPERATION << Enum(@2, sxs::CombineOperation::UNION),
             Key::SQL_COMBINE_MODIFIER << $3,
             Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{l, r}),
         };
@@ -159,7 +159,7 @@ sql_simple_select:
         auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
         auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
-            Key::SQL_COMBINE_OPERATION << EnumNode(@2, sxs::CombineOperation::INTERSECT),
+            Key::SQL_COMBINE_OPERATION << Enum(@2, sxs::CombineOperation::INTERSECT),
             Key::SQL_COMBINE_MODIFIER << $3,
             Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{l, r}),
         };
@@ -168,7 +168,7 @@ sql_simple_select:
         auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
         auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
-            Key::SQL_COMBINE_OPERATION << EnumNode(@2, sxs::CombineOperation::EXCEPT),
+            Key::SQL_COMBINE_OPERATION << Enum(@2, sxs::CombineOperation::EXCEPT),
             Key::SQL_COMBINE_MODIFIER << $3,
             Key::SQL_COMBINE_INPUT << ctx.Add(@$, NodeVector{l, r}),
         };
@@ -185,12 +185,8 @@ sql_simple_select:
 // Recognizing WITH_LA here allows a CTE to be named TIME or ORDINALITY.
 
 sql_with_clause:
-    WITH sql_cte_list {
-        $$ = { Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)) };
-    }
-  | WITH_LA sql_cte_list {
-        $$ = { Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)) };
-    }
+    WITH sql_cte_list       { $$ = { Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)) }; }
+  | WITH_LA sql_cte_list    { $$ = { Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)) }; }
   | WITH RECURSIVE sql_cte_list {
         $$ = {
             Key::SQL_SELECT_WITH_RECURSIVE << ctx.Ref(@2, true),
@@ -227,15 +223,15 @@ sql_preparable_stmt:
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.
 sql_opt_temp_table_name:
-    TEMPORARY sql_opt_table sql_qualified_name          { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
-  | TEMP sql_opt_table sql_qualified_name               { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
-  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
-  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
-  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
-  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
-  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::UNLOGGED), ctx.Add(@3, move($3))); }
-  | TABLE sql_qualified_name                            { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::DEFAULT), ctx.Add(@2, move($2))); }
-  | sql_qualified_name                                  { $$ = AddInto(ctx, @$, EnumNode(@1, sxs::TempType::DEFAULT), ctx.Add(@1, move($1))); }
+    TEMPORARY sql_opt_table sql_qualified_name          { $$ = Into(ctx, @$, Enum(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
+  | TEMP sql_opt_table sql_qualified_name               { $$ = Into(ctx, @$, Enum(@1, sxs::TempType::DEFAULT), ctx.Add(@3, move($3))); }
+  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = Into(ctx, @$, Enum(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
+  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = Into(ctx, @$, Enum(@1, sxs::TempType::LOCAL), ctx.Add(@4, move($4))); }
+  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = Into(ctx, @$, Enum(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
+  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = Into(ctx, @$, Enum(@1, sxs::TempType::GLOBAL), ctx.Add(@4, move($4))); }
+  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = Into(ctx, @$, Enum(@1, sxs::TempType::UNLOGGED), ctx.Add(@3, move($3))); }
+  | TABLE sql_qualified_name                            { $$ = Into(ctx, @$, Enum(@1, sxs::TempType::DEFAULT), ctx.Add(@2, move($2))); }
+  | sql_qualified_name                                  { $$ = Into(ctx, @$, Enum(@1, sxs::TempType::DEFAULT), ctx.Add(@1, move($1))); }
     ;
 
 sql_opt_table:
@@ -244,8 +240,8 @@ sql_opt_table:
     ;
 
 sql_all_or_distinct:
-    ALL         { $$ = EnumNode(@1, sxs::CombineModifier::ALL); }
-  | DISTINCT    { $$ = EnumNode(@1, sxs::CombineModifier::DISTINCT); }
+    ALL         { $$ = Enum(@1, sxs::CombineModifier::ALL); }
+  | DISTINCT    { $$ = Enum(@1, sxs::CombineModifier::DISTINCT); }
   | %empty      { $$ = ctx.Null(); }
     ;
 
@@ -293,22 +289,22 @@ sql_sortby:
     ;
 
 sql_opt_asc_desc:
-    ASC_P   { $$ = EnumNode(@$, sxs::OrderDirection::ASCENDING); }
-  | DESC_P  { $$ = EnumNode(@$, sxs::OrderDirection::DESCENDING); }
+    ASC_P   { $$ = Enum(@$, sxs::OrderDirection::ASCENDING); }
+  | DESC_P  { $$ = Enum(@$, sxs::OrderDirection::DESCENDING); }
   | %empty  { $$ = ctx.Null(); }
     ;
 
 sql_opt_nulls_order:
-    NULLS_LA FIRST_P    { $$ = EnumNode(@$, sxs::OrderNullRule::NULLS_FIRST); }
-  | NULLS_LA LAST_P     { $$ = EnumNode(@$, sxs::OrderNullRule::NULLS_LAST); }
+    NULLS_LA FIRST_P    { $$ = Enum(@$, sxs::OrderNullRule::NULLS_FIRST); }
+  | NULLS_LA LAST_P     { $$ = Enum(@$, sxs::OrderNullRule::NULLS_LAST); }
   | %empty              { $$ = ctx.Null(); }
     ;
 
 sql_select_limit:
-    sql_limit_clause sql_offset_clause
-  | sql_offset_clause sql_limit_clause
-  | sql_limit_clause
-  | sql_offset_clause
+    sql_limit_clause sql_offset_clause  { $1 << move($2); $$ = move($1); }
+  | sql_offset_clause sql_limit_clause  { $1 << move($2); $$ = move($1); }
+  | sql_limit_clause                    { $$ = move($1); }
+  | sql_offset_clause                   { $$ = move($1); }
     ;
 
 sql_opt_select_limit:
@@ -317,11 +313,11 @@ sql_opt_select_limit:
         ;
 
 sql_limit_clause:
-    LIMIT sql_select_limit_value { $$ = { Key::SQL_SELECT_LIMIT_COUNT << $2 }; }
+    LIMIT sql_select_limit_value { $$ = { Key::SQL_SELECT_LIMIT << $2 }; }
   | LIMIT sql_select_limit_value ',' sql_select_offset_value {
         $$ = {
-            Key::SQL_SELECT_LIMIT_COUNT << $2,
-            Key::SQL_SELECT_LIMIT_OFFSET << $4,
+            Key::SQL_SELECT_LIMIT << $2,
+            Key::SQL_SELECT_OFFSET << $4,
         };
     }
     // SQL:2008 syntax
@@ -340,9 +336,11 @@ sql_limit_clause:
     ;
 
 sql_offset_clause:
-    OFFSET sql_select_offset_value
+    OFFSET sql_select_offset_value  { $$ = { Key::SQL_SELECT_OFFSET << $2 }; }
     // SQL:2008 syntax
-  | OFFSET sql_select_fetch_first_value sql_row_or_rows
+  | OFFSET sql_select_fetch_first_value sql_row_or_rows {
+        
+    }
     ;
 
 sql_select_limit_value:
@@ -544,9 +542,9 @@ sql_joined_table:
     ;
 
 sql_alias_clause:
-    AS sql_col_id '(' sql_name_list ')'     { $$ = AddAlias(ctx, @$, ctx.Ref(@2), ctx.Add(@4, move($4))); }
+    AS sql_col_id '(' sql_name_list ')'     { $$ = Alias(ctx, @$, ctx.Ref(@2), ctx.Add(@4, move($4))); }
   | AS sql_col_id_or_string                 { $$ = ctx.Ref(@2); }
-  | sql_col_id '(' sql_name_list ')'        { $$ = AddAlias(ctx, @$, ctx.Ref(@1), ctx.Add(@3, move($3))); }
+  | sql_col_id '(' sql_name_list ')'        { $$ = Alias(ctx, @$, ctx.Ref(@1), ctx.Add(@3, move($3))); }
   | sql_col_id                              { $$ = ctx.Ref(@1); }
     ;
 
@@ -744,32 +742,32 @@ sql_opt_type_modifiers:
 // SQL numeric data types
 
 sql_numeric:
-    INT_P       { $$ = EnumNode(@1, sxs::NumericTypeTag::INT4); }
-  | INTEGER     { $$ = EnumNode(@1, sxs::NumericTypeTag::INT4); }
-  | SMALLINT    { $$ = EnumNode(@1, sxs::NumericTypeTag::INT2); }
-  | BIGINT      { $$ = EnumNode(@1, sxs::NumericTypeTag::INT8); }
-  | REAL        { $$ = EnumNode(@1, sxs::NumericTypeTag::FLOAT4); }
-  | FLOAT_P sql_opt_float   { $$ = EnumNode(@$, $2); }
-  | DOUBLE_P PRECISION      { $$ = EnumNode(@$, sxs::NumericTypeTag::FLOAT4); }
+    INT_P       { $$ = Enum(@1, sxs::NumericTypeTag::INT4); }
+  | INTEGER     { $$ = Enum(@1, sxs::NumericTypeTag::INT4); }
+  | SMALLINT    { $$ = Enum(@1, sxs::NumericTypeTag::INT2); }
+  | BIGINT      { $$ = Enum(@1, sxs::NumericTypeTag::INT8); }
+  | REAL        { $$ = Enum(@1, sxs::NumericTypeTag::FLOAT4); }
+  | FLOAT_P sql_opt_float   { $$ = Enum(@$, $2); }
+  | DOUBLE_P PRECISION      { $$ = Enum(@$, sxs::NumericTypeTag::FLOAT4); }
   | DECIMAL_P sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Key::SQL_NUMERIC_TYPE_TAG << EnumNode(@1, sxs::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE_TAG << Enum(@1, sxs::NumericTypeTag::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
   | DEC sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Key::SQL_NUMERIC_TYPE_TAG << EnumNode(@1, sxs::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE_TAG << Enum(@1, sxs::NumericTypeTag::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
   | NUMERIC sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Key::SQL_NUMERIC_TYPE_TAG << EnumNode(@1, sxs::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE_TAG << Enum(@1, sxs::NumericTypeTag::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
-  | BOOLEAN_P   { $$ = EnumNode(@1, sxs::NumericTypeTag::BOOL); }
+  | BOOLEAN_P   { $$ = Enum(@1, sxs::NumericTypeTag::BOOL); }
     ;
 
 sql_opt_float:
@@ -911,19 +909,19 @@ sql_a_expr:
   // below; and all those operators will have the same precedence.
   // 
   // If you add more explicitly-known operators, be sure to add them
-  // also to b_expr and to the MathOp list below.
+  // also to b_expr and to the ExpressionFunction list below.
 
-  | '+' sql_a_expr                %prec UMINUS                  { $$ = {}; }
-  | '-' sql_a_expr                %prec UMINUS                  { $$ = {}; }
-  | sql_a_expr '+' sql_a_expr                                   { $$ = {}; }
-  | sql_a_expr '-' sql_a_expr                                   { $$ = {}; }
-  | sql_a_expr '*' sql_a_expr                                   { $$ = {}; }
-  | sql_a_expr '/' sql_a_expr                                   { $$ = {}; }
-  | sql_a_expr '%' sql_a_expr                                   { $$ = {}; }
-  | sql_a_expr '^' sql_a_expr                                   { $$ = {}; }
-  | sql_a_expr '<' sql_a_expr                                   { $$ = {}; }
-  | sql_a_expr '>' sql_a_expr                                   { $$ = {}; }
-  | sql_a_expr '=' sql_a_expr                                   { $$ = {}; }
+  | '+' sql_a_expr %prec UMINUS { $$ = $2; }
+  | '-' sql_a_expr %prec UMINUS { $$ = Negate(ctx, @$, @1, $2); }
+  | sql_a_expr '+' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::PLUS), $1, $3); }
+  | sql_a_expr '-' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::MINUS), $1, $3); }
+  | sql_a_expr '*' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::MULTIPLY), $1, $3); }
+  | sql_a_expr '/' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::DIVIDE), $1, $3); }
+  | sql_a_expr '%' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::MODULUS), $1, $3); }
+  | sql_a_expr '^' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::XOR), $1, $3); }
+  | sql_a_expr '<' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_LESS_THAN), $1, $3); }
+  | sql_a_expr '>' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_GREATER_THAN), $1, $3); }
+  | sql_a_expr '=' sql_a_expr   { $$ = BinaryExpr(ctx, @$, Enum(@2, ExprFunc::COMPARE_EQUAL), $1, $3); }
   | sql_a_expr LESS_EQUALS sql_a_expr                           { $$ = {}; }
   | sql_a_expr GREATER_EQUALS sql_a_expr                        { $$ = {}; }
   | sql_a_expr NOT_EQUALS sql_a_expr                            { $$ = {}; }
@@ -1183,10 +1181,10 @@ sql_opt_partition_clause:
 
 sql_opt_frame_clause:
     RANGE sql_frame_extent { $$ = {
-        Key::SQL_WINDOW_FRAME_MODE << EnumNode(@1, sxs::WindowRangeMode::RANGE),
+        Key::SQL_WINDOW_FRAME_MODE << Enum(@1, sxs::WindowRangeMode::RANGE),
         Key::SQL_WINDOW_FRAME_BOUNDS << ctx.Add(@2, move($2)), }; }
   | ROWS sql_frame_extent { $$ = {
-        Key::SQL_WINDOW_FRAME_MODE << EnumNode(@1, sxs::WindowRangeMode::ROWS),
+        Key::SQL_WINDOW_FRAME_MODE << Enum(@1, sxs::WindowRangeMode::ROWS),
         Key::SQL_WINDOW_FRAME_BOUNDS << ctx.Add(@2, move($2)), }; }
   | %empty { $$ = {}; }
     ;
@@ -1199,28 +1197,28 @@ sql_frame_extent:
 sql_frame_bound:
     UNBOUNDED PRECEDING {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Key::SQL_WINDOW_BOUND_MODE << EnumNode(@1, sxs::WindowBoundMode::UNBOUNDED),
-            Key::SQL_WINDOW_BOUND_DIRECTION << EnumNode(@1, sxs::WindowBoundDirection::PRECEDING)
+            Key::SQL_WINDOW_BOUND_MODE << Enum(@1, sxs::WindowBoundMode::UNBOUNDED),
+            Key::SQL_WINDOW_BOUND_DIRECTION << Enum(@1, sxs::WindowBoundDirection::PRECEDING)
         });}
   | UNBOUNDED FOLLOWING {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Key::SQL_WINDOW_BOUND_MODE << EnumNode(@1, sxs::WindowBoundMode::UNBOUNDED),
-            Key::SQL_WINDOW_BOUND_DIRECTION << EnumNode(@1, sxs::WindowBoundDirection::FOLLOWING)
+            Key::SQL_WINDOW_BOUND_MODE << Enum(@1, sxs::WindowBoundMode::UNBOUNDED),
+            Key::SQL_WINDOW_BOUND_DIRECTION << Enum(@1, sxs::WindowBoundDirection::FOLLOWING)
         });}
   | CURRENT_P ROW {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Key::SQL_WINDOW_BOUND_MODE << EnumNode(@1, sxs::WindowBoundMode::CURRENT_ROW),
+            Key::SQL_WINDOW_BOUND_MODE << Enum(@1, sxs::WindowBoundMode::CURRENT_ROW),
         });}
   | sql_a_expr PRECEDING {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Key::SQL_WINDOW_BOUND_MODE << EnumNode(@1, sxs::WindowBoundMode::VALUE),
-            Key::SQL_WINDOW_BOUND_DIRECTION << EnumNode(@1, sxs::WindowBoundDirection::PRECEDING),
+            Key::SQL_WINDOW_BOUND_MODE << Enum(@1, sxs::WindowBoundMode::VALUE),
+            Key::SQL_WINDOW_BOUND_DIRECTION << Enum(@1, sxs::WindowBoundDirection::PRECEDING),
             Key::SQL_WINDOW_BOUND_VALUE << $1,
         });}
   | sql_a_expr FOLLOWING {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Key::SQL_WINDOW_BOUND_MODE << EnumNode(@1, sxs::WindowBoundMode::VALUE),
-            Key::SQL_WINDOW_BOUND_DIRECTION << EnumNode(@1, sxs::WindowBoundDirection::FOLLOWING),
+            Key::SQL_WINDOW_BOUND_MODE << Enum(@1, sxs::WindowBoundMode::VALUE),
+            Key::SQL_WINDOW_BOUND_DIRECTION << Enum(@1, sxs::WindowBoundDirection::FOLLOWING),
             Key::SQL_WINDOW_BOUND_VALUE << $1,
         });}
     ;
@@ -1252,18 +1250,18 @@ sql_all_op:
     ;
 
 sql_math_op:
-    '+'             { $$ = EnumNode(@1, sxs::MathOp::PLUS); }
-  | '-'             { $$ = EnumNode(@1, sxs::MathOp::MINUS); }
-  | '*'             { $$ = EnumNode(@1, sxs::MathOp::MULTIPLY); }
-  | '/'             { $$ = EnumNode(@1, sxs::MathOp::DIVIDE); }
-  | '%'             { $$ = EnumNode(@1, sxs::MathOp::MODULUS); }
-  | '^'             { $$ = EnumNode(@1, sxs::MathOp::XOR); }
-  | '<'             { $$ = EnumNode(@1, sxs::MathOp::LESS_THAN); }
-  | '>'             { $$ = EnumNode(@1, sxs::MathOp::GREATER_THAN); }
-  | '='             { $$ = EnumNode(@1, sxs::MathOp::EQUAL); }
-  | LESS_EQUALS     { $$ = EnumNode(@1, sxs::MathOp::LESS_EQUAL); }
-  | GREATER_EQUALS  { $$ = EnumNode(@1, sxs::MathOp::GREATER_EQUAL); }
-  | NOT_EQUALS      { $$ = EnumNode(@1, sxs::MathOp::NOT_EQUAL); }
+    '+'             { $$ = Enum(@1, sxs::ExpressionFunction::PLUS); }
+  | '-'             { $$ = Enum(@1, sxs::ExpressionFunction::MINUS); }
+  | '*'             { $$ = Enum(@1, sxs::ExpressionFunction::MULTIPLY); }
+  | '/'             { $$ = Enum(@1, sxs::ExpressionFunction::DIVIDE); }
+  | '%'             { $$ = Enum(@1, sxs::ExpressionFunction::MODULUS); }
+  | '^'             { $$ = Enum(@1, sxs::ExpressionFunction::XOR); }
+  | '<'             { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_LESS_THAN); }
+  | '>'             { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_GREATER_THAN); }
+  | '='             { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_EQUAL); }
+  | LESS_EQUALS     { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_LESS_EQUAL); }
+  | GREATER_EQUALS  { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_GREATER_EQUAL); }
+  | NOT_EQUALS      { $$ = Enum(@1, sxs::ExpressionFunction::COMPARE_NOT_EQUAL); }
     ; 
 sql_qual_op:
     Op
@@ -1431,15 +1429,15 @@ sql_case_arg:
     ;
 
 sql_columnref:
-    sql_col_id                  { $$ = AddColumnRef(ctx, @$, {ctx.Ref(@1)}); }
-  | sql_col_id sql_indirection  { $2.push_back(ctx.Ref(@1)); $$ = AddColumnRef(ctx, @$, move($2)); }
+    sql_col_id                  { $$ = ColumnRef(ctx, @$, {ctx.Ref(@1)}); }
+  | sql_col_id sql_indirection  { $2.push_back(ctx.Ref(@1)); $$ = ColumnRef(ctx, @$, move($2)); }
     ;
 
 sql_indirection_el:
     '.' sql_attr_name       { $$ = ctx.Ref(@2); }
   | '.' '*'                 { $$ = ctx.Ref(@2); }
-  | '[' sql_a_expr ']'      { $$ = AddIndirection(ctx, @$, $2); }
-  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = AddIndirection(ctx, @$, $2, $4); }
+  | '[' sql_a_expr ']'      { $$ = Indirection(ctx, @$, $2); }
+  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = Indirection(ctx, @$, $2, $4); }
     ;
 
 sql_opt_slice_bound:
@@ -1543,11 +1541,11 @@ sql_func_name:
 
 // Constants
 sql_a_expr_const:
-    ICONST  { $$ = AddConst(ctx, @1, sxs::AConstType::INTEGER); }
-  | FCONST  { $$ = AddConst(ctx, @1, sxs::AConstType::FLOAT); }
-  | SCONST  { $$ = AddConst(ctx, @1, sxs::AConstType::STRING); }
-  | BCONST  { $$ = AddConst(ctx, @1, sxs::AConstType::BITSTRING); }
-  | XCONST  { $$ = AddConst(ctx, @1, sxs::AConstType::BITSTRING); }
+    ICONST  { $$ = Const(ctx, @1, sxs::AConstType::INTEGER); }
+  | FCONST  { $$ = Const(ctx, @1, sxs::AConstType::FLOAT); }
+  | SCONST  { $$ = Const(ctx, @1, sxs::AConstType::STRING); }
+  | BCONST  { $$ = Const(ctx, @1, sxs::AConstType::BITSTRING); }
+  | XCONST  { $$ = Const(ctx, @1, sxs::AConstType::BITSTRING); }
   | sql_func_name SCONST                                                { $$ = {}; }
   | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST  { $$ = {}; }
   | sql_const_typename SCONST                                           { $$ = {}; }

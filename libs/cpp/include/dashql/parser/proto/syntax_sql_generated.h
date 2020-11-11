@@ -11,6 +11,69 @@ namespace dashql {
 namespace proto {
 namespace syntax_sql {
 
+enum class ExpressionFunction : uint8_t {
+  NEGATE = 0,
+  PLUS = 1,
+  MINUS = 2,
+  MULTIPLY = 3,
+  DIVIDE = 4,
+  MODULUS = 5,
+  XOR = 6,
+  COMPARE_LESS_THAN = 7,
+  COMPARE_LESS_EQUAL = 8,
+  COMPARE_GREATER_THAN = 9,
+  COMPARE_GREATER_EQUAL = 10,
+  COMPARE_EQUAL = 11,
+  COMPARE_NOT_EQUAL = 12,
+  MIN = NEGATE,
+  MAX = COMPARE_NOT_EQUAL
+};
+
+inline const ExpressionFunction (&EnumValuesExpressionFunction())[13] {
+  static const ExpressionFunction values[] = {
+    ExpressionFunction::NEGATE,
+    ExpressionFunction::PLUS,
+    ExpressionFunction::MINUS,
+    ExpressionFunction::MULTIPLY,
+    ExpressionFunction::DIVIDE,
+    ExpressionFunction::MODULUS,
+    ExpressionFunction::XOR,
+    ExpressionFunction::COMPARE_LESS_THAN,
+    ExpressionFunction::COMPARE_LESS_EQUAL,
+    ExpressionFunction::COMPARE_GREATER_THAN,
+    ExpressionFunction::COMPARE_GREATER_EQUAL,
+    ExpressionFunction::COMPARE_EQUAL,
+    ExpressionFunction::COMPARE_NOT_EQUAL
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesExpressionFunction() {
+  static const char * const names[14] = {
+    "NEGATE",
+    "PLUS",
+    "MINUS",
+    "MULTIPLY",
+    "DIVIDE",
+    "MODULUS",
+    "XOR",
+    "COMPARE_LESS_THAN",
+    "COMPARE_LESS_EQUAL",
+    "COMPARE_GREATER_THAN",
+    "COMPARE_GREATER_EQUAL",
+    "COMPARE_EQUAL",
+    "COMPARE_NOT_EQUAL",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameExpressionFunction(ExpressionFunction e) {
+  if (flatbuffers::IsOutRange(e, ExpressionFunction::NEGATE, ExpressionFunction::COMPARE_NOT_EQUAL)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesExpressionFunction()[index];
+}
+
 enum class CombineModifier : uint8_t {
   NONE = 0,
   ALL = 1,
@@ -117,81 +180,6 @@ inline const char *EnumNameAConstType(AConstType e) {
   if (flatbuffers::IsOutRange(e, AConstType::INTEGER, AConstType::NULL_)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAConstType()[index];
-}
-
-enum class AExprKind : uint8_t {
-  OP = 0,
-  OP_ANY = 1,
-  OP_ALL = 2,
-  DISTINCT = 3,
-  NOT_DISTINCT = 4,
-  NULLIF = 5,
-  OF = 6,
-  IN = 7,
-  LIKE = 8,
-  ILIKE = 9,
-  GLOB = 10,
-  SIMILAR = 11,
-  BETWEEN = 12,
-  NOT_BETWEEN = 13,
-  BETWEEN_SYM = 14,
-  NOT_BETWEEN_SYM = 15,
-  PAREN = 16,
-  MIN = OP,
-  MAX = PAREN
-};
-
-inline const AExprKind (&EnumValuesAExprKind())[17] {
-  static const AExprKind values[] = {
-    AExprKind::OP,
-    AExprKind::OP_ANY,
-    AExprKind::OP_ALL,
-    AExprKind::DISTINCT,
-    AExprKind::NOT_DISTINCT,
-    AExprKind::NULLIF,
-    AExprKind::OF,
-    AExprKind::IN,
-    AExprKind::LIKE,
-    AExprKind::ILIKE,
-    AExprKind::GLOB,
-    AExprKind::SIMILAR,
-    AExprKind::BETWEEN,
-    AExprKind::NOT_BETWEEN,
-    AExprKind::BETWEEN_SYM,
-    AExprKind::NOT_BETWEEN_SYM,
-    AExprKind::PAREN
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesAExprKind() {
-  static const char * const names[18] = {
-    "OP",
-    "OP_ANY",
-    "OP_ALL",
-    "DISTINCT",
-    "NOT_DISTINCT",
-    "NULLIF",
-    "OF",
-    "IN",
-    "LIKE",
-    "ILIKE",
-    "GLOB",
-    "SIMILAR",
-    "BETWEEN",
-    "NOT_BETWEEN",
-    "BETWEEN_SYM",
-    "NOT_BETWEEN_SYM",
-    "PAREN",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameAExprKind(AExprKind e) {
-  if (flatbuffers::IsOutRange(e, AExprKind::OP, AExprKind::PAREN)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesAExprKind()[index];
 }
 
 enum class TempType : uint8_t {
@@ -419,66 +407,6 @@ inline const char *EnumNameOrderNullRule(OrderNullRule e) {
   return EnumNamesOrderNullRule()[index];
 }
 
-enum class MathOp : uint8_t {
-  PLUS = 0,
-  MINUS = 1,
-  MULTIPLY = 2,
-  DIVIDE = 3,
-  MODULUS = 4,
-  XOR = 5,
-  LESS_THAN = 6,
-  LESS_EQUAL = 7,
-  GREATER_THAN = 8,
-  GREATER_EQUAL = 9,
-  EQUAL = 10,
-  NOT_EQUAL = 11,
-  MIN = PLUS,
-  MAX = NOT_EQUAL
-};
-
-inline const MathOp (&EnumValuesMathOp())[12] {
-  static const MathOp values[] = {
-    MathOp::PLUS,
-    MathOp::MINUS,
-    MathOp::MULTIPLY,
-    MathOp::DIVIDE,
-    MathOp::MODULUS,
-    MathOp::XOR,
-    MathOp::LESS_THAN,
-    MathOp::LESS_EQUAL,
-    MathOp::GREATER_THAN,
-    MathOp::GREATER_EQUAL,
-    MathOp::EQUAL,
-    MathOp::NOT_EQUAL
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesMathOp() {
-  static const char * const names[13] = {
-    "PLUS",
-    "MINUS",
-    "MULTIPLY",
-    "DIVIDE",
-    "MODULUS",
-    "XOR",
-    "LESS_THAN",
-    "LESS_EQUAL",
-    "GREATER_THAN",
-    "GREATER_EQUAL",
-    "EQUAL",
-    "NOT_EQUAL",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameMathOp(MathOp e) {
-  if (flatbuffers::IsOutRange(e, MathOp::PLUS, MathOp::NOT_EQUAL)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesMathOp()[index];
-}
-
 enum class NumericTypeTag : uint8_t {
   INT2 = 0,
   INT4 = 1,
@@ -522,6 +450,46 @@ inline const char *EnumNameNumericTypeTag(NumericTypeTag e) {
   if (flatbuffers::IsOutRange(e, NumericTypeTag::INT2, NumericTypeTag::BOOL)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesNumericTypeTag()[index];
+}
+
+inline const flatbuffers::TypeTable *ExpressionFunctionTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    dashql::proto::syntax_sql::ExpressionFunctionTypeTable
+  };
+  static const char * const names[] = {
+    "NEGATE",
+    "PLUS",
+    "MINUS",
+    "MULTIPLY",
+    "DIVIDE",
+    "MODULUS",
+    "XOR",
+    "COMPARE_LESS_THAN",
+    "COMPARE_LESS_EQUAL",
+    "COMPARE_GREATER_THAN",
+    "COMPARE_GREATER_EQUAL",
+    "COMPARE_EQUAL",
+    "COMPARE_NOT_EQUAL"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 13, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
 }
 
 inline const flatbuffers::TypeTable *CombineModifierTypeTable() {
@@ -586,54 +554,6 @@ inline const flatbuffers::TypeTable *AConstTypeTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 5, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AExprKindTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax_sql::AExprKindTypeTable
-  };
-  static const char * const names[] = {
-    "OP",
-    "OP_ANY",
-    "OP_ALL",
-    "DISTINCT",
-    "NOT_DISTINCT",
-    "NULLIF",
-    "OF",
-    "IN",
-    "LIKE",
-    "ILIKE",
-    "GLOB",
-    "SIMILAR",
-    "BETWEEN",
-    "NOT_BETWEEN",
-    "BETWEEN_SYM",
-    "NOT_BETWEEN_SYM",
-    "PAREN"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 17, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
@@ -770,44 +690,6 @@ inline const flatbuffers::TypeTable *OrderNullRuleTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *MathOpTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 },
-    { flatbuffers::ET_UCHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax_sql::MathOpTypeTable
-  };
-  static const char * const names[] = {
-    "PLUS",
-    "MINUS",
-    "MULTIPLY",
-    "DIVIDE",
-    "MODULUS",
-    "XOR",
-    "LESS_THAN",
-    "LESS_EQUAL",
-    "GREATER_THAN",
-    "GREATER_EQUAL",
-    "EQUAL",
-    "NOT_EQUAL"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 12, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

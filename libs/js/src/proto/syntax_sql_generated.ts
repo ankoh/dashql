@@ -6,6 +6,27 @@ import { flatbuffers } from "flatbuffers";
  * @enum {number}
  */
 export namespace dashql.proto.syntax_sql{
+export enum ExpressionFunction{
+  NEGATE= 0,
+  PLUS= 1,
+  MINUS= 2,
+  MULTIPLY= 3,
+  DIVIDE= 4,
+  MODULUS= 5,
+  XOR= 6,
+  COMPARE_LESS_THAN= 7,
+  COMPARE_LESS_EQUAL= 8,
+  COMPARE_GREATER_THAN= 9,
+  COMPARE_GREATER_EQUAL= 10,
+  COMPARE_EQUAL= 11,
+  COMPARE_NOT_EQUAL= 12
+};
+}
+
+/**
+ * @enum {number}
+ */
+export namespace dashql.proto.syntax_sql{
 export enum CombineModifier{
   NONE= 0,
   ALL= 1,
@@ -35,31 +56,6 @@ export enum AConstType{
   STRING= 2,
   BITSTRING= 3,
   NULL_= 4
-};
-}
-
-/**
- * @enum {number}
- */
-export namespace dashql.proto.syntax_sql{
-export enum AExprKind{
-  OP= 0,
-  OP_ANY= 1,
-  OP_ALL= 2,
-  DISTINCT= 3,
-  NOT_DISTINCT= 4,
-  NULLIF= 5,
-  OF= 6,
-  IN= 7,
-  LIKE= 8,
-  ILIKE= 9,
-  GLOB= 10,
-  SIMILAR= 11,
-  BETWEEN= 12,
-  NOT_BETWEEN= 13,
-  BETWEEN_SYM= 14,
-  NOT_BETWEEN_SYM= 15,
-  PAREN= 16
 };
 }
 
@@ -135,26 +131,6 @@ export namespace dashql.proto.syntax_sql{
 export enum OrderNullRule{
   NULLS_FIRST= 0,
   NULLS_LAST= 1
-};
-}
-
-/**
- * @enum {number}
- */
-export namespace dashql.proto.syntax_sql{
-export enum MathOp{
-  PLUS= 0,
-  MINUS= 1,
-  MULTIPLY= 2,
-  DIVIDE= 3,
-  MODULUS= 4,
-  XOR= 5,
-  LESS_THAN= 6,
-  LESS_EQUAL= 7,
-  GREATER_THAN= 8,
-  GREATER_EQUAL= 9,
-  EQUAL= 10,
-  NOT_EQUAL= 11
 };
 }
 

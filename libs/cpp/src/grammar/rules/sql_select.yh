@@ -9,6 +9,7 @@
 %type <NodeVector> sql_indirection;
 %type <NodeVector> sql_limit_clause;
 %type <NodeVector> sql_name_list;
+%type <NodeVector> sql_offset_clause;
 %type <NodeVector> sql_opt_existing_window_name;
 %type <NodeVector> sql_opt_frame_clause;
 %type <NodeVector> sql_opt_indirection;
@@ -20,6 +21,7 @@
 %type <NodeVector> sql_qualified_name_list;
 %type <NodeVector> sql_relation_expr;
 %type <NodeVector> sql_select_clause;
+%type <NodeVector> sql_select_limit;
 %type <NodeVector> sql_select_no_parens;
 %type <NodeVector> sql_select_with_parens;
 %type <NodeVector> sql_simple_select;

@@ -25,7 +25,7 @@ dashql_http_attribute:
     ;
 
 dashql_http_verb:
-    GET     { $$ = EnumNode(@$, sxd::HTTPVerb::GET); }
-  | PUT     { $$ = EnumNode(@$, sxd::HTTPVerb::PUT); }
-  | POST    { $$ = EnumNode(@$, sxd::HTTPVerb::POST); }
+    GET     { $$ = Enum(@$, sxd::HTTPVerb::GET); }
+  | PUT     { $$ = Enum(@$, sxd::HTTPVerb::PUT); }
+  | POST    { $$ = Enum(@$, sxd::HTTPVerb::POST); }
     ;

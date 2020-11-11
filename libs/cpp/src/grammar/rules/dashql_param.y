@@ -9,12 +9,12 @@ dashql_parameter_declaration:
     ;
 
 dashql_parameter_type:
-    INTEGER     { $$ = EnumNode(@$, sxd::ParameterType::INTEGER); }
-  | FLOAT       { $$ = EnumNode(@$, sxd::ParameterType::FLOAT); }
-  | TEXT        { $$ = EnumNode(@$, sxd::ParameterType::TEXT); }
-  | DATE        { $$ = EnumNode(@$, sxd::ParameterType::DATE); }
-  | DATETIME    { $$ = EnumNode(@$, sxd::ParameterType::DATETIME); }
-  | TIME        { $$ = EnumNode(@$, sxd::ParameterType::TIME); }
-  | FILE        { $$ = EnumNode(@$, sxd::ParameterType::FILE); }
+    INTEGER     { $$ = Enum(@$, sxd::ParameterType::INTEGER); }
+  | FLOAT       { $$ = Enum(@$, sxd::ParameterType::FLOAT); }
+  | TEXT        { $$ = Enum(@$, sxd::ParameterType::TEXT); }
+  | DATE        { $$ = Enum(@$, sxd::ParameterType::DATE); }
+  | DATETIME    { $$ = Enum(@$, sxd::ParameterType::DATETIME); }
+  | TIME        { $$ = Enum(@$, sxd::ParameterType::TIME); }
+  | FILE        { $$ = Enum(@$, sxd::ParameterType::FILE); }
     ;
 
