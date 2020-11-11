@@ -27,25 +27,26 @@ enum class ExpressionFunction : uint8_t {
   XOR = 12,
   GLOB = 13,
   IS_NULL = 14,
-  LIKE = 15,
-  ILIKE = 16,
-  SIMILAR_TO = 17,
-  IS_TRUE = 18,
-  IS_FALSE = 19,
-  IS_UNKNOWN = 20,
-  IS_DISTINCT_FROM = 21,
-  IS_OF = 22,
-  EQUAL = 23,
-  NOT_EQUAL = 24,
-  GREATER_EQUAL = 25,
-  GREATER_THAN = 26,
-  LESS_EQUAL = 27,
-  LESS_THAN = 28,
+  NOT_NULL = 15,
+  LIKE = 16,
+  ILIKE = 17,
+  SIMILAR_TO = 18,
+  IS_TRUE = 19,
+  IS_FALSE = 20,
+  IS_UNKNOWN = 21,
+  IS_DISTINCT_FROM = 22,
+  IS_OF = 23,
+  EQUAL = 24,
+  NOT_EQUAL = 25,
+  GREATER_EQUAL = 26,
+  GREATER_THAN = 27,
+  LESS_EQUAL = 28,
+  LESS_THAN = 29,
   MIN = NEGATE,
   MAX = LESS_THAN
 };
 
-inline const ExpressionFunction (&EnumValuesExpressionFunction())[29] {
+inline const ExpressionFunction (&EnumValuesExpressionFunction())[30] {
   static const ExpressionFunction values[] = {
     ExpressionFunction::NEGATE,
     ExpressionFunction::NOT,
@@ -62,6 +63,7 @@ inline const ExpressionFunction (&EnumValuesExpressionFunction())[29] {
     ExpressionFunction::XOR,
     ExpressionFunction::GLOB,
     ExpressionFunction::IS_NULL,
+    ExpressionFunction::NOT_NULL,
     ExpressionFunction::LIKE,
     ExpressionFunction::ILIKE,
     ExpressionFunction::SIMILAR_TO,
@@ -81,7 +83,7 @@ inline const ExpressionFunction (&EnumValuesExpressionFunction())[29] {
 }
 
 inline const char * const *EnumNamesExpressionFunction() {
-  static const char * const names[30] = {
+  static const char * const names[31] = {
     "NEGATE",
     "NOT",
     "TYPECAST",
@@ -97,6 +99,7 @@ inline const char * const *EnumNamesExpressionFunction() {
     "XOR",
     "GLOB",
     "IS_NULL",
+    "NOT_NULL",
     "LIKE",
     "ILIKE",
     "SIMILAR_TO",
@@ -530,6 +533,7 @@ inline const flatbuffers::TypeTable *ExpressionFunctionTypeTable() {
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
+    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -551,6 +555,7 @@ inline const flatbuffers::TypeTable *ExpressionFunctionTypeTable() {
     "XOR",
     "GLOB",
     "IS_NULL",
+    "NOT_NULL",
     "LIKE",
     "ILIKE",
     "SIMILAR_TO",
@@ -567,7 +572,7 @@ inline const flatbuffers::TypeTable *ExpressionFunctionTypeTable() {
     "LESS_THAN"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 29, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 30, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

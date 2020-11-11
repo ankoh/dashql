@@ -955,11 +955,11 @@ sql_a_expr:
   //     a ISNULL
   //     a NOTNULL
   //  
-  | sql_a_expr IS NULL_P                            %prec IS    { $$ = {}; }
-  | sql_a_expr ISNULL                                           { $$ = {}; }
-  | sql_a_expr IS NOT NULL_P                        %prec IS    { $$ = {}; }
-  | sql_a_expr NOT NULL_P                                       { $$ = {}; }
-  | sql_a_expr NOTNULL                                          { $$ = {}; }
+  | sql_a_expr IS NULL_P        %prec IS    { $$ = UnaryExpr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_NULL), $1); }
+  | sql_a_expr ISNULL                       { $$ = UnaryExpr(ctx, @$, Enum(@2, ExprFunc::IS_NULL), $1); }
+  | sql_a_expr IS NOT NULL_P    %prec IS    { $$ = UnaryExpr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::NOT_NULL), $1); }
+  | sql_a_expr NOT NULL_P                   { $$ = UnaryExpr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_NULL), $1); }
+  | sql_a_expr NOTNULL                      { $$ = UnaryExpr(ctx, @$, Enum(@2, ExprFunc::NOT_NULL), $1); }
 
   | sql_row OVERLAPS sql_row  { $$ = {}; }
   | sql_a_expr IS TRUE_P                            %prec IS    { $$ = {}; }
