@@ -64,17 +64,6 @@ class ParserDriver {
     /// Return the scanner
     auto& scanner() { return _scanner; }
 
-    /// Create a string
-    inline sx::Node Ref(sx::Location loc) const { return sx::Node(loc, sx::NodeType::STRING, Key::NONE, 0, 0); }
-    /// Create an unsigned value
-    inline sx::Node Ref(sx::Location loc, uint32_t value) const {
-        return sx::Node(loc, sx::NodeType::UI32, Key::NONE, value, 0);
-    }
-    /// Create a bool
-    inline sx::Node Ref(sx::Location loc, bool v) const {
-        return sx::Node(loc, sx::NodeType::BOOL, Key::NONE, static_cast<uint32_t>(v), 0);
-    }
-
     /// Add a an array
     sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true);
     /// Add an object

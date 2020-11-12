@@ -189,7 +189,7 @@ sql_with_clause:
   | WITH_LA sql_cte_list    { $$ = { Key::SQL_SELECT_WITH_CTES << ctx.Add(@2, move($2)) }; }
   | WITH RECURSIVE sql_cte_list {
         $$ = {
-            Key::SQL_SELECT_WITH_RECURSIVE << ctx.Ref(@2, true),
+            Key::SQL_SELECT_WITH_RECURSIVE << Bool(@2, true),
             Key::SQL_SELECT_WITH_CTES << ctx.Add(@3, move($3)),
         };
     }
@@ -203,7 +203,7 @@ sql_cte_list:
 sql_common_table_expr:
     sql_name sql_opt_name_list AS '(' sql_preparable_stmt ')' {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CTE, {
-            Key::SQL_CTE_NAME << ctx.Ref(@1),
+            Key::SQL_CTE_NAME << String(@1),
             Key::SQL_CTE_COLUMNS << ctx.Add(@2, move($2)),
             Key::SQL_CTE_STATEMENT << $5,
         });
@@ -249,12 +249,12 @@ sql_all_or_distinct:
 // should be placed in the DISTINCT list during parsetree analysis.
 
 sql_distinct_clause:
-    DISTINCT                            { $$ = ctx.Ref(@1, true); }
+    DISTINCT                            { $$ = Bool(@1, true); }
   | DISTINCT ON '(' sql_expr_list ')'   { $$ = ctx.Add(@$, move($4)); }
     ;
 
 sql_opt_all_clause:
-    ALL     { $$ = ctx.Ref(@1, true); }
+    ALL     { $$ = Bool(@1, true); }
   | %empty  { $$ = Null(); }
     ;
 
@@ -542,10 +542,10 @@ sql_joined_table:
     ;
 
 sql_alias_clause:
-    AS sql_col_id '(' sql_name_list ')'     { $$ = Alias(ctx, @$, ctx.Ref(@2), ctx.Add(@4, move($4))); }
-  | AS sql_col_id_or_string                 { $$ = ctx.Ref(@2); }
-  | sql_col_id '(' sql_name_list ')'        { $$ = Alias(ctx, @$, ctx.Ref(@1), ctx.Add(@3, move($3))); }
-  | sql_col_id                              { $$ = ctx.Ref(@1); }
+    AS sql_col_id '(' sql_name_list ')'     { $$ = Alias(ctx, @$, String(@2), ctx.Add(@4, move($4))); }
+  | AS sql_col_id_or_string                 { $$ = String(@2); }
+  | sql_col_id '(' sql_name_list ')'        { $$ = Alias(ctx, @$, String(@1), ctx.Add(@3, move($3))); }
+  | sql_col_id                              { $$ = String(@1); }
     ;
 
 sql_opt_alias_clause:
@@ -590,10 +590,10 @@ sql_join_qual:
     ;
 
 sql_relation_expr:
-    sql_qualified_name              { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_INHERIT << ctx.Ref(@$, true) }; }
-  | sql_qualified_name '*'          { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_INHERIT << ctx.Ref(@2, true) }; }
-  | ONLY sql_qualified_name         { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($2)), Key::SQL_TABLE_INHERIT << ctx.Ref(@1, false) }; }
-  | ONLY '(' sql_qualified_name ')' { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($3)), Key::SQL_TABLE_INHERIT << ctx.Ref(@1, false) }; }
+    sql_qualified_name              { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_INHERIT << Bool(@$, true) }; }
+  | sql_qualified_name '*'          { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_INHERIT << Bool(@2, true) }; }
+  | ONLY sql_qualified_name         { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($2)), Key::SQL_TABLE_INHERIT << Bool(@1, false) }; }
+  | ONLY '(' sql_qualified_name ')' { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($3)), Key::SQL_TABLE_INHERIT << Bool(@1, false) }; }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any
@@ -690,14 +690,14 @@ sql_typename:
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
             Key::SQL_TYPENAME_TYPE << $2,
             Key::SQL_TYPENAME_ARRAY << $3,
-            Key::SQL_TYPENAME_SETOF << ctx.Ref(@1, true),
+            Key::SQL_TYPENAME_SETOF << Bool(@1, true),
         });
     }
     // SQL standard syntax, currently only one-dimensional
   | sql_simple_typename ARRAY '[' ICONST ']' {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
             Key::SQL_TYPENAME_TYPE << $1,
-            Key::SQL_TYPENAME_ARRAY << ctx.Add(Loc({@2, @3, @4, @5}), {ctx.Ref(@4)}),
+            Key::SQL_TYPENAME_ARRAY << ctx.Add(Loc({@2, @3, @4, @5}), {String(@4)}),
         });
     }
   | SETOF sql_simple_typename ARRAY '[' ICONST ']'
@@ -1152,7 +1152,7 @@ sql_window_definition_list:
 sql_window_definition:
     sql_col_id AS sql_window_specification {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_DEF, {
-            Key::SQL_WINDOW_DEF_NAME << ctx.Ref(@1),
+            Key::SQL_WINDOW_DEF_NAME << String(@1),
             Key::SQL_WINDOW_DEF_FRAME << $3,
         });
     }
@@ -1160,7 +1160,7 @@ sql_window_definition:
 
 sql_over_clause:
     OVER sql_window_specification   { $$ = $2; }
-  | OVER sql_col_id                 { $$ = ctx.Ref(@2); }
+  | OVER sql_col_id                 { $$ = String(@2); }
   | %empty                          { $$ = Null(); }
     ;
 
@@ -1180,7 +1180,7 @@ sql_window_specification:
 // are not reserved for any other purpose.
 
 sql_opt_existing_window_name:
-    sql_col_id                  { $$ = { Key::SQL_WINDOW_FRAME_NAME << ctx.Ref(@1) }; }
+    sql_col_id                  { $$ = { Key::SQL_WINDOW_FRAME_NAME << String(@1) }; }
   | %empty          %prec Op    { $$ = {};}
     ;
 
@@ -1261,7 +1261,7 @@ sql_sub_type:
     ;
 
 sql_all_op:
-    Op              { $$ = ctx.Ref(@1); }
+    Op              { $$ = String(@1); }
   | sql_math_op     { $$ = $1; }
     ;
 
@@ -1445,13 +1445,13 @@ sql_case_arg:
     ;
 
 sql_columnref:
-    sql_col_id                  { $$ = ColumnRef(ctx, @$, {ctx.Ref(@1)}); }
-  | sql_col_id sql_indirection  { $2.push_back(ctx.Ref(@1)); $$ = ColumnRef(ctx, @$, move($2)); }
+    sql_col_id                  { $$ = ColumnRef(ctx, @$, {String(@1)}); }
+  | sql_col_id sql_indirection  { $2.push_back(String(@1)); $$ = ColumnRef(ctx, @$, move($2)); }
     ;
 
 sql_indirection_el:
-    '.' sql_attr_name       { $$ = ctx.Ref(@2); }
-  | '.' '*'                 { $$ = ctx.Ref(@2); }
+    '.' sql_attr_name       { $$ = String(@2); }
+  | '.' '*'                 { $$ = String(@2); }
   | '[' sql_a_expr ']'      { $$ = Indirection(ctx, @$, $2); }
   | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = Indirection(ctx, @$, $2, $4); }
     ;
@@ -1494,7 +1494,7 @@ sql_target_el:
     sql_a_expr AS sql_col_label_or_string {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_RESULT_TARGET, {
             Key::SQL_RESULT_TARGET_VALUE << $1,
-            Key::SQL_RESULT_TARGET_NAME << ctx.Ref(@3),
+            Key::SQL_RESULT_TARGET_NAME << String(@3),
         });
     }
 
@@ -1508,7 +1508,7 @@ sql_target_el:
   | sql_a_expr IDENT {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_RESULT_TARGET, {
             Key::SQL_RESULT_TARGET_VALUE << $1,
-            Key::SQL_RESULT_TARGET_NAME << ctx.Ref(@2),
+            Key::SQL_RESULT_TARGET_NAME << String(@2),
         });
     }
   | sql_a_expr  { $$ = $1; }
@@ -1531,13 +1531,13 @@ sql_qualified_name_list:
 // which may contain subscripts, and reject that case in the C code.
 
 sql_qualified_name:
-    sql_col_id                      { $$ = { ctx.Ref(@1) }; };
-  | sql_col_id sql_indirection      { $2.insert($2.begin(), ctx.Ref(@1)); $$ = move($2); };
+    sql_col_id                      { $$ = { String(@1) }; };
+  | sql_col_id sql_indirection      { $2.insert($2.begin(), String(@1)); $$ = move($2); };
     ;
 
 sql_name_list:
-    sql_name                        { $$ = {}; $$.push_back(ctx.Ref(@1)); }
-  | sql_name_list ',' sql_name      { $1.push_back(ctx.Ref(@3)); $$ = move($1); }
+    sql_name                        { $$ = {}; $$.push_back(String(@1)); }
+  | sql_name_list ',' sql_name      { $1.push_back(String(@3)); $$ = move($1); }
     ;
 
 sql_name: sql_col_id;
@@ -1551,8 +1551,8 @@ sql_attr_name: sql_col_label;
 // ever implement SQL99-like methods, such syntax may actually become legal!)
 
 sql_func_name:
-    sql_type_function_name      { $$ = { ctx.Ref(@1) }; }
-  | sql_col_id sql_indirection  { $2.insert($2.begin(), ctx.Ref(@1)); $$ = move($2); }
+    sql_type_function_name      { $$ = { String(@1) }; }
+  | sql_col_id sql_indirection  { $2.insert($2.begin(), String(@1)); $$ = move($2); }
     ;
 
 // Constants
