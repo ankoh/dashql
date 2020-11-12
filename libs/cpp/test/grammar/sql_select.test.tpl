@@ -18,6 +18,18 @@ name: select_bconst_x2a
 input: |-
   select x'2a'
 ----
+name: select_sconst_string
+input: |-
+  select string
+----
+name: select_sconst_string_latin1
+input: |-
+  select äöü
+----
+name: select_sconst_string_unicode_plane1
+input: |-
+  select 📈
+----
 name: select_sconst_quotes
 input: |-
   select 'foo'
