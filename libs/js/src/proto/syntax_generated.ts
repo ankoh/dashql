@@ -162,7 +162,8 @@ export enum AttributeKey{
  */
 export namespace dashql.proto.syntax{
 export enum DependencyType{
-  TABLE_REF= 0
+  TABLE_REF= 0,
+  COLUMN_REF= 1
 };
 }
 
@@ -311,80 +312,6 @@ static createNode(builder:flatbuffers.Builder, location_offset: number, location
  * @constructor
  */
 export namespace dashql.proto.syntax{
-export class Dependency {
-  bb: flatbuffers.ByteBuffer|null = null;
-
-  bb_pos:number = 0;
-/**
- * @param number i
- * @param flatbuffers.ByteBuffer bb
- * @returns Dependency
- */
-__init(i:number, bb:flatbuffers.ByteBuffer):Dependency {
-  this.bb_pos = i;
-  this.bb = bb;
-  return this;
-};
-
-/**
- * @returns dashql.proto.syntax.DependencyType
- */
-type():dashql.proto.syntax.DependencyType {
-  return /**  */ (this.bb!.readUint8(this.bb_pos));
-};
-
-/**
- * @returns number
- */
-sourceStatement():number {
-  return this.bb!.readUint32(this.bb_pos + 4);
-};
-
-/**
- * @returns number
- */
-targetStatement():number {
-  return this.bb!.readUint32(this.bb_pos + 8);
-};
-
-/**
- * @returns number
- */
-targetValue():number {
-  return this.bb!.readUint32(this.bb_pos + 12);
-};
-
-/**
- * @returns number
- */
-static sizeOf():number {
-  return 16;
-}
-
-/**
- * @param flatbuffers.Builder builder
- * @param dashql.proto.syntax.DependencyType type
- * @param number source_statement
- * @param number target_statement
- * @param number target_value
- * @returns flatbuffers.Offset
- */
-static createDependency(builder:flatbuffers.Builder, type: dashql.proto.syntax.DependencyType, source_statement: number, target_statement: number, target_value: number):flatbuffers.Offset {
-  builder.prep(4, 16);
-  builder.writeInt32(target_value);
-  builder.writeInt32(target_statement);
-  builder.writeInt32(source_statement);
-  builder.pad(3);
-  builder.writeInt8(type);
-  return builder.offset();
-};
-
-}
-}
-/**
- * @constructor
- */
-export namespace dashql.proto.syntax{
 export class Error {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -483,6 +410,177 @@ static createError(builder:flatbuffers.Builder, locationOffset:flatbuffers.Offse
  * @constructor
  */
 export namespace dashql.proto.syntax{
+export class Statement {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns Statement
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):Statement {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param Statement= obj
+ * @returns Statement
+ */
+static getRootAsStatement(bb:flatbuffers.ByteBuffer, obj?:Statement):Statement {
+  return (obj || new Statement()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @param flatbuffers.ByteBuffer bb
+ * @param Statement= obj
+ * @returns Statement
+ */
+static getSizePrefixedRootAsStatement(bb:flatbuffers.ByteBuffer, obj?:Statement):Statement {
+  bb.setPosition(bb.position() + flatbuffers.SIZE_PREFIX_LENGTH);
+  return (obj || new Statement()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+};
+
+/**
+ * @returns number
+ */
+root():number {
+  var offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @param flatbuffers.Encoding= optionalEncoding
+ * @returns string|Uint8Array|null
+ */
+name():string|null
+name(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+name(optionalEncoding?:any):string|Uint8Array|null {
+  var offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ */
+static startStatement(builder:flatbuffers.Builder) {
+  builder.startObject(2);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param number root
+ */
+static addRoot(builder:flatbuffers.Builder, root:number) {
+  builder.addFieldInt32(0, root, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param flatbuffers.Offset nameOffset
+ */
+static addName(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, nameOffset, 0);
+};
+
+/**
+ * @param flatbuffers.Builder builder
+ * @returns flatbuffers.Offset
+ */
+static endStatement(builder:flatbuffers.Builder):flatbuffers.Offset {
+  var offset = builder.endObject();
+  return offset;
+};
+
+static createStatement(builder:flatbuffers.Builder, root:number, nameOffset:flatbuffers.Offset):flatbuffers.Offset {
+  Statement.startStatement(builder);
+  Statement.addRoot(builder, root);
+  Statement.addName(builder, nameOffset);
+  return Statement.endStatement(builder);
+}
+}
+}
+/**
+ * @constructor
+ */
+export namespace dashql.proto.syntax{
+export class Dependency {
+  bb: flatbuffers.ByteBuffer|null = null;
+
+  bb_pos:number = 0;
+/**
+ * @param number i
+ * @param flatbuffers.ByteBuffer bb
+ * @returns Dependency
+ */
+__init(i:number, bb:flatbuffers.ByteBuffer):Dependency {
+  this.bb_pos = i;
+  this.bb = bb;
+  return this;
+};
+
+/**
+ * @returns dashql.proto.syntax.DependencyType
+ */
+type():dashql.proto.syntax.DependencyType {
+  return /**  */ (this.bb!.readUint8(this.bb_pos));
+};
+
+/**
+ * @returns number
+ */
+sourceStatement():number {
+  return this.bb!.readUint32(this.bb_pos + 4);
+};
+
+/**
+ * @returns number
+ */
+targetStatement():number {
+  return this.bb!.readUint32(this.bb_pos + 8);
+};
+
+/**
+ * @returns number
+ */
+targetNode():number {
+  return this.bb!.readUint32(this.bb_pos + 12);
+};
+
+/**
+ * @returns number
+ */
+static sizeOf():number {
+  return 16;
+}
+
+/**
+ * @param flatbuffers.Builder builder
+ * @param dashql.proto.syntax.DependencyType type
+ * @param number source_statement
+ * @param number target_statement
+ * @param number target_node
+ * @returns flatbuffers.Offset
+ */
+static createDependency(builder:flatbuffers.Builder, type: dashql.proto.syntax.DependencyType, source_statement: number, target_statement: number, target_node: number):flatbuffers.Offset {
+  builder.prep(4, 16);
+  builder.writeInt32(target_node);
+  builder.writeInt32(target_statement);
+  builder.writeInt32(source_statement);
+  builder.pad(3);
+  builder.writeInt8(type);
+  return builder.offset();
+};
+
+}
+}
+/**
+ * @constructor
+ */
+export namespace dashql.proto.syntax{
 export class Module {
   bb: flatbuffers.ByteBuffer|null = null;
 
@@ -537,11 +635,12 @@ nodesLength():number {
 
 /**
  * @param number index
- * @returns number
+ * @param dashql.proto.syntax.Statement= obj
+ * @returns dashql.proto.syntax.Statement
  */
-statements(index: number):number|null {
+statements(index: number, obj?:dashql.proto.syntax.Statement):dashql.proto.syntax.Statement|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? this.bb!.readUint32(this.bb!.__vector(this.bb_pos + offset) + index * 4) : 0;
+  return offset ? (obj || new dashql.proto.syntax.Statement()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
 };
 
 /**
@@ -550,14 +649,6 @@ statements(index: number):number|null {
 statementsLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @returns Uint32Array
- */
-statementsArray():Uint32Array|null {
-  var offset = this.bb!.__offset(this.bb_pos, 6);
-  return offset ? new Uint32Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
 
 /**
@@ -665,18 +756,13 @@ static addStatements(builder:flatbuffers.Builder, statementsOffset:flatbuffers.O
 
 /**
  * @param flatbuffers.Builder builder
- * @param Array.<number> data
+ * @param Array.<flatbuffers.Offset> data
  * @returns flatbuffers.Offset
  */
-static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint32Array):flatbuffers.Offset;
-/**
- * @deprecated This Uint8Array overload will be removed in the future.
- */
-static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
-static createStatementsVector(builder:flatbuffers.Builder, data:number[]|Uint32Array|Uint8Array):flatbuffers.Offset {
+static createStatementsVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
   builder.startVector(4, data.length, 4);
   for (var i = data.length - 1; i >= 0; i--) {
-    builder.addInt32(data[i]);
+    builder.addOffset(data[i]);
   }
   return builder.endVector();
 };

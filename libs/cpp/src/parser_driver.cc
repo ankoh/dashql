@@ -43,20 +43,58 @@ NodeVector& operator<<(NodeVector& attrs, NodeVector&& other) {
     return attrs;
 }
 
+ScriptOptions::ScriptOptions() : global_namespace("global") {}
+
 /// Constructor
-ParserDriver::ParserDriver(Scanner& scanner) : _scanner(scanner), _nodes(), _statements(), _errors(), _dependencies() {}
+Statement::Statement() : root(), name(), table_refs(), global_column_refs() {}
+
+/// Move constructor
+Statement::Statement(Statement&& other)
+    : root(other.root),
+      name(other.name),
+      table_refs(std::move(other.table_refs)),
+      global_column_refs(std::move(other.global_column_refs)) {
+    other.root = std::numeric_limits<NodeID>::max();
+}
+
+/// Move assignment
+Statement& Statement::operator=(Statement&& other) {
+    root = other.root;
+    name = other.name;
+    table_refs = std::move(other.table_refs);
+    global_column_refs = std::move(other.global_column_refs);
+    other.root = std::numeric_limits<NodeID>::max();
+    return *this;
+}
+
+/// Constructor
+ParserDriver::ParserDriver(Scanner& scanner)
+    : _scanner(scanner), _options(), _nodes(), _current_statement(), _statements(), _dependencies(), _errors() {}
 
 /// Destructor
 ParserDriver::~ParserDriver() {}
+
+/// Compute the dependencies
+void ParserDriver::ComputeDependencies() {
+    std::unordered_map<std::string_view, uint32_t> statement_names;
+    for (auto& stmt : _statements) {
+        // if (stmt.names.empty())
+        //     continue;
+        // for (auto& stmt_name : stmt.names) {
+        //     statement_names.insert()
+        // }
+    }
+}
 
 /// Add an array
 sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_empty) {
     auto begin = _nodes.size();
     _nodes.reserve(_nodes.size() + values.size());
     for (auto& v : values) {
-        if (v.node_type() != sx::NodeType::NONE) {
-            _nodes.push_back(v);
+        if (v.node_type() == sx::NodeType::NONE) {
+            continue;
         }
+        _nodes.push_back(v);
     }
     auto n = _nodes.size() - begin;
     if ((n == 0) && null_if_empty) {
@@ -70,8 +108,57 @@ sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& att
     auto begin = _nodes.size();
     _nodes.reserve(_nodes.size() + attrs.size());
     for (auto& v : attrs) {
-        if (v.node_type() != sx::NodeType::NONE) {
-            _nodes.push_back(v);
+        auto t = v.node_type();
+        if (t == sx::NodeType::NONE) continue;
+        auto n = _nodes.size();
+        _nodes.push_back(v);
+        switch (t) {
+            case sx::NodeType::OBJECT_SQL_TABLE_REF:
+                // Store the table ref directly
+                _current_statement.table_refs.push_back(n);
+                break;
+
+            case sx::NodeType::OBJECT_SQL_COLUMN_REF: {
+                // Find path attribute (if any)
+                for (auto i = 0; i < v.children_count(); ++i) {
+                    auto& attr = _nodes[v.children_begin_or_value() + i];
+                    if (attr.attribute_key() != Key::SQL_COLUMN_REF_PATH) {
+                        continue;
+                    }
+                    assert(attr.node_type() == sx::NodeType::ARRAY);
+                    assert(attr.children_count() > 0);
+
+                    // Does the path root refer to the global namespace?
+                    auto root_id = attr.children_begin_or_value();
+                    auto& root = _nodes[root_id];
+                    assert(root.node_type() == sx::NodeType::STRING);
+                    auto root_text = _scanner.TextAt(root.location());
+                    if (root_text == _options.global_namespace) {
+                        _current_statement.global_column_refs.push_back(root_id);
+                    }
+                }
+                _current_statement.table_refs.push_back(n);
+            }
+
+            case sx::NodeType::OBJECT_SQL_INTO:
+                // Find temp name attribute (if any)
+                for (auto i = 0; i < v.children_count(); ++i) {
+                    auto attr_id = v.children_begin_or_value() + i;
+                    auto& attr = _nodes[v.children_begin_or_value() + i];
+                    if (attr.attribute_key() != Key::SQL_TEMP_NAME) {
+                        continue;
+                    }
+                    assert(attr.node_type() == sx::NodeType::ARRAY);
+                    assert(attr.children_count() > 0);
+                    if (!_current_statement.name.empty()) {
+                        _errors.push_back({loc, "duplicate names"});
+                    }
+                    _current_statement.name = _scanner.TextAt(attr.location());
+                }
+                break;
+
+            default:
+                break;
         }
     }
     auto n = _nodes.size() - begin;
@@ -84,8 +171,9 @@ sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& att
 /// Add a statement
 void ParserDriver::AddStatement(sx::Node node) {
     if (node.node_type() != sx::NodeType::NONE) {
+        _current_statement.root = _nodes.size();
         _nodes.push_back(node);
-        _statements.push_back(_nodes.size() - 1);
+        _statements.push_back(std::move(_current_statement));
     }
 }
 
@@ -94,6 +182,20 @@ void ParserDriver::AddError(sx::Location loc, const std::string& message) { _err
 
 /// Write the module
 fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
+    std::vector<fb::Offset<sx::Statement>> statements;
+    for (auto& stmt: _statements) {
+        auto stmt_loc = _nodes[stmt.root].location();
+        std::optional<fb::Offset<fb::String>> name;
+        if (!stmt.name.empty()) {
+            name = builder.CreateString(stmt.name.data(), stmt.name.size());
+        }
+        sx::StatementBuilder sb{builder};
+        sb.add_root(stmt.root);
+        if (name) {
+            sb.add_name(*name);
+        }
+        statements.push_back(sb.Finish());
+    }
     std::vector<fb::Offset<sx::Error>> errs;
     for (auto [loc, msg] : _errors) {
         auto s = builder.CreateString(msg.data(), msg.length());
@@ -103,7 +205,7 @@ fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
         errs.push_back(eb.Finish());
     }
     auto nodes_vec = builder.CreateVectorOfStructs(_nodes);
-    auto statements_vec = builder.CreateVector(_statements);
+    auto statements_vec = builder.CreateVector(statements);
     auto error_vec = builder.CreateVector(errs);
     auto line_breaks_vec = builder.CreateVectorOfStructs(_scanner.line_breaks());
     auto comments_vec = builder.CreateVectorOfStructs(_scanner.comments());

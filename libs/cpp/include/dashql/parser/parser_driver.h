@@ -40,20 +40,53 @@ NodeVector& operator<<(NodeVector& attrs, const sx::Node& node);
 /// Helper to concatenate node vectors
 NodeVector& operator<<(NodeVector& attrs, NodeVector&& other);
 
-class ParserDriver {
-    friend class Parser;
+struct ScriptOptions {
+    /// The global namespace name
+    std::string_view global_namespace;
 
+    /// Constructor
+    ScriptOptions();
+};
+
+using NodeID = uint32_t;
+
+struct Statement {
+    /// The root node
+    NodeID root;
+    /// The names
+    std::string_view name;
+    /// The table refs
+    std::vector<NodeID> table_refs;
+    /// The global column refs
+    std::vector<NodeID> global_column_refs;
+
+    /// Constructor
+    Statement();
+    /// Move constructor
+    Statement(Statement&& other);
+    /// Move assignment
+    Statement& operator=(Statement&& other);
+};
+
+class ParserDriver {
    protected:
     /// The scanner
     Scanner& _scanner;
+    /// The script options
+    ScriptOptions _options;
     /// The nodes
     std::vector<sx::Node> _nodes;
+    /// The current statement
+    Statement _current_statement;
     /// The statements
-    std::vector<uint32_t> _statements;
+    std::vector<Statement> _statements;
     /// The errors
     std::vector<std::pair<sx::Location, std::string>> _errors;
     /// The dependencies
     std::vector<sx::Dependency> _dependencies;
+
+    /// Compute the dependencies
+    void ComputeDependencies();
 
    public:
     /// Constructor

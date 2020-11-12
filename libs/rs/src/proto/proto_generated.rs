@@ -563,11 +563,12 @@ pub fn enum_name_attribute_key(e: AttributeKey) -> &'static str {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum DependencyType {
   TABLE_REF = 0,
+  COLUMN_REF = 1,
 
 }
 
 pub const ENUM_MIN_DEPENDENCY_TYPE: u8 = 0;
-pub const ENUM_MAX_DEPENDENCY_TYPE: u8 = 0;
+pub const ENUM_MAX_DEPENDENCY_TYPE: u8 = 1;
 
 impl<'a> flatbuffers::Follow<'a> for DependencyType {
   type Inner = Self;
@@ -601,13 +602,15 @@ impl flatbuffers::Push for DependencyType {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_DEPENDENCY_TYPE: [DependencyType; 1] = [
-  DependencyType::TABLE_REF
+pub const ENUM_VALUES_DEPENDENCY_TYPE: [DependencyType; 2] = [
+  DependencyType::TABLE_REF,
+  DependencyType::COLUMN_REF
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_DEPENDENCY_TYPE: [&str; 1] = [
-    "TABLE_REF"
+pub const ENUM_NAMES_DEPENDENCY_TYPE: [&str; 2] = [
+    "TABLE_REF",
+    "COLUMN_REF"
 ];
 
 pub fn enum_name_dependency_type(e: DependencyType) -> &'static str {
@@ -768,7 +771,7 @@ pub struct Dependency {
   padding0__: u8,  padding1__: u16,
   pub source_statement_: u32,
   pub target_statement_: u32,
-  pub target_value_: u32,
+  pub target_node_: u32,
 } // pub struct Dependency
 impl flatbuffers::SafeSliceAccess for Dependency {}
 impl<'a> flatbuffers::Follow<'a> for Dependency {
@@ -809,12 +812,12 @@ impl<'b> flatbuffers::Push for &'b Dependency {
 
 
 impl Dependency {
-  pub fn new(_type_: DependencyType, _source_statement: u32, _target_statement: u32, _target_value: u32) -> Self {
+  pub fn new(_type_: DependencyType, _source_statement: u32, _target_statement: u32, _target_node: u32) -> Self {
     Dependency {
       type__: _type_.to_little_endian(),
       source_statement_: _source_statement.to_little_endian(),
       target_statement_: _target_statement.to_little_endian(),
-      target_value_: _target_value.to_little_endian(),
+      target_node_: _target_node.to_little_endian(),
 
       padding0__: 0,padding1__: 0,
     }
@@ -832,8 +835,8 @@ impl Dependency {
   pub fn target_statement(&self) -> u32 {
     self.target_statement_.from_little_endian()
   }
-  pub fn target_value(&self) -> u32 {
-    self.target_value_.from_little_endian()
+  pub fn target_node(&self) -> u32 {
+    self.target_node_.from_little_endian()
   }
 }
 
@@ -927,6 +930,96 @@ impl<'a: 'b, 'b> ErrorBuilder<'a, 'b> {
   }
 }
 
+pub enum StatementOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct Statement<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for Statement<'a> {
+    type Inner = Statement<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self { _tab: flatbuffers::Table { buf, loc } }
+    }
+}
+
+impl<'a> Statement<'a> {
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "dashql.proto.syntax.Statement"
+    }
+
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        Statement {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args StatementArgs<'args>) -> flatbuffers::WIPOffset<Statement<'bldr>> {
+      let mut builder = StatementBuilder::new(_fbb);
+      if let Some(x) = args.name { builder.add_name(x); }
+      builder.add_root(args.root);
+      builder.finish()
+    }
+
+    pub const VT_ROOT: flatbuffers::VOffsetT = 4;
+    pub const VT_NAME: flatbuffers::VOffsetT = 6;
+
+  #[inline]
+  pub fn root(&self) -> u32 {
+    self._tab.get::<u32>(Statement::VT_ROOT, Some(0)).unwrap()
+  }
+  #[inline]
+  pub fn name(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(Statement::VT_NAME, None)
+  }
+}
+
+pub struct StatementArgs<'a> {
+    pub root: u32,
+    pub name: Option<flatbuffers::WIPOffset<&'a str>>,
+}
+impl<'a> Default for StatementArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        StatementArgs {
+            root: 0,
+            name: None,
+        }
+    }
+}
+pub struct StatementBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> StatementBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_root(&mut self, root: u32) {
+    self.fbb_.push_slot::<u32>(Statement::VT_ROOT, root, 0);
+  }
+  #[inline]
+  pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Statement::VT_NAME, name);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> StatementBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    StatementBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<Statement<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
 pub enum ModuleOffset {}
 #[derive(Copy, Clone, Debug, PartialEq)]
 
@@ -979,8 +1072,8 @@ impl<'a> Module<'a> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Node>>>(Module::VT_NODES, None).map(|v| v.safe_slice() )
   }
   #[inline]
-  pub fn statements(&self) -> Option<flatbuffers::Vector<'a, u32>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u32>>>(Module::VT_STATEMENTS, None)
+  pub fn statements(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Statement<'a>>>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<Statement<'a>>>>>(Module::VT_STATEMENTS, None)
   }
   #[inline]
   pub fn errors(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>> {
@@ -1002,7 +1095,7 @@ impl<'a> Module<'a> {
 
 pub struct ModuleArgs<'a> {
     pub nodes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Node>>>,
-    pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u32>>>,
+    pub statements: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Statement<'a>>>>>,
     pub errors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Error<'a>>>>>,
     pub line_breaks: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
     pub comments: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Location>>>,
@@ -1031,7 +1124,7 @@ impl<'a: 'b, 'b> ModuleBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_NODES, nodes);
   }
   #[inline]
-  pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u32>>) {
+  pub fn add_statements(&mut self, statements: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Statement<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Module::VT_STATEMENTS, statements);
   }
   #[inline]
