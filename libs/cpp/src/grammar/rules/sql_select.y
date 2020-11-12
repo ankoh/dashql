@@ -1446,7 +1446,7 @@ sql_case_arg:
 
 sql_columnref:
     sql_col_id                  { $$ = ColumnRef(ctx, @$, {String(@1)}); }
-  | sql_col_id sql_indirection  { $2.push_back(String(@1)); $$ = ColumnRef(ctx, @$, move($2)); }
+  | sql_col_id sql_indirection  { $2.insert($2.begin(), String(@1)); $$ = ColumnRef(ctx, @$, move($2)); }
     ;
 
 sql_indirection_el:

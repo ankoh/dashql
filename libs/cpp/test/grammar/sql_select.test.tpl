@@ -169,3 +169,7 @@ input: |-
 name: select_a_orderby_b_c_directions_nulls
 input: |-
   select a order by b asc nulls first, c desc nulls last
+----
+name: select_refs
+input: |-
+  select a from b where c = global.d + 1

@@ -5,5 +5,5 @@ dashql_identifier:
 
 dashql_opt_alias:
     %empty                  { $$ = Null(); }
-  | AS dashql_identifier    { $$ = ctx.Ref(@2); }
+  | AS dashql_identifier    { $$ = String(@2); }
     ;
