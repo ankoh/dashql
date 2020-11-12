@@ -105,12 +105,12 @@ const char* getEnumText(const sx::Node& target) {
 }
 
 
-void encode(ryml::NodeRef n, const proto::syntax::Dependency& dep) {
+void encode(ryml::NodeRef n, const sx::Dependency& dep, sx::Location loc, std::string_view text) {
     n |= ryml::MAP;
     n["type"] << sx::DependencyTypeTypeTable()->names[static_cast<size_t>(dep.type())];
     n["source"] << dep.source_statement();
     n["target"] << dep.target_statement();
-    n["target_node"] << dep.target_node();
+    encode(n["target_node"], loc, text);
 }
 
 }  // namespace
@@ -220,7 +220,8 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
     auto dependencies = root["dependencies"];
     dependencies |= ryml::SEQ;
     for (auto dep : *module.dependencies()) {
-        encode(dependencies.append_child(), *dep);
+        auto loc = module.nodes()->Get(dep->target_node())->location();
+        encode(dependencies.append_child(), *dep, loc, text);
     };
 }
 

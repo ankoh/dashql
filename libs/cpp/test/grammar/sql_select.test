@@ -1354,4 +1354,4 @@ expected:
     - type: TABLE_REF
       source: 0
       target: 1
-      target_node: 11
+      target_node: 31..32|`b`
