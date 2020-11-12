@@ -1,5 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include "dashql/parser/common/hash.h"
 #include "dashql/parser/parser_driver.h"
 
 #include <iostream>
@@ -57,6 +58,17 @@ Statement::Statement(Statement&& other)
     other.root = std::numeric_limits<NodeID>::max();
 }
 
+/// Encode name
+fb::Offset<fb::String> Statement::encodeName(fb::FlatBufferBuilder& builder) {
+    std::string buffer;
+    auto [table, schema] = name;
+    buffer.resize(table.size() + 1 + schema.size());
+    schema.copy(buffer.data(), schema.size());
+    buffer[schema.size()] = '.';
+    table.copy(buffer.data() + table.size() + 1, table.size());
+    return builder.CreateString(buffer);
+}
+
 /// Move assignment
 Statement& Statement::operator=(Statement&& other) {
     root = other.root;
@@ -74,15 +86,63 @@ ParserDriver::ParserDriver(Scanner& scanner)
 /// Destructor
 ParserDriver::~ParserDriver() {}
 
+/// Find an attribute
+std::pair<const sx::Node*, size_t> ParserDriver::FindAttribute(const sx::Node& node, Key attribute) const {
+    auto attr_begin = node.children_begin_or_value();
+    auto attr_count = node.children_count();
+    for (auto i = 0; i < attr_count; ++i) {
+        auto& attr = _nodes[attr_begin + i];
+        if (attr.attribute_key() == attribute) {
+            return {&attr, attr_begin + i};
+        }
+    }
+    return {nullptr, 0};
+}
+
+/// Get as string array
+QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node) {
+    if (node.node_type() != sx::NodeType::ARRAY)
+        return {};
+    auto begin = node.children_begin_or_value();
+    auto count = node.children_count();
+    auto end = begin + count;
+    unsigned next = 0;
+    std::array<std::string_view, 2> rev;
+    for (auto i = 0; i < count && next < rev.size(); ++i) {
+        auto& value = _nodes[end - i - 1];
+        if (value.node_type() == sx::NodeType::STRING) {
+            rev[next++] = _scanner.TextAt(value.location());
+        }
+    }
+    if (rev[1].empty())
+        rev[1] = _options.global_namespace;
+    return rev;
+}
+
 /// Compute the dependencies
 void ParserDriver::ComputeDependencies() {
-    std::unordered_map<std::string_view, uint32_t> statement_names;
-    for (auto& stmt : _statements) {
-        // if (stmt.names.empty())
-        //     continue;
-        // for (auto& stmt_name : stmt.names) {
-        //     statement_names.insert()
-        // }
+    // Collect names
+    std::unordered_map<QualifiedName, uint32_t, ArrayHasher<std::string_view, 2>> names;
+    for (unsigned i = 0; i < _statements.size(); ++i) {
+        auto& stmt = _statements[i];
+        names.insert({stmt.name, stmt.root});
+    }
+
+    // Build dependencies
+    for (unsigned i = 0; i < _statements.size(); ++i) {
+        auto& stmt = _statements[i];
+        for (auto& ref_id: stmt.table_refs) {
+            auto& ref = _nodes[ref_id];
+            assert(ref.node_type() == sx::NodeType::OBJECT_SQL_TABLE_REF);
+
+            // Find name attribute (if any)
+            if (auto [name, name_id] = FindAttribute(ref, Key::SQL_TABLE_NAME); name) {
+                auto [table, schema] = AsQualifiedName(*name);
+                if (auto iter = names.find({table, schema}); iter != names.end()) {
+                    _dependencies.push_back(sx::Dependency(sx::DependencyType::TABLE_REF, iter->second, i, name_id));
+                }
+            }
+        }
     }
 }
 
@@ -120,16 +180,12 @@ sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& att
 
             case sx::NodeType::OBJECT_SQL_COLUMN_REF: {
                 // Find path attribute (if any)
-                for (auto i = 0; i < v.children_count(); ++i) {
-                    auto& attr = _nodes[v.children_begin_or_value() + i];
-                    if (attr.attribute_key() != Key::SQL_COLUMN_REF_PATH) {
-                        continue;
-                    }
-                    assert(attr.node_type() == sx::NodeType::ARRAY);
-                    assert(attr.children_count() > 0);
+                if (auto [path, path_id] = FindAttribute(v, Key::SQL_COLUMN_REF_PATH); path) {
+                    assert(path->node_type() == sx::NodeType::ARRAY);
+                    assert(path->children_count() > 0);
 
                     // Does the path root refer to the global namespace?
-                    auto root_id = attr.children_begin_or_value();
+                    auto root_id = path->children_begin_or_value();
                     auto& root = _nodes[root_id];
                     assert(root.node_type() == sx::NodeType::STRING);
                     auto root_text = _scanner.TextAt(root.location());
@@ -141,19 +197,9 @@ sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& att
             }
 
             case sx::NodeType::OBJECT_SQL_INTO:
-                // Find temp name attribute (if any)
-                for (auto i = 0; i < v.children_count(); ++i) {
-                    auto attr_id = v.children_begin_or_value() + i;
-                    auto& attr = _nodes[v.children_begin_or_value() + i];
-                    if (attr.attribute_key() != Key::SQL_TEMP_NAME) {
-                        continue;
-                    }
-                    assert(attr.node_type() == sx::NodeType::ARRAY);
-                    assert(attr.children_count() > 0);
-                    if (!_current_statement.name.empty()) {
-                        _errors.push_back({loc, "duplicate names"});
-                    }
-                    _current_statement.name = _scanner.TextAt(attr.location());
+                // Find path attribute (if any)
+                if (auto [name, name_id] = FindAttribute(v, Key::SQL_TEMP_NAME); name) {
+                    _current_statement.name = AsQualifiedName(*name);
                 }
                 break;
 
@@ -187,7 +233,7 @@ fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
         auto stmt_loc = _nodes[stmt.root].location();
         std::optional<fb::Offset<fb::String>> name;
         if (!stmt.name.empty()) {
-            name = builder.CreateString(stmt.name.data(), stmt.name.size());
+            name = stmt.encodeName(builder);
         }
         sx::StatementBuilder sb{builder};
         sb.add_root(stmt.root);

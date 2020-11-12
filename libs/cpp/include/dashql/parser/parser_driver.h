@@ -49,12 +49,13 @@ struct ScriptOptions {
 };
 
 using NodeID = uint32_t;
+using QualifiedName = std::array<std::string_view, 2>;
 
 struct Statement {
     /// The root node
     NodeID root;
     /// The names
-    std::string_view name;
+    QualifiedName name;
     /// The table refs
     std::vector<NodeID> table_refs;
     /// The global column refs
@@ -66,6 +67,9 @@ struct Statement {
     Statement(Statement&& other);
     /// Move assignment
     Statement& operator=(Statement&& other);
+
+    /// Write the name
+    flatbuffers::Offset<flatbuffers::String> encodeName(flatbuffers::FlatBufferBuilder& builder);
 };
 
 class ParserDriver {
@@ -85,6 +89,11 @@ class ParserDriver {
     /// The dependencies
     std::vector<sx::Dependency> _dependencies;
 
+    /// Find an attribute
+    std::pair<const sx::Node*, size_t> FindAttribute(const sx::Node& node, Key attribute) const;
+    /// Get a qualified name
+    QualifiedName AsQualifiedName(const sx::Node& node);
+    
     /// Compute the dependencies
     void ComputeDependencies();
 
