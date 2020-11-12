@@ -61,6 +61,49 @@ void encode(ryml::NodeRef e, const proto::syntax::Error& err, std::string_view t
     encode(e["location"], *err.location(), text);
 }
 
+const char* getEnumText(const sx::Node& target) {
+    auto nt = target.node_type();
+    auto v = static_cast<uint32_t>(target.children_begin_or_value());
+    switch (nt) {
+        case sx::NodeType::ENUM_DASHQL_HTTP_VERB:
+            return sxd::HTTPVerbTypeTable()->names[v];
+        case sx::NodeType::ENUM_DASHQL_VIZ_TYPE:
+            return sxd::VizTypeTypeTable()->names[v];
+        case sx::NodeType::ENUM_DASHQL_PARAMETER_TYPE:
+            return sxd::ParameterTypeTypeTable()->names[v];
+        case sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE:
+            return sxd::LoadMethodTypeTypeTable()->names[v];
+
+        case sx::NodeType::ENUM_SQL_TEMP_TYPE:
+            return sxs::TempTypeTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_ACONST_TYPE:
+            return sxs::AConstTypeTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_EXPRESSION_FUNCTION:
+            return sxs::ExpressionFunctionTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_ORDER_DIRECTION:
+            return sxs::OrderDirectionTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_ORDER_NULL_RULE:
+            return sxs::OrderNullRuleTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_COMBINE_MODIFIER:
+            return sxs::CombineModifierTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_COMBINE_OPERATION:
+            return sxs::CombineOperationTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_NUMERIC_TYPE_TAG:
+            return sxs::NumericTypeTagTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE:
+            return sxs::WindowBoundModeTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE:
+            return sxs::WindowRangeModeTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE:
+            return sxs::WindowExclusionModeTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION:
+            return sxs::WindowBoundDirectionTypeTable()->names[v];
+
+        default:
+            return "?";
+    }
+}
+
 }  // namespace
 
 /// Encode yaml
@@ -119,9 +162,7 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
                 }
                 default: {
                     auto node_type_id = static_cast<uint32_t>(target->node_type());
-                    auto min_object = static_cast<uint32_t>(sx::NodeType::OBJECT_MIN);
-                    auto min_enum = static_cast<uint32_t>(sx::NodeType::ENUM_MIN);
-                    if (node_type_id > min_object) {
+                    if (node_type_id > static_cast<uint32_t>(sx::NodeType::OBJECT_MIN)) {
                         n |= ryml::MAP;
                         auto end = target->children_begin_or_value() + target->children_count();
                         n["type"] = c4::to_csubstr(node_type_tt->names[static_cast<size_t>(target->node_type())]);
@@ -131,49 +172,9 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
                             auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr->attribute_key())]);
                             pending.push_back({n, attr_key, attr});
                         }
-                    } else if (node_type_id > min_enum) {
+                    } else if (node_type_id > static_cast<uint32_t>(sx::NodeType::ENUM_MIN)) {
                         n |= ryml::VAL;
-                        n << [nt = target->node_type(), v = static_cast<uint32_t>(target->children_begin_or_value())]() {
-                            auto tt = sx::NodeTypeTypeTable();
-                            switch (nt) {
-                                case sx::NodeType::ENUM_DASHQL_HTTP_VERB:
-                                    return sxd::HTTPVerbTypeTable()->names[v];
-                                case sx::NodeType::ENUM_DASHQL_VIZ_TYPE:
-                                    return sxd::VizTypeTypeTable()->names[v];
-                                case sx::NodeType::ENUM_DASHQL_PARAMETER_TYPE:
-                                    return sxd::ParameterTypeTypeTable()->names[v];
-                                case sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE:
-                                    return sxd::LoadMethodTypeTypeTable()->names[v];
-
-                                case sx::NodeType::ENUM_SQL_TEMP_TYPE:
-                                    return sxs::TempTypeTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_ACONST_TYPE:
-                                    return sxs::AConstTypeTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_EXPRESSION_FUNCTION:
-                                    return sxs::ExpressionFunctionTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_ORDER_DIRECTION:
-                                    return sxs::OrderDirectionTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_ORDER_NULL_RULE:
-                                    return sxs::OrderNullRuleTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_COMBINE_MODIFIER:
-                                    return sxs::CombineModifierTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_COMBINE_OPERATION:
-                                    return sxs::CombineOperationTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_NUMERIC_TYPE_TAG:
-                                    return sxs::NumericTypeTagTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE:
-                                    return sxs::WindowBoundModeTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE:
-                                    return sxs::WindowRangeModeTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE:
-                                    return sxs::WindowExclusionModeTypeTable()->names[v];
-                                case sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION:
-                                    return sxs::WindowBoundDirectionTypeTable()->names[v];
-
-                                default:
-                                    return "?";
-                            }
-                        }();
+                        n << getEnumText(*target);
                     } else {
                         n |= ryml::VAL;
                         n << target->children_begin_or_value();
