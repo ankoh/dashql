@@ -104,6 +104,15 @@ const char* getEnumText(const sx::Node& target) {
     }
 }
 
+
+void encode(ryml::NodeRef n, const proto::syntax::Dependency& dep) {
+    n |= ryml::MAP;
+    n["type"] << sx::DependencyTypeTypeTable()->names[static_cast<size_t>(dep.type())];
+    n["source"] << dep.source_statement();
+    n["target"] << dep.target_statement();
+    n["target_node"] << dep.target_node();
+}
+
 }  // namespace
 
 /// Encode yaml
@@ -124,9 +133,15 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
     // Translate the statement tree with a DFS
     for (unsigned stmt_id = 0; stmt_id < statements->size(); ++stmt_id) {
         auto s = statements->Get(stmt_id);
+
+        auto stmt = stmts_seq.append_child();
+        stmt |= ryml::MAP;
+        if (s->name())
+            stmt["name"] << s->name()->c_str();
+        
         auto n = nodes->Get(s->root());
         std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Node*>> pending;
-        pending.push_back({stmts_seq, {}, n});
+        pending.push_back({stmt, "root", n});
 
         while (!pending.empty()) {
             auto [parent, key, target] = pending.back();
@@ -200,6 +215,13 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
     auto comments = root["comments"];
     comments |= ryml::SEQ;
     for (auto err : *module.comments()) encode(comments.append_child(), *err, text);
+
+    // Add comments
+    auto dependencies = root["dependencies"];
+    dependencies |= ryml::SEQ;
+    for (auto dep : *module.dependencies()) {
+        encode(dependencies.append_child(), *dep);
+    };
 }
 
 }  // namespace parser

@@ -68,6 +68,8 @@ struct Statement {
     /// Move assignment
     Statement& operator=(Statement&& other);
 
+    /// Reset
+    void reset();
     /// Write the name
     flatbuffers::Offset<flatbuffers::String> encodeName(flatbuffers::FlatBufferBuilder& builder);
 };
@@ -93,10 +95,14 @@ class ParserDriver {
     std::pair<const sx::Node*, size_t> FindAttribute(const sx::Node& node, Key attribute) const;
     /// Get a qualified name
     QualifiedName AsQualifiedName(const sx::Node& node);
-    
+
+    /// Add a node
+    void AddNode(sx::Node node);
     /// Compute the dependencies
     void ComputeDependencies();
-
+    /// Write as flatbuffer
+    flatbuffers::Offset<sx::Module> Write(flatbuffers::FlatBufferBuilder& builder);
+    
    public:
     /// Constructor
     explicit ParserDriver(Scanner& scanner);
@@ -114,9 +120,6 @@ class ParserDriver {
     void AddStatement(sx::Node node);
     /// Add an error
     void AddError(sx::Location loc, const std::string& message);
-
-    /// Write as flatbuffer
-    flatbuffers::Offset<sx::Module> Write(flatbuffers::FlatBufferBuilder& builder);
 
     /// Parse a module
     static flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in,

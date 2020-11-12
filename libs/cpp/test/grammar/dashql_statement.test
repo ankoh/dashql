@@ -7,3 +7,4 @@ expected:
       location: '0..1|`?`'
   line_breaks: []
   comments: []
+  dependencies: []
