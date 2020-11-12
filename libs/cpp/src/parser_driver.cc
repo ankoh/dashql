@@ -125,6 +125,8 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node) {
             rev[next++] = _scanner.TextAt(value.location());
         }
     }
+    if (rev[1].empty())
+        rev[1] = _options.global_namespace;
     return rev;
 }
 
