@@ -42,7 +42,7 @@ void dashql_parse(Response* response, const char* text) {
 }
 
 /// Free memory
-void dashql_parser_free(void* buffer, size_t length) {
+void dashql_core_free(void* buffer, size_t length) {
     free(buffer);
 }
 

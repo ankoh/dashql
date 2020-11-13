@@ -6,7 +6,7 @@ const browserTarget = {
     target: 'web',
     mode: 'production',
     entry: {
-        "targets/web/dashql_parser": './src/targets/web/dashql_parser.ts'
+        "targets/web/dashql_core": './src/targets/web/dashql_core.ts'
     },
     output: {
         filename: '[name].js',
@@ -31,11 +31,11 @@ const browserTarget = {
                 ]
             },
             {
-                test: /dashql_parser_(web|node)\.wasm$/,
+                test: /dashql_core_(web|node)\.wasm$/,
                 type: 'javascript/auto',
                 loader: 'file-loader',
                 options: {
-                    name: 'dashql_parser.wasm',
+                    name: 'dashql_core.wasm',
                 }
             }
         ]
@@ -57,7 +57,7 @@ const nodeTarget = {
     ...browserTarget,
     target: 'node',
     entry: {
-        "targets/node/dashql_parser": './src/targets/node/dashql_parser.ts'
+        "targets/node/dashql_core": './src/targets/node/dashql_core.ts'
     },
     plugins: [
         new CleanWebpackPlugin({

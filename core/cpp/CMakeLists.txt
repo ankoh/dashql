@@ -229,23 +229,19 @@ if (EMSCRIPTEN)
             _malloc, \
             _free, \
             _dashql_parse, \
-            _dashql_parser_free \
+            _dashql_core_free \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
     )
 
-    add_executable(dashql_web ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(dashql_web dashql_parser)
-    set_target_properties(dashql_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
+    add_executable(dashql_core_web ${CMAKE_SOURCE_DIR}/src/ffi.cc)
+    target_link_libraries(dashql_core_web dashql_parser)
+    set_target_properties(dashql_core_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 
-    add_executable(dashql_node ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(dashql_node dashql_parser)
-    set_target_properties(dashql_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
-else()
-    add_library(dashql_ffi ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(dashql_ffi dashql_parser)
-
+    add_executable(dashql_core_node ${CMAKE_SOURCE_DIR}/src/ffi.cc)
+    target_link_libraries(dashql_core_node dashql_parser)
+    set_target_properties(dashql_core_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 endif()
 
 

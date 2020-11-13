@@ -1,10 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import dashql_parser_wasm from '../../parser/dashql_parser_node.wasm';
-import dashql_parser_init from '../../parser/dashql_parser_node.js';
+import dashql_core_wasm from '../../wasm/dashql_core_node.wasm';
+import dashql_core_init from '../../wasm/dashql_core_node.js';
 import * as proto from '../../proto';
 
-import { DashQLParserModule } from '../../parser/dashql_parser_module';
+import { DashQLParserModule } from '../../wasm/dashql_core_module';
 import { DashQLParserBindings, FlatBuffer, ModuleBuffer } from '../../bindings';
 
 export class DashQLParser extends DashQLParserBindings {
@@ -12,14 +12,14 @@ export class DashQLParser extends DashQLParserBindings {
 
     protected constructor(path: string | null = null) {
         super();
-        this.path = path ?? dashql_parser_wasm;
+        this.path = path ?? dashql_core_wasm;
     }
 
     protected instantiate(moduleOverrides: Partial<DashQLParserModule>): Promise<DashQLParserModule> {
-        return dashql_parser_init({
+        return dashql_core_init({
             ...moduleOverrides,
             locateFile: (path: string) => {
-                if (path.endsWith('dashql_parser_node.wasm'))
+                if (path.endsWith('dashql_core_node.wasm'))
                     return this.path;
                 return path;
             }

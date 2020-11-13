@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DashQLParserModule } from './parser/dashql_parser_module';
+import { DashQLParserModule } from './wasm/dashql_core_module';
 import { flatbuffers } from 'flatbuffers';
 import * as proto from './proto';
 
@@ -79,7 +79,7 @@ export abstract class DashQLParserBindings {
         let [ptr, size, ofs] = this.callSRet('dashql_parse', ['string'], [text]);
         let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
         let program = new ModuleBuffer(mem);
-        instance.ccall('dashql_parser_free', null, ['number'], [ptr]);
+        instance.ccall('dashql_core_free', null, ['number'], [ptr]);
         return program;
     }
 };
