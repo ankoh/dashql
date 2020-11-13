@@ -1,0 +1,120 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace dashql.proto.syntax_sql;
+
+enum ExpressionFunction: uint8 {
+    NEGATE,
+    NOT,
+    TYPECAST,
+    COLLATE,
+    AT_TIMEZONE,
+
+    PLUS,
+    MINUS,
+    MULTIPLY,
+    DIVIDE,
+    MODULUS,
+    AND,
+    OR,
+    XOR,
+    GLOB,
+
+    IS_NULL,
+    LIKE,
+    ILIKE,
+    SIMILAR_TO,
+    NOT_NULL,
+    NOT_LIKE,
+    NOT_ILIKE,
+    NOT_SIMILAR_TO,
+
+
+    IS_TRUE,
+    IS_FALSE,
+    IS_UNKNOWN,
+    IS_DISTINCT_FROM,
+    IS_OF,
+    IS_NOT_TRUE,
+    IS_NOT_FALSE,
+    IS_NOT_UNKNOWN,
+    IS_NOT_DISTINCT_FROM,
+    IS_NOT_OF,
+
+    EQUAL,
+    NOT_EQUAL,
+    GREATER_EQUAL,
+    GREATER_THAN,
+    LESS_EQUAL,
+    LESS_THAN,
+}
+
+enum CombineModifier: uint8 {
+    NONE,
+    ALL,
+    DISTINCT,
+}
+
+enum CombineOperation: uint8 {
+    NONE,
+    INTERSECT,
+    UNION,
+    EXCEPT
+}
+
+enum AConstType: uint8 {
+    INTEGER = 0,
+    FLOAT = 1,
+    STRING = 2,
+    BITSTRING = 3,
+    NULL_ = 4,
+}
+
+enum TempType: uint8 {
+    DEFAULT,
+    GLOBAL,
+    LOCAL,
+    UNLOGGED,
+}
+
+enum WindowBoundMode: uint8 {
+    UNBOUNDED,
+    CURRENT_ROW,
+    VALUE,
+}
+
+enum WindowBoundDirection: uint8 {
+    PRECEDING,
+    FOLLOWING,
+}
+
+enum WindowRangeMode: uint8 {
+    RANGE,
+    ROWS,
+    GROUPS,
+}
+
+enum WindowExclusionMode: uint8 {
+    CURRENT_ROW,
+    GROUP,
+    TIES
+}
+
+enum OrderDirection: uint8 {
+    ASCENDING,
+    DESCENDING
+}
+
+enum OrderNullRule: uint8 {
+    NULLS_FIRST,
+    NULLS_LAST
+}
+
+enum NumericTypeTag: uint8 {
+    INT2,
+    INT4,
+    INT8,
+    FLOAT4,
+    FLOAT8,
+    NUMERIC,
+    BOOL,
+}

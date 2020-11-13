@@ -1,0 +1,15 @@
+[submodule "submodules/flatbuffers"]
+	path = submodules/flatbuffers
+	url = https://github.com/dashql/flatbuffers
+[submodule "submodules/googletest"]
+	path = submodules/googletest
+	url = https://github.com/google/googletest
+[submodule "submodules/benchmark"]
+	path = submodules/benchmark
+	url = https://github.com/google/benchmark
+[submodule "submodules/rapidjson"]
+	path = submodules/rapidjson
+	url = https://github.com/Tencent/rapidjson
+[submodule "submodules/rapidyaml"]
+	path = submodules/rapidyaml
+	url = https://github.com/biojppm/rapidyaml

@@ -1,0 +1,44 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace dashql.proto.syntax_dashql;
+
+enum ParameterType: uint8 {
+    NONE = 0,
+    INTEGER = 1,
+    FLOAT = 2,
+    TEXT = 3,
+    DATE = 4,
+    DATETIME = 5,
+    TIME = 6,
+    FILE = 7,
+}
+
+enum LoadMethodType: uint8 {
+    NONE = 0,
+    HTTP = 1,
+    FILE = 2
+}
+
+enum HTTPVerb: uint8 {
+    NONE = 0,
+    GET = 1,
+    PUT = 2,
+    POST = 3,
+}
+
+enum VizType: uint8 {
+    NONE = 0,
+    AREA = 1,
+    BAR = 2,
+    BOX = 3,
+    BUBBLE = 4,
+    GRID = 5,
+    HISTOGRAM = 6,
+    LINE = 7,
+    NUMBER = 8,
+    PIE = 9,
+    POINT = 10,
+    SCATTER = 11,
+    TABLE = 12,
+    TEXT = 13,
+}
