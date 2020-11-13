@@ -97,7 +97,7 @@ class ParserDriver {
     QualifiedName AsQualifiedName(const sx::Node& node, bool lift_global = false);
 
     /// Add a node
-    void AddNode(sx::Node node);
+    NodeID AddNode(sx::Node node);
     /// Compute the dependencies
     void ComputeDependencies();
     /// Write as flatbuffer

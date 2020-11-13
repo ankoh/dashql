@@ -139,7 +139,7 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_glob
 }
 
 /// Process a new node
-void ParserDriver::AddNode(sx::Node node) {
+NodeID ParserDriver::AddNode(sx::Node node) {
     auto node_id = _nodes.size();
     _nodes.push_back(node);
     switch (node.node_type()) {
@@ -158,13 +158,13 @@ void ParserDriver::AddNode(sx::Node node) {
             break;
         case sx::NodeType::OBJECT_DASHQL_PARAMTER:
             if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_PARAMETER_IDENTIFIER); name) {
-                std::cout << "parameter " << _scanner.TextAt(name->location()) << std::endl;
                 _current_statement.name = AsQualifiedName(*name, true);
             }
             break;
         default:
             break;
     }
+    return node_id;
 }
 
 /// Compute the dependencies
@@ -240,8 +240,7 @@ void ParserDriver::AddStatement(sx::Node node) {
     if (node.node_type() == sx::NodeType::NONE) {
         return;
     }
-    _current_statement.root = _nodes.size();
-    AddNode(node);
+    _current_statement.root = AddNode(node);
     _statements.push_back(std::move(_current_statement));
 }
 
