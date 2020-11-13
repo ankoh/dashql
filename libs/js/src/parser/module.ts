@@ -58,13 +58,27 @@ export class Node {
         this._node = node;
     }
 
+    /// Get the module
+    public get module() { return this._module; }
     /// Access the text
     public get text() { return this._module.text; }
     /// Get the module
     public get buffer() { return this._module.buffer; }
 
+    /// Get as boolean
+    public getBool(): boolean | null {
+        return (this._node.nodeType() != sx.NodeType.BOOL) ? null : (this._node.childrenBeginOrValue() != 0);
+    }
+    /// Get as number
+    public getNumber(): number | null {
+        return (this._node.nodeType() != sx.NodeType.UI32) ? null : this._node.childrenBeginOrValue();
+    }
+    /// Get a string
+    public getString(obj: sx.Location): string | null {
+        return (this._node.nodeType() != sx.NodeType.STRING) ? null : this._module.textAt(obj);
+    }
     /// Find an attribute
-    public findAttribute(key: sx.AttributeKey, obj: sx.Node): sx.Node {
+    public findAttribute(key: sx.AttributeKey, obj: sx.Node): sx.Node | null {
         const begin = this._node.childrenBeginOrValue();
         let count = this._node.childrenCount();
         let iter = begin;
@@ -78,19 +92,20 @@ export class Node {
                 count = step;
             }
         }
-        return this.buffer.nodes(iter, obj)!;
+        const node = this.buffer.nodes(iter, obj)!;
+        return (node.attributeKey() == key) ? node : null;
     }
-
-    /// Get a string
-    public getString(obj: sx.Location): string | null {
-        return (this._node.nodeType() != sx.NodeType.STRING) ? null : this._module.textAt(obj);
-    }
-    /// Get as number
-    public getNumber(): number | null {
-        return (this._node.nodeType() != sx.NodeType.UI32) ? null : this._node.childrenBeginOrValue();
-    }
-    /// Get as boolean
-    public getBool(): boolean | null {
-        return (this._node.nodeType() != sx.NodeType.BOOL) ? null : (this._node.childrenBeginOrValue() != 0);
+    /// Iterate over an array
+    public iterateArray(obj: sx.Node, fn: (idx: number, node: sx.Node) => void): number {
+        if (this._node.nodeType() != sx.NodeType.ARRAY) {
+            return 0;
+        }
+        const begin = this._node.childrenBeginOrValue();
+        const count = this._node.childrenCount();
+        for (let i = 0; i < count; ++i) {
+            const node = this.buffer.nodes(begin + i, obj)!;
+            fn(i, node);
+        }
+        return count;
     }
 }
