@@ -1,10 +1,12 @@
 #!/bin/bash
+# Copyright (c) 2020 The DashQL Authors
+
 set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
-CORE_SOURCE_DIR="${PROJECT_ROOT}/core"
-CORE_BUILD_DIR="${PROJECT_ROOT}/core/build/debug"
+CORE_SOURCE_DIR="${PROJECT_ROOT}/core/cpp"
+CORE_BUILD_DIR="${PROJECT_ROOT}/core/cpp/build/debug"
 
 [ -x "$(command -v cmake)" ] \
     && { echo "[ OK  ] Command: cmake"; } \
@@ -23,3 +25,4 @@ cmake \
     || { echo "[ ERR ] Configure project"; exit 1; }
 
 ln -s ${CORE_BUILD_DIR}/compile_commands.json ${CORE_SOURCE_DIR}/compile_commands.json
+

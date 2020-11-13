@@ -41,3 +41,4 @@ cmake \
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
 make -C ${FLATC_BUILD_DIR} -j${CORES} install
+

@@ -1,8 +1,0 @@
-/.ccls-cache
-/.emscripten_cache
-/reports
-/target
-
-# Miscellaneous
-.DS_Store
-.vscode
