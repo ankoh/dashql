@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DashQLParserModule } from './dashql_parser_module';
+import { DashQLParserModule } from './parser/dashql_parser_module';
 import { flatbuffers } from 'flatbuffers';
-import * as proto from '../proto';
+import * as proto from './proto';
 
 /// The proxy for either the browser- order node-based DashQLParser API
 export abstract class DashQLParserBindings {

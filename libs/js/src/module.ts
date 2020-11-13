@@ -1,5 +1,8 @@
+// Copyright (c) 2020 The DashQL Authors
+
 import { FlatBuffer } from './bindings';
-import { syntax as sx } from '../proto/';
+import { syntax as sx } from './proto/';
+import { DFSStack, Bitmap } from './utils';
 
 export class Module {
     /// The text buffer
@@ -31,13 +34,17 @@ export class Node {
     _node: sx.Node;
 
     /// Constructor
-    public constructor(module: Module, node: sx.Node) {
+    public constructor(module: Module, node: sx.Node = new sx.Node()) {
         this._module = module;
         this._node = node;
     }
 
     /// Get the module
     public get module() { return this._module; }
+    /// Get the node
+    public get node() { return this._node; }
+    /// Get the node
+    public set node(n: sx.Node) { this._node = n; }
     /// Get the text
     public get text() { return this._module.text; }
     /// Get the module
@@ -86,8 +93,6 @@ export class Node {
     }
 
     /// Iterate over children.
-    /// Valid for arrays and objects.
-    /// Does not check the node type!
     public iterateChildren(obj: sx.Node, fn: (idx: number, node: sx.Node) => void): number {
         const begin = this._node.childrenBeginOrValue();
         const count = this._node.childrenCount();
@@ -116,16 +121,75 @@ export class Statement {
     /// Get the module
     public get buffer() { return this._module.buffer; }
 
-    /// Traverse the module
-    public traverse(_fn: (node: Node) => void) {
-        let node = new sx.Node();
-        let pending: number[] = [];
+    /// Perform a pre-order DFS traversal
+    public traversePreOrder(fn: (node_id: number, node: Node) => void) {
+        // Prepare the DFS
+        const cap = this.buffer.nodesLength() / this.buffer.statementsLength();
+        const pending = new DFSStack(cap);
         pending.push(this._statement.root());
 
-        while (pending.length > 0) {
+        // We always pass the same objects to the function to spare us all the allocations.
+        // The function MUST NOT store the node elsewhere.
+        const current = new Node(this._module);
+
+        while (!pending.empty()) {
             const top = pending.pop();
-            
+            current.node = this.buffer.nodes(top, current.node)!;
+            const node = current.node;
+            const nodeType = current.nodeType;
+
+            // Call the function with the current node
+            fn(top, current);
+
+            // Discover children
+            if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_MIN) {
+                const begin = node.childrenBeginOrValue();
+                const count = node.childrenCount();
+                const end = begin + count;
+                for (let i = 0; i < count; ++i) {
+                    pending.push(end - i - 1);
+                }
+            }
         }
     }
 
+    /// Perform a post-order DFS traversal
+    public traversePostOrder(fn: (node_id: number, node: Node) => void) {
+        // Prepare the DFS
+        const cap = this.buffer.nodesLength() / this.buffer.statementsLength();
+        const pending = new DFSStack(cap);
+        pending.push(this._statement.root());
+
+        /// Use a compact bitmap to track visited nodes
+        const visited = new Bitmap(this.buffer.nodesLength());
+
+        // We always pass the same objects to the function to spare us all the allocations.
+        // The function MUST NOT store the node elsewhere.
+        const current = new Node(this._module);
+
+        while (!pending.empty()) {
+            const top = pending.top();
+            current.node = this.buffer.nodes(top, current.node)!;
+            const node = current.node;
+            const nodeType = current.nodeType;
+
+            // Visit post-order
+            if (visited.isSet(top)) {
+                fn(top, current);
+                pending.pop();
+                continue;
+            }
+            visited.set(top);
+
+            // Discover children
+            if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_MIN) {
+                const begin = node.childrenBeginOrValue();
+                const count = node.childrenCount();
+                const end = begin + count;
+                for (let i = 0; i < count; ++i) {
+                    pending.push(end - i - 1);
+                }
+            }
+        }
+    }
 }

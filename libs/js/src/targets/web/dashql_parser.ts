@@ -5,7 +5,7 @@ import dashql_parser_init from '../../parser/dashql_parser_web.js';
 import * as proto from '../../proto';
 
 import { DashQLParserModule } from '../../parser/dashql_parser_module';
-import { DashQLParserBindings, FlatBuffer, ModuleBuffer } from '../../parser/bindings';
+import { DashQLParserBindings, FlatBuffer, ModuleBuffer } from '../../bindings';
 
 export class DashQLParser extends DashQLParserBindings {
     protected path: string;
