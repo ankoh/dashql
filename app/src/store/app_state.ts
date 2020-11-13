@@ -1,5 +1,5 @@
 import * as Immutable from "immutable";
-import * as parser from "@dashql/parser";
+import * as core from "@dashql/core";
 import { TaskID, TaskInfo } from "./task";
 import { LaunchProgress } from "./launch_progress";
 import { LogEntry } from "./log";
@@ -18,7 +18,7 @@ export class AppState {
     /// The editor text
     public editorText: string;
     /// The current module
-    public editorModule: parser.FlatBuffer<parser.proto.syntax.Module> | null;
+    public editorModule: core.FlatBuffer<core.proto.syntax.Module> | null;
     // The focused viz
     public focusedViz: number | null;
 

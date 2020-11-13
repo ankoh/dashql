@@ -1,15 +1,15 @@
 import * as dashql_parser from '../';
 
-var parser: dashql_parser.DashQLParser;
+var core: dashql_parser.DashQLCore;
 
 beforeAll(async () => {
-    parser = await dashql_parser.DashQLParser.create();
+    core = await dashql_parser.DashQLCore.create();
 });
 
 describe('Parser', () => {
    describe('errors', () => {
        test('syntax error', async () => {
-           const result = await parser.parse("?");
+           const result = await core.parse("?");
            const module = result.root;
            expect(result.root.statementsLength()).toEqual(0);
            expect(result.root.errorsLength()).toEqual(1);
@@ -18,7 +18,7 @@ describe('Parser', () => {
 
    describe('single statements', () => {
        test('select 1', async () => {
-           const result = await parser.parse(`
+           const result = await core.parse(`
                select 1;
            `);
            const module = result.root;

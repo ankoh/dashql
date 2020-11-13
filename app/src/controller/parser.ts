@@ -1,11 +1,11 @@
-import { DashQLParser, ModuleBuffer } from '@dashql/parser';
-import dashql_parser_wasm from '@dashql/parser/dist/dashql_parser.wasm';
+import { DashQLCore, ModuleBuffer } from '@dashql/core';
+import dashql_core_wasm from '@dashql/core/dist/dashql_core.wasm';
 
 export class ParserController {
     parse: (input: string) => ModuleBuffer = () => new ModuleBuffer(new Uint8Array());
 
     async init() {
-        const parser = await DashQLParser.create(dashql_parser_wasm);
-        this.parse = parser.parse.bind(parser);
+        const core = await DashQLCore.create(dashql_core_wasm);
+        this.parse = core.parse.bind(core);
     }
 }

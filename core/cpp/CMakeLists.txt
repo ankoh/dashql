@@ -223,7 +223,7 @@ if (EMSCRIPTEN)
         -s USE_PTHREADS=0 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
-        -s EXPORT_NAME='DashQLParser' \
+        -s EXPORT_NAME='DashQLCore' \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
             _malloc, \

@@ -1,23 +1,23 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DashQLParserModule } from './wasm/dashql_core_module';
+import { DashQLCoreModule } from './wasm/dashql_core_module';
 import { flatbuffers } from 'flatbuffers';
 import * as proto from './proto';
 
-/// The proxy for either the browser- order node-based DashQLParser API
-export abstract class DashQLParserBindings {
+/// The proxy for either the browser- order node-based DashQLCore API
+export abstract class DashQLCoreBindings {
     /// The instance
-    private _instance: DashQLParserModule | null = null;
+    private _instance: DashQLCoreModule | null = null;
     /// The loading promise
     private _openPromise: Promise<void> | null = null;
     /// The resolver for the open promise (called by onRuntimeInitialized)
     private _openPromiseResolver: () => void = () => {};
 
     /// Instantiate the module
-    protected abstract instantiate(moduleOverrides: Partial<DashQLParserModule>): Promise<DashQLParserModule>;
+    protected abstract instantiate(moduleOverrides: Partial<DashQLCoreModule>): Promise<DashQLCoreModule>;
 
-    /// Init the parser
-    public static async init(derived: DashQLParserBindings) {
+    /// Init the module
+    public static async init(derived: DashQLCoreBindings) {
         // Already opened?
         if (derived._instance != null) {
             return;

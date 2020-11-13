@@ -1,4 +1,4 @@
-export interface DashQLParserModule extends EmscriptenModule {
+export interface DashQLCoreModule extends EmscriptenModule {
     stackSave: typeof stackSave;
     stackRestore: typeof stackRestore;
 

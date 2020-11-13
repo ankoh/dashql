@@ -53,7 +53,7 @@ function configure(params) {
                     }
                 },
                 {
-                    test: /@dashql.*\.wasm$/,
+                    test: /.*\.wasm$/,
                     type: 'javascript/auto',
                     loader: 'file-loader',
                     options: {
@@ -100,7 +100,7 @@ function configure(params) {
                 features: [],
                 filename: './static/workers/[name].worker.js'
             })
-        ],
+        ]
     };
 }
 

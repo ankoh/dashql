@@ -1,7 +1,7 @@
 import * as monaco from 'monaco-editor';
 import { AppReduxStore, AppStateMutations } from '../store';
 import { ParserController } from './parser';
-import * as parser from '@dashql/parser';
+import * as core from '@dashql/core';
 
 export class EditorController {
     /// The editor
@@ -41,7 +41,7 @@ export class EditorController {
     }
 
     /// Display module errors
-    protected displayErrors(module: parser.proto.syntax.Module): void {
+    protected displayErrors(module: core.proto.syntax.Module): void {
         const model = this._editor?.getModel();
         if (!model) {
             return;
@@ -71,7 +71,7 @@ export class EditorController {
         monaco.editor.setModelMarkers(model, 'DashQL', markers);
     }
 
-    public replace(location: parser.proto.syntax.Location, text: string | null) {
+    public replace(location: core.proto.syntax.Location, text: string | null) {
         /// Get monaco editor
         const editor = this._editor;
         if (!editor) {

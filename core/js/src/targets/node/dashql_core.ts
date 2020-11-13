@@ -4,10 +4,10 @@ import dashql_core_wasm from '../../wasm/dashql_core_node.wasm';
 import dashql_core_init from '../../wasm/dashql_core_node.js';
 import * as proto from '../../proto';
 
-import { DashQLParserModule } from '../../wasm/dashql_core_module';
-import { DashQLParserBindings, FlatBuffer, ModuleBuffer } from '../../bindings';
+import { DashQLCoreModule } from '../../wasm/dashql_core_module';
+import { DashQLCoreBindings, FlatBuffer, ModuleBuffer } from '../../bindings';
 
-export class DashQLParser extends DashQLParserBindings {
+export class DashQLCore extends DashQLCoreBindings {
     protected path: string;
 
     protected constructor(path: string | null = null) {
@@ -15,7 +15,7 @@ export class DashQLParser extends DashQLParserBindings {
         this.path = path ?? dashql_core_wasm;
     }
 
-    protected instantiate(moduleOverrides: Partial<DashQLParserModule>): Promise<DashQLParserModule> {
+    protected instantiate(moduleOverrides: Partial<DashQLCoreModule>): Promise<DashQLCoreModule> {
         return dashql_core_init({
             ...moduleOverrides,
             locateFile: (path: string) => {
@@ -26,10 +26,10 @@ export class DashQLParser extends DashQLParserBindings {
         });
     }
 
-    public static async create(path: string | null = null): Promise<DashQLParser> {
-        const parser = new DashQLParser(path);
-        await DashQLParserBindings.init(parser);
-        return parser;
+    public static async create(path: string | null = null): Promise<DashQLCore> {
+        const core = new DashQLCore(path);
+        await DashQLCoreBindings.init(core);
+        return core;
     }
 }
 
