@@ -47,14 +47,14 @@ NodeVector& operator<<(NodeVector& attrs, NodeVector&& other) {
 ScriptOptions::ScriptOptions() : global_namespace("global") {}
 
 /// Constructor
-Statement::Statement() : root(), name(), table_refs(), global_column_refs() {}
+Statement::Statement() : root(), name(), table_refs(), column_refs() {}
 
 /// Move constructor
 Statement::Statement(Statement&& other)
     : root(other.root),
       name(std::move(other.name)),
       table_refs(std::move(other.table_refs)),
-      global_column_refs(std::move(other.global_column_refs)) {
+      column_refs(std::move(other.column_refs)) {
     other.reset();
 }
 
@@ -63,7 +63,7 @@ Statement& Statement::operator=(Statement&& other) {
     root = other.root;
     name = move(other.name);
     table_refs = std::move(other.table_refs);
-    global_column_refs = std::move(other.global_column_refs);
+    column_refs = std::move(other.column_refs);
     other.reset();
     return *this;
 }
@@ -73,7 +73,7 @@ void Statement::reset() {
     root = std::numeric_limits<uint32_t>::max();
     name = {};
     table_refs = {};
-    global_column_refs = {};
+    column_refs = {};
 }
 
 /// Encode name
@@ -111,21 +111,29 @@ std::pair<const sx::Node*, size_t> ParserDriver::FindAttribute(const sx::Node& n
 }
 
 /// Get as string array
-QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node) {
-    if (node.node_type() != sx::NodeType::ARRAY)
-        return {};
-    auto begin = node.children_begin_or_value();
-    auto count = node.children_count();
-    auto end = begin + count;
-    unsigned next = 0;
+QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_global) {
     std::array<std::string_view, 2> rev;
-    for (auto i = 0; i < count && next < rev.size(); ++i) {
-        auto& value = _nodes[end - i - 1];
-        if (value.node_type() == sx::NodeType::STRING) {
-            rev[next++] = _scanner.TextAt(value.location());
+
+    // Is string?
+    if (node.node_type() == sx::NodeType::STRING) {
+        rev[0] = _scanner.TextAt(node.location());
+    }
+
+    // Is array?
+    else if (node.node_type() == sx::NodeType::ARRAY) {
+        auto begin = node.children_begin_or_value();
+        auto count = node.children_count();
+        auto end = begin + count;
+        unsigned next = 0;
+        for (auto i = 0; i < count && next < rev.size(); ++i) {
+            auto& value = _nodes[end - i - 1];
+            if (value.node_type() == sx::NodeType::STRING) {
+                rev[next++] = _scanner.TextAt(value.location());
+            }
         }
     }
-    if (rev[1].empty())
+
+    if (rev[1].empty() && lift_global)
         rev[1] = _options.global_namespace;
     return rev;
 }
@@ -136,34 +144,24 @@ void ParserDriver::AddNode(sx::Node node) {
     _nodes.push_back(node);
     switch (node.node_type()) {
         case sx::NodeType::OBJECT_SQL_TABLE_REF:
-            // Store the table ref directly
             _current_statement.table_refs.push_back(node_id);
             break;
 
-        case sx::NodeType::OBJECT_SQL_COLUMN_REF: {
-            // Find path attribute (if any)
-            if (auto [path, path_id] = FindAttribute(node, Key::SQL_COLUMN_REF_PATH); path) {
-                assert(path->node_type() == sx::NodeType::ARRAY);
-                assert(path->children_count() > 0);
-
-                // Does the path root refer to the global namespace?
-                auto root_id = path->children_begin_or_value();
-                auto& root = _nodes[root_id];
-                assert(root.node_type() == sx::NodeType::STRING);
-                auto root_text = _scanner.TextAt(root.location());
-                if (root_text == _options.global_namespace) {
-                    _current_statement.global_column_refs.push_back(root_id);
-                }
-            }
-        }
-
-        case sx::NodeType::OBJECT_SQL_INTO:
-            // Find path attribute (if any)
-            if (auto [name, name_id] = FindAttribute(node, Key::SQL_TEMP_NAME); name) {
-                _current_statement.name = AsQualifiedName(*name);
-            }
+        case sx::NodeType::OBJECT_SQL_COLUMN_REF:
+            _current_statement.column_refs.push_back(node_id);
             break;
 
+        case sx::NodeType::OBJECT_SQL_INTO:
+            if (auto [name, name_id] = FindAttribute(node, Key::SQL_TEMP_NAME); name) {
+                _current_statement.name = AsQualifiedName(*name, true);
+            }
+            break;
+        case sx::NodeType::OBJECT_DASHQL_PARAMTER:
+            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_PARAMETER_IDENTIFIER); name) {
+                std::cout << "parameter " << _scanner.TextAt(name->location()) << std::endl;
+                _current_statement.name = AsQualifiedName(*name, true);
+            }
+            break;
         default:
             break;
     }
@@ -181,15 +179,26 @@ void ParserDriver::ComputeDependencies() {
     // Build dependencies
     for (unsigned i = 0; i < _statements.size(); ++i) {
         auto& stmt = _statements[i];
+
+        // Resolve all table refs
         for (auto& ref_id: stmt.table_refs) {
             auto& ref = _nodes[ref_id];
             assert(ref.node_type() == sx::NodeType::OBJECT_SQL_TABLE_REF);
-
-            // Find name attribute (if any)
             if (auto [name, name_id] = FindAttribute(ref, Key::SQL_TABLE_NAME); name) {
-                auto [table, schema] = AsQualifiedName(*name);
-                if (auto iter = names.find({table, schema}); iter != names.end()) {
+                auto [table, schema] = AsQualifiedName(*name, true);
+                if (auto iter = names.find({table, schema}); iter != names.end() && iter->second != i) {
                     _dependencies.push_back(sx::Dependency(sx::DependencyType::TABLE_REF, iter->second, i, name_id));
+                }
+            }
+        }
+
+        // Resolve all column refs
+        for (auto& ref_id: stmt.column_refs) {
+            auto& ref = _nodes[ref_id];
+            if (auto [path, path_id] = FindAttribute(ref, Key::SQL_COLUMN_REF_PATH); path) {
+                auto [table, schema] = AsQualifiedName(*path, false);
+                if (auto iter = names.find({table, schema}); iter != names.end() && iter->second != i) {
+                    _dependencies.push_back(sx::Dependency(sx::DependencyType::COLUMN_REF, iter->second, i, path_id));
                 }
             }
         }
@@ -232,7 +241,7 @@ void ParserDriver::AddStatement(sx::Node node) {
         return;
     }
     _current_statement.root = _nodes.size();
-    _nodes.push_back(node);
+    AddNode(node);
     _statements.push_back(std::move(_current_statement));
 }
 

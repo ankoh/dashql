@@ -1264,55 +1264,6 @@ expected:
   comments: []
   dependencies: []
 ----
-name: select_column_ref
-input: select a from b where c = global.d + 1
-expected:
-  statements:
-    - root:
-        type: OBJECT_DASHQL_QUERY
-        location: 0..38|`select a f`..`obal.d + 1`
-        DASHQL_QUERY_STATEMENT:
-          type: OBJECT_SQL_SELECT
-          location: 0..38|`select a f`..`obal.d + 1`
-          SQL_SELECT_TARGETS:
-            - type: OBJECT_SQL_COLUMN_REF
-              location: 7..8|`a`
-              SQL_COLUMN_REF_PATH:
-                - 7..8|`a`
-          SQL_SELECT_FROM:
-            - type: OBJECT_SQL_TABLE_REF
-              location: 14..15|`b`
-              SQL_TABLE_NAME:
-                - 14..15|`b`
-              SQL_TABLE_INHERIT: true
-          SQL_SELECT_WHERE:
-            type: OBJECT_SQL_EXPRESSION
-            location: 22..38|`c = global.d + 1`
-            SQL_EXPRESSION_FUNCTION: EQUAL
-            SQL_EXPRESSION_ARG0:
-              type: OBJECT_SQL_COLUMN_REF
-              location: 22..23|`c`
-              SQL_COLUMN_REF_PATH:
-                - 22..23|`c`
-            SQL_EXPRESSION_ARG1:
-              type: OBJECT_SQL_EXPRESSION
-              location: 26..38|`global.d + 1`
-              SQL_EXPRESSION_FUNCTION: PLUS
-              SQL_EXPRESSION_ARG0:
-                type: OBJECT_SQL_COLUMN_REF
-                location: 26..34|`global.d`
-                SQL_COLUMN_REF_PATH:
-                  - 26..32|`global`
-                  - 33..34|`d`
-              SQL_EXPRESSION_ARG1:
-                type: OBJECT_SQL_ACONST
-                location: 37..38|`1`
-                SQL_ACONST_TYPE: INTEGER
-  errors: []
-  line_breaks: []
-  comments: []
-  dependencies: []
-----
 name: select_table_ref
 input: |-
   select 1 into b;
@@ -1361,3 +1312,88 @@ expected:
       source: 0
       target: 1
       target_node: 31..32|`b`
+----
+name: select_column_ref
+input: |-
+  declare parameter a type integer;
+  select 1 into b;
+  select c from b where c = global.a + 1
+expected:
+  statements:
+    - name: global.a
+      root:
+        type: OBJECT_DASHQL_PARAMTER
+        location: 0..32|`declare pa`..`pe integer`
+        DASHQL_PARAMETER_IDENTIFIER: 18..19|`a`
+        DASHQL_PARAMETER_TYPE: INTEGER
+    - name: global.b
+      root:
+        type: OBJECT_DASHQL_QUERY
+        location: 34..49|`select 1 into b`
+        DASHQL_QUERY_STATEMENT:
+          type: OBJECT_SQL_SELECT
+          location: 34..49|`select 1 into b`
+          SQL_SELECT_TARGETS:
+            - type: OBJECT_SQL_ACONST
+              location: 41..42|`1`
+              SQL_ACONST_TYPE: INTEGER
+          SQL_SELECT_INTO:
+            type: OBJECT_SQL_INTO
+            location: 48..49|`b`
+            SQL_TEMP_TYPE: DEFAULT
+            SQL_TEMP_NAME:
+              - 48..49|`b`
+    - root:
+        type: OBJECT_DASHQL_QUERY
+        location: 51..89|`select c f`..`obal.a + 1`
+        DASHQL_QUERY_STATEMENT:
+          type: OBJECT_SQL_SELECT
+          location: 51..89|`select c f`..`obal.a + 1`
+          SQL_SELECT_TARGETS:
+            - type: OBJECT_SQL_COLUMN_REF
+              location: 58..59|`c`
+              SQL_COLUMN_REF_PATH:
+                - 58..59|`c`
+          SQL_SELECT_FROM:
+            - type: OBJECT_SQL_TABLE_REF
+              location: 65..66|`b`
+              SQL_TABLE_NAME:
+                - 65..66|`b`
+              SQL_TABLE_INHERIT: true
+          SQL_SELECT_WHERE:
+            type: OBJECT_SQL_EXPRESSION
+            location: 73..89|`c = global.a + 1`
+            SQL_EXPRESSION_FUNCTION: EQUAL
+            SQL_EXPRESSION_ARG0:
+              type: OBJECT_SQL_COLUMN_REF
+              location: 73..74|`c`
+              SQL_COLUMN_REF_PATH:
+                - 73..74|`c`
+            SQL_EXPRESSION_ARG1:
+              type: OBJECT_SQL_EXPRESSION
+              location: 77..89|`global.a + 1`
+              SQL_EXPRESSION_FUNCTION: PLUS
+              SQL_EXPRESSION_ARG0:
+                type: OBJECT_SQL_COLUMN_REF
+                location: 77..85|`global.a`
+                SQL_COLUMN_REF_PATH:
+                  - 77..83|`global`
+                  - 84..85|`a`
+              SQL_EXPRESSION_ARG1:
+                type: OBJECT_SQL_ACONST
+                location: 88..89|`1`
+                SQL_ACONST_TYPE: INTEGER
+  errors: []
+  line_breaks:
+    - 33..34|`\n`
+    - 50..51|`\n`
+  comments: []
+  dependencies:
+    - type: TABLE_REF
+      source: 1
+      target: 2
+      target_node: 65..66|`b`
+    - type: COLUMN_REF
+      source: 0
+      target: 2
+      target_node: 77..85|`global.a`

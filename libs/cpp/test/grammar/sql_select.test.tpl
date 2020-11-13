@@ -182,11 +182,13 @@ name: select_a_orderby_b_c_directions_nulls
 input: |-
   select a order by b asc nulls first, c desc nulls last
 ----
-name: select_column_ref
-input: |-
-  select a from b where c = global.d + 1
-----
 name: select_table_ref
 input: |-
   select 1 into b;
   select 1 from b;
+----
+name: select_column_ref
+input: |-
+  declare parameter a type integer;
+  select 1 into b;
+  select c from b where c = global.a + 1

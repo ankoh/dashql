@@ -1,5 +1,5 @@
 dashql_identifier:
-    IDENTIFIER
+    sql_col_id
   | SCONST
     ;
 

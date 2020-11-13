@@ -59,7 +59,7 @@ struct Statement {
     /// The table refs
     std::vector<NodeID> table_refs;
     /// The global column refs
-    std::vector<NodeID> global_column_refs;
+    std::vector<NodeID> column_refs;
 
     /// Constructor
     Statement();
@@ -94,7 +94,7 @@ class ParserDriver {
     /// Find an attribute
     std::pair<const sx::Node*, size_t> FindAttribute(const sx::Node& node, Key attribute) const;
     /// Get a qualified name
-    QualifiedName AsQualifiedName(const sx::Node& node);
+    QualifiedName AsQualifiedName(const sx::Node& node, bool lift_global = false);
 
     /// Add a node
     void AddNode(sx::Node node);
