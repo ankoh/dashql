@@ -13,3 +13,6 @@
 [submodule "submodules/rapidyaml"]
 	path = submodules/rapidyaml
 	url = https://github.com/biojppm/rapidyaml
+[submodule "submodules/duckdb.wasm"]
+	path = submodules/duckdb.wasm
+	url = git@github.com:dashql/duckdb.wasm.git
