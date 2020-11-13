@@ -5,7 +5,7 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 FLATBUF_DIR="${PROJECT_ROOT}/submodules/flatbuffers"
-FLATC_BASE_DIR="${PROJECT_ROOT}/dev/flatc"
+FLATC_BASE_DIR="${PROJECT_ROOT}/scripts/flatc"
 FLATC_BUILD_DIR="${FLATC_BASE_DIR}/build"
 FLATC_INSTALL_DIR="${FLATC_BASE_DIR}/install"
 

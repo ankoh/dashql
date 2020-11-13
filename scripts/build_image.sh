@@ -11,9 +11,9 @@ DOCKER_IMAGE_TAG="0.2"
 set -x
 
 cd ${PROJECT_ROOT} && \
-    tar -cvf - ./dev/docker/dev/Dockerfile | docker build \
+    tar -cvf - ./scripts/Dockerfile | docker build \
         -t ${DOCKER_IMAGE_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
-        -f ./dev/docker/dev/Dockerfile \
+        -f ./scripts/Dockerfile \
         -
 
 

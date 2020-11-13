@@ -9,7 +9,7 @@ PROTO_DIR="${PROJECT_ROOT}/proto"
 CPP_PROTO_DIR="${PROJECT_ROOT}/core/cpp/include/dashql/proto"
 TS_PROTO_DIR="${PROJECT_ROOT}/core/js/src/proto"
 
-FLATC="${PROJECT_ROOT}/dev/flatc/install/bin/flatc"
+FLATC="${PROJECT_ROOT}/scripts/flatc/install/bin/flatc"
 
 TMP=$(mktemp -d)
 
