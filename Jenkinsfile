@@ -24,7 +24,7 @@ pipeline {
             }
         }
 
-        stage('Core/Native/Build') {
+        stage('Core/NA/Build') {
             steps {
                 sh 'cmake -S./core/cpp/ -B./core/cpp/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
                 sh 'ccache -s'
@@ -33,14 +33,14 @@ pipeline {
             }
         }
 
-        stage('Core/Native/Test') {
+        stage('Core/NA/Test') {
             steps {
                 sh './core/cpp/build/debug/grammar_tests ./core/cpp/test/grammar --gtest_output=xml:./reports/tests_cpp.xml'
             }
         }
 
 
-        stage('Core/WASM/Build') {
+        stage('Core/WA/Build') {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
