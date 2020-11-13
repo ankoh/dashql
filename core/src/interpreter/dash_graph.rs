@@ -1,4 +1,4 @@
-use super::dash_operations::DashOperation;
+use super::dash_operations::{DashOperation, DashOperations};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Default)]

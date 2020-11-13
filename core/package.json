@@ -1,0 +1,5 @@
+{
+    "scripts": {
+        "build": "npx wasm-pack build --out-dir build"
+    }
+}

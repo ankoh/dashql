@@ -5,3 +5,7 @@
 compile_commands.json
 
 /target
+
+# Miscellaneous
+.DS_Store
+.vscode
