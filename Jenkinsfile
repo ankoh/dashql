@@ -48,9 +48,9 @@ pipeline {
                 '''
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emmake make -C./core/cpp/build/emscripten -j$(nproc) dashql_parser_web dashql_parser_node
-                    cp ./core/cpp/build/emscripten/dashql_parser_web.{wasm,js} ./core/js/src/parser/
-                    cp ./core/cpp/build/emscripten/dashql_parser_node.{wasm,js} ./core/js/src/parser/
+                    emmake make -C./core/cpp/build/emscripten -j$(nproc) dashql_core_web dashql_core_node
+                    cp ./core/cpp/build/emscripten/dashql_core_web.{wasm,js} ./core/js/src/wasm/
+                    cp ./core/cpp/build/emscripten/dashql_core_node.{wasm,js} ./core/js/src/wasm/
                 '''
             }
         }
