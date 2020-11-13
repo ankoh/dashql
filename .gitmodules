@@ -15,4 +15,4 @@
 	url = https://github.com/biojppm/rapidyaml
 [submodule "submodules/duckdb.wasm"]
 	path = submodules/duckdb.wasm
-	url = https://github.com/dashql/duckdb.wasm
+	url = https://gitlab.dr3.dev/ankoh/duckdb.wasm
