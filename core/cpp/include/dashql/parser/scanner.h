@@ -6,9 +6,9 @@
 #include <string_view>
 #include <charconv>
 #include <optional>
-#include "dashql/parser/common/span.h"
+#include "dashql/common/span.h"
 #include "dashql/parser/parser.h"
-#include "dashql/parser/proto/syntax_generated.h"
+#include "dashql/proto/syntax_generated.h"
 
 namespace sx = dashql::proto::syntax;
 

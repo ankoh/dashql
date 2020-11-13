@@ -3,7 +3,7 @@
 #ifndef INCLUDE_DASHQL_PARSER_GRAMMAR_LOCATION_H_
 #define INCLUDE_DASHQL_PARSER_GRAMMAR_LOCATION_H_
 
-#include "dashql/parser/proto/syntax_generated.h"
+#include "dashql/proto/syntax_generated.h"
 #include <charconv>
 
 namespace dashql {

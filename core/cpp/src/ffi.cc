@@ -1,7 +1,7 @@
 #include <cstdint>
 
 #include "dashql/parser/parser_driver.h"
-#include "dashql/parser/proto/syntax_generated.h"
+#include "dashql/proto/syntax_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
 using namespace dashql::parser;

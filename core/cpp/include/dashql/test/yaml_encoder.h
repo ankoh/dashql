@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <string>
 
-#include "dashql/parser/proto/syntax_generated.h"
+#include "dashql/proto/syntax_generated.h"
 #include "ryml_std.hpp"
 #include "ryml.hpp"
 

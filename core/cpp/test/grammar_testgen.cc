@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/parser/common/span.h"
+#include "dashql/common/span.h"
 #include "dashql/parser/parser_driver.h"
-#include "dashql/parser/test/yaml_encoder.h"
+#include "dashql/test/yaml_encoder.h"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-internal.h"
 #include "flatbuffers/flatbuffers.h"

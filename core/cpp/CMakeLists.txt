@@ -83,42 +83,42 @@ include_directories(
 )
 
 # ---------------------------------------------------------------------------
-# Grammar
+# Parser
 
 set(GRAMMAR_OUT ${CMAKE_BINARY_DIR}/dashql.y)
-set(GRAMMAR_DELIMITER ${CMAKE_SOURCE_DIR}/src/grammar/delimiter.y)
-set(GRAMMAR_PROLOGUE ${CMAKE_SOURCE_DIR}/src/grammar/prologue.y)
-set(GRAMMAR_EPILOGUE ${CMAKE_SOURCE_DIR}/src/grammar/epilogue.y)
-set(GRAMMAR_PRECEDENCES ${CMAKE_SOURCE_DIR}/src/grammar/precedences.y)
+set(GRAMMAR_DELIMITER ${CMAKE_SOURCE_DIR}/src/parser/grammar/delimiter.y)
+set(GRAMMAR_PROLOGUE ${CMAKE_SOURCE_DIR}/src/parser/grammar/prologue.y)
+set(GRAMMAR_EPILOGUE ${CMAKE_SOURCE_DIR}/src/parser/grammar/epilogue.y)
+set(GRAMMAR_PRECEDENCES ${CMAKE_SOURCE_DIR}/src/parser/grammar/precedences.y)
 
 set(GRAMMAR_KEYWORDS
-    ${CMAKE_SOURCE_DIR}/src/grammar/keywords/dashql_keywords.list
-    ${CMAKE_SOURCE_DIR}/src/grammar/keywords/sql_column_name_keywords.list
-    ${CMAKE_SOURCE_DIR}/src/grammar/keywords/sql_reserved_keywords.list
-    ${CMAKE_SOURCE_DIR}/src/grammar/keywords/sql_type_func_keywords.list
-    ${CMAKE_SOURCE_DIR}/src/grammar/keywords/sql_unreserved_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords/dashql_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords/sql_column_name_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords/sql_reserved_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords/sql_type_func_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords/sql_unreserved_keywords.list
 )
 
 set(GRAMMAR_RULES
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_common.y
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_extract.y
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_load.y
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_param.y
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_query.y
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_statement.y
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_viz.y
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/sql_select.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_common.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_extract.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_param.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_query.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_statement.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_viz.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_select.y
 )
 
 set(GRAMMAR_TYPES
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_common.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_extract.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_load.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_param.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_query.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_statement.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_viz.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/sql_select.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_common.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_extract.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_param.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_query.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_statement.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_viz.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_select.yh
 )
 
 # Build grammar file
@@ -185,34 +185,30 @@ add_custom_command(
         ${GRAMMAR_OUT}
     COMMAND ${FLEX_EXECUTABLE}
         --outfile=${SCANNER_OUT}
-        ${CMAKE_SOURCE_DIR}/src/scanner.l
+        ${CMAKE_SOURCE_DIR}/src/parser/scanner.l
     DEPENDS
         ${GRAMMAR_OUT}
-        ${CMAKE_SOURCE_DIR}/src/scanner.l
+        ${CMAKE_SOURCE_DIR}/src/parser/scanner.l
 )
-
-# ---------------------------------------------------------------------------
-# Library
 
 add_library(dashql_parser
     ${SCANNER_OUT}
     ${PARSER_OUT}
-    ${CMAKE_SOURCE_DIR}/src/keywords.cc
-    ${CMAKE_SOURCE_DIR}/src/parser_driver.cc
-    ${CMAKE_SOURCE_DIR}/src/scanner.cc
+    ${CMAKE_SOURCE_DIR}/src/parser/keywords.cc
+    ${CMAKE_SOURCE_DIR}/src/parser/parser_driver.cc
+    ${CMAKE_SOURCE_DIR}/src/parser/scanner.cc
 )
 
-target_link_libraries(dashql_parser
-    rapidjson
-    flatbuffers
-    ${THREAD_LIB}
-)
+target_link_libraries(dashql_parser flatbuffers)
 
-add_library(dashql_parser_test
+# ---------------------------------------------------------------------------
+# Library
+
+add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/yaml_encoder.cc
 )
 
-target_link_libraries(dashql_parser_test
+target_link_libraries(dashql_test
     dashql_parser
     ryml ryml_c4core
     flatbuffers
@@ -239,16 +235,16 @@ if (EMSCRIPTEN)
         "
     )
 
-    add_executable(dashql_parser_web ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(dashql_parser_web dashql_parser)
-    set_target_properties(dashql_parser_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
+    add_executable(dashql_web ${CMAKE_SOURCE_DIR}/src/ffi.cc)
+    target_link_libraries(dashql_web dashql_parser)
+    set_target_properties(dashql_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 
-    add_executable(dashql_parser_node ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(dashql_parser_node dashql_parser)
-    set_target_properties(dashql_parser_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
+    add_executable(dashql_node ${CMAKE_SOURCE_DIR}/src/ffi.cc)
+    target_link_libraries(dashql_node dashql_parser)
+    set_target_properties(dashql_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
-    add_library(dashql_parser_ffi ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(dashql_parser_ffi dashql_parser)
+    add_library(dashql_ffi ${CMAKE_SOURCE_DIR}/src/ffi.cc)
+    target_link_libraries(dashql_ffi dashql_parser)
 
 endif()
 
@@ -263,7 +259,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(grammar_tests
         dashql_parser
-        dashql_parser_test
+        dashql_test
         flatbuffers gtest gmock
         ${THREAD_LIB})
 
@@ -272,7 +268,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(grammar_testgen
         dashql_parser
-        dashql_parser_test
+        dashql_test
         flatbuffers gtest gmock
         ${THREAD_LIB})
 
