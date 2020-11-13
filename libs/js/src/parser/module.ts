@@ -85,11 +85,10 @@ export class Node {
         return (node.attributeKey() == key) ? node : null;
     }
 
-    /// Iterate over an array (if the node is an array)
-    public iterateArray(obj: sx.Node, fn: (idx: number, node: sx.Node) => void): number {
-        if (this._node.nodeType() != sx.NodeType.ARRAY) {
-            return 0;
-        }
+    /// Iterate over children.
+    /// Valid for arrays and objects.
+    /// Does not check the node type!
+    public iterateChildren(obj: sx.Node, fn: (idx: number, node: sx.Node) => void): number {
         const begin = this._node.childrenBeginOrValue();
         const count = this._node.childrenCount();
         for (let i = 0; i < count; ++i) {
@@ -119,5 +118,14 @@ export class Statement {
 
     /// Traverse the module
     public traverse(_fn: (node: Node) => void) {
+        let node = new sx.Node();
+        let pending: number[] = [];
+        pending.push(this._statement.root());
+
+        while (pending.length > 0) {
+            const top = pending.pop();
+            
+        }
     }
+
 }
