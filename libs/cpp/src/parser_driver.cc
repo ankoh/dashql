@@ -1,6 +1,5 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/parser/common/hash.h"
 #include "dashql/parser/parser_driver.h"
 
 #include <iostream>
@@ -9,6 +8,7 @@
 #include <unordered_set>
 
 #include "dashql/parser/common/error.h"
+#include "dashql/parser/common/hash.h"
 #include "dashql/parser/common/variant.h"
 #include "dashql/parser/grammar/nodes.h"
 #include "dashql/parser/parser.h"
@@ -27,7 +27,8 @@ std::ostream& operator<<(std::ostream& out, const Location& loc) {
 
 /// Syntactic sugar to set the key of a node
 sx::Node operator<<(sx::AttributeKey key, const sx::Node& node) {
-    return sx::Node(node.location(), node.node_type(), key, node.children_begin_or_value(), node.children_count());
+    return sx::Node(node.location(), node.node_type(), key, node.parent(), node.children_begin_or_value(),
+                    node.children_count());
 }
 
 /// Syntactic sugar concatenate vectors
@@ -133,8 +134,7 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_glob
         }
     }
 
-    if (rev[1].empty() && lift_global)
-        rev[1] = _options.global_namespace;
+    if (rev[1].empty() && lift_global) rev[1] = _options.global_namespace;
     return rev;
 }
 
@@ -142,6 +142,20 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_glob
 NodeID ParserDriver::AddNode(sx::Node node) {
     auto node_id = _nodes.size();
     _nodes.push_back(node);
+
+    // Set parent reference
+    if (node.node_type() == sx::NodeType::ARRAY ||
+        static_cast<uint16_t>(node.node_type()) > static_cast<uint16_t>(sx::NodeType::OBJECT_MIN)) {
+        auto begin = node.children_begin_or_value();
+        auto end = begin + node.children_count();
+        for (auto i = begin; i < end; ++i) {
+            auto& n = _nodes[i];
+            n = sx::Node(n.location(), n.node_type(), n.attribute_key(), node_id, n.children_begin_or_value(),
+                         n.children_count());
+        }
+    }
+
+    // Track dependencies
     switch (node.node_type()) {
         case sx::NodeType::OBJECT_SQL_TABLE_REF:
             _current_statement.table_refs.push_back(node_id);
@@ -181,7 +195,7 @@ void ParserDriver::ComputeDependencies() {
         auto& stmt = _statements[i];
 
         // Resolve all table refs
-        for (auto& ref_id: stmt.table_refs) {
+        for (auto& ref_id : stmt.table_refs) {
             auto& ref = _nodes[ref_id];
             assert(ref.node_type() == sx::NodeType::OBJECT_SQL_TABLE_REF);
             if (auto [name, name_id] = FindAttribute(ref, Key::SQL_TABLE_NAME); name) {
@@ -193,7 +207,7 @@ void ParserDriver::ComputeDependencies() {
         }
 
         // Resolve all column refs
-        for (auto& ref_id: stmt.column_refs) {
+        for (auto& ref_id : stmt.column_refs) {
             auto& ref = _nodes[ref_id];
             if (auto [path, path_id] = FindAttribute(ref, Key::SQL_COLUMN_REF_PATH); path) {
                 auto [table, schema] = AsQualifiedName(*path, false);
@@ -217,7 +231,7 @@ sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_e
     if ((n == 0) && null_if_empty) {
         return Null();
     }
-    return sx::Node(loc, sx::NodeType::ARRAY, sx::AttributeKey::NONE, begin, n);
+    return sx::Node(loc, sx::NodeType::ARRAY, sx::AttributeKey::NONE, NO_PARENT, begin, n);
 }
 
 /// Add an object
@@ -235,7 +249,7 @@ sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& att
     if ((n == 0) && null_if_empty) {
         return Null();
     }
-    return sx::Node(loc, type, sx::AttributeKey::NONE, begin, n);
+    return sx::Node(loc, type, sx::AttributeKey::NONE, NO_PARENT, begin, n);
 }
 
 /// Add a statement
@@ -253,7 +267,7 @@ void ParserDriver::AddError(sx::Location loc, const std::string& message) { _err
 /// Write the module
 fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
     std::vector<fb::Offset<sx::Statement>> statements;
-    for (auto& stmt: _statements) {
+    for (auto& stmt : _statements) {
         auto stmt_loc = _nodes[stmt.root].location();
         std::optional<fb::Offset<fb::String>> name;
         if (!stmt.name[0].empty()) {

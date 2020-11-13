@@ -690,6 +690,7 @@ pub struct Node {
   pub location_: Location,
   pub node_type_: NodeType,
   pub attribute_key_: AttributeKey,
+  pub parent_: u32,
   pub children_begin_or_value_: u32,
   pub children_count_: u32,
 } // pub struct Node
@@ -732,11 +733,12 @@ impl<'b> flatbuffers::Push for &'b Node {
 
 
 impl Node {
-  pub fn new(_location: &Location, _node_type: NodeType, _attribute_key: AttributeKey, _children_begin_or_value: u32, _children_count: u32) -> Self {
+  pub fn new(_location: &Location, _node_type: NodeType, _attribute_key: AttributeKey, _parent: u32, _children_begin_or_value: u32, _children_count: u32) -> Self {
     Node {
       location_: *_location,
       node_type_: _node_type.to_little_endian(),
       attribute_key_: _attribute_key.to_little_endian(),
+      parent_: _parent.to_little_endian(),
       children_begin_or_value_: _children_begin_or_value.to_little_endian(),
       children_count_: _children_count.to_little_endian(),
 
@@ -754,6 +756,9 @@ impl Node {
   }
   pub fn attribute_key(&self) -> AttributeKey {
     self.attribute_key_.from_little_endian()
+  }
+  pub fn parent(&self) -> u32 {
+    self.parent_.from_little_endian()
   }
   pub fn children_begin_or_value(&self) -> u32 {
     self.children_begin_or_value_.from_little_endian()

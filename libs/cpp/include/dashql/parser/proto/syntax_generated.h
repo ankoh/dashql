@@ -593,6 +593,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Node FLATBUFFERS_FINAL_CLASS {
   dashql::proto::syntax::Location location_;
   uint16_t node_type_;
   uint16_t attribute_key_;
+  uint32_t parent_;
   uint32_t children_begin_or_value_;
   uint32_t children_count_;
 
@@ -607,13 +608,15 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Node FLATBUFFERS_FINAL_CLASS {
       : location_(),
         node_type_(0),
         attribute_key_(0),
+        parent_(0),
         children_begin_or_value_(0),
         children_count_(0) {
   }
-  Node(const dashql::proto::syntax::Location &_location, dashql::proto::syntax::NodeType _node_type, dashql::proto::syntax::AttributeKey _attribute_key, uint32_t _children_begin_or_value, uint32_t _children_count)
+  Node(const dashql::proto::syntax::Location &_location, dashql::proto::syntax::NodeType _node_type, dashql::proto::syntax::AttributeKey _attribute_key, uint32_t _parent, uint32_t _children_begin_or_value, uint32_t _children_count)
       : location_(_location),
         node_type_(flatbuffers::EndianScalar(static_cast<uint16_t>(_node_type))),
         attribute_key_(flatbuffers::EndianScalar(static_cast<uint16_t>(_attribute_key))),
+        parent_(flatbuffers::EndianScalar(_parent)),
         children_begin_or_value_(flatbuffers::EndianScalar(_children_begin_or_value)),
         children_count_(flatbuffers::EndianScalar(_children_count)) {
   }
@@ -626,6 +629,9 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Node FLATBUFFERS_FINAL_CLASS {
   dashql::proto::syntax::AttributeKey attribute_key() const {
     return static_cast<dashql::proto::syntax::AttributeKey>(flatbuffers::EndianScalar(attribute_key_));
   }
+  uint32_t parent() const {
+    return flatbuffers::EndianScalar(parent_);
+  }
   uint32_t children_begin_or_value() const {
     return flatbuffers::EndianScalar(children_begin_or_value_);
   }
@@ -633,13 +639,14 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Node FLATBUFFERS_FINAL_CLASS {
     return flatbuffers::EndianScalar(children_count_);
   }
 };
-FLATBUFFERS_STRUCT_END(Node, 20);
+FLATBUFFERS_STRUCT_END(Node, 24);
 
 inline bool operator==(const Node &lhs, const Node &rhs) {
   return
       (lhs.location() == rhs.location()) &&
       (lhs.node_type() == rhs.node_type()) &&
       (lhs.attribute_key() == rhs.attribute_key()) &&
+      (lhs.parent() == rhs.parent()) &&
       (lhs.children_begin_or_value() == rhs.children_begin_or_value()) &&
       (lhs.children_count() == rhs.children_count());
 }
@@ -1517,6 +1524,7 @@ inline const flatbuffers::TypeTable *NodeTypeTable() {
     { flatbuffers::ET_USHORT, 0, 1 },
     { flatbuffers::ET_USHORT, 0, 2 },
     { flatbuffers::ET_UINT, 0, -1 },
+    { flatbuffers::ET_UINT, 0, -1 },
     { flatbuffers::ET_UINT, 0, -1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1524,16 +1532,17 @@ inline const flatbuffers::TypeTable *NodeTypeTable() {
     dashql::proto::syntax::NodeTypeTypeTable,
     dashql::proto::syntax::AttributeKeyTypeTable
   };
-  static const int64_t values[] = { 0, 8, 10, 12, 16, 20 };
+  static const int64_t values[] = { 0, 8, 10, 12, 16, 20, 24 };
   static const char * const names[] = {
     "location",
     "node_type",
     "attribute_key",
+    "parent",
     "children_begin_or_value",
     "children_count"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_STRUCT, 5, type_codes, type_refs, nullptr, values, names
+    flatbuffers::ST_STRUCT, 6, type_codes, type_refs, nullptr, values, names
   };
   return &tt;
 }

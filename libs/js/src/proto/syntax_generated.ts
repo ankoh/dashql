@@ -266,22 +266,29 @@ attributeKey():dashql.proto.syntax.AttributeKey {
 /**
  * @returns number
  */
-childrenBeginOrValue():number {
+parent():number {
   return this.bb!.readUint32(this.bb_pos + 12);
 };
 
 /**
  * @returns number
  */
-childrenCount():number {
+childrenBeginOrValue():number {
   return this.bb!.readUint32(this.bb_pos + 16);
 };
 
 /**
  * @returns number
  */
+childrenCount():number {
+  return this.bb!.readUint32(this.bb_pos + 20);
+};
+
+/**
+ * @returns number
+ */
 static sizeOf():number {
-  return 20;
+  return 24;
 }
 
 /**
@@ -290,14 +297,16 @@ static sizeOf():number {
  * @param number location_length
  * @param dashql.proto.syntax.NodeType node_type
  * @param dashql.proto.syntax.AttributeKey attribute_key
+ * @param number parent
  * @param number children_begin_or_value
  * @param number children_count
  * @returns flatbuffers.Offset
  */
-static createNode(builder:flatbuffers.Builder, location_offset: number, location_length: number, node_type: dashql.proto.syntax.NodeType, attribute_key: dashql.proto.syntax.AttributeKey, children_begin_or_value: number, children_count: number):flatbuffers.Offset {
-  builder.prep(4, 20);
+static createNode(builder:flatbuffers.Builder, location_offset: number, location_length: number, node_type: dashql.proto.syntax.NodeType, attribute_key: dashql.proto.syntax.AttributeKey, parent: number, children_begin_or_value: number, children_count: number):flatbuffers.Offset {
+  builder.prep(4, 24);
   builder.writeInt32(children_count);
   builder.writeInt32(children_begin_or_value);
+  builder.writeInt32(parent);
   builder.writeInt16(attribute_key);
   builder.writeInt16(node_type);
   builder.prep(4, 8);
@@ -622,7 +631,7 @@ static getSizePrefixedRootAsModule(bb:flatbuffers.ByteBuffer, obj?:Module):Modul
  */
 nodes(index: number, obj?:dashql.proto.syntax.Node):dashql.proto.syntax.Node|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? (obj || new dashql.proto.syntax.Node()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 20, this.bb!) : null;
+  return offset ? (obj || new dashql.proto.syntax.Node()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 24, this.bb!) : null;
 };
 
 /**
@@ -743,7 +752,7 @@ static addNodes(builder:flatbuffers.Builder, nodesOffset:flatbuffers.Offset) {
  * @param number numElems
  */
 static startNodesVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(20, numElems, 4);
+  builder.startVector(24, numElems, 4);
 };
 
 /**

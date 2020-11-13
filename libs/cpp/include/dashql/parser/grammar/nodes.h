@@ -12,13 +12,13 @@ namespace dashql {
 namespace parser {
 
 /// Create a null node
-inline sx::Node Null() { return sx::Node(sx::Location(), sx::NodeType::NONE, Key::NONE, 0, 0); }
+inline sx::Node Null() { return sx::Node(sx::Location(), sx::NodeType::NONE, Key::NONE, NO_PARENT, 0, 0); }
 /// Create a string node
-inline sx::Node String(sx::Location loc) { return sx::Node(loc, sx::NodeType::STRING, Key::NONE, 0, 0); }
+inline sx::Node String(sx::Location loc) { return sx::Node(loc, sx::NodeType::STRING, Key::NONE, NO_PARENT, 0, 0); }
 /// Create a ui32 node
-inline sx::Node UI32(sx::Location loc, uint32_t value) { return sx::Node(loc, sx::NodeType::UI32, Key::NONE, value, 0); }
+inline sx::Node UI32(sx::Location loc, uint32_t value) { return sx::Node(loc, sx::NodeType::UI32, Key::NONE, NO_PARENT, value, 0); }
 /// Create a bool node
-inline sx::Node Bool(sx::Location loc, bool v) { return sx::Node(loc, sx::NodeType::BOOL, Key::NONE, static_cast<uint32_t>(v), 0); }
+inline sx::Node Bool(sx::Location loc, bool v) { return sx::Node(loc, sx::NodeType::BOOL, Key::NONE, NO_PARENT, static_cast<uint32_t>(v), 0); }
 
 /// Create a constant inline
 inline sx::Node Const(ParserDriver& driver, sx::Location loc, sxs::AConstType type) {
