@@ -65,6 +65,15 @@ export class Node {
     /// Get the module
     public get buffer() { return this._module.buffer; }
 
+    /// Assume boolean value
+    public assumeBool(): boolean { return this._node.childrenBeginOrValue() != 0; }
+    /// Assume number value
+    public assumeNumber(): number { return this._node.childrenBeginOrValue(); }
+    /// Assume number value
+    public assumeString(obj: sx.Location): string {
+        const loc = this._node.location(obj)!;
+        return this._module.textAt(loc);
+    }
     /// Get as boolean
     public getBool(): boolean | null {
         return (this._node.nodeType() != sx.NodeType.BOOL) ? null : (this._node.childrenBeginOrValue() != 0);
@@ -75,7 +84,8 @@ export class Node {
     }
     /// Get a string
     public getString(obj: sx.Location): string | null {
-        return (this._node.nodeType() != sx.NodeType.STRING) ? null : this._module.textAt(obj);
+        const loc = this._node.location(obj)!;
+        return (this._node.nodeType() != sx.NodeType.STRING) ? null : this._module.textAt(loc);
     }
     /// Find an attribute
     public findAttribute(key: sx.AttributeKey, obj: sx.Node): sx.Node | null {
@@ -95,7 +105,7 @@ export class Node {
         const node = this.buffer.nodes(iter, obj)!;
         return (node.attributeKey() == key) ? node : null;
     }
-    /// Iterate over an array
+    /// Iterate over an array (if the node is an array)
     public iterateArray(obj: sx.Node, fn: (idx: number, node: sx.Node) => void): number {
         if (this._node.nodeType() != sx.NodeType.ARRAY) {
             return 0;
