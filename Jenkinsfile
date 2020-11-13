@@ -20,44 +20,44 @@ pipeline {
             steps {
                 sh 'chown -R "$USER" /mnt/npm_cache /mnt/emscripten_cache'
                 sh 'git submodule update --init --recursive'
-                sh 'mkdir -p ./libs/cpp/build/emscripten ./reports'
+                sh 'mkdir -p ./core/cpp/build/emscripten ./reports'
             }
         }
 
-        stage('CPP/Build') {
+        stage('Core/Native/Build') {
             steps {
-                sh 'cmake -S./libs/cpp/ -B./libs/cpp/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
+                sh 'cmake -S./core/cpp/ -B./core/cpp/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
                 sh 'ccache -s'
-                sh 'make -C./libs/cpp/build/debug -j$(nproc)'
+                sh 'make -C./core/cpp/build/debug -j$(nproc)'
                 sh 'ccache -s'
             }
         }
 
-        stage('CPP/Test') {
+        stage('Core/Native/Test') {
             steps {
-                sh './libs/cpp/build/debug/grammar_tests ./libs/cpp/test/grammar --gtest_output=xml:./reports/tests_cpp.xml'
+                sh './core/cpp/build/debug/grammar_tests ./core/cpp/test/grammar --gtest_output=xml:./reports/tests_cpp.xml'
             }
         }
 
 
-        stage('WASM/Build') {
+        stage('Core/WASM/Build') {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emcmake cmake -S./libs/cpp/ -B./libs/cpp/build/emscripten -DCMAKE_BUILD_TYPE=Release
+                    emcmake cmake -S./core/cpp/ -B./core/cpp/build/emscripten -DCMAKE_BUILD_TYPE=Release
                 '''
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emmake make -C./libs/cpp/build/emscripten -j$(nproc) dashql_parser_web dashql_parser_node
-                    cp ./libs/cpp/build/emscripten/dashql_parser_web.{wasm,js} ./libs/js/src/parser/
-                    cp ./libs/cpp/build/emscripten/dashql_parser_node.{wasm,js} ./libs/js/src/parser/
+                    emmake make -C./core/cpp/build/emscripten -j$(nproc) dashql_parser_web dashql_parser_node
+                    cp ./core/cpp/build/emscripten/dashql_parser_web.{wasm,js} ./core/js/src/parser/
+                    cp ./core/cpp/build/emscripten/dashql_parser_node.{wasm,js} ./core/js/src/parser/
                 '''
             }
         }
 
-        stage ('JS/Build') {
+        stage ('Core/JS/Build') {
             steps {
-                dir('./libs/js') {
+                dir('./core/js') {
                     sh '''#!/bin/bash
                         source /opt/env.sh
                         nvm use default
@@ -68,9 +68,9 @@ pipeline {
             }
         }
 
-        stage ('JS/Test') {
+        stage ('Core/JS/Test') {
             steps {
-                dir('./libs/js') {
+                dir('./core/js') {
                     sh '''#!/bin/bash
                         source /opt/env.sh
                         nvm use default
