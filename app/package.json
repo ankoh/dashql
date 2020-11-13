@@ -16,7 +16,7 @@
     },
     "dependencies": {
         "@dashql/duckdb": "0.0.8",
-        "@dashql/parser": "0.0.16",
+        "@dashql/parser": "0.0.18",
         "classnames": "^2.2.6",
         "dagre": "^0.8.5",
         "idb": "^5.0.7",
