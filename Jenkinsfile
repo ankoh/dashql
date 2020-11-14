@@ -62,8 +62,8 @@ pipeline {
                     emmake make -C./core/cpp/build/emscripten -j$(nproc) dashql_core_web dashql_core_node duckdb_web duckdb_node
                     cp ./core/cpp/build/emscripten/dashql_core_web.{wasm,js} ./core/js/src/wasm/
                     cp ./core/cpp/build/emscripten/dashql_core_node.{wasm,js} ./core/js/src/wasm/
-                    cp ./core/cpp/build/emscripten/duckdb_web.{wasm,js,worker.js} ./duckdb/js/src/wasm/
-                    cp ./core/cpp/build/emscripten/duckdb_node.{wasm,js,worker.js} ./duckdb/js/src/wasm/
+                    cp ./core/cpp/build/emscripten/duckdb/duckdb_web.{wasm,js,worker.js} ./duckdb/js/src/wasm/
+                    cp ./core/cpp/build/emscripten/duckdb/duckdb_node.{wasm,js,worker.js} ./duckdb/js/src/wasm/
                 '''
             }
         }
