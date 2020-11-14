@@ -131,6 +131,19 @@ pipeline {
                 }
             }
         }
+
+        stage('App/Build') {
+            steps {
+                dir('./app') {
+                    sh '''#!/bin/bash
+                        source /opt/env.sh
+                        nvm use default
+                        npm ci --cache ${NPM_CACHE}
+                        npm run build:release
+                    '''
+                }
+            }
+        }
     }
 
     post {
