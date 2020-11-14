@@ -1,0 +1,6 @@
+/duckdb_web.js
+/duckdb_web.wasm
+/duckdb_web.worker.js
+/duckdb_node.js
+/duckdb_node.wasm
+/duckdb_node.worker.js

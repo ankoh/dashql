@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import duckdb_api_wasm from '../../duckdb/duckdb_nodeapi.wasm';
-import duckdb_api_init from '../../duckdb/duckdb_nodeapi.js';
-import { DuckDBModule } from '../../duckdb/duckdb_module';
+import duckdb_api_wasm from '../../wasm/duckdb_node.wasm';
+import duckdb_api_init from '../../wasm/duckdb_node.js';
+import { DuckDBModule } from '../../wasm/duckdb_module';
 import * as webapi from '../../webapi';
 
 export class DuckDB extends webapi.DuckDBBindings {
@@ -15,7 +15,7 @@ export class DuckDB extends webapi.DuckDBBindings {
         return duckdb_api_init({
             ...moduleOverrides,
             locateFile: (path: string) => {
-                if (path.endsWith('duckdb_nodeapi.wasm'))
+                if (path.endsWith('duckdb_node.wasm'))
                     return this.path;
                 return path;
             }

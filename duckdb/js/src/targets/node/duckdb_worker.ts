@@ -1,12 +1,12 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DuckDB as initDuckDB } from '../../duckdb/duckdb_nodeapi.js';
+import { DuckDB as initDuckDB } from '../../wasm/duckdb_node.js';
 
 export function DuckDB(moduleOverrides: Partial<EmscriptenModule>): any {
     return initDuckDB({
         ...moduleOverrides,
         locateFile: (path: string) => {
-            if (path.endsWith('duckdb_nodeapi.wasm')) {
+            if (path.endsWith('duckdb_node.wasm')) {
                 console.error("tried to locate webassembly module in worker");
                 return path;
             }
@@ -16,4 +16,4 @@ export function DuckDB(moduleOverrides: Partial<EmscriptenModule>): any {
 }
 (window as any).DuckDB = DuckDB;
 
-import '../../duckdb/duckdb_nodeapi.worker.js';
+import '../../wasm/duckdb_node.worker.js';
