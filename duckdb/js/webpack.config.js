@@ -32,7 +32,7 @@ const browserTarget = {
                 ]
             },
             {
-                test: /duckdb_(webapi|nodeapi)\.wasm$/,
+                test: /duckdb_(web|node)\.wasm$/,
                 type: 'javascript/auto',
                 loader: 'file-loader',
                 options: {

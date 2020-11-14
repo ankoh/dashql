@@ -8,7 +8,8 @@ PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 IMAGE_TAG="0.2"
 CPP_BUILD_DIR="${PROJECT_ROOT}/core/cpp/build/emscripten"
 CPP_SOURCE_DIR="${PROJECT_ROOT}/core/cpp"
-JS_LIB_DIR="${PROJECT_ROOT}/core/js/src/wasm"
+CORE_JS_LIB_DIR="${PROJECT_ROOT}/core/js/src/wasm"
+DUCKDB_JS_LIB_DIR="${PROJECT_ROOT}/duckdb/js/src/wasm"
 
 CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/mnt/emscripten_cache/ dashql/dashql-dev:${IMAGE_TAG} "
 EMCONFIGURE="${CMD_PREFIX} emcmake"
@@ -30,7 +31,6 @@ ${EMMAKE} make \
     -j${CORES} \
     dashql_core_web dashql_core_node duckdb_web duckdb_node
 
-mkdir -p "${JS_LIB_DIR}"
-
-cp ${CPP_SOURCE_DIR}/build/emscripten/dashql_*.{wasm,js} "${JS_LIB_DIR}"
+cp ${CPP_SOURCE_DIR}/build/emscripten/dashql_*.{wasm,js} "${CORE_JS_LIB_DIR}"
+cp ${CPP_SOURCE_DIR}/build/emscripten/duckdb/duckdb_*.{wasm,js} "${DUCKDB_JS_LIB_DIR}"
 

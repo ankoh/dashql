@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import duckdb_api_wasm from '../../duckdb/duckdb_webapi.wasm';
-import duckdb_api_init from '../../duckdb/duckdb_webapi.js';
-import { DuckDBModule } from '../../duckdb/duckdb_module';
+import duckdb_api_wasm from '../../wasm/duckdb_web.wasm';
+import duckdb_api_init from '../../wasm/duckdb_web.js';
+import { DuckDBModule } from '../../wasm/duckdb_module';
 import * as webapi from '../../webapi';
 
 export class DuckDB extends webapi.DuckDBBindings {
