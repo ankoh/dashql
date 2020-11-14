@@ -1,5 +1,7 @@
 # Copyright (c) 2020 The DashQL Authors
 
+# ---------------------------------------------------------------------------
+
 # Use project versions
 # cmake --help-policy CMP0048
 if (POLICY CMP0048)
@@ -18,6 +20,7 @@ if (WITH_ASAN)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
 endif ()
 
+# DuckDB makes heavy use of exceptions so there's no way around that
 if (EMSCRIPTEN)
     add_compile_options(-s DISABLE_EXCEPTION_CATCHING=0 -fexceptions)
 endif ()
@@ -262,18 +265,3 @@ if(NOT EMSCRIPTEN)
         ${THREAD_LIB})
 
 endif()
-
-# ---------------------------------------------------------------------------
-# # Benchmarks
-# 
-# if(NOT EMSCRIPTEN)
-# 
-#     add_executable(bm_result_codec
-#         ${CMAKE_SOURCE_DIR}/bench/bm_result_codec.cc
-#     )
-#     target_link_libraries(bm_result_codec
-#         duckdb_webapi_core
-#         benchmark
-#         flatbuffers gtest gmock Threads::Threads)
-# 
-# endif()
