@@ -1,0 +1,75 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace duckdb_webapi.proto;
+
+// The (logical) operator types
+enum OperatorType: uint8 {
+    INVALID = 0,
+    PROJECTION = 1,
+    FILTER = 2,
+    AGGREGATE_AND_GROUP_BY = 3,
+    WINDOW = 4,
+    UNNEST = 5,
+    LIMIT = 6,
+    ORDER_BY = 7,
+    TOP_N = 8,
+    COPY_FROM_FILE = 9,
+    COPY_TO_FILE = 10,
+    DISTINCT = 11,
+    INDEX_SCAN = 12,
+
+    // Data sources
+    GET = 13,
+    CHUNK_GET = 14,
+    DELIM_GET = 15,
+    EXPRESSION_GET = 16,
+    TABLE_FUNCTION = 17,
+    EMPTY_RESULT = 18,
+    CTE_REF = 19,
+
+    // Joins
+    JOIN = 20,
+    DELIM_JOIN = 21,
+    COMPARISON_JOIN = 22,
+    ANY_JOIN = 23,
+    CROSS_PRODUCT = 24,
+
+    // SetOps
+    UNION = 25,
+    EXCEPT = 26,
+    INTERSECT = 27,
+    RECURSIVE_CTE = 28,
+
+    // Updates
+    INSERT = 29,
+    DELETE = 30,
+    UPDATE = 31,
+
+    // Schema
+    ALTER = 32,
+    CREATE_TABLE = 33,
+    CREATE_INDEX = 34,
+    CREATE_SEQUENCE = 35,
+    CREATE_VIEW = 36,
+    CREATE_SCHEMA = 37,
+    DROP = 38,
+    PRAGMA = 39,
+    TRANSACTION = 40,
+
+    // Explain
+    EXPLAIN = 41,
+
+    // Helpers
+    PREPARE = 42,
+    EXECUTE = 43,
+    VACUUM = 44
+}
+
+// A query plan
+table QueryPlan {
+    operator_children: [uint64];
+    operator_child_offsets: [uint64];
+    operator_types: [OperatorType];
+}
+
+

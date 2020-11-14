@@ -1,0 +1,51 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace duckdb_webapi.proto;
+
+// A 128-bit integer
+struct I128 {
+    lower: uint64;
+    upper: int64;
+}
+
+// An interval
+struct Interval {
+    months: int32;
+    days: int32;
+    msecs: int64;
+}
+
+// Typed vectors
+table VectorI8 { values: [byte]; null_mask: [bool]; }
+table VectorU8 { values: [ubyte]; null_mask: [bool]; }
+table VectorI16 { values: [short]; null_mask: [bool]; }
+table VectorU16 { values: [ushort]; null_mask: [bool]; }
+table VectorI32 { values: [int]; null_mask: [bool]; }
+table VectorU32 { values: [uint]; null_mask: [bool]; }
+table VectorI64 { values: [long]; null_mask: [bool]; }
+table VectorU64 { values: [ulong]; null_mask: [bool]; }
+table VectorI128 { values: [I128]; null_mask: [bool]; }
+table VectorF32 { values: [float]; null_mask: [bool]; }
+table VectorF64 { values: [double]; null_mask: [bool]; }
+table VectorInterval { values: [Interval]; null_mask: [bool]; }
+table VectorString { values: [string]; null_mask: [bool]; }
+
+// A vector variant
+union VectorVariant {
+    VectorI8, VectorU8,
+    VectorI16, VectorU16,
+    VectorI32, VectorU32,
+    VectorI64, VectorU64,
+    VectorI128,
+    VectorF32, VectorF64,
+    VectorInterval,
+    VectorString
+}
+
+// We'd prefer to omit this wrapper but rust does not support vectors of unions yet:
+// https://github.com/google/flatbuffers/issues/5024
+// (Note that this introduces an unnecessary indirection through a flatbuffer vtable)
+table Vector {
+    variant: VectorVariant;
+}
+

@@ -1,0 +1,42 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace duckdb_webapi.proto;
+
+/// A sql type id
+enum SQLTypeID: uint8 {
+    INVALID = 0,
+    SQLNULL = 1,
+    UNKNOWN = 2,
+    ANY = 3,
+
+    BOOLEAN = 10,
+    TINYINT = 11,
+    SMALLINT = 12,
+    INTEGER = 13,
+    BIGINT = 14,
+    DATE = 15,
+    TIME = 16,
+    TIMESTAMP = 17,
+    DECIMAL = 18,
+    FLOAT = 19,
+    DOUBLE = 20,
+    CHAR = 21,
+    VARCHAR = 22,
+    VARBINARY = 23,
+    BLOB = 24,
+    INTERVAL = 25,
+
+    HUGEINT = 50,
+    POINTER = 51,
+    HASH = 52,
+
+    STRUCT = 100,
+    LIST = 101,
+}
+
+// A sql type
+struct SQLType {
+    type_id: SQLTypeID;
+    width: uint16;
+    scale: uint8;
+}
