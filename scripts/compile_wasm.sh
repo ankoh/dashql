@@ -11,9 +11,7 @@ CPP_SOURCE_DIR="${PROJECT_ROOT}/core/cpp"
 CORE_JS_LIB_DIR="${PROJECT_ROOT}/core/js/src/wasm"
 DUCKDB_JS_LIB_DIR="${PROJECT_ROOT}/duckdb/js/src/wasm"
 
-CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/mnt/emscripten_cache/ dashql/dashql-dev:${IMAGE_TAG} "
-EMCONFIGURE="${CMD_PREFIX} emcmake"
-EMMAKE="${CMD_PREFIX} emmake"
+CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/mnt/emscripten_cache/ -v${PROJECT_ROOT}/.ccache/:/mnt/ccache/ -e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/ dashql/dashql-dev:${IMAGE_TAG} "
 
 set -x
 
@@ -21,12 +19,14 @@ mkdir -p ${CPP_BUILD_DIR}
 
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
-${EMCONFIGURE} cmake \
+${CMD_PREFIX} emcmake cmake \
     -S/wd/core/cpp/ \
     -B/wd/core/cpp/build/emscripten \
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     -DCMAKE_BUILD_TYPE=Release
 
-${EMMAKE} make \
+${CMD_PREFIX} emmake make \
     -C/wd/core/cpp/build/emscripten \
     -j${CORES} \
     dashql_core_web dashql_core_node duckdb_web duckdb_node
