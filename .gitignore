@@ -2,6 +2,7 @@
 /build
 /.ccls-cache
 /.emscripten_cache
+.DS_Store
 
 compile_commands.json
 
