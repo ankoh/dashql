@@ -51,20 +51,45 @@ target_link_libraries(duckdb_webapi
 )
 
 # ---------------------------------------------------------------------------
-# API Proxy
+# FFI
+
+add_library(duckdb_ffi ${CMAKE_CURRENT_SOURCE_DIR}/src/webapi_ffi.cc)
+target_link_libraries(duckdb_ffi duckdb_webapi flatbuffers spdlog Threads::Threads)
 
 if (EMSCRIPTEN)
+    set(EM_LINKER_FLAGS " \
+        -Wl,--shared-memory,--no-check-features \
+        -s USE_PTHREADS=1 \
+        -s DISABLE_EXCEPTION_CATCHING=0 \
+        -s MODULARIZE=1 \
+        -s EXPORT_NAME='DuckDB' \
+        -s EXPORTED_FUNCTIONS='[ \
+            _main, \
+            _malloc, \
+            _free, \
+            _duckdb_webapi_init, \
+            _duckdb_webapi_connect, \
+            _duckdb_webapi_disconnect, \
+            _duckdb_webapi_register_buffer, \
+            _duckdb_webapi_release_buffer, \
+            _duckdb_webapi_run_query, \
+            _duckdb_webapi_send_query, \
+            _duckdb_webapi_fetch_query_results, \
+            _duckdb_webapi_analyze_query \
+        ]' \
+        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
+        "
+    )
+
     add_executable(duckdb_web ${CMAKE_CURRENT_SOURCE_DIR}/src/webapi_ffi.cc)
+    target_compile_definitions(duckdb_web PUBLIC WITH_WEBAPI_MAIN)
     target_link_libraries(duckdb_web duckdb_webapi flatbuffers spdlog Threads::Threads)
     set_target_properties(duckdb_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 
     add_executable(duckdb_node ${CMAKE_CURRENT_SOURCE_DIR}/src/webapi_ffi.cc)
+    target_compile_definitions(duckdb_node PUBLIC WITH_WEBAPI_MAIN)
     target_link_libraries(duckdb_node duckdb_webapi flatbuffers spdlog Threads::Threads)
     set_target_properties(duckdb_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
-else()
-
-    add_library(duckdb_ffi ${CMAKE_CURRENT_SOURCE_DIR}/src/webapi_ffi.cc)
-    target_link_libraries(duckdb_ffi duckdb_webapie flatbuffers spdlog Threads::Threads)
 endif()
 
 # ---------------------------------------------------------------------------

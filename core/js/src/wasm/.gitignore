@@ -1,4 +1,6 @@
 /dashql_core_web.js
 /dashql_core_web.wasm
+/dashql_core_web.worker.js
 /dashql_core_node.js
 /dashql_core_node.wasm
+/dashql_core_node.worker.js
