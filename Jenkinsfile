@@ -55,8 +55,9 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emcmake cmake -S./core/cpp/ -B./core/cpp/build/emscripten -DCMAKE_BUILD_TYPE=Release
+                    emcmake cmake -S./core/cpp/ -B./core/cpp/build/emscripten -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
                 '''
+                sh 'ccache -s'
                 sh '''#!/bin/bash
                     source /opt/env.sh
                     emmake make -C./core/cpp/build/emscripten -j$(nproc) dashql_core_web dashql_core_node duckdb_web duckdb_node
@@ -65,6 +66,7 @@ pipeline {
                     cp ./core/cpp/build/emscripten/duckdb/duckdb_web.{wasm,js,worker.js} ./duckdb/js/src/wasm/
                     cp ./core/cpp/build/emscripten/duckdb/duckdb_node.{wasm,js,worker.js} ./duckdb/js/src/wasm/
                 '''
+                sh 'ccache -s'
             }
         }
 
