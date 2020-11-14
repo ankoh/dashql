@@ -21,6 +21,7 @@ pipeline {
                 sh 'chown -R "$USER" /mnt/npm_cache /mnt/emscripten_cache'
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/cpp/build/emscripten ./reports'
+                sh './dev/reset_duckdb.sh'
             }
         }
 
@@ -55,27 +56,64 @@ pipeline {
             }
         }
 
-        stage ('Core/JS/Build') {
-            steps {
-                dir('./core/js') {
-                    sh '''#!/bin/bash
-                        source /opt/env.sh
-                        nvm use default
-                        npm ci --cache ${NPM_CACHE}
-                        npm run build
-                    '''
-                }
-            }
-        }
+        stage ('JS') {
+            parallel {
+                stage('Core') {
+                    stages {
+                        stage ('Build') {
+                            steps {
+                                dir('./core/js') {
+                                    sh '''#!/bin/bash
+                                        source /opt/env.sh
+                                        nvm use default
+                                        npm ci --cache ${NPM_CACHE}
+                                        npm run build
+                                    '''
+                                }
+                            }
+                        }
 
-        stage ('Core/JS/Test') {
-            steps {
-                dir('./core/js') {
-                    sh '''#!/bin/bash
-                        source /opt/env.sh
-                        nvm use default
-                        npm run test:ci
-                    '''
+                        stage ('Test') {
+                            steps {
+                                dir('./core/js') {
+                                    sh '''#!/bin/bash
+                                        source /opt/env.sh
+                                        nvm use default
+                                        npm run test:ci
+                                    '''
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('DuckDB') {
+                    stages {
+                        stage ('Build') {
+                            steps {
+                                dir('./duckdb/js') {
+                                    sh '''#!/bin/bash
+                                        source /opt/env.sh
+                                        nvm use default
+                                        npm ci --cache ${NPM_CACHE}
+                                        npm run build
+                                    '''
+                                }
+                            }
+                        }
+
+                        stage ('Test') {
+                            steps {
+                                dir('./duckdb/js') {
+                                    sh '''#!/bin/bash
+                                        source /opt/env.sh
+                                        nvm use default
+                                        npm run test:ci
+                                    '''
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
