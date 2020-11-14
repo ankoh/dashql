@@ -18,20 +18,18 @@ gen_proto() {
     CPP_PROTO_DIR="$2"
     TS_PROTO_DIR="$3"
 
+    echo "${PROTO_DIR}"
+
     for PROTO_FILE in ${PROTO_DIR}/*.fbs; do
         PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
         PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
-
-        if [ "${PROTO_FILE_NAME}" = "proto" ]; then
-            continue
-        fi
 
         ${FLATC} -I ${PROTO_DIR} -o ${CPP_PROTO_DIR} ${PROTO_FILE} --cpp \
                 --no-prefix --scoped-enums \
                 --reflect-types --reflect-names \
                 --gen-object-api --gen-name-strings --gen-compare \
-            && { echo "[ OK  ] ${PROTO_FILE}: C++"; } \
-            || { echo "[ ERR ] ${PROTO_FILE}: C++"; exit 1; }
+            && { echo "[ OK  ] ${PROTO_FILE_NAME}: C++"; } \
+            || { echo "[ ERR ] ${PROTO_FILE_NAME}: C++"; exit 1; }
 
         TS_PROTO_OUT="${TS_PROTO_DIR}/${PROTO_FILE_NAME}_generated.ts"
         TS_PROTO_TMP="${TMP}/${PROTO_FILE_NAME}.ts"
@@ -41,8 +39,8 @@ gen_proto() {
             && echo "/* eslint-disable */" > ${TS_PROTO_OUT} \
             && echo "import { flatbuffers } from \"flatbuffers\";" >> ${TS_PROTO_OUT} \
             && cat ${TS_PROTO_TMP} >> ${TS_PROTO_OUT} \
-            && { echo "[ OK  ] ${PROTO_FILE}: Typescript"; } \
-            || { echo "[ ERR ] ${PROTO_FILE}: Typescript"; exit 1; }
+            && { echo "[ OK  ] ${PROTO_FILE_NAME}: Typescript"; } \
+            || { echo "[ ERR ] ${PROTO_FILE_NAME}: Typescript"; exit 1; }
     done
 }
 
