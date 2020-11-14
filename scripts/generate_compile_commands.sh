@@ -24,5 +24,5 @@ cmake \
     && { echo "[ OK  ] Configure project"; } \
     || { echo "[ ERR ] Configure project"; exit 1; }
 
-ln -s ${CORE_BUILD_DIR}/compile_commands.json ${CORE_SOURCE_DIR}/compile_commands.json
+ln -s ${CORE_BUILD_DIR}/compile_commands.json ${PROJECT_ROOT}/compile_commands.json
 
