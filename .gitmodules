@@ -13,3 +13,9 @@
 [submodule "submodules/rapidyaml"]
 	path = submodules/rapidyaml
 	url = https://github.com/biojppm/rapidyaml
+[submodule "submodules/duckdb"]
+	path = submodules/duckdb
+	url = https://github.com/cwida/duckdb
+[submodule "submodules/spdlog"]
+	path = submodules/spdlog
+	url = https://github.com/gabime/spdlog.git
