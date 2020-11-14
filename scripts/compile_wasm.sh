@@ -28,7 +28,7 @@ ${EMCONFIGURE} cmake \
 ${EMMAKE} make \
     -C/wd/core/cpp/build/emscripten \
     -j${CORES} \
-    dashql_core_web dashql_core_node
+    dashql_core_web dashql_core_node duckdb_web duckdb_node
 
 mkdir -p "${JS_LIB_DIR}"
 

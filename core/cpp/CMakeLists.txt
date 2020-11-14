@@ -28,13 +28,9 @@ endif ()
 # ---------------------------------------------------------------------------
 # Threads
 
-set(THREAD_LIB "")
-if (NOT EMSCRIPTEN)
-    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-    find_package(Threads REQUIRED)
-    set(THREAD_LIB Threads::Threads)
-endif ()
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Parallelism
@@ -206,7 +202,8 @@ target_link_libraries(dashql_parser flatbuffers)
 
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
-        -s USE_PTHREADS=0 \
+        -Wl,--shared-memory,--no-check-features \
+        -s USE_PTHREADS=1 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
         -s EXPORT_NAME='DashQLCore' \
@@ -215,18 +212,27 @@ if (EMSCRIPTEN)
             _malloc, \
             _free, \
             _dashql_parse, \
-            _dashql_core_free \
+            _dashql_core_free, \
+            _duckdb_webapi_init, \
+            _duckdb_webapi_connect, \
+            _duckdb_webapi_disconnect, \
+            _duckdb_webapi_register_buffer, \
+            _duckdb_webapi_release_buffer, \
+            _duckdb_webapi_run_query, \
+            _duckdb_webapi_send_query, \
+            _duckdb_webapi_fetch_query_results, \
+            _duckdb_webapi_analyze_query \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
     )
 
     add_executable(dashql_core_web ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(dashql_core_web dashql_parser)
+    target_link_libraries(dashql_core_web dashql_parser duckdb_ffi)
     set_target_properties(dashql_core_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 
     add_executable(dashql_core_node ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(dashql_core_node dashql_parser)
+    target_link_libraries(dashql_core_node dashql_parser duckdb_ffi)
     set_target_properties(dashql_core_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 endif()
 
@@ -243,7 +249,7 @@ if(NOT EMSCRIPTEN)
         dashql_parser
         ryml ryml_c4core
         flatbuffers
-        ${THREAD_LIB}
+        Threads::Threads
     )
 
     add_executable(grammar_tests
@@ -253,7 +259,8 @@ if(NOT EMSCRIPTEN)
         dashql_parser
         dashql_test
         flatbuffers gtest gmock
-        ${THREAD_LIB})
+        Threads::Threads
+    )
 
     add_executable(grammar_testgen
         ${CMAKE_SOURCE_DIR}/test/grammar_testgen.cc
@@ -262,6 +269,6 @@ if(NOT EMSCRIPTEN)
         dashql_parser
         dashql_test
         flatbuffers gtest gmock
-        ${THREAD_LIB})
-
+        Threads::Threads
+    )
 endif()
