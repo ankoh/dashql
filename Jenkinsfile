@@ -25,7 +25,7 @@ pipeline {
             }
         }
 
-        stage('Core/NA/Build') {
+        stage('Native/Build') {
             steps {
                 sh 'cmake -S./core/cpp/ -B./core/cpp/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug'
                 sh 'ccache -s'
@@ -34,14 +34,24 @@ pipeline {
             }
         }
 
-        stage('Core/NA/Test') {
-            steps {
-                sh './core/cpp/build/debug/grammar_tests ./core/cpp/test/grammar --gtest_output=xml:./reports/tests_cpp.xml'
+        stage('Native/Test') {
+            parallel {
+                stage('Grammar') {
+                    steps {
+                        sh './core/cpp/build/debug/grammar_tests ./core/cpp/test/grammar --gtest_output=xml:./reports/tests_native_grammar.xml'
+                    }
+                }
+
+                stage('DuckDB') {
+                    steps {
+                        sh './core/cpp/build/debug/duckdb/duckdb_tester --gtest_output=xml:./reports/tests_native_duckdb.xml'
+                    }
+                }
             }
         }
 
 
-        stage('Core/WA/Build') {
+        stage('Wasm/Build') {
             steps {
                 sh '''#!/bin/bash
                     source /opt/env.sh
@@ -49,14 +59,16 @@ pipeline {
                 '''
                 sh '''#!/bin/bash
                     source /opt/env.sh
-                    emmake make -C./core/cpp/build/emscripten -j$(nproc) dashql_core_web dashql_core_node
+                    emmake make -C./core/cpp/build/emscripten -j$(nproc) dashql_core_web dashql_core_node duckdb_web duckdb_node
                     cp ./core/cpp/build/emscripten/dashql_core_web.{wasm,js} ./core/js/src/wasm/
                     cp ./core/cpp/build/emscripten/dashql_core_node.{wasm,js} ./core/js/src/wasm/
+                    cp ./core/cpp/build/emscripten/duckdb_web.{wasm,js,worker.js} ./duckdb/js/src/wasm/
+                    cp ./core/cpp/build/emscripten/duckdb_node.{wasm,js,worker.js} ./duckdb/js/src/wasm/
                 '''
             }
         }
 
-        stage ('JS') {
+        stage ('JS/Test') {
             parallel {
                 stage('Core') {
                     stages {
