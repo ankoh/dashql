@@ -98,7 +98,7 @@ void duckdb_webapi_generate_table(WebAPI::Response* response, WebAPI::Connection
 
 }
 
-#ifdef EMSCRIPTEN
+#ifdef WITH_WEBAPI_MAIN
 int main() {
     duckdb_webapi_init();
 }
