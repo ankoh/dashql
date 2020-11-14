@@ -6,9 +6,7 @@ if (POLICY CMP0048)
     cmake_policy(SET CMP0048 NEW)
 endif (POLICY CMP0048)
 
-# ---------------------------------------------------------------------------
-
-project(dashql_parser VERSION 0.1)
+project(dashql_core VERSION 0.1)
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -36,15 +34,6 @@ if (NOT EMSCRIPTEN)
 endif ()
 
 # ---------------------------------------------------------------------------
-# CMake includes
-
-include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/rapidyaml.cmake")
-
-# ---------------------------------------------------------------------------
 # Parallelism
 
 include(ProcessorCount)
@@ -52,7 +41,26 @@ ProcessorCount(NPROCS)
 set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
 
 # ---------------------------------------------------------------------------
-# Bison
+# CMake includes
+
+include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/rapidyaml.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
+add_subdirectory("${CMAKE_SOURCE_DIR}/../../duckdb/cpp/" "${CMAKE_BINARY_DIR}/duckdb/")
+
+# ---------------------------------------------------------------------------
+# Headers
+
+include_directories(
+    "${CMAKE_SOURCE_DIR}/include"
+    "${CMAKE_BINARY_DIR}/include"
+)
+
+# ---------------------------------------------------------------------------
+# Parser
 
 set(REQUIRED_BISON_VERSION 3.3)
 find_package(BISON ${REQUIRED_BISON_VERSION})
@@ -73,17 +81,6 @@ endif()
 if (NOT BISON_FOUND)
     message(FATAL_ERROR "Could not find bison")
 endif()
-
-# ---------------------------------------------------------------------------
-# Headers
-
-include_directories(
-    "${CMAKE_SOURCE_DIR}/include"
-    "${CMAKE_BINARY_DIR}/include"
-)
-
-# ---------------------------------------------------------------------------
-# Parser
 
 set(GRAMMAR_OUT ${CMAKE_BINARY_DIR}/dashql.y)
 set(GRAMMAR_DELIMITER ${CMAKE_SOURCE_DIR}/src/parser/grammar/delimiter.y)
@@ -202,20 +199,6 @@ add_library(dashql_parser
 target_link_libraries(dashql_parser flatbuffers)
 
 # ---------------------------------------------------------------------------
-# Library
-
-add_library(dashql_test
-    ${CMAKE_SOURCE_DIR}/src/test/yaml_encoder.cc
-)
-
-target_link_libraries(dashql_test
-    dashql_parser
-    ryml ryml_c4core
-    flatbuffers
-    ${THREAD_LIB}
-)
-
-# ---------------------------------------------------------------------------
 # Emscripten
 
 if (EMSCRIPTEN)
@@ -249,6 +232,16 @@ endif()
 # Tester
 
 if(NOT EMSCRIPTEN)
+    add_library(dashql_test
+        ${CMAKE_SOURCE_DIR}/src/test/yaml_encoder.cc
+    )
+
+    target_link_libraries(dashql_test
+        dashql_parser
+        ryml ryml_c4core
+        flatbuffers
+        ${THREAD_LIB}
+    )
 
     add_executable(grammar_tests
         ${CMAKE_SOURCE_DIR}/test/grammar_tests.cc
