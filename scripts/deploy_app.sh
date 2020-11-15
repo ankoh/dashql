@@ -9,7 +9,7 @@ BUCKET_URL="s3://dashql-app"
 DISTRIBUTION_ID="E1WT3LVZLA4YZX"
 
 echo "Uploading files to ${BUCKET_URL}..."
-aws s3 sync build ${BUCKET_URL} \
+aws s3 sync ${BUILD_DIR} ${BUCKET_URL}/ \
   --acl public-read \
   --exclude index.html
 
