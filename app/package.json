@@ -9,7 +9,8 @@
         "build:release": "NODE_OPTIONS='--max-old-space-size=4096' webpack --config webpack.release.js",
         "analyze:debug": "webpack --config webpack.debug.js --analyze",
         "analyze:release": "webpack --config webpack.release.js --analyze",
-        "serve:release": "node ./server.js"
+        "serve:release": "node ./server.js",
+        "publish:release": "aws s3 sync ./build/release/ s3://dashql-app --delete"
     },
     "engines": {
         "node": ">=14.13"
