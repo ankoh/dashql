@@ -34,7 +34,10 @@ gen_proto() {
         TS_PROTO_OUT="${TS_PROTO_DIR}/${PROTO_FILE_NAME}_generated.ts"
         TS_PROTO_TMP="${TMP}/${PROTO_FILE_NAME}.ts"
 
-        ${FLATC} -I ${TMP} -o ${TS_PROTO_DIR} ${PROTO_FILE} --ts --no-fb-import \
+        ${FLATC} -I ${TMP} -o ${TS_PROTO_DIR} ${PROTO_FILE} --ts \
+                --no-fb-import \
+                --reflect-types --reflect-names \
+                --gen-name-strings --gen-compare \
             && mv ${TS_PROTO_OUT} ${TS_PROTO_TMP} \
             && echo "/* eslint-disable */" > ${TS_PROTO_OUT} \
             && echo "import { flatbuffers } from \"flatbuffers\";" >> ${TS_PROTO_OUT} \

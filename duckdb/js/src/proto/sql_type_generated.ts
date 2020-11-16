@@ -78,6 +78,13 @@ scale():number {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.SQLType';
+}
+
+/**
  * @returns number
  */
 static sizeOf():number {

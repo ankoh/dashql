@@ -2,7 +2,7 @@
 
 /// A special-purpose stack for the DFS.
 /// The stack is backed by a native array and does not shrink.
-export class DFSStack {
+export class NativeStack {
     /// The buffer
     _buffer: Uint32Array;
     /// The size
@@ -21,7 +21,7 @@ export class DFSStack {
     }
 
     /// Is empty?
-    public empty(): boolean { return this._buffer.length == 0; }
+    public empty(): boolean { return this._size <= 0; }
     /// Return the top element
     public top(): number { return this._buffer[this._size]; }
     /// Pop an element
@@ -36,7 +36,7 @@ export class DFSStack {
 }
 
 /// A compact bitmap for the post-order DFS
-export class Bitmap {
+export class NativeBitmap {
     /// The buffer
     _buffer: Uint32Array;
 

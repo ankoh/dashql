@@ -105,6 +105,13 @@ upper():flatbuffers.Long {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.I128';
+}
+
+/**
  * @returns number
  */
 static sizeOf():number {
@@ -165,6 +172,13 @@ days():number {
 msecs():flatbuffers.Long {
   return this.bb!.readInt64(this.bb_pos + 8);
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.Interval';
+}
 
 /**
  * @returns number
@@ -277,6 +291,13 @@ nullMaskArray():Int8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? new Int8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorI8';
+}
 
 /**
  * @param flatbuffers.Builder builder
@@ -454,6 +475,13 @@ nullMaskArray():Int8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorU8';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startVectorU8(builder:flatbuffers.Builder) {
@@ -622,6 +650,13 @@ nullMaskArray():Int8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? new Int8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorI16';
+}
 
 /**
  * @param flatbuffers.Builder builder
@@ -799,6 +834,13 @@ nullMaskArray():Int8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorU16';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startVectorU16(builder:flatbuffers.Builder) {
@@ -972,6 +1014,13 @@ nullMaskArray():Int8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? new Int8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorI32';
+}
 
 /**
  * @param flatbuffers.Builder builder
@@ -1149,6 +1198,13 @@ nullMaskArray():Int8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorU32';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startVectorU32(builder:flatbuffers.Builder) {
@@ -1316,6 +1372,13 @@ nullMaskArray():Int8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorI64';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startVectorI64(builder:flatbuffers.Builder) {
@@ -1476,6 +1539,13 @@ nullMaskArray():Int8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? new Int8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorU64';
+}
 
 /**
  * @param flatbuffers.Builder builder
@@ -1641,6 +1711,13 @@ nullMaskArray():Int8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorI128';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startVectorI128(builder:flatbuffers.Builder) {
@@ -1796,6 +1873,13 @@ nullMaskArray():Int8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? new Int8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorF32';
+}
 
 /**
  * @param flatbuffers.Builder builder
@@ -1973,6 +2057,13 @@ nullMaskArray():Int8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorF64';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startVectorF64(builder:flatbuffers.Builder) {
@@ -2141,6 +2232,13 @@ nullMaskArray():Int8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorInterval';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startVectorInterval(builder:flatbuffers.Builder) {
@@ -2293,6 +2391,13 @@ nullMaskArray():Int8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.VectorString';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startVectorString(builder:flatbuffers.Builder) {
@@ -2428,6 +2533,13 @@ variant<T extends flatbuffers.Table>(obj:T):T|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__union(obj, this.bb_pos + offset) : null;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.Vector';
+}
 
 /**
  * @param flatbuffers.Builder builder

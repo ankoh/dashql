@@ -141,6 +141,13 @@ valueFloat():number {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.GeneratorArgument';
+}
+
+/**
  * @returns number
  */
 static sizeOf():number {
@@ -253,6 +260,13 @@ inputsArray():Uint32Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? new Uint32Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.GeneratorExpression';
+}
 
 /**
  * @param flatbuffers.Builder builder
@@ -376,6 +390,13 @@ valueInt():flatbuffers.Long {
 valueFloat():number {
   return this.bb!.readFloat64(this.bb_pos + 16);
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.GeneratorTransformArg';
+}
 
 /**
  * @returns number
@@ -503,6 +524,13 @@ transformArgumentsLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.ColumnSpecification';
+}
 
 /**
  * @param flatbuffers.Builder builder
@@ -665,6 +693,13 @@ rows():flatbuffers.Long {
   var offset = this.bb!.__offset(this.bb_pos, 8);
   return offset ? this.bb!.readUint64(this.bb_pos + offset) : this.bb!.createLong(0, 0);
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.TableSpecification';
+}
 
 /**
  * @param flatbuffers.Builder builder
