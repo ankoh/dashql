@@ -18,7 +18,7 @@ export class AppState {
     /// The editor text
     public editorText: string;
     /// The current module
-    public editorModule: core.FlatBuffer<core.proto.syntax.Module> | null;
+    public editorModule: core.parser.Module | null;
     // The focused viz
     public focusedViz: number | null;
 

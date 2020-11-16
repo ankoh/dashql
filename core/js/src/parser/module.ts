@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer } from '../bindings';
+import { FlatBuffer, ModuleBuffer } from '../bindings';
 import { syntax as sx } from '../proto/';
 import { DFSStack, Bitmap } from '../utils';
 
@@ -11,7 +11,7 @@ export class Module {
     _buffer: FlatBuffer<sx.Module>;
 
     /// Constructor
-    public constructor(text: Uint8Array, module: FlatBuffer<sx.Module>) {
+    public constructor(text: Uint8Array = new Uint8Array(0), module: FlatBuffer<sx.Module> = new ModuleBuffer()) {
         this._text = text;
         this._buffer = module;
     }

@@ -108,7 +108,7 @@ export abstract class FlatBuffer<Proto> {
     protected _root: Proto;
 
     /// Constructor
-    constructor(buffer: Uint8Array) {
+    constructor(buffer: Uint8Array = new Uint8Array(0)) {
         var copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
         copy.set(buffer);
         this._buffer = new flatbuffers.ByteBuffer(copy);
