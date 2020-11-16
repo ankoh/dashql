@@ -153,6 +153,13 @@ operatorTypesArray():Uint8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.QueryPlan';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startQueryPlan(builder:flatbuffers.Builder) {

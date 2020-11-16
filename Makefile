@@ -38,7 +38,7 @@ core_debug:
 	cmake -S ${CORE_SOURCE_DIR} -B ${CORE_DEBUG_DIR} \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
-	make -C ${CORE_DEBUG_DIR} -j ${CORE}
+	make -C ${CORE_DEBUG_DIR} -j ${CORES}
 
 # Compile the core in release mode
 .PHONY: core_release
@@ -46,7 +46,7 @@ core_release:
 	mkdir -p ${CORE_RELEASE_DIR}
 	cmake -S ${CORE_SOURCE_DIR} -B ${CORE_RELEASE_DIR} \
 		-DCMAKE_BUILD_TYPE=Release
-	make -C ${CORE_RELEASE_DIR} -j ${CORE}
+	make -C ${CORE_RELEASE_DIR} -j ${CORES}
 
 # Build the dashql_core javascript library
 .PHONY: core_js
@@ -57,6 +57,21 @@ core_js:
 .PHONY: core_js_test
 core_js_test:
 	npm --prefix ${ROOT_DIR}/core/js run test
+
+# Build the wasm modules
+.PHONY: core_wasm
+core_wasm:
+	./scripts/compile_wasm.sh
+
+# Generate dashql grammar tests
+.PHONY: grammar_testgen
+grammar_testgen:
+	${CORE_DEBUG_DIR}/grammar_testgen ${CORE_SOURCE_DIR}/test/grammar
+
+# Test the dashql grammar
+.PHONY: grammar_tests
+grammar_tests:
+	${CORE_DEBUG_DIR}/grammar_tests ${CORE_SOURCE_DIR}/test/grammar
 
 # Creates a release archive
 .PHONY: app_release

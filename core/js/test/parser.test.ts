@@ -1,9 +1,11 @@
-import * as dashql_core from '../';
+import { DashQLCore, parser, proto } from '../';
 
-var core: dashql_core.DashQLCore;
+import sx = proto.syntax;
+
+var core: DashQLCore;
 
 beforeAll(async () => {
-    core = await dashql_core.DashQLCore.create();
+    core = await DashQLCore.create();
 });
 
 describe('Parser', () => {
@@ -28,18 +30,23 @@ describe('Parser', () => {
    });
 
 
-    describe('node inspection', () => {
-        test('multiple statements', async () => () => {
-            const r = core.parse(`
-                declare parameter a type integer;
-                select 1 into b;
-                select c from b where c = global.a + 1
-            `);
-            const m = r.buffer;
-            expect(m.errorsLength()).toEqual(0);
-            expect(m.statementsLength()).toEqual(3);
+    // describe('node inspection', () => {
+    //     test('multiple statements', () => {
+    //         const m = core.parse(`
+    //             declare parameter a type integer;
+    //             select 1 into b;
+    //             select c from b where c = global.a + 1
+    //         `);
+    //         expect(m.buffer.errorsLength()).toEqual(0);
+    //         expect(m.buffer.statementsLength()).toEqual(3);
 
-            
-        });
-    });
+    //         const seq: [number, string][] = [];
+    //         m.iterateStatements((stmt_id: number, stmt: parser.Statement) => {
+    //             stmt.traversePreOrder((node_id: number, node: parser.Node) => {
+    //                 seq.push([stmt_id, sx.NodeType[node.nodeType]]);
+    //             });
+    //         });
+    //         expect(seq).toEqual([]);
+    //     });
+    // });
 });

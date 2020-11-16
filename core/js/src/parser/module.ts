@@ -2,7 +2,9 @@
 
 import { FlatBuffer, ModuleBuffer } from '../bindings';
 import { syntax as sx } from '../proto/';
-import { DFSStack, Bitmap } from '../utils';
+import { NativeStack, NativeBitmap } from '../utils';
+
+const decoder = new TextDecoder();
 
 export class Module {
     /// The text buffer
@@ -23,8 +25,20 @@ export class Module {
 
     /// Access the text
     public textAt(_loc: sx.Location): string {
-        return "?";
+        const view = new Uint8Array(this.text.buffer, _loc.offset(), _loc.length());
+        return decoder.decode(view);
     }
+
+    /// Iterate over statements
+    public iterateStatements(fn: (idx: number, node: Statement) => void): number {
+        const stmt = new Statement(this);
+        const count = this.buffer.statementsLength();
+        for (let i = 0; i < count; ++i) {
+            this.buffer.statements(i, stmt.statement_buffer)!;
+            fn(i, stmt);
+        }
+        return count;
+    };
 };
 
 export class Node {
@@ -37,8 +51,7 @@ export class Node {
     public constructor(module: Module, node: sx.Node = new sx.Node()) {
         this._module = module;
         this._node = node;
-    }
-
+    } 
     /// Get the module
     public get module() { return this._module; }
     /// Get the node
@@ -111,21 +124,25 @@ export class Statement {
     _statement: sx.Statement;
 
     /// Constructor
-    public constructor(module: Module, statement: sx.Statement) {
+    public constructor(module: Module, statement: sx.Statement = new sx.Statement()) {
         this._module = module;
         this._statement = statement;
     }
 
     /// Access the text
     public get text() { return this._module.text; }
-    /// Get the module
-    public get buffer() { return this._module.buffer; }
+    /// Get the module buffer
+    public get module_buffer() { return this._module.buffer; }
+    /// Get the statement buffer
+    public get statement_buffer() { return this._statement; }
+    /// Set the statement buffer
+    public set statement_buffer(s: sx.Statement) { this._statement = s; }
 
     /// Perform a pre-order DFS traversal
     public traversePreOrder(fn: (node_id: number, node: Node) => void) {
         // Prepare the DFS
-        const cap = this.buffer.nodesLength() / this.buffer.statementsLength();
-        const pending = new DFSStack(cap);
+        const cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
+        const pending = new NativeStack(cap);
         pending.push(this._statement.root());
 
         // We always pass the same objects to the function to spare us all the allocations.
@@ -134,7 +151,7 @@ export class Statement {
 
         while (!pending.empty()) {
             const top = pending.pop();
-            current.node = this.buffer.nodes(top, current.node)!;
+            current.node = this.module_buffer.nodes(top, current.node)!;
             const node = current.node;
             const nodeType = current.nodeType;
 
@@ -156,12 +173,12 @@ export class Statement {
     /// Perform a post-order DFS traversal
     public traverse(preorder: (node_id: number, node: Node) => void, postorder: (node_id: number, node: Node) => void) {
         // Prepare the DFS
-        const cap = this.buffer.nodesLength() / this.buffer.statementsLength();
-        const pending = new DFSStack(cap);
+        const cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
+        const pending = new NativeStack(cap);
         pending.push(this._statement.root());
 
         /// Use a compact bitmap to track visited nodes
-        const visited = new Bitmap(this.buffer.nodesLength());
+        const visited = new NativeBitmap(this.module_buffer.nodesLength());
 
         // We always pass the same objects to the function to spare us all the allocations.
         // The function MUST NOT store the node elsewhere.
@@ -169,7 +186,7 @@ export class Statement {
 
         while (!pending.empty()) {
             const top = pending.top();
-            current.node = this.buffer.nodes(top, current.node)!;
+            current.node = this.module_buffer.nodes(top, current.node)!;
             const node = current.node;
             const nodeType = current.nodeType;
 
