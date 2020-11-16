@@ -1,7 +1,7 @@
 #!/bin/bash
 
 multipass launch \
-    -vvvv \
+    -vvv \
     --cpus 4 \
     --disk 20G \
     --mem 6G \
