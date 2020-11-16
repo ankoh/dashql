@@ -1,5 +1,8 @@
 # Copyright (c) 2020 The DashQL Authors
 
+# ---------------------------------------------------------------------------
+# Config
+
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 APP_RELEASE_DIR="${ROOT_DIR}/app/build/release"
