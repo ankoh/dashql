@@ -1,3 +1,5 @@
+# Copyright (c) 2020 The DashQL Authors
+
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 APP_RELEASE_DIR="${ROOT_DIR}/app/build/release"
@@ -82,6 +84,8 @@ image:
 # ---------------------------------------------------------------------------
 # Deployment
 
+# Upload the release build to the S3 bucket.
+#
 # We deliberately do not sync with --delete here.
 # A client may still see the old index.html while we're propagating the new one.
 # This would result in broken apps until the caches pick up the new version.
@@ -106,7 +110,7 @@ aws_stable_deploy:
 		--cache-control "max-age=600" \
 		--acl public-read
 
-# Use this with care to cleanup old S3 files.
+# Upload the release build to the S3 bucket and cleanup old files.
 #
 # This will remove old webpack chunks that cached index.html files might still refer to.
 # You have to wait at least the max-age of the index.html before you can sync with --delete.
@@ -125,6 +129,7 @@ aws_stable_replace:
 		--cache-control "max-age=600" \
 		--acl public-read
 
+# Invalidate cloudfront caches.
 # You should never need this since we are using cache busting.
 .PHONY: aws_stable_invalidate
 aws_stable_invalidate:
