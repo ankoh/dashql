@@ -2,10 +2,9 @@
 
 import dashql_core_wasm from '../../wasm/dashql_core_node.wasm';
 import dashql_core_init from '../../wasm/dashql_core_node.js';
-import * as proto from '../../proto';
 
 import { DashQLCoreModule } from '../../wasm/dashql_core_module';
-import { DashQLCoreBindings, FlatBuffer, ModuleBuffer } from '../../bindings';
+import { DashQLCoreBindings } from '../../';
 
 export class DashQLCore extends DashQLCoreBindings {
     protected path: string;
@@ -33,8 +32,4 @@ export class DashQLCore extends DashQLCoreBindings {
     }
 }
 
-export {
-    proto,
-    FlatBuffer,
-    ModuleBuffer
-}
+export * from '../../';

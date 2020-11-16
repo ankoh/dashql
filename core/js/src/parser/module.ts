@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer } from './bindings';
-import { syntax as sx } from './proto/';
-import { DFSStack, Bitmap } from './utils';
+import { FlatBuffer } from '../bindings';
+import { syntax as sx } from '../proto/';
+import { DFSStack, Bitmap } from '../utils';
 
 export class Module {
     /// The text buffer
@@ -138,7 +138,7 @@ export class Statement {
             const node = current.node;
             const nodeType = current.nodeType;
 
-            // Call the function with the current node
+            // Visit the node pre-order
             fn(top, current);
 
             // Discover children
@@ -154,7 +154,7 @@ export class Statement {
     }
 
     /// Perform a post-order DFS traversal
-    public traversePostOrder(fn: (node_id: number, node: Node) => void) {
+    public traverse(preorder: (node_id: number, node: Node) => void, postorder: (node_id: number, node: Node) => void) {
         // Prepare the DFS
         const cap = this.buffer.nodesLength() / this.buffer.statementsLength();
         const pending = new DFSStack(cap);
@@ -175,10 +175,13 @@ export class Statement {
 
             // Visit post-order
             if (visited.isSet(top)) {
-                fn(top, current);
+                postorder(top, current);
                 pending.pop();
                 continue;
             }
+
+            // Visit the node pre-order
+            preorder(top, current);
             visited.set(top);
 
             // Discover children
