@@ -35,9 +35,9 @@ export class EditorController {
 
     /// Evaluate an editor
     public evaluate(input: string) {
-        const module = this._parser.parse(input);
-        this.displayErrors(module.root);
-        this._store.dispatch(AppStateMutations.setEditorModule(module));
+        const m = this._parser.parse(input);
+        this.displayErrors(m.buffer);
+        this._store.dispatch(AppStateMutations.setEditorModule(m));
     }
 
     /// Display module errors

@@ -26,7 +26,7 @@ export type ActionVariant =
     | Action<ActionType.CONFIGURE_APP, AppSettings>
     | Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
     | Action<ActionType.EDITOR_SET_TEXT, string>
-    | Action<ActionType.EDITOR_SET_MODULE, core.FlatBuffer<core.proto.syntax.Module>>
+    | Action<ActionType.EDITOR_SET_MODULE, core.parser.Module>
     | Action<ActionType.EDITOR_CLEAR_PROGRAM, {}>
     ;
 
@@ -48,7 +48,7 @@ export class AppStateMutations {
     }
 
     /// Set the editor module
-    public static setEditorModule(module: core.FlatBuffer<core.proto.syntax.Module>): ActionVariant {
+    public static setEditorModule(module: core.parser.Module): ActionVariant {
         return { type: ActionType.EDITOR_SET_MODULE, payload: module };
     }
 
