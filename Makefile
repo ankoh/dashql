@@ -7,18 +7,80 @@ APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 
 CORE_SOURCE_DIR="${ROOT_DIR}/core/cpp"
 CORE_DEBUG_DIR="${ROOT_DIR}/core/cpp/build/debug"
-
-STABLE_S3_BUCKET="s3://dashql-app"
-STABLE_CF_DIST="E1WT3LVZLA4YZX"
+CORE_RELEASE_DIR="${ROOT_DIR}/core/cpp/build/release"
 
 DOCKER_IMAGE_NAMESPACE="dashql"
 DOCKER_IMAGE_NAME="dashql-dev"
 DOCKER_IMAGE_TAG="0.2"
 
+STABLE_S3_BUCKET="s3://dashql-app"
+STABLE_CF_DIST="E1WT3LVZLA4YZX"
+
+CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
+
+# ---------------------------------------------------------------------------
+# Building
+
+# Compile the core in debug mode
+.PHONY: core_debug
+core_debug:
+	mkdir -p ${CORE_DEBUG_DIR}
+	cmake -S ${CORE_SOURCE_DIR} -B ${CORE_DEBUG_DIR} \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
+	make -C ${CORE_DEBUG_DIR} -j ${CORE}
+
+# Compile the core in release mode
+.PHONY: core_release
+core_debug:
+	mkdir -p ${CORE_RELEASE_DIR}
+	cmake -S ${CORE_SOURCE_DIR} -B ${CORE_RELEASE_DIR} \
+		-DCMAKE_BUILD_TYPE=Release
+	make -C ${CORE_RELEASE_DIR} -j ${CORE}
+
+# Creates a release archive
 .PHONY: app_release
 app_release:
 	tar -C "./app/build/release" -cvzf ${APP_RELEASE_ARCHIVE} .
 	@echo "Release: ${APP_RELEASE_ARCHIVE}"
+
+# ---------------------------------------------------------------------------
+# Environment
+
+# Generate the compile commands for the language server
+.PHONY: compile_commands
+compile_commands: 
+	mkdir -p ${CORE_DEBUG_DIR}
+	cmake -S ${CORE_SOURCE_DIR} -B ${CORE_DEBUG_DIR} \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
+	ln -sf ${CORE_DEBUG_DIR}/compile_commands.json ${ROOT_DIR}/compile_commands.json
+
+# Reset the duckdb repo
+.PHONY: reset_duckdb
+reset_duckdb:
+	rm -rf ${ROOT_DIR}/submodules/duckdb/src/amalgamation/*
+	rm -rf ${ROOT_DIR}/submodules/duckdb/build/*
+
+# Clean the repository
+.PHONY: clean
+clean:
+	git clean -xfd
+	git submodule foreach --recursive git clean -xfd
+	git reset --hard
+	git submodule foreach --recursive git reset --hard
+	git submodule update --init --recursive
+
+# Build the dev image
+.PHONY: image
+image:
+	tar -cvf - ./scripts/Dockerfile.dev | docker build \
+		-t ${DOCKER_IMAGE_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
+		-f ./scripts/Dockerfile.dev \
+		-
+
+# ---------------------------------------------------------------------------
+# Deployment
 
 # We deliberately do not sync with --delete here.
 # A client may still see the old index.html while we're propagating the new one.
@@ -69,31 +131,3 @@ aws_stable_invalidate:
 	aws cloudfront create-invalidation \
 		--distribution-id ${STABLE_CF_DIST} \
 		--paths /
-
-# Generate the compile commands for the language server
-.PHONY: compile_commands
-compile_commands:
-	ln -sf ${CORE_DEBUG_DIR}/compile_commands.json ${ROOT_DIR}/compile_commands.json
-
-# Reset the duckdb repo
-.PHONY: reset_duckdb
-reset_duckdb:
-	rm -rf ${ROOT_DIR}/submodules/duckdb/src/amalgamation/*
-	rm -rf ${ROOT_DIR}/submodules/duckdb/build/*
-
-# Clean the repository
-.PHONY: clean
-clean:
-	git clean -xfd
-	git submodule foreach --recursive git clean -xfd
-	git reset --hard
-	git submodule foreach --recursive git reset --hard
-	git submodule update --init --recursive
-
-# Build the dev image
-.PHONY: image
-image:
-	tar -cvf - ./scripts/Dockerfile.dev | docker build \
-		-t ${DOCKER_IMAGE_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
-		-f ./scripts/Dockerfile.dev \
-		-

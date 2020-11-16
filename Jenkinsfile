@@ -21,7 +21,7 @@ pipeline {
                 sh 'chown -R "$USER" /mnt/npm_cache /mnt/emscripten_cache'
                 sh 'git submodule update --init --recursive'
                 sh 'mkdir -p ./core/cpp/build/emscripten ./reports'
-                sh './scripts/reset_duckdb.sh'
+                sh 'make reset_duckdb'
             }
         }
 
