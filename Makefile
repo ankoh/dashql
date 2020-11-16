@@ -42,17 +42,49 @@ core_debug:
 
 # Compile the core in release mode
 .PHONY: core_release
-core_debug:
+core_release:
 	mkdir -p ${CORE_RELEASE_DIR}
 	cmake -S ${CORE_SOURCE_DIR} -B ${CORE_RELEASE_DIR} \
 		-DCMAKE_BUILD_TYPE=Release
 	make -C ${CORE_RELEASE_DIR} -j ${CORE}
 
+# Build the dashql_core javascript library
+.PHONY: core_js
+core_js:
+	npm --prefix ${ROOT_DIR}/core/js run build
+
+# Test the dashql_core javascript library
+.PHONY: core_js
+core_js_test:
+	npm --prefix ${ROOT_DIR}/core/js run test
+
 # Creates a release archive
 .PHONY: app_release
 app_release:
-	tar -C "./app/build/release" -cvzf ${APP_RELEASE_ARCHIVE} .
+	npm --prefix ${ROOT_DIR}/app run build:release
+	tar -C "./app/build/release" -czf ${APP_RELEASE_ARCHIVE} .
 	@echo "Release: ${APP_RELEASE_ARCHIVE}"
+
+# Runs a node server with the release build
+.PHONY: app_release_server
+app_release_server:
+	npm --prefix ${ROOT_DIR}/app run build:release
+	npm --prefix ${ROOT_DIR}/app run serve:release
+
+# Starts the dev server
+.PHONY: app_start
+app_start:
+	npm --prefix ${ROOT_DIR}/app run start
+
+# Build the duckdb.wasm javascript library
+.PHONY: duckdb_lib
+duckdb_js:
+	npm --prefix ${ROOT_DIR}/duckdb/js run build
+
+# Run the javascript tests duckdb.wasm
+.PHONY: duckdb_lib_test
+duckdb_js_test:
+	npm --prefix ${ROOT_DIR}/duckdb/js run test
 
 # ---------------------------------------------------------------------------
 # Environment
