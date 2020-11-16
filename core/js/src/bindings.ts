@@ -3,6 +3,7 @@
 import { DashQLCoreModule } from './wasm/dashql_core_module';
 import { flatbuffers } from 'flatbuffers';
 import * as proto from './proto';
+import { Module } from  './parser'
 import {TextEncoder} from "fastestsmallesttextencoderdecoder";
 
 /// The proxy for either the browser- order node-based DashQLCore API
@@ -75,7 +76,7 @@ export abstract class DashQLCoreBindings {
     }
 
     /// Parse a string and return a flatbuffer
-    public parse(text: string): [Uint8Array, ModuleBuffer] {
+    public parse(text: string): Module {
         let instance = this._instance!;
         let stackPointer = instance.stackSave();
 
@@ -95,7 +96,7 @@ export abstract class DashQLCoreBindings {
 
         /// Clear the utf8 string buffer
         instance.stackRestore(stackPointer);
-        return [textUTF8, program];
+        return new Module(textUTF8, program);
     }
 };
 
