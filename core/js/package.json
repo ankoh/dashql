@@ -4,6 +4,7 @@
     "description": "Parser for the DashQL language",
     "license": "AGPL-3.0-or-later",
     "dependencies": {
+        "fastestsmallesttextencoderdecoder": "^1.0.22",
         "flatbuffers": "^1.12.0"
     },
     "devDependencies": {
