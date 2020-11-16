@@ -117,7 +117,7 @@ flatc:
 #
 # We also rely on cache busting.
 # All files in the static folder MUST include [contenthash] in the filename.
-# That means that caches are never "stale" since an updated index.html will refer to new filenames if they changed.
+# That means that caches are never "stale" since an updated index.html will refer to new filenames.
 #
 # Cache TTLs:
 #   index.html 10 minutes
@@ -137,9 +137,10 @@ aws_stable_deploy:
 
 # Upload the release build to the S3 bucket and cleanup old files.
 #
-# This will remove old webpack chunks that cached index.html files might still refer to.
-# You have to wait at least the max-age of the index.html before you can sync with --delete.
-# Better run this command rarely and 1 day after running aws_stable_deploy on the same version.
+# !! This will remove old webpack chunks that stale index.html files might still refer to. !!
+#
+# You have to wait at least `max-age` of the index.html before you can sync with --delete.
+# Better run this command rarely and at least 1 day after running aws_stable_deploy with the same release.
 #
 .PHONY: aws_stable_replace
 aws_stable_replace:
