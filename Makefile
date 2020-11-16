@@ -15,6 +15,11 @@ DOCKER_IMAGE_NAMESPACE="dashql"
 DOCKER_IMAGE_NAME="dashql-dev"
 DOCKER_IMAGE_TAG="0.2"
 
+FLATBUF_DIR="${ROOT_DIR}/submodules/flatbuffers"
+FLATC_BASE_DIR="${ROOT_DIR}/.flatc"
+FLATC_BUILD_DIR="${FLATC_BASE_DIR}/build"
+FLATC_INSTALL_DIR="${FLATC_BASE_DIR}/install"
+
 STABLE_S3_BUCKET="s3://dashql-app"
 STABLE_CF_DIST="E1WT3LVZLA4YZX"
 
@@ -80,6 +85,26 @@ image:
 		-t ${DOCKER_IMAGE_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
 		-f ./scripts/Dockerfile.dev \
 		-
+
+.PHONY: flatc
+flatc:
+	mkdir -p ${FLATC_BASE_DIR}
+	rm -r ${FLATC_BASE_DIR}
+	mkdir -p ${FLATC_BUILD_DIR} ${FLATC_INSTALL_DIR}
+	cmake -B${FLATC_BUILD_DIR} -S${FLATBUF_DIR} \
+		-DCMAKE_CXX_STANDARD=17 \
+		-DCMAKE_CXX_FLAGS=-std=c++17 \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_CXX_COMPILER=clang++ \
+		-DCMAKE_C_COMPILER=clang \
+		-DCMAKE_INSTALL_PREFIX=${FLATC_INSTALL_DIR} \
+		-DFLATBUFFERS_BUILD_FLATLIB=ON \
+		-DFLATBUFFERS_BUILD_FLATC=ON \
+		-DFLATBUFFERS_BUILD_FLATHASH=OFF \
+		-DFLATBUFFERS_INSTALL=ON \
+		-DFLATBUFFERS_BUILD_TESTS=OFF \
+		-DFLATBUFFERS_BUILD_SHAREDLIB=OFF
+	make -C ${FLATC_BUILD_DIR} -j${CORES} install
 
 # ---------------------------------------------------------------------------
 # Deployment
