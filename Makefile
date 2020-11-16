@@ -68,7 +68,6 @@ app_release:
 # Runs a node server with the release build
 .PHONY: app_release_server
 app_release_server:
-	npm --prefix ${ROOT_DIR}/app run build:release
 	npm --prefix ${ROOT_DIR}/app run serve:release
 
 # Starts the dev server
