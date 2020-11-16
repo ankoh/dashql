@@ -54,7 +54,7 @@ core_js:
 	npm --prefix ${ROOT_DIR}/core/js run build
 
 # Test the dashql_core javascript library
-.PHONY: core_js
+.PHONY: core_js_test
 core_js_test:
 	npm --prefix ${ROOT_DIR}/core/js run test
 
@@ -76,12 +76,12 @@ app_start:
 	npm --prefix ${ROOT_DIR}/app run start
 
 # Build the duckdb.wasm javascript library
-.PHONY: duckdb_lib
+.PHONY: duckdb_js
 duckdb_js:
 	npm --prefix ${ROOT_DIR}/duckdb/js run build
 
 # Run the javascript tests duckdb.wasm
-.PHONY: duckdb_lib_test
+.PHONY: duckdb_js_test
 duckdb_js_test:
 	npm --prefix ${ROOT_DIR}/duckdb/js run test
 
@@ -112,9 +112,9 @@ clean:
 	git submodule foreach --recursive git reset --hard
 	git submodule update --init --recursive
 
-# Build the dev image
-.PHONY: image
-image:
+# Build the docker dev image
+.PHONY: docker_dev_image
+docker_dev_image:
 	tar -cvf - ./scripts/Dockerfile.dev | docker build \
 		-t ${DOCKER_IMAGE_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
 		-f ./scripts/Dockerfile.dev \
