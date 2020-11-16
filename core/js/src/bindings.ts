@@ -3,6 +3,7 @@
 import { DashQLCoreModule } from './wasm/dashql_core_module';
 import { flatbuffers } from 'flatbuffers';
 import * as proto from './proto';
+import {TextEncoder} from "fastestsmallesttextencoderdecoder";
 
 /// The proxy for either the browser- order node-based DashQLCore API
 export abstract class DashQLCoreBindings {
@@ -74,13 +75,27 @@ export abstract class DashQLCoreBindings {
     }
 
     /// Parse a string and return a flatbuffer
-    public parse(text: string): ModuleBuffer {
+    public parse(text: string): [Uint8Array, ModuleBuffer] {
         let instance = this._instance!;
-        let [ptr, size, ofs] = this.callSRet('dashql_parse', ['string'], [text]);
+        let stackPointer = instance.stackSave();
+
+        /// Encode the utf8 string and append 2 zero bytes for flex
+        let encoder = new TextEncoder();
+        let textUTF8 = encoder.encode(text);
+        let textMem = instance.allocate(textUTF8.length + 2, 'i8', instance.ALLOC_STACK);
+        instance.HEAPU8.set(textUTF8, textMem);
+        instance.HEAPU8[textUTF8.length] = 0;
+        instance.HEAPU8[textUTF8.length + 1] = 0;
+
+        /// Call the parse function
+        let [ptr, size, ofs] = this.callSRet('dashql_parse', ['number'], [textMem]);
         let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
         let program = new ModuleBuffer(mem);
         instance.ccall('dashql_core_free', null, ['number'], [ptr]);
-        return program;
+
+        /// Clear the utf8 string buffer
+        instance.stackRestore(stackPointer);
+        return [textUTF8, program];
     }
 };
 
