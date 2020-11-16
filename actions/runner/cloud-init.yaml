@@ -1,0 +1,49 @@
+#cloud-config
+
+package_upgrade: true
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - gnupg-agent
+  - software-properties-common
+  - git
+  - curl
+  - jq
+
+groups:
+  - docker
+
+users:
+ - name: actions
+   groups: docker
+   homedir: /home/actions
+   lock_passwd: true
+   ssh_authorized_keys:
+   - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILSuYkClBIu65t9oB5uQOlBigeeBwHSqYawL4op03fgU
+
+runcmd:
+
+  - export LABEL="$(curl -s -X GET 'https://api.github.com/repos/actions/runner/releases/latest' | jq -r '.tag_name')"
+  - export RUNNER_VERSION="$(echo ${latest_version_label:1})"
+  - cd /home/actions \
+        && mkdir runner \
+        && cd runner \
+        && curl -o runner.tar.gz https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
+        && tar -xzf ./runner.tar.gz
+
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - apt-get update -y
+  - apt-get install -y docker-ce docker-ce-cli containerd.io
+  - systemctl start docker
+  - systemctl enable docker
+
+  - sudo ufw allow ssh
+  - sudo ufw allow out to 192.168.178.1
+  - sudo ufw reject out to 192.168.0.0/16
+  - sudo ufw enable
+  - sudo ufw reload
+
+  - mkdir -p /home/actions/.emscripten_cache /home/actions/.npm_cache /home/actions/.ccache
+  - chown -R actions:actions /home/actions/.emscripten_cache /home/actions/.npm_cache /home/actions/.ccache
