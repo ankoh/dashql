@@ -23,7 +23,6 @@
         "webpack-cli": "^3.3.12"
     },
     "scripts": {
-        "start": "webpack --progress --colors --watch",
         "build": "webpack --mode=production",
         "test": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js",
         "test:ci": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js --ci --reporters=default --reporters=jest-junit"
