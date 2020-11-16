@@ -1,29 +1,45 @@
-import * as dashql_parser from '../';
+import * as dashql_core from '../';
 
-var core: dashql_parser.DashQLCore;
+var core: dashql_core.DashQLCore;
 
 beforeAll(async () => {
-    core = await dashql_parser.DashQLCore.create();
+    core = await dashql_core.DashQLCore.create();
 });
 
 describe('Parser', () => {
    describe('errors', () => {
        test('syntax error', async () => {
-           const result = await core.parse("?");
-           const module = result.root;
-           expect(result.root.statementsLength()).toEqual(0);
-           expect(result.root.errorsLength()).toEqual(1);
+           const r = core.parse("?");
+           const m = r.root;
+           expect(m.statementsLength()).toEqual(0);
+           expect(m.errorsLength()).toEqual(1);
        });
    });
 
    describe('single statements', () => {
        test('select 1', async () => {
-           const result = await core.parse(`
+           const r = core.parse(`
                select 1;
            `);
-           const module = result.root;
-           expect(module.errorsLength()).toEqual(0);
-           expect(module.statementsLength()).toEqual(1);
+           const m = r.root;
+           expect(m.errorsLength()).toEqual(0);
+           expect(m.statementsLength()).toEqual(1);
        });
    });
+
+
+    describe('node inspection', () => {
+        test('multiple statements', async () => () => {
+            const r = core.parse(`
+                declare parameter a type integer;
+                select 1 into b;
+                select c from b where c = global.a + 1
+            `);
+            const m = r.root;
+            expect(m.errorsLength()).toEqual(0);
+            expect(m.statementsLength()).toEqual(3);
+
+            
+        });
+    });
 });
