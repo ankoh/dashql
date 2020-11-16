@@ -89,6 +89,7 @@ image:
 		-f ./scripts/Dockerfile.dev \
 		-
 
+# Compile the flatc binary that is used to translate the flatbuffer definitions
 .PHONY: flatc
 flatc:
 	mkdir -p ${FLATC_BASE_DIR}
