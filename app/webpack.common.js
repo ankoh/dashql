@@ -12,8 +12,8 @@ function configure(params) {
         output: {
             path: params.buildDir,
             publicPath: '/',
-            filename: 'static/js/[name].[fullhash:8].js',
-            chunkFilename: 'static/js/[name].[fullhash:8].chunk.js',
+            filename: 'static/js/[name].[contenthash].js',
+            chunkFilename: 'static/js/[name].[contenthash].js',
         },
         resolve: {
             extensions: [".ts", ".tsx", ".js", ".jsx", ".css"]
@@ -49,7 +49,7 @@ function configure(params) {
                     test: /\.(ttf|eot|woff|woff2)$/,
                     loader: 'file-loader',
                     options: {
-                        name: 'static/fonts/[name].[ext]'
+                        name: 'static/fonts/[name].[contenthash].[ext]'
                     }
                 },
                 {
@@ -57,7 +57,7 @@ function configure(params) {
                     type: 'javascript/auto',
                     loader: 'file-loader',
                     options: {
-                        name: 'static/wasm/[name].[ext]',
+                        name: 'static/wasm/[contenthash].[ext]',
                     }
                 }
             ]
@@ -92,13 +92,13 @@ function configure(params) {
                 favicon: './public/favicon.ico'
             }),
             new MiniCssExtractPlugin({
-                filename: './static/css/[name].css',
-                chunkFilename: './static/css/[id].css'
+                filename: './static/css/[id].[contenthash].css',
+                chunkFilename: './static/css/[id].[contenthash].css'
             }),
             new MonacoWebpackPlugin({
                 languages: ['sql'],
                 features: [],
-                filename: './static/workers/[name].worker.js'
+                filename: './static/workers/[contenthash].worker.js'
             })
         ]
     };
