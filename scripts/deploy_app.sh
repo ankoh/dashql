@@ -10,7 +10,8 @@ DISTRIBUTION_ID="E1WT3LVZLA4YZX"
 
 echo "Uploading files to ${BUCKET_URL}..."
 aws s3 sync ${BUILD_DIR} ${BUCKET_URL}/ \
-  --acl public-read
+  --acl public-read \
+  --delete
 
 echo "Purging the cache for CloudFront"
 aws cloudfront create-invalidation \
