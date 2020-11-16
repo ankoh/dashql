@@ -201,6 +201,13 @@ length():number {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'dashql.proto.syntax.Location';
+}
+
+/**
  * @returns number
  */
 static sizeOf():number {
@@ -283,6 +290,13 @@ childrenBeginOrValue():number {
 childrenCount():number {
   return this.bb!.readUint32(this.bb_pos + 20);
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'dashql.proto.syntax.Node';
+}
 
 /**
  * @returns number
@@ -374,6 +388,13 @@ message(optionalEncoding?:any):string|Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'dashql.proto.syntax.Error';
+}
 
 /**
  * @param flatbuffers.Builder builder
@@ -473,6 +494,13 @@ name(optionalEncoding?:any):string|Uint8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'dashql.proto.syntax.Statement';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startStatement(builder:flatbuffers.Builder) {
@@ -558,6 +586,13 @@ targetStatement():number {
 targetNode():number {
   return this.bb!.readUint32(this.bb_pos + 12);
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'dashql.proto.syntax.Dependency';
+}
 
 /**
  * @returns number
@@ -731,6 +766,13 @@ dependenciesLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'dashql.proto.syntax.Module';
+}
 
 /**
  * @param flatbuffers.Builder builder

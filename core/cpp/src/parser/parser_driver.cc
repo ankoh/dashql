@@ -141,7 +141,8 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_glob
 /// Process a new node
 NodeID ParserDriver::AddNode(sx::Node node) {
     auto node_id = _nodes.size();
-    _nodes.push_back(node);
+    _nodes.push_back(sx::Node(node.location(), node.node_type(), node.attribute_key(), node_id,
+                              node.children_begin_or_value(), node.children_count()));
 
     // Set parent reference
     if (node.node_type() == sx::NodeType::ARRAY ||

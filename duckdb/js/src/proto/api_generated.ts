@@ -64,6 +64,13 @@ text(optionalEncoding?:any):string|Uint8Array|null {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.FormattedText';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startFormattedText(builder:flatbuffers.Builder) {
@@ -158,6 +165,13 @@ dataArray():Uint8Array|null {
   var offset = this.bb!.__offset(this.bb_pos, 4);
   return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.RawData';
+}
 
 /**
  * @param flatbuffers.Builder builder

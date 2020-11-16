@@ -4,7 +4,6 @@
     "description": "Parser for the DashQL language",
     "license": "AGPL-3.0-or-later",
     "dependencies": {
-        "fastestsmallesttextencoderdecoder": "^1.0.22",
         "flatbuffers": "^1.12.0"
     },
     "devDependencies": {
@@ -25,8 +24,8 @@
     },
     "scripts": {
         "build": "webpack --mode=production",
-        "test": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js",
-        "test:ci": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js --ci --reporters=default --reporters=jest-junit"
+        "test": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js --env=./jest.env.js",
+        "test:ci": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js --env=./jest.env.js --ci --reporters=default --reporters=jest-junit"
     },
     "files": [
         "dist/**/*.d.ts",

@@ -78,6 +78,13 @@ columnsLength():number {
 };
 
 /**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.QueryResultChunk';
+}
+
+/**
  * @param flatbuffers.Builder builder
  */
 static startQueryResultChunk(builder:flatbuffers.Builder) {
@@ -257,6 +264,13 @@ dataChunksLength():number {
   var offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
+
+/**
+ * @returns string
+ */
+static getFullyQualifiedName():string {
+  return 'duckdb_webapi.proto.QueryResult';
+}
 
 /**
  * @param flatbuffers.Builder builder
