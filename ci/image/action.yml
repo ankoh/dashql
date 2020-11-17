@@ -1,7 +1,11 @@
 inputs:
+  # The build script
   script:
     description: "script to be passed to the docker image"
     required: true
+
+  # The cache directories.
+  # Default to global cache directories in the runner home directory.
   emscripten_cache:
     description: "emscripten cache directory"
     default: /home/actions/.emscripten_cache
@@ -15,8 +19,11 @@ inputs:
 runs:
   using: "composite"
   steps: 
-    - run: docker build -t dashql/ci:${GITHUB_SHA} -f ${{ github.workspace }}/actions/ci_image/Dockerfile .
+    # Build the CI image
+    - run: docker build -t dashql/ci:${GITHUB_SHA} -f ${{ github.workspace }}/ci/image/Dockerfile .
       shell: bash
+
+    # Run the script inside the image
     - run: >
         docker run --rm \
             -v ${{ github.workspace }}:/wd/ \

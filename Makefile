@@ -15,7 +15,7 @@ CORE_DEBUG_DIR="${ROOT_DIR}/core/cpp/build/debug"
 CORE_RELEASE_DIR="${ROOT_DIR}/core/cpp/build/release"
 
 DOCKER_IMAGE_NAMESPACE="dashql"
-DOCKER_IMAGE_NAME="dashql-dev"
+DOCKER_IMAGE_NAME="ci"
 DOCKER_IMAGE_TAG="0.2"
 
 FLATBUF_DIR="${ROOT_DIR}/submodules/flatbuffers"
@@ -128,11 +128,11 @@ clean:
 	git submodule update --init --recursive
 
 # Build the docker dev image
-.PHONY: docker_dev_image
-docker_dev_image:
-	tar -cvf - ./scripts/Dockerfile.dev | docker build \
+.PHONY: docker_ci_image
+docker_ci_image:
+	tar -cvf - ./ci/image/Dockerfile | docker build \
 		-t ${DOCKER_IMAGE_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
-		-f ./scripts/Dockerfile.dev \
+		-f ./ci/image/Dockerfile \
 		-
 
 # Compile the flatc binary that is used to translate the flatbuffer definitions
