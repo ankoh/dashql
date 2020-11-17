@@ -1,0 +1,10 @@
+inputs:
+  script:
+    description: "Build script"
+    required: true
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.script }}
