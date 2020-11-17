@@ -62,7 +62,6 @@ jobs:
         script: |-
             source /opt/env.sh
             cd ./core/js
-            nvm use default
             npm ci --cache /mnt/npm_cache
             npm run build
 
@@ -72,7 +71,6 @@ jobs:
         script: |-
             source /opt/env.sh
             cd ./core/js
-            nvm use default
             npm run test:ci
 
     - name: DuckDB | JS | Build
@@ -81,7 +79,6 @@ jobs:
         script: |-
             source /opt/env.sh
             cd ./duckdb/js
-            nvm use default
             npm ci --cache /mnt/npm_cache
             npm run build
 
@@ -91,7 +88,6 @@ jobs:
         script: |-
             source /opt/env.sh
             cd ./duckdb/js
-            nvm use default
             npm run test:ci
 
     - name: App | Build
@@ -100,6 +96,5 @@ jobs:
         script: |-
             source /opt/env.sh
             cd ./app
-            nvm use default
             npm ci --cache /mnt/npm_cache
             npm run build:release
