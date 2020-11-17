@@ -1,7 +1,6 @@
 on: [push, pull_request]
 
 jobs:
-
   build:
     name: Build
     runs-on: self-hosted
@@ -56,3 +55,46 @@ jobs:
             cp ./core/cpp/build/emscripten/*.js ./core/js/src/wasm/
             cp ./core/cpp/build/emscripten/duckdb/*.wasm ./duckdb/js/src/wasm/
             cp ./core/cpp/build/emscripten/duckdb/*.js ./duckdb/js/src/wasm/
+
+    - name: JS / Core / Build
+      uses: ./ci/image
+      with:
+        script: |-
+            cd ./core/js
+            nvm use default
+            npm ci --cache /home/actions/.npm_cache
+            npm run build
+
+    - name: JS / Core / Test
+      uses: ./ci/image
+      with:
+        script: |-
+            cd ./core/js
+            nvm use default
+            npm run test:ci
+
+    - name: JS / DuckDB / Build
+      uses: ./ci/image
+      with:
+        script: |-
+            cd ./duckdb/js
+            nvm use default
+            npm ci --cache /home/actions/.npm_cache
+            npm run build
+
+    - name: JS / DuckDB / Test
+      uses: ./ci/image
+      with:
+        script: |-
+            cd ./duckdb/js
+            nvm use default
+            npm run test:ci
+
+    - name: App/Build
+      uses: ./ci/image
+      with:
+        script: |-
+            cd ./app
+            nvm use default
+            npm ci --cache ${NPM_CACHE}
+            npm run build:release
