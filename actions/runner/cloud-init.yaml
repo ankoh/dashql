@@ -19,11 +19,10 @@ users:
    groups: docker
    homedir: /home/actions
    lock_passwd: true
-   ssh_authorized_keys:
-   - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILSuYkClBIu65t9oB5uQOlBigeeBwHSqYawL4op03fgU
+   sudo: False
 
 runcmd:
-
+  # Install actions
   - cd /home/actions
   - mkdir runner
   - cd ./runner
@@ -33,6 +32,7 @@ runcmd:
   - ./installdependencies.sh
   - rm ./runner.tgz
 
+  # Install docker
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
   - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
   - apt-get update -y
@@ -40,6 +40,9 @@ runcmd:
   - systemctl start docker
   - systemctl enable docker
 
+  # Block traffic to subnets.
+  # The build agent has access to the docker socket so this barrier is surmountable.
+  # We block these packet at the host as well.
   - sudo ufw allow ssh
   - sudo ufw allow out to 192.168.178.1
   - sudo ufw allow out to 192.168.122.1
@@ -47,5 +50,6 @@ runcmd:
   - sudo ufw enable
   - sudo ufw reload
 
+  # Cache directories
   - mkdir -p /home/actions/.emscripten_cache /home/actions/.npm_cache /home/actions/.ccache
   - chown -R actions:actions /home/actions/.emscripten_cache /home/actions/.npm_cache /home/actions/.ccache

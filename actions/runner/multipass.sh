@@ -1,10 +1,9 @@
 #!/bin/bash
 
 multipass launch \
-    -vvv \
     --cpus 4 \
-    --disk 20G \
+    --disk 100G \
     --mem 6G \
-    --name github-action-runner \
+    --name github-actions-runner \
     --cloud-init ./cloud-init.yaml
 
