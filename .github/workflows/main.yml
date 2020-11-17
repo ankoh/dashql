@@ -1,21 +1,41 @@
 on: [push, pull_request]
 
 env:
-    CI_IMAGE_NAME: dashql/dashql-ci
-    CI_IMAGE_TAG: ${{ github.sha }}
+    CI_IMAGE: dashql/dashql-ci:${{github.sha}}
 
 jobs:
 
-  build-image:
+  build_app:
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
+
     - name: Build CI image
       run: |
         docker build \
           -f ./scripts/Dockerfile.dev \
-          -t ${CI_IMAGE_NAME}/${CI_IMAGE_TAG} \
+          -t ${CI_IMAGE_NAME} \
           --build-arg EMSDK_VERSION=2.0.4 \
           --build-arg NODE_VERSION=v14.13.0 \
           .
+
+    - name: Prepare repository
+      run: |
+        git submodule update --init --recursive
+        mkdir -p ./core/cpp/build/emscripten ./reports
+        make reset_duckdb
+
+    - name: Native build
+      uses: docker://${CI_IMAGE}
+      run: |
+        cmake \
+            -S./core/cpp/ \
+            -B./core/cpp/build/debug \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_BUILD_TYPE=Debug
+        ccache -s
+        make -C./core/cpp/build/debug -j`nproc`
+        ccache -s'
 
