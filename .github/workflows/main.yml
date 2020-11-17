@@ -1,0 +1,16 @@
+on: [push, pull_request]
+
+env:
+    CI_IMAGE_NAME: dashql/dashql-ci
+    CI_IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+
+  build-image:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build CI image
+      run: |
+        docker build -t ${CI_IMAGE_NAME}/${CI_IMAGE_TAG} -f ./scripts/Dockerfile.dev
+
