@@ -39,7 +39,6 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
-            source /opt/env.sh
             emcmake cmake \
                 -S./core/cpp/ \
                 -B./core/cpp/build/emscripten \
