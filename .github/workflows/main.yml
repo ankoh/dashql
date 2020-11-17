@@ -27,15 +27,16 @@ jobs:
 
     - name: Native build
       uses: docker://${CI_IMAGE}
-      run: |
-        cmake \
-            -S./core/cpp/ \
-            -B./core/cpp/build/debug \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_BUILD_TYPE=Debug
-        ccache -s
-        make -C./core/cpp/build/debug -j`nproc`
-        ccache -s'
+      with:
+        args: |
+          cmake \
+              -S./core/cpp/ \
+              -B./core/cpp/build/debug \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_BUILD_TYPE=Debug
+          ccache -s
+          make -C./core/cpp/build/debug -j`nproc`
+          ccache -s'
 
