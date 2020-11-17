@@ -22,6 +22,14 @@ users:
    sudo: False
 
 runcmd:
+  # Install docker
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - apt-get update -y
+  - apt-get install -y docker-ce docker-ce-cli containerd.io
+  - systemctl start docker
+  - systemctl enable docker
+
   # Install actions
   - cd /home/actions
   - mkdir runner
@@ -31,14 +39,6 @@ runcmd:
   - chown -R actions:actions .
   - ./installdependencies.sh
   - rm ./runner.tgz
-
-  # Install docker
-  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-  - apt-get update -y
-  - apt-get install -y docker-ce docker-ce-cli containerd.io
-  - systemctl start docker
-  - systemctl enable docker
 
   # Cache directories
   - mkdir -p /home/actions/.emscripten_cache /home/actions/.npm_cache /home/actions/.ccache
