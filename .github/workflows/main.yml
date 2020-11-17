@@ -14,7 +14,7 @@ jobs:
       run: |
         docker build \
           -f ./scripts/Dockerfile.dev \
-          -t ${CI_IMAGE_NAME} \
+          -t ${CI_IMAGE} \
           --build-arg EMSDK_VERSION=2.0.4 \
           --build-arg NODE_VERSION=v14.13.0 \
           .
