@@ -1,6 +1,6 @@
 [submodule "submodules/flatbuffers"]
 	path = submodules/flatbuffers
-	url = https://github.com/dashql/flatbuffers
+	url = https://github.com/google/flatbuffers
 [submodule "submodules/benchmark"]
 	path = submodules/benchmark
 	url = https://github.com/google/benchmark
