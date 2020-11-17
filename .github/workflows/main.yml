@@ -25,5 +25,5 @@ jobs:
               -DCMAKE_BUILD_TYPE=Debug
           ccache -s
           make -C./core/cpp/build/debug -j`nproc`
-          ccache -s'
+          ccache -s
 
