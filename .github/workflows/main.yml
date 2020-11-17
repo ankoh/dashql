@@ -1,7 +1,7 @@
 on: [push, pull_request]
 
 env:
-    CI_IMAGE: dashql/dashql-ci:${{github.sha}}
+    CI_IMAGE: dashql/ci:local
 
 jobs:
 
@@ -26,7 +26,7 @@ jobs:
         make reset_duckdb
 
     - name: Native build
-      uses: docker://${CI_IMAGE}
+      uses: docker://dashql/ci:local
       with:
         args: |
           cmake \
