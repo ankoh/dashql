@@ -12,5 +12,10 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build CI image
       run: |
-        docker build -t ${CI_IMAGE_NAME}/${CI_IMAGE_TAG} -f ./scripts/Dockerfile.dev
+        docker build \
+          -f ./scripts/Dockerfile.dev \
+          -t ${CI_IMAGE_NAME}/${CI_IMAGE_TAG} \
+          --build-arg EMSDK_VERSION=2.0.4 \
+          --build-arg NODE_VERSION=v14.13.0 \
+          .
 
