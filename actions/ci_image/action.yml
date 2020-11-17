@@ -1,10 +1,32 @@
 inputs:
   script:
-    description: "Build script"
+    description: "script to be passed to the docker image"
     required: true
+  emscripten_cache:
+    description: "emscripten cache directory"
+    default: /home/actions/.emscripten_cache
+  npm_cache:
+    description: "npm cache directory"
+    default: /home/actions/.npm_cache
+  ccache:
+    description: "ccache directory"
+    default: /home/actions/.ccache
 
 runs:
-  using: "docker"
-  image: "Dockerfile"
-  args:
-    - ${{ inputs.script }}
+  using: "composite"
+  steps: 
+    - run: docker build -t dashql/ci:${GITHUB_SHA} -f ${{ github.workspace }}/Dockerfile .
+      shell: bash
+    - run: |
+        docker run -it --rm
+            -v ${{ github.workspace }}:/wd/
+            -v ${{ inputs.emscripten_cache }}:/mnt/emscripten_cache/
+            -v ${{ inputs.npm_cache }}:/mnt/npm_cache/
+            -v ${{ inputs.ccache }}:/mnt/ccache/
+            -e EM_CACHE=/mnt/emscripten_cache
+            -e NPM_CACHE=/mnt/npm_cache
+            -e CCACHE_DIR=/mnt/ccache
+            -e CCACHE_BASEDIR=/wd/
+            dashql/ci:${GITHUB_SHA}
+            sh -c "${{ inputs.script }}"
+      shell: bash
