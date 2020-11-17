@@ -11,7 +11,7 @@ CPP_SOURCE_DIR="${PROJECT_ROOT}/core/cpp"
 CORE_JS_LIB_DIR="${PROJECT_ROOT}/core/js/src/wasm"
 DUCKDB_JS_LIB_DIR="${PROJECT_ROOT}/duckdb/js/src/wasm"
 
-CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/mnt/emscripten_cache/ -v${PROJECT_ROOT}/.ccache/:/mnt/ccache/ -e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/ dashql/dashql-dev:${IMAGE_TAG} "
+CMD_PREFIX="docker run -it --rm -v${PROJECT_ROOT}:/wd/ -v${PROJECT_ROOT}/.emscripten_cache/:/mnt/emscripten_cache/ -v${PROJECT_ROOT}/.ccache/:/mnt/ccache/ -e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/ dashql/ci:${IMAGE_TAG} "
 
 set -x
 
