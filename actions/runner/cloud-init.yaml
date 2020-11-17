@@ -40,16 +40,6 @@ runcmd:
   - systemctl start docker
   - systemctl enable docker
 
-  # Block traffic to subnets.
-  # The build agent has access to the docker socket so this barrier is surmountable.
-  # We block this traffic at the KVM host as well.
-  - sudo ufw allow ssh
-  - sudo ufw allow out to 192.168.178.1
-  - sudo ufw allow out to 192.168.122.1
-  - sudo ufw reject out to 192.168.0.0/16
-  - sudo ufw enable
-  - sudo ufw reload
-
   # Cache directories
   - mkdir -p /home/actions/.emscripten_cache /home/actions/.npm_cache /home/actions/.ccache
   - chown -R actions:actions /home/actions/.emscripten_cache /home/actions/.npm_cache /home/actions/.ccache
