@@ -41,5 +41,5 @@ runs:
             -e CCACHE_DIR=/mnt/ccache \
             -e CCACHE_BASEDIR=/wd/ \
             dashql/ci:${GITHUB_SHA} \
-            sh -xec "${{ inputs.script }}"
+            bash -xec "${{ inputs.script }}"
       shell: bash

@@ -1,8 +1,8 @@
 on: [push, pull_request]
 
 jobs:
-  build:
-    name: Build
+  main:
+    name: Main Build
     runs-on: self-hosted
 
     steps:
@@ -12,7 +12,7 @@ jobs:
         git submodule update --init --recursive
         mkdir -p ./core/cpp/build/emscripten ./reports
 
-    - name: Native / Build
+    - name: Core | Native | Build
       uses: ./ci/image
       with:
         script: |-
@@ -28,14 +28,14 @@ jobs:
           make -C./core/cpp/build/debug -j`nproc`
           ccache -s
 
-    - name: Native / Test
+    - name: Core | Native | Test
       uses: ./ci/image
       with:
         script: |-
             ./core/cpp/build/debug/grammar_tests ./core/cpp/test/grammar \
                 --gtest_output=xml:./reports/tests_native_grammar.xml
 
-    - name: WASM / Build
+    - name: Core | WASM | Build
       uses: ./ci/image
       with:
         script: |-
@@ -56,7 +56,7 @@ jobs:
             cp ./core/cpp/build/emscripten/duckdb/*.wasm ./duckdb/js/src/wasm/
             cp ./core/cpp/build/emscripten/duckdb/*.js ./duckdb/js/src/wasm/
 
-    - name: JS / Core / Build
+    - name: Core | JS | Build
       uses: ./ci/image
       with:
         script: |-
@@ -65,7 +65,7 @@ jobs:
             npm ci --cache /home/actions/.npm_cache
             npm run build
 
-    - name: JS / Core / Test
+    - name: Core | JS | Test
       uses: ./ci/image
       with:
         script: |-
@@ -73,7 +73,7 @@ jobs:
             nvm use default
             npm run test:ci
 
-    - name: JS / DuckDB / Build
+    - name: JS | DuckDB | Build
       uses: ./ci/image
       with:
         script: |-
@@ -82,7 +82,7 @@ jobs:
             npm ci --cache /home/actions/.npm_cache
             npm run build
 
-    - name: JS / DuckDB / Test
+    - name: JS | DuckDB | Test
       uses: ./ci/image
       with:
         script: |-
@@ -90,7 +90,7 @@ jobs:
             nvm use default
             npm run test:ci
 
-    - name: App/Build
+    - name: App | Build
       uses: ./ci/image
       with:
         script: |-
