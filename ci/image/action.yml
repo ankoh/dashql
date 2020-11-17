@@ -24,7 +24,7 @@ runs:
       shell: bash
 
     # Run the script inside the image
-    - run: >
+    - run: |-
         docker run --rm \
             -u `id -u $USER` \
             -v ${{ github.workspace }}:/wd/ \
