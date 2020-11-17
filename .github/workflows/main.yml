@@ -11,11 +11,11 @@ jobs:
       run: |
         git submodule update --init --recursive
         mkdir -p ./core/cpp/build/emscripten ./reports
-        make reset_duckdb
 
     - uses: ./actions/ci_image
       with:
-        script: |
+        script: |-
+          make reset_duckdb
           cmake \
               -S./core/cpp/ \
               -B./core/cpp/build/debug \
