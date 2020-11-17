@@ -60,6 +60,7 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
+            source /opt/env.sh
             cd ./core/js
             nvm use default
             npm ci --cache /home/actions/.npm_cache
@@ -69,6 +70,7 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
+            source /opt/env.sh
             cd ./core/js
             nvm use default
             npm run test:ci
@@ -77,6 +79,7 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
+            source /opt/env.sh
             cd ./duckdb/js
             nvm use default
             npm ci --cache /home/actions/.npm_cache
@@ -86,6 +89,7 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
+            source /opt/env.sh
             cd ./duckdb/js
             nvm use default
             npm run test:ci
@@ -94,6 +98,7 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
+            source /opt/env.sh
             cd ./app
             nvm use default
             npm ci --cache /home/actions/.npm_cache
