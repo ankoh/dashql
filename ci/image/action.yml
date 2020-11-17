@@ -20,7 +20,12 @@ runs:
   using: "composite"
   steps: 
     # Build the CI image
-    - run: docker build -t dashql/ci:${GITHUB_SHA} -f ${{ github.workspace }}/ci/image/Dockerfile .
+    - run: |-
+        [ ! -z `docker images -q dashql/ci:${GITHUB_SHA}` ] || \
+            docker build \
+                -t dashql/ci:${GITHUB_SHA} \
+                -f ${{ github.workspace }}/ci/image/Dockerfile \
+                .
       shell: bash
 
     # Run the script inside the image
