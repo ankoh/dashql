@@ -28,7 +28,7 @@ jobs:
           make -C./core/cpp/build/debug -j`nproc`
           ccache -s
 
-    - name: Core | Native | Test
+    - name: Core | Native | GrammarTests
       uses: ./ci/image
       with:
         script: |-
@@ -65,7 +65,7 @@ jobs:
             npm ci --cache /mnt/npm_cache
             npm run build
 
-    - name: Core | JS | Test
+    - name: Core | JS | Tests
       uses: ./ci/image
       with:
         script: |-
@@ -82,7 +82,7 @@ jobs:
             npm ci --cache /mnt/npm_cache
             npm run build
 
-    - name: DuckDB | JS | Test
+    - name: DuckDB | JS | Tests
       uses: ./ci/image
       with:
         script: |-
