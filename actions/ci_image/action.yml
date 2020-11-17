@@ -17,7 +17,7 @@ runs:
   steps: 
     - run: docker build -t dashql/ci:${GITHUB_SHA} -f ${{ github.workspace }}/actions/ci_image/Dockerfile .
       shell: bash
-    - run: |
+    - run: >
         docker run -it --rm
             -v ${{ github.workspace }}:/wd/
             -v ${{ inputs.emscripten_cache }}:/mnt/emscripten_cache/
