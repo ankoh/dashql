@@ -18,15 +18,15 @@ runs:
     - run: docker build -t dashql/ci:${GITHUB_SHA} -f ${{ github.workspace }}/actions/ci_image/Dockerfile .
       shell: bash
     - run: >
-        docker run -it --rm
-            -v ${{ github.workspace }}:/wd/
-            -v ${{ inputs.emscripten_cache }}:/mnt/emscripten_cache/
-            -v ${{ inputs.npm_cache }}:/mnt/npm_cache/
-            -v ${{ inputs.ccache }}:/mnt/ccache/
-            -e EM_CACHE=/mnt/emscripten_cache
-            -e NPM_CACHE=/mnt/npm_cache
-            -e CCACHE_DIR=/mnt/ccache
-            -e CCACHE_BASEDIR=/wd/
-            dashql/ci:${GITHUB_SHA}
+        docker run -it --rm \
+            -v ${{ github.workspace }}:/wd/ \
+            -v ${{ inputs.emscripten_cache }}:/mnt/emscripten_cache/ \
+            -v ${{ inputs.npm_cache }}:/mnt/npm_cache/ \
+            -v ${{ inputs.ccache }}:/mnt/ccache/ \
+            -e EM_CACHE=/mnt/emscripten_cache \
+            -e NPM_CACHE=/mnt/npm_cache \
+            -e CCACHE_DIR=/mnt/ccache \
+            -e CCACHE_BASEDIR=/wd/ \
+            dashql/ci:${GITHUB_SHA} \
             sh -c "${{ inputs.script }}"
       shell: bash
