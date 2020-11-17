@@ -11,71 +11,34 @@ packages:
   - curl
   - jq
 
-  - build-essential
-  - git
-  - ccache
-  - cmake
-  - ninja-build
-  - clang
-  - clang-tidy
-  - curl
-  - python
-  - python3
-  - bison
-  - flex
-  - openjdk-14-jdk
-  - libpthread-stubs0-dev
-  - libboost-all-dev
+groups:
+  - docker
 
 users:
  - name: actions
+   groups: docker
    homedir: /home/actions
    lock_passwd: true
-   sudo: False
+   ssh_authorized_keys:
+   - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILSuYkClBIu65t9oB5uQOlBigeeBwHSqYawL4op03fgU
 
 runcmd:
-  - export ACTIONS_VERSION="v2.274.1"
-  - export EMSDK_VERSION="2.0.4"
-  - export NVM_DIR=/usr/local/nvm
-  - export NVM_VERSION="v0.36.0"
-  - export NODE_VERSION="v14.13.0"
 
-  - mkdir -p /usr/local/actions-runner && cd ./usr/local/actions-runner
-  - curl -o runner.tgz -L https://github.com/actions/runner/releases/download/${ACTIONS_VERSION}/actions-runner-linux-x64-${ACTIONS_VERSION}.tar.gz
+  - cd /home/actions
+  - mkdir runner
+  - cd ./runner
+  - curl -o runner.tgz -L https://github.com/actions/runner/releases/download/v2.274.1/actions-runner-linux-x64-2.274.1.tar.gz
   - tar -xzf ./runner.tgz
   - chown -R actions:actions .
   - ./installdependencies.sh
   - rm ./runner.tgz
 
-  - mkdir -p /usr/local/emsdk && cd /usr/local/emsdk
-  - curl -SL https://github.com/emscripten-core/emsdk/archive/${EMSDK_VERSION}.tar.gz | tar -xz --strip-components=1
-  - ./emsdk install latest
-  - ./emsdk activate latest
-  - /bin/bash ./emsdk_env.sh
-  - rm -rf ./emscripten/tag-*/tests
-  - rm -rf ./emscripten/tag-*/site
-  - rm -rf ./emscripten/tag-*/docs
-  - rm -rf ./zips
-  - find . -name "*.o" -exec rm {} \;
-  - find . -name "*.a" -exec rm {} \;
-  - find . -name "*.tmp" -exec rm {} \;
-
-  - mkdir -p /usr/local/nvm
-  - curl https://raw.githubusercontent.com/creationix/nvm/${NVM_VERSION}/install.sh | bash
-  - source /usr/local/nvm/nvm.sh
-  - nvm install ${NODE_VERSION}
-  - nvm alias default ${NODE_VERSION}
-  - nvm use default
-
-  - cd /home/actions
-  - source /usr/local/emsdk/emsdk_env.sh
-  - echo "PATH=$PATH" >> ./env.sh
-  - echo "EMSDK=$EMSDK" >> ./env.sh
-  - echo "EM_CONFIG=$EM_CONFIG" >> ./env.sh
-  - echo "EM_CACHE=/home/actions/.emscripten_cache/" >> ./env.sh
-  - echo "EMSCRIPTEN=$EMSCRIPTEN" >> ./env.sh
-  - echo "source /usr/local/nvm/nvm.sh" >> ./env.sh
-  - chown actions:actions ./env.sh
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - apt-get update -y
+  - apt-get install -y docker-ce docker-ce-cli containerd.io
+  - systemctl start docker
+  - systemctl enable docker
 
   - sudo ufw allow ssh
   - sudo ufw allow out to 192.168.178.1
