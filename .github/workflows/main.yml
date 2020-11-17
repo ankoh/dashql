@@ -12,7 +12,7 @@ jobs:
         git submodule update --init --recursive
         mkdir -p ./core/cpp/build/emscripten ./reports
 
-    - uses: ./actions/ci_image
+    - uses: ./ci/image
       with:
         script: |-
           make reset_duckdb
