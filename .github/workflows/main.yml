@@ -2,7 +2,8 @@ on: [push, pull_request]
 
 jobs:
 
-  build_app:
+  build:
+    name: Build
     runs-on: self-hosted
 
     steps:
