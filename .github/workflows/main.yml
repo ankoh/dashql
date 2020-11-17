@@ -34,3 +34,25 @@ jobs:
         script: |-
             ./core/cpp/build/debug/grammar_tests ./core/cpp/test/grammar \
                 --gtest_output=xml:./reports/tests_native_grammar.xml
+
+    - name: WASM / Build
+      uses: ./ci/image
+      with:
+        script: |-
+            source /opt/env.sh
+            emcmake cmake \
+                -S./core/cpp/ \
+                -B./core/cpp/build/emscripten \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+            emmake make \
+                -C./core/cpp/build/emscripten \
+                -j`nproc` \
+                dashql_core_web dashql_core_node duckdb_web duckdb_node
+
+            cp ./core/cpp/build/emscripten/*.wasm ./core/js/src/wasm/
+            cp ./core/cpp/build/emscripten/*.js ./core/js/src/wasm/
+            cp ./core/cpp/build/emscripten/duckdb/*.wasm ./duckdb/js/src/wasm/
+            cp ./core/cpp/build/emscripten/duckdb/*.js ./duckdb/js/src/wasm/
