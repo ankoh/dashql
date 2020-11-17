@@ -1,8 +1,5 @@
 on: [push, pull_request]
 
-env:
-    CI_IMAGE: dashql/ci:local
-
 jobs:
 
   build_app:
@@ -14,7 +11,7 @@ jobs:
       run: |
         docker build \
           -f ./scripts/Dockerfile.dev \
-          -t ${CI_IMAGE} \
+          -t local \
           --build-arg EMSDK_VERSION=2.0.4 \
           --build-arg NODE_VERSION=v14.13.0 \
           .
@@ -26,7 +23,7 @@ jobs:
         make reset_duckdb
 
     - name: Native build
-      uses: docker://dashql/ci:local
+      uses: docker://local
       with:
         args: |
           cmake \
