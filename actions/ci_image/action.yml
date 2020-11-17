@@ -15,7 +15,7 @@ inputs:
 runs:
   using: "composite"
   steps: 
-    - run: docker build -t dashql/ci:${GITHUB_SHA} -f ${{ github.workspace }}/Dockerfile .
+    - run: docker build -t dashql/ci:${GITHUB_SHA} -f ${{ github.workspace }}/actions/ci_image/Dockerfile .
       shell: bash
     - run: |
         docker run -it --rm
