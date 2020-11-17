@@ -73,7 +73,7 @@ jobs:
             nvm use default
             npm run test:ci
 
-    - name: JS | DuckDB | Build
+    - name: DuckDB | JS | Build
       uses: ./ci/image
       with:
         script: |-
@@ -82,7 +82,7 @@ jobs:
             npm ci --cache /home/actions/.npm_cache
             npm run build
 
-    - name: JS | DuckDB | Test
+    - name: DuckDB | JS | Test
       uses: ./ci/image
       with:
         script: |-
