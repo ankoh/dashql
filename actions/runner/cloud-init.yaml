@@ -42,7 +42,7 @@ runcmd:
 
   # Block traffic to subnets.
   # The build agent has access to the docker socket so this barrier is surmountable.
-  # We block these packet at the host as well.
+  # We block this traffic at the KVM host as well.
   - sudo ufw allow ssh
   - sudo ufw allow out to 192.168.178.1
   - sudo ufw allow out to 192.168.122.1
