@@ -96,5 +96,5 @@ jobs:
         script: |-
             cd ./app
             nvm use default
-            npm ci --cache ${NPM_CACHE}
+            npm ci --cache /home/actions/.npm_cache
             npm run build:release
