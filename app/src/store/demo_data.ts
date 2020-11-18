@@ -11,7 +11,7 @@ DECLARE PARAMETER country AS TEXT (
 -- Load data from external sources like HTTP REST APIs.
 -- Ref: https://docs.dashql.com/grammar/load
 LOAD wheather_csv FROM http (
-    http_url = 'https://cdn.dashql.com/demo/weather/{{country}}'
+    url = 'https://cdn.dashql.com/demo/weather/{{country}}'
 );
 
 -- Interpret the loaded data as relation.
