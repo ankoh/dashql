@@ -16,20 +16,20 @@ std::string_view Scanner::TextAt(sx::Location loc) {
     return input_text().substr(loc.offset(), loc.length());
 }
 /// Begin a literal
-void Scanner::BeginLiteral(sx::Location loc) { _literal_begin = loc; }
+void Scanner::BeginLiteral(sx::Location loc) { literal_begin_ = loc; }
 
 /// End a literal
 sx::Location Scanner::EndLiteral(sx::Location loc) {
-    return sx::Location(_literal_begin.offset(), loc.offset() + loc.length() - _literal_begin.offset());
+    return sx::Location(literal_begin_.offset(), loc.offset() + loc.length() - literal_begin_.offset());
 }
 
 /// Begin quotes
-void Scanner::BeginQuotes(sx::Location loc) { _literal_begin = loc; }
+void Scanner::BeginQuotes(sx::Location loc) { literal_begin_ = loc; }
 
 /// End quotes
 sx::Location Scanner::EndQuotes(sx::Location loc) {
     // Return the location
-    auto text_loc = sx::Location(_literal_begin.offset(), loc.offset() + loc.length() - _literal_begin.offset());
+    auto text_loc = sx::Location(literal_begin_.offset(), loc.offset() + loc.length() - literal_begin_.offset());
 
     // Find interpolations
     auto text = TextAt(text_loc);
@@ -39,7 +39,7 @@ sx::Location Scanner::EndQuotes(sx::Location loc) {
     while (std::regex_search(cursor, text.cend(), match, param_regex)) {
         auto m_ofs = text_loc.offset() + match.position();
         auto m_len = match.length();
-        _quote_interpolations.push_back(sx::Location(m_ofs, m_len));
+        quote_interpolations_.push_back(sx::Location(m_ofs, m_len));
         cursor = match.suffix().first;
     }
 
@@ -49,36 +49,36 @@ sx::Location Scanner::EndQuotes(sx::Location loc) {
 
 /// Begin a comment
 void Scanner::BeginComment(sx::Location loc) {
-    if (_comment_depth++ == 0) {
-        _comment_begin = loc;
+    if (comment_depth_++ == 0) {
+        comment_begin_ = loc;
     }
 }
 /// End a comment
 std::optional<sx::Location> Scanner::EndComment(sx::Location loc) {
-    if (--_comment_depth == 0) {
-        return sx::Location(_literal_begin.offset(), loc.offset() + loc.length() - _literal_begin.offset());
+    if (--comment_depth_ == 0) {
+        return sx::Location(literal_begin_.offset(), loc.offset() + loc.length() - literal_begin_.offset());
     }
     return std::nullopt;
 }
 
 /// Add an error
 void Scanner::AddError(sx::Location location, const char* message) {
-    _errors.push_back({location, message});
+    errors_.push_back({location, message});
 }
 
 /// Add an error
 void Scanner::AddError(sx::Location location, std::string&& message) {
-    _errors.push_back({location, move(message)});
+    errors_.push_back({location, move(message)});
 }
 
 /// Add a line break
 void Scanner::AddLineBreak(sx::Location location) {
-    _line_breaks.push_back(location);
+    line_breaks_.push_back(location);
 }
 
 /// Add a comment
 void Scanner::AddComment(sx::Location location) {
-    _comments.push_back(location);
+    comments_.push_back(location);
 }
 
 /// Read a parameter
@@ -108,11 +108,11 @@ Parser::symbol_type Scanner::ReadInteger(sx::Location loc) {
 Parser::symbol_type Scanner::Next() {
     // Have lookahead?
     Parser::symbol_type current_token;
-    if (_lookahead_token) {
-        current_token.move(*_lookahead_token);
-        _lookahead_token.reset();
+    if (lookahead_token_) {
+        current_token.move(*lookahead_token_);
+        lookahead_token_.reset();
     } else {
-        auto t = dashql_yylex(_scanner_state_ptr);
+        auto t = dashql_yylex(scanner_state_ptr_);
         current_token.move(t);
     }
 
@@ -127,9 +127,9 @@ Parser::symbol_type Scanner::Next() {
     }
 
     // Get next token
-    auto next_token = dashql_yylex(_scanner_state_ptr);
+    auto next_token = dashql_yylex(scanner_state_ptr_);
     auto next_token_kind = next_token.kind();
-    _lookahead_token.emplace(std::move(next_token));
+    lookahead_token_.emplace(std::move(next_token));
 
     // Should replace current token?
     switch (current_token.kind()) {
