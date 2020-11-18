@@ -491,15 +491,17 @@ auto loc = sx::Location();
 
 // Code
 
-void *dashql_yyalloc (yy_size_t ,yyscan_t yyscanner ) {
+void* dashql_yyalloc(yy_size_t, yyscan_t) {
     assert(false && "flex tried to allocate memory");
+    return nullptr;
 }
 
-void *dashql_yyrealloc (void *,yy_size_t ,yyscan_t yyscanner ) {
+void* dashql_yyrealloc(void*, yy_size_t, yyscan_t) {
     assert(false && "flex tried to reallocate memory");
+    return nullptr;
 }
 
-void dashql_yyfree (void * ,yyscan_t yyscanner ) {
+void dashql_yyfree (void*, yyscan_t) {
     assert(false && "flex tried to free memory");
 }
 
