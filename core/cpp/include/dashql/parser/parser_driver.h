@@ -39,6 +39,8 @@ sx::Node operator<<(sx::AttributeKey key, const sx::Node& node);
 NodeVector& operator<<(NodeVector& attrs, const sx::Node& node);
 /// Helper to concatenate node vectors
 NodeVector& operator<<(NodeVector& attrs, NodeVector&& other);
+/// Helper to concatenate node vectors
+NodeVector concat(NodeVector&& l, NodeVector&& r);
 
 struct ScriptOptions {
     /// The global namespace name
