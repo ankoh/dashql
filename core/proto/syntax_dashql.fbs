@@ -19,11 +19,10 @@ enum LoadMethodType: uint8 {
     FILE = 2
 }
 
-enum HTTPVerb: uint8 {
+enum ExtractMethodType: uint8 {
     NONE = 0,
-    GET = 1,
-    PUT = 2,
-    POST = 3,
+    CSV = 1,
+    JSON = 2
 }
 
 enum VizType: uint8 {

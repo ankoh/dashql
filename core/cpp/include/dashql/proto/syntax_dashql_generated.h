@@ -92,40 +92,37 @@ inline const char *EnumNameLoadMethodType(LoadMethodType e) {
   return EnumNamesLoadMethodType()[index];
 }
 
-enum class HTTPVerb : uint8_t {
+enum class ExtractMethodType : uint8_t {
   NONE = 0,
-  GET = 1,
-  PUT = 2,
-  POST = 3,
+  CSV = 1,
+  JSON = 2,
   MIN = NONE,
-  MAX = POST
+  MAX = JSON
 };
 
-inline const HTTPVerb (&EnumValuesHTTPVerb())[4] {
-  static const HTTPVerb values[] = {
-    HTTPVerb::NONE,
-    HTTPVerb::GET,
-    HTTPVerb::PUT,
-    HTTPVerb::POST
+inline const ExtractMethodType (&EnumValuesExtractMethodType())[3] {
+  static const ExtractMethodType values[] = {
+    ExtractMethodType::NONE,
+    ExtractMethodType::CSV,
+    ExtractMethodType::JSON
   };
   return values;
 }
 
-inline const char * const *EnumNamesHTTPVerb() {
-  static const char * const names[5] = {
+inline const char * const *EnumNamesExtractMethodType() {
+  static const char * const names[4] = {
     "NONE",
-    "GET",
-    "PUT",
-    "POST",
+    "CSV",
+    "JSON",
     nullptr
   };
   return names;
 }
 
-inline const char *EnumNameHTTPVerb(HTTPVerb e) {
-  if (flatbuffers::IsOutRange(e, HTTPVerb::NONE, HTTPVerb::POST)) return "";
+inline const char *EnumNameExtractMethodType(ExtractMethodType e) {
+  if (flatbuffers::IsOutRange(e, ExtractMethodType::NONE, ExtractMethodType::JSON)) return "";
   const size_t index = static_cast<size_t>(e);
-  return EnumNamesHTTPVerb()[index];
+  return EnumNamesExtractMethodType()[index];
 }
 
 enum class VizType : uint8_t {
@@ -244,24 +241,22 @@ inline const flatbuffers::TypeTable *LoadMethodTypeTypeTable() {
   return &tt;
 }
 
-inline const flatbuffers::TypeTable *HTTPVerbTypeTable() {
+inline const flatbuffers::TypeTable *ExtractMethodTypeTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 },
     { flatbuffers::ET_UCHAR, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
-    dashql::proto::syntax_dashql::HTTPVerbTypeTable
+    dashql::proto::syntax_dashql::ExtractMethodTypeTypeTable
   };
   static const char * const names[] = {
     "NONE",
-    "GET",
-    "PUT",
-    "POST"
+    "CSV",
+    "JSON"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

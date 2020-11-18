@@ -4,7 +4,7 @@ export const DEMO_SCRIPT =
 
 -- Declare a dynamic input field on top of your dashboard.
 -- Ref: https://docs.dashql.com/grammar/param
-DECLARE PARAMETER country AS TEXT (
+DECLARE PARAMETER country TYPE TEXT (
     default_value = 'DE'
 );
 
@@ -16,7 +16,7 @@ LOAD wheather_csv FROM http (
 
 -- Interpret the data as SQL table.
 -- Ref: https://docs.dashql.com/grammar/extract
-EXTRACT wheather FROM wheather_csv;
+EXTRACT wheather FROM wheather_csv USING CSV;
 
 -- Run arbitrary SQL within your browser.
 -- Ref: https://docs.dashql.com/grammar/query

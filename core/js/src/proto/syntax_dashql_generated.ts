@@ -33,11 +33,10 @@ export enum LoadMethodType{
  * @enum {number}
  */
 export namespace dashql.proto.syntax_dashql{
-export enum HTTPVerb{
+export enum ExtractMethodType{
   NONE= 0,
-  GET= 1,
-  PUT= 2,
-  POST= 3
+  CSV= 1,
+  JSON= 2
 };
 }
 
