@@ -22,5 +22,5 @@ SELECT 1 INTO weather_avg FROM wheather;
 
 -- Visualize SQL tables and views with our visualization grammar.
 -- Ref: https://docs.dashql.com/grammar/viz
-VIZ "Weather" FROM weather_avg USING LINE;
+VIZ weather_avg USING LINE;
 `;
