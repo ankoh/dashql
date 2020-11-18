@@ -59,9 +59,14 @@ core_js_test:
 	npm --prefix ${ROOT_DIR}/core/js run test
 
 # Build the wasm modules
-.PHONY: core_wasm
-core_wasm:
+.PHONY: wasm
+wasm:
 	./scripts/compile_wasm.sh
+
+# Generate the protocol files
+.PHONY: proto
+proto:
+	./scripts/generate_proto.sh
 
 # Generate dashql grammar tests
 .PHONY: grammar_testgen

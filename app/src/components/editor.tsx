@@ -61,7 +61,8 @@ class Editor extends React.Component<Props> {
                 links: false,
                 minimap: {
                     enabled: false
-                }
+                },
+                scrollBeyondLastLine: false,
             });
             this.editor.setPosition({column: 0, lineNumber: 0});
             this.editor.focus();
