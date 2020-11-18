@@ -1,3 +1,4 @@
+name: "Main"
 on: [push, pull_request]
 
 jobs:
@@ -35,6 +36,42 @@ jobs:
       with:
         script: |-
             ./core/cpp/build/debug/grammar_tests ./core/cpp/test/grammar \
+                --gtest_output=xml:./reports/tests_native_grammar.xml
+
+  ubuntu_x86_release:
+    name: Ubuntu | x86 | Release
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Prepare repository
+      uses: ./ci/image
+      with:
+        script: |-
+          make reset_duckdb
+          git submodule update --init --recursive
+          mkdir -p ./core/cpp/build/emscripten ./reports
+
+    - name: Build
+      uses: ./ci/image
+      with:
+        script: |-
+          cmake \
+              -S./core/cpp/ \
+              -B./core/cpp/build/release \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_BUILD_TYPE=Release
+          ccache -s
+          make -C./core/cpp/build/release -j`nproc`
+          ccache -s
+
+    - name: Grammar Tests
+      uses: ./ci/image
+      with:
+        script: |-
+            ./core/cpp/build/release/grammar_tests ./core/cpp/test/grammar \
                 --gtest_output=xml:./reports/tests_native_grammar.xml
 
   web:
