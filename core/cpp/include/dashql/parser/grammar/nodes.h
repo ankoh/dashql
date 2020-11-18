@@ -134,6 +134,13 @@ inline sxs::NumericTypeTag ReadFloatType(ParserDriver& driver, sx::Location bits
     return sxs::NumericTypeTag::FLOAT4;
 }
 
+/// Map the key for an object attribute.
+sx::AttributeKey ObjectAttributeKey(ParserDriver& driver, sx::Location loc);
+/// Map an object attribute.
+/// Registers an error if the (key, value) combination is not supported.
+sx::Node ObjectAttribute(ParserDriver& driver, sx::Location loc, sx::AttributeKey key, sx::Node value);
+
+
 } // namespace parser
 } // namespace dashql
 
