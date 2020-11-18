@@ -1,4 +1,5 @@
 import * as React from "react";
+import {ModuleInspector} from "../components";
 import styles from './studio.module.css';
 
 export class Planner extends React.Component<{}> {
@@ -10,7 +11,7 @@ export class Planner extends React.Component<{}> {
     }
     public render() {
         return (
-            <div className={styles.inspector} />
+            <ModuleInspector className={styles.inspector} />
         );
     }
 };
