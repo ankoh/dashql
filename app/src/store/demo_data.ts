@@ -14,7 +14,7 @@ LOAD wheather_csv FROM http (
     url = 'https://cdn.dashql.com/demo/weather/{{country}}'
 );
 
--- Interpret the loaded data as relation.
+-- Interpret the data as SQL table.
 -- Ref: https://docs.dashql.com/grammar/extract
 EXTRACT wheather FROM wheather_csv;
 
@@ -22,7 +22,7 @@ EXTRACT wheather FROM wheather_csv;
 -- Ref: https://docs.dashql.com/grammar/query
 SELECT 1 INTO weather_avg FROM wheather;
 
--- Visualize SQL tables and views with our visualization grammar.
+-- Visualize tables and views.
 -- Ref: https://docs.dashql.com/grammar/viz
 VIZ weather_avg USING LINE;
 `;
