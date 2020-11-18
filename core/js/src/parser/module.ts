@@ -58,7 +58,11 @@ export class Node {
     public get node() { return this._node; }
     /// Get the node
     public set node(n: sx.Node) { this._node = n; }
-    /// Get the text
+    /// Get the parent
+    public get parent() { return this._node.parent(); }
+    /// Get the key
+    public get key() { return this._node.attributeKey(); }
+    /// Get the key
     public get text() { return this._module.text; }
     /// Get the module
     public get buffer() { return this._module.buffer; }
@@ -137,6 +141,8 @@ export class Statement {
     public get statement_buffer() { return this._statement; }
     /// Set the statement buffer
     public set statement_buffer(s: sx.Statement) { this._statement = s; }
+    /// Get the root
+    public get root() { return this._statement.root; }
 
     /// Perform a pre-order DFS traversal
     public traversePreOrder(fn: (node_id: number, node: Node) => void) {
