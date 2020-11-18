@@ -22,8 +22,8 @@ inline sx::Node Bool(sx::Location loc, bool v) { return sx::Node(loc, sx::NodeTy
 
 /// Create a constant inline
 inline sx::Node Const(ParserDriver& driver, sx::Location loc, sxs::AConstType type) {
-    return driver.Add(loc, sx::NodeType::OBJECT_SQL_ACONST, {
-        Key::SQL_ACONST_TYPE << Enum(loc, type),
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_CONST, {
+        Key::SQL_CONST_TYPE << Enum(loc, type),
     });
 }
 
@@ -95,7 +95,7 @@ inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::
 
 /// Negate a value
 inline sx::Node Negate(ParserDriver& driver, sx::Location loc, sx::Location loc_minus, sx::Node value) {
-    // XXX If node_type == OBJECT_SQL_ACONST inspect the attributes and expand the value
+    // XXX If node_type == OBJECT_SQL_CONST inspect the attributes and expand the value
 
     // Otherwise fall back to an unary negation
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
