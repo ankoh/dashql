@@ -4,6 +4,7 @@ import { TaskID, TaskInfo } from "./task";
 import { LaunchProgress } from "./launch_progress";
 import { LogEntry } from "./log";
 import { AppSettings } from "./app_settings";
+import { DEMO_SCRIPT } from "./demo_data";
 
 /// A root state
 export class AppState {
@@ -28,7 +29,7 @@ export class AppState {
         this.appSettings = null;
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logEntries = Immutable.List<LogEntry>();
-        this.editorText = "";
+        this.editorText = DEMO_SCRIPT;
         this.editorModule = null;
         this.focusedViz = null;
         return;
