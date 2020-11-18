@@ -1368,7 +1368,7 @@ expected:
   statements:
     - name: global.a
       root:
-        type: OBJECT_DASHQL_PARAMTER
+        type: OBJECT_DASHQL_PARAMETER
         location: 0..32|`declare pa`..`pe integer`
         DASHQL_PARAMETER_IDENTIFIER: 18..19|`a`
         DASHQL_PARAMETER_TYPE: INTEGER
