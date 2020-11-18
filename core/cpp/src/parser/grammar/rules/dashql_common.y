@@ -29,8 +29,13 @@ dashql_option:
     ;
 
 dashql_option_key:
-    IDENT
-  | SCONST
+    SCONST
+  | IDENT
+  | sql_unreserved_keywords
+  | sql_column_name_keywords
+  | sql_type_func_keywords
+  | sql_reserved_keywords
+  | dashql_keywords
     ;
 
 dashql_option_value:

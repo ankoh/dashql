@@ -1,6 +1,9 @@
 dashql_viz_statement:
-    dashql_viz_statement_prefix dashql_identifier FROM dashql_identifier USING dashql_viz_attributes  {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ, move($6));
+    dashql_viz_statement_prefix dashql_identifier USING dashql_viz_type opt_dashql_options {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ, concat(NodeVector{
+            Key::DASHQL_VIZ_TARGET << String(@2),
+            Key::DASHQL_VIZ_TYPE << $4,
+        }, move($5)));
     }
     ;
 
@@ -12,21 +15,18 @@ dashql_viz_statement_prefix:
   | SHOW
     ;
 
-dashql_viz_attributes:
-    AREA dashql_viz_attrs_all       { $$ = CollectViz(ctx, @1, sxd::VizType::AREA, {$2}); }
-  | BAR dashql_viz_attrs_all        { $$ = CollectViz(ctx, @1, sxd::VizType::BAR, {$2}); }
-  | BOX dashql_viz_attrs_all        { $$ = CollectViz(ctx, @1, sxd::VizType::BOX, {$2}); }
-  | BUBBLE dashql_viz_attrs_all     { $$ = CollectViz(ctx, @1, sxd::VizType::BUBBLE, {$2}); }
-  | GRID dashql_viz_attrs_all       { $$ = CollectViz(ctx, @1, sxd::VizType::GRID, {$2}); }
-  | HISTOGRAM dashql_viz_attrs_all  { $$ = CollectViz(ctx, @1, sxd::VizType::HISTOGRAM, {$2}); }
-  | LINE dashql_viz_attrs_all       { $$ = CollectViz(ctx, @1, sxd::VizType::LINE, {$2}); }
-  | NUMBER dashql_viz_attrs_all     { $$ = CollectViz(ctx, @1, sxd::VizType::NUMBER, {$2}); }
-  | PIE dashql_viz_attrs_all        { $$ = CollectViz(ctx, @1, sxd::VizType::PIE, {$2}); }
-  | POINT dashql_viz_attrs_all      { $$ = CollectViz(ctx, @1, sxd::VizType::POINT, {$2}); }
-  | SCATTER dashql_viz_attrs_all    { $$ = CollectViz(ctx, @1, sxd::VizType::SCATTER, {$2}); }
-  | TABLE dashql_viz_attrs_all      { $$ = CollectViz(ctx, @1, sxd::VizType::TABLE, {$2}); }
-  | TEXT dashql_viz_attrs_all       { $$ = CollectViz(ctx, @1, sxd::VizType::TEXT, {$2}); }
+dashql_viz_type:
+    AREA        { $$ = Enum(@$, sxd::VizType::AREA); }
+  | BAR         { $$ = Enum(@$, sxd::VizType::BAR); }
+  | BOX         { $$ = Enum(@$, sxd::VizType::BOX); }
+  | BUBBLE      { $$ = Enum(@$, sxd::VizType::BUBBLE); }
+  | GRID        { $$ = Enum(@$, sxd::VizType::GRID); }
+  | HISTOGRAM   { $$ = Enum(@$, sxd::VizType::HISTOGRAM); }
+  | LINE        { $$ = Enum(@$, sxd::VizType::LINE); }
+  | NUMBER      { $$ = Enum(@$, sxd::VizType::NUMBER); }
+  | PIE         { $$ = Enum(@$, sxd::VizType::PIE); }
+  | POINT       { $$ = Enum(@$, sxd::VizType::POINT); }
+  | SCATTER     { $$ = Enum(@$, sxd::VizType::SCATTER); }
+  | TABLE       { $$ = Enum(@$, sxd::VizType::TABLE); }
+  | TEXT        { $$ = Enum(@$, sxd::VizType::TEXT); }
     ;
-
-dashql_viz_attrs_all:
-    %empty { $$ = {}; }

@@ -1,3 +1,2 @@
 %type <sx::Node> dashql_viz_statement;
-%type <NodeVector> dashql_viz_attributes;
-%type <NodeVector> dashql_viz_attrs_all;
+%type <sx::Node> dashql_viz_type;

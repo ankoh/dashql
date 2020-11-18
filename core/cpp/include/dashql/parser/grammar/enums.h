@@ -14,7 +14,7 @@ constexpr uint32_t NO_PARENT = std::numeric_limits<uint32_t>::max();
 using ExprFunc = sxs::ExpressionFunction;
 
 #define X(ENUM_TYPE, NODE_TYPE) inline sx::Node Enum(sx::Location loc, ENUM_TYPE e) { return sx::Node(loc, NODE_TYPE, Key::NONE, NO_PARENT, static_cast<uint32_t>(e), 0); }
-    X(sxd::HTTPVerb, sx::NodeType::ENUM_DASHQL_HTTP_VERB)
+    X(sxd::ExtractMethodType, sx::NodeType::ENUM_DASHQL_EXTRACT_METHOD_TYPE)
     X(sxd::LoadMethodType, sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE)
     X(sxd::ParameterType, sx::NodeType::ENUM_DASHQL_PARAMETER_TYPE)
     X(sxd::VizType, sx::NodeType::ENUM_DASHQL_VIZ_TYPE)

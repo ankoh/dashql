@@ -65,14 +65,14 @@ const char* getEnumText(const sx::Node& target) {
     auto nt = target.node_type();
     auto v = static_cast<uint32_t>(target.children_begin_or_value());
     switch (nt) {
-        case sx::NodeType::ENUM_DASHQL_HTTP_VERB:
-            return sxd::HTTPVerbTypeTable()->names[v];
         case sx::NodeType::ENUM_DASHQL_VIZ_TYPE:
             return sxd::VizTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_DASHQL_PARAMETER_TYPE:
             return sxd::ParameterTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE:
             return sxd::LoadMethodTypeTypeTable()->names[v];
+        case sx::NodeType::ENUM_DASHQL_EXTRACT_METHOD_TYPE:
+            return sxd::ExtractMethodTypeTypeTable()->names[v];
 
         case sx::NodeType::ENUM_SQL_TEMP_TYPE:
             return sxs::TempTypeTypeTable()->names[v];
