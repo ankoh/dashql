@@ -88,7 +88,7 @@
 
 .wrapper {
     display: grid;
-    grid-template-rows: auto;
-    grid-template-columns: 64px auto;
+    grid-template-rows: 100%;
+    grid-template-columns: 64px calc(100% - 64px);
     height: 100%;
 }

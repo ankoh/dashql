@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { AppState, AppStateMutations, Dispatch } from '../store';
 import classnames from 'classnames';
 
+import sx = core.proto.syntax;
 import parser = core.parser;
 import styles from './module_inspector.module.css';
 
@@ -28,26 +29,26 @@ class ModuleInspector extends React.Component<Props> {
         const statements: JSX.Element[] = [];
 
         mod.iterateStatements((idx: number, stmt: parser.Statement): void => {
-            const preorder = (_node_id: number, node: parser.Node): void => {
-                console.log(node.key);
-            };
-
-            const postorder = (node_id: number, node: parser.Node): void => {
-                console.log(node.key);
-                node_children[node.parent].push(
-                    <div className={styles.node}>
+            stmt.traversePostOrder((node_id: number, node: parser.Node): void => {
+                const elem = (
+                    <div key={node_id} className={styles.node}>
                         <div className={styles.node_key}>
-                            {node.key}
+                            {sx.AttributeKey[node.key]}
                         </div>
                         <div className={styles.node_children}>
                             {node_children[node_id]}
                         </div>
                     </div>
                 );
-            };
-            stmt.traverse(preorder, postorder);
-            // statements.push(node_children[stmt.root()][0]);
+                node_children[node_id] = [];
+                if (node_id == stmt.root) {
+                    statements.push(elem);
+                } else {
+                    node_children[node.parent].push(elem);
+                }
+            });
         });
+        console.log(statements);
 
         return (
             <div className={classnames(this.props.className, styles.inspector)}>
