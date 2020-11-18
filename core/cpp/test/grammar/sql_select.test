@@ -15,7 +15,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_fconst_1e04
@@ -35,7 +34,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_fconst_realfail1
@@ -59,7 +57,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_bconst_b1010
@@ -79,7 +76,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_bconst_x2a
@@ -99,7 +95,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_sconst_string
@@ -120,7 +115,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_sconst_string_latin1
@@ -141,7 +135,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_sconst_string_unicode_plane1
@@ -162,7 +155,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_sconst_quotes
@@ -182,7 +174,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_sconst_quotes_nested_quote
@@ -202,7 +193,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_sconst_quotes_nested_dquote
@@ -222,7 +212,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_iconst_1_ident
@@ -246,7 +235,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: comments_cstyle
@@ -257,7 +245,6 @@ expected:
   line_breaks: []
   comments:
     - 0..9|`/* foo */`
-  interpolations: []
   dependencies: []
 ----
 name: comments_cstyle_nested
@@ -268,7 +255,6 @@ expected:
   line_breaks: []
   comments:
     - 0..19|`/* foo /* bar */ */`
-  interpolations: []
   dependencies: []
 ----
 name: select_iconst_list
@@ -291,7 +277,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_1rel
@@ -318,7 +303,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_1rel_indirect1
@@ -346,7 +330,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_1rel_indirect1_noinherit
@@ -374,7 +357,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_1rel_indirect1_alias
@@ -403,7 +385,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_2rel
@@ -435,7 +416,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_into_2rel
@@ -474,7 +454,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_1rel_group1
@@ -505,7 +484,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_1rel_window_empty
@@ -536,7 +514,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_1rel_window_partition1
@@ -575,7 +552,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_1rel_window_partition1_rows_unbounded
@@ -627,7 +603,6 @@ expected:
   line_breaks:
     - 15..16|` `
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_1rel_window_partition1_rows_1preceding_current
@@ -682,7 +657,6 @@ expected:
   line_breaks:
     - 15..16|` `
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_from_1rel_2windows
@@ -750,7 +724,6 @@ expected:
     - 15..16|` `
     - 87..88|` `
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_distinct_from_1rel
@@ -778,7 +751,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_distinct_on_from_1rel
@@ -810,7 +782,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_all_from_1rel
@@ -833,7 +804,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: values_1
@@ -853,7 +823,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: values_1_2
@@ -876,7 +845,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: values_12_34
@@ -905,7 +873,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: table_a
@@ -927,7 +894,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: union_select1_select2
@@ -957,7 +923,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: union_all_select1_select2
@@ -988,7 +953,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: union_distinct_select1_select2
@@ -1019,7 +983,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: intersect_select1_select2
@@ -1049,7 +1012,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: with_1cte_select2
@@ -1080,7 +1042,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: with_2ctes_select3
@@ -1121,7 +1082,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: with_recursive_2ctes_select3
@@ -1163,7 +1123,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_a_orderby_b
@@ -1192,7 +1151,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_a_orderby_b_c
@@ -1228,7 +1186,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_a_orderby_b_c_directions
@@ -1266,7 +1223,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_a_orderby_b_c_directions_nulls
@@ -1306,7 +1262,6 @@ expected:
   errors: []
   line_breaks: []
   comments: []
-  interpolations: []
   dependencies: []
 ----
 name: select_table_ref
@@ -1352,7 +1307,6 @@ expected:
   line_breaks:
     - 16..17|` `
   comments: []
-  interpolations: []
   dependencies:
     - type: TABLE_REF
       source: 0
@@ -1435,7 +1389,6 @@ expected:
     - 33..34|` `
     - 50..51|` `
   comments: []
-  interpolations: []
   dependencies:
     - type: TABLE_REF
       source: 1

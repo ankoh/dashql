@@ -218,11 +218,6 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
     for (auto err : *module.comments()) encode(comments.append_child(), *err, text);
 
     // Add comments
-    auto interpolations = root["interpolations"];
-    interpolations |= ryml::SEQ;
-    for (auto err : *module.interpolations()) encode(interpolations.append_child(), *err, text);
-
-    // Add comments
     auto dependencies = root["dependencies"];
     dependencies |= ryml::SEQ;
     for (auto dep : *module.dependencies()) {
