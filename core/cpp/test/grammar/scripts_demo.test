@@ -35,16 +35,23 @@ expected:
         DASHQL_PARAMETER_IDENTIFIER: 255..262|`country`
         DASHQL_PARAMETER_TYPE: TEXT
         DASHQL_OPTION_DEFAULT_VALUE: "295..300|`'DE'\n`"
-    - root:
+    - name: global.wheather_csv
+      root:
         type: OBJECT_DASHQL_LOAD
         location: "405..496|`LOAD wheat`..`untry}}'\n)`"
         DASHQL_LOAD_METHOD: HTTP
         DASHQL_LOAD_NAME: 410..422|`wheather_csv`
         DASHQL_OPTION_URL: "445..495|`'https://c`..`ountry}}'\n`"
-    - root:
+    - name: global.wheather
+      root:
         type: OBJECT_DASHQL_EXTRACT
         location: 583..627|`EXTRACT wh`..` USING CSV`
-        DASHQL_EXTRACT_DATA: 605..617|`wheather_csv`
+        DASHQL_EXTRACT_DATA:
+          type: OBJECT_SQL_TABLE_REF
+          location: 605..617|`wheather_csv`
+          SQL_TABLE_INHERIT: true
+          SQL_TABLE_NAME:
+            - 605..617|`wheather_csv`
         DASHQL_EXTRACT_METHOD: CSV
         DASHQL_EXTRACT_NAME: 591..599|`wheather`
     - name: global.weather_avg
@@ -73,7 +80,12 @@ expected:
     - root:
         type: OBJECT_DASHQL_VIZ
         location: 835..861|`VIZ weathe`..`USING LINE`
-        DASHQL_VIZ_TARGET: 839..850|`weather_avg`
+        DASHQL_VIZ_TARGET:
+          type: OBJECT_SQL_TABLE_REF
+          location: 839..850|`weather_avg`
+          SQL_TABLE_INHERIT: true
+          SQL_TABLE_NAME:
+            - 839..850|`weather_avg`
         DASHQL_VIZ_TYPE: LINE
   errors: []
   line_breaks:
@@ -117,4 +129,16 @@ expected:
     - '791..834|`-- Ref: ht`..`rammar/viz`'
   interpolations:
     - '482..493|`{{country}}`'
-  dependencies: []
+  dependencies:
+    - type: TABLE_REF
+      source: 1
+      target: 2
+      target_node: 605..617|`wheather_csv`
+    - type: TABLE_REF
+      source: 2
+      target: 3
+      target_node: 749..757|`wheather`
+    - type: TABLE_REF
+      source: 3
+      target: 4
+      target_node: 839..850|`weather_avg`
