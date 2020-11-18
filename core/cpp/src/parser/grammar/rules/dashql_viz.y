@@ -1,7 +1,7 @@
 dashql_viz_statement:
-    dashql_viz_statement_prefix dashql_identifier USING dashql_viz_type opt_dashql_options {
+    dashql_viz_statement_prefix sql_table_ref USING dashql_viz_type opt_dashql_options {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ, concat(NodeVector{
-            Key::DASHQL_VIZ_TARGET << String(@2),
+            Key::DASHQL_VIZ_TARGET << $2,
             Key::DASHQL_VIZ_TYPE << $4,
         }, move($5)));
     }

@@ -183,6 +183,16 @@ NodeID ParserDriver::AddNode(sx::Node node) {
                 _current_statement.name = AsQualifiedName(*name, true);
             }
             break;
+        case sx::NodeType::OBJECT_DASHQL_EXTRACT:
+            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_EXTRACT_NAME); name) {
+                _current_statement.name = AsQualifiedName(*name, true);
+            }
+            break;
+        case sx::NodeType::OBJECT_DASHQL_LOAD:
+            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_LOAD_NAME); name) {
+                _current_statement.name = AsQualifiedName(*name, true);
+            }
+            break;
         case sx::NodeType::OBJECT_DASHQL_PARAMETER:
             if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_PARAMETER_IDENTIFIER); name) {
                 _current_statement.name = AsQualifiedName(*name, true);
