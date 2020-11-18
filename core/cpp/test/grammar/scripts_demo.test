@@ -36,9 +36,9 @@ expected:
         DASHQL_STATEMENT_NAME:
           - 255..262|`country`
         DASHQL_OPTION_DEFAULT_VALUE:
-          type: OBJECT_SQL_ACONST
+          type: OBJECT_SQL_CONST
           location: "295..300|`'DE' `"
-          SQL_ACONST_TYPE: STRING
+          SQL_CONST_TYPE: STRING
     - name: global.wheather_csv
       root:
         type: OBJECT_DASHQL_LOAD
@@ -75,9 +75,9 @@ expected:
               - 740..751|`weather_avg`
             SQL_TEMP_TYPE: DEFAULT
           SQL_SELECT_TARGETS:
-            - type: OBJECT_SQL_ACONST
+            - type: OBJECT_SQL_CONST
               location: 733..734|`1`
-              SQL_ACONST_TYPE: INTEGER
+              SQL_CONST_TYPE: INTEGER
     - root:
         type: OBJECT_DASHQL_VIZ
         location: 843..869|`VIZ weathe`..`USING LINE`
