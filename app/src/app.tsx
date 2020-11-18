@@ -4,7 +4,7 @@ import { createStore } from './store';
 import { AppController } from './controller';
 import { Route, HashRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
-import { Studio, Shell, NotFound } from "./pages";
+import { Studio, NotFound } from "./pages";
 import { withNavBar } from "./components";
 import { AppContextProvider, IAppContext } from './app_context';
 
@@ -25,7 +25,6 @@ ReactDOM.render(
             <HashRouter>
                 <Switch>
                     <Route exact path="/studio" component={withNavBar(Studio)} />
-                    <Route exact path="/shell" component={withNavBar(Shell)} />
                     <Route path="/404" component={NotFound} />
                     <Redirect to="/404" />
                 </Switch>
