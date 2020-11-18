@@ -1,0 +1,49 @@
+name: demo
+input: |-
+  -- This script outlines basic concepts of the SQL extension DashQL.
+  -- Delete everything when you're ready and start from scratch.
+  
+  -- Declare a dynamic input field on top of your dashboard.
+  -- Ref: https://docs.dashql.com/grammar/param
+  DECLARE PARAMETER country TYPE TEXT (
+      default_value = 'DE'
+  );
+  
+  -- Load data from external sources like HTTP REST APIs.
+  -- Ref: https://docs.dashql.com/grammar/load
+  LOAD wheather_csv FROM http (
+      url = 'https://cdn.dashql.com/demo/weather/{{country}}'
+  );
+  
+  -- Interpret the loaded data as relation.
+  -- Ref: https://docs.dashql.com/grammar/extract
+  EXTRACT wheather FROM wheather_csv;
+  
+  -- Run arbitrary SQL within your browser.
+  -- Ref: https://docs.dashql.com/grammar/query
+  SELECT 1 INTO weather_avg FROM wheather;
+  
+  -- Visualize SQL tables and views with our visualization grammar.
+  -- Ref: https://docs.dashql.com/grammar/viz
+  VIZ weather_avg USING LINE;
+expected:
+  statements: []
+  errors:
+    - message: "syntax error, unexpected '(', expecting EOF or ';'"
+      location: 273..274|`(`
+    - message: 'syntax error, unexpected LOAD, expecting EOF'
+      location: 405..409|`LOAD`
+  line_breaks:
+    - 67..68|`\n`
+    - 130..131|`\n`
+    - 131..132|`\n`
+    - 190..191|`\n`
+    - 236..237|`\n`
+    - 274..275|`\n`
+    - 299..300|`\n`
+    - 302..303|`\n`
+    - 303..304|`\n`
+    - 359..360|`\n`
+    - 404..405|`\n`
+  comments: []
+  dependencies: []

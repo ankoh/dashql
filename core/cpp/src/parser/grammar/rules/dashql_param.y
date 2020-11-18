@@ -1,5 +1,5 @@
 dashql_parameter_declaration:
-    DECLARE PARAMETER dashql_identifier dashql_opt_alias TYPE_P dashql_parameter_type  {
+    DECLARE PARAMETER dashql_identifier dashql_opt_alias TYPE_P dashql_parameter_type opt_dashql_object {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_PARAMTER, {
             Key::DASHQL_PARAMETER_IDENTIFIER << String(@3),
             Key::DASHQL_PARAMETER_ALIAS << $4,
@@ -17,4 +17,3 @@ dashql_parameter_type:
   | TIME        { $$ = Enum(@$, sxd::ParameterType::TIME); }
   | FILE        { $$ = Enum(@$, sxd::ParameterType::FILE); }
     ;
-
