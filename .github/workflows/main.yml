@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 jobs:
   ubuntu_x86_debug:
-    name: Ubuntu | x86 | Debug
+    name: Ubuntu / x86 / Debug
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
@@ -39,7 +39,7 @@ jobs:
                 --gtest_output=xml:./reports/tests_native_grammar.xml
 
   ubuntu_x86_release:
-    name: Ubuntu | x86 | Release
+    name: Ubuntu / x86 / Release
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
