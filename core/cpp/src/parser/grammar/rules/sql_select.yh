@@ -4,6 +4,7 @@
 %type <NodeVector> sql_from_clause;
 %type <NodeVector> sql_from_list;
 %type <NodeVector> sql_func_application;
+%type <NodeVector> sql_func_arg_list;
 %type <NodeVector> sql_func_name;
 %type <NodeVector> sql_group_by_list;
 %type <NodeVector> sql_group_clause;
@@ -45,6 +46,7 @@
 %type <sx::Node> sql_const_typename;
 %type <sx::Node> sql_distinct_clause;
 %type <sx::Node> sql_frame_bound;
+%type <sx::Node> sql_func_arg_expr;
 %type <sx::Node> sql_group_by_item;
 %type <sx::Node> sql_having_clause;
 %type <sx::Node> sql_indirection_el;
