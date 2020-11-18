@@ -6,8 +6,10 @@ jobs:
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
+
     - name: Prepare repository
       uses: ./ci/image
+      with:
         script: |-
           make reset_duckdb
           git submodule update --init --recursive
@@ -42,8 +44,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Prepare repository
       uses: ./ci/image
+      with:
         script: |-
           make reset_duckdb
           git submodule update --init --recursive
