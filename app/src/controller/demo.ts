@@ -54,7 +54,7 @@ export class DemoController {
         this._interpreter = interpreter;
     }
 
-    public runDemo() {
+    public setup() {
         this._store.dispatch(AppStateMutations.setEditorText(DEMO_SCRIPT));
     }
 }
