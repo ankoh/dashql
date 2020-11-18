@@ -20,7 +20,7 @@ using ExprFunc = sxs::ExpressionFunction;
     X(sxd::VizType, sx::NodeType::ENUM_DASHQL_VIZ_TYPE)
     X(sxs::CombineModifier, sx::NodeType::ENUM_SQL_COMBINE_MODIFIER)
     X(sxs::CombineOperation, sx::NodeType::ENUM_SQL_COMBINE_OPERATION)
-    X(sxs::AConstType, sx::NodeType::ENUM_SQL_ACONST_TYPE)
+    X(sxs::AConstType, sx::NodeType::ENUM_SQL_CONST_TYPE)
     X(sxs::TempType, sx::NodeType::ENUM_SQL_TEMP_TYPE)
     X(sxs::WindowBoundMode, sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE)
     X(sxs::WindowBoundDirection, sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION)
