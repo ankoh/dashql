@@ -1,5 +1,5 @@
 name: "Main"
-on: [push, pull_request]
+on: [push, pull/var/folders/xy/_kdrl1nj58zfbk6s6zh7cr540000gp/T/TemporaryItems/NSIRD_screencaptureui_XZFKev/Screenshot\ 2020-11-18\ at\ 08.38.05.png _request]
 
 jobs:
   ubuntu_x86_debug:
@@ -31,7 +31,7 @@ jobs:
           make -C./core/cpp/build/debug -j`nproc`
           ccache -s
 
-    - name: Grammar Tests
+    - name: Test grammar
       uses: ./ci/image
       with:
         script: |-
@@ -67,7 +67,7 @@ jobs:
           make -C./core/cpp/build/release -j`nproc`
           ccache -s
 
-    - name: Grammar Tests
+    - name: Test grammar
       uses: ./ci/image
       with:
         script: |-
@@ -90,7 +90,7 @@ jobs:
           git submodule update --init --recursive
           mkdir -p ./core/cpp/build/emscripten ./reports
 
-    - name: WASM Build
+    - name: Build WASM module
       uses: ./ci/image
       with:
         script: |-
@@ -111,7 +111,7 @@ jobs:
             cp ./core/cpp/build/emscripten/duckdb/*.wasm ./duckdb/js/src/wasm/
             cp ./core/cpp/build/emscripten/duckdb/*.js ./duckdb/js/src/wasm/
 
-    - name: Core JS Build
+    - name: Build @dashql/core
       uses: ./ci/image
       with:
         script: |-
@@ -120,7 +120,7 @@ jobs:
             npm ci --cache /mnt/npm_cache
             npm run build
 
-    - name: Core JS Tests
+    - name: Test @dashql/core
       uses: ./ci/image
       with:
         script: |-
@@ -128,7 +128,7 @@ jobs:
             cd ./core/js
             npm run test:ci
 
-    - name: DuckDB JS Build
+    - name: Build @dashql/duckdb
       uses: ./ci/image
       with:
         script: |-
@@ -137,7 +137,7 @@ jobs:
             npm ci --cache /mnt/npm_cache
             npm run build
 
-    - name: DuckDB JS Tests
+    - name: Test @dashql/duckdb
       uses: ./ci/image
       with:
         script: |-
