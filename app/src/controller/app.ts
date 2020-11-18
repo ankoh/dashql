@@ -45,7 +45,7 @@ export class AppController {
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
 
         await this._parser.init();
-        this._demo.runDemo();
+        this._demo.setup();
     }
 
     // The worker function
