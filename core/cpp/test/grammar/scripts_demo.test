@@ -102,7 +102,19 @@ expected:
     - 759..760|`\n`
     - 790..791|`\n`
     - 834..835|`\n`
-  comments: []
+  comments:
+    - '0..67|`-- This sc`..`on DashQL.`'
+    - '68..130|`-- Delete `..`m scratch.`'
+    - '132..190|`-- Declare`..`dashboard.`'
+    - '191..236|`-- Ref: ht`..`mmar/param`'
+    - '304..359|`-- Load da`..`REST APIs.`'
+    - '360..404|`-- Ref: ht`..`ammar/load`'
+    - '499..534|`-- Interpr`..`SQL table.`'
+    - '535..582|`-- Ref: ht`..`ar/extract`'
+    - '630..671|`-- Run arb`..`r browser.`'
+    - '672..717|`-- Ref: ht`..`mmar/query`'
+    - '760..790|`-- Visuali`..`and views.`'
+    - '791..834|`-- Ref: ht`..`rammar/viz`'
   interpolations:
     - '482..493|`{{country}}`'
   dependencies: []

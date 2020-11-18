@@ -299,8 +299,8 @@ auto loc = sx::Location();
 
 %}
 
-{whitespace}    {}
-
+{space}+        {}
+{comment}       { ctx.AddComment(loc); } 
 
 {xcstart}       { BEGIN(xc); ctx.BeginComment(loc); }
 <xc>{xcstart}   { ctx.BeginComment(loc); }
