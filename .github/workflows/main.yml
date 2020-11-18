@@ -1,22 +1,22 @@
 on: [push, pull_request]
 
 jobs:
-  main:
-    name: Main Build
+  ubuntu_x86_debug:
+    name: Ubuntu | x86 | Debug
     runs-on: self-hosted
-
     steps:
     - uses: actions/checkout@v2
     - name: Prepare repository
-      run: |
-        git submodule update --init --recursive
-        mkdir -p ./core/cpp/build/emscripten ./reports
+      uses: ./ci/image
+        script: |-
+          make reset_duckdb
+          git submodule update --init --recursive
+          mkdir -p ./core/cpp/build/emscripten ./reports
 
-    - name: Core | Native | Build
+    - name: Build
       uses: ./ci/image
       with:
         script: |-
-          make reset_duckdb
           cmake \
               -S./core/cpp/ \
               -B./core/cpp/build/debug \
@@ -28,14 +28,28 @@ jobs:
           make -C./core/cpp/build/debug -j`nproc`
           ccache -s
 
-    - name: Core | Native | GrammarTests
+    - name: Grammar Tests
       uses: ./ci/image
       with:
         script: |-
             ./core/cpp/build/debug/grammar_tests ./core/cpp/test/grammar \
                 --gtest_output=xml:./reports/tests_native_grammar.xml
 
-    - name: Core | WASM | Build
+  web:
+    name: Web
+    runs-on: self-hosted
+    needs: ubuntu_x86_debug
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Prepare repository
+      uses: ./ci/image
+        script: |-
+          make reset_duckdb
+          git submodule update --init --recursive
+          mkdir -p ./core/cpp/build/emscripten ./reports
+
+    - name: WASM Build
       uses: ./ci/image
       with:
         script: |-
@@ -56,7 +70,7 @@ jobs:
             cp ./core/cpp/build/emscripten/duckdb/*.wasm ./duckdb/js/src/wasm/
             cp ./core/cpp/build/emscripten/duckdb/*.js ./duckdb/js/src/wasm/
 
-    - name: Core | JS | Build
+    - name: Core JS Build
       uses: ./ci/image
       with:
         script: |-
@@ -65,7 +79,7 @@ jobs:
             npm ci --cache /mnt/npm_cache
             npm run build
 
-    - name: Core | JS | Tests
+    - name: Core JS Tests
       uses: ./ci/image
       with:
         script: |-
@@ -73,7 +87,7 @@ jobs:
             cd ./core/js
             npm run test:ci
 
-    - name: DuckDB | JS | Build
+    - name: DuckDB JS Build
       uses: ./ci/image
       with:
         script: |-
@@ -82,7 +96,7 @@ jobs:
             npm ci --cache /mnt/npm_cache
             npm run build
 
-    - name: DuckDB | JS | Tests
+    - name: DuckDB JS Tests
       uses: ./ci/image
       with:
         script: |-
@@ -90,7 +104,7 @@ jobs:
             cd ./duckdb/js
             npm run test:ci
 
-    - name: App | Build
+    - name: Build App
       uses: ./ci/image
       with:
         script: |-
