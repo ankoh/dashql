@@ -104,8 +104,9 @@ TEST_P(GrammarParamTests, Test) {
     ASSERT_TRUE(IsEqual(out, param.expected));
 }
 
-INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintTestName());
 INSTANTIATE_TEST_SUITE_P(DashQLStatement, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("dashql_statement.test")), PrintTestName());
+INSTANTIATE_TEST_SUITE_P(Demo, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("scripts_demo.test")), PrintTestName());
+INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintTestName());
 
 }
 

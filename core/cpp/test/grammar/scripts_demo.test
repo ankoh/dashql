@@ -31,29 +31,28 @@ expected:
     - name: global.country
       root:
         type: OBJECT_DASHQL_PARAMETER
-        location: "237..301|`DECLARE PA`..`e = 'DE'\n)`"
-        DASHQL_PARAMETER_IDENTIFIER: 255..262|`country`
+        location: "237..301|`DECLARE PA`..`e = 'DE' )`"
         DASHQL_PARAMETER_TYPE: TEXT
-        DASHQL_OPTION_DEFAULT_VALUE: "295..300|`'DE'\n`"
+        DASHQL_STATEMENT_NAME:
+          - 255..262|`country`
+        DASHQL_OPTION_DEFAULT_VALUE: "295..300|`'DE' `"
     - name: global.wheather_csv
       root:
         type: OBJECT_DASHQL_LOAD
-        location: "405..496|`LOAD wheat`..`untry}}'\n)`"
+        location: "405..496|`LOAD wheat`..`untry}}' )`"
         DASHQL_LOAD_METHOD: HTTP
-        DASHQL_LOAD_NAME: 410..422|`wheather_csv`
-        DASHQL_OPTION_URL: "445..495|`'https://c`..`ountry}}'\n`"
+        DASHQL_STATEMENT_NAME:
+          - 410..422|`wheather_csv`
+        DASHQL_OPTION_URL: "445..495|`'https://c`..`ountry}}' `"
     - name: global.wheather
       root:
         type: OBJECT_DASHQL_EXTRACT
         location: 583..627|`EXTRACT wh`..` USING CSV`
         DASHQL_EXTRACT_DATA:
-          type: OBJECT_SQL_TABLE_REF
-          location: 605..617|`wheather_csv`
-          SQL_TABLE_INHERIT: true
-          SQL_TABLE_NAME:
-            - 605..617|`wheather_csv`
+          - 605..617|`wheather_csv`
         DASHQL_EXTRACT_METHOD: CSV
-        DASHQL_EXTRACT_NAME: 591..599|`wheather`
+        DASHQL_STATEMENT_NAME:
+          - 591..599|`wheather`
     - name: global.weather_avg
       root:
         type: OBJECT_DASHQL_QUERY
@@ -89,31 +88,31 @@ expected:
         DASHQL_VIZ_TYPE: LINE
   errors: []
   line_breaks:
-    - 67..68|`\n`
-    - 130..131|`\n`
-    - 131..132|`\n`
-    - 190..191|`\n`
-    - 236..237|`\n`
-    - 274..275|`\n`
-    - 299..300|`\n`
-    - 302..303|`\n`
-    - 303..304|`\n`
-    - 359..360|`\n`
-    - 404..405|`\n`
-    - 434..435|`\n`
-    - 494..495|`\n`
-    - 497..498|`\n`
-    - 498..499|`\n`
-    - 534..535|`\n`
-    - 582..583|`\n`
-    - 628..629|`\n`
-    - 629..630|`\n`
-    - 671..672|`\n`
-    - 717..718|`\n`
-    - 758..759|`\n`
-    - 759..760|`\n`
-    - 790..791|`\n`
-    - 834..835|`\n`
+    - 67..68|` `
+    - 130..131|` `
+    - 131..132|` `
+    - 190..191|` `
+    - 236..237|` `
+    - 274..275|` `
+    - 299..300|` `
+    - 302..303|` `
+    - 303..304|` `
+    - 359..360|` `
+    - 404..405|` `
+    - 434..435|` `
+    - 494..495|` `
+    - 497..498|` `
+    - 498..499|` `
+    - 534..535|` `
+    - 582..583|` `
+    - 628..629|` `
+    - 629..630|` `
+    - 671..672|` `
+    - 717..718|` `
+    - 758..759|` `
+    - 759..760|` `
+    - 790..791|` `
+    - 834..835|` `
   comments:
     - '0..67|`-- This sc`..`on DashQL.`'
     - '68..130|`-- Delete `..`m scratch.`'

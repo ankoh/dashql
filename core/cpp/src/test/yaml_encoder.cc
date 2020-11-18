@@ -31,8 +31,8 @@ constexpr size_t LOCATION_HINT_LENGTH = 10;
 std::string escape(std::string_view in) {
     std::string out{in};
     for (size_t i = out.find("\n", 0); i != std::string::npos; i = out.find("\n", i)) {
-        out.replace(i, 1, "\\n");
-        i += 2;
+        out.replace(i, 1, " ");
+        i += 1;
     }
     return out;
 }
@@ -209,7 +209,8 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& modu
     // Add line breaks
     auto line_breaks = root["line_breaks"];
     line_breaks |= ryml::SEQ;
-    for (auto err : *module.line_breaks()) encode(line_breaks.append_child(), *err, text);
+    for (auto lb : *module.line_breaks())
+        encode(line_breaks.append_child(), *lb, text);
 
     // Add comments
     auto comments = root["comments"];

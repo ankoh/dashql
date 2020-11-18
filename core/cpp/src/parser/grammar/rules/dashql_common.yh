@@ -3,6 +3,5 @@
 %type <NodeVector> dashql_option_list;
 %type <NodeVector> dashql_options;
 %type <NodeVector> opt_dashql_options;
-%type <sx::Node> dashql_opt_alias;
 %type <sx::Node> dashql_option;
 %type <sx::Node> dashql_option_value;

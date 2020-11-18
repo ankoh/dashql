@@ -59,7 +59,7 @@ struct Statement {
     /// The names
     QualifiedName name;
     /// The table refs
-    std::vector<NodeID> table_refs;
+    std::vector<std::pair<NodeID, QualifiedName>> table_refs;
     /// The global column refs
     std::vector<NodeID> column_refs;
 
