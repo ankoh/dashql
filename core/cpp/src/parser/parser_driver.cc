@@ -146,6 +146,13 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_glob
         }
     }
 
+    // Is table ref?
+    else if (node.node_type() == sx::NodeType::OBJECT_SQL_TABLE_REF) {
+        if (auto [name, name_id] = FindAttribute(node, Key::SQL_TABLE_NAME); name) {
+            return AsQualifiedName(*name, true);
+        }
+    }
+
     if (rev[1].empty() && lift_global) rev[1] = _options.global_namespace;
     return rev;
 }
@@ -170,12 +177,22 @@ NodeID ParserDriver::AddNode(sx::Node node) {
 
     // Track dependencies
     switch (node.node_type()) {
-        case sx::NodeType::OBJECT_SQL_TABLE_REF:
-            _current_statement.table_refs.push_back(node_id);
+        case sx::NodeType::OBJECT_DASHQL_VIZ:
+        case sx::NodeType::OBJECT_DASHQL_LOAD:
+        case sx::NodeType::OBJECT_DASHQL_QUERY:
+        case sx::NodeType::OBJECT_DASHQL_PARAMETER:
+            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name) {
+                _current_statement.name = AsQualifiedName(*name, true);
+            }
             break;
 
-        case sx::NodeType::OBJECT_SQL_COLUMN_REF:
-            _current_statement.column_refs.push_back(node_id);
+        case sx::NodeType::OBJECT_DASHQL_EXTRACT:
+            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name) {
+                _current_statement.name = AsQualifiedName(*name, true);
+            }
+            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_EXTRACT_DATA); name) {
+                _current_statement.table_refs.push_back({name_id, AsQualifiedName(*name, true)});
+            }
             break;
 
         case sx::NodeType::OBJECT_SQL_INTO:
@@ -183,20 +200,13 @@ NodeID ParserDriver::AddNode(sx::Node node) {
                 _current_statement.name = AsQualifiedName(*name, true);
             }
             break;
-        case sx::NodeType::OBJECT_DASHQL_EXTRACT:
-            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_EXTRACT_NAME); name) {
-                _current_statement.name = AsQualifiedName(*name, true);
-            }
+
+        case sx::NodeType::OBJECT_SQL_TABLE_REF:
+            _current_statement.table_refs.push_back({node_id, AsQualifiedName(node, true)});
             break;
-        case sx::NodeType::OBJECT_DASHQL_LOAD:
-            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_LOAD_NAME); name) {
-                _current_statement.name = AsQualifiedName(*name, true);
-            }
-            break;
-        case sx::NodeType::OBJECT_DASHQL_PARAMETER:
-            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_PARAMETER_IDENTIFIER); name) {
-                _current_statement.name = AsQualifiedName(*name, true);
-            }
+
+        case sx::NodeType::OBJECT_SQL_COLUMN_REF:
+            _current_statement.column_refs.push_back(node_id);
             break;
         default:
             break;
@@ -218,14 +228,10 @@ void ParserDriver::ComputeDependencies() {
         auto& stmt = _statements[i];
 
         // Resolve all table refs
-        for (auto& ref_id : stmt.table_refs) {
-            auto& ref = _nodes[ref_id];
-            assert(ref.node_type() == sx::NodeType::OBJECT_SQL_TABLE_REF);
-            if (auto [name, name_id] = FindAttribute(ref, Key::SQL_TABLE_NAME); name) {
-                auto [table, schema] = AsQualifiedName(*name, true);
-                if (auto iter = names.find({table, schema}); iter != names.end() && iter->second != i) {
-                    _dependencies.push_back(sx::Dependency(sx::DependencyType::TABLE_REF, iter->second, i, name_id));
-                }
+        for (auto& [node, name] : stmt.table_refs) {
+            auto [table, schema] = name;
+            if (auto iter = names.find({table, schema}); iter != names.end() && iter->second != i) {
+                _dependencies.push_back(sx::Dependency(sx::DependencyType::TABLE_REF, iter->second, i, node));
             }
         }
 

@@ -1,12 +1,3 @@
-dashql_identifier:
-    sql_col_id_or_string
-    ;
-
-dashql_opt_alias:
-    %empty                  { $$ = Null(); }
-  | AS dashql_identifier    { $$ = String(@2); }
-    ;
-
 // ---------------------------------------------------------------------------
 // DashQL options
 

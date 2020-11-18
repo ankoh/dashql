@@ -625,7 +625,7 @@ expected:
               SQL_WINDOW_DEF_NAME: 23..24|`c`
   errors: []
   line_breaks:
-    - 15..16|`\n`
+    - 15..16|` `
   comments: []
   interpolations: []
   dependencies: []
@@ -680,7 +680,7 @@ expected:
               SQL_WINDOW_DEF_NAME: 23..24|`c`
   errors: []
   line_breaks:
-    - 15..16|`\n`
+    - 15..16|` `
   comments: []
   interpolations: []
   dependencies: []
@@ -747,8 +747,8 @@ expected:
               SQL_WINDOW_DEF_NAME: 95..96|`e`
   errors: []
   line_breaks:
-    - 15..16|`\n`
-    - 87..88|`\n`
+    - 15..16|` `
+    - 87..88|` `
   comments: []
   interpolations: []
   dependencies: []
@@ -1350,7 +1350,7 @@ expected:
               SQL_ACONST_TYPE: INTEGER
   errors: []
   line_breaks:
-    - 16..17|`\n`
+    - 16..17|` `
   comments: []
   interpolations: []
   dependencies:
@@ -1370,8 +1370,9 @@ expected:
       root:
         type: OBJECT_DASHQL_PARAMETER
         location: 0..32|`declare pa`..`pe integer`
-        DASHQL_PARAMETER_IDENTIFIER: 18..19|`a`
         DASHQL_PARAMETER_TYPE: INTEGER
+        DASHQL_STATEMENT_NAME:
+          - 18..19|`a`
     - name: global.b
       root:
         type: OBJECT_DASHQL_QUERY
@@ -1431,8 +1432,8 @@ expected:
             SQL_EXPRESSION_FUNCTION: EQUAL
   errors: []
   line_breaks:
-    - 33..34|`\n`
-    - 50..51|`\n`
+    - 33..34|` `
+    - 50..51|` `
   comments: []
   interpolations: []
   dependencies:
