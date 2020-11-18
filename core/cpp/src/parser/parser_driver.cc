@@ -37,13 +37,6 @@ NodeVector& operator<<(NodeVector& attrs, const sx::Node& node) {
     return attrs;
 }
 
-/// Syntactic sugar concatenate vectors
-NodeVector& operator<<(NodeVector& attrs, NodeVector&& other) {
-    for (auto& node : other) {
-        attrs.push_back(node);
-    }
-    return attrs;
-}
 /// Concatenate 2 vectors
 NodeVector concat(NodeVector&& l, NodeVector&& r) {
     for (auto& node : r) {

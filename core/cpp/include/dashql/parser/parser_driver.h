@@ -38,8 +38,6 @@ sx::Node operator<<(sx::AttributeKey key, const sx::Node& node);
 /// Helper to append a node to a node vector
 NodeVector& operator<<(NodeVector& attrs, const sx::Node& node);
 /// Helper to concatenate node vectors
-NodeVector& operator<<(NodeVector& attrs, NodeVector&& other);
-/// Helper to concatenate node vectors
 NodeVector concat(NodeVector&& l, NodeVector&& r);
 /// Helper to concatenate node vectors
 NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2);
