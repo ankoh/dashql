@@ -66,21 +66,18 @@ sql_select_no_parens:
         $1.push_back(Key::SQL_SELECT_ORDER << $2);
         $$ = move($1);
     }
-  | sql_with_clause sql_select_clause { $1 << move($2); $$ = move($1); }
+  | sql_with_clause sql_select_clause { $$ = concat(move($1), move($2)); }
   | sql_with_clause sql_select_clause sql_sort_clause {
-        $1 << move($2);
-        $1.push_back(Key::SQL_SELECT_ORDER << $3);
-        $$ = move($1);
+        $$ = concat(move($1), move($2));
+        $$.push_back(Key::SQL_SELECT_ORDER << $3);
     }
   | sql_with_clause sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit {
-        $1 << move($2);
-        $1.push_back(Key::SQL_SELECT_ORDER << $3);
-        $$ = move($1);
+        $$ = concat(move($1), move($2));
+        $$.push_back(Key::SQL_SELECT_ORDER << $3);
     }
   | sql_with_clause sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause {
-        $1 << move($2);
-        $1.push_back(Key::SQL_SELECT_ORDER << $3);
-        $$ = move($1);
+        $$ = concat(move($1), move($2));
+        $$.push_back(Key::SQL_SELECT_ORDER << $3);
     }
     ;
 
@@ -301,8 +298,8 @@ sql_opt_nulls_order:
     ;
 
 sql_select_limit:
-    sql_limit_clause sql_offset_clause  { $1 << move($2); $$ = move($1); }
-  | sql_offset_clause sql_limit_clause  { $1 << move($2); $$ = move($1); }
+    sql_limit_clause sql_offset_clause  { $$ = concat(move($1), move($2)); }
+  | sql_offset_clause sql_limit_clause  { $$ = concat(move($1), move($2)); }
   | sql_limit_clause                    { $$ = move($1); }
   | sql_offset_clause                   { $$ = move($1); }
     ;
@@ -1183,7 +1180,7 @@ sql_over_clause:
 
 sql_window_specification:
     '(' sql_opt_existing_window_name sql_opt_partition_clause sql_opt_sort_clause sql_opt_frame_clause ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_FRAME, move($2 << move($3) << move($5)));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_FRAME, concat(move($2), move($3), move($5)));
     }
     ;
 
