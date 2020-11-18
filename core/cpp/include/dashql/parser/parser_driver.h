@@ -41,6 +41,8 @@ NodeVector& operator<<(NodeVector& attrs, const sx::Node& node);
 NodeVector& operator<<(NodeVector& attrs, NodeVector&& other);
 /// Helper to concatenate node vectors
 NodeVector concat(NodeVector&& l, NodeVector&& r);
+/// Helper to concatenate node vectors
+NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2);
 
 struct ScriptOptions {
     /// The global namespace name
