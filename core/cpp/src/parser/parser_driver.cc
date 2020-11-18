@@ -44,12 +44,24 @@ NodeVector& operator<<(NodeVector& attrs, NodeVector&& other) {
     }
     return attrs;
 }
-/// Concatenate vectors
+/// Concatenate 2 vectors
 NodeVector concat(NodeVector&& l, NodeVector&& r) {
     for (auto& node : r) {
         l.push_back(node);
     }
     return l;
+}
+
+/// Concatenate 3 vectors
+NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2) {
+    v0.reserve(v0.size() + v1.size() + v2.size());
+    for (auto& n : v1) {
+        v0.push_back(n);
+    }
+    for (auto& n : v2) {
+        v0.push_back(n);
+    }
+    return v0;
 }
 
 ScriptOptions::ScriptOptions() : global_namespace("global") {}
