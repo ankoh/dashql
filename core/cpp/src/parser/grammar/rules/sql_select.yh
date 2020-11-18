@@ -3,6 +3,7 @@
 %type <NodeVector> sql_frame_extent;
 %type <NodeVector> sql_from_clause;
 %type <NodeVector> sql_from_list;
+%type <NodeVector> sql_func_application;
 %type <NodeVector> sql_func_name;
 %type <NodeVector> sql_group_by_list;
 %type <NodeVector> sql_group_clause;

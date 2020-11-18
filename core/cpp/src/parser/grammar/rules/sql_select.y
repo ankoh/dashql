@@ -1069,13 +1069,13 @@ sql_c_expr:
     ;
 
 sql_func_application:
-    sql_func_name '(' ')'
-  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')'
-  | sql_func_name '(' VARIADIC sql_func_arg_expr sql_opt_sort_clause ')'
-  | sql_func_name '(' sql_func_arg_list ',' VARIADIC sql_func_arg_expr sql_opt_sort_clause ')'
-  | sql_func_name '(' ALL sql_func_arg_list sql_opt_sort_clause ')'
-  | sql_func_name '(' DISTINCT sql_func_arg_list sql_opt_sort_clause ')'
-  | sql_func_name '(' '*' ')'
+    sql_func_name '(' ')'                                                                       { $$ = {}; }
+  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')'                                 { $$ = {}; }
+  | sql_func_name '(' VARIADIC sql_func_arg_expr sql_opt_sort_clause ')'                        { $$ = {}; }
+  | sql_func_name '(' sql_func_arg_list ',' VARIADIC sql_func_arg_expr sql_opt_sort_clause ')'  { $$ = {}; }
+  | sql_func_name '(' ALL sql_func_arg_list sql_opt_sort_clause ')'                             { $$ = {}; }
+  | sql_func_name '(' DISTINCT sql_func_arg_list sql_opt_sort_clause ')'                        { $$ = {}; }
+  | sql_func_name '(' '*' ')'                                                                   { $$ = {}; }
     ;
 
 

@@ -82,32 +82,33 @@ enum class NodeType : uint16_t {
   OBJECT_DASHQL_PARAMETER = 25,
   OBJECT_DASHQL_QUERY = 26,
   OBJECT_DASHQL_VIZ = 27,
-  OBJECT_SQL_ACONST = 28,
-  OBJECT_SQL_AEXPR = 29,
-  OBJECT_SQL_ALIAS = 30,
-  OBJECT_SQL_COLUMN_REF = 31,
-  OBJECT_SQL_COMBINE = 32,
-  OBJECT_SQL_CTE = 33,
-  OBJECT_SQL_EXPRESSION = 34,
-  OBJECT_SQL_INDIRECTION = 35,
-  OBJECT_SQL_INTO = 36,
-  OBJECT_SQL_NUMERIC_TYPE = 37,
-  OBJECT_SQL_ORDER = 38,
-  OBJECT_SQL_QUALIFIED_NAME = 39,
-  OBJECT_SQL_RELATION_EXPR = 40,
-  OBJECT_SQL_RESULT_TARGET = 41,
-  OBJECT_SQL_SELECT = 42,
-  OBJECT_SQL_TABLE_REF = 43,
-  OBJECT_SQL_TYPENAME = 44,
-  OBJECT_SQL_WINDOW_BOUND = 45,
-  OBJECT_SQL_WINDOW_DEF = 46,
-  OBJECT_SQL_WINDOW_FRAME = 47,
-  OBJECT_SQL_WITH = 48,
+  OBJECT_DASHQL_FUNCTION_CALL = 28,
+  OBJECT_SQL_ACONST = 29,
+  OBJECT_SQL_AEXPR = 30,
+  OBJECT_SQL_ALIAS = 31,
+  OBJECT_SQL_COLUMN_REF = 32,
+  OBJECT_SQL_COMBINE = 33,
+  OBJECT_SQL_CTE = 34,
+  OBJECT_SQL_EXPRESSION = 35,
+  OBJECT_SQL_INDIRECTION = 36,
+  OBJECT_SQL_INTO = 37,
+  OBJECT_SQL_NUMERIC_TYPE = 38,
+  OBJECT_SQL_ORDER = 39,
+  OBJECT_SQL_QUALIFIED_NAME = 40,
+  OBJECT_SQL_RELATION_EXPR = 41,
+  OBJECT_SQL_RESULT_TARGET = 42,
+  OBJECT_SQL_SELECT = 43,
+  OBJECT_SQL_TABLE_REF = 44,
+  OBJECT_SQL_TYPENAME = 45,
+  OBJECT_SQL_WINDOW_BOUND = 46,
+  OBJECT_SQL_WINDOW_DEF = 47,
+  OBJECT_SQL_WINDOW_FRAME = 48,
+  OBJECT_SQL_WITH = 49,
   MIN = NONE,
   MAX = OBJECT_SQL_WITH
 };
 
-inline const NodeType (&EnumValuesNodeType())[49] {
+inline const NodeType (&EnumValuesNodeType())[50] {
   static const NodeType values[] = {
     NodeType::NONE,
     NodeType::BOOL,
@@ -137,6 +138,7 @@ inline const NodeType (&EnumValuesNodeType())[49] {
     NodeType::OBJECT_DASHQL_PARAMETER,
     NodeType::OBJECT_DASHQL_QUERY,
     NodeType::OBJECT_DASHQL_VIZ,
+    NodeType::OBJECT_DASHQL_FUNCTION_CALL,
     NodeType::OBJECT_SQL_ACONST,
     NodeType::OBJECT_SQL_AEXPR,
     NodeType::OBJECT_SQL_ALIAS,
@@ -163,7 +165,7 @@ inline const NodeType (&EnumValuesNodeType())[49] {
 }
 
 inline const char * const *EnumNamesNodeType() {
-  static const char * const names[50] = {
+  static const char * const names[51] = {
     "NONE",
     "BOOL",
     "UI32",
@@ -192,6 +194,7 @@ inline const char * const *EnumNamesNodeType() {
     "OBJECT_DASHQL_PARAMETER",
     "OBJECT_DASHQL_QUERY",
     "OBJECT_DASHQL_VIZ",
+    "OBJECT_DASHQL_FUNCTION_CALL",
     "OBJECT_SQL_ACONST",
     "OBJECT_SQL_AEXPR",
     "OBJECT_SQL_ALIAS",
@@ -1204,6 +1207,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 },
+    { flatbuffers::ET_USHORT, 0, 0 },
     { flatbuffers::ET_USHORT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1238,6 +1242,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     "OBJECT_DASHQL_PARAMETER",
     "OBJECT_DASHQL_QUERY",
     "OBJECT_DASHQL_VIZ",
+    "OBJECT_DASHQL_FUNCTION_CALL",
     "OBJECT_SQL_ACONST",
     "OBJECT_SQL_AEXPR",
     "OBJECT_SQL_ALIAS",
@@ -1261,7 +1266,7 @@ inline const flatbuffers::TypeTable *NodeTypeTypeTable() {
     "OBJECT_SQL_WITH"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 49, type_codes, type_refs, nullptr, nullptr, names
+    flatbuffers::ST_ENUM, 50, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }
