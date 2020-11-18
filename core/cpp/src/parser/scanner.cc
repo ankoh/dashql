@@ -2,6 +2,7 @@
 
 #include "dashql/parser/scanner.h"
 #include "dashql/parser/parser_driver.h"
+#include <regex>
 
 using Parser = dashql::parser::Parser;
 
@@ -21,6 +22,31 @@ void Scanner::BeginLiteral(sx::Location loc) { _literal_begin = loc; }
 sx::Location Scanner::EndLiteral(sx::Location loc) {
     return sx::Location(_literal_begin.offset(), loc.offset() + loc.length() - _literal_begin.offset());
 }
+
+/// Begin quotes
+void Scanner::BeginQuotes(sx::Location loc) { _literal_begin = loc; }
+
+/// End quotes
+sx::Location Scanner::EndQuotes(sx::Location loc) {
+    // Return the location
+    auto text_loc = sx::Location(_literal_begin.offset(), loc.offset() + loc.length() - _literal_begin.offset());
+
+    // Find interpolations
+    auto text = TextAt(text_loc);
+    static std::regex param_regex("\\{\\{[a-zA-Z0-9-_]+\\}\\}");
+    std::cmatch match;
+    std::string_view::const_iterator cursor(text.cbegin());
+    while (std::regex_search(cursor, text.cend(), match, param_regex)) {
+        auto m_ofs = text_loc.offset() + match.position();
+        auto m_len = match.length();
+        _quote_interpolations.push_back(sx::Location(m_ofs, m_len));
+        cursor = match.suffix().first;
+    }
+
+    // Return the location
+    return text_loc;
+}
+
 /// Begin a comment
 void Scanner::BeginComment(sx::Location loc) {
     if (_comment_depth++ == 0) {
