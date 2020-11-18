@@ -11,17 +11,17 @@ input: |-
   
   -- Load data from external sources like HTTP REST APIs.
   -- Ref: https://docs.dashql.com/grammar/load
-  LOAD wheather_csv FROM http (
+  LOAD weather_csv FROM http (
       url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
   );
   
   -- Interpret the data as SQL table.
   -- Ref: https://docs.dashql.com/grammar/extract
-  EXTRACT wheather FROM wheather_csv USING CSV;
+  EXTRACT weather FROM weather_csv USING CSV;
   
   -- Run arbitrary SQL within your browser.
   -- Ref: https://docs.dashql.com/grammar/query
-  SELECT 1 INTO weather_avg FROM wheather;
+  SELECT 1 INTO weather_avg FROM weather;
   
   -- Visualize tables and views.
   -- Ref: https://docs.dashql.com/grammar/viz
