@@ -1069,13 +1069,51 @@ sql_c_expr:
     ;
 
 sql_func_application:
-    sql_func_name '(' ')'                                                                       { $$ = {}; }
-  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')'                                 { $$ = {}; }
-  | sql_func_name '(' VARIADIC sql_func_arg_expr sql_opt_sort_clause ')'                        { $$ = {}; }
-  | sql_func_name '(' sql_func_arg_list ',' VARIADIC sql_func_arg_expr sql_opt_sort_clause ')'  { $$ = {}; }
-  | sql_func_name '(' ALL sql_func_arg_list sql_opt_sort_clause ')'                             { $$ = {}; }
-  | sql_func_name '(' DISTINCT sql_func_arg_list sql_opt_sort_clause ')'                        { $$ = {}; }
-  | sql_func_name '(' '*' ')'                                                                   { $$ = {}; }
+    sql_func_name '(' ')' { $$ = { Key::SQL_FUNCTION_NAME << String(@1) }; }
+  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << String(@1),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(@3, move($3)),
+            Key::SQL_FUNCTION_ORDER << $4,
+        };
+    }
+  | sql_func_name '(' VARIADIC sql_func_arg_expr sql_opt_sort_clause ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << String(@1),
+            Key::SQL_FUNCTION_VARIADIC << $4,
+            Key::SQL_FUNCTION_ORDER << $5,
+        };
+    }
+  | sql_func_name '(' sql_func_arg_list ',' VARIADIC sql_func_arg_expr sql_opt_sort_clause ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << String(@1),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(@3, move($3)),
+            Key::SQL_FUNCTION_VARIADIC << $6,
+            Key::SQL_FUNCTION_ORDER << $7,
+        };
+    }
+  | sql_func_name '(' ALL sql_func_arg_list sql_opt_sort_clause ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << String(@1),
+            Key::SQL_FUNCTION_ALL << Bool(@3, true),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(@4, move($4)),
+            Key::SQL_FUNCTION_ORDER << $5,
+        };
+    }
+  | sql_func_name '(' DISTINCT sql_func_arg_list sql_opt_sort_clause ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << String(@1),
+            Key::SQL_FUNCTION_DISTINCT << Bool(@3, true),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(@4, move($4)),
+            Key::SQL_FUNCTION_ORDER << $5,
+        };
+    }
+  | sql_func_name '(' '*' ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << String(@1),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(@3, { String(@3) }),
+        };
+    }
     ;
 
 
@@ -1333,14 +1371,24 @@ sql_expr_list:
     ;
 
 sql_func_arg_list:
-    sql_func_arg_expr
-  | sql_func_arg_list ',' sql_func_arg_expr
+    sql_func_arg_expr                           { $$ = { $1 }; }
+  | sql_func_arg_list ',' sql_func_arg_expr     { $1.push_back($3); $$ = move($1); }
     ;
 
 sql_func_arg_expr:
-    sql_a_expr
-  | sql_param_name COLON_EQUALS sql_a_expr
-  | sql_param_name EQUALS_GREATER sql_a_expr
+    sql_a_expr { $$ = $1; }
+  | sql_param_name COLON_EQUALS sql_a_expr {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCARG, {
+            Key::SQL_FUNCARG_NAME << String(@1),
+            Key::SQL_FUNCARG_VALUE << $3,
+        });
+    }
+  | sql_param_name EQUALS_GREATER sql_a_expr {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCARG, {
+            Key::SQL_FUNCARG_NAME << String(@1),
+            Key::SQL_FUNCARG_VALUE << $3,
+        });
+    }
     ;
 
 sql_type_list:
