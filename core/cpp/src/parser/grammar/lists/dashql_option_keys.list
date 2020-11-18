@@ -1,0 +1,4 @@
+X("default_value", DASHQL_OPTION_DEFAULT_VALUE)
+X("method", DASHQL_OPTION_METHOD)
+X("url", DASHQL_OPTION_URL)
+

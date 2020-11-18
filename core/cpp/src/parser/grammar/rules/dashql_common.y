@@ -8,43 +8,34 @@ dashql_opt_alias:
     ;
 
 // ---------------------------------------------------------------------------
-// A generic object
+// DashQL options
 
-opt_dashql_object:
-    dashql_object   { $$ = move($1); }
+opt_dashql_options:
+    dashql_options   { $$ = move($1); }
   | %empty          { $$ = {}; }
     ;
 
-dashql_object:
-    '(' dashql_obj_attr_list ')'    { $$ = move($2); }
+dashql_options:
+    '(' dashql_option_list ')'    { $$ = move($2); }
     ;
 
-dashql_obj_attr_list:
-    dashql_obj_attr_list ',' dashql_obj_attr    { $1.push_back($3); $$ = move($1); }
-  | dashql_obj_attr                             { $$ = {$1}; }
+dashql_option_list:
+    dashql_option_list ',' dashql_option    { $1.push_back($3); $$ = move($1); }
+  | dashql_option                           { $$ = {$1}; }
     ;
 
-dashql_obj_array:
-    dashql_obj_array ',' dashql_obj_attr_value  { $1.push_back($3); $$ = move($1); }
-  | dashql_obj_attr_value                       { $$ = {$1}; }
+dashql_option:
+    dashql_option_key '=' dashql_option_value       { $$ = Option(ctx, @$, @1, $3); }
     ;
 
-dashql_obj_array_brackets:
-    '[' dashql_obj_array ']'                    { $$ = move($2); }
+dashql_option_key:
+    IDENT
+  | SCONST
     ;
 
-dashql_obj_attr:
-    dashql_obj_attr_key '=' dashql_obj_attr_value   { $$ = ObjectAttribute(ctx, @$, $1, $3); }
-    ;
-
-dashql_obj_attr_key:
-    IDENT   { $$ = ObjectAttributeKey(ctx, @1); }
-  | SCONST  { $$ = ObjectAttributeKey(ctx, @1); }
-    ;
-
-dashql_obj_attr_value:
-    dashql_object               { $$ = ctx.Add(@$, move($1)); }
-  | dashql_obj_array_brackets   { $$ = ctx.Add(@$, move($1)); }
+dashql_option_value:
+    dashql_options                  { $$ = ctx.Add(@$, move($1)); }
+  | dashql_option_array_brackets    { $$ = ctx.Add(@$, move($1)); }
   | IDENT       { $$ = String(@1); }
   | UIDENT      { $$ = String(@1); }
   | FCONST      { $$ = String(@1); }
@@ -54,3 +45,11 @@ dashql_obj_attr_value:
   | XCONST      { $$ = String(@1); }
     ;
 
+dashql_option_array:
+    dashql_option_array ',' dashql_option_value     { $1.push_back($3); $$ = move($1); }
+  | dashql_option_value                             { $$ = {$1}; }
+    ;
+
+dashql_option_array_brackets:
+    '[' dashql_option_array ']'                     { $$ = move($2); }
+    ;

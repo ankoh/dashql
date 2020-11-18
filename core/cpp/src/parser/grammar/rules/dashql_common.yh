@@ -1,9 +1,9 @@
-%type <NodeVector> dashql_obj_array;
-%type <NodeVector> dashql_obj_array_brackets;
-%type <NodeVector> dashql_obj_attr_list;
-%type <NodeVector> dashql_object;
-%type <NodeVector> opt_dashql_object;
-%type <sx::AttributeKey> dashql_obj_attr_key;
-%type <sx::Node> dashql_obj_attr;
-%type <sx::Node> dashql_obj_attr_value;
+%type <NodeVector> dashql_option_array;
+%type <NodeVector> dashql_option_array_brackets;
+%type <NodeVector> dashql_option_list;
+%type <NodeVector> dashql_options;
+%type <NodeVector> opt_dashql_options;
+%type <sx::AttributeKey> dashql_option_key;
 %type <sx::Node> dashql_opt_alias;
+%type <sx::Node> dashql_option;
+%type <sx::Node> dashql_option_value;
