@@ -1,5 +1,5 @@
 name: "Main"
-on: [push, pull/var/folders/xy/_kdrl1nj58zfbk6s6zh7cr540000gp/T/TemporaryItems/NSIRD_screencaptureui_XZFKev/Screenshot\ 2020-11-18\ at\ 08.38.05.png _request]
+on: [push, pull_request]
 
 jobs:
   ubuntu_x86_debug:
