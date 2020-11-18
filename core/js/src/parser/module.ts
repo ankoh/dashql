@@ -34,7 +34,7 @@ export class Module {
         const stmt = new Statement(this);
         const count = this.buffer.statementsLength();
         for (let i = 0; i < count; ++i) {
-            this.buffer.statements(i, stmt.statement_buffer)!;
+            stmt.statement_buffer = this.buffer.statements(i, stmt.statement_buffer)!;
             fn(i, stmt);
         }
         return count;
@@ -142,7 +142,7 @@ export class Statement {
     /// Set the statement buffer
     public set statement_buffer(s: sx.Statement) { this._statement = s; }
     /// Get the root
-    public get root() { return this._statement.root; }
+    public get root() { return this._statement.root(); }
 
     /// Perform a pre-order DFS traversal
     public traversePreOrder(fn: (node_id: number, node: Node) => void) {
@@ -177,7 +177,7 @@ export class Statement {
     }
 
     /// Perform a post-order DFS traversal
-    public traverse(preorder: (node_id: number, node: Node) => void, postorder: (node_id: number, node: Node) => void) {
+    public traversePostOrder(fn: (node_id: number, node: Node) => void) {
         // Prepare the DFS
         const cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
         const pending = new NativeStack(cap);
@@ -198,13 +198,12 @@ export class Statement {
 
             // Visit post-order
             if (visited.isSet(top)) {
-                postorder(top, current);
+                fn(top, current);
                 pending.pop();
                 continue;
             }
 
             // Visit the node pre-order
-            preorder(top, current);
             visited.set(top);
 
             // Discover children
