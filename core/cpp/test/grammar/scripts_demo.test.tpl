@@ -17,7 +17,7 @@ input: |-
   
   -- Interpret the data as SQL table.
   -- Ref: https://docs.dashql.com/grammar/extract
-  EXTRACT wheather FROM wheather_csv;
+  EXTRACT wheather FROM wheather_csv USING CSV;
   
   -- Run arbitrary SQL within your browser.
   -- Ref: https://docs.dashql.com/grammar/query
