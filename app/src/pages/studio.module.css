@@ -47,7 +47,7 @@
     grid-row: 2;
     grid-column: 1;
     display: grid;
-    grid-template-rows: auto 40%;
+    grid-template-rows: 50% 50%;
     grid-template-columns: 48px auto;
     border-right: 1px solid v_border_color;
 }
@@ -105,9 +105,6 @@
     grid-column: 2;
     border-top: 1px solid v_border_color;
     background-color: white;
-    display:grid;
-    grid-template-rows: 40px calc(100% - 40px);
-    grid-template-columns: 50% auto;
 }
 
 .board {

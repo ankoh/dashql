@@ -23,7 +23,7 @@ export class NativeStack {
     /// Is empty?
     public empty(): boolean { return this._size <= 0; }
     /// Return the top element
-    public top(): number { return this._buffer[this._size]; }
+    public top(): number { return this._buffer[this._size - 1]; }
     /// Pop an element
     public pop(): number { return this._buffer[--this._size]; }
     /// Push a new element
