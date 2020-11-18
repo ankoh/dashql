@@ -88,11 +88,11 @@ set(GRAMMAR_EPILOGUE ${CMAKE_SOURCE_DIR}/src/parser/grammar/epilogue.y)
 set(GRAMMAR_PRECEDENCES ${CMAKE_SOURCE_DIR}/src/parser/grammar/precedences.y)
 
 set(GRAMMAR_KEYWORDS
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords/dashql_keywords.list
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords/sql_column_name_keywords.list
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords/sql_reserved_keywords.list
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords/sql_type_func_keywords.list
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords/sql_unreserved_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/lists/dashql_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/lists/sql_column_name_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/lists/sql_reserved_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/lists/sql_type_func_keywords.list
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/lists/sql_unreserved_keywords.list
 )
 
 set(GRAMMAR_RULES
@@ -191,6 +191,7 @@ add_library(dashql_parser
     ${SCANNER_OUT}
     ${PARSER_OUT}
     ${CMAKE_SOURCE_DIR}/src/parser/keywords.cc
+    ${CMAKE_SOURCE_DIR}/src/parser/nodes.cc
     ${CMAKE_SOURCE_DIR}/src/parser/parser_driver.cc
     ${CMAKE_SOURCE_DIR}/src/parser/scanner.cc
 )
