@@ -5,7 +5,7 @@ export const DEMO_SCRIPT =
 -- Declare a dynamic input field on top of your dashboard.
 -- Ref: https://docs.dashql.com/grammar/param
 DECLARE PARAMETER country AS TEXT (
-    default = 'DE'
+    default_value = 'DE'
 );
 
 -- Load data from external sources like HTTP REST APIs.
