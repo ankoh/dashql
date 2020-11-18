@@ -103,4 +103,6 @@ expected:
     - 790..791|`\n`
     - 834..835|`\n`
   comments: []
+  interpolations:
+    - '482..493|`{{country}}`'
   dependencies: []

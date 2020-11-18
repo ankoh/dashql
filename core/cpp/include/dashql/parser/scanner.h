@@ -54,6 +54,8 @@ class Scanner {
     std::vector<sx::Location> _line_breaks;
     /// The comments
     std::vector<sx::Location> _comments;
+    /// The quote interpolations
+    std::vector<sx::Location> _quote_interpolations;
 
     public:
     /// Constructor
@@ -71,6 +73,8 @@ class Scanner {
     auto& line_breaks() { return _line_breaks; } 
     /// Get the comments
     auto& comments() { return _comments; } 
+    /// Get the quote interpolations
+    auto& quote_interpolations() { return _quote_interpolations; } 
     /// Access the input
     std::string_view input_text() {
         assert(_input_buffer.size() >= 2);
@@ -83,6 +87,11 @@ class Scanner {
     void BeginLiteral(sx::Location loc);
     /// End a literal
     sx::Location EndLiteral(sx::Location loc);
+
+    /// Begin quotes
+    void BeginQuotes(sx::Location loc);
+    /// End quotes
+    sx::Location EndQuotes(sx::Location loc);
 
     /// Begin a comment
     void BeginComment(sx::Location loc);
