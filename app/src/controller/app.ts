@@ -3,6 +3,7 @@ import { EditorController } from './editor';
 import { LogController } from './log';
 import { InterpreterController } from './interpreter';
 import { ParserController } from './parser';
+import { DemoController } from './demo';
 
 /// The worker interval
 const workerIntervalMS = 400;
@@ -19,6 +20,8 @@ export class AppController {
     protected _editor: EditorController;
     /// The interpreter controller
     protected _interpreter: InterpreterController;
+    /// The demo controller
+    protected _demo: DemoController;
 
     /// The worker timeout
     protected workerTimer: number | null;
@@ -30,6 +33,7 @@ export class AppController {
         this._log = new LogController(store);
         this._editor = new EditorController(this._store, this._parser);
         this._interpreter = new InterpreterController(this._store);
+        this._demo = new DemoController(this._store, this._parser, this._log, this._editor, this._interpreter);
         this.workerTimer = null;
     }
 
@@ -41,6 +45,7 @@ export class AppController {
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
 
         await this._parser.init();
+        this._demo.runDemo();
     }
 
     // The worker function
