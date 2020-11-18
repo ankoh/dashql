@@ -332,9 +332,9 @@ auto loc = sx::Location();
 <xh><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated hexadecimal bit string literal"); }
 
 
-{xqstart}       { BEGIN(xq); ctx.BeginQuotes(loc); }
+{xqstart}       { BEGIN(xq); ctx.BeginLiteral(loc); }
 <xq>{quotestop} |
-<xq>{quotefail} { BEGIN(INITIAL); return Parser::make_SCONST(ctx.EndQuotes(loc)); }
+<xq>{quotefail} { BEGIN(INITIAL); return Parser::make_SCONST(ctx.EndLiteral(loc)); }
 <xq>{xqdouble}  {}
 <xq>{xqinside}  {}
 <xq><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated quoted string"); }
@@ -509,7 +509,7 @@ namespace dashql {
 namespace parser {
 
 Scanner::Scanner(nonstd::span<char> input_buffer)
-    : input_buffer_(input_buffer), null_buffer_(), scanner_state_mem_(), scanner_buffer_state_mem_(), scanner_buffer_stack_(), scanner_state_ptr_(), lookahead_token_(), comment_begin_(), comment_depth_(0), literal_begin_(), errors_(), line_breaks_(), comments_(), quote_interpolations_()
+    : input_buffer_(input_buffer), null_buffer_(), scanner_state_mem_(), scanner_buffer_state_mem_(), scanner_buffer_stack_(), scanner_state_ptr_(), lookahead_token_(), comment_begin_(), comment_depth_(0), literal_begin_(), errors_(), line_breaks_(), comments_()
 {
     static_assert(YY_SCANNER_STATE_SIZE >= (alignof(yyguts_t) + sizeof(yyguts_t)), "YY_SCANNER_STATE_SIZE is too small");
     static_assert(YY_BUFFER_STATE_SIZE >= (alignof(yy_buffer_state) + sizeof(yy_buffer_state)), "YY_BUFFER_STATE_SIZE is too small");

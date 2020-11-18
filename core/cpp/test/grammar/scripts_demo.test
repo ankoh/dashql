@@ -126,8 +126,6 @@ expected:
     - '672..717|`-- Ref: ht`..`mmar/query`'
     - '760..790|`-- Visuali`..`and views.`'
     - '791..834|`-- Ref: ht`..`rammar/viz`'
-  interpolations:
-    - '482..493|`{{country}}`'
   dependencies:
     - type: TABLE_REF
       source: 1

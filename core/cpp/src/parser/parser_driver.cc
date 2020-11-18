@@ -322,7 +322,6 @@ fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
     auto error_vec = builder.CreateVector(errs);
     auto line_breaks_vec = builder.CreateVectorOfStructs(_scanner.line_breaks());
     auto comments_vec = builder.CreateVectorOfStructs(_scanner.comments());
-    auto interpolations_vec = builder.CreateVectorOfStructs(_scanner.quote_interpolations());
     auto deps_vec = builder.CreateVectorOfStructs(_dependencies);
     sx::ModuleBuilder b{builder};
     b.add_nodes(nodes_vec);
@@ -330,7 +329,6 @@ fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
     b.add_errors(error_vec);
     b.add_line_breaks(line_breaks_vec);
     b.add_comments(comments_vec);
-    b.add_interpolations(interpolations_vec);
     b.add_dependencies(deps_vec);
     return b.Finish();
 }

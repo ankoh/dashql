@@ -23,30 +23,6 @@ sx::Location Scanner::EndLiteral(sx::Location loc) {
     return sx::Location(literal_begin_.offset(), loc.offset() + loc.length() - literal_begin_.offset());
 }
 
-/// Begin quotes
-void Scanner::BeginQuotes(sx::Location loc) { literal_begin_ = loc; }
-
-/// End quotes
-sx::Location Scanner::EndQuotes(sx::Location loc) {
-    // Return the location
-    auto text_loc = sx::Location(literal_begin_.offset(), loc.offset() + loc.length() - literal_begin_.offset());
-
-    // Find interpolations
-    auto text = TextAt(text_loc);
-    static std::regex param_regex("\\{\\{[a-zA-Z0-9-_]+\\}\\}");
-    std::cmatch match;
-    std::string_view::const_iterator cursor(text.cbegin());
-    while (std::regex_search(cursor, text.cend(), match, param_regex)) {
-        auto m_ofs = text_loc.offset() + match.position();
-        auto m_len = match.length();
-        quote_interpolations_.push_back(sx::Location(m_ofs, m_len));
-        cursor = match.suffix().first;
-    }
-
-    // Return the location
-    return text_loc;
-}
-
 /// Begin a comment
 void Scanner::BeginComment(sx::Location loc) {
     if (comment_depth_++ == 0) {

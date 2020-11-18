@@ -743,29 +743,11 @@ commentsLength():number {
 
 /**
  * @param number index
- * @param dashql.proto.syntax.Location= obj
- * @returns dashql.proto.syntax.Location
- */
-interpolations(index: number, obj?:dashql.proto.syntax.Location):dashql.proto.syntax.Location|null {
-  var offset = this.bb!.__offset(this.bb_pos, 14);
-  return offset ? (obj || new dashql.proto.syntax.Location()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 8, this.bb!) : null;
-};
-
-/**
- * @returns number
- */
-interpolationsLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 14);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-};
-
-/**
- * @param number index
  * @param dashql.proto.syntax.Dependency= obj
  * @returns dashql.proto.syntax.Dependency
  */
 dependencies(index: number, obj?:dashql.proto.syntax.Dependency):dashql.proto.syntax.Dependency|null {
-  var offset = this.bb!.__offset(this.bb_pos, 16);
+  var offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? (obj || new dashql.proto.syntax.Dependency()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 16, this.bb!) : null;
 };
 
@@ -773,7 +755,7 @@ dependencies(index: number, obj?:dashql.proto.syntax.Dependency):dashql.proto.sy
  * @returns number
  */
 dependenciesLength():number {
-  var offset = this.bb!.__offset(this.bb_pos, 16);
+  var offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 };
 
@@ -788,7 +770,7 @@ static getFullyQualifiedName():string {
  * @param flatbuffers.Builder builder
  */
 static startModule(builder:flatbuffers.Builder) {
-  builder.startObject(7);
+  builder.startObject(6);
 };
 
 /**
@@ -899,26 +881,10 @@ static startCommentsVector(builder:flatbuffers.Builder, numElems:number) {
 
 /**
  * @param flatbuffers.Builder builder
- * @param flatbuffers.Offset interpolationsOffset
- */
-static addInterpolations(builder:flatbuffers.Builder, interpolationsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(5, interpolationsOffset, 0);
-};
-
-/**
- * @param flatbuffers.Builder builder
- * @param number numElems
- */
-static startInterpolationsVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(8, numElems, 4);
-};
-
-/**
- * @param flatbuffers.Builder builder
  * @param flatbuffers.Offset dependenciesOffset
  */
 static addDependencies(builder:flatbuffers.Builder, dependenciesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(6, dependenciesOffset, 0);
+  builder.addFieldOffset(5, dependenciesOffset, 0);
 };
 
 /**
@@ -938,14 +904,13 @@ static endModule(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 };
 
-static createModule(builder:flatbuffers.Builder, nodesOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset, interpolationsOffset:flatbuffers.Offset, dependenciesOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createModule(builder:flatbuffers.Builder, nodesOffset:flatbuffers.Offset, statementsOffset:flatbuffers.Offset, errorsOffset:flatbuffers.Offset, lineBreaksOffset:flatbuffers.Offset, commentsOffset:flatbuffers.Offset, dependenciesOffset:flatbuffers.Offset):flatbuffers.Offset {
   Module.startModule(builder);
   Module.addNodes(builder, nodesOffset);
   Module.addStatements(builder, statementsOffset);
   Module.addErrors(builder, errorsOffset);
   Module.addLineBreaks(builder, lineBreaksOffset);
   Module.addComments(builder, commentsOffset);
-  Module.addInterpolations(builder, interpolationsOffset);
   Module.addDependencies(builder, dependenciesOffset);
   return Module.endModule(builder);
 }
