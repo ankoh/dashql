@@ -10,6 +10,7 @@
 %type <NodeVector> sql_limit_clause;
 %type <NodeVector> sql_name_list;
 %type <NodeVector> sql_offset_clause;
+%type <NodeVector> sql_opt_array_bounds;
 %type <NodeVector> sql_opt_existing_window_name;
 %type <NodeVector> sql_opt_frame_clause;
 %type <NodeVector> sql_opt_indirection;
@@ -51,7 +52,6 @@
 %type <sx::Node> sql_numeric;
 %type <sx::Node> sql_opt_alias_clause;
 %type <sx::Node> sql_opt_all_clause;
-%type <sx::Node> sql_opt_array_bounds;
 %type <sx::Node> sql_opt_asc_desc;
 %type <sx::Node> sql_opt_nulls_order;
 %type <sx::Node> sql_opt_slice_bound;
