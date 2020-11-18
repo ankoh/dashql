@@ -1,9 +1,13 @@
+dashql_function_call:
+    sql_func_application { $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL, move($1)); }
+    ;
+
 // ---------------------------------------------------------------------------
 // DashQL options
 
 opt_dashql_options:
-    dashql_options   { $$ = move($1); }
-  | %empty          { $$ = {}; }
+    dashql_options      { $$ = move($1); }
+  | %empty              { $$ = {}; }
     ;
 
 dashql_options:
@@ -32,13 +36,9 @@ dashql_option_key:
 dashql_option_value:
     dashql_options                  { $$ = ctx.Add(@$, move($1)); }
   | dashql_option_array_brackets    { $$ = ctx.Add(@$, move($1)); }
-  | IDENT       { $$ = String(@1); }
-  | UIDENT      { $$ = String(@1); }
-  | FCONST      { $$ = String(@1); }
-  | SCONST      { $$ = String(@1); }
-  | USCONST     { $$ = String(@1); }
-  | BCONST      { $$ = String(@1); }
-  | XCONST      { $$ = String(@1); }
+  | dashql_function_call            { $$ = $1; }
+  | sql_columnref                   { $$ = $1; }
+  | sql_a_expr_const                { $$ = $1; }
     ;
 
 dashql_option_array:

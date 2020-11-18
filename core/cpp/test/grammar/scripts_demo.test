@@ -12,7 +12,7 @@ input: |-
   -- Load data from external sources like HTTP REST APIs.
   -- Ref: https://docs.dashql.com/grammar/load
   LOAD wheather_csv FROM http (
-      url = 'https://cdn.dashql.com/demo/weather/{{country}}'
+      url = format('https://cdn.dashql.com/demo/weather/%s', country)
   );
   
   -- Interpret the data as SQL table.
@@ -35,56 +35,58 @@ expected:
         DASHQL_PARAMETER_TYPE: TEXT
         DASHQL_STATEMENT_NAME:
           - 255..262|`country`
-        DASHQL_OPTION_DEFAULT_VALUE: "295..300|`'DE' `"
+        DASHQL_OPTION_DEFAULT_VALUE:
+          type: OBJECT_SQL_ACONST
+          location: "295..300|`'DE' `"
+          SQL_ACONST_TYPE: STRING
     - name: global.wheather_csv
       root:
         type: OBJECT_DASHQL_LOAD
-        location: "405..496|`LOAD wheat`..`untry}}' )`"
+        location: 405..504|`LOAD wheat`..`country) )`
         DASHQL_LOAD_METHOD: HTTP
         DASHQL_STATEMENT_NAME:
           - 410..422|`wheather_csv`
-        DASHQL_OPTION_URL: "445..495|`'https://c`..`ountry}}' `"
     - name: global.wheather
       root:
         type: OBJECT_DASHQL_EXTRACT
-        location: 583..627|`EXTRACT wh`..` USING CSV`
+        location: 591..635|`EXTRACT wh`..` USING CSV`
         DASHQL_EXTRACT_DATA:
-          - 605..617|`wheather_csv`
+          - 613..625|`wheather_csv`
         DASHQL_EXTRACT_METHOD: CSV
         DASHQL_STATEMENT_NAME:
-          - 591..599|`wheather`
+          - 599..607|`wheather`
     - name: global.weather_avg
       root:
         type: OBJECT_DASHQL_QUERY
-        location: 718..757|`SELECT 1 I`..`M wheather`
+        location: 726..765|`SELECT 1 I`..`M wheather`
         DASHQL_QUERY_STATEMENT:
           type: OBJECT_SQL_SELECT
-          location: 718..757|`SELECT 1 I`..`M wheather`
+          location: 726..765|`SELECT 1 I`..`M wheather`
           SQL_SELECT_FROM:
             - type: OBJECT_SQL_TABLE_REF
-              location: 749..757|`wheather`
+              location: 757..765|`wheather`
               SQL_TABLE_INHERIT: true
               SQL_TABLE_NAME:
-                - 749..757|`wheather`
+                - 757..765|`wheather`
           SQL_SELECT_INTO:
             type: OBJECT_SQL_INTO
-            location: 732..743|`weather_avg`
+            location: 740..751|`weather_avg`
             SQL_TEMP_NAME:
-              - 732..743|`weather_avg`
+              - 740..751|`weather_avg`
             SQL_TEMP_TYPE: DEFAULT
           SQL_SELECT_TARGETS:
             - type: OBJECT_SQL_ACONST
-              location: 725..726|`1`
+              location: 733..734|`1`
               SQL_ACONST_TYPE: INTEGER
     - root:
         type: OBJECT_DASHQL_VIZ
-        location: 835..861|`VIZ weathe`..`USING LINE`
+        location: 843..869|`VIZ weathe`..`USING LINE`
         DASHQL_VIZ_TARGET:
           type: OBJECT_SQL_TABLE_REF
-          location: 839..850|`weather_avg`
+          location: 847..858|`weather_avg`
           SQL_TABLE_INHERIT: true
           SQL_TABLE_NAME:
-            - 839..850|`weather_avg`
+            - 847..858|`weather_avg`
         DASHQL_VIZ_TYPE: LINE
   errors: []
   line_breaks:
@@ -100,19 +102,19 @@ expected:
     - 359..360|` `
     - 404..405|` `
     - 434..435|` `
-    - 494..495|` `
-    - 497..498|` `
-    - 498..499|` `
-    - 534..535|` `
-    - 582..583|` `
-    - 628..629|` `
-    - 629..630|` `
-    - 671..672|` `
-    - 717..718|` `
-    - 758..759|` `
-    - 759..760|` `
-    - 790..791|` `
-    - 834..835|` `
+    - 502..503|` `
+    - 505..506|` `
+    - 506..507|` `
+    - 542..543|` `
+    - 590..591|` `
+    - 636..637|` `
+    - 637..638|` `
+    - 679..680|` `
+    - 725..726|` `
+    - 766..767|` `
+    - 767..768|` `
+    - 798..799|` `
+    - 842..843|` `
   comments:
     - '0..67|`-- This sc`..`on DashQL.`'
     - '68..130|`-- Delete `..`m scratch.`'
@@ -120,22 +122,22 @@ expected:
     - '191..236|`-- Ref: ht`..`mmar/param`'
     - '304..359|`-- Load da`..`REST APIs.`'
     - '360..404|`-- Ref: ht`..`ammar/load`'
-    - '499..534|`-- Interpr`..`SQL table.`'
-    - '535..582|`-- Ref: ht`..`ar/extract`'
-    - '630..671|`-- Run arb`..`r browser.`'
-    - '672..717|`-- Ref: ht`..`mmar/query`'
-    - '760..790|`-- Visuali`..`and views.`'
-    - '791..834|`-- Ref: ht`..`rammar/viz`'
+    - '507..542|`-- Interpr`..`SQL table.`'
+    - '543..590|`-- Ref: ht`..`ar/extract`'
+    - '638..679|`-- Run arb`..`r browser.`'
+    - '680..725|`-- Ref: ht`..`mmar/query`'
+    - '768..798|`-- Visuali`..`and views.`'
+    - '799..842|`-- Ref: ht`..`rammar/viz`'
   dependencies:
     - type: TABLE_REF
       source: 1
       target: 2
-      target_node: 605..617|`wheather_csv`
+      target_node: 613..625|`wheather_csv`
     - type: TABLE_REF
       source: 2
       target: 3
-      target_node: 749..757|`wheather`
+      target_node: 757..765|`wheather`
     - type: TABLE_REF
       source: 3
       target: 4
-      target_node: 839..850|`weather_avg`
+      target_node: 847..858|`weather_avg`
