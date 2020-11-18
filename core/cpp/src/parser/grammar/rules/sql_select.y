@@ -683,13 +683,13 @@ sql_typename:
     sql_simple_typename sql_opt_array_bounds {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
             Key::SQL_TYPENAME_TYPE << $1,
-            Key::SQL_TYPENAME_ARRAY << $2,
+            Key::SQL_TYPENAME_ARRAY << ctx.Add(@2, move($2)),
         });
     }
   | SETOF sql_simple_typename sql_opt_array_bounds {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
             Key::SQL_TYPENAME_TYPE << $2,
-            Key::SQL_TYPENAME_ARRAY << $3,
+            Key::SQL_TYPENAME_ARRAY << ctx.Add(@3, move($3)),
             Key::SQL_TYPENAME_SETOF << Bool(@1, true),
         });
     }
@@ -700,25 +700,42 @@ sql_typename:
             Key::SQL_TYPENAME_ARRAY << ctx.Add(Loc({@2, @3, @4, @5}), {String(@4)}),
         });
     }
-  | SETOF sql_simple_typename ARRAY '[' ICONST ']'
-  | sql_simple_typename ARRAY
-  | SETOF sql_simple_typename ARRAY
+  | SETOF sql_simple_typename ARRAY '[' ICONST ']' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+            Key::SQL_TYPENAME_TYPE << $2,
+            Key::SQL_TYPENAME_ARRAY << ctx.Add(Loc({@3, @4, @5, @6}), {String(@4)}),
+            Key::SQL_TYPENAME_SETOF << Bool(@1, true),
+        });
+    }
+  | sql_simple_typename ARRAY {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+            Key::SQL_TYPENAME_TYPE << $1,
+            Key::SQL_TYPENAME_ARRAY << ctx.Add(@2, {}, false),
+        });
+    }
+  | SETOF sql_simple_typename ARRAY {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+            Key::SQL_TYPENAME_TYPE << $2,
+            Key::SQL_TYPENAME_ARRAY << ctx.Add(@3, {}, false),
+            Key::SQL_TYPENAME_SETOF << Bool(@1, true),
+        });
+    }
     ;
 
 sql_opt_array_bounds:
-    sql_opt_array_bounds '[' ']'
-  | sql_opt_array_bounds '[' ICONST ']'
-  | %empty
+    sql_opt_array_bounds '[' ']'            { $$.push_back(String(Loc({@2, @3}))); $$ = move($1); }
+  | sql_opt_array_bounds '[' ICONST ']'     { $$.push_back(String(Loc({@2, @3, @4}))); $$ = move($1); }
+  | %empty                                  { $$ = {}; }
     ;
 
 sql_simple_typename:
-    sql_generic_type
+    sql_generic_type                    { $$ = {}; }
   | sql_numeric                         { $$ = $1; }
-  | sql_bit
-  | sql_const_character
-  | sql_const_datetime
-  | sql_const_interval sql_opt_interval
-  | sql_const_interval '(' ICONST ')'
+  | sql_bit                             { $$ = {}; }
+  | sql_const_character                 { $$ = {}; }
+  | sql_const_datetime                  { $$ = {}; }
+  | sql_const_interval sql_opt_interval { $$ = {}; }
+  | sql_const_interval '(' ICONST ')'   { $$ = {}; }
     ;
 
 // We have a separate ConstTypename to allow defaulting fixed-length
@@ -734,9 +751,9 @@ sql_simple_typename:
 
 sql_const_typename:
     sql_numeric         { $$ = $1; }
-  | sql_const_bit
-  | sql_character
-  | sql_const_datetime
+  | sql_const_bit       { $$ = {}; }
+  | sql_character       { $$ = {}; }
+  | sql_const_datetime  { $$ = {}; }
     ;
 
 // GenericType covers all type names that don't have special syntax mandated

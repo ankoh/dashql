@@ -11,7 +11,7 @@ namespace parser {
 
 namespace sx = proto::syntax;
 
-sx::Location Loc(std::initializer_list<sx::Location> locs) {
+inline sx::Location Loc(std::initializer_list<sx::Location> locs) {
     assert(locs.size() > 1);
     uint32_t begin = std::numeric_limits<uint32_t>::max();
     uint32_t end = 0;
@@ -20,6 +20,10 @@ sx::Location Loc(std::initializer_list<sx::Location> locs) {
         end = std::max(end, loc.offset() + loc.length());
     }
     return sx::Location(begin, end - begin);
+}
+
+inline sx::Location LocAfter(sx::Location loc) {
+    return sx::Location(loc.offset() + loc.length(), 0);
 }
 
 } // namespace parser
