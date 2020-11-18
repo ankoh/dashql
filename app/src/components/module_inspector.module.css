@@ -5,3 +5,16 @@
 
     -webkit-app-region:no-drag;
 }
+
+.node {
+    padding-left: 8px;
+}
+
+.node_key {
+}
+
+.node_children {
+}
+
+.node_value {
+}
