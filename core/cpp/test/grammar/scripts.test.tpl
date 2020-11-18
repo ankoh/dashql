@@ -5,7 +5,7 @@ input: |-
   
   -- Declare a dynamic input field on top of your dashboard.
   -- Ref: https://docs.dashql.com/grammar/param
-  DECLARE PARAMETER country AS TEXT (
+  DECLARE PARAMETER country TYPE TEXT (
       default_value = 'DE'
   );
   

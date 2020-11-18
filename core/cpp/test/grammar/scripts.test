@@ -15,7 +15,7 @@ input: |-
       url = 'https://cdn.dashql.com/demo/weather/{{country}}'
   );
   
-  -- Interpret the loaded data as relation.
+  -- Interpret the data as SQL table.
   -- Ref: https://docs.dashql.com/grammar/extract
   EXTRACT wheather FROM wheather_csv;
   
@@ -23,16 +23,25 @@ input: |-
   -- Ref: https://docs.dashql.com/grammar/query
   SELECT 1 INTO weather_avg FROM wheather;
   
-  -- Visualize SQL tables and views with our visualization grammar.
+  -- Visualize tables and views.
   -- Ref: https://docs.dashql.com/grammar/viz
   VIZ weather_avg USING LINE;
 expected:
-  statements: []
+  statements:
+    - name: global.country
+      root:
+        type: OBJECT_DASHQL_PARAMTER
+        location: "237..301|`DECLARE PA`..`e = 'DE'\n)`"
+        DASHQL_PARAMETER_IDENTIFIER: 255..262|`country`
+        DASHQL_PARAMETER_TYPE: TEXT
+    - root:
+        type: OBJECT_DASHQL_LOAD
+        location: "405..496|`LOAD wheat`..`untry}}'\n)`"
+        DASHQL_LOAD_NAME: 410..422|`wheather_csv`
+        DASHQL_HTTP_LOAD_URL: "445..495|`'https://c`..`ountry}}'\n`"
   errors:
-    - message: "syntax error, unexpected '(', expecting EOF or ';'"
-      location: 273..274|`(`
-    - message: 'syntax error, unexpected LOAD, expecting EOF'
-      location: 405..409|`LOAD`
+    - message: "syntax error, unexpected ';', expecting USING"
+      location: 617..618|`;`
   line_breaks:
     - 67..68|`\n`
     - 130..131|`\n`
@@ -45,5 +54,11 @@ expected:
     - 303..304|`\n`
     - 359..360|`\n`
     - 404..405|`\n`
+    - 434..435|`\n`
+    - 494..495|`\n`
+    - 497..498|`\n`
+    - 498..499|`\n`
+    - 534..535|`\n`
+    - 582..583|`\n`
   comments: []
   dependencies: []

@@ -191,7 +191,7 @@ add_library(dashql_parser
     ${SCANNER_OUT}
     ${PARSER_OUT}
     ${CMAKE_SOURCE_DIR}/src/parser/keywords.cc
-    ${CMAKE_SOURCE_DIR}/src/parser/nodes.cc
+    ${CMAKE_SOURCE_DIR}/src/parser/options.cc
     ${CMAKE_SOURCE_DIR}/src/parser/parser_driver.cc
     ${CMAKE_SOURCE_DIR}/src/parser/scanner.cc
 )

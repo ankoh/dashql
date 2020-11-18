@@ -44,6 +44,13 @@ NodeVector& operator<<(NodeVector& attrs, NodeVector&& other) {
     }
     return attrs;
 }
+/// Concatenate vectors
+NodeVector concat(NodeVector&& l, NodeVector&& r) {
+    for (auto& node : r) {
+        l.push_back(node);
+    }
+    return l;
+}
 
 ScriptOptions::ScriptOptions() : global_namespace("global") {}
 
