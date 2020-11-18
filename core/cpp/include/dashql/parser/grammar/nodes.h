@@ -104,19 +104,6 @@ inline sx::Node Negate(ParserDriver& driver, sx::Location loc, sx::Location loc_
     });
 }
 
-/// Collect viz attributes
-inline NodeVector CollectViz(ParserDriver& driver, sx::Location viz_loc, sxd::VizType viz_type, std::initializer_list<std::reference_wrapper<NodeVector>> attrs) {
-    auto type_val = Enum(viz_loc, viz_type);
-    auto type_attr = Key::DASHQL_VIZ_TYPE << type_val;
-    NodeVector result{type_attr};
-    for (auto& as: attrs) {
-        for (auto& a: as.get()) {
-            result.push_back(a);
-        }
-    }
-    return result;
-}
-
 /// Read a float type
 inline sxs::NumericTypeTag ReadFloatType(ParserDriver& driver, sx::Location bitsLoc) {
     auto text = driver.scanner().TextAt(bitsLoc);
