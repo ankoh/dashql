@@ -186,5 +186,6 @@ table Module {
     errors: [Error];
     line_breaks: [Location];
     comments: [Location];
+    interpolations: [Location];
     dependencies: [Dependency];
 }
