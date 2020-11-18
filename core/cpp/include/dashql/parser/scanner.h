@@ -25,37 +25,37 @@ constexpr size_t YY_BUFFER_STATE_SIZE = 144;
 class Scanner {
     protected:
     /// The full input buffer
-    nonstd::span<char> _input_buffer;
+    nonstd::span<char> input_buffer_;
     /// The invalid input buffer
-    std::array<char, 2> _null_buffer;
+    std::array<char, 2> null_buffer_;
 
     /// The scanner state
-    std::array<char, YY_SCANNER_STATE_SIZE> _scanner_state_mem;
+    std::array<char, YY_SCANNER_STATE_SIZE> scanner_state_mem_;
     /// The buffer state
-    std::array<char, YY_BUFFER_STATE_SIZE> _scanner_buffer_state_mem;
+    std::array<char, YY_BUFFER_STATE_SIZE> scanner_buffer_state_mem_;
     /// The scanner buffer stack
-    std::array<void*, 2> _scanner_buffer_stack;
+    std::array<void*, 2> scanner_buffer_stack_;
     /// The address of the scanner state
-    void* _scanner_state_ptr;
+    void* scanner_state_ptr_;
 
     /// The lookahead token (if any)
-    std::optional<Parser::symbol_type> _lookahead_token;
+    std::optional<Parser::symbol_type> lookahead_token_;
 
     /// The begin of the comment
-    sx::Location _comment_begin;
+    sx::Location comment_begin_;
     /// The comment depth
-    int _comment_depth;
+    int comment_depth_;
     /// The begin of the literal
-    sx::Location _literal_begin;
+    sx::Location literal_begin_;
 
     /// The scanner errors
-    std::vector<std::pair<sx::Location, std::string>> _errors;
+    std::vector<std::pair<sx::Location, std::string>> errors_;
     /// The line breaks
-    std::vector<sx::Location> _line_breaks;
+    std::vector<sx::Location> line_breaks_;
     /// The comments
-    std::vector<sx::Location> _comments;
+    std::vector<sx::Location> comments_;
     /// The quote interpolations
-    std::vector<sx::Location> _quote_interpolations;
+    std::vector<sx::Location> quote_interpolations_;
 
     public:
     /// Constructor
@@ -66,19 +66,19 @@ class Scanner {
     Scanner& operator=(const Scanner& other) = delete;
 
     /// Get the scanner state pointer
-    auto* state() { return _scanner_state_ptr; } 
+    auto* state() { return scanner_state_ptr_; } 
     /// Get the errors
-    auto& errors() { return _errors; } 
+    auto& errors() { return errors_; } 
     /// Get the line breaks
-    auto& line_breaks() { return _line_breaks; } 
+    auto& line_breaks() { return line_breaks_; } 
     /// Get the comments
-    auto& comments() { return _comments; } 
+    auto& comments() { return comments_; } 
     /// Get the quote interpolations
-    auto& quote_interpolations() { return _quote_interpolations; } 
+    auto& quote_interpolations() { return quote_interpolations_; } 
     /// Access the input
     std::string_view input_text() {
-        assert(_input_buffer.size() >= 2);
-        return std::string_view{_input_buffer.data(), _input_buffer.size() - 2}; }
+        assert(input_buffer_.size() >= 2);
+        return std::string_view{input_buffer_.data(), input_buffer_.size() - 2}; }
 
     /// Get the text at location
     std::string_view TextAt(sx::Location loc);
