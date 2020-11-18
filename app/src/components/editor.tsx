@@ -55,9 +55,10 @@ class Editor extends React.Component<Props> {
     protected initMonaco() {
         if (this.monacoContainer) {
             this.editor = monaco.editor.create(this.monacoContainer, {
-                fontSize: 14,
+                fontSize: 13,
                 language: "sql",
                 value: this.props.text,
+                links: false,
                 minimap: {
                     enabled: false
                 }
