@@ -31,9 +31,8 @@ class ProgramGraph extends React.Component<Props> {
         }
         const g = new dagre.graphlib.Graph().setGraph({nodesep: 30, ranksep: 30});
         this.props.program.iterateStatements((idx: number, stmt: core.parser.Statement) => {
-            let stmt_name = stmt.root_node().findAttribute(sx.AttributeKey.DASHQL_STATEMENT_NAME);
             g.setNode(idx.toString(), {
-                label: stmt_name ? stmt_name.assumeString() : "?",
+                label: stmt.name || "?",
                 class: styles.node,
             });
         });
