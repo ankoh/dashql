@@ -6,7 +6,6 @@ import { ModuleInspector, ModuleGraph } from "../components";
 
 import { TopBar } from './studio_topbar';
 import { ToolBar } from './studio_toolbar';
-import { Planner } from './studio_planner';
 
 import styles from './studio.module.css';
 
