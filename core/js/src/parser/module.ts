@@ -121,6 +121,54 @@ export class Node {
     }
 }
 
+/// A single step in a node path
+export class NodePathStep {
+    /// The node id
+    node_id: number;
+    /// The attribute key, NONE if array element
+    attribute_key: sx.AttributeKey;
+    /// The index of the node within the parent
+    index_in_parent: number;
+    /// The number of visited children
+    visited_children: number;
+
+    constructor(node_id: number, attribute_key: sx.AttributeKey, index_in_parent: number) {
+        this.node_id = node_id;
+        this.attribute_key = attribute_key;
+        this.index_in_parent = 0;
+        this.visited_children = 0;
+    }
+};
+
+/// A node stack to maintain the path during a pre-order DFS traversal
+export class NodePath {
+    /// The DFS steps starting from the root
+    steps: NodePathStep[];
+
+    constructor() {
+        this.steps = [];
+    }
+
+    /// Visit a new node
+    visit(node_id: number, node: Node) {
+        // Pop from path until we find our parent
+        const parent_id = node.parent;
+        while (this.steps.length > 0 && this.steps[this.steps.length - 1].node_id != parent_id) {
+            this.steps.pop();
+        }
+
+        // Determine the index within the parent
+        let index_in_parent = 0;
+        if (this.steps.length > 0) {
+            const parent = this.steps[this.steps.length - 1];
+            index_in_parent = parent.visited_children++;
+        }
+
+        // Push node
+        this.steps.push(new NodePathStep(node_id, node.key, index_in_parent));
+    }
+}
+
 export class Statement {
     /// The module
     _module: Module;
@@ -145,10 +193,11 @@ export class Statement {
     public get root() { return this._statement.root(); }
 
     /// Perform a pre-order DFS traversal
-    public traversePreOrder(fn: (node_id: number, node: Node) => void) {
+    public traversePreOrder(visit: (node_id: number, node: Node, path: NodePath) => void) {
         // Prepare the DFS
-        const cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
-        const pending = new NativeStack(cap);
+        const path = new NodePath();
+        const pending_cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
+        const pending = new NativeStack(pending_cap);
         pending.push(this._statement.root());
 
         // We always pass the same objects to the function to spare us all the allocations.
@@ -162,7 +211,8 @@ export class Statement {
             const nodeType = current.nodeType;
 
             // Visit the node pre-order
-            fn(top, current);
+            path.visit(top, current);
+            visit(top, current, path);
 
             // Discover children
             if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_MIN) {
@@ -177,10 +227,11 @@ export class Statement {
     }
 
     /// Perform a DFS traversal with preorder and postorder hooks
-    public traverse(preorder: (node_id: number, node: Node) => void, postorder: (node_id: number, node: Node) => void) {
+    public traverse(visit_preorder: (node_id: number, node: Node, path: NodePath) => void, visit_postorder: (node_id: number, node: Node) => void) {
         // Prepare the DFS
-        const cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
-        const pending = new NativeStack(cap);
+        const path = new NodePath();
+        const pending_cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
+        const pending = new NativeStack(pending_cap);
         pending.push(this._statement.root());
 
         /// Use a compact bitmap to track visited nodes
@@ -198,13 +249,14 @@ export class Statement {
 
             // Visit post-order
             if (visited.isSet(top)) {
-                postorder(top, current);
+                visit_postorder(top, current);
                 pending.pop();
                 continue;
             }
 
             // Visit the node pre-order
-            preorder(top, current);
+            path.visit(top, current);
+            visit_preorder(top, current, path);
             visited.set(top);
 
             // Discover children
