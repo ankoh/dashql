@@ -16,6 +16,12 @@ jobs:
           git submodule update --init --recursive
           mkdir -p ./core/cpp/build/emscripten ./reports
 
+    - name: Compile flatbuffer schema
+      uses: ./ci/image
+      with:
+        script: |-
+            ./scripts/generate_proto.sh
+
     - name: Build
       uses: ./ci/image
       with:
@@ -51,6 +57,12 @@ jobs:
           make reset_duckdb
           git submodule update --init --recursive
           mkdir -p ./core/cpp/build/emscripten ./reports
+
+    - name: Compile flatbuffer schema
+      uses: ./ci/image
+      with:
+        script: |-
+            ./scripts/generate_proto.sh
 
     - name: Build
       uses: ./ci/image
@@ -89,6 +101,12 @@ jobs:
           make reset_duckdb
           git submodule update --init --recursive
           mkdir -p ./core/cpp/build/emscripten ./reports
+
+    - name: Compile flatbuffer schema
+      uses: ./ci/image
+      with:
+        script: |-
+            ./scripts/generate_proto.sh
 
     - name: Build WASM module
       uses: ./ci/image
