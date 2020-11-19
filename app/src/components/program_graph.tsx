@@ -29,21 +29,33 @@ class ProgramGraph extends React.Component<Props> {
         }
         const g = new dagre.graphlib.Graph().setGraph({nodesep: 30, ranksep: 30});
         this.props.program.iterateStatements((idx: number, _node: core.parser.Statement) => {
-            g.setNode(idx.toString(), { label: idx.toString()});
+            g.setNode(idx.toString(), {
+                label: idx.toString(),
+                class: styles.node,
+            });
         });
         this.props.program.iterateDependencies((_idx: number, dep: sx.Dependency) => {
-            g.setEdge(dep.sourceStatement().toString(), dep.targetStatement().toString(), {});
+            g.setEdge(dep.sourceStatement().toString(), dep.targetStatement().toString(), {
+                class: styles.edge,
+                curve: d3.curveMonotoneY,
+                arrowhead: 'none',
+                label: ''
+            });
         });
 
         const inner: any = d3.select(this.svgGroupNode.current!);
         const render = new dagreD3.render();
+
+        // Draw undirected edges
+        render.arrows().none = () => {};
+
         render(inner, g);
     }
 
     public render() {
         return (
             <div className={classnames(this.props.className)}>
-                <svg ref={this.svgNode}>
+                <svg ref={this.svgNode} className={styles.svg_root} width="100%" height="100%">
                     <g ref={this.svgGroupNode} />
                 </svg>
             </div>
