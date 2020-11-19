@@ -76,6 +76,8 @@ wasm:
 		-C/wd/core/cpp/build/emscripten \
 		-j${CORES} \
 		dashql_core_web dashql_core_node duckdb_web duckdb_node
+	sed -i.old -e "1d" ${CORE_SOURCE_DIR}/build/emscripten/dashql_*.js
+	sed -i.old -e "1d" ${CORE_SOURCE_DIR}/build/emscripten/duckdb/duckdb_*.js
 	cp ${CORE_SOURCE_DIR}/build/emscripten/dashql_*.{wasm,js} "${CORE_JS_WASM_DIR}"
 	cp ${CORE_SOURCE_DIR}/build/emscripten/duckdb/duckdb_*.{wasm,js} "${DUCKDB_JS_WASM_DIR}"
 
