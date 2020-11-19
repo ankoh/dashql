@@ -1,0 +1,32 @@
+import * as React from "react";
+import * as core from "@dashql/core";
+import { connect } from 'react-redux';
+import { AppState, Dispatch } from '../store';
+import classnames from 'classnames';
+
+import sx = core.proto.syntax;
+import parser = core.parser;
+import styles from './module_graph.module.css';
+
+interface Props {
+    module: core.parser.Module | null;
+    className?: string
+}
+
+class ModuleGraph extends React.Component<Props> {
+    public render() {
+        return (
+            <div className={classnames(this.props.className)}>
+            </div>
+        );
+    }
+}
+
+const mapStateToProps = (state: AppState) => ({
+    module: state.editorModule
+});
+
+const mapDispatchToProps = (_dispatch: Dispatch) => ({
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(ModuleGraph);
