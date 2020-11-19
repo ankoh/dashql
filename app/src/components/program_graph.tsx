@@ -32,7 +32,7 @@ class ProgramGraph extends React.Component<Props> {
         const g = new dagre.graphlib.Graph().setGraph({nodesep: 30, ranksep: 30});
         this.props.program.iterateStatements((idx: number, stmt: core.parser.Statement) => {
             g.setNode(idx.toString(), {
-                label: stmt.name || "?",
+                label: stmt.short_name || "?",
                 class: styles.node,
             });
         });

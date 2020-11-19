@@ -72,8 +72,10 @@ struct Statement {
 
     /// Reset
     void reset();
-    /// Write the name
-    flatbuffers::Offset<flatbuffers::String> encodeName(flatbuffers::FlatBufferBuilder& builder);
+    /// Write the qualified name
+    flatbuffers::Offset<flatbuffers::String> encodeQualifiedName(flatbuffers::FlatBufferBuilder& builder);
+    /// Write the short name
+    flatbuffers::Offset<flatbuffers::String> encodeShortName(flatbuffers::FlatBufferBuilder& builder);
 };
 
 class ParserDriver {
