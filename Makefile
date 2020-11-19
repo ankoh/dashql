@@ -78,6 +78,11 @@ grammar_testgen:
 grammar_tests:
 	${CORE_DEBUG_DIR}/grammar_tests ${CORE_SOURCE_DIR}/test/grammar
 
+# Builds the app
+.PHONY: app
+app:
+	npm --prefix ${ROOT_DIR}/app run build:release
+
 # Creates a release archive
 .PHONY: app_release
 app_release:
