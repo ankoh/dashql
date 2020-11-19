@@ -31,6 +31,8 @@ import {
     ChartType,
 } from '../models/dashboard';
 
+import styles from './layout.module.css';
+
 type Props = {
     width: number;
     height: number;
@@ -134,7 +136,7 @@ class Layout extends React.Component<Props> {
     render() {
         return (
             <GridLayout
-                className="layout"
+                className={styles.grid}
                 cols={12}
                 rowHeight={30}
                 width={this.props.width}

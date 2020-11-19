@@ -1,0 +1,54 @@
+.grid :global(.react-grid-item) {
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+}
+
+.grid :global(.react-grid-item) :first-child {
+    flex: 1;
+}
+
+.grid :global(.react-resizable-handle) {
+    opacity: 0;
+    transition: 0.2s ease-in-out;
+}
+
+.grid :global(.react-grid-item):hover :global(.react-resizable-handle) {
+    opacity: 1;
+}
+
+.grid :global(.react-resizable-handle)::after {
+    border-width: 1px;
+}
+
+.grid
+    :global(.react-grid-item)
+    > :global(.react-resizable-handle.react-resizable-handle-ne) {
+    top: -8px;
+    right: -8px;
+}
+
+.grid
+    :global(.react-grid-item)
+    > :global(.react-resizable-handle.react-resizable-handle-se) {
+    bottom: -8px;
+    right: -8px;
+}
+
+.grid
+    :global(.react-grid-item)
+    > :global(.react-resizable-handle.react-resizable-handle-sw) {
+    bottom: -8px;
+    left: -8px;
+}
+
+.grid
+    :global(.react-grid-item)
+    > :global(.react-resizable-handle.react-resizable-handle-nw) {
+    top: -8px;
+    left: -8px;
+}
+
+.grid :global(.react-grid-item.react-grid-placeholder) {
+    background-color: gray;
+}
