@@ -28,8 +28,10 @@ class ModuleInspector extends React.Component<Props> {
 
         const statements: JSX.Element[] = [];
 
-        mod.iterateStatements((idx: number, stmt: parser.Statement): void => {
-            stmt.traversePostOrder((node_id: number, node: parser.Node): void => {
+        mod.iterateStatements((_idx: number, stmt: parser.Statement): void => {
+            stmt.traverse(
+                (_node_id: number, _node: parser.Node): void => {},
+                (node_id: number, node: parser.Node): void => {
                 const elem = (
                     <div key={node_id} className={styles.node}>
                         <div className={styles.node_key}>
