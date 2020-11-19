@@ -86,7 +86,7 @@ export class Node {
     /// Assume number value
     public assumeNumber(): number { return this._node.childrenBeginOrValue(); }
     /// Assume number value
-    public assumeString(obj: sx.Location): string { return this._program.textAt(this._node.location(obj)!); }
+    public assumeString(obj: sx.Location = new sx.Location()): string { return this._program.textAt(this._node.location(obj)!); }
 
     /// Get as boolean
     public getBool(): boolean | null {
@@ -103,31 +103,37 @@ export class Node {
     }
 
     /// Find an attribute
-    public findAttribute(key: sx.AttributeKey, obj: sx.Node): sx.Node | null {
-        const begin = this._node.childrenBeginOrValue();
+    public findAttribute(key: sx.AttributeKey, n: Node | null = null): Node | null {
+        let begin = this._node.childrenBeginOrValue();
         let count = this._node.childrenCount();
-        let iter = begin;
+        n = n || new Node(this._program);
+        let lb = begin;
         while (count > 0) {
             const step = count / 2;
-            const node = this.buffer.nodes(iter + step, obj)!;
-            if (node.attributeKey() < key) {
-                iter += step + 1;
+            const iter = lb + step;
+            n.node = this.buffer.nodes(iter, n.node)!;
+            if (n.node.attributeKey() < key) {
+                lb = iter + 1;
                 count -= step + 1;
             } else {
                 count = step;
             }
         }
-        const node = this.buffer.nodes(iter, obj)!;
-        return (node.attributeKey() == key) ? node : null;
+        if (lb >= begin + count) {
+            return null;
+        }
+        n.node = this.buffer.nodes(lb, n.node)!;
+        return (n.node.attributeKey() == key) ? n : null;
     }
 
     /// Iterate over children.
-    public iterateChildren(obj: sx.Node, fn: (idx: number, node: sx.Node) => void): number {
+    public iterateChildren(fn: (idx: number, node: Node) => void, n: Node | null = null): number {
         const begin = this._node.childrenBeginOrValue();
         const count = this._node.childrenCount();
+        n = n || new Node(this._program);
         for (let i = 0; i < count; ++i) {
-            const node = this.buffer.nodes(begin + i, obj)!;
-            fn(i, node);
+            n.node = this.buffer.nodes(begin + i, n.node)!;
+            fn(i, n);
         }
         return count;
     }
@@ -214,7 +220,11 @@ export class Statement {
     /// Get the root
     public get root() { return this._statement.root(); }
     /// Get the root node
-    public root_node(n: sx.Node = new sx.Node()) { return this.module_buffer.nodes(this._statement.root(), n); }
+    public root_node(obj: Node | null = null) {
+        const n = obj || new Node(this._program);
+        n.node = this.module_buffer.nodes(this._statement.root(), n.node)!;
+        return n;
+    }
 
     /// Perform a pre-order DFS traversal
     public traversePreOrder(visit: (node_id: number, node: Node, path: NodePath) => void) {
