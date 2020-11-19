@@ -72,8 +72,7 @@ wasm:
 		-DCMAKE_C_COMPILER_LAUNCHER=ccache \
 		-DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
 		-DCMAKE_BUILD_TYPE=Release
-	${IN_IMAGE} emcmake cmake \
-		emcmake make \
+	${IN_IMAGE} emcmake make \
 		-C/wd/core/cpp/build/emscripten \
 		-j${CORES} \
 		dashql_core_web dashql_core_node duckdb_web duckdb_node
