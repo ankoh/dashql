@@ -136,7 +136,7 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Program& mod
 
         auto stmt = stmts_seq.append_child();
         stmt |= ryml::MAP;
-        if (s->qualified_name())
+        if (s->qualified_name() && !s->qualified_name()->str().empty())
             stmt["name"] << s->qualified_name()->c_str();
         
         auto n = nodes->Get(s->root());
