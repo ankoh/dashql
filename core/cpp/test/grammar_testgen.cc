@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
             flatbuffers::FlatBufferBuilder builder;
             auto m_ofs = ParserDriver::Parse(builder, input_strv);
             builder.Finish(m_ofs);
-            auto module = flatbuffers::GetRoot<sx::Module>(builder.GetBufferPointer());
+            auto module = flatbuffers::GetRoot<sx::Program>(builder.GetBufferPointer());
 
             /// Write output
             ryml::Tree out;

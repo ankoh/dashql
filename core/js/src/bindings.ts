@@ -3,7 +3,7 @@
 import { DashQLCoreModule } from './wasm/dashql_core_module';
 import { flatbuffers } from 'flatbuffers';
 import * as proto from './proto';
-import { Module } from  './parser'
+import { Program } from  './parser'
 
 /// The proxy for either the browser- order node-based DashQLCore API
 export abstract class DashQLCoreBindings {
@@ -75,7 +75,7 @@ export abstract class DashQLCoreBindings {
     }
 
     /// Parse a string and return a flatbuffer
-    public parse(text: string): Module {
+    public parse(text: string): Program {
         let instance = this._instance!;
         let stackPointer = instance.stackSave();
 
@@ -90,12 +90,12 @@ export abstract class DashQLCoreBindings {
         /// Call the parse function
         let [ptr, size, ofs] = this.callSRet('dashql_parse', ['number'], [textMem]);
         let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
-        let program = new ModuleBuffer(mem);
+        let program = new ProgramBuffer(mem);
         instance.ccall('dashql_core_free', null, ['number'], [ptr]);
 
         /// Clear the utf8 string buffer
         instance.stackRestore(stackPointer);
-        return new Module(textUTF8, program);
+        return new Program(textUTF8, program);
     }
 };
 
@@ -121,8 +121,8 @@ export abstract class FlatBuffer<Proto> {
 };
 
 /// A flatbuffer containing a DashQL program
-export class ModuleBuffer extends FlatBuffer<proto.syntax.Module> {
+export class ProgramBuffer extends FlatBuffer<proto.syntax.Program> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.syntax.Module.getRootAsModule(buffer);
+        return proto.syntax.Program.getRootAsProgram(buffer);
     }
 }

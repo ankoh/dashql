@@ -2,7 +2,7 @@ import { DashQLCore, parser } from '@dashql/core';
 import dashql_core_wasm from '@dashql/core/dist/dashql_core.wasm';
 
 export class ParserController {
-    parse: (input: string) => parser.Module = () => new parser.Module();
+    parse: (input: string) => parser.Program = () => new parser.Program();
 
     async init() {
         const core = await DashQLCore.create(dashql_core_wasm);
