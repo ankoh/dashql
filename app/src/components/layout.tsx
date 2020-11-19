@@ -42,7 +42,29 @@ class Layout extends React.Component<Props> {
     dashboard: Dashboard = {
         widgets: [
             {
-                id: 0,
+                id: WidgetType.Parameter | ParameterType.Integer,
+                type: WidgetType.Parameter | ParameterType.Integer,
+                position: {
+                    x: 0,
+                    y: 0,
+                    width: 6,
+                    height: 1,
+                },
+                content: void 0,
+            },
+            {
+                id: WidgetType.Parameter | ParameterType.Float,
+                type: WidgetType.Parameter | ParameterType.Float,
+                position: {
+                    x: 0,
+                    y: 0,
+                    width: 6,
+                    height: 1,
+                },
+                content: void 0,
+            },
+            {
+                id: WidgetType.Parameter | ParameterType.Text,
                 type: WidgetType.Parameter | ParameterType.Text,
                 position: {
                     x: 0,
@@ -53,10 +75,43 @@ class Layout extends React.Component<Props> {
                 content: void 0,
             },
             {
-                id: 1,
-                type: WidgetType.Chart | ChartType.Table,
+                id: WidgetType.Parameter | ParameterType.Date,
+                type: WidgetType.Parameter | ParameterType.Date,
                 position: {
-                    x: 6,
+                    x: 0,
+                    y: 0,
+                    width: 6,
+                    height: 1,
+                },
+                content: void 0,
+            },
+            {
+                id: WidgetType.Parameter | ParameterType.Datetime,
+                type: WidgetType.Parameter | ParameterType.Datetime,
+                position: {
+                    x: 0,
+                    y: 0,
+                    width: 6,
+                    height: 1,
+                },
+                content: void 0,
+            },
+            {
+                id: WidgetType.Parameter | ParameterType.Time,
+                type: WidgetType.Parameter | ParameterType.Time,
+                position: {
+                    x: 0,
+                    y: 0,
+                    width: 6,
+                    height: 1,
+                },
+                content: void 0,
+            },
+            {
+                id: WidgetType.Parameter | ParameterType.File,
+                type: WidgetType.Parameter | ParameterType.File,
+                position: {
+                    x: 0,
                     y: 0,
                     width: 6,
                     height: 1,
@@ -69,19 +124,61 @@ class Layout extends React.Component<Props> {
     renderContent = (widget: Widget) => {
         switch (widget.type) {
             case WidgetType.Parameter | ParameterType.Integer:
-                return <IntegerParameter />;
+                return (
+                    <IntegerParameter
+                        name="IntegerParameter"
+                        value={null}
+                        onChange={console.log.bind(console)}
+                    />
+                );
             case WidgetType.Parameter | ParameterType.Float:
-                return <FloatParameter />;
+                return (
+                    <FloatParameter
+                        name="FloatParameter"
+                        value={null}
+                        onChange={console.log.bind(console)}
+                    />
+                );
             case WidgetType.Parameter | ParameterType.Text:
-                return <TextParameter />;
+                return (
+                    <TextParameter
+                        name="TextParameter"
+                        value={null}
+                        onChange={console.log.bind(console)}
+                    />
+                );
             case WidgetType.Parameter | ParameterType.Date:
-                return <DateParameter />;
+                return (
+                    <DateParameter
+                        name="DateParameter"
+                        value={null}
+                        onChange={console.log.bind(console)}
+                    />
+                );
             case WidgetType.Parameter | ParameterType.Datetime:
-                return <DatetimeParameter />;
+                return (
+                    <DatetimeParameter
+                        name="DatetimeParameter"
+                        value={null}
+                        onChange={console.log.bind(console)}
+                    />
+                );
             case WidgetType.Parameter | ParameterType.Time:
-                return <TimeParameter />;
+                return (
+                    <TimeParameter
+                        name="TimeParameter"
+                        value={null}
+                        onChange={console.log.bind(console)}
+                    />
+                );
             case WidgetType.Parameter | ParameterType.File:
-                return <FileParameter />;
+                return (
+                    <FileParameter
+                        name="FileParameter"
+                        value={null}
+                        onChange={console.log.bind(console)}
+                    />
+                );
             case WidgetType.Chart | ChartType.Area:
                 return <AreaChart />;
             case WidgetType.Chart | ChartType.Area:
