@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as core from "@dashql/core";
 import { connect } from 'react-redux';
-import { AppState, AppStateMutations, Dispatch } from '../store';
+import { AppState, Dispatch } from '../store';
 import classnames from 'classnames';
 
 import sx = core.proto.syntax;
