@@ -34,6 +34,7 @@ export class Module {
         const stmt = new Statement(this);
         const count = this.buffer.statementsLength();
         for (let i = 0; i < count; ++i) {
+            stmt.statement_id = i;
             stmt.statement_buffer = this.buffer.statements(i, stmt.statement_buffer)!;
             fn(i, stmt);
         }
@@ -142,10 +143,13 @@ export class NodePathStep {
 
 /// A node stack to maintain the path during a pre-order DFS traversal
 export class NodePath {
+    /// The statement
+    statement: number;
     /// The DFS steps starting from the root
     steps: NodePathStep[];
 
-    constructor() {
+    constructor(statement: number) {
+        this.statement = statement;
         this.steps = [];
     }
 
@@ -172,12 +176,15 @@ export class NodePath {
 export class Statement {
     /// The module
     _module: Module;
+    /// The statement id
+    _statement_id: number;
     /// The statement
     _statement: sx.Statement;
 
     /// Constructor
-    public constructor(module: Module, statement: sx.Statement = new sx.Statement()) {
+    public constructor(module: Module, statement_id: number = -1, statement: sx.Statement = new sx.Statement()) {
         this._module = module;
+        this._statement_id = statement_id;
         this._statement = statement;
     }
 
@@ -185,6 +192,10 @@ export class Statement {
     public get text() { return this._module.text; }
     /// Get the module buffer
     public get module_buffer() { return this._module.buffer; }
+    /// Get the statement id
+    public get statement_id() { return this._statement_id; }
+    /// Set the statement id
+    public set statement_id(id: number) { this._statement_id = id; }
     /// Get the statement buffer
     public get statement_buffer() { return this._statement; }
     /// Set the statement buffer
@@ -195,7 +206,7 @@ export class Statement {
     /// Perform a pre-order DFS traversal
     public traversePreOrder(visit: (node_id: number, node: Node, path: NodePath) => void) {
         // Prepare the DFS
-        const path = new NodePath();
+        const path = new NodePath(this._statement_id);
         const pending_cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
         const pending = new NativeStack(pending_cap);
         pending.push(this._statement.root());
@@ -229,7 +240,7 @@ export class Statement {
     /// Perform a DFS traversal with preorder and postorder hooks
     public traverse(visit_preorder: (node_id: number, node: Node, path: NodePath) => void, visit_postorder: (node_id: number, node: Node) => void) {
         // Prepare the DFS
-        const path = new NodePath();
+        const path = new NodePath(this._statement_id);
         const pending_cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
         const pending = new NativeStack(pending_cap);
         pending.push(this._statement.root());
