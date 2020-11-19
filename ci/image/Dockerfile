@@ -38,6 +38,27 @@ RUN mkdir -p /usr/local/nvm \
     && nvm alias default ${NODE_VERSION} \
     && nvm use default
 
+ARG FLATBUFFER_COMMIT="e1f0f75ba62c347718a4a68191caef348460cf31"
+RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
+    && git clone https://github.com/google/flatbuffers /tmp/flatbuffers/repo \
+    && cd /tmp/flatbuffers/repo \
+    && git checkout ${FLATBUFFER_COMMIT} \
+    && cmake -B /tmp/flatbuffers/build -S /tmp/flatbuffers/repo \
+        -DCMAKE_CXX_STANDARD=17 \
+        -DCMAKE_CXX_FLAGS=-std=c++17 \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_COMPILER=clang++ \
+        -DCMAKE_C_COMPILER=clang \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DFLATBUFFERS_BUILD_FLATLIB=ON \
+        -DFLATBUFFERS_BUILD_FLATC=ON \
+        -DFLATBUFFERS_BUILD_FLATHASH=OFF \
+        -DFLATBUFFERS_INSTALL=ON \
+        -DFLATBUFFERS_BUILD_TESTS=OFF \
+        -DFLATBUFFERS_BUILD_SHAREDLIB=OFF \
+    && make -C /tmp/flatbuffers/build -j`nproc` install \
+    && rm -rf /tmp/flatbuffers
+
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "PATH=$PATH" >> /opt/env.sh \
     && echo "EMSDK=$EMSDK" >> /opt/env.sh \

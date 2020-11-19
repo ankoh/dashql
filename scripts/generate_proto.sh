@@ -5,7 +5,7 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 
-FLATC="${PROJECT_ROOT}/.flatc/install/bin/flatc"
+FLATC="flatc"
 
 TMP=$(mktemp -d)
 
