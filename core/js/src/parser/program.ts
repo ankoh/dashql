@@ -213,6 +213,8 @@ export class Statement {
     public set statement_buffer(s: sx.Statement) { this._statement = s; }
     /// Get the root
     public get root() { return this._statement.root(); }
+    /// Get the root node
+    public root_node(n: sx.Node = new sx.Node()) { return this.module_buffer.nodes(this._statement.root(), n); }
 
     /// Perform a pre-order DFS traversal
     public traversePreOrder(visit: (node_id: number, node: Node, path: NodePath) => void) {

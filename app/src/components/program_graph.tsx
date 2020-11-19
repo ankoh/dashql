@@ -28,7 +28,7 @@ class ProgramGraph extends React.Component<Props> {
             return;
         }
         const g = new dagre.graphlib.Graph().setGraph({nodesep: 30, ranksep: 30});
-        this.props.program.iterateStatements((idx: number, _node: core.parser.Statement) => {
+        this.props.program.iterateStatements((idx: number, stmt: core.parser.Statement) => {
             g.setNode(idx.toString(), {
                 label: idx.toString(),
                 class: styles.node,
