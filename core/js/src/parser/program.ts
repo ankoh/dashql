@@ -104,22 +104,23 @@ export class Node {
 
     /// Find an attribute
     public findAttribute(key: sx.AttributeKey, n: Node | null = null): Node | null {
-        let begin = this._node.childrenBeginOrValue();
-        let count = this._node.childrenCount();
+        let children_begin = this._node.childrenBeginOrValue();
+        let children_count = this._node.childrenCount();
         n = n || new Node(this._program);
-        let lb = begin;
-        while (count > 0) {
-            const step = count / 2;
+        let lb = children_begin;
+        let c = children_count;
+        while (c > 0) {
+            const step = Math.floor(c / 2);
             const iter = lb + step;
             n.node = this.buffer.nodes(iter, n.node)!;
             if (n.node.attributeKey() < key) {
                 lb = iter + 1;
-                count -= step + 1;
+                c -= step + 1;
             } else {
-                count = step;
+                c = step;
             }
         }
-        if (lb >= begin + count) {
+        if (lb >= children_begin + children_count) {
             return null;
         }
         n.node = this.buffer.nodes(lb, n.node)!;
@@ -217,6 +218,8 @@ export class Statement {
     public get statement_buffer() { return this._statement; }
     /// Set the statement buffer
     public set statement_buffer(s: sx.Statement) { this._statement = s; }
+    /// Get the name
+    public get name() { return this._statement.name(); }
     /// Get the root
     public get root() { return this._statement.root(); }
     /// Get the root node
