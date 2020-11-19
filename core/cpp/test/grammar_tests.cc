@@ -96,7 +96,7 @@ TEST_P(GrammarParamTests, Test) {
     flatbuffers::FlatBufferBuilder builder;
     auto m_ofs = ParserDriver::Parse(builder, param.input);
     builder.Finish(m_ofs);
-    auto module = flatbuffers::GetRoot<sx::Module>(builder.GetBufferPointer());
+    auto module = flatbuffers::GetRoot<sx::Program>(builder.GetBufferPointer());
 
     ryml::Tree out;
     EncodeTestExpectation(out.rootref(), *module, param.input);

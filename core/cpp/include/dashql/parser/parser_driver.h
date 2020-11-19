@@ -103,8 +103,8 @@ class ParserDriver {
     /// Compute the dependencies
     void ComputeDependencies();
     /// Write as flatbuffer
-    flatbuffers::Offset<sx::Module> Write(flatbuffers::FlatBufferBuilder& builder);
-    
+    flatbuffers::Offset<sx::Program> Write(flatbuffers::FlatBufferBuilder& builder);
+
    public:
     /// Constructor
     explicit ParserDriver(Scanner& scanner);
@@ -124,8 +124,8 @@ class ParserDriver {
     void AddError(sx::Location loc, const std::string& message);
 
     /// Parse a module
-    static flatbuffers::Offset<sx::Module> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in,
-                                                 bool trace_scanning = false, bool trace_parsing = false);
+    static flatbuffers::Offset<sx::Program> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in,
+                                                  bool trace_scanning = false, bool trace_parsing = false);
 };
 
 }  // namespace parser

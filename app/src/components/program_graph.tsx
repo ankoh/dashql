@@ -6,14 +6,14 @@ import classnames from 'classnames';
 
 import sx = core.proto.syntax;
 import parser = core.parser;
-import styles from './module_graph.module.css';
+import styles from './program_graph.module.css';
 
 interface Props {
-    module: core.parser.Module | null;
+    program: core.parser.Program | null;
     className?: string
 }
 
-class ModuleGraph extends React.Component<Props> {
+class ProgramGraph extends React.Component<Props> {
     /// SVG dom node
     private svgNode = React.createRef<SVGSVGElement>();
     /// SVG group dom node
@@ -31,10 +31,10 @@ class ModuleGraph extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    module: state.editorModule
+    program: state.editorProgram
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(ModuleGraph);
+export default connect(mapStateToProps, mapDispatchToProps)(ProgramGraph);
