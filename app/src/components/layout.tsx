@@ -24,8 +24,8 @@ import {
     TextChart,
 } from './widgets';
 import {
-    Dashboard,
-    Widget,
+    DashboardModel,
+    WidgetModel,
     WidgetType,
     ParameterType,
     ChartType,
@@ -39,7 +39,7 @@ type Props = {
 };
 
 class Layout extends React.Component<Props> {
-    dashboard: Dashboard = {
+    dashboard: DashboardModel = {
         widgets: [
             {
                 id: WidgetType.Parameter | ParameterType.Integer,
@@ -121,7 +121,7 @@ class Layout extends React.Component<Props> {
         ],
     };
 
-    renderContent = (widget: Widget) => {
+    renderContent = (widget: WidgetModel) => {
         switch (widget.type) {
             case WidgetType.Parameter | ParameterType.Integer:
                 return (
@@ -210,7 +210,7 @@ class Layout extends React.Component<Props> {
         }
     };
 
-    renderWidget = (widget: Widget) => {
+    renderWidget = (widget: WidgetModel) => {
         return (
             <div
                 key={widget.id}
@@ -226,7 +226,7 @@ class Layout extends React.Component<Props> {
         );
     };
 
-    renderDashboard = (dashboard: Dashboard) => {
+    renderDashboard = (dashboard: DashboardModel) => {
         return dashboard.widgets.map(this.renderWidget);
     };
 
