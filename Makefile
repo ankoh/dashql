@@ -13,10 +13,15 @@ APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 CORE_SOURCE_DIR="${ROOT_DIR}/core/cpp"
 CORE_DEBUG_DIR="${ROOT_DIR}/core/cpp/build/debug"
 CORE_RELEASE_DIR="${ROOT_DIR}/core/cpp/build/release"
+CORE_JS_WASM_DIR="${ROOT_DIR}/core/js/src/wasm"
+DUCKDB_JS_WASM_DIR="${ROOT_DIR}/duckdb/js/src/wasm"
 
-DOCKER_IMAGE_NAMESPACE="dashql"
-DOCKER_IMAGE_NAME="ci"
-DOCKER_IMAGE_TAG="0.2"
+CI_IMAGE_NAMESPACE="dashql"
+CI_IMAGE_NAME="ci"
+CI_IMAGE_TAG="0.2"
+IN_IMAGE_MOUNTS=-v${ROOT_DIR}:/wd/ -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscripten_cache/ -v${ROOT_DIR}/.ccache/:/mnt/ccache/
+IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/
+IN_IMAGE=docker run --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} dashql/ci:${CI_IMAGE_TAG}
 
 FLATBUF_DIR="${ROOT_DIR}/submodules/flatbuffers"
 FLATC_BASE_DIR="${ROOT_DIR}/.flatc"
@@ -58,15 +63,26 @@ core_js:
 core_js_test:
 	npm --prefix ${ROOT_DIR}/core/js run test
 
-# Build the wasm modules
-.PHONY: wasm
-wasm:
-	./scripts/compile_wasm.sh
-
 # Generate the protocol files
 .PHONY: proto
 proto:
-	./scripts/generate_proto.sh
+	${IN_IMAGE} bash -ec ./scripts/generate_proto.sh
+
+# Build the wasm modules
+.PHONY: wasm
+wasm:
+	${IN_IMAGE} emcmake cmake \
+		-S/wd/core/cpp/ \
+		-B/wd/core/cpp/build/emscripten \
+		-DCMAKE_C_COMPILER_LAUNCHER=ccache \
+		-DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+		-DCMAKE_BUILD_TYPE=Release
+	${IN_IMAGE} emcmake make \
+		-C/wd/core/cpp/build/emscripten \
+		-j${CORES} \
+		dashql_core_web dashql_core_node duckdb_web duckdb_node
+	cp ${CORE_SOURCE_DIR}/build/emscripten/dashql_*.{wasm,js} "${CORE_JS_WASM_DIR}"
+	cp ${CORE_SOURCE_DIR}/build/emscripten/duckdb/duckdb_*.{wasm,js} "${DUCKDB_JS_WASM_DIR}"
 
 # Generate dashql grammar tests
 .PHONY: grammar_testgen
@@ -136,7 +152,7 @@ clean:
 .PHONY: docker_ci_image
 docker_ci_image:
 	tar -cvf - ./ci/image/Dockerfile | docker build \
-		-t ${DOCKER_IMAGE_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
+		-t ${CI_IMAGE_NAMESPACE}/${CI_IMAGE_NAME}:${CI_IMAGE_TAG} \
 		-f ./ci/image/Dockerfile \
 		-
 
