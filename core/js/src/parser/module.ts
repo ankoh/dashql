@@ -135,7 +135,7 @@ export class NodePathStep {
     constructor(node_id: number, attribute_key: sx.AttributeKey, index_in_parent: number) {
         this.node_id = node_id;
         this.attribute_key = attribute_key;
-        this.index_in_parent = 0;
+        this.index_in_parent = index_in_parent;
         this.visited_children = 0;
     }
 };

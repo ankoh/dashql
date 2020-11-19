@@ -5,7 +5,15 @@ import { LaunchProgress } from "./launch_progress";
 import { LogEntry } from "./log";
 import { AppSettings } from "./app_settings";
 
-/// A root state
+class ModuleDetails {
+    /// The hovered path (if any)
+    hoveredPath: core.parser.NodePath | null = null;
+    /// The focused path (if any)
+    focusedPath: core.parser.NodePath | null = null;
+    /// The expanded paths
+    expandedPaths: Immutable.List<core.parser.NodePath>[] = [];
+}
+
 export class AppState {
     /// The launch progress
     public launchProgress: LaunchProgress;
@@ -19,10 +27,13 @@ export class AppState {
     public editorText: string;
     /// The current module
     public editorModule: core.parser.Module | null;
-    // The focused viz
+    /// The model for the module inspector
+    public moduleDetails: ModuleDetails;
+
+    /// The focused viz
     public focusedViz: number | null;
 
-    // Constructor
+    /// Constructor
     constructor() {
         this.launchProgress = new LaunchProgress();
         this.appSettings = null;
@@ -30,6 +41,7 @@ export class AppState {
         this.logEntries = Immutable.List<LogEntry>();
         this.editorText = "";
         this.editorModule = null;
+        this.moduleDetails = new ModuleDetails();
         this.focusedViz = null;
         return;
     }
