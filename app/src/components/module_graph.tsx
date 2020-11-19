@@ -14,9 +14,17 @@ interface Props {
 }
 
 class ModuleGraph extends React.Component<Props> {
+    /// SVG dom node
+    private svgNode = React.createRef<SVGSVGElement>();
+    /// SVG group dom node
+    private svgGroupNode = React.createRef<SVGSVGElement>();
+
     public render() {
         return (
             <div className={classnames(this.props.className)}>
+                <svg ref={this.svgNode}>
+                    <g ref={this.svgGroupNode} />
+                </svg>
             </div>
         );
     }
