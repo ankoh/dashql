@@ -4,14 +4,12 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
-
 FLATC="flatc"
-
-TMP=$(mktemp -d)
-
 ${FLATC} --version \
     && { echo "[ OK  ] Command: flatc"; } \
     || { echo "[ ERR ] Command: flatc"; exit 1; }
+
+TMP=$(mktemp -d)
 
 gen_proto() {
     PROTO_DIR="$1"
