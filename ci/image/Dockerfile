@@ -30,7 +30,7 @@ SHELL ["/bin/bash", "-c"]
 
 ENV NVM_DIR=/usr/local/nvm
 ARG NVM_VERSION="v0.37.0"
-ARG NODE_VERSION="v15.0"
+ARG NODE_VERSION="v15.2"
 RUN mkdir -p /usr/local/nvm \
     && curl https://raw.githubusercontent.com/creationix/nvm/${NVM_VERSION}/install.sh | bash \
     && source ${NVM_DIR}/nvm.sh \
