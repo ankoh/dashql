@@ -17,6 +17,7 @@
     "dependencies": {
         "@dashql/core": "file:../core/js/",
         "@dashql/duckdb": "0.0.8",
+        "@types/react-grid-layout": "^1.1.1",
         "classnames": "^2.2.6",
         "d3": "5.16",
         "dagre-d3": "^0.6.4",
@@ -26,7 +27,9 @@
         "react": "^16.14.0",
         "react-custom-scrollbars": "^4.2.1",
         "react-dom": "^16.14.0",
+        "react-grid-layout": "^1.2.0",
         "react-redux": "^7.2.1",
+        "react-resizable": "^1.11.0",
         "react-router-dom": "^5.2.0",
         "react-vega": "^7.4.1",
         "react-virtualized": "^9.22.2",
