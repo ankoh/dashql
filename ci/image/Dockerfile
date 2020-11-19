@@ -15,8 +15,8 @@ ARG EMSDK_VERSION="2.0.4"
 RUN mkdir -p /opt/emsdk \
     && cd /opt/emsdk \
     && curl -SL https://github.com/emscripten-core/emsdk/archive/${EMSDK_VERSION}.tar.gz | tar -xz --strip-components=1 \
-    && ./emsdk install latest \
-    && ./emsdk activate latest \
+    && ./emsdk install ${EMSDK_VERSION} \
+    && ./emsdk activate ${EMSDK_VERSION} \
     && /bin/bash ./emsdk_env.sh \
     && rm -rf ./emscripten/tag-*/tests \
     && rm -rf ./emscripten/tag-*/site \
@@ -60,11 +60,11 @@ RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
     && rm -rf /tmp/flatbuffers
 
 RUN source /opt/emsdk/emsdk_env.sh \
-    && echo "PATH=$PATH" >> /opt/env.sh \
-    && echo "EMSDK=$EMSDK" >> /opt/env.sh \
-    && echo "EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
-    && echo "EM_CACHE=/mnt/emscripten_cache/" >> /opt/env.sh \
-    && echo "EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
+    && echo "export PATH=$PATH" >> /opt/env.sh \
+    && echo "export EMSDK=$EMSDK" >> /opt/env.sh \
+    && echo "export EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
+    && echo "export EM_CACHE=/mnt/emscripten_cache/" >> /opt/env.sh \
+    && echo "export EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
     && echo "source /usr/local/nvm/nvm.sh" >> /opt/env.sh \
     && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh
