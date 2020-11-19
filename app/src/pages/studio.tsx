@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Board, EditorLoader } from '../components';
-import { ModuleInspector, ModuleGraph } from "../components";
+import { ProgramInspector, ProgramGraph } from "../components";
 // import Outline from './outline';
 // import Library from './library';
 
@@ -15,9 +15,9 @@ class Studio extends React.Component {
             <div className={styles.studio}>
                 <div className={styles.program}>
                     <EditorLoader className={styles.editor} />
-                    <div className={styles.module_details}>
-                        <ModuleInspector className={styles.module_inspector} />
-                        <ModuleGraph className={styles.module_graph} />
+                    <div className={styles.program_details}>
+                        <ProgramInspector className={styles.program_inspector} />
+                        <ProgramGraph className={styles.program_graph} />
                     </div>
                     <ToolBar />
                 </div>

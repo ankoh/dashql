@@ -193,7 +193,7 @@ struct Dependency {
     target_node: uint32;
 }
 
-table Module {
+table Program {
     nodes: [Node];
     statements: [Statement];
     errors: [Error];

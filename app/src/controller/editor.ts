@@ -37,11 +37,11 @@ export class EditorController {
     public evaluate(input: string) {
         const m = this._parser.parse(input);
         this.displayErrors(m.buffer);
-        this._store.dispatch(AppStateMutations.setEditorModule(m));
+        this._store.dispatch(AppStateMutations.setEditorProgram(m));
     }
 
     /// Display module errors
-    protected displayErrors(module: core.proto.syntax.Module): void {
+    protected displayErrors(module: core.proto.syntax.Program): void {
         const model = this._editor?.getModel();
         if (!model) {
             return;

@@ -116,7 +116,7 @@ void encode(ryml::NodeRef n, const sx::Dependency& dep, sx::Location loc, std::s
 }  // namespace
 
 /// Encode yaml
-void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Module& module, std::string_view text) {
+void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Program& module, std::string_view text) {
     auto& tree = *root.tree();
     root |= ryml::MAP;
 

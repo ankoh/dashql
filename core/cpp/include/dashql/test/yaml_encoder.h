@@ -14,7 +14,7 @@ namespace dashql {
 namespace parser {
 
 
-void EncodeTestExpectation(ryml::NodeRef ref, const proto::syntax::Module& module, std::string_view text);
+void EncodeTestExpectation(ryml::NodeRef ref, const proto::syntax::Program& module, std::string_view text);
 
 
 }  // namespace parser

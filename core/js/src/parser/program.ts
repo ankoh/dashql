@@ -1,19 +1,19 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer, ModuleBuffer } from '../bindings';
+import { FlatBuffer, ProgramBuffer } from '../bindings';
 import { syntax as sx } from '../proto/';
 import { NativeStack, NativeBitmap } from '../utils';
 
 const decoder = new TextDecoder();
 
-export class Module {
+export class Program {
     /// The text buffer
     _text: Uint8Array;
     /// The module
-    _buffer: FlatBuffer<sx.Module>;
+    _buffer: FlatBuffer<sx.Program>;
 
     /// Constructor
-    public constructor(text: Uint8Array = new Uint8Array(0), module: FlatBuffer<sx.Module> = new ModuleBuffer()) {
+    public constructor(text: Uint8Array = new Uint8Array(0), module: FlatBuffer<sx.Program> = new ProgramBuffer()) {
         this._text = text;
         this._buffer = module;
     }
@@ -44,17 +44,17 @@ export class Module {
 
 export class Node {
     /// The module
-    _module: Module;
+    _program: Program;
     /// The node
     _node: sx.Node;
 
     /// Constructor
-    public constructor(module: Module, node: sx.Node = new sx.Node()) {
-        this._module = module;
+    public constructor(module: Program, node: sx.Node = new sx.Node()) {
+        this._program = module;
         this._node = node;
     } 
     /// Get the module
-    public get module() { return this._module; }
+    public get module() { return this._program; }
     /// Get the node
     public get node() { return this._node; }
     /// Get the node
@@ -64,9 +64,9 @@ export class Node {
     /// Get the key
     public get key() { return this._node.attributeKey(); }
     /// Get the key
-    public get text() { return this._module.text; }
+    public get text() { return this._program.text; }
     /// Get the module
-    public get buffer() { return this._module.buffer; }
+    public get buffer() { return this._program.buffer; }
     /// Get the node type
     public get nodeType() { return this._node.nodeType(); }
 
@@ -75,7 +75,7 @@ export class Node {
     /// Assume number value
     public assumeNumber(): number { return this._node.childrenBeginOrValue(); }
     /// Assume number value
-    public assumeString(obj: sx.Location): string { return this._module.textAt(this._node.location(obj)!); }
+    public assumeString(obj: sx.Location): string { return this._program.textAt(this._node.location(obj)!); }
 
     /// Get as boolean
     public getBool(): boolean | null {
@@ -88,7 +88,7 @@ export class Node {
     /// Get a string
     public getString(obj: sx.Location): string | null {
         const loc = this._node.location(obj)!;
-        return (this._node.nodeType() != sx.NodeType.STRING) ? null : this._module.textAt(loc);
+        return (this._node.nodeType() != sx.NodeType.STRING) ? null : this._program.textAt(loc);
     }
 
     /// Find an attribute
@@ -175,23 +175,23 @@ export class NodePath {
 
 export class Statement {
     /// The module
-    _module: Module;
+    _program: Program;
     /// The statement id
     _statement_id: number;
     /// The statement
     _statement: sx.Statement;
 
     /// Constructor
-    public constructor(module: Module, statement_id: number = -1, statement: sx.Statement = new sx.Statement()) {
-        this._module = module;
+    public constructor(module: Program, statement_id: number = -1, statement: sx.Statement = new sx.Statement()) {
+        this._program = module;
         this._statement_id = statement_id;
         this._statement = statement;
     }
 
     /// Access the text
-    public get text() { return this._module.text; }
+    public get text() { return this._program.text; }
     /// Get the module buffer
-    public get module_buffer() { return this._module.buffer; }
+    public get module_buffer() { return this._program.buffer; }
     /// Get the statement id
     public get statement_id() { return this._statement_id; }
     /// Set the statement id
@@ -213,7 +213,7 @@ export class Statement {
 
         // We always pass the same objects to the function to spare us all the allocations.
         // The function MUST NOT store the node elsewhere.
-        const current = new Node(this._module);
+        const current = new Node(this._program);
 
         while (!pending.empty()) {
             const top = pending.pop();
@@ -250,7 +250,7 @@ export class Statement {
 
         // We always pass the same objects to the function to spare us all the allocations.
         // The function MUST NOT store the node elsewhere.
-        const current = new Node(this._module);
+        const current = new Node(this._program);
 
         while (!pending.empty()) {
             const top = pending.top();

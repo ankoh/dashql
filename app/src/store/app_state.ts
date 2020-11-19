@@ -5,7 +5,7 @@ import { LaunchProgress } from "./launch_progress";
 import { LogEntry } from "./log";
 import { AppSettings } from "./app_settings";
 
-class ModuleDetails {
+class ProgramDetails {
     /// The hovered path (if any)
     hoveredPath: core.parser.NodePath | null = null;
     /// The focused path (if any)
@@ -25,10 +25,10 @@ export class AppState {
     public logEntries: Immutable.List<LogEntry>;
     /// The editor text
     public editorText: string;
-    /// The current module
-    public editorModule: core.parser.Module | null;
+    /// The current program
+    public editorProgram: core.parser.Program | null;
     /// The model for the module inspector
-    public moduleDetails: ModuleDetails;
+    public moduleDetails: ProgramDetails;
 
     /// The focused viz
     public focusedViz: number | null;
@@ -40,8 +40,8 @@ export class AppState {
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logEntries = Immutable.List<LogEntry>();
         this.editorText = "";
-        this.editorModule = null;
-        this.moduleDetails = new ModuleDetails();
+        this.editorProgram = null;
+        this.moduleDetails = new ProgramDetails();
         this.focusedViz = null;
         return;
     }

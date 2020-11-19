@@ -6,20 +6,20 @@ import classnames from 'classnames';
 
 import sx = core.proto.syntax;
 import parser = core.parser;
-import styles from './module_inspector.module.css';
+import styles from './program_inspector.module.css';
 
 interface Props {
-    module: core.parser.Module | null;
+    program: core.parser.Program | null;
     className?: string
 }
 
-class ModuleInspector extends React.Component<Props> {
+class ProgramInspector extends React.Component<Props> {
     public render() {
-        if (this.props.module == null) {
+        if (this.props.program == null) {
             return <div />;
         }
 
-        const mod = this.props.module;
+        const mod = this.props.program;
         const node_count = mod.buffer.nodesLength();
         const node_children: JSX.Element[][] = [];
         while (node_children.length < node_count) {
@@ -61,10 +61,10 @@ class ModuleInspector extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    module: state.editorModule
+    program: state.editorProgram
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(ModuleInspector);
+export default connect(mapStateToProps, mapDispatchToProps)(ProgramInspector);

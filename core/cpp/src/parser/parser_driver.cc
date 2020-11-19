@@ -294,7 +294,7 @@ void ParserDriver::AddStatement(sx::Node node) {
 void ParserDriver::AddError(sx::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
 
 /// Write the module
-fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
+fb::Offset<sx::Program> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
     std::vector<fb::Offset<sx::Statement>> statements;
     for (auto& stmt : _statements) {
         auto stmt_loc = _nodes[stmt.root].location();
@@ -323,7 +323,7 @@ fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
     auto line_breaks_vec = builder.CreateVectorOfStructs(_scanner.line_breaks());
     auto comments_vec = builder.CreateVectorOfStructs(_scanner.comments());
     auto deps_vec = builder.CreateVectorOfStructs(_dependencies);
-    sx::ModuleBuilder b{builder};
+    sx::ProgramBuilder b{builder};
     b.add_nodes(nodes_vec);
     b.add_statements(statements_vec);
     b.add_errors(error_vec);
@@ -333,7 +333,7 @@ fb::Offset<sx::Module> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
     return b.Finish();
 }
 
-flatbuffers::Offset<sx::Module> ParserDriver::Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in,
+flatbuffers::Offset<sx::Program> ParserDriver::Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in,
                                                     bool trace_scanning, bool trace_parsing) {
     // XXX shortcut until tests are migrated
     std::vector<char> padded_buffer{in.begin(), in.end()};
