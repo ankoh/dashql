@@ -218,8 +218,10 @@ export class Statement {
     public get statement_buffer() { return this._statement; }
     /// Set the statement buffer
     public set statement_buffer(s: sx.Statement) { this._statement = s; }
-    /// Get the name
-    public get name() { return this._statement.name(); }
+    /// Get the short name
+    public get short_name() { return this._statement.shortName(); }
+    /// Get the qualified name
+    public get qualified_name() { return this._statement.qualifiedName(); }
     /// Get the root
     public get root() { return this._statement.root(); }
     /// Get the root node

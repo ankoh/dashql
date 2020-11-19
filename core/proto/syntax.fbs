@@ -178,7 +178,8 @@ table Error {
 
 table Statement {
     root: uint32;
-    name: string;
+    qualified_name: string;
+    short_name: string;
 }
 
 enum DependencyType: uint8 {

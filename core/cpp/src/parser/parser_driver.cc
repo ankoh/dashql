@@ -89,8 +89,8 @@ void Statement::reset() {
     column_refs = {};
 }
 
-/// Encode name
-fb::Offset<fb::String> Statement::encodeName(fb::FlatBufferBuilder& builder) {
+/// Encode qualified name
+fb::Offset<fb::String> Statement::encodeQualifiedName(fb::FlatBufferBuilder& builder) {
     auto [table, schema] = name;
     if (schema.empty()) {
         return builder.CreateString(table.data(), table.size());
@@ -101,6 +101,12 @@ fb::Offset<fb::String> Statement::encodeName(fb::FlatBufferBuilder& builder) {
     buffer[schema.size()] = '.';
     table.copy(buffer.data() + schema.size() + 1, table.size());
     return builder.CreateString(buffer);
+}
+
+/// Encode short name
+fb::Offset<fb::String> Statement::encodeShortName(fb::FlatBufferBuilder& builder) {
+    auto [table, schema] = name;
+    return builder.CreateString(table.data(), table.size());
 }
 
 /// Constructor
@@ -298,15 +304,12 @@ fb::Offset<sx::Program> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
     std::vector<fb::Offset<sx::Statement>> statements;
     for (auto& stmt : _statements) {
         auto stmt_loc = _nodes[stmt.root].location();
-        std::optional<fb::Offset<fb::String>> name;
-        if (!stmt.name[0].empty()) {
-            name = stmt.encodeName(builder);
-        }
+        auto short_name = stmt.encodeShortName(builder);
+        auto qualified_name = stmt.encodeQualifiedName(builder);
         sx::StatementBuilder sb{builder};
         sb.add_root(stmt.root);
-        if (name) {
-            sb.add_name(*name);
-        }
+        sb.add_qualified_name(qualified_name);
+        sb.add_short_name(short_name);
         statements.push_back(sb.Finish());
     }
     std::vector<fb::Offset<sx::Error>> errs;
