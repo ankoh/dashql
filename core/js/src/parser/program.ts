@@ -40,6 +40,17 @@ export class Program {
         }
         return count;
     };
+
+    /// Iterate over statements
+    public iterateDependencies(fn: (idx: number, node: sx.Dependency) => void): number {
+        let dep = new sx.Dependency();
+        const count = this.buffer.dependenciesLength();
+        for (let i = 0; i < count; ++i) {
+            dep = this.buffer.dependencies(i, dep)!;
+            fn(i, dep);
+        }
+        return count;
+    };
 };
 
 export class Node {
