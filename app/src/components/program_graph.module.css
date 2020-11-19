@@ -1,0 +1,20 @@
+.svg_root {
+}
+
+.node {
+}
+
+.node rect {
+    fill: rgb(255, 255, 255);
+    stroke-width: 1px;
+}
+
+.edge {
+}
+
+.edge path {
+    stroke: rgb(0, 0, 0);
+    stroke-width: 1px;
+    stroke-linecap: square;
+}
+
