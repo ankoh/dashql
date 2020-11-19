@@ -23,11 +23,6 @@ IN_IMAGE_MOUNTS=-v${ROOT_DIR}:/wd/ -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscrip
 IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/
 IN_IMAGE=docker run --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} dashql/ci:${CI_IMAGE_TAG}
 
-FLATBUF_DIR="${ROOT_DIR}/submodules/flatbuffers"
-FLATC_BASE_DIR="${ROOT_DIR}/.flatc"
-FLATC_BUILD_DIR="${FLATC_BASE_DIR}/build"
-FLATC_INSTALL_DIR="${FLATC_BASE_DIR}/install"
-
 STABLE_S3_BUCKET="s3://dashql-app"
 STABLE_CF_DIST="E1WT3LVZLA4YZX"
 
@@ -77,7 +72,8 @@ wasm:
 		-DCMAKE_C_COMPILER_LAUNCHER=ccache \
 		-DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
 		-DCMAKE_BUILD_TYPE=Release
-	${IN_IMAGE} emcmake make \
+	${IN_IMAGE} emcmake cmake \
+		emcmake make \
 		-C/wd/core/cpp/build/emscripten \
 		-j${CORES} \
 		dashql_core_web dashql_core_node duckdb_web duckdb_node
@@ -155,27 +151,6 @@ docker_ci_image:
 		-t ${CI_IMAGE_NAMESPACE}/${CI_IMAGE_NAME}:${CI_IMAGE_TAG} \
 		-f ./ci/image/Dockerfile \
 		-
-
-# Compile the flatc binary that is used to translate the flatbuffer definitions
-.PHONY: flatc
-flatc:
-	mkdir -p ${FLATC_BASE_DIR}
-	rm -r ${FLATC_BASE_DIR}
-	mkdir -p ${FLATC_BUILD_DIR} ${FLATC_INSTALL_DIR}
-	cmake -B${FLATC_BUILD_DIR} -S${FLATBUF_DIR} \
-		-DCMAKE_CXX_STANDARD=17 \
-		-DCMAKE_CXX_FLAGS=-std=c++17 \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_CXX_COMPILER=clang++ \
-		-DCMAKE_C_COMPILER=clang \
-		-DCMAKE_INSTALL_PREFIX=${FLATC_INSTALL_DIR} \
-		-DFLATBUFFERS_BUILD_FLATLIB=ON \
-		-DFLATBUFFERS_BUILD_FLATC=ON \
-		-DFLATBUFFERS_BUILD_FLATHASH=OFF \
-		-DFLATBUFFERS_INSTALL=ON \
-		-DFLATBUFFERS_BUILD_TESTS=OFF \
-		-DFLATBUFFERS_BUILD_SHAREDLIB=OFF
-	make -C ${FLATC_BUILD_DIR} -j${CORES} install
 
 # ---------------------------------------------------------------------------
 # Deployment
