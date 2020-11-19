@@ -4,6 +4,10 @@ import { connect } from 'react-redux';
 import { AppState, Dispatch } from '../store';
 import classnames from 'classnames';
 
+import * as d3 from 'd3';
+import * as dagre from 'dagre';
+import * as dagreD3 from 'dagre-d3';
+
 import sx = core.proto.syntax;
 import parser = core.parser;
 import styles from './program_graph.module.css';
@@ -14,10 +18,27 @@ interface Props {
 }
 
 class ProgramGraph extends React.Component<Props> {
-    /// SVG dom node
+    /// Root node
     private svgNode = React.createRef<SVGSVGElement>();
-    /// SVG group dom node
+    /// Group node
     private svgGroupNode = React.createRef<SVGSVGElement>();
+
+    private renderGraph() {
+        if (this.props.program == null) {
+            return;
+        }
+        const g = new dagre.graphlib.Graph().setGraph({nodesep: 30, ranksep: 30});
+        this.props.program.iterateStatements((idx: number, _node: core.parser.Statement) => {
+            g.setNode(idx.toString(), { label: idx.toString()});
+        });
+        this.props.program.iterateDependencies((_idx: number, dep: sx.Dependency) => {
+            g.setEdge(dep.sourceStatement().toString(), dep.targetStatement().toString(), {});
+        });
+
+        const inner: any = d3.select(this.svgGroupNode.current!);
+        const render = new dagreD3.render();
+        render(inner, g);
+    }
 
     public render() {
         return (
@@ -28,6 +49,15 @@ class ProgramGraph extends React.Component<Props> {
             </div>
         );
     }
+
+    componentDidMount() {
+        this.renderGraph();
+    }
+
+    componentDidUpdate(prev: Readonly<Props>): void {
+        this.renderGraph();
+    }
+
 }
 
 const mapStateToProps = (state: AppState) => ({

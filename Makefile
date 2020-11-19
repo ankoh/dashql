@@ -81,7 +81,7 @@ grammar_tests:
 # Builds the app
 .PHONY: app
 app:
-	npm --prefix ${ROOT_DIR}/app run build:release
+	npm --prefix ${ROOT_DIR}/app run build:debug
 
 # Creates a release archive
 .PHONY: app_release
