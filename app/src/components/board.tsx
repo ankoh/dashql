@@ -3,6 +3,7 @@ import { AppReduxStore } from '../store';
 import { connect } from 'react-redux';
 import { AutoSizer, withAutoSizer } from '../util/autosizer';
 import { Scrollbars } from 'react-custom-scrollbars';
+import Layout from './layout';
 
 import styles from './board.module.css';
 
@@ -214,17 +215,21 @@ export class Board extends React.Component<IBoardProps, {}> {
         return (
             <div className={styles.container}>
                 <AutoSizer>
-                 {({height, width}) => ( 
-                    <Scrollbars className={styles.autosizer} width={width} height={height}>
+                    {({ height, width }) => (
+                        <Scrollbars
+                            className={styles.autosizer}
+                            width={width}
+                            height={height}
+                        >
                             <div className={styles.ruler_area}>
-                                <div className={styles.content}>{
-        //                            <Arguments />
-        //                            <VizGrid sizeClass={Store.SizeClass.LARGE} />
-        }
+                                <div className={styles.content}>
+                                    <Layout />
                                 </div>
                                 <div className={styles.ruler_top}>
                                     <AutoSizingRuler
-                                        orientation={RulerOrientation.Horizontal}
+                                        orientation={
+                                            RulerOrientation.Horizontal
+                                        }
                                         scaleFactor={this.props.scaleFactor}
                                     />
                                 </div>
@@ -236,8 +241,8 @@ export class Board extends React.Component<IBoardProps, {}> {
                                 </div>
                                 <div className={styles.ruler_corner} />
                             </div>
-                    </Scrollbars>
-                )}
+                        </Scrollbars>
+                    )}
                 </AutoSizer>
             </div>
         );
@@ -253,4 +258,3 @@ function mapDispatchToProps(_dispatch: AppReduxStore) {
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Board);
- 
