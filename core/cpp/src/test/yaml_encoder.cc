@@ -136,8 +136,8 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Program& mod
 
         auto stmt = stmts_seq.append_child();
         stmt |= ryml::MAP;
-        if (s->name())
-            stmt["name"] << s->name()->c_str();
+        if (s->qualified_name())
+            stmt["name"] << s->qualified_name()->c_str();
         
         auto n = nodes->Get(s->root());
         std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Node*>> pending;
