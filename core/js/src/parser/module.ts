@@ -176,8 +176,8 @@ export class Statement {
         }
     }
 
-    /// Perform a post-order DFS traversal
-    public traversePostOrder(fn: (node_id: number, node: Node) => void) {
+    /// Perform a DFS traversal with preorder and postorder hooks
+    public traverse(preorder: (node_id: number, node: Node) => void, postorder: (node_id: number, node: Node) => void) {
         // Prepare the DFS
         const cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
         const pending = new NativeStack(cap);
@@ -198,12 +198,13 @@ export class Statement {
 
             // Visit post-order
             if (visited.isSet(top)) {
-                fn(top, current);
+                postorder(top, current);
                 pending.pop();
                 continue;
             }
 
             // Visit the node pre-order
+            preorder(top, current);
             visited.set(top);
 
             // Discover children
