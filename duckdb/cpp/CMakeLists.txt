@@ -55,9 +55,7 @@ target_link_libraries(duckdb_webdb
 # ---------------------------------------------------------------------------
 # FFI
 
-set(DUCKDB_WEB_FFI " \
-    _duckdb_web_connect, \
-    _duckdb_web_disconnect, \
+set(DUCKDB_WEB_CONNECTION_INTERFACE " \
     _duckdb_web_register_buffer, \
     _duckdb_web_release_buffer, \
     _duckdb_web_run_query, \
@@ -81,7 +79,9 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
-            ${DUCKDB_WEB_FFI} \
+            _duckdb_web_connect, \
+            _duckdb_web_disconnect, \
+            ${DUCKDB_WEB_CONNECTION_INTERFACE} \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "

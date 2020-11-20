@@ -174,11 +174,11 @@ ExpectedSignal WebDB::Connection::GenerateTable(proto::TableSpecification& spec)
 WebDB::WebDB() : database_(std::make_shared<duckdb::DuckDB>()), connections_() {}
 
 /// Create a session
-WebDB::Connection& WebDB::Connect() {
+WebDB::Connection* WebDB::Connect() {
     auto conn = std::make_unique<WebDB::Connection>(database_);
     auto conn_ptr = conn.get();
     connections_.insert({conn_ptr, move(conn)});
-    return *conn_ptr;
+    return conn_ptr;
 }
 
 /// End a session
