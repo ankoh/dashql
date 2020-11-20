@@ -13,7 +13,7 @@
 
 #define span_lite_MAJOR  0
 #define span_lite_MINOR  8
-#define span_lite_PATCH  0
+#define span_lite_PATCH  1
 
 #define span_lite_VERSION  span_STRINGIFY(span_lite_MAJOR) "." span_STRINGIFY(span_lite_MINOR) "." span_STRINGIFY(span_lite_PATCH)
 
@@ -119,7 +119,10 @@
 // Control presence of exception handling (try and auto discover):
 
 #ifndef span_CONFIG_NO_EXCEPTIONS
-# if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+# if _MSC_VER
+#  include <cstddef>    // for _HAS_EXCEPTIONS
+# endif
+# if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (_HAS_EXCEPTIONS)
 #  define span_CONFIG_NO_EXCEPTIONS  0
 # else
 #  define span_CONFIG_NO_EXCEPTIONS  1
@@ -661,8 +664,10 @@ using nonstd::byte;
 
 namespace std20 {
 
+#if span_HAVE( DEDUCTION_GUIDES )
 template< class T >
-struct iter_reference { typedef T type; };
+using iter_reference_t = decltype( *std::declval<T&>() );
+#endif
 
 } // namespace std20
 
@@ -1268,7 +1273,7 @@ span( Container const & ) -> span<const typename Container::value_type>;
 // iterator: constraints: It satisfies contiguous_­iterator.
 
 template< class It, class EndOrSize >
-span( It, EndOrSize ) -> span< typename std11::remove_reference< typename std20::iter_reference<It>::type >::type >;
+span( It, EndOrSize ) -> span< typename std11::remove_reference< typename std20::iter_reference_t<It> >::type >;
 
 #endif // span_HAVE( DEDUCTION_GUIDES )
 
@@ -1338,13 +1343,21 @@ inline span_constexpr bool operator>=( span<T1,E1> const & l, span<T2,E2> const 
 template< typename T, extent_t Extent >
 struct BytesExtent
 {
+#if span_CPP11_OR_GREATER
     enum ET : extent_t { value = span_sizeof(T) * Extent };
+#else
+    enum ET { value = span_sizeof(T) * Extent };
+#endif
 };
 
 template< typename T >
 struct BytesExtent< T, dynamic_extent >
 {
+#if span_CPP11_OR_GREATER
     enum ET : extent_t { value = dynamic_extent };
+#else
+    enum ET { value = dynamic_extent };
+#endif
 };
 
 template< class T, extent_t Extent >

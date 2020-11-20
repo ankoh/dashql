@@ -1,8 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb/web/iterator.h"
-#include "duckdb/web/proto/sql_type_generated.h"
-#include "duckdb/common/types/date.hpp"
 
 #include <optional>
 #include <random>
@@ -10,6 +8,11 @@
 #include <tuple>
 #include <unordered_map>
 #include <variant>
+
+#include "duckdb/common/types/date.hpp"
+#include "duckdb/web/proto/sql_type_generated.h"
+
+using namespace dashql;
 
 namespace duckdb {
 namespace web {
@@ -23,14 +26,12 @@ QueryResultIterator::QueryResultIterator(WebDB::Connection& connection, const pr
       chunkID(0),
       chunkBuffer(),
       chunk(nullptr) {
-
     // Get initial chunk
     if (auto chunks = result.data_chunks(); chunks && chunks->size() > 0) {
         chunk = chunks->Get(0);
     } else {
         auto result = connection.FetchQueryResults();
-        if (!result.IsOk())
-            return;
+        if (!result.IsOk()) return;
         chunk = &result.value();
         chunkBuffer = result.ReleaseBuffer();
     }
@@ -39,8 +40,7 @@ QueryResultIterator::QueryResultIterator(WebDB::Connection& connection, const pr
 /// Verify the result chunk
 bool QueryResultIterator::Verify(const proto::QueryResultChunk& chunk) const {
     auto columns = chunk.columns();
-    if (!columns || columns->size() != result.column_types()->size())
-        return false;
+    if (!columns || columns->size() != result.column_types()->size()) return false;
     // XXX Check row counts
     return true;
 }
@@ -74,8 +74,7 @@ bool QueryResultIterator::IsEnd() const { return !chunk || (chunk_row() >= chunk
 
 /// Get a value
 duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
-    if (!chunk || !chunk->columns() || col_idx >= chunk->columns()->size())
-        return duckdb::Value{};
+    if (!chunk || !chunk->columns() || col_idx >= chunk->columns()->size()) return duckdb::Value{};
     auto column = chunk->columns()->Get(col_idx);
     auto type = result.column_types()->Get(col_idx);
     auto row = chunk_row();
@@ -91,8 +90,7 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
     interval_t v_interval;
     auto copy = [&](auto& var, auto* vec) {
         var = vec->values()->Get(row);
-        if (vec->null_mask())
-            null = vec->null_mask()->Get(row);
+        if (vec->null_mask()) null = vec->null_mask()->Get(row);
     };
 
     // Load value depending on physical type
@@ -130,8 +128,7 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
             auto v = values->Get(row);
             v_i128.lower = v->lower();
             v_i128.upper = v->upper();
-            if (null_mask)
-                null = null_mask->Get(row);
+            if (null_mask) null = null_mask->Get(row);
             break;
         }
         case proto::VectorVariant::VectorF32:
@@ -148,8 +145,7 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
             v_interval.months = v->months();
             v_interval.days = v->days();
             v_interval.msecs = v->msecs();
-            if (null_mask)
-                null = null_mask->Get(row);
+            if (null_mask) null = null_mask->Get(row);
             break;
         }
         case proto::VectorVariant::VectorString: {
@@ -157,8 +153,7 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
             auto* values = vec_i128->values();
             auto* null_mask = vec_i128->null_mask();
             value_str = values->Get(row)->c_str();
-            if (null_mask)
-                null = null_mask->Get(row);
+            if (null_mask) null = null_mask->Get(row);
             break;
         }
     }

@@ -1,0 +1,14 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace dashql.proto.action;
+
+table LoadFileAction {}
+table LoadHTTPAction {}
+table ExtractJSONAction {}
+table ExtractCSVAction {}
+table SQLDropViewAction {}
+table SQLDropTableAction {}
+table SQLCreateViewAction {}
+table SQLMaterializeTableAction {}
+table SQLEvaluateAction {}
+table VizualizeAction {}

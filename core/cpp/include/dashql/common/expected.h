@@ -1,18 +1,13 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_COMMON_EXPECTED_H_
-#define INCLUDE_DUCKDB_WEB_COMMON_EXPECTED_H_
+#ifndef INCLUDE_DASHQL_COMMON_EXPECTED_H_
+#define INCLUDE_DASHQL_COMMON_EXPECTED_H_
 
 #include <variant>
 
-#include "duckdb.hpp"
-#include "duckdb/common/enums/logical_operator_type.hpp"
-#include "duckdb/web/common/span.h"
-#include "duckdb/web/proto/query_result_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
-namespace duckdb {
-namespace web {
+namespace dashql {
 
 enum class ErrorCode { INVALID_REQUEST, QUERY_FAILED, TABLEGEN_INVALID_INPUT_INDEX, TABLEGEN_CIRCULAR_DEPENDENCY };
 
@@ -39,9 +34,9 @@ template <typename V> struct Expected {
     /// The data
     std::variant<V, Error> data_;
     /// Constructor
-    Expected(V &&v = {}) : data_(move(v)) {}
+    Expected(V &&v = {}) : data_(std::move(v)) {}
     /// Constructor
-    Expected(Error &&e) : data_(move(e)) {}
+    Expected(Error &&e) : data_(std::move(e)) {}
     /// Constructor
     Expected(const Error &e) : data_(e) {}
     /// Constructor
@@ -71,9 +66,9 @@ template <typename V> struct ExpectedBuffer {
     /// The data
     std::variant<flatbuffers::DetachedBuffer, Error> data_;
     /// Constructor
-    ExpectedBuffer(flatbuffers::DetachedBuffer data) : data_(move(data)) {}
+    ExpectedBuffer(flatbuffers::DetachedBuffer data) : data_(std::move(data)) {}
     /// Constructor
-    ExpectedBuffer(Error &&e) : data_(move(e)) {}
+    ExpectedBuffer(Error &&e) : data_(std::move(e)) {}
     /// Constructor
     ExpectedBuffer(const Error &e) : data_(e) {}
     /// Constructor
@@ -100,17 +95,16 @@ template <typename V> struct ExpectedBuffer {
     /// Get buffer
     auto &&ReleaseBuffer() {
         IsOk();
-        return move(std::get<0>(data_));
+        return std::move(std::get<0>(data_));
     }
     /// Get buffer
     auto &&ReleaseError() {
         IsErr();
-        return move(std::get<1>(data_));
+        return std::move(std::get<1>(data_));
     }
 };
 
-}  // namespace web
-}  // namespace duckdb
+}  // namespace dashql
 
-#endif  // INCLUDE_DUCKDB_WEB_EXPECTED_H_
+#endif  // INCLUDE_DASHQL_EXPECTED_H_
 
