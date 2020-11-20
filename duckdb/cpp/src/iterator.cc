@@ -15,7 +15,7 @@ namespace duckdb {
 namespace web {
 
 // Constructor
-QueryResultIterator::QueryResultIterator(WebAPI::Connection& connection, const proto::QueryResult& result)
+QueryResultIterator::QueryResultIterator(WebDB::Connection& connection, const proto::QueryResult& result)
     : connection(connection),
       result(result),
       globalRowIndex(0),
