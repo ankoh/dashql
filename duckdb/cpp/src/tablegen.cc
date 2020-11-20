@@ -9,8 +9,8 @@
 #include <unordered_map>
 #include <variant>
 
-#include "dashql/common/span.h"
 #include "duckdb/main/appender.hpp"
+#include "duckdb/web/common/span.h"
 
 using namespace std;
 
@@ -268,7 +268,7 @@ struct OutputTransform {
 }  // namespace
 
 /// Generate table
-dashql::ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
+ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
     mt19937 rand;
 
     // Construct the generator expressions.
@@ -298,13 +298,13 @@ dashql::ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpeci
             pending.pop();
 
             // Target index is out of bounds?
-            if (nextIdx >= translated.size()) return dashql::ErrorCode::TABLEGEN_INVALID_INPUT_INDEX;
+            if (nextIdx >= translated.size()) return ErrorCode::TABLEGEN_INVALID_INPUT_INDEX;
 
             // Target already translated?
             auto &[nextExpr, nextID] = translated[nextIdx];
             if (nextExpr != nullptr) {
                 // Invalid edge?
-                if (nextID <= originID) return dashql::ErrorCode::TABLEGEN_CIRCULAR_DEPENDENCY;
+                if (nextID <= originID) return ErrorCode::TABLEGEN_CIRCULAR_DEPENDENCY;
                 *nextRef = nextExpr;
                 continue;
             }

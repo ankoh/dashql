@@ -6,8 +6,8 @@
 
 #include "duckdb.hpp"
 #include "duckdb/common/enums/logical_operator_type.hpp"
+#include "duckdb/web/common/span.h"
 #include "duckdb/web/proto/query_result_generated.h"
-#include "dashql/common/span.h"
 #include "duckdb/web/proto/vector_generated.h"
 #include "flatbuffers/flatbuffers.h"
 

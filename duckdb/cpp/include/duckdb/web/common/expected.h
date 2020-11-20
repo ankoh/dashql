@@ -1,14 +1,15 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_COMMON_EXPECTED_H_
-#define INCLUDE_DASHQL_COMMON_EXPECTED_H_
+#ifndef INCLUDE_DUCKDB_WEB_COMMON_EXPECTED_H_
+#define INCLUDE_DUCKDB_WEB_COMMON_EXPECTED_H_
 
 #include <variant>
 
-#include "dashql/common/span.h"
+#include "duckdb/web/common/span.h"
 #include "flatbuffers/flatbuffers.h"
 
-namespace dashql {
+namespace duckdb {
+namespace web {
 
 enum class ErrorCode { INVALID_REQUEST, QUERY_FAILED, TABLEGEN_INVALID_INPUT_INDEX, TABLEGEN_CIRCULAR_DEPENDENCY };
 
@@ -149,7 +150,8 @@ template <typename V> struct ExpectedBufferRef {
     }
 };
 
-}  // namespace dashql
+}  // namespace web
+}  // namespace duckdb
 
-#endif  // INCLUDE_DASHQL_EXPECTED_H_
+#endif  // INCLUDE_DUCKDB_WEB_EXPECTED_H_
 

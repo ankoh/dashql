@@ -1,12 +1,13 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_PARSER_ERROR_H_
-#define INCLUDE_DASHQL_PARSER_ERROR_H_
+#ifndef INCLUDE_DUCKDB_WEB_ERROR_H_
+#define INCLUDE_DUCKDB_WEB_ERROR_H_
 
 #include <stdexcept>
 #include <string>
 
-namespace dashql {
+namespace duckdb {
+namespace web {
 
 struct ParseError : std::exception {
     // Constructor
@@ -25,6 +26,7 @@ struct ParseError : std::exception {
     std::string message_;
 };
 
-} // namespace dashql
+} // namespace web
+} // namespace duckdb
 
-#endif // INCLUDE_DASHQL_PARSER_ERROR_H_
+#endif // INCLUDE_DUCKDB_WEB_ERROR_H_

@@ -1,25 +1,24 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/common/span.h"
-#include "dashql/parser/parser_driver.h"
-#include "dashql/test/yaml_encoder.h"
-#include "gtest/gtest.h"
-#include "gtest/internal/gtest-internal.h"
-#include "flatbuffers/flatbuffers.h"
-
+#include <filesystem>
 #include <fstream>
 #include <string>
-#include <unordered_map>
-#include <filesystem>
-#include <vector>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
+
+#include "dashql/parser/parser_driver.h"
+#include "dashql/test/yaml_encoder.h"
+#include "duckdb/web/common/span.h"
+#include "flatbuffers/flatbuffers.h"
+#include "gtest/gtest.h"
+#include "gtest/internal/gtest-internal.h"
 
 using namespace dashql::parser;
 using namespace std;
 
 constexpr std::string_view DELIMITER = "\n----\n";
 constexpr std::string_view DELIMITER_OUT = DELIMITER.substr(1);
-
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -31,10 +30,9 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     auto grammar_dir = std::filesystem::path{argv[1]};
-    for(auto& p: std::filesystem::directory_iterator(grammar_dir)) {
+    for (auto& p : std::filesystem::directory_iterator(grammar_dir)) {
         auto filename = p.path().filename().string();
-        if (p.path().extension().string() != ".tpl")
-            continue;
+        if (p.path().extension().string() != ".tpl") continue;
 
         // Read the file
         auto buffer = std::make_shared<std::string>();
@@ -65,8 +63,7 @@ int main(int argc, char* argv[]) {
 
             // Is empty?
             std::string_view text{buffer->data() + prev, next - prev};
-            if (text.empty())
-                break;
+            if (text.empty()) break;
 
             // Copy expected
             auto tree = ryml::parse(c4::csubstr(text.data(), text.length()));
@@ -88,15 +85,14 @@ int main(int argc, char* argv[]) {
             out_root["input"] << input;
             EncodeTestExpectation(out_root["expected"], *module, input_strv);
 
-            std::cout << "  TEST " <<  name << std::endl;
+            std::cout << "  TEST " << name << std::endl;
             if (prev > 0) {
                 out_fs << DELIMITER_OUT;
             }
             out_fs << out;
 
             // Skip delimiter
-            if (next != std::string::npos)
-                next += DELIMITER.size();
+            if (next != std::string::npos) next += DELIMITER.size();
         }
     }
     return 0;
