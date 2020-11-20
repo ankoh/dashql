@@ -15,17 +15,12 @@
 #include <vector>
 
 #include "dashql/common/expected.h"
-#include "dashql/proto/action_generated.h"
-#include "dashql/proto/syntax_dashql_generated.h"
-#include "dashql/proto/syntax_generated.h"
-#include "dashql/proto/syntax_sql_generated.h"
+#include "dashql/proto/session_generated.h"
 #include "duckdb/web/webdb.h"
 
 namespace dashql {
 
-namespace sx = proto::syntax;
 namespace fb = flatbuffers;
-namespace ac = proto::action;
 
 class Session {
    protected:
@@ -36,21 +31,21 @@ class Session {
 
     /// The current program text
     std::string program_text_;
-    /// The current program
-    std::pair<sx::Program*, fb::DetachedBuffer> program_;
-    /// The action graph
-    std::pair<ac::ActionGraph*, fb::DetachedBuffer> action_graph_;
+    /// The executable program
+    std::pair<proto::session::ExecutableProgram, fb::DetachedBuffer> program_;
     /// The current action status
-    std::unordered_map<uint32_t, ac::ActionStatus> action_status_;
+    std::unordered_map<uint32_t, proto::action::ActionStatus> action_status_;
 
    public:
     /// Constructor
     Session();
 
+    /// Access the database
+    auto* AccessDatabase() { return database_connection_; }
     /// Evaluate a program
-    std::pair<sx::Program*, ac::ActionGraph*> Evaluate(std::string program_text);
+    ExpectedBuffer<proto::session::ExecutableProgram> Evaluate(std::string program_text);
     /// Update the action status
-    void UpdateActionStatus(uint32_t id, ac::ActionStatus status);
+    void UpdateActionStatus(uint32_t id, proto::action::ActionStatus status);
 };
 
 }  // namespace dashql

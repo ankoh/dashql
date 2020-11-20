@@ -1,0 +1,11 @@
+// Copyright (c) 2020 The DashQL Authors
+
+include "action.fbs";
+include "syntax.fbs";
+
+namespace dashql.proto.session;
+
+table ExecutableProgram {
+    program: syntax.Program;
+    action_graph: action.ActionGraph;
+}
