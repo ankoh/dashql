@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DuckDBConnection } from './webapi_bindings';
-import { QueryResultBuffer, QueryResultChunkBuffer } from './webapi_buffer';
+import { DuckDBConnection } from './webdb_bindings';
+import { QueryResultBuffer, QueryResultChunkBuffer } from './webdb_buffer';
 import { Value } from './value';
 import * as proto from '../proto';
 
