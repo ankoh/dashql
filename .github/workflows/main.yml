@@ -42,7 +42,14 @@ jobs:
       with:
         script: |-
             ./core/cpp/build/debug/grammar_tests ./core/cpp/test/grammar \
-                --gtest_output=xml:./reports/tests_native_grammar.xml
+                --gtest_output=xml:./reports/tests_grammar_debug.xml
+
+    - name: Test duckdb extension
+      uses: ./ci/image
+      with:
+        script: |-
+            ./core/cpp/build/debug/duckdb/duckdb_tester \
+                --gtest_output=xml:./reports/tests_duckdb_extension_debug.xml
 
   ubuntu_x86_release:
     name: Ubuntu / x86 / Release
@@ -84,7 +91,14 @@ jobs:
       with:
         script: |-
             ./core/cpp/build/release/grammar_tests ./core/cpp/test/grammar \
-                --gtest_output=xml:./reports/tests_native_grammar.xml
+                --gtest_output=xml:./reports/tests_grammar_release.xml
+
+    - name: Test duckdb extension
+      uses: ./ci/image
+      with:
+        script: |-
+            ./core/cpp/build/release/duckdb/duckdb_tester \
+                --gtest_output=xml:./reports/tests_duckdb_extension_release.xml
 
   web:
     name: Web
