@@ -8,9 +8,9 @@
 #include <string>
 #include <unordered_map>
 
-#include "dashql/common/expected.h"
-#include "dashql/common/span.h"
 #include "duckdb.hpp"
+#include "duckdb/web/common/expected.h"
+#include "duckdb/web/common/span.h"
 #include "duckdb/web/proto/query_plan_generated.h"
 #include "duckdb/web/proto/query_result_generated.h"
 #include "duckdb/web/proto/tablegen_generated.h"
@@ -18,12 +18,6 @@
 
 namespace duckdb {
 namespace web {
-
-using Error = dashql::Error;
-using ErrorCode = dashql::ErrorCode;
-template<typename T>
-using ExpectedBuffer = dashql::ExpectedBuffer<T>;
-using ExpectedSignal = dashql::ExpectedSignal;
 
 /// The Web API context
 class WebDB {

@@ -1,18 +1,19 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_COMMON_FFI_RESPONSE_H_
-#define INCLUDE_DASHQL_COMMON_FFI_RESPONSE_H_
+#ifndef INCLUDE_DUCKDB_WEB_COMMON_FFI_RESPONSE_H_
+#define INCLUDE_DUCKDB_WEB_COMMON_FFI_RESPONSE_H_
 
 #include <variant>
 
-#include "dashql/common/error.h"
-#include "dashql/common/expected.h"
-#include "flatbuffers/flatbuffers.h"
+#include "duckdb/web/common/error.h"
+#include "duckdb/web/common/expected.h"
 #include "duckdb/web/proto/error_generated.h"
+#include "flatbuffers/flatbuffers.h"
 
 using StatusCode = duckdb::web::proto::StatusCode;
 
-namespace dashql {
+namespace duckdb {
+namespace web {
 
 /// A packed response
 struct Response {
@@ -79,7 +80,8 @@ class ResponseBuffer {
     }
 };
 
-}  // namespace dashql
+}  // namespace web
+}  // namespace duckdb
 
-#endif  // INCLUDE_DASHQL_COMMON_FFI_RESPONSE_H_
+#endif  // INCLUDE_DUCKDB_WEB_COMMON_FFI_RESPONSE_H_
 

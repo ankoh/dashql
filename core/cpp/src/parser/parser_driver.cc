@@ -7,12 +7,12 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "dashql/common/error.h"
 #include "dashql/common/hash.h"
 #include "dashql/common/variant.h"
 #include "dashql/parser/grammar/nodes.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
+#include "duckdb/web/common/error.h"
 
 namespace fb = flatbuffers;
 
@@ -337,7 +337,7 @@ fb::Offset<sx::Program> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
 }
 
 flatbuffers::Offset<sx::Program> ParserDriver::Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in,
-                                                    bool trace_scanning, bool trace_parsing) {
+                                                     bool trace_scanning, bool trace_parsing) {
     // XXX shortcut until tests are migrated
     std::vector<char> padded_buffer{in.begin(), in.end()};
     padded_buffer.push_back(0);
