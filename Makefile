@@ -69,6 +69,14 @@ core_js_test:
 proto:
 	${IN_IMAGE} bash -ec ./scripts/generate_proto.sh
 
+# Reset proto
+.PHONY: reset_proto
+reset_proto:
+	rm ./core/cpp/include/dashql/proto/*_generated.h
+	rm ./core/js/src/proto/*_generated.ts
+	rm ./duckdb/cpp/include/duckdb/web/proto/*_generated.h
+	rm ./duckdb/js/src/proto/*_generated.ts
+
 # Build the wasm modules
 .PHONY: wasm
 wasm:
