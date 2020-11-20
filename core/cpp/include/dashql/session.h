@@ -32,7 +32,7 @@ class Session {
     /// The current program text
     std::string program_text_;
     /// The executable program
-    std::pair<proto::session::ExecutableProgram, fb::DetachedBuffer> program_;
+    std::pair<const proto::session::ExecutableProgram*, fb::DetachedBuffer> program_;
     /// The current action status
     std::unordered_map<uint32_t, proto::action::ActionStatus> action_status_;
 
@@ -43,7 +43,7 @@ class Session {
     /// Access the database
     auto* AccessDatabase() { return database_connection_; }
     /// Evaluate a program
-    ExpectedBuffer<proto::session::ExecutableProgram> Evaluate(std::string program_text);
+    ExpectedBufferRef<proto::session::ExecutableProgram> Evaluate(const char* text);
     /// Update the action status
     void UpdateActionStatus(uint32_t id, proto::action::ActionStatus status);
 };

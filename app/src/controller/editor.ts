@@ -36,7 +36,7 @@ export class EditorController {
     /// Evaluate an editor
     public evaluate(input: string) {
         const m = this._parser.parse(input);
-        this.displayErrors(m.buffer);
+        this.displayErrors(m.program);
         this._store.dispatch(AppStateMutations.setEditorProgram(m));
     }
 

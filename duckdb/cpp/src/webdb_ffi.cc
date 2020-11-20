@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "dashql/common/span.h"
+#include "dashql/common/ffi_response.h"
 #include "duckdb/web/webdb.h"
 #include "duckdb/web/proto/api_generated.h"
 #include "flatbuffers/flatbuffers.h"
@@ -13,33 +14,41 @@
 namespace fb = flatbuffers;
 using namespace duckdb::web;
 
+namespace {
+
+WebDB& GetWebDB() {
+    static std::unique_ptr<WebDB> db = nullptr;
+    if (db == nullptr) {
+        db = std::make_unique<WebDB>();
+    }
+    return *db;
+}
+
+dashql::ResponseBuffer& GetResponseBuffer() {
+    static dashql::ResponseBuffer buffer;
+    return buffer;
+}
+
+}
+
 extern "C" {
 
 using ConnectionHdl = uintptr_t;
 using BufferHdl = uintptr_t;
 
+/// Clear the response
+void duckdb_web_clear_response() {
+    GetResponseBuffer().Clear();
+}
+
 /// Create a conn
 ConnectionHdl duckdb_web_connect() {
-    return reinterpret_cast<ConnectionHdl>(WebDB::Instance().Connect());
+    return reinterpret_cast<ConnectionHdl>(GetWebDB().Connect());
 }
 /// End a conn
 void duckdb_web_disconnect(ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    WebDB::Instance().Disconnect(c);
-}
-
-/// Register a buffer
-void duckdb_web_register_buffer(ConnectionHdl connHdl, void* buffer, uint32_t buffer_size) {
-    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    c->context_data().RegisterBuffer(
-        nonstd::span{static_cast<std::byte*>(buffer), static_cast<size_t>(buffer_size)});
-}
-
-/// Release a buffer
-void duckdb_web_release_buffer(ConnectionHdl connHdl, BufferHdl bufferHdl) {
-    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    auto b = reinterpret_cast<void*>(bufferHdl);
-    c->context_data().ReleaseBuffer(b);
+    GetWebDB().Disconnect(c);
 }
 
 /// Access a buffer
@@ -48,35 +57,35 @@ void* duckdb_web_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl) {
 }
 
 /// Run a query
-void duckdb_web_run_query(WebDB::Response* packed, ConnectionHdl connHdl, const char* text) {
+void duckdb_web_run_query(dashql::Response* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->RunQuery(text);
-    c->context_data().Respond(move(r), *packed);
+    GetResponseBuffer().Store(*packed, move(r));
 }
 
 /// Send a query
-void duckdb_web_send_query(WebDB::Response* packed, ConnectionHdl connHdl, const char* text) {
+void duckdb_web_send_query(dashql::Response* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->SendQuery(text);
-    c->context_data().Respond(move(r), *packed);
+    GetResponseBuffer().Store(*packed, move(r));
 }
 
 /// Fetch query results
-void duckdb_web_fetch_query_results(WebDB::Response* packed, ConnectionHdl connHdl) {
+void duckdb_web_fetch_query_results(dashql::Response* packed, ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->FetchQueryResults();
-    c->context_data().Respond(move(r), *packed);
+    GetResponseBuffer().Store(*packed, move(r));
 }
 
 /// Analyze a query
-void duckdb_web_analyze_query(WebDB::Response* packed, ConnectionHdl connHdl, const char* text) {
+void duckdb_web_analyze_query(dashql::Response* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->AnalyzeQuery(text);
-    c->context_data().Respond(move(r), *packed);
+    GetResponseBuffer().Store(*packed, move(r));
 }
 
 /// Generate a table
-void duckdb_web_generate_table(WebDB::Response* response, WebDB::Connection* conn, void* spec_buffer, uint32_t spec_size) {
+void duckdb_web_generate_table(dashql::Response* response, WebDB::Connection* conn, void* spec_buffer, uint32_t spec_size) {
     // XXX
 }
 

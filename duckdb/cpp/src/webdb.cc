@@ -22,44 +22,10 @@
 namespace fb = flatbuffers;
 using namespace duckdb::web;
 
-/// Reset the response
-void WebDB::ContextData::clearRequest() {
-    request_status_ = proto::StatusCode::SUCCESS;
-    request_error_.reset();
-    request_data_ = {nullptr, 0};
-}
-
-/// Constructor
-WebDB::ContextData::ContextData()
-    : detached_buffers_(), adopted_buffers_(), request_status_(), request_data_({nullptr, 0}), request_error_() {}
-
-/// Register a buffer
-std::pair<void*, size_t> WebDB::ContextData::RegisterBuffer(flatbuffers::DetachedBuffer detached) {
-    auto data_ptr = detached.data();
-    auto data_size = detached.size();
-    detached_buffers_.insert({data_ptr, std::move(detached)});
-    return {data_ptr, data_size};
-}
-
-/// Register a buffer
-std::pair<void*, size_t> WebDB::ContextData::RegisterBuffer(nonstd::span<std::byte> bytes) {
-    auto data_ptr = bytes.data();
-    auto data_size = bytes.size();
-    adopted_buffers_.insert({data_ptr, AdoptedBuffer{bytes}});
-    return {data_ptr, data_size};
-}
-
-/// Release a buffer
-void WebDB::ContextData::ReleaseBuffer(void* data) {
-    detached_buffers_.erase(data);
-    adopted_buffers_.erase(data);
-}
-
 /// Constructor
 WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
     : database_(std::move(db)),
       connection_(*database_),
-      context_data_(std::make_unique<ContextData>()),
       current_query_id_(),
       current_query_result_() {}
 
@@ -183,12 +149,3 @@ WebDB::Connection* WebDB::Connect() {
 
 /// End a session
 void WebDB::Disconnect(Connection* session) { connections_.erase(session); }
-
-/// Get the global instance
-WebDB& WebDB::Instance() {
-    static std::unique_ptr<WebDB> db = nullptr;
-    if (db == nullptr) {
-        db = std::make_unique<WebDB>();
-    }
-    return *db;
-}

@@ -9,11 +9,10 @@ import * as dagre from 'dagre';
 import * as dagreD3 from 'dagre-d3';
 
 import sx = core.proto.syntax;
-import parser = core.parser;
 import styles from './program_graph.module.css';
 
 interface Props {
-    program: core.parser.Program | null;
+    executable: core.parser.ExecutableProgram | null;
     className?: string
 }
 
@@ -26,17 +25,17 @@ class ProgramGraph extends React.Component<Props> {
     private zoom = d3.zoom();
 
     private renderGraph() {
-        if (this.props.program == null) {
+        if (this.props.executable == null) {
             return;
         }
         const g = new dagre.graphlib.Graph().setGraph({nodesep: 30, ranksep: 30});
-        this.props.program.iterateStatements((idx: number, stmt: core.parser.Statement) => {
+        this.props.executable.iterateStatements((idx: number, stmt: core.parser.Statement) => {
             g.setNode(idx.toString(), {
                 label: stmt.short_name || "?",
                 class: styles.node,
             });
         });
-        this.props.program.iterateDependencies((_idx: number, dep: sx.Dependency) => {
+        this.props.executable.iterateDependencies((_idx: number, dep: sx.Dependency) => {
             g.setEdge(dep.sourceStatement().toString(), dep.targetStatement().toString(), {
                 class: styles.edge,
                 curve: d3.curveMonotoneY,
@@ -88,14 +87,14 @@ class ProgramGraph extends React.Component<Props> {
         this.renderGraph();
     }
 
-    componentDidUpdate(prev: Readonly<Props>): void {
+    componentDidUpdate(_prev: Readonly<Props>): void {
         this.renderGraph();
     }
 
 }
 
 const mapStateToProps = (state: AppState) => ({
-    program: state.editorProgram
+    executable: state.editorProgram
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({

@@ -3,7 +3,7 @@
 import { DashQLCoreModule } from './wasm/dashql_core_module';
 import { flatbuffers } from 'flatbuffers';
 import * as proto from './proto';
-import { Program } from  './parser'
+import { ExecutableProgram } from  './parser'
 
 /// The proxy for either the browser- order node-based DashQLCore API
 export abstract class DashQLCoreBindings {
@@ -65,17 +65,17 @@ export abstract class DashQLCoreBindings {
 
         // Read the response
         // XXX: wasm64 will break here.
-        let dataPtr = instance.HEAPU32[(response >> 2) + 0];
-        let dataSize = instance.HEAPU32[(response >> 2) + 2];
-        let dataOffset = instance.HEAPU32[(response >> 2) + 4];
+        let status = instance.HEAPU32[(response >> 2) + 0];
+        let data = instance.HEAPU32[(response >> 2) + 2];
+        let dataSize = instance.HEAPU32[(response >> 2) + 4];
 
         // Restore the stack
         instance.stackRestore(stackPointer);
-        return [dataPtr, dataSize, dataOffset];
+        return [status, data, dataSize];
     }
 
     /// Parse a string and return a flatbuffer
-    public parse(text: string): Program {
+    public parse(text: string): ExecutableProgram {
         let instance = this._instance!;
         let stackPointer = instance.stackSave();
 
@@ -88,14 +88,14 @@ export abstract class DashQLCoreBindings {
         instance.HEAPU8[textUTF8.length + 1] = 0;
 
         /// Call the parse function
-        let [ptr, size, ofs] = this.callSRet('dashql_parse', ['number'], [textMem]);
+        let [ptr, ofs, size] = this.callSRet('dashql_evaluate', ['number'], [textMem]);
         let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
-        let program = new ProgramBuffer(mem);
-        instance.ccall('dashql_core_free', null, ['number'], [ptr]);
+        let buffer = new ExecutableProgramBuffer(mem);
+        instance.ccall('dashql_clear_response', null, [], []);
 
         /// Clear the utf8 string buffer
         instance.stackRestore(stackPointer);
-        return new Program(textUTF8, program);
+        return new ExecutableProgram(textUTF8, buffer);
     }
 };
 
@@ -121,8 +121,8 @@ export abstract class FlatBuffer<Proto> {
 };
 
 /// A flatbuffer containing a DashQL program
-export class ProgramBuffer extends FlatBuffer<proto.syntax.Program> {
+export class ExecutableProgramBuffer extends FlatBuffer<proto.session.ExecutableProgram> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.syntax.Program.getRootAsProgram(buffer);
+        return proto.session.ExecutableProgram.getRootAsExecutableProgram(buffer);
     }
 }
