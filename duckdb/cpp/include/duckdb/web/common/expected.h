@@ -1,17 +1,18 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEBAPI_COMMON_EXPECTED_H_
-#define INCLUDE_DUCKDB_WEBAPI_COMMON_EXPECTED_H_
+#ifndef INCLUDE_DUCKDB_WEB_COMMON_EXPECTED_H_
+#define INCLUDE_DUCKDB_WEB_COMMON_EXPECTED_H_
 
 #include <variant>
 
 #include "duckdb.hpp"
 #include "duckdb/common/enums/logical_operator_type.hpp"
-#include "duckdb/webapi/common/span.h"
-#include "duckdb/webapi/proto/query_result_generated.h"
+#include "duckdb/web/common/span.h"
+#include "duckdb/web/proto/query_result_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
-namespace duckdb_webapi {
+namespace duckdb {
+namespace web {
 
 enum class ErrorCode { INVALID_REQUEST, QUERY_FAILED, TABLEGEN_INVALID_INPUT_INDEX, TABLEGEN_CIRCULAR_DEPENDENCY };
 
@@ -108,7 +109,8 @@ template <typename V> struct ExpectedBuffer {
     }
 };
 
-}  // namespace duckdb_webapi
+}  // namespace web
+}  // namespace duckdb
 
-#endif  // INCLUDE_DUCKDB_WEBAPI_EXPECTED_H_
+#endif  // INCLUDE_DUCKDB_WEB_EXPECTED_H_
 

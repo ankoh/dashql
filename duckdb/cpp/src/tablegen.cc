@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/webapi/tablegen.h"
+#include "duckdb/web/tablegen.h"
 
 #include <optional>
 #include <random>
@@ -10,11 +10,12 @@
 #include <variant>
 
 #include "duckdb/main/appender.hpp"
-#include "duckdb/webapi/common/span.h"
+#include "duckdb/web/common/span.h"
 
 using namespace std;
 
-namespace duckdb_webapi {
+namespace duckdb {
+namespace web {
 
 namespace {
 
@@ -440,4 +441,5 @@ ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpecification
     return {};
 }
 
-}  // namespace duckdb_webapi
+}  // namespace web
+}  // namespace duckdb

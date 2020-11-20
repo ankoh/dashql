@@ -214,15 +214,15 @@ if (EMSCRIPTEN)
             _free, \
             _dashql_parse, \
             _dashql_core_free, \
-            _duckdb_webapi_init, \
-            _duckdb_webapi_connect, \
-            _duckdb_webapi_disconnect, \
-            _duckdb_webapi_register_buffer, \
-            _duckdb_webapi_release_buffer, \
-            _duckdb_webapi_run_query, \
-            _duckdb_webapi_send_query, \
-            _duckdb_webapi_fetch_query_results, \
-            _duckdb_webapi_analyze_query \
+            _duckdb_web_init, \
+            _duckdb_web_connect, \
+            _duckdb_web_disconnect, \
+            _duckdb_web_register_buffer, \
+            _duckdb_web_release_buffer, \
+            _duckdb_web_run_query, \
+            _duckdb_web_send_query, \
+            _duckdb_web_fetch_query_results, \
+            _duckdb_web_analyze_query \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "

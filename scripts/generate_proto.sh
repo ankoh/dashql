@@ -46,6 +46,6 @@ gen_proto() {
 }
 
 gen_proto "${PROJECT_ROOT}/core/proto" "${PROJECT_ROOT}/core/cpp/include/dashql/proto" "${PROJECT_ROOT}/core/js/src/proto"
-gen_proto "${PROJECT_ROOT}/duckdb/proto" "${PROJECT_ROOT}/duckdb/cpp/include/duckdb/webapi/proto" "${PROJECT_ROOT}/duckdb/js/src/proto"
+gen_proto "${PROJECT_ROOT}/duckdb/proto" "${PROJECT_ROOT}/duckdb/cpp/include/duckdb/web/proto" "${PROJECT_ROOT}/duckdb/js/src/proto"
 
 rm -r ${TMP}

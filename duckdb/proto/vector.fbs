@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace duckdb_webapi.proto;
+namespace duckdb.web.proto;
 
 // A 128-bit integer
 struct I128 {

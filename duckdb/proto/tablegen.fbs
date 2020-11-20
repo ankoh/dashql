@@ -2,7 +2,7 @@
 
 include "sql_type.fbs";
 
-namespace duckdb_webapi.proto;
+namespace duckdb.web.proto;
 
 enum GeneratorExpressionType: uint8 {
     CONSTANT = 0,

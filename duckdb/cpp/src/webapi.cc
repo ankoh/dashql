@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/webapi/webapi.h"
+#include "duckdb/web/webapi.h"
 
 #include <cstdio>
 #include <memory>
@@ -13,14 +13,14 @@
 #include "duckdb/main/client_context.hpp"
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/planner/planner.hpp"
-#include "duckdb/webapi/codec.h"
-#include "duckdb/webapi/json.h"
-#include "duckdb/webapi/tablegen.h"
+#include "duckdb/web/codec.h"
+#include "duckdb/web/json.h"
+#include "duckdb/web/tablegen.h"
 #include "flatbuffers/flatbuffers.h"
 #include "spdlog/spdlog.h"
 
 namespace fb = flatbuffers;
-using namespace duckdb_webapi;
+using namespace duckdb::web;
 
 /// Reset the response
 void WebAPI::ContextData::clearRequest() {
@@ -167,7 +167,7 @@ ExpectedBuffer<proto::FormattedText> WebAPI::Connection::FormatQueryPlan(void* q
 
 /// Generate a table
 ExpectedSignal WebAPI::Connection::GenerateTable(proto::TableSpecification& spec) {
-    return duckdb_webapi::generateTable(connection_, spec);
+    return generateTable(connection_, spec);
 }
 
 /// Constructor

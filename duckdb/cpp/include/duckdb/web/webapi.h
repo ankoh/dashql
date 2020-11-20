@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEBAPI_WEBAPI_H_
-#define INCLUDE_DUCKDB_WEBAPI_WEBAPI_H_
+#ifndef INCLUDE_DUCKDB_WEB_WEBAPI_H_
+#define INCLUDE_DUCKDB_WEB_WEBAPI_H_
 
 #include <stdexcept>
 #include <string>
@@ -9,15 +9,16 @@
 #include <unordered_map>
 
 #include "duckdb.hpp"
-#include "duckdb/webapi/common/expected.h"
-#include "duckdb/webapi/common/span.h"
-#include "duckdb/webapi/proto/api_generated.h"
-#include "duckdb/webapi/proto/query_plan_generated.h"
-#include "duckdb/webapi/proto/query_result_generated.h"
-#include "duckdb/webapi/proto/tablegen_generated.h"
-#include "duckdb/webapi/proto/vector_generated.h"
+#include "duckdb/web/common/expected.h"
+#include "duckdb/web/common/span.h"
+#include "duckdb/web/proto/api_generated.h"
+#include "duckdb/web/proto/query_plan_generated.h"
+#include "duckdb/web/proto/query_result_generated.h"
+#include "duckdb/web/proto/tablegen_generated.h"
+#include "duckdb/web/proto/vector_generated.h"
 
-namespace duckdb_webapi {
+namespace duckdb {
+namespace web {
 
 /// The Web API context
 class WebAPI {
@@ -164,6 +165,7 @@ class WebAPI {
     void Disconnect(Connection* connection);
 };
 
-}  // namespace duckdb_webapi
+}  // namespace web
+}  // namespace duckdb
 
-#endif  // INCLUDE_DUCKDB_WEBAPI_WEBAPI_H_
+#endif  // INCLUDE_DUCKDB_WEB_WEBAPI_H_
