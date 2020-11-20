@@ -55,6 +55,8 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/../../duckdb/cpp/" "${CMAKE_BINARY_DIR}/du
 include_directories(
     "${CMAKE_SOURCE_DIR}/include"
     "${CMAKE_BINARY_DIR}/include"
+    "${CMAKE_SOURCE_DIR}/../../duckdb/cpp/include"
+    "${CMAKE_BINARY_DIR}/duckdb/include"
 )
 
 # ---------------------------------------------------------------------------
@@ -198,6 +200,14 @@ add_library(dashql_parser
 target_link_libraries(dashql_parser flatbuffers)
 
 # ---------------------------------------------------------------------------
+
+add_library(dashql_core
+    ${CMAKE_SOURCE_DIR}/src/action_planner.cc
+)
+
+target_link_libraries(dashql_core dashql_parser)
+
+# ---------------------------------------------------------------------------
 # Emscripten
 
 if (EMSCRIPTEN)
@@ -220,11 +230,11 @@ if (EMSCRIPTEN)
     )
 
     add_executable(dashql_core_web ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(dashql_core_web dashql_parser duckdb_ffi)
+    target_link_libraries(dashql_core_web dashql_core duckdb_ffi)
     set_target_properties(dashql_core_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 
     add_executable(dashql_core_node ${CMAKE_SOURCE_DIR}/src/ffi.cc)
-    target_link_libraries(dashql_core_node dashql_parser duckdb_ffi)
+    target_link_libraries(dashql_core_node dashql_core duckdb_ffi)
     set_target_properties(dashql_core_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 endif()
 
@@ -238,7 +248,7 @@ if(NOT EMSCRIPTEN)
     )
 
     target_link_libraries(dashql_test
-        dashql_parser
+        dashql_core
         ryml ryml_c4core
         flatbuffers
         Threads::Threads
@@ -248,7 +258,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/grammar_tests.cc
     )
     target_link_libraries(grammar_tests
-        dashql_parser
+        dashql_core
         dashql_test
         flatbuffers gtest gmock
         Threads::Threads
@@ -258,7 +268,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/grammar_testgen.cc
     )
     target_link_libraries(grammar_testgen
-        dashql_parser
+        dashql_core
         dashql_test
         flatbuffers gtest gmock
         Threads::Threads

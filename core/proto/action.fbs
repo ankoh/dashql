@@ -1,0 +1,74 @@
+// Copyright (c) 2020 The DashQL Authors
+
+include "error.fbs";
+include "action_mutating.fbs";
+include "action_pure.fbs";
+
+namespace dashql.proto.action;
+
+enum ActionType: uint8 {
+    NONE = 0,
+
+    // Mutating Actions
+    LOAD_FILE = 1,
+    LOAD_HTTP = 2,
+    EXTRACT_JSON = 3,
+    EXTRACT_CSV = 4,
+    SQL_DROP_VIEW = 5,
+    SQL_DROP_TABLE = 6,
+    SQL_CREATE_VIEW = 7,
+    SQL_MATERIALIZE_TABLE = 8,
+    SQL_EVALUATE = 9,
+    VIZUALIZE = 10,
+
+    // Pure Actions
+    PURE_MIN = 11,
+
+    SQL_QUERY_SCALAR = 12,
+    SQL_QUERY_TABLE = 13,
+}
+
+union ActionConfig {
+    LoadFileAction,
+    LoadHTTPAction,
+    ExtractJSONAction,
+    ExtractCSVAction,
+    SQLDropViewAction,
+    SQLDropTableAction,
+    SQLCreateViewAction,
+    SQLMaterializeTableAction,
+    SQLEvaluateAction,
+    VizualizeAction,
+
+    SQLQueryScalarAction,
+    SQLQueryTableAction,
+}
+
+enum ActionStatus: uint8 {
+    NONE = 0,
+    PREPARING = 1,
+    BLOCKED = 2,
+    RUNNING = 4,
+    COMPLETED = 5,
+    ERROR = 6,
+}
+
+enum Blocker: uint8 {
+    NONE = 0,
+    DEPENDENCY = 1,
+    HTTP_REQUEST = 2,
+    SCHEDULER = 3,
+}
+
+table Action {
+    origin: uint32;
+    status: ActionStatus;
+    required_actions: [uint32];
+    blocker: Blocker;
+    error: error.Error;
+    config: ActionConfig;
+}
+
+table ActionGraph {
+    actions: [Action];
+}

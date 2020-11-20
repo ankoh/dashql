@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "dashql/common/span.h"
 #include "duckdb/web/webdb.h"
 #include "duckdb/web/proto/api_generated.h"
 #include "flatbuffers/flatbuffers.h"
@@ -31,7 +32,7 @@ void duckdb_web_disconnect(ConnectionHdl connHdl) {
 void duckdb_web_register_buffer(ConnectionHdl connHdl, void* buffer, uint32_t buffer_size) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     c->context_data().RegisterBuffer(
-        nonstd::span{static_cast<std::byte*>(buffer), static_cast<long>(buffer_size)});
+        nonstd::span{static_cast<std::byte*>(buffer), static_cast<size_t>(buffer_size)});
 }
 
 /// Release a buffer
