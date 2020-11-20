@@ -1,6 +1,6 @@
 #include <cstdint>
 
-#include "duckdb/web/common/ffi_response.h"
+#include "duckdb/web/common/response.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto/syntax_generated.h"
 #include "dashql/session.h"
