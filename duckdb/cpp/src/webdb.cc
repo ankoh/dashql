@@ -183,3 +183,12 @@ WebDB::Connection& WebDB::Connect() {
 
 /// End a session
 void WebDB::Disconnect(Connection* session) { connections_.erase(session); }
+
+/// Get the global instance
+WebDB& WebDB::Instance() {
+    static std::unique_ptr<WebDB> db = nullptr;
+    if (db == nullptr) {
+        db = std::make_unique<WebDB>();
+    }
+    return *db;
+}
