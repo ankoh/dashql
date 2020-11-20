@@ -166,7 +166,7 @@ class WebDB {
     WebDB();
 
     /// Create a connection
-    Connection& Connect();
+    Connection* Connect();
     /// End a connection
     void Disconnect(Connection* connection);
 

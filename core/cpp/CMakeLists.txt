@@ -224,7 +224,7 @@ if (EMSCRIPTEN)
             _free, \
             _dashql_parse, \
             _dashql_core_free, \
-            ${DUCKDB_WEB_FFI} \
+            ${DUCKDB_WEB_CONNECTION_INTERFACE} \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
