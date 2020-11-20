@@ -3,7 +3,7 @@
 import * as proto from '../proto';
 import { flatbuffers } from 'flatbuffers';
 
-export abstract class WebAPIBuffer<BufferType> {
+export abstract class WebDBBuffer<BufferType> {
     /// The buffer
     protected _buffer: flatbuffers.ByteBuffer;
     /// The root
@@ -23,19 +23,19 @@ export abstract class WebAPIBuffer<BufferType> {
     public get root(): BufferType { return this._root; }
 };
 
-export class QueryResultBuffer extends WebAPIBuffer<proto.query_result.QueryResult> {
+export class QueryResultBuffer extends WebDBBuffer<proto.query_result.QueryResult> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
         return proto.query_result.QueryResult.getRootAsQueryResult(buffer);
     }
 }
 
-export class QueryResultChunkBuffer extends WebAPIBuffer<proto.query_result.QueryResultChunk> {
+export class QueryResultChunkBuffer extends WebDBBuffer<proto.query_result.QueryResultChunk> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
         return proto.query_result.QueryResultChunk.getRootAsQueryResultChunk(buffer);
     }
 }
 
-export class QueryPlanBuffer extends WebAPIBuffer<proto.query_plan.QueryPlan> {
+export class QueryPlanBuffer extends WebDBBuffer<proto.query_plan.QueryPlan> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
         return proto.query_plan.QueryPlan.getRootAsQueryPlan(buffer);
     }

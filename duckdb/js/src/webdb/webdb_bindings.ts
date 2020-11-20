@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { DuckDBModule } from '../wasm/duckdb_module';
-import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webapi_buffer';
+import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webdb_buffer';
 import * as proto from '../proto';
 
 /// Decode a string

@@ -3,9 +3,9 @@
 import duckdb_api_wasm from '../../wasm/duckdb_node.wasm';
 import duckdb_api_init from '../../wasm/duckdb_node.js';
 import { DuckDBModule } from '../../wasm/duckdb_module';
-import * as webapi from '../../webapi';
+import * as webdb from '../../webdb';
 
-export class DuckDB extends webapi.DuckDBBindings {
+export class DuckDB extends webdb.DuckDBBindings {
     protected path: string;
     constructor(path: string | null = null) {
         super();
@@ -23,4 +23,4 @@ export class DuckDB extends webapi.DuckDBBindings {
     }
 }
 
-export * from '../../webapi';
+export * from '../../webdb';
