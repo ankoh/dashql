@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "duckdb/web/common/ffi_response.h"
+#include "duckdb/web/common/response.h"
 #include "duckdb/web/common/span.h"
 #include "duckdb/web/webdb.h"
 #include "flatbuffers/flatbuffers.h"
