@@ -2,7 +2,6 @@
 
 #include "dashql/common/ffi_response.h"
 #include "dashql/parser/parser_driver.h"
-#include "dashql/proto/api_generated.h"
 #include "dashql/proto/syntax_generated.h"
 #include "dashql/session.h"
 #include "flatbuffers/flatbuffers.h"
