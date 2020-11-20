@@ -1,13 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEBAPI_ITERATOR_H_
-#define INCLUDE_DUCKDB_WEBAPI_ITERATOR_H_
+#ifndef INCLUDE_DUCKDB_WEB_ITERATOR_H_
+#define INCLUDE_DUCKDB_WEB_ITERATOR_H_
 
-#include "duckdb/webapi/webapi.h"
-#include "duckdb/webapi/common/expected.h"
-#include "duckdb/webapi/proto/query_result_generated.h"
+#include "duckdb/web/webapi.h"
+#include "duckdb/web/common/expected.h"
+#include "duckdb/web/proto/query_result_generated.h"
 
-namespace duckdb_webapi {
+namespace duckdb {
+namespace web {
 
 /// The query result forward iterator
 struct QueryResultIterator {
@@ -56,6 +57,7 @@ struct QueryResultIterator {
     duckdb::Value GetValue(size_t col_idx) const;
 };
 
-}  // namespace duckdb_webapi
+}  // namespace web
+}  // namespace duckdb
 
-#endif  // INCLUDE_DUCKDB_WEBAPI_ITERATOR_H_
+#endif  // INCLUDE_DUCKDB_WEB_ITERATOR_H_

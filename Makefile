@@ -48,6 +48,12 @@ core_release:
 		-DCMAKE_BUILD_TYPE=Release
 	make -C ${CORE_RELEASE_DIR} -j ${CORES}
 
+# Test the duckdb library
+.PHONY: duckdb_tests
+duckdb_tests:
+	${CORE_DEBUG_DIR}/duckdb/duckdb_tester
+
+
 # Build the dashql_core javascript library
 .PHONY: core_js
 core_js:

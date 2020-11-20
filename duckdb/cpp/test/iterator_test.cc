@@ -2,17 +2,18 @@
 
 #include <sstream>
 
-#include "duckdb/webapi/webapi.h"
-#include "duckdb/webapi/iterator.h"
-#include "duckdb/webapi/proto/query_plan_generated.h"
-#include "duckdb/webapi/types.h"
+#include "duckdb/web/webapi.h"
+#include "duckdb/web/iterator.h"
+#include "duckdb/web/proto/query_plan_generated.h"
 #include "gtest/gtest.h"
 
 #include "duckdb/common/types/date.hpp"
+#include "duckdb/common/types/time.hpp"
 #include "duckdb/common/types/timestamp.hpp"
 #include "duckdb/common/operator/numeric_binary_operators.hpp"
 
-using namespace duckdb_webapi;
+using namespace duckdb;
+using namespace duckdb::web;
 using namespace std;
 
 namespace {
