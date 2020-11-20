@@ -117,20 +117,6 @@ ExpectedBuffer<proto::QueryPlan> WebDB::Connection::AnalyzeQuery(std::string_vie
     return {builder.Release()};
 }
 
-/// Format a query plan
-ExpectedBuffer<proto::FormattedText> WebDB::Connection::FormatQueryPlan(void* query_plan) {
-    auto txt = writeJSON(query_plan, *proto::QueryPlanTypeTable());
-
-    // Encode the query plan
-    fb::FlatBufferBuilder builder{txt.size() + 16};
-    auto txt_ofs = builder.CreateString(txt);
-    auto txt_buf = proto::CreateFormattedText(builder, txt_ofs);
-
-    // Return buffer
-    builder.Finish(txt_buf);
-    return {builder.Release()};
-}
-
 /// Generate a table
 ExpectedSignal WebDB::Connection::GenerateTable(proto::TableSpecification& spec) {
     return generateTable(connection_, spec);
