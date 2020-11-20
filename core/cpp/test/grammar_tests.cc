@@ -1,17 +1,17 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/common/span.h"
-#include "dashql/parser/parser_driver.h"
-#include "dashql/test/yaml_encoder.h"
-#include "gtest/gtest.h"
-#include "gtest/internal/gtest-internal.h"
-#include "flatbuffers/flatbuffers.h"
-
 #include <fstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
-#include <string_view>
+
+#include "dashql/parser/parser_driver.h"
+#include "dashql/test/yaml_encoder.h"
+#include "duckdb/web/common/span.h"
+#include "flatbuffers/flatbuffers.h"
+#include "gtest/gtest.h"
+#include "gtest/internal/gtest-internal.h"
 
 using namespace dashql::parser;
 using namespace std;
@@ -34,8 +34,7 @@ struct GrammarParamTestsParam {
     ryml::Tree expected;
 
     /// Constructor
-    GrammarParamTestsParam()
-        : buffer(), text(), tree(), name(), input(), expected() {}
+    GrammarParamTestsParam() : buffer(), text(), tree(), name(), input(), expected() {}
 
     friend std::ostream& operator<<(std::ostream& out, const GrammarParamTestsParam& param) {
         out << param.input;
@@ -69,8 +68,7 @@ nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* na
 ::testing::AssertionResult IsEqual(const ryml::Tree& actual, const ryml::Tree& expected) {
     auto expected_str = ryml::emitrs<std::string>(expected);
     auto actual_str = ryml::emitrs<std::string>(actual);
-    if (expected_str == actual_str)
-        return ::testing::AssertionSuccess();
+    if (expected_str == actual_str) return ::testing::AssertionSuccess();
 
     std::stringstream err;
 
@@ -104,11 +102,14 @@ TEST_P(GrammarParamTests, Test) {
     ASSERT_TRUE(IsEqual(out, param.expected));
 }
 
-INSTANTIATE_TEST_SUITE_P(DashQLStatement, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("dashql_statement.test")), PrintTestName());
-INSTANTIATE_TEST_SUITE_P(Demo, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("scripts_demo.test")), PrintTestName());
-INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintTestName());
+INSTANTIATE_TEST_SUITE_P(DashQLStatement, GrammarParamTests,
+                         testing::ValuesIn(GrammarParamTests::FindTests("dashql_statement.test")), PrintTestName());
+INSTANTIATE_TEST_SUITE_P(Demo, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("scripts_demo.test")),
+                         PrintTestName());
+INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests,
+                         testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintTestName());
 
-}
+}  // namespace
 
 constexpr std::string_view DELIMITER = "\n----\n";
 
@@ -122,10 +123,9 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     auto grammar_dir = std::filesystem::path{argv[1]};
-    for(auto& p: std::filesystem::directory_iterator(grammar_dir)) {
+    for (auto& p : std::filesystem::directory_iterator(grammar_dir)) {
         auto filename = p.path().filename().string();
-        if (p.path().extension().string() != ".test")
-            continue;
+        if (p.path().extension().string() != ".test") continue;
 
         // Read the file
         auto buffer = std::make_shared<std::string>();
@@ -151,8 +151,7 @@ int main(int argc, char* argv[]) {
 
             // Is empty?
             std::string_view text{buffer->data() + prev, next - prev};
-            if (text.empty())
-                break;
+            if (text.empty()) break;
 
             tests.emplace_back();
             auto& test = tests.back();
@@ -171,8 +170,7 @@ int main(int argc, char* argv[]) {
             test.input = {input.data(), input.size()};
 
             // Skip delimiter
-            if (next != std::string::npos)
-                next += DELIMITER.size();
+            if (next != std::string::npos) next += DELIMITER.size();
         }
 
         // Register test

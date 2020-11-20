@@ -14,11 +14,14 @@
 #include <variant>
 #include <vector>
 
-#include "dashql/common/expected.h"
 #include "dashql/proto/session_generated.h"
+#include "duckdb/web/common/expected.h"
 #include "duckdb/web/webdb.h"
 
 namespace dashql {
+
+template <typename T>
+using ExpectedBufferRef = duckdb::web::ExpectedBufferRef<T>;
 
 namespace fb = flatbuffers;
 

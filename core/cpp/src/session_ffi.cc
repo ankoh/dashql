@@ -1,12 +1,14 @@
 #include <cstdint>
 
-#include "dashql/common/ffi_response.h"
+#include "duckdb/web/common/ffi_response.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto/syntax_generated.h"
 #include "dashql/session.h"
 #include "flatbuffers/flatbuffers.h"
 
 using namespace dashql;
+using Response = duckdb::web::Response;
+using ResponseBuffer = duckdb::web::ResponseBuffer;
 
 namespace {
 
@@ -18,8 +20,8 @@ Session& GetSession() {
     return *session;
 }
 
-dashql::ResponseBuffer& GetResponseBuffer() {
-    static dashql::ResponseBuffer buffer;
+ResponseBuffer& GetResponseBuffer() {
+    static ResponseBuffer buffer;
     return buffer;
 }
 
