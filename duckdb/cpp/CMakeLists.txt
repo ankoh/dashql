@@ -56,8 +56,6 @@ target_link_libraries(duckdb_webdb
 # FFI
 
 set(DUCKDB_WEB_CONNECTION_INTERFACE " \
-    _duckdb_web_register_buffer, \
-    _duckdb_web_release_buffer, \
     _duckdb_web_run_query, \
     _duckdb_web_send_query, \
     _duckdb_web_fetch_query_results, \
@@ -79,6 +77,7 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
+            _duckdb_web_clear_response, \
             _duckdb_web_connect, \
             _duckdb_web_disconnect, \
             ${DUCKDB_WEB_CONNECTION_INTERFACE} \

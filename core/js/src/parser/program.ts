@@ -1,27 +1,32 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer, ProgramBuffer } from '../bindings';
-import { syntax as sx } from '../proto/';
+import { FlatBuffer, ExecutableProgramBuffer } from '../bindings';
+import { syntax as sx, session } from '../proto/';
 import { NativeStack, NativeBitmap } from '../utils';
 
 const decoder = new TextDecoder();
 
-export class Program {
+export class ExecutableProgram {
     /// The text buffer
     _text: Uint8Array;
     /// The module
-    _buffer: FlatBuffer<sx.Program>;
+    _buffer: FlatBuffer<session.ExecutableProgram>;
+    /// The program
+    _program: sx.Program;
 
     /// Constructor
-    public constructor(text: Uint8Array = new Uint8Array(0), module: FlatBuffer<sx.Program> = new ProgramBuffer()) {
+    public constructor(text: Uint8Array = new Uint8Array(0), module: FlatBuffer<session.ExecutableProgram> = new ExecutableProgramBuffer()) {
         this._text = text;
         this._buffer = module;
+        this._program = this._buffer.root.program() || new sx.Program();
     }
 
     /// Access the text
     public get text() { return this._text; }
-    /// Access the module
+    /// Access the buffer
     public get buffer() { return this._buffer.root; }
+    /// Access the program
+    public get program() { return this._program; }
 
     /// Access the text
     public textAt(_loc: sx.Location): string {
@@ -32,10 +37,10 @@ export class Program {
     /// Iterate over statements
     public iterateStatements(fn: (idx: number, node: Statement) => void): number {
         const stmt = new Statement(this);
-        const count = this.buffer.statementsLength();
+        const count = this.program.statementsLength();
         for (let i = 0; i < count; ++i) {
             stmt.statement_id = i;
-            stmt.statement_buffer = this.buffer.statements(i, stmt.statement_buffer)!;
+            stmt.statement_buffer = this.program.statements(i, stmt.statement_buffer)!;
             fn(i, stmt);
         }
         return count;
@@ -44,9 +49,9 @@ export class Program {
     /// Iterate over statements
     public iterateDependencies(fn: (idx: number, node: sx.Dependency) => void): number {
         let dep = new sx.Dependency();
-        const count = this.buffer.dependenciesLength();
+        const count = this.program.dependenciesLength();
         for (let i = 0; i < count; ++i) {
-            dep = this.buffer.dependencies(i, dep)!;
+            dep = this.program.dependencies(i, dep)!;
             fn(i, dep);
         }
         return count;
@@ -55,12 +60,12 @@ export class Program {
 
 export class Node {
     /// The module
-    _program: Program;
+    _program: ExecutableProgram;
     /// The node
     _node: sx.Node;
 
     /// Constructor
-    public constructor(module: Program, node: sx.Node = new sx.Node()) {
+    public constructor(module: ExecutableProgram, node: sx.Node = new sx.Node()) {
         this._program = module;
         this._node = node;
     } 
@@ -78,6 +83,8 @@ export class Node {
     public get text() { return this._program.text; }
     /// Get the module
     public get buffer() { return this._program.buffer; }
+    /// Get the program
+    public get program() { return this._program.program; }
     /// Get the node type
     public get nodeType() { return this._node.nodeType(); }
 
@@ -112,7 +119,7 @@ export class Node {
         while (c > 0) {
             const step = Math.floor(c / 2);
             const iter = lb + step;
-            n.node = this.buffer.nodes(iter, n.node)!;
+            n.node = this.program.nodes(iter, n.node)!;
             if (n.node.attributeKey() < key) {
                 lb = iter + 1;
                 c -= step + 1;
@@ -123,7 +130,7 @@ export class Node {
         if (lb >= children_begin + children_count) {
             return null;
         }
-        n.node = this.buffer.nodes(lb, n.node)!;
+        n.node = this.program.nodes(lb, n.node)!;
         return (n.node.attributeKey() == key) ? n : null;
     }
 
@@ -133,7 +140,7 @@ export class Node {
         const count = this._node.childrenCount();
         n = n || new Node(this._program);
         for (let i = 0; i < count; ++i) {
-            n.node = this.buffer.nodes(begin + i, n.node)!;
+            n.node = this.program.nodes(begin + i, n.node)!;
             fn(i, n);
         }
         return count;
@@ -193,14 +200,14 @@ export class NodePath {
 
 export class Statement {
     /// The module
-    _program: Program;
+    _program: ExecutableProgram;
     /// The statement id
     _statement_id: number;
     /// The statement
     _statement: sx.Statement;
 
     /// Constructor
-    public constructor(module: Program, statement_id: number = -1, statement: sx.Statement = new sx.Statement()) {
+    public constructor(module: ExecutableProgram, statement_id: number = -1, statement: sx.Statement = new sx.Statement()) {
         this._program = module;
         this._statement_id = statement_id;
         this._statement = statement;
@@ -209,7 +216,7 @@ export class Statement {
     /// Access the text
     public get text() { return this._program.text; }
     /// Get the module buffer
-    public get module_buffer() { return this._program.buffer; }
+    public get program() { return this._program.program; }
     /// Get the statement id
     public get statement_id() { return this._statement_id; }
     /// Set the statement id
@@ -227,7 +234,7 @@ export class Statement {
     /// Get the root node
     public root_node(obj: Node | null = null) {
         const n = obj || new Node(this._program);
-        n.node = this.module_buffer.nodes(this._statement.root(), n.node)!;
+        n.node = this.program.nodes(this._statement.root(), n.node)!;
         return n;
     }
 
@@ -235,7 +242,7 @@ export class Statement {
     public traversePreOrder(visit: (node_id: number, node: Node, path: NodePath) => void) {
         // Prepare the DFS
         const path = new NodePath(this._statement_id);
-        const pending_cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
+        const pending_cap = this.program.nodesLength() / this.program.statementsLength();
         const pending = new NativeStack(pending_cap);
         pending.push(this._statement.root());
 
@@ -245,7 +252,7 @@ export class Statement {
 
         while (!pending.empty()) {
             const top = pending.pop();
-            current.node = this.module_buffer.nodes(top, current.node)!;
+            current.node = this.program.nodes(top, current.node)!;
             const node = current.node;
             const nodeType = current.nodeType;
 
@@ -269,12 +276,12 @@ export class Statement {
     public traverse(visit_preorder: (node_id: number, node: Node, path: NodePath) => void, visit_postorder: (node_id: number, node: Node) => void) {
         // Prepare the DFS
         const path = new NodePath(this._statement_id);
-        const pending_cap = this.module_buffer.nodesLength() / this.module_buffer.statementsLength();
+        const pending_cap = this.program.nodesLength() / this.program.statementsLength();
         const pending = new NativeStack(pending_cap);
         pending.push(this._statement.root());
 
         /// Use a compact bitmap to track visited nodes
-        const visited = new NativeBitmap(this.module_buffer.nodesLength());
+        const visited = new NativeBitmap(this.program.nodesLength());
 
         // We always pass the same objects to the function to spare us all the allocations.
         // The function MUST NOT store the node elsewhere.
@@ -282,7 +289,7 @@ export class Statement {
 
         while (!pending.empty()) {
             const top = pending.top();
-            current.node = this.module_buffer.nodes(top, current.node)!;
+            current.node = this.program.nodes(top, current.node)!;
             const node = current.node;
             const nodeType = current.nodeType;
 

@@ -211,6 +211,9 @@ target_link_libraries(dashql_core dashql_parser duckdb_webdb)
 # ---------------------------------------------------------------------------
 # Emscripten
 
+add_library(duckdb_core_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
+target_link_libraries(duckdb_core_ffi duckdb_webdb flatbuffers spdlog Threads::Threads)
+
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
         -Wl,--shared-memory,--no-check-features \
@@ -222,21 +225,25 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
-            _dashql_parse, \
-            _dashql_core_free, \
+            _dashql_clear_response, \
+            _dashql_evaluate, \
             ${DUCKDB_WEB_CONNECTION_INTERFACE} \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
     )
 
-    add_executable(dashql_core_web ${CMAKE_SOURCE_DIR}/src/ffi.cc)
+    add_executable(dashql_core_web ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
     target_link_libraries(dashql_core_web dashql_core duckdb_ffi)
     set_target_properties(dashql_core_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 
-    add_executable(dashql_core_node ${CMAKE_SOURCE_DIR}/src/ffi.cc)
+    add_executable(dashql_core_node ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
     target_link_libraries(dashql_core_node dashql_core duckdb_ffi)
     set_target_properties(dashql_core_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
+
+else()
+
+
 endif()
 
 

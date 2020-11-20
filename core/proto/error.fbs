@@ -2,8 +2,8 @@
 
 namespace dashql.proto.error;
 
-enum ErrorCode: uint8 {
-    NONE = 0,
+enum StatusCode: uint8 {
+    SUCCESS = 0,
     INTERNAL = 1,
     TIMEOUT = 2,
     OUT_OF_MEMORY = 3,
@@ -11,6 +11,6 @@ enum ErrorCode: uint8 {
 }
 
 table Error {
-    code: ErrorCode;
+    status: StatusCode;
     message: string;
 }

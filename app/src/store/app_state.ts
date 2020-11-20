@@ -26,7 +26,7 @@ export class AppState {
     /// The editor text
     public editorText: string;
     /// The current program
-    public editorProgram: core.parser.Program | null;
+    public editorProgram: core.parser.ExecutableProgram | null;
     /// The model for the module inspector
     public moduleDetails: ProgramDetails;
 
