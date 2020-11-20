@@ -7,8 +7,10 @@
 
 #include "dashql/common/error.h"
 #include "dashql/common/expected.h"
-#include "dashql/proto/error_generated.h"
 #include "flatbuffers/flatbuffers.h"
+#include "duckdb/web/proto/error_generated.h"
+
+using StatusCode = duckdb::proto::error::StatusCode;
 
 namespace dashql {
 
@@ -45,7 +47,7 @@ class ResponseBuffer {
         Clear();
         if (result) {
             proto_buffer_ = result.ReleaseBuffer();
-            response.statusCode = static_cast<size_t>(proto::error::StatusCode::SUCCESS);
+            response.statusCode = static_cast<size_t>(StatusCode::SUCCESS);
             response.dataPtr = reinterpret_cast<uintptr_t>(proto_buffer_.data());
             response.dataSize = proto_buffer_.size();
         } else {
@@ -63,7 +65,7 @@ class ResponseBuffer {
         Clear();
         if (result) {
             auto buffer = result.GetBuffer();
-            response.statusCode = static_cast<size_t>(proto::error::StatusCode::SUCCESS);
+            response.statusCode = static_cast<size_t>(StatusCode::SUCCESS);
             response.dataPtr = reinterpret_cast<uintptr_t>(buffer.data());
             response.dataSize = buffer.size();
         } else {
