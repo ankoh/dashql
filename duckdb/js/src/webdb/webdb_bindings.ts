@@ -2,7 +2,6 @@
 
 import { DuckDBModule } from '../wasm/duckdb_module';
 import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webdb_buffer';
-import * as proto from '../proto';
 
 /// Decode a string
 function decodeString(buffer: Uint8Array): string {
@@ -13,7 +12,7 @@ function decodeString(buffer: Uint8Array): string {
     return result;
 }
 
-const SUCCESS = 0
+const SUCCESS = 0;
 
 /// A connection to DuckDB
 export class DuckDBConnection {
