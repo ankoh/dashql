@@ -20,8 +20,10 @@
 
 namespace dashql {
 
-template <typename T>
-using ExpectedBufferRef = duckdb::web::ExpectedBufferRef<T>;
+using ActionGraph = proto::action::ActionGraph;
+using ExecutableProgram = proto::session::ExecutableProgram;
+template <typename T> using ExpectedBufferRef = duckdb::web::ExpectedBufferRef<T>;
+using Program = proto::syntax::Program;
 
 namespace fb = flatbuffers;
 
@@ -38,6 +40,10 @@ class Session {
     std::pair<const proto::session::ExecutableProgram*, fb::DetachedBuffer> program_;
     /// The current action status
     std::unordered_map<uint32_t, proto::action::ActionStatus> action_status_;
+
+    /// Derive actions
+    fb::Offset<ActionGraph> DeriveActions(fb::FlatBufferBuilder& builder, const ExecutableProgram& prev,
+                                          const Program& next);
 
    public:
     /// Constructor
