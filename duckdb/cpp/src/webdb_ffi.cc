@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "duckdb/web/webapi.h"
+#include "duckdb/web/webdb.h"
 #include "duckdb/web/proto/api_generated.h"
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/idl.h"
@@ -12,7 +12,7 @@
 namespace fb = flatbuffers;
 using namespace duckdb::web;
 
-static std::unique_ptr<WebAPI> instance;
+static std::unique_ptr<WebDB> instance;
 
 extern "C" {
 
@@ -31,7 +31,7 @@ void duckdb_web_init() {
     // spdlog::info("initialized logger");
 
     // Create the instance
-    instance = std::make_unique<WebAPI>();
+    instance = std::make_unique<WebDB>();
     // spdlog::info("initialized web api");
 }
 /// Create a conn
@@ -40,20 +40,20 @@ ConnectionHdl duckdb_web_connect() {
 }
 /// End a conn
 void duckdb_web_disconnect(ConnectionHdl connHdl) {
-    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     instance->Disconnect(c);
 }
 
 /// Register a buffer
 void duckdb_web_register_buffer(ConnectionHdl connHdl, void* buffer, uint32_t buffer_size) {
-    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     c->context_data().RegisterBuffer(
         nonstd::span{static_cast<std::byte*>(buffer), static_cast<long>(buffer_size)});
 }
 
 /// Release a buffer
 void duckdb_web_release_buffer(ConnectionHdl connHdl, BufferHdl bufferHdl) {
-    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto b = reinterpret_cast<void*>(bufferHdl);
     c->context_data().ReleaseBuffer(b);
 }
@@ -64,41 +64,41 @@ void* duckdb_web_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl) {
 }
 
 /// Run a query
-void duckdb_web_run_query(WebAPI::Response* packed, ConnectionHdl connHdl, const char* text) {
-    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+void duckdb_web_run_query(WebDB::Response* packed, ConnectionHdl connHdl, const char* text) {
+    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->RunQuery(text);
     c->context_data().Respond(move(r), *packed);
 }
 
 /// Send a query
-void duckdb_web_send_query(WebAPI::Response* packed, ConnectionHdl connHdl, const char* text) {
-    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+void duckdb_web_send_query(WebDB::Response* packed, ConnectionHdl connHdl, const char* text) {
+    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->SendQuery(text);
     c->context_data().Respond(move(r), *packed);
 }
 
 /// Fetch query results
-void duckdb_web_fetch_query_results(WebAPI::Response* packed, ConnectionHdl connHdl) {
-    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+void duckdb_web_fetch_query_results(WebDB::Response* packed, ConnectionHdl connHdl) {
+    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->FetchQueryResults();
     c->context_data().Respond(move(r), *packed);
 }
 
 /// Analyze a query
-void duckdb_web_analyze_query(WebAPI::Response* packed, ConnectionHdl connHdl, const char* text) {
-    auto c = reinterpret_cast<WebAPI::Connection*>(connHdl);
+void duckdb_web_analyze_query(WebDB::Response* packed, ConnectionHdl connHdl, const char* text) {
+    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->AnalyzeQuery(text);
     c->context_data().Respond(move(r), *packed);
 }
 
 /// Generate a table
-void duckdb_web_generate_table(WebAPI::Response* response, WebAPI::Connection* conn, void* spec_buffer, uint32_t spec_size) {
+void duckdb_web_generate_table(WebDB::Response* response, WebDB::Connection* conn, void* spec_buffer, uint32_t spec_size) {
     // XXX
 }
 
 }
 
-#ifdef WITH_WEBAPI_MAIN
+#ifdef WITH_WEBDB_MAIN
 int main() {
     duckdb_web_init();
 }

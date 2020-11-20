@@ -3,7 +3,7 @@
 #ifndef INCLUDE_DUCKDB_WEB_ITERATOR_H_
 #define INCLUDE_DUCKDB_WEB_ITERATOR_H_
 
-#include "duckdb/web/webapi.h"
+#include "duckdb/web/webdb.h"
 #include "duckdb/web/common/expected.h"
 #include "duckdb/web/proto/query_result_generated.h"
 
@@ -14,7 +14,7 @@ namespace web {
 struct QueryResultIterator {
     protected:
     /// The connection
-    WebAPI::Connection& connection;
+    WebDB::Connection& connection;
     /// The query result
     const proto::QueryResult& result;
     /// The global row index
@@ -33,7 +33,7 @@ struct QueryResultIterator {
 
     public:
     /// Constructor
-    QueryResultIterator(WebAPI::Connection& connection, const proto::QueryResult& result);
+    QueryResultIterator(WebDB::Connection& connection, const proto::QueryResult& result);
 
     /// Get the column types
     auto column_count() const { return result.column_types()->size(); }
