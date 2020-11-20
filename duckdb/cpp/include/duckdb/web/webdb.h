@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_WEBAPI_H_
-#define INCLUDE_DUCKDB_WEB_WEBAPI_H_
+#ifndef INCLUDE_DUCKDB_WEB_WEBDB_H_
+#define INCLUDE_DUCKDB_WEB_WEBDB_H_
 
 #include <stdexcept>
 #include <string>
@@ -21,7 +21,7 @@ namespace duckdb {
 namespace web {
 
 /// The Web API context
-class WebAPI {
+class WebDB {
    public:
     class Connection;
     class ContextData;
@@ -157,7 +157,7 @@ class WebAPI {
 
    public:
     /// Constructor
-    WebAPI();
+    WebDB();
 
     /// Create a connection
     Connection& Connect();
@@ -168,4 +168,4 @@ class WebAPI {
 }  // namespace web
 }  // namespace duckdb
 
-#endif  // INCLUDE_DUCKDB_WEB_WEBAPI_H_
+#endif  // INCLUDE_DUCKDB_WEB_WEBDB_H_

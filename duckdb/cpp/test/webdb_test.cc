@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-#include "duckdb/web/webapi.h"
+#include "duckdb/web/webdb.h"
 #include "duckdb/web/iterator.h"
 #include "duckdb/web/proto/query_plan_generated.h"
 #include "gtest/gtest.h"
@@ -15,9 +15,9 @@ using namespace std;
 
 namespace {
 
-TEST(WebAPI, InvalidSQL) {
+TEST(WebDB, InvalidSQL) {
     auto db = make_shared<duckdb::DuckDB>();
-    WebAPI::Connection conn{db};
+    WebDB::Connection conn{db};
     auto expected = conn.SendQuery(R"RAW(
         INVALID SQL
     )RAW");

@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/webapi.h"
+#include "duckdb/web/webdb.h"
 
 #include <cstdio>
 #include <memory>
@@ -23,18 +23,18 @@ namespace fb = flatbuffers;
 using namespace duckdb::web;
 
 /// Reset the response
-void WebAPI::ContextData::clearRequest() {
+void WebDB::ContextData::clearRequest() {
     request_status_ = proto::StatusCode::SUCCESS;
     request_error_.reset();
     request_data_ = {nullptr, 0};
 }
 
 /// Constructor
-WebAPI::ContextData::ContextData()
+WebDB::ContextData::ContextData()
     : detached_buffers_(), adopted_buffers_(), request_status_(), request_data_({nullptr, 0}), request_error_() {}
 
 /// Register a buffer
-std::pair<void*, size_t> WebAPI::ContextData::RegisterBuffer(flatbuffers::DetachedBuffer detached) {
+std::pair<void*, size_t> WebDB::ContextData::RegisterBuffer(flatbuffers::DetachedBuffer detached) {
     auto data_ptr = detached.data();
     auto data_size = detached.size();
     detached_buffers_.insert({data_ptr, std::move(detached)});
@@ -42,7 +42,7 @@ std::pair<void*, size_t> WebAPI::ContextData::RegisterBuffer(flatbuffers::Detach
 }
 
 /// Register a buffer
-std::pair<void*, size_t> WebAPI::ContextData::RegisterBuffer(nonstd::span<std::byte> bytes) {
+std::pair<void*, size_t> WebDB::ContextData::RegisterBuffer(nonstd::span<std::byte> bytes) {
     auto data_ptr = bytes.data();
     auto data_size = bytes.size();
     adopted_buffers_.insert({data_ptr, AdoptedBuffer{bytes}});
@@ -50,13 +50,13 @@ std::pair<void*, size_t> WebAPI::ContextData::RegisterBuffer(nonstd::span<std::b
 }
 
 /// Release a buffer
-void WebAPI::ContextData::ReleaseBuffer(void* data) {
+void WebDB::ContextData::ReleaseBuffer(void* data) {
     detached_buffers_.erase(data);
     adopted_buffers_.erase(data);
 }
 
 /// Constructor
-WebAPI::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
+WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
     : database_(std::move(db)),
       connection_(*database_),
       context_data_(std::make_unique<ContextData>()),
@@ -64,7 +64,7 @@ WebAPI::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
       current_query_result_() {}
 
 /// Run a SQL query
-ExpectedBuffer<proto::QueryResult> WebAPI::Connection::RunQuery(std::string_view text) {
+ExpectedBuffer<proto::QueryResult> WebDB::Connection::RunQuery(std::string_view text) {
     try {
         // Send the query
         auto result = connection_.SendQuery(std::string{text});
@@ -82,7 +82,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::RunQuery(std::string_view
 }
 
 /// Start a SQL query
-ExpectedBuffer<proto::QueryResult> WebAPI::Connection::SendQuery(std::string_view text) {
+ExpectedBuffer<proto::QueryResult> WebDB::Connection::SendQuery(std::string_view text) {
     try {
         // Send the query
         auto result = connection_.SendQuery(std::string{text});
@@ -100,7 +100,7 @@ ExpectedBuffer<proto::QueryResult> WebAPI::Connection::SendQuery(std::string_vie
 }
 
 /// Fetch query results
-ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::FetchQueryResults() {
+ExpectedBuffer<proto::QueryResultChunk> WebDB::Connection::FetchQueryResults() {
     try {
         // Fetch data if a query is active
         std::unique_ptr<duckdb::DataChunk> chunk;
@@ -125,7 +125,7 @@ ExpectedBuffer<proto::QueryResultChunk> WebAPI::Connection::FetchQueryResults() 
 }
 
 /// Analyze a SQL query
-ExpectedBuffer<proto::QueryPlan> WebAPI::Connection::AnalyzeQuery(std::string_view text) {
+ExpectedBuffer<proto::QueryPlan> WebDB::Connection::AnalyzeQuery(std::string_view text) {
     // Parse the statements
     duckdb::Connection conn{*database_};
     duckdb::Parser parser;
@@ -152,7 +152,7 @@ ExpectedBuffer<proto::QueryPlan> WebAPI::Connection::AnalyzeQuery(std::string_vi
 }
 
 /// Format a query plan
-ExpectedBuffer<proto::FormattedText> WebAPI::Connection::FormatQueryPlan(void* query_plan) {
+ExpectedBuffer<proto::FormattedText> WebDB::Connection::FormatQueryPlan(void* query_plan) {
     auto txt = writeJSON(query_plan, *proto::QueryPlanTypeTable());
 
     // Encode the query plan
@@ -166,20 +166,20 @@ ExpectedBuffer<proto::FormattedText> WebAPI::Connection::FormatQueryPlan(void* q
 }
 
 /// Generate a table
-ExpectedSignal WebAPI::Connection::GenerateTable(proto::TableSpecification& spec) {
+ExpectedSignal WebDB::Connection::GenerateTable(proto::TableSpecification& spec) {
     return generateTable(connection_, spec);
 }
 
 /// Constructor
-WebAPI::WebAPI() : database_(std::make_shared<duckdb::DuckDB>()), connections_() {}
+WebDB::WebDB() : database_(std::make_shared<duckdb::DuckDB>()), connections_() {}
 
 /// Create a session
-WebAPI::Connection& WebAPI::Connect() {
-    auto conn = std::make_unique<WebAPI::Connection>(database_);
+WebDB::Connection& WebDB::Connect() {
+    auto conn = std::make_unique<WebDB::Connection>(database_);
     auto conn_ptr = conn.get();
     connections_.insert({conn_ptr, move(conn)});
     return *conn_ptr;
 }
 
 /// End a session
-void WebAPI::Disconnect(Connection* session) { connections_.erase(session); }
+void WebDB::Disconnect(Connection* session) { connections_.erase(session); }

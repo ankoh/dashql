@@ -1,5 +1,4 @@
 # Copyright (c) 2020 The DashQL Authors
-
 # ---------------------------------------------------------------------------
 
 # Use project versions
