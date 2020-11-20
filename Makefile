@@ -60,8 +60,8 @@ core_js:
 	npm --prefix ${ROOT_DIR}/core/js run build
 
 # Test the dashql_core javascript library
-.PHONY: core_js_test
-core_js_test:
+.PHONY: core_js_tests
+core_js_tests:
 	npm --prefix ${ROOT_DIR}/core/js run test
 
 # Generate the protocol files
@@ -121,7 +121,7 @@ duckdb_js:
 
 # Run the javascript tests duckdb.wasm
 .PHONY: duckdb_js_test
-duckdb_js_test:
+duckdb_js_tests:
 	npm --prefix ${ROOT_DIR}/duckdb/js run test
 
 # ---------------------------------------------------------------------------

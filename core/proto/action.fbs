@@ -1,6 +1,5 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "error.fbs";
 include "action_mutating.fbs";
 include "action_pure.fbs";
 
@@ -62,10 +61,7 @@ enum Blocker: uint8 {
 
 table Action {
     origin: uint32;
-    status: ActionStatus;
     required_actions: [uint32];
-    blocker: Blocker;
-    error: error.Error;
     config: ActionConfig;
 }
 
