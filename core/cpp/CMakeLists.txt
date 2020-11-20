@@ -57,6 +57,7 @@ include_directories(
     "${CMAKE_BINARY_DIR}/include"
     "${CMAKE_SOURCE_DIR}/../../duckdb/cpp/include"
     "${CMAKE_BINARY_DIR}/duckdb/include"
+    "${DUCKDB_INCLUDE_DIR}"
 )
 
 # ---------------------------------------------------------------------------
@@ -202,10 +203,10 @@ target_link_libraries(dashql_parser flatbuffers)
 # ---------------------------------------------------------------------------
 
 add_library(dashql_core
-    ${CMAKE_SOURCE_DIR}/src/action_planner.cc
+    ${CMAKE_SOURCE_DIR}/src/session.cc
 )
 
-target_link_libraries(dashql_core dashql_parser)
+target_link_libraries(dashql_core dashql_parser duckdb_webdb)
 
 # ---------------------------------------------------------------------------
 # Emscripten
