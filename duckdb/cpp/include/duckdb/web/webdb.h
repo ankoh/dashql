@@ -30,7 +30,6 @@ using ExpectedSignal = dashql::ExpectedSignal;
 class WebDB {
    public:
     class Connection;
-    class ContextData;
 
     /// The return type
     struct Response {
@@ -66,55 +65,6 @@ class WebDB {
         AdoptedBuffer& operator=(const AdoptedBuffer& other) = delete;
     };
 
-    /// A context data manager
-    class ContextData {
-       protected:
-        /// The detached flatbuffers owned by this session
-        std::unordered_map<void*, flatbuffers::DetachedBuffer> detached_buffers_;
-        /// The adopted buffers owned by this session
-        std::unordered_map<void*, AdoptedBuffer> adopted_buffers_;
-
-        /// The request status code
-        proto::StatusCode request_status_;
-        /// The request data (if any)
-        std::pair<void*, size_t> request_data_;
-        /// The request error (if any)
-        std::optional<Error> request_error_;
-
-        /// Clear the request
-        void clearRequest();
-
-       public:
-        /// Constructor
-        ContextData();
-
-        /// Store the result
-        template <typename T> void Respond(ExpectedBuffer<T>&& result, Response& response) {
-            clearRequest();
-            if (result) {
-                request_status_ = proto::StatusCode::SUCCESS;
-                request_data_ = RegisterBuffer(result.ReleaseBuffer());
-                auto [d, n] = request_data_;
-                response.dataPtr = reinterpret_cast<uintptr_t>(d);
-                response.dataSize = n;
-            } else {
-                request_status_ = proto::StatusCode::ERROR;
-                request_error_ = result.ReleaseError();
-                auto m = request_error_->message();
-                m = m == nullptr ? "" : m;
-                response.dataPtr = reinterpret_cast<uintptr_t>(m);
-                response.dataSize = strlen(m);
-            }
-            response.statusCode = static_cast<uint32_t>(request_status_);
-        }
-        /// Register a detached flatbuffer buffer
-        std::pair<void*, size_t> RegisterBuffer(flatbuffers::DetachedBuffer buffer);
-        /// Register a raw buffer
-        std::pair<void*, size_t> RegisterBuffer(nonstd::span<std::byte> buffer);
-        /// Release a buffer
-        void ReleaseBuffer(void* buffer);
-    };
-
     /// A connection
     class Connection {
         friend class Response;
@@ -124,8 +74,6 @@ class WebDB {
         std::shared_ptr<duckdb::DuckDB> database_;
         /// The connection
         duckdb::Connection connection_;
-        /// The context data
-        std::unique_ptr<ContextData> context_data_;
 
         /// The current query id
         uint64_t current_query_id_;
@@ -137,9 +85,6 @@ class WebDB {
         Connection(std::shared_ptr<duckdb::DuckDB> database);
         /// Destructor
         ~Connection() = default;
-
-        /// Get the buffer manager
-        auto& context_data() { return *context_data_; }
 
         /// Run a SQL query
         ExpectedBuffer<proto::QueryResult> RunQuery(std::string_view text);
@@ -169,9 +114,6 @@ class WebDB {
     Connection* Connect();
     /// End a connection
     void Disconnect(Connection* connection);
-
-    /// Get the global instance
-    static WebDB& Instance();
 };
 
 }  // namespace web
