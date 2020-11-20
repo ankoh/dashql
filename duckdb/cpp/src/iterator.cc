@@ -1,8 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/webapi/iterator.h"
-#include "duckdb/webapi/types.h"
-#include "duckdb/webapi/proto/sql_type_generated.h"
+#include "duckdb/web/iterator.h"
+#include "duckdb/web/proto/sql_type_generated.h"
 #include "duckdb/common/types/date.hpp"
 
 #include <optional>
@@ -12,7 +11,8 @@
 #include <unordered_map>
 #include <variant>
 
-namespace duckdb_webapi {
+namespace duckdb {
+namespace web {
 
 // Constructor
 QueryResultIterator::QueryResultIterator(WebAPI::Connection& connection, const proto::QueryResult& result)
@@ -211,4 +211,5 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
     return duckdb::Value{};
 }
 
-}  // namespace duckdb_webapi
+}  // namespace web
+}  // namespace duckdb

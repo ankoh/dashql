@@ -119,7 +119,8 @@ struct ToJSONVisitor : public fb::IterationVisitor {
 };
 }  // namespace
 
-namespace duckdb_webapi {
+namespace duckdb {
+namespace web {
 
 /// Write the tql program
 std::string writeJSON(void *buffer, const flatbuffers::TypeTable &type_table) {
@@ -129,5 +130,6 @@ std::string writeJSON(void *buffer, const flatbuffers::TypeTable &type_table) {
     return out.str();
 }
 
-}  // namespace duckdb_webapi
+}  // namespace web
+}  // namespace duckdb
 
