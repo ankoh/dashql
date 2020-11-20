@@ -13,6 +13,8 @@ function decodeString(buffer: Uint8Array): string {
     return result;
 }
 
+const SUCCESS = 0
+
 /// A connection to DuckDB
 export class DuckDBConnection {
     /// The bindings
@@ -37,7 +39,7 @@ export class DuckDBConnection {
         let instance = await this._bindings.getInstance();
         let [s, d, n] = await this._bindings.callSRet('duckdb_web_run_query', ['number', 'string'], [this._conn, text]);
         let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.api.StatusCode.SUCCESS) {
+        if (s !== SUCCESS) {
             throw new Error(decodeString(mem));
         }
         let msg = new QueryResultBuffer(mem);
@@ -50,7 +52,7 @@ export class DuckDBConnection {
         let instance = await this._bindings.getInstance();
         let [s, d, n] = await this._bindings.callSRet('duckdb_web_send_query', ['number', 'string'], [this._conn, text]);
         let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.api.StatusCode.SUCCESS) {
+        if (s !== SUCCESS) {
             throw new Error(decodeString(mem));
         }
         let msg = new QueryResultBuffer(mem);
@@ -63,7 +65,7 @@ export class DuckDBConnection {
         let instance = await this._bindings.getInstance();
         let [s, d, n] = await this._bindings.callSRet('duckdb_web_fetch_query_results', ['number'], [this._conn]);
         let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.api.StatusCode.SUCCESS) {
+        if (s !== SUCCESS) {
             throw new Error(decodeString(mem));
         }
         let msg = new QueryResultChunkBuffer(mem);
@@ -76,7 +78,7 @@ export class DuckDBConnection {
         let instance = await this._bindings.getInstance();
         let [s, d, n] = await this._bindings.callSRet('duckdb_web_analyze_query', ['number'], [this._conn]);
         let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.api.StatusCode.SUCCESS) {
+        if (s !== SUCCESS) {
             throw new Error(decodeString(mem));
         }
         let msg = new QueryPlanBuffer(mem);

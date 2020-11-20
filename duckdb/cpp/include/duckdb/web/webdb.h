@@ -11,7 +11,6 @@
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
 #include "duckdb.hpp"
-#include "duckdb/web/proto/api_generated.h"
 #include "duckdb/web/proto/query_plan_generated.h"
 #include "duckdb/web/proto/query_result_generated.h"
 #include "duckdb/web/proto/tablegen_generated.h"
@@ -94,8 +93,6 @@ class WebDB {
         ExpectedBuffer<proto::QueryResultChunk> FetchQueryResults();
         /// Analyze a SQL query
         ExpectedBuffer<proto::QueryPlan> AnalyzeQuery(std::string_view text);
-        /// Format a query plan
-        ExpectedBuffer<proto::FormattedText> FormatQueryPlan(void* query_plan);
         /// Generate a table
         ExpectedSignal GenerateTable(proto::TableSpecification& spec);
     };
