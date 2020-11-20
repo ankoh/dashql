@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_COMMON_FFI_RESPONSE_H_
-#define INCLUDE_DUCKDB_WEB_COMMON_FFI_RESPONSE_H_
+#ifndef INCLUDE_DUCKDB_WEB_COMMON_RESPONSE_H_
+#define INCLUDE_DUCKDB_WEB_COMMON_RESPONSE_H_
 
 #include <variant>
 
@@ -83,5 +83,5 @@ class ResponseBuffer {
 }  // namespace web
 }  // namespace duckdb
 
-#endif  // INCLUDE_DUCKDB_WEB_COMMON_FFI_RESPONSE_H_
+#endif  // INCLUDE_DUCKDB_WEB_COMMON_RESPONSE_H_
 
