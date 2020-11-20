@@ -53,6 +53,18 @@ target_link_libraries(duckdb_webdb
 # ---------------------------------------------------------------------------
 # FFI
 
+set(DUCKDB_WEB_FFI " \
+    _duckdb_web_connect, \
+    _duckdb_web_disconnect, \
+    _duckdb_web_register_buffer, \
+    _duckdb_web_release_buffer, \
+    _duckdb_web_run_query, \
+    _duckdb_web_send_query, \
+    _duckdb_web_fetch_query_results, \
+    _duckdb_web_analyze_query \
+")
+set(DUCKDB_WEB_FFI "${DUCKDB_WEB_FFI}" PARENT_SCOPE)
+
 add_library(duckdb_ffi ${CMAKE_CURRENT_SOURCE_DIR}/src/webdb_ffi.cc)
 target_link_libraries(duckdb_ffi duckdb_webdb flatbuffers spdlog Threads::Threads)
 
@@ -67,15 +79,7 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
-            _duckdb_web_init, \
-            _duckdb_web_connect, \
-            _duckdb_web_disconnect, \
-            _duckdb_web_register_buffer, \
-            _duckdb_web_release_buffer, \
-            _duckdb_web_run_query, \
-            _duckdb_web_send_query, \
-            _duckdb_web_fetch_query_results, \
-            _duckdb_web_analyze_query \
+            ${DUCKDB_WEB_FFI} \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
