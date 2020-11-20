@@ -30,6 +30,7 @@ add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}
 
 include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../core/cpp/include"
     "${DUCKDB_INCLUDE_DIR}"
 )
 

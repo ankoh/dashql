@@ -1,0 +1,16 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace dashql.proto.error;
+
+enum ErrorCode: uint8 {
+    NONE = 0,
+    INTERNAL = 1,
+    TIMEOUT = 2,
+    OUT_OF_MEMORY = 3,
+    INVALID_CONFIGURATION = 4,
+}
+
+table Error {
+    code: ErrorCode;
+    message: string;
+}

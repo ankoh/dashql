@@ -3,16 +3,16 @@
 #ifndef INCLUDE_DUCKDB_WEB_ITERATOR_H_
 #define INCLUDE_DUCKDB_WEB_ITERATOR_H_
 
-#include "duckdb/web/webdb.h"
-#include "duckdb/web/common/expected.h"
+#include "dashql/common/expected.h"
 #include "duckdb/web/proto/query_result_generated.h"
+#include "duckdb/web/webdb.h"
 
 namespace duckdb {
 namespace web {
 
 /// The query result forward iterator
 struct QueryResultIterator {
-    protected:
+   protected:
     /// The connection
     WebDB::Connection& connection;
     /// The query result
@@ -31,7 +31,7 @@ struct QueryResultIterator {
     /// Verify the result chunk
     bool Verify(const proto::QueryResultChunk& chunk) const;
 
-    public:
+   public:
     /// Constructor
     QueryResultIterator(WebDB::Connection& connection, const proto::QueryResult& result);
 
