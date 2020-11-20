@@ -20,7 +20,7 @@ using BufferHdl = uintptr_t;
 
 /// Create a conn
 ConnectionHdl duckdb_web_connect() {
-    return reinterpret_cast<ConnectionHdl>(&WebDB::Instance().Connect());
+    return reinterpret_cast<ConnectionHdl>(WebDB::Instance().Connect());
 }
 /// End a conn
 void duckdb_web_disconnect(ConnectionHdl connHdl) {
