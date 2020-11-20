@@ -12,36 +12,19 @@
 namespace fb = flatbuffers;
 using namespace duckdb::web;
 
-static std::unique_ptr<WebDB> instance;
-
 extern "C" {
 
 using ConnectionHdl = uintptr_t;
 using BufferHdl = uintptr_t;
 
 /// Create a conn
-void duckdb_web_init() {
-    // Prepare the logger
-    auto logSink = std::make_shared<spdlog::sinks::stderr_sink_st>();
-    auto logger = std::make_shared<spdlog::logger>("console", logSink);
-    logger->set_level(spdlog::level::debug);
-    logger->set_pattern(R"RAW({"time":"%T","level":"%l","message":"%v"})RAW");
-    spdlog::set_default_logger(logger);
-    // XXX log to buffer
-    // spdlog::info("initialized logger");
-
-    // Create the instance
-    instance = std::make_unique<WebDB>();
-    // spdlog::info("initialized web api");
-}
-/// Create a conn
 ConnectionHdl duckdb_web_connect() {
-    return reinterpret_cast<ConnectionHdl>(&instance->Connect());
+    return reinterpret_cast<ConnectionHdl>(&WebDB::Instance().Connect());
 }
 /// End a conn
 void duckdb_web_disconnect(ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    instance->Disconnect(c);
+    WebDB::Instance().Disconnect(c);
 }
 
 /// Register a buffer
@@ -100,6 +83,11 @@ void duckdb_web_generate_table(WebDB::Response* response, WebDB::Connection* con
 
 #ifdef WITH_WEBDB_MAIN
 int main() {
-    duckdb_web_init();
+    // Prepare the logger
+    auto logSink = std::make_shared<spdlog::sinks::stderr_sink_st>();
+    auto logger = std::make_shared<spdlog::logger>("console", logSink);
+    logger->set_level(spdlog::level::debug);
+    logger->set_pattern(R"RAW({"time":"%T","level":"%l","message":"%v"})RAW");
+    spdlog::set_default_logger(logger);
 }
 #endif
