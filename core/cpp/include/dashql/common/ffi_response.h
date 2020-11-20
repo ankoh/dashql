@@ -10,7 +10,7 @@
 #include "flatbuffers/flatbuffers.h"
 #include "duckdb/web/proto/error_generated.h"
 
-using StatusCode = duckdb::proto::error::StatusCode;
+using StatusCode = duckdb::web::proto::StatusCode;
 
 namespace dashql {
 
