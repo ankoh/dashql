@@ -5,7 +5,6 @@
 #include "dashql/common/span.h"
 #include "dashql/common/ffi_response.h"
 #include "duckdb/web/webdb.h"
-#include "duckdb/web/proto/api_generated.h"
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/idl.h"
 #include "spdlog/sinks/stdout_sinks.h"
