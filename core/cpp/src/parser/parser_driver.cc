@@ -90,7 +90,7 @@ void Statement::reset() {
 }
 
 /// Encode qualified name
-fb::Offset<fb::String> Statement::encodeQualifiedName(fb::FlatBufferBuilder& builder) {
+fb::Offset<fb::String> Statement::EncodeQualifiedName(fb::FlatBufferBuilder& builder) {
     auto [table, schema] = name;
     if (schema.empty()) {
         return builder.CreateString(table.data(), table.size());
@@ -104,14 +104,14 @@ fb::Offset<fb::String> Statement::encodeQualifiedName(fb::FlatBufferBuilder& bui
 }
 
 /// Encode short name
-fb::Offset<fb::String> Statement::encodeShortName(fb::FlatBufferBuilder& builder) {
+fb::Offset<fb::String> Statement::EncodeShortName(fb::FlatBufferBuilder& builder) {
     auto [table, schema] = name;
     return builder.CreateString(table.data(), table.size());
 }
 
 /// Constructor
 ParserDriver::ParserDriver(Scanner& scanner)
-    : _scanner(scanner), _options(), _nodes(), _current_statement(), _statements(), _dependencies(), _errors() {}
+    : scanner_(scanner), options_(), nodes_(), current_statement_(), statements_(), dependencies_(), errors_() {}
 
 /// Destructor
 ParserDriver::~ParserDriver() {}
@@ -121,7 +121,7 @@ std::pair<const sx::Node*, size_t> ParserDriver::FindAttribute(const sx::Node& n
     auto attr_begin = node.children_begin_or_value();
     auto attr_count = node.children_count();
     for (auto i = 0; i < attr_count; ++i) {
-        auto& attr = _nodes[attr_begin + i];
+        auto& attr = nodes_[attr_begin + i];
         if (attr.attribute_key() == attribute) {
             return {&attr, attr_begin + i};
         }
@@ -135,7 +135,7 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_glob
 
     // Is string?
     if (node.node_type() == sx::NodeType::STRING) {
-        rev[0] = _scanner.TextAt(node.location());
+        rev[0] = scanner_.TextAt(node.location());
     }
 
     // Is array?
@@ -145,9 +145,9 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_glob
         auto end = begin + count;
         unsigned next = 0;
         for (auto i = 0; i < count && next < rev.size(); ++i) {
-            auto& value = _nodes[end - i - 1];
+            auto& value = nodes_[end - i - 1];
             if (value.node_type() == sx::NodeType::STRING) {
-                rev[next++] = _scanner.TextAt(value.location());
+                rev[next++] = scanner_.TextAt(value.location());
             }
         }
     }
@@ -159,14 +159,14 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_glob
         }
     }
 
-    if (rev[1].empty() && lift_global) rev[1] = _options.global_namespace;
+    if (rev[1].empty() && lift_global) rev[1] = options_.global_namespace;
     return rev;
 }
 
 /// Process a new node
 NodeID ParserDriver::AddNode(sx::Node node) {
-    auto node_id = _nodes.size();
-    _nodes.push_back(sx::Node(node.location(), node.node_type(), node.attribute_key(), node_id,
+    auto node_id = nodes_.size();
+    nodes_.push_back(sx::Node(node.location(), node.node_type(), node.attribute_key(), node_id,
                               node.children_begin_or_value(), node.children_count()));
 
     // Set parent reference
@@ -175,7 +175,7 @@ NodeID ParserDriver::AddNode(sx::Node node) {
         auto begin = node.children_begin_or_value();
         auto end = begin + node.children_count();
         for (auto i = begin; i < end; ++i) {
-            auto& n = _nodes[i];
+            auto& n = nodes_[i];
             n = sx::Node(n.location(), n.node_type(), n.attribute_key(), node_id, n.children_begin_or_value(),
                          n.children_count());
         }
@@ -188,31 +188,31 @@ NodeID ParserDriver::AddNode(sx::Node node) {
         case sx::NodeType::OBJECT_DASHQL_QUERY:
         case sx::NodeType::OBJECT_DASHQL_PARAMETER:
             if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name) {
-                _current_statement.name = AsQualifiedName(*name, true);
+                current_statement_.name = AsQualifiedName(*name, true);
             }
             break;
 
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:
             if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name) {
-                _current_statement.name = AsQualifiedName(*name, true);
+                current_statement_.name = AsQualifiedName(*name, true);
             }
             if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_EXTRACT_DATA); name) {
-                _current_statement.table_refs.push_back({name_id, AsQualifiedName(*name, true)});
+                current_statement_.table_refs.push_back({name_id, AsQualifiedName(*name, true)});
             }
             break;
 
         case sx::NodeType::OBJECT_SQL_INTO:
             if (auto [name, name_id] = FindAttribute(node, Key::SQL_TEMP_NAME); name) {
-                _current_statement.name = AsQualifiedName(*name, true);
+                current_statement_.name = AsQualifiedName(*name, true);
             }
             break;
 
         case sx::NodeType::OBJECT_SQL_TABLE_REF:
-            _current_statement.table_refs.push_back({node_id, AsQualifiedName(node, true)});
+            current_statement_.table_refs.push_back({node_id, AsQualifiedName(node, true)});
             break;
 
         case sx::NodeType::OBJECT_SQL_COLUMN_REF:
-            _current_statement.column_refs.push_back(node_id);
+            current_statement_.column_refs.push_back(node_id);
             break;
         default:
             break;
@@ -224,30 +224,30 @@ NodeID ParserDriver::AddNode(sx::Node node) {
 void ParserDriver::ComputeDependencies() {
     // Collect names
     std::unordered_map<QualifiedName, uint32_t, ArrayHasher<std::string_view, 2>> names;
-    for (unsigned i = 0; i < _statements.size(); ++i) {
-        auto& stmt = _statements[i];
+    for (unsigned i = 0; i < statements_.size(); ++i) {
+        auto& stmt = statements_[i];
         names.insert({stmt.name, i});
     }
 
     // Build dependencies
-    for (unsigned i = 0; i < _statements.size(); ++i) {
-        auto& stmt = _statements[i];
+    for (unsigned i = 0; i < statements_.size(); ++i) {
+        auto& stmt = statements_[i];
 
         // Resolve all table refs
         for (auto& [node, name] : stmt.table_refs) {
             auto [table, schema] = name;
             if (auto iter = names.find({table, schema}); iter != names.end() && iter->second != i) {
-                _dependencies.push_back(sx::Dependency(sx::DependencyType::TABLE_REF, iter->second, i, node));
+                dependencies_.push_back(sx::Dependency(sx::DependencyType::TABLE_REF, iter->second, i, node));
             }
         }
 
         // Resolve all column refs
         for (auto& ref_id : stmt.column_refs) {
-            auto& ref = _nodes[ref_id];
+            auto& ref = nodes_[ref_id];
             if (auto [path, path_id] = FindAttribute(ref, Key::SQL_COLUMN_REF_PATH); path) {
                 auto [table, schema] = AsQualifiedName(*path, false);
                 if (auto iter = names.find({table, schema}); iter != names.end() && iter->second != i) {
-                    _dependencies.push_back(sx::Dependency(sx::DependencyType::COLUMN_REF, iter->second, i, path_id));
+                    dependencies_.push_back(sx::Dependency(sx::DependencyType::COLUMN_REF, iter->second, i, path_id));
                 }
             }
         }
@@ -256,13 +256,13 @@ void ParserDriver::ComputeDependencies() {
 
 /// Add an array
 sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_empty) {
-    auto begin = _nodes.size();
-    _nodes.reserve(_nodes.size() + values.size());
+    auto begin = nodes_.size();
+    nodes_.reserve(nodes_.size() + values.size());
     for (auto& v : values) {
         if (v.node_type() == sx::NodeType::NONE) continue;
         AddNode(v);
     }
-    auto n = _nodes.size() - begin;
+    auto n = nodes_.size() - begin;
     if ((n == 0) && null_if_empty) {
         return Null();
     }
@@ -271,8 +271,8 @@ sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_e
 
 /// Add an object
 sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty) {
-    auto begin = _nodes.size();
-    _nodes.reserve(_nodes.size() + attrs.size());
+    auto begin = nodes_.size();
+    nodes_.reserve(nodes_.size() + attrs.size());
     std::sort(attrs.begin(), attrs.end(), [&](auto& l, auto& r) {
         return static_cast<uint16_t>(l.attribute_key()) < static_cast<uint16_t>(r.attribute_key());
     });
@@ -280,7 +280,7 @@ sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& att
         if (v.node_type() == sx::NodeType::NONE) continue;
         AddNode(v);
     }
-    auto n = _nodes.size() - begin;
+    auto n = nodes_.size() - begin;
     if ((n == 0) && null_if_empty) {
         return Null();
     }
@@ -292,20 +292,20 @@ void ParserDriver::AddStatement(sx::Node node) {
     if (node.node_type() == sx::NodeType::NONE) {
         return;
     }
-    _current_statement.root = AddNode(node);
-    _statements.push_back(std::move(_current_statement));
+    current_statement_.root = AddNode(node);
+    statements_.push_back(std::move(current_statement_));
 }
 
 /// Add an error
-void ParserDriver::AddError(sx::Location loc, const std::string& message) { _errors.push_back({loc, message}); }
+void ParserDriver::AddError(sx::Location loc, const std::string& message) { errors_.push_back({loc, message}); }
 
 /// Write the module
 fb::Offset<sx::Program> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
     std::vector<fb::Offset<sx::Statement>> statements;
-    for (auto& stmt : _statements) {
-        auto stmt_loc = _nodes[stmt.root].location();
-        auto short_name = stmt.encodeShortName(builder);
-        auto qualified_name = stmt.encodeQualifiedName(builder);
+    for (auto& stmt : statements_) {
+        auto stmt_loc = nodes_[stmt.root].location();
+        auto short_name = stmt.EncodeShortName(builder);
+        auto qualified_name = stmt.EncodeQualifiedName(builder);
         sx::StatementBuilder sb{builder};
         sb.add_root(stmt.root);
         sb.add_qualified_name(qualified_name);
@@ -313,19 +313,19 @@ fb::Offset<sx::Program> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
         statements.push_back(sb.Finish());
     }
     std::vector<fb::Offset<sx::Error>> errs;
-    for (auto [loc, msg] : _errors) {
+    for (auto [loc, msg] : errors_) {
         auto s = builder.CreateString(msg.data(), msg.length());
         sx::ErrorBuilder eb{builder};
         eb.add_location(&loc);
         eb.add_message(s);
         errs.push_back(eb.Finish());
     }
-    auto nodes_vec = builder.CreateVectorOfStructs(_nodes);
+    auto nodes_vec = builder.CreateVectorOfStructs(nodes_);
     auto statements_vec = builder.CreateVector(statements);
     auto error_vec = builder.CreateVector(errs);
-    auto line_breaks_vec = builder.CreateVectorOfStructs(_scanner.line_breaks());
-    auto comments_vec = builder.CreateVectorOfStructs(_scanner.comments());
-    auto deps_vec = builder.CreateVectorOfStructs(_dependencies);
+    auto line_breaks_vec = builder.CreateVectorOfStructs(scanner_.line_breaks());
+    auto comments_vec = builder.CreateVectorOfStructs(scanner_.comments());
+    auto deps_vec = builder.CreateVectorOfStructs(dependencies_);
     sx::ProgramBuilder b{builder};
     b.add_nodes(nodes_vec);
     b.add_statements(statements_vec);
