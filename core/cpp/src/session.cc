@@ -13,6 +13,7 @@ namespace dashql {
 // However, our problem is simpler since we can assume that the statement names stay the same.
 //
 // Our algorithm works as follows:
+//
 // We traverse the PREVIOUS action graph in topological order and check for every action whether it is applicable.
 //
 // An action is applicable iff:
@@ -28,7 +29,7 @@ namespace dashql {
 //  2) If it is modifying an existing table, we have to backtrack all (transitive) dependencies and invalidate them.
 //     We invalidate a previous action by UNDOING its effects and remove the action from the new graph.
 //
-// Example for not applicalbe actions:
+// Example for not applicable actions:
 //  1) SELECT 1 INTO b; DELETE FROM b;
 //     If a user removes the delete statement, we have to backtrack that b (and thus the SELECT statment) cannot be carried over.
 //  2) SELECT 1 INTO b, SELECT * INTO c FROM b;
@@ -38,6 +39,10 @@ namespace dashql {
 // Finally, we need to emit new actions for all statements, that were not covered by an applicable action.
 //
 // XXX we're not parsing insert, delete, update at the moment so we can implement the backwards poisoning later.
+//
+// Additional notes:
+//  - The actions within the action graph are encoded in toplogical order.
+//    That allows us to implement the first phase of the algorithm with a linear scan over the previous action graph.
 //
 fb::Offset<ActionGraph> Session::DeriveActions(fb::FlatBufferBuilder& builder, const ExecutableProgram& prev,
                                                const Program& next) {
