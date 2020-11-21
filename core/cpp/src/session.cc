@@ -27,13 +27,13 @@ namespace dashql {
 // An action that is not applicable can have two effects:
 //  1) If it is only creating a new table, we emit an action to UNDO the effects (i.e. DROP).
 //  2) If it is modifying an existing table, we have to backtrack all (transitive) dependencies and invalidate them.
-//     We invalidate a previous action by UNDOING its effects and remove the action from the new graph.
+//     We invalidate a previous action by UNDOING its effects and removing the action from the new graph.
 //
 // Example for not applicable actions:
 //  1) SELECT 1 INTO b; DELETE FROM b;
 //     If a user removes the delete statement, we have to backtrack that b (and thus the SELECT statment) cannot be carried over.
 //  2) SELECT 1 INTO b, SELECT * INTO c FROM b;
-//     If a user removes the second statement, we just DROP c
+//     If a user removes the second statement, we just DROP c.
 //
 // This will produce a new action graph that will UNDO all actions except for those that can be reused as is.
 // Finally, we need to emit new actions for all statements, that were not covered by an applicable action.
@@ -42,7 +42,7 @@ namespace dashql {
 //
 // Additional notes:
 //  - The actions within the action graph are encoded in toplogical order.
-//    That allows us to implement the first phase of the algorithm with a linear scan over the previous action graph.
+//    That allows us to implement the first phase of the algorithm with a linear scan over the previous action array.
 //
 fb::Offset<ActionGraph> Session::DeriveActions(fb::FlatBufferBuilder& builder, const ExecutableProgram& prev,
                                                const Program& next) {
