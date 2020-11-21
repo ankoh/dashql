@@ -16,7 +16,7 @@ namespace dashql {
 // We traverse the PREVIOUS action graph in topological order and check for every action whether it is applicable.
 //
 // An action is applicable iff:
-//  1) There exists a statement in the new program with the same id as the actions origin.
+//  1) There exists a statement in the new program with the same qualified name as the actions origin.
 //  2) The action itself models precisely what is needed for the new version of the statement.
 //  3) All dependencies are applicable.
 //
@@ -24,17 +24,20 @@ namespace dashql {
 // If it is not, we have to check whether it invalidates any previous table.
 //
 // An action that is not applicable can have two effects:
-//  1) It it is only creating a new table, we emit an action to UNDO the effects (i.e. DROP).
+//  1) If it is only creating a new table, we emit an action to UNDO the effects (i.e. DROP).
 //  2) If it is modifying an existing table, we have to backtrack all (transitive) dependencies and invalidate them.
+//     We invalidate a previous action by UNDOING its effects and remove the action from the new graph.
 //
 // XXX we're not parsing insert, delete, update at the moment so we can implement the backwards poisoning later.
 //
 // Example for not applicalbe actions:
 //  1) SELECT 1 INTO b; DELETE FROM b;
-//     If a user removes the delete statement, we have to backtrack that b (and thus the SELECT statment)
-//     cannot be carried over.
+//     If a user removes the delete statement, we have to backtrack that b (and thus the SELECT statment) cannot be carried over.
 //  2) SELECT 1 INTO b, SELECT * INTO c FROM b;
 //     If a user removes the second statement, we just DROP c
+//
+// This will produce a new action graph that will UNDO all actions except those that can be reused.
+// Finally, we need to emit new actions for all statements, that were not covered by an applicable action.
 //
 fb::Offset<ActionGraph> Session::DeriveActions(fb::FlatBufferBuilder& builder, const ExecutableProgram& prev,
                                                const Program& next) {
