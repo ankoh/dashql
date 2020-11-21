@@ -18,7 +18,7 @@ DUCKDB_JS_WASM_DIR="${ROOT_DIR}/duckdb/js/src/wasm"
 
 CI_IMAGE_NAMESPACE="dashql"
 CI_IMAGE_NAME="ci"
-CI_IMAGE_TAG="0.2"
+CI_IMAGE_TAG="$(shell cat ./ci/image/TAG)"
 IN_IMAGE_MOUNTS=-v${ROOT_DIR}:/wd/ -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscripten_cache/ -v${ROOT_DIR}/.ccache/:/mnt/ccache/
 IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/
 IN_IMAGE=docker run --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} dashql/ci:${CI_IMAGE_TAG}

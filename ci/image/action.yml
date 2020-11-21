@@ -21,15 +21,17 @@ runs:
   steps: 
     # Build the CI image
     - run: |-
-        [ ! -z `docker images -q dashql/ci:${GITHUB_SHA}` ] || \
+        export CI_IMAGE_TAG=`cat ./ci/image/TAG`
+        [ ! -z `docker images -q dashql/ci:${CI_IMAGE_TAG}` ] || \
             docker build \
-                -t dashql/ci:${GITHUB_SHA} \
+                -t dashql/ci:${CI_IMAGE_TAG} \
                 -f ${{ github.workspace }}/ci/image/Dockerfile \
                 .
       shell: bash
 
     # Run the script inside the image
     - run: |-
+        export CI_IMAGE_TAG=`cat ./ci/image/TAG`
         docker run --rm \
             -u `id -u $USER` \
             -v ${{ github.workspace }}:/wd/ \
@@ -40,6 +42,6 @@ runs:
             -e NPM_CACHE=/mnt/npm_cache \
             -e CCACHE_DIR=/mnt/ccache \
             -e CCACHE_BASEDIR=/wd/ \
-            dashql/ci:${GITHUB_SHA} \
+            dashql/ci:${CI_IMAGE_TAG} \
             bash -ec "${{ inputs.script }}"
       shell: bash
