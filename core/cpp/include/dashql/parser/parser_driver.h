@@ -73,27 +73,27 @@ struct Statement {
     /// Reset
     void reset();
     /// Write the qualified name
-    flatbuffers::Offset<flatbuffers::String> encodeQualifiedName(flatbuffers::FlatBufferBuilder& builder);
+    flatbuffers::Offset<flatbuffers::String> EncodeQualifiedName(flatbuffers::FlatBufferBuilder& builder);
     /// Write the short name
-    flatbuffers::Offset<flatbuffers::String> encodeShortName(flatbuffers::FlatBufferBuilder& builder);
+    flatbuffers::Offset<flatbuffers::String> EncodeShortName(flatbuffers::FlatBufferBuilder& builder);
 };
 
 class ParserDriver {
    protected:
     /// The scanner
-    Scanner& _scanner;
+    Scanner& scanner_;
     /// The script options
-    ScriptOptions _options;
+    ScriptOptions options_;
     /// The nodes
-    std::vector<sx::Node> _nodes;
+    std::vector<sx::Node> nodes_;
     /// The current statement
-    Statement _current_statement;
+    Statement current_statement_;
     /// The statements
-    std::vector<Statement> _statements;
+    std::vector<Statement> statements_;
     /// The errors
-    std::vector<std::pair<sx::Location, std::string>> _errors;
+    std::vector<std::pair<sx::Location, std::string>> errors_;
     /// The dependencies
-    std::vector<sx::Dependency> _dependencies;
+    std::vector<sx::Dependency> dependencies_;
 
     /// Find an attribute
     std::pair<const sx::Node*, size_t> FindAttribute(const sx::Node& node, Key attribute) const;
@@ -114,7 +114,7 @@ class ParserDriver {
     ~ParserDriver();
 
     /// Return the scanner
-    auto& scanner() { return _scanner; }
+    auto& scanner() { return scanner_; }
 
     /// Add a an array
     sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true);
