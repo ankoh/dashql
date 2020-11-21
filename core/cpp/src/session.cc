@@ -8,8 +8,37 @@ namespace fb = flatbuffers;
 
 namespace dashql {
 
+
+// In general, the problem of computing the graph-edit distance is NP-complete.
+// However, our problem is simpler since we can assume that the statement names stay the same.
+//
+// Our algorithm works as follows:
+// We traverse the PREVIOUS action graph in topological order and check for every action whether it is applicable.
+//
+// An action is applicable iff:
+//  1) There exists a statement in the new program with the same id as the actions origin.
+//  2) The action itself models precisely what is needed for the new version of the statement.
+//  3) All dependencies are applicable.
+//
+// If an action is applicable, we copy it over to the new action graph and mark it as complete.
+// If it is not, we have to check whether it invalidates any previous table.
+//
+// An action that is not applicable can have two effects:
+//  1) It it is only creating a new table, we emit an action to UNDO the effects (i.e. DROP).
+//  2) If it is modifying an existing table, we have to backtrack all (transitive) dependencies and invalidate them.
+//
+// XXX we're not parsing insert, delete, update at the moment so we can implement the backwards poisoning later.
+//
+// Example for not applicalbe actions:
+//  1) SELECT 1 INTO b; DELETE FROM b;
+//     If a user removes the delete statement, we have to backtrack that b (and thus the SELECT statment)
+//     cannot be carried over.
+//  2) SELECT 1 INTO b, SELECT * INTO c FROM b;
+//     If a user removes the second statement, we just DROP c
+//
 fb::Offset<ActionGraph> Session::DeriveActions(fb::FlatBufferBuilder& builder, const ExecutableProgram& prev,
                                                const Program& next) {
+
     proto::action::ActionGraphBuilder graph_builder{builder};
     return graph_builder.Finish();
 }
