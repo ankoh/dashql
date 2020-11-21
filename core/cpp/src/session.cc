@@ -36,7 +36,7 @@ namespace dashql {
 //  2) SELECT 1 INTO b, SELECT * INTO c FROM b;
 //     If a user removes the second statement, we just DROP c
 //
-// This will produce a new action graph that will UNDO all actions except those that can be reused.
+// This will produce a new action graph that will UNDO all actions except for those that can be reused as is.
 // Finally, we need to emit new actions for all statements, that were not covered by an applicable action.
 //
 fb::Offset<ActionGraph> Session::DeriveActions(fb::FlatBufferBuilder& builder, const ExecutableProgram& prev,
