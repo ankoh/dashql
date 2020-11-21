@@ -28,8 +28,6 @@ namespace dashql {
 //  2) If it is modifying an existing table, we have to backtrack all (transitive) dependencies and invalidate them.
 //     We invalidate a previous action by UNDOING its effects and remove the action from the new graph.
 //
-// XXX we're not parsing insert, delete, update at the moment so we can implement the backwards poisoning later.
-//
 // Example for not applicalbe actions:
 //  1) SELECT 1 INTO b; DELETE FROM b;
 //     If a user removes the delete statement, we have to backtrack that b (and thus the SELECT statment) cannot be carried over.
@@ -38,6 +36,8 @@ namespace dashql {
 //
 // This will produce a new action graph that will UNDO all actions except for those that can be reused as is.
 // Finally, we need to emit new actions for all statements, that were not covered by an applicable action.
+//
+// XXX we're not parsing insert, delete, update at the moment so we can implement the backwards poisoning later.
 //
 fb::Offset<ActionGraph> Session::DeriveActions(fb::FlatBufferBuilder& builder, const ExecutableProgram& prev,
                                                const Program& next) {
