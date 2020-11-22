@@ -13,11 +13,11 @@ std::string_view TextAt(std::string_view text, sx::Location loc) { return text.s
 }  // namespace
 
 /// Compute subtree sizes
-size_t ProgramMatcher::ComputeSubtreeSizes(size_t root, const sx::Program& prog, std::vector<size_t>& sizes) {
+size_t ProgramMatcher::ComputeSubtreeSizes(const sx::Program& prog, size_t root, std::vector<size_t>& sizes) {
     // Already computed?
     if (auto n = sizes[root]; n > 0) return n;
 
-    // Prepare DFS
+    /// Run a DFS starting at every program statement
     struct SubtreeNode {
         size_t target;
         size_t parent;
@@ -26,11 +26,10 @@ size_t ProgramMatcher::ComputeSubtreeSizes(size_t root, const sx::Program& prog,
     std::vector<bool> pending_visited;
     pending_nodes.reserve(32);
     pending_visited.reserve(32);
-
-    /// Run a DFS starting at every program statement
     pending_nodes.push_back({root, root});
     pending_visited.push_back(false);
 
+    // Traverse the tree
     size_t node_count = 0;
     while (!pending_nodes.empty()) {
         auto [target, parent] = pending_nodes.back();
@@ -90,9 +89,9 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
         if (st == tt) return Similarity{1, 1};
     }
 
-    // Compute node sizes
-    auto source_size = ComputeSubtreeSizes(source.root(), source_program_, source_subtree_sizes_);
-    auto target_size = ComputeSubtreeSizes(target.root(), target_program_, target_subtree_sizes_);
+    // Compute tree sizes
+    auto source_size = ComputeSubtreeSizes(source_program_, source.root(), source_subtree_sizes_);
+    auto target_size = ComputeSubtreeSizes(target_program_, target.root(), target_subtree_sizes_);
     auto node_count = std::max(source_size, target_size);
     if (node_count == 0) return {};
 
@@ -110,6 +109,7 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
     pending_nodes.push_back({source.root(), target.root(), 0, 0});
     pending_visited.push_back(false);
 
+    // Traverse the tree
     Similarity sim;
     while (!pending_nodes.empty()) {
         auto& [source_id, target_id, parent_entry, matching] = pending_nodes.back();

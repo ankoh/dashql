@@ -42,7 +42,7 @@ class ProgramMatcher {
     std::vector<size_t> target_subtree_sizes_;
 
     /// Compute subtree sizes
-    size_t ComputeSubtreeSizes(size_t root, const sx::Program& prog, std::vector<size_t>& sizes);
+    size_t ComputeSubtreeSizes(const sx::Program& prog, size_t root, std::vector<size_t>& sizes);
 
    public:
     /// Compare two programs
