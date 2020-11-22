@@ -37,7 +37,14 @@ jobs:
           make -C./core/cpp/build/debug -j`nproc`
           ccache -s
 
-    - name: Test grammar
+    - name: Tests
+      uses: ./ci/image
+      with:
+        script: |-
+            ./core/cpp/build/debug/tester ./core/cpp/test/grammar \
+                --gtest_output=xml:./reports/tests_debug.xml
+
+    - name: Test Grammar
       uses: ./ci/image
       with:
         script: |-
@@ -86,7 +93,14 @@ jobs:
           make -C./core/cpp/build/release -j`nproc`
           ccache -s
 
-    - name: Test grammar
+    - name: Tests
+      uses: ./ci/image
+      with:
+        script: |-
+            ./core/cpp/build/release/tester \
+                --gtest_output=xml:./reports/tests_release.xml
+
+    - name: Test Grammar
       uses: ./ci/image
       with:
         script: |-

@@ -5,45 +5,66 @@ include "action_pure.fbs";
 
 namespace dashql.proto.action;
 
+// ---------------------------------------------------------------------------
+// Action graph
+
 enum ActionType: uint8 {
     NONE = 0,
 
-    // Mutating Actions
-    LOAD_FILE = 1,
-    LOAD_HTTP = 2,
-    EXTRACT_JSON = 3,
-    EXTRACT_CSV = 4,
-    SQL_DROP_VIEW = 5,
-    SQL_DROP_TABLE = 6,
-    SQL_CREATE_VIEW = 7,
-    SQL_MATERIALIZE_TABLE = 8,
-    SQL_EVALUATE = 9,
-    VIZUALIZE = 10,
+    // Setup Actions
+    SETUP_MIN = 10,
+    SQL_DROP_VIEW = 11,
+    SQL_DROP_TABLE = 12,
 
-    // Pure Actions
-    PURE_MIN = 11,
+    // Plan Actions
+    PLAN_MIN = 20,
+    LOAD_FILE = 21,
+    LOAD_HTTP = 22,
+    EXTRACT_JSON = 23,
+    EXTRACT_CSV = 24,
+    SQL_CREATE_VIEW = 25,
+    SQL_MATERIALIZE_TABLE = 26,
+    SQL_EVALUATE = 27,
+    VIZUALIZE = 28,
 
-    SQL_QUERY_SCALAR = 12,
-    SQL_QUERY_TABLE = 13,
+    // Dynamic Actions
+    DYNAMIC_MIN = 40,
+    SQL_QUERY_SCALAR = 41,
+    SQL_QUERY_TABLE = 42,
 }
 
 union ActionConfig {
+    // Plan actions
     LoadFileAction,
     LoadHTTPAction,
     ExtractJSONAction,
     ExtractCSVAction,
-    SQLDropViewAction,
-    SQLDropTableAction,
     SQLCreateViewAction,
     SQLMaterializeTableAction,
     SQLEvaluateAction,
     VizualizeAction,
 
+    // Dynamic actions
     SQLQueryScalarAction,
     SQLQueryTableAction,
 }
 
-enum ActionStatus: uint8 {
+table Action {
+    action_type: ActionType;
+    origin_statement: uint32;
+    required_actions: [uint32];
+    action_config: ActionConfig;
+}
+
+table ActionGraph {
+    setup: [Action];
+    plan: [Action];
+}
+
+// ---------------------------------------------------------------------------
+// Action status
+
+enum ActionStatusCode: uint8 {
     NONE = 0,
     PREPARING = 1,
     BLOCKED = 2,
@@ -52,19 +73,15 @@ enum ActionStatus: uint8 {
     ERROR = 6,
 }
 
-enum Blocker: uint8 {
+enum ActionBlocker: uint8 {
     NONE = 0,
     DEPENDENCY = 1,
     HTTP_REQUEST = 2,
     SCHEDULER = 3,
 }
 
-table Action {
-    origin: uint32;
-    required_actions: [uint32];
-    config: ActionConfig;
-}
-
-table ActionGraph {
-    actions: [Action];
+struct ActionStatus {
+    status_code: ActionStatusCode;
+    blocker: ActionBlocker;
+    last_update: uint64;
 }

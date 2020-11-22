@@ -6,8 +6,6 @@ table LoadFileAction {}
 table LoadHTTPAction {}
 table ExtractJSONAction {}
 table ExtractCSVAction {}
-table SQLDropViewAction {}
-table SQLDropTableAction {}
 table SQLCreateViewAction {}
 table SQLMaterializeTableAction {}
 table SQLEvaluateAction {}
