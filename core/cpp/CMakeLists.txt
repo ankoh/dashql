@@ -203,6 +203,7 @@ target_link_libraries(dashql_parser flatbuffers)
 # ---------------------------------------------------------------------------
 
 add_library(dashql_core
+    ${CMAKE_SOURCE_DIR}/src/program_diff.cc
     ${CMAKE_SOURCE_DIR}/src/session.cc
 )
 
@@ -251,33 +252,34 @@ endif()
 # Tester
 
 if(NOT EMSCRIPTEN)
-    add_library(dashql_test
-        ${CMAKE_SOURCE_DIR}/src/test/yaml_encoder.cc
+    add_executable(tester
+        ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
-
-    target_link_libraries(dashql_test
+    target_link_libraries(tester
         dashql_core
-        ryml ryml_c4core
-        flatbuffers
+        flatbuffers gtest gmock
         Threads::Threads
     )
 
     add_executable(grammar_tests
+        ${CMAKE_SOURCE_DIR}/src/test/yaml_encoder.cc
         ${CMAKE_SOURCE_DIR}/test/grammar_tests.cc
     )
     target_link_libraries(grammar_tests
         dashql_core
-        dashql_test
+        ryml ryml_c4core
         flatbuffers gtest gmock
         Threads::Threads
     )
 
     add_executable(grammar_testgen
+        ${CMAKE_SOURCE_DIR}/src/test/yaml_encoder.cc
         ${CMAKE_SOURCE_DIR}/test/grammar_testgen.cc
     )
     target_link_libraries(grammar_testgen
         dashql_core
         dashql_test
+        ryml ryml_c4core
         flatbuffers gtest gmock
         Threads::Threads
     )
