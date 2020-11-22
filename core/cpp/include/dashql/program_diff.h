@@ -18,6 +18,9 @@ class ProgramMatcher {
         /// The matching nodes
         size_t matching_nodes;
 
+        /// Constructor
+        Similarity(size_t total = 0, size_t matching = 0)
+            : total_nodes(total), matching_nodes(matching) {}
         /// Are Equal?
         bool Equal() const { return total_nodes == matching_nodes; }
         /// Get the score
@@ -39,7 +42,7 @@ class ProgramMatcher {
     std::vector<size_t> target_subtree_sizes_;
 
     /// Compute subtree sizes
-    std::vector<size_t> ComputeSubtreeSizes(const sx::Program& program);
+    size_t ComputeSubtreeSizes(size_t root, const sx::Program& prog, std::vector<size_t>& sizes);
 
    public:
     /// Compare two programs
