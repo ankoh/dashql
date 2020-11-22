@@ -23,7 +23,7 @@ std::pair<const sx::Program*, fb::DetachedBuffer> Parse(std::string_view text) {
     return {program, move(buffer)};
 }
 
-TEST(ProgramDiff, Similar1) {
+TEST(ProgramDiff, EqualConst) {
     auto t1 = "SELECT 1";
     auto t2 = "SELECT 1";
     auto [p1, pb1] = Parse(t1);
@@ -38,6 +38,31 @@ TEST(ProgramDiff, Similar1) {
 TEST(ProgramDiff, DifferentConst) {
     auto t1 = "SELECT 1";
     auto t2 = "SELECT 2";
+    auto [p1, pb1] = Parse(t1);
+    auto [p2, pb2] = Parse(t2);
+    ASSERT_EQ(p1->statements()->size(), 1);
+    ASSERT_EQ(p2->statements()->size(), 1);
+    ProgramMatcher matcher{t1, t2, *p1, *p2};
+    auto sim = matcher.ComputeSimilarity(*p1->statements()->Get(0), *p2->statements()->Get(0));
+    ASSERT_FALSE(sim.Equal());
+    ASSERT_EQ(sim.total_nodes - sim.matching_nodes, 1);
+}
+
+TEST(ProgramDiff, EqualColumnRefs) {
+    auto t1 = "select c from b where c = global.a";
+    auto t2 = "select c from b where c = global.a";
+    auto [p1, pb1] = Parse(t1);
+    auto [p2, pb2] = Parse(t2);
+    ASSERT_EQ(p1->statements()->size(), 1);
+    ASSERT_EQ(p2->statements()->size(), 1);
+    ProgramMatcher matcher{t1, t2, *p1, *p2};
+    auto sim = matcher.ComputeSimilarity(*p1->statements()->Get(0), *p2->statements()->Get(0));
+    ASSERT_TRUE(sim.Equal());
+}
+
+TEST(ProgramDiff, DifferentColumnRef) {
+    auto t1 = "select c from b where c = global.a";
+    auto t2 = "select c from b where c = global.d";
     auto [p1, pb1] = Parse(t1);
     auto [p2, pb2] = Parse(t2);
     ASSERT_EQ(p1->statements()->size(), 1);
