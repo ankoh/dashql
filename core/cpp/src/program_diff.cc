@@ -4,6 +4,14 @@
 
 namespace dashql {
 
+namespace {
+
+std::string_view TextAt(std::string_view text, sx::Location loc) {
+    return text.substr(loc.offset(), loc.length());
+}
+
+}
+
 /// Compute subtree sizes
 void ProgramMatcher::ComputeSubtreeSizes(const sx::Program& program, std::vector<size_t>& sizes) {
     auto node_count = program.nodes()->size();
@@ -120,7 +128,7 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
                 matching = source.children_begin_or_value() == target.children_begin_or_value();
                 break;
             case sx::NodeType::STRING:
-                matching = TextAt(source.location()) == TextAt(target.location());
+                matching = TextAt(source_text_, source.location()) == TextAt(target_text_, target.location());
                 break;
             case sx::NodeType::ARRAY: {
                 auto sc = source.children_count();

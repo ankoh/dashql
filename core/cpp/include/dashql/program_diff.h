@@ -38,8 +38,6 @@ class ProgramMatcher {
     /// The subtree sizes of target nodes
     std::vector<size_t> target_subtree_sizes_;
 
-    /// Get the text at a location
-    std::string_view TextAt(sx::Location loc);
     /// Compute subtree sizes
     void ComputeSubtreeSizes(const sx::Program& program, std::vector<size_t>& sizes);
 
