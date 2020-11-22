@@ -24,6 +24,7 @@ inline sx::Node Bool(sx::Location loc, bool v) { return sx::Node(loc, sx::NodeTy
 inline sx::Node Const(ParserDriver& driver, sx::Location loc, sxs::AConstType type) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_CONST, {
         Key::SQL_CONST_TYPE << Enum(loc, type),
+        Key::SQL_CONST_VALUE << String(loc),
     });
 }
 

@@ -1,6 +1,7 @@
 #include "dashql/program_diff.h"
 
 #include "duckdb/web/common/span.h"
+#include <iostream>
 
 namespace dashql {
 
@@ -13,9 +14,11 @@ std::string_view TextAt(std::string_view text, sx::Location loc) {
 }
 
 /// Compute subtree sizes
-void ProgramMatcher::ComputeSubtreeSizes(const sx::Program& program, std::vector<size_t>& sizes) {
+std::vector<size_t> ProgramMatcher::ComputeSubtreeSizes(const sx::Program& program) {
     auto node_count = program.nodes()->size();
-    if (node_count == 0) return;
+    if (node_count == 0) return {};
+    std::vector<size_t> sizes;
+    sizes.resize(program.nodes()->size(), 0);
 
     // Prepare DFS
     std::vector<bool> visited;
@@ -33,7 +36,9 @@ void ProgramMatcher::ComputeSubtreeSizes(const sx::Program& program, std::vector
 
             // Already pending_visited?
             if (visited[target]) {
-                sizes[parent] += sizes[target];
+                if (traversal.size() != 1) {
+                    sizes[parent] += sizes[target];
+                }
                 traversal.pop_back();
                 continue;
             }
@@ -45,7 +50,7 @@ void ProgramMatcher::ComputeSubtreeSizes(const sx::Program& program, std::vector
             // Discover children
             auto* node = program.nodes()->Get(target);
             auto node_type = node->node_type();
-            if (node_type < sx::NodeType::OBJECT_MIN && node_type != sx::NodeType::ARRAY) {
+            if (node_type > sx::NodeType::OBJECT_MIN || node_type == sx::NodeType::ARRAY) {
                 auto children_begin = node->children_begin_or_value();
                 auto children_count = node->children_count();
                 auto children_end = children_begin + children_count;
@@ -55,6 +60,7 @@ void ProgramMatcher::ComputeSubtreeSizes(const sx::Program& program, std::vector
             }
         }
     }
+    return sizes;
 }
 
 // Constructor
@@ -66,8 +72,8 @@ ProgramMatcher::ProgramMatcher(std::string_view source_text, std::string_view ta
       target_program_(target_program),
       source_subtree_sizes_(),
       target_subtree_sizes_() {
-    source_subtree_sizes_.resize(source_program.nodes()->size());
-    target_subtree_sizes_.resize(target_program.nodes()->size());
+    source_subtree_sizes_ = ComputeSubtreeSizes(source_program);
+    target_subtree_sizes_ = ComputeSubtreeSizes(target_program);
 }
 
 // Compare two statements
@@ -89,9 +95,10 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
     pending_nodes.reserve(32);
     pending_visited.reserve(32);
     pending_nodes.push_back({source.root(), target.root(), 0, 0});
+    pending_visited.push_back(false);
 
     Similarity result = {0, 0};
-    while (pending_nodes.empty()) {
+    while (!pending_nodes.empty()) {
         auto& [source_id, target_id, parent_entry, matching] = pending_nodes.back();
         auto source = *source_nodes[source_id];
         auto target = *target_nodes[target_id];
@@ -99,7 +106,7 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
         // Already visited?
         if (pending_visited.back()) {
             // Root entry?
-            if (parent_entry == (pending_nodes.size() - 1)) {
+            if (pending_nodes.size() == 1) {
                 result = {node_count, matching};
                 break;
             }
@@ -163,7 +170,7 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
                     ++ti;
                     matching = 0;
                 } else {
-                    pending_nodes.push_back({si, ti, stack_idx, 0});
+                    pending_nodes.push_back({si++, ti++, stack_idx, 0});
                     pending_visited.push_back(false);
                 }
             }

@@ -39,6 +39,7 @@ expected:
           type: OBJECT_SQL_CONST
           location: "295..300|`'DE' `"
           SQL_CONST_TYPE: STRING
+          SQL_CONST_VALUE: "295..300|`'DE' `"
     - name: global.weather_csv
       root:
         type: OBJECT_DASHQL_LOAD
@@ -53,6 +54,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: "451..491|`'https://c`..`eather/%s'`"
               SQL_CONST_TYPE: STRING
+              SQL_CONST_VALUE: "451..491|`'https://c`..`eather/%s'`"
             - type: OBJECT_SQL_COLUMN_REF
               location: 493..507|`global.country`
               SQL_COLUMN_REF_PATH:
@@ -91,6 +93,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: 737..738|`1`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 737..738|`1`
     - root:
         type: OBJECT_DASHQL_VIZ
         location: 846..872|`VIZ weathe`..`USING LINE`
