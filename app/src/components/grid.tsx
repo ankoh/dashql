@@ -17,6 +17,8 @@ export type WidgetProps = GridStackWidget & {
     onRemoved?: WidgetRemovedListener;
     /** Event firing when starting to resize the widget. */
     onResizeStart?: WidgetResizeStartListener;
+    /** Event firing when stopping to resize the widget. */
+    onResizeStop?: WidgetResizeStopListener;
 };
 
 /**
@@ -70,7 +72,16 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
             contentNode: null,
         };
 
-        const { onAdded, onChange, onDragStart, onDragStop, onRemoved, onResizeStart, ...widgetProps } = this.props;
+        const {
+            onAdded,
+            onChange,
+            onDragStart,
+            onDragStop,
+            onRemoved,
+            onResizeStart,
+            onResizeStop,
+            ...widgetProps
+        } = this.props;
 
         // Delete properties that do not belong to `GridStackWidget` options.
         delete widgetProps.context;
@@ -83,6 +94,7 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
             onDragStop,
             onRemoved,
             onResizeStart,
+            onResizeStop,
         };
 
         // We previously had a (different) grid, remove widget from it.
@@ -131,7 +143,8 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
                             WidgetDragStartListener &
                             WidgetDragStopListener &
                             WidgetRemovedListener &
-                            WidgetResizeStartListener,
+                            WidgetResizeStartListener &
+                            WidgetResizeStopListener,
                     );
                 }
             }
@@ -192,6 +205,7 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
     }
 }
 
+/** A generic event callback as accepted by the `grid.on` method. */
 type GridEventCallback = (event: Event, arg2?: GridStackNode[] | GridItemHTMLElement | undefined) => void;
 
 /** Listener handling event when the widget is placed on the grid. */
@@ -212,6 +226,9 @@ type WidgetRemovedListener = (event: Event, items: GridStackNode) => void;
 /** Listener handling event when starting to resize the widget. */
 type WidgetResizeStartListener = (event: Event, element: GridItemHTMLElement) => void;
 
+/** Listener handling event when stopping to resize the widget. */
+type WidgetResizeStopListener = (event: Event, element: GridItemHTMLElement) => void;
+
 type WidgetListeners = {
     /** An `Added` event listener corresponding to an element on the grid. */
     onAdded: WeakMap<GridItemHTMLElement, WidgetAddedListener>;
@@ -225,6 +242,8 @@ type WidgetListeners = {
     onRemoved: WeakMap<GridItemHTMLElement, WidgetRemovedListener>;
     /** A `ResizeStart` event listener corresponding to an element on the grid. */
     onResizeStart: WeakMap<GridItemHTMLElement, WidgetResizeStartListener>;
+    /** A `ResizeStart` event listener corresponding to an element on the grid. */
+    onResizeStop: WeakMap<GridItemHTMLElement, WidgetResizeStartListener>;
 };
 
 /** Listener handling event when items are added to the grid. */
@@ -233,9 +252,9 @@ type GridAddedListener = (event: Event, items: GridStackNode[]) => void;
 type GridChangeListener = (event: Event, items: GridStackNode[]) => void;
 /** Listener handling event when the grid is disabled. */
 type GridDisableListener = (event: Event) => void;
-/** Listener handling event when starting to drag a widget. */
+/** Listener handling event when starting to drag a widget on the grid. */
 type GridDragStartListener = (event: Event, element: GridItemHTMLElement) => void;
-/** Listener handling event when stopping to drag a widget. */
+/** Listener handling event when stopping to drag a widget on the grid. */
 type GridDragStopListener = (event: Event, element: GridItemHTMLElement) => void;
 /** Listener handling event when a widget is dropped onto the grid. */
 type GridDroppedListener = (event: Event, previousWidget: GridStackNode, newWidget: GridStackNode) => void;
@@ -243,8 +262,10 @@ type GridDroppedListener = (event: Event, previousWidget: GridStackNode, newWidg
 type GridEnableListener = (event: Event) => void;
 /** Listener handling event when items are removed from the grid. */
 type GridRemovedListener = (event: Event, items: GridStackNode[]) => void;
-/** Listener handling event when starting to resize a widget. */
+/** Listener handling event when starting to resize a widget on the grid. */
 type GridResizeStartListener = (event: Event, element: GridItemHTMLElement) => void;
+/** Listener handling event when stopping to resize a widget on the grid. */
+type GridResizeStopListener = (event: Event, element: GridItemHTMLElement) => void;
 
 type GridListeners = {
     /** Event firing when widgets are placed on the grid. */
@@ -265,6 +286,8 @@ type GridListeners = {
     onRemoved: GridRemovedListener | null;
     /** Event firing when starting to resize a widget on the grid. */
     onResizeStart: GridResizeStartListener | null;
+    /** Event firing when stopping to resize a widget on the grid. */
+    onResizeStop: GridResizeStopListener | null;
 };
 
 export type GridProps = GridStackOptions & GridListeners;
@@ -297,6 +320,7 @@ export class Grid extends React.Component<GridProps, GridState> {
         onDragStop: new WeakMap(),
         onRemoved: new WeakMap(),
         onResizeStart: new WeakMap(),
+        onResizeStop: new WeakMap(),
     };
 
     componentDidMount() {
@@ -383,6 +407,13 @@ export class Grid extends React.Component<GridProps, GridState> {
             this.props.onResizeStart?.(event, element);
         };
 
+        const handleResizeStop: GridResizeStopListener = (event: Event, element: GridItemHTMLElement) => {
+            const listener = this.widgetListeners.onResizeStop.get(element);
+            listener?.(event, element);
+
+            this.props.onResizeStop?.(event, element);
+        };
+
         grid.on('added', handleAdded as GridEventCallback);
         grid.on('change', handleChange as GridEventCallback);
         grid.on('disable', handleDisable as GridEventCallback);
@@ -392,6 +423,7 @@ export class Grid extends React.Component<GridProps, GridState> {
         grid.on('enable', handleEnable as GridEventCallback);
         grid.on('removed', handleRemoved as GridEventCallback);
         grid.on('resizestart', handleResizeStart as GridEventCallback);
+        grid.on('resizestop', handleResizeStop as GridEventCallback);
 
         this.setState({
             context: {
