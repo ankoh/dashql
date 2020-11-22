@@ -83,7 +83,8 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
     auto& source_nodes = *source_program_.nodes();
     auto& target_nodes = *target_program_.nodes();
     if (auto s = source_nodes.Get(source.root()), t = target_nodes.Get(target.root());
-        s->location().length() == t->location().length()) {
+        (s->location().length() == t->location().length()) && (s->node_type() == t->node_type()) &&
+        (s->children_count() == t->children_count())) {
         auto st = TextAt(source_text_, s->location());
         auto tt = TextAt(target_text_, t->location());
         if (st == tt) return Similarity{1, 1};
