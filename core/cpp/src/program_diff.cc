@@ -1,87 +1,99 @@
 #include "dashql/program_diff.h"
 
-#include "duckdb/web/common/span.h"
 #include <iostream>
+
+#include "duckdb/web/common/span.h"
 
 namespace dashql {
 
 namespace {
 
-std::string_view TextAt(std::string_view text, sx::Location loc) {
-    return text.substr(loc.offset(), loc.length());
-}
+std::string_view TextAt(std::string_view text, sx::Location loc) { return text.substr(loc.offset(), loc.length()); }
 
-}
+}  // namespace
 
 /// Compute subtree sizes
-std::vector<size_t> ProgramMatcher::ComputeSubtreeSizes(const sx::Program& program) {
-    auto node_count = program.nodes()->size();
-    if (node_count == 0) return {};
-    std::vector<size_t> sizes;
-    sizes.resize(program.nodes()->size(), 0);
+size_t ProgramMatcher::ComputeSubtreeSizes(size_t root, const sx::Program& prog, std::vector<size_t>& sizes) {
+    // Already computed?
+    if (auto n = sizes[root]; n > 0) return n;
 
     // Prepare DFS
-    std::vector<bool> visited;
-    std::vector<std::pair<uint32_t, uint32_t>> traversal;
-    visited.resize(node_count, false);
-    traversal.reserve(32);
+    struct SubtreeNode {
+        size_t target;
+        size_t parent;
+    };
+    std::vector<SubtreeNode> pending_nodes;
+    std::vector<bool> pending_visited;
+    pending_nodes.reserve(32);
+    pending_visited.reserve(32);
 
     /// Run a DFS starting at every program statement
-    for (auto* stmt : *program.statements()) {
-        traversal.clear();
-        traversal.push_back({stmt->root(), stmt->root()});
+    pending_nodes.push_back({root, root});
+    pending_visited.push_back(false);
 
-        while (!traversal.empty()) {
-            auto [target, parent] = traversal.back();
+    size_t node_count = 0;
+    while (!pending_nodes.empty()) {
+        auto [target, parent] = pending_nodes.back();
 
-            // Already pending_visited?
-            if (visited[target]) {
-                if (traversal.size() != 1) {
-                    sizes[parent] += sizes[target];
-                }
-                traversal.pop_back();
-                continue;
+        // Already pending_visited?
+        if (pending_visited.back()) {
+            if (pending_nodes.size() == 1) {
+                node_count = sizes[target];
+                break;
             }
+            sizes[parent] += sizes[target];
+            pending_nodes.pop_back();
+            pending_visited.pop_back();
+            continue;
+        }
 
-            // Set subtree size and mark as visited
-            sizes[target] = 1;
-            visited[target] = true;
+        // Set subtree size and mark as visited
+        sizes[target] = 1;
+        pending_visited.back() = true;
 
-            // Discover children
-            auto* node = program.nodes()->Get(target);
-            auto node_type = node->node_type();
-            if (node_type > sx::NodeType::OBJECT_MIN || node_type == sx::NodeType::ARRAY) {
-                auto children_begin = node->children_begin_or_value();
-                auto children_count = node->children_count();
-                auto children_end = children_begin + children_count;
-                for (auto i = children_begin; i < children_end; ++i) {
-                    traversal.push_back({i, target});
-                }
+        // Discover children
+        auto* node = prog.nodes()->Get(target);
+        auto node_type = node->node_type();
+        if (node_type > sx::NodeType::OBJECT_MIN || node_type == sx::NodeType::ARRAY) {
+            auto children_begin = node->children_begin_or_value();
+            auto children_count = node->children_count();
+            auto children_end = children_begin + children_count;
+            for (auto i = children_begin; i < children_end; ++i) {
+                pending_nodes.push_back({i, target});
+                pending_visited.push_back(false);
             }
         }
     }
-    return sizes;
+    return node_count;
 }
 
 // Constructor
 ProgramMatcher::ProgramMatcher(std::string_view source_text, std::string_view target_text,
-                                     const sx::Program& source_program, const sx::Program& target_program)
+                               const sx::Program& source_program, const sx::Program& target_program)
     : source_text_(source_text),
       target_text_(target_text),
       source_program_(source_program),
       target_program_(target_program),
-      source_subtree_sizes_(),
-      target_subtree_sizes_() {
-    source_subtree_sizes_ = ComputeSubtreeSizes(source_program);
-    target_subtree_sizes_ = ComputeSubtreeSizes(target_program);
-}
+      source_subtree_sizes_(source_program.nodes()->size(), 0),
+      target_subtree_sizes_(target_program.nodes()->size(), 0) {}
 
 // Compare two statements
 ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement& source, const sx::Statement& target) {
-    auto node_count = std::max(source_subtree_sizes_[source.root()], target_subtree_sizes_[target.root()]);
+    // Short circuit the equality case
     auto& source_nodes = *source_program_.nodes();
     auto& target_nodes = *target_program_.nodes();
-    if (node_count == 0) return {0, 0};
+    if (auto s = source_nodes.Get(source.root()), t = target_nodes.Get(target.root());
+        s->location().length() == t->location().length()) {
+        auto st = TextAt(source_text_, s->location());
+        auto tt = TextAt(target_text_, t->location());
+        if (st == tt) return Similarity{1, 1};
+    }
+
+    // Compute node sizes
+    auto source_size = ComputeSubtreeSizes(source.root(), source_program_, source_subtree_sizes_);
+    auto target_size = ComputeSubtreeSizes(target.root(), target_program_, target_subtree_sizes_);
+    auto node_count = std::max(source_size, target_size);
+    if (node_count == 0) return {};
 
     // Do a DFS traversal starting at the root node
     struct NodeSimilarity {
@@ -97,7 +109,7 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
     pending_nodes.push_back({source.root(), target.root(), 0, 0});
     pending_visited.push_back(false);
 
-    Similarity result = {0, 0};
+    Similarity sim;
     while (!pending_nodes.empty()) {
         auto& [source_id, target_id, parent_entry, matching] = pending_nodes.back();
         auto source = *source_nodes[source_id];
@@ -107,7 +119,7 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
         if (pending_visited.back()) {
             // Root entry?
             if (pending_nodes.size() == 1) {
-                result = {node_count, matching};
+                sim = Similarity{node_count, matching};
                 break;
             }
             pending_nodes[parent_entry].matching_nodes += matching;
@@ -181,8 +193,7 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
             matching = source.children_begin_or_value() == target.children_begin_or_value();
         }
     }
-
-    return result;
+    return sim;
 }
 
 }  // namespace dashql
