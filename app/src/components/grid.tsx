@@ -96,15 +96,15 @@ class WidgetWithContext extends React.Component<
         this.setState(newState);
     };
 
-    componentDidMount() {
-        this.handleChangeGrid(this.props.grid);
-    }
+    updateDimensions(prevProps: WidgetWithContextProps) {
+        const dimensionsChanged =
+            this.props.x !== prevProps.x ||
+            this.props.y !== prevProps.y ||
+            this.props.width !== prevProps.width ||
+            this.props.height !== prevProps.height;
 
-    componentDidUpdate() {
-        this.handleChangeGrid(this.props.grid);
-
-        if (this.state.grid && this.state.widget) {
-            // Update widget position on the grid.
+        if (this.state.grid && this.state.widget && dimensionsChanged) {
+            // Update widget dimensions on the grid.
             this.state.grid.update(
                 this.state.widget,
                 this.props.x,
@@ -113,6 +113,15 @@ class WidgetWithContext extends React.Component<
                 this.props.height,
             );
         }
+    }
+
+    componentDidMount() {
+        this.handleChangeGrid(this.props.grid);
+    }
+
+    componentDidUpdate(prevProps: WidgetWithContextProps) {
+        this.handleChangeGrid(this.props.grid);
+        this.updateDimensions(prevProps);
     }
 
     componentWillUnmount() {
