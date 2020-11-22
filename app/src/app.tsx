@@ -10,8 +10,7 @@ import { AppContextProvider, IAppContext } from './app_context';
 
 import './app.module.css';
 import './fonts/fonts.module.css';
-import '../node_modules/react-grid-layout/css/styles.css';
-import '../node_modules/react-resizable/css/styles.css';
+import 'gridstack/dist/gridstack.min.css';
 
 const store = createStore();
 const controller = new AppController(store);
