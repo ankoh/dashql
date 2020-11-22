@@ -12,6 +12,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: 7..8|`1`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 7..8|`1`
   errors: []
   line_breaks: []
   comments: []
@@ -31,6 +32,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: '7..12|`1e-04`'
               SQL_CONST_TYPE: FLOAT
+              SQL_CONST_VALUE: '7..12|`1e-04`'
   errors: []
   line_breaks: []
   comments: []
@@ -54,6 +56,7 @@ expected:
                 type: OBJECT_SQL_CONST
                 location: 7..8|`1`
                 SQL_CONST_TYPE: FLOAT
+                SQL_CONST_VALUE: 7..8|`1`
   errors: []
   line_breaks: []
   comments: []
@@ -73,6 +76,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: "7..14|`b'1010'`"
               SQL_CONST_TYPE: BITSTRING
+              SQL_CONST_VALUE: "7..14|`b'1010'`"
   errors: []
   line_breaks: []
   comments: []
@@ -92,6 +96,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: "7..12|`x'2a'`"
               SQL_CONST_TYPE: BITSTRING
+              SQL_CONST_VALUE: "7..12|`x'2a'`"
   errors: []
   line_breaks: []
   comments: []
@@ -171,6 +176,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: "7..12|`'foo'`"
               SQL_CONST_TYPE: STRING
+              SQL_CONST_VALUE: "7..12|`'foo'`"
   errors: []
   line_breaks: []
   comments: []
@@ -190,6 +196,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: "7..16|`'''foo'''`"
               SQL_CONST_TYPE: STRING
+              SQL_CONST_VALUE: "7..16|`'''foo'''`"
   errors: []
   line_breaks: []
   comments: []
@@ -209,6 +216,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: '7..14|`''"foo"''`'
               SQL_CONST_TYPE: STRING
+              SQL_CONST_VALUE: '7..14|`''"foo"''`'
   errors: []
   line_breaks: []
   comments: []
@@ -232,6 +240,7 @@ expected:
                 type: OBJECT_SQL_CONST
                 location: 7..8|`1`
                 SQL_CONST_TYPE: INTEGER
+                SQL_CONST_VALUE: 7..8|`1`
   errors: []
   line_breaks: []
   comments: []
@@ -271,9 +280,11 @@ expected:
             - type: OBJECT_SQL_CONST
               location: 7..8|`1`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 7..8|`1`
             - type: OBJECT_SQL_CONST
               location: 10..11|`2`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 10..11|`2`
   errors: []
   line_breaks: []
   comments: []
@@ -476,6 +487,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: 25..26|`1`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 25..26|`1`
           SQL_SELECT_TARGETS:
             - type: OBJECT_SQL_COLUMN_REF
               location: 7..8|`a`
@@ -643,6 +655,7 @@ expected:
                       type: OBJECT_SQL_CONST
                       location: 57..58|`1`
                       SQL_CONST_TYPE: INTEGER
+                      SQL_CONST_VALUE: 57..58|`1`
                   - type: OBJECT_SQL_WINDOW_BOUND
                     location: 73..84|`current row`
                     SQL_WINDOW_BOUND_MODE: CURRENT_ROW
@@ -701,6 +714,7 @@ expected:
                       type: OBJECT_SQL_CONST
                       location: 74..75|`1`
                       SQL_CONST_TYPE: INTEGER
+                      SQL_CONST_VALUE: 74..75|`1`
                 SQL_WINDOW_FRAME_MODE: RANGE
                 SQL_WINDOW_FRAME_PARTITION:
                   - type: OBJECT_SQL_COLUMN_REF
@@ -820,6 +834,7 @@ expected:
             - - type: OBJECT_SQL_CONST
                 location: 8..9|`1`
                 SQL_CONST_TYPE: INTEGER
+                SQL_CONST_VALUE: 8..9|`1`
   errors: []
   line_breaks: []
   comments: []
@@ -839,9 +854,11 @@ expected:
             - - type: OBJECT_SQL_CONST
                 location: 8..9|`1`
                 SQL_CONST_TYPE: INTEGER
+                SQL_CONST_VALUE: 8..9|`1`
             - - type: OBJECT_SQL_CONST
                 location: 13..14|`2`
                 SQL_CONST_TYPE: INTEGER
+                SQL_CONST_VALUE: 13..14|`2`
   errors: []
   line_breaks: []
   comments: []
@@ -861,15 +878,19 @@ expected:
             - - type: OBJECT_SQL_CONST
                 location: 8..9|`1`
                 SQL_CONST_TYPE: INTEGER
+                SQL_CONST_VALUE: 8..9|`1`
               - type: OBJECT_SQL_CONST
                 location: 11..12|`2`
                 SQL_CONST_TYPE: INTEGER
+                SQL_CONST_VALUE: 11..12|`2`
             - - type: OBJECT_SQL_CONST
                 location: 16..17|`3`
                 SQL_CONST_TYPE: INTEGER
+                SQL_CONST_VALUE: 16..17|`3`
               - type: OBJECT_SQL_CONST
                 location: 19..20|`4`
                 SQL_CONST_TYPE: INTEGER
+                SQL_CONST_VALUE: 19..20|`4`
   errors: []
   line_breaks: []
   comments: []
@@ -913,12 +934,14 @@ expected:
                 - type: OBJECT_SQL_CONST
                   location: 7..8|`1`
                   SQL_CONST_TYPE: INTEGER
+                  SQL_CONST_VALUE: 7..8|`1`
             - type: OBJECT_SQL_SELECT
               location: 15..23|`SELECT 2`
               SQL_SELECT_TARGETS:
                 - type: OBJECT_SQL_CONST
                   location: 22..23|`2`
                   SQL_CONST_TYPE: INTEGER
+                  SQL_CONST_VALUE: 22..23|`2`
           SQL_COMBINE_OPERATION: UNION
   errors: []
   line_breaks: []
@@ -942,12 +965,14 @@ expected:
                 - type: OBJECT_SQL_CONST
                   location: 7..8|`1`
                   SQL_CONST_TYPE: INTEGER
+                  SQL_CONST_VALUE: 7..8|`1`
             - type: OBJECT_SQL_SELECT
               location: 19..27|`SELECT 2`
               SQL_SELECT_TARGETS:
                 - type: OBJECT_SQL_CONST
                   location: 26..27|`2`
                   SQL_CONST_TYPE: INTEGER
+                  SQL_CONST_VALUE: 26..27|`2`
           SQL_COMBINE_MODIFIER: ALL
           SQL_COMBINE_OPERATION: UNION
   errors: []
@@ -972,12 +997,14 @@ expected:
                 - type: OBJECT_SQL_CONST
                   location: 7..8|`1`
                   SQL_CONST_TYPE: INTEGER
+                  SQL_CONST_VALUE: 7..8|`1`
             - type: OBJECT_SQL_SELECT
               location: 24..32|`SELECT 2`
               SQL_SELECT_TARGETS:
                 - type: OBJECT_SQL_CONST
                   location: 31..32|`2`
                   SQL_CONST_TYPE: INTEGER
+                  SQL_CONST_VALUE: 31..32|`2`
           SQL_COMBINE_MODIFIER: DISTINCT
           SQL_COMBINE_OPERATION: UNION
   errors: []
@@ -1002,12 +1029,14 @@ expected:
                 - type: OBJECT_SQL_CONST
                   location: 7..8|`1`
                   SQL_CONST_TYPE: INTEGER
+                  SQL_CONST_VALUE: 7..8|`1`
             - type: OBJECT_SQL_SELECT
               location: 19..27|`SELECT 2`
               SQL_SELECT_TARGETS:
                 - type: OBJECT_SQL_CONST
                   location: 26..27|`2`
                   SQL_CONST_TYPE: INTEGER
+                  SQL_CONST_VALUE: 26..27|`2`
           SQL_COMBINE_OPERATION: INTERSECT
   errors: []
   line_breaks: []
@@ -1028,6 +1057,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: 28..29|`2`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 28..29|`2`
           SQL_SELECT_WITH_CTES:
             - type: OBJECT_SQL_CTE
               location: 5..20|`a AS (SELECT 1)`
@@ -1039,6 +1069,7 @@ expected:
                   - type: OBJECT_SQL_CONST
                     location: 18..19|`1`
                     SQL_CONST_TYPE: INTEGER
+                    SQL_CONST_VALUE: 18..19|`1`
   errors: []
   line_breaks: []
   comments: []
@@ -1058,6 +1089,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: 45..46|`3`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 45..46|`3`
           SQL_SELECT_WITH_CTES:
             - type: OBJECT_SQL_CTE
               location: 5..20|`a AS (SELECT 1)`
@@ -1069,6 +1101,7 @@ expected:
                   - type: OBJECT_SQL_CONST
                     location: 18..19|`1`
                     SQL_CONST_TYPE: INTEGER
+                    SQL_CONST_VALUE: 18..19|`1`
             - type: OBJECT_SQL_CTE
               location: 22..37|`b AS (SELECT 2)`
               SQL_CTE_NAME: 22..23|`b`
@@ -1079,6 +1112,7 @@ expected:
                   - type: OBJECT_SQL_CONST
                     location: 35..36|`2`
                     SQL_CONST_TYPE: INTEGER
+                    SQL_CONST_VALUE: 35..36|`2`
   errors: []
   line_breaks: []
   comments: []
@@ -1098,6 +1132,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: 55..56|`3`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 55..56|`3`
           SQL_SELECT_WITH_CTES:
             - type: OBJECT_SQL_CTE
               location: 15..30|`a AS (SELECT 1)`
@@ -1109,6 +1144,7 @@ expected:
                   - type: OBJECT_SQL_CONST
                     location: 28..29|`1`
                     SQL_CONST_TYPE: INTEGER
+                    SQL_CONST_VALUE: 28..29|`1`
             - type: OBJECT_SQL_CTE
               location: 32..47|`b AS (SELECT 2)`
               SQL_CTE_NAME: 32..33|`b`
@@ -1119,6 +1155,7 @@ expected:
                   - type: OBJECT_SQL_CONST
                     location: 45..46|`2`
                     SQL_CONST_TYPE: INTEGER
+                    SQL_CONST_VALUE: 45..46|`2`
           SQL_SELECT_WITH_RECURSIVE: true
   errors: []
   line_breaks: []
@@ -1287,6 +1324,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: 7..8|`1`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 7..8|`1`
     - root:
         type: OBJECT_DASHQL_QUERY
         location: 17..32|`select 1 from b`
@@ -1303,6 +1341,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: 24..25|`1`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 24..25|`1`
   errors: []
   line_breaks:
     - 16..17|` `
@@ -1344,6 +1383,7 @@ expected:
             - type: OBJECT_SQL_CONST
               location: 41..42|`1`
               SQL_CONST_TYPE: INTEGER
+              SQL_CONST_VALUE: 41..42|`1`
     - root:
         type: OBJECT_DASHQL_QUERY
         location: 51..89|`select c f`..`obal.a + 1`
@@ -1382,6 +1422,7 @@ expected:
                 type: OBJECT_SQL_CONST
                 location: 88..89|`1`
                 SQL_CONST_TYPE: INTEGER
+                SQL_CONST_VALUE: 88..89|`1`
               SQL_EXPRESSION_FUNCTION: PLUS
             SQL_EXPRESSION_FUNCTION: EQUAL
   errors: []
