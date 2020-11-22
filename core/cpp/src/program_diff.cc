@@ -93,7 +93,7 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
     auto source_size = ComputeSubtreeSizes(source_program_, source.root(), source_subtree_sizes_);
     auto target_size = ComputeSubtreeSizes(target_program_, target.root(), target_subtree_sizes_);
     auto node_count = std::max(source_size, target_size);
-    if (node_count == 0) return {};
+    if (node_count == 0) return Similarity{};
 
     // Do a DFS traversal starting at the root node
     struct NodeSimilarity {
