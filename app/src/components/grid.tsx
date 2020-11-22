@@ -87,6 +87,17 @@ class WidgetWithContext extends React.Component<
 
     componentDidUpdate() {
         this.handleChangeGrid(this.props.grid);
+
+        if (this.state.grid && this.state.widget) {
+            // Update widget position on the grid.
+            this.state.grid.update(
+                this.state.widget,
+                this.props.x,
+                this.props.y,
+                this.props.width,
+                this.props.height,
+            );
+        }
     }
 
     componentWillUnmount() {
