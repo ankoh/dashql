@@ -7,7 +7,7 @@ import {
     GridStackWidget,
 } from 'gridstack';
 
-const GridContext = React.createContext(null as GridStack | null);
+const GridContext = React.createContext(undefined as GridStack | undefined);
 
 export type WidgetProps = GridStackWidget;
 
@@ -33,7 +33,7 @@ type WidgetWithContextState = {
 
 type WidgetWithContextProps = WidgetProps & {
     /** The grid instance. */
-    grid: GridStack | null;
+    grid?: GridStack;
 };
 
 class WidgetWithContext extends React.Component<
@@ -46,7 +46,7 @@ class WidgetWithContext extends React.Component<
         grid: null,
     };
 
-    handleChangeGrid = (grid: GridStack | null) => {
+    handleChangeGrid = (grid?: GridStack) => {
         // Grid is the same as previously, nothing to be done.
         if (grid === this.state.grid) {
             return;
@@ -64,8 +64,23 @@ class WidgetWithContext extends React.Component<
         }
 
         if (grid) {
+            const widgetProps = { ...this.props };
+            delete widgetProps.children;
+            delete widgetProps.grid;
+
+            // Determine which arguments need to be passed to `addWidget`.
+            const widgetArguments = (() => {
+                if (Object.keys(widgetProps).length == 0) {
+                    // Create a new widget without options.
+                    return [];
+                } else {
+                    // Create a new widget from the provided properties.
+                    return [widgetProps];
+                }
+            })();
+
             // Request a new widget DOM node that is managed by the new grid.
-            const widget = grid.addWidget(this.props);
+            const widget = grid.addWidget(...widgetArguments);
 
             // Get the content node of the widget (which is a sibling among e.g.
             // the resize handle nodes).
@@ -101,7 +116,7 @@ class WidgetWithContext extends React.Component<
     }
 
     componentWillUnmount() {
-        this.handleChangeGrid(null);
+        this.handleChangeGrid(undefined);
     }
 
     render() {
@@ -120,13 +135,13 @@ export type GridProps = GridStackOptions;
 
 type GridState = {
     /** The grid instance. */
-    grid: GridStack | null;
+    grid?: GridStack;
 };
 
 /** Grid component, managing a `gridstack` grid with React. */
 export class Grid extends React.Component<GridProps, GridState> {
     state: GridState = {
-        grid: null,
+        grid: undefined,
     };
 
     componentDidMount() {
