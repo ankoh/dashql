@@ -1,0 +1,56 @@
+// Copyright (c) 2020 The DashQL Authors
+
+#ifndef INCLUDE_DASHQL_PROGRAM_DIFF_H_
+#define INCLUDE_DASHQL_PROGRAM_DIFF_H_
+
+#include "dashql/proto/syntax_generated.h"
+
+namespace dashql {
+
+namespace sx = proto::syntax;
+
+class ProgramMatcher {
+   public:
+    /// A similarity result
+    struct Similarity {
+        /// The maximum node count
+        size_t total_nodes;
+        /// The matching nodes
+        size_t matching_nodes;
+
+        /// Are Equal?
+        bool Equal() const { return total_nodes == matching_nodes; }
+        /// Get the score
+        double Score() const { return (total_nodes == 0) ? 0.0 : static_cast<double>(matching_nodes) / total_nodes; }
+    };
+
+   protected:
+    /// The source text
+    std::string_view source_text_;
+    /// The target text
+    std::string_view target_text_;
+    /// The source program
+    const sx::Program& source_program_;
+    /// The target program
+    const sx::Program& target_program_;
+    /// The subtree sizes of source nodes
+    std::vector<size_t> source_subtree_sizes_;
+    /// The subtree sizes of target nodes
+    std::vector<size_t> target_subtree_sizes_;
+
+    /// Get the text at a location
+    std::string_view TextAt(sx::Location loc);
+    /// Compute subtree sizes
+    void ComputeSubtreeSizes(const sx::Program& program, std::vector<size_t>& sizes);
+
+   public:
+    /// Compare two programs
+    ProgramMatcher(std::string_view source_text, std::string_view target_text, const sx::Program& source_program, const sx::Program& target_program);
+
+    /// Compare two statements
+    Similarity ComputeSimilarity(const sx::Statement& source, const sx::Statement& target);
+};
+
+}  // namespace dashql
+
+#endif  // INCLUDE_DASHQL_PROGRAM_DIFF_H_
