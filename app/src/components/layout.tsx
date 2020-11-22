@@ -1,11 +1,5 @@
 import * as React from 'react';
-import {
-    DashboardModel,
-    WidgetModel,
-    WidgetType,
-    ParameterType,
-    ChartType,
-} from '../models/dashboard';
+import { DashboardModel, WidgetModel, WidgetType, ParameterType, ChartType } from '../models/dashboard';
 import {
     IntegerParameter,
     FloatParameter,
@@ -35,6 +29,10 @@ import styles from './layout.module.css';
 type Props = {};
 
 class Layout extends React.Component<Props> {
+    state = {
+        foo: 0,
+    };
+
     dashboard: DashboardModel = {
         widgets: [
             {
@@ -120,61 +118,19 @@ class Layout extends React.Component<Props> {
     renderContent = (widget: WidgetModel) => {
         switch (widget.type) {
             case WidgetType.Parameter | ParameterType.Integer:
-                return (
-                    <IntegerParameter
-                        name="IntegerParameter"
-                        value={null}
-                        onChange={console.log.bind(console)}
-                    />
-                );
+                return <IntegerParameter name="IntegerParameter" value={null} onChange={console.log.bind(console)} />;
             case WidgetType.Parameter | ParameterType.Float:
-                return (
-                    <FloatParameter
-                        name="FloatParameter"
-                        value={null}
-                        onChange={console.log.bind(console)}
-                    />
-                );
+                return <FloatParameter name="FloatParameter" value={null} onChange={console.log.bind(console)} />;
             case WidgetType.Parameter | ParameterType.Text:
-                return (
-                    <TextParameter
-                        name="TextParameter"
-                        value={null}
-                        onChange={console.log.bind(console)}
-                    />
-                );
+                return <TextParameter name="TextParameter" value={null} onChange={console.log.bind(console)} />;
             case WidgetType.Parameter | ParameterType.Date:
-                return (
-                    <DateParameter
-                        name="DateParameter"
-                        value={null}
-                        onChange={console.log.bind(console)}
-                    />
-                );
+                return <DateParameter name="DateParameter" value={null} onChange={console.log.bind(console)} />;
             case WidgetType.Parameter | ParameterType.Datetime:
-                return (
-                    <DatetimeParameter
-                        name="DatetimeParameter"
-                        value={null}
-                        onChange={console.log.bind(console)}
-                    />
-                );
+                return <DatetimeParameter name="DatetimeParameter" value={null} onChange={console.log.bind(console)} />;
             case WidgetType.Parameter | ParameterType.Time:
-                return (
-                    <TimeParameter
-                        name="TimeParameter"
-                        value={null}
-                        onChange={console.log.bind(console)}
-                    />
-                );
+                return <TimeParameter name="TimeParameter" value={null} onChange={console.log.bind(console)} />;
             case WidgetType.Parameter | ParameterType.File:
-                return (
-                    <FileParameter
-                        name="FileParameter"
-                        value={null}
-                        onChange={console.log.bind(console)}
-                    />
-                );
+                return <FileParameter name="FileParameter" value={null} onChange={console.log.bind(console)} />;
             case WidgetType.Chart | ChartType.Area:
                 return <AreaChart />;
             case WidgetType.Chart | ChartType.Area:
@@ -230,6 +186,15 @@ class Layout extends React.Component<Props> {
                 itemClass={styles.item}
             >
                 {this.dashboard.widgets.map(this.renderWidget)}
+                <Widget x={12} onChange={console.log.bind(console)}>
+                    <button onClick={() => this.setState({ foo: this.state.foo + 1 })}>{this.state.foo}</button>
+                </Widget>
+                {this.state.foo % 3 != 0 && (
+                    <Widget x={this.state.foo} y={this.state.foo}>
+                        {this.state.foo}
+                    </Widget>
+                )}
+                <Widget>yo!</Widget>
             </Grid>
         );
     }
