@@ -278,7 +278,6 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(grammar_testgen
         dashql_core
-        dashql_test
         ryml ryml_c4core
         flatbuffers gtest gmock
         Threads::Threads
