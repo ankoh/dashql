@@ -1,99 +1,96 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { GridStack, GridStackOptions, GridStackWidget } from 'gridstack';
+import {
+    GridStack,
+    GridStackElement,
+    GridStackOptions,
+    GridStackWidget,
+} from 'gridstack';
 
-/**
- * This class coordinates the interaction between a grid and grid widgets.
- *
- * It solves the problem of widgets potentially being rendered before the grid
- * itself is available. It will collect all widgets that want to register on
- * a grid and notify the widgets once the grid has been activated.
- *
- * To render a widget into a grid, both must use the same connection instance.
- */
-export class GridConnection {
-    private grid: GridStack | null = null;
-    private subscribers: ((grid: GridStack) => void)[] = [];
+const GridContext = React.createContext(null as GridStack | null);
 
-    /**
-     * Register a subscriber on the grid connection. The subscriber may be
-     * called immediately (when the grid has been activated) or at a later point
-     * (once the grid activates).
-     */
-    register(subscriber: (grid: GridStack) => void) {
-        if (this.grid) {
-            // Grid is available, immediately notify subscriber.
-            subscriber(this.grid);
-        } else {
-            // Queue subscriber, so that it can be notified once the grid has
-            // registered.
-            this.subscribers.push(subscriber);
-        }
-    }
+export type WidgetProps = GridStackWidget;
 
-    /**
-     * Register a grid, which will be notified to all currently queued and
-     * future widget subscribers.
-     */
-    activate(grid: GridStack) {
-        this.grid = grid;
-
-        // Notify all subscribers of the registered grid.
-        for (const subscriber of this.subscribers) {
-            subscriber(this.grid);
-        }
-
-        this.subscribers = [];
+/** Widget component, managing a `gridstack` widget with React. */
+export class Widget extends React.Component<WidgetProps> {
+    render() {
+        return (
+            <GridContext.Consumer>
+                {grid => <WidgetWithContext {...this.props} grid={grid} />}
+            </GridContext.Consumer>
+        );
     }
 }
 
-/** The default grid connection singleton. */
-const defaultGridConnection = new GridConnection();
-
-export type WidgetProps = GridStackWidget & {
-    /**
-     * The connection between the Grid and Widget components. If no connection
-     * is provided, one shared default connection will be reused.
-     *
-     * If you want to render multiple independent grids, a new connection should
-     * be created for each grid, which must shared between the grid and its
-     * corresponding widgets.
-     * */
-    connection: GridConnection;
-};
-
-type WidgetState = {
+type WidgetWithContextState = {
+    /** The grid into which the widget should be rendered. */
+    grid: GridStack | null;
+    /** The DOM element that is placed as widget on the grid. */
+    widget: GridStackElement | null;
     /** The DOM element that should hold the inner widget content. */
     contentNode: Element | null;
 };
 
-/** Widget component, managing a `gridstack` widget with React. */
-export class Widget extends React.Component<WidgetProps, WidgetState> {
-    static defaultProps = {
-        connection: defaultGridConnection,
-    };
+type WidgetWithContextProps = WidgetProps & {
+    /** The grid instance. */
+    grid: GridStack | null;
+};
 
-    state: WidgetState = {
+class WidgetWithContext extends React.Component<
+    WidgetWithContextProps,
+    WidgetWithContextState
+> {
+    state: WidgetWithContextState = {
         contentNode: null,
+        widget: null,
+        grid: null,
     };
 
-    /** The callback that is executed once the grid is available. */
-    onGridAvailable = (grid: GridStack) => {
-        // Request a new widget DOM node that is managed by the grid.
-        const widget = grid.addWidget(this.props);
+    handleChangeGrid = (grid: GridStack | null) => {
+        // Grid is the same as previously, nothing to be done.
+        if (grid === this.state.grid) {
+            return;
+        }
 
-        // Get the content node of the widget (which is a sibling among e.g. the
-        // resize handle nodes).
-        const contentNode = widget.querySelector('.grid-stack-item-content');
+        const newState: WidgetWithContextState = {
+            grid: null,
+            widget: null,
+            contentNode: null,
+        };
 
-        this.setState({
-            contentNode,
-        });
+        // We previously had a (different) grid, remove widget from it.
+        if (this.state.grid && this.state.widget) {
+            this.state.grid.removeWidget(this.state.widget);
+        }
+
+        if (grid) {
+            // Request a new widget DOM node that is managed by the new grid.
+            const widget = grid.addWidget(this.props);
+
+            // Get the content node of the widget (which is a sibling among e.g.
+            // the resize handle nodes).
+            const contentNode = widget.querySelector(
+                '.grid-stack-item-content',
+            );
+
+            newState.grid = grid;
+            newState.widget = widget;
+            newState.contentNode = contentNode;
+        }
+
+        this.setState(newState);
     };
 
     componentDidMount() {
-        // Register on the connection to the grid.
-        this.props.connection.register(this.onGridAvailable);
+        this.handleChangeGrid(this.props.grid);
+    }
+
+    componentDidUpdate() {
+        this.handleChangeGrid(this.props.grid);
+    }
+
+    componentWillUnmount() {
+        this.handleChangeGrid(null);
     }
 
     render() {
@@ -108,50 +105,39 @@ export class Widget extends React.Component<WidgetProps, WidgetState> {
     }
 }
 
-export type GridProps = GridStackOptions & {
-    /**
-     * The connection between the Grid and Widget components. If no connection
-     * is provided, one shared default connection will be reused.
-     *
-     * If you want to render multiple independent grids, a new connection should
-     * be created for each grid, which must shared between the grid and its
-     * corresponding widgets.
-     * */
-    connection: GridConnection;
-};
+export type GridProps = GridStackOptions;
 
 type GridState = {
+    /** The grid instance. */
     grid: GridStack | null;
 };
 
 /** Grid component, managing a `gridstack` grid with React. */
 export class Grid extends React.Component<GridProps, GridState> {
-    static defaultProps = {
-        connection: defaultGridConnection,
+    state: GridState = {
+        grid: null,
     };
-
-    /** The grid instance. */
-    grid: GridStack | null = null;
 
     componentDidMount() {
         // Initialize the grid.
         const grid = GridStack.init(this.props, this.refs.grid as HTMLElement);
 
-        // Consume all widgets on the connection.
-        this.props.connection.activate(grid);
-
-        this.grid = grid;
+        this.setState({
+            grid,
+        });
     }
 
     componentWillUnmount() {
         // Destroy the grid.
-        this.grid?.destroy();
+        this.state.grid?.destroy();
     }
 
     render() {
         return (
             <div ref="grid" className="grid-stack">
-                {this.props.children}
+                <GridContext.Provider value={this.state.grid}>
+                    {this.props.children}
+                </GridContext.Provider>
             </div>
         );
     }
