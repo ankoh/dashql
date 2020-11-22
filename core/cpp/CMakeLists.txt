@@ -253,6 +253,7 @@ endif()
 
 if(NOT EMSCRIPTEN)
     add_executable(tester
+        ${CMAKE_SOURCE_DIR}/test/default/program_diff_test.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     target_link_libraries(tester

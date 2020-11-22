@@ -48,6 +48,11 @@ core_release:
 		-DCMAKE_BUILD_TYPE=Release
 	make -C ${CORE_RELEASE_DIR} -j ${CORES}
 
+# Test the core library
+.PHONY: core_tests
+core_tests:
+	${CORE_DEBUG_DIR}/tester
+
 # Test the duckdb library
 .PHONY: duckdb_tests
 duckdb_tests:
