@@ -1,6 +1,11 @@
 import * as React from 'react';
-import { withAutoSizer } from '../util/autosizer';
-import * as GridLayout from 'react-grid-layout';
+import {
+    DashboardModel,
+    WidgetModel,
+    WidgetType,
+    ParameterType,
+    ChartType,
+} from '../models/dashboard';
 import {
     IntegerParameter,
     FloatParameter,
@@ -23,20 +28,11 @@ import {
     TableChart,
     TextChart,
 } from './widgets';
-import {
-    DashboardModel,
-    WidgetModel,
-    WidgetType,
-    ParameterType,
-    ChartType,
-} from '../models/dashboard';
+import { Grid, Widget } from './grid';
 
 import styles from './layout.module.css';
 
-type Props = {
-    width: number;
-    height: number;
-};
+type Props = {};
 
 class Layout extends React.Component<Props> {
     dashboard: DashboardModel = {
@@ -212,38 +208,31 @@ class Layout extends React.Component<Props> {
 
     renderWidget = (widget: WidgetModel) => {
         return (
-            <div
-                key={widget.id}
-                data-grid={{
-                    x: widget.position.x,
-                    y: widget.position.y,
-                    w: widget.position.width,
-                    h: widget.position.height,
-                }}
-            >
+            <Widget key={widget.id} {...widget.position}>
                 {this.renderContent(widget)}
-            </div>
+            </Widget>
         );
-    };
-
-    renderDashboard = (dashboard: DashboardModel) => {
-        return dashboard.widgets.map(this.renderWidget);
     };
 
     render() {
         return (
-            <GridLayout
-                className={styles.grid}
-                cols={12}
-                rowHeight={30}
-                width={this.props.width}
-                resizeHandles={['ne', 'se', 'sw', 'nw']}
-                verticalCompact={false}
+            <Grid
+                resizable={{
+                    autoHide: true,
+                    handles: 'n,ne,e,se,s,sw,w,nw',
+                }}
+                column={12}
+                cellHeight={50}
+                float
+                // TODO: Fix missing typings on `_class` property.
+                // @ts-ignore
+                _class={styles.grid}
+                itemClass={styles.item}
             >
-                {this.renderDashboard(this.dashboard)}
-            </GridLayout>
+                {this.dashboard.widgets.map(this.renderWidget)}
+            </Grid>
         );
     }
 }
 
-export default withAutoSizer(Layout);
+export default Layout;
