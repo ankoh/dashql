@@ -99,15 +99,15 @@ size_t ProgramMatcher::ComputeTreeSize(const sx::Program& prog, size_t root, std
     return node_count;
 }
 
-// Compare two statements
-ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement& source, const sx::Statement& target, size_t diff_cap) {
+// Perform two statements
+ProgramMatcher::StatementDiff ProgramMatcher::ComputeDiff(const sx::Statement& source, const sx::Statement& target, size_t diff_cap) {
     // Compute tree sizes
     auto& source_nodes = *source_program_.nodes();
     auto& target_nodes = *target_program_.nodes();
     auto source_size = ComputeTreeSize(source_program_, source.root(), source_subtree_sizes_);
     auto target_size = ComputeTreeSize(target_program_, target.root(), target_subtree_sizes_);
     auto node_count = std::max(source_size, target_size);
-    if (node_count == 0) return Similarity{};
+    if (node_count == 0) return StatementDiff{};
 
     // Do a DFS traversal starting at the root node
     struct NodeSimilarity {
@@ -124,7 +124,7 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
     pending_visited.push_back(false);
 
     // Traverse the tree
-    Similarity sim;
+    StatementDiff diff;
     while (!pending_nodes.empty()) {
         auto& [source_id, target_id, parent_entry, matching_nodes] = pending_nodes.back();
         auto source = *source_nodes[source_id];
@@ -134,8 +134,8 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
         if (pending_visited.back()) {
             // Root entry?
             if (pending_nodes.size() == 1) {
-                sim.total_nodes = node_count;
-                sim.matching_nodes = matching_nodes;
+                diff.total_nodes = node_count;
+                diff.matching_nodes = matching_nodes;
                 break;
             }
             pending_nodes[parent_entry].matching_nodes += matching_nodes;
@@ -214,12 +214,12 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
         if (match) {
             ++matching_nodes;
         } else {
-            if (sim.diff_nodes.size() < diff_cap) {
-                sim.diff_nodes.push_back(source_id);
+            if (diff.diff_nodes.size() < diff_cap) {
+                diff.diff_nodes.push_back(source_id);
             }
         }
     }
-    return sim;
+    return diff;
 }
 
 // Compare two statements for deep equality
@@ -344,7 +344,7 @@ void ProgramMatcher::FindUniquePairs(const std::vector<size_t>& source_ids, cons
                     if (!CheckDeepEquality(source_stmt, target_stmt)) break;
                     // Fall through to the equality case
                 case SimilarityEstimate::EQUAL:
-                    // Matched to different statement?
+                    // Mapping ambiguous? (duplicate source or target statements)
                     if (auto existing = target_mappings[target_id]; existing) {
                         source_ambiguous[source_id] = true;
                         source_ambiguous[*existing] = true;
@@ -361,6 +361,11 @@ void ProgramMatcher::FindUniquePairs(const std::vector<size_t>& source_ids, cons
                     break;
             }
         }
+    }
+
+    // Emit non-ambiguous mappings
+    for (auto mapping: target_mappings) {
+        
     }
 }
 
