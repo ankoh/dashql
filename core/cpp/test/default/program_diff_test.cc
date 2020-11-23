@@ -22,6 +22,7 @@ class ProgramMatcherProxy: public ProgramMatcher {
         : ProgramMatcher(source_text, target_text, source_program, target_program) {}
 
     using ProgramMatcher::MapStatements;
+    using ProgramMatcher::FindLCS;
 };
 
 std::pair<const sx::Program*, fb::DetachedBuffer> Parse(std::string_view text) {
@@ -107,6 +108,7 @@ struct UPP {
     std::vector<size_t> ids1;
     std::vector<std::pair<size_t, size_t>> unique;
     std::vector<std::pair<size_t, size_t>> equal;
+    std::vector<std::pair<size_t, size_t>> lcs;
 
     friend std::ostream& operator<<(std::ostream& out, const UPP& param) {
         out << param.t1 << " " << param.t2;
@@ -130,19 +132,32 @@ TEST_P(StatementMappingTest, StatementMappingsEqual) {
     ASSERT_EQ(equal_pairs, param.equal);
 }
 
+TEST_P(StatementMappingTest, LCSEquals) {
+    auto& param = GetParam();
+    auto [p1, pb1] = Parse(param.t1);
+    auto [p2, pb2] = Parse(param.t2);
+    ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
+    std::vector<std::pair<size_t, size_t>> unique_pairs;
+    std::vector<std::pair<size_t, size_t>> equal_pairs;
+    matcher.MapStatements(param.ids0, param.ids1, unique_pairs, equal_pairs);
+    std::vector<std::pair<size_t, size_t>> lcs;
+    matcher.FindLCS(unique_pairs, lcs);
+    ASSERT_EQ(lcs, param.lcs);
+}
+
 INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
     UPP{R"DQL(
         SELECT 1;
     )DQL", R"DQL(
         SELECT 1;
-    )DQL", {0}, {0}, {{0, 0}}, {{0, 0}}},
+    )DQL", {0}, {0}, {{0, 0}}, {{0, 0}}, {{0, 0}}},
 
     UPP{R"DQL(
         SELECT 2;
         SELECT 1;
     )DQL", R"DQL(
         SELECT 1;
-    )DQL", {0, 1}, {0}, {{1, 0}}, {{1, 0}}},
+    )DQL", {0, 1}, {0}, {{1, 0}}, {{1, 0}}, {{1, 0}}},
 
     UPP{R"DQL(
         SELECT 2;
@@ -150,7 +165,7 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
     )DQL", R"DQL(
         SELECT 3;
         SELECT 1;
-    )DQL", {0, 1}, {0, 1}, {{1, 1}}, {{1, 1}}},
+    )DQL", {0, 1}, {0, 1}, {{1, 1}}, {{1, 1}}, {{1, 1}}},
 
     UPP{R"DQL(
         SELECT 2;
@@ -166,7 +181,7 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
     )DQL", R"DQL(
         SELECT 3;
         SELECT 1;
-    )DQL", {0, 1}, {0, 1}, {}, {{0, 1}, {1, 1}}},
+    )DQL", {0, 1}, {0, 1}, {}, {{0, 1}, {1, 1}}, {}},
 
     UPP{R"DQL(
         SELECT 1;
@@ -174,7 +189,7 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
     )DQL", R"DQL(
         SELECT 1;
         SELECT 1;
-    )DQL", {0, 1}, {0, 1}, {}, {{0, 0}, {0, 1}}},
+    )DQL", {0, 1}, {0, 1}, {}, {{0, 0}, {0, 1}}, {}},
 
     UPP{R"DQL(
         SELECT 2;
@@ -182,7 +197,7 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
     )DQL", R"DQL(
         SELECT 1;
         SELECT 2;
-    )DQL", {0, 1}, {0, 1}, {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}}
+    )DQL", {0, 1}, {0, 1}, {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}, {{1, 0}}}
 ));
 
 }  // namespace
