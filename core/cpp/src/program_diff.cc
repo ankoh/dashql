@@ -1,6 +1,7 @@
 #include "dashql/program_diff.h"
 
 #include <iostream>
+#include <stack>
 
 #include "duckdb/web/common/span.h"
 
@@ -144,7 +145,7 @@ ProgramMatcher::StatementDiff ProgramMatcher::ComputeDiff(const sx::Statement& s
             continue;
         }
         pending_visited.back() = true;
-        auto stack_idx = pending_nodes.size() - 1;
+        auto pile_idx = pending_nodes.size() - 1;
 
         // Different node type?
         if (source.node_type() != target.node_type()) {
@@ -172,7 +173,7 @@ ProgramMatcher::StatementDiff ProgramMatcher::ComputeDiff(const sx::Statement& s
                 match = sc == tc;
                 for (unsigned i = 0, sb = source.children_begin_or_value(), tb = target.children_begin_or_value();
                      i < std::min(sc, tc); ++i) {
-                    pending_nodes.push_back({sb + i, tb + i, stack_idx, 0});
+                    pending_nodes.push_back({sb + i, tb + i, pile_idx, 0});
                     pending_visited.push_back(false);
                 }
                 break;
@@ -197,7 +198,7 @@ ProgramMatcher::StatementDiff ProgramMatcher::ComputeDiff(const sx::Statement& s
                             ++ti;
                             match = false;
                         } else {
-                            pending_nodes.push_back({si++, ti++, stack_idx, 0});
+                            pending_nodes.push_back({si++, ti++, pile_idx, 0});
                             pending_visited.push_back(false);
                         }
                     }
@@ -319,10 +320,10 @@ void ProgramMatcher::FindUniqueMappings(const std::vector<size_t>& source_ids, c
     // Maps target ids to matched source ids
     std::vector<bool> source_ambiguous;
     std::vector<bool> target_ambiguous;
-    std::vector<std::optional<size_t>> target_mappings;
+    std::vector<std::optional<size_t>> source_mapping;
     source_ambiguous.resize(source_ids.size(), false);
     target_ambiguous.resize(target_ids.size(), false);
-    target_mappings.resize(target_ids.size(), std::nullopt);
+    source_mapping.resize(source_ids.size(), std::nullopt);
 
     // We deviate from PatienceDiff sightly here:
     //
@@ -330,13 +331,13 @@ void ProgramMatcher::FindUniqueMappings(const std::vector<size_t>& source_ids, c
     // We assume that our statements are unique most of the time and therefore compute the mapping directly.
     // We also short-circuit the equality checks which makes the quadratic behavior acceptable here.
     //
-    for (auto source_id : source_ids) {
-        auto& source_stmt = *source_stmts.Get(source_id);
+    for (auto target_id : target_ids) {
+        auto& target_stmt = *target_stmts.Get(target_id);
         std::optional<size_t> match;
 
         // Compare source statement with all targets
-        for (auto target_id : target_ids) {
-            auto& target_stmt = *target_stmts.Get(target_id);
+        for (auto source_id : source_ids) {
+            auto& source_stmt = *source_stmts.Get(source_id);
             switch (EstimateSimilarity(source_stmt, target_stmt)) {
                 case SimilarityEstimate::NOT_EQUAL:
                     break;
@@ -344,31 +345,74 @@ void ProgramMatcher::FindUniqueMappings(const std::vector<size_t>& source_ids, c
                     if (!CheckDeepEquality(source_stmt, target_stmt)) break;
                     // Fall through to the equality case
                 case SimilarityEstimate::EQUAL:
-                    // Mapping ambiguous? (duplicate source or target statements)
-                    if (auto existing = target_mappings[target_id]; existing) {
-                        source_ambiguous[source_id] = true;
-                        source_ambiguous[*existing] = true;
+                    // Mapping ambiguous?
+                    // Two target statements map to the same source statement
+                    if (auto existing = source_mapping[source_id]; existing) {
                         target_ambiguous[target_id] = true;
+                        target_ambiguous[*existing] = true;
+                        source_ambiguous[source_id] = true;
                         continue;
                     } else if (match) {
-                        source_ambiguous[source_id] = true;
-                        target_ambiguous[*match] = true;
+                        // Target statement maps to two source statements
                         target_ambiguous[target_id] = true;
+                        source_ambiguous[*match] = true;
+                        source_ambiguous[source_id] = true;
                         continue;
                     }
-                    target_mappings[target_id] = source_id;
-                    match = target_id;
+                    source_mapping[source_id] = target_id;
+                    match = source_id;
                     break;
             }
         }
     }
 
     // Emit non-ambiguous mappings
-    for (unsigned target_id = 0; target_id < target_mappings.size(); ++target_id) {
-        auto source_id = target_mappings[target_id];
-        if (!source_id) continue;
-        if (target_ambiguous[target_id] || source_ambiguous[*source_id]) continue;
-        unique_pairs.push_back({*source_id, target_id});
+    for (unsigned source_id = 0; source_id < source_ids.size(); ++source_id) {
+        auto target_id = source_mapping[source_id];
+        if (!target_id) continue;
+        if (source_ambiguous[source_id] || target_ambiguous[*target_id]) continue;
+        unique_pairs.push_back({source_id, *target_id});
+    }
+}
+
+// Find the longest common subsequence among the target ids in the unique pairs.
+void ProgramMatcher::FindLCS(const std::vector<std::pair<size_t, size_t>>& unique_pairs, std::vector<std::pair<size_t, size_t>>& lcs) {
+    struct Entry {
+        size_t source_id;
+        size_t target_id;
+        size_t prev_pile_size;
+    };
+    using Pile = std::vector<Entry>;
+    struct PileLess {
+        bool operator()(const Pile& pile, size_t stmt) const { return pile.back().target_id < stmt; }
+    };
+
+    // Build the piles
+    std::vector<Pile> piles;
+    for (auto& [source_id, target_id]: unique_pairs) {
+        if (auto p = std::lower_bound(piles.begin(), piles.end(), target_id, PileLess()); p != piles.end()) {
+            auto prev_pile_id = std::max<size_t>(p - piles.begin(), 1) - 1;
+            auto prev_pile_size = piles[prev_pile_id].size();
+            p->push_back({source_id, target_id, prev_pile_size});
+        } else {
+            piles.emplace_back();
+            auto prev_pile_id = std::max<size_t>(piles.size(), 2) - 2;
+            auto prev_pile_size = piles[prev_pile_id].size();
+            piles.back().push_back({source_id, target_id, prev_pile_id});
+        }
+    }
+
+    // No piles?
+    if (piles.empty())
+        return;
+
+    // Build the LCS
+    for (auto pile_id = piles.size() - 1, entry_id = piles[pile_id].size() - 1;; --pile_id) {
+        auto [source_id, target_id, prev_pile_size] = piles[pile_id][entry_id];
+        lcs.push_back({source_id, target_id});
+        if (pile_id == 0)
+            break;
+        entry_id = prev_pile_size - 1;
     }
 }
 
