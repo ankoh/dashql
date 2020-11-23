@@ -11,6 +11,7 @@
 using namespace std;
 using namespace dashql;
 using SimilarityEstimate = ProgramMatcher::SimilarityEstimate;
+using StatementMappings = ProgramMatcher::StatementMappings;
 namespace fb = flatbuffers;
 
 namespace {
@@ -117,13 +118,13 @@ struct UPP {
 };
 class StatementMappingTest: public ::testing::TestWithParam<UPP> {};
 
-TEST_P(StatementMappingTest, StatementMappingsEqual) {
+TEST_P(StatementMappingTest, Mappings) {
     auto& param = GetParam();
     auto [p1, pb1] = Parse(param.t1);
     auto [p2, pb2] = Parse(param.t2);
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
-    std::vector<std::pair<size_t, size_t>> unique_pairs;
-    std::vector<std::pair<size_t, size_t>> equal_pairs;
+    StatementMappings unique_pairs;
+    StatementMappings equal_pairs;
     matcher.MapStatements(param.ids0, param.ids1, unique_pairs, equal_pairs);
     ASSERT_EQ(unique_pairs, param.unique);
     std::sort(equal_pairs.begin(), equal_pairs.end(), [&](auto& l, auto& r) {
@@ -132,15 +133,15 @@ TEST_P(StatementMappingTest, StatementMappingsEqual) {
     ASSERT_EQ(equal_pairs, param.equal);
 }
 
-TEST_P(StatementMappingTest, LCSEquals) {
+TEST_P(StatementMappingTest, LCS) {
     auto& param = GetParam();
     auto [p1, pb1] = Parse(param.t1);
     auto [p2, pb2] = Parse(param.t2);
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
-    std::vector<std::pair<size_t, size_t>> unique_pairs;
-    std::vector<std::pair<size_t, size_t>> equal_pairs;
+    StatementMappings unique_pairs;
+    StatementMappings equal_pairs;
     matcher.MapStatements(param.ids0, param.ids1, unique_pairs, equal_pairs);
-    std::vector<std::pair<size_t, size_t>> lcs;
+    StatementMappings lcs;
     matcher.FindLCS(unique_pairs, lcs);
     ASSERT_EQ(lcs, param.lcs);
 }
