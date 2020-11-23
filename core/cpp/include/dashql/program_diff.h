@@ -86,7 +86,7 @@ class ProgramMatcher {
     /// Only used for the full similarity computation.
     size_t ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes);
     /// Find unique statement mappings
-    void MapStatements(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids, StatementMappings& unique, StatementMappings& equal);
+    void MapStatements(StatementMappings& unique, StatementMappings& equal);
     /// Find the longest common subsequence
     StatementMappings FindLCS(const StatementMappings& unique);
 
