@@ -24,12 +24,12 @@ class ProgramMatcher {
         size_t total_nodes;
         /// The matching nodes
         size_t matching_nodes;
-        /// The first N different matches
-        
+        /// The first N nodes that differ
+        std::vector<size_t> diff_nodes;
 
         /// Constructor
         Similarity(size_t total = 0, size_t matching = 0)
-            : total_nodes(total), matching_nodes(matching) {}
+            : total_nodes(total), matching_nodes(matching), diff_nodes() {}
         /// Are Equal?
         bool Equal() const { return total_nodes == matching_nodes; }
         /// Get the score
@@ -61,7 +61,7 @@ class ProgramMatcher {
     /// Estimate the similarity
     SimilarityEstimate EstimateSimilarity(const sx::Statement& source, const sx::Statement& target);
     /// Compute the similarity of two statements
-    Similarity ComputeSimilarity(const sx::Statement& source, const sx::Statement& target);
+    Similarity ComputeSimilarity(const sx::Statement& source, const sx::Statement& target, size_t diff_cap = 8);
     /// Deep equality check of two statements.
     /// Runs a similarity check that aborts early if not strictly equal.
     bool CheckDeepEquality(const sx::Statement& source, const sx::Statement& target);
