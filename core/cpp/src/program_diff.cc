@@ -392,7 +392,7 @@ void ProgramMatcher::FindLCS(const std::vector<std::pair<size_t, size_t>>& uniqu
     // Build the piles
     std::vector<Pile> piles;
     for (auto& [source_id, target_id]: unique_pairs) {
-        if (auto p = std::lower_bound(piles.begin(), piles.end(), target_id, PileLess()); p != piles.end()) {
+        if (auto p = std::find_if(piles.begin(), piles.end(), [t=target_id](auto& x) { return x.back().target_id >= t; }); p != piles.end()) {
             auto prev_pile_id = std::max<size_t>(p - piles.begin(), 1) - 1;
             auto prev_pile_size = piles[prev_pile_id].size();
             p->push_back({source_id, target_id, prev_pile_size});
