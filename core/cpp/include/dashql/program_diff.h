@@ -55,6 +55,8 @@ class ProgramMatcher {
     size_t ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes);
     /// Find unique statement mappings
     void FindUniqueMappings(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids, std::vector<std::pair<size_t, size_t>>& unique_pairs);
+    /// Find the longest common subsequence
+    void FindLCS(const std::vector<std::pair<size_t, size_t>>& unique_pairs, std::vector<std::pair<size_t, size_t>>& lcs);
 
    public:
     /// Compare two programs
@@ -70,6 +72,7 @@ class ProgramMatcher {
 
     /// Compute the diff between the programs.
     ///
+    /// We use a modified version of patience sort.
     /// The main difference between our diffs and text diffs is that we don't care too much about the order within the text.
     /// If DashQL statements equal, we will always assume that the user reordered the statements independant of their distance.
     ///
@@ -77,7 +80,7 @@ class ProgramMatcher {
     /// 1) Similar to patience diff, we first find all unique pairs of equal statements within the two programs.
     ///    Statements that are completely identical will very likely have the same effect in our DashQL runtime.
     ///    (The exception are modifying statements like INSERT, UPDATE, DELETE but their effects will be handled later)
-    /// 2) After that, we are left with all statements that are either copies or new/deleted.
+    /// 2) 
     void ComputeDiff();
 
 };
