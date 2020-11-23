@@ -11,6 +11,13 @@ namespace sx = proto::syntax;
 
 class ProgramMatcher {
    public:
+    /// A similarity estimate
+    enum class SimilarityEstimate {
+        EQUAL,
+        SIMILAR,
+        NOT_EQUAL
+    };
+
     /// A similarity result
     struct Similarity {
         /// The maximum node count
@@ -41,13 +48,15 @@ class ProgramMatcher {
     /// The subtree sizes of target nodes
     std::vector<size_t> target_subtree_sizes_;
 
-    /// Compute subtree sizes
-    size_t ComputeSubtreeSizes(const sx::Program& prog, size_t root, std::vector<size_t>& sizes);
+    /// Compute subtree size
+    size_t ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes);
 
    public:
     /// Compare two programs
     ProgramMatcher(std::string_view source_text, std::string_view target_text, const sx::Program& source_program, const sx::Program& target_program);
 
+    /// Estimate the similarity
+    SimilarityEstimate EstimateSimilarity(const sx::Statement& source, const sx::Statement& target);
     /// Compare two statements
     Similarity ComputeSimilarity(const sx::Statement& source, const sx::Statement& target);
 };
