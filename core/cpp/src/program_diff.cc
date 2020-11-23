@@ -311,7 +311,7 @@ bool ProgramMatcher::CheckDeepEquality(const sx::Statement& source, const sx::St
 }
 
 // Find unique statement pairs in two lists of statement ids.
-void ProgramMatcher::FindUniquePairs(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids,
+void ProgramMatcher::FindUniqueMappings(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids,
                                      std::vector<std::pair<size_t, size_t>>& unique_pairs) {
     auto& source_stmts = *source_program_.statements();
     auto& target_stmts = *target_program_.statements();
