@@ -426,11 +426,33 @@ ProgramMatcher::StatementMappings ProgramMatcher::FindLCS(const std::vector<std:
 
 // Compute a diff between the programs
 std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
-//    StatementMappings unique_pairs;
-//    StatementMappings equal_pairs;
-//    MapStatements();
+    // Map statements
+    StatementMappings unique_pairs;
+    StatementMappings equal_pairs;
+    MapStatements(unique_pairs, equal_pairs);
 
-    return {};
+    // Build LCS
+    auto lcs = FindLCS(unique_pairs);
+
+    // Iterate over sections
+    std::vector<DiffOp> ops;
+    std::pair<size_t, size_t> prev = {0, 0};
+    std::pair<size_t, size_t> next = {0, 0};
+    for (auto iter = lcs.begin();; ++iter) {
+        next = (iter < lcs.end()) ? *iter : StatementMapping{
+            source_program_.nodes()->size(),
+            target_program_.nodes()->size(),
+        };
+        auto [next_source_id, next_target_id] = next;
+
+        // XXX process statements in section
+
+        // KEEP section boundary if not at end
+        if (iter == lcs.end()) break;
+        ops.emplace_back(DiffOpCode::KEEP, next_source_id, next_target_id);
+    }
+
+    return ops;
 }
 
 }  // namespace dashql
