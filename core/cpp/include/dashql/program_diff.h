@@ -41,9 +41,9 @@ class ProgramMatcher {
 
     /// A program transform code
     enum class DiffOpCode {
-        COPY,
         DELETE,
         INSERT,
+        KEEP,
         MOVE,
         UPDATE,
     };
@@ -88,7 +88,7 @@ class ProgramMatcher {
     /// Find unique statement mappings
     void MapStatements(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids, StatementMappings& unique, StatementMappings& equal);
     /// Find the longest common subsequence
-    void FindLCS(const StatementMappings& unique, StatementMappings& lcs);
+    StatementMappings FindLCS(const StatementMappings& unique);
 
    public:
     /// Compare two programs

@@ -382,7 +382,8 @@ void ProgramMatcher::MapStatements(const std::vector<size_t>& source_ids, const 
 }
 
 // Find the longest common subsequence among the unique pairs.
-void ProgramMatcher::FindLCS(const std::vector<std::pair<size_t, size_t>>& unique_pairs, std::vector<std::pair<size_t, size_t>>& lcs) {
+ProgramMatcher::StatementMappings ProgramMatcher::FindLCS(const std::vector<std::pair<size_t, size_t>>& unique_pairs) {
+    StatementMappings lcs;
     struct Entry {
         size_t source_id;
         size_t target_id;
@@ -410,7 +411,7 @@ void ProgramMatcher::FindLCS(const std::vector<std::pair<size_t, size_t>>& uniqu
 
     // No piles?
     if (piles.empty())
-        return;
+        return lcs;
 
     // Build the LCS
     for (auto pile_id = piles.size() - 1, entry_id = piles[pile_id].size() - 1;; --pile_id) {
@@ -421,6 +422,7 @@ void ProgramMatcher::FindLCS(const std::vector<std::pair<size_t, size_t>>& uniqu
         entry_id = prev_pile_size - 1;
     }
     std::reverse(lcs.begin(), lcs.end());
+    return lcs;
 }
 
 // Compute a diff between the programs

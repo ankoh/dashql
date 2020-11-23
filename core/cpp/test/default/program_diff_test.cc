@@ -141,8 +141,7 @@ TEST_P(StatementMappingTest, LCS) {
     StatementMappings unique_pairs;
     StatementMappings equal_pairs;
     matcher.MapStatements(param.ids0, param.ids1, unique_pairs, equal_pairs);
-    StatementMappings lcs;
-    matcher.FindLCS(unique_pairs, lcs);
+    auto lcs = matcher.FindLCS(unique_pairs);
     ASSERT_EQ(lcs, param.lcs);
 }
 
