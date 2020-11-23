@@ -100,7 +100,7 @@ ProgramMatcher::ProgramMatcher(std::string_view source_text, std::string_view ta
       target_subtree_sizes_() {}
 
 // Compare two statements
-ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement& source, const sx::Statement& target) {
+ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement& source, const sx::Statement& target, size_t diff_cap) {
     // Compute tree sizes
     auto& source_nodes = *source_program_.nodes();
     auto& target_nodes = *target_program_.nodes();
@@ -126,7 +126,7 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
     // Traverse the tree
     Similarity sim;
     while (!pending_nodes.empty()) {
-        auto& [source_id, target_id, parent_entry, matching] = pending_nodes.back();
+        auto& [source_id, target_id, parent_entry, matching_nodes] = pending_nodes.back();
         auto source = *source_nodes[source_id];
         auto target = *target_nodes[target_id];
 
@@ -134,10 +134,11 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
         if (pending_visited.back()) {
             // Root entry?
             if (pending_nodes.size() == 1) {
-                sim = Similarity{node_count, matching};
+                sim.total_nodes = node_count;
+                sim.matching_nodes = matching_nodes;
                 break;
             }
-            pending_nodes[parent_entry].matching_nodes += matching;
+            pending_nodes[parent_entry].matching_nodes += matching_nodes;
             pending_nodes.pop_back();
             pending_visited.pop_back();
             continue;
@@ -152,22 +153,23 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
 
         // Enum or literal
         auto node_type = source.node_type();
+        auto match = true;
         switch (node_type) {
             case sx::NodeType::NONE:
                 break;
             case sx::NodeType::BOOL:
-                matching = source.children_begin_or_value() == target.children_begin_or_value();
+                match = source.children_begin_or_value() == target.children_begin_or_value();
                 break;
             case sx::NodeType::UI32:
-                matching = source.children_begin_or_value() == target.children_begin_or_value();
+                match = source.children_begin_or_value() == target.children_begin_or_value();
                 break;
             case sx::NodeType::STRING:
-                matching = TextAt(source_text_, source.location()) == TextAt(target_text_, target.location());
+                match = TextAt(source_text_, source.location()) == TextAt(target_text_, target.location());
                 break;
             case sx::NodeType::ARRAY: {
                 auto sc = source.children_count();
                 auto tc = target.children_count();
-                matching = sc == tc;
+                match = sc == tc;
                 for (unsigned i = 0, sb = source.children_begin_or_value(), tb = target.children_begin_or_value();
                      i < std::min(sc, tc); ++i) {
                     pending_nodes.push_back({sb + i, tb + i, stack_idx, 0});
@@ -184,16 +186,16 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
                     auto ti = target.children_begin_or_value();
                     auto se = si + source.children_count();
                     auto te = ti + target.children_count();
-                    matching = source.children_count() == target.children_count();
+                    match = source.children_count() == target.children_count();
                     while ((si < se) && (ti < te)) {
                         auto sk = static_cast<uint16_t>(source_nodes[si]->attribute_key());
                         auto tk = static_cast<uint16_t>(target_nodes[ti]->attribute_key());
                         if (sk < tk) {
                             ++si;
-                            matching = 0;
+                            match = false;
                         } else if (sk > tk) {
                             ++ti;
-                            matching = 0;
+                            match = false;
                         } else {
                             pending_nodes.push_back({si++, ti++, stack_idx, 0});
                             pending_visited.push_back(false);
@@ -203,8 +205,17 @@ ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement
                 } else if (node_type > sx::NodeType::ENUM_MIN) {
                     // Is enum?
                     // Match the value.
-                    matching = source.children_begin_or_value() == target.children_begin_or_value();
+                    match = source.children_begin_or_value() == target.children_begin_or_value();
                 }
+            }
+        }
+
+        // Was a match?
+        if (match) {
+            ++matching_nodes;
+        } else {
+            if (sim.diff_nodes.size() < diff_cap) {
+                sim.diff_nodes.push_back(source_id);
             }
         }
     }
