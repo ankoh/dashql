@@ -146,64 +146,15 @@ TEST_P(StatementMappingTest, LCSEquals) {
 }
 
 INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
-    UPP{"SELECT 1;", " SELECT 1;", {0}, {0}, {{0, 0}}, {{0, 0}}, {{0, 0}}},
+    UPP{"SELECT 1;", "SELECT 1;", {0}, {0}, {{0, 0}}, {{0, 0}}, {{0, 0}}},
+    UPP{"SELECT 2; SELECT 1;", "SELECT 1;", {0, 1}, {0}, {{1, 0}}, {{1, 0}}, {{1, 0}}},
+    UPP{"SELECT 2; SELECT 1;", "SELECT 3; SELECT 1;", {0, 1}, {0, 1}, {{1, 1}}, {{1, 1}}, {{1, 1}}},
+    UPP{"SELECT 2; SELECT 1;", "SELECT 3; SELECT 1;", {0, 1}, {}, {}, {}},
+    UPP{"SELECT 1; SELECT 1;", "SELECT 3; SELECT 1;", {0, 1}, {0, 1}, {}, {{0, 1}, {1, 1}}, {}},
+    UPP{"SELECT 1; SELECT 2;", "SELECT 1; SELECT 1;", {0, 1}, {0, 1}, {}, {{0, 0}, {0, 1}}, {}},
+    UPP{"SELECT 2; SELECT 1;", "SELECT 1; SELECT 2;", {0, 1}, {0, 1}, {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}, {{1, 0}}},
 
-    UPP{R"DQL(
-        SELECT 2;
-        SELECT 1;
-    )DQL", R"DQL(
-        SELECT 1;
-    )DQL", {0, 1}, {0}, {{1, 0}}, {{1, 0}}, {{1, 0}}},
-
-    UPP{R"DQL(
-        SELECT 2;
-        SELECT 1;
-    )DQL", R"DQL(
-        SELECT 3;
-        SELECT 1;
-    )DQL", {0, 1}, {0, 1}, {{1, 1}}, {{1, 1}}, {{1, 1}}},
-
-    UPP{R"DQL(
-        SELECT 2;
-        SELECT 1;
-    )DQL", R"DQL(
-        SELECT 3;
-        SELECT 1;
-    )DQL", {0, 1}, {}, {}, {}},
-
-    UPP{R"DQL(
-        SELECT 1;
-        SELECT 1;
-    )DQL", R"DQL(
-        SELECT 3;
-        SELECT 1;
-    )DQL", {0, 1}, {0, 1}, {}, {{0, 1}, {1, 1}}, {}},
-
-    UPP{R"DQL(
-        SELECT 1;
-        SELECT 2;
-    )DQL", R"DQL(
-        SELECT 1;
-        SELECT 1;
-    )DQL", {0, 1}, {0, 1}, {}, {{0, 0}, {0, 1}}, {}},
-
-    UPP{R"DQL(
-        SELECT 2;
-        SELECT 1;
-    )DQL", R"DQL(
-        SELECT 1;
-        SELECT 2;
-    )DQL", {0, 1}, {0, 1}, {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}, {{1, 0}}},
-
-    UPP{R"DQL(
-        SELECT 1;
-        SELECT 2;
-        SELECT 3;
-    )DQL", R"DQL(
-        SELECT 1;
-        SELECT 3;
-        SELECT 2;
-    )DQL",
+    UPP{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;",
         {0, 1, 2}, {0, 1, 2},
         {{0, 0}, {1, 2}, {2, 1}},
         {{0, 0}, {1, 2}, {2, 1}},
