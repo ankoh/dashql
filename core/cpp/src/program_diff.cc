@@ -312,8 +312,8 @@ bool ProgramMatcher::CheckDeepEquality(const sx::Statement& source, const sx::St
 }
 
 // Find unique statement pairs in two lists of statement ids.
-void ProgramMatcher::FindUniqueMappings(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids,
-                                     std::vector<std::pair<size_t, size_t>>& unique_pairs) {
+void ProgramMatcher::MapStatements(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids,
+                                   StatementMappings& unique_pairs, StatementMappings& equal) {
     auto& source_stmts = *source_program_.statements();
     auto& target_stmts = *target_program_.statements();
 
@@ -345,6 +345,8 @@ void ProgramMatcher::FindUniqueMappings(const std::vector<size_t>& source_ids, c
                     if (!CheckDeepEquality(source_stmt, target_stmt)) break;
                     // Fall through to the equality case
                 case SimilarityEstimate::EQUAL:
+                    equal.push_back({source_id, target_id});
+
                     // Mapping ambiguous?
                     // Two target statements map to the same source statement
                     if (auto existing = source_mapping[source_id]; existing) {

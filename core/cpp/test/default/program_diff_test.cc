@@ -21,7 +21,7 @@ class ProgramMatcherProxy: public ProgramMatcher {
     ProgramMatcherProxy(std::string_view source_text, std::string_view target_text, const sx::Program& source_program, const sx::Program& target_program)
         : ProgramMatcher(source_text, target_text, source_program, target_program) {}
 
-    using ProgramMatcher::FindUniqueMappings;
+    using ProgramMatcher::MapStatements;
 };
 
 std::pair<const sx::Program*, fb::DetachedBuffer> Parse(std::string_view text) {
@@ -39,6 +39,11 @@ struct SSP {
     bool are_equal;
     SimilarityEstimate estimate;
     std::optional<size_t> diff_node_count = std::nullopt;
+
+    friend std::ostream& operator<<(std::ostream& out, const SSP& param) {
+        out << param.t1 << " " << param.t2;
+        return out;
+    }
 };
 class SingleStatementTest: public ::testing::TestWithParam<SSP> {};
 
@@ -100,41 +105,44 @@ struct UPP {
     std::string_view t2;
     std::vector<size_t> ids0;
     std::vector<size_t> ids1;
-    std::vector<std::pair<size_t, size_t>> expected;
-};
-class UniqueMappingTest: public ::testing::TestWithParam<UPP> {};
+    std::vector<std::pair<size_t, size_t>> unique;
+    std::vector<std::pair<size_t, size_t>> equal;
 
-TEST_P(UniqueMappingTest, UniqueMappingsEqual) {
+    friend std::ostream& operator<<(std::ostream& out, const UPP& param) {
+        out << param.t1 << " " << param.t2;
+        return out;
+    }
+};
+class StatementMappingTest: public ::testing::TestWithParam<UPP> {};
+
+TEST_P(StatementMappingTest, StatementMappingsEqual) {
     auto& param = GetParam();
     auto [p1, pb1] = Parse(param.t1);
     auto [p2, pb2] = Parse(param.t2);
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
     std::vector<std::pair<size_t, size_t>> unique_pairs;
-    matcher.FindUniqueMappings(param.ids0, param.ids1, unique_pairs);
-    ASSERT_EQ(unique_pairs, param.expected);
+    std::vector<std::pair<size_t, size_t>> equal_pairs;
+    matcher.MapStatements(param.ids0, param.ids1, unique_pairs, equal_pairs);
+    ASSERT_EQ(unique_pairs, param.unique);
+    std::sort(equal_pairs.begin(), equal_pairs.end(), [&](auto& l, auto& r) {
+        return l.first < r.first;
+    });
+    ASSERT_EQ(equal_pairs, param.equal);
 }
 
-INSTANTIATE_TEST_SUITE_P(ProgramDiff, UniqueMappingTest, ::testing::Values(
+INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
     UPP{R"DQL(
         SELECT 1;
     )DQL", R"DQL(
         SELECT 1;
-    )DQL", {0}, {0}, {{0, 0}}},
+    )DQL", {0}, {0}, {{0, 0}}, {{0, 0}}},
 
     UPP{R"DQL(
         SELECT 2;
         SELECT 1;
     )DQL", R"DQL(
         SELECT 1;
-    )DQL", {0, 1}, {0}, {{1, 0}}},
-
-    UPP{R"DQL(
-        SELECT 2;
-        SELECT 1;
-    )DQL", R"DQL(
-        SELECT 3;
-        SELECT 1;
-    )DQL", {0, 1}, {0, 1}, {{1, 1}}},
+    )DQL", {0, 1}, {0}, {{1, 0}}, {{1, 0}}},
 
     UPP{R"DQL(
         SELECT 2;
@@ -142,7 +150,15 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, UniqueMappingTest, ::testing::Values(
     )DQL", R"DQL(
         SELECT 3;
         SELECT 1;
-    )DQL", {0, 1}, {}, {}},
+    )DQL", {0, 1}, {0, 1}, {{1, 1}}, {{1, 1}}},
+
+    UPP{R"DQL(
+        SELECT 2;
+        SELECT 1;
+    )DQL", R"DQL(
+        SELECT 3;
+        SELECT 1;
+    )DQL", {0, 1}, {}, {}, {}},
 
     UPP{R"DQL(
         SELECT 1;
@@ -150,7 +166,7 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, UniqueMappingTest, ::testing::Values(
     )DQL", R"DQL(
         SELECT 3;
         SELECT 1;
-    )DQL", {0, 1}, {0, 1}, {}},
+    )DQL", {0, 1}, {0, 1}, {}, {{0, 1}, {1, 1}}},
 
     UPP{R"DQL(
         SELECT 1;
@@ -158,7 +174,7 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, UniqueMappingTest, ::testing::Values(
     )DQL", R"DQL(
         SELECT 1;
         SELECT 1;
-    )DQL", {0, 1}, {0, 1}, {}},
+    )DQL", {0, 1}, {0, 1}, {}, {{0, 0}, {0, 1}}},
 
     UPP{R"DQL(
         SELECT 2;
@@ -166,7 +182,7 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, UniqueMappingTest, ::testing::Values(
     )DQL", R"DQL(
         SELECT 1;
         SELECT 2;
-    )DQL", {0, 1}, {0, 1}, {{0, 1}, {1, 0}}}
+    )DQL", {0, 1}, {0, 1}, {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}}
 ));
 
 }  // namespace
