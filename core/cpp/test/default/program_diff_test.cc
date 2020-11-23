@@ -158,7 +158,15 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, UniqueMappingTest, ::testing::Values(
     )DQL", R"DQL(
         SELECT 1;
         SELECT 1;
-    )DQL", {0, 1}, {0, 1}, {}}
+    )DQL", {0, 1}, {0, 1}, {}},
+
+    UPP{R"DQL(
+        SELECT 2;
+        SELECT 1;
+    )DQL", R"DQL(
+        SELECT 1;
+        SELECT 2;
+    )DQL", {0, 1}, {0, 1}, {{0, 1}, {1, 0}}}
 ));
 
 }  // namespace
