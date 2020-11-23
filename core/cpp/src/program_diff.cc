@@ -12,8 +12,8 @@ std::string_view TextAt(std::string_view text, sx::Location loc) { return text.s
 
 }  // namespace
 
-/// Compute subtree sizes
-size_t ProgramMatcher::ComputeSubtreeSizes(const sx::Program& prog, size_t root, std::vector<size_t>& sizes) {
+/// Compute tree size
+size_t ProgramMatcher::ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes) {
     // Already computed?
     if (auto n = sizes[root]; n > 0) return n;
 
@@ -66,6 +66,27 @@ size_t ProgramMatcher::ComputeSubtreeSizes(const sx::Program& prog, size_t root,
     return node_count;
 }
 
+// Estimate the similarity
+ProgramMatcher::SimilarityEstimate ProgramMatcher::EstimateSimilarity(const sx::Statement& source, const sx::Statement& target) {
+    auto& source_nodes = *source_program_.nodes();
+    auto& target_nodes = *target_program_.nodes();
+    auto s = source_nodes.Get(source.root());
+    auto t = target_nodes.Get(target.root());
+
+    // Different node types?
+    if (s->node_type() != t->node_type())
+        return SimilarityEstimate::NOT_EQUAL;
+
+    // Do a string comparison if the strings are equal in size and number of root attributes.
+    // This will bypass us the tree diffing for all unchanged statements.
+    if ((s->children_count() == t->children_count()) && (s->location().length() == t->location().length())) {
+        auto st = TextAt(source_text_, s->location());
+        auto tt = TextAt(target_text_, t->location());
+        if (st == tt) return SimilarityEstimate::EQUAL;
+    }
+    return SimilarityEstimate::SIMILAR;
+}
+
 // Constructor
 ProgramMatcher::ProgramMatcher(std::string_view source_text, std::string_view target_text,
                                const sx::Program& source_program, const sx::Program& target_program)
@@ -78,20 +99,11 @@ ProgramMatcher::ProgramMatcher(std::string_view source_text, std::string_view ta
 
 // Compare two statements
 ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement& source, const sx::Statement& target) {
-    // Short circuit the equality case
+    // Compute tree sizes
     auto& source_nodes = *source_program_.nodes();
     auto& target_nodes = *target_program_.nodes();
-    if (auto s = source_nodes.Get(source.root()), t = target_nodes.Get(target.root());
-        (s->location().length() == t->location().length()) && (s->node_type() == t->node_type()) &&
-        (s->children_count() == t->children_count())) {
-        auto st = TextAt(source_text_, s->location());
-        auto tt = TextAt(target_text_, t->location());
-        if (st == tt) return Similarity{1, 1};
-    }
-
-    // Compute tree sizes
-    auto source_size = ComputeSubtreeSizes(source_program_, source.root(), source_subtree_sizes_);
-    auto target_size = ComputeSubtreeSizes(target_program_, target.root(), target_subtree_sizes_);
+    auto source_size = ComputeTreeSize(source_program_, source.root(), source_subtree_sizes_);
+    auto target_size = ComputeTreeSize(target_program_, target.root(), target_subtree_sizes_);
     auto node_count = std::max(source_size, target_size);
     if (node_count == 0) return Similarity{};
 
