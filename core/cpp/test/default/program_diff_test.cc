@@ -10,6 +10,7 @@
 
 using namespace std;
 using namespace dashql;
+using DiffOp = ProgramMatcher::DiffOp;
 using SimilarityEstimate = ProgramMatcher::SimilarityEstimate;
 using StatementMappings = ProgramMatcher::StatementMappings;
 namespace fb = flatbuffers;
@@ -43,7 +44,7 @@ struct SSP {
     std::optional<size_t> diff_node_count = std::nullopt;
 
     friend std::ostream& operator<<(std::ostream& out, const SSP& param) {
-        out << param.t1 << " " << param.t2;
+        out << param.t1 << " | " << param.t2;
         return out;
     }
 };
@@ -110,7 +111,7 @@ struct UPP {
     std::vector<std::pair<size_t, size_t>> lcs;
 
     friend std::ostream& operator<<(std::ostream& out, const UPP& param) {
-        out << param.t1 << " " << param.t2;
+        out << param.t1 << " | " << param.t2;
         return out;
     }
 };
@@ -154,6 +155,34 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
         {{0, 0}, {1, 2}, {2, 1}},
         {{0, 0}, {1, 2}, {2, 1}},
         {{0, 0}, {2, 1}}}
+));
+
+struct DP {
+    std::string_view t1;
+    std::string_view t2;
+    std::vector<ProgramMatcher::DiffOp> diff;
+
+    friend std::ostream& operator<<(std::ostream& out, const DP& param) {
+        out << param.t1 << " | " << param.t2;
+        return out;
+    }
+};
+class DiffTest: public ::testing::TestWithParam<DP> {};
+
+TEST_P(DiffTest, DiffOps) {
+    auto& param = GetParam();
+    auto [p1, pb1] = Parse(param.t1);
+    auto [p2, pb2] = Parse(param.t2);
+    ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
+    auto diff = matcher.ComputeDiff();
+    ASSERT_EQ(diff, param.diff);
+}
+
+INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTest, ::testing::Values(
+    DP{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;", {
+        {DiffOpCode::KEEP, 0, 0},
+        {DiffOpCode::KEEP, 2, 1},
+    }}
 ));
 
 }  // namespace

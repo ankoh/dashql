@@ -3,11 +3,22 @@
 #ifndef INCLUDE_DASHQL_PROGRAM_DIFF_H_
 #define INCLUDE_DASHQL_PROGRAM_DIFF_H_
 
+#include "dashql/common/enum.h"
 #include "dashql/proto/syntax_generated.h"
+#include <iostream>
+#include <sstream>
 
 namespace dashql {
 
 namespace sx = proto::syntax;
+
+BETTER_ENUM(DiffOpCode, uint8_t,
+    DELETE,
+    INSERT,
+    KEEP,
+    MOVE,
+    UPDATE
+)
 
 class ProgramMatcher {
    public:
@@ -39,15 +50,6 @@ class ProgramMatcher {
         double Score() const { return (total_nodes == 0) ? 0.0 : static_cast<double>(matching_nodes) / total_nodes; }
     };
 
-    /// A program transform code
-    enum class DiffOpCode {
-        DELETE,
-        INSERT,
-        KEEP,
-        MOVE,
-        UPDATE,
-    };
-
     /// A statement transform
     struct DiffOp {
         /// The code
@@ -66,6 +68,15 @@ class ProgramMatcher {
         auto source() const { return source_; }
         /// The target
         auto target() const { return target_; }
+        /// Equality operator
+        bool operator==(const DiffOp& other) const {
+            return code_ == other.code_ && source_ == other.source_ && target_ == other.target_;
+        }
+        /// Print diff op
+        friend std::ostream& operator<<(std::ostream& out, const DiffOp& op) {
+            out << "[" << op.code_ << "," << op.source_.value_or(-1) << "," << op.target_.value_or(-1) << "]";
+            return out;
+        }
     };
 
    protected:
