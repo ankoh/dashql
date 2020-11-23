@@ -138,7 +138,7 @@ class ProgramMatcher {
     /// The rationale behind this is the following:
     ///     A user will very likely not change all statements at once.
     ///     We can therefore assume that a large portion of the statements is left unchanged.
-    ///     We use the unique statement pairs as constants between to identify updates quickly.
+    ///     We use the unique statement pairs as constants to identify updates quickly.
     ///
     std::vector<DiffOp> ComputeDiff();
 
