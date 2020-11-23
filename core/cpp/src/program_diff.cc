@@ -375,7 +375,7 @@ void ProgramMatcher::FindUniqueMappings(const std::vector<size_t>& source_ids, c
     }
 }
 
-// Find the longest common subsequence among the target ids in the unique pairs.
+// Find the longest common subsequence among the unique pairs.
 void ProgramMatcher::FindLCS(const std::vector<std::pair<size_t, size_t>>& unique_pairs, std::vector<std::pair<size_t, size_t>>& lcs) {
     struct Entry {
         size_t source_id;
