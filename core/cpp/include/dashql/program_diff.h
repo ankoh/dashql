@@ -57,8 +57,14 @@ class ProgramMatcher {
 
     /// Estimate the similarity
     SimilarityEstimate EstimateSimilarity(const sx::Statement& source, const sx::Statement& target);
-    /// Compare two statements
+    /// Compute the similarity of two statements
     Similarity ComputeSimilarity(const sx::Statement& source, const sx::Statement& target);
+    /// Deep equality check of two statements.
+    /// Runs a similarity check that aborts early if not strictly equal.
+    bool CheckDeepEquality(const sx::Statement& source, const sx::Statement& target);
+
+    /// Find unique statement pairs.
+    void FindUniquePairs(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids, std::vector<std::pair<size_t, size_t>> unique_pairs);
 };
 
 }  // namespace dashql
