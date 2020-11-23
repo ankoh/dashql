@@ -12,6 +12,37 @@ std::string_view TextAt(std::string_view text, sx::Location loc) { return text.s
 
 }  // namespace
 
+// Estimate the similarity
+ProgramMatcher::SimilarityEstimate ProgramMatcher::EstimateSimilarity(const sx::Statement& source,
+                                                                      const sx::Statement& target) {
+    auto& source_nodes = *source_program_.nodes();
+    auto& target_nodes = *target_program_.nodes();
+    auto s = source_nodes.Get(source.root());
+    auto t = target_nodes.Get(target.root());
+
+    // Different node types?
+    if (s->node_type() != t->node_type()) return SimilarityEstimate::NOT_EQUAL;
+
+    // Do a string comparison if the strings are equal in size and number of root attributes.
+    // This will bypass us the tree diffing for all unchanged statements.
+    if ((s->children_count() == t->children_count()) && (s->location().length() == t->location().length())) {
+        auto st = TextAt(source_text_, s->location());
+        auto tt = TextAt(target_text_, t->location());
+        if (st == tt) return SimilarityEstimate::EQUAL;
+    }
+    return SimilarityEstimate::SIMILAR;
+}
+
+// Constructor
+ProgramMatcher::ProgramMatcher(std::string_view source_text, std::string_view target_text,
+                               const sx::Program& source_program, const sx::Program& target_program)
+    : source_text_(source_text),
+      target_text_(target_text),
+      source_program_(source_program),
+      target_program_(target_program),
+      source_subtree_sizes_(),
+      target_subtree_sizes_() {}
+
 /// Compute tree size
 size_t ProgramMatcher::ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes) {
     // Init tree sizes
@@ -67,37 +98,6 @@ size_t ProgramMatcher::ComputeTreeSize(const sx::Program& prog, size_t root, std
     }
     return node_count;
 }
-
-// Estimate the similarity
-ProgramMatcher::SimilarityEstimate ProgramMatcher::EstimateSimilarity(const sx::Statement& source,
-                                                                      const sx::Statement& target) {
-    auto& source_nodes = *source_program_.nodes();
-    auto& target_nodes = *target_program_.nodes();
-    auto s = source_nodes.Get(source.root());
-    auto t = target_nodes.Get(target.root());
-
-    // Different node types?
-    if (s->node_type() != t->node_type()) return SimilarityEstimate::NOT_EQUAL;
-
-    // Do a string comparison if the strings are equal in size and number of root attributes.
-    // This will bypass us the tree diffing for all unchanged statements.
-    if ((s->children_count() == t->children_count()) && (s->location().length() == t->location().length())) {
-        auto st = TextAt(source_text_, s->location());
-        auto tt = TextAt(target_text_, t->location());
-        if (st == tt) return SimilarityEstimate::EQUAL;
-    }
-    return SimilarityEstimate::SIMILAR;
-}
-
-// Constructor
-ProgramMatcher::ProgramMatcher(std::string_view source_text, std::string_view target_text,
-                               const sx::Program& source_program, const sx::Program& target_program)
-    : source_text_(source_text),
-      target_text_(target_text),
-      source_program_(source_program),
-      target_program_(target_program),
-      source_subtree_sizes_(),
-      target_subtree_sizes_() {}
 
 // Compare two statements
 ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement& source, const sx::Statement& target, size_t diff_cap) {
