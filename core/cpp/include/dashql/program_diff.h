@@ -53,6 +53,8 @@ class ProgramMatcher {
     /// Compute subtree size.
     /// Only used for the full similarity computation.
     size_t ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes);
+    /// Find unique statement pairs
+    void FindUniquePairs(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids, std::vector<std::pair<size_t, size_t>> unique_pairs);
 
    public:
     /// Compare two programs
@@ -66,8 +68,6 @@ class ProgramMatcher {
     /// Runs a similarity check that aborts early if not strictly equal.
     bool CheckDeepEquality(const sx::Statement& source, const sx::Statement& target);
 
-    /// Find unique statement pairs.
-    void FindUniquePairs(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids, std::vector<std::pair<size_t, size_t>> unique_pairs);
 };
 
 }  // namespace dashql
