@@ -312,7 +312,7 @@ bool ProgramMatcher::CheckDeepEquality(const sx::Statement& source, const sx::St
 
 // Find unique statement pairs in two lists of statement ids.
 void ProgramMatcher::FindUniquePairs(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids,
-                                     std::vector<std::pair<size_t, size_t>> unique_pairs) {
+                                     std::vector<std::pair<size_t, size_t>>& unique_pairs) {
     auto& source_stmts = *source_program_.statements();
     auto& target_stmts = *target_program_.statements();
 
@@ -328,7 +328,7 @@ void ProgramMatcher::FindUniquePairs(const std::vector<size_t>& source_ids, cons
     //
     // PatienceDiff first makes both sides unique and then finds mappings between unique records.
     // We assume that our statements are unique most of the time and therefore compute the mapping directly.
-    // We also short-circuit the inequality check which makes the quadratic behavior acceptable here.
+    // We also short-circuit the equality checks which makes the quadratic behavior acceptable here.
     //
     for (auto source_id : source_ids) {
         auto& source_stmt = *source_stmts.Get(source_id);
@@ -364,8 +364,11 @@ void ProgramMatcher::FindUniquePairs(const std::vector<size_t>& source_ids, cons
     }
 
     // Emit non-ambiguous mappings
-    for (auto mapping: target_mappings) {
-        
+    for (unsigned target_id = 0; target_id < target_mappings.size(); ++target_id) {
+        auto source_id = target_mappings[target_id];
+        if (!source_id) continue;
+        if (target_ambiguous[target_id] || source_ambiguous[*source_id]) continue;
+        unique_pairs.push_back({*source_id, target_id});
     }
 }
 
