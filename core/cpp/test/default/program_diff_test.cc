@@ -34,9 +34,9 @@ TEST(ProgramDiff, EqualConst) {
     ProgramMatcher matcher{t1, t2, *p1, *p2};
     auto s1 = p1->statements()->Get(0), s2 = p2->statements()->Get(0);
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), SimilarityEstimate::EQUAL);
-    ASSERT_TRUE(matcher.CheckDeepEquality(*s1, *s2));
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_TRUE(sim.Equal());
+    ASSERT_TRUE(matcher.CheckDeepEquality(*s1, *s2));
 }
 
 TEST(ProgramDiff, DifferentConst) {
@@ -52,6 +52,7 @@ TEST(ProgramDiff, DifferentConst) {
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_FALSE(sim.Equal());
     ASSERT_EQ(sim.total_nodes - sim.matching_nodes, 1);
+    ASSERT_FALSE(matcher.CheckDeepEquality(*s1, *s2));
 }
 
 TEST(ProgramDiff, EqualColumnRefs) {
@@ -64,9 +65,9 @@ TEST(ProgramDiff, EqualColumnRefs) {
     ProgramMatcher matcher{t1, t2, *p1, *p2};
     auto s1 = p1->statements()->Get(0), s2 = p2->statements()->Get(0);
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), SimilarityEstimate::EQUAL);
-    ASSERT_TRUE(matcher.CheckDeepEquality(*s1, *s2));
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_TRUE(sim.Equal());
+    ASSERT_TRUE(matcher.CheckDeepEquality(*s1, *s2));
 }
 
 TEST(ProgramDiff, DifferentColumnRef) {
@@ -81,6 +82,7 @@ TEST(ProgramDiff, DifferentColumnRef) {
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), SimilarityEstimate::SIMILAR);
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_EQ(sim.total_nodes - sim.matching_nodes, 1);
+    ASSERT_FALSE(matcher.CheckDeepEquality(*s1, *s2));
 }
 
 TEST(ProgramDiff, DifferentSelect) {
@@ -95,6 +97,7 @@ TEST(ProgramDiff, DifferentSelect) {
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), SimilarityEstimate::SIMILAR);
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_FALSE(sim.Equal());
+    ASSERT_FALSE(matcher.CheckDeepEquality(*s1, *s2));
 }
 
 TEST(ProgramDiff, DifferentStatementTypes) {
@@ -109,6 +112,7 @@ TEST(ProgramDiff, DifferentStatementTypes) {
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), SimilarityEstimate::NOT_EQUAL);
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_FALSE(sim.Equal());
+    ASSERT_FALSE(matcher.CheckDeepEquality(*s1, *s2));
 }
 
 }  // namespace

@@ -24,6 +24,8 @@ class ProgramMatcher {
         size_t total_nodes;
         /// The matching nodes
         size_t matching_nodes;
+        /// The first N different matches
+        
 
         /// Constructor
         Similarity(size_t total = 0, size_t matching = 0)
@@ -48,7 +50,8 @@ class ProgramMatcher {
     /// The subtree sizes of target nodes
     std::vector<size_t> target_subtree_sizes_;
 
-    /// Compute subtree size
+    /// Compute subtree size.
+    /// Only used for the full similarity computation.
     size_t ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes);
 
    public:
