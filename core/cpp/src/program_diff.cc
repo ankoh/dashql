@@ -416,6 +416,7 @@ void ProgramMatcher::FindLCS(const std::vector<std::pair<size_t, size_t>>& uniqu
             break;
         entry_id = prev_pile_size - 1;
     }
+    std::reverse(lcs.begin(), lcs.end());
 }
 
 }  // namespace dashql
