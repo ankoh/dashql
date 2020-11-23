@@ -75,15 +75,31 @@ class ProgramMatcher {
 
     /// Compute the diff between the programs.
     ///
-    /// We use a modified version of patience sort.
+    /// We use a modified version of patience diff described here:
+    ///     https://bramcohen.livejournal.com/73318.html
+    ///     https://alfedenzo.livejournal.com/170301.html
+    ///
     /// The main difference between our diffs and text diffs is that we don't care too much about the order within the text.
-    /// If DashQL statements equal, we will always assume that the user reordered the statements independant of their distance.
+    /// If DashQL statements equal, we will assume that the user reordered the statements independant of their distance.
+    /// The only really problematic diffs are updated statements.
+    /// We therefore pick up the idea of patience sort to use unique matches as central pillar between user keystrokes.
     ///
     /// The algorithm works as follows:
+    //
     /// 1) Similar to patience diff, we first find all unique pairs of equal statements within the two programs.
-    ///    Statements that are completely identical will very likely have the same effect in our DashQL runtime.
-    ///    (The exception are modifying statements like INSERT, UPDATE, DELETE but their effects will be handled later)
-    /// 2) 
+    ///    Statements that are completely identical will very likely have the same effect in our DashQL program.
+    ///    (The exception are modifying statements like INSERT but their actions will be invalidated later)
+    /// 2) Once we have the list of unique statement pairs, we determine the longest common subsequence (LCS) among them.
+    /// 3) We then use the LCS to classify the statements into sections and emit the diff program as follows:
+    ///     A) We emit MOVE instructions for unique pairs that cross section boundaries.
+    ///     B) We emit UPDATE instructions if the similarity between two statements is above a threshold.
+    ///     C) We emit CREATE/DELETE instructions if a statement has no similar match.
+    ///
+    /// The rationale behind this is the following:
+    ///     A user will very likely not change all statements at once.
+    ///     We can therefore assume that a large portion of the statements is left unchanged.
+    ///     We use the unique statement pairs as central pillar to encapsulate updates quickly.
+    ///
     void ComputeDiff();
 
 };
