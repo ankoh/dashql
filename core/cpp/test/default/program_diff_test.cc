@@ -82,10 +82,49 @@ void TestUniquePairs(std::string_view t1, std::string_view t2, const std::vector
 
 TEST(ProgramDiff, UniquePairs) {
     TestUniquePairs(R"DQL(
-        SELECT 1
+        SELECT 1;
     )DQL", R"DQL(
-        SELECT 1
+        SELECT 1;
     )DQL", {0}, {0}, {{0, 0}});
+
+    TestUniquePairs(R"DQL(
+        SELECT 2;
+        SELECT 1;
+    )DQL", R"DQL(
+        SELECT 1;
+    )DQL", {0, 1}, {0}, {{1, 0}});
+
+    TestUniquePairs(R"DQL(
+        SELECT 2;
+        SELECT 1;
+    )DQL", R"DQL(
+        SELECT 3;
+        SELECT 1;
+    )DQL", {0, 1}, {0, 1}, {{1, 1}});
+
+    TestUniquePairs(R"DQL(
+        SELECT 2;
+        SELECT 1;
+    )DQL", R"DQL(
+        SELECT 3;
+        SELECT 1;
+    )DQL", {0, 1}, {}, {});
+
+    TestUniquePairs(R"DQL(
+        SELECT 1;
+        SELECT 1;
+    )DQL", R"DQL(
+        SELECT 3;
+        SELECT 1;
+    )DQL", {0, 1}, {0, 1}, {});
+
+    TestUniquePairs(R"DQL(
+        SELECT 1;
+        SELECT 2;
+    )DQL", R"DQL(
+        SELECT 1;
+        SELECT 1;
+    )DQL", {0, 1}, {0, 1}, {});
 }
 
 }  // namespace
