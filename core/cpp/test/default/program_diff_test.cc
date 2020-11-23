@@ -105,8 +105,6 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, SingleStatementTest, ::testing::Values(
 struct UPP {
     std::string_view t1;
     std::string_view t2;
-    std::vector<size_t> ids0;
-    std::vector<size_t> ids1;
     std::vector<std::pair<size_t, size_t>> unique;
     std::vector<std::pair<size_t, size_t>> equal;
     std::vector<std::pair<size_t, size_t>> lcs;
@@ -125,7 +123,7 @@ TEST_P(StatementMappingTest, Mappings) {
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
     StatementMappings unique_pairs;
     StatementMappings equal_pairs;
-    matcher.MapStatements(param.ids0, param.ids1, unique_pairs, equal_pairs);
+    matcher.MapStatements(unique_pairs, equal_pairs);
     ASSERT_EQ(unique_pairs, param.unique);
     std::sort(equal_pairs.begin(), equal_pairs.end(), [&](auto& l, auto& r) {
         return l.first < r.first;
@@ -140,22 +138,19 @@ TEST_P(StatementMappingTest, LCS) {
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
     StatementMappings unique_pairs;
     StatementMappings equal_pairs;
-    matcher.MapStatements(param.ids0, param.ids1, unique_pairs, equal_pairs);
+    matcher.MapStatements(unique_pairs, equal_pairs);
     auto lcs = matcher.FindLCS(unique_pairs);
     ASSERT_EQ(lcs, param.lcs);
 }
 
 INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
-    UPP{"SELECT 1;", "SELECT 1;", {0}, {0}, {{0, 0}}, {{0, 0}}, {{0, 0}}},
-    UPP{"SELECT 2; SELECT 1;", "SELECT 1;", {0, 1}, {0}, {{1, 0}}, {{1, 0}}, {{1, 0}}},
-    UPP{"SELECT 2; SELECT 1;", "SELECT 3; SELECT 1;", {0, 1}, {0, 1}, {{1, 1}}, {{1, 1}}, {{1, 1}}},
-    UPP{"SELECT 2; SELECT 1;", "SELECT 3; SELECT 1;", {0, 1}, {}, {}, {}},
-    UPP{"SELECT 1; SELECT 1;", "SELECT 3; SELECT 1;", {0, 1}, {0, 1}, {}, {{0, 1}, {1, 1}}, {}},
-    UPP{"SELECT 1; SELECT 2;", "SELECT 1; SELECT 1;", {0, 1}, {0, 1}, {}, {{0, 0}, {0, 1}}, {}},
-    UPP{"SELECT 2; SELECT 1;", "SELECT 1; SELECT 2;", {0, 1}, {0, 1}, {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}, {{1, 0}}},
-
+    UPP{"SELECT 1;", "SELECT 1;", {{0, 0}}, {{0, 0}}, {{0, 0}}},
+    UPP{"SELECT 2; SELECT 1;", "SELECT 1;", {{1, 0}}, {{1, 0}}, {{1, 0}}},
+    UPP{"SELECT 2; SELECT 1;", "SELECT 3; SELECT 1;", {{1, 1}}, {{1, 1}}, {{1, 1}}},
+    UPP{"SELECT 1; SELECT 1;", "SELECT 3; SELECT 1;", {}, {{0, 1}, {1, 1}}, {}},
+    UPP{"SELECT 1; SELECT 2;", "SELECT 1; SELECT 1;", {}, {{0, 0}, {0, 1}}, {}},
+    UPP{"SELECT 2; SELECT 1;", "SELECT 1; SELECT 2;", {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}, {{1, 0}}},
     UPP{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;",
-        {0, 1, 2}, {0, 1, 2},
         {{0, 0}, {1, 2}, {2, 1}},
         {{0, 0}, {1, 2}, {2, 1}},
         {{0, 0}, {2, 1}}}

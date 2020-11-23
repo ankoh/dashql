@@ -316,8 +316,7 @@ bool ProgramMatcher::CheckDeepEquality(const sx::Statement& source, const sx::St
 }
 
 // Find unique statement pairs in two lists of statement ids.
-void ProgramMatcher::MapStatements(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids,
-                                   StatementMappings& unique_pairs, StatementMappings& equal) {
+void ProgramMatcher::MapStatements(StatementMappings& unique_pairs, StatementMappings& equal) {
     auto& source_stmts = *source_program_.statements();
     auto& target_stmts = *target_program_.statements();
 
@@ -325,9 +324,9 @@ void ProgramMatcher::MapStatements(const std::vector<size_t>& source_ids, const 
     std::vector<bool> source_ambiguous;
     std::vector<bool> target_ambiguous;
     std::vector<std::optional<size_t>> source_mapping;
-    source_ambiguous.resize(source_ids.size(), false);
-    target_ambiguous.resize(target_ids.size(), false);
-    source_mapping.resize(source_ids.size(), std::nullopt);
+    target_ambiguous.resize(target_stmts.size(), false);
+    source_ambiguous.resize(source_stmts.size(), false);
+    source_mapping.resize(source_stmts.size(), std::nullopt);
 
     // We deviate from PatienceDiff sightly here:
     //
@@ -335,12 +334,12 @@ void ProgramMatcher::MapStatements(const std::vector<size_t>& source_ids, const 
     // We assume that our statements are unique most of the time and therefore compute the mapping directly.
     // We also short-circuit the equality checks which makes the quadratic behavior acceptable here.
     //
-    for (auto target_id : target_ids) {
+    for (unsigned target_id = 0; target_id < target_stmts.size(); ++target_id) {
         auto& target_stmt = *target_stmts.Get(target_id);
         std::optional<size_t> match;
 
         // Compare source statement with all targets
-        for (auto source_id : source_ids) {
+        for (unsigned source_id = 0; source_id < source_stmts.size(); ++source_id) {
             auto& source_stmt = *source_stmts.Get(source_id);
             switch (EstimateSimilarity(source_stmt, target_stmt)) {
                 case SimilarityEstimate::NOT_EQUAL:
@@ -373,7 +372,7 @@ void ProgramMatcher::MapStatements(const std::vector<size_t>& source_ids, const 
     }
 
     // Emit non-ambiguous mappings
-    for (unsigned source_id = 0; source_id < source_ids.size(); ++source_id) {
+    for (unsigned source_id = 0; source_id < source_stmts.size(); ++source_id) {
         auto target_id = source_mapping[source_id];
         if (!target_id) continue;
         if (source_ambiguous[source_id] || target_ambiguous[*target_id]) continue;
@@ -427,6 +426,10 @@ ProgramMatcher::StatementMappings ProgramMatcher::FindLCS(const std::vector<std:
 
 // Compute a diff between the programs
 std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
+//    StatementMappings unique_pairs;
+//    StatementMappings equal_pairs;
+//    MapStatements();
+
     return {};
 }
 
