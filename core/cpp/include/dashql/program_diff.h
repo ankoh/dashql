@@ -79,10 +79,10 @@ class ProgramMatcher {
     ///     https://bramcohen.livejournal.com/73318.html
     ///     https://alfedenzo.livejournal.com/170301.html
     ///
-    /// The main difference between our diffs and text diffs is that we don't care too much about the order within the text.
+    /// The main difference between our diffs and text diffs is that we don't care too much about the text order.
     /// If DashQL statements equal, we will assume that the user reordered the statements independant of their distance.
     /// The only really problematic diffs are updated statements.
-    /// We therefore pick up the idea of patience sort to use unique matches as central pillar between user keystrokes.
+    /// We therefore pick up the idea of patience sort to use unique matches as constants between user keystrokes.
     ///
     /// The algorithm works as follows:
     //
@@ -98,7 +98,7 @@ class ProgramMatcher {
     /// The rationale behind this is the following:
     ///     A user will very likely not change all statements at once.
     ///     We can therefore assume that a large portion of the statements is left unchanged.
-    ///     We use the unique statement pairs as central pillar to encapsulate updates quickly.
+    ///     We use the unique statement pairs as constants between to identify updates quickly.
     ///
     void ComputeDiff();
 
