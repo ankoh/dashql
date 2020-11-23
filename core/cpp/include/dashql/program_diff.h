@@ -18,8 +18,8 @@ class ProgramMatcher {
         NOT_EQUAL
     };
 
-    /// A similarity result
-    struct Similarity {
+    /// A diff between statements
+    struct StatementDiff {
         /// The maximum node count
         size_t total_nodes;
         /// The matching nodes
@@ -28,7 +28,7 @@ class ProgramMatcher {
         std::vector<size_t> diff_nodes;
 
         /// Constructor
-        Similarity(size_t total = 0, size_t matching = 0)
+        StatementDiff(size_t total = 0, size_t matching = 0)
             : total_nodes(total), matching_nodes(matching), diff_nodes() {}
         /// Are Equal?
         bool Equal() const { return total_nodes == matching_nodes; }
@@ -62,8 +62,8 @@ class ProgramMatcher {
 
     /// Estimate the similarity
     SimilarityEstimate EstimateSimilarity(const sx::Statement& source, const sx::Statement& target);
-    /// Compute the similarity of two statements
-    Similarity ComputeSimilarity(const sx::Statement& source, const sx::Statement& target, size_t diff_cap = 8);
+    /// Compute the diff of two statements
+    StatementDiff ComputeDiff(const sx::Statement& source, const sx::Statement& target, size_t diff_cap = 8);
     /// Deep equality check of two statements.
     /// Runs a similarity check that aborts early if not strictly equal.
     bool CheckDeepEquality(const sx::Statement& source, const sx::Statement& target);
