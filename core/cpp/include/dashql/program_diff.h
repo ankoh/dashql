@@ -68,6 +68,18 @@ class ProgramMatcher {
     /// Runs a similarity check that aborts early if not strictly equal.
     bool CheckDeepEquality(const sx::Statement& source, const sx::Statement& target);
 
+    /// Compute the diff between the programs.
+    ///
+    /// The main difference between our diffs and text diffs is that we don't care too much about the order within the text.
+    /// If DashQL statements equal, we will always assume that the user reordered the statements independant of their distance.
+    ///
+    /// The algorithm works as follows:
+    /// 1) Similar to patience diff, we first find all unique pairs of equal statements within the two programs.
+    ///    Statements that are completely identical will very likely have the same effect in our DashQL runtime.
+    ///    (The exception are modifying statements like INSERT, UPDATE, DELETE but their effects will be handled later)
+    /// 2) After that, we are left with all statements that are either copies or new/deleted.
+    void ComputeDiff();
+
 };
 
 }  // namespace dashql
