@@ -11,6 +11,9 @@ namespace sx = proto::syntax;
 
 class ProgramMatcher {
    public:
+    using StatementMapping = std::pair<size_t, size_t>;
+    using StatementMappings = std::vector<StatementMapping>;
+
     /// A similarity estimate
     enum class SimilarityEstimate {
         EQUAL,
@@ -54,9 +57,9 @@ class ProgramMatcher {
     /// Only used for the full similarity computation.
     size_t ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes);
     /// Find unique statement mappings
-    void FindUniqueMappings(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids, std::vector<std::pair<size_t, size_t>>& unique_pairs);
+    void MapStatements(const std::vector<size_t>& source_ids, const std::vector<size_t>& target_ids, StatementMappings& unique, StatementMappings& equal);
     /// Find the longest common subsequence
-    void FindLCS(const std::vector<std::pair<size_t, size_t>>& unique_pairs, std::vector<std::pair<size_t, size_t>>& lcs);
+    void FindLCS(const StatementMappings& unique, StatementMappings& lcs);
 
    public:
     /// Compare two programs
