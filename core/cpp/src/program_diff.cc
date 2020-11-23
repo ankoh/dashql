@@ -328,8 +328,7 @@ void ProgramMatcher::FindUniquePairs(const std::vector<size_t>& source_ids, cons
                 case SimilarityEstimate::NOT_EQUAL:
                     break;
                 case SimilarityEstimate::SIMILAR:
-                    // XXX We could speed this up further here by early aborting on missing attributes
-                    if (auto sim = ComputeSimilarity(source_stmt, target_stmt); !sim.Equal()) break;
+                    if (!CheckDeepEquality(source_stmt, target_stmt)) break;
                     // Fall through to the equality case
                 case SimilarityEstimate::EQUAL:
                     // Matched to different statement?
