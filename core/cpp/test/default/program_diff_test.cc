@@ -34,6 +34,7 @@ TEST(ProgramDiff, EqualConst) {
     ProgramMatcher matcher{t1, t2, *p1, *p2};
     auto s1 = p1->statements()->Get(0), s2 = p2->statements()->Get(0);
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), SimilarityEstimate::EQUAL);
+    ASSERT_TRUE(matcher.CheckDeepEquality(*s1, *s2));
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_TRUE(sim.Equal());
 }
@@ -63,6 +64,7 @@ TEST(ProgramDiff, EqualColumnRefs) {
     ProgramMatcher matcher{t1, t2, *p1, *p2};
     auto s1 = p1->statements()->Get(0), s2 = p2->statements()->Get(0);
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), SimilarityEstimate::EQUAL);
+    ASSERT_TRUE(matcher.CheckDeepEquality(*s1, *s2));
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_TRUE(sim.Equal());
 }
