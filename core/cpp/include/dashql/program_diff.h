@@ -39,6 +39,35 @@ class ProgramMatcher {
         double Score() const { return (total_nodes == 0) ? 0.0 : static_cast<double>(matching_nodes) / total_nodes; }
     };
 
+    /// A program transform code
+    enum class DiffOpCode {
+        COPY,
+        DELETE,
+        INSERT,
+        MOVE,
+        UPDATE,
+    };
+
+    /// A statement transform
+    struct DiffOp {
+        /// The code
+        DiffOpCode code_;
+        /// The source statement
+        std::optional<size_t> source_;
+        /// The target statement
+        std::optional<size_t> target_;
+
+        /// Constructor
+        DiffOp(DiffOpCode code, std::optional<size_t> source, std::optional<size_t> target);
+
+        /// The code
+        auto code() const { return code_; }
+        /// The source
+        auto source() const { return source_; }
+        /// The target
+        auto target() const { return target_; }
+    };
+
    protected:
     /// The source text
     std::string_view source_text_;
@@ -75,7 +104,7 @@ class ProgramMatcher {
 
     /// Compute the diff between the programs.
     ///
-    /// We use a modified version of patience diff described here:
+    /// We use a modified version of the patience diff described here:
     ///     https://bramcohen.livejournal.com/73318.html
     ///     https://alfedenzo.livejournal.com/170301.html
     ///
@@ -100,7 +129,7 @@ class ProgramMatcher {
     ///     We can therefore assume that a large portion of the statements is left unchanged.
     ///     We use the unique statement pairs as constants between to identify updates quickly.
     ///
-    void ComputeDiff();
+    std::vector<DiffOp> ComputeDiff();
 
 };
 

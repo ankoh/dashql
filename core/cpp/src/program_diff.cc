@@ -13,6 +13,10 @@ std::string_view TextAt(std::string_view text, sx::Location loc) { return text.s
 
 }  // namespace
 
+/// Constructor
+ProgramMatcher::DiffOp::DiffOp(DiffOpCode code, std::optional<size_t> source, std::optional<size_t> target)
+    : code_(code), source_(source), target_(target) {}
+
 // Estimate the similarity
 ProgramMatcher::SimilarityEstimate ProgramMatcher::EstimateSimilarity(const sx::Statement& source,
                                                                       const sx::Statement& target) {
@@ -417,6 +421,11 @@ void ProgramMatcher::FindLCS(const std::vector<std::pair<size_t, size_t>>& uniqu
         entry_id = prev_pile_size - 1;
     }
     std::reverse(lcs.begin(), lcs.end());
+}
+
+// Compute a diff between the programs
+std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
+    return {};
 }
 
 }  // namespace dashql
