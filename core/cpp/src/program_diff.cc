@@ -14,8 +14,10 @@ std::string_view TextAt(std::string_view text, sx::Location loc) { return text.s
 
 /// Compute tree size
 size_t ProgramMatcher::ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes) {
+    // Init tree sizes
+    if (auto n = prog.nodes()->size(); sizes.size() != n) sizes.resize(n, 0);
     // Already computed?
-    if (auto n = sizes[root]; n > 0) return n;
+    else if (auto n = sizes[root]; n > 0) return n;
 
     /// Run a DFS starting at every program statement
     struct SubtreeNode {
@@ -94,8 +96,8 @@ ProgramMatcher::ProgramMatcher(std::string_view source_text, std::string_view ta
       target_text_(target_text),
       source_program_(source_program),
       target_program_(target_program),
-      source_subtree_sizes_(source_program.nodes()->size(), 0),
-      target_subtree_sizes_(target_program.nodes()->size(), 0) {}
+      source_subtree_sizes_(),
+      target_subtree_sizes_() {}
 
 // Compare two statements
 ProgramMatcher::Similarity ProgramMatcher::ComputeSimilarity(const sx::Statement& source, const sx::Statement& target) {
