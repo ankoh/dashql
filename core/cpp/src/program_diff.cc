@@ -439,11 +439,20 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     auto lcs = FindLCS(unique_pairs);
 
     // Track which targets were emitted
+    std::vector<bool> source_emitted;
     std::vector<bool> target_emitted;
-    target_emitted.resize(false, target_program_.statements()->size());
+    source_emitted.resize(source_program_.statements()->size(), false);
+    target_emitted.resize(target_program_.statements()->size(), false);
 
-    // Iterate over sections
+    // First emit the diff ops for the LCS
     std::vector<DiffOp> ops;
+    for (auto [source_id, target_id]: lcs) {
+        ops.emplace_back(DiffOpCode::KEEP, source_id, target_id);
+        source_emitted[source_id] = true;
+        target_emitted[target_id] = true;
+    }
+
+    // Iterate over LCS sections
     std::pair<size_t, size_t> prev = {0, 0};
     std::pair<size_t, size_t> next = {0, 0};
     for (auto lcs_iter = lcs.begin();; ++lcs_iter) {
@@ -469,13 +478,12 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
             auto equal_end = std::upper_bound(equal_begin, equal_pairs.end(), source_id, [](auto v, auto& r) {
                 return v < r.first;
             });
-            auto equal_pairs = nonstd::span<StatementMapping>{&*equal_begin, &*equal_end};
+            auto equal_range = nonstd::span<StatementMapping>{&*equal_begin, &*equal_end};
 
         }
 
         // KEEP section boundary if not at end
         if (lcs_iter == lcs.end()) break;
-        ops.emplace_back(DiffOpCode::KEEP, next_source_id, next_target_id);
     }
 
     return ops;
