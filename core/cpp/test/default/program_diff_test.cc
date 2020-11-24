@@ -219,6 +219,37 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite, ::testing::Values(
         {DiffOpCode::KEEP, 0, 0},
         {DiffOpCode::UPDATE, 1, 1},
         {DiffOpCode::KEEP, 2, 2},
+    }},
+
+    DiffTest{R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
+        SELECT 2 INTO weather_avg FROM weather;
+        SELECT 4;
+        VIZ weather_avg USING LINE;
+    )DQL", R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
+        VIZ weather_avg USING LINE;
+    )DQL", {
+        {DiffOpCode::KEEP, 0, 0},
+        {DiffOpCode::DELETE, 1},
+        {DiffOpCode::DELETE, 2},
+        {DiffOpCode::KEEP, 3, 1},
+    }},
+
+    DiffTest{R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
+        SELECT 4;
+        SELECT 2 INTO weather_avg FROM weather;
+        VIZ weather_avg USING LINE;
+    )DQL", R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
+        SELECT 1 INTO weather_avg FROM weather;
+        VIZ weather_avg USING LINE;
+    )DQL", {
+        {DiffOpCode::KEEP, 0, 0},
+        {DiffOpCode::DELETE, 1},
+        {DiffOpCode::UPDATE, 2, 1},
+        {DiffOpCode::KEEP, 3, 2},
     }}
 ));
 

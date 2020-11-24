@@ -58,7 +58,7 @@ class ProgramMatcher {
         std::optional<size_t> target_;
 
         /// Constructor
-        DiffOp(DiffOpCode code, std::optional<size_t> source, std::optional<size_t> target);
+        DiffOp(DiffOpCode code, std::optional<size_t> source, std::optional<size_t> target = std::nullopt);
 
         /// The code
         auto code() const { return code_; }
