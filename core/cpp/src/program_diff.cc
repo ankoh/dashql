@@ -474,26 +474,27 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
             // Already emitted? (happens when hitting an LCS statement)
             if (source_emitted[source_id]) continue;
 
-            // Find equal pairs
+            // Are there any equal pairs?
             auto cmp_lb = [](auto& l, auto v) { return l.first < v; };
             auto cmp_ub = [](auto v, auto& r) { return v < r.first; };
             auto equal_begin = std::lower_bound(equal_pairs.begin(), equal_pairs.end(), source_id, cmp_lb);
             auto equal_end = std::upper_bound(equal_begin, equal_pairs.end(), source_id, cmp_ub);
-            auto equal_range = nonstd::span<StatementMapping>{&*equal_begin, &*equal_end};
-
-            // Are there any equal pairs?
-            bool found_match = false;
-            for (auto [_, target_id]: equal_range) {
+            for (auto equal_iter = equal_begin; equal_iter != equal_end; ++equal_iter) {
+                auto target_id = equal_iter->second;
                 if (target_emitted[target_id]) continue;
 
                 // The equal pair must cross section boundaries, otherwise it would be part of the LCS
                 assert(target_id < prev_target_id || target_id > next_target_id);
                 emit(DiffOpCode::MOVE, source_id, target_id);
-                found_match = true;
                 break;
             }
-            if (found_match)
-                continue;
+            if (source_emitted[source_id]) continue;
+
+            // Find best match in a FCFS manner
+            std::vector<StatementSimilarity> matches_heap;
+            for (auto iter = prev_target_id; iter != next_target_id; ++iter) {
+                // XXX compute similarity
+            }
         }
 
         // KEEP section boundary if not at end
