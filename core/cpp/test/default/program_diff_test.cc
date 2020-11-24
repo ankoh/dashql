@@ -154,7 +154,19 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
     UPP{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;",
         {{0, 0}, {1, 2}, {2, 1}},
         {{0, 0}, {1, 2}, {2, 1}},
-        {{0, 0}, {2, 1}}}
+        {{0, 0}, {2, 1}}},
+    UPP{R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
+        SELECT 1 INTO weather_avg FROM weather;
+        VIZ weather_avg USING LINE;
+    )DQL", R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
+        SELECT 2 INTO weather_avg FROM weather;
+        VIZ weather_avg USING LINE;
+    )DQL",
+        {{0, 0}, {2, 2}},
+        {{0, 0}, {2, 2}},
+        {{0, 0}, {2, 2}}}
 ));
 
 struct DP {
@@ -184,6 +196,19 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTest, ::testing::Values(
         {DiffOpCode::KEEP, 2, 1},
         {DiffOpCode::MOVE, 1, 2},
     }}
+
+//    DP{R"DQL(
+//        EXTRACT weather FROM weather_csv USING CSV;
+//        -- SELECT 1 INTO weather_avg FROM weather;
+//        VIZ weather_avg USING LINE;
+//    )DQL", R"DQL(
+//        EXTRACT weather FROM weather_csv USING CSV;
+//        -- SELECT 2 INTO weather_avg FROM weather;
+//        VIZ weather_avg USING LINE;
+//    )DQL", {
+//        {DiffOpCode::KEEP, 0, 0},
+//        {DiffOpCode::KEEP, 1, 1},
+//    }}
 ));
 
 }  // namespace
