@@ -444,12 +444,17 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     source_emitted.resize(source_program_.statements()->size(), false);
     target_emitted.resize(target_program_.statements()->size(), false);
 
-    // First emit the diff ops for the LCS
+    // First emit the diff ops for the LCS since they are fixed
     std::vector<DiffOp> ops;
+    auto emit = [&](DiffOpCode code, std::optional<size_t> source_id, std::optional<size_t> target_id) {
+        ops.emplace_back(code, source_id, target_id);
+        if (source_id)
+            source_emitted[*source_id] = true;
+        if (target_id)
+            target_emitted[*target_id] = true;
+    };
     for (auto [source_id, target_id]: lcs) {
-        ops.emplace_back(DiffOpCode::KEEP, source_id, target_id);
-        source_emitted[source_id] = true;
-        target_emitted[target_id] = true;
+        emit(DiffOpCode::KEEP, source_id, target_id);
     }
 
     // Iterate over LCS sections
@@ -465,21 +470,26 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
         auto [next_source_id, next_target_id] = next;
 
         // For every source_id in the section
-        //  1) Find all equal pairs that we already know.
-        //      A) If there is exactly one, the source is either ambiguous or the target is violating the LCS.
-        //      B) If there is more than one, at least the target is ambiguous.
-        //      C) If there is none, the statement is new or was updated.
-        //
         for (auto source_id = prev_source_id; source_id < next_source_id; ++source_id) {
+            // Already emitted? (happens when hitting an LCS statement)
+            if (source_emitted[source_id]) continue;
+
             // Find equal pairs
-            auto equal_begin = std::lower_bound(equal_pairs.begin(), equal_pairs.end(), source_id, [](auto& l, auto v) {
-                return l.first < v;
-            });
-            auto equal_end = std::upper_bound(equal_begin, equal_pairs.end(), source_id, [](auto v, auto& r) {
-                return v < r.first;
-            });
+            auto cmp_lb = [](auto& l, auto v) { return l.first < v; };
+            auto cmp_ub = [](auto v, auto& r) { return v < r.first; };
+            auto equal_begin = std::lower_bound(equal_pairs.begin(), equal_pairs.end(), source_id, cmp_lb);
+            auto equal_end = std::upper_bound(equal_begin, equal_pairs.end(), source_id, cmp_ub);
             auto equal_range = nonstd::span<StatementMapping>{&*equal_begin, &*equal_end};
 
+            // Are there any equal pairs?
+            bool found_match = false;
+            for (auto [_, target_id]: equal_range) {
+                if (target_emitted[target_id]) continue;
+
+                // The equal pair must cross section boundaries, otherwise it would be part of the LCS
+                assert(target_id < prev_target_id || target_id > next_target_id);
+                emit(DiffOpCode::MOVE, source_id, target_id);
+            }
         }
 
         // KEEP section boundary if not at end
