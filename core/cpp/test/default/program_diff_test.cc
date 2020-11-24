@@ -201,6 +201,8 @@ TEST_P(DiffTestSuite, DiffOps) {
 }
 
 INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite, ::testing::Values(
+    DiffTest{"", "", {}},
+
     DiffTest{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;", {
         {DiffOpCode::KEEP, 0, 0},
         {DiffOpCode::MOVE, 1, 2},
