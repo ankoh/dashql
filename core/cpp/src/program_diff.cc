@@ -519,11 +519,19 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
             }
 
             // Found a match?
+            if (matches.size() > 0) {
+                emit(DiffOpCode::UPDATE, source_id, matches.front().first);
+            }
         }
 
         // KEEP section boundary if not at end
         if (lcs_iter == lcs.end()) break;
     }
+
+    // Sort by target statement
+    std::sort(ops.begin(), ops.end(), [&](auto& l, auto& r) {
+        return l.target().value_or(0) < r.target().value_or(0);
+    });
 
     return ops;
 }

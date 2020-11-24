@@ -217,6 +217,7 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTest, ::testing::Values(
         VIZ weather_avg USING LINE;
     )DQL", {
         {DiffOpCode::KEEP, 0, 0},
+        {DiffOpCode::UPDATE, 1, 1},
         {DiffOpCode::KEEP, 2, 2},
     }}
 ));
