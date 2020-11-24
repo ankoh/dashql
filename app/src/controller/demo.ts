@@ -55,6 +55,6 @@ export class DemoController {
     }
 
     public setup() {
-        this._store.dispatch(AppStateMutations.setEditorText(DEMO_SCRIPT));
+        this._store.dispatch(AppStateMutations.setPlanText(DEMO_SCRIPT));
     }
 }

@@ -20,11 +20,11 @@ export class EditorController {
         let previousEditorText = "";
 
         this._store.subscribe(() => {
-            const { editorText } = this._store.getState();
+            const { planText } = this._store.getState();
 
-            if (editorText != previousEditorText) {
-                previousEditorText = editorText;
-                this.evaluate(editorText);
+            if (planText != previousEditorText) {
+                previousEditorText = planText;
+                this.evaluate(planText);
             }
         });
     }
@@ -35,9 +35,9 @@ export class EditorController {
 
     /// Evaluate an editor
     public evaluate(input: string) {
-        const m = this._parser.parse(input);
-        this.displayErrors(m.program);
-        this._store.dispatch(AppStateMutations.setEditorProgram(m));
+        const p = this._parser.parse(input);
+        this.displayErrors(p.buffer.program()!);
+        this._store.dispatch(AppStateMutations.setPlan(p));
     }
 
     /// Display module errors
