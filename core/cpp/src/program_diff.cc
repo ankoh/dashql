@@ -489,7 +489,11 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
                 // The equal pair must cross section boundaries, otherwise it would be part of the LCS
                 assert(target_id < prev_target_id || target_id > next_target_id);
                 emit(DiffOpCode::MOVE, source_id, target_id);
+                found_match = true;
+                break;
             }
+            if (found_match)
+                continue;
         }
 
         // KEEP section boundary if not at end
