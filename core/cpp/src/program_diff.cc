@@ -444,7 +444,7 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     source_emitted.resize(source_program_.statements()->size(), false);
     target_emitted.resize(target_program_.statements()->size(), false);
 
-    // First emit the diff ops for the LCS since they are fixed
+    // First emit the LCS since they are fixed anyway
     std::vector<DiffOp> ops;
     auto emit = [&](DiffOpCode code, std::optional<size_t> source_id, std::optional<size_t> target_id) {
         ops.emplace_back(code, source_id, target_id);
@@ -461,6 +461,7 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     std::pair<size_t, size_t> prev = {0, 0};
     std::pair<size_t, size_t> next = {0, 0};
     for (auto lcs_iter = lcs.begin();; ++lcs_iter) {
+        // Update boundaries
         prev = next;
         next = (lcs_iter < lcs.end()) ? *lcs_iter : StatementMapping{
             source_program_.statements()->size(),
@@ -469,12 +470,13 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
         auto [prev_source_id, prev_target_id] = prev;
         auto [next_source_id, next_target_id] = next;
 
-        // For every source_id in the section
+        // Iterate over all source statements in the section
         for (auto source_id = prev_source_id; source_id < next_source_id; ++source_id) {
             // Already emitted? (happens when hitting an LCS statement)
             if (source_emitted[source_id]) continue;
 
             // Are there any equal pairs?
+            // We have to emit equal pairs that are either ambiguous or unique but cross section boundaries.
             auto cmp_lb = [](auto& l, auto v) { return l.first < v; };
             auto cmp_ub = [](auto v, auto& r) { return v < r.first; };
             auto equal_begin = std::lower_bound(equal_pairs.begin(), equal_pairs.end(), source_id, cmp_lb);
@@ -489,16 +491,24 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
                 break;
             }
             if (source_emitted[source_id]) continue;
-
-            // Find best match among the targets in the section
-            std::vector<std::pair<size_t, StatementSimilarity>> target_matches;
-            target_matches.resize(next_target_id - prev_target_id);
             auto& source_stmt = *source_program_.statements()->Get(source_id);
+
+            // Find best match among the remaining targets in the section.
+            // This will result in a FCFS assignment of updated statements.
+            // We could model this as bi-partite weighted matching problem but it's probably not worth it.
+            // FCFS might be the more intuitive mapping anyway.
+            std::vector<std::pair<size_t, StatementSimilarity>> matches;
             for (auto target_id = prev_target_id; target_id < next_target_id; ++target_id) {
                 if (target_emitted[target_id]) continue;
                 auto& target_stmt = *target_program_.statements()->Get(target_id);
-                target_matches.push_back({target_id, ComputeSimilarity(source_stmt, target_stmt)});
-                std::push_heap(target_matches.begin(), target_matches.end(), [](auto& l, auto& r) {
+                // The similiarity computation of unmatched statements is the most expensive operation in this diff.
+                // We want to do it as rarely as possible and therefore do an additional cheap check of the root node.
+                if (EstimateSimilarity(source_stmt, target_stmt) == SimilarityEstimate::NOT_EQUAL)
+                    continue;
+                auto sim = ComputeSimilarity(source_stmt, target_stmt);
+                // Add to min-heap
+                matches.push_back({target_id, sim});
+                std::push_heap(matches.begin(), matches.end(), [](auto& l, auto& r) {
                     return l.second.Score() > r.second.Score();
                 });
             }
