@@ -10,7 +10,7 @@ namespace dashql {
 
 namespace {
 
-// The fraction of nodes that must be equal between statements to emit and UPDATE.
+// The fraction of nodes that must be equal between statements to emit an UPDATE.
 // (Instead of DELETE + INSERT)
 constexpr double UPDATE_SIMILARITY_THRESHOLD = 0.75;
 
