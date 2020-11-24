@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <stack>
+#include <unordered_map>
 
 #include "duckdb/web/common/span.h"
 
@@ -312,17 +313,17 @@ bool ProgramMatcher::CheckDeepEquality(const sx::Statement& source, const sx::St
 }
 
 // Find unique statement pairs in two lists of statement ids.
-void ProgramMatcher::MapStatements(StatementMappings& unique_pairs, StatementMappings& equal) {
+void ProgramMatcher::MapStatements(StatementMappings& unique_pairs, StatementMappings& equal_pairs) {
     auto& source_stmts = *source_program_.statements();
     auto& target_stmts = *target_program_.statements();
 
     // Maps target ids to matched source ids
     std::vector<bool> source_ambiguous;
     std::vector<bool> target_ambiguous;
-    std::vector<std::optional<size_t>> source_mapping;
-    target_ambiguous.resize(target_stmts.size(), false);
+    std::vector<std::optional<size_t>> target_mapping;
     source_ambiguous.resize(source_stmts.size(), false);
-    source_mapping.resize(source_stmts.size(), std::nullopt);
+    target_ambiguous.resize(target_stmts.size(), false);
+    target_mapping.resize(target_stmts.size(), std::nullopt);
 
     // We deviate from PatienceDiff sightly here:
     //
@@ -330,13 +331,13 @@ void ProgramMatcher::MapStatements(StatementMappings& unique_pairs, StatementMap
     // We assume that our statements are unique most of the time and therefore compute the mapping directly.
     // We also short-circuit the equality checks which makes the quadratic behavior acceptable here.
     //
-    for (unsigned target_id = 0; target_id < target_stmts.size(); ++target_id) {
-        auto& target_stmt = *target_stmts.Get(target_id);
+    for (unsigned source_id = 0; source_id < source_stmts.size(); ++source_id) {
+        auto& source_stmt = *source_stmts.Get(source_id);
         std::optional<size_t> match;
 
         // Compare source statement with all targets
-        for (unsigned source_id = 0; source_id < source_stmts.size(); ++source_id) {
-            auto& source_stmt = *source_stmts.Get(source_id);
+        for (unsigned target_id = 0; target_id < target_stmts.size(); ++target_id) {
+            auto& target_stmt = *target_stmts.Get(target_id);
             switch (EstimateSimilarity(source_stmt, target_stmt)) {
                 case SimilarityEstimate::NOT_EQUAL:
                     break;
@@ -344,36 +345,39 @@ void ProgramMatcher::MapStatements(StatementMappings& unique_pairs, StatementMap
                     if (!CheckDeepEquality(source_stmt, target_stmt)) break;
                     // Fall through to the equality case
                 case SimilarityEstimate::EQUAL:
-                    equal.push_back({source_id, target_id});
+                    equal_pairs.push_back({source_id, target_id});
 
                     // Mapping ambiguous?
                     // Two target statements map to the same source statement
-                    if (auto existing = source_mapping[source_id]; existing) {
-                        target_ambiguous[target_id] = true;
-                        target_ambiguous[*existing] = true;
+                    if (auto existing = target_mapping[target_id]; existing) {
                         source_ambiguous[source_id] = true;
+                        source_ambiguous[*existing] = true;
+                        target_ambiguous[target_id] = true;
                         continue;
                     } else if (match) {
                         // Target statement maps to two source statements
-                        target_ambiguous[target_id] = true;
-                        source_ambiguous[*match] = true;
                         source_ambiguous[source_id] = true;
+                        target_ambiguous[*match] = true;
+                        target_ambiguous[target_id] = true;
                         continue;
                     }
-                    source_mapping[source_id] = target_id;
-                    match = source_id;
+                    target_mapping[target_id] = source_id;
+                    match = target_id;
                     break;
             }
         }
     }
 
     // Emit non-ambiguous mappings
-    for (unsigned source_id = 0; source_id < source_stmts.size(); ++source_id) {
-        auto target_id = source_mapping[source_id];
-        if (!target_id) continue;
-        if (source_ambiguous[source_id] || target_ambiguous[*target_id]) continue;
-        unique_pairs.push_back({source_id, *target_id});
+    for (unsigned target_id = 0; target_id < target_stmts.size(); ++target_id) {
+        auto source_id = target_mapping[target_id];
+        if (!source_id) continue;
+        if (source_ambiguous[*source_id] || target_ambiguous[target_id]) continue;
+        unique_pairs.push_back({*source_id, target_id});
     }
+    std::sort(unique_pairs.begin(), unique_pairs.end(), [&](auto& l, auto& r){
+        return l.first < r.first;
+    });
 }
 
 // Find the longest common subsequence among the unique pairs.
@@ -441,7 +445,8 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
         };
         auto [next_source_id, next_target_id] = next;
 
-        // XXX process statements in section
+        // Process statements in section.
+        // Find all ambiguous target nodes in the section
 
         // KEEP section boundary if not at end
         if (iter == lcs.end()) break;
