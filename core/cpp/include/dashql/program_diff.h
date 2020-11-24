@@ -73,7 +73,9 @@ class ProgramMatcher {
         }
         /// Print diff op
         friend std::ostream& operator<<(std::ostream& out, const DiffOp& op) {
-            out << "[" << op.code_ << "," << op.source_.value_or(-1) << "," << op.target_.value_or(-1) << "]";
+            auto s = op.source() ? std::to_string(*op.source()) : "_";
+            auto t = op.target() ? std::to_string(*op.target()) : "_";
+            out << "[" << op.code_ << "," << s << "," << t << "]";
             return out;
         }
     };
