@@ -446,7 +446,7 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     source_emitted.resize(source_program_.statements()->size(), false);
     target_emitted.resize(target_program_.statements()->size(), false);
 
-    // First emit the LCS since they are fixed anyway
+    // Helper to emit diff ops
     std::vector<DiffOp> ops;
     auto emit = [&](DiffOpCode code, std::optional<size_t> source_id, std::optional<size_t> target_id = std::nullopt) {
         ops.emplace_back(code, source_id, target_id);
@@ -455,9 +455,6 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
         if (target_id)
             target_emitted[*target_id] = true;
     };
-    for (auto [source_id, target_id]: lcs) {
-        emit(DiffOpCode::KEEP, source_id, target_id);
-    }
 
     // Iterate over LCS sections
     std::pair<size_t, size_t> prev = {0, 0};
@@ -526,15 +523,17 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
             }
         }
 
-        // KEEP section boundary if not at end
+        // Create new statements
+        for (unsigned target_id = prev_target_id; target_id < next_target_id; ++target_id) {
+            if (!target_emitted[target_id]) {
+                emit(DiffOpCode::INSERT, std::nullopt, target_id);
+            }
+        }
+
+        // At end?
         if (lcs_iter == lcs.end()) break;
+        emit(DiffOpCode::KEEP, next_source_id, next_target_id);
     }
-
-    // Sort by target statement
-    std::sort(ops.begin(), ops.end(), [&](auto& l, auto& r) {
-        return l.target().value_or(0) < r.target().value_or(0);
-    });
-
     return ops;
 }
 
