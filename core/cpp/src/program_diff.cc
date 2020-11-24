@@ -506,11 +506,14 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
                 if (EstimateSimilarity(source_stmt, target_stmt) == SimilarityEstimate::NOT_EQUAL)
                     continue;
                 auto sim = ComputeSimilarity(source_stmt, target_stmt);
-                // Add to min-heap
-                matches.push_back({target_id, sim});
-                std::push_heap(matches.begin(), matches.end(), [](auto& l, auto& r) {
-                    return l.second.Score() > r.second.Score();
-                });
+                // Qualifies as similar statement?
+                if (sim.Score() > 0.5) {
+                    // Add to min-heap
+                    matches.push_back({target_id, sim});
+                    std::push_heap(matches.begin(), matches.end(), [](auto& l, auto& r) {
+                        return l.second.Score() > r.second.Score();
+                    });
+                }
             }
 
             // Found a match?
