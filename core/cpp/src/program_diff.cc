@@ -10,6 +10,10 @@ namespace dashql {
 
 namespace {
 
+// The fraction of nodes that must be equal between statements to emit and UPDATE.
+// (Instead of DELETE + INSERT)
+constexpr double UPDATE_SIMILARITY_THRESHOLD = 0.75;
+
 std::string_view TextAt(std::string_view text, sx::Location loc) { return text.substr(loc.offset(), loc.length()); }
 
 }  // namespace
@@ -506,7 +510,7 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
                     continue;
                 auto sim = ComputeSimilarity(source_stmt, target_stmt);
                 // Qualifies as similar statement?
-                if (sim.Score() > 0.5) {
+                if (sim.Score() >= UPDATE_SIMILARITY_THRESHOLD) {
                     // Add to min-heap
                     matches.push_back({target_id, sim});
                     std::push_heap(matches.begin(), matches.end(), [](auto& l, auto& r) {
