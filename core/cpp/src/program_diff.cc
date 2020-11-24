@@ -448,7 +448,7 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
 
     // First emit the LCS since they are fixed anyway
     std::vector<DiffOp> ops;
-    auto emit = [&](DiffOpCode code, std::optional<size_t> source_id, std::optional<size_t> target_id) {
+    auto emit = [&](DiffOpCode code, std::optional<size_t> source_id, std::optional<size_t> target_id = std::nullopt) {
         ops.emplace_back(code, source_id, target_id);
         if (source_id)
             source_emitted[*source_id] = true;
@@ -521,6 +521,8 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
             // Found a match?
             if (matches.size() > 0) {
                 emit(DiffOpCode::UPDATE, source_id, matches.front().first);
+            } else {
+                emit(DiffOpCode::DELETE, source_id);
             }
         }
 
