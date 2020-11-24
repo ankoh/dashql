@@ -36,21 +36,21 @@ std::pair<const sx::Program*, fb::DetachedBuffer> Parse(std::string_view text) {
     return {program, move(buffer)};
 }
 
-struct SSP {
+struct SimilarityTestParam {
     std::string_view t1;
     std::string_view t2;
     bool are_equal;
     SimilarityEstimate estimate;
     std::optional<size_t> diff_node_count = std::nullopt;
 
-    friend std::ostream& operator<<(std::ostream& out, const SSP& param) {
+    friend std::ostream& operator<<(std::ostream& out, const SimilarityTestParam& param) {
         out << param.t1 << " | " << param.t2;
         return out;
     }
 };
-class SingleStatementTest: public ::testing::TestWithParam<SSP> {};
+class SimilarityTest: public ::testing::TestWithParam<SimilarityTestParam> {};
 
-TEST_P(SingleStatementTest, DeepEquality) {
+TEST_P(SimilarityTest, DeepEquality) {
     auto& param = GetParam();
     auto [p1, pb1] = Parse(param.t1);
     auto [p2, pb2] = Parse(param.t2);
@@ -61,7 +61,7 @@ TEST_P(SingleStatementTest, DeepEquality) {
     ASSERT_EQ(matcher.CheckDeepEquality(*s1, *s2), param.are_equal);
 }
 
-TEST_P(SingleStatementTest, SimilarityEstimate) {
+TEST_P(SimilarityTest, SimilarityEstimate) {
     auto& param = GetParam();
     auto [p1, pb1] = Parse(param.t1);
     auto [p2, pb2] = Parse(param.t2);
@@ -72,7 +72,7 @@ TEST_P(SingleStatementTest, SimilarityEstimate) {
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), param.estimate);
 }
 
-TEST_P(SingleStatementTest, Similarity) {
+TEST_P(SimilarityTest, Similarity) {
     auto& param = GetParam();
     auto [p1, pb1] = Parse(param.t1);
     auto [p2, pb2] = Parse(param.t2);
@@ -86,36 +86,36 @@ TEST_P(SingleStatementTest, Similarity) {
         ASSERT_EQ(sim.total_nodes - sim.matching_nodes, *param.diff_node_count);
 }
 
-INSTANTIATE_TEST_SUITE_P(ProgramDiff, SingleStatementTest, ::testing::Values(
-    SSP{"SELECT 1", "SELECT 1", true, SimilarityEstimate::EQUAL, 0},
-    SSP{"SELECT 1", "SELECT 2", false, SimilarityEstimate::SIMILAR, 1},
-    SSP{"select c from b where c = global.a",
+INSTANTIATE_TEST_SUITE_P(ProgramDiff, SimilarityTest, ::testing::Values(
+    SimilarityTestParam{"SELECT 1", "SELECT 1", true, SimilarityEstimate::EQUAL, 0},
+    SimilarityTestParam{"SELECT 1", "SELECT 2", false, SimilarityEstimate::SIMILAR, 1},
+    SimilarityTestParam{"select c from b where c = global.a",
         "select c from b where c = global.a",
         true, SimilarityEstimate::EQUAL, 0},
-    SSP{"select c from b where c = global.a",
+    SimilarityTestParam{"select c from b where c = global.a",
         "select c from b where c = global.d",
         false, SimilarityEstimate::SIMILAR, 1},
-    SSP{"select 1",
+    SimilarityTestParam{"select 1",
         "select c from b where c = global.d",
         false, SimilarityEstimate::SIMILAR},
-    SSP{"viz whether_avg using line",
+    SimilarityTestParam{"viz whether_avg using line",
         "select c from b where c = global.d",
         false, SimilarityEstimate::NOT_EQUAL}
 ));
 
-struct UPP {
+struct MappingTestParam {
     std::string_view t1;
     std::string_view t2;
     std::vector<std::pair<size_t, size_t>> unique;
     std::vector<std::pair<size_t, size_t>> equal;
     std::vector<std::pair<size_t, size_t>> lcs;
 
-    friend std::ostream& operator<<(std::ostream& out, const UPP& param) {
+    friend std::ostream& operator<<(std::ostream& out, const MappingTestParam& param) {
         out << param.t1 << " | " << param.t2;
         return out;
     }
 };
-class StatementMappingTest: public ::testing::TestWithParam<UPP> {};
+class StatementMappingTest: public ::testing::TestWithParam<MappingTestParam> {};
 
 TEST_P(StatementMappingTest, Mappings) {
     auto& param = GetParam();
@@ -145,17 +145,17 @@ TEST_P(StatementMappingTest, LCS) {
 }
 
 INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
-    UPP{"SELECT 1;", "SELECT 1;", {{0, 0}}, {{0, 0}}, {{0, 0}}},
-    UPP{"SELECT 2; SELECT 1;", "SELECT 1;", {{1, 0}}, {{1, 0}}, {{1, 0}}},
-    UPP{"SELECT 2; SELECT 1;", "SELECT 3; SELECT 1;", {{1, 1}}, {{1, 1}}, {{1, 1}}},
-    UPP{"SELECT 1; SELECT 1;", "SELECT 3; SELECT 1;", {}, {{0, 1}, {1, 1}}, {}},
-    UPP{"SELECT 1; SELECT 2;", "SELECT 1; SELECT 1;", {}, {{0, 0}, {0, 1}}, {}},
-    UPP{"SELECT 2; SELECT 1;", "SELECT 1; SELECT 2;", {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}, {{1, 0}}},
-    UPP{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;",
+    MappingTestParam{"SELECT 1;", "SELECT 1;", {{0, 0}}, {{0, 0}}, {{0, 0}}},
+    MappingTestParam{"SELECT 2; SELECT 1;", "SELECT 1;", {{1, 0}}, {{1, 0}}, {{1, 0}}},
+    MappingTestParam{"SELECT 2; SELECT 1;", "SELECT 3; SELECT 1;", {{1, 1}}, {{1, 1}}, {{1, 1}}},
+    MappingTestParam{"SELECT 1; SELECT 1;", "SELECT 3; SELECT 1;", {}, {{0, 1}, {1, 1}}, {}},
+    MappingTestParam{"SELECT 1; SELECT 2;", "SELECT 1; SELECT 1;", {}, {{0, 0}, {0, 1}}, {}},
+    MappingTestParam{"SELECT 2; SELECT 1;", "SELECT 1; SELECT 2;", {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}, {{1, 0}}},
+    MappingTestParam{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;",
         {{0, 0}, {1, 2}, {2, 1}},
         {{0, 0}, {1, 2}, {2, 1}},
         {{0, 0}, {2, 1}}},
-    UPP{R"DQL(
+    MappingTestParam{R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         VIZ weather_avg USING LINE;
     )DQL", R"DQL(
@@ -165,7 +165,7 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
         {{0, 0}, {1, 1}},
         {{0, 0}, {1, 1}},
         {{0, 0}, {1, 1}}},
-    UPP{R"DQL(
+    MappingTestParam{R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
@@ -179,17 +179,17 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
         {{0, 0}, {2, 2}}}
 ));
 
-struct DP {
+struct DiffTestParam {
     std::string_view t1;
     std::string_view t2;
     std::vector<ProgramMatcher::DiffOp> diff;
 
-    friend std::ostream& operator<<(std::ostream& out, const DP& param) {
+    friend std::ostream& operator<<(std::ostream& out, const DiffTestParam& param) {
         out << param.t1 << " | " << param.t2;
         return out;
     }
 };
-class DiffTest: public ::testing::TestWithParam<DP> {};
+class DiffTest: public ::testing::TestWithParam<DiffTestParam> {};
 
 TEST_P(DiffTest, DiffOps) {
     auto& param = GetParam();
@@ -201,13 +201,13 @@ TEST_P(DiffTest, DiffOps) {
 }
 
 INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTest, ::testing::Values(
-    DP{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;", {
+    DiffTestParam{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;", {
         {DiffOpCode::KEEP, 0, 0},
         {DiffOpCode::KEEP, 2, 1},
         {DiffOpCode::MOVE, 1, 2},
     }},
 
-    DP{R"DQL(
+    DiffTestParam{R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
