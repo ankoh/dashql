@@ -15,9 +15,9 @@ export type Action<T, P> = {
 export enum ActionType {
     CONFIGURE_APP           = 'CONFIGURE_APP',
     LOG_PUSH_ENTRY          = 'LOG_PUSH_ENTRY',
-    EDITOR_SET_MODULE       = 'EDITOR_SET_MODULE',
-    EDITOR_SET_TEXT         = 'EDITOR_SET_TEXT',
-    EDITOR_CLEAR_PROGRAM    = 'EDITOR_CLEAR_PROGRAM',
+    SET_PLAN                = 'SET_PLAN',
+    SET_PLAN_TEXT           = 'SET_PLAN_TEXT',
+    CLEAR_PLAN              = 'CLEAR_PLAN',
     OTHER                   = 'OTHER',
 }
 
@@ -25,9 +25,9 @@ export enum ActionType {
 export type ActionVariant =
     | Action<ActionType.CONFIGURE_APP, AppSettings>
     | Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
-    | Action<ActionType.EDITOR_SET_TEXT, string>
-    | Action<ActionType.EDITOR_SET_MODULE, core.parser.ExecutableProgram>
-    | Action<ActionType.EDITOR_CLEAR_PROGRAM, {}>
+    | Action<ActionType.SET_PLAN_TEXT, string>
+    | Action<ActionType.SET_PLAN, core.Plan>
+    | Action<ActionType.CLEAR_PLAN, {}>
     ;
 
 /// Mutation of the application state
@@ -43,13 +43,13 @@ export class AppStateMutations {
     }
 
     /// Set the editor text
-    public static setEditorText(text: string): ActionVariant {
-        return { type: ActionType.EDITOR_SET_TEXT, payload: text };
+    public static setPlanText(text: string): ActionVariant {
+        return { type: ActionType.SET_PLAN_TEXT, payload: text };
     }
 
-    /// Set the editor module
-    public static setEditorProgram(module: core.parser.ExecutableProgram): ActionVariant {
-        return { type: ActionType.EDITOR_SET_MODULE, payload: module };
+    /// Set the editor modul
+    public static setPlan(program: core.Plan): ActionVariant {
+        return { type: ActionType.SET_PLAN, payload: program };
     }
 
     /// Set the editor program
@@ -73,20 +73,20 @@ export class AppStateMutations {
                         }
                     }),
                 };
-            case ActionType.EDITOR_SET_TEXT:
+            case ActionType.SET_PLAN_TEXT:
                 return {
                     ...state,
-                    editorText: action.payload
+                    planText: action.payload
                 };
-            case ActionType.EDITOR_SET_MODULE:
+            case ActionType.SET_PLAN:
                 return {
                     ...state,
-                    editorProgram: action.payload
+                    plan: action.payload
                 };
-            case ActionType.EDITOR_CLEAR_PROGRAM:
+            case ActionType.CLEAR_PLAN:
                 return {
                     ...state,
-                    editorProgram: null
+                    plan: null
                 };
             default:
                 return state;

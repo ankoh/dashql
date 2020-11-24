@@ -1,32 +1,26 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer, ExecutableProgramBuffer } from '../bindings';
-import { syntax as sx, session } from '../proto/';
+import { syntax as sx } from '../proto/';
 import { NativeStack, NativeBitmap } from '../utils';
 
 const decoder = new TextDecoder();
 
-export class ExecutableProgram {
+export class Program {
     /// The text buffer
     _text: Uint8Array;
-    /// The module
-    _buffer: FlatBuffer<session.ExecutableProgram>;
     /// The program
     _program: sx.Program;
 
     /// Constructor
-    public constructor(text: Uint8Array = new Uint8Array(0), module: FlatBuffer<session.ExecutableProgram> = new ExecutableProgramBuffer()) {
+    public constructor(text: Uint8Array = new Uint8Array(0), program: sx.Program = new sx.Program()) {
         this._text = text;
-        this._buffer = module;
-        this._program = this._buffer.root.program() || new sx.Program();
+        this._program = program || new sx.Program();
     }
 
     /// Access the text
     public get text() { return this._text; }
     /// Access the buffer
-    public get buffer() { return this._buffer.root; }
-    /// Access the program
-    public get program() { return this._program; }
+    public get buffer() { return this._program; }
 
     /// Access the text
     public textAt(_loc: sx.Location): string {
@@ -37,10 +31,10 @@ export class ExecutableProgram {
     /// Iterate over statements
     public iterateStatements(fn: (idx: number, node: Statement) => void): number {
         const stmt = new Statement(this);
-        const count = this.program.statementsLength();
+        const count = this.buffer.statementsLength();
         for (let i = 0; i < count; ++i) {
             stmt.statement_id = i;
-            stmt.statement_buffer = this.program.statements(i, stmt.statement_buffer)!;
+            stmt.statement = this.buffer.statements(i, stmt.statement)!;
             fn(i, stmt);
         }
         return count;
@@ -49,9 +43,9 @@ export class ExecutableProgram {
     /// Iterate over statements
     public iterateDependencies(fn: (idx: number, node: sx.Dependency) => void): number {
         let dep = new sx.Dependency();
-        const count = this.program.dependenciesLength();
+        const count = this.buffer.dependenciesLength();
         for (let i = 0; i < count; ++i) {
-            dep = this.program.dependencies(i, dep)!;
+            dep = this.buffer.dependencies(i, dep)!;
             fn(i, dep);
         }
         return count;
@@ -60,17 +54,17 @@ export class ExecutableProgram {
 
 export class Node {
     /// The module
-    _program: ExecutableProgram;
+    _program: Program;
     /// The node
     _node: sx.Node;
 
     /// Constructor
-    public constructor(module: ExecutableProgram, node: sx.Node = new sx.Node()) {
-        this._program = module;
+    public constructor(program: Program, node: sx.Node = new sx.Node()) {
+        this._program = program;
         this._node = node;
     } 
     /// Get the module
-    public get module() { return this._program; }
+    public get program() { return this._program; }
     /// Get the node
     public get node() { return this._node; }
     /// Get the node
@@ -81,10 +75,6 @@ export class Node {
     public get key() { return this._node.attributeKey(); }
     /// Get the key
     public get text() { return this._program.text; }
-    /// Get the module
-    public get buffer() { return this._program.buffer; }
-    /// Get the program
-    public get program() { return this._program.program; }
     /// Get the node type
     public get nodeType() { return this._node.nodeType(); }
 
@@ -119,7 +109,7 @@ export class Node {
         while (c > 0) {
             const step = Math.floor(c / 2);
             const iter = lb + step;
-            n.node = this.program.nodes(iter, n.node)!;
+            n.node = this.program.buffer.nodes(iter, n.node)!;
             if (n.node.attributeKey() < key) {
                 lb = iter + 1;
                 c -= step + 1;
@@ -130,7 +120,7 @@ export class Node {
         if (lb >= children_begin + children_count) {
             return null;
         }
-        n.node = this.program.nodes(lb, n.node)!;
+        n.node = this.program.buffer.nodes(lb, n.node)!;
         return (n.node.attributeKey() == key) ? n : null;
     }
 
@@ -140,7 +130,7 @@ export class Node {
         const count = this._node.childrenCount();
         n = n || new Node(this._program);
         for (let i = 0; i < count; ++i) {
-            n.node = this.program.nodes(begin + i, n.node)!;
+            n.node = this.program.buffer.nodes(begin + i, n.node)!;
             fn(i, n);
         }
         return count;
@@ -200,14 +190,14 @@ export class NodePath {
 
 export class Statement {
     /// The module
-    _program: ExecutableProgram;
+    _program: Program;
     /// The statement id
     _statement_id: number;
     /// The statement
     _statement: sx.Statement;
 
     /// Constructor
-    public constructor(module: ExecutableProgram, statement_id: number = -1, statement: sx.Statement = new sx.Statement()) {
+    public constructor(module: Program, statement_id: number = -1, statement: sx.Statement = new sx.Statement()) {
         this._program = module;
         this._statement_id = statement_id;
         this._statement = statement;
@@ -216,15 +206,15 @@ export class Statement {
     /// Access the text
     public get text() { return this._program.text; }
     /// Get the module buffer
-    public get program() { return this._program.program; }
+    public get program() { return this._program.buffer; }
     /// Get the statement id
     public get statement_id() { return this._statement_id; }
     /// Set the statement id
     public set statement_id(id: number) { this._statement_id = id; }
     /// Get the statement buffer
-    public get statement_buffer() { return this._statement; }
+    public get statement() { return this._statement; }
     /// Set the statement buffer
-    public set statement_buffer(s: sx.Statement) { this._statement = s; }
+    public set statement(s: sx.Statement) { this._statement = s; }
     /// Get the short name
     public get short_name() { return this._statement.shortName(); }
     /// Get the qualified name
