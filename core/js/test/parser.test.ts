@@ -1,6 +1,4 @@
-import { DashQLCore, parser, proto } from '../';
-
-import sx = proto.syntax;
+import { DashQLCore } from '../';
 
 var core: DashQLCore;
 
@@ -12,9 +10,9 @@ describe('Parser', () => {
    describe('errors', () => {
        test('syntax error', async () => {
            const r = core.parse("?");
-           const m = r.program;
-           expect(m.statementsLength()).toEqual(0);
-           expect(m.errorsLength()).toEqual(1);
+           const p = r.program.buffer;
+           expect(p.statementsLength()).toEqual(0);
+           expect(p.errorsLength()).toEqual(1);
        });
    });
 
@@ -23,9 +21,9 @@ describe('Parser', () => {
            const r = core.parse(`
                select 1;
            `);
-           const m = r.program;
-           expect(m.errorsLength()).toEqual(0);
-           expect(m.statementsLength()).toEqual(1);
+           const p = r.program.buffer;
+           expect(p.errorsLength()).toEqual(0);
+           expect(p.statementsLength()).toEqual(1);
        });
    });
 

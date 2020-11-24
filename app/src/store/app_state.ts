@@ -27,7 +27,7 @@ export class AppState {
     public planText: string;
     /// The plan
     public plan: core.Plan | null;
-    /// The plan focus
+    /// The plan inspection state
     public planInspection: PlanInspectionState;
 
     /// Constructor
