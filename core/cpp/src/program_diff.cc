@@ -105,14 +105,14 @@ size_t ProgramMatcher::ComputeTreeSize(const sx::Program& prog, size_t root, std
 }
 
 // Perform two statements
-ProgramMatcher::StatementDiff ProgramMatcher::ComputeDiff(const sx::Statement& source, const sx::Statement& target, size_t diff_cap) {
+ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::Statement& source, const sx::Statement& target) {
     // Compute tree sizes
     auto& source_nodes = *source_program_.nodes();
     auto& target_nodes = *target_program_.nodes();
     auto source_size = ComputeTreeSize(source_program_, source.root(), source_subtree_sizes_);
     auto target_size = ComputeTreeSize(target_program_, target.root(), target_subtree_sizes_);
     auto node_count = std::max(source_size, target_size);
-    if (node_count == 0) return StatementDiff{};
+    if (node_count == 0) return StatementSimilarity{};
 
     // Do a DFS traversal starting at the root node
     struct NodeSimilarity {
@@ -129,7 +129,7 @@ ProgramMatcher::StatementDiff ProgramMatcher::ComputeDiff(const sx::Statement& s
     pending_visited.push_back(false);
 
     // Traverse the tree
-    StatementDiff diff;
+    StatementSimilarity sim;
     while (!pending_nodes.empty()) {
         auto& [source_id, target_id, parent_entry, matching_nodes] = pending_nodes.back();
         auto source = *source_nodes[source_id];
@@ -139,8 +139,8 @@ ProgramMatcher::StatementDiff ProgramMatcher::ComputeDiff(const sx::Statement& s
         if (pending_visited.back()) {
             // Root entry?
             if (pending_nodes.size() == 1) {
-                diff.total_nodes = node_count;
-                diff.matching_nodes = matching_nodes;
+                sim.total_nodes = node_count;
+                sim.matching_nodes = matching_nodes;
                 break;
             }
             pending_nodes[parent_entry].matching_nodes += matching_nodes;
@@ -218,13 +218,9 @@ ProgramMatcher::StatementDiff ProgramMatcher::ComputeDiff(const sx::Statement& s
         // Was a match?
         if (match) {
             ++matching_nodes;
-        } else {
-            if (diff.diff_nodes.size() < diff_cap) {
-                diff.diff_nodes.push_back(source_id);
-            }
         }
     }
-    return diff;
+    return sim;
 }
 
 // Compare two statements for deep equality

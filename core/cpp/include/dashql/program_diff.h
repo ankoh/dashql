@@ -33,24 +33,22 @@ class ProgramMatcher {
     };
 
     /// A diff between statements
-    struct StatementDiff {
+    struct StatementSimilarity {
         /// The maximum node count
         size_t total_nodes;
         /// The matching nodes
         size_t matching_nodes;
-        /// The first N nodes that differ
-        std::vector<size_t> diff_nodes;
 
         /// Constructor
-        StatementDiff(size_t total = 0, size_t matching = 0)
-            : total_nodes(total), matching_nodes(matching), diff_nodes() {}
+        StatementSimilarity(size_t total = 0, size_t matching = 0)
+            : total_nodes(total), matching_nodes(matching) {}
         /// Are Equal?
         bool Equal() const { return total_nodes == matching_nodes; }
         /// Get the score
         double Score() const { return (total_nodes == 0) ? 0.0 : static_cast<double>(matching_nodes) / total_nodes; }
     };
 
-    /// A statement transform
+    /// A diff operation
     struct DiffOp {
         /// The code
         DiffOpCode code_;
@@ -68,6 +66,7 @@ class ProgramMatcher {
         auto source() const { return source_; }
         /// The target
         auto target() const { return target_; }
+
         /// Equality operator
         bool operator==(const DiffOp& other) const {
             return code_ == other.code_ && source_ == other.source_ && target_ == other.target_;
@@ -107,8 +106,8 @@ class ProgramMatcher {
 
     /// Estimate the similarity
     SimilarityEstimate EstimateSimilarity(const sx::Statement& source, const sx::Statement& target);
-    /// Compute the diff of two statements
-    StatementDiff ComputeDiff(const sx::Statement& source, const sx::Statement& target, size_t diff_cap = 8);
+    /// Compute the similarity of two statements
+    StatementSimilarity ComputeSimilarity(const sx::Statement& source, const sx::Statement& target);
     /// Deep equality check of two statements.
     /// Runs a similarity check that aborts early if not strictly equal.
     bool CheckDeepEquality(const sx::Statement& source, const sx::Statement& target);
