@@ -378,6 +378,10 @@ void ProgramMatcher::MapStatements(StatementMappings& unique_pairs, StatementMap
     std::sort(unique_pairs.begin(), unique_pairs.end(), [&](auto& l, auto& r){
         return l.first < r.first;
     });
+
+    // Make sure they are really sorted
+    assert(std::is_sorted(equal_pairs.begin(), equal_pairs.end()));
+    assert(std::is_sorted(unique_pairs.begin(), unique_pairs.end()));
 }
 
 // Find the longest common subsequence among the unique pairs.
