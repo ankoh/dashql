@@ -438,22 +438,43 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     // Build LCS
     auto lcs = FindLCS(unique_pairs);
 
+    // Track which targets were emitted
+    std::vector<bool> target_emitted;
+    target_emitted.resize(false, target_program_.statements()->size());
+
     // Iterate over sections
     std::vector<DiffOp> ops;
     std::pair<size_t, size_t> prev = {0, 0};
     std::pair<size_t, size_t> next = {0, 0};
-    for (auto iter = lcs.begin();; ++iter) {
-        next = (iter < lcs.end()) ? *iter : StatementMapping{
+    for (auto lcs_iter = lcs.begin();; ++lcs_iter) {
+        prev = next;
+        next = (lcs_iter < lcs.end()) ? *lcs_iter : StatementMapping{
             source_program_.nodes()->size(),
             target_program_.nodes()->size(),
         };
+        auto [prev_source_id, prev_target_id] = prev;
         auto [next_source_id, next_target_id] = next;
 
-        // Process statements in section.
-        // Find all ambiguous target nodes in the section
+        // For every source_id in the section
+        //  1) Find all equal pairs that we already know.
+        //      A) If there is exactly one, the source is either ambiguous or the target is violating the LCS.
+        //      B) If there is more than one, at least the target is ambiguous.
+        //      C) If there is none, the statement is new or was updated.
+        //
+        for (auto source_id = prev_source_id; source_id < next_source_id; ++source_id) {
+            // Find equal pairs
+            auto equal_begin = std::lower_bound(equal_pairs.begin(), equal_pairs.end(), source_id, [](auto& l, auto v) {
+                return l.first < v;
+            });
+            auto equal_end = std::upper_bound(equal_begin, equal_pairs.end(), source_id, [](auto v, auto& r) {
+                return v < r.first;
+            });
+            auto equal_pairs = nonstd::span<StatementMapping>{&*equal_begin, &*equal_end};
+
+        }
 
         // KEEP section boundary if not at end
-        if (iter == lcs.end()) break;
+        if (lcs_iter == lcs.end()) break;
         ops.emplace_back(DiffOpCode::KEEP, next_source_id, next_target_id);
     }
 
