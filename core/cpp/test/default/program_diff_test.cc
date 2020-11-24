@@ -203,8 +203,8 @@ TEST_P(DiffTestSuite, DiffOps) {
 INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite, ::testing::Values(
     DiffTest{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;", {
         {DiffOpCode::KEEP, 0, 0},
-        {DiffOpCode::KEEP, 2, 1},
         {DiffOpCode::MOVE, 1, 2},
+        {DiffOpCode::KEEP, 2, 1},
     }},
 
     DiffTest{R"DQL(
@@ -250,6 +250,24 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite, ::testing::Values(
         {DiffOpCode::DELETE, 1},
         {DiffOpCode::UPDATE, 2, 1},
         {DiffOpCode::KEEP, 3, 2},
+    }},
+
+    DiffTest{R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
+        SELECT 4;
+        SELECT 2 INTO weather_avg FROM weather;
+        VIZ weather_avg USING LINE;
+    )DQL", R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
+        SELECT 1 INTO weather_avg FROM weather;
+        VIZ weather_avg USING LINE;
+        VIZ weather_avg_2 USING BAR;
+    )DQL", {
+        {DiffOpCode::KEEP, 0, 0},
+        {DiffOpCode::DELETE, 1},
+        {DiffOpCode::UPDATE, 2, 1},
+        {DiffOpCode::KEEP, 3, 2},
+        {DiffOpCode::INSERT, std::nullopt, 3},
     }}
 ));
 
