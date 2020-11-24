@@ -2,7 +2,7 @@
 
 import { FlatBuffer, PlanBuffer } from './bindings';
 import { Program } from './parser/';
-import { syntax as sx, session } from './proto/';
+import { session } from './proto/';
 
 export class Plan {
     /// The text buffer
