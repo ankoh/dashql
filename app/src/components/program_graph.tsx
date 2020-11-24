@@ -12,7 +12,7 @@ import sx = core.proto.syntax;
 import styles from './program_graph.module.css';
 
 interface Props {
-    executable: core.parser.ExecutableProgram | null;
+    plan: core.Plan | null;
     className?: string
 }
 
@@ -25,17 +25,17 @@ class ProgramGraph extends React.Component<Props> {
     private zoom = d3.zoom();
 
     private renderGraph() {
-        if (this.props.executable == null) {
+        if (this.props.plan == null) {
             return;
         }
         const g = new dagre.graphlib.Graph().setGraph({nodesep: 30, ranksep: 30});
-        this.props.executable.iterateStatements((idx: number, stmt: core.parser.Statement) => {
+        this.props.plan.program.iterateStatements((idx: number, stmt: core.parser.Statement) => {
             g.setNode(idx.toString(), {
                 label: stmt.short_name || "?",
                 class: styles.node,
             });
         });
-        this.props.executable.iterateDependencies((_idx: number, dep: sx.Dependency) => {
+        this.props.plan.program.iterateDependencies((_idx: number, dep: sx.Dependency) => {
             g.setEdge(dep.sourceStatement().toString(), dep.targetStatement().toString(), {
                 class: styles.edge,
                 curve: d3.curveMonotoneY,
@@ -94,7 +94,7 @@ class ProgramGraph extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    executable: state.editorProgram
+    plan: state.plan
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({

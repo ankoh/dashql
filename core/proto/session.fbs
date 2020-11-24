@@ -5,7 +5,7 @@ include "syntax.fbs";
 
 namespace dashql.proto.session;
 
-table ExecutableProgram {
+table Plan {
     program: syntax.Program;
     action_graph: action.ActionGraph;
 }
