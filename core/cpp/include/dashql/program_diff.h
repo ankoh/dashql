@@ -130,7 +130,7 @@ class ProgramMatcher {
     ///    Statements that are completely identical will very likely have the same effect in our DashQL program.
     ///    (The exception are modifying statements like INSERT but their actions will be invalidated later)
     /// 2) Once we have the list of unique statement pairs, we determine the longest common subsequence (LCS) among them.
-    /// 3) We then use the LCS to classify the statements into sections and emit the diff program as follows:
+    /// 3) We then use the LCS to split the statements into sections and emit the diff program as follows:
     ///     A) We emit MOVE instructions for equal pairs that cross section boundaries.
     ///     B) We emit UPDATE instructions if the similarity between two statements is above a threshold.
     ///     C) We emit CREATE/DELETE instructions if a statement has no similar match.
