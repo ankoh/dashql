@@ -157,6 +157,16 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, StatementMappingTest, ::testing::Values(
         {{0, 0}, {2, 1}}},
     UPP{R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
+        VIZ weather_avg USING LINE;
+    )DQL", R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
+        VIZ weather_avg USING LINE;
+    )DQL",
+        {{0, 0}, {1, 1}},
+        {{0, 0}, {1, 1}},
+        {{0, 0}, {1, 1}}},
+    UPP{R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
     )DQL", R"DQL(

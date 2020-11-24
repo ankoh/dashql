@@ -408,7 +408,7 @@ ProgramMatcher::StatementMappings ProgramMatcher::FindLCS(const std::vector<std:
             piles.emplace_back();
             auto prev_pile_id = std::max<size_t>(piles.size(), 2) - 2;
             auto prev_pile_size = piles[prev_pile_id].size();
-            piles.back().push_back({source_id, target_id, prev_pile_id});
+            piles.back().push_back({source_id, target_id, prev_pile_size});
         }
     }
 
@@ -418,10 +418,12 @@ ProgramMatcher::StatementMappings ProgramMatcher::FindLCS(const std::vector<std:
 
     // Build the LCS
     for (auto pile_id = piles.size() - 1, entry_id = piles[pile_id].size() - 1;; --pile_id) {
+        assert(entry_id < piles[pile_id].size());
         auto [source_id, target_id, prev_pile_size] = piles[pile_id][entry_id];
         lcs.push_back({source_id, target_id});
         if (pile_id == 0)
             break;
+        assert(prev_pile_size >= 1);
         entry_id = prev_pile_size - 1;
     }
     std::reverse(lcs.begin(), lcs.end());
