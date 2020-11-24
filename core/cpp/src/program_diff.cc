@@ -475,9 +475,6 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
 
         // Iterate over all source statements in the section
         for (auto source_id = prev_source_id; source_id < next_source_id; ++source_id) {
-            // Already emitted? (happens when hitting an LCS statement)
-            if (source_emitted[source_id]) continue;
-
             // Are there any equal pairs?
             // We have to emit equal pairs that are either ambiguous or unique but cross section boundaries.
             auto cmp_lb = [](auto& l, auto v) { return l.first < v; };
