@@ -72,7 +72,7 @@ TEST_P(SingleStatementTest, SimilarityEstimate) {
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), param.estimate);
 }
 
-TEST_P(SingleStatementTest, StatementDiff) {
+TEST_P(SingleStatementTest, Similarity) {
     auto& param = GetParam();
     auto [p1, pb1] = Parse(param.t1);
     auto [p2, pb2] = Parse(param.t2);
@@ -80,10 +80,10 @@ TEST_P(SingleStatementTest, StatementDiff) {
     ASSERT_EQ(p2->statements()->size(), 1);
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
     auto s1 = p1->statements()->Get(0), s2 = p2->statements()->Get(0);
-    auto diff = matcher.ComputeDiff(*s1, *s2);
-    ASSERT_EQ(diff.Equal(), param.are_equal);
+    auto sim = matcher.ComputeSimilarity(*s1, *s2);
+    ASSERT_EQ(sim.Equal(), param.are_equal);
     if (param.diff_node_count)
-        ASSERT_EQ(diff.diff_nodes.size(), *param.diff_node_count);
+        ASSERT_EQ(sim.total_nodes - sim.matching_nodes, *param.diff_node_count);
 }
 
 INSTANTIATE_TEST_SUITE_P(ProgramDiff, SingleStatementTest, ::testing::Values(
