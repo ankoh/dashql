@@ -463,8 +463,8 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     for (auto lcs_iter = lcs.begin();; ++lcs_iter) {
         prev = next;
         next = (lcs_iter < lcs.end()) ? *lcs_iter : StatementMapping{
-            source_program_.nodes()->size(),
-            target_program_.nodes()->size(),
+            source_program_.statements()->size(),
+            target_program_.statements()->size(),
         };
         auto [prev_source_id, prev_target_id] = prev;
         auto [next_source_id, next_target_id] = next;
@@ -490,11 +490,20 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
             }
             if (source_emitted[source_id]) continue;
 
-            // Find best match in a FCFS manner
-            std::vector<StatementSimilarity> matches_heap;
-            for (auto iter = prev_target_id; iter != next_target_id; ++iter) {
-                // XXX compute similarity
+            // Find best match among the targets in the section
+            std::vector<std::pair<size_t, StatementSimilarity>> target_matches;
+            target_matches.resize(next_target_id - prev_target_id);
+            auto& source_stmt = *source_program_.statements()->Get(source_id);
+            for (auto target_id = prev_target_id; target_id < next_target_id; ++target_id) {
+                if (target_emitted[target_id]) continue;
+                auto& target_stmt = *target_program_.statements()->Get(target_id);
+                target_matches.push_back({target_id, ComputeSimilarity(source_stmt, target_stmt)});
+                std::push_heap(target_matches.begin(), target_matches.end(), [](auto& l, auto& r) {
+                    return l.second.Score() > r.second.Score();
+                });
             }
+
+            // Found a match?
         }
 
         // KEEP section boundary if not at end
