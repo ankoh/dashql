@@ -82,9 +82,9 @@ class ProgramMatcher {
 
    protected:
     /// The source text
-    std::string_view source_text_;
+    const std::string_view source_text_;
     /// The target text
-    std::string_view target_text_;
+    const std::string_view target_text_;
     /// The source program
     const sx::Program& source_program_;
     /// The target program
