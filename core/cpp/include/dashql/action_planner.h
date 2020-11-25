@@ -5,8 +5,9 @@
 
 #include <unordered_map>
 #include "dashql/program_diff.h"
-#include "dashql/proto/session_generated.h"
 #include "dashql/proto/action_generated.h"
+#include "dashql/proto/option_generated.h"
+#include "dashql/proto/session_generated.h"
 #include "dashql/proto/syntax_generated.h"
 
 namespace dashql {
@@ -31,27 +32,20 @@ class ActionPlanner {
     std::vector<proto::action::ActionT> setup_actions_;
     /// The graph actions
     std::vector<proto::action::ActionT> graph_actions_;
-    /// The graph sources
-    std::vector<uint32_t> graph_sources_;
-
-    /// Translate a load statement
-    proto::action::ActionT TranslateLoad(const sx::Statement& stmt);
-    /// Translate an extract statement
-    proto::action::ActionT TranslateExtract(const sx::Statement& stmt);
-    /// Translate a viz statement
-    proto::action::ActionT TranslateViz(const sx::Statement& stmt);
-    /// Translate a parameter statement
-    proto::action::ActionT TranslateParameter(const sx::Statement& stmt);
-    /// Translate a sql statement
-    proto::action::ActionT TranslateSQL(const sx::Statement& stmt);
 
     /// Diff the two programs
     void DiffPrograms();
-    /// Translate program canonically
-    void TranslateProgramCanconically();
-    /// Map the completed actions
-    void MapCompletedActions();
-    /// Invalidate the updates through the graph
+    /// Render the statement text (substitute parameters)
+    std::string RenderStatementText(const sx::Statement& stmt);
+    /// Collect all root options as list
+    std::optional<proto::option::OptionListT> CollectOptions(const sx::Node& node);
+    /// Translate single statement canonically
+    void TranslateStatement(size_t stmt_id);
+    /// Translate statements canonically
+    void TranslateStatements();
+    /// Map any previously completed actions
+    void MapPreviousActions();
+    /// Propagate the updates through the graph
     void PropagateUpdates();
 
   public:

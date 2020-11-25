@@ -66,6 +66,7 @@ enum NodeType: uint16 {
 enum AttributeKey: uint16 {
     NONE = 0,
 
+    DASHQL_MIN,
     DASHQL_EXTRACT_DATA,
     DASHQL_EXTRACT_METHOD,
     DASHQL_EXTRACT_NAME,
@@ -80,10 +81,12 @@ enum AttributeKey: uint16 {
     DASHQL_VIZ_TARGET,
     DASHQL_VIZ_TYPE,
 
+    DASHQL_OPTION_MIN,
     DASHQL_OPTION_DEFAULT_VALUE,
     DASHQL_OPTION_METHOD,
     DASHQL_OPTION_URL,
 
+    SQL_MIN,
     SQL_ALIAS_COLUMNS,
     SQL_ALIAS_NAME,
     SQL_COLUMN_REF_PATH,
@@ -178,8 +181,8 @@ table Error {
 
 table Statement {
     root: uint32;
-    qualified_name: string;
-    short_name: string;
+    target_name_qualified: string;
+    target_name_short: string;
 }
 
 enum DependencyType: uint8 {

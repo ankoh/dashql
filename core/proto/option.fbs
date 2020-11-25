@@ -1,0 +1,29 @@
+// Copyright (c) 2020 The DashQL Authors
+
+include "syntax.fbs";
+
+namespace dashql.proto.option;
+
+union Value {
+    OptionList,
+    StringValue,
+    ValueArray,
+}
+
+table OptionList {
+    values: [Option];
+}
+
+table Option {
+    key: syntax.AttributeKey;
+    value: Value;
+}
+
+table StringValue {
+    value: string;
+}
+
+table ValueArray {
+    values: [Value];
+}
+
