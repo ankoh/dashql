@@ -6,10 +6,11 @@ namespace dashql {
 
 namespace sxd = dashql::proto::syntax_dashql;
 using ActionType = proto::action::ActionType;
+using Key = sx::AttributeKey;
 
 namespace {
 
-const sx::Node* FindAttribute(const sx::Program& program, const sx::Node& origin, sx::AttributeKey key) {
+const sx::Node* FindAttribute(const sx::Program& program, const sx::Node& origin, Key key) {
     auto children_begin = origin.children_begin_or_value();
     auto children_count = origin.children_count();
     auto lb = children_begin;
@@ -78,24 +79,24 @@ void ActionPlanner::DiffPrograms() {
     diff_ = matcher.ComputeDiff();
 }
 
-/// Collect the statement options
+// Collect the statement options
 std::string ActionPlanner::RenderStatementText(const sx::Statement& stmt) {
-    // XXX Render the statement text
+    // TODO Render the statement text
 }
 
-/// Collect the statement options
+// Collect the statement options
 std::unique_ptr<proto::option::OptionListT> ActionPlanner::CollectOptions(const sx::Node& node) {
-    // XXX Build option list
+    // TODO Build option list
 }
 
 // Translate single statement
 void ActionPlanner::TranslateStatement(size_t stmt_id) {
     static uint32_t global_target_id = 0;
-
     auto& stmts = *next_program_.statements();
     auto& stmt = *stmts.Get(stmt_id);
     auto& stmt_root = *next_program_.nodes()->Get(stmt.root());
 
+    // Write action
     auto& action = graph_actions_[stmt_id];
     action.action_type = ActionType::NONE;
     action.origin_statement = stmt_id;
@@ -109,42 +110,49 @@ void ActionPlanner::TranslateStatement(size_t stmt_id) {
 
     // Identify exact action
     switch (stmt_root.node_type()) {
+        // VIZ statement
         case sx::NodeType::OBJECT_DASHQL_VIZ:
             action.action_type = ActionType::VIZ_CREATE;
             break;
+
+        // LOAD statement
         case sx::NodeType::OBJECT_DASHQL_LOAD:
-            if (auto m = FindAttribute(next_program_, stmt_root, sx::AttributeKey::DASHQL_LOAD_METHOD)) {
+            if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_LOAD_METHOD)) {
                 switch (static_cast<sxd::LoadMethodType>(m->children_begin_or_value())) {
-                    case sxd::LoadMethodType::NONE:
-                        break;
                     case sxd::LoadMethodType::FILE:
                         action.action_type = ActionType::LOAD_FILE;
                         break;
                     case sxd::LoadMethodType::HTTP:
                         action.action_type = ActionType::LOAD_HTTP;
                         break;
+                    default:
+                        action.action_type = ActionType::NONE;
+                        break;
                 }
             }
             break;
+
+        // EXTRACT statement
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:
-            if (auto m = FindAttribute(next_program_, stmt_root, sx::AttributeKey::DASHQL_EXTRACT_METHOD)) {
+            if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_EXTRACT_METHOD)) {
                 switch (static_cast<sxd::ExtractMethodType>(m->children_begin_or_value())) {
-                    case sxd::ExtractMethodType::NONE:
-                        break;
                     case sxd::ExtractMethodType::JSON:
                         action.action_type = ActionType::EXTRACT_JSON;
                         break;
                     case sxd::ExtractMethodType::CSV:
                         action.action_type = ActionType::EXTRACT_CSV;
                         break;
+                    default:
+                        action.action_type = ActionType::NONE;
+                        break;
                 }
             }
             break;
+
+        // PARAMETER statement
         case sx::NodeType::OBJECT_DASHQL_PARAMETER:
-            if (auto m = FindAttribute(next_program_, stmt_root, sx::AttributeKey::DASHQL_PARAMETER_TYPE)) {
+            if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_PARAMETER_TYPE)) {
                 switch (static_cast<sxd::ParameterType>(m->children_begin_or_value())) {
-                    case sxd::ParameterType::NONE:
-                        break;
                     case sxd::ParameterType::FILE:
                         action.action_type = ActionType::PARAM_FILE;
                         break;
@@ -156,18 +164,24 @@ void ActionPlanner::TranslateStatement(size_t stmt_id) {
                     case sxd::ParameterType::TIME:
                         action.action_type = ActionType::PARAM_CONSTANT;
                         break;
+                    default:
+                        action.action_type = ActionType::NONE;
+                        break;
                 }
             }
             break;
+
+        // QUERY statement
         case sx::NodeType::OBJECT_DASHQL_QUERY:
-            if (auto q = FindAttribute(next_program_, stmt_root, sx::AttributeKey::DASHQL_QUERY_STATEMENT)) {
-                if (auto into = FindAttribute(next_program_, *q, sx::AttributeKey::SQL_SELECT_INTO)) {
+            if (auto q = FindAttribute(next_program_, stmt_root, Key::DASHQL_QUERY_STATEMENT)) {
+                if (auto into = FindAttribute(next_program_, *q, Key::SQL_SELECT_INTO)) {
                     action.action_type = proto::action::ActionType::TABLE_CREATE;
                 }
             }
             break;
+
+        // Failed to map the root node of a statement to an action
         default:
-            // Failed to map the root node of a statement to an action
             assert(false);
     }
 }
