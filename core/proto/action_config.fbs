@@ -2,36 +2,21 @@
 
 namespace dashql.proto.action;
 
-// ---------------------------------------------------------------------------
-// LOAD
+table LoadFileAction {
+}
 
-table LoadFileAction {}
-table LoadHTTPAction {}
-table DropLoadAction {}
+table LoadHTTPAction {
+}
 
-// ---------------------------------------------------------------------------
-// EXTRACT
+table ExtractJSONAction {
+}
 
-table ExtractJSONAction {}
-table ExtractCSVAction {}
-table DropExtractAction {}
+table ExtractCSVAction {
+}
 
-// ---------------------------------------------------------------------------
-// SQL
+table SQLStatementAction {
+    statement: string;
+}
 
-table CreateViewAction {}
-table DropViewAction {}
-
-table CreateTableAction {}
-table ModifyTableAction {}
-table DropTableAction {}
-
-table QueryScalarAction {}
-table QueryTableAction {}
-
-// ---------------------------------------------------------------------------
-// VIZ
-
-table CreateVizAction {}
-table UpdateVizAction {}
-table DropVizAction {}
+table VisualizationAction {
+}
