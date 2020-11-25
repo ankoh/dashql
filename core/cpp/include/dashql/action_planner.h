@@ -25,6 +25,8 @@ class ActionPlanner {
     const proto::session::Plan* prev_plan_;
     /// The previous action status
     const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_action_status_;
+    /// The parameter mapping (qualified name -> value)
+    const std::unordered_map<std::string_view, std::string_view>& parameter_values_;
 
     /// The diff between the programs
     std::vector<ProgramMatcher::DiffOp> diff_;
@@ -38,7 +40,7 @@ class ActionPlanner {
     /// Render the statement text (substitute parameters)
     std::string RenderStatementText(const sx::Statement& stmt);
     /// Collect all root options as list
-    std::optional<proto::option::OptionListT> CollectOptions(const sx::Node& node);
+    std::unique_ptr<proto::option::OptionListT> CollectOptions(const sx::Node& node);
     /// Translate single statement canonically
     void TranslateStatement(size_t stmt_id);
     /// Translate statements canonically
@@ -50,7 +52,7 @@ class ActionPlanner {
 
   public:
     /// Constructor
-    ActionPlanner(std::string_view next_program_text, const sx::Program& next_program, std::string_view prev_program_text, const proto::session::Plan* prev_plan, const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status);
+    ActionPlanner(std::string_view next_program_text, const sx::Program& next_program, std::string_view prev_program_text, const proto::session::Plan* prev_plan, const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status, const std::unordered_map<std::string_view, std::string_view>& parameter_values);
 
     /// Plan the new action graph
     void PlanActionGraph();
