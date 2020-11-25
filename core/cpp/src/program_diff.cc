@@ -497,24 +497,31 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
             // This will result in a FCFS assignment of updated statements.
             // We could model this as bi-partite weighted matching problem but it's probably not worth it.
             // FCFS might be the more intuitive mapping anyway.
-            std::vector<std::pair<size_t, StatementSimilarity>> matches;
+            std::vector<std::pair<size_t, double>> matches;
             for (auto target_id = prev_target_id; target_id < next_target_id; ++target_id) {
                 if (target_emitted[target_id]) continue;
                 auto& target_stmt = *target_program_.statements()->Get(target_id);
                 // The similiarity computation of unmatched statements is the most expensive operation in this diff.
-                // We want to do it as rarely as possible and therefore do an additional cheap check of the root node.
-                if (EstimateSimilarity(source_stmt, target_stmt) == SimilarityEstimate::NOT_EQUAL)
+                // We want to do it as rarely as possible and therefore do an additional fast estimation upfront.
+                auto sim_est = EstimateSimilarity(source_stmt, target_stmt);
+                if (sim_est == SimilarityEstimate::NOT_EQUAL) {
                     continue;
+                } else if (sim_est == SimilarityEstimate::EQUAL) {
+                    emit(DiffOpCode::KEEP, source_id, target_id);
+                    break;
+                }
                 auto sim = ComputeSimilarity(source_stmt, target_stmt);
+                auto sim_score = sim.Score();
                 // Qualifies as similar statement?
-                if (sim.Score() >= UPDATE_SIMILARITY_THRESHOLD) {
+                if (sim_score >= UPDATE_SIMILARITY_THRESHOLD) {
                     // Add to min-heap
-                    matches.push_back({target_id, sim});
+                    matches.push_back({target_id, sim_score});
                     std::push_heap(matches.begin(), matches.end(), [](auto& l, auto& r) {
-                        return l.second.Score() > r.second.Score();
+                        return l.second > r.second;
                     });
                 }
             }
+            if (source_emitted[source_id]) continue;
 
             // Found a match?
             if (matches.size() > 0) {
