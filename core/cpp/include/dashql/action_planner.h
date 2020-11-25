@@ -38,7 +38,7 @@ class ActionPlanner {
     /// Diff the two programs
     void DiffPrograms();
     /// Render the statement text (substitute parameters)
-    std::string RenderStatementText(const sx::Statement& stmt);
+    std::string RenderStatementText(size_t stmt_id);
     /// Collect all root options as list
     std::unique_ptr<proto::option::OptionListT> CollectOptions(const sx::Node& node);
     /// Translate single statement canonically
