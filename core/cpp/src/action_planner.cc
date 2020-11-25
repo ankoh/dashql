@@ -6,11 +6,10 @@ namespace dashql {
 
 namespace sxd = dashql::proto::syntax_dashql;
 using ActionType = proto::action::ActionType;
-using Key = sx::AttributeKey;
 
 namespace {
 
-const sx::Node* FindAttribute(const sx::Program& program, const sx::Node& origin, Key key) {
+const sx::Node* FindAttribute(const sx::Program& program, const sx::Node& origin, sx::AttributeKey key) {
     auto children_begin = origin.children_begin_or_value();
     auto children_count = origin.children_count();
     auto lb = children_begin;
@@ -108,62 +107,62 @@ void ActionPlanner::TranslateStatement(size_t stmt_id) {
     action.script = "";
     action.options = CollectOptions(stmt_root);
 
-    // Identify action type
+    // Identify exact action
     switch (stmt_root.node_type()) {
         case sx::NodeType::OBJECT_DASHQL_VIZ:
             action.action_type = ActionType::VIZ_CREATE;
             break;
         case sx::NodeType::OBJECT_DASHQL_LOAD:
-            if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_LOAD_METHOD)) {
-                action.action_type = [](auto t) {
-                    switch (t) {
-                        case sxd::LoadMethodType::FILE:
-                            return ActionType::LOAD_FILE;
-                        case sxd::LoadMethodType::HTTP:
-                            return ActionType::LOAD_HTTP;
-                        default:
-                            return ActionType::NONE;
-                    }
-                }(static_cast<sxd::LoadMethodType>(m->children_begin_or_value()));
+            if (auto m = FindAttribute(next_program_, stmt_root, sx::AttributeKey::DASHQL_LOAD_METHOD)) {
+                switch (static_cast<sxd::LoadMethodType>(m->children_begin_or_value())) {
+                    case sxd::LoadMethodType::NONE:
+                        break;
+                    case sxd::LoadMethodType::FILE:
+                        action.action_type = ActionType::LOAD_FILE;
+                        break;
+                    case sxd::LoadMethodType::HTTP:
+                        action.action_type = ActionType::LOAD_HTTP;
+                        break;
+                }
             }
             break;
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:
-            if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_EXTRACT_METHOD)) {
-                action.action_type = [](auto t) {
-                    switch (t) {
-                        case sxd::ExtractMethodType::JSON:
-                            return ActionType::EXTRACT_JSON;
-                        case sxd::ExtractMethodType::CSV:
-                            return ActionType::EXTRACT_CSV;
-                        default:
-                            return ActionType::NONE;
-                    }
-                }(static_cast<sxd::ExtractMethodType>(m->children_begin_or_value()));
+            if (auto m = FindAttribute(next_program_, stmt_root, sx::AttributeKey::DASHQL_EXTRACT_METHOD)) {
+                switch (static_cast<sxd::ExtractMethodType>(m->children_begin_or_value())) {
+                    case sxd::ExtractMethodType::NONE:
+                        break;
+                    case sxd::ExtractMethodType::JSON:
+                        action.action_type = ActionType::EXTRACT_JSON;
+                        break;
+                    case sxd::ExtractMethodType::CSV:
+                        action.action_type = ActionType::EXTRACT_CSV;
+                        break;
+                }
             }
             break;
         case sx::NodeType::OBJECT_DASHQL_PARAMETER:
-            if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_PARAMETER_TYPE)) {
-                action.action_type = [](auto t) {
-                    switch (t) {
-                        case sxd::ParameterType::FILE:
-                            return ActionType::PARAM_FILE;
-                        case sxd::ParameterType::DATE:
-                        case sxd::ParameterType::DATETIME:
-                        case sxd::ParameterType::FLOAT:
-                        case sxd::ParameterType::INTEGER:
-                        case sxd::ParameterType::TEXT:
-                        case sxd::ParameterType::TIME:
-                            return ActionType::PARAM_CONSTANT;
-                        default:
-                            return ActionType::NONE;
-                    }
-                }(static_cast<sxd::ParameterType>(m->children_begin_or_value()));
+            if (auto m = FindAttribute(next_program_, stmt_root, sx::AttributeKey::DASHQL_PARAMETER_TYPE)) {
+                switch (static_cast<sxd::ParameterType>(m->children_begin_or_value())) {
+                    case sxd::ParameterType::NONE:
+                        break;
+                    case sxd::ParameterType::FILE:
+                        action.action_type = ActionType::PARAM_FILE;
+                        break;
+                    case sxd::ParameterType::DATE:
+                    case sxd::ParameterType::DATETIME:
+                    case sxd::ParameterType::FLOAT:
+                    case sxd::ParameterType::INTEGER:
+                    case sxd::ParameterType::TEXT:
+                    case sxd::ParameterType::TIME:
+                        action.action_type = ActionType::PARAM_CONSTANT;
+                        break;
+                }
             }
             break;
         case sx::NodeType::OBJECT_DASHQL_QUERY:
-            if (auto q = FindAttribute(next_program_, stmt_root, Key::DASHQL_QUERY_STATEMENT)) {
-                if (auto into = FindAttribute(next_program_, *q, Key::SQL_SELECT_INTO)) {
-                    action.action_type = ActionType::TABLE_CREATE;
+            if (auto q = FindAttribute(next_program_, stmt_root, sx::AttributeKey::DASHQL_QUERY_STATEMENT)) {
+                if (auto into = FindAttribute(next_program_, *q, sx::AttributeKey::SQL_SELECT_INTO)) {
+                    action.action_type = proto::action::ActionType::TABLE_CREATE;
                 }
             }
             break;
