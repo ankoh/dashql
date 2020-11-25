@@ -106,6 +106,15 @@ class ProgramMatcher {
     /// Compare two programs
     ProgramMatcher(std::string_view source_text, std::string_view target_text, const sx::Program& source_program, const sx::Program& target_program);
 
+    /// The source text
+    auto source_text() const { return source_text_; }
+    /// The target text
+    auto target_text() const { return target_text_; }
+    /// The source program
+    auto& source_program() const { return source_program_; }
+    /// The target program
+    auto& target_program() const { return target_program_; }
+
     /// Estimate the similarity
     SimilarityEstimate EstimateSimilarity(const sx::Statement& source, const sx::Statement& target);
     /// Compute the similarity of two statements
