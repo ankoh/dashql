@@ -80,13 +80,26 @@ void ActionPlanner::DiffPrograms() {
 }
 
 // Collect the statement options
-std::string ActionPlanner::RenderStatementText(const sx::Statement& stmt) {
+std::string ActionPlanner::RenderStatementText(size_t stmt_id) {
     // TODO Render the statement text
+    auto& stmt = *next_program_.statements()->Get(stmt_id);
+    auto& stmt_root = *next_program_.nodes()->Get(stmt.root());
+
+    // Find all the column refs that occur in the statement
+    for (auto* dep: *next_program_.dependencies()) {
+        if (dep->target_statement() != stmt_id || dep->type() != sx::DependencyType::COLUMN_REF) continue;
+        auto node_id = dep->target_node();
+        auto& node = *next_program_.nodes()->Get(node_id);
+        assert(node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
+        
+    }
 }
 
 // Collect the statement options
 std::unique_ptr<proto::option::OptionListT> ActionPlanner::CollectOptions(const sx::Node& node) {
     // TODO Build option list
+    using NodeID = size_t;
+    std::vector<std::unique_ptr<proto::option::OptionT>> options;
 }
 
 // Translate single statement
