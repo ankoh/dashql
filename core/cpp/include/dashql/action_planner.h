@@ -14,14 +14,39 @@ namespace dashql {
 /// The action planner
 class ActionPlanner {
    protected:
-    /// The previous plan
-    const proto::session::Plan* current_plan_;
-    /// The current action status
-    std::unordered_map<uint32_t, proto::action::ActionStatus> current_action_status_;
-    /// The program matcher
-    ProgramMatcher matcher_;
-    /// Create new action
-    std::vector<proto::action::ActionT> actions_;
+    /// The next program text
+    const std::string_view next_program_text_;
+    /// The next program
+    const sx::Program& next_program_;
+    /// The previous plan (if any)
+    const std::string_view prev_program_text_;
+    /// The previous plan (if any)
+    const proto::session::Plan* prev_plan_;
+    /// The previous action status
+    const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_action_status_;
+
+    /// The diff between the programs
+    std::vector<ProgramMatcher::DiffOp> diff_;
+    /// The updated action graph
+    proto::action::ActionGraphT action_graph_;
+
+    /// Diff the two programs
+    void DiffPrograms();
+    /// Translate program canonically
+    void TranslateProgramCanconically();
+    /// Map the completed actions
+    void MapCompletedActions();
+    /// Invalidate the updates through the graph
+    void PropagateUpdates();
+
+  public:
+    /// Constructor
+    ActionPlanner(std::string_view next_program_text, const sx::Program& next_program, std::string_view prev_program_text, const proto::session::Plan* prev_plan, const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status);
+
+    /// Plan the new action graph
+    void PlanActionGraph();
+    /// Encode action graph
+    flatbuffers::Offset<proto::action::ActionGraph> EncodeActionGraph(flatbuffers::FlatBufferBuilder& builder);
 };
 
 }  // namespace dashql
