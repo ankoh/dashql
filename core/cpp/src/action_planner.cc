@@ -110,12 +110,10 @@ void ActionPlanner::TranslateStatement(size_t stmt_id) {
 
     // Identify exact action
     switch (stmt_root.node_type()) {
-        // VIZ statement
         case sx::NodeType::OBJECT_DASHQL_VIZ:
             action.action_type = ActionType::VIZ_CREATE;
             break;
 
-        // LOAD statement
         case sx::NodeType::OBJECT_DASHQL_LOAD:
             if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_LOAD_METHOD)) {
                 switch (static_cast<sxd::LoadMethodType>(m->children_begin_or_value())) {
@@ -132,7 +130,6 @@ void ActionPlanner::TranslateStatement(size_t stmt_id) {
             }
             break;
 
-        // EXTRACT statement
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:
             if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_EXTRACT_METHOD)) {
                 switch (static_cast<sxd::ExtractMethodType>(m->children_begin_or_value())) {
@@ -149,7 +146,6 @@ void ActionPlanner::TranslateStatement(size_t stmt_id) {
             }
             break;
 
-        // PARAMETER statement
         case sx::NodeType::OBJECT_DASHQL_PARAMETER:
             if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_PARAMETER_TYPE)) {
                 switch (static_cast<sxd::ParameterType>(m->children_begin_or_value())) {
@@ -171,7 +167,6 @@ void ActionPlanner::TranslateStatement(size_t stmt_id) {
             }
             break;
 
-        // QUERY statement
         case sx::NodeType::OBJECT_DASHQL_QUERY:
             if (auto q = FindAttribute(next_program_, stmt_root, Key::DASHQL_QUERY_STATEMENT)) {
                 if (auto into = FindAttribute(next_program_, *q, Key::SQL_SELECT_INTO)) {
@@ -180,7 +175,6 @@ void ActionPlanner::TranslateStatement(size_t stmt_id) {
             }
             break;
 
-        // Failed to map the root node of a statement to an action
         default:
             assert(false);
     }
