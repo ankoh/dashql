@@ -1,7 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "action_mutating.fbs";
-include "action_pure.fbs";
+include "action_config.fbs";
 
 namespace dashql.proto.action;
 
@@ -11,42 +10,49 @@ namespace dashql.proto.action;
 enum ActionType: uint8 {
     NONE = 0,
 
-    // Setup Actions
-    SETUP_MIN = 10,
-    SQL_DROP_VIEW = 11,
-    SQL_DROP_TABLE = 12,
-
-    // Plan Actions
-    PLAN_MIN = 20,
-    LOAD_FILE = 21,
+    // State actions
+    STATE_MIN = 10,
+    LOAD_FILE = 20,
     LOAD_HTTP = 22,
-    EXTRACT_JSON = 23,
-    EXTRACT_CSV = 24,
-    SQL_CREATE_VIEW = 25,
-    SQL_MATERIALIZE_TABLE = 26,
-    SQL_EVALUATE = 27,
-    VIZUALIZE = 28,
+    DROP_LOAD = 23,
+    EXTRACT_JSON = 30,
+    EXTRACT_CSV = 31,
+    DROP_EXTRACT = 32,
+    CREATE_VIEW = 40,
+    DROP_VIEW = 41,
+    CREATE_TABLE = 50,
+    MODIFY_TABLE = 51,
+    DROP_TABLE = 52,
+    CREATE_VIZ = 60,
+    UPDATE_VIZ = 61,
+    DROP_VIZ = 62,
 
-    // Dynamic Actions
-    DYNAMIC_MIN = 40,
-    SQL_QUERY_SCALAR = 41,
-    SQL_QUERY_TABLE = 42,
+    // Volatile Actions
+    VOLATILE_MIN = 100,
+    QUERY_SCALAR = 101,
+    QUERY_TABLE = 102,
 }
 
 union ActionConfig {
-    // Plan actions
+    // State actions
     LoadFileAction,
     LoadHTTPAction,
+    DropLoadAction,
     ExtractJSONAction,
     ExtractCSVAction,
-    SQLCreateViewAction,
-    SQLMaterializeTableAction,
-    SQLEvaluateAction,
-    VizualizeAction,
+    DropExtractAction,
+    CreateViewAction,
+    DropViewAction,
+    CreateTableAction,
+    ModifyTableAction,
+    DropTableAction,
+    CreateVizAction,
+    UpdateVizAction,
+    DropVizAction,
 
-    // Dynamic actions
-    SQLQueryScalarAction,
-    SQLQueryTableAction,
+    // Volatile actions
+    QueryScalarAction,
+    QueryTableAction,
 }
 
 table Action {
@@ -57,8 +63,7 @@ table Action {
 }
 
 table ActionGraph {
-    setup: [Action];
-    plan: [Action];
+    actions: [Action];
 }
 
 // ---------------------------------------------------------------------------
@@ -76,8 +81,9 @@ enum ActionStatusCode: uint8 {
 enum ActionBlocker: uint8 {
     NONE = 0,
     DEPENDENCY = 1,
-    HTTP_REQUEST = 2,
-    SCHEDULER = 3,
+    USER_INTERACTION = 2,
+    HTTP_REQUEST = 3,
+    SCHEDULER = 4,
 }
 
 struct ActionStatus {
