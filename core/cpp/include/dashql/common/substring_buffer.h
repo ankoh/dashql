@@ -20,8 +20,7 @@ namespace dashql {
 ///     B) Maintain this index even when replacing a part of the substring with a string of different size.
 ///
 /// We assume that the number of edits is reasonably small.
-/// We are quadratic in the number of edits but use a very compact edit log that can be applied branch-free.
-/// We maintain a list of location adjusts that are linearly applied for every location that is accessed.
+/// The runtime is quadratic in the number of edits but use a very compact edit log that can be applied branch-free.
 ///
 class SubstringBuffer {
     protected:
