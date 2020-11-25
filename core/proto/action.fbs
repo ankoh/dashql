@@ -58,12 +58,15 @@ union ActionConfig {
 table Action {
     action_type: ActionType;
     origin_statement: uint32;
-    required_actions: [uint32];
+    depends_on: [uint32];
+    required_for: [uint32];
     action_config: ActionConfig;
 }
 
 table ActionGraph {
-    actions: [Action];
+    setup: [Action];
+    graph_actions: [Action];
+    graph_sources: [uint32];
 }
 
 // ---------------------------------------------------------------------------
