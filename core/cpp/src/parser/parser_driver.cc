@@ -308,8 +308,8 @@ fb::Offset<sx::Program> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
         auto qualified_name = stmt.EncodeQualifiedName(builder);
         sx::StatementBuilder sb{builder};
         sb.add_root(stmt.root);
-        sb.add_qualified_name(qualified_name);
-        sb.add_short_name(short_name);
+        sb.add_target_name_qualified(qualified_name);
+        sb.add_target_name_short(short_name);
         statements.push_back(sb.Finish());
     }
     std::vector<fb::Offset<sx::Error>> errs;

@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "action_config.fbs";
+include "option.fbs";
 
 namespace dashql.proto.action;
 
@@ -33,29 +33,21 @@ enum ActionType: uint8 {
     QUERY_TABLE = 102,
 }
 
-union ActionConfig {
-    LoadFileAction,
-    LoadHTTPAction,
-    ExtractJSONAction,
-    ExtractCSVAction,
-    SQLStatementAction,
-    VisualizationAction,
-}
-
 table Action {
     action_type: ActionType;
     origin_statement: uint32;
     depends_on: [uint32];
     required_for: [uint32];
-    target_qualified: string;
-    target_short: string;
-    action_config: ActionConfig;
+    target_id: uint32;
+    target_name_qualified: string;
+    target_name_short: string;
+    script: string;
+    options: option.OptionList;
 }
 
 table ActionGraph {
     setup: [Action];
-    graph_actions: [Action];
-    graph_sources: [uint32];
+    actions: [Action];
 }
 
 // ---------------------------------------------------------------------------

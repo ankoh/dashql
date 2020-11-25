@@ -216,9 +216,9 @@ export class Statement {
     /// Set the statement buffer
     public set statement(s: sx.Statement) { this._statement = s; }
     /// Get the short name
-    public get short_name() { return this._statement.shortName(); }
+    public get target_name_short() { return this._statement.targetNameShort(); }
     /// Get the qualified name
-    public get qualified_name() { return this._statement.qualifiedName(); }
+    public get target_name_qualified() { return this._statement.targetNameQualified(); }
     /// Get the root
     public get root() { return this._statement.root(); }
     /// Get the root node
