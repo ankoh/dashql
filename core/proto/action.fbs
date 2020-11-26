@@ -1,7 +1,5 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "option.fbs";
-
 namespace dashql.proto.action;
 
 // ---------------------------------------------------------------------------
@@ -44,7 +42,6 @@ table Action {
     target_name_qualified: string;
     target_name_short: string;
     script: string;
-    options: option.OptionList;
 }
 
 table ActionGraph {

@@ -98,13 +98,9 @@ Expected<std::string> ActionPlanner::RenderStatementText(size_t stmt_id) {
 }
 
 // Collect the statement options
-Expected<std::unique_ptr<proto::option::OptionListT>> ActionPlanner::EvaluateOptions(const sx::Node& node) {
-    // TODO Build option list
-    using NodeID = size_t;
-    std::vector<std::unique_ptr<proto::option::OptionT>> options;
-
-    std::unique_ptr<proto::option::OptionListT> option_list;
-    return move(option_list);
+Signal ActionPlanner::EvaluateOptions(const sx::Node& node) {
+    // TODO Scan for option lists and evaluate ast nodes.
+    return Signal::OK();
 }
 
 // Translate single statement
@@ -124,10 +120,6 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
     action.target_name_short = stmt.target_name_short()->str();
     action.target_name_qualified = stmt.target_name_qualified()->str();
     action.script = "";
-    auto options = EvaluateOptions(stmt_root);
-    if (!options)
-        return options.err();
-    action.options = options.ReleaseValue();
 
     // Identify exact action
     switch (stmt_root.node_type()) {
