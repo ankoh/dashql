@@ -8,7 +8,6 @@
 #include "dashql/common/expected.h"
 #include "dashql/program_diff.h"
 #include "dashql/proto/action_generated.h"
-#include "dashql/proto/option_generated.h"
 #include "dashql/proto/session_generated.h"
 #include "dashql/proto/syntax_generated.h"
 
@@ -39,10 +38,10 @@ class ActionPlanner {
 
     /// Diff the two programs
     Signal DiffPrograms();
+    /// Collect all root options as list
+    Signal EvaluateOptions(const sx::Node& node);
     /// Render the statement text (substitute parameters)
     Expected<std::string> RenderStatementText(size_t stmt_id);
-    /// Collect all root options as list
-    Expected<std::unique_ptr<proto::option::OptionListT>> EvaluateOptions(const sx::Node& node);
     /// Translate single statement canonically
     Expected<proto::action::ActionT> TranslateStatement(size_t stmt_id);
     /// Translate statements canonically
