@@ -51,7 +51,7 @@ using ActionObj = proto::action::ActionT;
 ActionPlanner::ActionPlanner(std::string_view next_program_text, const sx::ProgramT& next_program,
                              std::string_view prev_program_text, const sx::ProgramT* prev_program,
                              const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status,
-                             const std::unordered_map<std::string_view, std::string_view>& parameter_values)
+                             const std::unordered_map<std::string_view, const proto::session::ParameterValue*>& parameter_values)
     : next_program_text_(next_program_text),
       next_program_(next_program),
       prev_program_text_(prev_program_text),
@@ -94,12 +94,6 @@ Expected<std::string> ActionPlanner::RenderStatementText(size_t stmt_id) {
         
     }
     return std::string{};
-}
-
-// Collect the statement options
-Signal ActionPlanner::EvaluateOptions(const sx::Node& node) {
-    // TODO Scan for option lists and evaluate ast nodes.
-    return Signal::OK();
 }
 
 // Translate single statement
