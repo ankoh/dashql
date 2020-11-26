@@ -205,6 +205,7 @@ target_link_libraries(dashql_parser flatbuffers)
 add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/common/substring_buffer.cc
+    ${CMAKE_SOURCE_DIR}/src/program_instance.cc
     ${CMAKE_SOURCE_DIR}/src/program_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/session.cc
 )

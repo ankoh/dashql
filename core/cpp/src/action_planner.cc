@@ -48,16 +48,14 @@ template <typename F> void IterateChildren(const sx::Program& program, const sx:
 using ActionObj = proto::action::ActionT;
 
 // Constructor
-ActionPlanner::ActionPlanner(std::string_view next_program_text, const sx::ProgramT& next_program,
-                             std::string_view prev_program_text, const sx::ProgramT* prev_program,
-                             const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status,
-                             const std::unordered_map<std::string_view, const proto::session::ParameterValue*>& parameter_values)
-    : next_program_text_(next_program_text),
-      next_program_(next_program),
-      prev_program_text_(prev_program_text),
+ActionPlanner::ActionPlanner(const ProgramInstance& next_program,
+                  const ProgramInstance* prev_program,
+                  const proto::action::ActionGraph* prev_action_graph,
+                  const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_action_status)
+    : next_program_(next_program),
       prev_program_(prev_program),
-      prev_action_status_(prev_status),
-      parameter_values_(parameter_values),
+      prev_action_graph_(prev_action_graph),
+      prev_action_status_(prev_action_status),
       diff_(),
       setup_actions_(),
       graph_actions_() {}
@@ -67,14 +65,14 @@ Signal ActionPlanner::DiffPrograms() {
     // No previous plan?
     // Then we emit all new statements as INSERT
     if (!prev_program_) {
-        for (unsigned i = 0; i < next_program_.statements.size(); ++i) {
+        for (unsigned i = 0; i < next_program_.program().statements.size(); ++i) {
             diff_.emplace_back(DiffOpCode::INSERT, std::nullopt, i);
         }
         return Signal::OK();
     }
 
     // Compute the patience diff
-    ProgramMatcher matcher{prev_program_text_, next_program_text_, *prev_program_, next_program_};
+    ProgramMatcher matcher{*prev_program_, next_program_};
     diff_ = matcher.ComputeDiff();
     return Signal::OK();
 }
@@ -82,14 +80,15 @@ Signal ActionPlanner::DiffPrograms() {
 // Collect the statement options
 Expected<std::string> ActionPlanner::RenderStatementText(size_t stmt_id) {
     // TODO Render the statement text
-    auto& stmt = *next_program_.statements[stmt_id];
-    auto& stmt_root = next_program_.nodes[stmt.root];
+    auto& next = next_program_.program();
+    auto& stmt = *next.statements[stmt_id];
+    auto& stmt_root = next.nodes[stmt.root];
 
     // Find all the column refs that occur in the statement
-    for (auto& dep: next_program_.dependencies) {
+    for (auto& dep: next_program_.program().dependencies) {
         if (dep.target_statement() != stmt_id || dep.type() != sx::DependencyType::COLUMN_REF) continue;
         auto node_id = dep.target_node();
-        auto& node = next_program_.nodes[node_id];
+        auto& node = next.nodes[node_id];
         assert(node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
         
     }
@@ -99,9 +98,10 @@ Expected<std::string> ActionPlanner::RenderStatementText(size_t stmt_id) {
 // Translate single statement
 Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_id) {
     static uint32_t global_target_id = 0;
-    auto& stmts = next_program_.statements;
+    auto& next = next_program_.program();
+    auto& stmts = next.statements;
     auto& stmt = stmts[stmt_id];
-    auto& stmt_root = next_program_.nodes[stmt->root];
+    auto& stmt_root = next.nodes[stmt->root];
 
     // Write action
     proto::action::ActionT action;
@@ -121,7 +121,7 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
             break;
 
         case sx::NodeType::OBJECT_DASHQL_LOAD:
-            if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_LOAD_METHOD)) {
+            if (auto m = FindAttribute(next, stmt_root, Key::DASHQL_LOAD_METHOD)) {
                 switch (static_cast<sxd::LoadMethodType>(m->children_begin_or_value())) {
                     case sxd::LoadMethodType::FILE:
                         action.action_type = ActionType::LOAD_FILE;
@@ -137,7 +137,7 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
             break;
 
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:
-            if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_EXTRACT_METHOD)) {
+            if (auto m = FindAttribute(next, stmt_root, Key::DASHQL_EXTRACT_METHOD)) {
                 switch (static_cast<sxd::ExtractMethodType>(m->children_begin_or_value())) {
                     case sxd::ExtractMethodType::JSON:
                         action.action_type = ActionType::EXTRACT_JSON;
@@ -153,7 +153,7 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
             break;
 
         case sx::NodeType::OBJECT_DASHQL_PARAMETER:
-            if (auto m = FindAttribute(next_program_, stmt_root, Key::DASHQL_PARAMETER_TYPE)) {
+            if (auto m = FindAttribute(next, stmt_root, Key::DASHQL_PARAMETER_TYPE)) {
                 switch (static_cast<sxd::ParameterType>(m->children_begin_or_value())) {
                     case sxd::ParameterType::FILE:
                         action.action_type = ActionType::PARAM_FILE;
@@ -174,8 +174,8 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
             break;
 
         case sx::NodeType::OBJECT_DASHQL_QUERY: {
-            if (auto q = FindAttribute(next_program_, stmt_root, Key::DASHQL_QUERY_STATEMENT)) {
-                if (auto into = FindAttribute(next_program_, *q, Key::SQL_SELECT_INTO)) {
+            if (auto q = FindAttribute(next, stmt_root, Key::DASHQL_QUERY_STATEMENT)) {
+                if (auto into = FindAttribute(next, *q, Key::SQL_SELECT_INTO)) {
                     action.action_type = proto::action::ActionType::TABLE_CREATE;
                 }
             }
@@ -194,7 +194,7 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
 
 // Translate statements
 Signal ActionPlanner::TranslateStatements() {
-    auto& stmts = next_program_.statements;
+    auto& stmts = next_program_.program().statements;
     graph_actions_.resize(stmts.size());
 
     // Translate statements to actions as if there all statements were new
@@ -206,7 +206,7 @@ Signal ActionPlanner::TranslateStatements() {
     }
 
     // Store dependencies
-    auto& deps = next_program_.dependencies;
+    auto& deps = next_program_.program().dependencies;
     for (unsigned dep_id = 0; dep_id < deps.size(); ++dep_id) {
         auto& dep = deps[dep_id];
         graph_actions_[dep.source_statement()].required_for.push_back(dep.target_statement());
