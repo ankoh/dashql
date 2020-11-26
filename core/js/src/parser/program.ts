@@ -96,7 +96,7 @@ export class Node {
     /// Get a string
     public getString(obj: sx.Location): string | null {
         const loc = this._node.location(obj)!;
-        return (this._node.nodeType() != sx.NodeType.STRING) ? null : this._program.textAt(loc);
+        return (this._node.nodeType() != sx.NodeType.STRING_REF) ? null : this._program.textAt(loc);
     }
 
     /// Find an attribute
