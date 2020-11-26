@@ -47,7 +47,7 @@ struct QueryResultIterator {
     /// Is at end?
     bool IsEnd() const;
     /// Advance the iterator
-    ExpectedSignal Next();
+    Signal Next();
     /// Iterator increment
     QueryResultIterator& operator++() {
         Next();

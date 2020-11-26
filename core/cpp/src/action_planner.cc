@@ -63,24 +63,25 @@ ActionPlanner::ActionPlanner(std::string_view next_program_text, const sx::Progr
       graph_actions_() {}
 
 // Diff programs
-void ActionPlanner::DiffPrograms() {
+Signal ActionPlanner::DiffPrograms() {
     // No previous plan?
     // Then we emit all new statements as INSERT
     if (!prev_plan_) {
         for (unsigned i = 0; i < next_program_.statements()->size(); ++i) {
             diff_.emplace_back(DiffOpCode::INSERT, std::nullopt, i);
         }
-        return;
+        return Signal::OK();
     }
 
     // Compute the patience diff
     auto& prev_program = *prev_plan_->program();
     ProgramMatcher matcher{prev_program_text_, next_program_text_, prev_program, next_program_};
     diff_ = matcher.ComputeDiff();
+    return Signal::OK();
 }
 
 // Collect the statement options
-std::string ActionPlanner::RenderStatementText(size_t stmt_id) {
+Expected<std::string> ActionPlanner::RenderStatementText(size_t stmt_id) {
     // TODO Render the statement text
     auto& stmt = *next_program_.statements()->Get(stmt_id);
     auto& stmt_root = *next_program_.nodes()->Get(stmt.root());
@@ -93,17 +94,21 @@ std::string ActionPlanner::RenderStatementText(size_t stmt_id) {
         assert(node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
         
     }
+    return std::string{};
 }
 
 // Collect the statement options
-std::unique_ptr<proto::option::OptionListT> ActionPlanner::CollectOptions(const sx::Node& node) {
+Expected<std::unique_ptr<proto::option::OptionListT>> ActionPlanner::EvaluateOptions(const sx::Node& node) {
     // TODO Build option list
     using NodeID = size_t;
     std::vector<std::unique_ptr<proto::option::OptionT>> options;
+
+    std::unique_ptr<proto::option::OptionListT> option_list;
+    return move(option_list);
 }
 
 // Translate single statement
-void ActionPlanner::TranslateStatement(size_t stmt_id) {
+Signal ActionPlanner::TranslateStatement(size_t stmt_id) {
     static uint32_t global_target_id = 0;
     auto& stmts = *next_program_.statements();
     auto& stmt = *stmts.Get(stmt_id);
@@ -119,7 +124,10 @@ void ActionPlanner::TranslateStatement(size_t stmt_id) {
     action.target_name_short = stmt.target_name_short()->str();
     action.target_name_qualified = stmt.target_name_qualified()->str();
     action.script = "";
-    action.options = CollectOptions(stmt_root);
+    auto options = EvaluateOptions(stmt_root);
+    if (!options)
+        return options.err();
+    action.options = options.ReleaseValue();
 
     // Identify exact action
     switch (stmt_root.node_type()) {
@@ -180,27 +188,35 @@ void ActionPlanner::TranslateStatement(size_t stmt_id) {
             }
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_QUERY:
+        case sx::NodeType::OBJECT_DASHQL_QUERY: {
             if (auto q = FindAttribute(next_program_, stmt_root, Key::DASHQL_QUERY_STATEMENT)) {
                 if (auto into = FindAttribute(next_program_, *q, Key::SQL_SELECT_INTO)) {
                     action.action_type = proto::action::ActionType::TABLE_CREATE;
                 }
             }
+            auto script = RenderStatementText(stmt_id);
+            if (!script.IsOk()) {
+                return script.err();
+            }
             break;
+        }
 
         default:
             assert(false);
     }
+    return Signal::OK();
 }
 
 // Translate statements
-void ActionPlanner::TranslateStatements() {
+Signal ActionPlanner::TranslateStatements() {
     auto& stmts = *next_program_.statements();
     graph_actions_.resize(stmts.size());
 
     // Translate statements to actions as if there all statements were new
     for (unsigned stmt_id = 0; stmt_id < stmts.size(); ++stmt_id) {
-        TranslateStatement(stmt_id);
+        if (auto ok = TranslateStatement(stmt_id); !ok) {
+            return ok;
+        }
     }
 
     // Store dependencies
@@ -210,16 +226,19 @@ void ActionPlanner::TranslateStatements() {
         graph_actions_[dep.source_statement()].required_for.push_back(dep.target_statement());
         graph_actions_[dep.target_statement()].depends_on.push_back(dep.source_statement());
     }
+    return Signal::OK();
 }
 
 // Map previously completed actions to the new graph
-void ActionPlanner::MapPreviousActions() {
+Signal ActionPlanner::MapPreviousActions() {
     // TODO
+    return Signal::OK();
 }
 
 // Propage updates/deletes/inserts in the new graph
-void ActionPlanner::PropagateUpdates() {
+Signal ActionPlanner::PropagateUpdates() {
     // TODO
+    return Signal::OK();
 }
 
 // Plan the new action graph
