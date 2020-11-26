@@ -44,7 +44,7 @@ class ActionPlanner {
     /// Collect all root options as list
     Expected<std::unique_ptr<proto::option::OptionListT>> EvaluateOptions(const sx::Node& node);
     /// Translate single statement canonically
-    Signal TranslateStatement(size_t stmt_id);
+    Expected<proto::action::ActionT> TranslateStatement(size_t stmt_id);
     /// Translate statements canonically
     Signal TranslateStatements();
     /// Map any previously completed actions
