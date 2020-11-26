@@ -14,8 +14,6 @@ namespace {
 // (Instead of DELETE + INSERT)
 constexpr double UPDATE_SIMILARITY_THRESHOLD = 0.75;
 
-std::string_view TextAt(std::string_view text, sx::Location loc) { return text.substr(loc.offset(), loc.length()); }
-
 }  // namespace
 
 /// Constructor
@@ -34,8 +32,8 @@ ProgramMatcher::SimilarityEstimate ProgramMatcher::EstimateSimilarity(const sx::
     // Do a string comparison if the strings are equal in size and number of root attributes.
     // This will bypass us the tree diffing for all unchanged statements.
     if ((s.children_count() == t.children_count()) && (s.location().length() == t.location().length())) {
-        auto st = TextAt(source_.program_text(), s.location());
-        auto tt = TextAt(target_.program_text(), t.location());
+        auto st = source_.TextAt(s.location());
+        auto tt = target_.TextAt(t.location());
         if (st == tt) return SimilarityEstimate::EQUAL;
     }
     return SimilarityEstimate::SIMILAR;
@@ -169,7 +167,7 @@ ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::
                 match = source.children_begin_or_value() == target.children_begin_or_value();
                 break;
             case sx::NodeType::STRING_REF:
-                match = TextAt(source_.program_text(), source.location()) == TextAt(target_.program_text(), target.location());
+                match = source_.TextAt(source.location()) == target_.TextAt(target.location());
                 break;
             case sx::NodeType::ARRAY: {
                 auto sc = source.children_count();
@@ -265,7 +263,7 @@ bool ProgramMatcher::CheckDeepEquality(const sx::StatementT& source, const sx::S
                 eq = source.children_begin_or_value() == target.children_begin_or_value();
                 break;
             case sx::NodeType::STRING_REF:
-                eq = TextAt(source_.program_text(), source.location()) == TextAt(target_.program_text(), target.location());
+                eq = source_.TextAt(source.location()) == target_.TextAt(target.location());
                 break;
             case sx::NodeType::ARRAY: {
                 auto sc = source.children_count();

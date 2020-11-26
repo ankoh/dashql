@@ -77,24 +77,6 @@ Signal ActionPlanner::DiffPrograms() {
     return Signal::OK();
 }
 
-// Collect the statement options
-Expected<std::string> ActionPlanner::RenderStatementText(size_t stmt_id) {
-    // TODO Render the statement text
-    auto& next = next_program_.program();
-    auto& stmt = *next.statements[stmt_id];
-    auto& stmt_root = next.nodes[stmt.root];
-
-    // Find all the column refs that occur in the statement
-    for (auto& dep: next_program_.program().dependencies) {
-        if (dep.target_statement() != stmt_id || dep.type() != sx::DependencyType::COLUMN_REF) continue;
-        auto node_id = dep.target_node();
-        auto& node = next.nodes[node_id];
-        assert(node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
-        
-    }
-    return std::string{};
-}
-
 // Translate single statement
 Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_id) {
     static uint32_t global_target_id = 0;
@@ -179,10 +161,11 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
                     action.action_type = proto::action::ActionType::TABLE_CREATE;
                 }
             }
-            auto script = RenderStatementText(stmt_id);
+            auto script = next_program_.RenderStatementText(stmt_id);
             if (!script.IsOk()) {
                 return script.err();
             }
+            action.script = script.ReleaseValue();
             break;
         }
 
