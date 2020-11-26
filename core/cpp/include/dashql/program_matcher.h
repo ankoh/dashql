@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_PROGRAM_DIFF_H_
-#define INCLUDE_DASHQL_PROGRAM_DIFF_H_
+#ifndef INCLUDE_DASHQL_PROGRAM_MATCHER_H_
+#define INCLUDE_DASHQL_PROGRAM_MATCHER_H_
 
 #include "dashql/common/enum.h"
 #include "dashql/proto/syntax_generated.h"
@@ -156,4 +156,4 @@ class ProgramMatcher {
 
 }  // namespace dashql
 
-#endif  // INCLUDE_DASHQL_PROGRAM_DIFF_H_
+#endif  // INCLUDE_DASHQL_PROGRAM_MATCHER_H_

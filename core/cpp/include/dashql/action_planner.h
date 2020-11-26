@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 #include "dashql/common/expected.h"
-#include "dashql/program_diff.h"
+#include "dashql/program_matcher.h"
 #include "dashql/proto/action_generated.h"
 #include "dashql/proto/session_generated.h"
 #include "dashql/proto/syntax_generated.h"

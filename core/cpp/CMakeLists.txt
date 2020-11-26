@@ -205,7 +205,7 @@ target_link_libraries(dashql_parser flatbuffers)
 add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/common/substring_buffer.cc
-    ${CMAKE_SOURCE_DIR}/src/program_diff.cc
+    ${CMAKE_SOURCE_DIR}/src/program_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/session.cc
 )
 
@@ -256,7 +256,7 @@ endif()
 if(NOT EMSCRIPTEN)
     add_executable(tester
         ${CMAKE_SOURCE_DIR}/test/default/common/substring_buffer_test.cc
-        ${CMAKE_SOURCE_DIR}/test/default/program_diff_test.cc
+        ${CMAKE_SOURCE_DIR}/test/default/program_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     target_link_libraries(tester
