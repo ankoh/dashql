@@ -17,15 +17,15 @@ enum class TestOpType {
 
 struct TestOp {
     TestOpType type;
-    unsigned value;
+    int value;
 };
 
-std::pair<unsigned, unsigned> PUSH(unsigned key, unsigned rank) { return { key, rank }; }
-TestOp POP(unsigned value) { return { TestOpType::POP, value }; }
-TestOp DEC(unsigned value) { return { TestOpType::DEC, value }; }
+std::pair<int, int> PUSH(int key, int rank) { return { key, rank }; }
+TestOp POP(int value) { return { TestOpType::POP, value }; }
+TestOp DEC(int value) { return { TestOpType::DEC, value }; }
 
 struct TopoSortTest {
-    std::vector<std::pair<unsigned, unsigned>> input;
+    std::vector<std::pair<int, int>> input;
     std::vector<TestOp> ops;
 };
 
@@ -33,7 +33,7 @@ struct TopologicalSortTestSuite: ::testing::TestWithParam<TopoSortTest> {};
 
 TEST_P(TopologicalSortTestSuite, SequenceMatches) {
     auto& param = GetParam();
-    TopologicalSort<unsigned> heap{param.input};
+    TopologicalSort<int> heap{param.input};
     for (auto [type, value]: param.ops) {
         if (type == TestOpType::DEC) {
             heap.DecrementKey(value);

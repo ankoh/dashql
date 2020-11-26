@@ -32,6 +32,8 @@ class ActionPlanner {
     std::vector<proto::action::ActionT> setup_actions_;
     /// The graph actions
     std::vector<proto::action::ActionT> graph_actions_;
+    /// The next action status
+    std::vector<proto::action::ActionStatusCode> graph_action_status_;
 
     /// Diff the two programs
     Signal DiffPrograms();

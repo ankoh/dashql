@@ -13,27 +13,27 @@ namespace dashql {
 template <typename T> struct TopologicalSort {
    protected:
     /// The entries
-    std::vector<std::pair<T, unsigned>> entries_;
+    std::vector<std::pair<T, int>> entries_;
     /// The position index
-    std::unordered_map<T, unsigned> index_;
+    std::unordered_map<T, int> index_;
 
    public:
     /// Constructor
-    TopologicalSort(std::vector<std::pair<T, unsigned>> es) : entries_(move(es)), index_() {
+    TopologicalSort(std::vector<std::pair<T, int>> es) : entries_(move(es)), index_() {
         sort(entries_.begin(), entries_.end(), [](auto& l, auto& r) { return l.second < r.second; });
-        for (unsigned i = 0; i < entries_.size(); ++i) index_.insert({entries_[i].first, i});
+        for (int i = 0; i < entries_.size(); ++i) index_.insert({entries_[i].first, i});
     }
 
     /// Swap indices
-    void SwapAt(unsigned i, unsigned j) {
+    void SwapAt(int i, int j) {
         index_[entries_[i].first] = j;
         index_[entries_[j].first] = i;
         swap(entries_[i], entries_[j]);
     }
 
     /// Sift an element up
-    void SiftUp(unsigned i) {
-        for (unsigned p = (i - 1) / 2; i && (entries_[p].second > entries_[i].second);) {
+    void SiftUp(int i) {
+        for (int p = (i - 1) / 2; i && (entries_[p].second > entries_[i].second);) {
             SwapAt(i, p);
             i = p;
             p = (i - 1) / 2;
@@ -41,7 +41,7 @@ template <typename T> struct TopologicalSort {
     }
 
     /// Sift an element down
-    void SiftDown(unsigned i) {
+    void SiftDown(int i) {
         while (true) {
             auto l = 2 * i + 1;
             auto r = 2 * i + 2;
@@ -81,7 +81,7 @@ template <typename T> struct TopologicalSort {
     }
 
     /// Get the key
-    unsigned GetKey(T k) {
+    int GetKey(T k) {
         auto i = index_[k];
         return entries_[i].second;
     }
