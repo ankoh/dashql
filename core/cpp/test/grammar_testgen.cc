@@ -72,10 +72,7 @@ int main(int argc, char* argv[]) {
             auto input_strv = std::string_view{input.data(), input.size()};
 
             /// Parse module
-            flatbuffers::FlatBufferBuilder builder;
-            auto m_ofs = ParserDriver::Parse(builder, input_strv);
-            builder.Finish(m_ofs);
-            auto module = flatbuffers::GetRoot<sx::Program>(builder.GetBufferPointer());
+            auto program = ParserDriver::Parse(input_strv);
 
             /// Write output
             ryml::Tree out;
@@ -83,7 +80,7 @@ int main(int argc, char* argv[]) {
             out_root |= ryml::MAP;
             out_root["name"] << name;
             out_root["input"] << input;
-            EncodeTestExpectation(out_root["expected"], *module, input_strv);
+            EncodeTestExpectation(out_root["expected"], *program, input_strv);
 
             std::cout << "  TEST " << name << std::endl;
             if (prev > 0) {

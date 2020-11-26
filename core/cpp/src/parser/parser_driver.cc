@@ -89,24 +89,25 @@ void Statement::reset() {
     column_refs = {};
 }
 
-/// Encode qualified name
-fb::Offset<fb::String> Statement::EncodeQualifiedName(fb::FlatBufferBuilder& builder) {
+/// Finish a statement
+std::unique_ptr<sx::StatementT> Statement::Finish() {
     auto [table, schema] = name;
-    if (schema.empty()) {
-        return builder.CreateString(table.data(), table.size());
-    }
-    std::string buffer;
-    buffer.resize(schema.size() + 1 + table.size());
-    schema.copy(buffer.data(), schema.size());
-    buffer[schema.size()] = '.';
-    table.copy(buffer.data() + schema.size() + 1, table.size());
-    return builder.CreateString(buffer);
-}
+    auto stmt = std::make_unique<sx::StatementT>();
+    stmt->root = root;
+    stmt->target_name_short = table;
 
-/// Encode short name
-fb::Offset<fb::String> Statement::EncodeShortName(fb::FlatBufferBuilder& builder) {
-    auto [table, schema] = name;
-    return builder.CreateString(table.data(), table.size());
+    // Store qualified name
+    if (schema.empty()) {
+        stmt->target_name_qualified = move(table);
+    } else {
+        std::string buffer;
+        buffer.resize(schema.size() + 1 + table.size());
+        schema.copy(buffer.data(), schema.size());
+        buffer[schema.size()] = '.';
+        table.copy(buffer.data() + schema.size() + 1, table.size());
+        stmt->target_name_qualified = move(buffer);
+    }
+    return stmt;
 }
 
 /// Constructor
@@ -299,45 +300,27 @@ void ParserDriver::AddStatement(sx::Node node) {
 /// Add an error
 void ParserDriver::AddError(sx::Location loc, const std::string& message) { errors_.push_back({loc, message}); }
 
-/// Write the module
-fb::Offset<sx::Program> ParserDriver::Write(fb::FlatBufferBuilder& builder) {
-    std::vector<fb::Offset<sx::Statement>> statements;
-    for (auto& stmt : statements_) {
-        auto stmt_loc = nodes_[stmt.root].location();
-        auto short_name = stmt.EncodeShortName(builder);
-        auto qualified_name = stmt.EncodeQualifiedName(builder);
-        sx::StatementBuilder sb{builder};
-        sb.add_root(stmt.root);
-        sb.add_target_name_qualified(qualified_name);
-        sb.add_target_name_short(short_name);
-        statements.push_back(sb.Finish());
+/// Get as flatbuffer object
+std::unique_ptr<sx::ProgramT> ParserDriver::Finish() {
+    auto program = std::make_unique<sx::ProgramT>();
+    program->nodes = move(nodes_);
+    program->statements.reserve(statements_.size());
+    for (auto& stmt: statements_) {
+        program->statements.push_back(stmt.Finish());
     }
-    std::vector<fb::Offset<sx::Error>> errs;
-    for (auto [loc, msg] : errors_) {
-        auto s = builder.CreateString(msg.data(), msg.length());
-        sx::ErrorBuilder eb{builder};
-        eb.add_location(&loc);
-        eb.add_message(s);
-        errs.push_back(eb.Finish());
+    program->errors.reserve(errors_.size());
+    for (auto& [loc, msg]: errors_) {
+        auto err = std::make_unique<sx::ErrorT>();
+        err->location = std::make_unique<sx::Location>(loc);
+        err->message = move(msg);
     }
-    auto nodes_vec = builder.CreateVectorOfStructs(nodes_);
-    auto statements_vec = builder.CreateVector(statements);
-    auto error_vec = builder.CreateVector(errs);
-    auto line_breaks_vec = builder.CreateVectorOfStructs(scanner_.line_breaks());
-    auto comments_vec = builder.CreateVectorOfStructs(scanner_.comments());
-    auto deps_vec = builder.CreateVectorOfStructs(dependencies_);
-    sx::ProgramBuilder b{builder};
-    b.add_nodes(nodes_vec);
-    b.add_statements(statements_vec);
-    b.add_errors(error_vec);
-    b.add_line_breaks(line_breaks_vec);
-    b.add_comments(comments_vec);
-    b.add_dependencies(deps_vec);
-    return b.Finish();
+    program->line_breaks = scanner_.ReleaseLineBreaks();
+    program->comments = scanner_.ReleaseComments();
+    program->dependencies = move(dependencies_);
+    return program;
 }
 
-flatbuffers::Offset<sx::Program> ParserDriver::Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in,
-                                                     bool trace_scanning, bool trace_parsing) {
+std::unique_ptr<sx::ProgramT> ParserDriver::Parse(std::string_view in, bool trace_scanning, bool trace_parsing) {
     // XXX shortcut until tests are migrated
     std::vector<char> padded_buffer{in.begin(), in.end()};
     padded_buffer.push_back(0);
@@ -351,7 +334,7 @@ flatbuffers::Offset<sx::Program> ParserDriver::Parse(flatbuffers::FlatBufferBuil
 
     driver.ComputeDependencies();
 
-    return driver.Write(builder);
+    return driver.Finish();
 }
 
 }  // namespace parser

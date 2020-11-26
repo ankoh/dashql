@@ -19,11 +19,11 @@ class ActionPlanner {
     /// The next program text
     const std::string_view next_program_text_;
     /// The next program
-    const sx::Program& next_program_;
+    const sx::ProgramT& next_program_;
     /// The previous plan (if any)
     const std::string_view prev_program_text_;
     /// The previous plan (if any)
-    const proto::session::Plan* prev_plan_;
+    const sx::ProgramT* prev_program_;
     /// The previous action status
     const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_action_status_;
     /// The parameter mapping (qualified name -> value)
@@ -53,15 +53,15 @@ class ActionPlanner {
 
    public:
     /// Constructor
-    ActionPlanner(std::string_view next_program_text, const sx::Program& next_program,
-                  std::string_view prev_program_text, const proto::session::Plan* prev_plan,
+    ActionPlanner(std::string_view next_program_text, const sx::ProgramT& next_program,
+                  std::string_view prev_program_text, const sx::ProgramT* prev_program,
                   const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status,
                   const std::unordered_map<std::string_view, std::string_view>& parameter_values);
 
     /// Plan the new action graph
     void PlanActionGraph();
-    /// Encode action graph
-    flatbuffers::Offset<proto::action::ActionGraph> EncodeActionGraph(flatbuffers::FlatBufferBuilder& builder);
+    /// Get the action graph
+    flatbuffers::Offset<proto::action::ActionGraph> Encode(flatbuffers::FlatBufferBuilder& builder);
 };
 
 }  // namespace dashql

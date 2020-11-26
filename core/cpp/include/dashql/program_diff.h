@@ -86,9 +86,9 @@ class ProgramMatcher {
     /// The target text
     const std::string_view target_text_;
     /// The source program
-    const sx::Program& source_program_;
+    const sx::ProgramT& source_program_;
     /// The target program
-    const sx::Program& target_program_;
+    const sx::ProgramT& target_program_;
     /// The subtree sizes of source nodes
     std::vector<size_t> source_subtree_sizes_;
     /// The subtree sizes of target nodes
@@ -96,7 +96,7 @@ class ProgramMatcher {
 
     /// Compute subtree size.
     /// Only used for the full similarity computation.
-    size_t ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes);
+    size_t ComputeTreeSize(const sx::ProgramT& prog, size_t root, std::vector<size_t>& sizes);
     /// Find unique statement mappings
     void MapStatements(StatementMappings& unique, StatementMappings& equal);
     /// Find the longest common subsequence
@@ -104,7 +104,7 @@ class ProgramMatcher {
 
    public:
     /// Compare two programs
-    ProgramMatcher(std::string_view source_text, std::string_view target_text, const sx::Program& source_program, const sx::Program& target_program);
+    ProgramMatcher(std::string_view source_text, std::string_view target_text, const sx::ProgramT& source_program, const sx::ProgramT& target_program);
 
     /// The source text
     auto source_text() const { return source_text_; }
@@ -116,12 +116,12 @@ class ProgramMatcher {
     auto& target_program() const { return target_program_; }
 
     /// Estimate the similarity
-    SimilarityEstimate EstimateSimilarity(const sx::Statement& source, const sx::Statement& target);
+    SimilarityEstimate EstimateSimilarity(const sx::StatementT& source, const sx::StatementT& target);
     /// Compute the similarity of two statements
-    StatementSimilarity ComputeSimilarity(const sx::Statement& source, const sx::Statement& target);
+    StatementSimilarity ComputeSimilarity(const sx::StatementT& source, const sx::StatementT& target);
     /// Deep equality check of two statements.
     /// Runs a similarity check that aborts early if not strictly equal.
-    bool CheckDeepEquality(const sx::Statement& source, const sx::Statement& target);
+    bool CheckDeepEquality(const sx::StatementT& source, const sx::StatementT& target);
 
     /// Compute the diff between the programs.
     ///

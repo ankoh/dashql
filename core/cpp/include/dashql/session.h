@@ -14,6 +14,7 @@
 #include <variant>
 #include <vector>
 
+#include "dashql/proto/action_generated.h"
 #include "dashql/proto/session_generated.h"
 #include "duckdb/web/common/expected.h"
 #include "duckdb/web/webdb.h"
@@ -40,9 +41,6 @@ class Session {
     std::pair<const proto::session::Plan*, fb::DetachedBuffer> plan_;
     /// The current action status
     std::unordered_map<uint32_t, proto::action::ActionStatus> action_status_;
-
-    /// Derive actions
-    fb::Offset<ActionGraph> DeriveActions(fb::FlatBufferBuilder& builder, const Plan& prev, const Program& next);
 
    public:
     /// Constructor

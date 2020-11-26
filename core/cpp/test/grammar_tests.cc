@@ -90,14 +90,10 @@ nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* na
 
 TEST_P(GrammarParamTests, Test) {
     auto& param = GetParam();
-
-    flatbuffers::FlatBufferBuilder builder;
-    auto m_ofs = ParserDriver::Parse(builder, param.input);
-    builder.Finish(m_ofs);
-    auto module = flatbuffers::GetRoot<sx::Program>(builder.GetBufferPointer());
+    auto program = ParserDriver::Parse(param.input);
 
     ryml::Tree out;
-    EncodeTestExpectation(out.rootref(), *module, param.input);
+    EncodeTestExpectation(out.rootref(), *program, param.input);
 
     ASSERT_TRUE(IsEqual(out, param.expected));
 }

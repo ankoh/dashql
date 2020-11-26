@@ -76,6 +76,11 @@ class Scanner {
         assert(input_buffer_.size() >= 2);
         return std::string_view{input_buffer_.data(), input_buffer_.size() - 2}; }
 
+    /// Release the line breaks
+    auto&& ReleaseLineBreaks() { return move(line_breaks_); }
+    /// Release the comments
+    auto&& ReleaseComments() { return move(comments_); }
+
     /// Get the text at location
     std::string_view TextAt(sx::Location loc);
 
