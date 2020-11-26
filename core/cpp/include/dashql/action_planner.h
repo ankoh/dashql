@@ -27,7 +27,7 @@ class ActionPlanner {
     /// The previous action status
     const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_action_status_;
     /// The parameter mapping (qualified name -> value)
-    const std::unordered_map<std::string_view, std::string_view>& parameter_values_;
+    const std::unordered_map<std::string_view, const proto::session::ParameterValue*>& parameter_values_;
 
     /// The diff between the programs
     std::vector<ProgramMatcher::DiffOp> diff_;
@@ -38,8 +38,6 @@ class ActionPlanner {
 
     /// Diff the two programs
     Signal DiffPrograms();
-    /// Collect all root options as list
-    Signal EvaluateOptions(const sx::Node& node);
     /// Render the statement text (substitute parameters)
     Expected<std::string> RenderStatementText(size_t stmt_id);
     /// Translate single statement canonically
@@ -56,7 +54,7 @@ class ActionPlanner {
     ActionPlanner(std::string_view next_program_text, const sx::ProgramT& next_program,
                   std::string_view prev_program_text, const sx::ProgramT* prev_program,
                   const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status,
-                  const std::unordered_map<std::string_view, std::string_view>& parameter_values);
+                  const std::unordered_map<std::string_view, const proto::session::ParameterValue*>& parameter_values);
 
     /// Plan the new action graph
     void PlanActionGraph();

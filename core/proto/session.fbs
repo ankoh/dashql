@@ -6,11 +6,6 @@ include "syntax_dashql.fbs";
 
 namespace dashql.proto.session;
 
-table ProgramPatch {
-    nodes: [syntax.Node];
-    strings: [string];
-}
-
 table ParameterValue {
     type: syntax_dashql.ParameterType;
     value: string;
@@ -18,7 +13,7 @@ table ParameterValue {
 
 table Plan {
     program: syntax.Program;
-    program_eval: ProgramPatch;
+    program_instance: [syntax.ProgramPatch];
     parameter_values: [ParameterValue];
     action_graph: action.ActionGraph;
 }
