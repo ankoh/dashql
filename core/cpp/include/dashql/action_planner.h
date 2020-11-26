@@ -35,8 +35,6 @@ class ActionPlanner {
 
     /// Diff the two programs
     Signal DiffPrograms();
-    /// Render the statement text (substitute parameters)
-    Expected<std::string> RenderStatementText(size_t stmt_id);
     /// Translate single statement canonically
     Expected<proto::action::ActionT> TranslateStatement(size_t stmt_id);
     /// Translate statements canonically

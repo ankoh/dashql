@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "dashql/common/enum.h"
+#include "dashql/common/expected.h"
 #include "dashql/proto/session_generated.h"
 #include "dashql/proto/syntax_generated.h"
 #include "duckdb/web/webdb.h"
@@ -37,8 +38,12 @@ class ProgramInstance {
     /// Get the parameters
     auto& parameters() const { return parameters_; }
 
+    /// Get the text at a location
+    std::string_view TextAt(sx::Location loc) const { return program_text_.substr(loc.offset(), loc.length()); }
     /// Evaluate the program partially
-    void EvaluatePartially(duckdb::web::WebDB& database);
+    Signal EvaluatePartially(duckdb::web::WebDB& database);
+    /// Render the statement text
+    Expected<std::string> RenderStatementText(size_t stmt_id) const;
 };
 
 }  // namespace dashql
