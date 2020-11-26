@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include "dashql/common/expected.h"
+#include "dashql/program_instance.h"
 #include "dashql/program_matcher.h"
 #include "dashql/proto/action_generated.h"
 #include "dashql/proto/session_generated.h"
@@ -16,18 +17,14 @@ namespace dashql {
 /// The action planner
 class ActionPlanner {
    protected:
-    /// The next program text
-    const std::string_view next_program_text_;
     /// The next program
-    const sx::ProgramT& next_program_;
-    /// The previous plan (if any)
-    const std::string_view prev_program_text_;
-    /// The previous plan (if any)
-    const sx::ProgramT* prev_program_;
+    const ProgramInstance& next_program_;
+    /// The previous program
+    const ProgramInstance* prev_program_;
+    /// The previous action graph
+    const proto::action::ActionGraph* prev_action_graph_;
     /// The previous action status
     const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_action_status_;
-    /// The parameter mapping (qualified name -> value)
-    const std::unordered_map<std::string_view, const proto::session::ParameterValue*>& parameter_values_;
 
     /// The diff between the programs
     std::vector<ProgramMatcher::DiffOp> diff_;
@@ -51,10 +48,10 @@ class ActionPlanner {
 
    public:
     /// Constructor
-    ActionPlanner(std::string_view next_program_text, const sx::ProgramT& next_program,
-                  std::string_view prev_program_text, const sx::ProgramT* prev_program,
-                  const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status,
-                  const std::unordered_map<std::string_view, const proto::session::ParameterValue*>& parameter_values);
+    ActionPlanner(const ProgramInstance& next_program,
+                  const ProgramInstance* prev_program,
+                  const proto::action::ActionGraph* prev_action_graph,
+                  const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_action_status);
 
     /// Plan the new action graph
     void PlanActionGraph();

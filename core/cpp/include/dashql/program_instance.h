@@ -25,8 +25,16 @@ class ProgramInstance {
     /// The patch
     std::unique_ptr<sx::ProgramPatchT> patch_;
 
+    public:
     /// Constructor
-    ProgramInstance(const sx::ProgramT& program, std::unordered_map<std::string_view, proto::session::ParameterValue> params);
+    ProgramInstance(std::string_view text, const sx::ProgramT& program);
+
+    /// Get the program text
+    auto& program_text() const { return program_text_; }
+    /// Get the program
+    auto& program() const { return program_; }
+    /// Get the parameters
+    auto& parameters() const { return parameters_; }
 
     /// Evaluate the program partially
     void EvaluatePartially();
