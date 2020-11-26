@@ -4,7 +4,7 @@
 
 #include "dashql/parser/scanner.h"
 #include "dashql/parser/parser_driver.h"
-#include "dashql/program_diff.h"
+#include "dashql/program_matcher.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 
