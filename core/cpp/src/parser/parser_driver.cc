@@ -135,7 +135,7 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_glob
     std::array<std::string_view, 2> rev;
 
     // Is string?
-    if (node.node_type() == sx::NodeType::STRING) {
+    if (node.node_type() == sx::NodeType::STRING_REF) {
         rev[0] = scanner_.TextAt(node.location());
     }
 
@@ -147,7 +147,7 @@ QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_glob
         unsigned next = 0;
         for (auto i = 0; i < count && next < rev.size(); ++i) {
             auto& value = nodes_[end - i - 1];
-            if (value.node_type() == sx::NodeType::STRING) {
+            if (value.node_type() == sx::NodeType::STRING_REF) {
                 rev[next++] = scanner_.TextAt(value.location());
             }
         }

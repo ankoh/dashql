@@ -163,7 +163,7 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::ProgramT& pr
                     n << target->children_begin_or_value();
                     break;
                 }
-                case sx::NodeType::STRING: {
+                case sx::NodeType::STRING_REF: {
                     encode(n, target->location(), text);
                     break;
                 }
