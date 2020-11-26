@@ -10,6 +10,7 @@
 #include "dashql/common/enum.h"
 #include "dashql/proto/session_generated.h"
 #include "dashql/proto/syntax_generated.h"
+#include "duckdb/web/webdb.h"
 
 namespace dashql {
 
@@ -22,7 +23,7 @@ class ProgramInstance {
     const sx::ProgramT& program_;
     /// The parameters
     std::unordered_map<std::string_view, proto::session::ParameterValue> parameters_;
-    /// The patch
+    /// The patch for partial evaluation (if any)
     std::unique_ptr<sx::ProgramPatchT> patch_;
 
     public:
@@ -37,7 +38,7 @@ class ProgramInstance {
     auto& parameters() const { return parameters_; }
 
     /// Evaluate the program partially
-    void EvaluatePartially();
+    void EvaluatePartially(duckdb::web::WebDB& database);
 };
 
 }  // namespace dashql
