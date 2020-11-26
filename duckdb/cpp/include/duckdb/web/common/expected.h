@@ -59,12 +59,29 @@ template <typename V> struct Expected {
         assert(IsErr());
         return std::get<Error>(data_);
     }
+    /// Get the error
+    auto &err() {
+        assert(IsErr());
+        return std::get<Error>(data_);
+    }
     /// Bool operator
     operator bool() const { return IsOk(); }
     /// Dereference operator
     auto &operator*() const { return value(); }
+    /// Release the value
+    auto &&ReleaseValue() {
+        assert(IsOk());
+        return std::move(std::get<V>(data_));
+    }
+    /// Release the value
+    auto &&ReleaseError() {
+        assert(IsErr());
+        return std::move(std::get<Error>(data_));
+    }
+
+    static Expected<V> OK(V &&v = {}) { return Expected<V>(move(v)); }
 };
-using ExpectedSignal = Expected<std::monostate>;
+using Signal = Expected<std::monostate>;
 
 template <typename V> struct ExpectedBuffer {
     /// The data

@@ -88,7 +88,7 @@ class WebDB {
         /// Analyze a SQL query
         ExpectedBuffer<proto::QueryPlan> AnalyzeQuery(std::string_view text);
         /// Generate a table
-        ExpectedSignal GenerateTable(proto::TableSpecification& spec);
+        Signal GenerateTable(proto::TableSpecification& spec);
     };
 
    protected:

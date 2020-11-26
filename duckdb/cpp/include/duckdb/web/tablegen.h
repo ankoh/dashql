@@ -12,7 +12,7 @@ namespace duckdb {
 namespace web {
 
 /// Generate table
-ExpectedSignal generateTable(duckdb::Connection& conn, proto::TableSpecification& spec);
+Signal generateTable(duckdb::Connection& conn, proto::TableSpecification& spec);
 
 }  // namespace web
 }  // namespace duckdb

@@ -268,7 +268,7 @@ struct OutputTransform {
 }  // namespace
 
 /// Generate table
-ExpectedSignal generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
+Signal generateTable(duckdb::Connection &conn, proto::TableSpecification &spec) {
     mt19937 rand;
 
     // Construct the generator expressions.

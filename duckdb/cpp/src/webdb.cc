@@ -118,7 +118,7 @@ ExpectedBuffer<proto::QueryPlan> WebDB::Connection::AnalyzeQuery(std::string_vie
 }
 
 /// Generate a table
-ExpectedSignal WebDB::Connection::GenerateTable(proto::TableSpecification& spec) {
+Signal WebDB::Connection::GenerateTable(proto::TableSpecification& spec) {
     return generateTable(connection_, spec);
 }
 
