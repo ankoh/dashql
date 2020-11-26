@@ -72,10 +72,8 @@ struct Statement {
 
     /// Reset
     void reset();
-    /// Write the qualified name
-    flatbuffers::Offset<flatbuffers::String> EncodeQualifiedName(flatbuffers::FlatBufferBuilder& builder);
-    /// Write the short name
-    flatbuffers::Offset<flatbuffers::String> EncodeShortName(flatbuffers::FlatBufferBuilder& builder);
+    /// Get as flatbuffer object
+    std::unique_ptr<sx::StatementT> Finish();
 };
 
 class ParserDriver {
@@ -104,8 +102,8 @@ class ParserDriver {
     NodeID AddNode(sx::Node node);
     /// Compute the dependencies
     void ComputeDependencies();
-    /// Write as flatbuffer
-    flatbuffers::Offset<sx::Program> Write(flatbuffers::FlatBufferBuilder& builder);
+    /// Get as flatbuffer object
+    std::unique_ptr<sx::ProgramT> Finish();
 
    public:
     /// Constructor
@@ -126,8 +124,7 @@ class ParserDriver {
     void AddError(sx::Location loc, const std::string& message);
 
     /// Parse a module
-    static flatbuffers::Offset<sx::Program> Parse(flatbuffers::FlatBufferBuilder& builder, std::string_view in,
-                                                  bool trace_scanning = false, bool trace_parsing = false);
+    static std::unique_ptr<sx::ProgramT> Parse(std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
 };
 
 }  // namespace parser

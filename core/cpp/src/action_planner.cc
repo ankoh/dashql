@@ -10,7 +10,7 @@ using Key = sx::AttributeKey;
 
 namespace {
 
-const sx::Node* FindAttribute(const sx::Program& program, const sx::Node& origin, Key key) {
+const sx::Node* FindAttribute(const sx::ProgramT& program, const sx::Node& origin, Key key) {
     auto children_begin = origin.children_begin_or_value();
     auto children_count = origin.children_count();
     auto lb = children_begin;
@@ -18,8 +18,8 @@ const sx::Node* FindAttribute(const sx::Program& program, const sx::Node& origin
     while (c > 0) {
         auto step = c / 2;
         auto iter = lb + step;
-        auto n = program.nodes()->Get(iter);
-        if (n->attribute_key() < key) {
+        auto& n = program.nodes[iter];
+        if (n.attribute_key() < key) {
             lb = iter + 1;
             c -= step + 1;
         } else {
@@ -29,8 +29,8 @@ const sx::Node* FindAttribute(const sx::Program& program, const sx::Node& origin
     if (lb >= children_begin + children_count) {
         return nullptr;
     }
-    auto n = program.nodes()->Get(lb);
-    return (n->attribute_key() == key) ? n : nullptr;
+    auto& n = program.nodes[lb];
+    return (n.attribute_key() == key) ? &n : nullptr;
 }
 
 template <typename F> void IterateChildren(const sx::Program& program, const sx::Node& origin, F fn) {
@@ -48,14 +48,14 @@ template <typename F> void IterateChildren(const sx::Program& program, const sx:
 using ActionObj = proto::action::ActionT;
 
 // Constructor
-ActionPlanner::ActionPlanner(std::string_view next_program_text, const sx::Program& next_program,
-                             std::string_view prev_program_text, const proto::session::Plan* prev_plan,
+ActionPlanner::ActionPlanner(std::string_view next_program_text, const sx::ProgramT& next_program,
+                             std::string_view prev_program_text, const sx::ProgramT* prev_program,
                              const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status,
                              const std::unordered_map<std::string_view, std::string_view>& parameter_values)
     : next_program_text_(next_program_text),
       next_program_(next_program),
       prev_program_text_(prev_program_text),
-      prev_plan_(prev_plan),
+      prev_program_(prev_program),
       prev_action_status_(prev_status),
       parameter_values_(parameter_values),
       diff_(),
@@ -66,16 +66,15 @@ ActionPlanner::ActionPlanner(std::string_view next_program_text, const sx::Progr
 Signal ActionPlanner::DiffPrograms() {
     // No previous plan?
     // Then we emit all new statements as INSERT
-    if (!prev_plan_) {
-        for (unsigned i = 0; i < next_program_.statements()->size(); ++i) {
+    if (!prev_program_) {
+        for (unsigned i = 0; i < next_program_.statements.size(); ++i) {
             diff_.emplace_back(DiffOpCode::INSERT, std::nullopt, i);
         }
         return Signal::OK();
     }
 
     // Compute the patience diff
-    auto& prev_program = *prev_plan_->program();
-    ProgramMatcher matcher{prev_program_text_, next_program_text_, prev_program, next_program_};
+    ProgramMatcher matcher{prev_program_text_, next_program_text_, *prev_program_, next_program_};
     diff_ = matcher.ComputeDiff();
     return Signal::OK();
 }
@@ -83,14 +82,14 @@ Signal ActionPlanner::DiffPrograms() {
 // Collect the statement options
 Expected<std::string> ActionPlanner::RenderStatementText(size_t stmt_id) {
     // TODO Render the statement text
-    auto& stmt = *next_program_.statements()->Get(stmt_id);
-    auto& stmt_root = *next_program_.nodes()->Get(stmt.root());
+    auto& stmt = *next_program_.statements[stmt_id];
+    auto& stmt_root = next_program_.nodes[stmt.root];
 
     // Find all the column refs that occur in the statement
-    for (auto* dep: *next_program_.dependencies()) {
-        if (dep->target_statement() != stmt_id || dep->type() != sx::DependencyType::COLUMN_REF) continue;
-        auto node_id = dep->target_node();
-        auto& node = *next_program_.nodes()->Get(node_id);
+    for (auto& dep: next_program_.dependencies) {
+        if (dep.target_statement() != stmt_id || dep.type() != sx::DependencyType::COLUMN_REF) continue;
+        auto node_id = dep.target_node();
+        auto& node = next_program_.nodes[node_id];
         assert(node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
         
     }
@@ -106,9 +105,9 @@ Signal ActionPlanner::EvaluateOptions(const sx::Node& node) {
 // Translate single statement
 Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_id) {
     static uint32_t global_target_id = 0;
-    auto& stmts = *next_program_.statements();
-    auto& stmt = *stmts.Get(stmt_id);
-    auto& stmt_root = *next_program_.nodes()->Get(stmt.root());
+    auto& stmts = next_program_.statements;
+    auto& stmt = stmts[stmt_id];
+    auto& stmt_root = next_program_.nodes[stmt->root];
 
     // Write action
     proto::action::ActionT action;
@@ -117,8 +116,8 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
     action.depends_on = {};
     action.required_for = {};
     action.target_id = global_target_id++;
-    action.target_name_short = stmt.target_name_short()->str();
-    action.target_name_qualified = stmt.target_name_qualified()->str();
+    action.target_name_short = stmt->target_name_short;
+    action.target_name_qualified = stmt->target_name_qualified;
     action.script = "";
 
     // Identify exact action
@@ -201,7 +200,7 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
 
 // Translate statements
 Signal ActionPlanner::TranslateStatements() {
-    auto& stmts = *next_program_.statements();
+    auto& stmts = next_program_.statements;
     graph_actions_.resize(stmts.size());
 
     // Translate statements to actions as if there all statements were new
@@ -213,9 +212,9 @@ Signal ActionPlanner::TranslateStatements() {
     }
 
     // Store dependencies
-    auto& deps = *next_program_.dependencies();
+    auto& deps = next_program_.dependencies;
     for (unsigned dep_id = 0; dep_id < deps.size(); ++dep_id) {
-        auto& dep = *deps.Get(dep_id);
+        auto& dep = deps[dep_id];
         graph_actions_[dep.source_statement()].required_for.push_back(dep.target_statement());
         graph_actions_[dep.target_statement()].depends_on.push_back(dep.source_statement());
     }
@@ -243,8 +242,7 @@ void ActionPlanner::PlanActionGraph() {
 }
 
 // Encode action graph
-flatbuffers::Offset<proto::action::ActionGraph> ActionPlanner::EncodeActionGraph(
-    flatbuffers::FlatBufferBuilder& builder) {
+flatbuffers::Offset<proto::action::ActionGraph> ActionPlanner::Encode(flatbuffers::FlatBufferBuilder& builder) {
     // Pack setup actions
     std::vector<flatbuffers::Offset<proto::action::Action>> setup_actions;
     for (auto& a : setup_actions_) {
