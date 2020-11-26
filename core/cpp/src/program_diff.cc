@@ -169,7 +169,7 @@ ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::
             case sx::NodeType::UI32:
                 match = source.children_begin_or_value() == target.children_begin_or_value();
                 break;
-            case sx::NodeType::STRING:
+            case sx::NodeType::STRING_REF:
                 match = TextAt(source_text_, source.location()) == TextAt(target_text_, target.location());
                 break;
             case sx::NodeType::ARRAY: {
@@ -263,7 +263,7 @@ bool ProgramMatcher::CheckDeepEquality(const sx::StatementT& source, const sx::S
             case sx::NodeType::UI32:
                 eq = source.children_begin_or_value() == target.children_begin_or_value();
                 break;
-            case sx::NodeType::STRING:
+            case sx::NodeType::STRING_REF:
                 eq = TextAt(source_text_, source.location()) == TextAt(target_text_, target.location());
                 break;
             case sx::NodeType::ARRAY: {

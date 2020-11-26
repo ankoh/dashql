@@ -14,7 +14,7 @@ namespace parser {
 /// Create a null node
 inline sx::Node Null() { return sx::Node(sx::Location(), sx::NodeType::NONE, Key::NONE, NO_PARENT, 0, 0); }
 /// Create a string node
-inline sx::Node String(sx::Location loc) { return sx::Node(loc, sx::NodeType::STRING, Key::NONE, NO_PARENT, 0, 0); }
+inline sx::Node String(sx::Location loc) { return sx::Node(loc, sx::NodeType::STRING_REF, Key::NONE, NO_PARENT, 0, 0); }
 /// Create a ui32 node
 inline sx::Node UI32(sx::Location loc, uint32_t value) { return sx::Node(loc, sx::NodeType::UI32, Key::NONE, NO_PARENT, value, 0); }
 /// Create a bool node

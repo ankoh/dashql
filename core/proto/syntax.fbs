@@ -9,7 +9,7 @@ enum NodeType: uint16 {
 
     BOOL,
     UI32,
-    STRING,
+    STRING_REF,
     ARRAY,
 
     ENUM_MIN,
