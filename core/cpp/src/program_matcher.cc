@@ -1,4 +1,4 @@
-#include "dashql/program_diff.h"
+#include "dashql/program_matcher.h"
 
 #include <iostream>
 #include <stack>

@@ -2,10 +2,23 @@
 
 include "action.fbs";
 include "syntax.fbs";
+include "syntax_dashql.fbs";
 
 namespace dashql.proto.session;
 
+table ProgramPatch {
+    nodes: [syntax.Node];
+    strings: [string];
+}
+
+table ParameterValue {
+    type: syntax_dashql.ParameterType;
+    value: string;
+}
+
 table Plan {
     program: syntax.Program;
+    program_eval: ProgramPatch;
+    parameter_values: [ParameterValue];
     action_graph: action.ActionGraph;
 }
