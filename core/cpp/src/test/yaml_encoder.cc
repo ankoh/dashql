@@ -55,10 +55,10 @@ void encode(ryml::NodeRef n, proto::syntax::Location loc, std::string_view text)
     n << ss.str();
 }
 
-void encode(ryml::NodeRef e, const proto::syntax::Error& err, std::string_view text) {
+void encode(ryml::NodeRef e, const proto::syntax::ErrorT& err, std::string_view text) {
     e |= ryml::MAP;
-    e["message"] = c4::to_csubstr(err.message()->c_str());
-    encode(e["location"], *err.location(), text);
+    e["message"] = c4::to_csubstr(err.message.c_str());
+    encode(e["location"], *err.location, text);
 }
 
 const char* getEnumText(const sx::Node& target) {
@@ -116,13 +116,13 @@ void encode(ryml::NodeRef n, const sx::Dependency& dep, sx::Location loc, std::s
 }  // namespace
 
 /// Encode yaml
-void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Program& module, std::string_view text) {
+void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::ProgramT& program, std::string_view text) {
     auto& tree = *root.tree();
     root |= ryml::MAP;
 
     // Unpack modules
-    auto* nodes = module.nodes();
-    auto* statements = module.statements();
+    auto& nodes = program.nodes;
+    auto& statements = program.statements;
     auto* node_type_tt = proto::syntax::NodeTypeTypeTable();
     auto* attr_key_tt = proto::syntax::AttributeKeyTypeTable();
 
@@ -131,17 +131,16 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Program& mod
     stmts_seq |= ryml::SEQ;
 
     // Translate the statement tree with a DFS
-    for (unsigned stmt_id = 0; stmt_id < statements->size(); ++stmt_id) {
-        auto s = statements->Get(stmt_id);
+    for (unsigned stmt_id = 0; stmt_id < statements.size(); ++stmt_id) {
+        auto& s = *statements[stmt_id];
 
         auto stmt = stmts_seq.append_child();
         stmt |= ryml::MAP;
-        if (s->target_name_qualified() && !s->target_name_qualified()->str().empty())
-            stmt["name"] << s->target_name_qualified()->c_str();
+        if (!s.target_name_qualified.empty())
+            stmt["name"] << s.target_name_qualified.c_str();
 
-        auto n = nodes->Get(s->root());
         std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Node*>> pending;
-        pending.push_back({stmt, "root", n});
+        pending.push_back({stmt, "root", &nodes[s.root]});
 
         while (!pending.empty()) {
             auto [parent, key, target] = pending.back();
@@ -172,7 +171,7 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Program& mod
                     n |= ryml::SEQ;
                     auto end = target->children_begin_or_value() + target->children_count();
                     for (auto i = 0; i < target->children_count(); ++i) {
-                        pending.push_back({n, {}, nodes->Get(end - i - 1)});
+                        pending.push_back({n, {}, &nodes[end - i - 1]});
                     }
                     break;
                 }
@@ -184,9 +183,9 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Program& mod
                         n["type"] = c4::to_csubstr(node_type_tt->names[static_cast<size_t>(target->node_type())]);
                         encode(n["location"], target->location(), text);
                         for (auto i = 0; i < target->children_count(); ++i) {
-                            auto attr = nodes->Get(end - i - 1);
-                            auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr->attribute_key())]);
-                            pending.push_back({n, attr_key, attr});
+                            auto& attr = nodes[end - i - 1];
+                            auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr.attribute_key())]);
+                            pending.push_back({n, attr_key, &attr});
                         }
                     } else if (node_type_id > static_cast<uint32_t>(sx::NodeType::ENUM_MIN)) {
                         n |= ryml::VAL;
@@ -204,25 +203,25 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::Program& mod
     // Add errors
     auto errors = root["errors"];
     errors |= ryml::SEQ;
-    for (auto err : *module.errors()) encode(errors.append_child(), *err, text);
+    for (auto& err : program.errors) encode(errors.append_child(), *err, text);
 
     // Add line breaks
     auto line_breaks = root["line_breaks"];
     line_breaks |= ryml::SEQ;
-    for (auto lb : *module.line_breaks())
-        encode(line_breaks.append_child(), *lb, text);
+    for (auto& lb : program.line_breaks)
+        encode(line_breaks.append_child(), lb, text);
 
     // Add comments
     auto comments = root["comments"];
     comments |= ryml::SEQ;
-    for (auto err : *module.comments()) encode(comments.append_child(), *err, text);
+    for (auto& comment : program.comments) encode(comments.append_child(), comment, text);
 
     // Add comments
     auto dependencies = root["dependencies"];
     dependencies |= ryml::SEQ;
-    for (auto dep : *module.dependencies()) {
-        auto loc = module.nodes()->Get(dep->target_node())->location();
-        encode(dependencies.append_child(), *dep, loc, text);
+    for (auto& dep : program.dependencies) {
+        auto loc = program.nodes[dep.target_node()].location();
+        encode(dependencies.append_child(), dep, loc, text);
     };
 }
 

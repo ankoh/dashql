@@ -20,21 +20,12 @@ namespace {
 class ProgramMatcherProxy: public ProgramMatcher {
     public:
     /// Constructor
-    ProgramMatcherProxy(std::string_view source_text, std::string_view target_text, const sx::Program& source_program, const sx::Program& target_program)
+    ProgramMatcherProxy(std::string_view source_text, std::string_view target_text, const sx::ProgramT& source_program, const sx::ProgramT& target_program)
         : ProgramMatcher(source_text, target_text, source_program, target_program) {}
 
     using ProgramMatcher::MapStatements;
     using ProgramMatcher::FindLCS;
 };
-
-std::pair<const sx::Program*, fb::DetachedBuffer> Parse(std::string_view text) {
-    fb::FlatBufferBuilder builder;
-    auto ofs = parser::ParserDriver::Parse(builder, text);
-    builder.Finish(ofs);
-    auto buffer = builder.Release();
-    auto program = fb::GetRoot<sx::Program>(buffer.data());
-    return {program, move(buffer)};
-}
 
 struct SimilarityTest {
     std::string_view t1;
@@ -52,34 +43,34 @@ class SimilarityTestSuite: public ::testing::TestWithParam<SimilarityTest> {};
 
 TEST_P(SimilarityTestSuite, DeepEquality) {
     auto& param = GetParam();
-    auto [p1, pb1] = Parse(param.t1);
-    auto [p2, pb2] = Parse(param.t2);
-    ASSERT_EQ(p1->statements()->size(), 1);
-    ASSERT_EQ(p2->statements()->size(), 1);
+    auto p1 = parser::ParserDriver::Parse(param.t1);
+    auto p2 = parser::ParserDriver::Parse(param.t2);
+    ASSERT_EQ(p1->statements.size(), 1);
+    ASSERT_EQ(p2->statements.size(), 1);
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
-    auto s1 = p1->statements()->Get(0), s2 = p2->statements()->Get(0);
+    auto& s1 = p1->statements[0], &s2 = p2->statements[0];
     ASSERT_EQ(matcher.CheckDeepEquality(*s1, *s2), param.are_equal);
 }
 
 TEST_P(SimilarityTestSuite, SimilarityEstimate) {
     auto& param = GetParam();
-    auto [p1, pb1] = Parse(param.t1);
-    auto [p2, pb2] = Parse(param.t2);
-    ASSERT_EQ(p1->statements()->size(), 1);
-    ASSERT_EQ(p2->statements()->size(), 1);
+    auto p1 = parser::ParserDriver::Parse(param.t1);
+    auto p2 = parser::ParserDriver::Parse(param.t2);
+    ASSERT_EQ(p1->statements.size(), 1);
+    ASSERT_EQ(p2->statements.size(), 1);
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
-    auto s1 = p1->statements()->Get(0), s2 = p2->statements()->Get(0);
+    auto& s1 = p1->statements[0], &s2 = p2->statements[0];
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), param.estimate);
 }
 
 TEST_P(SimilarityTestSuite, Similarity) {
     auto& param = GetParam();
-    auto [p1, pb1] = Parse(param.t1);
-    auto [p2, pb2] = Parse(param.t2);
-    ASSERT_EQ(p1->statements()->size(), 1);
-    ASSERT_EQ(p2->statements()->size(), 1);
+    auto p1 = parser::ParserDriver::Parse(param.t1);
+    auto p2 = parser::ParserDriver::Parse(param.t2);
+    ASSERT_EQ(p1->statements.size(), 1);
+    ASSERT_EQ(p2->statements.size(), 1);
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
-    auto s1 = p1->statements()->Get(0), s2 = p2->statements()->Get(0);
+    auto& s1 = p1->statements[0], &s2 = p2->statements[0];
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_EQ(sim.Equal(), param.are_equal);
     if (param.diff_node_count)
@@ -119,8 +110,8 @@ class MappingTestSuite: public ::testing::TestWithParam<MappingTest> {};
 
 TEST_P(MappingTestSuite, Mappings) {
     auto& param = GetParam();
-    auto [p1, pb1] = Parse(param.t1);
-    auto [p2, pb2] = Parse(param.t2);
+    auto p1 = parser::ParserDriver::Parse(param.t1);
+    auto p2 = parser::ParserDriver::Parse(param.t2);
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
     StatementMappings unique_pairs;
     StatementMappings equal_pairs;
@@ -134,8 +125,8 @@ TEST_P(MappingTestSuite, Mappings) {
 
 TEST_P(MappingTestSuite, LCS) {
     auto& param = GetParam();
-    auto [p1, pb1] = Parse(param.t1);
-    auto [p2, pb2] = Parse(param.t2);
+    auto p1 = parser::ParserDriver::Parse(param.t1);
+    auto p2 = parser::ParserDriver::Parse(param.t2);
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
     StatementMappings unique_pairs;
     StatementMappings equal_pairs;
@@ -193,8 +184,8 @@ class DiffTestSuite: public ::testing::TestWithParam<DiffTest> {};
 
 TEST_P(DiffTestSuite, DiffOps) {
     auto& param = GetParam();
-    auto [p1, pb1] = Parse(param.t1);
-    auto [p2, pb2] = Parse(param.t2);
+    auto p1 = parser::ParserDriver::Parse(param.t1);
+    auto p2 = parser::ParserDriver::Parse(param.t2);
     ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
     auto diff = matcher.ComputeDiff();
     ASSERT_EQ(diff, param.diff);

@@ -23,21 +23,19 @@ ProgramMatcher::DiffOp::DiffOp(DiffOpCode code, std::optional<size_t> source, st
     : code_(code), source_(source), target_(target) {}
 
 // Estimate the similarity
-ProgramMatcher::SimilarityEstimate ProgramMatcher::EstimateSimilarity(const sx::Statement& source,
-                                                                      const sx::Statement& target) {
-    auto& source_nodes = *source_program_.nodes();
-    auto& target_nodes = *target_program_.nodes();
-    auto s = source_nodes.Get(source.root());
-    auto t = target_nodes.Get(target.root());
+ProgramMatcher::SimilarityEstimate ProgramMatcher::EstimateSimilarity(const sx::StatementT& source,
+                                                                      const sx::StatementT& target) {
+    auto s = source_program_.nodes[source.root];
+    auto t = target_program_.nodes[target.root];
 
     // Different node types?
-    if (s->node_type() != t->node_type()) return SimilarityEstimate::NOT_EQUAL;
+    if (s.node_type() != t.node_type()) return SimilarityEstimate::NOT_EQUAL;
 
     // Do a string comparison if the strings are equal in size and number of root attributes.
     // This will bypass us the tree diffing for all unchanged statements.
-    if ((s->children_count() == t->children_count()) && (s->location().length() == t->location().length())) {
-        auto st = TextAt(source_text_, s->location());
-        auto tt = TextAt(target_text_, t->location());
+    if ((s.children_count() == t.children_count()) && (s.location().length() == t.location().length())) {
+        auto st = TextAt(source_text_, s.location());
+        auto tt = TextAt(target_text_, t.location());
         if (st == tt) return SimilarityEstimate::EQUAL;
     }
     return SimilarityEstimate::SIMILAR;
@@ -45,7 +43,7 @@ ProgramMatcher::SimilarityEstimate ProgramMatcher::EstimateSimilarity(const sx::
 
 // Constructor
 ProgramMatcher::ProgramMatcher(std::string_view source_text, std::string_view target_text,
-                               const sx::Program& source_program, const sx::Program& target_program)
+                               const sx::ProgramT& source_program, const sx::ProgramT& target_program)
     : source_text_(source_text),
       target_text_(target_text),
       source_program_(source_program),
@@ -54,9 +52,9 @@ ProgramMatcher::ProgramMatcher(std::string_view source_text, std::string_view ta
       target_subtree_sizes_() {}
 
 /// Compute tree size
-size_t ProgramMatcher::ComputeTreeSize(const sx::Program& prog, size_t root, std::vector<size_t>& sizes) {
+size_t ProgramMatcher::ComputeTreeSize(const sx::ProgramT& prog, size_t root, std::vector<size_t>& sizes) {
     // Init tree sizes
-    if (auto n = prog.nodes()->size(); sizes.size() != n) sizes.resize(n, 0);
+    if (auto n = prog.nodes.size(); sizes.size() != n) sizes.resize(n, 0);
     // Already computed?
     else if (auto n = sizes[root]; n > 0) return n;
 
@@ -94,11 +92,11 @@ size_t ProgramMatcher::ComputeTreeSize(const sx::Program& prog, size_t root, std
         pending_visited.back() = true;
 
         // Discover children
-        auto* node = prog.nodes()->Get(target);
-        auto node_type = node->node_type();
+        auto& node = prog.nodes[target];
+        auto node_type = node.node_type();
         if (node_type > sx::NodeType::OBJECT_MIN || node_type == sx::NodeType::ARRAY) {
-            auto children_begin = node->children_begin_or_value();
-            auto children_count = node->children_count();
+            auto children_begin = node.children_begin_or_value();
+            auto children_count = node.children_count();
             auto children_end = children_begin + children_count;
             for (auto i = children_begin; i < children_end; ++i) {
                 pending_nodes.push_back({i, target});
@@ -110,12 +108,10 @@ size_t ProgramMatcher::ComputeTreeSize(const sx::Program& prog, size_t root, std
 }
 
 // Perform two statements
-ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::Statement& source, const sx::Statement& target) {
+ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::StatementT& source, const sx::StatementT& target) {
     // Compute tree sizes
-    auto& source_nodes = *source_program_.nodes();
-    auto& target_nodes = *target_program_.nodes();
-    auto source_size = ComputeTreeSize(source_program_, source.root(), source_subtree_sizes_);
-    auto target_size = ComputeTreeSize(target_program_, target.root(), target_subtree_sizes_);
+    auto source_size = ComputeTreeSize(source_program_, source.root, source_subtree_sizes_);
+    auto target_size = ComputeTreeSize(target_program_, target.root, target_subtree_sizes_);
     auto node_count = std::max(source_size, target_size);
     if (node_count == 0) return StatementSimilarity{};
 
@@ -130,15 +126,15 @@ ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::
     std::vector<bool> pending_visited;
     pending_nodes.reserve(32);
     pending_visited.reserve(32);
-    pending_nodes.push_back({source.root(), target.root(), 0, 0});
+    pending_nodes.push_back({source.root, target.root, 0, 0});
     pending_visited.push_back(false);
 
     // Traverse the tree
     StatementSimilarity sim;
     while (!pending_nodes.empty()) {
         auto& [source_id, target_id, parent_entry, matching_nodes] = pending_nodes.back();
-        auto source = *source_nodes[source_id];
-        auto target = *target_nodes[target_id];
+        auto& source = source_program_.nodes[source_id];
+        auto& target = target_program_.nodes[target_id];
 
         // Already visited?
         if (pending_visited.back()) {
@@ -198,8 +194,8 @@ ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::
                     auto te = ti + target.children_count();
                     match = source.children_count() == target.children_count();
                     while ((si < se) && (ti < te)) {
-                        auto sk = static_cast<uint16_t>(source_nodes[si]->attribute_key());
-                        auto tk = static_cast<uint16_t>(target_nodes[ti]->attribute_key());
+                        auto sk = static_cast<uint16_t>(source_program_.nodes[si].attribute_key());
+                        auto tk = static_cast<uint16_t>(target_program_.nodes[ti].attribute_key());
                         if (sk < tk) {
                             ++si;
                             match = false;
@@ -229,12 +225,10 @@ ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::
 }
 
 // Compare two statements for deep equality
-bool ProgramMatcher::CheckDeepEquality(const sx::Statement& source, const sx::Statement& target) {
+bool ProgramMatcher::CheckDeepEquality(const sx::StatementT& source, const sx::StatementT& target) {
     // Compute tree sizes
-    auto& source_nodes = *source_program_.nodes();
-    auto& target_nodes = *target_program_.nodes();
-    auto source_size = ComputeTreeSize(source_program_, source.root(), source_subtree_sizes_);
-    auto target_size = ComputeTreeSize(target_program_, target.root(), target_subtree_sizes_);
+    auto source_size = ComputeTreeSize(source_program_, source.root, source_subtree_sizes_);
+    auto target_size = ComputeTreeSize(target_program_, target.root, target_subtree_sizes_);
     auto node_count = std::max(source_size, target_size);
     if (node_count == 0) return true;
 
@@ -245,13 +239,13 @@ bool ProgramMatcher::CheckDeepEquality(const sx::Statement& source, const sx::St
     };
     std::vector<NodeSimilarity> pending_nodes;
     pending_nodes.reserve(32);
-    pending_nodes.push_back({source.root(), target.root()});
+    pending_nodes.push_back({source.root, target.root});
 
     // Traverse the tree
     while (!pending_nodes.empty()) {
         auto [source_id, target_id] = pending_nodes.back();
-        auto source = *source_nodes[source_id];
-        auto target = *target_nodes[target_id];
+        auto& source = source_program_.nodes[source_id];
+        auto& target = target_program_.nodes[target_id];
         pending_nodes.pop_back();
 
         // Different node type?
@@ -293,8 +287,8 @@ bool ProgramMatcher::CheckDeepEquality(const sx::Statement& source, const sx::St
                     auto te = ti + target.children_count();
                     eq = source.children_count() == target.children_count();
                     while ((si < se) && (ti < te)) {
-                        auto sk = static_cast<uint16_t>(source_nodes[si]->attribute_key());
-                        auto tk = static_cast<uint16_t>(target_nodes[ti]->attribute_key());
+                        auto sk = static_cast<uint16_t>(source_program_.nodes[si].attribute_key());
+                        auto tk = static_cast<uint16_t>(target_program_.nodes[ti].attribute_key());
                         if (sk != tk) {
                             return false;
                         } else {
@@ -318,16 +312,13 @@ bool ProgramMatcher::CheckDeepEquality(const sx::Statement& source, const sx::St
 
 // Find unique statement pairs in two lists of statement ids.
 void ProgramMatcher::MapStatements(StatementMappings& unique_pairs, StatementMappings& equal_pairs) {
-    auto& source_stmts = *source_program_.statements();
-    auto& target_stmts = *target_program_.statements();
-
     // Maps target ids to matched source ids
     std::vector<bool> source_ambiguous;
     std::vector<bool> target_ambiguous;
     std::vector<std::optional<size_t>> target_mapping;
-    source_ambiguous.resize(source_stmts.size(), false);
-    target_ambiguous.resize(target_stmts.size(), false);
-    target_mapping.resize(target_stmts.size(), std::nullopt);
+    source_ambiguous.resize(source_program_.statements.size(), false);
+    target_ambiguous.resize(target_program_.statements.size(), false);
+    target_mapping.resize(target_program_.statements.size(), std::nullopt);
 
     // We deviate from PatienceDiff sightly here:
     //
@@ -335,13 +326,13 @@ void ProgramMatcher::MapStatements(StatementMappings& unique_pairs, StatementMap
     // We assume that our statements are unique most of the time and therefore compute the mapping directly.
     // We also short-circuit the equality checks which makes the quadratic behavior acceptable here.
     //
-    for (unsigned source_id = 0; source_id < source_stmts.size(); ++source_id) {
-        auto& source_stmt = *source_stmts.Get(source_id);
+    for (unsigned source_id = 0; source_id < source_program_.statements.size(); ++source_id) {
+        auto& source_stmt = *source_program_.statements[source_id];
         std::optional<size_t> match;
 
         // Compare source statement with all targets
-        for (unsigned target_id = 0; target_id < target_stmts.size(); ++target_id) {
-            auto& target_stmt = *target_stmts.Get(target_id);
+        for (unsigned target_id = 0; target_id < target_program_.statements.size(); ++target_id) {
+            auto& target_stmt = *target_program_.statements[target_id];
             switch (EstimateSimilarity(source_stmt, target_stmt)) {
                 case SimilarityEstimate::NOT_EQUAL:
                     break;
@@ -373,7 +364,7 @@ void ProgramMatcher::MapStatements(StatementMappings& unique_pairs, StatementMap
     }
 
     // Emit non-ambiguous mappings
-    for (unsigned target_id = 0; target_id < target_stmts.size(); ++target_id) {
+    for (unsigned target_id = 0; target_id < target_program_.statements.size(); ++target_id) {
         auto source_id = target_mapping[target_id];
         if (!source_id) continue;
         if (source_ambiguous[*source_id] || target_ambiguous[target_id]) continue;
@@ -447,8 +438,8 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     // Track which targets were emitted
     std::vector<bool> source_emitted;
     std::vector<bool> target_emitted;
-    source_emitted.resize(source_program_.statements()->size(), false);
-    target_emitted.resize(target_program_.statements()->size(), false);
+    source_emitted.resize(source_program_.statements.size(), false);
+    target_emitted.resize(target_program_.statements.size(), false);
 
     // Helper to emit diff ops
     std::vector<DiffOp> ops;
@@ -467,8 +458,8 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
         // Update boundaries
         prev = next;
         next = (lcs_iter < lcs.end()) ? *lcs_iter : StatementMapping{
-            source_program_.statements()->size(),
-            target_program_.statements()->size(),
+            source_program_.statements.size(),
+            target_program_.statements.size(),
         };
         auto [prev_source_id, prev_target_id] = prev;
         auto [next_source_id, next_target_id] = next;
@@ -491,7 +482,7 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
                 break;
             }
             if (source_emitted[source_id]) continue;
-            auto& source_stmt = *source_program_.statements()->Get(source_id);
+            auto& source_stmt = *source_program_.statements[source_id];
 
             // Find best match among the remaining targets in the section.
             // This will result in a FCFS assignment of updated statements.
@@ -500,7 +491,7 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
             std::vector<std::pair<size_t, double>> matches;
             for (auto target_id = prev_target_id; target_id < next_target_id; ++target_id) {
                 if (target_emitted[target_id]) continue;
-                auto& target_stmt = *target_program_.statements()->Get(target_id);
+                auto& target_stmt = *target_program_.statements[target_id];
                 // The similiarity computation of unmatched statements is the most expensive operation in this diff.
                 // We want to do it as rarely as possible and therefore do an additional fast estimation upfront.
                 auto sim_est = EstimateSimilarity(source_stmt, target_stmt);
