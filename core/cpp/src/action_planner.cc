@@ -200,6 +200,11 @@ Signal ActionPlanner::TranslateStatements() {
 
 // Map previously completed actions to the new graph
 Signal ActionPlanner::MapPreviousActions() {
+    if (!prev_action_graph_) return Signal::OK();
+
+    std::vector<size_t> pending_actions;
+    
+
     // TODO
     return Signal::OK();
 }
