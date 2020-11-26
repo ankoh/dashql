@@ -108,14 +108,14 @@ Expected<std::unique_ptr<proto::option::OptionListT>> ActionPlanner::EvaluateOpt
 }
 
 // Translate single statement
-Signal ActionPlanner::TranslateStatement(size_t stmt_id) {
+Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_id) {
     static uint32_t global_target_id = 0;
     auto& stmts = *next_program_.statements();
     auto& stmt = *stmts.Get(stmt_id);
     auto& stmt_root = *next_program_.nodes()->Get(stmt.root());
 
     // Write action
-    auto& action = graph_actions_[stmt_id];
+    proto::action::ActionT action;
     action.action_type = ActionType::NONE;
     action.origin_statement = stmt_id;
     action.depends_on = {};
@@ -204,7 +204,7 @@ Signal ActionPlanner::TranslateStatement(size_t stmt_id) {
         default:
             assert(false);
     }
-    return Signal::OK();
+    return action;
 }
 
 // Translate statements
@@ -214,9 +214,10 @@ Signal ActionPlanner::TranslateStatements() {
 
     // Translate statements to actions as if there all statements were new
     for (unsigned stmt_id = 0; stmt_id < stmts.size(); ++stmt_id) {
-        if (auto ok = TranslateStatement(stmt_id); !ok) {
-            return ok;
-        }
+        auto action = TranslateStatement(stmt_id);
+        if (!action.IsOk())
+            return action.err();
+        graph_actions_[stmt_id] = action.ReleaseValue();
     }
 
     // Store dependencies
