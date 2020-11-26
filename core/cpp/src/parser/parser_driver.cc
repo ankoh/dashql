@@ -313,6 +313,7 @@ std::unique_ptr<sx::ProgramT> ParserDriver::Finish() {
         auto err = std::make_unique<sx::ErrorT>();
         err->location = std::make_unique<sx::Location>(loc);
         err->message = move(msg);
+        program->errors.push_back(move(err));
     }
     program->line_breaks = scanner_.ReleaseLineBreaks();
     program->comments = scanner_.ReleaseComments();
