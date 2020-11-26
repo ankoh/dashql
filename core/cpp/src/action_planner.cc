@@ -136,24 +136,7 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
             break;
 
         case sx::NodeType::OBJECT_DASHQL_PARAMETER:
-            if (auto m = FindAttribute(next, stmt_root, Key::DASHQL_PARAMETER_TYPE)) {
-                switch (static_cast<sxd::ParameterType>(m->children_begin_or_value())) {
-                    case sxd::ParameterType::FILE:
-                        action.action_type = ActionType::PARAM_FILE;
-                        break;
-                    case sxd::ParameterType::DATE:
-                    case sxd::ParameterType::DATETIME:
-                    case sxd::ParameterType::FLOAT:
-                    case sxd::ParameterType::INTEGER:
-                    case sxd::ParameterType::TEXT:
-                    case sxd::ParameterType::TIME:
-                        action.action_type = ActionType::PARAM_CONSTANT;
-                        break;
-                    default:
-                        action.action_type = ActionType::NONE;
-                        break;
-                }
-            }
+            action.action_type = ActionType::PARAMETER;
             break;
 
         case sx::NodeType::OBJECT_DASHQL_QUERY: {
@@ -206,7 +189,7 @@ Signal ActionPlanner::MapPreviousActions() {
     // Find applicable actions of previous action graph.
     //
     // An action is applicable iff:
-    //  1) Diff is either KEEP or MOVE
+    //  1) Diff is either KEEP or MOVE and the action is not affected by a parmeter update
     //  2) All dependencies are applicable
     //
     std::vector<bool> applicable;
@@ -214,6 +197,7 @@ Signal ActionPlanner::MapPreviousActions() {
 
     // We traverse the previous action graph in topological order.
     // That ensures, that we can determine the applicability by checking the dependencies.
+    // ALSO, we do not need to check any following statements since inapplicable statements propagate.
     using ActionID = size_t;
     std::vector<std::pair<ActionID, int>> action_deps;
     for (unsigned i = 0; i < actions.size(); ++i) {
@@ -252,18 +236,29 @@ Signal ActionPlanner::MapPreviousActions() {
                 for (auto dep: *action.depends_on()) {
                     all_applicable &= applicable[dep];
                 }
-                if (all_applicable) {
-                    applicable[action_id] = true;
-                    graph_action_status_[action.target_id()] = proto::action::ActionStatusCode::COMPLETED;
-                }
+                if (!all_applicable) break;
+                auto& target = graph_actions_[action.target_id()];
+
+                // XXX Affected by parameter?
+
+                applicable[action_id] = true;
+                graph_action_status_[action.target_id()] = proto::action::ActionStatusCode::COMPLETED;
                 break;
             }
 
             // UPDATE or DELETE?
             case DiffOpCode::UPDATE:
-            case DiffOpCode::DELETE:
-                // XXX
+            case DiffOpCode::DELETE: {
+                // We have to be very careful here since we must not forget to drop any tables.
+                //
+                // We are therefore very pessimistic here:
+                //  1) SQL statement: DROP all tables before us
+                //  2) LOAD statement: DROP load
+                //  3) EXTRACT statement: DROP table
+                //  3) VIZ statement: DROP viz
+
                 break;
+            }
 
             case DiffOpCode::INSERT:
                 // Cannot happen

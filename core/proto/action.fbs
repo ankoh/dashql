@@ -10,8 +10,7 @@ enum ActionType: uint8 {
 
     // State actions
     STATE_MIN = 1,
-    PARAM_CONSTANT = 2,
-    PARAM_FILE = 3,
+    PARAMETER = 2,
     LOAD_DROP = 4,
     LOAD_FILE = 5,
     LOAD_HTTP = 6,
