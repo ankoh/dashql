@@ -257,6 +257,7 @@ endif()
 if(NOT EMSCRIPTEN)
     add_executable(tester
         ${CMAKE_SOURCE_DIR}/test/default/common/substring_buffer_test.cc
+        ${CMAKE_SOURCE_DIR}/test/default/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/default/program_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
