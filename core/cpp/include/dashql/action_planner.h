@@ -4,6 +4,8 @@
 #define INCLUDE_DASHQL_ACTION_PLANNER_H_
 
 #include <unordered_map>
+
+#include "dashql/common/expected.h"
 #include "dashql/program_diff.h"
 #include "dashql/proto/action_generated.h"
 #include "dashql/proto/option_generated.h"
@@ -36,23 +38,26 @@ class ActionPlanner {
     std::vector<proto::action::ActionT> graph_actions_;
 
     /// Diff the two programs
-    void DiffPrograms();
+    Signal DiffPrograms();
     /// Render the statement text (substitute parameters)
-    std::string RenderStatementText(size_t stmt_id);
+    Expected<std::string> RenderStatementText(size_t stmt_id);
     /// Collect all root options as list
-    std::unique_ptr<proto::option::OptionListT> CollectOptions(const sx::Node& node);
+    Expected<std::unique_ptr<proto::option::OptionListT>> EvaluateOptions(const sx::Node& node);
     /// Translate single statement canonically
-    void TranslateStatement(size_t stmt_id);
+    Signal TranslateStatement(size_t stmt_id);
     /// Translate statements canonically
-    void TranslateStatements();
+    Signal TranslateStatements();
     /// Map any previously completed actions
-    void MapPreviousActions();
+    Signal MapPreviousActions();
     /// Propagate the updates through the graph
-    void PropagateUpdates();
+    Signal PropagateUpdates();
 
-  public:
+   public:
     /// Constructor
-    ActionPlanner(std::string_view next_program_text, const sx::Program& next_program, std::string_view prev_program_text, const proto::session::Plan* prev_plan, const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status, const std::unordered_map<std::string_view, std::string_view>& parameter_values);
+    ActionPlanner(std::string_view next_program_text, const sx::Program& next_program,
+                  std::string_view prev_program_text, const proto::session::Plan* prev_plan,
+                  const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_status,
+                  const std::unordered_map<std::string_view, std::string_view>& parameter_values);
 
     /// Plan the new action graph
     void PlanActionGraph();

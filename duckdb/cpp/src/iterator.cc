@@ -44,13 +44,13 @@ bool QueryResultIterator::Verify(const proto::QueryResultChunk& chunk) const {
 }
 
 /// Advance the iterator
-ExpectedSignal QueryResultIterator::Next() {
+Signal QueryResultIterator::Next() {
     // Reached end?
-    if (IsEnd()) return {};
+    if (IsEnd()) return Signal::OK();
 
     // Still in current chunk?
     ++globalRowIndex;
-    if (chunk_row() < chunk->row_count()) return {};
+    if (chunk_row() < chunk->row_count()) return Signal::OK();
 
     // Get next chunk (if neccessary)
     ++chunkID;
@@ -64,7 +64,7 @@ ExpectedSignal QueryResultIterator::Next() {
     }
     chunkRowBegin = globalRowIndex;
     assert(Verify(*chunk));
-    return {};
+    return Signal::OK();
 }
 
 /// Is at end?
