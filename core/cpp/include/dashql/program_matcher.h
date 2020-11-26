@@ -4,6 +4,7 @@
 #define INCLUDE_DASHQL_PROGRAM_MATCHER_H_
 
 #include "dashql/common/enum.h"
+#include "dashql/program_instance.h"
 #include "dashql/proto/syntax_generated.h"
 #include <iostream>
 #include <sstream>
@@ -82,13 +83,9 @@ class ProgramMatcher {
 
    protected:
     /// The source text
-    const std::string_view source_text_;
-    /// The target text
-    const std::string_view target_text_;
-    /// The source program
-    const sx::ProgramT& source_program_;
+    const ProgramInstance& source_;
     /// The target program
-    const sx::ProgramT& target_program_;
+    const ProgramInstance& target_;
     /// The subtree sizes of source nodes
     std::vector<size_t> source_subtree_sizes_;
     /// The subtree sizes of target nodes
@@ -104,16 +101,11 @@ class ProgramMatcher {
 
    public:
     /// Compare two programs
-    ProgramMatcher(std::string_view source_text, std::string_view target_text, const sx::ProgramT& source_program, const sx::ProgramT& target_program);
-
+    ProgramMatcher(const ProgramInstance& source, const ProgramInstance& target);
     /// The source text
-    auto source_text() const { return source_text_; }
+    auto& source() const { return source_; }
     /// The target text
-    auto target_text() const { return target_text_; }
-    /// The source program
-    auto& source_program() const { return source_program_; }
-    /// The target program
-    auto& target_program() const { return target_program_; }
+    auto& target() const { return target_; }
 
     /// Estimate the similarity
     SimilarityEstimate EstimateSimilarity(const sx::StatementT& source, const sx::StatementT& target);

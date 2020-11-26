@@ -4,6 +4,7 @@
 
 #include "dashql/parser/scanner.h"
 #include "dashql/parser/parser_driver.h"
+#include "dashql/program_instance.h"
 #include "dashql/program_matcher.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
@@ -20,8 +21,8 @@ namespace {
 class ProgramMatcherProxy: public ProgramMatcher {
     public:
     /// Constructor
-    ProgramMatcherProxy(std::string_view source_text, std::string_view target_text, const sx::ProgramT& source_program, const sx::ProgramT& target_program)
-        : ProgramMatcher(source_text, target_text, source_program, target_program) {}
+    ProgramMatcherProxy(const ProgramInstance& source, const ProgramInstance& target)
+        : ProgramMatcher(source, target) {}
 
     using ProgramMatcher::MapStatements;
     using ProgramMatcher::FindLCS;
@@ -47,7 +48,9 @@ TEST_P(SimilarityTestSuite, DeepEquality) {
     auto p2 = parser::ParserDriver::Parse(param.t2);
     ASSERT_EQ(p1->statements.size(), 1);
     ASSERT_EQ(p2->statements.size(), 1);
-    ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
+    ProgramInstance pi1{param.t1, *p1};
+    ProgramInstance pi2{param.t2, *p2};
+    ProgramMatcherProxy matcher{pi1, pi2};
     auto& s1 = p1->statements[0], &s2 = p2->statements[0];
     ASSERT_EQ(matcher.CheckDeepEquality(*s1, *s2), param.are_equal);
 }
@@ -58,7 +61,9 @@ TEST_P(SimilarityTestSuite, SimilarityEstimate) {
     auto p2 = parser::ParserDriver::Parse(param.t2);
     ASSERT_EQ(p1->statements.size(), 1);
     ASSERT_EQ(p2->statements.size(), 1);
-    ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
+    ProgramInstance pi1{param.t1, *p1};
+    ProgramInstance pi2{param.t2, *p2};
+    ProgramMatcherProxy matcher{pi1, pi2};
     auto& s1 = p1->statements[0], &s2 = p2->statements[0];
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), param.estimate);
 }
@@ -69,7 +74,9 @@ TEST_P(SimilarityTestSuite, Similarity) {
     auto p2 = parser::ParserDriver::Parse(param.t2);
     ASSERT_EQ(p1->statements.size(), 1);
     ASSERT_EQ(p2->statements.size(), 1);
-    ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
+    ProgramInstance pi1{param.t1, *p1};
+    ProgramInstance pi2{param.t2, *p2};
+    ProgramMatcherProxy matcher{pi1, pi2};
     auto& s1 = p1->statements[0], &s2 = p2->statements[0];
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_EQ(sim.Equal(), param.are_equal);
@@ -112,7 +119,9 @@ TEST_P(MappingTestSuite, Mappings) {
     auto& param = GetParam();
     auto p1 = parser::ParserDriver::Parse(param.t1);
     auto p2 = parser::ParserDriver::Parse(param.t2);
-    ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
+    ProgramInstance pi1{param.t1, *p1};
+    ProgramInstance pi2{param.t2, *p2};
+    ProgramMatcherProxy matcher{pi1, pi2};
     StatementMappings unique_pairs;
     StatementMappings equal_pairs;
     matcher.MapStatements(unique_pairs, equal_pairs);
@@ -127,7 +136,9 @@ TEST_P(MappingTestSuite, LCS) {
     auto& param = GetParam();
     auto p1 = parser::ParserDriver::Parse(param.t1);
     auto p2 = parser::ParserDriver::Parse(param.t2);
-    ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
+    ProgramInstance pi1{param.t1, *p1};
+    ProgramInstance pi2{param.t2, *p2};
+    ProgramMatcherProxy matcher{pi1, pi2};
     StatementMappings unique_pairs;
     StatementMappings equal_pairs;
     matcher.MapStatements(unique_pairs, equal_pairs);
@@ -186,7 +197,9 @@ TEST_P(DiffTestSuite, DiffOps) {
     auto& param = GetParam();
     auto p1 = parser::ParserDriver::Parse(param.t1);
     auto p2 = parser::ParserDriver::Parse(param.t2);
-    ProgramMatcherProxy matcher{param.t1, param.t2, *p1, *p2};
+    ProgramInstance pi1{param.t1, *p1};
+    ProgramInstance pi2{param.t2, *p2};
+    ProgramMatcherProxy matcher{pi1, pi2};
     auto diff = matcher.ComputeDiff();
     ASSERT_EQ(diff, param.diff);
 }
