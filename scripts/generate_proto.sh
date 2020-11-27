@@ -11,6 +11,15 @@ ${FLATC} --version \
 
 TMP=$(mktemp -d)
 
+PROTO_AMALGAMATION_FILE="${PROJECT_ROOT}/duckdb/proto/proto.fbs"
+${FLATC} -I "${PROJECT_ROOT}/duckdb/proto" -o "${PROJECT_ROOT}/duckdb/rs/src/proto" ${PROTO_AMALGAMATION_FILE} --rust \
+        --reflect-types --reflect-names \
+        --gen-all \
+        --gen-object-api --gen-name-strings --gen-compare \
+        --gen-mutable \
+    && { echo "[ OK  ] duckdb/proto: Rust"; } \
+    || { echo "[ ERR ] duckdb/proto: Rust"; exit 1; }
+
 gen_proto() {
     PROTO_DIR="$1"
     CPP_PROTO_DIR="$2"
@@ -21,6 +30,10 @@ gen_proto() {
     for PROTO_FILE in ${PROTO_DIR}/*.fbs; do
         PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
         PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
+
+        if [ "${PROTO_FILE_NAME}" = "proto" ]; then
+            continue
+        fi
 
         ${FLATC} -I ${PROTO_DIR} -o ${CPP_PROTO_DIR} ${PROTO_FILE} --cpp \
                 --no-prefix --scoped-enums \
