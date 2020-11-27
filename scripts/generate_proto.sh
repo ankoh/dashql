@@ -26,6 +26,7 @@ gen_proto() {
                 --no-prefix --scoped-enums \
                 --reflect-types --reflect-names \
                 --gen-object-api --gen-name-strings --gen-compare \
+                --gen-mutable \
             && { echo "[ OK  ] ${PROTO_FILE_NAME}: C++"; } \
             || { echo "[ ERR ] ${PROTO_FILE_NAME}: C++"; exit 1; }
 
@@ -36,6 +37,7 @@ gen_proto() {
                 --no-fb-import \
                 --reflect-types --reflect-names \
                 --gen-name-strings --gen-compare \
+                --gen-mutable \
             && mv ${TS_PROTO_OUT} ${TS_PROTO_TMP} \
             && echo "/* eslint-disable */" > ${TS_PROTO_OUT} \
             && echo "import { flatbuffers } from \"flatbuffers\";" >> ${TS_PROTO_OUT} \
