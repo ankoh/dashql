@@ -52,12 +52,13 @@ void encode(ryml::NodeRef n, proto::syntax::Location loc, std::string_view text)
         auto suffix = escape(text.substr(loc.offset() + loc.length() - LOCATION_HINT_LENGTH, LOCATION_HINT_LENGTH));
         ss << "|`" << prefix << "`..`" << suffix << "`";
     }
-    n << ss.str();
+    std::string s = ss.str();
+    n << s;
 }
 
 void encode(ryml::NodeRef e, const proto::syntax::ErrorT& err, std::string_view text) {
     e |= ryml::MAP;
-    e["message"] = c4::to_csubstr(err.message.c_str());
+    e["message"] << c4::to_csubstr(err.message.c_str());
     encode(e["location"], *err.location, text);
 }
 
@@ -123,6 +124,7 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::ProgramT& pr
     // Unpack modules
     auto& nodes = program.nodes;
     auto& statements = program.statements;
+    auto* stmt_type_tt = proto::syntax::StatementTypeTypeTable();
     auto* node_type_tt = proto::syntax::NodeTypeTypeTable();
     auto* attr_key_tt = proto::syntax::AttributeKeyTypeTable();
 
@@ -138,6 +140,7 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::ProgramT& pr
         stmt |= ryml::MAP;
         if (!s.target_name_qualified.empty())
             stmt["name"] << s.target_name_qualified.c_str();
+        stmt["type"] << c4::to_csubstr(stmt_type_tt->names[static_cast<uint16_t>(s.statement_type)]);
 
         std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Node*>> pending;
         pending.push_back({stmt, "root", &nodes[s.root]});
@@ -180,7 +183,7 @@ void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::ProgramT& pr
                     if (node_type_id > static_cast<uint32_t>(sx::NodeType::OBJECT_MIN)) {
                         n |= ryml::MAP;
                         auto end = target->children_begin_or_value() + target->children_count();
-                        n["type"] = c4::to_csubstr(node_type_tt->names[static_cast<size_t>(target->node_type())]);
+                        n["type"] << c4::to_csubstr(node_type_tt->names[static_cast<size_t>(target->node_type())]);
                         encode(n["location"], target->location(), text);
                         for (auto i = 0; i < target->children_count(); ++i) {
                             auto& attr = nodes[end - i - 1];
