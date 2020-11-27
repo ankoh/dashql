@@ -60,9 +60,7 @@ RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
     && rm -rf /tmp/flatbuffers
 
 ARG RUST_VERSION="1.48.0"
-RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y \
-    && /root/.cargo/bin/rustup update \
-    && /root/.cargo/bin/rustup toolchain install ${RUST_VERSION}
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y
 
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export PATH=$PATH" >> /opt/env.sh \
