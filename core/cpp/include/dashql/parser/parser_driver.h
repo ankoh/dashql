@@ -54,6 +54,8 @@ using NodeID = uint32_t;
 using QualifiedName = std::array<std::string_view, 2>;
 
 struct Statement {
+    /// The statement type
+    sx::StatementType type;
     /// The root node
     NodeID root;
     /// The names
@@ -65,10 +67,6 @@ struct Statement {
 
     /// Constructor
     Statement();
-    /// Move constructor
-    Statement(Statement&& other);
-    /// Move assignment
-    Statement& operator=(Statement&& other);
 
     /// Reset
     void reset();
