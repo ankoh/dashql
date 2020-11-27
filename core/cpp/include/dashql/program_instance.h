@@ -44,6 +44,19 @@ class ProgramInstance {
     Signal EvaluatePartially(duckdb::web::WebDB& database);
     /// Render the statement text
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
+
+    /// Find an attribute
+    const sx::Node* FindAttribute(const sx::Node& origin, sx::AttributeKey key);
+    /// Iterate over children
+    template <typename F> void IterateChildren(const sx::Node& origin, F fn) {
+        auto children_begin = origin.children_begin_or_value();
+        auto children_count = origin.children_count();
+        auto nodes = program_.nodes;
+        for (unsigned i = 0; i < children_count; ++i) {
+            auto node_id = children_begin + i;
+            fn(i, node_id, nodes[node_id]);
+        }
+    }
 };
 
 }  // namespace dashql
