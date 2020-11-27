@@ -78,6 +78,27 @@ Signal ActionPlanner::DiffPrograms() {
     return Signal::OK();
 }
 
+// Canonical translation of statements into actions
+struct StatementMapping {
+    proto::action::ActionType action_type;
+    bool requires_script;
+};
+static std::unordered_map<sx::StatementType, StatementMapping> STATEMENT_ACTIONS = {
+#define X(STMT_TYPE, ACTION_TYPE, SCRIPT) { sx::StatementType::STMT_TYPE, { proto::action::ActionType::ACTION_TYPE, SCRIPT } },
+    X(NONE, NONE, false)
+    X(PARAMETER, PARAMETER, false)
+    X(LOAD_FILE, LOAD_FILE, false)
+    X(LOAD_HTTP, LOAD_HTTP, false)
+    X(EXTRACT_JSON, EXTRACT_JSON, false)
+    X(EXTRACT_CSV, EXTRACT_CSV, false)
+    X(SELECT, QUERY_TABLE, true)
+    X(SELECT_INTO, TABLE_CREATE, true)
+    X(CREATE_TABLE, TABLE_CREATE, true)
+    X(CREATE_VIEW, VIEW_CREATE, true)
+    X(VIZUALIZE, VIZ_CREATE, false)
+#undef X
+};
+
 // Translate single statement
 Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_id) {
     auto& next = next_program_.program();
@@ -96,64 +117,17 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
     action.target_name_qualified = stmt->target_name_qualified;
     action.script = "";
 
-    // Identify exact action
-    switch (stmt_root.node_type()) {
-        case sx::NodeType::OBJECT_DASHQL_VIZ:
-            action.action_type = ActionType::VIZ_CREATE;
-            break;
-
-        case sx::NodeType::OBJECT_DASHQL_LOAD:
-            if (auto m = FindAttribute(next, stmt_root, Key::DASHQL_LOAD_METHOD)) {
-                switch (static_cast<sxd::LoadMethodType>(m->children_begin_or_value())) {
-                    case sxd::LoadMethodType::FILE:
-                        action.action_type = ActionType::LOAD_FILE;
-                        break;
-                    case sxd::LoadMethodType::HTTP:
-                        action.action_type = ActionType::LOAD_HTTP;
-                        break;
-                    default:
-                        action.action_type = ActionType::NONE;
-                        break;
-                }
-            }
-            break;
-
-        case sx::NodeType::OBJECT_DASHQL_EXTRACT:
-            if (auto m = FindAttribute(next, stmt_root, Key::DASHQL_EXTRACT_METHOD)) {
-                switch (static_cast<sxd::ExtractMethodType>(m->children_begin_or_value())) {
-                    case sxd::ExtractMethodType::JSON:
-                        action.action_type = ActionType::EXTRACT_JSON;
-                        break;
-                    case sxd::ExtractMethodType::CSV:
-                        action.action_type = ActionType::EXTRACT_CSV;
-                        break;
-                    default:
-                        action.action_type = ActionType::NONE;
-                        break;
-                }
-            }
-            break;
-
-        case sx::NodeType::OBJECT_DASHQL_PARAMETER:
-            action.action_type = ActionType::PARAMETER;
-            break;
-
-        case sx::NodeType::OBJECT_DASHQL_QUERY: {
-            if (auto q = FindAttribute(next, stmt_root, Key::DASHQL_QUERY_STATEMENT)) {
-                if (auto into = FindAttribute(next, *q, Key::SQL_SELECT_INTO)) {
-                    action.action_type = proto::action::ActionType::TABLE_CREATE;
-                }
-            }
+    // Find action type
+    if (auto iter = STATEMENT_ACTIONS.find(stmt->statement_type); iter != STATEMENT_ACTIONS.end()) {
+        auto [action_type, requires_script] = iter->second;
+        action.action_type = action_type;
+        if (requires_script) {
             auto script = next_program_.RenderStatementText(stmt_id);
             if (!script.IsOk()) {
                 return script.err();
             }
             action.script = script.ReleaseValue();
-            break;
         }
-
-        default:
-            assert(false);
     }
     return action;
 }
