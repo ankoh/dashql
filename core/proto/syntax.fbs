@@ -165,6 +165,20 @@ enum AttributeKey: uint16 {
     SQL_WINDOW_FRAME_PARTITION,
 }
 
+enum StatementType: uint8 {
+    NONE,
+    PARAMETER,
+    LOAD_HTTP,
+    LOAD_FILE,
+    EXTRACT_CSV,
+    EXTRACT_JSON,
+    SELECT,
+    SELECT_INTO,
+    CREATE_TABLE,
+    CREATE_VIEW,
+    VIZUALIZE,
+}
+
 struct Node {
     location: Location;
     node_type: NodeType = NONE;
@@ -180,6 +194,7 @@ table Error {
 }
 
 table Statement {
+    statement_type: StatementType;
     root: uint32;
     target_name_qualified: string;
     target_name_short: string;

@@ -62,25 +62,6 @@ ScriptOptions::ScriptOptions() : global_namespace("global") {}
 /// Constructor
 Statement::Statement() : root(), name(), table_refs(), column_refs() {}
 
-/// Move constructor
-Statement::Statement(Statement&& other)
-    : root(other.root),
-      name(std::move(other.name)),
-      table_refs(std::move(other.table_refs)),
-      column_refs(std::move(other.column_refs)) {
-    other.reset();
-}
-
-/// Move assignment
-Statement& Statement::operator=(Statement&& other) {
-    root = other.root;
-    name = move(other.name);
-    table_refs = std::move(other.table_refs);
-    column_refs = std::move(other.column_refs);
-    other.reset();
-    return *this;
-}
-
 /// Reset the statement
 void Statement::reset() {
     root = std::numeric_limits<uint32_t>::max();
@@ -93,6 +74,7 @@ void Statement::reset() {
 std::unique_ptr<sx::StatementT> Statement::Finish() {
     auto [table, schema] = name;
     auto stmt = std::make_unique<sx::StatementT>();
+    stmt->statement_type = type;
     stmt->root = root;
     stmt->target_name_short = table;
 
@@ -294,6 +276,63 @@ void ParserDriver::AddStatement(sx::Node node) {
         return;
     }
     current_statement_.root = AddNode(node);
+    auto stmt_type = sx::StatementType::NONE;
+    switch (node.node_type()) {
+        case sx::NodeType::OBJECT_DASHQL_VIZ:
+            stmt_type = sx::StatementType::VIZUALIZE;
+            break;
+
+        case sx::NodeType::OBJECT_DASHQL_LOAD:
+            if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_METHOD); m) {
+                switch (static_cast<sxd::LoadMethodType>(m->children_begin_or_value())) {
+                    case sxd::LoadMethodType::FILE:
+                        stmt_type = sx::StatementType::LOAD_FILE;
+                        break;
+                    case sxd::LoadMethodType::HTTP:
+                        stmt_type = sx::StatementType::LOAD_HTTP;
+                        break;
+                    default:
+                        stmt_type = sx::StatementType::NONE;
+                        break;
+                }
+            }
+            break;
+
+        case sx::NodeType::OBJECT_DASHQL_EXTRACT:
+            if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_METHOD); m) {
+                switch (static_cast<sxd::ExtractMethodType>(m->children_begin_or_value())) {
+                    case sxd::ExtractMethodType::JSON:
+                        stmt_type = sx::StatementType::EXTRACT_JSON;
+                        break;
+                    case sxd::ExtractMethodType::CSV:
+                        stmt_type = sx::StatementType::EXTRACT_CSV;
+                        break;
+                    default:
+                        stmt_type = sx::StatementType::NONE;
+                        break;
+                }
+            }
+            break;
+
+        case sx::NodeType::OBJECT_DASHQL_PARAMETER:
+            stmt_type = sx::StatementType::PARAMETER;
+            break;
+
+        case sx::NodeType::OBJECT_DASHQL_QUERY: {
+            if (auto [m, _] = FindAttribute(node, Key::DASHQL_QUERY_STATEMENT); m) {
+                if (auto [into, _] = FindAttribute(*m, Key::SQL_SELECT_INTO); into) {
+                    stmt_type = sx::StatementType::SELECT_INTO;
+                } else {
+                    stmt_type = sx::StatementType::SELECT;
+                }
+            }
+            break;
+        }
+
+        default:
+            assert(false);
+    }
+    current_statement_.type = stmt_type;
     statements_.push_back(std::move(current_statement_));
 }
 

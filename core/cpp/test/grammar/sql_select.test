@@ -2,7 +2,8 @@ name: select_iconst_1
 input: select 1
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..8|`select 1`
         DASHQL_QUERY_STATEMENT:
@@ -22,7 +23,8 @@ name: select_fconst_1e04
 input: 'select 1e-04'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: '0..12|`select 1e-04`'
         DASHQL_QUERY_STATEMENT:
@@ -42,7 +44,8 @@ name: select_fconst_realfail1
 input: select 1e
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..9|`select 1e`
         DASHQL_QUERY_STATEMENT:
@@ -66,7 +69,8 @@ name: select_bconst_b1010
 input: "select b'1010'"
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: "0..14|`select b'1010'`"
         DASHQL_QUERY_STATEMENT:
@@ -86,7 +90,8 @@ name: select_bconst_x2a
 input: "select x'2a'"
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: "0..12|`select x'2a'`"
         DASHQL_QUERY_STATEMENT:
@@ -106,7 +111,8 @@ name: select_sconst_string
 input: select string
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..13|`select string`
         DASHQL_QUERY_STATEMENT:
@@ -126,7 +132,8 @@ name: select_sconst_string_latin1
 input: select äöü
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..13|`select äöü`
         DASHQL_QUERY_STATEMENT:
@@ -146,7 +153,8 @@ name: select_sconst_string_unicode_plane1
 input: select 📈
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..11|`select 📈`
         DASHQL_QUERY_STATEMENT:
@@ -166,7 +174,8 @@ name: select_sconst_quotes
 input: "select 'foo'"
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: "0..12|`select 'foo'`"
         DASHQL_QUERY_STATEMENT:
@@ -186,7 +195,8 @@ name: select_sconst_quotes_nested_quote
 input: "select '''foo'''"
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: "0..16|`select '''foo'''`"
         DASHQL_QUERY_STATEMENT:
@@ -206,7 +216,8 @@ name: select_sconst_quotes_nested_dquote
 input: 'select ''"foo"'''
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: '0..14|`select ''"foo"''`'
         DASHQL_QUERY_STATEMENT:
@@ -226,7 +237,8 @@ name: select_iconst_1_ident
 input: 'select 1 "foo"'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: '0..14|`select 1 "foo"`'
         DASHQL_QUERY_STATEMENT:
@@ -270,7 +282,8 @@ name: select_iconst_list
 input: 'select 1, 2'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: '0..11|`select 1, 2`'
         DASHQL_QUERY_STATEMENT:
@@ -294,7 +307,8 @@ name: select_from_1rel
 input: select a from b
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..15|`select a from b`
         DASHQL_QUERY_STATEMENT:
@@ -320,7 +334,8 @@ name: select_from_1rel_indirect1
 input: select a from b.c
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..17|`select a from b.c`
         DASHQL_QUERY_STATEMENT:
@@ -347,7 +362,8 @@ name: select_from_1rel_indirect1_noinherit
 input: select a from only b.c
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..22|`select a f`..`m only b.c`
         DASHQL_QUERY_STATEMENT:
@@ -374,7 +390,8 @@ name: select_from_1rel_indirect1_alias
 input: select a from b.c as d
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..22|`select a f`..`m b.c as d`
         DASHQL_QUERY_STATEMENT:
@@ -402,7 +419,8 @@ name: select_from_2rel
 input: 'select a from b, c'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: '0..18|`select a from b, c`'
         DASHQL_QUERY_STATEMENT:
@@ -434,6 +452,7 @@ input: 'select a into b from c, d'
 expected:
   statements:
     - name: global.b
+      type: SELECT_INTO
       root:
         type: OBJECT_DASHQL_QUERY
         location: '0..25|`select a i`..` from c, d`'
@@ -471,7 +490,8 @@ name: select_from_1rel_group1
 input: select a from b group by 1
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..26|`select a f`..`group by 1`
         DASHQL_QUERY_STATEMENT:
@@ -502,7 +522,8 @@ name: select_from_1rel_window_empty
 input: select a from b window c as ()
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..30|`select a f`..`ow c as ()`
         DASHQL_QUERY_STATEMENT:
@@ -532,7 +553,8 @@ name: select_from_1rel_window_partition1
 input: select a from b window c as (partition by d)
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..44|`select a f`..`tion by d)`
         DASHQL_QUERY_STATEMENT:
@@ -572,7 +594,8 @@ input: |-
   window c as (partition by d rows between unbounded preceding and unbounded following)
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..101|`select a f`..`following)`
         DASHQL_QUERY_STATEMENT:
@@ -623,7 +646,8 @@ input: |-
   window c as (partition by d rows between 1 preceding and current row)
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..85|`select a f`..`rrent row)`
         DASHQL_QUERY_STATEMENT:
@@ -679,7 +703,8 @@ input: |-
          e as (partition by f)
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..116|`select a f`..`tion by f)`
         DASHQL_QUERY_STATEMENT:
@@ -744,7 +769,8 @@ name: select_distinct_from_1rel
 input: select distinct a from b
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..24|`select dis`..`t a from b`
         DASHQL_QUERY_STATEMENT:
@@ -771,7 +797,8 @@ name: select_distinct_on_from_1rel
 input: select distinct on (a) a from b
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..31|`select dis`..`) a from b`
         DASHQL_QUERY_STATEMENT:
@@ -802,7 +829,8 @@ name: select_all_from_1rel
 input: select all from b
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..17|`select all from b`
         DASHQL_QUERY_STATEMENT:
@@ -824,7 +852,8 @@ name: values_1
 input: values (1)
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..10|`values (1)`
         DASHQL_QUERY_STATEMENT:
@@ -844,7 +873,8 @@ name: values_1_2
 input: 'values (1), (2);'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: '0..15|`values (1), (2)`'
         DASHQL_QUERY_STATEMENT:
@@ -868,7 +898,8 @@ name: values_12_34
 input: 'values (1, 2), (3, 4)'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: '0..21|`values (1,`..`2), (3, 4)`'
         DASHQL_QUERY_STATEMENT:
@@ -900,7 +931,8 @@ name: table_a
 input: TABLE a
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..7|`TABLE a`
         DASHQL_QUERY_STATEMENT:
@@ -921,7 +953,8 @@ name: union_select1_select2
 input: SELECT 1 UNION SELECT 2
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..23|`SELECT 1 U`..`N SELECT 2`
         DASHQL_QUERY_STATEMENT:
@@ -952,7 +985,8 @@ name: union_all_select1_select2
 input: SELECT 1 UNION ALL SELECT 2
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..27|`SELECT 1 U`..`L SELECT 2`
         DASHQL_QUERY_STATEMENT:
@@ -984,7 +1018,8 @@ name: union_distinct_select1_select2
 input: SELECT 1 UNION DISTINCT SELECT 2
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..32|`SELECT 1 U`..`T SELECT 2`
         DASHQL_QUERY_STATEMENT:
@@ -1016,7 +1051,8 @@ name: intersect_select1_select2
 input: SELECT 1 INTERSECT SELECT 2
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..27|`SELECT 1 I`..`T SELECT 2`
         DASHQL_QUERY_STATEMENT:
@@ -1047,7 +1083,8 @@ name: with_1cte_select2
 input: WITH a AS (SELECT 1) SELECT 2
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..29|`WITH a AS `..`) SELECT 2`
         DASHQL_QUERY_STATEMENT:
@@ -1079,7 +1116,8 @@ name: with_2ctes_select3
 input: 'WITH a AS (SELECT 1), b AS (SELECT 2) SELECT 3'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..46|`WITH a AS `..`) SELECT 3`
         DASHQL_QUERY_STATEMENT:
@@ -1122,7 +1160,8 @@ name: with_recursive_2ctes_select3
 input: 'WITH RECURSIVE a AS (SELECT 1), b AS (SELECT 2) SELECT 3'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..56|`WITH RECUR`..`) SELECT 3`
         DASHQL_QUERY_STATEMENT:
@@ -1166,7 +1205,8 @@ name: select_a_orderby_b
 input: select a order by b
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..19|`select a order by b`
         DASHQL_QUERY_STATEMENT:
@@ -1194,7 +1234,8 @@ name: select_a_orderby_b_c
 input: 'select a order by b, c'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: '0..22|`select a o`..`er by b, c`'
         DASHQL_QUERY_STATEMENT:
@@ -1229,7 +1270,8 @@ name: select_a_orderby_b_c_directions
 input: 'select a order by b asc, c desc'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: '0..31|`select a o`..`sc, c desc`'
         DASHQL_QUERY_STATEMENT:
@@ -1266,7 +1308,8 @@ name: select_a_orderby_b_c_directions_nulls
 input: 'select a order by b asc nulls first, c desc nulls last'
 expected:
   statements:
-    - root:
+    - type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 0..54|`select a o`..`nulls last`
         DASHQL_QUERY_STATEMENT:
@@ -1308,6 +1351,7 @@ input: |-
 expected:
   statements:
     - name: global.b
+      type: SELECT_INTO
       root:
         type: OBJECT_DASHQL_QUERY
         location: 0..15|`select 1 into b`
@@ -1325,7 +1369,9 @@ expected:
               location: 7..8|`1`
               SQL_CONST_TYPE: INTEGER
               SQL_CONST_VALUE: 7..8|`1`
-    - root:
+    - name: global.b
+      type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 17..32|`select 1 from b`
         DASHQL_QUERY_STATEMENT:
@@ -1360,6 +1406,7 @@ input: |-
 expected:
   statements:
     - name: global.a
+      type: PARAMETER
       root:
         type: OBJECT_DASHQL_PARAMETER
         location: 0..32|`declare pa`..`pe integer`
@@ -1367,6 +1414,7 @@ expected:
         DASHQL_STATEMENT_NAME:
           - 18..19|`a`
     - name: global.b
+      type: SELECT_INTO
       root:
         type: OBJECT_DASHQL_QUERY
         location: 34..49|`select 1 into b`
@@ -1384,7 +1432,9 @@ expected:
               location: 41..42|`1`
               SQL_CONST_TYPE: INTEGER
               SQL_CONST_VALUE: 41..42|`1`
-    - root:
+    - name: global.b
+      type: SELECT
+      root:
         type: OBJECT_DASHQL_QUERY
         location: 51..89|`select c f`..`obal.a + 1`
         DASHQL_QUERY_STATEMENT:

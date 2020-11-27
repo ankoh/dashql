@@ -29,6 +29,7 @@ input: |-
 expected:
   statements:
     - name: global.country
+      type: PARAMETER
       root:
         type: OBJECT_DASHQL_PARAMETER
         location: "237..301|`DECLARE PA`..`e = 'DE' )`"
@@ -41,6 +42,7 @@ expected:
           SQL_CONST_TYPE: STRING
           SQL_CONST_VALUE: "295..300|`'DE' `"
     - name: global.weather_csv
+      type: LOAD_HTTP
       root:
         type: OBJECT_DASHQL_LOAD
         location: 405..510|`LOAD weath`..`country) )`
@@ -62,6 +64,7 @@ expected:
                 - 500..507|`country`
           SQL_FUNCTION_NAME: 444..450|`format`
     - name: global.weather
+      type: NONE
       root:
         type: OBJECT_DASHQL_EXTRACT
         location: 597..639|`EXTRACT we`..` USING CSV`
@@ -71,6 +74,7 @@ expected:
         DASHQL_STATEMENT_NAME:
           - 605..612|`weather`
     - name: global.weather_avg
+      type: SELECT_INTO
       root:
         type: OBJECT_DASHQL_QUERY
         location: 730..768|`SELECT 1 I`..`OM weather`
@@ -94,7 +98,9 @@ expected:
               location: 737..738|`1`
               SQL_CONST_TYPE: INTEGER
               SQL_CONST_VALUE: 737..738|`1`
-    - root:
+    - name: global.weather_avg
+      type: VIZUALIZE
+      root:
         type: OBJECT_DASHQL_VIZ
         location: 846..872|`VIZ weathe`..`USING LINE`
         DASHQL_VIZ_TARGET:
