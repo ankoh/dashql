@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "dashql/parser/parser_driver.h"
-#include "dashql/test/yaml_encoder.h"
+#include "dashql/test/program_test_encoder.h"
 #include "duckdb/web/common/span.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
@@ -93,7 +93,7 @@ TEST_P(GrammarParamTests, Test) {
     auto program = ParserDriver::Parse(param.input);
 
     ryml::Tree out;
-    EncodeTestExpectation(out.rootref(), *program, param.input);
+    EncodeProgramTest(out.rootref(), *program, param.input);
 
     ASSERT_TRUE(IsEqual(out, param.expected));
 }
