@@ -42,19 +42,19 @@ Signal ActionPlanner::DiffPrograms() {
 }
 
 // Canonical translation of statements into actions
-struct StatementMapping {
-    proto::action::ActionType action_type;
-    bool requires_script;
+struct StatementTranslation {
+    ActionType action;
+    bool render_script;
 };
-static std::unordered_map<sx::StatementType, StatementMapping> STATEMENT_ACTIONS = {
-#define X(STMT_TYPE, ACTION_TYPE, SCRIPT) { sx::StatementType::STMT_TYPE, { proto::action::ActionType::ACTION_TYPE, SCRIPT } },
+static std::unordered_map<sx::StatementType, StatementTranslation> STATEMENT_TRANSLATION = {
+#define X(STMT_TYPE, ACTION, SCRIPT) { sx::StatementType::STMT_TYPE, { ActionType::ACTION, SCRIPT } },
     X(NONE, NONE, false)
     X(PARAMETER, PARAMETER, false)
     X(LOAD_FILE, LOAD_FILE, false)
     X(LOAD_HTTP, LOAD_HTTP, false)
     X(EXTRACT_JSON, EXTRACT_JSON, false)
     X(EXTRACT_CSV, EXTRACT_CSV, false)
-    X(SELECT, QUERY_TABLE, true)
+    X(SELECT, VIZ_CREATE, true)
     X(SELECT_INTO, TABLE_CREATE, true)
     X(CREATE_TABLE, TABLE_CREATE, true)
     X(CREATE_VIEW, VIEW_CREATE, true)
@@ -85,7 +85,7 @@ Signal ActionPlanner::TranslateStatements() {
         action.script = "";
 
         // Find action type
-        if (auto iter = STATEMENT_ACTIONS.find(stmt->statement_type); iter != STATEMENT_ACTIONS.end()) {
+        if (auto iter = STATEMENT_TRANSLATION.find(stmt->statement_type); iter != STATEMENT_TRANSLATION.end()) {
             auto [action_type, requires_script] = iter->second;
             action.action_type = action_type;
             if (requires_script) {
@@ -109,11 +109,49 @@ Signal ActionPlanner::TranslateStatements() {
     return Signal::OK();
 }
 
+/// An action invalidation
+struct ActionInvalidation {
+    ActionType drop_action;
+    bool propagates_backwards;
+};
+static std::unordered_map<ActionType, ActionInvalidation> ACTION_INVALIDATION = {
+#define X(ACTION, UNDO_ACTION, PROPAGATE) { ActionType::ACTION, { ActionType::UNDO_ACTION, PROPAGATE } },
+    X(NONE, NONE, false)
+    X(PARAMETER, NONE, false)
+    X(LOAD_DROP, LOAD_DROP, false)
+    X(LOAD_FILE, LOAD_DROP, false)
+    X(LOAD_HTTP, LOAD_DROP, false)
+    X(EXTRACT_DROP, NONE, false)
+    X(EXTRACT_JSON, TABLE_DROP, false)
+    X(EXTRACT_CSV, TABLE_DROP, false)
+    X(VIEW_DROP, NONE, true)
+    X(VIEW_CREATE, VIEW_DROP, true)
+    X(TABLE_DROP, NONE, true)
+    X(TABLE_CREATE, TABLE_DROP, true)
+    X(TABLE_MODIFY, NONE, true)
+    X(VIZ_DROP, NONE, false)
+    X(VIZ_CREATE, VIZ_DROP, false)
+    X(VIZ_UPDATE, VIZ_DROP, false)
+    X(QUERY_SCALAR, NONE, false)
+    X(QUERY_TABLE, NONE, false)
+#undef X
+};
+
 // Map previously completed actions to the new graph
 Signal ActionPlanner::MapPreviousActions() {
     if (!prev_action_graph_) return Signal::OK();
     auto& actions = *prev_action_graph_->actions();
 
+    // Find applicable actions of previous action graph.
+    //
+    // An action is applicable iff:
+    //  1) Diff is either KEEP or MOVE and the action is not affected by a parmeter update
+    //  2) All dependencies are applicable
+    //
+    std::vector<bool> applicable;
+    applicable.resize(actions.size(), false);
+
+    // Drop an action
     auto drop = [this](proto::action::ActionType type, size_t stmt_id) {
         auto& target = prev_program_->program().statements[stmt_id];
         proto::action::ActionT action;
@@ -128,36 +166,52 @@ Signal ActionPlanner::MapPreviousActions() {
         setup_actions_.push_back(action);
     };
 
-    auto drop_tables = [this](size_t action_id) {
+    // Invalidate an action
+    auto invalidate = [&](size_t action_id) {
+        std::unordered_set<size_t> visited;
         std::vector<size_t> pending;
         pending.push_back(action_id);
         while (!pending.empty()) {
             auto top = pending.back();
             pending.pop_back();
 
-            // XXX
+            // Already visited?
+            if (visited.count(top))
+                continue;
+            visited.insert(top);
 
-            auto* action = prev_action_graph_->actions()->Get(top);
-            auto stmt_id = action->origin_statement();
-            auto& stmt = prev_program_->program().statements[stmt_id];
-            auto stmt_root = prev_program_->program().nodes[stmt->root];
+            // Get invalidation
+            auto* action = prev_action_graph_->actions()->Get(action_id);
+            auto iter = ACTION_INVALIDATION.find(action->action_type());
+            if (iter == ACTION_INVALIDATION.end()) {
+                continue;
+            }
+            auto [drop_action_type, propagates] = iter->second;
 
-            // XXX
+            // Propagates invalidation?
+            if (propagates) {
+                for (auto dep: *action->depends_on()) {
+                    pending.push_back(dep);
+                }
+            }
+
+            // Already marked as not applicable?
+            // In that case we already emitted the drop action.
+            // (We are traversing in toplogical order)
+            if (!applicable[top]) {
+                continue;
+            }
+            applicable[top] = false;
+
+            // Register drop action (if any)
+            if (drop_action_type != ActionType::NONE) {
+                drop(drop_action_type, action->origin_statement());
+            }
         }
     };
 
-    // Find applicable actions of previous action graph.
-    //
-    // An action is applicable iff:
-    //  1) Diff is either KEEP or MOVE and the action is not affected by a parmeter update
-    //  2) All dependencies are applicable
-    //
-    std::vector<bool> applicable;
-    applicable.resize(actions.size(), false);
-
     // We traverse the previous action graph in topological order.
-    // That ensures, that we can determine the applicability by checking the dependencies.
-    // ALSO, we do not need to check any following statements since inapplicable statements propagate.
+    // That restricts the applicability check to the direct dependencies.
     using ActionID = size_t;
     std::vector<std::pair<ActionID, int>> action_deps;
     for (unsigned i = 0; i < actions.size(); ++i) {
@@ -167,7 +221,6 @@ Signal ActionPlanner::MapPreviousActions() {
 
     // Visit all actions
     while (!pending_actions.Empty()) {
-        // Pop next action
         auto [action_id, key] = pending_actions.Top();
         pending_actions.Pop();
 
@@ -184,11 +237,12 @@ Signal ActionPlanner::MapPreviousActions() {
             continue;
         }
 
-        // Get the diff
+        // Get the diff op
         assert(action_id < diff_.size());
         auto& diff_op = diff_[action_id];
         switch (diff_op.code()) {
             // MOVE or KEEP?
+            // The statement didn't change, so we should try to just reuse the output from before.
             case DiffOpCode::MOVE:
             case DiffOpCode::KEEP: {
                 // Check if all dependencies are applicable
@@ -202,26 +256,20 @@ Signal ActionPlanner::MapPreviousActions() {
                 // XXX Affected by parameter?
 
                 applicable[action_id] = true;
-                graph_action_status_[action.target_id()] = proto::action::ActionStatusCode::COMPLETED;
                 break;
             }
 
             // UPDATE or DELETE?
+            // The statement did change, so we have to figure out what must be tnvalidated.
+            // We have to be very careful since any leftover tables will lead to broken dashboards.
             case DiffOpCode::UPDATE:
-            case DiffOpCode::DELETE: {
-                // We have to be very careful here since we must not forget to drop any tables.
-                //
-                // We are therefore very pessimistic here:
-                //  1) SQL statement: DROP all tables before us
-                //  2) LOAD statement: DROP load
-                //  3) EXTRACT statement: DROP table
-                //  3) VIZ statement: DROP viz
-
+            case DiffOpCode::DELETE:
+                invalidate(action_id);
                 break;
-            }
 
+            // A previous action is marked with INSERT in the diff?
+            // Cannot happen, faulty diff.
             case DiffOpCode::INSERT:
-                // Cannot happen
                 assert(false);
                 break;
         }
