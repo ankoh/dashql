@@ -62,49 +62,41 @@ static std::unordered_map<sx::StatementType, StatementMapping> STATEMENT_ACTIONS
 #undef X
 };
 
-// Translate single statement
-Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_id) {
-    auto& next = next_program_.program();
-    auto& stmts = next.statements;
-    auto& stmt = stmts[stmt_id];
-    auto& stmt_root = next.nodes[stmt->root];
-
-    // Write action
-    proto::action::ActionT action;
-    action.action_type = ActionType::NONE;
-    action.origin_statement = stmt_id;
-    action.depends_on = {};
-    action.required_for = {};
-    action.target_id = global_target_counter_++;
-    action.target_name_short = stmt->target_name_short;
-    action.target_name_qualified = stmt->target_name_qualified;
-    action.script = "";
-
-    // Find action type
-    if (auto iter = STATEMENT_ACTIONS.find(stmt->statement_type); iter != STATEMENT_ACTIONS.end()) {
-        auto [action_type, requires_script] = iter->second;
-        action.action_type = action_type;
-        if (requires_script) {
-            auto script = next_program_.RenderStatementText(stmt_id);
-            if (!script.IsOk()) {
-                return script.err();
-            }
-            action.script = script.ReleaseValue();
-        }
-    }
-    return action;
-}
-
 // Translate statements
 Signal ActionPlanner::TranslateStatements() {
+    auto& next = next_program_.program();
     auto& stmts = next_program_.program().statements;
     graph_actions_.resize(stmts.size());
 
-    // Translate statements to actions as if there all statements were new
+    // Translate statements if all were new
     for (unsigned stmt_id = 0; stmt_id < stmts.size(); ++stmt_id) {
-        auto action = TranslateStatement(stmt_id);
-        if (!action.IsOk()) return action.err();
-        graph_actions_[stmt_id] = action.ReleaseValue();
+        auto& stmt = stmts[stmt_id];
+        auto& stmt_root = next.nodes[stmt->root];
+
+        // Write action
+        proto::action::ActionT action;
+        action.action_type = ActionType::NONE;
+        action.origin_statement = stmt_id;
+        action.depends_on = {};
+        action.required_for = {};
+        action.target_id = global_target_counter_++;
+        action.target_name_short = stmt->target_name_short;
+        action.target_name_qualified = stmt->target_name_qualified;
+        action.script = "";
+
+        // Find action type
+        if (auto iter = STATEMENT_ACTIONS.find(stmt->statement_type); iter != STATEMENT_ACTIONS.end()) {
+            auto [action_type, requires_script] = iter->second;
+            action.action_type = action_type;
+            if (requires_script) {
+                auto script = next_program_.RenderStatementText(stmt_id);
+                if (!script.IsOk()) {
+                    return script.err();
+                }
+                action.script = script.ReleaseValue();
+            }
+        }
+        graph_actions_[stmt_id] = move(action);
     }
 
     // Store dependencies
