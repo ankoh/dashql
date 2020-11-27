@@ -151,22 +151,30 @@ Signal ActionPlanner::MapPreviousActions() {
     std::vector<bool> applicable;
     applicable.resize(actions.size(), false);
 
-    // Drop an action
-    auto drop = [this](proto::action::ActionType type, size_t stmt_id) {
+    // Drop an action.
+    // This helper generates a drop action with the given action type and for the
+    auto drop = [this](const proto::action::Action& action) {
+        auto stmt_id = action.origin_statement();
+        auto iter = ACTION_INVALIDATION.find(action.action_type());
+        if (iter == ACTION_INVALIDATION.end()) {
+            return;
+        }
         auto& target = prev_program_->program().statements[stmt_id];
-        proto::action::ActionT action;
-        action.action_type = type;
-        action.origin_statement = stmt_id;
-        action.target_id = ++global_target_counter_;
-        action.target_name_qualified = target->target_name_qualified;
-        action.target_name_short = target->target_name_short;
-        action.depends_on = {};
-        action.required_for = {};
-        action.script = "";
-        setup_actions_.push_back(action);
+        proto::action::ActionT drop;
+        drop.action_type = iter->second.drop_action;
+        drop.origin_statement = stmt_id;
+        drop.target_id = ++global_target_counter_;
+        drop.target_name_qualified = target->target_name_qualified;
+        drop.target_name_short = target->target_name_short;
+        drop.depends_on = {};
+        drop.required_for = {};
+        drop.script = "";
+        setup_actions_.push_back(drop);
     };
 
-    // Invalidate an action
+    // Invalidate an action.
+    // If an action is invalidated, we might have to propagate the invalidation to the actions before us.
+    // We are very pessimistic here and invalidate all our incoming dependencies to make sure everything is clean.
     auto invalidate = [&](size_t action_id) {
         std::unordered_set<size_t> visited;
         std::vector<size_t> pending;
@@ -202,11 +210,7 @@ Signal ActionPlanner::MapPreviousActions() {
                 continue;
             }
             applicable[top] = false;
-
-            // Register drop action (if any)
-            if (drop_action_type != ActionType::NONE) {
-                drop(drop_action_type, action->origin_statement());
-            }
+            drop(*action);
         }
     };
 
@@ -260,7 +264,7 @@ Signal ActionPlanner::MapPreviousActions() {
             }
 
             // UPDATE or DELETE?
-            // The statement did change, so we have to figure out what must be tnvalidated.
+            // The statement did change, so we have to figure out what must be invalidated.
             // We have to be very careful since any leftover tables will lead to broken dashboards.
             case DiffOpCode::UPDATE:
             case DiffOpCode::DELETE:
