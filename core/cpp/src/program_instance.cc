@@ -4,7 +4,15 @@ namespace dashql {
 
 /// Constructor
 ProgramInstance::ProgramInstance(std::string_view text, const sx::ProgramT& program)
-    : program_text_(text), program_(program), parameters_(), patch_() {}
+    : program_text_(text), program_(program), parameter_values_(), patch_() {}
+
+/// Find a parameter value
+const proto::session::ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const {
+    if (auto iter = parameter_values_.find(stmt_id); iter != parameter_values_.end()) {
+        return iter->second;
+    }
+    return nullptr;
+}
 
 //
 //// Collect the statement options
