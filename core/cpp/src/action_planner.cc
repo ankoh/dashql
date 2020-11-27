@@ -254,11 +254,25 @@ Signal ActionPlanner::MapPreviousActions() {
                 for (auto dep: *action.depends_on()) {
                     all_applicable &= applicable[dep];
                 }
-                if (!all_applicable) break;
+                if (!all_applicable) {
+                    invalidate(action_id);
+                    break;
+                }
                 auto& target = graph_actions_[action.target_id()];
 
-                // XXX Affected by parameter?
+                // Parameter action?
+                // Then we also have to check whether the parameter value stayed the same.
+                // A changed parameter will propagate via the applicability.
+                if (action.action_type() == proto::action::ActionType::PARAMETER) {
+                    auto prev_param = prev_program_->FindParameterValue(*diff_op.source());
+                    auto next_param = next_program_.FindParameterValue(*diff_op.target());
+                    if (!ProgramMatcher::ParameterValuesEqual(prev_param, next_param)) {
+                        invalidate(action_id);
+                        break;
+                    }
+                }
 
+                // The action seems to be applicable
                 applicable[action_id] = true;
                 break;
             }
