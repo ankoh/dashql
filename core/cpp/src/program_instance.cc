@@ -34,4 +34,28 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
     return copy;
 }
 
+/// Find an attribute
+const sx::Node* ProgramInstance::FindAttribute(const sx::Node& origin, sx::AttributeKey key) {
+    auto children_begin = origin.children_begin_or_value();
+    auto children_count = origin.children_count();
+    auto lb = children_begin;
+    auto c = children_count;
+    while (c > 0) {
+        auto step = c / 2;
+        auto iter = lb + step;
+        auto& n = program_.nodes[iter];
+        if (n.attribute_key() < key) {
+            lb = iter + 1;
+            c -= step + 1;
+        } else {
+            c = step;
+        }
+    }
+    if (lb >= children_begin + children_count) {
+        return nullptr;
+    }
+    auto& n = program_.nodes[lb];
+    return (n.attribute_key() == key) ? &n : nullptr;
+}
+
 }  // dashql
