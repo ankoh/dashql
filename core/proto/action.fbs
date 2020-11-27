@@ -41,6 +41,7 @@ table Action {
     target_name_qualified: string;
     target_name_short: string;
     script: string;
+    status: ActionStatus;
 }
 
 table ActionGraph {
