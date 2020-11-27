@@ -17,6 +17,8 @@ namespace dashql {
 /// The action planner
 class ActionPlanner {
    protected:
+    /// The next global target id
+    static size_t global_target_counter_;
     /// The next program
     const ProgramInstance& next_program_;
     /// The previous program
