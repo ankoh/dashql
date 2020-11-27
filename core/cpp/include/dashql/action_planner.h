@@ -39,8 +39,6 @@ class ActionPlanner {
 
     /// Diff the two programs
     Signal DiffPrograms();
-    /// Translate single statement canonically
-    Expected<proto::action::ActionT> TranslateStatement(size_t stmt_id);
     /// Translate statements canonically
     Signal TranslateStatements();
     /// Map any previously completed actions
