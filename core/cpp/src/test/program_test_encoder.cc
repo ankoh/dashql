@@ -1,4 +1,4 @@
-#include "dashql/test/yaml_encoder.h"
+#include "dashql/test/program_test_encoder.h"
 
 #include "dashql/proto/syntax_generated.h"
 #include "dashql/proto/syntax_sql_generated.h"
@@ -117,7 +117,7 @@ void encode(ryml::NodeRef n, const sx::Dependency& dep, sx::Location loc, std::s
 }  // namespace
 
 /// Encode yaml
-void EncodeTestExpectation(ryml::NodeRef root, const proto::syntax::ProgramT& program, std::string_view text) {
+void EncodeProgramTest(ryml::NodeRef root, const proto::syntax::ProgramT& program, std::string_view text) {
     auto& tree = *root.tree();
     root |= ryml::MAP;
 

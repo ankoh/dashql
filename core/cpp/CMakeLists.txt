@@ -268,7 +268,7 @@ if(NOT EMSCRIPTEN)
     )
 
     add_executable(grammar_tests
-        ${CMAKE_SOURCE_DIR}/src/test/yaml_encoder.cc
+        ${CMAKE_SOURCE_DIR}/src/test/program_test_encoder.cc
         ${CMAKE_SOURCE_DIR}/test/grammar_tests.cc
     )
     target_link_libraries(grammar_tests
@@ -279,7 +279,7 @@ if(NOT EMSCRIPTEN)
     )
 
     add_executable(grammar_testgen
-        ${CMAKE_SOURCE_DIR}/src/test/yaml_encoder.cc
+        ${CMAKE_SOURCE_DIR}/src/test/program_test_encoder.cc
         ${CMAKE_SOURCE_DIR}/test/grammar_testgen.cc
     )
     target_link_libraries(grammar_testgen

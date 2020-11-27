@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "dashql/parser/parser_driver.h"
-#include "dashql/test/yaml_encoder.h"
+#include "dashql/test/program_test_encoder.h"
 #include "duckdb/web/common/span.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
             out_root |= ryml::MAP;
             out_root["name"] << name;
             out_root["input"] << input;
-            EncodeTestExpectation(out_root["expected"], *program, input_strv);
+            EncodeProgramTest(out_root["expected"], *program, input_strv);
 
             std::cout << "  TEST " << name << std::endl;
             if (prev > 0) {
