@@ -13,16 +13,13 @@ using ActionObj = proto::action::ActionT;
 
 // Constructor
 ActionPlanner::ActionPlanner(const ProgramInstance& next_program, const ProgramInstance* prev_program,
-                             const proto::action::ActionGraph* prev_action_graph,
-                             const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_action_status)
+                             const proto::action::ActionGraphT* prev_action_graph)
     : next_program_(next_program),
       prev_program_(prev_program),
       prev_action_graph_(prev_action_graph),
-      prev_action_status_(prev_action_status),
       diff_(),
       setup_actions_(),
-      graph_actions_(),
-      graph_action_status_() {}
+      graph_actions_() {}
 
 // Diff programs
 Signal ActionPlanner::DiffPrograms() {
@@ -68,7 +65,7 @@ Signal ActionPlanner::TranslateStatements() {
     auto& stmts = next_program_.program().statements;
     graph_actions_.resize(stmts.size());
 
-    // Translate statements if all were new
+    // Translate statements as if all were new
     for (unsigned stmt_id = 0; stmt_id < stmts.size(); ++stmt_id) {
         auto& stmt = stmts[stmt_id];
         auto& stmt_root = next.nodes[stmt->root];
@@ -140,22 +137,21 @@ static std::unordered_map<ActionType, ActionInvalidation> ACTION_INVALIDATION = 
 // Map previously completed actions to the new graph
 Signal ActionPlanner::MapPreviousActions() {
     if (!prev_action_graph_) return Signal::OK();
-    auto& actions = *prev_action_graph_->actions();
+    auto& actions = prev_action_graph_->actions;
 
     // Find applicable actions of previous action graph.
     //
     // An action is applicable iff:
-    //  1) Diff is either KEEP or MOVE and the action is not affected by a parmeter update
+    //  1) Diff is either KEEP or MOVE and the statement is not affected by a parmeter update
     //  2) All dependencies are applicable
     //
     std::vector<bool> applicable;
     applicable.resize(actions.size(), false);
 
-    // Drop an action.
-    // This helper generates a drop action with the given action type and for the
-    auto drop = [this](const proto::action::Action& action) {
-        auto stmt_id = action.origin_statement();
-        auto iter = ACTION_INVALIDATION.find(action.action_type());
+    // Helper to generate a drop action.
+    auto drop = [this](const proto::action::ActionT& action) {
+        auto stmt_id = action.origin_statement;
+        auto iter = ACTION_INVALIDATION.find(action.action_type);
         if (iter == ACTION_INVALIDATION.end()) {
             return;
         }
@@ -169,7 +165,7 @@ Signal ActionPlanner::MapPreviousActions() {
         drop.depends_on = {};
         drop.required_for = {};
         drop.script = "";
-        setup_actions_.push_back(drop);
+        setup_actions_.push_back(move(drop));
     };
 
     // Invalidate an action.
@@ -188,9 +184,9 @@ Signal ActionPlanner::MapPreviousActions() {
                 continue;
             visited.insert(top);
 
-            // Get invalidation
-            auto* action = prev_action_graph_->actions()->Get(action_id);
-            auto iter = ACTION_INVALIDATION.find(action->action_type());
+            // Get invalidation info
+            auto& action = *actions[action_id];
+            auto iter = ACTION_INVALIDATION.find(action.action_type);
             if (iter == ACTION_INVALIDATION.end()) {
                 continue;
             }
@@ -198,19 +194,19 @@ Signal ActionPlanner::MapPreviousActions() {
 
             // Propagates invalidation?
             if (propagates) {
-                for (auto dep: *action->depends_on()) {
+                for (auto dep: action.depends_on) {
                     pending.push_back(dep);
                 }
             }
 
             // Already marked as not applicable?
             // In that case we already emitted the drop action.
-            // (We are traversing in toplogical order)
+            // (...since we are traversing in toplogical order)
             if (!applicable[top]) {
                 continue;
             }
             applicable[top] = false;
-            drop(*action);
+            drop(action);
         }
     };
 
@@ -219,7 +215,7 @@ Signal ActionPlanner::MapPreviousActions() {
     using ActionID = size_t;
     std::vector<std::pair<ActionID, int>> action_deps;
     for (unsigned i = 0; i < actions.size(); ++i) {
-        action_deps[i] = {i, actions[i]->depends_on()->size()};
+        action_deps[i] = {i, actions[i]->depends_on.size()};
     }
     TopologicalSort<ActionID> pending_actions{move(action_deps)};
 
@@ -230,20 +226,21 @@ Signal ActionPlanner::MapPreviousActions() {
 
         // Decrement key of depending actions
         auto& action = *actions[action_id];
-        for (auto next : *action.required_for()) {
+        for (auto next : action.required_for) {
             pending_actions.DecrementKey(next);
         }
 
         // Action not completed?
-        auto status_iter = prev_action_status_.find(action_id);
-        if (status_iter == prev_action_status_.end() ||
-            status_iter->second.status_code() != proto::action::ActionStatusCode::COMPLETED) {
+        // XXX We could detect actions that were NOT started at some point.
+        //     Right now we dont, so we just invalidate to be safe.
+        if (!action.status || action.status->status_code() != proto::action::ActionStatusCode::COMPLETED) {
+            invalidate(action_id);
             continue;
         }
 
         // Get the diff op
         assert(action_id < diff_.size());
-        auto& diff_op = diff_[action_id];
+        auto& diff_op = diff_[action.origin_statement];
         switch (diff_op.code()) {
             // MOVE or KEEP?
             // The statement didn't change, so we should try to just reuse the output from before.
@@ -251,19 +248,19 @@ Signal ActionPlanner::MapPreviousActions() {
             case DiffOpCode::KEEP: {
                 // Check if all dependencies are applicable
                 auto all_applicable = true;
-                for (auto dep: *action.depends_on()) {
+                for (auto dep: action.depends_on) {
                     all_applicable &= applicable[dep];
                 }
                 if (!all_applicable) {
                     invalidate(action_id);
                     break;
                 }
-                auto& target = graph_actions_[action.target_id()];
+                auto& target = graph_actions_[action.target_id];
 
                 // Parameter action?
                 // Then we also have to check whether the parameter value stayed the same.
                 // A changed parameter will propagate via the applicability.
-                if (action.action_type() == proto::action::ActionType::PARAMETER) {
+                if (action.action_type == proto::action::ActionType::PARAMETER) {
                     auto prev_param = prev_program_->FindParameterValue(*diff_op.source());
                     auto next_param = next_program_.FindParameterValue(*diff_op.target());
                     if (!ProgramMatcher::ParameterValuesEqual(prev_param, next_param)) {
@@ -292,6 +289,10 @@ Signal ActionPlanner::MapPreviousActions() {
                 break;
         }
     }
+
+    // XXX
+    // Now we know for every previous action whether it is applicable.
+    // Mark the corresponding new actions as completed.
 
     // TODO
     return Signal::OK();

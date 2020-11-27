@@ -24,9 +24,7 @@ class ActionPlanner {
     /// The previous program
     const ProgramInstance* prev_program_;
     /// The previous action graph
-    const proto::action::ActionGraph* prev_action_graph_;
-    /// The previous action status
-    const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_action_status_;
+    const proto::action::ActionGraphT* prev_action_graph_;
 
     /// The diff between the programs
     std::vector<ProgramMatcher::DiffOp> diff_;
@@ -34,8 +32,6 @@ class ActionPlanner {
     std::vector<proto::action::ActionT> setup_actions_;
     /// The graph actions
     std::vector<proto::action::ActionT> graph_actions_;
-    /// The next action status
-    std::vector<proto::action::ActionStatusCode> graph_action_status_;
 
     /// Diff the two programs
     Signal DiffPrograms();
@@ -50,8 +46,7 @@ class ActionPlanner {
     /// Constructor
     ActionPlanner(const ProgramInstance& next_program,
                   const ProgramInstance* prev_program,
-                  const proto::action::ActionGraph* prev_action_graph,
-                  const std::unordered_map<uint32_t, proto::action::ActionStatus>& prev_action_status);
+                  const proto::action::ActionGraphT* prev_action_graph);
 
     /// Plan the new action graph
     void PlanActionGraph();

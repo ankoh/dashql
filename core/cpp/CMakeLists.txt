@@ -259,7 +259,6 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/default/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/default/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/default/program_matcher_test.cc
-        ${CMAKE_SOURCE_DIR}/test/default/action_planner_test.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     target_link_libraries(tester
