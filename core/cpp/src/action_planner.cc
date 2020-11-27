@@ -9,43 +9,6 @@ namespace sxd = dashql::proto::syntax_dashql;
 using ActionType = proto::action::ActionType;
 using Key = sx::AttributeKey;
 
-namespace {
-
-const sx::Node* FindAttribute(const sx::ProgramT& program, const sx::Node& origin, Key key) {
-    auto children_begin = origin.children_begin_or_value();
-    auto children_count = origin.children_count();
-    auto lb = children_begin;
-    auto c = children_count;
-    while (c > 0) {
-        auto step = c / 2;
-        auto iter = lb + step;
-        auto& n = program.nodes[iter];
-        if (n.attribute_key() < key) {
-            lb = iter + 1;
-            c -= step + 1;
-        } else {
-            c = step;
-        }
-    }
-    if (lb >= children_begin + children_count) {
-        return nullptr;
-    }
-    auto& n = program.nodes[lb];
-    return (n.attribute_key() == key) ? &n : nullptr;
-}
-
-template <typename F> void IterateChildren(const sx::Program& program, const sx::Node& origin, F fn) {
-    auto children_begin = origin.children_begin_or_value();
-    auto children_count = origin.children_count();
-    auto nodes = program.nodes();
-    for (unsigned i = 0; i < children_count; ++i) {
-        auto node_id = children_begin + i;
-        fn(i, node_id, *nodes->Get(node_id));
-    }
-}
-
-}  // namespace
-
 using ActionObj = proto::action::ActionT;
 
 // Constructor
