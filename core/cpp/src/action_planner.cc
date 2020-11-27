@@ -80,7 +80,6 @@ Signal ActionPlanner::DiffPrograms() {
 
 // Translate single statement
 Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_id) {
-    static uint32_t global_target_id = 0;
     auto& next = next_program_.program();
     auto& stmts = next.statements;
     auto& stmt = stmts[stmt_id];
@@ -92,7 +91,7 @@ Expected<proto::action::ActionT> ActionPlanner::TranslateStatement(size_t stmt_i
     action.origin_statement = stmt_id;
     action.depends_on = {};
     action.required_for = {};
-    action.target_id = global_target_id++;
+    action.target_id = global_target_counter_++;
     action.target_name_short = stmt->target_name_short;
     action.target_name_qualified = stmt->target_name_qualified;
     action.script = "";
@@ -185,6 +184,38 @@ Signal ActionPlanner::TranslateStatements() {
 Signal ActionPlanner::MapPreviousActions() {
     if (!prev_action_graph_) return Signal::OK();
     auto& actions = *prev_action_graph_->actions();
+
+    auto drop = [this](proto::action::ActionType type, size_t stmt_id) {
+        auto& target = prev_program_->program().statements[stmt_id];
+        proto::action::ActionT action;
+        action.action_type = type;
+        action.origin_statement = stmt_id;
+        action.target_id = ++global_target_counter_;
+        action.target_name_qualified = target->target_name_qualified;
+        action.target_name_short = target->target_name_short;
+        action.depends_on = {};
+        action.required_for = {};
+        action.script = "";
+        setup_actions_.push_back(action);
+    };
+
+    auto drop_tables = [this](size_t action_id) {
+        std::vector<size_t> pending;
+        pending.push_back(action_id);
+        while (!pending.empty()) {
+            auto top = pending.back();
+            pending.pop_back();
+
+            // XXX
+
+            auto* action = prev_action_graph_->actions()->Get(top);
+            auto stmt_id = action->origin_statement();
+            auto& stmt = prev_program_->program().statements[stmt_id];
+            auto stmt_root = prev_program_->program().nodes[stmt->root];
+
+            // XXX
+        }
+    };
 
     // Find applicable actions of previous action graph.
     //
