@@ -141,7 +141,7 @@ static std::unordered_map<ProgramActionType, ProgramActionInvalidation> ACTION_T
 };
 
 // Map previously completed actions to the new graph
-Signal ActionPlanner::MapPreviousActions() {
+Signal ActionPlanner::MapPreviousActionGraph() {
     // Nothing to diff against?
     if (!prev_action_graph_) return Signal::OK();
 
@@ -219,12 +219,15 @@ Signal ActionPlanner::MapPreviousActions() {
                 continue;
             }
 
+            // XXX Did the dependencies stay the same?
+            //     Find out with the diff mapping.
+
             // Get the diff of the origin statement
             assert(prev_action_id < diff_.size());
             auto& diff_op = diff_[a.origin_statement];
             switch (diff_op.code()) {
                 // MOVE or KEEP?
-                // The statement didn't change, so we should try to just reuse the output from before.
+                // The statement didn't change so we should try to just reuse the output from before.
                 case DiffOpCode::MOVE:
                 case DiffOpCode::KEEP: {
                     // Check if all dependencies are applicable
@@ -326,9 +329,8 @@ Signal ActionPlanner::MapPreviousActions() {
             // (In which case the diff is actually never KEEP or MOVE but that doesn't matter)
             // A viz statement that was slightly adjusted will be diffed as UPDATE.
             // We don't want to drop and recreate the viz state in order to reuse the existing react component.
-            if ((diff_op.code() == +DiffOpCode::UPDATE || diff_op.code() == +DiffOpCode::KEEP ||
-                 diff_op.code() == +DiffOpCode::MOVE) &&
-                (update_action != ProgramActionType::NONE)) {
+            if ((update_action != ProgramActionType::NONE) &&
+                (diff_op.code() == +DiffOpCode::UPDATE || diff_op.code() == +DiffOpCode::KEEP)) {
                 assert(diff_op.target());
                 auto next_action_id = diff_op.target();
                 auto& next_action = action_graph_->program_actions[*next_action_id];
@@ -336,7 +338,7 @@ Signal ActionPlanner::MapPreviousActions() {
                 next_action->target_id = prev_action->target_id;
             }
 
-            // Drop instead if there's a drop action defined
+            // Drop if there's a drop action defined
             else if (drop_action != SetupActionType::NONE) {
                 setup.back() = std::make_unique<proto::action::SetupActionT>();
                 auto& s = setup.back();
@@ -384,7 +386,7 @@ Signal ActionPlanner::PropagateUpdates() {
 void ActionPlanner::PlanActionGraph() {
     DiffPrograms();
     TranslateStatements();
-    MapPreviousActions();
+    MapPreviousActionGraph();
     PropagateUpdates();
 }
 
