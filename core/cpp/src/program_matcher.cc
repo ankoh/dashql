@@ -23,8 +23,8 @@ ProgramMatcher::DiffOp::DiffOp(DiffOpCode code, std::optional<size_t> source, st
 // Estimate the similarity
 ProgramMatcher::SimilarityEstimate ProgramMatcher::EstimateSimilarity(const sx::StatementT& source,
                                                                       const sx::StatementT& target) {
-    auto& s = source_.program().nodes[source.root];
-    auto& t = target_.program().nodes[target.root];
+    auto& s = source_.program().nodes[source.root_node];
+    auto& t = target_.program().nodes[target.root_node];
 
     // Different node types?
     if (s.node_type() != t.node_type()) return SimilarityEstimate::NOT_EQUAL;
@@ -107,8 +107,8 @@ ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::
     // Compute tree sizes
     auto& source_program = source_.program();
     auto& target_program = target_.program();
-    auto source_size = ComputeTreeSize(source_program, source.root, source_subtree_sizes_);
-    auto target_size = ComputeTreeSize(target_program, target.root, target_subtree_sizes_);
+    auto source_size = ComputeTreeSize(source_program, source.root_node, source_subtree_sizes_);
+    auto target_size = ComputeTreeSize(target_program, target.root_node, target_subtree_sizes_);
     auto node_count = std::max(source_size, target_size);
     if (node_count == 0) return StatementSimilarity{};
 
@@ -123,7 +123,7 @@ ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::
     std::vector<bool> pending_visited;
     pending_nodes.reserve(32);
     pending_visited.reserve(32);
-    pending_nodes.push_back({source.root, target.root, 0, 0});
+    pending_nodes.push_back({source.root_node, target.root_node, 0, 0});
     pending_visited.push_back(false);
 
     // Traverse the tree
@@ -226,8 +226,8 @@ bool ProgramMatcher::CheckDeepEquality(const sx::StatementT& source, const sx::S
     // Compute tree sizes
     auto& source_program = source_.program();
     auto& target_program = target_.program();
-    auto source_size = ComputeTreeSize(source_program, source.root, source_subtree_sizes_);
-    auto target_size = ComputeTreeSize(target_program, target.root, target_subtree_sizes_);
+    auto source_size = ComputeTreeSize(source_program, source.root_node, source_subtree_sizes_);
+    auto target_size = ComputeTreeSize(target_program, target.root_node, target_subtree_sizes_);
     auto node_count = std::max(source_size, target_size);
     if (node_count == 0) return true;
 
@@ -238,7 +238,7 @@ bool ProgramMatcher::CheckDeepEquality(const sx::StatementT& source, const sx::S
     };
     std::vector<NodeSimilarity> pending_nodes;
     pending_nodes.reserve(32);
-    pending_nodes.push_back({source.root, target.root});
+    pending_nodes.push_back({source.root_node, target.root_node});
 
     // Traverse the tree
     while (!pending_nodes.empty()) {

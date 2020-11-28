@@ -36,7 +36,7 @@ const proto::session::ParameterValue* ProgramInstance::FindParameterValue(size_t
 
 Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const {
     auto& stmt = *program_.statements[stmt_id];
-    auto stmt_text = TextAt(program_.nodes[stmt.root].location());
+    auto stmt_text = TextAt(program_.nodes[stmt.root_node].location());
     // XXX
     std::string copy{stmt_text.begin(), stmt_text.end()};
     return copy;
