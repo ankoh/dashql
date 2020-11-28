@@ -110,6 +110,18 @@ Signal ActionPlanner::TranslateStatements() {
         program_actions[dep.source_statement()]->required_for.push_back(dep.target_statement());
         program_actions[dep.target_statement()]->depends_on.push_back(dep.source_statement());
     }
+
+    // Build reverse action mapping
+    reverse_action_mapping_.resize(program_actions.size(), std::nullopt);
+    for (auto diff_op : diff_) {
+        if (diff_op.code() != +DiffOpCode::KEEP && diff_op.code() != +DiffOpCode::MOVE &&
+            diff_op.code() != +DiffOpCode::UPDATE)
+            continue;
+        assert(diff_op.source().has_value());
+        assert(diff_op.target().has_value());
+        reverse_action_mapping_[*diff_op.target()] = *diff_op.source();
+    }
+
     return Signal::OK();
 }
 
@@ -140,23 +152,12 @@ static std::unordered_map<ProgramActionType, ProgramActionInvalidation> ACTION_T
     // clang-format on
 };
 
-// Map previously completed actions to the new graph
-Signal ActionPlanner::MapPreviousActionGraph() {
-    // Nothing to diff against?
+Signal ActionPlanner::IdentifyApplicableActions() {
     if (!prev_action_graph_) return Signal::OK();
 
-    auto& prev_actions = prev_action_graph_->program_actions;
-    auto& next_setup_actions = action_graph_->setup_actions;
-    auto& next_program_actions = action_graph_->program_actions;
     using ActionID = size_t;
-
-    // Find applicable actions of previous action graph.
-    //
-    // An action is applicable iff:
-    // The diff is either KEEP or MOVE and the statement is not affected by a parmeter update
-    // All dependencies are applicable
-    std::vector<bool> applicable;
-    applicable.resize(prev_actions.size(), false);
+    auto& prev_actions = prev_action_graph_->program_actions;
+    action_applicability_.resize(prev_actions.size(), false);
 
     // Invalidate an action.
     // If an action is invalidated, we might have to propagate the invalidation to the actions before us.
@@ -190,195 +191,192 @@ Signal ActionPlanner::MapPreviousActionGraph() {
             }
 
             // Action is not applicable
-            applicable[top] = false;
+            action_applicability_[top] = false;
         }
     };
 
     // We traverse the previous action graph in topological order.
     // That reduces the applicability check to the direct dependencies.
-    {
-        std::vector<std::pair<ActionID, int>> deps;
-        for (unsigned i = 0; i < prev_actions.size(); ++i) {
-            deps[i] = {i, prev_actions[i]->depends_on.size()};
+    std::vector<std::pair<ActionID, int>> deps;
+    for (unsigned i = 0; i < prev_actions.size(); ++i) {
+        deps[i] = {i, prev_actions[i]->depends_on.size()};
+    }
+    TopologicalSort<ActionID> pending_actions{move(deps)};
+    while (!pending_actions.Empty()) {
+        auto [prev_action_id, key] = pending_actions.Top();
+        pending_actions.Pop();
+
+        // Decrement key of depending actions
+        auto& a = *prev_actions[prev_action_id];
+        for (auto next : a.required_for) {
+            pending_actions.DecrementKey(next);
         }
 
-        TopologicalSort<ActionID> pending_actions{move(deps)};
-        while (!pending_actions.Empty()) {
-            auto [prev_action_id, key] = pending_actions.Top();
-            pending_actions.Pop();
+        // Action not completed?
+        // Irrelevant for the graph migration.
+        if (!a.action_status || a.action_status->status_code() != proto::action::ActionStatusCode::COMPLETED) {
+            invalidate(prev_action_id);
+            continue;
+        }
 
-            // Decrement key of depending actions
-            auto& a = *prev_actions[prev_action_id];
-            for (auto next : a.required_for) {
-                pending_actions.DecrementKey(next);
-            }
+        // Get the diff of the origin statement
+        assert(prev_action_id < diff_.size());
+        auto& diff_op = diff_[a.origin_statement];
+        switch (diff_op.code()) {
+            // MOVE or KEEP?
+            // The statement didn't change so we should try to just reuse the output from before.
+            case DiffOpCode::MOVE:
+            case DiffOpCode::KEEP: {
+                // Check if all dependencies are applicable
+                auto all_applicable = true;
+                for (auto dep : a.depends_on) {
+                    all_applicable &= action_applicability_[dep];
+                }
+                if (!all_applicable) {
+                    invalidate(prev_action_id);
+                    break;
+                }
 
-            // Action not completed? - Just invalidate
-            if (!a.action_status || a.action_status->status_code() != proto::action::ActionStatusCode::COMPLETED) {
-                invalidate(prev_action_id);
-                continue;
-            }
+                // XXX Did the set of dependencies change?
 
-            // XXX Did the dependencies stay the same?
-            //     Find out with the diff mapping.
-
-            // Get the diff of the origin statement
-            assert(prev_action_id < diff_.size());
-            auto& diff_op = diff_[a.origin_statement];
-            switch (diff_op.code()) {
-                // MOVE or KEEP?
-                // The statement didn't change so we should try to just reuse the output from before.
-                case DiffOpCode::MOVE:
-                case DiffOpCode::KEEP: {
-                    // Check if all dependencies are applicable
-                    auto all_applicable = true;
-                    for (auto dep : a.depends_on) {
-                        all_applicable &= applicable[dep];
-                    }
-                    if (!all_applicable) {
+                // Parameter action?
+                // Then we also have to check whether the parameter value stayed the same.
+                // A changed parameter will propagate via the applicability.
+                if (a.action_type == proto::action::ProgramActionType::PARAMETER) {
+                    auto prev_param = prev_program_->FindParameterValue(*diff_op.source());
+                    auto next_param = next_program_.FindParameterValue(*diff_op.target());
+                    if (!ProgramMatcher::ParameterValuesEqual(prev_param, next_param)) {
                         invalidate(prev_action_id);
                         break;
                     }
-
-                    // Parameter action?
-                    // Then we also have to check whether the parameter value stayed the same.
-                    // A changed parameter will propagate via the applicability.
-                    if (a.action_type == proto::action::ProgramActionType::PARAMETER) {
-                        auto prev_param = prev_program_->FindParameterValue(*diff_op.source());
-                        auto next_param = next_program_.FindParameterValue(*diff_op.target());
-                        if (!ProgramMatcher::ParameterValuesEqual(prev_param, next_param)) {
-                            invalidate(prev_action_id);
-                            break;
-                        }
-                    }
-
-                    // The action seems to be applicable, mark it as such
-                    applicable[prev_action_id] = true;
-                    break;
                 }
 
-                // UPDATE or DELETE?
-                // The statement did change, so we have to figure out what must be invalidated.
-                // We have to be very careful since any leftover tables will lead to broken dashboards.
-                case DiffOpCode::UPDATE:
-                case DiffOpCode::DELETE:
-                    invalidate(prev_action_id);
-                    break;
-
-                // A previous action is marked with INSERT in the diff?
-                // Cannot happen, must be a faulty diff.
-                case DiffOpCode::INSERT:
-                    assert(false);
-                    break;
-            }
-        }
-    }
-
-    // Now we know for every previous action whether it is applicable.
-    // Emit all setup actions to either import or drop previous state and update the new program actions.
-    //
-    // If an action is applicable, there also exists a new action that does not reuse state so far.
-    // We update the target id of the new action and mark it as complete.
-    // If an action is not applicable, but the diff op is UPDATE, we try to patch the action type as well.
-    // Currently this only affects the VIZ action to explicitly keep the viz state instead of recreating it.
-    {
-        std::vector<std::unique_ptr<proto::action::SetupActionT>> setup;
-        setup.reserve(prev_actions.size());
-        for (unsigned prev_action_id = 0; prev_action_id < prev_actions.size(); ++prev_action_id) {
-            setup.push_back(nullptr);
-            auto& prev_action = prev_actions[prev_action_id];
-            auto& diff_op = diff_[prev_action_id];
-
-            // Find action translation.
-            // If we
-            auto iter = ACTION_TRANSLATION.find(prev_action->action_type);
-            assert(iter != ACTION_TRANSLATION.end());
-            if (iter == ACTION_TRANSLATION.end()) continue;
-            auto [import_action, drop_action, update_action, propagates] = iter->second;
-
-            // Is applicable?
-            if (applicable[prev_action_id]) {
-                // Create import action (if necessary)
-                if (import_action != SetupActionType::NONE) {
-                    setup.back() = std::make_unique<proto::action::SetupActionT>();
-                    auto& s = setup.back();
-                    s->action_type = import_action;
-                    s->target_id = prev_action->target_id;
-                    s->target_name_qualified = prev_action->target_name_qualified;
-                    s->target_name_short = prev_action->target_name_short;
-                }
-
-                // Map to new action.
-                // Diff must be KEEP or MOVE since the previous action is applicable.
-                auto next_action_id = diff_op.target();
-                assert(next_action_id);
-                assert((diff_op.code() == +DiffOpCode::KEEP) || (diff_op.code() == +DiffOpCode::MOVE));
-
-                // Update the target id of the new action and mark it as complete
-                auto& next_action = action_graph_->program_actions[*next_action_id];
-                next_action->action_status->mutate_status_code(proto::action::ActionStatusCode::COMPLETED);
-                next_action->target_id = prev_action->target_id;
-                assert(next_action->target_name_short == prev_action->target_name_short);
-                assert(next_action->target_name_qualified == prev_action->target_name_qualified);
-                continue;
+                // The action seems to be applicable, mark it as such
+                action_applicability_[prev_action_id] = true;
+                break;
             }
 
-            // Is diffed as KEEP, MOVE or UPDATE and has defined UPDATE action?
-            //
-            // Only relevant for viz actions at the moment.
-            // (In which case the diff is actually never KEEP or MOVE but that doesn't matter)
-            // A viz statement that was slightly adjusted will be diffed as UPDATE.
-            // We don't want to drop and recreate the viz state in order to reuse the existing react component.
-            if ((update_action != ProgramActionType::NONE) &&
-                (diff_op.code() == +DiffOpCode::UPDATE || diff_op.code() == +DiffOpCode::KEEP)) {
-                assert(diff_op.target());
-                auto next_action_id = diff_op.target();
-                auto& next_action = action_graph_->program_actions[*next_action_id];
-                next_action->action_type = update_action;
-                next_action->target_id = prev_action->target_id;
-            }
+            // UPDATE or DELETE?
+            // The statement did change, so we have to figure out what must be invalidated.
+            // We have to be very careful since any leftover tables will lead to broken dashboards.
+            case DiffOpCode::UPDATE:
+            case DiffOpCode::DELETE:
+                invalidate(prev_action_id);
+                break;
 
-            // Drop if there's a drop action defined
-            else if (drop_action != SetupActionType::NONE) {
-                setup.back() = std::make_unique<proto::action::SetupActionT>();
-                auto& s = setup.back();
-                s->action_type = drop_action;
-                s->target_name_qualified = prev_action->target_name_qualified;
-                s->target_name_short = prev_action->target_name_short;
-            }
-        }
-
-        // Now sort the setup actions in reverse topological order.
-        // If statement B depends on A, the setup action of B must be executed before A.
-        // This flips the original dependencies to ensure that, for example, derived views are dropped before tables.
-        std::vector<std::pair<ActionID, int>> deps;
-        for (unsigned i = 0; i < prev_actions.size(); ++i) {
-            deps[i] = {i, prev_actions[i]->required_for.size()};
-        }
-
-        TopologicalSort<ActionID> pending_actions{move(deps)};
-        while (!pending_actions.Empty()) {
-            auto [prev_action_id, key] = pending_actions.Top();
-            pending_actions.Pop();
-
-            // Decrement key of action that the top depends on
-            auto& action = *prev_actions[prev_action_id];
-            for (auto next : action.depends_on) {
-                pending_actions.DecrementKey(next);
-            }
-
-            // Emit setup action
-            if (setup[prev_action_id]->action_type != SetupActionType::NONE) {
-                next_setup_actions.push_back(move(setup[prev_action_id]));
-            }
+            // A previous action is marked with INSERT in the diff?
+            // Cannot happen, must be a faulty diff.
+            case DiffOpCode::INSERT:
+                assert(false);
+                break;
         }
     }
     return Signal::OK();
 }
 
-// Propage updates/deletes/inserts in the new graph
-Signal ActionPlanner::PropagateUpdates() {
-    // TODO
+Signal ActionPlanner::MigrateActionGraph() {
+    if (!prev_action_graph_) return Signal::OK();
+
+    auto& prev_actions = prev_action_graph_->program_actions;
+    auto& next_setup_actions = action_graph_->setup_actions;
+    auto& next_program_actions = action_graph_->program_actions;
+    using ActionID = size_t;
+
+    // We know for every previous action whether it is applicable.
+    // Emit setup actions that either import or drop previous state and update the new program actions.
+    //
+    // If an action is applicable, there also exists a new action that does not reuse state so far.
+    // We update the target id of the new action and mark it as complete.
+    // If an action is not applicable, but the diff op is UPDATE, we try to patch the action type.
+    // Currently this only affects the VIZ action to explicitly keep the viz state instead of recreating it.
+    std::vector<std::unique_ptr<proto::action::SetupActionT>> setup;
+    setup.reserve(prev_actions.size());
+    for (unsigned prev_action_id = 0; prev_action_id < prev_actions.size(); ++prev_action_id) {
+        setup.push_back(nullptr);
+        auto& prev_action = prev_actions[prev_action_id];
+        auto& diff_op = diff_[prev_action_id];
+
+        // Find the action translation
+        auto iter = ACTION_TRANSLATION.find(prev_action->action_type);
+        assert(iter != ACTION_TRANSLATION.end());
+        if (iter == ACTION_TRANSLATION.end()) continue;
+        auto [import_action, drop_action, update_action, propagates] = iter->second;
+
+        // Is applicable?
+        if (action_applicability_[prev_action_id]) {
+            // Create import action (if necessary)
+            if (import_action != SetupActionType::NONE) {
+                setup.back() = std::make_unique<proto::action::SetupActionT>();
+                auto& s = setup.back();
+                s->action_type = import_action;
+                s->target_id = prev_action->target_id;
+                s->target_name_qualified = prev_action->target_name_qualified;
+                s->target_name_short = prev_action->target_name_short;
+            }
+
+            // Map to new action.
+            // Diff must be KEEP or MOVE since the previous action is applicable.
+            auto next_action_id = diff_op.target();
+            assert(next_action_id);
+            assert((diff_op.code() == +DiffOpCode::KEEP) || (diff_op.code() == +DiffOpCode::MOVE));
+
+            // Update the target id of the new action and mark it as complete
+            auto& next_action = action_graph_->program_actions[*next_action_id];
+            next_action->action_status->mutate_status_code(proto::action::ActionStatusCode::COMPLETED);
+            next_action->target_id = prev_action->target_id;
+            assert(next_action->target_name_short == prev_action->target_name_short);
+            assert(next_action->target_name_qualified == prev_action->target_name_qualified);
+            continue;
+        }
+
+        // Is diffed as KEEP, MOVE or UPDATE and has defined UPDATE action?
+        //
+        // Only relevant for viz actions at the moment.
+        // (In which case the diff is actually never KEEP or MOVE but that doesn't matter)
+        // A viz statement that was slightly adjusted will be diffed as UPDATE.
+        // We don't want to drop and recreate the viz state in order to reuse the existing react component.
+        if ((update_action != ProgramActionType::NONE) &&
+            (diff_op.code() == +DiffOpCode::UPDATE || diff_op.code() == +DiffOpCode::KEEP)) {
+            assert(diff_op.target());
+            auto next_action_id = diff_op.target();
+            auto& next_action = action_graph_->program_actions[*next_action_id];
+            next_action->action_type = update_action;
+            next_action->target_id = prev_action->target_id;
+        }
+
+        // Drop if there's a drop action defined
+        else if (drop_action != SetupActionType::NONE) {
+            setup.back() = std::make_unique<proto::action::SetupActionT>();
+            auto& s = setup.back();
+            s->action_type = drop_action;
+            s->target_name_qualified = prev_action->target_name_qualified;
+            s->target_name_short = prev_action->target_name_short;
+        }
+    }
+
+    // Now sort the setup actions in reverse topological order.
+    // If statement B depends on A, the setup action of B must be executed before A.
+    // This flips the original dependencies to ensure that, for example, derived views are dropped before tables.
+    std::vector<std::pair<ActionID, int>> deps;
+    for (unsigned i = 0; i < prev_actions.size(); ++i) {
+        deps[i] = {i, prev_actions[i]->required_for.size()};
+    }
+    TopologicalSort<ActionID> pending_actions{move(deps)};
+    while (!pending_actions.Empty()) {
+        auto [prev_action_id, key] = pending_actions.Top();
+        pending_actions.Pop();
+
+        // Decrement key of action that the top depends on
+        auto& action = *prev_actions[prev_action_id];
+        for (auto next : action.depends_on) {
+            pending_actions.DecrementKey(next);
+        }
+
+        // Emit setup action
+        if (setup[prev_action_id]->action_type != SetupActionType::NONE) {
+            next_setup_actions.push_back(move(setup[prev_action_id]));
+        }
+    }
     return Signal::OK();
 }
 
@@ -386,8 +384,8 @@ Signal ActionPlanner::PropagateUpdates() {
 void ActionPlanner::PlanActionGraph() {
     DiffPrograms();
     TranslateStatements();
-    MapPreviousActionGraph();
-    PropagateUpdates();
+    IdentifyApplicableActions();
+    MigrateActionGraph();
 }
 
 // Encode action graph
