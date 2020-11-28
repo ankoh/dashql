@@ -19,9 +19,10 @@
 namespace dashql {
 namespace parser {
 
-void EncodeActionTest(ryml::NodeRef ref, const ProgramInstance& next, const ProgramInstance* prev,
-                      const proto::action::ActionGraphT* prev_graph) {
-    
+void EncodeActionTest(ryml::NodeRef root, const ProgramInstance& program, const proto::action::ActionGraphT* graph) {
+//    auto& tree = *root.tree();
+//    root |= ryml::MAP;
+
 }
 
 }  // namespace parser

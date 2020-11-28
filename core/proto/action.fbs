@@ -3,37 +3,80 @@
 namespace dashql.proto.action;
 
 // ---------------------------------------------------------------------------
-// Action graph
+// Action status
 
-enum ActionType: uint8 {
+enum ActionStatusCode: uint8 {
     NONE = 0,
-
-    // State actions
-    STATE_MIN = 1,
-    PARAMETER = 2,
-    LOAD_DROP = 4,
-    LOAD_FILE = 5,
-    LOAD_HTTP = 6,
-    EXTRACT_DROP = 7,
-    EXTRACT_JSON = 8,
-    EXTRACT_CSV = 9,
-    VIEW_DROP = 10,
-    VIEW_CREATE = 11,
-    TABLE_DROP = 12,
-    TABLE_CREATE = 13,
-    TABLE_MODIFY = 14,
-    VIZ_DROP = 15,
-    VIZ_CREATE = 16,
-    VIZ_UPDATE = 17,
-
-    // Volatile Actions
-    VOLATILE_MIN = 18,
-    QUERY_SCALAR = 19,
-    QUERY_TABLE = 20,
+    PREPARING,
+    BLOCKED,
+    RUNNING,
+    COMPLETED,
+    ERROR,
 }
 
-table Action {
-    action_type: ActionType;
+enum ActionBlocker: uint8 {
+    NONE = 0,
+    DEPENDENCY,
+    USER_INTERACTION,
+    HTTP_REQUEST,
+    SCHEDULER,
+}
+
+struct ActionStatus {
+    status_code: ActionStatusCode;
+    blocker: ActionBlocker;
+    last_update: uint64;
+}
+
+// ---------------------------------------------------------------------------
+// Action graph
+
+table ActionGraph {
+    setup_actions: [SetupAction];
+    program_actions: [ProgramAction];
+}
+
+enum SetupActionType: uint8 {
+    NONE = 0,
+
+    IMPORT_MIN,
+
+    IMPORT_BLOB,
+    IMPORT_TABLE,
+    IMPORT_VIEW,
+    IMPORT_VIZ,
+
+    DROP_MIN,
+
+    DROP_BLOB,
+    DROP_VIEW,
+    DROP_TABLE,
+    DROP_VIZ,
+}
+
+table SetupAction {
+    action_type: SetupActionType;
+    target_name_qualified: string;
+    target_name_short: string;
+    status: ActionStatus;
+}
+
+enum ProgramActionType: uint8 {
+    NONE = 0,
+    PARAMETER,
+    LOAD_FILE,
+    LOAD_HTTP,
+    EXTRACT_JSON,
+    EXTRACT_CSV,
+    VIEW_CREATE,
+    TABLE_CREATE,
+    TABLE_MODIFY,
+    VIZ_CREATE,
+    VIZ_UPDATE,
+}
+
+table ProgramAction {
+    action_type: ProgramActionType;
     origin_statement: uint32;
     depends_on: [uint32];
     required_for: [uint32];
@@ -44,33 +87,17 @@ table Action {
     status: ActionStatus;
 }
 
-table ActionGraph {
-    setup: [Action];
-    actions: [Action];
-}
-
 // ---------------------------------------------------------------------------
-// Action status
+// Dynamic actions
 
-enum ActionStatusCode: uint8 {
+enum DynamicActionType: uint8 {
     NONE = 0,
-    PREPARING = 1,
-    BLOCKED = 2,
-    RUNNING = 4,
-    COMPLETED = 5,
-    ERROR = 6,
+    QUERY_SCALAR,
+    QUERY_TABLE,
 }
 
-enum ActionBlocker: uint8 {
-    NONE = 0,
-    DEPENDENCY = 1,
-    USER_INTERACTION = 2,
-    HTTP_REQUEST = 3,
-    SCHEDULER = 4,
-}
-
-struct ActionStatus {
-    status_code: ActionStatusCode;
-    blocker: ActionBlocker;
-    last_update: uint64;
+table DynamicAction {
+    action_type: DynamicActionType;
+    origin_statement: uint32;
+    status: ActionStatus;
 }
