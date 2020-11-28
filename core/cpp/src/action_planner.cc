@@ -6,10 +6,9 @@
 namespace dashql {
 
 namespace sxd = dashql::proto::syntax_dashql;
-using ActionType = proto::action::ActionType;
+using SetupActionType = proto::action::SetupActionType;
+using ProgramActionType = proto::action::ProgramActionType;
 using Key = sx::AttributeKey;
-
-using ActionObj = proto::action::ActionT;
 
 // Constructor
 ActionPlanner::ActionPlanner(const ProgramInstance& next_program, const ProgramInstance* prev_program,
@@ -19,7 +18,7 @@ ActionPlanner::ActionPlanner(const ProgramInstance& next_program, const ProgramI
       prev_action_graph_(prev_action_graph),
       diff_(),
       setup_actions_(),
-      graph_actions_() {}
+      program_actions_() {}
 
 // Diff programs
 Signal ActionPlanner::DiffPrograms() {
@@ -40,13 +39,13 @@ Signal ActionPlanner::DiffPrograms() {
 
 // Canonical translation of statements into actions
 struct StatementTranslation {
-    ActionType action;
+    ProgramActionType action_type;
     bool render_script;
 };
 static std::unordered_map<sx::StatementType, StatementTranslation> STATEMENT_TRANSLATION = {
-#define X(STMT_TYPE, ACTION, SCRIPT) { sx::StatementType::STMT_TYPE, { ActionType::ACTION, SCRIPT } },
+#define X(STMT_TYPE, PROGRAM_ACTION, RENDER_SCRIPT) { sx::StatementType::STMT_TYPE, { proto::action::ProgramActionType::PROGRAM_ACTION, RENDER_SCRIPT } },
     X(NONE, NONE, false)
-    X(PARAMETER, PARAMETER, false)
+    X(PARAMETER, NONE, false)
     X(LOAD_FILE, LOAD_FILE, false)
     X(LOAD_HTTP, LOAD_HTTP, false)
     X(EXTRACT_JSON, EXTRACT_JSON, false)
@@ -63,7 +62,7 @@ static std::unordered_map<sx::StatementType, StatementTranslation> STATEMENT_TRA
 Signal ActionPlanner::TranslateStatements() {
     auto& next = next_program_.program();
     auto& stmts = next_program_.program().statements;
-    graph_actions_.resize(stmts.size());
+    program_actions_.resize(stmts.size());
 
     // Translate statements as if all were new
     for (unsigned stmt_id = 0; stmt_id < stmts.size(); ++stmt_id) {
@@ -71,8 +70,8 @@ Signal ActionPlanner::TranslateStatements() {
         auto& stmt_root = next.nodes[stmt->root];
 
         // Write action
-        proto::action::ActionT action;
-        action.action_type = ActionType::NONE;
+        proto::action::ProgramActionT action;
+        action.action_type = ProgramActionType::NONE;
         action.origin_statement = stmt_id;
         action.depends_on = {};
         action.required_for = {};
@@ -93,80 +92,54 @@ Signal ActionPlanner::TranslateStatements() {
                 action.script = script.ReleaseValue();
             }
         }
-        graph_actions_[stmt_id] = move(action);
+        program_actions_[stmt_id] = move(action);
     }
 
     // Store dependencies
     auto& deps = next_program_.program().dependencies;
     for (unsigned dep_id = 0; dep_id < deps.size(); ++dep_id) {
         auto& dep = deps[dep_id];
-        graph_actions_[dep.source_statement()].required_for.push_back(dep.target_statement());
-        graph_actions_[dep.target_statement()].depends_on.push_back(dep.source_statement());
+        program_actions_[dep.source_statement()].required_for.push_back(dep.target_statement());
+        program_actions_[dep.target_statement()].depends_on.push_back(dep.source_statement());
     }
     return Signal::OK();
 }
 
-/// An action invalidation
-struct ActionInvalidation {
-    ActionType drop_action;
+/// A program action invalidation
+struct ProgramActionInvalidation {
+    SetupActionType import_action;
+    SetupActionType drop_action;
     bool propagates_backwards;
 };
-static std::unordered_map<ActionType, ActionInvalidation> ACTION_INVALIDATION = {
-#define X(ACTION, UNDO_ACTION, PROPAGATE) { ActionType::ACTION, { ActionType::UNDO_ACTION, PROPAGATE } },
-    X(NONE, NONE, false)
-    X(PARAMETER, NONE, false)
-    X(LOAD_DROP, LOAD_DROP, false)
-    X(LOAD_FILE, LOAD_DROP, false)
-    X(LOAD_HTTP, LOAD_DROP, false)
-    X(EXTRACT_DROP, NONE, false)
-    X(EXTRACT_JSON, TABLE_DROP, false)
-    X(EXTRACT_CSV, TABLE_DROP, false)
-    X(VIEW_DROP, NONE, true)
-    X(VIEW_CREATE, VIEW_DROP, true)
-    X(TABLE_DROP, NONE, true)
-    X(TABLE_CREATE, TABLE_DROP, true)
-    X(TABLE_MODIFY, NONE, true)
-    X(VIZ_DROP, NONE, false)
-    X(VIZ_CREATE, VIZ_DROP, false)
-    X(VIZ_UPDATE, VIZ_DROP, false)
-    X(QUERY_SCALAR, NONE, false)
-    X(QUERY_TABLE, NONE, false)
+static std::unordered_map<ProgramActionType, ProgramActionInvalidation> ACTION_TRANSLATION = {
+#define X(ACTION, IMPORT_ACTION, DROP_ACTION, PROPAGATE) { ProgramActionType::ACTION, { SetupActionType::IMPORT_ACTION, SetupActionType::DROP_ACTION, PROPAGATE } },
+    X(NONE, NONE, NONE, false)
+    X(PARAMETER, NONE, NONE, false)
+    X(LOAD_FILE, IMPORT_BLOB, DROP_BLOB, false)
+    X(LOAD_HTTP, IMPORT_BLOB, DROP_BLOB, false)
+    X(EXTRACT_JSON, IMPORT_TABLE, DROP_TABLE, false)
+    X(EXTRACT_CSV, IMPORT_TABLE, DROP_TABLE, false)
+    X(VIEW_CREATE, IMPORT_VIEW, DROP_VIEW, true)
+    X(TABLE_CREATE, IMPORT_TABLE, DROP_TABLE, true)
+    X(TABLE_MODIFY, IMPORT_TABLE, DROP_TABLE, true)
+    X(VIZ_CREATE, IMPORT_VIZ, DROP_VIZ, false)
+    X(VIZ_UPDATE, IMPORT_VIZ, DROP_VIZ, false)
 #undef X
 };
 
 // Map previously completed actions to the new graph
 Signal ActionPlanner::MapPreviousActions() {
+    using ActionID = size_t;
     if (!prev_action_graph_) return Signal::OK();
-    auto& actions = prev_action_graph_->actions;
+    auto& prev_actions = prev_action_graph_->program_actions;
 
     // Find applicable actions of previous action graph.
     //
     // An action is applicable iff:
     //  1) Diff is either KEEP or MOVE and the statement is not affected by a parmeter update
     //  2) All dependencies are applicable
-    //
     std::vector<bool> applicable;
-    applicable.resize(actions.size(), false);
-
-    // Helper to generate a drop action.
-    auto drop = [this](const proto::action::ActionT& action) {
-        auto stmt_id = action.origin_statement;
-        auto iter = ACTION_INVALIDATION.find(action.action_type);
-        if (iter == ACTION_INVALIDATION.end()) {
-            return;
-        }
-        auto& target = prev_program_->program().statements[stmt_id];
-        proto::action::ActionT drop;
-        drop.action_type = iter->second.drop_action;
-        drop.origin_statement = stmt_id;
-        drop.target_id = ++global_target_counter_;
-        drop.target_name_qualified = target->target_name_qualified;
-        drop.target_name_short = target->target_name_short;
-        drop.depends_on = {};
-        drop.required_for = {};
-        drop.script = "";
-        setup_actions_.push_back(move(drop));
-    };
+    applicable.resize(prev_actions.size(), false);
 
     // Invalidate an action.
     // If an action is invalidated, we might have to propagate the invalidation to the actions before us.
@@ -185,12 +158,12 @@ Signal ActionPlanner::MapPreviousActions() {
             visited.insert(top);
 
             // Get invalidation info
-            auto& action = *actions[action_id];
-            auto iter = ACTION_INVALIDATION.find(action.action_type);
-            if (iter == ACTION_INVALIDATION.end()) {
+            auto& action = *prev_actions[action_id];
+            auto iter = ACTION_TRANSLATION.find(action.action_type);
+            if (iter == ACTION_TRANSLATION.end()) {
                 continue;
             }
-            auto [drop_action_type, propagates] = iter->second;
+            auto [import_action, drop_action, propagates] = iter->second;
 
             // Propagates invalidation?
             if (propagates) {
@@ -199,102 +172,150 @@ Signal ActionPlanner::MapPreviousActions() {
                 }
             }
 
-            // Already marked as not applicable?
-            // In that case we already emitted the drop action.
-            // (...since we are traversing in toplogical order)
-            if (!applicable[top]) {
-                continue;
-            }
+            // Action is not applicable
             applicable[top] = false;
-            drop(action);
         }
     };
 
     // We traverse the previous action graph in topological order.
     // That restricts the applicability check to the direct dependencies.
-    using ActionID = size_t;
-    std::vector<std::pair<ActionID, int>> action_deps;
-    for (unsigned i = 0; i < actions.size(); ++i) {
-        action_deps[i] = {i, actions[i]->depends_on.size()};
-    }
-    TopologicalSort<ActionID> pending_actions{move(action_deps)};
-
-    // Visit all actions
-    while (!pending_actions.Empty()) {
-        auto [action_id, key] = pending_actions.Top();
-        pending_actions.Pop();
-
-        // Decrement key of depending actions
-        auto& action = *actions[action_id];
-        for (auto next : action.required_for) {
-            pending_actions.DecrementKey(next);
+    {
+        std::vector<std::pair<ActionID, int>> deps;
+        for (unsigned i = 0; i < prev_actions.size(); ++i) {
+            deps[i] = {i, prev_actions[i]->depends_on.size()};
         }
 
-        // Action not completed?
-        // XXX We could detect actions that were NOT started at some point.
-        //     Right now we dont, so we just invalidate to be safe.
-        if (!action.status || action.status->status_code() != proto::action::ActionStatusCode::COMPLETED) {
-            invalidate(action_id);
-            continue;
-        }
+        TopologicalSort<ActionID> pending_actions{move(deps)};
+        while (!pending_actions.Empty()) {
+            auto [prev_action_id, key] = pending_actions.Top();
+            pending_actions.Pop();
 
-        // Get the diff op
-        assert(action_id < diff_.size());
-        auto& diff_op = diff_[action.origin_statement];
-        switch (diff_op.code()) {
-            // MOVE or KEEP?
-            // The statement didn't change, so we should try to just reuse the output from before.
-            case DiffOpCode::MOVE:
-            case DiffOpCode::KEEP: {
-                // Check if all dependencies are applicable
-                auto all_applicable = true;
-                for (auto dep: action.depends_on) {
-                    all_applicable &= applicable[dep];
-                }
-                if (!all_applicable) {
-                    invalidate(action_id);
-                    break;
-                }
-                auto& target = graph_actions_[action.target_id];
-
-                // Parameter action?
-                // Then we also have to check whether the parameter value stayed the same.
-                // A changed parameter will propagate via the applicability.
-                if (action.action_type == proto::action::ActionType::PARAMETER) {
-                    auto prev_param = prev_program_->FindParameterValue(*diff_op.source());
-                    auto next_param = next_program_.FindParameterValue(*diff_op.target());
-                    if (!ProgramMatcher::ParameterValuesEqual(prev_param, next_param)) {
-                        invalidate(action_id);
-                        break;
-                    }
-                }
-
-                // The action seems to be applicable
-                applicable[action_id] = true;
-                break;
+            // Decrement key of depending actions
+            auto& a = *prev_actions[prev_action_id];
+            for (auto next : a.required_for) {
+                pending_actions.DecrementKey(next);
             }
 
-            // UPDATE or DELETE?
-            // The statement did change, so we have to figure out what must be invalidated.
-            // We have to be very careful since any leftover tables will lead to broken dashboards.
-            case DiffOpCode::UPDATE:
-            case DiffOpCode::DELETE:
-                invalidate(action_id);
-                break;
+            // Action not completed? - Just invalidate
+            if (!a.status || a.status->status_code() != proto::action::ActionStatusCode::COMPLETED) {
+                invalidate(prev_action_id);
+                continue;
+            }
 
-            // A previous action is marked with INSERT in the diff?
-            // Cannot happen, faulty diff.
-            case DiffOpCode::INSERT:
-                assert(false);
-                break;
+            // Get the diff op
+            assert(prev_action_id < diff_.size());
+            auto& diff_op = diff_[a.origin_statement];
+            switch (diff_op.code()) {
+                // MOVE or KEEP?
+                // The statement didn't change, so we should try to just reuse the output from before.
+                case DiffOpCode::MOVE:
+                case DiffOpCode::KEEP: {
+                    // Check if all dependencies are applicable
+                    auto all_applicable = true;
+                    for (auto dep: a.depends_on) {
+                        all_applicable &= applicable[dep];
+                    }
+                    if (!all_applicable) {
+                        invalidate(prev_action_id);
+                        break;
+                    }
+                    auto& target = program_actions_[a.target_id];
+
+                    // Parameter action?
+                    // Then we also have to check whether the parameter value stayed the same.
+                    // A changed parameter will propagate via the applicability.
+                    if (a.action_type == proto::action::ProgramActionType::PARAMETER) {
+                        auto prev_param = prev_program_->FindParameterValue(*diff_op.source());
+                        auto next_param = next_program_.FindParameterValue(*diff_op.target());
+                        if (!ProgramMatcher::ParameterValuesEqual(prev_param, next_param)) {
+                            invalidate(prev_action_id);
+                            break;
+                        }
+                    }
+
+                    // The action seems to be applicable
+                    applicable[prev_action_id] = true;
+                    break;
+                }
+
+                // UPDATE or DELETE?
+                // The statement did change, so we have to figure out what must be invalidated.
+                // We have to be very careful since any leftover tables will lead to broken dashboards.
+                case DiffOpCode::UPDATE:
+                case DiffOpCode::DELETE:
+                    invalidate(prev_action_id);
+                    break;
+
+                // A previous action is marked with INSERT in the diff?
+                // Cannot happen, faulty diff.
+                case DiffOpCode::INSERT:
+                    assert(false);
+                    break;
+            }
         }
     }
 
-    // XXX
     // Now we know for every previous action whether it is applicable.
-    // Mark the corresponding new actions as completed.
+    // First emit all setup actions to either import or drop previous state.
+    {
+        std::vector<proto::action::SetupActionT> setup;
+        setup.resize(prev_actions.size());
+        for (unsigned prev_action_id = 0; prev_action_id < prev_actions.size(); ++prev_action_id) {
+            auto& prev_action = prev_actions[prev_action_id];
+            auto iter = ACTION_TRANSLATION.find(prev_action->action_type);
+            if (iter == ACTION_TRANSLATION.end()) {
+                continue;
+            }
+            auto [import_action, drop_action, propagates] = iter->second;
 
-    // TODO
+            // Is applicable?
+            if (applicable[prev_action_id]) {
+                // Has import action?
+                if (import_action != SetupActionType::NONE) {
+                    auto& s = setup[prev_action_id];
+                    s.action_type = import_action;
+                    s.target_name_qualified = prev_action->target_name_qualified;
+                    s.target_name_short = prev_action->target_name_short;
+                }
+            } else {
+                // Has drop action?
+                if (drop_action != SetupActionType::NONE) {
+                    auto& s = setup[prev_action_id];
+                    s.action_type = drop_action;
+                    s.target_name_qualified = prev_action->target_name_qualified;
+                    s.target_name_short = prev_action->target_name_short;
+                }
+            }
+        }
+
+        // Now sort the setup actions in reverse topological order.
+        // If statement B depends on A, the setup action of B must be executed before A.
+        // This flips the original dependency directions to ensure that, for example, views are dropped before tables.
+        std::vector<std::pair<ActionID, int>> deps;
+        for (unsigned i = 0; i < prev_actions.size(); ++i) {
+            deps[i] = {i, prev_actions[i]->required_for.size()};
+        }
+
+        TopologicalSort<ActionID> pending_actions{move(deps)};
+        while (!pending_actions.Empty()) {
+            auto [prev_action_id, key] = pending_actions.Top();
+            pending_actions.Pop();
+
+            // Decrement key of action that the top on
+            auto& action = *prev_actions[prev_action_id];
+            for (auto next : action.depends_on) {
+                pending_actions.DecrementKey(next);
+            }
+
+            // Emit setup action
+            if (setup[prev_action_id].action_type != SetupActionType::NONE) {
+                setup_actions_.push_back(move(setup[prev_action_id]));
+            }
+        }
+    }
+
+    // XXX Emit actions of new program
+
     return Signal::OK();
 }
 
@@ -314,22 +335,24 @@ void ActionPlanner::PlanActionGraph() {
 
 // Encode action graph
 flatbuffers::Offset<proto::action::ActionGraph> ActionPlanner::Encode(flatbuffers::FlatBufferBuilder& builder) {
-    // Pack setup actions
-    std::vector<flatbuffers::Offset<proto::action::Action>> setup_actions;
+    // Pack the setup actions
+    std::vector<flatbuffers::Offset<proto::action::SetupAction>> setup_actions;
     for (auto& a : setup_actions_) {
-        setup_actions.push_back(proto::action::Action::Pack(builder, &a));
+        setup_actions.push_back(proto::action::SetupAction::Pack(builder, &a));
     }
-    // Pack the graph actions
     auto setup_actions_vec = builder.CreateVector(setup_actions);
-    std::vector<flatbuffers::Offset<proto::action::Action>> graph_actions;
-    for (auto& a : graph_actions_) {
-        graph_actions.push_back(proto::action::Action::Pack(builder, &a));
+
+    // Pack the program actions
+    std::vector<flatbuffers::Offset<proto::action::ProgramAction>> program_actions;
+    for (auto& a : program_actions_) {
+        program_actions.push_back(proto::action::ProgramAction::Pack(builder, &a));
     }
-    auto graph_actions_vec = builder.CreateVector(graph_actions);
+    auto program_actions_vec = builder.CreateVector(program_actions);
+
     // Build the graph
     proto::action::ActionGraphBuilder graph{builder};
-    graph.add_setup(setup_actions_vec);
-    graph.add_actions(graph_actions_vec);
+    graph.add_setup_actions(setup_actions_vec);
+    graph.add_program_actions(program_actions_vec);
     return graph.Finish();
 }
 

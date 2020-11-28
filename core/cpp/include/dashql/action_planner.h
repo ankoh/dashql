@@ -29,9 +29,9 @@ class ActionPlanner {
     /// The diff between the programs
     std::vector<ProgramMatcher::DiffOp> diff_;
     /// The setup actions
-    std::vector<proto::action::ActionT> setup_actions_;
+    std::vector<proto::action::SetupActionT> setup_actions_;
     /// The graph actions
-    std::vector<proto::action::ActionT> graph_actions_;
+    std::vector<proto::action::ProgramActionT> program_actions_;
 
     /// Diff the two programs
     Signal DiffPrograms();
