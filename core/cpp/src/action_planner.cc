@@ -17,6 +17,8 @@ ActionPlanner::ActionPlanner(const ProgramInstance& next_program, const ProgramI
       prev_program_(prev_program),
       prev_action_graph_(prev_action_graph),
       diff_(),
+      reverse_action_mapping_(),
+      action_applicability_(),
       action_graph_(std::make_unique<proto::action::ActionGraphT>()) {
     // Continue with next target id of previous graph (if any)
     if (prev_action_graph) {
@@ -237,25 +239,22 @@ Signal ActionPlanner::IdentifyApplicableActions() {
                     break;
                 }
 
-                // Did the set of dependencies change?
-                // If yes, we invalidate immediately.
-                {
-                    assert(diff_op.target());
-                    auto next_deps = action_graph_->program_actions[*diff_op.target()]->depends_on;
-                    bool deps_equal = true;
-                    for (auto& dep: next_deps) {
-                        if (!reverse_action_mapping_[dep]) {
-                            deps_equal = false;
-                        }
-                        dep = *reverse_action_mapping_[dep];
-                    }
-                    std::sort(a.depends_on.begin(), a.depends_on.end());
-                    std::sort(next_deps.begin(), next_deps.end());
-                    deps_equal &= next_deps == a.depends_on;
-                    if (!deps_equal) {
-                        invalidate(prev_action_id);
+                // Does the dependency set differ?
+                assert(diff_op.target());
+                auto next_deps = action_graph_->program_actions[*diff_op.target()]->depends_on;
+                bool deps_mapped = true;
+                for (auto& dep: next_deps) {
+                    if (!reverse_action_mapping_[dep]) {
+                        deps_mapped = false;
                         break;
                     }
+                    dep = *reverse_action_mapping_[dep];
+                }
+                std::sort(a.depends_on.begin(), a.depends_on.end());
+                std::sort(next_deps.begin(), next_deps.end());
+                if (!deps_mapped || next_deps != a.depends_on) {
+                    invalidate(prev_action_id);
+                    break;
                 }
 
                 // Parameter action?

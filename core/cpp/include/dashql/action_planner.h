@@ -26,15 +26,17 @@ class ActionPlanner {
 
     /// The diff between the programs
     std::vector<ProgramMatcher::DiffOp> diff_;
-    /// The applicability of actions in the previous action graph.
-    /// An action is applicable iff:
-    /// The diff is either KEEP or MOVE and the action is not affected by a parmeter update
-    /// All dependencies are applicable
-    std::vector<bool> action_applicability_;
     /// The reverse action mapping.
-    /// Maps a action to the corresponding previous action if the diff was either KEEP, MOVE or UPDATE.
+    /// Maps an action to the corresponding previous action if the diff was either KEEP, MOVE or UPDATE.
     /// We use this to figure out, whether the set of dependencies changed.
     std::vector<std::optional<size_t>> reverse_action_mapping_;
+    /// The applicability of actions in the previous action graph.
+    /// An action is applicable iff:
+    ///  1) The diff is either KEEP or MOVE
+    ///  2) The action is not affected by a parmeter update
+    ///  3) The dependency set stayed the same
+    ///  4) All dependencies are applicable
+    std::vector<bool> action_applicability_;
     /// The new action graph
     std::unique_ptr<proto::action::ActionGraphT> action_graph_;
 
