@@ -46,6 +46,7 @@ include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidyaml.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 add_subdirectory("${CMAKE_SOURCE_DIR}/../../duckdb/cpp/" "${CMAKE_BINARY_DIR}/duckdb/")
 
@@ -274,6 +275,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(grammar_tests
         dashql_core
+        pugixml
         ryml ryml_c4core
         flatbuffers gtest gmock
         Threads::Threads
@@ -286,6 +288,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(grammar_testgen
         dashql_core
+        pugixml
         ryml ryml_c4core
         flatbuffers gtest gmock
         Threads::Threads
