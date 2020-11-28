@@ -28,10 +28,8 @@ class ActionPlanner {
 
     /// The diff between the programs
     std::vector<ProgramMatcher::DiffOp> diff_;
-    /// The setup actions
-    std::vector<proto::action::SetupActionT> setup_actions_;
-    /// The graph actions
-    std::vector<proto::action::ProgramActionT> program_actions_;
+    /// The new action graph
+    std::unique_ptr<proto::action::ActionGraphT> action_graph_;
 
     /// Diff the two programs
     Signal DiffPrograms();
@@ -51,7 +49,7 @@ class ActionPlanner {
     /// Plan the new action graph
     void PlanActionGraph();
     /// Get the action graph
-    flatbuffers::Offset<proto::action::ActionGraph> Encode(flatbuffers::FlatBufferBuilder& builder);
+    std::unique_ptr<proto::action::ActionGraphT> Finish();
 };
 
 }  // namespace dashql
