@@ -15,7 +15,7 @@
 namespace dashql {
 namespace parser {
 
-void EncodeActionTes(ryml::NodeRef ref, const ProgramInstance& program, const proto::action::ActionGraphT* graph);
+void EncodeActionTes(ryml::NodeRef ref, const ProgramInstance& program, const proto::action::ActionGraphT& graph);
 
 }  // namespace parser
 }  // namespace dashql
