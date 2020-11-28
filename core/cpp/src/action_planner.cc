@@ -237,7 +237,26 @@ Signal ActionPlanner::IdentifyApplicableActions() {
                     break;
                 }
 
-                // XXX Did the set of dependencies change?
+                // Did the set of dependencies change?
+                // If yes, we invalidate immediately.
+                {
+                    assert(diff_op.target());
+                    auto next_deps = action_graph_->program_actions[*diff_op.target()]->depends_on;
+                    bool deps_equal = true;
+                    for (auto& dep: next_deps) {
+                        if (!reverse_action_mapping_[dep]) {
+                            deps_equal = false;
+                        }
+                        dep = *reverse_action_mapping_[dep];
+                    }
+                    std::sort(a.depends_on.begin(), a.depends_on.end());
+                    std::sort(next_deps.begin(), next_deps.end());
+                    deps_equal &= next_deps == a.depends_on;
+                    if (!deps_equal) {
+                        invalidate(prev_action_id);
+                        break;
+                    }
+                }
 
                 // Parameter action?
                 // Then we also have to check whether the parameter value stayed the same.
