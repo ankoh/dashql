@@ -75,19 +75,19 @@ std::unique_ptr<sx::StatementT> Statement::Finish() {
     auto [table, schema] = name;
     auto stmt = std::make_unique<sx::StatementT>();
     stmt->statement_type = type;
-    stmt->root = root;
-    stmt->target_name_short = table;
+    stmt->root_node = root;
+    stmt->name_short = table;
 
     // Store qualified name
     if (schema.empty()) {
-        stmt->target_name_qualified = move(table);
+        stmt->name_qualified = move(table);
     } else {
         std::string buffer;
         buffer.resize(schema.size() + 1 + table.size());
         schema.copy(buffer.data(), schema.size());
         buffer[schema.size()] = '.';
         table.copy(buffer.data() + schema.size() + 1, table.size());
-        stmt->target_name_qualified = move(buffer);
+        stmt->name_qualified = move(buffer);
     }
     return stmt;
 }

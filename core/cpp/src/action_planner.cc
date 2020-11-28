@@ -67,7 +67,7 @@ Signal ActionPlanner::TranslateStatements() {
     // Translate statements as if all were new
     for (unsigned stmt_id = 0; stmt_id < stmts.size(); ++stmt_id) {
         auto& stmt = stmts[stmt_id];
-        auto& stmt_root = next.nodes[stmt->root];
+        auto& stmt_root = next.nodes[stmt->root_node];
 
         // Write action
         auto action = std::make_unique<proto::action::ProgramActionT>();
@@ -76,8 +76,8 @@ Signal ActionPlanner::TranslateStatements() {
         action->depends_on = {};
         action->required_for = {};
         action->target_id = global_target_counter_++;
-        action->target_name_short = stmt->target_name_short;
-        action->target_name_qualified = stmt->target_name_qualified;
+        action->target_name_qualified = stmt->name_qualified;
+        action->target_name_short = stmt->name_short;
         action->script = "";
 
         // Find action type
@@ -202,7 +202,7 @@ Signal ActionPlanner::MapPreviousActions() {
             }
 
             // Action not completed? - Just invalidate
-            if (!a.status || a.status->status_code() != proto::action::ActionStatusCode::COMPLETED) {
+            if (!a.action_status || a.action_status->status_code() != proto::action::ActionStatusCode::COMPLETED) {
                 invalidate(prev_action_id);
                 continue;
             }

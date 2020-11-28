@@ -32,6 +32,7 @@ struct ActionStatus {
 // Action graph
 
 table ActionGraph {
+    next_target_id: uint32;
     setup_actions: [SetupAction];
     program_actions: [ProgramAction];
 }
@@ -56,9 +57,10 @@ enum SetupActionType: uint8 {
 
 table SetupAction {
     action_type: SetupActionType;
+    action_status: ActionStatus;
+    target_id: uint32;
     target_name_qualified: string;
     target_name_short: string;
-    status: ActionStatus;
 }
 
 enum ProgramActionType: uint8 {
@@ -77,14 +79,14 @@ enum ProgramActionType: uint8 {
 
 table ProgramAction {
     action_type: ProgramActionType;
-    origin_statement: uint32;
+    action_status: ActionStatus;
     depends_on: [uint32];
     required_for: [uint32];
+    origin_statement: uint32;
     target_id: uint32;
     target_name_qualified: string;
     target_name_short: string;
     script: string;
-    status: ActionStatus;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +100,8 @@ enum DynamicActionType: uint8 {
 
 table DynamicAction {
     action_type: DynamicActionType;
+    action_status: ActionStatus;
     origin_statement: uint32;
-    status: ActionStatus;
+    target_id: uint32;
+    script: string;
 }

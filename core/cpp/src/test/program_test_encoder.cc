@@ -138,12 +138,12 @@ void EncodeProgramTest(ryml::NodeRef root, const proto::syntax::ProgramT& progra
 
         auto stmt = stmts_seq.append_child();
         stmt |= ryml::MAP;
-        if (!s.target_name_qualified.empty())
-            stmt["name"] << s.target_name_qualified.c_str();
+        if (!s.name_qualified.empty())
+            stmt["name"] << s.name_qualified.c_str();
         stmt["type"] << c4::to_csubstr(stmt_type_tt->names[static_cast<uint16_t>(s.statement_type)]);
 
         std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Node*>> pending;
-        pending.push_back({stmt, "root", &nodes[s.root]});
+        pending.push_back({stmt, "root", &nodes[s.root_node]});
 
         while (!pending.empty()) {
             auto [parent, key, target] = pending.back();

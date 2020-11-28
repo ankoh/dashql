@@ -195,9 +195,9 @@ table Error {
 
 table Statement {
     statement_type: StatementType;
-    root: uint32;
-    target_name_qualified: string;
-    target_name_short: string;
+    root_node: uint32;
+    name_qualified: string;
+    name_short: string;
 }
 
 enum DependencyType: uint8 {

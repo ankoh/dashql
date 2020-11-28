@@ -216,15 +216,15 @@ export class Statement {
     /// Set the statement buffer
     public set statement(s: sx.Statement) { this._statement = s; }
     /// Get the short name
-    public get target_name_short() { return this._statement.targetNameShort(); }
+    public get target_name_short() { return this._statement.nameShort(); }
     /// Get the qualified name
-    public get target_name_qualified() { return this._statement.targetNameQualified(); }
+    public get target_name_qualified() { return this._statement.nameQualified(); }
     /// Get the root
-    public get root() { return this._statement.root(); }
+    public get root() { return this._statement.rootNode(); }
     /// Get the root node
     public root_node(obj: Node | null = null) {
         const n = obj || new Node(this._program);
-        n.node = this.program.nodes(this._statement.root(), n.node)!;
+        n.node = this.program.nodes(this._statement.rootNode(), n.node)!;
         return n;
     }
 
@@ -234,7 +234,7 @@ export class Statement {
         const path = new NodePath(this._statement_id);
         const pending_cap = this.program.nodesLength() / this.program.statementsLength();
         const pending = new NativeStack(pending_cap);
-        pending.push(this._statement.root());
+        pending.push(this._statement.rootNode());
 
         // We always pass the same objects to the function to spare us all the allocations.
         // The function MUST NOT store the node elsewhere.
@@ -268,7 +268,7 @@ export class Statement {
         const path = new NodePath(this._statement_id);
         const pending_cap = this.program.nodesLength() / this.program.statementsLength();
         const pending = new NativeStack(pending_cap);
-        pending.push(this._statement.root());
+        pending.push(this._statement.rootNode());
 
         /// Use a compact bitmap to track visited nodes
         const visited = new NativeBitmap(this.program.nodesLength());
