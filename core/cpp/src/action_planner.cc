@@ -17,8 +17,7 @@ ActionPlanner::ActionPlanner(const ProgramInstance& next_program, const ProgramI
       prev_program_(prev_program),
       prev_action_graph_(prev_action_graph),
       diff_(),
-      setup_actions_(),
-      program_actions_() {}
+      action_graph_(std::make_unique<proto::action::ActionGraphT>()) {}
 
 // Diff programs
 Signal ActionPlanner::DiffPrograms() {
@@ -62,7 +61,8 @@ static std::unordered_map<sx::StatementType, StatementTranslation> STATEMENT_TRA
 Signal ActionPlanner::TranslateStatements() {
     auto& next = next_program_.program();
     auto& stmts = next_program_.program().statements;
-    program_actions_.resize(stmts.size());
+    auto& program_actions = action_graph_->program_actions;
+    program_actions.resize(stmts.size());
 
     // Translate statements as if all were new
     for (unsigned stmt_id = 0; stmt_id < stmts.size(); ++stmt_id) {
@@ -70,37 +70,37 @@ Signal ActionPlanner::TranslateStatements() {
         auto& stmt_root = next.nodes[stmt->root];
 
         // Write action
-        proto::action::ProgramActionT action;
-        action.action_type = ProgramActionType::NONE;
-        action.origin_statement = stmt_id;
-        action.depends_on = {};
-        action.required_for = {};
-        action.target_id = global_target_counter_++;
-        action.target_name_short = stmt->target_name_short;
-        action.target_name_qualified = stmt->target_name_qualified;
-        action.script = "";
+        auto action = std::make_unique<proto::action::ProgramActionT>();
+        action->action_type = ProgramActionType::NONE;
+        action->origin_statement = stmt_id;
+        action->depends_on = {};
+        action->required_for = {};
+        action->target_id = global_target_counter_++;
+        action->target_name_short = stmt->target_name_short;
+        action->target_name_qualified = stmt->target_name_qualified;
+        action->script = "";
 
         // Find action type
         if (auto iter = STATEMENT_TRANSLATION.find(stmt->statement_type); iter != STATEMENT_TRANSLATION.end()) {
             auto [action_type, requires_script] = iter->second;
-            action.action_type = action_type;
+            action->action_type = action_type;
             if (requires_script) {
                 auto script = next_program_.RenderStatementText(stmt_id);
                 if (!script.IsOk()) {
                     return script.err();
                 }
-                action.script = script.ReleaseValue();
+                action->script = script.ReleaseValue();
             }
         }
-        program_actions_[stmt_id] = move(action);
+        program_actions[stmt_id] = move(action);
     }
 
     // Store dependencies
     auto& deps = next_program_.program().dependencies;
     for (unsigned dep_id = 0; dep_id < deps.size(); ++dep_id) {
         auto& dep = deps[dep_id];
-        program_actions_[dep.source_statement()].required_for.push_back(dep.target_statement());
-        program_actions_[dep.target_statement()].depends_on.push_back(dep.source_statement());
+        program_actions[dep.source_statement()]->required_for.push_back(dep.target_statement());
+        program_actions[dep.target_statement()]->depends_on.push_back(dep.source_statement());
     }
     return Signal::OK();
 }
@@ -129,9 +129,13 @@ static std::unordered_map<ProgramActionType, ProgramActionInvalidation> ACTION_T
 
 // Map previously completed actions to the new graph
 Signal ActionPlanner::MapPreviousActions() {
-    using ActionID = size_t;
+    // Nothing to diff against?
     if (!prev_action_graph_) return Signal::OK();
+
     auto& prev_actions = prev_action_graph_->program_actions;
+    auto& next_setup_actions = action_graph_->setup_actions;
+    auto& next_program_actions = action_graph_->program_actions;
+    using ActionID = size_t;
 
     // Find applicable actions of previous action graph.
     //
@@ -144,6 +148,7 @@ Signal ActionPlanner::MapPreviousActions() {
     // Invalidate an action.
     // If an action is invalidated, we might have to propagate the invalidation to the actions before us.
     // We are very pessimistic here and invalidate all our incoming dependencies to make sure everything is clean.
+    // (Except for the cases where it's trivial to see that nobody else is affected)
     auto invalidate = [&](size_t action_id) {
         std::unordered_set<size_t> visited;
         std::vector<size_t> pending;
@@ -178,7 +183,7 @@ Signal ActionPlanner::MapPreviousActions() {
     };
 
     // We traverse the previous action graph in topological order.
-    // That restricts the applicability check to the direct dependencies.
+    // That reduces the applicability check to the direct dependencies.
     {
         std::vector<std::pair<ActionID, int>> deps;
         for (unsigned i = 0; i < prev_actions.size(); ++i) {
@@ -202,7 +207,7 @@ Signal ActionPlanner::MapPreviousActions() {
                 continue;
             }
 
-            // Get the diff op
+            // Get the diff of the origin statement
             assert(prev_action_id < diff_.size());
             auto& diff_op = diff_[a.origin_statement];
             switch (diff_op.code()) {
@@ -219,7 +224,6 @@ Signal ActionPlanner::MapPreviousActions() {
                         invalidate(prev_action_id);
                         break;
                     }
-                    auto& target = program_actions_[a.target_id];
 
                     // Parameter action?
                     // Then we also have to check whether the parameter value stayed the same.
@@ -233,7 +237,7 @@ Signal ActionPlanner::MapPreviousActions() {
                         }
                     }
 
-                    // The action seems to be applicable
+                    // The action seems to be applicable, mark it as such
                     applicable[prev_action_id] = true;
                     break;
                 }
@@ -247,7 +251,7 @@ Signal ActionPlanner::MapPreviousActions() {
                     break;
 
                 // A previous action is marked with INSERT in the diff?
-                // Cannot happen, faulty diff.
+                // Cannot happen, must be a faulty diff.
                 case DiffOpCode::INSERT:
                     assert(false);
                     break;
@@ -258,9 +262,10 @@ Signal ActionPlanner::MapPreviousActions() {
     // Now we know for every previous action whether it is applicable.
     // First emit all setup actions to either import or drop previous state.
     {
-        std::vector<proto::action::SetupActionT> setup;
-        setup.resize(prev_actions.size());
+        std::vector<std::unique_ptr<proto::action::SetupActionT>> setup;
+        setup.reserve(prev_actions.size());
         for (unsigned prev_action_id = 0; prev_action_id < prev_actions.size(); ++prev_action_id) {
+            setup.push_back(nullptr);
             auto& prev_action = prev_actions[prev_action_id];
             auto iter = ACTION_TRANSLATION.find(prev_action->action_type);
             if (iter == ACTION_TRANSLATION.end()) {
@@ -272,25 +277,27 @@ Signal ActionPlanner::MapPreviousActions() {
             if (applicable[prev_action_id]) {
                 // Has import action?
                 if (import_action != SetupActionType::NONE) {
-                    auto& s = setup[prev_action_id];
-                    s.action_type = import_action;
-                    s.target_name_qualified = prev_action->target_name_qualified;
-                    s.target_name_short = prev_action->target_name_short;
+                    setup.back() = std::make_unique<proto::action::SetupActionT>();
+                    auto& s = setup.back();
+                    s->action_type = import_action;
+                    s->target_name_qualified = prev_action->target_name_qualified;
+                    s->target_name_short = prev_action->target_name_short;
                 }
             } else {
                 // Has drop action?
                 if (drop_action != SetupActionType::NONE) {
-                    auto& s = setup[prev_action_id];
-                    s.action_type = drop_action;
-                    s.target_name_qualified = prev_action->target_name_qualified;
-                    s.target_name_short = prev_action->target_name_short;
+                    setup.back() = std::make_unique<proto::action::SetupActionT>();
+                    auto& s = setup.back();
+                    s->action_type = drop_action;
+                    s->target_name_qualified = prev_action->target_name_qualified;
+                    s->target_name_short = prev_action->target_name_short;
                 }
             }
         }
 
         // Now sort the setup actions in reverse topological order.
         // If statement B depends on A, the setup action of B must be executed before A.
-        // This flips the original dependency directions to ensure that, for example, views are dropped before tables.
+        // This flips the original dependencies to ensure that, for example, derived views are dropped before tables.
         std::vector<std::pair<ActionID, int>> deps;
         for (unsigned i = 0; i < prev_actions.size(); ++i) {
             deps[i] = {i, prev_actions[i]->required_for.size()};
@@ -308,8 +315,8 @@ Signal ActionPlanner::MapPreviousActions() {
             }
 
             // Emit setup action
-            if (setup[prev_action_id].action_type != SetupActionType::NONE) {
-                setup_actions_.push_back(move(setup[prev_action_id]));
+            if (setup[prev_action_id]->action_type != SetupActionType::NONE) {
+                next_setup_actions.push_back(move(setup[prev_action_id]));
             }
         }
     }
@@ -334,26 +341,8 @@ void ActionPlanner::PlanActionGraph() {
 }
 
 // Encode action graph
-flatbuffers::Offset<proto::action::ActionGraph> ActionPlanner::Encode(flatbuffers::FlatBufferBuilder& builder) {
-    // Pack the setup actions
-    std::vector<flatbuffers::Offset<proto::action::SetupAction>> setup_actions;
-    for (auto& a : setup_actions_) {
-        setup_actions.push_back(proto::action::SetupAction::Pack(builder, &a));
-    }
-    auto setup_actions_vec = builder.CreateVector(setup_actions);
-
-    // Pack the program actions
-    std::vector<flatbuffers::Offset<proto::action::ProgramAction>> program_actions;
-    for (auto& a : program_actions_) {
-        program_actions.push_back(proto::action::ProgramAction::Pack(builder, &a));
-    }
-    auto program_actions_vec = builder.CreateVector(program_actions);
-
-    // Build the graph
-    proto::action::ActionGraphBuilder graph{builder};
-    graph.add_setup_actions(setup_actions_vec);
-    graph.add_program_actions(program_actions_vec);
-    return graph.Finish();
+std::unique_ptr<proto::action::ActionGraphT> ActionPlanner::Finish() {
+    return move(action_graph_);
 }
 
 }  // namespace dashql
