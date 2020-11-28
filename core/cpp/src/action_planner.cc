@@ -17,7 +17,13 @@ ActionPlanner::ActionPlanner(const ProgramInstance& next_program, const ProgramI
       prev_program_(prev_program),
       prev_action_graph_(prev_action_graph),
       diff_(),
-      action_graph_(std::make_unique<proto::action::ActionGraphT>()) {}
+      action_graph_(std::make_unique<proto::action::ActionGraphT>()) {
+
+    // Continue with next target id of previous graph (if any)
+    if (prev_action_graph) {
+        action_graph_->next_target_id = prev_action_graph->next_target_id;
+    }
+}
 
 // Diff programs
 Signal ActionPlanner::DiffPrograms() {
@@ -75,7 +81,7 @@ Signal ActionPlanner::TranslateStatements() {
         action->origin_statement = stmt_id;
         action->depends_on = {};
         action->required_for = {};
-        action->target_id = global_target_counter_++;
+        action->target_id = action_graph_->next_target_id++;
         action->target_name_qualified = stmt->name_qualified;
         action->target_name_short = stmt->name_short;
         action->script = "";
@@ -280,6 +286,7 @@ Signal ActionPlanner::MapPreviousActions() {
                     setup.back() = std::make_unique<proto::action::SetupActionT>();
                     auto& s = setup.back();
                     s->action_type = import_action;
+                    s->target_id = prev_action->target_id;
                     s->target_name_qualified = prev_action->target_name_qualified;
                     s->target_name_short = prev_action->target_name_short;
                 }
