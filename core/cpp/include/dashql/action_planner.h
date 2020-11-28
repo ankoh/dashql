@@ -33,8 +33,8 @@ class ActionPlanner {
     Signal DiffPrograms();
     /// Translate statements canonically
     Signal TranslateStatements();
-    /// Map any previously completed actions
-    Signal MapPreviousActions();
+    /// Map the previous action graph
+    Signal MapPreviousActionGraph();
     /// Propagate the updates through the graph
     Signal PropagateUpdates();
 
