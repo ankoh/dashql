@@ -1,4 +1,4 @@
-#include "dashql/test/action_test_encoder.h"
+#include "dashql/test/action_graph_tests.h"
 
 #include <cstdint>
 #include <iostream>
