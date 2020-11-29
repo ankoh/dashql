@@ -48,13 +48,13 @@
                 </action>
             </setup>
             <program>
-                <action type="PARAMETER" statement="0">
+                <action type="PARAMETER" status="NONE" statement="0">
                     <target id="2" name_qualified="global.country" name_short="country" />
                     <required_for>
                         <action_ref id="1" />
                     </required_for>
                 </action>
-                <action type="LOAD_HTTP" statement="1">
+                <action type="LOAD_HTTP" status="NONE" statement="1">
                     <target id="3" name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <action_ref id="0" />
