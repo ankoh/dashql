@@ -42,15 +42,9 @@ jobs:
       with:
         script: |-
             ./core/cpp/build/debug/tester ./core/cpp/test/grammar \
-                --gtest_output=xml:./reports/tests_debug.xml
-
-    - name: Test Core Grammar
-      uses: ./ci/image
-      with:
-        script: |-
-            ./core/cpp/build/debug/grammar_tests ./core/cpp/test/grammar \
-                --gtest_output=xml:./reports/tests_grammar_debug.xml
-
+                --gtest_output=xml:./reports/tests_debug.xml \
+                ./core/cpp/
+ \
     - name: Test WebDB
       uses: ./ci/image
       with:
@@ -98,14 +92,8 @@ jobs:
       with:
         script: |-
             ./core/cpp/build/release/tester \
-                --gtest_output=xml:./reports/tests_release.xml
-
-    - name: Test Core Grammar
-      uses: ./ci/image
-      with:
-        script: |-
-            ./core/cpp/build/release/grammar_tests ./core/cpp/test/grammar \
-                --gtest_output=xml:./reports/tests_grammar_release.xml
+                --gtest_output=xml:./reports/tests_release.xml \
+                ./core/cpp/
 
     - name: Test WebDB
       uses: ./ci/image

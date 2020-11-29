@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "dashql/parser/parser_driver.h"
-#include "dashql/test/program_test_encoder.h"
+#include "dashql/test/grammar_tests.h"
 #include "duckdb/web/common/span.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
 
             /// Write output
             auto expected = test.append_child("expected");
-            test::EncodeProgramTest(expected, *program, input_sv);
+            test::GrammarTest::EncodeProgram(expected, *program, input_sv);
 
             std::cout << "  TEST " << name << std::endl;
         }

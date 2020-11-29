@@ -1,5 +1,6 @@
-#include "dashql/test/program_test_encoder.h"
+#include "dashql/test/grammar_tests.h"
 
+#include <fstream>
 #include <cstdint>
 #include <iostream>
 #include <regex>
@@ -96,7 +97,7 @@ const char* getEnumText(const sx::Node& target) {
 }  // namespace
 
 /// Encode yaml
-void EncodeProgramTest(pugi::xml_node& root, const proto::syntax::ProgramT& program, std::string_view text) {
+void GrammarTest::EncodeProgram(pugi::xml_node& root, const proto::syntax::ProgramT& program, std::string_view text) {
     // Unpack modules
     auto& nodes = program.nodes;
     auto& statements = program.statements;
@@ -201,6 +202,101 @@ void EncodeProgramTest(pugi::xml_node& root, const proto::syntax::ProgramT& prog
         n.append_attribute("target") = dep.target_statement();
         encode(n, loc, text);
     };
+}
+
+/// Matches the expected result?
+::testing::AssertionResult GrammarTest::Matches(const pugi::xml_node& actual) const {
+    std::stringstream expected_ss;
+    std::stringstream actual_ss;
+    expected.print(expected_ss);
+    actual.print(actual_ss);
+    auto expected_str = expected_ss.str();
+    auto actual_str = actual_ss.str();
+    if (expected_str == actual_str) return ::testing::AssertionSuccess();
+
+    std::stringstream err;
+
+    err << std::endl;
+    err << "OUTPUT" << std::endl;
+    err << "----------------------------------------" << std::endl;
+    err << actual_str << std::endl;
+
+    err << "EXPECTED" << std::endl;
+    err << "----------------------------------------" << std::endl;
+    std::vector<std::string> expected_lines, actual_lines;
+    ::testing::internal::SplitString(expected_str, '\n', &expected_lines);
+    ::testing::internal::SplitString(actual_str, '\n', &actual_lines);
+    err << ::testing::internal::edit_distance::CreateUnifiedDiff(actual_lines, expected_lines);
+    err << std::endl;
+
+    return ::testing::AssertionFailure() << err.str();
+}
+
+// The files
+static std::unordered_map<std::string, std::vector<GrammarTest>> TEST_FILES;
+
+// Load the tests
+void GrammarTest::LoadTests(std::filesystem::path& source_dir) {
+    auto grammar_dir = source_dir / "test" / "grammar";
+
+    std::cout << "Loading grammar tests at: " << grammar_dir << std::endl;
+    
+    for (auto& p : std::filesystem::directory_iterator(grammar_dir)) {
+        auto filename = p.path().filename().string();
+        if (p.path().extension().string() != ".xml") continue;
+
+        // Make sure that it's no template
+        auto tpl = p.path();
+        tpl.replace_extension();
+        if (tpl.extension() == ".tpl") continue;
+
+        // Open input stream
+        std::ifstream in(p.path(), std::ios::in | std::ios::binary);
+        if (!in) {
+            std::cout << "[ SETUP    ] failed to read test file: " << filename << std::endl;
+            continue;
+        }
+
+        // Parse xml document
+        pugi::xml_document doc;
+        doc.load(in);
+
+        // Read tests
+        std::vector<GrammarTest> tests;
+        for (auto test : doc.children()) {
+            // Create test
+            tests.emplace_back();
+            auto& t = tests.back();
+            t.name = test.attribute("name").as_string();
+            t.input = test.child("input").last_child().value();
+
+            pugi::xml_document expected;
+            for (auto s: test.child("expected").children()) {
+                expected.append_copy(s);
+            }
+            t.expected = std::move(expected);
+        }
+
+        std::cout << "[ SETUP    ] " << filename << ": " << tests.size() << " tests" << std::endl;
+
+        // Register test
+        TEST_FILES.insert({filename, move(tests)});
+    }
+}
+
+// Get the tests
+std::vector<const GrammarTest*> GrammarTest::GetTests(std::string_view filename) {
+    std::string name{filename};
+    auto iter = TEST_FILES.find(name);
+    if (iter == TEST_FILES.end()) {
+        return {};
+    }
+    std::vector<const GrammarTest*> tests;
+    for (auto& test: iter->second) {
+        tests.emplace_back(&test);
+    }
+    std::cout << "filename " << tests.size() << std::endl;
+    return tests;
 }
 
 }  // namespace test
