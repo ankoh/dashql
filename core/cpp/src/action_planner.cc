@@ -82,6 +82,7 @@ Signal ActionPlanner::TranslateStatements() {
         // Write action
         auto action = std::make_unique<proto::action::ProgramActionT>();
         action->action_type = ProgramActionType::NONE;
+        action->action_status = std::make_unique<proto::action::ActionStatus>();
         action->origin_statement = stmt_id;
         action->depends_on = {};
         action->required_for = {};
