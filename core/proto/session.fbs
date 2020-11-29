@@ -8,6 +8,7 @@ namespace dashql.proto.session;
 
 table ParameterValue {
     type: syntax_dashql.ParameterType;
+    origin_statement: uint32;
     value: string;
 }
 

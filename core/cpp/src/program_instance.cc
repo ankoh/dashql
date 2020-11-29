@@ -4,14 +4,21 @@ namespace dashql {
 
 /// Constructor
 ProgramInstance::ProgramInstance(std::string_view text, const sx::ProgramT& program)
-    : program_text_(text), program_(program), parameter_values_(), patch_() {}
+    : program_text_(text), program_(program), parameter_values_(), patch_() {
+    parameter_values_.resize(program_.statements.size(), nullptr);
+}
+
+/// Set a parameter value
+void ProgramInstance::SetParameterValue(const proto::session::ParameterValueT* param) {
+    if (!param) return;
+    if (param->origin_statement < parameter_values_.size()) {
+        parameter_values_[param->origin_statement] = param;
+    }
+}
 
 /// Find a parameter value
-const proto::session::ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const {
-    if (auto iter = parameter_values_.find(stmt_id); iter != parameter_values_.end()) {
-        return iter->second;
-    }
-    return nullptr;
+const proto::session::ParameterValueT* ProgramInstance::FindParameterValue(size_t stmt_id) const {
+    return parameter_values_[stmt_id];
 }
 
 //

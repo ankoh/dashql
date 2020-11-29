@@ -8,6 +8,9 @@
                 url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
             );
         </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+        </parameters>
         <graph>
             <program>
                 <action status="COMPLETED" />
@@ -24,5 +27,8 @@
                 url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
             );
         </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="US" />
+        </parameters>
     </next>
 </test>
