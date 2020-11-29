@@ -49,7 +49,7 @@ jobs:
       with:
         script: |-
             ./core/cpp/build/debug/duckdb/duckdb_tester \
-                --gtest_output=xml:./reports/tests_webdb_debug.xml
+                --gtest_output=xml:./reports/tests_db_debug.xml
 
   ubuntu_x86_release:
     name: Ubuntu / x86 / Release
@@ -98,7 +98,7 @@ jobs:
       with:
         script: |-
             ./core/cpp/build/release/duckdb/duckdb_tester \
-                --gtest_output=xml:./reports/tests_webdb_release.xml
+                --gtest_output=xml:./reports/tests_db_release.xml
 
   web:
     name: Web
