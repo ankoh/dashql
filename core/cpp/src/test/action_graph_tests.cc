@@ -11,6 +11,7 @@
 #include "dashql/proto/syntax_dashql_generated.h"
 #include "dashql/proto/syntax_generated.h"
 #include "dashql/proto/syntax_sql_generated.h"
+#include "dashql/proto/syntax_dashql_generated.h"
 
 namespace dashql {
 namespace test {
@@ -19,18 +20,26 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
     auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
     auto action_status_tt = proto::action::ActionStatusTypeTable();
+    auto parameter_type_tt = proto::syntax_dashql::ParameterTypeTypeTable();
 
     std::string program_text{program.program_text()};
     root.append_child("text").text().set(program_text.c_str());
 
     auto params = root.append_child("parameters");
+    for (auto* param: program.parameter_values()) {
+        if (!param) continue;
+        auto p = params.append_child("parameter");
+        p.append_attribute("type").set_value(parameter_type_tt->names[static_cast<uint16_t>(param->type)]);
+        p.append_attribute("statement").set_value(param->origin_statement);
+        p.append_attribute("value").set_value(param->value.c_str());
+    }
 
     auto g = root.append_child("graph");
     g.append_attribute("next_target_id").set_value(graph.next_target_id);
     auto setup_actions = g.append_child("setup");
     for (auto& action : graph.setup_actions) {
         auto s = setup_actions.append_child("action");
-        s.append_attribute("action_type") = setup_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
+        s.append_attribute("type") = setup_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
         if (action->action_status) {
             s.append_attribute("status") =
                 action_status_tt->names[static_cast<uint16_t>(action->action_status->status_code())];
@@ -44,7 +53,7 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
     auto program_actions = g.append_child("program");
     for (auto& action : graph.program_actions) {
         auto p = program_actions.append_child("action");
-        p.append_attribute("action_type") = program_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
+        p.append_attribute("type") = program_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
         if (action->action_status) {
             p.append_attribute("status") =
                 action_status_tt->names[static_cast<uint16_t>(action->action_status->status_code())];
@@ -65,7 +74,7 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
                 required_for.append_child("action_ref").append_attribute("id").set_value(v);
             }
         }
-        p.append_attribute("origin") = action->origin_statement;
+        p.append_attribute("statement") = action->origin_statement;
         if (!action->script.empty()) {
             p.append_child("script").text().set(action->script.c_str());
         }

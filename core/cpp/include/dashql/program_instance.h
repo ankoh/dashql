@@ -24,7 +24,7 @@ class ProgramInstance {
     const sx::ProgramT& program_;
     /// The parameter values.
     /// Maps the id of parameter statements to parameter values.
-    std::unordered_map<size_t, const proto::session::ParameterValue*> parameter_values_;
+    std::vector<const proto::session::ParameterValueT*> parameter_values_;
     /// The patch for partial evaluation (if any)
     std::unique_ptr<sx::ProgramPatchT> patch_;
 
@@ -36,9 +36,13 @@ class ProgramInstance {
     auto& program_text() const { return program_text_; }
     /// Get the program
     auto& program() const { return program_; }
+    /// Get the parameter values
+    auto& parameter_values() const { return parameter_values_; }
 
+    /// Set the parameter value
+    void SetParameterValue(const proto::session::ParameterValueT* param);
     /// Find the parameter value
-    const proto::session::ParameterValue* FindParameterValue(size_t stmt_id) const;
+    const proto::session::ParameterValueT* FindParameterValue(size_t stmt_id) const;
     /// Get the text at a location
     std::string_view TextAt(sx::Location loc) const { return program_text_.substr(loc.offset(), loc.length()); }
     /// Evaluate the program partially

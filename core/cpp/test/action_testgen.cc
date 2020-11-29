@@ -19,6 +19,32 @@ using namespace dashql;
 using namespace dashql::test;
 using namespace std;
 
+namespace {
+
+proto::syntax_dashql::ParameterType GetParameterType(std::string_view type) {
+    auto tt = proto::syntax_dashql::ParameterTypeTypeTable();
+    auto& names = tt->names;
+    auto& num_elems = tt->num_elems;
+    for (unsigned i = 0; i < num_elems; ++i) {
+        if (type == std::string_view{names[i]})
+            return static_cast<proto::syntax_dashql::ParameterType>(i);
+    }
+    return proto::syntax_dashql::ParameterType::NONE;
+}
+
+proto::session::ParameterValueT GetParameterType(const pugi::xml_node& node) {
+    auto type = GetParameterType(node.attribute("type").as_string());
+    auto stmt = node.attribute("statement").as_int();
+    auto value = node.attribute("value").as_string();
+    proto::session::ParameterValueT result;
+    result.origin_statement = stmt;
+    result.type = type;
+    result.value = value;
+    return result;
+}
+
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cout << "Usage: ./action_testgen <dir>" << std::endl;
@@ -65,9 +91,17 @@ int main(int argc, char* argv[]) {
             // Unpack previous program
             auto prev = test.child("previous");
             auto prev_text = prev.child("text").text().get();
+            auto prev_params = prev.child("parameters");
             auto prev_program = parser::ParserDriver::Parse(prev_text);
             auto prev_program_text = std::string{prev_text};
             ProgramInstance prev_program_instance{prev_program_text, *prev_program};
+            std::vector<proto::session::ParameterValueT> prev_param_values;
+            for (auto param: prev_params.children()) {
+                prev_param_values.push_back(GetParameterType(param));
+            }
+            for (auto& v: prev_param_values) {
+                prev_program_instance.SetParameterValue(&v);
+            }
 
             // Unpack next program
             auto next = test.child("next");
@@ -76,6 +110,13 @@ int main(int argc, char* argv[]) {
             auto next_program = parser::ParserDriver::Parse(next_text);
             auto next_program_text = std::string{next_text};
             ProgramInstance next_program_instance{next_program_text, *next_program};
+            std::vector<proto::session::ParameterValueT> next_param_values;
+            for (auto param: next_params.children()) {
+                next_param_values.push_back(GetParameterType(param));
+            }
+            for (auto& v: next_param_values) {
+                next_program_instance.SetParameterValue(&v);
+            }
 
             // Plan the previous action graph
             ActionPlanner prev_planner{prev_program_instance};
