@@ -7,14 +7,13 @@
 #include <string>
 
 #include "dashql/proto/syntax_generated.h"
-#include "ryml_std.hpp"
-#include "ryml.hpp"
+#include "pugixml.hpp"
 
 namespace dashql {
 namespace parser {
 
 
-void EncodeProgramTest(ryml::NodeRef ref, const proto::syntax::ProgramT& program, std::string_view text);
+void EncodeProgramTest(pugi::xml_node& root, const proto::syntax::ProgramT& program, std::string_view text);
 
 
 }  // namespace parser

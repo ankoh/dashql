@@ -1,0 +1,4 @@
+<test name="dashql_syntax_error">
+    <input>?</input>
+</test>
+

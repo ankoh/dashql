@@ -1,20 +1,16 @@
 #include "dashql/test/program_test_encoder.h"
 
-#include "dashql/proto/syntax_generated.h"
-#include "dashql/proto/syntax_sql_generated.h"
-#include "dashql/proto/syntax_dashql_generated.h"
-
 #include <cstdint>
+#include <iostream>
 #include <regex>
 #include <sstream>
 #include <stack>
 #include <unordered_set>
-#include <iostream>
 
-#include "c4/yml/std/string.hpp"
-#include "c4/yml/yml.hpp"
-#include "ryml.hpp"
-#include "ryml_std.hpp"
+#include "dashql/proto/syntax_dashql_generated.h"
+#include "dashql/proto/syntax_generated.h"
+#include "dashql/proto/syntax_sql_generated.h"
+#include "pugixml.hpp"
 
 namespace dashql {
 namespace parser {
@@ -37,29 +33,30 @@ std::string escape(std::string_view in) {
     return out;
 }
 
-void encode(ryml::NodeRef n, proto::syntax::Location loc, std::string_view text) {
-    n |= ryml::VAL;
-
+void encode(pugi::xml_node& n, proto::syntax::Location loc, std::string_view text) {
     auto begin = loc.offset();
     auto end = loc.offset() + loc.length();
-
-    std::stringstream ss;
-    ss << begin << ".." << end;
-    if (loc.length() < INLINE_LOCATION_CAP) {
-        ss << "|`" << escape(text.substr(loc.offset(), loc.length())) << "`";
-    } else {
-        auto prefix = escape(text.substr(loc.offset(), LOCATION_HINT_LENGTH));
-        auto suffix = escape(text.substr(loc.offset() + loc.length() - LOCATION_HINT_LENGTH, LOCATION_HINT_LENGTH));
-        ss << "|`" << prefix << "`..`" << suffix << "`";
+    {
+        std::stringstream ss;
+        ss << begin << ".." << end;
+        n.append_attribute("loc") = ss.str().c_str();
     }
-    std::string s = ss.str();
-    n << s;
+    {
+        std::stringstream ss;
+        if (loc.length() < INLINE_LOCATION_CAP) {
+            ss << escape(text.substr(loc.offset(), loc.length()));
+        } else {
+            auto prefix = escape(text.substr(loc.offset(), LOCATION_HINT_LENGTH));
+            auto suffix = escape(text.substr(loc.offset() + loc.length() - LOCATION_HINT_LENGTH, LOCATION_HINT_LENGTH));
+            ss << prefix << ".." << suffix;
+        }
+        n.append_attribute("text") = ss.str().c_str();
+    }
 }
 
-void encode(ryml::NodeRef e, const proto::syntax::ErrorT& err, std::string_view text) {
-    e |= ryml::MAP;
-    e["message"] << c4::to_csubstr(err.message.c_str());
-    encode(e["location"], *err.location, text);
+void encode(pugi::xml_node& n, const proto::syntax::ErrorT& err, std::string_view text) {
+    n.append_attribute("message") = err.message.c_str();
+    encode(n, *err.location, text);
 }
 
 const char* getEnumText(const sx::Node& target) {
@@ -105,22 +102,10 @@ const char* getEnumText(const sx::Node& target) {
     }
 }
 
-
-void encode(ryml::NodeRef n, const sx::Dependency& dep, sx::Location loc, std::string_view text) {
-    n |= ryml::MAP;
-    n["type"] << sx::DependencyTypeTypeTable()->names[static_cast<size_t>(dep.type())];
-    n["source"] << dep.source_statement();
-    n["target"] << dep.target_statement();
-    encode(n["target_node"], loc, text);
-}
-
 }  // namespace
 
 /// Encode yaml
-void EncodeProgramTest(ryml::NodeRef root, const proto::syntax::ProgramT& program, std::string_view text) {
-    auto& tree = *root.tree();
-    root |= ryml::MAP;
-
+void EncodeProgramTest(pugi::xml_node& root, const proto::syntax::ProgramT& program, std::string_view text) {
     // Unpack modules
     auto& nodes = program.nodes;
     auto& statements = program.statements;
@@ -129,41 +114,38 @@ void EncodeProgramTest(ryml::NodeRef root, const proto::syntax::ProgramT& progra
     auto* attr_key_tt = proto::syntax::AttributeKeyTypeTable();
 
     // Add the statements list
-    auto stmts_seq = root["statements"];
-    stmts_seq |= ryml::SEQ;
+    auto stmts = root.append_child("statements");
 
     // Translate the statement tree with a DFS
     for (unsigned stmt_id = 0; stmt_id < statements.size(); ++stmt_id) {
         auto& s = *statements[stmt_id];
 
-        auto stmt = stmts_seq.append_child();
-        stmt |= ryml::MAP;
-        if (!s.name_qualified.empty())
-            stmt["name"] << s.name_qualified.c_str();
-        stmt["type"] << c4::to_csubstr(stmt_type_tt->names[static_cast<uint16_t>(s.statement_type)]);
+        auto stmt = stmts.append_child("statement");
+        stmt.append_attribute("type") = stmt_type_tt->names[static_cast<uint16_t>(s.statement_type)];
+        if (!s.name_qualified.empty()) stmt.append_attribute("name") = s.name_qualified.c_str();
 
-        std::vector<std::tuple<ryml::NodeRef, std::string_view, const sx::Node*>> pending;
-        pending.push_back({stmt, "root", &nodes[s.root_node]});
+        std::vector<std::tuple<pugi::xml_node, const sx::Node*>> pending;
+        pending.push_back({stmt.append_child("node"), &nodes[s.root_node]});
 
         while (!pending.empty()) {
-            auto [parent, key, target] = pending.back();
+            auto [n, target] = pending.back();
             pending.pop_back();
 
             // Add or append to parent
-            auto n = key.empty() ? parent.append_child() : parent[c4::csubstr(key.data(), key.size())];
+            if (target->attribute_key() != sx::AttributeKey::NONE) {
+                n.append_attribute("key") = attr_key_tt->names[static_cast<size_t>(target->attribute_key())];
+            }
 
             // Check node type
             switch (target->node_type()) {
                 case sx::NodeType::NONE:
                     break;
                 case sx::NodeType::BOOL: {
-                    n |= ryml::VAL;
-                    n << (target->children_begin_or_value() != 0 ? "true" : "false");
+                    n.append_attribute("value") = target->children_begin_or_value() != 0;
                     break;
                 }
                 case sx::NodeType::UI32: {
-                    n |= ryml::VAL;
-                    n << target->children_begin_or_value();
+                    n.append_attribute("value") = target->children_begin_or_value();
                     break;
                 }
                 case sx::NodeType::STRING_REF: {
@@ -171,31 +153,25 @@ void EncodeProgramTest(ryml::NodeRef root, const proto::syntax::ProgramT& progra
                     break;
                 }
                 case sx::NodeType::ARRAY: {
-                    n |= ryml::SEQ;
-                    auto end = target->children_begin_or_value() + target->children_count();
+                    auto begin = target->children_begin_or_value();
                     for (auto i = 0; i < target->children_count(); ++i) {
-                        pending.push_back({n, {}, &nodes[end - i - 1]});
+                        pending.push_back({n.append_child("node"), &nodes[begin + i]});
                     }
                     break;
                 }
                 default: {
                     auto node_type_id = static_cast<uint32_t>(target->node_type());
                     if (node_type_id > static_cast<uint32_t>(sx::NodeType::OBJECT_MIN)) {
-                        n |= ryml::MAP;
-                        auto end = target->children_begin_or_value() + target->children_count();
-                        n["type"] << c4::to_csubstr(node_type_tt->names[static_cast<size_t>(target->node_type())]);
-                        encode(n["location"], target->location(), text);
+                        n.append_attribute("type") = node_type_tt->names[static_cast<size_t>(target->node_type())];
+                        encode(n, target->location(), text);
+                        auto begin = target->children_begin_or_value();
                         for (auto i = 0; i < target->children_count(); ++i) {
-                            auto& attr = nodes[end - i - 1];
-                            auto attr_key = std::string_view(attr_key_tt->names[static_cast<size_t>(attr.attribute_key())]);
-                            pending.push_back({n, attr_key, &attr});
+                            pending.push_back({n.append_child("node"), &nodes[begin + i]});
                         }
                     } else if (node_type_id > static_cast<uint32_t>(sx::NodeType::ENUM_MIN)) {
-                        n |= ryml::VAL;
-                        n << getEnumText(*target);
+                        n.append_attribute("value") = getEnumText(*target);
                     } else {
-                        n |= ryml::VAL;
-                        n << target->children_begin_or_value();
+                        n.append_attribute("value") = target->children_begin_or_value();
                     }
                     break;
                 }
@@ -204,27 +180,35 @@ void EncodeProgramTest(ryml::NodeRef root, const proto::syntax::ProgramT& progra
     }
 
     // Add errors
-    auto errors = root["errors"];
-    errors |= ryml::SEQ;
-    for (auto& err : program.errors) encode(errors.append_child(), *err, text);
+    auto errors = root.append_child("errors");
+    for (auto& err : program.errors) {
+        auto error = errors.append_child("error");
+        encode(error, *err, text);
+    }
 
     // Add line breaks
-    auto line_breaks = root["line_breaks"];
-    line_breaks |= ryml::SEQ;
-    for (auto& lb : program.line_breaks)
-        encode(line_breaks.append_child(), lb, text);
+    auto line_breaks = root.append_child("line_breaks");
+    for (auto& lb : program.line_breaks) {
+        auto lb_node = line_breaks.append_child("line_break");
+        encode(lb_node, lb, text);
+    }
 
     // Add comments
-    auto comments = root["comments"];
-    comments |= ryml::SEQ;
-    for (auto& comment : program.comments) encode(comments.append_child(), comment, text);
+    auto comments = root.append_child("comments");
+    for (auto& comment : program.comments) {
+        auto comment_node = comments.append_child("comment");
+        encode(comment_node, comment, text);
+    }
 
     // Add comments
-    auto dependencies = root["dependencies"];
-    dependencies |= ryml::SEQ;
+    auto dependencies = root.append_child("dependencies");
     for (auto& dep : program.dependencies) {
         auto loc = program.nodes[dep.target_node()].location();
-        encode(dependencies.append_child(), dep, loc, text);
+        auto n = dependencies.append_child("dependency");
+        n.append_attribute("type") = sx::DependencyTypeTypeTable()->names[static_cast<size_t>(dep.type())];
+        n.append_attribute("source") = dep.source_statement();
+        n.append_attribute("target") = dep.target_statement();
+        encode(n, loc, text);
     };
 }
 

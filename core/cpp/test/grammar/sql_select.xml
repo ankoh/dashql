@@ -1,0 +1,1866 @@
+<test name="select_iconst_1">
+    <input>
+        select 1
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..17" text="select 1">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..17" text="select 1">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="16..17" text="1">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="16..17" text="1" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="17..18" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_fconst_1e04">
+    <input>
+        select 1e-04
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..21" text="select 1e-04">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..21" text="select 1e-04">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="16..21" text="1e-04">
+                                <node key="SQL_CONST_TYPE" value="FLOAT" />
+                                <node key="SQL_CONST_VALUE" loc="16..21" text="1e-04" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="21..22" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_fconst_realfail1">
+    <input>
+        select 1e
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..18" text="select 1e">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..18" text="select 1e">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="16..18" text="1e">
+                                <node key="SQL_RESULT_TARGET_NAME" loc="17..18" text="e" />
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST" loc="16..17" text="1">
+                                    <node key="SQL_CONST_TYPE" value="FLOAT" />
+                                    <node key="SQL_CONST_VALUE" loc="16..17" text="1" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="18..19" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_bconst_b1010">
+    <input>
+        select b'1010'
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..28" text="select b'1010'     ">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..28" text="select b'1010'     ">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="16..28" text="b'1010'     ">
+                                <node key="SQL_CONST_TYPE" value="BITSTRING" />
+                                <node key="SQL_CONST_VALUE" loc="16..28" text="b'1010'     " />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="23..24" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_sconst_string">
+    <input>
+        select string
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..22" text="select string">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..22" text="select string">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..22" text="string">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..22" text="string" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="22..23" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_sconst_string_latin1">
+    <input>
+        select äöü
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..22" text="select äöü">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..22" text="select äöü">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..22" text="äöü">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..22" text="äöü" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="22..23" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_sconst_string_unicode_plane1">
+    <input>
+        select 📈
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..20" text="select 📈">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..20" text="select 📈">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..20" text="📈">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..20" text="📈" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="20..21" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_sconst_quotes">
+    <input>
+        select 'foo'
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..26" text="select 'foo'     ">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..26" text="select 'foo'     ">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="16..26" text="'foo'     ">
+                                <node key="SQL_CONST_TYPE" value="STRING" />
+                                <node key="SQL_CONST_VALUE" loc="16..26" text="'foo'     " />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="21..22" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_sconst_quotes_nested_quote">
+    <input>
+        select '''foo'''
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..30" text="select '''..oo'''     ">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..30" text="select '''..oo'''     ">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="16..30" text="'''foo'''     ">
+                                <node key="SQL_CONST_TYPE" value="STRING" />
+                                <node key="SQL_CONST_VALUE" loc="16..30" text="'''foo'''     " />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="25..26" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_sconst_quotes_nested_dquote">
+    <input>
+        select '"foo"'
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..28" text="select '&quot;foo&quot;'     ">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..28" text="select '&quot;foo&quot;'     ">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="16..28" text="'&quot;foo&quot;'     ">
+                                <node key="SQL_CONST_TYPE" value="STRING" />
+                                <node key="SQL_CONST_VALUE" loc="16..28" text="'&quot;foo&quot;'     " />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="23..24" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_iconst_1_ident">
+    <input>
+        select 1 "foo"
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..23" text="select 1 &quot;foo&quot;">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..23" text="select 1 &quot;foo&quot;">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="16..23" text="1 &quot;foo&quot;">
+                                <node key="SQL_RESULT_TARGET_NAME" loc="18..23" text="&quot;foo&quot;" />
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST" loc="16..17" text="1">
+                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                    <node key="SQL_CONST_VALUE" loc="16..17" text="1" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="23..24" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="comments_cstyle">
+    <input>
+        /* foo */
+    </input>
+    <expected>
+        <statements />
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="18..19" text=" " />
+        </line_breaks>
+        <comments>
+            <comment loc="0..18" text="         /* foo */" />
+        </comments>
+        <dependencies />
+    </expected>
+</test>
+<test name="comments_cstyle_nested">
+    <input>
+        /* foo /* bar */ */
+    </input>
+    <expected>
+        <statements />
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="28..29" text=" " />
+        </line_breaks>
+        <comments>
+            <comment loc="0..28" text="         /.. bar */ */" />
+        </comments>
+        <dependencies />
+    </expected>
+</test>
+<test name="select_iconst_list">
+    <input>
+        select 1, 2
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..20" text="select 1, 2">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..20" text="select 1, 2">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="16..17" text="1">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="16..17" text="1" />
+                            </node>
+                            <node type="OBJECT_SQL_CONST" loc="19..20" text="2">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="19..20" text="2" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="20..21" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_1rel">
+    <input>
+        select a from b
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..24" text="select a from b">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..24" text="select a from b">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="23..24" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="24..25" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_1rel_indirect1">
+    <input>
+        select a from b.c
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..26" text="select a from b.c">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..26" text="select a from b.c">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..26" text="b.c">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="23..24" text="b" />
+                                    <node loc="25..26" text="c" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="26..27" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_1rel_indirect1_noinherit">
+    <input>
+        select a from only b.c
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..31" text="select a f..m only b.c">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..31" text="select a f..m only b.c">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..31" text="only b.c">
+                                <node key="SQL_TABLE_INHERIT" value="false" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="28..29" text="b" />
+                                    <node loc="30..31" text="c" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="31..32" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_1rel_indirect1_alias">
+    <input>
+        select a from b.c as d
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..31" text="select a f..m b.c as d">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..31" text="select a f..m b.c as d">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..31" text="b.c as d">
+                                <node key="SQL_TABLE_ALIAS" loc="30..31" text="d" />
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="23..24" text="b" />
+                                    <node loc="25..26" text="c" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="31..32" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_2rel">
+    <input>
+        select a from b, c
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..27" text="select a from b, c">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..27" text="select a from b, c">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="23..24" text="b" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_TABLE_REF" loc="26..27" text="c">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="26..27" text="c" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="27..28" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_into_2rel">
+    <input>
+        select a into b from c, d
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT_INTO" name="global.b">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..34" text="select a i.. from c, d">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..34" text="select a i.. from c, d">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="30..31" text="c">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="30..31" text="c" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_TABLE_REF" loc="33..34" text="d">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="33..34" text="d" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="23..24" text="b">
+                            <node key="SQL_TEMP_NAME">
+                                <node loc="23..24" text="b" />
+                            </node>
+                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="34..35" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_1rel_group1">
+    <input>
+        select a from b group by 1
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..35" text="select a f..group by 1">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..35" text="select a f..group by 1">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="23..24" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_GROUPS">
+                            <node type="OBJECT_SQL_CONST" loc="34..35" text="1">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="34..35" text="1" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="35..36" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_1rel_window_empty">
+    <input>
+        select a from b window c as ()
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..39" text="select a f..ow c as ()">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..39" text="select a f..ow c as ()">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="23..24" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WINDOWS">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="32..39" text="c as ()">
+                                <node key="SQL_WINDOW_DEF_NAME" loc="32..33" text="c" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="39..40" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_1rel_window_partition1">
+    <input>
+        select a from b window c as (partition by d)
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..53" text="select a f..tion by d)">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..53" text="select a f..tion by d)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="23..24" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WINDOWS">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="32..53" text="c as (part..tion by d)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="37..53" text="(partition by d)">
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="51..52" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="51..52" text="d" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_WINDOW_DEF_NAME" loc="32..33" text="c" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="53..54" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_1rel_window_partition1_rows_unbounded">
+    <input>
+        select a from b
+        window c as (partition by d rows between unbounded preceding and unbounded following)
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..118" text="select a f..following)">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..118" text="select a f..following)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="23..24" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WINDOWS">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="40..118" text="c as (part..following)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="45..118" text="(partition..following)">
+                                    <node key="SQL_WINDOW_FRAME_BOUNDS">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="74..93" text="unbounded preceding">
+                                            <node key="SQL_WINDOW_BOUND_DIRECTION" value="PRECEDING" />
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="UNBOUNDED" />
+                                        </node>
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="98..117" text="unbounded following">
+                                            <node key="SQL_WINDOW_BOUND_DIRECTION" value="FOLLOWING" />
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="UNBOUNDED" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_WINDOW_FRAME_MODE" value="ROWS" />
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="59..60" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="59..60" text="d" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_WINDOW_DEF_NAME" loc="40..41" text="c" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="24..25" text=" " />
+            <line_break loc="118..119" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_1rel_window_partition1_rows_1preceding_current">
+    <input>
+        select a from b
+        window c as (partition by d rows between 1 preceding and current row)
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..102" text="select a f..rrent row)">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..102" text="select a f..rrent row)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="23..24" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WINDOWS">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="40..102" text="c as (part..rrent row)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="45..102" text="(partition..rrent row)">
+                                    <node key="SQL_WINDOW_FRAME_BOUNDS">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="74..85" text="1 preceding">
+                                            <node key="SQL_WINDOW_BOUND_DIRECTION" value="PRECEDING" />
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="VALUE" />
+                                            <node key="SQL_WINDOW_BOUND_VALUE" type="OBJECT_SQL_CONST" loc="74..75" text="1">
+                                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                                <node key="SQL_CONST_VALUE" loc="74..75" text="1" />
+                                            </node>
+                                        </node>
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="90..101" text="current row">
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="CURRENT_ROW" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_WINDOW_FRAME_MODE" value="ROWS" />
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="59..60" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="59..60" text="d" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_WINDOW_DEF_NAME" loc="40..41" text="c" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="24..25" text=" " />
+            <line_break loc="102..103" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_from_1rel_2windows">
+    <input>
+        select a from b
+        window c as (partition by d range between current row and 1 following),
+                e as (partition by f)
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..142" text="select a f..tion by f)">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..142" text="select a f..tion by f)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="23..24" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WINDOWS">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="40..103" text="c as (part..following)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="45..103" text="(partition..following)">
+                                    <node key="SQL_WINDOW_FRAME_BOUNDS">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="75..86" text="current row">
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="CURRENT_ROW" />
+                                        </node>
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="91..102" text="1 following">
+                                            <node key="SQL_WINDOW_BOUND_DIRECTION" value="FOLLOWING" />
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="VALUE" />
+                                            <node key="SQL_WINDOW_BOUND_VALUE" type="OBJECT_SQL_CONST" loc="91..92" text="1">
+                                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                                <node key="SQL_CONST_VALUE" loc="91..92" text="1" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_WINDOW_FRAME_MODE" value="RANGE" />
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="59..60" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="59..60" text="d" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_WINDOW_DEF_NAME" loc="40..41" text="c" />
+                            </node>
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="121..142" text="e as (part..tion by f)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="126..142" text="(partition by f)">
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="140..141" text="f">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="140..141" text="f" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_WINDOW_DEF_NAME" loc="121..122" text="e" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="24..25" text=" " />
+            <line_break loc="104..105" text=" " />
+            <line_break loc="142..143" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_distinct_from_1rel">
+    <input>
+        select distinct a from b
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..33" text="select dis..t a from b">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..33" text="select dis..t a from b">
+                        <node key="SQL_SELECT_DISTINCT" value="true" />
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="32..33" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="32..33" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="25..26" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="25..26" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="33..34" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_distinct_on_from_1rel">
+    <input>
+        select distinct on (a) a from b
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..40" text="select dis..) a from b">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..40" text="select dis..) a from b">
+                        <node key="SQL_SELECT_DISTINCT">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="29..30" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="29..30" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="39..40" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="39..40" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="32..33" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="32..33" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="40..41" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_all_from_1rel">
+    <input>
+        select all from b
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..26" text="select all from b">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..26" text="select all from b">
+                        <node key="SQL_SELECT_ALL" value="true" />
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="25..26" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="25..26" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="26..27" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="values_1">
+    <input>
+        values (1)
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..19" text="values (1)">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..19" text="values (1)">
+                        <node key="SQL_SELECT_VALUES">
+                            <node>
+                                <node type="OBJECT_SQL_CONST" loc="17..18" text="1">
+                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                    <node key="SQL_CONST_VALUE" loc="17..18" text="1" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="19..20" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="values_1_2">
+    <input>
+        values (1), (2);
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..24" text="values (1), (2)">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..24" text="values (1), (2)">
+                        <node key="SQL_SELECT_VALUES">
+                            <node>
+                                <node type="OBJECT_SQL_CONST" loc="17..18" text="1">
+                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                    <node key="SQL_CONST_VALUE" loc="17..18" text="1" />
+                                </node>
+                            </node>
+                            <node>
+                                <node type="OBJECT_SQL_CONST" loc="22..23" text="2">
+                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                    <node key="SQL_CONST_VALUE" loc="22..23" text="2" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="25..26" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="values_12_34">
+    <input>
+        values (1, 2), (3, 4)
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..30" text="values (1,..2), (3, 4)">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..30" text="values (1,..2), (3, 4)">
+                        <node key="SQL_SELECT_VALUES">
+                            <node>
+                                <node type="OBJECT_SQL_CONST" loc="17..18" text="1">
+                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                    <node key="SQL_CONST_VALUE" loc="17..18" text="1" />
+                                </node>
+                                <node type="OBJECT_SQL_CONST" loc="20..21" text="2">
+                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                    <node key="SQL_CONST_VALUE" loc="20..21" text="2" />
+                                </node>
+                            </node>
+                            <node>
+                                <node type="OBJECT_SQL_CONST" loc="25..26" text="3">
+                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                    <node key="SQL_CONST_VALUE" loc="25..26" text="3" />
+                                </node>
+                                <node type="OBJECT_SQL_CONST" loc="28..29" text="4">
+                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                    <node key="SQL_CONST_VALUE" loc="28..29" text="4" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="30..31" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="table_a">
+    <input>
+        TABLE a
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..16" text="TABLE a">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..16" text="TABLE a">
+                        <node key="SQL_SELECT_TABLE" type="OBJECT_SQL_TABLE_REF" loc="9..16" text="TABLE a">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME">
+                                <node loc="15..16" text="a" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="16..17" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="union_select1_select2">
+    <input>
+        SELECT 1 UNION SELECT 2
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..32" text="SELECT 1 U..N SELECT 2">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..32" text="SELECT 1 U..N SELECT 2">
+                        <node key="SQL_COMBINE_INPUT">
+                            <node type="OBJECT_SQL_SELECT" loc="9..17" text="SELECT 1">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node type="OBJECT_SQL_CONST" loc="16..17" text="1">
+                                        <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                        <node key="SQL_CONST_VALUE" loc="16..17" text="1" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_SELECT" loc="24..32" text="SELECT 2">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node type="OBJECT_SQL_CONST" loc="31..32" text="2">
+                                        <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                        <node key="SQL_CONST_VALUE" loc="31..32" text="2" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_COMBINE_OPERATION" value="UNION" />
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="32..33" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="union_all_select1_select2">
+    <input>
+        SELECT 1 UNION ALL SELECT 2
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..36" text="SELECT 1 U..L SELECT 2">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..36" text="SELECT 1 U..L SELECT 2">
+                        <node key="SQL_COMBINE_INPUT">
+                            <node type="OBJECT_SQL_SELECT" loc="9..17" text="SELECT 1">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node type="OBJECT_SQL_CONST" loc="16..17" text="1">
+                                        <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                        <node key="SQL_CONST_VALUE" loc="16..17" text="1" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_SELECT" loc="28..36" text="SELECT 2">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node type="OBJECT_SQL_CONST" loc="35..36" text="2">
+                                        <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                        <node key="SQL_CONST_VALUE" loc="35..36" text="2" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_COMBINE_MODIFIER" value="ALL" />
+                        <node key="SQL_COMBINE_OPERATION" value="UNION" />
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="36..37" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="union_distinct_select1_select2">
+    <input>
+        SELECT 1 UNION DISTINCT SELECT 2
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..41" text="SELECT 1 U..T SELECT 2">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..41" text="SELECT 1 U..T SELECT 2">
+                        <node key="SQL_COMBINE_INPUT">
+                            <node type="OBJECT_SQL_SELECT" loc="9..17" text="SELECT 1">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node type="OBJECT_SQL_CONST" loc="16..17" text="1">
+                                        <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                        <node key="SQL_CONST_VALUE" loc="16..17" text="1" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_SELECT" loc="33..41" text="SELECT 2">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node type="OBJECT_SQL_CONST" loc="40..41" text="2">
+                                        <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                        <node key="SQL_CONST_VALUE" loc="40..41" text="2" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_COMBINE_MODIFIER" value="DISTINCT" />
+                        <node key="SQL_COMBINE_OPERATION" value="UNION" />
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="41..42" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="intersect_select1_select2">
+    <input>
+        SELECT 1 INTERSECT SELECT 2
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..36" text="SELECT 1 I..T SELECT 2">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..36" text="SELECT 1 I..T SELECT 2">
+                        <node key="SQL_COMBINE_INPUT">
+                            <node type="OBJECT_SQL_SELECT" loc="9..17" text="SELECT 1">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node type="OBJECT_SQL_CONST" loc="16..17" text="1">
+                                        <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                        <node key="SQL_CONST_VALUE" loc="16..17" text="1" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_SELECT" loc="28..36" text="SELECT 2">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node type="OBJECT_SQL_CONST" loc="35..36" text="2">
+                                        <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                        <node key="SQL_CONST_VALUE" loc="35..36" text="2" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_COMBINE_OPERATION" value="INTERSECT" />
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="36..37" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="with_1cte_select2">
+    <input>
+        WITH a AS (SELECT 1) SELECT 2
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..38" text="WITH a AS ..) SELECT 2">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..38" text="WITH a AS ..) SELECT 2">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="37..38" text="2">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="37..38" text="2" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WITH_CTES">
+                            <node type="OBJECT_SQL_CTE" loc="14..29" text="a AS (SELECT 1)">
+                                <node key="SQL_CTE_NAME" loc="14..15" text="a" />
+                                <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="20..28" text="SELECT 1">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node type="OBJECT_SQL_CONST" loc="27..28" text="1">
+                                            <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                            <node key="SQL_CONST_VALUE" loc="27..28" text="1" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="38..39" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="with_2ctes_select3">
+    <input>
+        WITH a AS (SELECT 1), b AS (SELECT 2) SELECT 3
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..55" text="WITH a AS ..) SELECT 3">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..55" text="WITH a AS ..) SELECT 3">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="54..55" text="3">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="54..55" text="3" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WITH_CTES">
+                            <node type="OBJECT_SQL_CTE" loc="14..29" text="a AS (SELECT 1)">
+                                <node key="SQL_CTE_NAME" loc="14..15" text="a" />
+                                <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="20..28" text="SELECT 1">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node type="OBJECT_SQL_CONST" loc="27..28" text="1">
+                                            <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                            <node key="SQL_CONST_VALUE" loc="27..28" text="1" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_CTE" loc="31..46" text="b AS (SELECT 2)">
+                                <node key="SQL_CTE_NAME" loc="31..32" text="b" />
+                                <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="37..45" text="SELECT 2">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node type="OBJECT_SQL_CONST" loc="44..45" text="2">
+                                            <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                            <node key="SQL_CONST_VALUE" loc="44..45" text="2" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="55..56" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="with_recursive_2ctes_select3">
+    <input>
+        WITH RECURSIVE a AS (SELECT 1), b AS (SELECT 2) SELECT 3
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..65" text="WITH RECUR..) SELECT 3">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..65" text="WITH RECUR..) SELECT 3">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="64..65" text="3">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="64..65" text="3" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WITH_CTES">
+                            <node type="OBJECT_SQL_CTE" loc="24..39" text="a AS (SELECT 1)">
+                                <node key="SQL_CTE_NAME" loc="24..25" text="a" />
+                                <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="30..38" text="SELECT 1">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node type="OBJECT_SQL_CONST" loc="37..38" text="1">
+                                            <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                            <node key="SQL_CONST_VALUE" loc="37..38" text="1" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_CTE" loc="41..56" text="b AS (SELECT 2)">
+                                <node key="SQL_CTE_NAME" loc="41..42" text="b" />
+                                <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="47..55" text="SELECT 2">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node type="OBJECT_SQL_CONST" loc="54..55" text="2">
+                                            <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                            <node key="SQL_CONST_VALUE" loc="54..55" text="2" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WITH_RECURSIVE" value="true" />
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="65..66" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_a_orderby_b">
+    <input>
+        select a order by b
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..28" text="select a order by b">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..28" text="select a order by b">
+                        <node key="SQL_SELECT_ORDER">
+                            <node type="OBJECT_SQL_ORDER" loc="27..28" text="b">
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="27..28" text="b">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="27..28" text="b" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="28..29" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_a_orderby_b_c">
+    <input>
+        select a order by b, c
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..31" text="select a o..er by b, c">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..31" text="select a o..er by b, c">
+                        <node key="SQL_SELECT_ORDER">
+                            <node type="OBJECT_SQL_ORDER" loc="27..28" text="b">
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="27..28" text="b">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="27..28" text="b" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_ORDER" loc="30..31" text="c">
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="30..31" text="c">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="30..31" text="c" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="31..32" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_a_orderby_b_c_directions">
+    <input>
+        select a order by b asc, c desc
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..40" text="select a o..sc, c desc">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..40" text="select a o..sc, c desc">
+                        <node key="SQL_SELECT_ORDER">
+                            <node type="OBJECT_SQL_ORDER" loc="27..32" text="b asc">
+                                <node key="SQL_ORDER_DIRECTION" value="ASCENDING" />
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="27..28" text="b">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="27..28" text="b" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_ORDER" loc="34..40" text="c desc">
+                                <node key="SQL_ORDER_DIRECTION" value="DESCENDING" />
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="34..35" text="c">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="34..35" text="c" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="40..41" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_a_orderby_b_c_directions_nulls">
+    <input>
+        select a order by b asc nulls first, c desc nulls last
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..63" text="select a o..nulls last">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..63" text="select a o..nulls last">
+                        <node key="SQL_SELECT_ORDER">
+                            <node type="OBJECT_SQL_ORDER" loc="27..44" text="b asc nulls first">
+                                <node key="SQL_ORDER_DIRECTION" value="ASCENDING" />
+                                <node key="SQL_ORDER_NULLRULE" value="NULLS_FIRST" />
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="27..28" text="b">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="27..28" text="b" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_ORDER" loc="46..63" text="c desc nulls last">
+                                <node key="SQL_ORDER_DIRECTION" value="DESCENDING" />
+                                <node key="SQL_ORDER_NULLRULE" value="NULLS_LAST" />
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="46..47" text="c">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="46..47" text="c" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="63..64" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="select_table_ref">
+    <input>
+        select 1 into b;
+        select 1 from b;
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT_INTO" name="global.b">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..24" text="select 1 into b">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..24" text="select 1 into b">
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="23..24" text="b">
+                            <node key="SQL_TEMP_NAME">
+                                <node loc="23..24" text="b" />
+                            </node>
+                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="16..17" text="1">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="16..17" text="1" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+            <statement type="SELECT" name="global.b">
+                <node type="OBJECT_DASHQL_QUERY" loc="34..49" text="select 1 from b">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="34..49" text="select 1 from b">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="48..49" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="48..49" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="41..42" text="1">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="41..42" text="1" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="25..26" text=" " />
+            <line_break loc="50..51" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies>
+            <dependency type="TABLE_REF" source="0" target="1" loc="48..49" text="b" />
+        </dependencies>
+    </expected>
+</test>
+<test name="select_column_ref">
+    <input>
+        declare parameter a type integer;
+        select 1 into b;
+        select c from b where c = global.a + 1
+    </input>
+    <expected>
+        <statements>
+            <statement type="PARAMETER" name="global.a">
+                <node type="OBJECT_DASHQL_PARAMETER" loc="9..41" text="declare pa..pe integer">
+                    <node key="DASHQL_PARAMETER_TYPE" value="INTEGER" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="27..28" text="a" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="SELECT_INTO" name="global.b">
+                <node type="OBJECT_DASHQL_QUERY" loc="51..66" text="select 1 into b">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="51..66" text="select 1 into b">
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="65..66" text="b">
+                            <node key="SQL_TEMP_NAME">
+                                <node loc="65..66" text="b" />
+                            </node>
+                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="58..59" text="1">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="58..59" text="1" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+            <statement type="SELECT" name="global.b">
+                <node type="OBJECT_DASHQL_QUERY" loc="76..114" text="select c f..obal.a + 1">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="76..114" text="select c f..obal.a + 1">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="90..91" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="90..91" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="83..84" text="c">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="83..84" text="c" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="98..114" text="c = global.a + 1">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="98..99" text="c">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="98..99" text="c" />
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="102..114" text="global.a + 1">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="102..110" text="global.a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="102..108" text="global" />
+                                        <node loc="109..110" text="a" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_CONST" loc="113..114" text="1">
+                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                    <node key="SQL_CONST_VALUE" loc="113..114" text="1" />
+                                </node>
+                                <node key="SQL_EXPRESSION_FUNCTION" value="PLUS" />
+                            </node>
+                            <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="42..43" text=" " />
+            <line_break loc="67..68" text=" " />
+            <line_break loc="114..115" text=" " />
+        </line_breaks>
+        <comments />
+        <dependencies>
+            <dependency type="TABLE_REF" source="1" target="2" loc="90..91" text="b" />
+            <dependency type="COLUMN_REF" source="0" target="2" loc="102..110" text="global.a" />
+        </dependencies>
+    </expected>
+</test>
