@@ -97,7 +97,7 @@ grammar_testgen:
 # Generate dashql action tests
 .PHONY: action_testgen
 action_testgen:
-	lldb ${CORE_DEBUG_DIR}/action_testgen ${CORE_SOURCE_DIR}/test/action
+	${CORE_DEBUG_DIR}/action_testgen ${CORE_SOURCE_DIR}/test/action
 
 # Builds the app
 .PHONY: app
