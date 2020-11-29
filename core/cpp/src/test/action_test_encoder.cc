@@ -13,7 +13,7 @@
 #include "dashql/proto/syntax_sql_generated.h"
 
 namespace dashql {
-namespace parser {
+namespace test {
 
 void EncodeActionTest(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph) {
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
@@ -56,5 +56,5 @@ void EncodeActionTest(pugi::xml_node& root, const ProgramInstance& program, cons
     }
 }
 
-}  // namespace parser
+}  // namespace test
 }  // namespace dashql

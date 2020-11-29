@@ -13,7 +13,7 @@
 #include "pugixml.hpp"
 
 namespace dashql {
-namespace parser {
+namespace test {
 
 namespace sx = proto::syntax;
 namespace sxs = proto::syntax_sql;
@@ -203,5 +203,5 @@ void EncodeProgramTest(pugi::xml_node& root, const proto::syntax::ProgramT& prog
     };
 }
 
-}  // namespace parser
+}  // namespace test
 }  // namespace dashql

@@ -10,13 +10,11 @@
 #include "pugixml.hpp"
 
 namespace dashql {
-namespace parser {
-
+namespace test {
 
 void EncodeProgramTest(pugi::xml_node& root, const proto::syntax::ProgramT& program, std::string_view text);
 
-
-}  // namespace parser
+}  // namespace test
 }  // namespace dashql
 
 #endif  // INCLUDE_DASHQL_PARSER_TEST_PROGRAM_TEST_ENCODER_H_

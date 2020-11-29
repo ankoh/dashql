@@ -14,7 +14,7 @@
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-internal.h"
 
-using namespace dashql::parser;
+using namespace dashql;
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -61,11 +61,11 @@ int main(int argc, char* argv[]) {
             auto input_sv = std::string_view{input.last_child().value()};
 
             /// Parse module
-            auto program = ParserDriver::Parse(input_sv);
+            auto program = parser::ParserDriver::Parse(input_sv);
 
             /// Write output
             auto expected = test.append_child("expected");
-            EncodeProgramTest(expected, *program, input_sv);
+            test::EncodeProgramTest(expected, *program, input_sv);
 
             std::cout << "  TEST " << name << std::endl;
         }

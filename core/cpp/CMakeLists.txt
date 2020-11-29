@@ -201,6 +201,7 @@ add_library(dashql_parser
 target_link_libraries(dashql_parser flatbuffers)
 
 # ---------------------------------------------------------------------------
+# Libraries
 
 add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/action_planner.cc
@@ -211,6 +212,14 @@ add_library(dashql_core
 )
 
 target_link_libraries(dashql_core dashql_parser duckdb_webdb)
+
+add_library(dashql_test
+    ${CMAKE_SOURCE_DIR}/src/test/action_test_encoder.cc
+    ${CMAKE_SOURCE_DIR}/src/test/program_test_encoder.cc
+    ${CMAKE_SOURCE_DIR}/src/test/test_settings.cc
+)
+
+target_link_libraries(dashql_test dashql_core pugixml)
 
 # ---------------------------------------------------------------------------
 # Emscripten
@@ -268,11 +277,10 @@ if(NOT EMSCRIPTEN)
     )
 
     add_executable(grammar_tests
-        ${CMAKE_SOURCE_DIR}/src/test/action_test_encoder.cc
-        ${CMAKE_SOURCE_DIR}/src/test/program_test_encoder.cc
         ${CMAKE_SOURCE_DIR}/test/grammar_tests.cc
     )
     target_link_libraries(grammar_tests
+        dashql_test
         dashql_core
         pugixml
         flatbuffers gtest gmock
@@ -280,11 +288,10 @@ if(NOT EMSCRIPTEN)
     )
 
     add_executable(grammar_testgen
-        ${CMAKE_SOURCE_DIR}/src/test/action_test_encoder.cc
-        ${CMAKE_SOURCE_DIR}/src/test/program_test_encoder.cc
         ${CMAKE_SOURCE_DIR}/test/grammar_testgen.cc
     )
     target_link_libraries(grammar_testgen
+        dashql_test
         dashql_core
         pugixml
         flatbuffers gtest gmock
