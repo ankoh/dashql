@@ -145,7 +145,7 @@ class ProgramMatcher {
     std::vector<DiffOp> ComputeDiff();
 
     /// Do parameter values equal?
-    static bool ParameterValuesEqual(const proto::session::ParameterValue* l, const proto::session::ParameterValue* r);
+    static bool ParameterValuesEqual(const proto::session::ParameterValueT* l, const proto::session::ParameterValueT* r);
 };
 
 }  // namespace dashql
