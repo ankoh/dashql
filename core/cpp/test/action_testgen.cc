@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "dashql/action_planner.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/test/grammar_tests.h"
 #include "duckdb/web/common/span.h"
@@ -19,7 +20,7 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cout << "Usage: ./grammar_testgen <dir>" << std::endl;
+        std::cout << "Usage: ./action_testgen <dir>" << std::endl;
         exit(1);
     }
     if (!argv[1] || !std::filesystem::exists(argv[1])) {
@@ -54,18 +55,24 @@ int main(int argc, char* argv[]) {
         doc.load(in);
 
         for (auto test : doc.children()) {
-            // Copy expected
-            auto name = test.attribute("name").as_string();
+            auto name = test.attribute("name").value();
             std::cout << "  TEST " << name << std::endl;
 
-            /// Parse module
-            auto input = test.child("input");
-            auto input_sv = std::string_view{input.last_child().value()};
-            auto program = parser::ParserDriver::Parse(input_sv);
+            // Inspect template
+            auto prev = test.child("previous");
+            auto prev_text = prev.child("text").last_child().value();
+            auto prev_graph = prev.child("graph");
+            auto prev_params = prev.child("parameters");
+            auto next = test.child("next");
+            auto next_text = test.child("text").last_child().value();
+            auto next_params = test.child("parameters");
 
-            /// Write output
-            auto expected = test.append_child("expected");
-            test::GrammarTest::EncodeProgram(expected, *program, input_sv);
+            /// Parse module
+            auto prev_program = parser::ParserDriver::Parse(prev_text);
+            ProgramInstance prev_program_instance{prev_text, *prev_program};
+
+            // Generate initial action graph
+            // ActionPlanner prev_planner{prev_program_instance};
         }
 
         // Write xml document

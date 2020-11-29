@@ -52,8 +52,8 @@ class ActionPlanner {
    public:
     /// Constructor
     ActionPlanner(const ProgramInstance& next_program,
-                  const ProgramInstance* prev_program,
-                  const proto::action::ActionGraphT* prev_action_graph);
+                  const ProgramInstance* prev_program = nullptr,
+                  const proto::action::ActionGraphT* prev_action_graph = nullptr);
 
     /// Plan the new action graph
     void PlanActionGraph();
