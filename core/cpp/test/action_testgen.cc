@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
             auto prev_action_graph = prev_planner.Finish();
 
             // Plan the next action graph
-            ActionPlanner next_planner{next_program_instance};
+            ActionPlanner next_planner{next_program_instance, &prev_program_instance, prev_action_graph.get()};
             next_planner.PlanActionGraph();
             auto next_action_graph = next_planner.Finish();
 
