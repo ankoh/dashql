@@ -21,6 +21,17 @@ using namespace std;
 
 namespace {
 
+proto::action::ActionStatusCode GetActionStatus(std::string_view type) {
+    auto tt = proto::action::ActionStatusCodeTypeTable();
+    auto& names = tt->names;
+    auto& num_elems = tt->num_elems;
+    for (unsigned i = 0; i < num_elems; ++i) {
+        if (type == std::string_view{names[i]})
+            return static_cast<proto::action::ActionStatusCode>(i);
+    }
+    return proto::action::ActionStatusCode::NONE;
+}
+
 proto::syntax_dashql::ParameterType GetParameterType(std::string_view type) {
     auto tt = proto::syntax_dashql::ParameterTypeTypeTable();
     auto& names = tt->names;
@@ -102,6 +113,22 @@ int main(int argc, char* argv[]) {
             for (auto& v: prev_param_values) {
                 prev_program_instance.SetParameterValue(&v);
             }
+            ActionPlanner prev_planner{prev_program_instance};
+            prev_planner.PlanActionGraph();
+            auto prev_action_graph = prev_planner.Finish();
+            {
+                unsigned i = 0;
+                for (auto p: prev.child("graph").child("program").children()) {
+                    auto status_str = p.attribute("status").as_string();
+                    auto status = GetActionStatus(status_str);
+                    if (i < prev_action_graph->program_actions.size()) {
+                        auto s = std::make_unique<proto::action::ActionStatus>();
+                        s->mutate_status_code(status);
+                        prev_action_graph->program_actions[i++]->action_status = move(s);
+                    }
+
+                }
+            }
 
             // Unpack next program
             auto next = test.child("next");
@@ -117,13 +144,6 @@ int main(int argc, char* argv[]) {
             for (auto& v: next_param_values) {
                 next_program_instance.SetParameterValue(&v);
             }
-
-            // Plan the previous action graph
-            ActionPlanner prev_planner{prev_program_instance};
-            prev_planner.PlanActionGraph();
-            auto prev_action_graph = prev_planner.Finish();
-
-            // Plan the next action graph
             ActionPlanner next_planner{next_program_instance, &prev_program_instance, prev_action_graph.get()};
             next_planner.PlanActionGraph();
             auto next_action_graph = next_planner.Finish();
