@@ -19,7 +19,7 @@ namespace test {
 void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph) {
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
     auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
-    auto action_status_tt = proto::action::ActionStatusTypeTable();
+    auto action_status_tt = proto::action::ActionStatusCodeTypeTable();
     auto parameter_type_tt = proto::syntax_dashql::ParameterTypeTypeTable();
 
     std::string program_text{program.program_text()};
