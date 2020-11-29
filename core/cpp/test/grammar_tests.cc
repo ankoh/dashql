@@ -20,21 +20,15 @@ namespace {
 
 /// A grammar param
 struct GrammarParamTestsParam {
-    /// The shared string
-    std::shared_ptr<std::string> buffer;
-    /// The full test case
-    std::string_view text;
-    /// The tree
-    ryml::Tree tree;
     /// The name
-    std::string_view name;
+    std::string name;
     /// The input
-    std::string_view input;
+    std::string input;
     /// The expected output
-    ryml::Tree expected;
+    std::shared_ptr<pugi::xml_document> expected;
 
     /// Constructor
-    GrammarParamTestsParam() : buffer(), text(), tree(), name(), input(), expected() {}
+    GrammarParamTestsParam() : name(), input(), expected() {}
 
     friend std::ostream& operator<<(std::ostream& out, const GrammarParamTestsParam& param) {
         out << param.input;
@@ -65,9 +59,13 @@ nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* na
     return (iter != tests.end()) ? iter->second : nonstd::span<GrammarParamTestsParam>{};
 }
 
-::testing::AssertionResult IsEqual(const ryml::Tree& actual, const ryml::Tree& expected) {
-    auto expected_str = ryml::emitrs<std::string>(expected);
-    auto actual_str = ryml::emitrs<std::string>(actual);
+::testing::AssertionResult IsEqual(const pugi::xml_node& actual, const pugi::xml_node& expected) {
+    std::stringstream expected_ss;
+    std::stringstream actual_ss;
+    expected.print(expected_ss);
+    actual.print(actual_ss);
+    auto expected_str = expected_ss.str();
+    auto actual_str = actual_ss.str();
     if (expected_str == actual_str) return ::testing::AssertionSuccess();
 
     std::stringstream err;
@@ -92,22 +90,20 @@ TEST_P(GrammarParamTests, Test) {
     auto& param = GetParam();
     auto program = ParserDriver::Parse(param.input);
 
-    ryml::Tree out;
-    EncodeProgramTest(out.rootref(), *program, param.input);
+    pugi::xml_document out;
+    EncodeProgramTest(out, *program, param.input);
 
-    ASSERT_TRUE(IsEqual(out, param.expected));
+    ASSERT_TRUE(IsEqual(out, *param.expected));
 }
 
 INSTANTIATE_TEST_SUITE_P(DashQLStatement, GrammarParamTests,
-                         testing::ValuesIn(GrammarParamTests::FindTests("dashql_statement.test")), PrintTestName());
-INSTANTIATE_TEST_SUITE_P(Demo, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("scripts_demo.test")),
+                         testing::ValuesIn(GrammarParamTests::FindTests("dashql_statement.xml")), PrintTestName());
+INSTANTIATE_TEST_SUITE_P(Demo, GrammarParamTests, testing::ValuesIn(GrammarParamTests::FindTests("scripts_demo.xml")),
                          PrintTestName());
 INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarParamTests,
-                         testing::ValuesIn(GrammarParamTests::FindTests("sql_select.test")), PrintTestName());
+                         testing::ValuesIn(GrammarParamTests::FindTests("sql_select.xml")), PrintTestName());
 
 }  // namespace
-
-constexpr std::string_view DELIMITER = "\n----\n";
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -121,52 +117,33 @@ int main(int argc, char* argv[]) {
     auto grammar_dir = std::filesystem::path{argv[1]};
     for (auto& p : std::filesystem::directory_iterator(grammar_dir)) {
         auto filename = p.path().filename().string();
-        if (p.path().extension().string() != ".test") continue;
+        if (p.path().extension().string() != ".xml") continue;
 
-        // Read the file
-        auto buffer = std::make_shared<std::string>();
+        // Open input stream
         std::ifstream in(p.path(), std::ios::in | std::ios::binary);
         if (!in) {
             std::cout << "[" << filename << "] failed to read file" << std::endl;
             continue;
         }
 
-        // Read file
-        in.seekg(0, std::ios::end);
-        buffer->resize(in.tellg());
-        in.seekg(0, std::ios::beg);
-        in.read(buffer->data(), buffer->size());
-        in.close();
-
+        // Parse xml document
+        pugi::xml_document doc;
+        doc.load(in);
         std::vector<GrammarParamTestsParam> tests;
 
-        // Split sections
-        for (size_t prev = 0, next = 0; prev != std::string::npos && prev < buffer->size(); prev = next) {
-            next = buffer->find(DELIMITER, prev);
-            next = (next == std::string::npos) ? buffer->size() : next;
-
-            // Is empty?
-            std::string_view text{buffer->data() + prev, next - prev};
-            if (text.empty()) break;
-
-            tests.emplace_back();
-            auto& test = tests.back();
-
-            // Copy expected
-            test.tree = ryml::parse(c4::csubstr(text.data(), text.length()));
-            auto name = test.tree["name"].val();
-            auto input = test.tree["input"].val();
-
+        // Read tests
+        for (auto test : doc.children()) {
             // Create test
-            test.buffer = buffer;
-            test.text = text;
-            test.expected.rootref() |= ryml::MAP;
-            test.expected.merge_with(&test.tree, test.tree["expected"].id(), test.tree.root_id());
-            test.name = {name.data(), name.size()};
-            test.input = {input.data(), input.size()};
+            tests.emplace_back();
+            auto& t = tests.back();
+            t.name = test.attribute("name").as_string();
+            t.input = test.child("input").last_child().value();
 
-            // Skip delimiter
-            if (next != std::string::npos) next += DELIMITER.size();
+            auto expected = std::make_unique<pugi::xml_document>();
+            for (auto s: test.child("expected").children()) {
+                expected->append_copy(s);
+            }
+            t.expected = move(expected);
         }
 
         // Register test

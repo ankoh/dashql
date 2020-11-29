@@ -1,0 +1,12 @@
+<test name="dashql_syntax_error">
+    <input>?</input>
+    <expected>
+        <statements />
+        <errors>
+            <error message="syntax error, unexpected '?', expecting EOF" loc="0..1" text="?" />
+        </errors>
+        <line_breaks />
+        <comments />
+        <dependencies />
+    </expected>
+</test>

@@ -1,0 +1,167 @@
+<test name="demo">
+    <input>
+        -- This script outlines basic concepts of the SQL extension DashQL.
+        -- Delete everything when you're ready and start from scratch.
+
+        -- Declare a dynamic input field on top of your dashboard.
+        -- Ref: https://docs.dashql.com/grammar/param
+        DECLARE PARAMETER country TYPE TEXT (
+            default_value = 'DE'
+        );
+
+        -- Load data from external sources like HTTP REST APIs.
+        -- Ref: https://docs.dashql.com/grammar/load
+        LOAD weather_csv FROM http (
+            url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+        );
+
+        -- Interpret the data as SQL table.
+        -- Ref: https://docs.dashql.com/grammar/extract
+        EXTRACT weather FROM weather_csv USING CSV;
+
+        -- Run arbitrary SQL within your browser.
+        -- Ref: https://docs.dashql.com/grammar/query
+        SELECT 1 INTO weather_avg FROM weather;
+
+        -- Visualize tables and views.
+        -- Ref: https://docs.dashql.com/grammar/viz
+        VIZ weather_avg USING LINE;
+    </input>
+    <expected>
+        <statements>
+            <statement type="PARAMETER" name="global.country">
+                <node type="OBJECT_DASHQL_PARAMETER" loc="278..358" text="DECLARE PA..         )">
+                    <node key="DASHQL_PARAMETER_TYPE" value="TEXT" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="296..303" text="country" />
+                    </node>
+                    <node key="DASHQL_OPTION_DEFAULT_VALUE" type="OBJECT_SQL_CONST" loc="344..357" text="'DE'         ">
+                        <node key="SQL_CONST_TYPE" value="STRING" />
+                        <node key="SQL_CONST_VALUE" loc="344..357" text="'DE'         " />
+                    </node>
+                </node>
+            </statement>
+            <statement type="LOAD_HTTP" name="global.weather_csv">
+                <node type="OBJECT_DASHQL_LOAD" loc="486..607" text="LOAD weath..         )">
+                    <node key="DASHQL_LOAD_METHOD" value="HTTP" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="491..502" text="weather_csv" />
+                    </node>
+                    <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="533..597" text="format('ht..l.country)">
+                        <node key="SQL_FUNCTION_ARGUMENTS">
+                            <node type="OBJECT_SQL_CONST" loc="540..580" text="'https://c..eather/%s'">
+                                <node key="SQL_CONST_TYPE" value="STRING" />
+                                <node key="SQL_CONST_VALUE" loc="540..580" text="'https://c..eather/%s'" />
+                            </node>
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="582..596" text="global.country">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="582..588" text="global" />
+                                    <node loc="589..596" text="country" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_FUNCTION_NAME" loc="533..539" text="format" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="NONE" name="global.weather">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="718..760" text="EXTRACT we.. USING CSV">
+                    <node key="DASHQL_EXTRACT_DATA">
+                        <node loc="739..750" text="weather_csv" />
+                    </node>
+                    <node key="DASHQL_EXTRACT_METHOD" value="CSV" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="726..733" text="weather" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="SELECT_INTO" name="global.weather_avg">
+                <node type="OBJECT_DASHQL_QUERY" loc="875..913" text="SELECT 1 I..OM weather">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="875..913" text="SELECT 1 I..OM weather">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="906..913" text="weather">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME">
+                                    <node loc="906..913" text="weather" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="889..900" text="weather_avg">
+                            <node key="SQL_TEMP_NAME">
+                                <node loc="889..900" text="weather_avg" />
+                            </node>
+                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST" loc="882..883" text="1">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="882..883" text="1" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+            <statement type="VIZUALIZE" name="global.weather_avg">
+                <node type="OBJECT_DASHQL_VIZ" loc="1015..1041" text="VIZ weathe..USING LINE">
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1019..1030" text="weather_avg">
+                        <node key="SQL_TABLE_INHERIT" value="true" />
+                        <node key="SQL_TABLE_NAME">
+                            <node loc="1019..1030" text="weather_avg" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_VIZ_TYPE" value="LINE" />
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text=" " />
+            <line_break loc="76..77" text=" " />
+            <line_break loc="147..148" text=" " />
+            <line_break loc="148..149" text=" " />
+            <line_break loc="215..216" text=" " />
+            <line_break loc="269..270" text=" " />
+            <line_break loc="315..316" text=" " />
+            <line_break loc="348..349" text=" " />
+            <line_break loc="359..360" text=" " />
+            <line_break loc="360..361" text=" " />
+            <line_break loc="424..425" text=" " />
+            <line_break loc="477..478" text=" " />
+            <line_break loc="514..515" text=" " />
+            <line_break loc="597..598" text=" " />
+            <line_break loc="608..609" text=" " />
+            <line_break loc="609..610" text=" " />
+            <line_break loc="653..654" text=" " />
+            <line_break loc="709..710" text=" " />
+            <line_break loc="761..762" text=" " />
+            <line_break loc="762..763" text=" " />
+            <line_break loc="812..813" text=" " />
+            <line_break loc="866..867" text=" " />
+            <line_break loc="914..915" text=" " />
+            <line_break loc="915..916" text=" " />
+            <line_break loc="954..955" text=" " />
+            <line_break loc="1006..1007" text=" " />
+            <line_break loc="1042..1043" text=" " />
+        </line_breaks>
+        <comments>
+            <comment loc="9..76" text="-- This sc..on DashQL." />
+            <comment loc="85..147" text="-- Delete ..m scratch." />
+            <comment loc="157..215" text="-- Declare..dashboard." />
+            <comment loc="224..269" text="-- Ref: ht..mmar/param" />
+            <comment loc="369..424" text="-- Load da..REST APIs." />
+            <comment loc="433..477" text="-- Ref: ht..ammar/load" />
+            <comment loc="618..653" text="-- Interpr..SQL table." />
+            <comment loc="662..709" text="-- Ref: ht..ar/extract" />
+            <comment loc="771..812" text="-- Run arb..r browser." />
+            <comment loc="821..866" text="-- Ref: ht..mmar/query" />
+            <comment loc="924..954" text="-- Visuali..and views." />
+            <comment loc="963..1006" text="-- Ref: ht..rammar/viz" />
+        </comments>
+        <dependencies>
+            <dependency type="COLUMN_REF" source="0" target="1" loc="582..596" text="global.country" />
+            <dependency type="TABLE_REF" source="1" target="2" loc="739..750" text="weather_csv" />
+            <dependency type="TABLE_REF" source="2" target="3" loc="906..913" text="weather" />
+            <dependency type="TABLE_REF" source="3" target="4" loc="1019..1030" text="weather_avg" />
+        </dependencies>
+    </expected>
+</test>

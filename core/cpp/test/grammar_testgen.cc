@@ -17,9 +17,6 @@
 using namespace dashql::parser;
 using namespace std;
 
-constexpr std::string_view DELIMITER = "\n----\n";
-constexpr std::string_view DELIMITER_OUT = DELIMITER.substr(1);
-
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cout << "Usage: ./grammar_testgen <dir>" << std::endl;
@@ -31,66 +28,50 @@ int main(int argc, char* argv[]) {
     }
     auto grammar_dir = std::filesystem::path{argv[1]};
     for (auto& p : std::filesystem::directory_iterator(grammar_dir)) {
-        auto filename = p.path().filename().string();
-        if (p.path().extension().string() != ".tpl") continue;
+        auto filename = p.path().filename().filename().string();
 
-        // Read the file
-        auto buffer = std::make_shared<std::string>();
+        // Is template file file
+        auto out = p.path();
+        if (out.extension() != ".xml") continue;
+        out.replace_extension();
+        if (out.extension() != ".tpl") continue;
+        out.replace_extension(".xml");
+
+        // Open input stream
         std::ifstream in(p.path(), std::ios::in | std::ios::binary);
         if (!in) {
             std::cout << "[" << filename << "] failed to read file" << std::endl;
             continue;
         }
 
-        // Read file
-        in.seekg(0, std::ios::end);
-        buffer->resize(in.tellg());
-        in.seekg(0, std::ios::beg);
-        in.read(buffer->data(), buffer->size());
-        in.close();
+        // Open output stream
+        std::cout << "FILE " << out << std::endl;
+        std::ofstream outs;
+        outs.open(out, std::ofstream::out | std::ofstream::trunc);
 
-        // Write the output file
-        auto out_path = p.path();
-        out_path.replace_extension();
-        std::cout << "FILE " << out_path << std::endl;
-        std::ofstream out_fs;
-        out_fs.open(out_path, std::ofstream::out | std::ofstream::trunc);
+        // Parse xml document
+        pugi::xml_document doc;
+        doc.load(in);
 
         // Split sections
-        for (size_t prev = 0, next = 0; prev != std::string::npos && prev < buffer->size(); prev = next) {
-            next = buffer->find(DELIMITER, prev);
-            next = (next == std::string::npos) ? buffer->size() : next;
-
-            // Is empty?
-            std::string_view text{buffer->data() + prev, next - prev};
-            if (text.empty()) break;
-
+        for (auto test : doc.children()) {
             // Copy expected
-            auto tree = ryml::parse(c4::csubstr(text.data(), text.length()));
-            auto name = tree["name"].val();
-            auto input = tree["input"].val();
-            auto input_strv = std::string_view{input.data(), input.size()};
+            auto name = test.attribute("name").as_string();
+            auto input = test.child("input");
+            auto input_sv = std::string_view{input.last_child().value()};
 
             /// Parse module
-            auto program = ParserDriver::Parse(input_strv);
+            auto program = ParserDriver::Parse(input_sv);
 
             /// Write output
-            ryml::Tree out;
-            auto out_root = out.rootref();
-            out_root |= ryml::MAP;
-            out_root["name"] << name;
-            out_root["input"] << input;
-            EncodeProgramTest(out_root["expected"], *program, input_strv);
+            auto expected = test.append_child("expected");
+            EncodeProgramTest(expected, *program, input_sv);
 
             std::cout << "  TEST " << name << std::endl;
-            if (prev > 0) {
-                out_fs << DELIMITER_OUT;
-            }
-            out_fs << out;
-
-            // Skip delimiter
-            if (next != std::string::npos) next += DELIMITER.size();
         }
+
+        // Write xml document
+        doc.save(outs, "    ", pugi::format_default | pugi::format_no_declaration);
     }
     return 0;
 }
