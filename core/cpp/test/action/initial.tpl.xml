@@ -1,0 +1,34 @@
+<test name="parmeter_change">
+    <previous>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT (
+                default_value = 'DE'
+            );
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+        </text>
+        <graph>
+            <program>
+                <status target="0" value="COMPLETED" />
+                <status target="1" value="NONE" />
+            </progam>
+        </graph>
+        <parameters>
+            <parameter target="0" value="foo" />
+        </parameters>
+    </previous>
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT (
+                default_value = 'DE'
+            );
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+        </text>
+        <parameters>
+            <parameter target="0" value="bar" />
+        </parameters>
+    </next>
+</test>

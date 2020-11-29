@@ -287,4 +287,15 @@ if(NOT EMSCRIPTEN)
         flatbuffers gtest gmock
         Threads::Threads
     )
+
+    add_executable(action_testgen
+        ${CMAKE_SOURCE_DIR}/test/action_testgen.cc
+    )
+    target_link_libraries(action_testgen
+        dashql_core
+        dashql_test
+        pugixml
+        flatbuffers gtest gmock
+        Threads::Threads
+    )
 endif()
