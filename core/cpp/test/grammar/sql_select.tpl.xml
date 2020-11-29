@@ -33,6 +33,11 @@
         select 📈
     </input>
 </test>
+<test name="select_1_gt_2">
+    <input>
+        select 1 > 2
+    </input>
+</test>
 <test name="select_sconst_quotes">
     <input>
         select 'foo'
