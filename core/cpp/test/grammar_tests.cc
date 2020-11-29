@@ -13,7 +13,7 @@
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-internal.h"
 
-using namespace dashql::parser;
+using namespace dashql;
 using namespace std;
 
 namespace {
@@ -88,10 +88,10 @@ nonstd::span<GrammarParamTestsParam> GrammarParamTests::FindTests(const char* na
 
 TEST_P(GrammarParamTests, Test) {
     auto& param = GetParam();
-    auto program = ParserDriver::Parse(param.input);
+    auto program = parser::ParserDriver::Parse(param.input);
 
     pugi::xml_document out;
-    EncodeProgramTest(out, *program, param.input);
+    test::EncodeProgramTest(out, *program, param.input);
 
     ASSERT_TRUE(IsEqual(out, *param.expected));
 }
