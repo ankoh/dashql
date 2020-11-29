@@ -53,7 +53,7 @@ core_release:
 # Test the core library
 .PHONY: core_tests
 core_tests:
-	${CORE_DEBUG_DIR}/tester
+	${CORE_DEBUG_DIR}/tester ${CORE_SOURCE_DIR}
 
 # Test the duckdb library
 .PHONY: duckdb_tests
@@ -93,11 +93,6 @@ wasm:
 .PHONY: grammar_testgen
 grammar_testgen:
 	${CORE_DEBUG_DIR}/grammar_testgen ${CORE_SOURCE_DIR}/test/grammar
-
-# Test the dashql grammar
-.PHONY: grammar_tests
-grammar_tests:
-	${CORE_DEBUG_DIR}/grammar_tests ${CORE_SOURCE_DIR}/test/grammar
 
 # Builds the app
 .PHONY: app
