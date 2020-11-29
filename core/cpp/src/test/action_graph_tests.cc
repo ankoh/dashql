@@ -23,9 +23,10 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
     std::string program_text{program.program_text()};
     root.append_child("text").text().set(program_text.c_str());
 
-    auto params = root.append_child("params");
+    auto params = root.append_child("parameters");
 
     auto g = root.append_child("graph");
+    g.append_attribute("next_target_id").set_value(graph.next_target_id);
     auto setup_actions = g.append_child("setup");
     for (auto& action : graph.setup_actions) {
         auto s = setup_actions.append_child("action");
