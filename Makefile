@@ -94,6 +94,11 @@ wasm:
 grammar_testgen:
 	${CORE_DEBUG_DIR}/grammar_testgen ${CORE_SOURCE_DIR}/test/grammar
 
+# Generate dashql action tests
+.PHONY: action_testgen
+action_testgen:
+	${CORE_DEBUG_DIR}/action_testgen ${CORE_SOURCE_DIR}/test/action
+
 # Builds the app
 .PHONY: app
 app:

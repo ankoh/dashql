@@ -1,0 +1,18 @@
+<test name="parmeter_change">
+    <previous>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT (
+                default_value = 'DE'
+            );
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+        </text>
+        <graph>
+            <program>
+                <status target="0" value="COMPLETED" />
+                <status target="1" value="NONE" />
+            </program>
+        </graph>
+    </previous>
+</test>
