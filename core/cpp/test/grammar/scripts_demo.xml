@@ -30,19 +30,19 @@
     <expected>
         <statements>
             <statement type="PARAMETER" name="global.country">
-                <node type="OBJECT_DASHQL_PARAMETER" loc="278..358" text="DECLARE PA..         )">
+                <node type="OBJECT_DASHQL_PARAMETER" loc="278..358" text="DECLARE PA..&#10;        )">
                     <node key="DASHQL_PARAMETER_TYPE" value="TEXT" />
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="296..303" text="country" />
                     </node>
-                    <node key="DASHQL_OPTION_DEFAULT_VALUE" type="OBJECT_SQL_CONST" loc="344..357" text="'DE'         ">
+                    <node key="DASHQL_OPTION_DEFAULT_VALUE" type="OBJECT_SQL_CONST" loc="344..357" text="'DE'&#10;        ">
                         <node key="SQL_CONST_TYPE" value="STRING" />
-                        <node key="SQL_CONST_VALUE" loc="344..357" text="'DE'         " />
+                        <node key="SQL_CONST_VALUE" loc="344..357" text="'DE'&#10;        " />
                     </node>
                 </node>
             </statement>
             <statement type="LOAD_HTTP" name="global.weather_csv">
-                <node type="OBJECT_DASHQL_LOAD" loc="486..607" text="LOAD weath..         )">
+                <node type="OBJECT_DASHQL_LOAD" loc="486..607" text="LOAD weath..&#10;        )">
                     <node key="DASHQL_LOAD_METHOD" value="HTTP" />
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="491..502" text="weather_csv" />
@@ -115,33 +115,33 @@
         </statements>
         <errors />
         <line_breaks>
-            <line_break loc="0..1" text=" " />
-            <line_break loc="76..77" text=" " />
-            <line_break loc="147..148" text=" " />
-            <line_break loc="148..149" text=" " />
-            <line_break loc="215..216" text=" " />
-            <line_break loc="269..270" text=" " />
-            <line_break loc="315..316" text=" " />
-            <line_break loc="348..349" text=" " />
-            <line_break loc="359..360" text=" " />
-            <line_break loc="360..361" text=" " />
-            <line_break loc="424..425" text=" " />
-            <line_break loc="477..478" text=" " />
-            <line_break loc="514..515" text=" " />
-            <line_break loc="597..598" text=" " />
-            <line_break loc="608..609" text=" " />
-            <line_break loc="609..610" text=" " />
-            <line_break loc="653..654" text=" " />
-            <line_break loc="709..710" text=" " />
-            <line_break loc="761..762" text=" " />
-            <line_break loc="762..763" text=" " />
-            <line_break loc="812..813" text=" " />
-            <line_break loc="866..867" text=" " />
-            <line_break loc="914..915" text=" " />
-            <line_break loc="915..916" text=" " />
-            <line_break loc="954..955" text=" " />
-            <line_break loc="1006..1007" text=" " />
-            <line_break loc="1042..1043" text=" " />
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="76..77" text="&#10;" />
+            <line_break loc="147..148" text="&#10;" />
+            <line_break loc="148..149" text="&#10;" />
+            <line_break loc="215..216" text="&#10;" />
+            <line_break loc="269..270" text="&#10;" />
+            <line_break loc="315..316" text="&#10;" />
+            <line_break loc="348..349" text="&#10;" />
+            <line_break loc="359..360" text="&#10;" />
+            <line_break loc="360..361" text="&#10;" />
+            <line_break loc="424..425" text="&#10;" />
+            <line_break loc="477..478" text="&#10;" />
+            <line_break loc="514..515" text="&#10;" />
+            <line_break loc="597..598" text="&#10;" />
+            <line_break loc="608..609" text="&#10;" />
+            <line_break loc="609..610" text="&#10;" />
+            <line_break loc="653..654" text="&#10;" />
+            <line_break loc="709..710" text="&#10;" />
+            <line_break loc="761..762" text="&#10;" />
+            <line_break loc="762..763" text="&#10;" />
+            <line_break loc="812..813" text="&#10;" />
+            <line_break loc="866..867" text="&#10;" />
+            <line_break loc="914..915" text="&#10;" />
+            <line_break loc="915..916" text="&#10;" />
+            <line_break loc="954..955" text="&#10;" />
+            <line_break loc="1006..1007" text="&#10;" />
+            <line_break loc="1042..1043" text="&#10;" />
         </line_breaks>
         <comments>
             <comment loc="9..76" text="-- This sc..on DashQL." />

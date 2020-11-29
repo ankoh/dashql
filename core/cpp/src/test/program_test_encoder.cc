@@ -24,15 +24,6 @@ namespace {
 constexpr size_t INLINE_LOCATION_CAP = 20;
 constexpr size_t LOCATION_HINT_LENGTH = 10;
 
-std::string escape(std::string_view in) {
-    std::string out{in};
-    for (size_t i = out.find("\n", 0); i != std::string::npos; i = out.find("\n", i)) {
-        out.replace(i, 1, " ");
-        i += 1;
-    }
-    return out;
-}
-
 void encode(pugi::xml_node& n, proto::syntax::Location loc, std::string_view text) {
     auto begin = loc.offset();
     auto end = loc.offset() + loc.length();
@@ -44,10 +35,10 @@ void encode(pugi::xml_node& n, proto::syntax::Location loc, std::string_view tex
     {
         std::stringstream ss;
         if (loc.length() < INLINE_LOCATION_CAP) {
-            ss << escape(text.substr(loc.offset(), loc.length()));
+            ss << text.substr(loc.offset(), loc.length());
         } else {
-            auto prefix = escape(text.substr(loc.offset(), LOCATION_HINT_LENGTH));
-            auto suffix = escape(text.substr(loc.offset() + loc.length() - LOCATION_HINT_LENGTH, LOCATION_HINT_LENGTH));
+            auto prefix = text.substr(loc.offset(), LOCATION_HINT_LENGTH);
+            auto suffix = text.substr(loc.offset() + loc.length() - LOCATION_HINT_LENGTH, LOCATION_HINT_LENGTH);
             ss << prefix << ".." << suffix;
         }
         n.append_attribute("text") = ss.str().c_str();
