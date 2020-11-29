@@ -15,44 +15,59 @@
 namespace dashql {
 namespace test {
 
-void EncodeActionTest(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph) {
+void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph) {
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
     auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
     auto action_status_tt = proto::action::ActionStatusTypeTable();
 
     std::string program_text{program.program_text()};
-    root.append_child("text").last_child().set_value(program_text.c_str());
+    root.append_child("text").text().set(program_text.c_str());
 
-    auto setup_actions = root.append_child("setup");
+    auto params = root.append_child("params");
+
+    auto g = root.append_child("graph");
+    auto setup_actions = g.append_child("setup");
     for (auto& action : graph.setup_actions) {
-        auto s = setup_actions.append_child();
+        auto s = setup_actions.append_child("action");
         s.append_attribute("action_type") = setup_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
-        s.append_attribute("action_status") =
-            action_status_tt->names[static_cast<uint16_t>(action->action_status->status_code())];
-        s.append_attribute("target_id") = action->target_id;
-        s.append_attribute("target_name_qualified") = action->target_name_qualified.c_str();
-        s.append_attribute("target_name_short") = action->target_name_short.c_str();
+        if (action->action_status) {
+            s.append_attribute("status") =
+                action_status_tt->names[static_cast<uint16_t>(action->action_status->status_code())];
+        }
+        auto t = s.append_child("target");
+        t.append_attribute("id") = action->target_id;
+        t.append_attribute("name_qualified") = action->target_name_qualified.c_str();
+        t.append_attribute("name_short") = action->target_name_short.c_str();
     }
 
-    auto program_actions = root.append_child("program");
+    auto program_actions = g.append_child("program");
     for (auto& action : graph.program_actions) {
-        auto p = program_actions.append_child();
+        auto p = program_actions.append_child("action");
         p.append_attribute("action_type") = program_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
-        p.append_attribute("action_status") =
-            action_status_tt->names[static_cast<uint16_t>(action->action_status->status_code())];
-        auto depends_on = p.append_child("depends_on");
-        for (auto v : action->depends_on) {
-            depends_on.append_child("dep").append_attribute("id").set_value(v);
+        if (action->action_status) {
+            p.append_attribute("status") =
+                action_status_tt->names[static_cast<uint16_t>(action->action_status->status_code())];
         }
-        auto required_for = p.append_child("required_for");
-        for (auto v : action->required_for) {
-            depends_on.append_child("req").append_attribute("id").set_value(v);
+        auto t = p.append_child("target");
+        t.append_attribute("id") = action->target_id;
+        t.append_attribute("name_qualified") = action->target_name_qualified.c_str();
+        t.append_attribute("name_short") = action->target_name_short.c_str();
+        if (!action->depends_on.empty()) {
+            auto depends_on = p.append_child("depends_on");
+            for (auto v : action->depends_on) {
+                depends_on.append_child("action_ref").append_attribute("id").set_value(v);
+            }
         }
-        p.append_attribute("origin_statement") = action->origin_statement;
-        p.append_attribute("target_id") = action->target_id;
-        p.append_attribute("target_name_qualified") = action->target_name_qualified.c_str();
-        p.append_attribute("target_name_short") = action->target_name_short.c_str();
-        p.append_child("script").last_child().set_value(action->script.c_str());
+        if (!action->required_for.empty()) {
+            auto required_for = p.append_child("required_for");
+            for (auto v : action->required_for) {
+                required_for.append_child("action_ref").append_attribute("id").set_value(v);
+            }
+        }
+        p.append_attribute("origin") = action->origin_statement;
+        if (!action->script.empty()) {
+            p.append_child("script").text().set(action->script.c_str());
+        }
     }
 }
 

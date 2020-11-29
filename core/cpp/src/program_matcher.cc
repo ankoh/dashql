@@ -539,4 +539,10 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     return ops;
 }
 
+// Do parameter values equal?
+bool ProgramMatcher::ParameterValuesEqual(const proto::session::ParameterValue* l, const proto::session::ParameterValue* r) {
+    // XXX
+    return false;
+}
+
 }  // namespace dashql

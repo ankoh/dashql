@@ -1,4 +1,4 @@
-<test name="parmeter_change">
+<test name="parameter_change">
     <previous>
         <text>
             DECLARE PARAMETER country TYPE TEXT (
@@ -10,13 +10,10 @@
         </text>
         <graph>
             <program>
-                <status target="0" value="COMPLETED" />
-                <status target="1" value="NONE" />
-            </progam>
+                <action status="COMPLETED" />
+                <action status="NONE" />
+            </program>
         </graph>
-        <parameters>
-            <parameter target="0" value="foo" />
-        </parameters>
     </previous>
     <next>
         <text>
@@ -27,8 +24,5 @@
                 url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
             );
         </text>
-        <parameters>
-            <parameter target="0" value="bar" />
-        </parameters>
     </next>
 </test>

@@ -1,4 +1,4 @@
-<test name="parmeter_change">
+<test name="parameter_change">
     <previous>
         <text>
             DECLARE PARAMETER country TYPE TEXT (
@@ -8,11 +8,51 @@
                 url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
             );
         </text>
+        <params />
         <graph>
+            <setup />
             <program>
-                <status target="0" value="COMPLETED" />
-                <status target="1" value="NONE" />
+                <action action_type="PARAMETER" origin="0">
+                    <target id="0" name_qualified="global.country" name_short="country" />
+                    <required_for>
+                        <action_ref id="1" />
+                    </required_for>
+                </action>
+                <action action_type="LOAD_HTTP" origin="1">
+                    <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
+                    <depends_on>
+                        <action_ref id="0" />
+                    </depends_on>
+                </action>
             </program>
         </graph>
     </previous>
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT (
+                default_value = 'DE'
+            );
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+        </text>
+        <params />
+        <graph>
+            <setup />
+            <program>
+                <action action_type="PARAMETER" origin="0">
+                    <target id="0" name_qualified="global.country" name_short="country" />
+                    <required_for>
+                        <action_ref id="1" />
+                    </required_for>
+                </action>
+                <action action_type="LOAD_HTTP" origin="1">
+                    <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
+                    <depends_on>
+                        <action_ref id="0" />
+                    </depends_on>
+                </action>
+            </program>
+        </graph>
+    </next>
 </test>
