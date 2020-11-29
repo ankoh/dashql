@@ -53,7 +53,7 @@ static std::unordered_map<sx::StatementType, StatementTranslation> STATEMENT_TRA
 #define X(STMT_TYPE, PROGRAM_ACTION, RENDER_SCRIPT) \
     {sx::StatementType::STMT_TYPE, {proto::action::ProgramActionType::PROGRAM_ACTION, RENDER_SCRIPT}},
     X(NONE, NONE, false)
-    X(PARAMETER, NONE, false)
+    X(PARAMETER, PARAMETER, false)
     X(LOAD_FILE, LOAD_FILE, false)
     X(LOAD_HTTP, LOAD_HTTP, false)
     X(EXTRACT_JSON, EXTRACT_JSON, false)

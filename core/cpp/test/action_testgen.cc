@@ -9,13 +9,14 @@
 
 #include "dashql/action_planner.h"
 #include "dashql/parser/parser_driver.h"
-#include "dashql/test/grammar_tests.h"
+#include "dashql/test/action_graph_tests.h"
 #include "duckdb/web/common/span.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-internal.h"
 
 using namespace dashql;
+using namespace dashql::test;
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -54,25 +55,42 @@ int main(int argc, char* argv[]) {
         pugi::xml_document doc;
         doc.load(in);
 
+        auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
+        auto action_status_code_tt = proto::action::ActionStatusCodeTypeTable();
+
         for (auto test : doc.children()) {
             auto name = test.attribute("name").value();
             std::cout << "  TEST " << name << std::endl;
 
-            // Inspect template
+            // Unpack previous program
             auto prev = test.child("previous");
-            auto prev_text = prev.child("text").last_child().value();
-            auto prev_graph = prev.child("graph");
-            auto prev_params = prev.child("parameters");
-            auto next = test.child("next");
-            auto next_text = test.child("text").last_child().value();
-            auto next_params = test.child("parameters");
-
-            /// Parse module
+            auto prev_text = prev.child("text").text().get();
             auto prev_program = parser::ParserDriver::Parse(prev_text);
-            ProgramInstance prev_program_instance{prev_text, *prev_program};
+            auto prev_program_text = std::string{prev_text};
+            ProgramInstance prev_program_instance{prev_program_text, *prev_program};
 
-            // Generate initial action graph
-            // ActionPlanner prev_planner{prev_program_instance};
+            // Unpack next program
+            auto next = test.child("next");
+            auto next_text = next.child("text").text().get();
+            auto next_params = next.child("parameters");
+            auto next_program = parser::ParserDriver::Parse(next_text);
+            auto next_program_text = std::string{next_text};
+            ProgramInstance next_program_instance{next_program_text, *next_program};
+
+            // Plan the previous action graph
+            ActionPlanner prev_planner{prev_program_instance};
+            prev_planner.PlanActionGraph();
+            auto prev_action_graph = prev_planner.Finish();
+
+            // Plan the next action graph
+            ActionPlanner next_planner{next_program_instance};
+            next_planner.PlanActionGraph();
+            auto next_action_graph = next_planner.Finish();
+
+            prev.remove_children();
+            ActionGraphTest::EncodeActionGraph(prev, prev_program_instance, *prev_action_graph);
+            next.remove_children();
+            ActionGraphTest::EncodeActionGraph(next, next_program_instance, *next_action_graph);
         }
 
         // Write xml document
