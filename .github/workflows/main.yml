@@ -44,7 +44,7 @@ jobs:
             ./core/cpp/build/debug/tester ./core/cpp/test/grammar \
                 --gtest_output=xml:./reports/tests_debug.xml \
                 ./core/cpp/
- \
+
     - name: Test WebDB
       uses: ./ci/image
       with:
