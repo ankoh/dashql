@@ -12,11 +12,11 @@
 #include "pugixml.hpp"
 
 namespace dashql {
-namespace parser {
+namespace test {
 
 void EncodeActionTest(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph);
 
-}  // namespace parser
+}  // namespace test
 }  // namespace dashql
 
 #endif  // INCLUDE_DASHQL_PARSER_TEST_ACTION_TEST_ENCODER_H_
