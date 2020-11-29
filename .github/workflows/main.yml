@@ -41,9 +41,8 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
-            ./core/cpp/build/debug/tester ./core/cpp/test/grammar \
-                --gtest_output=xml:./reports/tests_debug.xml \
-                ./core/cpp/
+            ./core/cpp/build/debug/tester ./core/cpp/ \
+                --gtest_output=xml:./reports/tests_debug.xml
 
     - name: Test WebDB
       uses: ./ci/image
@@ -91,9 +90,8 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
-            ./core/cpp/build/release/tester \
-                --gtest_output=xml:./reports/tests_release.xml \
-                ./core/cpp/
+            ./core/cpp/build/debug/tester ./core/cpp/ \
+                --gtest_output=xml:./reports/tests_release.xml
 
     - name: Test WebDB
       uses: ./ci/image
