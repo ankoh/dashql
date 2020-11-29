@@ -9,13 +9,12 @@
 #include "dashql/program_instance.h"
 #include "dashql/proto/action_generated.h"
 #include "dashql/proto/syntax_generated.h"
-#include "ryml_std.hpp"
-#include "ryml.hpp"
+#include "pugixml.hpp"
 
 namespace dashql {
 namespace parser {
 
-void EncodeActionTes(ryml::NodeRef ref, const ProgramInstance& program, const proto::action::ActionGraphT& graph);
+void EncodeActionTest(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph);
 
 }  // namespace parser
 }  // namespace dashql
