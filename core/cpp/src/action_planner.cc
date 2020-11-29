@@ -158,8 +158,8 @@ Signal ActionPlanner::IdentifyApplicableActions() {
     if (!prev_action_graph_) return Signal::OK();
 
     using ActionID = size_t;
-    auto& prev_actions = prev_action_graph_->program_actions;
-    action_applicability_.resize(prev_actions.size(), false);
+    auto& prev_program_actions = prev_action_graph_->program_actions;
+    action_applicability_.resize(prev_program_actions.size(), false);
 
     // Invalidate an action.
     // If an action is invalidated, we might have to propagate the invalidation to the actions before us.
@@ -178,7 +178,7 @@ Signal ActionPlanner::IdentifyApplicableActions() {
             visited.insert(top);
 
             // Get invalidation info
-            auto& action = *prev_actions[action_id];
+            auto& action = *prev_program_actions[action_id];
             auto iter = ACTION_TRANSLATION.find(action.action_type);
             if (iter == ACTION_TRANSLATION.end()) {
                 continue;
@@ -200,8 +200,9 @@ Signal ActionPlanner::IdentifyApplicableActions() {
     // We traverse the previous action graph in topological order.
     // That reduces the applicability check to the direct dependencies.
     std::vector<std::pair<ActionID, int>> deps;
-    for (unsigned i = 0; i < prev_actions.size(); ++i) {
-        deps[i] = {i, prev_actions[i]->depends_on.size()};
+    deps.reserve(prev_program_actions.size());
+    for (unsigned i = 0; i < prev_program_actions.size(); ++i) {
+        deps.push_back({i, prev_program_actions[i]->depends_on.size()});
     }
     TopologicalSort<ActionID> pending_actions{move(deps)};
     while (!pending_actions.Empty()) {
@@ -209,7 +210,7 @@ Signal ActionPlanner::IdentifyApplicableActions() {
         pending_actions.Pop();
 
         // Decrement key of depending actions
-        auto& a = *prev_actions[prev_action_id];
+        auto& a = *prev_program_actions[prev_action_id];
         for (auto next : a.required_for) {
             pending_actions.DecrementKey(next);
         }
@@ -295,7 +296,7 @@ Signal ActionPlanner::IdentifyApplicableActions() {
 Signal ActionPlanner::MigrateActionGraph() {
     if (!prev_action_graph_) return Signal::OK();
 
-    auto& prev_actions = prev_action_graph_->program_actions;
+    auto& prev_program_actions = prev_action_graph_->program_actions;
     auto& next_setup_actions = action_graph_->setup_actions;
     auto& next_program_actions = action_graph_->program_actions;
     using ActionID = size_t;
@@ -308,10 +309,10 @@ Signal ActionPlanner::MigrateActionGraph() {
     // If an action is not applicable, but the diff op is UPDATE, we try to patch the action type.
     // Currently this only affects the VIZ action to explicitly keep the viz state instead of recreating it.
     std::vector<std::unique_ptr<proto::action::SetupActionT>> setup;
-    setup.reserve(prev_actions.size());
-    for (unsigned prev_action_id = 0; prev_action_id < prev_actions.size(); ++prev_action_id) {
+    setup.reserve(prev_program_actions.size());
+    for (unsigned prev_action_id = 0; prev_action_id < prev_program_actions.size(); ++prev_action_id) {
         setup.push_back(nullptr);
-        auto& prev_action = prev_actions[prev_action_id];
+        auto& prev_action = prev_program_actions[prev_action_id];
         auto& diff_op = diff_[prev_action_id];
 
         // Find the action translation
@@ -376,8 +377,9 @@ Signal ActionPlanner::MigrateActionGraph() {
     // If statement B depends on A, the setup action of B must be executed before A.
     // This flips the original dependencies to ensure that, for example, derived views are dropped before tables.
     std::vector<std::pair<ActionID, int>> deps;
-    for (unsigned i = 0; i < prev_actions.size(); ++i) {
-        deps[i] = {i, prev_actions[i]->required_for.size()};
+    deps.reserve(prev_program_actions.size());
+    for (unsigned i = 0; i < prev_program_actions.size(); ++i) {
+        deps.push_back({i, prev_program_actions[i]->required_for.size()});
     }
     TopologicalSort<ActionID> pending_actions{move(deps)};
     while (!pending_actions.Empty()) {
@@ -385,13 +387,13 @@ Signal ActionPlanner::MigrateActionGraph() {
         pending_actions.Pop();
 
         // Decrement key of action that the top depends on
-        auto& action = *prev_actions[prev_action_id];
+        auto& action = *prev_program_actions[prev_action_id];
         for (auto next : action.depends_on) {
             pending_actions.DecrementKey(next);
         }
 
         // Emit setup action
-        if (setup[prev_action_id]->action_type != SetupActionType::NONE) {
+        if (setup[prev_action_id] && setup[prev_action_id]->action_type != SetupActionType::NONE) {
             next_setup_actions.push_back(move(setup[prev_action_id]));
         }
     }
