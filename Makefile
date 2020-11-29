@@ -131,6 +131,13 @@ duckdb_js:
 duckdb_js_tests:
 	npm --prefix ${ROOT_DIR}/duckdb/js run test
 
+# Install all npm packages
+.PHONY: npm_install
+npm_install:
+	npm --prefix ${ROOT_DIR}/duckdb/js install
+	npm --prefix ${ROOT_DIR}/core/js install
+	npm --prefix ${ROOT_DIR}/app install
+
 # ---------------------------------------------------------------------------
 # Environment
 
