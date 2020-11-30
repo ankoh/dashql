@@ -233,10 +233,16 @@
         select 1 from b;
     </input>
 </test>
-<test name="select_column_ref">
+<test name="select_column_ref_expr_1">
     <input>
         declare parameter a type integer;
         select 1 into b;
         select c from b where c = global.a + 1
+    </input>
+</test>
+<test name="select_column_ref_expr_2">
+    <input>
+        declare parameter month type integer;
+        select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = global.month
     </input>
 </test>
