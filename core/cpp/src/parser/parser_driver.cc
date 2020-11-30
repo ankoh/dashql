@@ -299,7 +299,7 @@ void ParserDriver::AddStatement(sx::Node node) {
             break;
 
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:
-            if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_METHOD); m) {
+            if (auto [m, _] = FindAttribute(node, Key::DASHQL_EXTRACT_METHOD); m) {
                 switch (static_cast<sxd::ExtractMethodType>(m->children_begin_or_value())) {
                     case sxd::ExtractMethodType::JSON:
                         stmt_type = sx::StatementType::EXTRACT_JSON;
