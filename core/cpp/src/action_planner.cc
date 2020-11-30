@@ -70,7 +70,7 @@ static std::unordered_map<sx::StatementType, StatementTranslation> STATEMENT_TRA
 // Translate statements
 Signal ActionPlanner::TranslateStatements() {
     auto& next = next_program_.program();
-    auto& stmts = next_program_.program().statements;
+    auto& stmts = next.statements;
     auto& program_actions = action_graph_->program_actions;
     program_actions.resize(stmts.size());
 
@@ -107,7 +107,7 @@ Signal ActionPlanner::TranslateStatements() {
     }
 
     // Store dependencies
-    auto& deps = next_program_.program().dependencies;
+    auto& deps = next.dependencies;
     for (unsigned dep_id = 0; dep_id < deps.size(); ++dep_id) {
         auto& dep = deps[dep_id];
         program_actions[dep.source_statement()]->required_for.push_back(dep.target_statement());
