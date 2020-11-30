@@ -1,5 +1,9 @@
-#include "dashql/common/substring_buffer.h"
 #include "dashql/program_instance.h"
+
+#include <iomanip>
+#include <sstream>
+
+#include "dashql/common/substring_buffer.h"
 
 namespace dashql {
 
@@ -28,7 +32,7 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
     SubstringBuffer buffer{program_text_, target_root.location()};
 
     // Find all the column refs that occur in the statement
-    for (auto& dep: program_.dependencies) {
+    for (auto& dep : program_.dependencies) {
         auto target = dep.target_statement();
         auto source = dep.source_statement();
 
@@ -42,8 +46,27 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
         auto& target_node = program_.nodes[dep.target_node()];
         assert(target_node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
 
+        // Escape the value based on value type
+        auto param_value = parameter_values_[source];
+        std::stringstream value_sql_text;
+        using ParameterType = proto::syntax_dashql::ParameterType;
+        switch (param_value->type) {
+            case ParameterType::NONE:
+            case ParameterType::FILE:
+                break;
+            case ParameterType::INTEGER:
+            case ParameterType::FLOAT:
+            case ParameterType::DATE:
+            case ParameterType::DATETIME:
+            case ParameterType::TIME:
+                break;
+                value_sql_text << param_value->value;
+            case ParameterType::TEXT:
+                value_sql_text << std::quoted(param_value->value, '\'');
+        }
+
         // The the source statement a parameter?
-        buffer.Replace(target_node.location(), parameter_values_[source]->value);
+        buffer.Replace(target_node.location(), value_sql_text.str());
     }
 
     // Return the result
@@ -74,4 +97,4 @@ const sx::Node* ProgramInstance::FindAttribute(const sx::Node& origin, sx::Attri
     return (n.attribute_key() == key) ? &n : nullptr;
 }
 
-}  // dashql
+}  // namespace dashql
