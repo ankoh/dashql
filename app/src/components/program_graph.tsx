@@ -1,7 +1,5 @@
 import * as React from "react";
 import * as core from "@dashql/core";
-import { connect } from 'react-redux';
-import { AppState, Dispatch } from '../store';
 import classnames from 'classnames';
 
 import * as d3 from 'd3';
@@ -93,11 +91,4 @@ class ProgramGraph extends React.Component<Props> {
 
 }
 
-const mapStateToProps = (state: AppState) => ({
-    program: state.studioProgram
-});
-
-const mapDispatchToProps = (_dispatch: Dispatch) => ({
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(ProgramGraph);
+export default ProgramGraph;
