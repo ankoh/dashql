@@ -39,11 +39,9 @@ ExpectedBuffer<proto::syntax::Program> Session::ParseProgram(std::string_view te
 
 /// Evaluate a program
 ExpectedBuffer<proto::session::Plan> Session::PlanProgram() {
-    // Store the old program instance
+    // Get previous and next program
     auto prev_program = planned_program_.get();
     auto prev_graph = planned_graph_.get();
-
-    // Build the new program instance
     auto next_program = std::make_unique<ProgramInstance>(std::move(volatile_program_text_), std::move(volatile_program_));
 
     // Evaluate partially
@@ -61,9 +59,31 @@ ExpectedBuffer<proto::session::Plan> Session::PlanProgram() {
     planned_program_ = move(next_program);
     planned_graph_ = move(next_graph);
 
+    // Pack action graph
+    flatbuffers::FlatBufferBuilder builder;
+    auto graph = proto::action::ActionGraph::Pack(builder, planned_graph_.get());
+
+    // Pack parameters
+    std::vector<flatbuffers::Offset<proto::session::ParameterValue>> param_offsets;
+    param_offsets.reserve(planned_program_->parameter_values().size());
+    for (auto& param: planned_program_->parameter_values()) {
+        auto ofs = proto::session::ParameterValue::Pack(builder, param.get());
+        param_offsets.push_back(ofs);
+    }
+    auto param_vec = builder.CreateVector(param_offsets);
+
+    // Pack patch
+    auto& patch = planned_program_->patch();
+    auto patch_ofs = proto::syntax::ProgramPatch::Pack(builder, patch.get());
+
     // Encode the plan result
-    // XXX
-    return ErrorCode::NOT_IMPLEMENTED;
+    proto::session::PlanBuilder plan{builder};
+    plan.add_action_graph(graph);
+    plan.add_parameters(param_vec);
+    plan.add_program_evaluation(patch_ofs);
+    auto plan_ofs = plan.Finish();
+    builder.Finish(plan_ofs);
+    return builder.Release();
 }
 
 }  // namespace dashql
