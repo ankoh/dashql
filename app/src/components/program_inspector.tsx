@@ -1,7 +1,5 @@
 import * as React from "react";
 import * as core from "@dashql/core";
-import { connect } from 'react-redux';
-import { AppState, Dispatch } from '../store';
 import classnames from 'classnames';
 
 import sx = core.proto.syntax;
@@ -59,11 +57,4 @@ class ProgramInspector extends React.Component<Props> {
     }
 }
 
-const mapStateToProps = (state: AppState) => ({
-    program: state.studioProgram
-});
-
-const mapDispatchToProps = (_dispatch: Dispatch) => ({
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(ProgramInspector);
+export default ProgramInspector;
