@@ -340,7 +340,7 @@ void ParserDriver::AddStatement(sx::Node node) {
 void ParserDriver::AddError(sx::Location loc, const std::string& message) { errors_.push_back({loc, message}); }
 
 /// Get as flatbuffer object
-std::unique_ptr<sx::ProgramT> ParserDriver::Finish() {
+std::shared_ptr<sx::ProgramT> ParserDriver::Finish() {
     auto program = std::make_unique<sx::ProgramT>();
     program->nodes = move(nodes_);
     program->statements.reserve(statements_.size());
@@ -360,7 +360,7 @@ std::unique_ptr<sx::ProgramT> ParserDriver::Finish() {
     return program;
 }
 
-std::unique_ptr<sx::ProgramT> ParserDriver::Parse(std::string_view in, bool trace_scanning, bool trace_parsing) {
+std::shared_ptr<sx::ProgramT> ParserDriver::Parse(std::string_view in, bool trace_scanning, bool trace_parsing) {
     // XXX shortcut until tests are migrated
     std::vector<char> padded_buffer{in.begin(), in.end()};
     padded_buffer.push_back(0);

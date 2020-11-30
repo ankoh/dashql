@@ -2,7 +2,7 @@ import { AppReduxStore, AppStateMutations } from '../store';
 import { EditorController } from './editor';
 import { LogController } from './log';
 import { InterpreterController } from './interpreter';
-import { ParserController } from './parser';
+import { CoreController } from './core';
 
 export const DEMO_SCRIPT =
 `-- This script outlines basic concepts of the SQL extension DashQL.
@@ -38,7 +38,7 @@ export class DemoController {
     /// The Store
     protected _store: AppReduxStore;
     /// The parser
-    protected _parser: ParserController;
+    protected _core: CoreController;
     /// The logger
     protected _log: LogController;
     /// The editor controller
@@ -46,15 +46,15 @@ export class DemoController {
     /// The interpreter controller
     protected _interpreter: InterpreterController;
 
-    constructor(store: AppReduxStore, parser: ParserController, log: LogController, editor: EditorController, interpreter: InterpreterController) {
+    constructor(store: AppReduxStore, core: CoreController, log: LogController, editor: EditorController, interpreter: InterpreterController) {
         this._store = store;
-        this._parser = parser;
+        this._core = core;
         this._log = log;
         this._editor = editor;
         this._interpreter = interpreter;
     }
 
     public setup() {
-        this._store.dispatch(AppStateMutations.setPlanText(DEMO_SCRIPT));
+        this._store.dispatch(AppStateMutations.setStudioProgramText(DEMO_SCRIPT));
     }
 }

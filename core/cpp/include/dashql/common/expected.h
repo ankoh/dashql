@@ -16,8 +16,6 @@ using Expected = duckdb::web::Expected<V>;
 using Signal = duckdb::web::Signal;
 template <typename V>
 using ExpectedBuffer = duckdb::web::ExpectedBuffer<V>;
-template <typename V>
-using ExpectedBufferRef = duckdb::web::ExpectedBufferRef<V>;
 
 }  // namespace dashql
 

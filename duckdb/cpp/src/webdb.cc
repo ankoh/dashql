@@ -15,7 +15,6 @@
 #include "duckdb/planner/planner.hpp"
 #include "duckdb/web/codec.h"
 #include "duckdb/web/json.h"
-#include "duckdb/web/tablegen.h"
 #include "flatbuffers/flatbuffers.h"
 #include "spdlog/spdlog.h"
 
@@ -115,11 +114,6 @@ ExpectedBuffer<proto::QueryPlan> WebDB::Connection::AnalyzeQuery(std::string_vie
     // Return buffer
     builder.Finish(plan_ofs);
     return {builder.Release()};
-}
-
-/// Generate a table
-Signal WebDB::Connection::GenerateTable(proto::TableSpecification& spec) {
-    return generateTable(connection_, spec);
 }
 
 /// Constructor

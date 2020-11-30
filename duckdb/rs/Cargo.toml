@@ -1,5 +1,5 @@
 [package]
-name = "dashql_db"
+name = "dashql_duckdb"
 version = "0.1.0"
 authors = []
 edition = "2018"

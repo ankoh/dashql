@@ -13,7 +13,6 @@
 #include "duckdb/web/common/span.h"
 #include "duckdb/web/proto/query_plan_generated.h"
 #include "duckdb/web/proto/query_result_generated.h"
-#include "duckdb/web/proto/tablegen_generated.h"
 #include "duckdb/web/proto/vector_generated.h"
 
 namespace duckdb {
@@ -87,8 +86,6 @@ class WebDB {
         ExpectedBuffer<proto::QueryResultChunk> FetchQueryResults();
         /// Analyze a SQL query
         ExpectedBuffer<proto::QueryPlan> AnalyzeQuery(std::string_view text);
-        /// Generate a table
-        Signal GenerateTable(proto::TableSpecification& spec);
     };
 
    protected:

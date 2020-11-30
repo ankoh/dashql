@@ -238,7 +238,8 @@ if (EMSCRIPTEN)
             _malloc, \
             _free, \
             _dashql_clear_response, \
-            _dashql_evaluate, \
+            _dashql_parse_program, \
+            _dashql_plan_program, \
             ${DUCKDB_WEB_CONNECTION_INTERFACE} \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \

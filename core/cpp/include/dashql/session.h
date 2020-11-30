@@ -16,6 +16,7 @@
 
 #include "dashql/proto/action_generated.h"
 #include "dashql/proto/session_generated.h"
+#include "dashql/program_instance.h"
 #include "duckdb/web/common/expected.h"
 #include "duckdb/web/webdb.h"
 
@@ -35,12 +36,19 @@ class Session {
     /// The connection (if any)
     duckdb::web::WebDB::Connection* database_connection_;
 
-    /// The current program text
-    std::string program_text_;
-    /// The plan
-    std::pair<const proto::session::Plan*, fb::DetachedBuffer> plan_;
-    /// The current action status
-    std::unordered_map<uint32_t, proto::action::ActionStatus> action_status_;
+    /// The volatile program text (if any)
+    std::shared_ptr<std::string> volatile_program_text_;
+    /// The volatile program text (if any)
+    std::shared_ptr<proto::syntax::ProgramT> volatile_program_;
+
+    /// The planned program (if any)
+    std::unique_ptr<ProgramInstance> planned_program_;
+    /// The planned graph (if any)
+    std::unique_ptr<proto::action::ActionGraphT> planned_graph_;
+    /// The planner log
+    std::vector<std::unique_ptr<ProgramInstance>> planner_log_;
+    /// The planner log writer cursor
+    size_t planner_log_writer_;
 
    public:
     /// Constructor
@@ -48,10 +56,12 @@ class Session {
 
     /// Access the database
     auto* AccessDatabase() { return database_connection_; }
-    /// Evaluate a program
-    ExpectedBufferRef<proto::session::Plan> Evaluate(const char* text);
-    /// Update the action status
-    void UpdateActionStatus(uint32_t id, proto::action::ActionStatus status);
+    /// Parse a program
+    ExpectedBuffer<proto::syntax::Program> ParseProgram(std::string_view text);
+    /// Plan the last program
+    ExpectedBuffer<proto::session::Plan> PlanProgram();
+
+    void UpdateParameter();
 };
 
 }  // namespace dashql

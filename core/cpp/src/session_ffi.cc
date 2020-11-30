@@ -33,11 +33,18 @@ void dashql_clear_response() {
     GetResponseBuffer().Clear();
 }
 
-void dashql_evaluate(Response* response, const char* text) {
+void dashql_parse_program(Response* response, const char* text) {
     GetResponseBuffer().Clear();
     auto& session = GetSession();
-    auto program = session.Evaluate(text);
+    auto program = session.ParseProgram(text);
     GetResponseBuffer().Store(*response, move(program));
+}
+
+void dashql_plan_program(Response* response) {
+    GetResponseBuffer().Clear();
+    auto& session = GetSession();
+    auto plan = session.PlanProgram();
+    GetResponseBuffer().Store(*response, move(plan));
 }
 
 #ifdef EMSCRIPTEN

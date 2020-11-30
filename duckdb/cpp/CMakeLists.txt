@@ -45,7 +45,6 @@ add_library(duckdb_webdb
     ${CMAKE_CURRENT_SOURCE_DIR}/src/codec.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/src/iterator.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/src/json.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tablegen.cc
 )
 
 target_link_libraries(duckdb_webdb

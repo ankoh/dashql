@@ -49,7 +49,7 @@ gen_proto() {
         ${FLATC} -I ${TMP} -o ${TS_PROTO_DIR} ${PROTO_FILE} --ts \
                 --no-fb-import \
                 --reflect-types --reflect-names \
-                --gen-name-strings --gen-compare \
+                --gen-name-strings --gen-compare --short-names \
                 --gen-mutable \
             && mv ${TS_PROTO_OUT} ${TS_PROTO_TMP} \
             && echo "/* eslint-disable */" > ${TS_PROTO_OUT} \
