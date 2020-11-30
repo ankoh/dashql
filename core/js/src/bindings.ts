@@ -1,9 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { DashQLCoreModule } from './wasm/dashql_core_module';
+import { Program } from  './parser';
 import { flatbuffers } from 'flatbuffers';
 import * as proto from './proto';
-import { Program } from  './parser';
 
 /// The proxy for either the browser- order node-based DashQLCore API
 export abstract class DashQLCoreBindings {
@@ -75,7 +75,7 @@ export abstract class DashQLCoreBindings {
     }
 
     /// Parse a string and return a flatbuffer
-    public parse(text: string): Program {
+    public parseProgram(text: string): Program {
         let instance = this._instance!;
         let stackPointer = instance.stackSave();
 
@@ -96,6 +96,16 @@ export abstract class DashQLCoreBindings {
         /// Clear the utf8 string buffer
         instance.stackRestore(stackPointer);
         return new Program(text, textUTF8, buffer);
+    }
+
+    /// Plan a program
+    public planProgram(): FlatBuffer<proto.session.Plan> {
+        let instance = this._instance!;
+        let [ptr, ofs, size] = this.callSRet('dashql_plan_program', [], []);
+        let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
+        let buffer = new PlanBuffer(mem);
+        instance.ccall('dashql_clear_response', null, [], []);
+        return buffer;
     }
 };
 
