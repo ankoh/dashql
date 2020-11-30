@@ -1,4 +1,4 @@
-<test name="init_param">
+<test name="clean_param">
     <previous>
         <text></text>
         <parameters />
@@ -24,7 +24,7 @@
         </graph>
     </next>
 </test>
-<test name="init_param_load">
+<test name="clean_param_load">
     <previous>
         <text></text>
         <parameters />
@@ -72,7 +72,7 @@
         </graph>
     </next>
 </test>
-<test name="init_param_load_extract">
+<test name="clean_param_load_extract">
     <previous>
         <text></text>
         <parameters />
@@ -120,7 +120,7 @@
         </graph>
     </next>
 </test>
-<test name="init_param_load_extract_select">
+<test name="clean_param_load_extract_select">
     <previous>
         <text></text>
         <parameters />
@@ -179,7 +179,7 @@
         </graph>
     </next>
 </test>
-<test name="init_param_load_extract_select_2vizzes">
+<test name="clean_param_load_extract_select_2vizzes">
     <previous>
         <text></text>
         <parameters />
@@ -256,7 +256,7 @@
         </graph>
     </next>
 </test>
-<test name="init_param_load_extract_2selects_2vizzes">
+<test name="clean_param_load_extract_2selects_2vizzes">
     <previous>
         <text></text>
         <parameters />
@@ -344,7 +344,7 @@
         </graph>
     </next>
 </test>
-<test name="init_2param_load_extract_2selects_2vizzes">
+<test name="clean_2params_load_extract_2selects_2vizzes">
     <previous>
         <text></text>
         <parameters />
@@ -443,7 +443,7 @@
         </graph>
     </next>
 </test>
-<test name="init_complex_1">
+<test name="clean_3params_2loads_2extracts_1selects_1viz">
     <previous>
         <text></text>
         <parameters />
