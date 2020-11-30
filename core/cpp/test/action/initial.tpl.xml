@@ -1,34 +1,75 @@
-<test name="parameter_change">
-    <previous>
+<test name="init_param">
+    <previous />
+    <next>
         <text>
-            DECLARE PARAMETER country TYPE TEXT (
-                default_value = 'DE'
-            );
-            LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
-            );
+            DECLARE PARAMETER country TYPE TEXT;
         </text>
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
         </parameters>
-        <graph>
-            <program>
-                <action status="COMPLETED" />
-                <action status="NONE" />
-            </program>
-        </graph>
-    </previous>
+    </next>
+</test>
+<test name="init_param_load">
+    <previous />
     <next>
         <text>
-            DECLARE PARAMETER country TYPE TEXT (
-                default_value = 'DE'
-            );
+            DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
             );
+            EXTRACT weather FROM weather_csv USING CSV;
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="US" />
+            <parameter type="TEXT" statement="0" value="DE" />
+        </parameters>
+    </next>
+</test>
+<test name="init_param_load_extract">
+    <previous />
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT;
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+            EXTRACT weather FROM weather_csv USING CSV;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+        </parameters>
+    </next>
+</test>
+<test name="init_param_load_extract_select">
+    <previous />
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT;
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+            EXTRACT weather FROM weather_csv USING CSV;
+            SELECT * INTO weather_avg FROM weather;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+        </parameters>
+    </next>
+</test>
+<test name="init_param_load_extract_select_2viz">
+    <previous />
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT;
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+            EXTRACT weather FROM weather_csv USING CSV;
+            SELECT * INTO weather_avg FROM weather;
+            VIZ weather_avg USING LINE;
+            VIZ weather_avg USING TABLE;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
         </parameters>
     </next>
 </test>
