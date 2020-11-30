@@ -1,4 +1,4 @@
-<test name="init_param">
+<test name="clean_param">
     <previous />
     <next>
         <text>
@@ -9,22 +9,7 @@
         </parameters>
     </next>
 </test>
-<test name="init_param_load">
-    <previous />
-    <next>
-        <text>
-            DECLARE PARAMETER country TYPE TEXT;
-            LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
-            );
-            EXTRACT weather FROM weather_csv USING CSV;
-        </text>
-        <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
-        </parameters>
-    </next>
-</test>
-<test name="init_param_load_extract">
+<test name="clean_param_load">
     <previous />
     <next>
         <text>
@@ -39,7 +24,22 @@
         </parameters>
     </next>
 </test>
-<test name="init_param_load_extract_select">
+<test name="clean_param_load_extract">
+    <previous />
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT;
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+            EXTRACT weather FROM weather_csv USING CSV;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+        </parameters>
+    </next>
+</test>
+<test name="clean_param_load_extract_select">
     <previous />
     <next>
         <text>
@@ -55,7 +55,7 @@
         </parameters>
     </next>
 </test>
-<test name="init_param_load_extract_select_2vizzes">
+<test name="clean_param_load_extract_select_2vizzes">
     <previous />
     <next>
         <text>
@@ -73,7 +73,7 @@
         </parameters>
     </next>
 </test>
-<test name="init_param_load_extract_2selects_2vizzes">
+<test name="clean_param_load_extract_2selects_2vizzes">
     <previous />
     <next>
         <text>
@@ -92,7 +92,7 @@
         </parameters>
     </next>
 </test>
-<test name="init_2param_load_extract_2selects_2vizzes">
+<test name="clean_2params_load_extract_2selects_2vizzes">
     <previous />
     <next>
         <text>
@@ -113,7 +113,7 @@
         </parameters>
     </next>
 </test>
-<test name="init_complex_1">
+<test name="clean_3params_2loads_2extracts_1selects_1viz">
     <previous />
     <next>
         <text>
