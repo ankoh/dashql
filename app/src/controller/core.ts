@@ -12,8 +12,7 @@ export class CoreController {
 
     /// Init the WebAssembly module
     async init() {
-        const core = await DashQLCore.create(dashql_core_wasm);
-        this._module = core;
+        this._module = await DashQLCore.create(dashql_core_wasm);
     }
 
     /// Parse an input string

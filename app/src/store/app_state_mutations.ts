@@ -56,8 +56,8 @@ export class AppStateMutations {
 
 
     /// Set the editor modul
-    public static setPlan(program: core.Plan): ActionVariant {
-        return { type: ActionType.SET_PLAN, payload: program };
+    public static setPlan(plan: core.Plan): ActionVariant {
+        return { type: ActionType.SET_PLAN, payload: plan };
     }
 
     /// Set the editor program

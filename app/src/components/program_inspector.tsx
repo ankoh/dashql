@@ -50,7 +50,6 @@ class ProgramInspector extends React.Component<Props> {
                 }
             });
         });
-        console.log(statements);
 
         return (
             <div className={classnames(this.props.className, styles.inspector)}>
