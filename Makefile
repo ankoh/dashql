@@ -53,7 +53,7 @@ core_release:
 # Test the core library
 .PHONY: core_tests
 core_tests:
-	lldb ${CORE_DEBUG_DIR}/tester ${CORE_SOURCE_DIR}
+	${CORE_DEBUG_DIR}/tester ${CORE_SOURCE_DIR}
 
 # Test the duckdb library
 .PHONY: duckdb_tests
