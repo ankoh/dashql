@@ -465,16 +465,14 @@
             );
             EXTRACT country1_weather FROM country1_weather_csv USING CSV;
             EXTRACT country2_weather FROM country2_weather_csv USING CSV;
-            SELECT * INTO country1_weather_avg FROM country1_weather WHERE month = global.month;
-            SELECT * INTO country2_weather_avg FROM country2_weather WHERE month = global.month;
-            SELECT * INTO countries_joined FROM country1_weather_avg, country2_weather_avg;
+            SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = global.month;
             VIZ countries_joined USING LINE;
         </text>
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
             <parameter type="INTEGER" statement="1" value="5" />
         </parameters>
-        <graph next_state_id="11">
+        <graph next_state_id="9">
             <setup />
             <program>
                 <action id="0" type="PARAMETER" status="NONE" state="0">
@@ -493,7 +491,6 @@
                     <target name_qualified="global.month" name_short="month" />
                     <required_for>
                         <ref action="7" />
-                        <ref action="8" />
                     </required_for>
                 </action>
                 <action id="3" type="LOAD_HTTP" status="NONE" state="3">
@@ -529,46 +526,25 @@
                         <ref action="4" />
                     </depends_on>
                     <required_for>
-                        <ref action="8" />
+                        <ref action="7" />
                     </required_for>
                 </action>
                 <action id="7" type="TABLE_CREATE" status="NONE" state="7">
-                    <target name_qualified="global.country1_weather_avg" name_short="country1_weather_avg" />
+                    <target name_qualified="global.countries_joined" name_short="countries_joined" />
                     <depends_on>
                         <ref action="5" />
-                        <ref action="2" />
-                    </depends_on>
-                    <required_for>
-                        <ref action="9" />
-                    </required_for>
-                    <script>SELECT * INTO country1_weather_avg FROM country1_weather WHERE month = global.month</script>
-                </action>
-                <action id="8" type="TABLE_CREATE" status="NONE" state="8">
-                    <target name_qualified="global.country2_weather_avg" name_short="country2_weather_avg" />
-                    <depends_on>
                         <ref action="6" />
                         <ref action="2" />
                     </depends_on>
                     <required_for>
-                        <ref action="9" />
+                        <ref action="8" />
                     </required_for>
-                    <script>SELECT * INTO country2_weather_avg FROM country2_weather WHERE month = global.month</script>
+                    <script>SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = global.month</script>
                 </action>
-                <action id="9" type="TABLE_CREATE" status="NONE" state="9">
+                <action id="8" type="VIZ_CREATE" status="NONE" state="8">
                     <target name_qualified="global.countries_joined" name_short="countries_joined" />
                     <depends_on>
                         <ref action="7" />
-                        <ref action="8" />
-                    </depends_on>
-                    <required_for>
-                        <ref action="10" />
-                    </required_for>
-                    <script>SELECT * INTO countries_joined FROM country1_weather_avg, country2_weather_avg</script>
-                </action>
-                <action id="10" type="VIZ_CREATE" status="NONE" state="10">
-                    <target name_qualified="global.countries_joined" name_short="countries_joined" />
-                    <depends_on>
-                        <ref action="9" />
                     </depends_on>
                 </action>
             </program>
