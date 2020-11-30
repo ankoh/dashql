@@ -137,7 +137,6 @@
         <text>
             DECLARE PARAMETER country1 TYPE TEXT;
             DECLARE PARAMETER country2 TYPE TEXT;
-            DECLARE PARAMETER area TYPE TEXT;
             DECLARE PARAMETER month TYPE INTEGER;
             LOAD country1_weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/%s', global.country1)

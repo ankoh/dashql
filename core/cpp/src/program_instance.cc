@@ -59,10 +59,11 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
             case ParameterType::DATE:
             case ParameterType::DATETIME:
             case ParameterType::TIME:
-                break;
                 value_sql_text << param_value->value;
+                break;
             case ParameterType::TEXT:
                 value_sql_text << std::quoted(param_value->value, '\'');
+                break;
         }
 
         // The the source statement a parameter?
