@@ -53,6 +53,7 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
     auto program_actions = g.append_child("program");
     for (auto& action : graph.program_actions) {
         auto p = program_actions.append_child("action");
+        p.append_attribute("id") = action->origin_statement;
         p.append_attribute("type") = program_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
         if (action->action_status) {
             p.append_attribute("status") =
@@ -74,7 +75,6 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
                 required_for.append_child("ref").append_attribute("action").set_value(v);
             }
         }
-        p.append_attribute("statement") = action->origin_statement;
         if (!action->script.empty()) {
             p.append_child("script").text().set(action->script.c_str());
         }

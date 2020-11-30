@@ -17,7 +17,7 @@
         <graph next_target_id="1">
             <setup />
             <program>
-                <action type="PARAMETER" status="NONE" statement="0">
+                <action id="0" type="PARAMETER" status="NONE">
                     <target id="0" name_qualified="global.country" name_short="country" />
                 </action>
             </program>
@@ -47,13 +47,13 @@
         <graph next_target_id="3">
             <setup />
             <program>
-                <action type="PARAMETER" status="NONE" statement="0">
+                <action id="0" type="PARAMETER" status="NONE">
                     <target id="0" name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action type="LOAD_HTTP" status="NONE" statement="1">
+                <action id="1" type="LOAD_HTTP" status="NONE">
                     <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -62,7 +62,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action type="EXTRACT_CSV" status="NONE" statement="2">
+                <action id="2" type="EXTRACT_CSV" status="NONE">
                     <target id="2" name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
@@ -95,13 +95,13 @@
         <graph next_target_id="3">
             <setup />
             <program>
-                <action type="PARAMETER" status="NONE" statement="0">
+                <action id="0" type="PARAMETER" status="NONE">
                     <target id="0" name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action type="LOAD_HTTP" status="NONE" statement="1">
+                <action id="1" type="LOAD_HTTP" status="NONE">
                     <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -110,7 +110,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action type="EXTRACT_CSV" status="NONE" statement="2">
+                <action id="2" type="EXTRACT_CSV" status="NONE">
                     <target id="2" name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
@@ -144,13 +144,13 @@
         <graph next_target_id="4">
             <setup />
             <program>
-                <action type="PARAMETER" status="NONE" statement="0">
+                <action id="0" type="PARAMETER" status="NONE">
                     <target id="0" name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action type="LOAD_HTTP" status="NONE" statement="1">
+                <action id="1" type="LOAD_HTTP" status="NONE">
                     <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -159,7 +159,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action type="EXTRACT_CSV" status="NONE" statement="2">
+                <action id="2" type="EXTRACT_CSV" status="NONE">
                     <target id="2" name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
@@ -168,7 +168,7 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action type="TABLE_CREATE" status="NONE" statement="3">
+                <action id="3" type="TABLE_CREATE" status="NONE">
                     <target id="3" name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="2" />
@@ -179,7 +179,7 @@
         </graph>
     </next>
 </test>
-<test name="init_param_load_extract_select_2viz">
+<test name="init_param_load_extract_select_2vizzes">
     <previous>
         <text></text>
         <parameters />
@@ -205,13 +205,13 @@
         <graph next_target_id="6">
             <setup />
             <program>
-                <action type="PARAMETER" status="NONE" statement="0">
+                <action id="0" type="PARAMETER" status="NONE">
                     <target id="0" name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action type="LOAD_HTTP" status="NONE" statement="1">
+                <action id="1" type="LOAD_HTTP" status="NONE">
                     <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -220,7 +220,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action type="EXTRACT_CSV" status="NONE" statement="2">
+                <action id="2" type="EXTRACT_CSV" status="NONE">
                     <target id="2" name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
@@ -229,7 +229,7 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action type="TABLE_CREATE" status="NONE" statement="3">
+                <action id="3" type="TABLE_CREATE" status="NONE">
                     <target id="3" name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="2" />
@@ -240,17 +240,313 @@
                     </required_for>
                     <script>SELECT * INTO weather_avg FROM weather</script>
                 </action>
-                <action type="VIZ_CREATE" status="NONE" statement="4">
+                <action id="4" type="VIZ_CREATE" status="NONE">
                     <target id="4" name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
                 </action>
-                <action type="VIZ_CREATE" status="NONE" statement="5">
+                <action id="5" type="VIZ_CREATE" status="NONE">
                     <target id="5" name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
+                </action>
+            </program>
+        </graph>
+    </next>
+</test>
+<test name="init_param_load_extract_2selects_2vizzes">
+    <previous>
+        <text></text>
+        <parameters />
+        <graph next_target_id="0">
+            <setup />
+            <program />
+        </graph>
+    </previous>
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT;
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+            EXTRACT weather FROM weather_csv USING CSV;
+            SELECT * INTO weather_avg FROM weather;
+            SELECT * INTO weather_binned FROM weather;
+            VIZ weather_avg USING LINE;
+            VIZ weather_binned USING BAR;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+        </parameters>
+        <graph next_target_id="7">
+            <setup />
+            <program>
+                <action id="0" type="PARAMETER" status="NONE">
+                    <target id="0" name_qualified="global.country" name_short="country" />
+                    <required_for>
+                        <ref action="1" />
+                    </required_for>
+                </action>
+                <action id="1" type="LOAD_HTTP" status="NONE">
+                    <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="2" />
+                    </required_for>
+                </action>
+                <action id="2" type="EXTRACT_CSV" status="NONE">
+                    <target id="2" name_qualified="global.weather" name_short="weather" />
+                    <depends_on>
+                        <ref action="1" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="3" />
+                        <ref action="4" />
+                    </required_for>
+                </action>
+                <action id="3" type="TABLE_CREATE" status="NONE">
+                    <target id="3" name_qualified="global.weather_avg" name_short="weather_avg" />
+                    <depends_on>
+                        <ref action="2" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="5" />
+                    </required_for>
+                    <script>SELECT * INTO weather_avg FROM weather</script>
+                </action>
+                <action id="4" type="TABLE_CREATE" status="NONE">
+                    <target id="4" name_qualified="global.weather_binned" name_short="weather_binned" />
+                    <depends_on>
+                        <ref action="2" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="6" />
+                    </required_for>
+                    <script>SELECT * INTO weather_binned FROM weather</script>
+                </action>
+                <action id="5" type="VIZ_CREATE" status="NONE">
+                    <target id="5" name_qualified="global.weather_binned" name_short="weather_binned" />
+                    <depends_on>
+                        <ref action="3" />
+                    </depends_on>
+                </action>
+                <action id="6" type="VIZ_CREATE" status="NONE">
+                    <target id="6" name_qualified="global.weather_binned" name_short="weather_binned" />
+                    <depends_on>
+                        <ref action="4" />
+                    </depends_on>
+                </action>
+            </program>
+        </graph>
+    </next>
+</test>
+<test name="init_2param_load_extract_2selects_2vizzes">
+    <previous>
+        <text></text>
+        <parameters />
+        <graph next_target_id="0">
+            <setup />
+            <program />
+        </graph>
+    </previous>
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT;
+            DECLARE PARAMETER month TYPE INTEGER;
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+            EXTRACT weather FROM weather_csv USING CSV;
+            SELECT * INTO weather_avg FROM weather WHERE month = global.month;
+            SELECT * INTO weather_binned FROM weather WHERE month = global.month;
+            VIZ weather_avg USING LINE;
+            VIZ weather_binned USING BAR;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="INTEGER" statement="1" value="5" />
+        </parameters>
+        <graph next_target_id="8">
+            <setup />
+            <program>
+                <action id="0" type="PARAMETER" status="NONE">
+                    <target id="0" name_qualified="global.country" name_short="country" />
+                    <required_for>
+                        <ref action="2" />
+                    </required_for>
+                </action>
+                <action id="1" type="PARAMETER" status="NONE">
+                    <target id="1" name_qualified="global.month" name_short="month" />
+                    <required_for>
+                        <ref action="4" />
+                        <ref action="5" />
+                    </required_for>
+                </action>
+                <action id="2" type="LOAD_HTTP" status="NONE">
+                    <target id="2" name_qualified="global.weather_csv" name_short="weather_csv" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="3" />
+                    </required_for>
+                </action>
+                <action id="3" type="EXTRACT_CSV" status="NONE">
+                    <target id="3" name_qualified="global.weather" name_short="weather" />
+                    <depends_on>
+                        <ref action="2" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="4" />
+                        <ref action="5" />
+                    </required_for>
+                </action>
+                <action id="4" type="TABLE_CREATE" status="NONE">
+                    <target id="4" name_qualified="global.weather_avg" name_short="weather_avg" />
+                    <depends_on>
+                        <ref action="3" />
+                        <ref action="1" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="6" />
+                    </required_for>
+                    <script>SELECT * INTO weather_avg FROM weather WHERE month = global.month</script>
+                </action>
+                <action id="5" type="TABLE_CREATE" status="NONE">
+                    <target id="5" name_qualified="global.weather_binned" name_short="weather_binned" />
+                    <depends_on>
+                        <ref action="3" />
+                        <ref action="1" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="7" />
+                    </required_for>
+                    <script>SELECT * INTO weather_binned FROM weather WHERE month = global.month</script>
+                </action>
+                <action id="6" type="VIZ_CREATE" status="NONE">
+                    <target id="6" name_qualified="global.weather_binned" name_short="weather_binned" />
+                    <depends_on>
+                        <ref action="4" />
+                    </depends_on>
+                </action>
+                <action id="7" type="VIZ_CREATE" status="NONE">
+                    <target id="7" name_qualified="global.weather_binned" name_short="weather_binned" />
+                    <depends_on>
+                        <ref action="5" />
+                    </depends_on>
+                </action>
+            </program>
+        </graph>
+    </next>
+</test>
+<test name="init_complex_1">
+    <previous>
+        <text></text>
+        <parameters />
+        <graph next_target_id="0">
+            <setup />
+            <program />
+        </graph>
+    </previous>
+    <next>
+        <text>
+            DECLARE PARAMETER country1 TYPE TEXT;
+            DECLARE PARAMETER country2 TYPE TEXT;
+            DECLARE PARAMETER month TYPE INTEGER;
+            LOAD country1_weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country1)
+            );
+            LOAD country2_weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country2)
+            );
+            EXTRACT country1_weather FROM country1_weather_csv USING CSV;
+            EXTRACT country2_weather FROM country2_weather_csv USING CSV;
+            SELECT * INTO country1_weather_avg FROM country1_weather WHERE month = global.month;
+            SELECT * INTO country2_weather_avg FROM country2_weather WHERE month = global.month;
+            SELECT * INTO countries_joined FROM country1_weather_avg, country2_weather_avg
+            VIZ countries_joined USING LINE;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="INTEGER" statement="1" value="5" />
+        </parameters>
+        <graph next_target_id="9">
+            <setup />
+            <program>
+                <action id="0" type="PARAMETER" status="NONE">
+                    <target id="0" name_qualified="global.country1" name_short="country1" />
+                    <required_for>
+                        <ref action="3" />
+                    </required_for>
+                </action>
+                <action id="1" type="PARAMETER" status="NONE">
+                    <target id="1" name_qualified="global.country2" name_short="country2" />
+                    <required_for>
+                        <ref action="4" />
+                    </required_for>
+                </action>
+                <action id="2" type="PARAMETER" status="NONE">
+                    <target id="2" name_qualified="global.month" name_short="month" />
+                    <required_for>
+                        <ref action="7" />
+                        <ref action="8" />
+                    </required_for>
+                </action>
+                <action id="3" type="LOAD_HTTP" status="NONE">
+                    <target id="3" name_qualified="global.country1_weather_csv" name_short="country1_weather_csv" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="5" />
+                    </required_for>
+                </action>
+                <action id="4" type="LOAD_HTTP" status="NONE">
+                    <target id="4" name_qualified="global.country2_weather_csv" name_short="country2_weather_csv" />
+                    <depends_on>
+                        <ref action="1" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="6" />
+                    </required_for>
+                </action>
+                <action id="5" type="EXTRACT_CSV" status="NONE">
+                    <target id="5" name_qualified="global.country1_weather" name_short="country1_weather" />
+                    <depends_on>
+                        <ref action="3" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="7" />
+                    </required_for>
+                </action>
+                <action id="6" type="EXTRACT_CSV" status="NONE">
+                    <target id="6" name_qualified="global.country2_weather" name_short="country2_weather" />
+                    <depends_on>
+                        <ref action="4" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="8" />
+                    </required_for>
+                </action>
+                <action id="7" type="TABLE_CREATE" status="NONE">
+                    <target id="7" name_qualified="global.country1_weather_avg" name_short="country1_weather_avg" />
+                    <depends_on>
+                        <ref action="5" />
+                        <ref action="2" />
+                    </depends_on>
+                    <script>SELECT * INTO country1_weather_avg FROM country1_weather WHERE month = global.month</script>
+                </action>
+                <action id="8" type="TABLE_CREATE" status="NONE">
+                    <target id="8" name_qualified="global.country2_weather_avg" name_short="country2_weather_avg" />
+                    <depends_on>
+                        <ref action="6" />
+                        <ref action="2" />
+                    </depends_on>
+                    <script>SELECT * INTO country2_weather_avg FROM country2_weather WHERE month = global.month</script>
                 </action>
             </program>
         </graph>

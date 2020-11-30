@@ -55,7 +55,7 @@
         </parameters>
     </next>
 </test>
-<test name="init_param_load_extract_select_2viz">
+<test name="init_param_load_extract_select_2vizzes">
     <previous />
     <next>
         <text>
@@ -70,6 +70,73 @@
         </text>
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
+        </parameters>
+    </next>
+</test>
+<test name="init_param_load_extract_2selects_2vizzes">
+    <previous />
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT;
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+            EXTRACT weather FROM weather_csv USING CSV;
+            SELECT * INTO weather_avg FROM weather;
+            SELECT * INTO weather_binned FROM weather;
+            VIZ weather_avg USING LINE;
+            VIZ weather_binned USING BAR;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+        </parameters>
+    </next>
+</test>
+<test name="init_2param_load_extract_2selects_2vizzes">
+    <previous />
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT;
+            DECLARE PARAMETER month TYPE INTEGER;
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+            EXTRACT weather FROM weather_csv USING CSV;
+            SELECT * INTO weather_avg FROM weather WHERE month = global.month;
+            SELECT * INTO weather_binned FROM weather WHERE month = global.month;
+            VIZ weather_avg USING LINE;
+            VIZ weather_binned USING BAR;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="INTEGER" statement="1" value="5" />
+        </parameters>
+    </next>
+</test>
+<test name="init_complex_1">
+    <previous />
+    <next>
+        <text>
+            DECLARE PARAMETER country1 TYPE TEXT;
+            DECLARE PARAMETER country2 TYPE TEXT;
+            DECLARE PARAMETER month TYPE INTEGER;
+            LOAD country1_weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country1)
+            );
+            LOAD country2_weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country2)
+            );
+            EXTRACT country1_weather FROM country1_weather_csv USING CSV;
+            EXTRACT country2_weather FROM country2_weather_csv USING CSV;
+            SELECT * INTO country1_weather_avg FROM country1_weather WHERE month = global.month;
+            SELECT * INTO country2_weather_avg FROM country2_weather WHERE month = global.month;
+            SELECT * INTO countries_joined FROM country1_weather_avg, country2_weather_avg
+            VIZ countries_joined USING LINE;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="TEXT" statement="1" value="US" />
+            <parameter type="INTEGER" statement="1" value="5" />
         </parameters>
     </next>
 </test>
