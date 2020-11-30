@@ -1,17 +1,19 @@
 import * as React from 'react';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import * as core from '@dashql/core';
 import { AutoSizer } from '../util/autosizer';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
-import { AppState, AppStateMutations, Dispatch } from '../store';
+import { AppState, Dispatch } from '../store';
 import classNames from 'classnames';
 
 import { theme as monaco_theme } from './editor_theme_light';
 import styles from './editor.module.css';
 
-type Props = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps> & {
+type Props = {
     appContext: IAppContext;
     className?: string;
+    program: core.parser.Program;
 };
 
 class Editor extends React.Component<Props> {
@@ -42,8 +44,8 @@ class Editor extends React.Component<Props> {
             return;
         }
         // Value changed?
-        if (this.editor && this.editor.getValue() !== this.props.text) {
-            this.editor.setValue(this.props.text);
+        if (this.editor && this.editor.getValue() !== this.props.program.text) {
+            this.editor.setValue(this.props.program.text);
         }
         // Layout editor
         if (this.monacoContainer) {
@@ -57,7 +59,7 @@ class Editor extends React.Component<Props> {
             this.editor = monaco.editor.create(this.monacoContainer, {
                 fontSize: 13,
                 language: "sql",
-                value: this.props.text,
+                value: this.props.program.text,
                 links: false,
                 minimap: {
                     enabled: false
@@ -133,10 +135,10 @@ class Editor extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    text: state.studioProgramText
+    program: state.studioProgram || new core.parser.Program()
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => ({
+const mapDispatchToProps = (_dispatch: Dispatch) => ({
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(Editor));
