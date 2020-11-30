@@ -128,9 +128,7 @@
             );
             EXTRACT country1_weather FROM country1_weather_csv USING CSV;
             EXTRACT country2_weather FROM country2_weather_csv USING CSV;
-            SELECT * INTO country1_weather_avg FROM country1_weather WHERE month = global.month;
-            SELECT * INTO country2_weather_avg FROM country2_weather WHERE month = global.month;
-            SELECT * INTO countries_joined FROM country1_weather_avg, country2_weather_avg;
+            SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = global.month;
             VIZ countries_joined USING LINE;
         </text>
         <parameters>
