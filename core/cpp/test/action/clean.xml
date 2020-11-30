@@ -470,7 +470,8 @@
         </text>
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
-            <parameter type="INTEGER" statement="1" value="5" />
+            <parameter type="TEXT" statement="1" value="US" />
+            <parameter type="INTEGER" statement="2" value="5" />
         </parameters>
         <graph next_state_id="9">
             <setup />
@@ -539,7 +540,7 @@
                     <required_for>
                         <ref action="8" />
                     </required_for>
-                    <script>SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = global.month</script>
+                    <script>SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = 5</script>
                 </action>
                 <action id="8" type="VIZ_CREATE" status="NONE" state="8">
                     <target name_qualified="global.countries_joined" name_short="countries_joined" />
