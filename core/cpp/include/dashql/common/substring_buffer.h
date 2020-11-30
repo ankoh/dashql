@@ -32,10 +32,10 @@ class SubstringBuffer {
         size_t adjust;
     };
 
+    /// The location of the substring
+    proto::syntax::Location substring_loc_;
     /// The string buffer
     std::string buffer_;
-    /// The global start
-    proto::syntax::Location location_;
     /// The patches for edits that lengthened the original string
     std::vector<Patch> lengthen_;
     /// The patches for edits that shortened the original string
@@ -47,10 +47,10 @@ class SubstringBuffer {
     public:
     /// Constructor
     SubstringBuffer(std::string_view text, proto::syntax::Location loc);
-    /// Return string
-    auto& str() const { return buffer_; }
     /// Replace substring
     void Replace(proto::syntax::Location loc, std::string_view value);
+    /// Emit the substring
+    std::string Finish() const { return buffer_; }
 };
 
 } // namespace dashql
