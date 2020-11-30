@@ -59,6 +59,8 @@ export class DemoController {
         const plan = this._core.planProgram();
 
         this._store.dispatch(AppStateMutations.setStudioProgram(program));
-        this._store.dispatch(AppStateMutations.setPlan(plan!));
+        if (plan != null) {
+            this._store.dispatch(AppStateMutations.setPlan(plan));
+        }
     }
 }
