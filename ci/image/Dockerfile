@@ -38,7 +38,7 @@ RUN mkdir -p /usr/local/nvm \
     && nvm alias default ${NODE_VERSION} \
     && nvm use default
 
-ARG FLATBUFFER_COMMIT="e1f0f75ba62c347718a4a68191caef348460cf31"
+ARG FLATBUFFER_COMMIT="338393f854eb5ba24761a22cd9316ff5cee4eab0"
 RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
     && git clone https://github.com/google/flatbuffers /tmp/flatbuffers/repo \
     && cd /tmp/flatbuffers/repo \

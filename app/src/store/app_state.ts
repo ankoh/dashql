@@ -5,7 +5,7 @@ import { LaunchProgress } from "./launch_progress";
 import { LogEntry } from "./log";
 import { AppSettings } from "./app_settings";
 
-class PlanInspectionState {
+class ProgramInspectionState {
     /// The hovered path (if any)
     hoveredPath: core.parser.NodePath | null = null;
     /// The focused path (if any)
@@ -23,12 +23,14 @@ export class AppState {
     public tasks: Immutable.Map<number, TaskInfo>;
     // The log entries
     public logEntries: Immutable.List<LogEntry>;
-    /// The plan text
-    public planText: string;
+    /// The studio program text
+    public studioProgramText: string;
+    /// The studio program
+    public studioProgram: core.parser.Program | null;
+    /// The studio inspection state
+    public studioInspection: ProgramInspectionState;
     /// The plan
     public plan: core.Plan | null;
-    /// The plan inspection state
-    public planInspection: PlanInspectionState;
 
     /// Constructor
     constructor() {
@@ -36,9 +38,10 @@ export class AppState {
         this.appSettings = null;
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logEntries = Immutable.List<LogEntry>();
-        this.planText = "";
+        this.studioProgramText = "";
+        this.studioProgram = null;
+        this.studioInspection = new ProgramInspectionState();
         this.plan = null;
-        this.planInspection = new PlanInspectionState();
         return;
     }
 }

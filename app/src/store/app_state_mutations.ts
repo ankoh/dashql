@@ -16,7 +16,8 @@ export enum ActionType {
     CONFIGURE_APP           = 'CONFIGURE_APP',
     LOG_PUSH_ENTRY          = 'LOG_PUSH_ENTRY',
     SET_PLAN                = 'SET_PLAN',
-    SET_PLAN_TEXT           = 'SET_PLAN_TEXT',
+    SET_STUDIO_PROGRAM_TEXT = 'SET_STUDIO_PROGRAM_TEXT',
+    SET_STUDIO_PROGRAM      = 'SET_STUDIO_PROGRAM',
     CLEAR_PLAN              = 'CLEAR_PLAN',
     OTHER                   = 'OTHER',
 }
@@ -25,7 +26,8 @@ export enum ActionType {
 export type ActionVariant =
     | Action<ActionType.CONFIGURE_APP, AppSettings>
     | Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
-    | Action<ActionType.SET_PLAN_TEXT, string>
+    | Action<ActionType.SET_STUDIO_PROGRAM_TEXT, string>
+    | Action<ActionType.SET_STUDIO_PROGRAM, core.parser.Program>
     | Action<ActionType.SET_PLAN, core.Plan>
     | Action<ActionType.CLEAR_PLAN, {}>
     ;
@@ -43,9 +45,15 @@ export class AppStateMutations {
     }
 
     /// Set the editor text
-    public static setPlanText(text: string): ActionVariant {
-        return { type: ActionType.SET_PLAN_TEXT, payload: text };
+    public static setStudioProgramText(text: string): ActionVariant {
+        return { type: ActionType.SET_STUDIO_PROGRAM_TEXT, payload: text };
     }
+
+    /// Set the editor text
+    public static setStudioProgram(program: core.parser.Program): ActionVariant {
+        return { type: ActionType.SET_STUDIO_PROGRAM, payload: program };
+    }
+
 
     /// Set the editor modul
     public static setPlan(program: core.Plan): ActionVariant {
@@ -73,10 +81,15 @@ export class AppStateMutations {
                         }
                     }),
                 };
-            case ActionType.SET_PLAN_TEXT:
+            case ActionType.SET_STUDIO_PROGRAM:
                 return {
                     ...state,
-                    planText: action.payload
+                    studioProgram: action.payload
+                };
+            case ActionType.SET_STUDIO_PROGRAM_TEXT:
+                return {
+                    ...state,
+                    studioProgramText: action.payload
                 };
             case ActionType.SET_PLAN:
                 return {

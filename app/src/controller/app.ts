@@ -2,7 +2,7 @@ import { AppReduxStore } from '../store';
 import { EditorController } from './editor';
 import { LogController } from './log';
 import { InterpreterController } from './interpreter';
-import { ParserController } from './parser';
+import { CoreController } from './core';
 import { DemoController } from './demo';
 
 /// The worker interval
@@ -12,10 +12,10 @@ const workerIntervalMS = 400;
 export class AppController {
     /// The Store
     protected _store: AppReduxStore;
-    /// The parser
-    protected _parser: ParserController;
     /// The logger
     protected _log: LogController;
+    /// The parser
+    protected _core: CoreController;
     /// The editor controller
     protected _editor: EditorController;
     /// The interpreter controller
@@ -29,11 +29,11 @@ export class AppController {
     // Constructor
     constructor(store: AppReduxStore) {
         this._store = store;
-        this._parser = new ParserController();
         this._log = new LogController(store);
-        this._editor = new EditorController(this._store, this._parser);
+        this._core = new CoreController();
+        this._editor = new EditorController(this._store, this._core);
         this._interpreter = new InterpreterController(this._store);
-        this._demo = new DemoController(this._store, this._parser, this._log, this._editor, this._interpreter);
+        this._demo = new DemoController(this._store, this._core, this._log, this._editor, this._interpreter);
         this.workerTimer = null;
     }
 
@@ -44,7 +44,7 @@ export class AppController {
     public async init(): Promise<void> {
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
 
-        await this._parser.init();
+        await this._core.init();
         this._demo.setup();
     }
 

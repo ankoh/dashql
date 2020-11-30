@@ -13,8 +13,7 @@ table ParameterValue {
 }
 
 table Plan {
-    program: syntax.Program;
-    program_instance: [syntax.ProgramPatch];
-    parameter_values: [ParameterValue];
+    program_evaluation: syntax.ProgramPatch;
+    parameters: [ParameterValue];
     action_graph: action.ActionGraph;
 }

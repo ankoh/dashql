@@ -1,6 +1,6 @@
 import * as monaco from 'monaco-editor';
 import { AppReduxStore, AppStateMutations } from '../store';
-import { ParserController } from './parser';
+import { CoreController } from './core';
 import * as core from '@dashql/core';
 
 export class EditorController {
@@ -9,22 +9,22 @@ export class EditorController {
     /// The store
     protected _store: AppReduxStore;
     /// The parser
-    protected _parser: ParserController;
+    protected _core: CoreController;
 
     /// Constructor
-    constructor(store: AppReduxStore, parser: ParserController) {
+    constructor(store: AppReduxStore, core: CoreController) {
         this._store = store;
         this._editor = null;
-        this._parser = parser;
+        this._core = core;
 
         let previousEditorText = "";
 
         this._store.subscribe(() => {
-            const { planText } = this._store.getState();
+            const state = this._store.getState();
 
-            if (planText != previousEditorText) {
-                previousEditorText = planText;
-                this.evaluate(planText);
+            if (state.studioProgramText != previousEditorText) {
+                previousEditorText = state.studioProgramText;
+                this.evaluate(state.studioProgramText);
             }
         });
     }
@@ -35,20 +35,20 @@ export class EditorController {
 
     /// Evaluate an editor
     public evaluate(input: string) {
-        const p = this._parser.parse(input);
-        this.displayErrors(p.buffer.program()!);
-        this._store.dispatch(AppStateMutations.setPlan(p));
+        const p = this._core.parse(input);
+        this.displayErrors(p);
+        this._store.dispatch(AppStateMutations.setStudioProgram(p));
     }
 
     /// Display module errors
-    protected displayErrors(module: core.proto.syntax.Program): void {
+    protected displayErrors(program: core.parser.Program): void {
         const model = this._editor?.getModel();
         if (!model) {
             return;
         }
         const markers = new Array<monaco.editor.IMarkerData>();
-        for (let i = 0; i < module.errorsLength(); ++i) {
-            const error = module.errors(i)!;
+        for (let i = 0; i < program.proto.errorsLength(); ++i) {
+            const error = program.proto.errors(i)!;
             const location = error.location()!;
             const begin = model.getPositionAt(location.offset());
             const startLineNumber = begin.lineNumber;

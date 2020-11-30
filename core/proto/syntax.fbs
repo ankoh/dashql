@@ -221,8 +221,13 @@ table Program {
     dependencies: [Dependency];
 }
 
+struct PatchedNode {
+    node_id: uint32;
+    new_node: Node;
+}
+
 table ProgramPatch {
-    nodes: [Node];
+    nodes: [PatchedNode];
     strings: [string];
 }
 

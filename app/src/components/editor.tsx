@@ -132,11 +132,11 @@ class Editor extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    text: state.planText
+    text: state.studioProgramText
 });
 
 const mapDispatchToProps = (dispatch: Dispatch) => ({
-    updateText: (v: string) => (dispatch(AppStateMutations.setPlanText(v))),
+    updateText: (v: string) => (dispatch(AppStateMutations.setStudioProgramText(v))),
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(Editor));

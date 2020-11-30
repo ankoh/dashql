@@ -1,40 +1,44 @@
 // Copyright (c) 2020 The DashQL Authors
 
+import { FlatBuffer, ProgramBuffer } from '../bindings';
 import { syntax as sx } from '../proto/';
 import { NativeStack, NativeBitmap } from '../utils';
 
 const decoder = new TextDecoder();
 
 export class Program {
-    /// The text buffer
-    _text: Uint8Array;
+    /// The original text
+    _text: string;
+    /// The encoded text buffer based to the core
+    _text_buffer: Uint8Array;
     /// The program
-    _program: sx.Program;
+    _program: FlatBuffer<sx.Program>;
 
     /// Constructor
-    public constructor(text: Uint8Array = new Uint8Array(0), program: sx.Program = new sx.Program()) {
+    public constructor(text: string, text_buffer: Uint8Array = new Uint8Array(0), program: FlatBuffer<sx.Program> = new ProgramBuffer()) {
         this._text = text;
-        this._program = program || new sx.Program();
+        this._text_buffer = text_buffer;
+        this._program = program;
     }
 
     /// Access the text
-    public get text() { return this._text; }
-    /// Access the buffer
-    public get buffer() { return this._program; }
+    public get text_buffer() { return this._text_buffer; }
+    /// Access the flatbuffer
+    public get proto() { return this._program.root; }
 
     /// Access the text
     public textAt(_loc: sx.Location): string {
-        const view = new Uint8Array(this.text.buffer, _loc.offset(), _loc.length());
+        const view = new Uint8Array(this._text_buffer.buffer, _loc.offset(), _loc.length());
         return decoder.decode(view);
     }
 
     /// Iterate over statements
     public iterateStatements(fn: (idx: number, node: Statement) => void): number {
         const stmt = new Statement(this);
-        const count = this.buffer.statementsLength();
+        const count = this.proto.statementsLength();
         for (let i = 0; i < count; ++i) {
             stmt.statement_id = i;
-            stmt.statement = this.buffer.statements(i, stmt.statement)!;
+            stmt.statement = this.proto.statements(i, stmt.statement)!;
             fn(i, stmt);
         }
         return count;
@@ -43,9 +47,9 @@ export class Program {
     /// Iterate over statements
     public iterateDependencies(fn: (idx: number, node: sx.Dependency) => void): number {
         let dep = new sx.Dependency();
-        const count = this.buffer.dependenciesLength();
+        const count = this.proto.dependenciesLength();
         for (let i = 0; i < count; ++i) {
-            dep = this.buffer.dependencies(i, dep)!;
+            dep = this.proto.dependencies(i, dep)!;
             fn(i, dep);
         }
         return count;
@@ -73,8 +77,6 @@ export class Node {
     public get parent() { return this._node.parent(); }
     /// Get the key
     public get key() { return this._node.attributeKey(); }
-    /// Get the key
-    public get text() { return this._program.text; }
     /// Get the node type
     public get nodeType() { return this._node.nodeType(); }
 
@@ -109,7 +111,7 @@ export class Node {
         while (c > 0) {
             const step = Math.floor(c / 2);
             const iter = lb + step;
-            n.node = this.program.buffer.nodes(iter, n.node)!;
+            n.node = this.program.proto.nodes(iter, n.node)!;
             if (n.node.attributeKey() < key) {
                 lb = iter + 1;
                 c -= step + 1;
@@ -120,7 +122,7 @@ export class Node {
         if (lb >= children_begin + children_count) {
             return null;
         }
-        n.node = this.program.buffer.nodes(lb, n.node)!;
+        n.node = this.program.proto.nodes(lb, n.node)!;
         return (n.node.attributeKey() == key) ? n : null;
     }
 
@@ -130,7 +132,7 @@ export class Node {
         const count = this._node.childrenCount();
         n = n || new Node(this._program);
         for (let i = 0; i < count; ++i) {
-            n.node = this.program.buffer.nodes(begin + i, n.node)!;
+            n.node = this.program.proto.nodes(begin + i, n.node)!;
             fn(i, n);
         }
         return count;
@@ -203,10 +205,8 @@ export class Statement {
         this._statement = statement;
     }
 
-    /// Access the text
-    public get text() { return this._program.text; }
     /// Get the module buffer
-    public get program() { return this._program.buffer; }
+    public get program() { return this._program; }
     /// Get the statement id
     public get statement_id() { return this._statement_id; }
     /// Set the statement id
@@ -224,7 +224,7 @@ export class Statement {
     /// Get the root node
     public root_node(obj: Node | null = null) {
         const n = obj || new Node(this._program);
-        n.node = this.program.nodes(this._statement.rootNode(), n.node)!;
+        n.node = this.program.proto.nodes(this._statement.rootNode(), n.node)!;
         return n;
     }
 
@@ -232,7 +232,7 @@ export class Statement {
     public traversePreOrder(visit: (node_id: number, node: Node, path: NodePath) => void) {
         // Prepare the DFS
         const path = new NodePath(this._statement_id);
-        const pending_cap = this.program.nodesLength() / this.program.statementsLength();
+        const pending_cap = this.program.proto.nodesLength() / this.program.proto.statementsLength();
         const pending = new NativeStack(pending_cap);
         pending.push(this._statement.rootNode());
 
@@ -242,7 +242,7 @@ export class Statement {
 
         while (!pending.empty()) {
             const top = pending.pop();
-            current.node = this.program.nodes(top, current.node)!;
+            current.node = this.program.proto.nodes(top, current.node)!;
             const node = current.node;
             const nodeType = current.nodeType;
 
@@ -266,12 +266,12 @@ export class Statement {
     public traverse(visit_preorder: (node_id: number, node: Node, path: NodePath) => void, visit_postorder: (node_id: number, node: Node) => void) {
         // Prepare the DFS
         const path = new NodePath(this._statement_id);
-        const pending_cap = this.program.nodesLength() / this.program.statementsLength();
+        const pending_cap = this.program.proto.nodesLength() / this.program.proto.statementsLength();
         const pending = new NativeStack(pending_cap);
         pending.push(this._statement.rootNode());
 
         /// Use a compact bitmap to track visited nodes
-        const visited = new NativeBitmap(this.program.nodesLength());
+        const visited = new NativeBitmap(this.program.proto.nodesLength());
 
         // We always pass the same objects to the function to spare us all the allocations.
         // The function MUST NOT store the node elsewhere.
@@ -279,7 +279,7 @@ export class Statement {
 
         while (!pending.empty()) {
             const top = pending.top();
-            current.node = this.program.nodes(top, current.node)!;
+            current.node = this.program.proto.nodes(top, current.node)!;
             const node = current.node;
             const nodeType = current.nodeType;
 
