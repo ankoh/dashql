@@ -55,6 +55,11 @@ core_release:
 core_tests:
 	${CORE_DEBUG_DIR}/tester ${CORE_SOURCE_DIR}
 
+# Generate declarative tests
+.PHONY: testgen
+core_testgen:
+	${CORE_DEBUG_DIR}/testgen ${CORE_SOURCE_DIR}
+
 # Test the duckdb library
 .PHONY: duckdb_tests
 duckdb_tests:
@@ -88,16 +93,6 @@ reset_proto:
 .PHONY: wasm
 wasm:
 	${IN_IMAGE} bash -ec ./scripts/compile_wasm.sh
-
-# Generate dashql grammar tests
-.PHONY: grammar_testgen
-grammar_testgen:
-	${CORE_DEBUG_DIR}/grammar_testgen ${CORE_SOURCE_DIR}/test/grammar
-
-# Generate dashql action tests
-.PHONY: action_testgen
-action_testgen:
-	${CORE_DEBUG_DIR}/action_testgen ${CORE_SOURCE_DIR}/test/action
 
 # Builds the app
 .PHONY: app

@@ -277,21 +277,10 @@ if(NOT EMSCRIPTEN)
         Threads::Threads
     )
 
-    add_executable(grammar_testgen
-        ${CMAKE_SOURCE_DIR}/test/grammar_testgen.cc
+    add_executable(testgen
+        ${CMAKE_SOURCE_DIR}/test/testgen.cc
     )
-    target_link_libraries(grammar_testgen
-        dashql_core
-        dashql_test
-        pugixml
-        flatbuffers gtest gmock
-        Threads::Threads
-    )
-
-    add_executable(action_testgen
-        ${CMAKE_SOURCE_DIR}/test/action_testgen.cc
-    )
-    target_link_libraries(action_testgen
+    target_link_libraries(testgen
         dashql_core
         dashql_test
         pugixml

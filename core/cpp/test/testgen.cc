@@ -9,6 +9,7 @@
 
 #include "dashql/action_planner.h"
 #include "dashql/parser/parser_driver.h"
+#include "dashql/test/grammar_tests.h"
 #include "dashql/test/action_graph_tests.h"
 #include "duckdb/web/common/span.h"
 #include "flatbuffers/flatbuffers.h"
@@ -19,7 +20,58 @@ using namespace dashql;
 using namespace dashql::test;
 using namespace std;
 
+using namespace dashql;
+using namespace std;
+
 namespace {
+
+void generate_grammar_tests(const std::filesystem::path& source_dir) {
+    auto grammar_dir = source_dir / "test" / "grammar";
+    for (auto& p : std::filesystem::directory_iterator(grammar_dir)) {
+        auto filename = p.path().filename().filename().string();
+
+        // Is template file file
+        auto out = p.path();
+        if (out.extension() != ".xml") continue;
+        out.replace_extension();
+        if (out.extension() != ".tpl") continue;
+        out.replace_extension(".xml");
+
+        // Open input stream
+        std::ifstream in(p.path(), std::ios::in | std::ios::binary);
+        if (!in) {
+            std::cout << "[" << filename << "] failed to read file" << std::endl;
+            continue;
+        }
+
+        // Open output stream
+        std::cout << "FILE " << out << std::endl;
+        std::ofstream outs;
+        outs.open(out, std::ofstream::out | std::ofstream::trunc);
+
+        // Parse xml document
+        pugi::xml_document doc;
+        doc.load(in);
+
+        for (auto test : doc.children()) {
+            // Copy expected
+            auto name = test.attribute("name").as_string();
+            std::cout << "  TEST " << name << std::endl;
+
+            /// Parse module
+            auto input = test.child("input");
+            auto input_sv = std::string_view{input.last_child().value()};
+            auto program = parser::ParserDriver::Parse(input_sv);
+
+            /// Write output
+            auto expected = test.append_child("expected");
+            test::GrammarTest::EncodeProgram(expected, *program, input_sv);
+        }
+
+        // Write xml document
+        doc.save(outs, "    ", pugi::format_default | pugi::format_no_declaration);
+    }
+}
 
 proto::action::ActionStatusCode GetActionStatus(std::string_view type) {
     auto tt = proto::action::ActionStatusCodeTypeTable();
@@ -54,19 +106,9 @@ proto::session::ParameterValueT GetParameterType(const pugi::xml_node& node) {
     return result;
 }
 
-}
-
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cout << "Usage: ./action_testgen <dir>" << std::endl;
-        exit(1);
-    }
-    if (!argv[1] || !std::filesystem::exists(argv[1])) {
-        std::cout << "Invalid directory: " << argv[1] << std::endl;
-        exit(1);
-    }
-    auto grammar_dir = std::filesystem::path{argv[1]};
-    for (auto& p : std::filesystem::directory_iterator(grammar_dir)) {
+void generate_action_tests(const std::filesystem::path& source_dir) {
+    auto action_dir = source_dir / "test" / "action";
+    for (auto& p : std::filesystem::directory_iterator(action_dir)) {
         auto filename = p.path().filename().filename().string();
 
         // Is template file file
@@ -157,5 +199,21 @@ int main(int argc, char* argv[]) {
         // Write xml document
         doc.save(outs, "    ", pugi::format_default | pugi::format_no_declaration);
     }
+}
+
+}
+
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cout << "Usage: ./testgen <source_dir>" << std::endl;
+        exit(1);
+    }
+    if (!argv[1] || !std::filesystem::exists(argv[1])) {
+        std::cout << "Invalid directory: " << argv[1] << std::endl;
+        exit(1);
+    }
+    std::filesystem::path source_dir{argv[1]};
+    generate_grammar_tests(source_dir);
+    generate_action_tests(source_dir);
     return 0;
 }
