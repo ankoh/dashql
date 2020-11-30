@@ -46,6 +46,8 @@ class ProgramInstance {
     auto& program() const { return *program_; }
     /// Get the parameter values
     auto& parameter_values() const { return parameter_values_; }
+    /// Get the patch
+    auto& patch() const { return patch_; }
 
     /// Set the parameter value
     void SetParameterValue(std::shared_ptr<proto::session::ParameterValueT> param);
