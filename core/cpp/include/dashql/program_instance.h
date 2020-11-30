@@ -19,32 +19,32 @@ namespace sx = proto::syntax;
 
 class ProgramInstance {
     /// The program text
-    const std::string_view program_text_;
+    std::string program_text_;
     /// The program
-    const sx::ProgramT& program_;
+    std::unique_ptr<sx::ProgramT> program_;
     /// The parameter values.
     /// Maps the id of parameter statements to parameter values.
-    std::vector<const proto::session::ParameterValueT*> parameter_values_;
+    std::vector<std::unique_ptr<proto::session::ParameterValueT>> parameter_values_;
     /// The patch for partial evaluation (if any)
     std::unique_ptr<sx::ProgramPatchT> patch_;
 
     public:
     /// Constructor
-    ProgramInstance(std::string_view text, const sx::ProgramT& program);
+    ProgramInstance(std::string_view text, std::unique_ptr<sx::ProgramT> program);
 
     /// Get the program text
     auto& program_text() const { return program_text_; }
     /// Get the program
-    auto& program() const { return program_; }
+    auto& program() const { return *program_; }
     /// Get the parameter values
     auto& parameter_values() const { return parameter_values_; }
 
     /// Set the parameter value
-    void SetParameterValue(const proto::session::ParameterValueT* param);
+    void SetParameterValue(std::unique_ptr<proto::session::ParameterValueT> param);
     /// Find the parameter value
     const proto::session::ParameterValueT* FindParameterValue(size_t stmt_id) const;
     /// Get the text at a location
-    std::string_view TextAt(sx::Location loc) const { return program_text_.substr(loc.offset(), loc.length()); }
+    std::string_view TextAt(sx::Location loc) const { return std::string_view{program_text_}.substr(loc.offset(), loc.length()); }
     /// Evaluate the program partially
     Signal EvaluatePartially(duckdb::web::WebDB& database);
     /// Render the statement text
@@ -56,7 +56,7 @@ class ProgramInstance {
     template <typename F> void IterateChildren(const sx::Node& origin, F fn) {
         auto children_begin = origin.children_begin_or_value();
         auto children_count = origin.children_count();
-        auto nodes = program_.nodes;
+        auto nodes = program_->nodes;
         for (unsigned i = 0; i < children_count; ++i) {
             auto node_id = children_begin + i;
             fn(i, node_id, nodes[node_id]);
