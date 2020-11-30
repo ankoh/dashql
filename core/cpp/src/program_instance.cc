@@ -1,3 +1,4 @@
+#include "dashql/common/substring_buffer.h"
 #include "dashql/program_instance.h"
 
 namespace dashql {
@@ -21,32 +22,32 @@ const proto::session::ParameterValueT* ProgramInstance::FindParameterValue(size_
     return parameter_values_[stmt_id];
 }
 
-//
-//// Collect the statement options
-//Expected<std::string> ActionPlanner::RenderStatementText(size_t stmt_id) {
-//    // TODO Render the statement text
-//    auto& next = next_program_.program();
-//    auto& stmt = *next.statements[stmt_id];
-//    auto& stmt_root = next.nodes[stmt.root];
-//
-//    // Find all the column refs that occur in the statement
-//    for (auto& dep: next_program_.program().dependencies) {
-//        if (dep.target_statement() != stmt_id || dep.type() != sx::DependencyType::COLUMN_REF) continue;
-//        auto node_id = dep.target_node();
-//        auto& node = next.nodes[node_id];
-//        assert(node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
-//
-//        // Map to
-//    }
-//    return std::string{};
-//}
-
+// Collect the statement options
 Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const {
-    auto& stmt = *program_.statements[stmt_id];
-    auto stmt_text = TextAt(program_.nodes[stmt.root_node].location());
-    // XXX
-    std::string copy{stmt_text.begin(), stmt_text.end()};
-    return copy;
+    auto& target_root = program_.nodes[program_.statements[stmt_id]->root_node];
+    SubstringBuffer buffer{program_text_, target_root.location()};
+
+    // Find all the column refs that occur in the statement
+    for (auto& dep: program_.dependencies) {
+        auto target = dep.target_statement();
+        auto source = dep.source_statement();
+
+        // We only interpolate column refs that refer to parameters for now
+        if (target != stmt_id) continue;
+        if (dep.type() != sx::DependencyType::COLUMN_REF) continue;
+        if (program_.statements[source]->statement_type != sx::StatementType::PARAMETER) continue;
+        if (!parameter_values_[source]) continue;
+
+        auto& target_root = program_.nodes[program_.statements[target]->root_node];
+        auto& target_node = program_.nodes[dep.target_node()];
+        assert(target_node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
+
+        // The the source statement a parameter?
+        buffer.Replace(target_node.location(), parameter_values_[source]->value);
+    }
+
+    // Return the result
+    return buffer.Finish();
 }
 
 /// Find an attribute
