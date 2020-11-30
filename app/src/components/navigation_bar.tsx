@@ -3,6 +3,7 @@ import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 import classNames from 'classnames';
 import { DashQLLogo } from '../svg/logo';
 import { StudioIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
+import TaskList from './task_list';
 
 import styles from './navigation_bar.module.css';
 
@@ -58,6 +59,7 @@ class NavigationBar extends React.Component<NavigationBarProps> {
                 <div className={styles.statuslist}>
                     <DatabaseStatus />
                     <TaskStatus />
+                    <TaskList />
                     <LogStatus />
                 </div>
             </div>
