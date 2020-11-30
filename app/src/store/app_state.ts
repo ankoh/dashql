@@ -23,8 +23,6 @@ export class AppState {
     public tasks: Immutable.Map<number, TaskInfo>;
     // The log entries
     public logEntries: Immutable.List<LogEntry>;
-    /// The studio program text
-    public studioProgramText: string;
     /// The studio program
     public studioProgram: core.parser.Program | null;
     /// The studio inspection state
@@ -38,7 +36,6 @@ export class AppState {
         this.appSettings = null;
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logEntries = Immutable.List<LogEntry>();
-        this.studioProgramText = "";
         this.studioProgram = null;
         this.studioInspection = new ProgramInspectionState();
         this.plan = null;
