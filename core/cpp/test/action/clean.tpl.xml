@@ -1,4 +1,4 @@
-<test name="clean_param">
+<test name="param">
     <previous />
     <next>
         <text>
@@ -9,22 +9,7 @@
         </parameters>
     </next>
 </test>
-<test name="clean_param_load">
-    <previous />
-    <next>
-        <text>
-            DECLARE PARAMETER country TYPE TEXT;
-            LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
-            );
-            EXTRACT weather FROM weather_csv USING CSV;
-        </text>
-        <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
-        </parameters>
-    </next>
-</test>
-<test name="clean_param_load_extract">
+<test name="param_load">
     <previous />
     <next>
         <text>
@@ -39,7 +24,22 @@
         </parameters>
     </next>
 </test>
-<test name="clean_param_load_extract_select">
+<test name="param_load_extract">
+    <previous />
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT;
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+            EXTRACT weather FROM weather_csv USING CSV;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+        </parameters>
+    </next>
+</test>
+<test name="param_load_extract_select">
     <previous />
     <next>
         <text>
@@ -55,7 +55,7 @@
         </parameters>
     </next>
 </test>
-<test name="clean_param_load_extract_select_2vizzes">
+<test name="two_vizzes">
     <previous />
     <next>
         <text>
@@ -73,7 +73,7 @@
         </parameters>
     </next>
 </test>
-<test name="clean_param_load_extract_2selects_2vizzes">
+<test name="two_tables_two_vizzes">
     <previous />
     <next>
         <text>
@@ -92,7 +92,7 @@
         </parameters>
     </next>
 </test>
-<test name="clean_2params_load_extract_2selects_2vizzes">
+<test name="integer_interpolation">
     <previous />
     <next>
         <text>
@@ -113,12 +113,31 @@
         </parameters>
     </next>
 </test>
-<test name="clean_3params_2loads_2extracts_1selects_1viz">
+<test name="text_interpolation">
+    <previous />
+    <next>
+        <text>
+            DECLARE PARAMETER country TYPE TEXT;
+            DECLARE PARAMETER city TYPE TEXT;
+            LOAD weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            );
+            EXTRACT weather FROM weather_csv USING CSV;
+            SELECT * INTO weather_avg FROM weather WHERE city = global.city;
+        </text>
+        <parameters>
+            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="TEXT" statement="1" value="MUC" />
+        </parameters>
+    </next>
+</test>
+<test name="extract_join">
     <previous />
     <next>
         <text>
             DECLARE PARAMETER country1 TYPE TEXT;
             DECLARE PARAMETER country2 TYPE TEXT;
+            DECLARE PARAMETER area TYPE TEXT;
             DECLARE PARAMETER month TYPE INTEGER;
             LOAD country1_weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/%s', global.country1)
