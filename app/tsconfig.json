@@ -16,5 +16,11 @@
     ],
     "include": [
         "./src/**/*"
+    ],
+    "files": [
+        "./types/css-modules.d.ts",
+        "./types/dagre-d3.d.ts",
+        "./types/editor-worker.d.ts",
+        "./types/wasm.d.ts"
     ]
 }

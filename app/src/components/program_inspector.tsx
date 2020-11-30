@@ -9,18 +9,18 @@ import parser = core.parser;
 import styles from './program_inspector.module.css';
 
 interface Props {
-    plan: core.Plan | null;
+    program: core.parser.Program | null;
     className?: string
 }
 
 class ProgramInspector extends React.Component<Props> {
     public render() {
-        if (this.props.plan == null) {
+        if (this.props.program == null) {
             return <div />;
         }
 
-        const plan = this.props.plan;
-        const node_count = plan.program.buffer.nodesLength();
+        const program = this.props.program;
+        const node_count = program.proto.nodesLength();
         const node_children: JSX.Element[][] = [];
         while (node_children.length < node_count) {
             node_children.push([]);
@@ -28,7 +28,7 @@ class ProgramInspector extends React.Component<Props> {
 
         const statements: JSX.Element[] = [];
 
-        plan.program.iterateStatements((_idx: number, stmt: parser.Statement): void => {
+        program.iterateStatements((_idx: number, stmt: parser.Statement): void => {
             stmt.traverse(
                 (_node_id: number, _node: parser.Node, _path: parser.NodePath): void => {},
                 (node_id: number, node: parser.Node): void => {
@@ -61,7 +61,7 @@ class ProgramInspector extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    plan: state.plan
+    program: state.studioProgram
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({

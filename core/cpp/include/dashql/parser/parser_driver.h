@@ -101,7 +101,7 @@ class ParserDriver {
     /// Compute the dependencies
     void ComputeDependencies();
     /// Get as flatbuffer object
-    std::unique_ptr<sx::ProgramT> Finish();
+    std::shared_ptr<sx::ProgramT> Finish();
 
    public:
     /// Constructor
@@ -122,7 +122,7 @@ class ParserDriver {
     void AddError(sx::Location loc, const std::string& message);
 
     /// Parse a module
-    static std::unique_ptr<sx::ProgramT> Parse(std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
+    static std::shared_ptr<sx::ProgramT> Parse(std::string_view in, bool trace_scanning = false, bool trace_parsing = false);
 };
 
 }  // namespace parser

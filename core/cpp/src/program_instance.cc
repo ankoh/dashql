@@ -8,8 +8,17 @@
 namespace dashql {
 
 /// Constructor
-ProgramInstance::ProgramInstance(std::string_view text, std::unique_ptr<sx::ProgramT> program)
-    : program_text_(text), program_(move(program)), parameter_values_(), patch_() {
+ProgramInstance::ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program)
+    : program_text_(std::make_shared<std::string>(text)), program_(move(program)), parameter_values_(), patch_() {
+
+    parameter_values_.reserve(program_->statements.size());
+    for (auto i = 0; i < program_->statements.size(); ++i)
+        parameter_values_.push_back(nullptr);
+}
+
+/// Constructor
+ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program)
+    : program_text_(move(text)), program_(move(program)), parameter_values_(), patch_() {
 
     parameter_values_.reserve(program_->statements.size());
     for (auto i = 0; i < program_->statements.size(); ++i)
@@ -17,7 +26,7 @@ ProgramInstance::ProgramInstance(std::string_view text, std::unique_ptr<sx::Prog
 }
 
 /// Set a parameter value
-void ProgramInstance::SetParameterValue(std::unique_ptr<proto::session::ParameterValueT> param) {
+void ProgramInstance::SetParameterValue(std::shared_ptr<proto::session::ParameterValueT> param) {
     if (!param) return;
     if (param->origin_statement < parameter_values_.size()) {
         parameter_values_[param->origin_statement] = move(param);
@@ -29,10 +38,16 @@ const proto::session::ParameterValueT* ProgramInstance::FindParameterValue(size_
     return parameter_values_[stmt_id].get();
 }
 
+/// Evaluate the program partially
+Signal ProgramInstance::EvaluatePartially(duckdb::web::WebDB& database) {
+    // XXX
+    return Signal::OK();
+}
+
 // Collect the statement options
 Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const {
     auto& target_root = program_->nodes[program_->statements[stmt_id]->root_node];
-    SubstringBuffer buffer{program_text_, target_root.location()};
+    SubstringBuffer buffer{*program_text_, target_root.location()};
 
     // Find all the column refs that occur in the statement
     for (auto& dep : program_->dependencies) {

@@ -83,11 +83,6 @@ void duckdb_web_analyze_query(Response* packed, ConnectionHdl connHdl, const cha
     GetResponseBuffer().Store(*packed, move(r));
 }
 
-/// Generate a table
-void duckdb_web_generate_table(Response* response, WebDB::Connection* conn, void* spec_buffer, uint32_t spec_size) {
-    // XXX
-}
-
 }
 
 #ifdef WITH_WEBDB_MAIN
