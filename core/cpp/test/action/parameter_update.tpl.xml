@@ -1,4 +1,4 @@
-<test name="update_parameter_value">
+<test name="parameter_update_load">
     <previous>
         <text>
             DECLARE PARAMETER country TYPE TEXT (
