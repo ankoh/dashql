@@ -34,8 +34,8 @@ CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 # Building
 
 # Compile the core in debug mode
-.PHONY: core_debug
-core_debug:
+.PHONY: core
+core:
 	mkdir -p ${CORE_DEBUG_DIR}
 	cmake -S ${CORE_SOURCE_DIR} -B ${CORE_DEBUG_DIR} \
 		-DCMAKE_BUILD_TYPE=Debug \
@@ -53,7 +53,7 @@ core_release:
 # Test the core library
 .PHONY: core_tests
 core_tests:
-	${CORE_DEBUG_DIR}/tester ${CORE_SOURCE_DIR}
+	lldb ${CORE_DEBUG_DIR}/tester ${CORE_SOURCE_DIR}
 
 # Test the duckdb library
 .PHONY: duckdb_tests

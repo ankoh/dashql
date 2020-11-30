@@ -5,7 +5,7 @@ namespace dashql {
 
 // Constructor
 SubstringBuffer::SubstringBuffer(std::string_view text, proto::syntax::Location loc)
-    : buffer_(text.substr(loc.offset(), loc.length())), location_(loc), lengthen_(), shorten_() {}
+    : substring_loc_(loc), buffer_(text.substr(loc.offset(), loc.length())), lengthen_(), shorten_() {}
 
 // Patch a location
 proto::syntax::Location SubstringBuffer::Patch(proto::syntax::Location loc) const {
@@ -25,20 +25,20 @@ proto::syntax::Location SubstringBuffer::Patch(proto::syntax::Location loc) cons
 }
 
 // Replace a substring
-void SubstringBuffer::Replace(proto::syntax::Location global_loc, std::string_view value) {
-    assert(global_loc.offset() >= location_.offset());
-    auto loc = Patch(global_loc);
-    buffer_.replace(loc.offset(), loc.length(), value);
-    if (value.length() < loc.length()) {
-        auto diff = loc.length() - value.length();
+void SubstringBuffer::Replace(proto::syntax::Location loc, std::string_view value) {
+    assert(loc.offset() >= substring_loc_.offset());
+    auto patched_loc = Patch(loc);
+    buffer_.replace(patched_loc.offset() - substring_loc_.offset(), patched_loc.length(), value);
+    if (value.length() < patched_loc.length()) {
+        auto diff = patched_loc.length() - value.length();
         shorten_.push_back({
-            loc.offset() + diff,
+            patched_loc.offset() + diff,
             diff
         });
-    } else if (value.length() > loc.length()) {
-        auto diff = value.length() - loc.length();
+    } else if (value.length() > patched_loc.length()) {
+        auto diff = value.length() - patched_loc.length();
         lengthen_.push_back({
-            loc.offset() + loc.length(),
+            patched_loc.offset() + patched_loc.length(),
             diff,
         });
     }
