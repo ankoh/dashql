@@ -9,7 +9,7 @@ beforeAll(async () => {
 describe('Parser', () => {
    describe('errors', () => {
        test('syntax error', async () => {
-           const r = core.parse("?");
+           const r = core.parseProgram("?");
            const p = r.proto;
            expect(p.statementsLength()).toEqual(0);
            expect(p.errorsLength()).toEqual(1);
@@ -18,7 +18,7 @@ describe('Parser', () => {
 
    describe('single statements', () => {
        test('select 1', async () => {
-           const r = core.parse(`
+           const r = core.parseProgram(`
                select 1;
            `);
            const p = r.proto;
