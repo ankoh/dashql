@@ -48,10 +48,10 @@ TEST_P(SimilarityTestSuite, DeepEquality) {
     auto p2 = parser::ParserDriver::Parse(param.t2);
     ASSERT_EQ(p1->statements.size(), 1);
     ASSERT_EQ(p2->statements.size(), 1);
-    ProgramInstance pi1{param.t1, *p1};
-    ProgramInstance pi2{param.t2, *p2};
+    ProgramInstance pi1{param.t1, move(p1)};
+    ProgramInstance pi2{param.t2, move(p2)};
     ProgramMatcherProxy matcher{pi1, pi2};
-    auto& s1 = p1->statements[0], &s2 = p2->statements[0];
+    auto& s1 = pi1.program().statements[0], &s2 = pi2.program().statements[0];
     ASSERT_EQ(matcher.CheckDeepEquality(*s1, *s2), param.are_equal);
 }
 
@@ -61,10 +61,10 @@ TEST_P(SimilarityTestSuite, SimilarityEstimate) {
     auto p2 = parser::ParserDriver::Parse(param.t2);
     ASSERT_EQ(p1->statements.size(), 1);
     ASSERT_EQ(p2->statements.size(), 1);
-    ProgramInstance pi1{param.t1, *p1};
-    ProgramInstance pi2{param.t2, *p2};
+    ProgramInstance pi1{param.t1, move(p1)};
+    ProgramInstance pi2{param.t2, move(p2)};
     ProgramMatcherProxy matcher{pi1, pi2};
-    auto& s1 = p1->statements[0], &s2 = p2->statements[0];
+    auto& s1 = pi1.program().statements[0], &s2 = pi2.program().statements[0];
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), param.estimate);
 }
 
@@ -74,10 +74,10 @@ TEST_P(SimilarityTestSuite, Similarity) {
     auto p2 = parser::ParserDriver::Parse(param.t2);
     ASSERT_EQ(p1->statements.size(), 1);
     ASSERT_EQ(p2->statements.size(), 1);
-    ProgramInstance pi1{param.t1, *p1};
-    ProgramInstance pi2{param.t2, *p2};
+    ProgramInstance pi1{param.t1, move(p1)};
+    ProgramInstance pi2{param.t2, move(p2)};
     ProgramMatcherProxy matcher{pi1, pi2};
-    auto& s1 = p1->statements[0], &s2 = p2->statements[0];
+    auto& s1 = pi1.program().statements[0], &s2 = pi2.program().statements[0];
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_EQ(sim.Equal(), param.are_equal);
     if (param.diff_node_count)
@@ -119,8 +119,8 @@ TEST_P(MappingTestSuite, Mappings) {
     auto& param = GetParam();
     auto p1 = parser::ParserDriver::Parse(param.t1);
     auto p2 = parser::ParserDriver::Parse(param.t2);
-    ProgramInstance pi1{param.t1, *p1};
-    ProgramInstance pi2{param.t2, *p2};
+    ProgramInstance pi1{param.t1, move(p1)};
+    ProgramInstance pi2{param.t2, move(p2)};
     ProgramMatcherProxy matcher{pi1, pi2};
     StatementMappings unique_pairs;
     StatementMappings equal_pairs;
@@ -136,8 +136,8 @@ TEST_P(MappingTestSuite, LCS) {
     auto& param = GetParam();
     auto p1 = parser::ParserDriver::Parse(param.t1);
     auto p2 = parser::ParserDriver::Parse(param.t2);
-    ProgramInstance pi1{param.t1, *p1};
-    ProgramInstance pi2{param.t2, *p2};
+    ProgramInstance pi1{param.t1, move(p1)};
+    ProgramInstance pi2{param.t2, move(p2)};
     ProgramMatcherProxy matcher{pi1, pi2};
     StatementMappings unique_pairs;
     StatementMappings equal_pairs;
@@ -197,8 +197,8 @@ TEST_P(DiffTestSuite, DiffOps) {
     auto& param = GetParam();
     auto p1 = parser::ParserDriver::Parse(param.t1);
     auto p2 = parser::ParserDriver::Parse(param.t2);
-    ProgramInstance pi1{param.t1, *p1};
-    ProgramInstance pi2{param.t2, *p2};
+    ProgramInstance pi1{param.t1, move(p1)};
+    ProgramInstance pi2{param.t2, move(p2)};
     ProgramMatcherProxy matcher{pi1, pi2};
     auto diff = matcher.ComputeDiff();
     ASSERT_EQ(diff, param.diff);

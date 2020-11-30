@@ -8,46 +8,49 @@
 namespace dashql {
 
 /// Constructor
-ProgramInstance::ProgramInstance(std::string_view text, const sx::ProgramT& program)
-    : program_text_(text), program_(program), parameter_values_(), patch_() {
-    parameter_values_.resize(program_.statements.size(), nullptr);
+ProgramInstance::ProgramInstance(std::string_view text, std::unique_ptr<sx::ProgramT> program)
+    : program_text_(text), program_(move(program)), parameter_values_(), patch_() {
+
+    parameter_values_.reserve(program_->statements.size());
+    for (auto i = 0; i < program_->statements.size(); ++i)
+        parameter_values_.push_back(nullptr);
 }
 
 /// Set a parameter value
-void ProgramInstance::SetParameterValue(const proto::session::ParameterValueT* param) {
+void ProgramInstance::SetParameterValue(std::unique_ptr<proto::session::ParameterValueT> param) {
     if (!param) return;
     if (param->origin_statement < parameter_values_.size()) {
-        parameter_values_[param->origin_statement] = param;
+        parameter_values_[param->origin_statement] = move(param);
     }
 }
 
 /// Find a parameter value
 const proto::session::ParameterValueT* ProgramInstance::FindParameterValue(size_t stmt_id) const {
-    return parameter_values_[stmt_id];
+    return parameter_values_[stmt_id].get();
 }
 
 // Collect the statement options
 Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const {
-    auto& target_root = program_.nodes[program_.statements[stmt_id]->root_node];
+    auto& target_root = program_->nodes[program_->statements[stmt_id]->root_node];
     SubstringBuffer buffer{program_text_, target_root.location()};
 
     // Find all the column refs that occur in the statement
-    for (auto& dep : program_.dependencies) {
+    for (auto& dep : program_->dependencies) {
         auto target = dep.target_statement();
         auto source = dep.source_statement();
 
         // We only interpolate column refs that refer to parameters for now
         if (target != stmt_id) continue;
         if (dep.type() != sx::DependencyType::COLUMN_REF) continue;
-        if (program_.statements[source]->statement_type != sx::StatementType::PARAMETER) continue;
+        if (program_->statements[source]->statement_type != sx::StatementType::PARAMETER) continue;
         if (!parameter_values_[source]) continue;
 
-        auto& target_root = program_.nodes[program_.statements[target]->root_node];
-        auto& target_node = program_.nodes[dep.target_node()];
+        auto& target_root = program_->nodes[program_->statements[target]->root_node];
+        auto& target_node = program_->nodes[dep.target_node()];
         assert(target_node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
 
         // Escape the value based on value type
-        auto param_value = parameter_values_[source];
+        auto& param_value = parameter_values_[source];
         std::stringstream value_sql_text;
         using ParameterType = proto::syntax_dashql::ParameterType;
         switch (param_value->type) {
@@ -83,7 +86,7 @@ const sx::Node* ProgramInstance::FindAttribute(const sx::Node& origin, sx::Attri
     while (c > 0) {
         auto step = c / 2;
         auto iter = lb + step;
-        auto& n = program_.nodes[iter];
+        auto& n = program_->nodes[iter];
         if (n.attribute_key() < key) {
             lb = iter + 1;
             c -= step + 1;
@@ -94,7 +97,7 @@ const sx::Node* ProgramInstance::FindAttribute(const sx::Node& origin, sx::Attri
     if (lb >= children_begin + children_count) {
         return nullptr;
     }
-    auto& n = program_.nodes[lb];
+    auto& n = program_->nodes[lb];
     return (n.attribute_key() == key) ? &n : nullptr;
 }
 

@@ -26,7 +26,7 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
     root.append_child("text").text().set(program_text.c_str());
 
     auto params = root.append_child("parameters");
-    for (auto* param: program.parameter_values()) {
+    for (auto& param: program.parameter_values()) {
         if (!param) continue;
         auto p = params.append_child("parameter");
         p.append_attribute("type").set_value(parameter_type_tt->names[static_cast<uint16_t>(param->type)]);

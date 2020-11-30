@@ -95,15 +95,15 @@ proto::syntax_dashql::ParameterType GetParameterType(std::string_view type) {
     return proto::syntax_dashql::ParameterType::NONE;
 }
 
-proto::session::ParameterValueT GetParameterType(const pugi::xml_node& node) {
+std::unique_ptr<proto::session::ParameterValueT> GetParameter(const pugi::xml_node& node) {
     auto type = GetParameterType(node.attribute("type").as_string());
     auto stmt = node.attribute("statement").as_int();
     auto value = node.attribute("value").as_string();
-    proto::session::ParameterValueT result;
-    result.origin_statement = stmt;
-    result.type = type;
-    result.value = value;
-    return result;
+    auto result = std::make_unique<proto::session::ParameterValueT>();
+    result->origin_statement = stmt;
+    result->type = type;
+    result->value = value;
+    return move(result);
 }
 
 void generate_action_tests(const std::filesystem::path& source_dir) {
@@ -146,14 +146,10 @@ void generate_action_tests(const std::filesystem::path& source_dir) {
             auto prev_text = prev.child("text").text().get();
             auto prev_params = prev.child("parameters");
             auto prev_program = parser::ParserDriver::Parse(prev_text);
-            auto prev_program_text = std::string{prev_text};
-            ProgramInstance prev_program_instance{prev_program_text, *prev_program};
+            ProgramInstance prev_program_instance{std::string_view{prev_text}, move(prev_program)};
             std::vector<proto::session::ParameterValueT> prev_param_values;
             for (auto param: prev_params.children()) {
-                prev_param_values.push_back(GetParameterType(param));
-            }
-            for (auto& v: prev_param_values) {
-                prev_program_instance.SetParameterValue(&v);
+                prev_program_instance.SetParameterValue(GetParameter(param));
             }
             ActionPlanner prev_planner{prev_program_instance};
             prev_planner.PlanActionGraph();
@@ -177,14 +173,10 @@ void generate_action_tests(const std::filesystem::path& source_dir) {
             auto next_text = next.child("text").text().get();
             auto next_params = next.child("parameters");
             auto next_program = parser::ParserDriver::Parse(next_text);
-            auto next_program_text = std::string{next_text};
-            ProgramInstance next_program_instance{next_program_text, *next_program};
+            ProgramInstance next_program_instance{std::string{next_text}, move(next_program)};
             std::vector<proto::session::ParameterValueT> next_param_values;
             for (auto param: next_params.children()) {
-                next_param_values.push_back(GetParameterType(param));
-            }
-            for (auto& v: next_param_values) {
-                next_program_instance.SetParameterValue(&v);
+                next_program_instance.SetParameterValue(GetParameter(param));
             }
             ActionPlanner next_planner{next_program_instance, &prev_program_instance, prev_action_graph.get()};
             next_planner.PlanActionGraph();
