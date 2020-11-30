@@ -22,7 +22,7 @@ ActionPlanner::ActionPlanner(const ProgramInstance& next_program, const ProgramI
       action_graph_(std::make_unique<proto::action::ActionGraphT>()) {
     // Continue with next target id of previous graph (if any)
     if (prev_action_graph) {
-        action_graph_->next_target_id = prev_action_graph->next_target_id;
+        action_graph_->next_state_id = prev_action_graph->next_state_id;
     }
 }
 
@@ -86,7 +86,7 @@ Signal ActionPlanner::TranslateStatements() {
         action->origin_statement = stmt_id;
         action->depends_on = {};
         action->required_for = {};
-        action->target_id = action_graph_->next_target_id++;
+        action->state_id = action_graph_->next_state_id++;
         action->target_name_qualified = stmt->name_qualified;
         action->target_name_short = stmt->name_short;
         action->script = "";
@@ -329,7 +329,7 @@ Signal ActionPlanner::MigrateActionGraph() {
                 setup.back() = std::make_unique<proto::action::SetupActionT>();
                 auto& s = setup.back();
                 s->action_type = import_action;
-                s->target_id = prev_action->target_id;
+                s->state_id = prev_action->state_id;
                 s->target_name_qualified = prev_action->target_name_qualified;
                 s->target_name_short = prev_action->target_name_short;
             }
@@ -343,7 +343,7 @@ Signal ActionPlanner::MigrateActionGraph() {
             // Update the target id of the new action and mark it as complete
             auto& next_action = action_graph_->program_actions[*next_action_id];
             next_action->action_status->mutate_status_code(proto::action::ActionStatusCode::COMPLETED);
-            next_action->target_id = prev_action->target_id;
+            next_action->state_id = prev_action->state_id;
             assert(next_action->target_name_short == prev_action->target_name_short);
             assert(next_action->target_name_qualified == prev_action->target_name_qualified);
             continue;
@@ -361,7 +361,7 @@ Signal ActionPlanner::MigrateActionGraph() {
             auto next_action_id = diff_op.target();
             auto& next_action = action_graph_->program_actions[*next_action_id];
             next_action->action_type = update_action;
-            next_action->target_id = prev_action->target_id;
+            next_action->state_id = prev_action->state_id;
         }
 
         // Drop if there's a drop action defined
