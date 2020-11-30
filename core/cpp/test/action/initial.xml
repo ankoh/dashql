@@ -17,13 +17,13 @@
                 <action type="PARAMETER" status="COMPLETED" statement="0">
                     <target id="0" name_qualified="global.country" name_short="country" />
                     <required_for>
-                        <action_ref id="1" />
+                        <ref action="1" />
                     </required_for>
                 </action>
                 <action type="LOAD_HTTP" status="NONE" statement="1">
                     <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
-                        <action_ref id="0" />
+                        <ref action="0" />
                     </depends_on>
                 </action>
             </program>
@@ -51,13 +51,13 @@
                 <action type="PARAMETER" status="NONE" statement="0">
                     <target id="2" name_qualified="global.country" name_short="country" />
                     <required_for>
-                        <action_ref id="1" />
+                        <ref action="1" />
                     </required_for>
                 </action>
                 <action type="LOAD_HTTP" status="NONE" statement="1">
                     <target id="3" name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
-                        <action_ref id="0" />
+                        <ref action="0" />
                     </depends_on>
                 </action>
             </program>

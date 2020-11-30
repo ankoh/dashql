@@ -65,13 +65,13 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
         if (!action->depends_on.empty()) {
             auto depends_on = p.append_child("depends_on");
             for (auto v : action->depends_on) {
-                depends_on.append_child("action_ref").append_attribute("id").set_value(v);
+                depends_on.append_child("ref").append_attribute("action").set_value(v);
             }
         }
         if (!action->required_for.empty()) {
             auto required_for = p.append_child("required_for");
             for (auto v : action->required_for) {
-                required_for.append_child("action_ref").append_attribute("id").set_value(v);
+                required_for.append_child("ref").append_attribute("action").set_value(v);
             }
         }
         p.append_attribute("statement") = action->origin_statement;
