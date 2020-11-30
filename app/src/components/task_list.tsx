@@ -1,6 +1,8 @@
 import * as React from "react";
 import * as core from "@dashql/core";
 import { proto } from "@dashql/core";
+import { AppState, Dispatch } from '../store';
+import { connect } from 'react-redux';
 import styles from './task_list.module.css';
 
 interface Props {
@@ -14,16 +16,18 @@ class TaskList extends React.Component<Props> {
         let setup_actions: JSX.Element[] = [];
         let program_actions: JSX.Element[] = [];
         plan.iterateSetupActions((i: number, o: proto.action.SetupAction) => {
+            console.log("setup[" + i + "] " + o.targetNameQualified());
             setup_actions.push(
                 <div key={i}>
-                    {o.targetNameShort}
+                    {o.targetNameShort()}
                 </div>
             );
         });
         plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
+            console.log("program[" + i + "] " + o.targetNameQualified());
             program_actions.push(
                 <div key={i}>
-                    {o.targetNameShort}
+                    {o.targetNameShort()}
                 </div>
             );
         });
@@ -55,4 +59,12 @@ class TaskList extends React.Component<Props> {
 
 }
 
-export default TaskList;
+const mapStateToProps = (state: AppState) => ({
+    plan: state.plan
+});
+
+const mapDispatchToProps = (_dispatch: Dispatch) => ({
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(TaskList);
+
