@@ -230,7 +230,7 @@ void ParserDriver::ComputeDependencies() {
             if (auto [path, path_id] = FindAttribute(ref, Key::SQL_COLUMN_REF_PATH); path) {
                 auto [table, schema] = AsQualifiedName(*path, false);
                 if (auto iter = names.find({table, schema}); iter != names.end() && iter->second != i) {
-                    dependencies_.push_back(sx::Dependency(sx::DependencyType::COLUMN_REF, iter->second, i, path_id));
+                    dependencies_.push_back(sx::Dependency(sx::DependencyType::COLUMN_REF, iter->second, i, ref_id));
                 }
             }
         }

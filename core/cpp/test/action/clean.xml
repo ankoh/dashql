@@ -414,7 +414,7 @@
                     <required_for>
                         <ref action="6" />
                     </required_for>
-                    <script>SELECT * INTO weather_avg FROM weather WHERE month = global.month</script>
+                    <script>SELECT * INTO weather_avg FROM weather WHERE month = 5</script>
                 </action>
                 <action id="5" type="TABLE_CREATE" status="NONE" state="5">
                     <target name_qualified="global.weather_binned" name_short="weather_binned" />
@@ -425,7 +425,7 @@
                     <required_for>
                         <ref action="7" />
                     </required_for>
-                    <script>SELECT * INTO weather_binned FROM weather WHERE month = global.month</script>
+                    <script>SELECT * INTO weather_binned FROM weather WHERE month = 5</script>
                 </action>
                 <action id="6" type="VIZ_CREATE" status="NONE" state="6">
                     <target name_qualified="global.weather_binned" name_short="weather_binned" />
