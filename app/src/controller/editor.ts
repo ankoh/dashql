@@ -16,26 +16,19 @@ export class EditorController {
         this._store = store;
         this._editor = null;
         this._core = core;
-
-        let previousEditorText = "";
-
-        this._store.subscribe(() => {
-            const state = this._store.getState();
-
-            if (state.studioProgramText != previousEditorText) {
-                previousEditorText = state.studioProgramText;
-                this.evaluate(state.studioProgramText);
-            }
-        });
     }
 
     public registerEditor(editor: monaco.editor.IStandaloneCodeEditor) {
         this._editor = editor;
     }
 
-    /// Evaluate an editor
-    public evaluate(input: string) {
-        const p = this._core.parse(input);
+    /// Update studio text
+    public updateStudioText(input: string) {
+        const s = this._store.getState();
+        if (s.studioProgramText == input) {
+            return;
+        }
+        const p = this._core.parseProgram(input);
         this.displayErrors(p);
         this._store.dispatch(AppStateMutations.setStudioProgram(p));
     }
