@@ -64,7 +64,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="NONE" name="global.weather">
+            <statement type="EXTRACT_CSV" name="global.weather">
                 <node type="OBJECT_DASHQL_EXTRACT" loc="718..760" text="EXTRACT we.. USING CSV">
                     <node key="DASHQL_EXTRACT_DATA">
                         <node loc="739..750" text="weather_csv" />
