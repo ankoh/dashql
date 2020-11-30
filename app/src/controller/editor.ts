@@ -25,7 +25,7 @@ export class EditorController {
     /// Update studio text
     public updateStudioText(input: string) {
         const s = this._store.getState();
-        if (s.studioProgramText == input) {
+        if (s.studioProgram != null && s.studioProgram.text == input) {
             return;
         }
         const p = this._core.parseProgram(input);

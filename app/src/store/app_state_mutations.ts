@@ -26,7 +26,6 @@ export enum ActionType {
 export type ActionVariant =
     | Action<ActionType.CONFIGURE_APP, AppSettings>
     | Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
-    | Action<ActionType.SET_STUDIO_PROGRAM_TEXT, string>
     | Action<ActionType.SET_STUDIO_PROGRAM, core.parser.Program>
     | Action<ActionType.SET_PLAN, core.Plan>
     | Action<ActionType.CLEAR_PLAN, {}>
@@ -42,11 +41,6 @@ export class AppStateMutations {
     /// Push a log entry
     public static pushLogEntry(log: LogEntry): ActionVariant {
         return { type: ActionType.LOG_PUSH_ENTRY, payload: log };
-    }
-
-    /// Set the editor text
-    public static setStudioProgramText(text: string): ActionVariant {
-        return { type: ActionType.SET_STUDIO_PROGRAM_TEXT, payload: text };
     }
 
     /// Set the editor text
@@ -85,11 +79,6 @@ export class AppStateMutations {
                 return {
                     ...state,
                     studioProgram: action.payload
-                };
-            case ActionType.SET_STUDIO_PROGRAM_TEXT:
-                return {
-                    ...state,
-                    studioProgramText: action.payload
                 };
             case ActionType.SET_PLAN:
                 return {
