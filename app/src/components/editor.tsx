@@ -87,8 +87,9 @@ class Editor extends React.Component<Props> {
     /// The editor did mount, register the event handler
     public editorDidMount() {
         const editor = this.editor!;
+        const editorCtrl = this.props.appContext.controller.editor;
         editor.onDidChangeModelContent((_event) => {
-            this.props.updateText(editor.getValue());
+            editorCtrl.updateStudioText(editor.getValue());
         });
         if (this.monacoContainer) {
             this.resizeEditorDelayed(this.monacoContainer.offsetHeight, this.monacoContainer.offsetWidth);
@@ -136,7 +137,6 @@ const mapStateToProps = (state: AppState) => ({
 });
 
 const mapDispatchToProps = (dispatch: Dispatch) => ({
-    updateText: (v: string) => (dispatch(AppStateMutations.setStudioProgramText(v))),
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(Editor));
