@@ -2,7 +2,7 @@
     <previous>
         <text></text>
         <parameters />
-        <graph next_target_id="0">
+        <graph next_state_id="0">
             <setup />
             <program />
         </graph>
@@ -14,11 +14,11 @@
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
         </parameters>
-        <graph next_target_id="1">
+        <graph next_state_id="1">
             <setup />
             <program>
-                <action id="0" type="PARAMETER" status="NONE">
-                    <target id="0" name_qualified="global.country" name_short="country" />
+                <action id="0" type="PARAMETER" status="NONE" state="0">
+                    <target name_qualified="global.country" name_short="country" />
                 </action>
             </program>
         </graph>
@@ -28,7 +28,7 @@
     <previous>
         <text></text>
         <parameters />
-        <graph next_target_id="0">
+        <graph next_state_id="0">
             <setup />
             <program />
         </graph>
@@ -44,17 +44,17 @@
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
         </parameters>
-        <graph next_target_id="3">
+        <graph next_state_id="3">
             <setup />
             <program>
-                <action id="0" type="PARAMETER" status="NONE">
-                    <target id="0" name_qualified="global.country" name_short="country" />
+                <action id="0" type="PARAMETER" status="NONE" state="0">
+                    <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action id="1" type="LOAD_HTTP" status="NONE">
-                    <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
+                <action id="1" type="LOAD_HTTP" status="NONE" state="1">
+                    <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -62,8 +62,8 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action id="2" type="EXTRACT_CSV" status="NONE">
-                    <target id="2" name_qualified="global.weather" name_short="weather" />
+                <action id="2" type="EXTRACT_CSV" status="NONE" state="2">
+                    <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -76,7 +76,7 @@
     <previous>
         <text></text>
         <parameters />
-        <graph next_target_id="0">
+        <graph next_state_id="0">
             <setup />
             <program />
         </graph>
@@ -92,17 +92,17 @@
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
         </parameters>
-        <graph next_target_id="3">
+        <graph next_state_id="3">
             <setup />
             <program>
-                <action id="0" type="PARAMETER" status="NONE">
-                    <target id="0" name_qualified="global.country" name_short="country" />
+                <action id="0" type="PARAMETER" status="NONE" state="0">
+                    <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action id="1" type="LOAD_HTTP" status="NONE">
-                    <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
+                <action id="1" type="LOAD_HTTP" status="NONE" state="1">
+                    <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -110,8 +110,8 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action id="2" type="EXTRACT_CSV" status="NONE">
-                    <target id="2" name_qualified="global.weather" name_short="weather" />
+                <action id="2" type="EXTRACT_CSV" status="NONE" state="2">
+                    <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -124,7 +124,7 @@
     <previous>
         <text></text>
         <parameters />
-        <graph next_target_id="0">
+        <graph next_state_id="0">
             <setup />
             <program />
         </graph>
@@ -141,17 +141,17 @@
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
         </parameters>
-        <graph next_target_id="4">
+        <graph next_state_id="4">
             <setup />
             <program>
-                <action id="0" type="PARAMETER" status="NONE">
-                    <target id="0" name_qualified="global.country" name_short="country" />
+                <action id="0" type="PARAMETER" status="NONE" state="0">
+                    <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action id="1" type="LOAD_HTTP" status="NONE">
-                    <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
+                <action id="1" type="LOAD_HTTP" status="NONE" state="1">
+                    <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -159,8 +159,8 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action id="2" type="EXTRACT_CSV" status="NONE">
-                    <target id="2" name_qualified="global.weather" name_short="weather" />
+                <action id="2" type="EXTRACT_CSV" status="NONE" state="2">
+                    <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -168,8 +168,8 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action id="3" type="TABLE_CREATE" status="NONE">
-                    <target id="3" name_qualified="global.weather_avg" name_short="weather_avg" />
+                <action id="3" type="TABLE_CREATE" status="NONE" state="3">
+                    <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -183,7 +183,7 @@
     <previous>
         <text></text>
         <parameters />
-        <graph next_target_id="0">
+        <graph next_state_id="0">
             <setup />
             <program />
         </graph>
@@ -202,17 +202,17 @@
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
         </parameters>
-        <graph next_target_id="6">
+        <graph next_state_id="6">
             <setup />
             <program>
-                <action id="0" type="PARAMETER" status="NONE">
-                    <target id="0" name_qualified="global.country" name_short="country" />
+                <action id="0" type="PARAMETER" status="NONE" state="0">
+                    <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action id="1" type="LOAD_HTTP" status="NONE">
-                    <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
+                <action id="1" type="LOAD_HTTP" status="NONE" state="1">
+                    <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -220,8 +220,8 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action id="2" type="EXTRACT_CSV" status="NONE">
-                    <target id="2" name_qualified="global.weather" name_short="weather" />
+                <action id="2" type="EXTRACT_CSV" status="NONE" state="2">
+                    <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -229,8 +229,8 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action id="3" type="TABLE_CREATE" status="NONE">
-                    <target id="3" name_qualified="global.weather_avg" name_short="weather_avg" />
+                <action id="3" type="TABLE_CREATE" status="NONE" state="3">
+                    <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -240,14 +240,14 @@
                     </required_for>
                     <script>SELECT * INTO weather_avg FROM weather</script>
                 </action>
-                <action id="4" type="VIZ_CREATE" status="NONE">
-                    <target id="4" name_qualified="global.weather_avg" name_short="weather_avg" />
+                <action id="4" type="VIZ_CREATE" status="NONE" state="4">
+                    <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
                 </action>
-                <action id="5" type="VIZ_CREATE" status="NONE">
-                    <target id="5" name_qualified="global.weather_avg" name_short="weather_avg" />
+                <action id="5" type="VIZ_CREATE" status="NONE" state="5">
+                    <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
@@ -260,7 +260,7 @@
     <previous>
         <text></text>
         <parameters />
-        <graph next_target_id="0">
+        <graph next_state_id="0">
             <setup />
             <program />
         </graph>
@@ -280,17 +280,17 @@
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
         </parameters>
-        <graph next_target_id="7">
+        <graph next_state_id="7">
             <setup />
             <program>
-                <action id="0" type="PARAMETER" status="NONE">
-                    <target id="0" name_qualified="global.country" name_short="country" />
+                <action id="0" type="PARAMETER" status="NONE" state="0">
+                    <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action id="1" type="LOAD_HTTP" status="NONE">
-                    <target id="1" name_qualified="global.weather_csv" name_short="weather_csv" />
+                <action id="1" type="LOAD_HTTP" status="NONE" state="1">
+                    <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -298,8 +298,8 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action id="2" type="EXTRACT_CSV" status="NONE">
-                    <target id="2" name_qualified="global.weather" name_short="weather" />
+                <action id="2" type="EXTRACT_CSV" status="NONE" state="2">
+                    <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -308,8 +308,8 @@
                         <ref action="4" />
                     </required_for>
                 </action>
-                <action id="3" type="TABLE_CREATE" status="NONE">
-                    <target id="3" name_qualified="global.weather_avg" name_short="weather_avg" />
+                <action id="3" type="TABLE_CREATE" status="NONE" state="3">
+                    <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -318,8 +318,8 @@
                     </required_for>
                     <script>SELECT * INTO weather_avg FROM weather</script>
                 </action>
-                <action id="4" type="TABLE_CREATE" status="NONE">
-                    <target id="4" name_qualified="global.weather_binned" name_short="weather_binned" />
+                <action id="4" type="TABLE_CREATE" status="NONE" state="4">
+                    <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -328,14 +328,14 @@
                     </required_for>
                     <script>SELECT * INTO weather_binned FROM weather</script>
                 </action>
-                <action id="5" type="VIZ_CREATE" status="NONE">
-                    <target id="5" name_qualified="global.weather_binned" name_short="weather_binned" />
+                <action id="5" type="VIZ_CREATE" status="NONE" state="5">
+                    <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
                 </action>
-                <action id="6" type="VIZ_CREATE" status="NONE">
-                    <target id="6" name_qualified="global.weather_binned" name_short="weather_binned" />
+                <action id="6" type="VIZ_CREATE" status="NONE" state="6">
+                    <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="4" />
                     </depends_on>
@@ -348,7 +348,7 @@
     <previous>
         <text></text>
         <parameters />
-        <graph next_target_id="0">
+        <graph next_state_id="0">
             <setup />
             <program />
         </graph>
@@ -370,24 +370,24 @@
             <parameter type="TEXT" statement="0" value="DE" />
             <parameter type="INTEGER" statement="1" value="5" />
         </parameters>
-        <graph next_target_id="8">
+        <graph next_state_id="8">
             <setup />
             <program>
-                <action id="0" type="PARAMETER" status="NONE">
-                    <target id="0" name_qualified="global.country" name_short="country" />
+                <action id="0" type="PARAMETER" status="NONE" state="0">
+                    <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action id="1" type="PARAMETER" status="NONE">
-                    <target id="1" name_qualified="global.month" name_short="month" />
+                <action id="1" type="PARAMETER" status="NONE" state="1">
+                    <target name_qualified="global.month" name_short="month" />
                     <required_for>
                         <ref action="4" />
                         <ref action="5" />
                     </required_for>
                 </action>
-                <action id="2" type="LOAD_HTTP" status="NONE">
-                    <target id="2" name_qualified="global.weather_csv" name_short="weather_csv" />
+                <action id="2" type="LOAD_HTTP" status="NONE" state="2">
+                    <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -395,8 +395,8 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action id="3" type="EXTRACT_CSV" status="NONE">
-                    <target id="3" name_qualified="global.weather" name_short="weather" />
+                <action id="3" type="EXTRACT_CSV" status="NONE" state="3">
+                    <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -405,8 +405,8 @@
                         <ref action="5" />
                     </required_for>
                 </action>
-                <action id="4" type="TABLE_CREATE" status="NONE">
-                    <target id="4" name_qualified="global.weather_avg" name_short="weather_avg" />
+                <action id="4" type="TABLE_CREATE" status="NONE" state="4">
+                    <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="3" />
                         <ref action="1" />
@@ -416,8 +416,8 @@
                     </required_for>
                     <script>SELECT * INTO weather_avg FROM weather WHERE month = global.month</script>
                 </action>
-                <action id="5" type="TABLE_CREATE" status="NONE">
-                    <target id="5" name_qualified="global.weather_binned" name_short="weather_binned" />
+                <action id="5" type="TABLE_CREATE" status="NONE" state="5">
+                    <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="3" />
                         <ref action="1" />
@@ -427,14 +427,14 @@
                     </required_for>
                     <script>SELECT * INTO weather_binned FROM weather WHERE month = global.month</script>
                 </action>
-                <action id="6" type="VIZ_CREATE" status="NONE">
-                    <target id="6" name_qualified="global.weather_binned" name_short="weather_binned" />
+                <action id="6" type="VIZ_CREATE" status="NONE" state="6">
+                    <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="4" />
                     </depends_on>
                 </action>
-                <action id="7" type="VIZ_CREATE" status="NONE">
-                    <target id="7" name_qualified="global.weather_binned" name_short="weather_binned" />
+                <action id="7" type="VIZ_CREATE" status="NONE" state="7">
+                    <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="5" />
                     </depends_on>
@@ -447,7 +447,7 @@
     <previous>
         <text></text>
         <parameters />
-        <graph next_target_id="0">
+        <graph next_state_id="0">
             <setup />
             <program />
         </graph>
@@ -467,37 +467,37 @@
             EXTRACT country2_weather FROM country2_weather_csv USING CSV;
             SELECT * INTO country1_weather_avg FROM country1_weather WHERE month = global.month;
             SELECT * INTO country2_weather_avg FROM country2_weather WHERE month = global.month;
-            SELECT * INTO countries_joined FROM country1_weather_avg, country2_weather_avg
+            SELECT * INTO countries_joined FROM country1_weather_avg, country2_weather_avg;
             VIZ countries_joined USING LINE;
         </text>
         <parameters>
             <parameter type="TEXT" statement="0" value="DE" />
             <parameter type="INTEGER" statement="1" value="5" />
         </parameters>
-        <graph next_target_id="9">
+        <graph next_state_id="11">
             <setup />
             <program>
-                <action id="0" type="PARAMETER" status="NONE">
-                    <target id="0" name_qualified="global.country1" name_short="country1" />
+                <action id="0" type="PARAMETER" status="NONE" state="0">
+                    <target name_qualified="global.country1" name_short="country1" />
                     <required_for>
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action id="1" type="PARAMETER" status="NONE">
-                    <target id="1" name_qualified="global.country2" name_short="country2" />
+                <action id="1" type="PARAMETER" status="NONE" state="1">
+                    <target name_qualified="global.country2" name_short="country2" />
                     <required_for>
                         <ref action="4" />
                     </required_for>
                 </action>
-                <action id="2" type="PARAMETER" status="NONE">
-                    <target id="2" name_qualified="global.month" name_short="month" />
+                <action id="2" type="PARAMETER" status="NONE" state="2">
+                    <target name_qualified="global.month" name_short="month" />
                     <required_for>
                         <ref action="7" />
                         <ref action="8" />
                     </required_for>
                 </action>
-                <action id="3" type="LOAD_HTTP" status="NONE">
-                    <target id="3" name_qualified="global.country1_weather_csv" name_short="country1_weather_csv" />
+                <action id="3" type="LOAD_HTTP" status="NONE" state="3">
+                    <target name_qualified="global.country1_weather_csv" name_short="country1_weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -505,8 +505,8 @@
                         <ref action="5" />
                     </required_for>
                 </action>
-                <action id="4" type="LOAD_HTTP" status="NONE">
-                    <target id="4" name_qualified="global.country2_weather_csv" name_short="country2_weather_csv" />
+                <action id="4" type="LOAD_HTTP" status="NONE" state="4">
+                    <target name_qualified="global.country2_weather_csv" name_short="country2_weather_csv" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -514,8 +514,8 @@
                         <ref action="6" />
                     </required_for>
                 </action>
-                <action id="5" type="EXTRACT_CSV" status="NONE">
-                    <target id="5" name_qualified="global.country1_weather" name_short="country1_weather" />
+                <action id="5" type="EXTRACT_CSV" status="NONE" state="5">
+                    <target name_qualified="global.country1_weather" name_short="country1_weather" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
@@ -523,8 +523,8 @@
                         <ref action="7" />
                     </required_for>
                 </action>
-                <action id="6" type="EXTRACT_CSV" status="NONE">
-                    <target id="6" name_qualified="global.country2_weather" name_short="country2_weather" />
+                <action id="6" type="EXTRACT_CSV" status="NONE" state="6">
+                    <target name_qualified="global.country2_weather" name_short="country2_weather" />
                     <depends_on>
                         <ref action="4" />
                     </depends_on>
@@ -532,21 +532,44 @@
                         <ref action="8" />
                     </required_for>
                 </action>
-                <action id="7" type="TABLE_CREATE" status="NONE">
-                    <target id="7" name_qualified="global.country1_weather_avg" name_short="country1_weather_avg" />
+                <action id="7" type="TABLE_CREATE" status="NONE" state="7">
+                    <target name_qualified="global.country1_weather_avg" name_short="country1_weather_avg" />
                     <depends_on>
                         <ref action="5" />
                         <ref action="2" />
                     </depends_on>
+                    <required_for>
+                        <ref action="9" />
+                    </required_for>
                     <script>SELECT * INTO country1_weather_avg FROM country1_weather WHERE month = global.month</script>
                 </action>
-                <action id="8" type="TABLE_CREATE" status="NONE">
-                    <target id="8" name_qualified="global.country2_weather_avg" name_short="country2_weather_avg" />
+                <action id="8" type="TABLE_CREATE" status="NONE" state="8">
+                    <target name_qualified="global.country2_weather_avg" name_short="country2_weather_avg" />
                     <depends_on>
                         <ref action="6" />
                         <ref action="2" />
                     </depends_on>
+                    <required_for>
+                        <ref action="9" />
+                    </required_for>
                     <script>SELECT * INTO country2_weather_avg FROM country2_weather WHERE month = global.month</script>
+                </action>
+                <action id="9" type="TABLE_CREATE" status="NONE" state="9">
+                    <target name_qualified="global.countries_joined" name_short="countries_joined" />
+                    <depends_on>
+                        <ref action="7" />
+                        <ref action="8" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="10" />
+                    </required_for>
+                    <script>SELECT * INTO countries_joined FROM country1_weather_avg, country2_weather_avg</script>
+                </action>
+                <action id="10" type="VIZ_CREATE" status="NONE" state="10">
+                    <target name_qualified="global.countries_joined" name_short="countries_joined" />
+                    <depends_on>
+                        <ref action="9" />
+                    </depends_on>
                 </action>
             </program>
         </graph>
