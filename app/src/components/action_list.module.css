@@ -1,6 +1,11 @@
+@value v_panel_border_radius: 8px;
+
 .action_list {
-    padding: 8px;
     background: red;
+    box-sizing: border-box;
+    margin: 8px;
+    padding: 8px;
+    border-radius: v_panel_border_radius;
 }
 
 .actions {
