@@ -1,12 +1,17 @@
 .svg_root {
 }
 
-.node {
+.label {
+    padding: 8px;
+    border: 1px solid black;
+    border-radius: 8px;
+}
+
+.label_type {
 }
 
 .node rect {
-    fill: rgb(255, 255, 255);
-    stroke-width: 1px;
+    fill: none;
 }
 
 .edge {
