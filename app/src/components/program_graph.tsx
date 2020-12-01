@@ -1,9 +1,10 @@
 import * as React from "react";
 import * as core from "@dashql/core";
 import * as dagre from 'dagre';
+import {Handle as ReactFlowHandle} from 'react-flow-renderer';
 import ReactFlow from 'react-flow-renderer';
 import classNames from 'classnames';
-import { FlowElement, Node, Edge } from 'react-flow-renderer';
+import { FlowElement, Node as NodeData, Edge as EdgeData } from 'react-flow-renderer';
 import { proto } from "@dashql/core";
 
 import sx = core.proto.syntax;
@@ -36,12 +37,30 @@ function getStatementTypeLabel(type: proto.syntax.StatementType) {
     }
 }
 
-interface Props {
+interface ProgramNodeData extends NodeData {
+    data: {
+        statementType: proto.syntax.StatementType;
+    }
+}
+
+function Node(props: ProgramNodeData) {
+    console.log(props);
+    const label = getStatementTypeLabel(props.data.statementType);
+    return (
+        <div>
+            <ReactFlowHandle type="target" position="top" />
+            {label}
+            <ReactFlowHandle type="source" position="bottom" />
+        </div>
+    );
+}
+
+interface ProgramGraphProps {
     program: core.parser.Program | null;
     className?: string
 }
 
-class ProgramGraph extends React.Component<Props> {
+class ProgramGraph extends React.Component<ProgramGraphProps> {
     public render() {
         if (this.props.program == null) {
             return <div />;
@@ -55,23 +74,24 @@ class ProgramGraph extends React.Component<Props> {
         };
 
         // We use dagre to do the layouting and the render the graph with react-flow
-        let nodes: Node[] = [];
-        let edges: Edge[] = [];
+        let nodes: ProgramNodeData[] = [];
+        let edges: EdgeData[] = [];
         const g = new dagre.graphlib.Graph().setGraph({
             nodesep: 60,
             ranksep: 30
         });
         this.props.program.iterateStatements((idx: number, stmt: core.parser.Statement) => {
-            const label = getStatementTypeLabel(stmt.statement_type);
             g.setNode(idx.toString(), {
                 ...NODE_SIZE,
-                label: label,
             });
             nodes.push({
                 id: idx.toString(),
+                type: 'custom',
                 style: { ...NODE_SIZE },
-                data: { label: label },
-                position: { x: 0, y: 0 }
+                position: { x: 0, y: 0 },
+                data: {
+                    statementType: stmt.statement_type
+                }
             });
         });
         this.props.program.iterateDependencies((idx: number, dep: sx.Dependency) => {
@@ -109,6 +129,9 @@ class ProgramGraph extends React.Component<Props> {
                     defaultPosition={[20, 20]}
                     nodesDraggable={false}
                     onLoad={(flow) => flow.fitView({padding: 0.2})}
+                    nodeTypes={{
+                        custom: Node,
+                    }}
                 />
             </div>
         );
