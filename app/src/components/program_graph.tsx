@@ -2,7 +2,7 @@ import * as React from "react";
 import * as core from "@dashql/core";
 import * as dagre from 'dagre';
 import ReactFlow from 'react-flow-renderer';
-import classNames from 'classNames';
+import classNames from 'classnames';
 import { FlowElement, Node, Edge } from 'react-flow-renderer';
 import { proto } from "@dashql/core";
 
@@ -144,6 +144,8 @@ class ProgramGraph extends React.Component<Props> {
                 id: "e-" + idx.toString(),
                 source: dep.sourceStatement().toString(),
                 target: dep.targetStatement().toString(),
+                type: 'smoothstep',
+                animated: true,
             });
         });
 
