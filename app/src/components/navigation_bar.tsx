@@ -41,9 +41,8 @@ function StatusPanel(props: StatusPanelProps) {
     return (
         <div className={classNames(styles.status, {
                 [styles.active]: expanded
-            })}
-            onClick={() => props.onClick(props.statusID)}>
-            <div className={styles.statusicon}>
+            })}>
+            <div className={styles.statusicon} onClick={() => props.onClick(props.statusID)}>
                 {<Icon width="22px" height="22px" {...(props.iconProps)} />}
             </div>
             {expanded &&
