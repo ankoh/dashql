@@ -1,6 +1,6 @@
 @value v_panel_border_radius: 8px;
 
-.action_list {
+.action_list_panel {
     background: red;
     box-sizing: border-box;
     margin: 8px;
@@ -15,4 +15,21 @@
 }
 
 .program_actions {
+}
+
+.action {
+}
+
+.action_type {
+}
+
+.action_origin {
+}
+
+.action_status {
+
+}
+
+.action_detail {
+
 }

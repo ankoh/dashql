@@ -17,14 +17,14 @@ class ActionList extends React.Component<Props> {
         let program_actions: JSX.Element[] = [];
         plan.iterateSetupActions((i: number, o: proto.action.SetupAction) => {
             setup_actions.push(
-                <div key={i}>
+                <div key={i} className={styles.action}>
                     {proto.action.SetupActionType[o.actionType()]}
                 </div>
             );
         });
         plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
             program_actions.push(
-                <div key={i}>
+                <div key={i} className={styles.action}>
                     {proto.action.ProgramActionType[o.actionType()]}
                 </div>
             );
@@ -43,7 +43,7 @@ class ActionList extends React.Component<Props> {
 
     public render() {
         return (
-            <div className={styles.action_list}>
+            <div className={styles.action_list_panel}>
                 {this.props.plan && this.renderActions(this.props.plan)}
             </div>
         );
