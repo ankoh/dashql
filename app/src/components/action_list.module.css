@@ -11,26 +11,27 @@
 .actions {
 }
 
-.setup_actions {
-}
-
-.program_actions {
-}
+.setup_actions {}
+.program_actions {}
 
 .action {
+    display: grid;
+    grid-template-columns: 100px 48px;
 }
 
 .action_header {
     text-align: left;
 }
 
-.action_type {
+.action_type { 
 }
 
 .action_origin {
 }
 
 .action_status {
+    grid-row: 1;
+    grid-column: 1;
     text-align: left;
 }
 
