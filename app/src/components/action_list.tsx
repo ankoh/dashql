@@ -3,6 +3,7 @@ import * as core from "@dashql/core";
 import { proto } from "@dashql/core";
 import { AppState, Dispatch } from '../store';
 import { connect } from 'react-redux';
+import { ActionStatusSpinner } from './spinners';
 import { ChevronRightIcon } from '../svg/icons';
 import styles from './action_list.module.css';
 
@@ -27,12 +28,16 @@ class ActionList extends React.Component<Props, State> {
             );
         });
         plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
+            const status = o.actionStatus();
             program_actions.push(
                 <div key={i} className={styles.action}>
                     <div className={styles.action_expand}>
                         <div className={styles.action_expand_icon}>
                             <ChevronRightIcon width="20px" height="20px" />
                         </div>
+                    </div>
+                    <div className={styles.action_status}>
+                        <ActionStatusSpinner width="16px" height="16px" status={status} />
                     </div>
                     <div className={styles.action_type}>
                         {proto.action.ProgramActionType[o.actionType()]}
