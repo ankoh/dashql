@@ -7,6 +7,7 @@
 @value v_border_radius: 8px;
 @value v_navbar_button_margin: 6px;
 @value v_navbar_button_width: calc(100% - 2 * v_navbar_button_margin);
+@value v_navbar_bg: hsl(260, 15%, 15%);
 
 .container {
     position:relative;
@@ -27,12 +28,10 @@
 
     display: flex;
     flex-direction: column;
-    background-color: v_nav_bg;
+    background-color: v_navbar_bg;
     color: rgb(255, 255, 255);
     line-height: 24px;
     text-align: center;
-
-    background-color: hsl(260, 15%, 15%);
 
     grid-template-rows: 48px auto 48px;
 }

@@ -1,14 +1,19 @@
 @value v_panel_border_radius: 8px;
+@value v_panel_bg: hsl(260, 15%, 15%);
+@value v_subtitle_fontsize: 90%;
+@value v_subtitle_color: rgba(255, 255, 255, 0.8);
+@value v_action_duration_fontsize: 90%;
+@value v_action_duration_color: rgba(255, 255, 255, 0.8);
 
 .action_list_panel {
-    background: red;
+    background: v_panel_bg;
     box-sizing: border-box;
     margin: 8px;
     border-radius: v_panel_border_radius;
 }
 
 .actions {
-    padding: 4px 0px;
+    padding: 8px 0px;
 }
 
 .setup_actions {}
@@ -16,11 +21,29 @@
 
 .action {
     display: grid;
-    grid-template-columns: 24px 24px 6px 100px 48px;
-    padding-left: 4px;
+    grid-template-columns: 24px 24px 6px 140px 60px;
+    padding: 4px;
 }
 
 .action_header {
+    text-align: left;
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.action_header_title {
+    text-align: left;
+    font-weight: 700;
+    margin-bottom: -4px;
+}
+
+.action_header_subtitle {
+    font-size: v_subtitle_fontsize;
+    color: v_subtitle_color;
+    text-align: left;
+}
+
+.action_subheader {
     text-align: left;
     padding: 4px 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
@@ -65,6 +88,14 @@
     grid-row: 1;
     grid-column: 4;
     text-align: left;
+}
+
+.action_duration {
+    grid-row: 1;
+    grid-column: 5;
+
+    font-size: v_action_duration_fontsize;
+    color: v_action_duration_fontsize;
 }
 
 .action_detail {

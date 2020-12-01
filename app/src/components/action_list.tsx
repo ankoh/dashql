@@ -15,6 +15,33 @@ interface Props {
 interface State {
 }
 
+function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
+    switch (type) {
+        case proto.action.ProgramActionType.EXTRACT_CSV:
+            return "Extract CSV";
+        case proto.action.ProgramActionType.EXTRACT_JSON:
+            return "Extract JSON";
+        case proto.action.ProgramActionType.LOAD_FILE:
+            return "Load File";
+        case proto.action.ProgramActionType.LOAD_HTTP:
+            return "Load HTTP";
+        case proto.action.ProgramActionType.PARAMETER:
+            return "Define Parameter";
+        case proto.action.ProgramActionType.TABLE_CREATE:
+            return "Create Table";
+        case proto.action.ProgramActionType.TABLE_MODIFY:
+            return "Modify Table";
+        case proto.action.ProgramActionType.VIEW_CREATE:
+            return "Create View";
+        case proto.action.ProgramActionType.VIZ_CREATE:
+            return "Create Viz";
+        case proto.action.ProgramActionType.VIZ_UPDATE:
+            return "Update Viz";
+        default:
+            return "?";
+    }
+}
+
 class ActionList extends React.Component<Props, State> {
 
     public renderActions(plan: core.Plan)  {
@@ -40,7 +67,10 @@ class ActionList extends React.Component<Props, State> {
                         <ActionStatusSpinner width="16px" height="16px" status={status} />
                     </div>
                     <div className={styles.action_type}>
-                        {proto.action.ProgramActionType[o.actionType()]}
+                        {getProgramActionTypeLabel(o.actionType())}
+                    </div>
+                    <div className={styles.action_duration}>
+                        0 ms
                     </div>
                 </div>
             );
@@ -61,7 +91,12 @@ class ActionList extends React.Component<Props, State> {
         return (
             <div className={styles.action_list_panel}>
                 <div className={styles.action_header}>
-                    Actions
+                    <div className={styles.action_header_title}>
+                        Actions
+                    </div>
+                    <div className={styles.action_header_subtitle}>
+                        started 20 ms ago
+                    </div>
                 </div>
                 {this.props.plan && this.renderActions(this.props.plan)}
             </div>
