@@ -66,7 +66,7 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
     constructor(props: NavigationBarProps) {
         super(props);
         this.state = {
-            expandedStatus: 1
+            expandedStatus: null
         };
     }
 
