@@ -91,7 +91,7 @@ function Node(props: ProgramNodeData) {
                 <div>{label}</div>
             </div>
             <div className={styles.node_status}>
-                <ActionStatusSpinner className={styles.node_status_spinner} width="14px" height="14px" fill="hsl(260, 15%, 40%)" status={props.data.actionStatus} />
+                <ActionStatusSpinner className={styles.node_status_spinner} width="12px" height="12px" fill="hsl(260, 15%, 40%)" status={props.data.actionStatus} />
             </div>
             <ReactFlowHandle type="target" position="top" />
             <ReactFlowHandle type="source" position="bottom" />
