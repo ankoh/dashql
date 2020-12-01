@@ -147,7 +147,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                 source: dep.sourceStatement().toString(),
                 target: dep.targetStatement().toString(),
                 type: 'smoothstep',
-                animated: true,
+                animated: dep.sourceStatement() == 3, // XXX
             });
         });
 
