@@ -57,8 +57,6 @@ export class DemoController {
     public setup() {
         const program = this._core.parseProgram(DEMO_SCRIPT);
         const plan = this._core.planProgram();
-        console.log(plan);
-
         this._store.dispatch(AppStateMutations.setStudioProgram(program));
         if (plan != null) {
             this._store.dispatch(AppStateMutations.setPlan(plan));
