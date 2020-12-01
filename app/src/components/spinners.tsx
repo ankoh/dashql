@@ -71,19 +71,18 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps) {
         case proto.action.ActionStatusCode.PREPARING:
             return (
                 <svg
-                    className={classNames(styles.status_spinner, props.className)}
+                    className={classNames(props.className)}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
-                    viewBox="0 0 18 18"
+                    viewBox="-8 -8 16 16"
                     fill="none"
                     stroke={props.fill || "white"}
+                    strokeWidth="2"
                 >
                     <g fill="none" fillRule="evenodd">
-                        <g transform="translate(1 1)" strokeWidth="2">
-                            <circle cx="8" cy="8" r="7" opacity=".5"></circle>
-                            <circle cx="8" cy="8" r="4" strokeWidth="0" fill={props.fill || "white"}></circle>
-                            <circle cx="8" cy="8" r="7" strokeDasharray="12, 88" />
-                        </g>
+                        <circle cx="0" cy="0" r="7" opacity=".5" clipPath="url(clip)"></circle>
+                        <circle cx="0" cy="0" r="4" strokeWidth="0" fill={props.fill || "white"} clipPath="url(clip)"></circle>
+                        <circle cx="0" cy="0" r="7" strokeDasharray="12, 88" className={styles.status_spinner} />
                     </g>
                 </svg>
             );
