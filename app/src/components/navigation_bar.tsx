@@ -92,7 +92,7 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
                         <div />
                     </StatusPanel>
                     <StatusPanel statusID={1} expandedStatus={this.state.expandedStatus} onClick={this.toggleTab.bind(this)} icon={TaskListIcon}>
-                        <ActionList />
+                        <ActionList close={() => this.toggleTab(1)} />
                     </StatusPanel>
                     <StatusPanel statusID={2} expandedStatus={this.state.expandedStatus} onClick={this.toggleTab.bind(this)} icon={LogIcon}>
                         <div />
