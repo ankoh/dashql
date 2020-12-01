@@ -20,6 +20,10 @@
 .action {
 }
 
+.action_header {
+    text-align: left;
+}
+
 .action_type {
 }
 
@@ -27,7 +31,7 @@
 }
 
 .action_status {
-
+    text-align: left;
 }
 
 .action_detail {

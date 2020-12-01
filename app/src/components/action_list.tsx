@@ -25,7 +25,9 @@ class ActionList extends React.Component<Props> {
         plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
             program_actions.push(
                 <div key={i} className={styles.action}>
-                    {proto.action.ProgramActionType[o.actionType()]}
+                    <div className={styles.action_status}>
+                        {proto.action.ProgramActionType[o.actionType()]}
+                    </div>
                 </div>
             );
         });
@@ -44,6 +46,9 @@ class ActionList extends React.Component<Props> {
     public render() {
         return (
             <div className={styles.action_list_panel}>
+                <div className={styles.action_header}>
+                    Actions
+                </div>
                 {this.props.plan && this.renderActions(this.props.plan)}
             </div>
         );
