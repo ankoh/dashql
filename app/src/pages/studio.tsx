@@ -24,7 +24,6 @@ class Studio extends React.Component<Props> {
                 <div className={styles.program}>
                     <EditorLoader className={styles.editor} />
                     <div className={styles.program_details}>
-                        <ProgramInspector className={styles.program_inspector} program={this.props.program} />
                         <ProgramGraph className={styles.program_graph} program={this.props.program} />
                     </div>
                     <ToolBar />

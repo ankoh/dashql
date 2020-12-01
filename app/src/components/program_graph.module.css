@@ -1,4 +1,4 @@
-@value v_border_radius: 8px;
+@value v_border_radius: 6px;
 @value v_border_color: rgb(200, 200, 200);
 @value v_node_status_bg: rgb(240, 240, 240);
 
@@ -8,19 +8,17 @@
     display: grid;
     margin: 1px;
     box-sizing: border-box;
-    grid-template-columns: 28px auto 24px;
+}
 
-    border: 1px solid v_border_color;
-    border-radius: v_border_radius;
+.node_handle {
+    background: none !important;
+    border: none !important;
 }
 
 .node_type {
     grid-row: 1;
     grid-column: 1;
     display: grid;
-    background: hsl(260, 15%, 40%);
-    margin: -1px;
-    border-radius: v_border_radius 0 0 v_border_radius;
 }
 
 .node_icon {
