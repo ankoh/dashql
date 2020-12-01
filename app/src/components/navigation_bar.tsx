@@ -7,9 +7,6 @@ import ActionList from './action_list';
 
 import styles from './navigation_bar.module.css';
 
-interface RouteParams {}
-interface NavigationBarProps extends RouteComponentProps<RouteParams> {}
-
 interface TabProps extends IIconProps {
     pathName: string;
 }
@@ -33,42 +30,53 @@ interface StatusPanelProps {
     icon: React.FunctionComponent<IIconProps>
     iconProps?: IIconProps
     children: JSX.Element;
+    statusID: number;
+    expandedStatus: number | null;
+    onClick: (tab: number) => void;
 }
 
-interface StatusPanelState {
-    expanded: boolean;
+function StatusPanel(props: StatusPanelProps) {
+    const Icon = props.icon;
+    const expanded = props.statusID == props.expandedStatus;
+    return (
+        <div className={classNames(styles.status, {
+                [styles.active]: expanded
+            })}
+            onClick={() => props.onClick(props.statusID)}>
+            <div className={styles.statusicon}>
+                {<Icon width="22px" height="22px" {...(props.iconProps)} />}
+            </div>
+            {expanded &&
+                <div className={styles.statuspanel}>
+                    {props.children}
+                </div>
+            }
+        </div>
+    )
 }
 
-class StatusPanel extends React.Component<StatusPanelProps, StatusPanelState> {
-    constructor(props: StatusPanelProps) {
+interface RouteParams {}
+interface NavigationBarProps extends RouteComponentProps<RouteParams> {
+
+}
+interface NavigationBarState {
+    expandedStatus: number | null
+}
+
+class NavigationBar extends React.Component<NavigationBarProps, NavigationBarState> {
+    constructor(props: NavigationBarProps) {
         super(props);
         this.state = {
-            // XXX
-            expanded: props.icon == TaskListIcon
+            expandedStatus: 1
         };
     }
 
-    public render() {
-        const Icon = this.props.icon;
-        return (
-            <div className={classNames(styles.status, {
-                    [styles.active]: this.state.expanded
-                })}
-                onClick={() => {this.setState({...this.state, expanded: !this.state.expanded})}}>
-                <div className={styles.statusicon}>
-                    {<Icon width="22px" height="22px" {...(this.props.iconProps)} />}
-                </div>
-                {this.state.expanded &&
-                    <div className={styles.statuspanel}>
-                        {this.props.children}
-                    </div>
-                }
-            </div>
-        )
+    protected toggleTab(tab: number) {
+        this.setState({
+            ...this.state,
+            expandedStatus: (this.state.expandedStatus == tab) ? null : tab
+        });
     }
-}
-
-class NavigationBar extends React.Component<NavigationBarProps> {
 
     public render() {
         return (
@@ -80,13 +88,13 @@ class NavigationBar extends React.Component<NavigationBarProps> {
                     <StudioTab pathName={this.props.location.pathname} />
                 </div>
                 <div className={styles.statuslist}>
-                    <StatusPanel icon={DatabaseIcon}>
+                    <StatusPanel statusID={0} expandedStatus={this.state.expandedStatus} onClick={this.toggleTab.bind(this)} icon={DatabaseIcon}>
                         <div />
                     </StatusPanel>
-                    <StatusPanel icon={TaskListIcon}>
+                    <StatusPanel statusID={1} expandedStatus={this.state.expandedStatus} onClick={this.toggleTab.bind(this)} icon={TaskListIcon}>
                         <ActionList />
                     </StatusPanel>
-                    <StatusPanel icon={LogIcon}>
+                    <StatusPanel statusID={2} expandedStatus={this.state.expandedStatus} onClick={this.toggleTab.bind(this)} icon={DatabaseIcon}>
                         <div />
                     </StatusPanel>
                 </div>
