@@ -734,3 +734,90 @@ export function AutoRunIcon(props: IIconProps) {
         </svg>
     );
 }
+
+export function CheckIconIcon(props: IIconProps) {
+    return (
+
+        <svg
+            className={props.className || 'icon'}
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <path
+                d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                fill={props.fill || '#ffffff'}
+                fillRule="nonzero"
+            />
+        </svg>
+    );
+}
+
+export function ChevronLeftIcon(props: IIconProps) {
+    return (
+
+        <svg
+            className={props.className || 'icon'}
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <path
+                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                fill={props.fill || '#ffffff'}
+                fillRule="nonzero"
+            />
+        </svg>
+    );
+}
+
+export function ChevronRightIcon(props: IIconProps) {
+    return (
+        <svg
+            className={props.className || 'icon'}
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <path
+                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                fill={props.fill || '#ffffff'}
+                fillRule="nonzero"
+            />
+        </svg>
+    );
+}
+
+export function ExpandLessIcon(props: IIconProps) {
+    return (
+        <svg
+            className={props.className || 'icon'}
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <path
+                d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"
+                fill={props.fill || '#ffffff'}
+                fillRule="nonzero"
+            />
+        </svg>
+    );
+}
+
+export function ExpandMoreIcon(props: IIconProps) {
+    return (
+        <svg
+            className={props.className || 'icon'}
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="0 0 24 24"
+        >
+            <path
+                d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"
+                fill={props.fill || '#ffffff'}
+                fillRule="nonzero"
+            />
+        </svg>
+    );
+}
