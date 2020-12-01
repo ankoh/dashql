@@ -217,6 +217,8 @@ export class Statement {
     public get statement() { return this._statement; }
     /// Set the statement buffer
     public set statement(s: sx.Statement) { this._statement = s; }
+    /// Get the statement type
+    public get statement_type() { return this._statement.statementType(); }
     /// Get the short name
     public get target_name_short() { return this._statement.nameShort(); }
     /// Get the qualified name
