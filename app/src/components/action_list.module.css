@@ -16,13 +16,14 @@
 
 .action {
     display: grid;
-    grid-template-columns: 28px 24px 6px 100px 48px;
+    grid-template-columns: 24px 24px 6px 100px 48px;
+    padding-left: 4px;
 }
 
 .action_header {
     text-align: left;
     padding: 4px 8px;
-    border-bottom: 1px solid white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .action_type { 
