@@ -43,15 +43,18 @@ class StatusPanel extends React.Component<StatusPanelProps, StatusPanelState> {
     constructor(props: StatusPanelProps) {
         super(props);
         this.state = {
-            expanded: true
+            // XXX
+            expanded: props.icon == TaskListIcon
         };
     }
 
     public render() {
         const Icon = this.props.icon;
         return (
-            <div className={styles.status}
-                 onClick={() => {this.setState({...this.state, expanded: !this.state.expanded})}}>
+            <div className={classNames(styles.status, {
+                    [styles.active]: this.state.expanded
+                })}
+                onClick={() => {this.setState({...this.state, expanded: !this.state.expanded})}}>
                 <div className={styles.statusicon}>
                     {<Icon width="22px" height="22px" {...(this.props.iconProps)} />}
                 </div>
