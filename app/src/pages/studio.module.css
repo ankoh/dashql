@@ -30,9 +30,13 @@
 }
 
 .topbar_action {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     display: grid;
+
+    box-sizing: border-box;
+    margin: 4px;
+    border-radius: v_border_radius;
 }
 
 .topbar_icon { justify-self: center; align-self: center; }
@@ -64,7 +68,7 @@
     height: 36px;
     width: calc(100% - 8px);
     box-sizing: border-box;
-    margin: 4px 4px;
+    margin: 4px;
     border-radius: v_border_radius;
     font-weight: 600;
     color: rgb(166, 166, 166);
