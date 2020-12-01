@@ -4,16 +4,8 @@ import { proto } from "@dashql/core";
 import { AppState, Dispatch } from '../store';
 import { connect } from 'react-redux';
 import { ActionStatusSpinner } from './spinners';
-import { ChevronRightIcon } from '../svg/icons';
+import { ChevronRightIcon, CloseIcon } from '../svg/icons';
 import styles from './action_list.module.css';
-
-interface Props {
-    className?: string
-    plan: core.Plan | null;
-}
-
-interface State {
-}
 
 function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
     switch (type) {
@@ -40,6 +32,15 @@ function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
         default:
             return "?";
     }
+}
+
+interface Props {
+    className?: string
+    plan: core.Plan | null;
+    close: () => void;
+}
+
+interface State {
 }
 
 class ActionList extends React.Component<Props, State> {
@@ -96,6 +97,9 @@ class ActionList extends React.Component<Props, State> {
                     </div>
                     <div className={styles.action_header_subtitle}>
                         started 20 ms ago
+                    </div>
+                    <div className={styles.action_close} onClick={this.props.close}>
+                        <CloseIcon width="20px" height="20px" />
                     </div>
                 </div>
                 {this.props.plan && this.renderActions(this.props.plan)}
