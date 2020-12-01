@@ -3,6 +3,7 @@ import * as core from "@dashql/core";
 import { proto } from "@dashql/core";
 import { AppState, Dispatch } from '../store';
 import { connect } from 'react-redux';
+import { ChevronRightIcon } from '../svg/icons';
 import styles from './action_list.module.css';
 
 interface Props {
@@ -10,7 +11,10 @@ interface Props {
     plan: core.Plan | null;
 }
 
-class ActionList extends React.Component<Props> {
+interface State {
+}
+
+class ActionList extends React.Component<Props, State> {
 
     public renderActions(plan: core.Plan)  {
         let setup_actions: JSX.Element[] = [];
@@ -25,7 +29,12 @@ class ActionList extends React.Component<Props> {
         plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
             program_actions.push(
                 <div key={i} className={styles.action}>
-                    <div className={styles.action_status}>
+                    <div className={styles.action_expand}>
+                        <div className={styles.action_expand_icon}>
+                            <ChevronRightIcon width="20px" height="20px" />
+                        </div>
+                    </div>
+                    <div className={styles.action_type}>
                         {proto.action.ProgramActionType[o.actionType()]}
                     </div>
                 </div>
