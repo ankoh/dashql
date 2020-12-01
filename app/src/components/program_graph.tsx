@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as core from "@dashql/core";
-import classnames from 'classnames';
+import { proto } from "@dashql/core";
+import classNames from 'classNames';
 
 import * as d3 from 'd3';
 import * as dagre from 'dagre';
@@ -8,6 +9,33 @@ import * as dagreD3 from 'dagre-d3';
 
 import sx = core.proto.syntax;
 import styles from './program_graph.module.css';
+
+function getStatementTypeLabel(type: proto.syntax.StatementType) {
+    switch (type) {
+        case proto.syntax.StatementType.CREATE_TABLE:
+            return "CREATE TABLE";
+        case proto.syntax.StatementType.CREATE_VIEW:
+            return "CREATE VIEW";
+        case proto.syntax.StatementType.EXTRACT_CSV:
+            return "EXTRACT CSV";
+        case proto.syntax.StatementType.EXTRACT_JSON:
+            return "EXTRACT JSON";
+        case proto.syntax.StatementType.LOAD_FILE:
+            return "LOAD FILE";
+        case proto.syntax.StatementType.LOAD_HTTP:
+            return "LOAD HTTP";
+        case proto.syntax.StatementType.PARAMETER:
+            return "PARAMETER";
+        case proto.syntax.StatementType.SELECT:
+            return "SELECT";
+        case proto.syntax.StatementType.SELECT_INTO:
+            return "SELECT INTO";
+        case proto.syntax.StatementType.VIZUALIZE:
+            return "VISUALIZE";
+        default:
+            return "?";
+    }
+}
 
 interface Props {
     program: core.parser.Program | null;
@@ -26,11 +54,19 @@ class ProgramGraph extends React.Component<Props> {
         if (this.props.program == null) {
             return;
         }
+
         const g = new dagre.graphlib.Graph().setGraph({nodesep: 30, ranksep: 30});
         this.props.program.iterateStatements((idx: number, stmt: core.parser.Statement) => {
+            const node = `
+                <div class="${styles.label}">
+                    <div class="${styles.label_type}">${getStatementTypeLabel(stmt.statement_type)}</div>
+                </div>
+            `;
+
             g.setNode(idx.toString(), {
-                label: stmt.target_name_short || "?",
-                class: styles.node,
+                labelType: "html",
+                label: node,
+                class: styles.node
             });
         });
         this.props.program.iterateDependencies((_idx: number, dep: sx.Dependency) => {
@@ -73,7 +109,7 @@ class ProgramGraph extends React.Component<Props> {
 
     public render() {
         return (
-            <div className={classnames(this.props.className)}>
+            <div className={classNames(this.props.className)}>
                 <svg ref={this.svgNode} className={styles.svg_root} width="100%" height="100%">
                     <g ref={this.svgGraphNode} />
                 </svg>
