@@ -4,11 +4,11 @@
     background: red;
     box-sizing: border-box;
     margin: 8px;
-    padding: 4px 0px;
     border-radius: v_panel_border_radius;
 }
 
 .actions {
+    padding: 4px 0px;
 }
 
 .setup_actions {}
@@ -21,7 +21,8 @@
 
 .action_header {
     text-align: left;
-    padding: 0px 8px;
+    padding: 4px 8px;
+    border-bottom: 1px solid white;
 }
 
 .action_type { 
