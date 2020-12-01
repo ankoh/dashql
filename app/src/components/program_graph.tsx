@@ -170,7 +170,7 @@ class ProgramGraph extends React.Component<Props> {
                     elements={elements}
                     defaultPosition={[20, 20]}
                     nodesDraggable={false}
-                    onLoad={(flow) => flow.fitView()}
+                    onLoad={(flow) => flow.fitView({padding: 0.2})}
                 />
             </div>
         );
