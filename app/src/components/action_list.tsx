@@ -65,7 +65,7 @@ class ActionList extends React.Component<Props, State> {
                         </div>
                     </div>
                     <div className={styles.action_status}>
-                        <ActionStatusSpinner width="16px" height="16px" status={status} />
+                        <ActionStatusSpinner width="14px" height="14px" status={status} />
                     </div>
                     <div className={styles.action_type}>
                         {getProgramActionTypeLabel(o.actionType())}
