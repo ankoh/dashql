@@ -1,8 +1,7 @@
 import * as React from "react";
 import * as core from "@dashql/core";
 import * as dagre from 'dagre';
-import {Handle as ReactFlowHandle} from 'react-flow-renderer';
-import ReactFlow from 'react-flow-renderer';
+import ReactFlow, { Controls, Handle as ReactFlowHandle } from 'react-flow-renderer';
 import { ActionStatusSpinner } from './spinners';
 import classNames from 'classnames';
 import { FlowElement, Node as NodeData, Edge as EdgeData } from 'react-flow-renderer';
@@ -177,7 +176,9 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                     nodeTypes={{
                         custom: Node,
                     }}
-                />
+                >
+                    <Controls />
+                </ReactFlow>
             </div>
         );
     }
