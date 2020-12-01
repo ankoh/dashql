@@ -16,7 +16,7 @@
 
 .action {
     display: grid;
-    grid-template-columns: 100px 48px;
+    grid-template-columns: 20px 100px 48px;
 }
 
 .action_header {
@@ -29,9 +29,14 @@
 .action_origin {
 }
 
-.action_status {
+.action_toggle {
     grid-row: 1;
     grid-column: 1;
+}
+
+.action_status {
+    grid-row: 1;
+    grid-column: 2;
     text-align: left;
 }
 
