@@ -1,9 +1,9 @@
 @value v_panel_border_radius: 8px;
 @value v_panel_bg: hsl(260, 15%, 15%);
 @value v_subtitle_fontsize: 90%;
-@value v_subtitle_color: rgba(255, 255, 255, 0.8);
+@value v_subtitle_color: rgba(255, 255, 255, 0.6);
 @value v_action_duration_fontsize: 90%;
-@value v_action_duration_color: rgba(255, 255, 255, 0.8);
+@value v_action_duration_color: rgba(255, 255, 255, 0.6);
 
 .action_list_panel {
     background: v_panel_bg;
@@ -95,7 +95,7 @@
     grid-column: 5;
 
     font-size: v_action_duration_fontsize;
-    color: v_action_duration_fontsize;
+    color: v_action_duration_color;
 }
 
 .action_detail {
