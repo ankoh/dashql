@@ -3,14 +3,14 @@ import * as core from "@dashql/core";
 import { proto } from "@dashql/core";
 import { AppState, Dispatch } from '../store';
 import { connect } from 'react-redux';
-import styles from './task_list.module.css';
+import styles from './action_list.module.css';
 
 interface Props {
     className?: string
     plan: core.Plan | null;
 }
 
-class TaskList extends React.Component<Props> {
+class ActionList extends React.Component<Props> {
 
     public renderActions(plan: core.Plan)  {
         let setup_actions: JSX.Element[] = [];
@@ -45,7 +45,7 @@ class TaskList extends React.Component<Props> {
 
     public render() {
         return (
-            <div className={styles.task_list}>
+            <div className={styles.action_list}>
                 {this.props.plan && this.renderActions(this.props.plan)}
             </div>
         );
@@ -66,5 +66,5 @@ const mapStateToProps = (state: AppState) => ({
 const mapDispatchToProps = (_dispatch: Dispatch) => ({
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(TaskList);
+export default connect(mapStateToProps, mapDispatchToProps)(ActionList);
 

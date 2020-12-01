@@ -3,7 +3,7 @@ import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 import classNames from 'classnames';
 import { DashQLLogo } from '../svg/logo';
 import { StudioIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
-import TaskList from './task_list';
+import ActionList from './action_list';
 
 import styles from './navigation_bar.module.css';
 
@@ -29,21 +29,41 @@ function createTab(path: string, Icon: React.FunctionComponent<IIconProps>): Rea
 }
 const StudioTab = createTab('/studio', StudioIcon);
 
-interface StatusProps extends IIconProps {
-    expanded?: boolean;
+interface StatusPanelProps {
+    icon: React.FunctionComponent<IIconProps>
+    iconProps?: IIconProps
+    children: JSX.Element;
 }
-export function createStatus(Icon: React.FunctionComponent<StatusProps>): React.FunctionComponent<StatusProps> {
-    return (props: StatusProps) => {
+
+interface StatusPanelState {
+    expanded: boolean;
+}
+
+class StatusPanel extends React.Component<StatusPanelProps, StatusPanelState> {
+    constructor(props: StatusPanelProps) {
+        super(props);
+        this.state = {
+            expanded: true
+        };
+    }
+
+    public render() {
+        const Icon = this.props.icon;
         return (
-            <div className={styles.status}>
-                {<Icon width="22px" height="22px" {...(props as StatusProps)} />}
+            <div className={styles.status}
+                 onClick={() => {this.setState({...this.state, expanded: !this.state.expanded})}}>
+                <div className={styles.statusicon}>
+                    {<Icon width="22px" height="22px" {...(this.props.iconProps)} />}
+                </div>
+                {this.state.expanded &&
+                    <div className={styles.statuspanel}>
+                        {this.props.children}
+                    </div>
+                }
             </div>
-        );
-    };
+        )
+    }
 }
-const DatabaseStatus = createStatus(DatabaseIcon);
-const TaskStatus = createStatus(TaskListIcon);
-const LogStatus = createStatus(LogIcon);
 
 class NavigationBar extends React.Component<NavigationBarProps> {
 
@@ -57,10 +77,15 @@ class NavigationBar extends React.Component<NavigationBarProps> {
                     <StudioTab pathName={this.props.location.pathname} />
                 </div>
                 <div className={styles.statuslist}>
-                    <DatabaseStatus />
-                    <TaskStatus />
-                    <TaskList />
-                    <LogStatus />
+                    <StatusPanel icon={DatabaseIcon}>
+                        <div />
+                    </StatusPanel>
+                    <StatusPanel icon={TaskListIcon}>
+                        <ActionList />
+                    </StatusPanel>
+                    <StatusPanel icon={LogIcon}>
+                        <div />
+                    </StatusPanel>
                 </div>
             </div>
         );
@@ -72,9 +97,11 @@ export const NavBar = withRouter(NavigationBar);
 export function withNavBar<P>(Component: React.ComponentType<P>): React.FunctionComponent<P> {
     return (props: P) => {
         return (
-            <div className={styles.wrapper}>
+            <div className={styles.container}>
+                <div className={styles.page}>
+                    <Component {...props} />
+                </div>
                 <NavBar />
-                <Component {...props} />
             </div>
         );
     };

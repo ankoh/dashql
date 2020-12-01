@@ -5,7 +5,23 @@
 @value v_status_bg: hsl(260, 15%, 20%);
 @value v_status_bg_active: hsl(260, 15%, 10%);
 
+.container {
+    position:relative;
+    display: grid;
+    grid-template-rows: 100%;
+    grid-template-columns: 64px calc(100% - 64px);
+    height: 100%;
+}
+
+.page {
+    grid-row: 1;
+    grid-column: 2;
+}
+
 .navbar {
+    grid-row: 1;
+    grid-column: 1;
+
     display: flex;
     flex-direction: column;
     background-color: v_nav_bg;
@@ -71,7 +87,6 @@
 }
 
 .status {
-    display: grid;
     height: 48px;
     width: 100%;
 }
@@ -81,14 +96,20 @@
     color: v_status_fg_active;
 }
 
-.status > svg {
+.statusicon {
+    display: grid;
+    width: 100%;
+    height: 100%;
+}
+
+.statusicon > svg {
     justify-self: center;
     align-self: center;
 }
 
-.wrapper {
-    display: grid;
-    grid-template-rows: 100%;
-    grid-template-columns: 64px calc(100% - 64px);
-    height: 100%;
+.statuspanel {
+    position: absolute;
+    left: 64px;
+    bottom: 0px;
+    background: red;
 }
