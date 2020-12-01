@@ -16,18 +16,16 @@ class ActionList extends React.Component<Props> {
         let setup_actions: JSX.Element[] = [];
         let program_actions: JSX.Element[] = [];
         plan.iterateSetupActions((i: number, o: proto.action.SetupAction) => {
-            console.log("setup[" + i + "] " + o.targetNameQualified());
             setup_actions.push(
                 <div key={i}>
-                    {o.targetNameShort()}
+                    {proto.action.SetupActionType[o.actionType()]}
                 </div>
             );
         });
         plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
-            console.log("program[" + i + "] " + o.targetNameQualified());
             program_actions.push(
                 <div key={i}>
-                    {o.targetNameShort()}
+                    {proto.action.ProgramActionType[o.actionType()]}
                 </div>
             );
         });

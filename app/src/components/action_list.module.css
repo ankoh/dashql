@@ -1,4 +1,6 @@
 .action_list {
+    padding: 8px;
+    background: red;
 }
 
 .actions {
