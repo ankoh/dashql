@@ -3,9 +3,18 @@ import * as core from "@dashql/core";
 import * as dagre from 'dagre';
 import {Handle as ReactFlowHandle} from 'react-flow-renderer';
 import ReactFlow from 'react-flow-renderer';
+import { ActionStatusSpinner } from './spinners';
 import classNames from 'classnames';
 import { FlowElement, Node as NodeData, Edge as EdgeData } from 'react-flow-renderer';
 import { proto } from "@dashql/core";
+import {
+    IIconProps,
+    AnalyticsIcon,
+    DatabaseImportIcon,
+    DatabaseSearchIcon,
+    FileDocumentBoxPlusIcon,
+    VariableBoxIcon,
+} from '../svg/icons';
 
 import sx = core.proto.syntax;
 import styles from './program_graph.module.css';
@@ -37,19 +46,54 @@ function getStatementTypeLabel(type: proto.syntax.StatementType) {
     }
 }
 
+function StatementTypeIcon(props: IIconProps & { type: proto.syntax.StatementType }) {
+    switch (props.type) {
+        case proto.syntax.StatementType.CREATE_TABLE:
+            return <DatabaseSearchIcon {...props} />
+        case proto.syntax.StatementType.CREATE_VIEW:
+            return <DatabaseSearchIcon {...props} />
+        case proto.syntax.StatementType.EXTRACT_CSV:
+            return <DatabaseImportIcon {...props} />
+        case proto.syntax.StatementType.EXTRACT_JSON:
+            return <DatabaseImportIcon {...props} />
+        case proto.syntax.StatementType.LOAD_FILE:
+            return <FileDocumentBoxPlusIcon {...props} />
+        case proto.syntax.StatementType.LOAD_HTTP:
+            return <FileDocumentBoxPlusIcon {...props} />
+        case proto.syntax.StatementType.PARAMETER:
+            return <VariableBoxIcon {...props} />
+        case proto.syntax.StatementType.SELECT:
+            return <DatabaseSearchIcon {...props} />
+        case proto.syntax.StatementType.SELECT_INTO:
+            return <DatabaseSearchIcon {...props} />
+        case proto.syntax.StatementType.VIZUALIZE:
+            return <AnalyticsIcon {...props} />
+        default:
+            return <div />;
+    }
+}
+
 interface ProgramNodeData extends NodeData {
     data: {
         statementType: proto.syntax.StatementType;
+        actionStatus: proto.action.ActionStatus | null;
     }
 }
 
 function Node(props: ProgramNodeData) {
-    console.log(props);
     const label = getStatementTypeLabel(props.data.statementType);
     return (
-        <div>
+        <div className={styles.node}>
+            <div className={styles.node_type}>
+                <StatementTypeIcon className={styles.node_icon} fill="white"  width="14px" height="14px" type={props.data.statementType} />
+            </div>
+            <div className={styles.node_label}>
+                <div>{label}</div>
+            </div>
+            <div className={styles.node_status}>
+                <ActionStatusSpinner className={styles.node_status_spinner} width="14px" height="14px" fill="hsl(260, 15%, 40%)" status={props.data.actionStatus} />
+            </div>
             <ReactFlowHandle type="target" position="top" />
-            {label}
             <ReactFlowHandle type="source" position="bottom" />
         </div>
     );
@@ -66,8 +110,9 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
             return <div />;
         }
 
-        const NODE_WIDTH = 120;
-        const NODE_HEIGHT = 40;
+        const FIT_PADDING = 0.3;
+        const NODE_WIDTH = 140;
+        const NODE_HEIGHT = 30;
         const NODE_SIZE = {
             width: NODE_WIDTH,
             height: NODE_HEIGHT,
@@ -90,7 +135,8 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                 style: { ...NODE_SIZE },
                 position: { x: 0, y: 0 },
                 data: {
-                    statementType: stmt.statement_type
+                    statementType: stmt.statement_type,
+                    actionStatus: null
                 }
             });
         });
@@ -119,7 +165,6 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                 }
             }
         });
-        console.log(nodes);
         let elements = (nodes as FlowElement[]).concat(edges as FlowElement[]);
 
         return (
@@ -128,7 +173,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                     elements={elements}
                     defaultPosition={[20, 20]}
                     nodesDraggable={false}
-                    onLoad={(flow) => flow.fitView({padding: 0.2})}
+                    onLoad={(flow) => flow.fitView({padding: FIT_PADDING})}
                     nodeTypes={{
                         custom: Node,
                     }}

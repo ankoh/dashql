@@ -80,9 +80,9 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps) {
                 >
                     <g fill="none" fillRule="evenodd">
                         <g transform="translate(1 1)" strokeWidth="2">
-                            <circle opacity=".5" cx="8" cy="8" r="7"></circle>
+                            <circle cx="8" cy="8" r="7" opacity=".5"></circle>
                             <circle cx="8" cy="8" r="4" strokeWidth="0" fill={props.fill || "white"}></circle>
-                            <path d=" M 15 8 A 7 7 0 0 1 8 15"></path>
+                            <circle cx="8" cy="8" r="7" strokeDasharray="12, 88" />
                         </g>
                     </g>
                 </svg>
