@@ -76,6 +76,7 @@
 }
 
 .status_spinner {
+    transform-origin: 0 0;
     animation: status_rotate 1s linear infinite;
 }
 
