@@ -112,7 +112,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
 
         const FIT_PADDING = 0.3;
         const NODE_WIDTH = 140;
-        const NODE_HEIGHT = 30;
+        const NODE_HEIGHT = 28;
         const NODE_SIZE = {
             width: NODE_WIDTH,
             height: NODE_HEIGHT,
