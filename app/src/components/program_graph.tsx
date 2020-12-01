@@ -84,16 +84,10 @@ function Node(props: ProgramNodeData) {
     return (
         <div className={styles.node}>
             <div className={styles.node_type}>
-                <StatementTypeIcon className={styles.node_icon} fill="white"  width="14px" height="14px" type={props.data.statementType} />
+                <StatementTypeIcon className={styles.node_icon} fill="hsl(260, 15%, 40%)"  width="14px" height="14px" type={props.data.statementType} />
             </div>
-            <div className={styles.node_label}>
-                <div>{label}</div>
-            </div>
-            <div className={styles.node_status}>
-                <ActionStatusSpinner className={styles.node_status_spinner} width="12px" height="12px" fill="hsl(260, 15%, 40%)" status={props.data.actionStatus} />
-            </div>
-            <ReactFlowHandle type="target" position="top" />
-            <ReactFlowHandle type="source" position="bottom" />
+            <ReactFlowHandle type="target" position="left" className={styles.node_handle} />
+            <ReactFlowHandle type="source" position="right" className={styles.node_handle} />
         </div>
     );
 }
@@ -109,9 +103,9 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
             return <div />;
         }
 
-        const FIT_PADDING = 0.3;
-        const NODE_WIDTH = 140;
-        const NODE_HEIGHT = 28;
+        const FIT_PADDING = 0.1;
+        const NODE_WIDTH = 20;
+        const NODE_HEIGHT = 20;
         const NODE_SIZE = {
             width: NODE_WIDTH,
             height: NODE_HEIGHT,
@@ -122,7 +116,8 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
         let edges: EdgeData[] = [];
         const g = new dagre.graphlib.Graph().setGraph({
             nodesep: 60,
-            ranksep: 30
+            ranksep: 40,
+            rankdir: 'LR'
         });
         this.props.program.iterateStatements((idx: number, stmt: core.parser.Statement) => {
             g.setNode(idx.toString(), {
