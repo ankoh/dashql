@@ -1,6 +1,6 @@
 @value v_border_radius: 8px;
 @value v_status_bg: rgb(0, 0, 0);
-@value v_status_bg_active: hsl(260, 15%, 10%);
+@value v_status_bg_active: rgb(30, 30, 30);
 @value v_status_button_margin: 6px;
 @value v_status_button_width: 40px;
 @value v_status_button_height: 40px;
