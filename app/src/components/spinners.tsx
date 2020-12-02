@@ -80,8 +80,8 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps) {
                     strokeWidth="2"
                 >
                     <g fill="none" fillRule="evenodd">
-                        <circle cx="0" cy="0" r="7" opacity=".5" clipPath="url(clip)"></circle>
-                        <circle cx="0" cy="0" r="4" strokeWidth="0" fill={props.fill || "white"} clipPath="url(clip)"></circle>
+                        <circle cx="0" cy="0" r="7" opacity=".5"></circle>
+                        <circle cx="0" cy="0" r="4" strokeWidth="0" fill={props.fill || "white"}></circle>
                         <circle cx="0" cy="0" r="7" strokeDasharray="12, 88" className={styles.status_spinner} />
                     </g>
                 </svg>
