@@ -4,38 +4,42 @@
 @value v_tab_fg_active: rgb(255, 255, 255);
 @value v_border_radius: 8px;
 @value v_navbar_button_margin: 6px;
-@value v_navbar_button_width: 48px;
+@value v_navbar_button_height: 48px;
 @value v_navbar_bg: rgb(0, 0, 0);
+@value v_navbar_width: 60px;
+@value v_status_bg: rgb(0, 0, 0);
+@value v_status_bg_active: rgb(30, 30, 30);
+@value v_status_button_margin: 6px;
+@value v_status_button_height: 40px;
 
 .container {
     position:relative;
     display: grid;
-    grid-template-rows: 48px calc(100% - 48px);
-    grid-template-columns: 100%;
+    grid-template-rows: 100%;
+    grid-template-columns: v_navbar_width calc(100% - v_navbar_width);
     height: 100%;
 }
 
 .page {
-    grid-row: 2;
-    grid-column: 1;
+    grid-row: 1;
+    grid-column: 2;
 }
 
 .navbar {
     grid-row: 1;
     grid-column: 1;
 
-    display: flex;
-    flex-direction: row;
     background-color: v_navbar_bg;
     color: rgb(255, 255, 255);
     line-height: 24px;
     text-align: center;
 
-    grid-template-rows: 48px auto 48px;
+    display: grid;
+    grid-template-rows: 48px 48px calc(100% - 5 * 48px) calc(3 * 48px);
 }
 
 .banner {
-    width: 48px;
+    height: 48px;
     display: grid;
     align-items: center;
     justify-content: center;
@@ -43,9 +47,9 @@
 }
 
 .tabs {
-    display: flex;
-    flex-direction: row;
-    flex: 1;
+    grid-row: 2;
+    display: grid;
+    grid-template-rows: repeat(1, 48px);
 }
 
 .tab_navbar {
@@ -59,7 +63,6 @@
     background-color: v_tab_bg;
     color: v_tab_fg;
     text-decoration: none;
-    width: 48px;
     margin: v_navbar_button_margin;
     box-sizing: border-box;
     border-radius: v_border_radius;
@@ -84,3 +87,42 @@
     background-color: v_tab_bg_active;
     color: v_tab_fg_active;
 }
+
+.statuslist {
+    grid-row: 4;
+
+    background: black;
+    border-radius: v_border_radius;
+    display: grid;
+    grid-template-rows: repeat(3, 48px);
+}
+
+.status {
+    height: v_status_button_height;
+    margin: v_status_button_margin;
+    box-sizing: border-box;
+    border-radius: v_border_radius;
+}
+
+.status:hover, .status.active {
+    background-color: v_status_bg_active;
+    color: v_status_fg_active;
+}
+
+.statusicon {
+    display: grid;
+    width: 100%;
+    height: 100%;
+}
+
+.statusicon > svg {
+    justify-self: center;
+    align-self: center;
+}
+
+.statuspanel {
+    position: absolute;
+    left: 68px;
+    bottom: 8px;
+}
+

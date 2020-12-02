@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
+import ActionList from './action_list';
 import classNames from 'classnames';
-import { StudioIcon, IIconProps } from '../svg/icons';
+import { StudioIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
+import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 
 import styles from './navigation_bar.module.css';
 
@@ -24,12 +25,53 @@ function createTab(path: string, Icon: React.FunctionComponent<IIconProps>): Rea
 }
 const StudioTab = createTab('/studio', StudioIcon);
 
+interface StatusPanelProps {
+    icon: React.FunctionComponent<IIconProps>
+    iconProps?: IIconProps
+    children: JSX.Element;
+    statusID: number;
+    expandedStatus: number | null;
+    onClick: (tab: number) => void;
+}
+
+function StatusPanel(props: StatusPanelProps) {
+    const Icon = props.icon;
+    const expanded = props.statusID == props.expandedStatus;
+    return (
+        <div className={classNames(styles.status, {
+                [styles.active]: expanded
+            })}>
+            <div className={styles.statusicon} onClick={() => props.onClick(props.statusID)}>
+                {<Icon width="22px" height="22px" {...(props.iconProps)} />}
+            </div>
+            {expanded &&
+                <div className={styles.statuspanel}>
+                    {props.children}
+                </div>
+            }
+        </div>
+    )
+}
+
 interface RouteParams {}
 interface NavigationBarProps extends RouteComponentProps<RouteParams> {}
+interface NavigationBarState {
+    expandedStatus: number | null
+}
 
-class NavigationBar extends React.Component<NavigationBarProps> {
+class NavigationBar extends React.Component<NavigationBarProps, NavigationBarState> {
     constructor(props: NavigationBarProps) {
         super(props);
+        this.state = {
+            expandedStatus: null,
+        };
+    }
+
+    protected toggleTab(tab: number) {
+        this.setState({
+            ...this.state,
+            expandedStatus: (this.state.expandedStatus == tab) ? null : tab
+        });
     }
 
     public render() {
@@ -37,6 +79,17 @@ class NavigationBar extends React.Component<NavigationBarProps> {
             <div className={styles.navbar}>
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
+                </div>
+                <div className={styles.statuslist}>
+                    <StatusPanel statusID={0} expandedStatus={this.state.expandedStatus} onClick={this.toggleTab.bind(this)} icon={DatabaseIcon}>
+                        <div />
+                    </StatusPanel>
+                    <StatusPanel statusID={1} expandedStatus={this.state.expandedStatus} onClick={this.toggleTab.bind(this)} icon={TaskListIcon}>
+                        <ActionList close={() => this.toggleTab(1)} />
+                    </StatusPanel>
+                    <StatusPanel statusID={2} expandedStatus={this.state.expandedStatus} onClick={this.toggleTab.bind(this)} icon={LogIcon}>
+                        <div />
+                    </StatusPanel>
                 </div>
             </div>
         );
