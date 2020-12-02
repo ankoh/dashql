@@ -35,10 +35,11 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 48px 48px calc(100% - 5 * 48px) calc(3 * 48px);
+    grid-template-rows: 96px 48px calc(100% - 6 * 48px) calc(3 * 48px);
 }
 
 .logo {
+    height: 48px;
     display: grid;
     align-items: center;
     justify-content: center;
