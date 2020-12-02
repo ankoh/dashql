@@ -1,5 +1,5 @@
 @value v_tab_bg: transparent;
-@value v_tab_bg_active: hsl(260, 15%, 10%);
+@value v_tab_bg_active: rgb(30, 30, 30);
 @value v_tab_fg: rgb(255, 255, 255);
 @value v_tab_fg_active: rgb(255, 255, 255);
 @value v_border_radius: 8px;
