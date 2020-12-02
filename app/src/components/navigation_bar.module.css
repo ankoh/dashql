@@ -41,7 +41,6 @@
     display: grid;
     align-items: center;
     justify-content: center;
-    background-color: hsl(260, 15%, 20%);
 }
 
 .tabs {

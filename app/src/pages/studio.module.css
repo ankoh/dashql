@@ -17,7 +17,7 @@
 }
 
 .topbar {
-    background-color: rgb(240, 240, 240);
+    background-color: hsl(260, 15%, 20%);
     grid-row: 1;
     grid-column: 1 / span 2;
     display: grid;
@@ -41,8 +41,6 @@
 }
 
 .topbar_icon { justify-self: center; align-self: center; }
-.topbar_icon path { fill: v_action_color; }
-.topbar_icon circle { fill: v_action_color; }
 
 .topbar_action:hover { background-color: hsl(260, 15%, 30%); }
 .topbar_action:hover path { fill: rgb(255, 255, 255); }
