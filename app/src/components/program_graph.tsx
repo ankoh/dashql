@@ -113,7 +113,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
 
         const FIT_PADDING = 0.2;
         const NODE_WIDTH = 120;
-        const NODE_HEIGHT = 80;
+        const NODE_HEIGHT = 70;
         const NODE_SIZE = {
             width: NODE_WIDTH,
             height: NODE_HEIGHT,
@@ -170,7 +170,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
         let elements = (nodes as FlowElement[]).concat(edges as FlowElement[]);
 
         return (
-            <div className={classNames(this.props.className)}>
+            <div className={classNames(styles.container, this.props.className)}>
                 <ReactFlow
                     elements={elements}
                     defaultPosition={[20, 20]}
@@ -183,6 +183,9 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                 >
                     <Controls />
                 </ReactFlow>
+                <div className={styles.header}>
+                    5 statements | evaluated in 50 ms
+                </div>
             </div>
         );
     }

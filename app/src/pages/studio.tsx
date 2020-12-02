@@ -22,10 +22,21 @@ class Studio extends React.Component<Props> {
         return (
             <div className={styles.studio}>
                 <div className={styles.program}>
-                    <div className={styles.program_details}>
-                        <ProgramGraph className={styles.program_graph} program={this.props.program} />
+                    <ProgramGraph className={styles.program_graph} program={this.props.program} />
+                    <div className={styles.program_info}>
+                        <div className={styles.program_info_filename}>
+                            unnamed.dashql
+                        </div>
+                        <div className={styles.program_info_divider} />
+                        <div className={styles.program_info_linecount}>
+                            233 lines
+                        </div>
+                        <div className={styles.program_info_divider} />
+                        <div className={styles.program_info_filesize}>
+                            4.88 KB
+                        </div>
                     </div>
-                    <EditorLoader className={styles.editor} />
+                    <EditorLoader className={styles.program_editor} />
                     <ToolBar />
                 </div>
                 <div className={styles.board}>

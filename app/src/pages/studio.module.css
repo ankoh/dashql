@@ -5,6 +5,7 @@
 @value v_action_color: hsl(260, 15%, 40%);
 @value v_tool_color: hsl(260, 15%, 40%);
 @value v_viztype_color: rgb(255, 255, 255);
+@value v_program_info_height: 30px;
 
 .studio {
     width: 100%;
@@ -51,14 +52,65 @@
     grid-row: 2;
     grid-column: 1;
     display: grid;
-    grid-template-rows: 25% 75%;
+    grid-template-rows: 25% v_program_info_height calc(75% - v_program_info_height);
     grid-template-columns: 48px auto;
     border-right: 1px solid v_border_color;
 }
 
+.program_info {
+    box-sizing: border-box;
+    grid-row: 2;
+    grid-column: 1 / 3;
+    border-top: 1px solid v_border_color;
+
+    padding: 0px 4px;
+    display: flex;
+    flex-direction: row;
+    font-size: 90%;
+    line-height: v_program_info_height;
+}
+
+.program_info_filename {
+    padding: 0px 4px;
+}
+
+.program_info_linecount {
+    padding: 0px 4px;
+}
+
+.program_info_divider {
+    display: inline-block;
+    width: 1px;
+    height: 18px;
+    margin-right: 4px;
+    margin-left: 4px;
+    align-self: center;
+    background-color: #ddd;
+}
+
+.program_info_filesize {
+    padding: 0px 4px;
+}
+
+.program_graph {
+    grid-row: 1;
+    grid-column: 1 / 3;
+}
+
+.program_editor {
+    grid-row: 3;
+    grid-column: 2;
+    position: relative;
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+    background-color: rgb(229, 229, 229);
+    border-top: 1px solid v_border_color;
+}
+
 .toolbar {
     position: relative;
-    grid-row: 2;
+    grid-row: 3;
     grid-column: 1;
     border-top: 1px solid v_border_color;
     border-right: 1px solid v_border_color;
@@ -95,32 +147,6 @@
     width: 48px;
     height: auto;
     background: hsl(260, 15%, 40%);
-}
-
-.editor {
-    grid-row: 2;
-    grid-column: 2;
-    position: relative;
-    display: flex;
-    flex-flow: column;
-    height: 100%;
-    background-color: rgb(229, 229, 229);
-    border-top: 1px solid v_border_color;
-}
-
-.program_details {
-    grid-row: 1;
-    grid-column: 1 / 3;
-
-    display: grid;
-    grid-template-rows: 100%;
-    grid-template-columns: 50% 50%;
-}
-
-.program_graph {
-    grid-row: 1;
-    grid-column: 1 / 3;
-    background-color: rgb(240, 240, 240);
 }
 
 .board {

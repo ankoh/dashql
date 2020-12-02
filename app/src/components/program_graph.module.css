@@ -2,6 +2,17 @@
 @value v_border_color: rgb(200, 200, 200);
 @value v_node_status_bg: rgb(240, 240, 240);
 
+.container {
+    position: relative;
+}
+
+.header {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 90%;
+}
+
 .node {
     height: 100%;
     width: 100%;
@@ -50,6 +61,7 @@
 .node_detail {
     grid-column: 1;
     grid-row: 2;
+    margin-top: 8px;
     display: grid;
     grid-template-columns: auto 18px;
     justify-self: center;
