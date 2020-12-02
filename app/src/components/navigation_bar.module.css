@@ -1,5 +1,5 @@
 @value v_logo_bg: rgb(30, 30, 30);
-@value v_navbar_width: 64px;
+@value v_navbar_width: 76px;
 @value v_navbar_bg: rgb(30, 30, 30);
 @value v_navbar_button_margin: 6px;
 @value v_navbar_button_height: 48px;
@@ -123,7 +123,7 @@
 
 .statuspanel {
     position: absolute;
-    left: 76px;
+    left: 96px;
     bottom: 16px;
 }
 
