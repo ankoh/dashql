@@ -8,8 +8,8 @@
 .action_list_panel {
     background: v_panel_bg;
     box-sizing: border-box;
-    margin: 8px;
     border-radius: v_panel_border_radius;
+    color: white;
 }
 
 .actions {
