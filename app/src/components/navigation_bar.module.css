@@ -1,4 +1,5 @@
 @value v_logo_bg: rgb(30, 30, 30);
+@value v_logo_height: 56px;
 @value v_navbar_width: 76px;
 @value v_navbar_bg: rgb(30, 30, 30);
 @value v_navbar_button_margin: 6px;
@@ -36,7 +37,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 48px 48px auto 56px calc(3 * 48px);
+    grid-template-rows: 56px 48px auto 56px calc(3 * 48px);
 }
 
 .logo {
@@ -44,6 +45,7 @@
     align-items: center;
     justify-content: center;
     background-color: v_logo_bg;
+    height-color: v_logo_height;
 }
 
 .logo > img {
