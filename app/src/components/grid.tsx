@@ -323,107 +323,103 @@ export class Grid extends React.Component<GridProps, GridState> {
         onResizeStop: new WeakMap(),
     };
 
+    handleAdded: GridAddedListener = (event: Event, items: GridStackNode[]) => {
+        for (const item of items) {
+            const element = item.el;
+
+            if (element) {
+                const listener = this.widgetListeners.onAdded.get(element);
+                listener?.(event, item);
+            }
+        }
+
+        this.props.onAdded?.(event, items);
+    };
+
+    handleChange: GridChangeListener = (event: Event, items: GridStackNode[]) => {
+        for (const item of items) {
+            const element = item.el;
+
+            if (element) {
+                const listener = this.widgetListeners.onChange.get(element);
+                listener?.(event, item);
+            }
+        }
+
+        this.props.onChange?.(event, items);
+    };
+
+    handleDisable: GridDisableListener = (event: Event) => {
+        this.props.onDisable?.(event);
+
+        this.props.onDisable?.(event);
+    };
+
+    handleDragStart: GridDragStartListener = (event: Event, element: GridItemHTMLElement) => {
+        const listener = this.widgetListeners.onDragStart.get(element);
+        listener?.(event, element);
+
+        this.props.onDragStart?.(event, element);
+    };
+
+    handleDragStop: GridDragStopListener = (event: Event, element: GridItemHTMLElement) => {
+        const listener = this.widgetListeners.onDragStop.get(element);
+        listener?.(event, element);
+
+        this.props.onDragStop?.(event, element);
+    };
+
+    handleDropped: GridDroppedListener = (event: Event, previousWidget: GridStackNode, newWidget: GridStackNode) => {
+        this.props.onDropped?.(event, previousWidget, newWidget);
+    };
+
+    handleEnable: GridEnableListener = (event: Event) => {
+        this.props.onEnable?.(event);
+
+        this.props.onEnable?.(event);
+    };
+
+    handleRemoved: GridRemovedListener = (event: Event, items: GridStackNode[]) => {
+        for (const item of items) {
+            const element = item.el;
+
+            if (element) {
+                const listener = this.widgetListeners.onRemoved.get(element);
+                listener?.(event, item);
+            }
+        }
+
+        this.props.onRemoved?.(event, items);
+    };
+
+    handleResizeStart: GridResizeStartListener = (event: Event, element: GridItemHTMLElement) => {
+        const listener = this.widgetListeners.onResizeStart.get(element);
+        listener?.(event, element);
+
+        this.props.onResizeStart?.(event, element);
+    };
+
+    handleResizeStop: GridResizeStopListener = (event: Event, element: GridItemHTMLElement) => {
+        const listener = this.widgetListeners.onResizeStop.get(element);
+        listener?.(event, element);
+
+        this.props.onResizeStop?.(event, element);
+    };
+
     componentDidMount() {
         // Initialize the grid.
         const grid = GridStack.init(this.props, this.refs.grid as HTMLElement);
 
-        const handleAdded: GridAddedListener = (event: Event, items: GridStackNode[]) => {
-            for (const item of items) {
-                const element = item.el;
-
-                if (element) {
-                    const listener = this.widgetListeners.onAdded.get(element);
-                    listener?.(event, item);
-                }
-            }
-
-            this.props.onAdded?.(event, items);
-        };
-
-        const handleChange: GridChangeListener = (event: Event, items: GridStackNode[]) => {
-            for (const item of items) {
-                const element = item.el;
-
-                if (element) {
-                    const listener = this.widgetListeners.onChange.get(element);
-                    listener?.(event, item);
-                }
-            }
-
-            this.props.onChange?.(event, items);
-        };
-
-        const handleDisable: GridDisableListener = (event: Event) => {
-            this.props.onDisable?.(event);
-
-            this.props.onDisable?.(event);
-        };
-
-        const handleDragStart: GridDragStartListener = (event: Event, element: GridItemHTMLElement) => {
-            const listener = this.widgetListeners.onDragStart.get(element);
-            listener?.(event, element);
-
-            this.props.onDragStart?.(event, element);
-        };
-
-        const handleDragStop: GridDragStopListener = (event: Event, element: GridItemHTMLElement) => {
-            const listener = this.widgetListeners.onDragStop.get(element);
-            listener?.(event, element);
-
-            this.props.onDragStop?.(event, element);
-        };
-
-        const handleDropped: GridDroppedListener = (
-            event: Event,
-            previousWidget: GridStackNode,
-            newWidget: GridStackNode,
-        ) => {
-            this.props.onDropped?.(event, previousWidget, newWidget);
-        };
-
-        const handleEnable: GridEnableListener = (event: Event) => {
-            this.props.onEnable?.(event);
-
-            this.props.onEnable?.(event);
-        };
-
-        const handleRemoved: GridRemovedListener = (event: Event, items: GridStackNode[]) => {
-            for (const item of items) {
-                const element = item.el;
-
-                if (element) {
-                    const listener = this.widgetListeners.onRemoved.get(element);
-                    listener?.(event, item);
-                }
-            }
-
-            this.props.onRemoved?.(event, items);
-        };
-
-        const handleResizeStart: GridResizeStartListener = (event: Event, element: GridItemHTMLElement) => {
-            const listener = this.widgetListeners.onResizeStart.get(element);
-            listener?.(event, element);
-
-            this.props.onResizeStart?.(event, element);
-        };
-
-        const handleResizeStop: GridResizeStopListener = (event: Event, element: GridItemHTMLElement) => {
-            const listener = this.widgetListeners.onResizeStop.get(element);
-            listener?.(event, element);
-
-            this.props.onResizeStop?.(event, element);
-        };
-
-        grid.on('added', handleAdded as GridEventCallback);
-        grid.on('change', handleChange as GridEventCallback);
-        grid.on('disable', handleDisable as GridEventCallback);
-        grid.on('dragstart', handleDragStart as GridEventCallback);
-        grid.on('dragstop', handleDragStop as GridEventCallback);
-        grid.on('dropped', (handleDropped as unknown) as GridEventCallback);
-        grid.on('enable', handleEnable as GridEventCallback);
-        grid.on('removed', handleRemoved as GridEventCallback);
-        grid.on('resizestart', handleResizeStart as GridEventCallback);
-        grid.on('resizestop', handleResizeStop as GridEventCallback);
+        grid.on('added', this.handleAdded as GridEventCallback);
+        grid.on('change', this.handleChange as GridEventCallback);
+        grid.on('disable', this.handleDisable as GridEventCallback);
+        grid.on('dragstart', this.handleDragStart as GridEventCallback);
+        grid.on('dragstop', this.handleDragStop as GridEventCallback);
+        grid.on('dropped', (this.handleDropped as unknown) as GridEventCallback);
+        grid.on('enable', this.handleEnable as GridEventCallback);
+        grid.on('removed', this.handleRemoved as GridEventCallback);
+        grid.on('resizestart', this.handleResizeStart as GridEventCallback);
+        grid.on('resizestop', this.handleResizeStop as GridEventCallback);
 
         this.setState({
             context: {
