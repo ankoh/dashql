@@ -20,7 +20,7 @@
         "@types/react-grid-layout": "^1.1.1",
         "classnames": "^2.2.6",
         "dagre": "^0.8.5",
-        "gridstack": "^2.2.0",
+        "gridstack": "^3.0.0",
         "idb": "^5.0.7",
         "immutable": "^4.0.0-rc.12",
         "monaco-editor": "^0.21.2",
