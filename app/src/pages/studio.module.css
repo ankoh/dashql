@@ -7,7 +7,9 @@
 @value v_cmd_margin: 4px;
 @value v_tool_hover_bg: rgb(80, 80, 80);
 @value v_tool_fg: rgb(80, 80, 80);
+@value v_tool_sublist_bg: rgb(80, 80, 80);
 @value v_viztype_color: rgb(255, 255, 255);
+@value v_viztype_hover_bg: rgb(40, 40, 40);
 @value v_program_info_height: 40px;
 
 .studio {
@@ -157,7 +159,8 @@
     left: 47px;
     width: 48px;
     height: auto;
-    background: hsl(260, 15%, 40%);
+    background: v_tool_sublist_bg;
+    border-radius: v_border_radius;
 }
 
 .board {
@@ -175,16 +178,15 @@
     grid-column: 4;
     border-left: 1px solid v_border_color;
 }
-
 .viztypes_charts { border-top: 1px solid v_border_color; }
-
 .viztype {
     height: 48px;
     width: 100%;
     box-sizing: border-box;
     display: grid;
+    border-radius: v_border_radius;
 }
-.viztype:hover { background-color: hsl(260, 15%, 30%); }
+.viztype:hover { background-color: v_viztype_hover_bg; }
 .viztype_icon { justify-self: center; align-self: center; }
 .viztype_icon path { fill: v_viztype_color; }
 .viztype_icon circle { fill: v_viztype_color; }
