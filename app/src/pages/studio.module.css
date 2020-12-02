@@ -115,13 +115,6 @@
     display: grid;
     grid-template-rows: 100%;
     grid-template-columns: 50% 50%;
-    border-top: 1px solid v_border_color;
-}
-
-.program_inspector {
-    grid-row: 1;
-    grid-column: 1;
-    background-color: white;
 }
 
 .program_graph {
