@@ -7,7 +7,6 @@
     width: 100%;
     display: grid;
     grid-template-rows: 40px auto;
-
     box-sizing: border-box;
 }
 
@@ -18,6 +17,7 @@
 }
 
 .node_type {
+    border: 1px solid v_border_color;
     border-radius: v_border_radius;
     background: white;
     justify-self: center;
