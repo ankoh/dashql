@@ -1,14 +1,13 @@
+@value v_navbar_width: 60px;
+@value v_navbar_bg: rgb(50, 50, 50);
+@value v_navbar_button_margin: 6px;
+@value v_navbar_button_height: 48px;
 @value v_tab_bg: transparent;
-@value v_tab_bg_active: rgb(30, 30, 30);
+@value v_tab_bg_active: rgb(70, 70, 70);
 @value v_tab_fg: rgb(255, 255, 255);
 @value v_tab_fg_active: rgb(255, 255, 255);
 @value v_border_radius: 8px;
-@value v_navbar_button_margin: 6px;
-@value v_navbar_button_height: 48px;
-@value v_navbar_bg: rgb(0, 0, 0);
-@value v_navbar_width: 60px;
-@value v_status_bg: rgb(0, 0, 0);
-@value v_status_bg_active: rgb(30, 30, 30);
+@value v_status_bg_active: rgb(70, 70, 70);
 @value v_status_button_margin: 6px;
 @value v_status_button_height: 40px;
 
@@ -91,8 +90,6 @@
 .statuslist {
     grid-row: 4;
 
-    background: black;
-    border-radius: v_border_radius;
     display: grid;
     grid-template-rows: repeat(3, 48px);
 }
