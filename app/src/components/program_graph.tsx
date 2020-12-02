@@ -91,7 +91,10 @@ function Node(props: ProgramNodeData) {
                 </div>
             </div>
             <div className={styles.node_detail}>
-                <div className={styles.node_detail_header}>{label}</div>
+                <div className={styles.node_detail_status}>
+                    <ActionStatusSpinner className={styles.node_detail_status_spinner} fill="black" width="14px" height="14px" status={props.data.actionStatus} />
+                </div>
+                <div className={styles.node_detail_label}>{label}</div>
             </div>
         </div>
     );
