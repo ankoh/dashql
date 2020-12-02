@@ -129,6 +129,9 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
             // Request a new widget DOM node that is managed by the new grid.
             const widget = grid.addWidget(...widgetArguments);
 
+            // FIXME: This should not be needed and seems to be a bug in the upstream gridstack.js library.
+            grid.makeWidget(widget);
+
             // Get the content node of the widget (which is a sibling among e.g. he resize handle nodes).
             const contentNode = widget.querySelector('.grid-stack-item-content');
 
