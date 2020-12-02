@@ -15,9 +15,9 @@ class ActionProps {}
 function createAction(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & ActionProps> {
     return (props: IIconProps & ActionProps) => {
         return (
-            <div className={styles.cmdbar_program_cmd}>
+            <div className={styles.cmdbar_cmd}>
                 <Icon
-                    className={styles.cmdbar_program_icon}
+                    className={styles.cmdbar_icon}
                     width={'20px'}
                     height={'20px'}
                     {...props}
@@ -37,13 +37,13 @@ export class ProgramCommandBar extends React.Component<{}> {
     public render() {
         return (
             <div className={styles.cmdbar_program}>
-                <div className={styles.cmdbar_program_cmdset}>
+                <div className={styles.cmdbar_cmdset}>
                     <PlayAction />
                     <AutoRunAction />
                     <UndoAction />
                 </div>
-                <div className={styles.cmdbar_program_cmdset} />
-                <div className={styles.cmdbar_program_cmdset}>
+                <div className={styles.cmdbar_cmdset} />
+                <div className={styles.cmdbar_cmdset}>
                     <DocumentDownloadAction />
                     <CloudUploadAction />
                 </div>
