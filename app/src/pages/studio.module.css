@@ -71,7 +71,6 @@
     display: grid;
     grid-template-rows: 25% v_program_info_height calc(75% - v_program_info_height);
     grid-template-columns: 48px auto;
-    border-right: 1px solid v_border_color;
 }
 
 .program_info {
@@ -171,6 +170,7 @@
     grid-column: 2;
     height: 100%;
     background-color: rgb(229, 229, 229);
+    border-left: 1px solid v_border_color;
 }
 
 .viztypes {
