@@ -85,14 +85,14 @@ function Node(props: ProgramNodeData) {
         <div className={styles.node}>
             <div className={styles.node_header}>
                 <div className={styles.node_type}>
-                    <StatementTypeIcon className={styles.node_icon} fill="rgb(100, 100, 100)"  width="22px" height="22px" type={props.data.statementType} />
+                    <StatementTypeIcon className={styles.node_icon} fill="rgb(80, 80, 80)"  width="22px" height="22px" type={props.data.statementType} />
                     <ReactFlowHandle type="target" position="left" className={styles.node_handle_left} />
                     <ReactFlowHandle type="source" position="right" className={styles.node_handle_right} />
                 </div>
             </div>
             <div className={styles.node_detail}>
                 <div className={styles.node_detail_status}>
-                    <ActionStatusSpinner className={styles.node_detail_status_spinner} fill="rgb(100, 100, 100)" width="14px" height="14px" status={props.data.actionStatus} />
+                    <ActionStatusSpinner className={styles.node_detail_status_spinner} fill="rgb(80, 80, 80)" width="14px" height="14px" status={props.data.actionStatus} />
                 </div>
                 <div className={styles.node_detail_label}>{label}</div>
             </div>
