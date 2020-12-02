@@ -19,7 +19,7 @@ function createTab(path: string, Icon: React.FunctionComponent<IIconProps>): Rea
                     [styles.active]: props.pathName == path
                 })}>
                 <Link to={path}>
-                    {<Icon width="22px" height="22px" {...(props as IIconProps)} />}
+                    {<Icon width="22px" height="22px" fill="rgb(230, 230, 230)" {...(props as IIconProps)} />}
                 </Link>
             </div>
         );
@@ -44,7 +44,7 @@ function StatusPanel(props: StatusPanelProps) {
                 [styles.active]: expanded
             })}>
             <div className={styles.statusicon} onClick={() => props.onClick(props.statusID)}>
-                {<Icon width="22px" height="22px" {...(props.iconProps)} />}
+                {<Icon width="22px" height="22px" fill="rgb(230, 230, 230)" {...(props.iconProps)} />}
             </div>
             {expanded &&
                 <div className={styles.statuspanel}>
