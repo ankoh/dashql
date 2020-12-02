@@ -171,6 +171,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                     nodeTypes={{
                         custom: Node,
                     }}
+                    nodesConnectable={false}
                 >
                     <Controls />
                 </ReactFlow>
