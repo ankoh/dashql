@@ -3,6 +3,7 @@ import ActionList from './action_list';
 import classNames from 'classnames';
 import { StudioIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
 import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
+import Avatar from 'react-avatar';
 
 import styles from './navigation_bar.module.css';
 
@@ -84,6 +85,12 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
                 </div>
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
+                </div>
+                <div className={styles.account}>
+                    <Avatar name="ghost" size="40" round={"8px"} />
+                    <div className={styles.account_name}>
+                        Ghost
+                    </div>
                 </div>
                 <div className={styles.statuslist}>
                     <StatusPanel statusID={0} expandedStatus={this.state.expandedStatus} onClick={this.toggleTab.bind(this)} icon={DatabaseIcon}>
