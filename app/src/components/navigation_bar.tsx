@@ -6,6 +6,8 @@ import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 
 import styles from './navigation_bar.module.css';
 
+import logo from '../../public/logo/preliminary.png';
+
 interface TabProps extends IIconProps {
     pathName: string;
 }
@@ -77,6 +79,9 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
     public render() {
         return (
             <div className={styles.navbar}>
+                <div className={styles.logo}>
+                    <img src={logo} />
+                </div>
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
                 </div>
