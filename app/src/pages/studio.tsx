@@ -24,16 +24,24 @@ class Studio extends React.Component<Props> {
                 <div className={styles.program}>
                     <ProgramGraph className={styles.program_graph} program={this.props.program} />
                     <div className={styles.program_info}>
-                        <div className={styles.program_info_filename}>
+                        <div className={styles.program_info_entry}>
                             unnamed.dashql
                         </div>
                         <div className={styles.program_info_divider} />
-                        <div className={styles.program_info_linecount}>
+                        <div className={styles.program_info_entry}>
                             233 lines
                         </div>
                         <div className={styles.program_info_divider} />
-                        <div className={styles.program_info_filesize}>
+                        <div className={styles.program_info_entry}>
                             4.88 KB
+                        </div>
+                        <div className={styles.program_info_flex} />
+                        <div className={styles.program_info_entry}>
+                            5 statements
+                        </div>
+                        <div className={styles.program_info_divider} />
+                        <div className={styles.program_info_entry}>
+                            evaluated in 50 ms
                         </div>
                     </div>
                     <EditorLoader className={styles.program_editor} />
