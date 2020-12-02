@@ -2,24 +2,22 @@
 @value v_tab_bg_active: hsl(260, 15%, 10%);
 @value v_tab_fg: rgb(255, 255, 255);
 @value v_tab_fg_active: rgb(255, 255, 255);
-@value v_status_bg: hsl(260, 15%, 20%);
-@value v_status_bg_active: hsl(260, 15%, 10%);
 @value v_border_radius: 8px;
 @value v_navbar_button_margin: 6px;
-@value v_navbar_button_width: calc(100% - 2 * v_navbar_button_margin);
-@value v_navbar_bg: hsl(260, 15%, 15%);
+@value v_navbar_button_width: 48px;
+@value v_navbar_bg: rgb(0, 0, 0);
 
 .container {
     position:relative;
     display: grid;
-    grid-template-rows: 100%;
-    grid-template-columns: 64px calc(100% - 64px);
+    grid-template-rows: 48px calc(100% - 48px);
+    grid-template-columns: 100%;
     height: 100%;
 }
 
 .page {
-    grid-row: 1;
-    grid-column: 2;
+    grid-row: 2;
+    grid-column: 1;
 }
 
 .navbar {
@@ -27,7 +25,7 @@
     grid-column: 1;
 
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     background-color: v_navbar_bg;
     color: rgb(255, 255, 255);
     line-height: 24px;
@@ -37,15 +35,16 @@
 }
 
 .banner {
-    height: 48px;
+    width: 48px;
     display: grid;
     align-items: center;
     justify-content: center;
+    background-color: v_navbar_bg;
 }
 
 .tabs {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     flex: 1;
 }
 
@@ -60,7 +59,7 @@
     background-color: v_tab_bg;
     color: v_tab_fg;
     text-decoration: none;
-    height: 48px;
+    width: 48px;
     margin: v_navbar_button_margin;
     box-sizing: border-box;
     border-radius: v_border_radius;
@@ -84,38 +83,4 @@
 .tab:hover, .tab.active {
     background-color: v_tab_bg_active;
     color: v_tab_fg_active;
-}
-
-.statuslist {
-    background-color: hsl(260, 15%, 20%);
-}
-
-.status {
-    height: 48px;
-    width: v_navbar_button_width;
-    margin: v_navbar_button_margin;
-    box-sizing: border-box;
-    border-radius: v_border_radius;
-}
-
-.status:hover, .status.active {
-    background-color: v_status_bg_active;
-    color: v_status_fg_active;
-}
-
-.statusicon {
-    display: grid;
-    width: 100%;
-    height: 100%;
-}
-
-.statusicon > svg {
-    justify-self: center;
-    align-self: center;
-}
-
-.statuspanel {
-    position: absolute;
-    left: 64px;
-    bottom: 0px;
 }

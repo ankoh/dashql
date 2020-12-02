@@ -17,11 +17,12 @@
 }
 
 .topbar {
-    background-color: hsl(260, 15%, 20%);
+    background-color: rgb(30, 30, 30);
     grid-row: 1;
     grid-column: 1 / span 2;
     display: grid;
     grid-template-columns: calc(220px + 48px) auto calc(2 * 48px + 48px) calc(2 * 48px);
+    box-sizing: border-box;
     border-bottom: 1px solid v_border_color;
 }
 
@@ -41,10 +42,9 @@
 }
 
 .topbar_icon { justify-self: center; align-self: center; }
-
+.topbar_action:hover path { fill: v_action_color; }
+.topbar_action:hover circle { fill: v_action_color; }
 .topbar_action:hover { background-color: hsl(260, 15%, 30%); }
-.topbar_action:hover path { fill: rgb(255, 255, 255); }
-.topbar_action:hover circle { fill: rgb(255, 255, 255); }
 
 .program {
     grid-row: 2;
