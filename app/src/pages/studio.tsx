@@ -7,7 +7,8 @@ import { connect } from 'react-redux';
 // import Outline from './outline';
 // import Library from './library';
 
-import { TopBar } from './studio_topbar';
+import { ProgramCommandBar } from './studio_cmdbar_program';
+import { BoardCommandBar } from './studio_cmdbar_board';
 import { ToolBar } from './studio_toolbar';
 
 import styles from './studio.module.css';
@@ -50,7 +51,8 @@ class Studio extends React.Component<Props> {
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />
                 </div>
-                <TopBar />
+                <ProgramCommandBar />
+                <BoardCommandBar />
                 {
 //                <div className={styles.viztypes}>
 //                    <QueryPlanViz />
