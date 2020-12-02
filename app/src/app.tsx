@@ -5,7 +5,7 @@ import { AppController } from './controller';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
 import { Studio, NotFound } from './pages';
-import { withNavBar } from './components';
+import { withNavBar, withFloatingStatus } from './components';
 import { AppContextProvider, IAppContext } from './app_context';
 
 import './app.module.css';
@@ -28,7 +28,7 @@ ReactDOM.render(
                     <Route
                         exact
                         path="/studio"
-                        component={withNavBar(Studio)}
+                        component={withFloatingStatus(withNavBar(Studio))}
                     />
                     <Route path="/404" component={NotFound} />
                     <Redirect to="/404" />
