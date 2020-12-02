@@ -50,13 +50,30 @@
 .node_detail {
     grid-column: 1;
     grid-row: 2;
-    width: 120px;
-    height: 40px;
+    display: grid;
+    grid-template-columns: auto 18px;
+    justify-self: center;
 }
 
-.node_detail_header {
+.node_detail_status {
+    grid-row: 1;
+    grid-column: 2;
+    display: grid;
+}
+
+.node_detail_status_spinner {
+    justify-self: center;
+    align-self: center;
+}
+
+.node_detail_label {
+    grid-row: 1;
+    grid-column: 1;
+
     text-align: center;
-    margin-top: 16px;
     font-weight: 500;
-    font-size: 80%;
+    font-size: 75%;
+    margin-right: 8px;
+    justify-self: left;
+    align-self: center;
 }
