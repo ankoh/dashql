@@ -47,6 +47,13 @@ function configure(params) {
                     ]
                 },
                 {
+                    test: /\.(png|jpe?g|gif)$/i,
+                    loader: 'file-loader',
+                    options: {
+                        name: 'static/img/[name].[contenthash].[ext]'
+                    }
+                },
+                {
                     test: /\.(ttf|eot|woff|woff2)$/,
                     loader: 'file-loader',
                     options: {

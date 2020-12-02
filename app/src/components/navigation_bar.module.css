@@ -1,13 +1,14 @@
+@value v_logo_bg: rgb(30, 30, 30);
 @value v_navbar_width: 60px;
-@value v_navbar_bg: rgb(50, 50, 50);
+@value v_navbar_bg: rgb(30, 30, 30);
 @value v_navbar_button_margin: 6px;
 @value v_navbar_button_height: 48px;
 @value v_tab_bg: transparent;
-@value v_tab_bg_active: rgb(70, 70, 70);
+@value v_tab_bg_active: rgb(0, 0, 0);
 @value v_tab_fg: rgb(255, 255, 255);
 @value v_tab_fg_active: rgb(255, 255, 255);
 @value v_border_radius: 8px;
-@value v_status_bg_active: rgb(70, 70, 70);
+@value v_status_bg_active: rgb(0, 0, 0);
 @value v_status_button_margin: 6px;
 @value v_status_button_height: 40px;
 
@@ -37,12 +38,15 @@
     grid-template-rows: 48px 48px calc(100% - 5 * 48px) calc(3 * 48px);
 }
 
-.banner {
-    height: 48px;
+.logo {
     display: grid;
     align-items: center;
     justify-content: center;
-    background-color: v_navbar_bg;
+    background-color: v_logo_bg;
+}
+
+.logo > img {
+    width: 32px;
 }
 
 .tabs {

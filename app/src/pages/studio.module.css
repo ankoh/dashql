@@ -1,13 +1,13 @@
-@value v_cmdbar_program_bg: rgb(40, 40, 40);
-@value v_cmdbar_board_bg: rgb(40, 40, 40);
+@value v_cmdbar_program_bg: rgb(255, 255, 255);
+@value v_cmdbar_board_bg: rgb(255, 255, 255);
 @value v_border_color: rgb(220, 220, 220);
 @value v_border_radius: 8px;
 @value v_box_shadow_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
-@value v_cmd_hover_bg: rgb(60, 60, 60);
+@value v_cmd_hover_bg: rgb(80, 80, 80);
 @value v_tool_hover_bg: rgb(80, 80, 80);
 @value v_tool_fg: rgb(80, 80, 80);
 @value v_viztype_color: rgb(255, 255, 255);
-@value v_program_info_height: 30px;
+@value v_program_info_height: 40px;
 
 .studio {
     width: 100%;
@@ -39,8 +39,17 @@
     margin: 4px;
     border-radius: v_border_radius;
 }
+.cmdbar_program_cmd:hover { background-color: v_tool_hover_bg; }
+.cmdbar_program_cmd:hover path { fill: rgb(255, 255, 255); }
+.cmdbar_program_cmd:hover circle { fill: rgb(255, 255, 255); }
+.cmdbar_program_cmd.active { background-color: v_tool_hover_bg; }
+
 .cmdbar_program_icon { justify-self: center; align-self: center; }
-.cmdbar_program_cmd:hover { background-color: v_cmd_hover_bg; }
+.cmdbar_program_icon path { fill: v_tool_fg; }
+.cmdbar_program_icon circle { fill: v_tool_fg; }
+.cmdbar_program_icon.active { justify-self: center; align-self: center; }
+.cmdbar_program_icon.active path { fill: rgb(255, 255, 255); }
+.cmdbar_program_icon.active circle { fill: rgb(255, 255, 255); }
 
 .cmdbar_board {
     background-color: v_cmdbar_board_bg;
@@ -49,6 +58,7 @@
     display: grid;
     grid-template-columns: calc(100% - 2 * 48px) calc(2 * 48px);
     box-sizing: border-box;
+    border-left: 1px solid v_border_color;
     border-bottom: 1px solid v_border_color;
 }
 .cmdbar_board_cmdset {
@@ -64,8 +74,17 @@
     margin: 4px;
     border-radius: v_border_radius;
 }
+.cmdbar_board_cmd:hover { background-color: v_tool_hover_bg; }
+.cmdbar_board_cmd:hover path { fill: rgb(255, 255, 255); }
+.cmdbar_board_cmd:hover circle { fill: rgb(255, 255, 255); }
+.cmdbar_board_cmd.active { background-color: v_tool_hover_bg; }
+
 .cmdbar_board_icon { justify-self: center; align-self: center; }
-.cmdbar_board_cmd:hover { background-color: v_cmd_hover_bg; }
+.cmdbar_board_icon path { fill: v_tool_fg; }
+.cmdbar_board_icon circle { fill: v_tool_fg; }
+.cmdbar_board_icon.active { justify-self: center; align-self: center; }
+.cmdbar_board_icon.active path { fill: rgb(255, 255, 255); }
+.cmdbar_board_icon.active circle { fill: rgb(255, 255, 255); }
 
 .program {
     grid-row: 2;
