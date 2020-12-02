@@ -53,19 +53,6 @@ class Studio extends React.Component<Props> {
                 </div>
                 <ProgramCommandBar />
                 <BoardCommandBar />
-                {
-//                <div className={styles.viztypes}>
-//                    <QueryPlanViz />
-//                    <TextCardViz />
-//                    <TableViz />
-//                    <div className={styles.viztypes_charts}>
-//                        <LineChartViz />
-//                        <BarChartViz />
-//                        <ScatterChartViz />
-//                        <PieChartViz />
-//                    </div>
-//                </div>
-                                    }
             </div>
         );
     }
