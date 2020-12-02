@@ -22,10 +22,10 @@ class Studio extends React.Component<Props> {
         return (
             <div className={styles.studio}>
                 <div className={styles.program}>
-                    <EditorLoader className={styles.editor} />
                     <div className={styles.program_details}>
                         <ProgramGraph className={styles.program_graph} program={this.props.program} />
                     </div>
+                    <EditorLoader className={styles.editor} />
                     <ToolBar />
                 </div>
                 <div className={styles.board}>
