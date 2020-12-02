@@ -183,6 +183,7 @@ class Layout extends React.Component<Props> {
                     autoHide: true,
                     handles: 'n,ne,e,se,s,sw,w,nw',
                 }}
+                minWidth={0}
                 column={12}
                 cellHeight={50}
                 float
