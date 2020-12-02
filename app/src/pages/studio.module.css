@@ -67,6 +67,7 @@
     flex-direction: row;
     font-size: 90%;
     line-height: v_program_info_height;
+    border-top: 1px solid v_border_color;
 }
 
 .program_info_entry {
