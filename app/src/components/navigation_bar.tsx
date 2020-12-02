@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import { StudioIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
 import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 import Avatar from 'react-avatar';
+import { auth } from '../auth';
 
 import styles from './navigation_bar.module.css';
 
@@ -86,7 +87,7 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
                 </div>
-                <div className={styles.account}>
+                <div className={styles.account} onClick={async() => auth()}>
                     <Avatar githubHandle="ankoh" size="36" round={true} />
                 </div>
                 <div className={styles.statuslist}>
