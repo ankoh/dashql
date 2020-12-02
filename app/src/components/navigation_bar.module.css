@@ -36,7 +36,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 48px 48px auto 80px calc(3 * 48px);
+    grid-template-rows: 48px 48px auto 56px calc(3 * 48px);
 }
 
 .logo {
@@ -94,12 +94,6 @@
 
 .account {
     grid-row: 4;
-}
-
-.account_name {
-    margin-top: 8px;
-    font-size: 80%;
-    text-align: center;
 }
 
 .statuslist {

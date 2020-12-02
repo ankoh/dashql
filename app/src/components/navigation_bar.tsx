@@ -87,10 +87,7 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
                     <StudioTab pathName={this.props.location.pathname} />
                 </div>
                 <div className={styles.account}>
-                    <Avatar name="ghost" size="40" round={"8px"} />
-                    <div className={styles.account_name}>
-                        Ghost
-                    </div>
+                    <Avatar githubHandle="ankoh" size="36" round={"8px"} />
                 </div>
                 <div className={styles.statuslist}>
                     <StatusPanel statusID={0} expandedStatus={this.state.expandedStatus} onClick={this.toggleTab.bind(this)} icon={DatabaseIcon}>
