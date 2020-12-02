@@ -8,7 +8,8 @@
 @value v_tab_fg: rgb(255, 255, 255);
 @value v_tab_fg_active: rgb(255, 255, 255);
 @value v_border_radius: 8px;
-@value v_status_bg_active: rgb(0, 0, 0);
+@value v_status_bg: rgb(0, 0, 0);
+@value v_status_bg_active: rgb(30, 30, 30);
 @value v_status_button_margin: 6px;
 @value v_status_button_height: 40px;
 
@@ -35,7 +36,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 48px 48px calc(100% - 5 * 48px) calc(3 * 48px);
+    grid-template-rows: 48px 48px auto 80px calc(3 * 48px);
 }
 
 .logo {
@@ -91,9 +92,20 @@
     color: v_tab_fg_active;
 }
 
-.statuslist {
+.account {
     grid-row: 4;
+}
 
+.account_name {
+    margin-top: 8px;
+    font-size: 80%;
+    text-align: center;
+}
+
+.statuslist {
+    grid-row: 5;
+
+    background: v_status_bg;
     display: grid;
     grid-template-rows: repeat(3, 48px);
 }
