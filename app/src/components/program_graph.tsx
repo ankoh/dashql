@@ -83,11 +83,16 @@ function Node(props: ProgramNodeData) {
     const label = getStatementTypeLabel(props.data.statementType);
     return (
         <div className={styles.node}>
-            <div className={styles.node_type}>
-                <StatementTypeIcon className={styles.node_icon} fill="hsl(260, 15%, 40%)"  width="14px" height="14px" type={props.data.statementType} />
+            <div className={styles.node_header}>
+                <div className={styles.node_type}>
+                    <StatementTypeIcon className={styles.node_icon} fill="rgb(100, 100, 100)"  width="22px" height="22px" type={props.data.statementType} />
+                    <ReactFlowHandle type="target" position="left" className={styles.node_handle_left} />
+                    <ReactFlowHandle type="source" position="right" className={styles.node_handle_right} />
+                </div>
             </div>
-            <ReactFlowHandle type="target" position="left" className={styles.node_handle} />
-            <ReactFlowHandle type="source" position="right" className={styles.node_handle} />
+            <div className={styles.node_detail}>
+                <div className={styles.node_detail_header}>{label}</div>
+            </div>
         </div>
     );
 }
@@ -103,9 +108,9 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
             return <div />;
         }
 
-        const FIT_PADDING = 0.1;
-        const NODE_WIDTH = 20;
-        const NODE_HEIGHT = 20;
+        const FIT_PADDING = 0.2;
+        const NODE_WIDTH = 120;
+        const NODE_HEIGHT = 80;
         const NODE_SIZE = {
             width: NODE_WIDTH,
             height: NODE_HEIGHT,
