@@ -181,11 +181,8 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                     }}
                     nodesConnectable={false}
                 >
-                    <Controls />
+                    <Controls className={styles.controls} showInteractive={false} showZoom={false} />
                 </ReactFlow>
-                <div className={styles.header}>
-                    5 statements | evaluated in 50 ms
-                </div>
             </div>
         );
     }
