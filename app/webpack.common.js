@@ -1,9 +1,12 @@
+const childProcess = require('child_process');
 const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+
+const GITHUB_OAUTH_VERSION = childProcess.execSync('cat ./src/auth/github_oauth.html.version').toString().trim();
 
 function configure(params) {
     return {
@@ -71,10 +74,9 @@ function configure(params) {
                 {
                     type: 'javascript/auto',
                     loader: 'file-loader',
-                    test: /.*\.html$/,
-                    exclude: /.*index.html$/,
+                    test: /.*github_oauth\.html$/,
                     options: {
-                        name: 'static/html/[name].[contenthash].[ext]',
+                        name: `static/html/[name].${GITHUB_OAUTH_VERSION}.[ext]`,
                     }
                 }
             ]
