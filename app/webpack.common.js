@@ -92,6 +92,7 @@ function configure(params) {
             ]
         },
         optimization: {
+            moduleIds: 'deterministic',
             splitChunks: {
                 chunks: 'all',
                 minSize: 30000,
