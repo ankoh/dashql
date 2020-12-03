@@ -5,6 +5,16 @@ import { Program } from  './parser';
 import { flatbuffers } from 'flatbuffers';
 import * as proto from './proto';
 
+/// The core runtime
+export interface DashQLCoreRuntime {
+    dashql_pong(): number;
+}
+
+/// Stubs for the DashQL core runtime
+export const DASHQL_CORE_RUNTIME_STUBS: DashQLCoreRuntime = {
+    dashql_pong: () => { console.log("pong"); return 42; }
+}
+
 /// The proxy for either the browser- order node-based DashQLCore API
 export abstract class DashQLCoreBindings {
     /// The instance
@@ -107,6 +117,13 @@ export abstract class DashQLCoreBindings {
         instance.ccall('dashql_clear_response', null, [], []);
         return buffer;
     }
+
+    /// Ping the runtime
+    public ping(): number {
+        let instance = this._instance!;
+        return instance.ccall('dashql_ping', 'number', [], []);
+    }
+
 };
 
 /// An owning flatbuffer
