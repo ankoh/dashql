@@ -11,14 +11,21 @@ ${FLATC} --version \
 
 TMP=$(mktemp -d)
 
-PROTO_AMALGAMATION_FILE="${PROJECT_ROOT}/duckdb/proto/proto.fbs"
-${FLATC} -I "${PROJECT_ROOT}/duckdb/proto" -o "${PROJECT_ROOT}/duckdb/rs/src/proto" ${PROTO_AMALGAMATION_FILE} --rust \
+${FLATC} -I "${PROJECT_ROOT}/duckdb/proto" -o "${PROJECT_ROOT}/duckdb/rs/src/proto" "${PROJECT_ROOT}/duckdb/proto/proto.fbs" --rust \
         --reflect-types --reflect-names \
         --gen-all \
         --gen-object-api --gen-name-strings --gen-compare \
         --gen-mutable \
     && { echo "[ OK  ] duckdb/proto: Rust"; } \
     || { echo "[ ERR ] duckdb/proto: Rust"; exit 1; }
+
+${FLATC} -I "${PROJECT_ROOT}/core/proto" -o "${PROJECT_ROOT}/core/rs/src/proto" "${PROJECT_ROOT}/core/proto/proto.fbs" --rust \
+        --reflect-types --reflect-names \
+        --gen-all \
+        --gen-object-api --gen-name-strings --gen-compare \
+        --gen-mutable \
+    && { echo "[ OK  ] core/proto: Rust"; } \
+    || { echo "[ ERR ] core/proto: Rust"; exit 1; }
 
 gen_proto() {
     PROTO_DIR="$1"
