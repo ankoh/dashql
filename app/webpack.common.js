@@ -7,14 +7,17 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 /// IMPORTANT
+///
 /// We use a dedicated tiny html file for the OAuth callback to not inflate the whole app in the popup.
 /// However the EXACT OAuth callback URI has to be configured in the GitHub web interface.
 /// If we would load the file using webpacks [contenthash], we would get cache busting but would immediately break
 /// OAuth for our users without really noticing it.
-/// We therefore use an explicit version file that stores the version of the html.
+//
+/// We therefore use an explicit version file.
 /// If you don't change the version file, you don't have to change redirect URI but an updated file won't bust the CDN cache.
 /// If you change the version file, you have to change the redirect URI and get cache busting automatically.
-const GITHUB_OAUTH_VERSION = childProcess.execSync('cat ./src/auth/github_oauth.html.version').toString().trim();
+const GITHUB_OAUTH_VERSION_FILE = path.resolve(__dirname, './src/auth/github_oauth.html.version')
+const GITHUB_OAUTH_VERSION = childProcess.execSync(`cat ${GITHUB_OAUTH_VERSION_FILE}`).toString().trim();
 
 function configure(params) {
     return {
