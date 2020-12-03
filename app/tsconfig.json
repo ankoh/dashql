@@ -22,6 +22,7 @@
         "./types/dagre-d3.d.ts",
         "./types/editor-worker.d.ts",
         "./types/wasm.d.ts",
-        "./types/png.d.ts"
+        "./types/png.d.ts",
+        "./types/html.d.ts"
     ]
 }
