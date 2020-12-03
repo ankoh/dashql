@@ -227,9 +227,11 @@ target_link_libraries(dashql_test dashql_core pugixml gtest)
 add_library(duckdb_core_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
 target_link_libraries(duckdb_core_ffi duckdb_webdb flatbuffers spdlog Threads::Threads)
 
+# We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
         -Wl,--shared-memory,--no-check-features \
+        -s WARN_ON_UNDEFINED_SYMBOLS=0 \
         -s USE_PTHREADS=1 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
@@ -238,6 +240,7 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
+            _dashql_ping, \
             _dashql_clear_response, \
             _dashql_parse_program, \
             _dashql_plan_program, \
