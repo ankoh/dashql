@@ -1,14 +1,14 @@
 #include <cstdint>
 
-#include "duckdb/web/common/response.h"
+#include "duckdb/web/common/ffi_response.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto/syntax_generated.h"
 #include "dashql/session.h"
 #include "flatbuffers/flatbuffers.h"
 
 using namespace dashql;
-using Response = duckdb::web::Response;
-using ResponseBuffer = duckdb::web::ResponseBuffer;
+using FFIResponse = duckdb::web::FFIResponse;
+using FFIResponseBuffer = duckdb::web::FFIResponseBuffer;
 
 namespace {
 
@@ -20,8 +20,8 @@ Session& GetSession() {
     return *session;
 }
 
-ResponseBuffer& GetResponseBuffer() {
-    static ResponseBuffer buffer;
+FFIResponseBuffer& GetResponseBuffer() {
+    static FFIResponseBuffer buffer;
     return buffer;
 }
 
@@ -33,14 +33,14 @@ void dashql_clear_response() {
     GetResponseBuffer().Clear();
 }
 
-void dashql_parse_program(Response* response, const char* text) {
+void dashql_parse_program(FFIResponse* response, const char* text) {
     GetResponseBuffer().Clear();
     auto& session = GetSession();
     auto program = session.ParseProgram(text);
     GetResponseBuffer().Store(*response, move(program));
 }
 
-void dashql_plan_program(Response* response) {
+void dashql_plan_program(FFIResponse* response) {
     GetResponseBuffer().Clear();
     auto& session = GetSession();
     auto plan = session.PlanProgram();
