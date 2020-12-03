@@ -58,7 +58,6 @@ include_directories(
     "${CMAKE_SOURCE_DIR}/../../duckdb/cpp/include"
     "${CMAKE_BINARY_DIR}/duckdb/include"
     "${DUCKDB_INCLUDE_DIR}"
-    "${DUCKDB_SOURCE_DIR}/third_party/utf8proc/include"
 )
 
 # ---------------------------------------------------------------------------
