@@ -67,6 +67,15 @@ function configure(params) {
                     options: {
                         name: 'static/wasm/[contenthash].[ext]',
                     }
+                },
+                {
+                    type: 'javascript/auto',
+                    loader: 'file-loader',
+                    test: /.*\.html$/,
+                    exclude: /.*index.html$/,
+                    options: {
+                        name: 'static/html/[name].[contenthash].[ext]',
+                    }
                 }
             ]
         },
