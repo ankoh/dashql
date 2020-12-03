@@ -1,6 +1,3 @@
-/// WE BUNDLE THE OAUTH CALLBACK VIA THE FILE LOADER.
-/// The file loader includes the [contenthash] (!!!) in the filename.
-/// That means that we have to change the official redirect URI (on GitHub) whenever this file changes!!
 import github_oauth_script from "./github_oauth.html";
 
 /// Refs:
