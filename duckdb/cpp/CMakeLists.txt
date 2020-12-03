@@ -19,6 +19,7 @@ ExternalProject_Add(
 ExternalProject_Get_Property(duckdb_ep SOURCE_DIR)
 set(DUCKDB_INCLUDE_DIR "${SOURCE_DIR}/src/include")
 set(DUCKDB_INCLUDE_DIR "${DUCKDB_INCLUDE_DIR}" PARENT_SCOPE)
+set(DUCKDB_SOURCE_DIR ${SOURCE_DIR} PARENT_SCOPE)
 set(DUCKDB_AMALGAMATION "${DUCKDB_SOURCE_DIR}/src/amalgamation/duckdb.cpp")
 
 add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}

@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "duckdb/web/common/response.h"
+#include "duckdb/web/common/ffi_response.h"
 #include "duckdb/web/common/span.h"
 #include "duckdb/web/webdb.h"
 #include "flatbuffers/flatbuffers.h"
@@ -23,8 +23,8 @@ WebDB& GetWebDB() {
     return *db;
 }
 
-ResponseBuffer& GetResponseBuffer() {
-    static ResponseBuffer buffer;
+FFIResponseBuffer& GetResponseBuffer() {
+    static FFIResponseBuffer buffer;
     return buffer;
 }
 
@@ -56,28 +56,28 @@ void* duckdb_web_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl) {
 }
 
 /// Run a query
-void duckdb_web_run_query(Response* packed, ConnectionHdl connHdl, const char* text) {
+void duckdb_web_run_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->RunQuery(text);
     GetResponseBuffer().Store(*packed, move(r));
 }
 
 /// Send a query
-void duckdb_web_send_query(Response* packed, ConnectionHdl connHdl, const char* text) {
+void duckdb_web_send_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->SendQuery(text);
     GetResponseBuffer().Store(*packed, move(r));
 }
 
 /// Fetch query results
-void duckdb_web_fetch_query_results(Response* packed, ConnectionHdl connHdl) {
+void duckdb_web_fetch_query_results(FFIResponse* packed, ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->FetchQueryResults();
     GetResponseBuffer().Store(*packed, move(r));
 }
 
 /// Analyze a query
-void duckdb_web_analyze_query(Response* packed, ConnectionHdl connHdl, const char* text) {
+void duckdb_web_analyze_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->AnalyzeQuery(text);
     GetResponseBuffer().Store(*packed, move(r));

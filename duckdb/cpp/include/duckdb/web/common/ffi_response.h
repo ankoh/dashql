@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_COMMON_RESPONSE_H_
-#define INCLUDE_DUCKDB_WEB_COMMON_RESPONSE_H_
+#ifndef INCLUDE_DUCKDB_WEB_COMMON_FFI_RESPONSE_H_
+#define INCLUDE_DUCKDB_WEB_COMMON_FFI_RESPONSE_H_
 
 #include <variant>
 
@@ -16,7 +16,7 @@ namespace duckdb {
 namespace web {
 
 /// A packed response
-struct Response {
+struct FFIResponse {
     /// The status code
     uint64_t statusCode;
     /// The data ptr (if any)
@@ -26,7 +26,7 @@ struct Response {
 } __attribute((packed));
 
 /// A response buffer
-class ResponseBuffer {
+class FFIResponseBuffer {
    protected:
     /// The response flatbuffer (if any)
     flatbuffers::DetachedBuffer proto_buffer_;
@@ -35,7 +35,7 @@ class ResponseBuffer {
 
    public:
     /// Constructor
-    ResponseBuffer() { Clear(); }
+    FFIResponseBuffer() { Clear(); }
 
     /// Clear the response buffer
     void Clear() {
@@ -44,7 +44,7 @@ class ResponseBuffer {
     }
 
     /// Store the packed response
-    template <typename T> void Store(Response& response, ExpectedBuffer<T>&& result) {
+    template <typename T> void Store(FFIResponse& response, ExpectedBuffer<T>&& result) {
         Clear();
         if (result) {
             proto_buffer_ = result.ReleaseBuffer();
@@ -62,7 +62,7 @@ class ResponseBuffer {
     }
 
     /// Store the packed response
-    template <typename T> void Store(Response& response, ExpectedBufferRef<T>&& result) {
+    template <typename T> void Store(FFIResponse& response, ExpectedBufferRef<T>&& result) {
         Clear();
         if (result) {
             auto buffer = result.GetBuffer();
@@ -83,5 +83,5 @@ class ResponseBuffer {
 }  // namespace web
 }  // namespace duckdb
 
-#endif  // INCLUDE_DUCKDB_WEB_COMMON_RESPONSE_H_
+#endif  // INCLUDE_DUCKDB_WEB_COMMON_FFI_RESPONSE_H_
 
