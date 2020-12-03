@@ -1,21 +1,28 @@
 import * as core from '@dashql/core';
-import { DashQLCore } from '@dashql/core';
+import { DashQLCore, DashQLCoreRuntime } from '@dashql/core';
 import dashql_core_wasm from '@dashql/core/dist/dashql_core.wasm';
 
+const CORE_RUNTIME: DashQLCoreRuntime = {
+    dashql_pong() { console.log("le pong"); return 21; }
+}
+
 export class CoreController {
+    /// The runtime
+    _runtime: DashQLCoreRuntime;
     /// The WebAssembly module
     _module: DashQLCore | null;
     /// The previous program
     _program: core.parser.Program | null;
 
     constructor() {
+        this._runtime = CORE_RUNTIME;
         this._module = null;
         this._program = null;
     }
 
     /// Init the WebAssembly module
     async init() {
-        this._module = await DashQLCore.create(dashql_core_wasm);
+        this._module = await DashQLCore.create(this._runtime, dashql_core_wasm);
     }
 
     /// Parse a program

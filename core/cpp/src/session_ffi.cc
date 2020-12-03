@@ -47,6 +47,11 @@ void dashql_plan_program(FFIResponse* response) {
     GetResponseBuffer().Store(*response, move(plan));
 }
 
+uint32_t dashql_pong();
+uint32_t dashql_ping() {
+    return dashql_pong();
+}
+
 #ifdef EMSCRIPTEN
 int main() {}
 #endif
