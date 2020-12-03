@@ -1,0 +1,15 @@
+[package]
+name = "dashql_extract_csv"
+version = "0.0.1"
+authors = ["The DashQL Developers"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+flatbuffers = "0.7"
+wasm-bindgen = "0.2.69"
+
+[dependencies.dashql_duckdb]
+path = "../../../duckdb/rs"
