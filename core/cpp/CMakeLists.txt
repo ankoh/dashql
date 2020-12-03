@@ -58,6 +58,7 @@ include_directories(
     "${CMAKE_SOURCE_DIR}/../../duckdb/cpp/include"
     "${CMAKE_BINARY_DIR}/duckdb/include"
     "${DUCKDB_INCLUDE_DIR}"
+    "${DUCKDB_SOURCE_DIR}/third_party/utf8proc/include"
 )
 
 # ---------------------------------------------------------------------------
@@ -206,6 +207,7 @@ target_link_libraries(dashql_parser flatbuffers)
 add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/common/substring_buffer.cc
+    ${CMAKE_SOURCE_DIR}/src/extract/csv_reader.cc
     ${CMAKE_SOURCE_DIR}/src/program_instance.cc
     ${CMAKE_SOURCE_DIR}/src/program_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/session.cc

@@ -10,6 +10,7 @@
 
 #include "duckdb.hpp"
 #include "duckdb/web/common/expected.h"
+#include "duckdb/web/common/ffi_response.h"
 #include "duckdb/web/common/span.h"
 #include "duckdb/web/proto/query_plan_generated.h"
 #include "duckdb/web/proto/query_result_generated.h"
@@ -22,16 +23,6 @@ namespace web {
 class WebDB {
    public:
     class Connection;
-
-    /// The return type
-    struct Response {
-        /// The status code
-        uint64_t statusCode;
-        /// The data ptr (if any)
-        uint64_t dataPtr;
-        /// The data size
-        uint64_t dataSize;
-    } __attribute((packed));
 
     // An adopted buffer
     class AdoptedBuffer {
@@ -59,8 +50,6 @@ class WebDB {
 
     /// A connection
     class Connection {
-        friend class Response;
-
        protected:
         /// The database
         std::shared_ptr<duckdb::DuckDB> database_;

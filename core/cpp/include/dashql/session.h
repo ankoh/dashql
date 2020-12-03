@@ -14,18 +14,21 @@
 #include <variant>
 #include <vector>
 
+#include "dashql/extract/csv_reader.h"
+#include "dashql/program_instance.h"
 #include "dashql/proto/action_generated.h"
 #include "dashql/proto/session_generated.h"
-#include "dashql/program_instance.h"
 #include "duckdb/web/common/expected.h"
+#include "duckdb/web/common/raw_buffer.h"
 #include "duckdb/web/webdb.h"
 
 namespace dashql {
 
+template <typename T> using ExpectedBufferRef = duckdb::web::ExpectedBufferRef<T>;
 using ActionGraph = proto::action::ActionGraph;
 using Plan = proto::session::Plan;
-template <typename T> using ExpectedBufferRef = duckdb::web::ExpectedBufferRef<T>;
 using Program = proto::syntax::Program;
+using RawBuffer = duckdb::web::RawBuffer;
 
 namespace fb = flatbuffers;
 
@@ -62,6 +65,11 @@ class Session {
     ExpectedBuffer<proto::session::Plan> PlanProgram();
 
     void UpdateParameter();
+
+    /// Setup the csv extract
+    Signal SetupCSVExtract();
+    /// Destroy the csv extract
+    Signal DestroyCSVExtract();
 };
 
 }  // namespace dashql
