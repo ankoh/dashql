@@ -25,10 +25,6 @@ function getOAuthState() {
     return OAUTH_STATE;
 }
 
-/// The popup window
-let popup: any | null = null;
-let popupURL: any | null = null;
-
 /// Callback component that is used within the popup to pass the parameters back to us
 export const GitHubOAuthCallback: React.FC<{}> = () => {
     const params = window.location.search;
@@ -40,6 +36,8 @@ export const GitHubOAuthCallback: React.FC<{}> = () => {
 };
 
 /// Callback to receive a message from the popup window
+let popup: any | null = null;
+let popupURL: any | null = null;
 function receiveMessage(event: any) {
     console.log(event);
     popup = null;
