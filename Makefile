@@ -89,10 +89,15 @@ reset_proto:
 	rm ./duckdb/cpp/include/duckdb/web/proto/*_generated.h
 	rm ./duckdb/js/src/proto/*_generated.ts
 
-# Build the wasm modules
+# Build the wasm module with debug info
 .PHONY: wasm
 wasm:
-	${IN_IMAGE} bash -ec ./scripts/compile_wasm.sh
+	${IN_IMAGE} bash -ec "./scripts/compile_wasm.sh RelWithDebInfo"
+
+# Build the wasm modules
+.PHONY: wasm_release
+wasm_release:
+	${IN_IMAGE} bash -ec "./scripts/compile_wasm.sh Release"
 
 # Builds the app
 .PHONY: app
