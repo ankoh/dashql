@@ -68,7 +68,7 @@ target_link_libraries(duckdb_ffi duckdb_webdb flatbuffers spdlog Threads::Thread
 
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
-        -s USE_PTHREADS=0 \
+        -s USE_PTHREADS=1 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
         -s EXPORT_NAME='DuckDB' \
