@@ -66,10 +66,8 @@ class Session {
 
     void UpdateParameter();
 
-    /// Setup the csv extract
-    Signal SetupCSVExtract();
-    /// Destroy the csv extract
-    Signal DestroyCSVExtract();
+    /// Extract a csv file
+    void ExtractCSV();
 };
 
 }  // namespace dashql

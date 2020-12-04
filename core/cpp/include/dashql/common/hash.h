@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_PARSER_HASH_H_
-#define INCLUDE_DASHQL_PARSER_HASH_H_
+#ifndef INCLUDE_DASHQL_COMMON_HASH_H_
+#define INCLUDE_DASHQL_COMMON_HASH_H_
 
 #include <array>
 
@@ -20,4 +20,4 @@ struct ArrayHasher {
 
 } // namespace dashql
 
-#endif // INCLUDE_DASHQL_PARSER_HASH_H_
+#endif // INCLUDE_DASHQL_COMMON_HASH_H_
