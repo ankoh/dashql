@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { GridItemHTMLElement, GridStack, GridStackNode, GridStackOptions, GridStackWidget } from 'gridstack';
+import { GridItemHTMLElement, GridStack, GridStackNode, GridStackOptions, GridStackWidget } from '@dashql/gridstack';
 
 const GridContext = React.createContext(undefined as { grid: GridStack; listeners: WidgetListeners } | undefined);
 
