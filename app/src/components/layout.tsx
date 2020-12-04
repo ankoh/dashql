@@ -164,13 +164,7 @@ class Layout extends React.Component<Props> {
 
     renderWidget = (widget: WidgetModel) => {
         return (
-            <Widget
-                key={widget.id}
-                x={widget.position.x}
-                y={widget.position.y}
-                w={widget.position.width}
-                h={widget.position.height}
-            >
+            <Widget key={widget.id} {...widget.position}>
                 {this.renderContent(widget)}
             </Widget>
         );
