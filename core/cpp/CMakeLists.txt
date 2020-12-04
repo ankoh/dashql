@@ -22,9 +22,6 @@ endif ()
 # DuckDB makes heavy use of exceptions so there's no way around that
 if (EMSCRIPTEN)
     add_compile_options(-s DISABLE_EXCEPTION_CATCHING=0 -fexceptions -sUSE_PTHREADS=0)
-    set(THREAD_LIB)
-else ()
-    set(THREAD_LIB Threads::Threads)
 endif ()
 
 # ---------------------------------------------------------------------------
@@ -282,7 +279,7 @@ if(NOT EMSCRIPTEN)
         dashql_core
         dashql_test
         flatbuffers gtest gmock
-        ${THREAD_LIB}
+        Threads::Threads
     )
 
     add_executable(testgen
@@ -293,6 +290,6 @@ if(NOT EMSCRIPTEN)
         dashql_test
         pugixml
         flatbuffers gtest gmock
-        ${THREAD_LIB}
+        Threads::Threads
     )
 endif()
