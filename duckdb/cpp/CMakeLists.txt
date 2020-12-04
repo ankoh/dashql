@@ -26,12 +26,7 @@ add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}
     COMMAND ${Python3_EXECUTABLE} "${DUCKDB_SOURCE_DIR}/scripts/amalgamation.py"
     WORKING_DIRECTORY "${DUCKDB_SOURCE_DIR}"
 )
-if (EMSCRIPTEN)
-    add_compile_options(-DDUCKDB_NO_THREADS=1)
-    set(THREAD_LIB)
-else ()
-    set(THREAD_LIB Threads::Threads)
-endif ()
+add_compile_options(-DDUCKDB_NO_THREADS=1)
 
 # ---------------------------------------------------------------------------
 # Headers
@@ -117,7 +112,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(duckdb_tester
         duckdb_webdb
-        flatbuffers gtest gmock ${THREAD_LIB})
+        flatbuffers gtest gmock Threads::Threads)
 
 endif()
 
@@ -132,6 +127,6 @@ if(NOT EMSCRIPTEN)
     target_link_libraries(bm_result_codec
         duckdb_webdb
         benchmark
-        flatbuffers gtest gmock ${THREAD_LIB})
+        flatbuffers gtest gmock Threads::Threads)
 
 endif()
