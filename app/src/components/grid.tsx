@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { GridItemHTMLElement, GridStack, GridStackNode, GridStackOptions, GridStackWidget } from 'gridstack';
-import 'gridstack/dist/h5/gridstack-dd-native';
 
 const GridContext = React.createContext(undefined as { grid: GridStack; listeners: WidgetListeners } | undefined);
 
@@ -166,19 +165,18 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
         const dimensionsChanged =
             this.props.x !== prevProps.x ||
             this.props.y !== prevProps.y ||
-            this.props.w !== prevProps.w ||
-            this.props.h !== prevProps.h;
+            this.props.width !== prevProps.width ||
+            this.props.height !== prevProps.height;
 
         if (this.state.context && this.state.widget && dimensionsChanged) {
-            const { x, y, w, h } = this.props;
-
             // Update widget dimensions on the grid.
-            this.state.context.grid.update(this.state.widget, {
-                ...(x && { x }),
-                ...(y && { y }),
-                ...(w && { w }),
-                ...(h && { h }),
-            });
+            this.state.context.grid.update(
+                this.state.widget,
+                this.props.x,
+                this.props.y,
+                this.props.width,
+                this.props.height,
+            );
         }
     }
 
