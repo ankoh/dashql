@@ -49,7 +49,7 @@ add_library(duckdb_webdb
 )
 
 target_link_libraries(duckdb_webdb
-    flatbuffers spdlog Threads::Threads
+    flatbuffers spdlog
 )
 
 # ---------------------------------------------------------------------------
@@ -64,11 +64,13 @@ set(DUCKDB_WEB_CONNECTION_INTERFACE " \
 set(DUCKDB_WEB_CONNECTION_INTERFACE "${DUCKDB_WEB_CONNECTION_INTERFACE}" PARENT_SCOPE)
 
 add_library(duckdb_ffi ${CMAKE_CURRENT_SOURCE_DIR}/src/webdb_ffi.cc)
-target_link_libraries(duckdb_ffi duckdb_webdb flatbuffers spdlog Threads::Threads)
+target_link_libraries(duckdb_ffi duckdb_webdb flatbuffers spdlog)
 
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
-        -s USE_PTHREADS=1 \
+        -s LLD_REPORT_UNDEFINED=0 \
+        -s WARN_ON_UNDEFINED_SYMBOLS=0 \
+        -s USE_PTHREADS=0 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
         -s EXPORT_NAME='DuckDB' \
@@ -87,12 +89,12 @@ if (EMSCRIPTEN)
 
     add_executable(duckdb_web ${CMAKE_CURRENT_SOURCE_DIR}/src/webdb_ffi.cc)
     target_compile_definitions(duckdb_web PUBLIC WITH_WEBDB_MAIN)
-    target_link_libraries(duckdb_web duckdb_webdb flatbuffers spdlog Threads::Threads)
+    target_link_libraries(duckdb_web duckdb_webdb flatbuffers spdlog)
     set_target_properties(duckdb_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
 
     add_executable(duckdb_node ${CMAKE_CURRENT_SOURCE_DIR}/src/webdb_ffi.cc)
     target_compile_definitions(duckdb_node PUBLIC WITH_WEBDB_MAIN)
-    target_link_libraries(duckdb_node duckdb_webdb flatbuffers spdlog Threads::Threads)
+    target_link_libraries(duckdb_node duckdb_webdb flatbuffers spdlog)
     set_target_properties(duckdb_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 endif()
 
@@ -109,7 +111,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(duckdb_tester
         duckdb_webdb
-        flatbuffers gtest gmock Threads::Threads)
+        flatbuffers gtest gmock)
 
 endif()
 
@@ -124,6 +126,6 @@ if(NOT EMSCRIPTEN)
     target_link_libraries(bm_result_codec
         duckdb_webdb
         benchmark
-        flatbuffers gtest gmock Threads::Threads)
+        flatbuffers gtest gmock)
 
 endif()

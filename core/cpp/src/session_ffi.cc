@@ -52,7 +52,10 @@ uint32_t dashql_ping() {
     return dashql_pong();
 }
 
-#ifdef EMSCRIPTEN
-int main() {}
+#ifndef EMSCRIPTEN
+uint32_t dashql_pong() { return 0; }
 #endif
+
+int main() {}
+
 }
