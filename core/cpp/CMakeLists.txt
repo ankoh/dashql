@@ -21,7 +21,7 @@ endif ()
 
 # DuckDB makes heavy use of exceptions so there's no way around that
 if (EMSCRIPTEN)
-    add_compile_options(-s DISABLE_EXCEPTION_CATCHING=0 -fexceptions -sUSE_PTHREADS=1)
+    add_compile_options(-s DISABLE_EXCEPTION_CATCHING=0 -fexceptions -sUSE_PTHREADS=0)
 endif ()
 
 # ---------------------------------------------------------------------------
@@ -212,26 +212,27 @@ add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/session.cc
 )
 
-target_link_libraries(dashql_core dashql_parser duckdb_webdb Threads::Threads)
+target_link_libraries(dashql_core dashql_parser duckdb_webdb)
 
 add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/action_graph_tests.cc
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
-target_link_libraries(dashql_test dashql_core pugixml gtest Threads::Threads)
+target_link_libraries(dashql_test dashql_core pugixml gtest)
 
 # ---------------------------------------------------------------------------
 # Emscripten
 
-add_library(duckdb_core_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-target_link_libraries(duckdb_core_ffi duckdb_webdb flatbuffers spdlog Threads::Threads)
+add_executable(duckdb_core_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
+target_link_libraries(duckdb_core_ffi dashql_core duckdb_webdb flatbuffers spdlog)
 
 # We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
+        -s LLD_REPORT_UNDEFINED=1 \
         -s WARN_ON_UNDEFINED_SYMBOLS=0 \
-        -s USE_PTHREADS=1 \
+        -s USE_PTHREADS=0 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
         -s EXPORT_NAME='DashQLCore' \
@@ -278,7 +279,6 @@ if(NOT EMSCRIPTEN)
         dashql_core
         dashql_test
         flatbuffers gtest gmock
-        Threads::Threads
     )
 
     add_executable(testgen
@@ -289,6 +289,5 @@ if(NOT EMSCRIPTEN)
         dashql_test
         pugixml
         flatbuffers gtest gmock
-        Threads::Threads
     )
 endif()
