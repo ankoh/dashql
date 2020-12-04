@@ -6,8 +6,7 @@ const browserTarget = {
     target: 'web',
     mode: 'production',
     entry: {
-        "targets/web/duckdb": './src/targets/web/duckdb.ts',
-        "targets/web/duckdb_worker": './src/targets/web/duckdb_worker.ts'
+        "targets/web/duckdb": './src/targets/web/duckdb.ts'
     },
     output: {
         filename: '[name].js',
@@ -58,8 +57,7 @@ const nodeTarget = {
     ...browserTarget,
     target: 'node',
     entry: {
-        "targets/node/duckdb": './src/targets/node/duckdb.ts',
-        "targets/node/duckdb_worker": './src/targets/node/duckdb_worker.ts'
+        "targets/node/duckdb": './src/targets/node/duckdb.ts'
     },
     plugins: [
         new CleanWebpackPlugin({
