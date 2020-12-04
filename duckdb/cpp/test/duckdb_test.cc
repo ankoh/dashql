@@ -41,7 +41,6 @@ TEST(DuckDBTests, SQLTypeIDs) {
     ASSERT_EQ(static_cast<uint8_t>(dt::DOUBLE), static_cast<uint8_t>(pt::DOUBLE));
     ASSERT_EQ(static_cast<uint8_t>(dt::CHAR), static_cast<uint8_t>(pt::CHAR));
     ASSERT_EQ(static_cast<uint8_t>(dt::VARCHAR), static_cast<uint8_t>(pt::VARCHAR));
-    ASSERT_EQ(static_cast<uint8_t>(dt::VARBINARY), static_cast<uint8_t>(pt::VARBINARY));
     ASSERT_EQ(static_cast<uint8_t>(dt::BLOB), static_cast<uint8_t>(pt::BLOB));
     ASSERT_EQ(static_cast<uint8_t>(dt::INTERVAL), static_cast<uint8_t>(pt::INTERVAL));
     ASSERT_EQ(static_cast<uint8_t>(dt::HUGEINT), static_cast<uint8_t>(pt::HUGEINT));
