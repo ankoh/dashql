@@ -1,5 +1,7 @@
 #include "dashql/common/blob_stream.h"
 
+#include <cstring>
+
 namespace dashql {
 
 /// Constructor
@@ -24,7 +26,7 @@ std::streamsize BlobIStreamBuffer::xsgetn(char* out, std::streamsize capacity) {
         if (available) {
             auto remaining = static_cast<size_t>(capacity - copied);
             auto to_copy = std::min<size_t>(available, remaining);
-            memcpy(out, gptr(), to_copy);
+            std::memcpy(out, gptr(), to_copy);
             out += to_copy;
             copied += to_copy;
             gbump(to_copy);
@@ -53,4 +55,4 @@ BlobIStreamBuffer::int_type BlobIStreamBuffer::underflow() {
     return traits_type::eof();
 }
 
-}
+}  // namespace dashql
