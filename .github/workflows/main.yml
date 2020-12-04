@@ -14,7 +14,7 @@ jobs:
         script: |-
           make reset_duckdb
           git submodule update --init --recursive
-          mkdir -p ./core/cpp/build/emscripten ./reports
+          mkdir -p ./core/cpp/build/wasm-release ./reports
 
     - name: Compile flatbuffer schema
       uses: ./ci/image
@@ -63,7 +63,7 @@ jobs:
         script: |-
           make reset_duckdb
           git submodule update --init --recursive
-          mkdir -p ./core/cpp/build/emscripten ./reports
+          mkdir -p ./core/cpp/build/wasm-release ./reports
 
     - name: Compile flatbuffer schema
       uses: ./ci/image
@@ -114,7 +114,7 @@ jobs:
         script: |-
           make reset_duckdb
           git submodule update --init --recursive
-          mkdir -p ./core/cpp/build/emscripten ./reports
+          mkdir -p ./core/cpp/build/wasm-release ./reports
 
     - name: Compile flatbuffer schema
       uses: ./ci/image
@@ -128,20 +128,20 @@ jobs:
         script: |-
             emcmake cmake \
                 -S./core/cpp/ \
-                -B./core/cpp/build/emscripten \
+                -B./core/cpp/build/wasm-release \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
             emmake make \
-                -C./core/cpp/build/emscripten \
+                -C./core/cpp/build/wasm-release \
                 -j`nproc` \
                 dashql_core_web dashql_core_node duckdb_web duckdb_node
 
-            cp ./core/cpp/build/emscripten/*.wasm ./core/js/src/wasm/
-            cp ./core/cpp/build/emscripten/*.js ./core/js/src/wasm/
-            cp ./core/cpp/build/emscripten/duckdb/*.wasm ./duckdb/js/src/wasm/
-            cp ./core/cpp/build/emscripten/duckdb/*.js ./duckdb/js/src/wasm/
+            cp ./core/cpp/build/wasm-release/*.wasm ./core/js/src/wasm/
+            cp ./core/cpp/build/wasm-release/*.js ./core/js/src/wasm/
+            cp ./core/cpp/build/wasm-release/duckdb/*.wasm ./duckdb/js/src/wasm/
+            cp ./core/cpp/build/wasm-release/duckdb/*.js ./duckdb/js/src/wasm/
 
     - name: Build @dashql/core
       uses: ./ci/image
