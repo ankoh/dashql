@@ -230,9 +230,8 @@ target_link_libraries(duckdb_core_ffi duckdb_webdb flatbuffers spdlog Threads::T
 # We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
-        -Wl,--shared-memory,--no-check-features \
         -s WARN_ON_UNDEFINED_SYMBOLS=0 \
-        -s USE_PTHREADS=1 \
+        -s USE_PTHREADS=0 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
         -s EXPORT_NAME='DashQLCore' \

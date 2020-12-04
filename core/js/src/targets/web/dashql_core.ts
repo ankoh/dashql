@@ -21,9 +21,19 @@ export class DashQLCore extends DashQLCoreBindings {
             ...imports,
             ...this.runtime
         };
-        WebAssembly.instantiateStreaming(fetch(this.path), imports_rt).then((output) => {
-            success(output.instance);
-        });
+        if (WebAssembly.instantiateStreaming) {
+            WebAssembly.instantiateStreaming(fetch(this.path), imports_rt).then((output) => {
+                success(output.instance);
+            });
+        } else {
+            fetch(this.path)
+                .then(resp => resp.arrayBuffer())
+                .then(bytes =>
+                    WebAssembly.instantiate(bytes, imports_rt).then((output) => {
+                        success(output);
+                    })
+                );
+        }
         return [];
     }
 
