@@ -11,6 +11,7 @@
 #include "duckdb/common/types/time.hpp"
 #include "duckdb/common/types/timestamp.hpp"
 #include "duckdb/common/operator/numeric_binary_operators.hpp"
+#include "duckdb/common/operator/add.hpp"
 
 using namespace duckdb;
 using namespace duckdb::web;
