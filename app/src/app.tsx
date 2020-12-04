@@ -10,7 +10,7 @@ import { AppContextProvider, IAppContext } from './app_context';
 
 import './app.module.css';
 import './fonts/fonts.module.css';
-import 'gridstack/dist/gridstack.min.css';
+import '@dashql/gridstack/dist/gridstack.min.css';
 
 const store = createStore();
 const controller = new AppController(store);
