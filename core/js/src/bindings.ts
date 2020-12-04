@@ -5,6 +5,9 @@ import { Program } from  './parser';
 import { flatbuffers } from 'flatbuffers';
 import * as proto from './proto';
 
+///
+/// dashql_blobstream_underflow(blob: number, buffer_ofs, buffer_size): uint32_t
+
 /// The core runtime
 export interface DashQLCoreRuntime {
     dashql_pong(): number;
