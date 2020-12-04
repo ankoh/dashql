@@ -19,20 +19,27 @@ export class DashQLCore extends DashQLCoreBindings {
     protected instantiateWasm(imports: any, success: (module: WebAssembly.Module) => void): Emscripten.WebAssemblyExports {
         const imports_rt: WebAssembly.Imports = {
             ...imports,
-            ...this.runtime
+            env: {
+                ...imports.env,
+                ...this.runtime
+            }
         };
         if (WebAssembly.instantiateStreaming) {
             WebAssembly.instantiateStreaming(fetch(this.path), imports_rt).then((output) => {
                 success(output.instance);
             });
         } else {
+            console.log(imports_rt);
             fetch(this.path)
                 .then(resp => resp.arrayBuffer())
                 .then(bytes =>
                     WebAssembly.instantiate(bytes, imports_rt).then((output) => {
                         success(output);
                     })
-                );
+                )
+                .catch((error) => {
+                    console.error('Failed to instantiate WASM:', error);
+                });
         }
         return [];
     }
