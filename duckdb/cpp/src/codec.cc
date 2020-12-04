@@ -13,47 +13,51 @@ namespace duckdb {
 namespace web {
 
 #define LOGICAL_OPERATOR_TYPES \
-    X(INVALID)                 \
-    X(PROJECTION)              \
-    X(FILTER)                  \
-    X(AGGREGATE_AND_GROUP_BY)  \
-    X(WINDOW)                  \
-    X(UNNEST)                  \
-    X(LIMIT)                   \
-    X(ORDER_BY)                \
-    X(TOP_N)                   \
-    X(COPY_TO_FILE)            \
-    X(DISTINCT)                \
-    X(GET)                     \
-    X(CHUNK_GET)               \
-    X(DELIM_GET)               \
-    X(EXPRESSION_GET)          \
-    X(EMPTY_RESULT)            \
-    X(JOIN)                    \
-    X(DELIM_JOIN)              \
-    X(COMPARISON_JOIN)         \
-    X(ANY_JOIN)                \
-    X(CROSS_PRODUCT)           \
-    X(UNION)                   \
-    X(EXCEPT)                  \
-    X(INTERSECT)               \
-    X(RECURSIVE_CTE)           \
-    X(INSERT)                  \
-    X(DELETE)                  \
-    X(UPDATE)                  \
-    X(ALTER)                   \
-    X(CREATE_TABLE)            \
-    X(CREATE_INDEX)            \
-    X(CREATE_SEQUENCE)         \
-    X(CREATE_VIEW)             \
-    X(CREATE_SCHEMA)           \
-    X(DROP)                    \
-    X(PRAGMA)                  \
-    X(TRANSACTION)             \
-    X(EXPLAIN)                 \
-    X(PREPARE)                 \
-    X(EXECUTE)                 \
-    X(VACUUM)
+    X(LOGICAL_INVALID) \
+    X(LOGICAL_PROJECTION) \
+    X(LOGICAL_FILTER) \
+    X(LOGICAL_AGGREGATE_AND_GROUP_BY) \
+    X(LOGICAL_WINDOW) \
+    X(LOGICAL_UNNEST) \
+    X(LOGICAL_LIMIT) \
+    X(LOGICAL_ORDER_BY) \
+    X(LOGICAL_TOP_N) \
+    X(LOGICAL_COPY_TO_FILE) \
+    X(LOGICAL_DISTINCT) \
+    X(LOGICAL_GET) \
+    X(LOGICAL_CHUNK_GET) \
+    X(LOGICAL_DELIM_GET) \
+    X(LOGICAL_EXPRESSION_GET) \
+    X(LOGICAL_DUMMY_SCAN) \
+    X(LOGICAL_EMPTY_RESULT) \
+    X(LOGICAL_CTE_REF) \
+    X(LOGICAL_JOIN) \
+    X(LOGICAL_DELIM_JOIN) \
+    X(LOGICAL_COMPARISON_JOIN) \
+    X(LOGICAL_ANY_JOIN) \
+    X(LOGICAL_CROSS_PRODUCT) \
+    X(LOGICAL_UNION) \
+    X(LOGICAL_EXCEPT) \
+    X(LOGICAL_INTERSECT) \
+    X(LOGICAL_RECURSIVE_CTE) \
+    X(LOGICAL_INSERT) \
+    X(LOGICAL_DELETE) \
+    X(LOGICAL_UPDATE) \
+    X(LOGICAL_ALTER) \
+    X(LOGICAL_CREATE_TABLE) \
+    X(LOGICAL_CREATE_INDEX) \
+    X(LOGICAL_CREATE_SEQUENCE) \
+    X(LOGICAL_CREATE_VIEW) \
+    X(LOGICAL_CREATE_SCHEMA) \
+    X(LOGICAL_CREATE_MACRO) \
+    X(LOGICAL_DROP) \
+    X(LOGICAL_PRAGMA) \
+    X(LOGICAL_TRANSACTION) \
+    X(LOGICAL_EXPLAIN) \
+    X(LOGICAL_PREPARE) \
+    X(LOGICAL_EXECUTE) \
+    X(LOGICAL_EXPORT) \
+    X(LOGICAL_VACUUM)
 
 proto::OperatorType MapOperatorType(duckdb::LogicalOperatorType type) {
     using D = duckdb::LogicalOperatorType;
@@ -65,9 +69,9 @@ proto::OperatorType MapOperatorType(duckdb::LogicalOperatorType type) {
         LOGICAL_OPERATOR_TYPES
 #undef X
         default:
-            return proto::OperatorType::INVALID;
+            return proto::OperatorType::LOGICAL_INVALID;
     };
-    return proto::OperatorType::INVALID;
+    return proto::OperatorType::LOGICAL_INVALID;
 }
 
 /// Iterate over a vector
@@ -257,13 +261,13 @@ static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, 
                 auto si = vec.sel->get_index(i);
                 auto &s = source[si];
                 nullmask[i] = (*vec.nullmask)[si];
-                strings[i] = std::string_view{s.GetData(), static_cast<ST>(s.GetSize())};
+                strings[i] = std::string_view{s.GetDataUnsafe(), static_cast<ST>(s.GetSize())};
             }
         } else {
             for (unsigned i = 0; i < count; ++i) {
                 auto &s = source[i];
                 nullmask[i] = (*vec.nullmask)[i];
-                strings[i] = std::string_view{s.GetData(), static_cast<ST>(s.GetSize())};
+                strings[i] = std::string_view{s.GetDataUnsafe(), static_cast<ST>(s.GetSize())};
             }
         }
     } else {
@@ -272,12 +276,12 @@ static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, 
             for (unsigned i = 0; i < count; ++i) {
                 auto si = vec.sel->get_index(i);
                 auto &s = source[si];
-                strings[i] = std::string_view{s.GetData(), static_cast<ST>(s.GetSize())};
+                strings[i] = std::string_view{s.GetDataUnsafe(), static_cast<ST>(s.GetSize())};
             }
         } else {
             for (unsigned i = 0; i < count; ++i) {
                 auto &s = source[i];
-                strings[i] = std::string_view{s.GetData(), static_cast<ST>(s.GetSize())};
+                strings[i] = std::string_view{s.GetDataUnsafe(), static_cast<ST>(s.GetSize())};
             }
         }
     }
@@ -309,7 +313,7 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
 
     // Write chunk columns
     std::vector<fb::Offset<proto::Vector>> columns;
-    for (size_t column_id = 0; column_id < chunk.column_count(); ++column_id) {
+    for (size_t column_id = 0; column_id < chunk.ColumnCount(); ++column_id) {
         auto l_Type = types[column_id];
         auto p_type = l_Type.InternalType();
         auto vec = vectors.get()[column_id];
