@@ -26,7 +26,12 @@ add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}
     COMMAND ${Python3_EXECUTABLE} "${DUCKDB_SOURCE_DIR}/scripts/amalgamation.py"
     WORKING_DIRECTORY "${DUCKDB_SOURCE_DIR}"
 )
-add_compile_options(-DDUCKDB_NO_THREADS=1)
+if (EMSCRIPTEN)
+    add_compile_options(-DDUCKDB_NO_THREADS=1)
+    set(THREAD_LIB)
+else ()
+    set(THREAD_LIB Threads::Threads)
+endif ()
 
 # ---------------------------------------------------------------------------
 # Headers
@@ -70,7 +75,7 @@ target_link_libraries(duckdb_ffi duckdb_webdb flatbuffers spdlog)
 if (EMSCRIPTEN)
     set(EM_LINKER_FLAGS " \
         -s LLD_REPORT_UNDEFINED=1 \
-        -s WARN_ON_UNDEFINED_SYMBOLS=1 \
+        -s WARN_ON_UNDEFINED_SYMBOLS=0 \
         -s USE_PTHREADS=0 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
@@ -112,7 +117,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(duckdb_tester
         duckdb_webdb
-        flatbuffers gtest gmock)
+        flatbuffers gtest gmock ${THREAD_LIB})
 
 endif()
 
@@ -127,6 +132,6 @@ if(NOT EMSCRIPTEN)
     target_link_libraries(bm_result_codec
         duckdb_webdb
         benchmark
-        flatbuffers gtest gmock)
+        flatbuffers gtest gmock ${THREAD_LIB})
 
 endif()
