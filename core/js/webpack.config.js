@@ -8,6 +8,7 @@ const browserTarget = {
     entry: {
         "targets/web/dashql_core": './src/targets/web/dashql_core.ts'
     },
+    devtool:'source-map',
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),

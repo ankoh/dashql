@@ -8,6 +8,7 @@ const browserTarget = {
     entry: {
         "targets/web/duckdb": './src/targets/web/duckdb.ts'
     },
+    devtool:'source-map',
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
