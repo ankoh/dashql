@@ -29,12 +29,11 @@ export class DashQLCore extends DashQLCoreBindings {
                 success(output.instance);
             });
         } else {
-            console.log(imports_rt);
             fetch(this.path)
                 .then(resp => resp.arrayBuffer())
                 .then(bytes =>
                     WebAssembly.instantiate(bytes, imports_rt).then((output) => {
-                        success(output);
+                        success(output.instance);
                     })
                 )
                 .catch((error) => {

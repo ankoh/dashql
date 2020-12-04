@@ -82,12 +82,17 @@ function configure(params) {
                     }
                 },
                 {
+                    test: /.*github_oauth\.html$/,
                     type: 'javascript/auto',
                     loader: 'file-loader',
-                    test: /.*github_oauth\.html$/,
                     options: {
                         name: `static/html/[name].${GITHUB_OAUTH_VERSION}.[ext]`,
                     }
+                },
+                {
+                    test: /\.js$/,
+                    enforce: 'pre',
+                    use: ['source-map-loader'],
                 }
             ]
         },
