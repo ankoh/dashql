@@ -212,5 +212,6 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
-          cd ./plugins/extract/fortnite-replay/
-          cargo build --target wasm32-unknown-unknown
+            source /opt/env.sh
+            cd ./plugins/extract/fortnite-replay/
+            cargo build --target wasm32-unknown-unknown
