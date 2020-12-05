@@ -60,16 +60,19 @@ RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
     && rm -rf /tmp/flatbuffers
 
 ARG RUST_VERSION="1.48.0"
-RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y \
-    && /root/.cargo/bin/rustup target add wasm32-unknown-unknown
+RUN export RUSTUP_HOME=/opt/rust
+    && export CARGO_HOME=/opt/rust
+    && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y \
+    && rustup target add wasm32-unknown-unknown
 
 RUN source /opt/emsdk/emsdk_env.sh \
-    && echo "export PATH=$PATH" >> /opt/env.sh \
+    && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
     && echo "export EMSDK=$EMSDK" >> /opt/env.sh \
     && echo "export EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
     && echo "export EM_CACHE=/mnt/emscripten_cache/" >> /opt/env.sh \
     && echo "export EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
-    && echo "export CARGO_HOME=/root/.cargo" >> /opt/env.sh \
+    && echo "export CARGO_HOME=/opt/rust" >> /opt/env.sh \
+    && echo "export RUSTUP_HOME=/opt/rust" >> /opt/env.sh \
     && echo "source /usr/local/nvm/nvm.sh" >> /opt/env.sh \
     && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh
