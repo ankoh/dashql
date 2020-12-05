@@ -7,7 +7,7 @@
 #include <charconv>
 #include <optional>
 #include "dashql/parser/parser.h"
-#include "dashql/proto/syntax_generated.h"
+#include "dashql/proto_generated.h"
 #include "duckdb/web/common/span.h"
 
 namespace sx = dashql::proto::syntax;

@@ -3,7 +3,7 @@
 import { DashQLCoreModule } from './wasm/dashql_core_module';
 import { Program } from  './parser';
 import { flatbuffers } from 'flatbuffers';
-import * as proto from './proto';
+import * as proto from '@dashql/proto';
 
 ///
 /// dashql_blobstream_underflow(blob: number, buffer_ofs, buffer_size): uint32_t

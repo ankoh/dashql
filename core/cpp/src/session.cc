@@ -2,8 +2,7 @@
 
 #include "dashql/action_planner.h"
 #include "dashql/parser/parser_driver.h"
-#include "dashql/proto/session_generated.h"
-#include "dashql/proto/syntax_generated.h"
+#include "dashql/proto_generated.h"
 
 using namespace dashql;
 namespace fb = flatbuffers;

@@ -5,9 +5,9 @@
 
 #include <variant>
 
+#include "dashql/proto_generated.h"
 #include "duckdb/web/common/error.h"
 #include "duckdb/web/common/expected.h"
-#include "duckdb/web/proto/error_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
 using StatusCode = duckdb::web::proto::StatusCode;

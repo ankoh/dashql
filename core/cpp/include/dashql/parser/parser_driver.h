@@ -14,9 +14,7 @@
 #include <variant>
 #include <vector>
 
-#include "dashql/proto/syntax_dashql_generated.h"
-#include "dashql/proto/syntax_generated.h"
-#include "dashql/proto/syntax_sql_generated.h"
+#include "dashql/proto_generated.h"
 
 namespace dashql {
 namespace parser {

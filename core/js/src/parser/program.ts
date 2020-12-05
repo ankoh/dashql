@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { FlatBuffer, ProgramBuffer } from '../bindings';
-import { syntax as sx } from '../proto/';
 import { NativeStack, NativeBitmap } from '../utils';
+import { syntax as sx } from '@dashql/proto';
 
 const decoder = new TextDecoder();
 
@@ -255,7 +255,7 @@ export class Statement {
             visit(top, current, path);
 
             // Discover children
-            if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_MIN) {
+            if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_MIN_) {
                 const begin = node.childrenBeginOrValue();
                 const count = node.childrenCount();
                 const end = begin + count;
@@ -300,7 +300,7 @@ export class Statement {
             visited.set(top);
 
             // Discover children
-            if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_MIN) {
+            if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_MIN_) {
                 const begin = node.childrenBeginOrValue();
                 const count = node.childrenCount();
                 const end = begin + count;

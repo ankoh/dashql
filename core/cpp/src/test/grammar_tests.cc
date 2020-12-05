@@ -8,9 +8,7 @@
 #include <stack>
 #include <unordered_set>
 
-#include "dashql/proto/syntax_dashql_generated.h"
-#include "dashql/proto/syntax_generated.h"
-#include "dashql/proto/syntax_sql_generated.h"
+#include "dashql/proto_generated.h"
 #include "pugixml.hpp"
 
 namespace dashql {
@@ -153,14 +151,14 @@ void GrammarTest::EncodeProgram(pugi::xml_node& root, const proto::syntax::Progr
                 }
                 default: {
                     auto node_type_id = static_cast<uint32_t>(target->node_type());
-                    if (node_type_id > static_cast<uint32_t>(sx::NodeType::OBJECT_MIN)) {
+                    if (node_type_id > static_cast<uint32_t>(sx::NodeType::OBJECT_MIN_)) {
                         n.append_attribute("type") = node_type_tt->names[static_cast<size_t>(target->node_type())];
                         encode(n, target->location(), text);
                         auto begin = target->children_begin_or_value();
                         for (auto i = 0; i < target->children_count(); ++i) {
                             pending.push_back({n.append_child("node"), &nodes[begin + i]});
                         }
-                    } else if (node_type_id > static_cast<uint32_t>(sx::NodeType::ENUM_MIN)) {
+                    } else if (node_type_id > static_cast<uint32_t>(sx::NodeType::ENUM_MIN_)) {
                         n.append_attribute("value") = getEnumText(*target);
                     } else {
                         n.append_attribute("value") = target->children_begin_or_value();

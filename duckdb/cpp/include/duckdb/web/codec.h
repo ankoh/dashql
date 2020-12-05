@@ -3,12 +3,10 @@
 #ifndef INCLUDE_DUCKDB_WEB_CODEC_H_
 #define INCLUDE_DUCKDB_WEB_CODEC_H_
 
-
+#include "dashql/proto_generated.h"
 #include "duckdb.hpp"
 #include "duckdb/common/enums/logical_operator_type.hpp"
 #include "duckdb/web/common/span.h"
-#include "duckdb/web/proto/query_result_generated.h"
-#include "duckdb/web/proto/vector_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
 namespace duckdb {

@@ -8,8 +8,7 @@
 
 #include "gtest/gtest.h"
 #include "dashql/program_instance.h"
-#include "dashql/proto/action_generated.h"
-#include "dashql/proto/syntax_generated.h"
+#include "dashql/proto_generated.h"
 #include "pugixml.hpp"
 
 namespace dashql {

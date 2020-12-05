@@ -9,8 +9,8 @@
 #include <unordered_map>
 #include <variant>
 
+#include "dashql/proto_generated.h"
 #include "duckdb/common/types/date.hpp"
-#include "duckdb/web/proto/sql_type_generated.h"
 
 namespace duckdb {
 namespace web {

@@ -3,8 +3,8 @@
 #ifndef INCLUDE_DUCKDB_WEB_ITERATOR_H_
 #define INCLUDE_DUCKDB_WEB_ITERATOR_H_
 
+#include "dashql/proto_generated.h"
 #include "duckdb/web/common/expected.h"
-#include "duckdb/web/proto/query_result_generated.h"
 #include "duckdb/web/webdb.h"
 
 namespace duckdb {

@@ -1,7 +1,7 @@
 #include "dashql/action_planner.h"
 
 #include "dashql/common/topological_sort.h"
-#include "dashql/proto/syntax_dashql_generated.h"
+#include "dashql/proto_generated.h"
 
 namespace dashql {
 
