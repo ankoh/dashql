@@ -100,8 +100,8 @@ jobs:
             ./core/cpp/build/release/duckdb/duckdb_tester \
                 --gtest_output=xml:./reports/tests_db_release.xml
 
-  app:
-    name: App
+  web:
+    name: Web
     runs-on: self-hosted
     needs: ubuntu_x86_debug
 
@@ -198,7 +198,6 @@ jobs:
   plugins:
     name: Plugins
     runs-on: self-hosted
-    needs: ubuntu_x86_debug
 
     steps:
     - uses: actions/checkout@v2

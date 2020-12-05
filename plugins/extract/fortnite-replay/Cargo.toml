@@ -10,5 +10,5 @@ crate-type = ["cdylib"]
 [dependencies]
 flatbuffers = "0.7"
 
-[dependencies.dashql_core]
-path = "../../../core/rs"
+[dependencies.dashql_proto]
+path = "../../../proto"
