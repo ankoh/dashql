@@ -11,6 +11,9 @@ RUN apt-get update -qq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+SHELL ["/bin/bash", "-c"]
+RUN groupadd -g 10101 actions
+
 ARG EMSDK_VERSION="2.0.4"
 RUN mkdir -p /opt/emsdk \
     && cd /opt/emsdk \
@@ -25,8 +28,6 @@ RUN mkdir -p /opt/emsdk \
     && find . -name "*.o" -exec rm {} \; \
     && find . -name "*.a" -exec rm {} \; \
     && find . -name "*.tmp" -exec rm {} \;
-
-SHELL ["/bin/bash", "-c"]
 
 ENV NVM_DIR=/usr/local/nvm
 ARG NVM_VERSION="v0.37.0"
@@ -64,7 +65,8 @@ RUN export RUSTUP_HOME=/opt/rust \
     && export CARGO_HOME=/opt/rust \
     && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y \
     && export PATH=$PATH:/opt/rust/bin \
-    && rustup target add wasm32-unknown-unknown
+    && rustup target add wasm32-unknown-unknown \
+    && chgrp -R actions /opt/rust
 
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
