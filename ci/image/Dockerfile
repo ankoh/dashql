@@ -60,8 +60,8 @@ RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
     && rm -rf /tmp/flatbuffers
 
 ARG RUST_VERSION="1.48.0"
-RUN export RUSTUP_HOME=/opt/rust
-    && export CARGO_HOME=/opt/rust
+RUN export RUSTUP_HOME=/opt/rust \
+    && export CARGO_HOME=/opt/rust \
     && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y \
     && rustup target add wasm32-unknown-unknown
 
