@@ -63,6 +63,7 @@ ARG RUST_VERSION="1.48.0"
 RUN export RUSTUP_HOME=/opt/rust \
     && export CARGO_HOME=/opt/rust \
     && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y \
+    && export PATH=$PATH:/opt/rust/bin \
     && rustup target add wasm32-unknown-unknown
 
 RUN source /opt/emsdk/emsdk_env.sh \
