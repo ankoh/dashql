@@ -1,0 +1,23 @@
+{
+    "name": "@dashql/proto",
+    "version": "0.0.1",
+    "description": "",
+    "main": "./dist/dashql_proto.js",
+    "types": "./dist/dashql_proto.d.ts",
+    "dependencies": {
+        "flatbuffers": "^1.12.0"
+    },
+    "devDependencies": {
+        "@types/flatbuffers": "^1.10.0",
+        "typescript": "^4.1.2"
+    },
+    "scripts": {
+        "build": "tsc"
+    },
+    "files": [
+        "dist/gen/proto_generated.d.ts",
+        "dist/gen/proto_generated.js",
+        "dist/dashql_proto.d.ts",
+        "dist/dashql_proto.js"
+    ]
+}

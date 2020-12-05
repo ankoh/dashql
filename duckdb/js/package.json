@@ -5,6 +5,7 @@
     "author": "Andre Kohn <kohn.a@outlook.com>",
     "license": "MIT",
     "dependencies": {
+        "@dashql/proto": "file:../../proto/",
         "flatbuffers": "^1.12.0"
     },
     "devDependencies": {

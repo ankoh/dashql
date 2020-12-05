@@ -1,0 +1,15 @@
+// Copyright (c) 2020 The DashQL Authors
+
+include "action.fbs";
+include "session.fbs";
+include "syntax.fbs";
+include "syntax_dashql.fbs";
+include "syntax_sql.fbs";
+
+include "duckdb/error.fbs";
+include "duckdb/import.fbs";
+include "duckdb/query_plan.fbs";
+include "duckdb/query_result.fbs";
+include "duckdb/sql_type.fbs";
+include "duckdb/vector.fbs";
+

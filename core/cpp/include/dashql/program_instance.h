@@ -9,8 +9,7 @@
 
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
-#include "dashql/proto/session_generated.h"
-#include "dashql/proto/syntax_generated.h"
+#include "dashql/proto_generated.h"
 #include "duckdb/web/webdb.h"
 
 namespace dashql {

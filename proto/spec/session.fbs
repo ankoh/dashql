@@ -12,6 +12,10 @@ table ParameterValue {
     value: string;
 }
 
+table ExtractCSV {
+    action_id: uint32;
+}
+
 table Plan {
     program_evaluation: syntax.ProgramPatch;
     parameters: [ParameterValue];

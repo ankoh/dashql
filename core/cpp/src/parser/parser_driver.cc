@@ -154,7 +154,7 @@ NodeID ParserDriver::AddNode(sx::Node node) {
 
     // Set parent reference
     if (node.node_type() == sx::NodeType::ARRAY ||
-        static_cast<uint16_t>(node.node_type()) > static_cast<uint16_t>(sx::NodeType::OBJECT_MIN)) {
+        static_cast<uint16_t>(node.node_type()) > static_cast<uint16_t>(sx::NodeType::OBJECT_MIN_)) {
         auto begin = node.children_begin_or_value();
         auto end = begin + node.children_count();
         for (auto i = begin; i < end; ++i) {

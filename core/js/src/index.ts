@@ -1,4 +1,4 @@
-import * as proto from "./proto";
+import * as proto from '@dashql/proto';
 import * as parser from "./parser";
 export * from "./bindings";
 export * from "./plan";

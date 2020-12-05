@@ -1,12 +1,12 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import * as proto from '../proto';
+import { duckdb as proto } from '@dashql/proto';
 import { flatbuffers } from 'flatbuffers';
 
 /// A value
 export class Value {
     /// The type
-    _sqlType: proto.sql_type.SQLType;
+    _sqlType: proto.SQLType;
     /// The value
     _valueVariant: NumberValue | StringValue | LongValue | I128Value | IntervalValue;
     /// The null flag
@@ -14,7 +14,7 @@ export class Value {
 
     /// Constructor
     public constructor() {
-        this._sqlType = new proto.sql_type.SQLType();
+        this._sqlType = new proto.SQLType();
         this._nullFlag = true;
         this._valueVariant = {
             type: PhysicalType.NUMBER,
@@ -46,14 +46,14 @@ export class Value {
     /// As i128 value
     public asI128() {
         if (this._valueVariant.type != PhysicalType.I128)
-            this._valueVariant = { type: PhysicalType.I128, value: new proto.vector.I128() };
+            this._valueVariant = { type: PhysicalType.I128, value: new proto.I128() };
         return this._valueVariant;
     }
 
     /// As interval value
     public asInterval() {
         if (this._valueVariant.type != PhysicalType.INTERVAL)
-            this._valueVariant = { type: PhysicalType.INTERVAL, value: new proto.vector.Interval() };
+            this._valueVariant = { type: PhysicalType.INTERVAL, value: new proto.Interval() };
         return this._valueVariant;
     }
 
@@ -73,7 +73,7 @@ export class Value {
     public get nullFlag() { return this._nullFlag; }
 
     /// Setters
-    public set sqlType(v: proto.sql_type.SQLType) { this._sqlType = v; }
+    public set sqlType(v: proto.SQLType) { this._sqlType = v; }
     public set nullFlag(v: boolean) { this._nullFlag = v; }
 }
 
@@ -84,5 +84,5 @@ export enum PhysicalType { NUMBER, STRING, LONG, I128, INTERVAL, }
 export interface NumberValue { type: PhysicalType.NUMBER; value: number; }
 export interface StringValue { type: PhysicalType.STRING; value: string; }
 export interface LongValue { type: PhysicalType.LONG; value: flatbuffers.Long; }
-export interface I128Value { type: PhysicalType.I128; value: proto.vector.I128; }
-export interface IntervalValue { type: PhysicalType.INTERVAL; value: proto.vector.Interval; }
+export interface I128Value { type: PhysicalType.I128; value: proto.I128; }
+export interface IntervalValue { type: PhysicalType.INTERVAL; value: proto.Interval; }
