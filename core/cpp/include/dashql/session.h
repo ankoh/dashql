@@ -67,7 +67,7 @@ class Session {
     void UpdateParameter();
 
     /// Extract a csv file
-    void ExtractCSV();
+    void ExtractCSV(std::istream& blob);
 };
 
 }  // namespace dashql

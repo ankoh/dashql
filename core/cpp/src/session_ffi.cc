@@ -1,6 +1,7 @@
 #include <cstdint>
 
 #include "duckdb/web/common/ffi_response.h"
+#include "dashql/common/blob_stream.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto/syntax_generated.h"
 #include "dashql/session.h"
@@ -9,6 +10,7 @@
 using namespace dashql;
 using FFIResponse = duckdb::web::FFIResponse;
 using FFIResponseBuffer = duckdb::web::FFIResponseBuffer;
+using BlobIStreamBuffer = dashql::BlobIStreamBuffer;
 
 namespace {
 
@@ -47,13 +49,16 @@ void dashql_plan_program(FFIResponse* response) {
     GetResponseBuffer().Store(*response, move(plan));
 }
 
-uint32_t dashql_pong();
-uint32_t dashql_ping() {
+size_t dashql_pong();
+size_t dashql_ping() {
     return dashql_pong();
 }
 
+size_t dashql_blob_stream_underflow(BlobID, char*, size_t);
+
 #ifndef EMSCRIPTEN
-uint32_t dashql_pong() { return 0; }
+size_t dashql_pong() { return 0; }
+size_t dashql_blob_stream_underflow(BlobID, char*, size_t) { return 0; }
 #endif
 
 int main() {}

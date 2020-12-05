@@ -11,11 +11,13 @@ import * as proto from './proto';
 /// The core runtime
 export interface DashQLCoreRuntime {
     dashql_pong(): number;
+    dashql_blob_stream_underflow(): number;
 }
 
 /// Stubs for the DashQL core runtime
 export const DASHQL_CORE_RUNTIME_STUBS: DashQLCoreRuntime = {
-    dashql_pong: () => { console.log("pong"); return 42; }
+    dashql_pong: () => { console.log("pong"); return 42; },
+    dashql_blob_stream_underflow: () => { return 0; }
 }
 
 /// The proxy for either the browser- order node-based DashQLCore API
