@@ -21,7 +21,6 @@ jobs:
       with:
         script: |-
             ./scripts/generate_proto.sh
-            npm --prefix ./proto run build
 
     - name: Build
       uses: ./ci/image
@@ -143,6 +142,14 @@ jobs:
             cp ./core/cpp/build/wasm/release/*.js ./core/js/src/wasm/
             cp ./core/cpp/build/wasm/release/duckdb/*.wasm ./duckdb/js/src/wasm/
             cp ./core/cpp/build/wasm/release/duckdb/*.js ./duckdb/js/src/wasm/
+
+    - name: Build @dashql/proto
+      uses: ./ci/image
+      with:
+        script: |-
+            source /opt/env.sh
+            npm --prefix ./proto ci --cache /mnt/npm_cache
+            npm --prefix ./proto run build
 
     - name: Build @dashql/core
       uses: ./ci/image
