@@ -47,6 +47,7 @@ include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
+add_subdirectory("${CMAKE_SOURCE_DIR}/../../proto" "${CMAKE_BINARY_DIR}/proto/")
 add_subdirectory("${CMAKE_SOURCE_DIR}/../../duckdb/cpp/" "${CMAKE_BINARY_DIR}/duckdb/")
 
 # ---------------------------------------------------------------------------
@@ -198,7 +199,7 @@ add_library(dashql_parser
     ${CMAKE_SOURCE_DIR}/src/parser/scanner.cc
 )
 
-target_link_libraries(dashql_parser flatbuffers)
+target_link_libraries(dashql_parser dashql_proto)
 
 # ---------------------------------------------------------------------------
 # Libraries
@@ -213,20 +214,20 @@ add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/session.cc
 )
 
-target_link_libraries(dashql_core dashql_parser duckdb_webdb)
+target_link_libraries(dashql_core dashql_parser dashql_proto duckdb_webdb)
 
 add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/action_graph_tests.cc
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
-target_link_libraries(dashql_test dashql_core pugixml gtest)
+target_link_libraries(dashql_test dashql_core dashql_proto pugixml gtest)
 
 # ---------------------------------------------------------------------------
 # Emscripten
 
 add_executable(duckdb_core_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-target_link_libraries(duckdb_core_ffi dashql_core duckdb_webdb flatbuffers spdlog)
+target_link_libraries(duckdb_core_ffi dashql_core duckdb_webdb dashql_proto spdlog)
 
 # We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
 if (EMSCRIPTEN)
@@ -279,6 +280,7 @@ if(NOT EMSCRIPTEN)
     target_link_libraries(tester
         dashql_core
         dashql_test
+        dashql_proto
         flatbuffers gtest gmock
         Threads::Threads
     )
@@ -289,6 +291,7 @@ if(NOT EMSCRIPTEN)
     target_link_libraries(testgen
         dashql_core
         dashql_test
+        dashql_proto
         pugixml
         flatbuffers gtest gmock
         Threads::Threads

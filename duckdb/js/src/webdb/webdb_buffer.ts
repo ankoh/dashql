@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import * as proto from '../proto';
+import { duckdb as proto } from '@dashql/proto';
 import { flatbuffers } from 'flatbuffers';
 
 export abstract class WebDBBuffer<BufferType> {
@@ -23,20 +23,20 @@ export abstract class WebDBBuffer<BufferType> {
     public get root(): BufferType { return this._root; }
 };
 
-export class QueryResultBuffer extends WebDBBuffer<proto.query_result.QueryResult> {
+export class QueryResultBuffer extends WebDBBuffer<proto.QueryResult> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.query_result.QueryResult.getRoot(buffer);
+        return proto.QueryResult.getRoot(buffer);
     }
 }
 
-export class QueryResultChunkBuffer extends WebDBBuffer<proto.query_result.QueryResultChunk> {
+export class QueryResultChunkBuffer extends WebDBBuffer<proto.QueryResultChunk> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.query_result.QueryResultChunk.getRoot(buffer);
+        return proto.QueryResultChunk.getRoot(buffer);
     }
 }
 
-export class QueryPlanBuffer extends WebDBBuffer<proto.query_plan.QueryPlan> {
+export class QueryPlanBuffer extends WebDBBuffer<proto.QueryPlan> {
     public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.query_plan.QueryPlan.getRoot(buffer);
+        return proto.QueryPlan.getRoot(buffer);
     }
 }

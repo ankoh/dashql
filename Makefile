@@ -76,18 +76,11 @@ core_js:
 core_js_tests:
 	npm --prefix ${ROOT_DIR}/core/js run test
 
-# Generate the protocol files
+# Compile the flatbuffer schema
 .PHONY: proto
 proto:
 	${IN_IMAGE} bash -ec ./scripts/generate_proto.sh
-
-# Reset proto
-.PHONY: reset_proto
-reset_proto:
-	rm ./core/cpp/include/dashql/proto/*_generated.h
-	rm ./core/js/src/proto/*_generated.ts
-	rm ./duckdb/cpp/include/duckdb/web/proto/*_generated.h
-	rm ./duckdb/js/src/proto/*_generated.ts
+	npm --prefix ${ROOT_DIR}/proto run build
 
 # Build the wasm module with debug info
 .PHONY: wasm
@@ -137,6 +130,7 @@ npm_install:
 	npm --prefix ${ROOT_DIR}/duckdb/js install
 	npm --prefix ${ROOT_DIR}/core/js install
 	npm --prefix ${ROOT_DIR}/app install
+	npm --prefix ${ROOT_DIR}/proto install
 
 # ---------------------------------------------------------------------------
 # Environment

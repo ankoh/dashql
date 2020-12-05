@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 #include "gtest/gtest.h"
-#include "dashql/proto/syntax_generated.h"
+#include "dashql/proto_generated.h"
 #include "pugixml.hpp"
 
 namespace dashql {

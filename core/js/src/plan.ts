@@ -2,7 +2,7 @@
 
 import { FlatBuffer, PlanBuffer } from './bindings';
 import { Program } from './parser/';
-import * as proto from './proto/';
+import * as proto from '@dashql/proto';
 
 export class Plan {
     /// The program

@@ -16,8 +16,7 @@
 
 #include "dashql/extract/csv_reader.h"
 #include "dashql/program_instance.h"
-#include "dashql/proto/action_generated.h"
-#include "dashql/proto/session_generated.h"
+#include "dashql/proto_generated.h"
 #include "duckdb/web/common/expected.h"
 #include "duckdb/web/common/raw_buffer.h"
 #include "duckdb/web/webdb.h"

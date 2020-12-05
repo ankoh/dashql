@@ -3,9 +3,9 @@
 #ifndef INCLUDE_DASHQL_STRING_INDEX_H_
 #define INCLUDE_DASHQL_STRING_INDEX_H_
 
+#include "dashql/proto_generated.h"
 #include <array>
 #include <string>
-#include "dashql/proto/syntax_generated.h"
 
 namespace dashql {
 

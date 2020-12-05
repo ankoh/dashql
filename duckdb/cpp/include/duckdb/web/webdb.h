@@ -8,13 +8,11 @@
 #include <string>
 #include <unordered_map>
 
+#include "dashql/proto_generated.h"
 #include "duckdb.hpp"
 #include "duckdb/web/common/expected.h"
 #include "duckdb/web/common/ffi_response.h"
 #include "duckdb/web/common/span.h"
-#include "duckdb/web/proto/query_plan_generated.h"
-#include "duckdb/web/proto/query_result_generated.h"
-#include "duckdb/web/proto/vector_generated.h"
 
 namespace duckdb {
 namespace web {

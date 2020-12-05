@@ -50,7 +50,8 @@ add_library(duckdb_webdb
 )
 
 target_link_libraries(duckdb_webdb
-    flatbuffers spdlog
+    dashql_proto
+    spdlog
 )
 
 # ---------------------------------------------------------------------------
@@ -112,6 +113,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(duckdb_tester
         duckdb_webdb
+        dashql_proto
         flatbuffers gtest gmock Threads::Threads)
 
 endif()
@@ -126,6 +128,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(bm_result_codec
         duckdb_webdb
+        dashql_proto
         benchmark
         flatbuffers gtest gmock Threads::Threads)
 

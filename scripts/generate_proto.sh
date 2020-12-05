@@ -4,6 +4,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
+
 FLATC="flatc"
 ${FLATC} --version \
     && { echo "[ OK  ] Command: flatc"; } \
@@ -11,63 +12,46 @@ ${FLATC} --version \
 
 TMP=$(mktemp -d)
 
-${FLATC} -I "${PROJECT_ROOT}/duckdb/proto" -o "${PROJECT_ROOT}/duckdb/rs/src/proto" "${PROJECT_ROOT}/duckdb/proto/proto.fbs" --rust \
-        --reflect-types --reflect-names \
+SPEC_DIR="${PROJECT_ROOT}/proto/spec/"
+SPEC_INDEX="${SPEC_DIR}/proto.fbs"
+
+OUT_DIR_RS="${PROJECT_ROOT}/proto/gen"
+OUT_DIR_CPP="${PROJECT_ROOT}/proto/gen/include/dashql"
+OUT_DIR_JS="${PROJECT_ROOT}/proto/gen"
+
+mkdir -p ${OUT_DIR_RS} ${OUT_DIR_CPP} ${OUT_DIR_JS}
+
+${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_RS} ${SPEC_INDEX} --rust \
         --gen-all \
+        --reflect-types --reflect-names \
         --gen-object-api --gen-name-strings --gen-compare \
         --gen-mutable \
-    && { echo "[ OK  ] duckdb/proto: Rust"; } \
-    || { echo "[ ERR ] duckdb/proto: Rust"; exit 1; }
+    && { echo "[ OK  ] Generate Rust Library"; } \
+    || { echo "[ ERR ] Generate Rust Library"; exit 1; }
 
-${FLATC} -I "${PROJECT_ROOT}/core/proto" -o "${PROJECT_ROOT}/core/rs/src/proto" "${PROJECT_ROOT}/core/proto/proto.fbs" --rust \
-        --reflect-types --reflect-names \
+${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_CPP} ${SPEC_INDEX} --cpp \
         --gen-all \
+        --no-prefix --scoped-enums \
+        --reflect-types --reflect-names \
         --gen-object-api --gen-name-strings --gen-compare \
         --gen-mutable \
-    && { echo "[ OK  ] core/proto: Rust"; } \
-    || { echo "[ ERR ] core/proto: Rust"; exit 1; }
+    && { echo "[ OK  ] Generate C++ Library"; } \
+    || { echo "[ ERR ] Generate C++ Library"; exit 1; }
 
-gen_proto() {
-    PROTO_DIR="$1"
-    CPP_PROTO_DIR="$2"
-    TS_PROTO_DIR="$3"
+TS_PROTO_OUT="${OUT_DIR_JS}/proto_generated.ts"
+TS_PROTO_TMP="${TMP}/proto_generated.ts"
 
-    echo "${PROTO_DIR}"
-
-    for PROTO_FILE in ${PROTO_DIR}/*.fbs; do
-        PROTO_FILE_NAME=$(basename -- "${PROTO_FILE}")
-        PROTO_FILE_NAME="${PROTO_FILE_NAME%.*}"
-
-        if [ "${PROTO_FILE_NAME}" = "proto" ]; then
-            continue
-        fi
-
-        ${FLATC} -I ${PROTO_DIR} -o ${CPP_PROTO_DIR} ${PROTO_FILE} --cpp \
-                --no-prefix --scoped-enums \
-                --reflect-types --reflect-names \
-                --gen-object-api --gen-name-strings --gen-compare \
-                --gen-mutable \
-            && { echo "[ OK  ] ${PROTO_FILE_NAME}: C++"; } \
-            || { echo "[ ERR ] ${PROTO_FILE_NAME}: C++"; exit 1; }
-
-        TS_PROTO_OUT="${TS_PROTO_DIR}/${PROTO_FILE_NAME}_generated.ts"
-        TS_PROTO_TMP="${TMP}/${PROTO_FILE_NAME}.ts"
-
-        ${FLATC} -I ${TMP} -o ${TS_PROTO_DIR} ${PROTO_FILE} --ts \
-                --no-fb-import \
-                --reflect-types --reflect-names \
-                --gen-name-strings --gen-compare --short-names \
-                --gen-mutable \
-            && mv ${TS_PROTO_OUT} ${TS_PROTO_TMP} \
-            && echo "/* eslint-disable */" > ${TS_PROTO_OUT} \
-            && echo "import { flatbuffers } from \"flatbuffers\";" >> ${TS_PROTO_OUT} \
-            && cat ${TS_PROTO_TMP} >> ${TS_PROTO_OUT} \
-            && { echo "[ OK  ] ${PROTO_FILE_NAME}: Typescript"; } \
-            || { echo "[ ERR ] ${PROTO_FILE_NAME}: Typescript"; exit 1; }
-    done
-}
-
-gen_proto "${PROJECT_ROOT}/core/proto" "${PROJECT_ROOT}/core/cpp/include/dashql/proto" "${PROJECT_ROOT}/core/js/src/proto"
-gen_proto "${PROJECT_ROOT}/duckdb/proto" "${PROJECT_ROOT}/duckdb/cpp/include/duckdb/web/proto" "${PROJECT_ROOT}/duckdb/js/src/proto"
+${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_JS} ${SPEC_INDEX} --ts \
+        --gen-all \
+        --no-fb-import \
+        --reflect-types --reflect-names \
+        --gen-name-strings --gen-compare --short-names \
+        --gen-mutable \
+    && mv ${TS_PROTO_OUT} ${TS_PROTO_TMP} \
+    && echo "/* eslint-disable */" > ${TS_PROTO_OUT} \
+    && echo "import { flatbuffers } from \"flatbuffers\";" >> ${TS_PROTO_OUT} \
+    && cat ${TS_PROTO_TMP} >> ${TS_PROTO_OUT} \
+    && { echo "[ OK  ] Generate Typescript Library"; } \
+    || { echo "[ ERR ] Generate Typescript Library"; exit 1; }
 
 rm -r ${TMP}

@@ -5,7 +5,7 @@
 
 #include "dashql/common/enum.h"
 #include "dashql/program_instance.h"
-#include "dashql/proto/syntax_generated.h"
+#include "dashql/proto_generated.h"
 #include <iostream>
 #include <sstream>
 

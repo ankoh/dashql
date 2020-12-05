@@ -4,6 +4,7 @@
     "description": "Parser for the DashQL language",
     "license": "AGPL-3.0-or-later",
     "dependencies": {
+        "@dashql/proto": "file:../../proto/",
         "flatbuffers": "^1.12.0"
     },
     "devDependencies": {
