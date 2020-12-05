@@ -133,8 +133,6 @@ class Layout extends React.Component<Props> {
                 return <FileParameter name="FileParameter" value={null} onChange={console.log.bind(console)} />;
             case WidgetType.Chart | ChartType.Area:
                 return <AreaChart />;
-            case WidgetType.Chart | ChartType.Area:
-                return <AreaChart />;
             case WidgetType.Chart | ChartType.Bar:
                 return <BarChart />;
             case WidgetType.Chart | ChartType.Box:
