@@ -69,6 +69,7 @@ RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
     && echo "export EM_CACHE=/mnt/emscripten_cache/" >> /opt/env.sh \
     && echo "export EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
+    && echo "export CARGO_HOME=/root/.cargo" >> /opt/env.sh \
     && echo "source /usr/local/nvm/nvm.sh" >> /opt/env.sh \
     && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh
