@@ -112,6 +112,17 @@ class Layout extends React.Component<Props> {
                 },
                 content: void 0,
             },
+            {
+                id: WidgetType.Chart | ChartType.Bar,
+                type: WidgetType.Chart | ChartType.Bar,
+                position: {
+                    x: 0,
+                    y: 0,
+                    width: 6,
+                    height: 1,
+                },
+                content: void 0,
+            },
         ],
     };
 
