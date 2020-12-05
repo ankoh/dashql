@@ -21,6 +21,7 @@ jobs:
       with:
         script: |-
             ./scripts/generate_proto.sh
+	        npm --prefix ./proto run build
 
     - name: Build
       uses: ./ci/image
@@ -148,40 +149,35 @@ jobs:
       with:
         script: |-
             source /opt/env.sh
-            cd ./core/js
-            npm ci --cache /mnt/npm_cache
-            npm run build
+            npm --prefix ./core/js ci --cache /mnt/npm_cache
+            npm --prefix ./core/js run build
 
     - name: Test @dashql/core
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./core/js
-            npm run test:ci
+            npm --prefix ./core/js run test:ci
 
     - name: Build @dashql/duckdb
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./duckdb/js
-            npm ci --cache /mnt/npm_cache
-            npm run build
+            npm --prefix ./duckdb/js ci --cache /mnt/npm_cache
+            npm --prefix ./duckdb/js run build
 
     - name: Test @dashql/duckdb
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./duckdb/js
-            npm run test:ci
+            npm --prefix ./duckdb/js run test:ci
 
     - name: Build App
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./app
-            npm ci --cache /mnt/npm_cache
-            npm run build:release
+            npm --prefix ./app ci --cache /mnt/npm_cache
+            npm --prefix ./app run build:release
