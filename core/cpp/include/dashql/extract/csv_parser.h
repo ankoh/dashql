@@ -100,7 +100,7 @@ class CSVParser {
 class SimpleCSVParser: public CSVParser {
    public:
     /// Constructor
-    SimpleCSVParser();
+    SimpleCSVParser(const CSVParserOptions& options, std::istream& in);
     /// Move constructor to reuse state
     SimpleCSVParser(SimpleCSVParser&& other, const CSVParserOptions& options, std::istream& in);
     /// Move assignment
@@ -122,7 +122,7 @@ class ComplexCSVParser: public CSVParser {
 
    public:
     /// Constructor
-    ComplexCSVParser();
+    ComplexCSVParser(const CSVParserOptions& options, std::istream& in);
     /// Move constructor to reuse state
     ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOptions& options, std::istream& in);
     /// Move assignment

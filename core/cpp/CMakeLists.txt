@@ -220,6 +220,7 @@ target_link_libraries(dashql_core dashql_parser dashql_proto duckdb_webdb)
 
 add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/action_graph_tests.cc
+    ${CMAKE_SOURCE_DIR}/src/test/blob_stream_tests.cc
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
@@ -275,6 +276,7 @@ if(NOT EMSCRIPTEN)
     add_executable(tester
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
+        ${CMAKE_SOURCE_DIR}/test/extract/csv_parser_test.cc
         ${CMAKE_SOURCE_DIR}/test/grammar_test_suite.cc
         ${CMAKE_SOURCE_DIR}/test/program_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/session_test.cc
