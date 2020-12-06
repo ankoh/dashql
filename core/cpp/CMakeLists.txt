@@ -208,7 +208,6 @@ add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/common/blob_stream.cc
     ${CMAKE_SOURCE_DIR}/src/common/substring_buffer.cc
-    ${CMAKE_SOURCE_DIR}/src/extract/csv_reader.cc
     ${CMAKE_SOURCE_DIR}/src/program_instance.cc
     ${CMAKE_SOURCE_DIR}/src/program_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/session.cc
