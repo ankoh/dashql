@@ -31,9 +31,7 @@ Expected<bool> CSVParser::ReadBuffer() {
     // Exceeded maximum line size?
     if ((remaining + buffer_read_size) > CSV_PARSER_MAXIMUM_LINE_SIZE) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Maximum line size of "
-               << CSV_PARSER_MAXIMUM_LINE_SIZE
-               << "bytes exceeded!";
+               << "Maximum line size of " << CSV_PARSER_MAXIMUM_LINE_SIZE << "bytes exceeded!";
     }
 
     // Need to resize the buffer?
@@ -68,10 +66,9 @@ Signal CSVParser::AddValue(std::string_view val, vector<size_t>& escape_position
 
     // More values than types?
     if (current_column >= options.sql_types.size()) {
-        throw InvalidInputException("Line %s: expected %lld values per row, but got more. (%s)",
-                                    GetLineNumberStr().c_str(), options.sql_types.size(), options.ToString());
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << GetLineNumberStr() << ": expected " << options.sql_types.size() << " values per row, but got more. (" << options.ToString() << ")";
+               << "Line " << GetLineNumberStr() << ": expected " << options.sql_types.size()
+               << " values per row, but got more. (" << options.ToString() << ")";
     }
 
     // Insert the line number into the chunk
@@ -186,7 +183,7 @@ Signal CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity)
     return Signal::OK();
 }
 
-void SimpleCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+Signal SimpleCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     // Used for parsing algorithm
     bool finished_chunk = false;
     size_t offset = 0;
@@ -194,9 +191,7 @@ void SimpleCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capac
 
     // Read values into the buffer (if any)
     if (buffer_position >= buffer_size) {
-        if (!ReadBuffer()) {
-            return;
-        }
+        if (!ReadBuffer()) return Signal::OK();
     }
     // Start parsing the first value
     goto value_start;
@@ -261,7 +256,7 @@ add_row : {
     } else {
         // \n newline, move to value start
         if (finished_chunk) {
-            return;
+            return Signal::OK();
         }
         goto value_start;
     }
@@ -342,16 +337,12 @@ carriage_return:
             goto final_state;
         }
     }
-    if (finished_chunk) {
-        return;
-    }
+    if (finished_chunk) return Signal::OK();
+
     goto value_start;
 
 final_state:
-    if (finished_chunk) {
-        return;
-    }
-
+    if (finished_chunk) return Signal::OK();
     if (current_column > 0 || buffer_position > token_start) {
         // remaining values to be added to the chunk
         AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escape_positions);
@@ -362,9 +353,10 @@ final_state:
     if (options.mode == CSVParserMode::PARSING) {
         Flush(output_chunk, output_capacity);
     }
+    return Signal::OK();
 }
 
-void ComplexCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+Signal ComplexCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     // Used for parsing algorithm
     bool finished_chunk = false;
     vector<size_t> escape_positions;
@@ -373,9 +365,7 @@ void ComplexCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capa
 
     // Read values into the buffer (if any)
     if (buffer_position >= buffer_size) {
-        if (!ReadBuffer()) {
-            return;
-        }
+        if (!ReadBuffer()) return Signal::OK();
     }
     // Start parsing the first value
     token_start = buffer_position;
@@ -458,9 +448,7 @@ add_row : {
         goto carriage_return;
     } else {
         // \n newline, move to value start
-        if (finished_chunk) {
-            return;
-        }
+        if (finished_chunk) return Signal::OK();
         goto value_start;
     }
 }
@@ -563,15 +551,12 @@ carriage_return:
             goto final_state;
         }
     }
-    if (finished_chunk) {
-        return;
-    }
+    if (finished_chunk) return Signal::OK();
+
     goto value_start;
 
 final_state:
-    if (finished_chunk) {
-        return;
-    }
+    if (finished_chunk) return Signal::OK();
     if (current_column > 0 || buffer_position > token_start) {
         // Remaining values to be added to the chunk
         AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escape_positions);
@@ -582,6 +567,7 @@ final_state:
     if (options.mode == CSVParserMode::PARSING) {
         Flush(output_chunk, output_capacity);
     }
+    return Signal::OK();
 }
 
 }  // namespace dashql
