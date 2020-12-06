@@ -14,9 +14,10 @@
 #include <variant>
 #include <vector>
 
-#include "dashql/extract/csv_reader.h"
+#include "dashql/common/blob_stream.h"
 #include "dashql/program_instance.h"
 #include "dashql/proto_generated.h"
+#include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 #include "duckdb/web/common/expected.h"
 #include "duckdb/web/common/raw_buffer.h"
 #include "duckdb/web/webdb.h"
@@ -52,6 +53,9 @@ class Session {
     /// The planner log writer cursor
     size_t planner_log_writer_;
 
+    /// Extract csv
+    Signal ExtractCSV(BlobIStreamBuffer& blob_stream, duckdb::BufferedCSVReaderOptions&& csv_options, std::vector<duckdb::LogicalType>&& csv_col_types, const std::string& schema_name, const std::string& table_name);
+
    public:
     /// Constructor
     Session();
@@ -64,9 +68,6 @@ class Session {
     ExpectedBuffer<proto::session::Plan> PlanProgram();
 
     void UpdateParameter();
-
-    /// Extract a csv file
-    void ExtractCSV(std::istream& blob);
 };
 
 }  // namespace dashql
