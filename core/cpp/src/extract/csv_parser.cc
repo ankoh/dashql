@@ -114,8 +114,9 @@ Expected<bool> CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_
     current_line++;
 
     if (current_column < options.sql_types.size() && (options.mode != CSVParserMode::SNIFFING_DIALECT)) {
-        throw InvalidInputException("Line %s: expected %lld values per row, but got %d. (%s)",
-                                    GetLineNumberStr().c_str(), options.sql_types.size(), options.ToString());
+        return Error(ErrorCode::CSV_PARSER_ERROR)
+               << "Line " << GetLineNumberStr() << ": expected " << options.sql_types.size()
+               << " values per row, but got " << current_column << ". (" << options.ToString() << ")";
     }
     if (options.mode == CSVParserMode::SNIFFING_DIALECT) {
         column_counts.push_back(current_column);
@@ -278,7 +279,8 @@ in_quotes:
         }
     } while (ReadBuffer());
     // still in quoted state at the end of the file, error:
-    throw InvalidInputException("Line %s: unterminated quotes. (%s)", GetLineNumberStr().c_str(), options.ToString());
+    return Error(ErrorCode::CSV_PARSER_ERROR)
+           << "Line " << GetLineNumberStr() << ": unterminated quotes. (" << options.ToString() << ")";
 
 unquote:
     // This state handles the state directly after we unquote
@@ -304,10 +306,10 @@ unquote:
         offset = 1;
         goto add_row;
     } else {
-        throw InvalidInputException(
-            "Line %s: quote should be followed by end of value, end of "
-            "row or another quote. (%s)",
-            GetLineNumberStr().c_str(), options.ToString());
+        return Error(ErrorCode::CSV_PARSER_ERROR)
+               << "Line " << GetLineNumberStr()
+               << ": quote should be followed by end of value, end of row or another quote. (" << options.ToString()
+               << ")";
     }
 
 handle_escape:
@@ -315,12 +317,14 @@ handle_escape:
 
     buffer_position++;
     if (buffer_position >= buffer_size && !ReadBuffer()) {
-        throw InvalidInputException("Line %s: neither QUOTE nor ESCAPE is proceeded by ESCAPE. (%s)",
-                                    GetLineNumberStr().c_str(), options.ToString());
+        return Error(ErrorCode::CSV_PARSER_ERROR)
+               << "Line " << GetLineNumberStr() << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
+               << options.ToString() << ")";
     }
     if (buffer[buffer_position] != options.quote[0] && buffer[buffer_position] != options.escape[0]) {
-        throw InvalidInputException("Line %s: neither QUOTE nor ESCAPE is proceeded by ESCAPE. (%s)",
-                                    GetLineNumberStr().c_str(), options.ToString());
+        return Error(ErrorCode::CSV_PARSER_ERROR)
+               << "Line " << GetLineNumberStr() << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
+               << options.ToString() << ")";
     }
     // escape was followed by quote or escape, go back to quoted state
     goto in_quotes;
@@ -472,7 +476,8 @@ in_quotes:
     } while (ReadBuffer());
 
     // Still in quoted state at the end of the file, error:
-    throw InvalidInputException("Line %s: unterminated quotes. (%s)", GetLineNumberStr().c_str(), options.ToString());
+    return Error(ErrorCode::CSV_PARSER_ERROR)
+           << "Line " << GetLineNumberStr() << ": unterminated quoted. (" << options.ToString() << ")";
 
 unquote:
     // This state handles the state directly after we unquote
@@ -498,10 +503,10 @@ unquote:
             delimiter_search.Match(delimiter_pos, buffer[buffer_position]);
             count++;
             if (count > delimiter_pos && count > quote_pos) {
-                throw InvalidInputException(
-                    "Line %s: quote should be followed by end of value, end "
-                    "of row or another quote. (%s)",
-                    GetLineNumberStr().c_str(), options.ToString());
+                return Error(ErrorCode::CSV_PARSER_ERROR)
+                       << "Line " << GetLineNumberStr()
+                       << ": quote should be followed by end of value, end of row or another quote. ("
+                       << options.ToString() << ")";
             }
             if (delimiter_pos == options.delimiter.size()) {
                 // Quote followed by delimiter, add value
@@ -515,8 +520,10 @@ unquote:
             }
         }
     } while (ReadBuffer());
-    throw InvalidInputException("Line %s: quote should be followed by end of value, end of row or another quote. (%s)",
-                                GetLineNumberStr().c_str(), options.ToString());
+
+    return Error(ErrorCode::CSV_PARSER_ERROR)
+           << "Line " << GetLineNumberStr()
+           << ": quote should be followed by end of value, end of row or another quote. (" << options.ToString() << ")";
 
 handle_escape:
     escape_pos = 0;
@@ -529,8 +536,9 @@ handle_escape:
             escape_search.Match(escape_pos, buffer[buffer_position]);
             count++;
             if (count > escape_pos && count > quote_pos) {
-                throw InvalidInputException("Line %s: neither QUOTE nor ESCAPE is proceeded by ESCAPE. (%s)",
-                                            GetLineNumberStr().c_str(), options.ToString());
+                return Error(ErrorCode::CSV_PARSER_ERROR)
+                       << "Line " << GetLineNumberStr() << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
+                       << options.ToString() << ")";
             }
             if (quote_pos == options.quote.size() || escape_pos == options.escape.size()) {
                 // Found quote or escape: move back to quoted state
@@ -538,8 +546,10 @@ handle_escape:
             }
         }
     } while (ReadBuffer());
-    throw InvalidInputException("Line %s: neither QUOTE nor ESCAPE is proceeded by ESCAPE. (%s)",
-                                GetLineNumberStr().c_str(), options.ToString());
+
+    return Error(ErrorCode::CSV_PARSER_ERROR)
+           << "Line " << GetLineNumberStr() << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
+           << options.ToString() << ")";
 
 carriage_return:
     // This stage optionally skips a newline (\n) character, which allows \r\n to be interpreted as a single line
