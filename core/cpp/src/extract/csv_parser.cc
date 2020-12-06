@@ -29,8 +29,8 @@ bool CSVParser::ReadBuffer() {
     }
 
     // Exceeded maximum line size?
-    if ((remaining + buffer_read_size) > CSV_MAXIMUM_LINE_SIZE) {
-        throw InvalidInputException("Maximum line size of %llu bytes exceeded!", CSV_MAXIMUM_LINE_SIZE);
+    if ((remaining + buffer_read_size) > CSV_PARSER_MAXIMUM_LINE_SIZE) {
+        throw InvalidInputException("Maximum line size of %llu bytes exceeded!", CSV_PARSER_MAXIMUM_LINE_SIZE);
     }
 
     // Need to resize the buffer?
@@ -107,7 +107,7 @@ void CSVParser::AddValue(std::string_view val, vector<size_t> &escape_positions)
     current_column++;
 }
 
-bool CSVParser::AddRow(duckdb::DataChunk* insert_chunk) {
+bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     current_line++;
 
     if (current_column < options.sql_types.size() && (options.mode != CSVParserMode::SNIFFING_DIALECT)) {
@@ -115,28 +115,26 @@ bool CSVParser::AddRow(duckdb::DataChunk* insert_chunk) {
                                     GetLineNumberStr().c_str(), options.sql_types.size(), options.ToString());
     }
     if (options.mode == CSVParserMode::SNIFFING_DIALECT) {
-        sniffed_column_counts.push_back(current_column);
-        if (sniffed_column_counts.size() == CSV_SAMPLE_CHUNK_SIZE) return true;
+        column_counts.push_back(current_column);
+        if (column_counts.size() == output_capacity) return true;
     } else {
         parse_chunk.SetCardinality(parse_chunk.size() + 1);
     }
     if (options.mode == CSVParserMode::PARSING_HEADER) return true;
-    if (options.mode == CSVParserMode::SNIFFING_DATATYPES && parse_chunk.size() == CSV_SAMPLE_CHUNK_SIZE) return true;
-    if (options.mode == CSVParserMode::PARSING && parse_chunk.size() == CSV_OUTPUT_CHUNK_SIZE) {
-        Flush(insert_chunk);
+    if (options.mode == CSVParserMode::SNIFFING_DATATYPES && parse_chunk.size() == output_capacity) return true;
+    if (options.mode == CSVParserMode::PARSING && parse_chunk.size() == output_capacity) {
+        Flush(output_chunk, output_capacity);
         return true;
     }
     current_column = 0;
     return false;
 }
 
-void CSVParser::Flush(DataChunk* insert_chunk) {
-    assert(!!insert_chunk);
-    if (parse_chunk.size() == 0) {
-        return;
-    }
+void CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+    if (!output_chunk || parse_chunk.size() == 0) return;
+
     // Convert the columns in the parsed chunk to the types of the table
-    insert_chunk->SetCardinality(parse_chunk);
+    output_chunk->SetCardinality(parse_chunk);
     for (idx_t col_idx = 0; col_idx < options.sql_types.size(); col_idx++) {
         if (options.sql_types[col_idx].id() == LogicalTypeId::VARCHAR) {
             // Target type is varchar: no need to convert
@@ -151,14 +149,14 @@ void CSVParser::Flush(DataChunk* insert_chunk) {
                     }
                 }
             }
-            insert_chunk->data[col_idx].Reference(parse_chunk.data[col_idx]);
+            output_chunk->data[col_idx].Reference(parse_chunk.data[col_idx]);
         } else {
             try {
                 if (options.has_format.count(duckdb::LogicalTypeId::DATE) && options.sql_types[col_idx].id() == duckdb::LogicalTypeId::DATE) {
                     // Use the date format to cast the chunk
                     auto fmt = options.date_format.at(LogicalTypeId::DATE);
                     UnaryExecutor::Execute<string_t, date_t, true>(
-                        parse_chunk.data[col_idx], insert_chunk->data[col_idx], parse_chunk.size(),
+                        parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size(),
                         [&](string_t input) {
                             return fmt.ParseDate(input);
                         });
@@ -167,12 +165,12 @@ void CSVParser::Flush(DataChunk* insert_chunk) {
                     // Use the date format to cast the chunk
                     auto fmt = options.date_format.at(LogicalTypeId::TIMESTAMP);
                     UnaryExecutor::Execute<string_t, timestamp_t, true>(
-                        parse_chunk.data[col_idx], insert_chunk->data[col_idx], parse_chunk.size(), [&](string_t input) {
+                        parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size(), [&](string_t input) {
                             return fmt.ParseTimestamp(input);
                         });
                 } else {
                     // Target type is not varchar: perform a cast
-                    VectorOperations::Cast(parse_chunk.data[col_idx], insert_chunk->data[col_idx], parse_chunk.size());
+                    VectorOperations::Cast(parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size());
                 }
             } catch (const Exception &e) {
                 string col_name = std::to_string(col_idx);
@@ -183,7 +181,7 @@ void CSVParser::Flush(DataChunk* insert_chunk) {
     parse_chunk.Reset();
 }
 
-void SimpleCSVParser::Parse(duckdb::DataChunk* insert_chunk) {
+void SimpleCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     // Used for parsing algorithm
     bool finished_chunk = false;
     size_t offset = 0;
@@ -243,7 +241,7 @@ add_row : {
     // Check type of newline (\r or \n)
     bool carriage_return = buffer[buffer_position] == '\r';
     AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escape_positions);
-    finished_chunk = AddRow(insert_chunk);
+    finished_chunk = AddRow(output_chunk, output_capacity);
 
     // Increase position by 1 and move start to the new position
     offset = 0;
@@ -352,16 +350,16 @@ final_state:
     if (current_column > 0 || buffer_position > token_start) {
         // remaining values to be added to the chunk
         AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escape_positions);
-        finished_chunk = AddRow(insert_chunk);
+        finished_chunk = AddRow(output_chunk, output_capacity);
     }
 
     /// Final flush
     if (options.mode == CSVParserMode::PARSING) {
-        Flush(insert_chunk);
+        Flush(output_chunk, output_capacity);
     }
 }
 
-void ComplexCSVParser::Parse(duckdb::DataChunk* insert_chunk) {
+void ComplexCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     // Used for parsing algorithm
     bool finished_chunk = false;
     vector<size_t> escape_positions;
@@ -442,7 +440,7 @@ add_row : {
     // Check type of newline (\r or \n)
     bool carriage_return = buffer[buffer_position] == '\r';
     AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escape_positions);
-    finished_chunk = AddRow(insert_chunk);
+    finished_chunk = AddRow(output_chunk, output_capacity);
     // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
@@ -572,12 +570,12 @@ final_state:
     if (current_column > 0 || buffer_position > token_start) {
         // Remaining values to be added to the chunk
         AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escape_positions);
-        finished_chunk = AddRow(insert_chunk);
+        finished_chunk = AddRow(output_chunk, output_capacity);
     }
 
     // Final flush
     if (options.mode == CSVParserMode::PARSING) {
-        Flush(insert_chunk);
+        Flush(output_chunk, output_capacity);
     }
 }
 
