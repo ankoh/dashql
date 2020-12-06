@@ -87,7 +87,7 @@ ExpectedBuffer<proto::session::Plan> Session::PlanProgram() {
 }
 
 /// Extract csv
-Signal Session::ExtractCSV(BlobIStreamBuffer& blob_streambuf, duckdb::BufferedCSVReaderOptions&& csv_options, std::vector<duckdb::LogicalType>&& csv_col_types, const std::string& schema_name, const std::string& table_name) {
+Signal Session::ExtractCSV(BlobIStreamBuffer& blob_streambuf, duckdb::BufferedCSVReaderOptions csv_options, std::vector<duckdb::LogicalType>&& csv_col_types, const std::string& schema_name, const std::string& table_name) {
 
     // Parse csv blob
     auto blob_stream = std::make_unique<std::istream>(&blob_streambuf);
@@ -102,9 +102,8 @@ Signal Session::ExtractCSV(BlobIStreamBuffer& blob_streambuf, duckdb::BufferedCS
 
     // Too few column names?
     // The buffered csv reader actually generates names for us, so this might actually never happen.
-    // TODO Check with tests.
     if (col_names.size() < sql_types.size()) {
-        return Error{ErrorCode::INTERNAL_ERROR, "missing CSV column names"};
+        return Error{ErrorCode::INTERNAL_ERROR, "missing csv column names"};
     }
 
     // Build the create table statement
