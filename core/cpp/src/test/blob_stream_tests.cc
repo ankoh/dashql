@@ -1,4 +1,5 @@
 #include "dashql/test/blob_stream_tests.h"
+#include <cassert>
 
 namespace dashql {
 namespace test {
