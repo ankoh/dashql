@@ -65,6 +65,9 @@ class WebDB {
         /// Destructor
         ~Connection() = default;
 
+        /// Get a connection
+        auto& GetConnection() { return connection_; }
+
         /// Run a SQL query
         ExpectedBuffer<proto::QueryResult> RunQuery(std::string_view text);
         /// Send a SQL query
