@@ -6,6 +6,7 @@
 #define INCLUDE_DASHQL_EXTRACT_CSV_PARSER_H_
 
 #include <map>
+#include "dashql/common/expected.h"
 #include "dashql/common/pattern_search.h"
 #include "duckdb/common/types.hpp"
 #include "duckdb/common/types/data_chunk.hpp"
@@ -21,7 +22,7 @@ constexpr size_t CSV_PARSER_MAXIMUM_LINE_SIZE = 1048576;
 
 struct CSVParserOptions {
     /// The CSV parser mode
-    CSVParserMode mode;
+    CSVParserMode mode = CSVParserMode::PARSING;
     /// The SQL types
     std::vector<duckdb::LogicalType> sql_types = {};
     /// Delimiter to separate columns within each line
@@ -81,13 +82,13 @@ class CSVParser {
     /// Get the line number string
     std::string GetLineNumberStr() const;
     /// Read into buffer
-    bool ReadBuffer();
+    Expected<bool> ReadBuffer();
     /// Add a value
-    void AddValue(std::string_view val, std::vector<size_t> &escape_positions);
+    Signal AddValue(std::string_view val, std::vector<size_t> &escape_positions);
     /// Adds a row to the output_chunk, returns true if the chunk is filled as a result of this row being added
-    bool AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity);
+    Expected<bool> AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity);
     /// Flush data chunk
-    void Flush(duckdb::DataChunk* output_chunk, size_t output_capacity);
+    Signal Flush(duckdb::DataChunk* output_chunk, size_t output_capacity);
 
    public:
     /// Constructor
