@@ -15,10 +15,9 @@ namespace dashql {
 
 enum class CSVParserMode : uint8_t { PARSING = 0, SNIFFING_DIALECT = 1, SNIFFING_DATATYPES = 2, PARSING_HEADER = 3 };
 
-constexpr size_t CSV_SAMPLE_CHUNK_SIZE = 1024;
 constexpr size_t CSV_OUTPUT_CHUNK_SIZE = 1024;
 constexpr size_t CSV_PARSER_INITIAL_BUFFER_SIZE = 16384;
-constexpr size_t CSV_MAXIMUM_LINE_SIZE = 1048576;
+constexpr size_t CSV_PARSER_MAXIMUM_LINE_SIZE = 1048576;
 
 struct CSVParserOptions {
     /// The CSV parser mode
@@ -74,8 +73,8 @@ class CSVParser {
     /// The current column
     size_t current_column;
 
-    /// The sniffed columns
-    std::vector<size_t> sniffed_column_counts;
+    /// The column counts
+    std::vector<size_t> column_counts;
     /// The parse chunk
     duckdb::DataChunk parse_chunk;
 
@@ -85,10 +84,10 @@ class CSVParser {
     bool ReadBuffer();
     /// Add a value
     void AddValue(std::string_view val, std::vector<size_t> &escape_positions);
-    /// Adds a row to the insert_chunk, returns true if the chunk is filled as a result of this row being added
-    bool AddRow(duckdb::DataChunk* insert_chunk);
+    /// Adds a row to the output_chunk, returns true if the chunk is filled as a result of this row being added
+    bool AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity);
     /// Flush data chunk
-    void Flush(duckdb::DataChunk* insert_chunk);
+    void Flush(duckdb::DataChunk* output_chunk, size_t output_capacity);
 
    public:
     /// Constructor
@@ -108,7 +107,7 @@ class SimpleCSVParser: public CSVParser {
     SimpleCSVParser& operator=(SimpleCSVParser&& other);
 
     /// Parse the input
-    void Parse(duckdb::DataChunk* insert_chunk = nullptr);
+    void Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
 };
 
 
@@ -130,7 +129,7 @@ class ComplexCSVParser: public CSVParser {
     ComplexCSVParser& operator=(ComplexCSVParser&& other);
 
     /// Parse the input
-    void Parse(duckdb::DataChunk* insert_chunk = nullptr);
+    void Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
 };
 
 }
