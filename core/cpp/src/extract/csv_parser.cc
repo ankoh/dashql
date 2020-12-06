@@ -135,11 +135,11 @@ void CSVParser::Flush(DataChunk* insert_chunk) {
     if (parse_chunk.size() == 0) {
         return;
     }
-    // convert the columns in the parsed chunk to the types of the table
+    // Convert the columns in the parsed chunk to the types of the table
     insert_chunk->SetCardinality(parse_chunk);
     for (idx_t col_idx = 0; col_idx < options.sql_types.size(); col_idx++) {
         if (options.sql_types[col_idx].id() == LogicalTypeId::VARCHAR) {
-            // target type is varchar: no need to convert
+            // Target type is varchar: no need to convert
             // just test that all strings are valid utf-8 strings
             auto parse_data = FlatVector::GetData<string_t>(parse_chunk.data[col_idx]);
             for (idx_t i = 0; i < parse_chunk.size(); i++) {
@@ -155,7 +155,7 @@ void CSVParser::Flush(DataChunk* insert_chunk) {
         } else {
             try {
                 if (options.has_format.count(duckdb::LogicalTypeId::DATE) && options.sql_types[col_idx].id() == duckdb::LogicalTypeId::DATE) {
-                    // use the date format to cast the chunk
+                    // Use the date format to cast the chunk
                     auto fmt = options.date_format.at(LogicalTypeId::DATE);
                     UnaryExecutor::Execute<string_t, date_t, true>(
                         parse_chunk.data[col_idx], insert_chunk->data[col_idx], parse_chunk.size(),
@@ -164,14 +164,14 @@ void CSVParser::Flush(DataChunk* insert_chunk) {
                         });
                 } else if (options.has_format.count(LogicalTypeId::TIMESTAMP) &&
                            options.sql_types[col_idx].id() == LogicalTypeId::TIMESTAMP) {
-                    // use the date format to cast the chunk
+                    // Use the date format to cast the chunk
                     auto fmt = options.date_format.at(LogicalTypeId::TIMESTAMP);
                     UnaryExecutor::Execute<string_t, timestamp_t, true>(
                         parse_chunk.data[col_idx], insert_chunk->data[col_idx], parse_chunk.size(), [&](string_t input) {
                             return fmt.ParseTimestamp(input);
                         });
                 } else {
-                    // target type is not varchar: perform a cast
+                    // Target type is not varchar: perform a cast
                     VectorOperations::Cast(parse_chunk.data[col_idx], insert_chunk->data[col_idx], parse_chunk.size());
                 }
             } catch (const Exception &e) {
@@ -331,11 +331,11 @@ carriage_return:
     // This stage optionally skips a newline (\n) character, which allows \r\n to be interpreted as a single line
 
     if (buffer[buffer_position] == '\n') {
-        // newline after carriage return: skip
+        // Newline after carriage return: skip
         // increase position by 1 and move start to the new position
         token_start = ++buffer_position;
         if (buffer_position >= buffer_size && !ReadBuffer()) {
-            // file ends right after delimiter, go to final state
+            // File ends right after delimiter, go to final state
             goto final_state;
         }
     }
@@ -429,7 +429,7 @@ normal:
 
 add_value:
     AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escape_positions);
-    // increase position by 1 and move start to the new position
+    // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
     if (buffer_position >= buffer_size && !ReadBuffer()) {
@@ -443,11 +443,11 @@ add_row : {
     bool carriage_return = buffer[buffer_position] == '\r';
     AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escape_positions);
     finished_chunk = AddRow(insert_chunk);
-    // increase position by 1 and move start to the new position
+    // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
     if (buffer_position >= buffer_size && !ReadBuffer()) {
-        // file ends right after newline, go to final state
+        // File ends right after newline, go to final state
         goto final_state;
     }
     if (carriage_return) {
@@ -480,7 +480,7 @@ in_quotes:
         }
     } while (ReadBuffer());
 
-    // still in quoted state at the end of the file, error:
+    // Still in quoted state at the end of the file, error:
     throw InvalidInputException("Line %s: unterminated quotes. (%s)", GetLineNumberStr().c_str(), options.ToString());
 
 unquote:
@@ -491,12 +491,12 @@ unquote:
     quote_pos = 0;
     buffer_position++;
     if (buffer_position >= buffer_size && !ReadBuffer()) {
-        // file ends right after unquote, go to final state
+        // File ends right after unquote, go to final state
         offset = options.quote.size();
         goto final_state;
     }
     if (is_newline(buffer[buffer_position])) {
-        // quote followed by newline, add row
+        // Quote followed by newline, add row
         offset = options.quote.size();
         goto add_row;
     }
@@ -513,12 +513,12 @@ unquote:
                     GetLineNumberStr().c_str(), options.ToString());
             }
             if (delimiter_pos == options.delimiter.size()) {
-                // quote followed by delimiter, add value
+                // Quote followed by delimiter, add value
                 offset = options.quote.size() + options.delimiter.size() - 1;
                 goto add_value;
             } else if (quote_pos == options.quote.size() &&
                        (options.escape.size() == 0 || options.escape == options.quote)) {
-                // quote followed by quote, go back to quoted state and add to escape
+                // Quote followed by quote, go back to quoted state and add to escape
                 escape_positions.push_back(buffer_position - token_start - (options.quote.size() - 1));
                 goto in_quotes;
             }
@@ -542,7 +542,7 @@ handle_escape:
                                             GetLineNumberStr().c_str(), options.ToString());
             }
             if (quote_pos == options.quote.size() || escape_pos == options.escape.size()) {
-                // found quote or escape: move back to quoted state
+                // Found quote or escape: move back to quoted state
                 goto in_quotes;
             }
         }
@@ -551,12 +551,12 @@ handle_escape:
                                 GetLineNumberStr().c_str(), options.ToString());
 
 carriage_return:
-    // this stage optionally skips a newline (\n) character, which allows \r\n to be interpreted as a single line
+    // This stage optionally skips a newline (\n) character, which allows \r\n to be interpreted as a single line
     if (buffer[buffer_position] == '\n') {
-        // newline after carriage return: skip
+        // Newline after carriage return: skip
         token_start = ++buffer_position;
         if (buffer_position >= buffer_size && !ReadBuffer()) {
-            // file ends right after newline, go to final state
+            // File ends right after newline, go to final state
             goto final_state;
         }
     }
@@ -570,7 +570,7 @@ final_state:
         return;
     }
     if (current_column > 0 || buffer_position > token_start) {
-        // remaining values to be added to the chunk
+        // Remaining values to be added to the chunk
         AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escape_positions);
         finished_chunk = AddRow(insert_chunk);
     }
