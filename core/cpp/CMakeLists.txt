@@ -59,6 +59,7 @@ include_directories(
     "${CMAKE_SOURCE_DIR}/../../duckdb/cpp/include"
     "${CMAKE_BINARY_DIR}/duckdb/include"
     "${DUCKDB_INCLUDE_DIR}"
+    "${UTF8PROC_INCLUDE_DIR}"
 )
 
 # ---------------------------------------------------------------------------
@@ -208,6 +209,7 @@ add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/common/blob_stream.cc
     ${CMAKE_SOURCE_DIR}/src/common/substring_buffer.cc
+    ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
     ${CMAKE_SOURCE_DIR}/src/program_instance.cc
     ${CMAKE_SOURCE_DIR}/src/program_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/session.cc
@@ -272,8 +274,9 @@ if(NOT EMSCRIPTEN)
     add_executable(tester
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
-        ${CMAKE_SOURCE_DIR}/test/program_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/grammar_test_suite.cc
+        ${CMAKE_SOURCE_DIR}/test/program_matcher_test.cc
+        ${CMAKE_SOURCE_DIR}/test/session_test.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     target_link_libraries(tester

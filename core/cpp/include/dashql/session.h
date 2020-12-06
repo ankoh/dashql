@@ -54,7 +54,7 @@ class Session {
     size_t planner_log_writer_;
 
     /// Extract csv
-    Signal ExtractCSV(BlobIStreamBuffer& blob_stream, duckdb::BufferedCSVReaderOptions&& csv_options, std::vector<duckdb::LogicalType>&& csv_col_types, const std::string& schema_name, const std::string& table_name);
+    Signal ExtractCSV(BlobIStreamBuffer& blob_streambuf, duckdb::BufferedCSVReaderOptions csv_options, std::vector<duckdb::LogicalType>&& csv_col_types, const std::string& schema_name, const std::string& table_name);
 
    public:
     /// Constructor
