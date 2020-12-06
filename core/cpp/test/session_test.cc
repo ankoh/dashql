@@ -73,19 +73,19 @@ class SessionTest : public ::testing::Test {
 };
 
 TEST_F(SessionTest, CSVExtractAutoDetect) {
-    std::string input = R"CSV(a,b,t,d,ts
-123,TEST2,12:12:12,01-01-2000,01-01-90 12:12:00
-345,TEST2,14:15:30,02-02-2002,02-02-02 14:15:00
-346,TEST2,15:16:17,13-12-2004,13-12-04 15:16:00)CSV";
-
-    auto blob_id = Blob::Register(input);
-    BlobIStreamBuffer blob_streambuf{Blob::StreamUnderflow, blob_id};
-
-    duckdb::BufferedCSVReaderOptions csv_options;
-    csv_options.file_path = std::string{"blob:"} + std::to_string(blob_id);
-    csv_options.auto_detect = true;
-
-    session.ExtractCSV(blob_streambuf, csv_options, {}, "", "test1");
+//     std::string input = R"CSV(a,b,t,d,ts
+// 123,TEST2,12:12:12,01-01-2000,01-01-90 12:12:00
+// 345,TEST2,14:15:30,02-02-2002,02-02-02 14:15:00
+// 346,TEST2,15:16:17,13-12-2004,13-12-04 15:16:00)CSV";
+// 
+//     auto blob_id = Blob::Register(input);
+//     BlobIStreamBuffer blob_streambuf{Blob::StreamUnderflow, blob_id};
+// 
+//     duckdb::BufferedCSVReaderOptions csv_options;
+//     csv_options.file_path = std::string{"blob:"} + std::to_string(blob_id);
+//     csv_options.auto_detect = true;
+// 
+//     session.ExtractCSV(blob_streambuf, csv_options, {}, "", "test1");
 }
 
 }  // namespace
