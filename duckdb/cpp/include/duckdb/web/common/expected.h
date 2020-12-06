@@ -3,6 +3,7 @@
 #ifndef INCLUDE_DUCKDB_WEB_COMMON_EXPECTED_H_
 #define INCLUDE_DUCKDB_WEB_COMMON_EXPECTED_H_
 
+#include <sstream>
 #include <variant>
 
 #include "duckdb/web/common/span.h"
@@ -33,9 +34,21 @@ struct Error {
     /// Get the message
     auto *message() const { return message_; }
 
-    Error& operator<<(const std::string& v) { message_buffer_ += v; return *this; }
-    Error& operator<<(const char* v) { message_buffer_ += v; return *this; }
-    Error& operator<<(uint32_t v) { message_buffer_ += std::to_string(v); return *this; }
+    Error& operator<<(const std::string& v) {
+        message_buffer_ += v;
+        message_ = message_buffer_.c_str();
+        return *this;
+    }
+    Error& operator<<(const char* v) {
+        message_buffer_ += v;
+        message_ = message_buffer_.c_str();
+        return *this;
+    }
+    Error& operator<<(uint32_t v) {
+        message_buffer_ += std::to_string(v);
+        message_ = message_buffer_.c_str();
+        return *this;
+    }
 };
 
 template <typename V> struct Expected {
