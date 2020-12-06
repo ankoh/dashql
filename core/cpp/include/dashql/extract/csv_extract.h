@@ -35,7 +35,6 @@ namespace dashql {
 constexpr size_t CSV_EXTRACT_SAMPLE_CHUNK_SIZE = 1024;
 constexpr size_t CSV_EXTRACT_BUFFER_SIZE = 10 * 1024;
 constexpr size_t CSV_EXTRACT_INITIAL_BUFFER_SIZE = 16384;
-constexpr size_t CSV_MAXIMUM_LINE_SIZE = 1048576;
 
 struct CSVExtractOptions {
     /// The blob id
