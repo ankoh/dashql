@@ -18,7 +18,7 @@ string GetLineNumberStr(size_t linenr, bool linenr_estimated) {
 
 }  // namespace
 
-bool CSVParser::ReadBuffer() {
+Expected<bool> CSVParser::ReadBuffer() {
     std::swap(buffer, tmp);
 
     // Get the remaining part of the last buffer
@@ -30,7 +30,10 @@ bool CSVParser::ReadBuffer() {
 
     // Exceeded maximum line size?
     if ((remaining + buffer_read_size) > CSV_PARSER_MAXIMUM_LINE_SIZE) {
-        throw InvalidInputException("Maximum line size of %llu bytes exceeded!", CSV_PARSER_MAXIMUM_LINE_SIZE);
+        return Error(ErrorCode::CSV_PARSER_ERROR)
+               << "Maximum line size of "
+               << CSV_PARSER_MAXIMUM_LINE_SIZE
+               << "bytes exceeded!";
     }
 
     // Need to resize the buffer?
@@ -51,22 +54,24 @@ bool CSVParser::ReadBuffer() {
     return n > 0;
 }
 
-void CSVParser::AddValue(std::string_view val, vector<size_t> &escape_positions) {
+Signal CSVParser::AddValue(std::string_view val, vector<size_t>& escape_positions) {
     // Skip a single trailing delimiter in last column
     if (options.sql_types.size() > 0 && current_column == options.sql_types.size() && val.length() == 0) {
-        return;
+        return Signal::OK();
     }
 
     // Dont write the actual data chunks when sniffing the dialect
     if (options.mode == CSVParserMode::SNIFFING_DIALECT) {
         current_column++;
-        return;
+        return Signal::OK();
     }
 
     // More values than types?
     if (current_column >= options.sql_types.size()) {
         throw InvalidInputException("Line %s: expected %lld values per row, but got more. (%s)",
                                     GetLineNumberStr().c_str(), options.sql_types.size(), options.ToString());
+        return Error(ErrorCode::CSV_PARSER_ERROR)
+               << "Line " << GetLineNumberStr() << ": expected " << options.sql_types.size() << " values per row, but got more. (" << options.ToString() << ")";
     }
 
     // Insert the line number into the chunk
@@ -76,7 +81,7 @@ void CSVParser::AddValue(std::string_view val, vector<size_t> &escape_positions)
     if (!options.force_not_null[current_column] && (options.null_str == val) == 0) {
         FlatVector::SetNull(parse_chunk.data[current_column], row_entry, true);
     } else {
-        auto &v = parse_chunk.data[current_column];
+        auto& v = parse_chunk.data[current_column];
         auto parse_data = FlatVector::GetData<string_t>(v);
         if (escape_positions.size() > 0) {
             // Remove escape characters (if any)
@@ -105,9 +110,10 @@ void CSVParser::AddValue(std::string_view val, vector<size_t> &escape_positions)
 
     // Move to the next column
     current_column++;
+    return Signal::OK();
 }
 
-bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+Expected<bool> CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     current_line++;
 
     if (current_column < options.sql_types.size() && (options.mode != CSVParserMode::SNIFFING_DIALECT)) {
@@ -130,8 +136,8 @@ bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) 
     return false;
 }
 
-void CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
-    if (!output_chunk || parse_chunk.size() == 0) return;
+Signal CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+    if (!output_chunk || parse_chunk.size() == 0) return Signal::OK();
 
     // Convert the columns in the parsed chunk to the types of the table
     output_chunk->SetCardinality(parse_chunk);
@@ -152,33 +158,32 @@ void CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
             output_chunk->data[col_idx].Reference(parse_chunk.data[col_idx]);
         } else {
             try {
-                if (options.has_format.count(duckdb::LogicalTypeId::DATE) && options.sql_types[col_idx].id() == duckdb::LogicalTypeId::DATE) {
+                if (options.has_format.count(duckdb::LogicalTypeId::DATE) &&
+                    options.sql_types[col_idx].id() == duckdb::LogicalTypeId::DATE) {
                     // Use the date format to cast the chunk
                     auto fmt = options.date_format.at(LogicalTypeId::DATE);
                     UnaryExecutor::Execute<string_t, date_t, true>(
                         parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size(),
-                        [&](string_t input) {
-                            return fmt.ParseDate(input);
-                        });
+                        [&](string_t input) { return fmt.ParseDate(input); });
                 } else if (options.has_format.count(LogicalTypeId::TIMESTAMP) &&
                            options.sql_types[col_idx].id() == LogicalTypeId::TIMESTAMP) {
                     // Use the date format to cast the chunk
                     auto fmt = options.date_format.at(LogicalTypeId::TIMESTAMP);
                     UnaryExecutor::Execute<string_t, timestamp_t, true>(
-                        parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size(), [&](string_t input) {
-                            return fmt.ParseTimestamp(input);
-                        });
+                        parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size(),
+                        [&](string_t input) { return fmt.ParseTimestamp(input); });
                 } else {
                     // Target type is not varchar: perform a cast
                     VectorOperations::Cast(parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size());
                 }
-            } catch (const Exception &e) {
+            } catch (const Exception& e) {
                 string col_name = std::to_string(col_idx);
                 // XXX
             }
         }
     }
     parse_chunk.Reset();
+    return Signal::OK();
 }
 
 void SimpleCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {

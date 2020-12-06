@@ -11,7 +11,7 @@
 namespace duckdb {
 namespace web {
 
-enum class ErrorCode { INTERNAL_ERROR, INVALID_REQUEST, QUERY_FAILED, TABLEGEN_INVALID_INPUT_INDEX, TABLEGEN_CIRCULAR_DEPENDENCY, NOT_IMPLEMENTED };
+enum class ErrorCode { INTERNAL_ERROR, INVALID_REQUEST, QUERY_FAILED, TABLEGEN_INVALID_INPUT_INDEX, TABLEGEN_CIRCULAR_DEPENDENCY, NOT_IMPLEMENTED, CSV_PARSER_ERROR };
 
 struct Error {
     /// The error code
@@ -32,6 +32,10 @@ struct Error {
     auto code() const { return code_; }
     /// Get the message
     auto *message() const { return message_; }
+
+    Error& operator<<(const std::string& v) { message_buffer_ += v; return *this; }
+    Error& operator<<(const char* v) { message_buffer_ += v; return *this; }
+    Error& operator<<(uint32_t v) { message_buffer_ += std::to_string(v); return *this; }
 };
 
 template <typename V> struct Expected {
