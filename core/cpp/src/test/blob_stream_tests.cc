@@ -1,5 +1,7 @@
 #include "dashql/test/blob_stream_tests.h"
+
 #include <cassert>
+#include <cstring>
 
 namespace dashql {
 namespace test {
@@ -28,5 +30,5 @@ size_t Blob::StreamUnderflow(size_t blob_id, char* buffer, size_t buffer_cap) {
     return n;
 }
 
-}
-}
+}  // namespace test
+}  // namespace dashql
