@@ -13,17 +13,24 @@
 
 namespace dashql {
 
+enum class CSVParserMode : uint8_t { PARSING = 0, SNIFFING_DIALECT = 1, SNIFFING_DATATYPES = 2, PARSING_HEADER = 3 };
+
+constexpr size_t CSV_SAMPLE_CHUNK_SIZE = 1024;
+constexpr size_t CSV_OUTPUT_CHUNK_SIZE = 1024;
+constexpr size_t CSV_PARSER_INITIAL_BUFFER_SIZE = 16384;
+constexpr size_t CSV_MAXIMUM_LINE_SIZE = 1048576;
+
 struct CSVParserOptions {
-    /// The blob size
-    size_t in_size = 0;
+    /// The CSV parser mode
+    CSVParserMode mode;
     /// The SQL types
     std::vector<duckdb::LogicalType> sql_types = {};
     /// Delimiter to separate columns within each line
-    std::string delimiter = ",";
+    std::string_view delimiter = ",";
     /// Quote used for columns that contain reserved characters, e.g., delimiter
-    std::string quote = "\"";
+    std::string_view quote = "\"";
     /// Escape character to escape quote character
-    std::string escape = "\\";
+    std::string_view escape = "\\";
     /// Whether or not the file has a header line
     bool header = false;
     /// How many leading rows to skip
@@ -31,7 +38,7 @@ struct CSVParserOptions {
     /// Expected number of columns
     size_t num_cols = 0;
     /// Specifies the std::string that represents a null value
-    std::string null_str = "";
+    std::string_view null_str = "";
     /// True, if column with that index must skip null check
     std::vector<bool> force_not_null = {};
     /// Consider all columns to be of type varchar
@@ -45,19 +52,12 @@ struct CSVParserOptions {
     std::string ToString() const;
 };
 
-class CSVOutputTarget {
-    /// Flush a parsed data chunk
-    virtual void Append(duckdb::DataChunk& data);
-};
-
 class CSVParser {
    protected:
     /// The parser options
     const CSVParserOptions& options;
     /// The input stream
     std::istream& in;
-    /// The output target
-    CSVOutputTarget& out;
 
     /// The buffer
     std::vector<char> buffer;
@@ -74,25 +74,27 @@ class CSVParser {
     /// The current column
     size_t current_column;
 
-    /// The data chunk
-    duckdb::DataChunk chunk;
+    /// The sniffed columns
+    std::vector<size_t> sniffed_column_counts;
+    /// The parse chunk
+    duckdb::DataChunk parse_chunk;
 
     /// Get the line number string
-    std::string GetLineNumberStr();
+    std::string GetLineNumberStr() const;
     /// Read into buffer
     bool ReadBuffer();
     /// Add a value
     void AddValue(std::string_view val, std::vector<size_t> &escape_positions);
     /// Adds a row to the insert_chunk, returns true if the chunk is filled as a result of this row being added
-    bool AddRow();
+    bool AddRow(duckdb::DataChunk* insert_chunk);
     /// Flush data chunk
-    void Flush();
+    void Flush(duckdb::DataChunk* insert_chunk);
 
    public:
     /// Constructor
-    CSVParser(const CSVParserOptions& options, std::istream& in, CSVOutputTarget& out);
+    CSVParser(const CSVParserOptions& options, std::istream& in);
     /// Move constructor to reuse state
-    CSVParser(CSVParser&& other, const CSVParserOptions& options, std::istream& in, CSVOutputTarget& out);
+    CSVParser(CSVParser&& other, const CSVParserOptions& options, std::istream& in);
 
 };
 
@@ -101,12 +103,12 @@ class SimpleCSVParser: public CSVParser {
     /// Constructor
     SimpleCSVParser();
     /// Move constructor to reuse state
-    SimpleCSVParser(SimpleCSVParser&& other, const CSVParserOptions& options, std::istream& in, CSVOutputTarget& out);
+    SimpleCSVParser(SimpleCSVParser&& other, const CSVParserOptions& options, std::istream& in);
     /// Move assignment
     SimpleCSVParser& operator=(SimpleCSVParser&& other);
 
     /// Parse the input
-    void Parse();
+    void Parse(duckdb::DataChunk* insert_chunk = nullptr);
 };
 
 
@@ -123,12 +125,12 @@ class ComplexCSVParser: public CSVParser {
     /// Constructor
     ComplexCSVParser();
     /// Move constructor to reuse state
-    ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOptions& options, std::istream& in, CSVOutputTarget& out);
+    ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOptions& options, std::istream& in);
     /// Move assignment
     ComplexCSVParser& operator=(ComplexCSVParser&& other);
 
     /// Parse the input
-    void Parse();
+    void Parse(duckdb::DataChunk* insert_chunk = nullptr);
 };
 
 }
