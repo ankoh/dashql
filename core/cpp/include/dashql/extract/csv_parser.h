@@ -108,7 +108,7 @@ class SimpleCSVParser: public CSVParser {
     SimpleCSVParser& operator=(SimpleCSVParser&& other);
 
     /// Parse the input
-    void Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
+    Signal Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
 };
 
 
@@ -130,7 +130,7 @@ class ComplexCSVParser: public CSVParser {
     ComplexCSVParser& operator=(ComplexCSVParser&& other);
 
     /// Parse the input
-    void Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
+    Signal Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
 };
 
 }
