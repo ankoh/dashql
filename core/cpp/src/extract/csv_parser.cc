@@ -232,7 +232,7 @@ Signal SimpleCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_cap
 
     // Read values into the buffer (if any)
     if (buffer_position >= buffer_size) {
-        if (!ReadBuffer()) return Signal::OK();
+        if (!ReadBuffer()) return ParsingDone();
     }
     // Start parsing the first value
     goto value_start;
@@ -300,7 +300,7 @@ add_row : {
     } else {
         // \n newline, move to value start
         if (finished_chunk) {
-            return Signal::OK();
+            return ParsingDone();
         }
         goto value_start;
     }
@@ -384,12 +384,12 @@ carriage_return:
             goto final_state;
         }
     }
-    if (finished_chunk) return Signal::OK();
+    if (finished_chunk) return ParsingDone();
 
     goto value_start;
 
 final_state:
-    if (finished_chunk) return Signal::OK();
+    if (finished_chunk) return ParsingDone();
     if (current_column > 0 || buffer_position > token_start) {
         // remaining values to be added to the chunk
         AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
@@ -400,7 +400,7 @@ final_state:
     if (options.mode == +CSVParserMode::PARSING) {
         Flush(output_chunk, output_capacity);
     }
-    return Signal::OK();
+    return ParsingDone();
 }
 
 ComplexCSVParser::ComplexCSVParser(const CSVParserOptions& options, std::istream& in) : CSVParser(options, in) {}
@@ -417,7 +417,7 @@ Signal ComplexCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_ca
 
     // Read values into the buffer (if any)
     if (buffer_position >= buffer_size) {
-        if (!ReadBuffer()) return Signal::OK();
+        if (!ReadBuffer()) return ParsingDone();
     }
     // Start parsing the first value
     token_start = buffer_position;
@@ -504,7 +504,7 @@ add_row : {
         goto carriage_return;
     } else {
         // \n newline, move to value start
-        if (finished_chunk) return Signal::OK();
+        if (finished_chunk) return ParsingDone();
         goto value_start;
     }
 }
@@ -613,12 +613,12 @@ carriage_return:
             goto final_state;
         }
     }
-    if (finished_chunk) return Signal::OK();
+    if (finished_chunk) return ParsingDone();
 
     goto value_start;
 
 final_state:
-    if (finished_chunk) return Signal::OK();
+    if (finished_chunk) return ParsingDone();
     if (current_column > 0 || buffer_position > token_start) {
         // Remaining values to be added to the chunk
         AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
@@ -629,7 +629,7 @@ final_state:
     if (options.mode == +CSVParserMode::PARSING) {
         Flush(output_chunk, output_capacity);
     }
-    return Signal::OK();
+    return ParsingDone();
 }
 
 }  // namespace dashql
