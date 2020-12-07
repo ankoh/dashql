@@ -98,7 +98,7 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
     if (current_column >= options.sql_types.size()) {
         FailWith(ErrorCode::CSV_PARSER_ERROR)
             << "Line " << current_column << ": expected " << options.sql_types.size()
-            << " values per row, but got more. (" << options.ToString() << ")";
+            << " values per row, but got more.";
     }
 
     // Insert the line number into the chunk
@@ -146,7 +146,7 @@ bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) 
     if (current_column < options.sql_types.size() && (options.mode != +CSVParserMode::SNIFFING_DIALECT)) {
         FailWith(ErrorCode::CSV_PARSER_ERROR)
             << "Line " << current_column << ": expected " << options.sql_types.size()
-            << " values per row, but got " << current_column << ". (" << options.ToString() << ")";
+            << " values per row, but got " << current_column << ".";
         return true;
     }
     if (options.mode == +CSVParserMode::SNIFFING_DIALECT) {
@@ -208,8 +208,7 @@ void CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
             } catch (const Exception& e) {
                 FailWith(ErrorCode::CSV_PARSER_ERROR)
                     << e.what() << " in column " << current_column << " between line "
-                    << (current_line - parse_chunk.size()) << " and " << current_line
-                    << ". Parser options: " << options.ToString();
+                    << (current_line - parse_chunk.size()) << " and " << current_line;
                 return;
             }
         }
@@ -324,7 +323,7 @@ in_quotes:
     } while (ReadBuffer());
     // still in quoted state at the end of the file, error:
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << current_column << ": unterminated quotes. (" << options.ToString() << ")";
+           << "Line " << current_column << ": unterminated quotes.";
 
 unquote:
     // This state handles the state directly after we unquote
@@ -352,8 +351,7 @@ unquote:
     } else {
         return Error(ErrorCode::CSV_PARSER_ERROR)
                << "Line " << current_column
-               << ": quote should be followed by end of value, end of row or another quote. (" << options.ToString()
-               << ")";
+               << ": quote should be followed by end of value, end of row or another quote.";
     }
 
 handle_escape:
@@ -362,13 +360,11 @@ handle_escape:
     buffer_position++;
     if (buffer_position >= buffer_size && !ReadBuffer()) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
-               << options.ToString() << ")";
+               << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
     }
     if (buffer[buffer_position] != options.quote[0] && buffer[buffer_position] != options.escape[0]) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
-               << options.ToString() << ")";
+               << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
     }
     // escape was followed by quote or escape, go back to quoted state
     goto in_quotes;
@@ -530,7 +526,7 @@ in_quotes:
 
     // Still in quoted state at the end of the file, error:
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << current_column << ": unterminated quote. (" << options.ToString() << ")";
+           << "Line " << current_column << ": unterminated quote.";
 
 unquote:
     // This state handles the state directly after we unquote
@@ -558,8 +554,7 @@ unquote:
             if (count > delimiter_pos && count > quote_pos) {
                 return Error(ErrorCode::CSV_PARSER_ERROR)
                        << "Line " << current_column
-                       << ": quote should be followed by end of value, end of row or another quote. ("
-                       << options.ToString() << ")";
+                       << ": quote should be followed by end of value, end of row or another quote.";
             }
             if (delimiter_pos == options.delimiter.size()) {
                 // Quote followed by delimiter, add value
@@ -575,8 +570,7 @@ unquote:
     } while (ReadBuffer());
 
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << current_column << ": quote should be followed by end of value, end of row or another quote. ("
-           << options.ToString() << ")";
+           << "Line " << current_column << ": quote should be followed by end of value, end of row or another quote.";
 
 handle_escape:
     escape_pos = 0;
@@ -590,8 +584,7 @@ handle_escape:
             count++;
             if (count > escape_pos && count > quote_pos) {
                 return Error(ErrorCode::CSV_PARSER_ERROR)
-                       << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
-                       << options.ToString() << ")";
+                       << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
             }
             if (quote_pos == options.quote.size() || escape_pos == options.escape.size()) {
                 // Found quote or escape: move back to quoted state
@@ -601,8 +594,7 @@ handle_escape:
     } while (ReadBuffer());
 
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. (" << options.ToString()
-           << ")";
+           << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
 
 carriage_return:
     // This stage optionally skips a newline (\n) character, which allows \r\n to be interpreted as a single line
