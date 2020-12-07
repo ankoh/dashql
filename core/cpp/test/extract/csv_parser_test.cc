@@ -54,7 +54,7 @@ TEST(SimpleCSVParser, SimpleColumns) {
     });
 }
 
-TEST(SimpleCSVParser, ColumnCountMismatch) {
+TEST(SimpleCSVParser, InvalidCSV) {
     auto test = [&](const char* csv) {
         auto blob_id = test::Blob::Register({csv});
         BlobStreamBuffer blob_streambuf(test::Blob::StreamUnderflow, blob_id);
@@ -70,14 +70,24 @@ TEST(SimpleCSVParser, ColumnCountMismatch) {
 
         SimpleCSVParser parser{options, blob_stream};
         auto rc = parser.Parse(&output_chunk, 128);
-        ASSERT_FALSE(rc.IsOk());
+        EXPECT_FALSE(rc.IsOk());
     };
+
+    // Column mismatch
     test("1,2,3,X\n4,5,6\n7,8,9\n");
     test("1,2,3\n4,5,6,X\n7,8,9\n");
     test("1,2,3\n4,5,6\n7,8,9,X\n");
     test("1,2\n4,5,6\n7,8,9\n");
     test("1,2,3\n4,5\n7,8,9\n");
     test("1,2,3\n4,5,6\n7,8\n");
+
+    // Unterminated quotes
+    test("\"1,2,3\n4,5,6\n7,8,9\n");
+    test("1,2,\"3\n4,5,6\n7,8,9\n");
+    test("1,2,3\"\n4,5,6\n7,8,9\n");
+    test("1,2,3\n\"4,5,6\n7,8,9\n");
+    test("1,2,3\n4\",5,6\n7,8,9\n");
+    test("1,2,3\n4,5,6\n7,8,9\n\"");
 }
 
 }  // namespace
