@@ -26,7 +26,6 @@ std::string CSVParserOptions::ToString() const {
     out << ", escape='" << escape << "'";
     out << ", header=" << header;
     out << ", skip_rows=" << skip_rows;
-    out << ", num_cols=" << num_cols;
     out << ", null_str='" << null_str << "'";
     out << ", force_not_null=[";
     for (unsigned i = 0; i < force_not_null.size(); ++i) {
@@ -37,11 +36,16 @@ std::string CSVParserOptions::ToString() const {
     return out.str();
 }
 
-CSVParser::CSVParser(const CSVParserOptions& options, std::istream& in)
-    : options(options), in(in) {}
+CSVParser::CSVParser(const CSVParserOptions& options, std::istream& in) : options(options), in(in) {
+    vector<LogicalType> varchar_types(options.sql_types.size(), LogicalType::VARCHAR);
+    parse_chunk.Initialize(varchar_types);
+}
 
 CSVParser::CSVParser(CSVParser&& other, const CSVParserOptions& options, std::istream& in)
-    : options(options), in(in), buffer(move(other.buffer)), tmp(move(other.tmp)), column_counts(other.column_counts) {}
+    : options(options), in(in), buffer(move(other.buffer)), tmp(move(other.tmp)), column_counts(other.column_counts) {
+    vector<LogicalType> varchar_types(options.sql_types.size(), LogicalType::VARCHAR);
+    parse_chunk.Initialize(varchar_types);
+}
 
 Expected<bool> CSVParser::ReadBuffer() {
     std::swap(buffer, tmp);
@@ -100,7 +104,7 @@ Signal CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
     size_t row_entry = parse_chunk.size();
 
     // Test against given NULL string
-    if (!options.force_not_null[current_column] && (options.null_str == val) == 0) {
+    if (!options.force_not_null[current_column] && (options.null_str == val)) {
         FlatVector::SetNull(parse_chunk.data[current_column], row_entry, true);
     } else {
         auto& v = parse_chunk.data[current_column];
@@ -140,8 +144,8 @@ Expected<bool> CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_
 
     if (current_column < options.sql_types.size() && (options.mode != +CSVParserMode::SNIFFING_DIALECT)) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << current_column << ": expected " << options.sql_types.size()
-               << " values per row, but got " << current_column << ". (" << options.ToString() << ")";
+               << "Line " << current_column << ": expected " << options.sql_types.size() << " values per row, but got "
+               << current_column << ". (" << options.ToString() << ")";
     }
     if (options.mode == +CSVParserMode::SNIFFING_DIALECT) {
         column_counts.push_back(current_column);
@@ -200,8 +204,10 @@ Signal CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity)
                     VectorOperations::Cast(parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size());
                 }
             } catch (const Exception& e) {
-                string col_name = std::to_string(col_idx);
-                // XXX
+                return Error(ErrorCode::CSV_PARSER_ERROR)
+                       << e.what() << " in column " << current_column << " between line "
+                       << (current_line - parse_chunk.size()) << " and " << current_line
+                       << ". Parser options: " << options.ToString();
             }
         }
     }
@@ -210,8 +216,7 @@ Signal CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity)
 }
 
 /// Constructor
-SimpleCSVParser::SimpleCSVParser(const CSVParserOptions& options, std::istream& in)
-    : CSVParser(options, in) {}
+SimpleCSVParser::SimpleCSVParser(const CSVParserOptions& options, std::istream& in) : CSVParser(options, in) {}
 
 /// Move constructor to reuse state
 SimpleCSVParser::SimpleCSVParser(SimpleCSVParser&& other, const CSVParserOptions& options, std::istream& in)
@@ -402,8 +407,7 @@ final_state:
     return Signal::OK();
 }
 
-ComplexCSVParser::ComplexCSVParser(const CSVParserOptions& options, std::istream& in)
-    : CSVParser(options, in) {}
+ComplexCSVParser::ComplexCSVParser(const CSVParserOptions& options, std::istream& in) : CSVParser(options, in) {}
 
 ComplexCSVParser::ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOptions& options, std::istream& in)
     : CSVParser(move(other), options, in) {}
@@ -576,8 +580,8 @@ unquote:
     } while (ReadBuffer());
 
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << current_column
-           << ": quote should be followed by end of value, end of row or another quote. (" << options.ToString() << ")";
+           << "Line " << current_column << ": quote should be followed by end of value, end of row or another quote. ("
+           << options.ToString() << ")";
 
 handle_escape:
     escape_pos = 0;
@@ -602,8 +606,8 @@ handle_escape:
     } while (ReadBuffer());
 
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
-           << options.ToString() << ")";
+           << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. (" << options.ToString()
+           << ")";
 
 carriage_return:
     // This stage optionally skips a newline (\n) character, which allows \r\n to be interpreted as a single line
