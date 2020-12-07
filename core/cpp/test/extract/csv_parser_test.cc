@@ -1,11 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/common/blob_stream.h"
 #include "dashql/extract/csv_parser.h"
-#include "dashql/test/blob_stream_tests.h"
 
 #include <sstream>
 
+#include "dashql/common/blob_stream.h"
+#include "dashql/test/blob_stream_tests.h"
 #include "gtest/gtest.h"
 
 using namespace std;
@@ -25,6 +25,8 @@ void MatchIntegerChunk(duckdb::DataChunk& chunk, std::vector<std::vector<uint32_
     }
 }
 
+using LT = duckdb::LogicalType;
+
 TEST(SimpleCSVParser, SimpleColumns) {
     auto blob_id = test::Blob::Register({R"CSV(1,2,3
 4,5,6
@@ -32,22 +34,11 @@ TEST(SimpleCSVParser, SimpleColumns) {
     BlobStreamBuffer blob_streambuf(test::Blob::StreamUnderflow, blob_id);
     std::istream blob_stream{&blob_streambuf};
 
-    std::vector<duckdb::LogicalType> column_types{
-        duckdb::LogicalType::INTEGER,
-        duckdb::LogicalType::INTEGER,
-        duckdb::LogicalType::INTEGER,
-    };
+    std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
     duckdb::DataChunk output_chunk;
     output_chunk.Initialize(column_types);
 
     CSVParserOptions options;
-    options.mode = CSVParserMode::PARSING;
-    options.header = false;
-    options.delimiter = ",";
-    options.escape = "";
-    options.quote = "\"";
-    options.null_str = "NULL";
-    options.all_varchar = false;
     options.force_not_null = {false, false, false};
     options.sql_types = column_types;
 
@@ -69,22 +60,11 @@ TEST(SimpleCSVParser, TooManyColumns) {
     BlobStreamBuffer blob_streambuf(test::Blob::StreamUnderflow, blob_id);
     std::istream blob_stream{&blob_streambuf};
 
-    std::vector<duckdb::LogicalType> column_types{
-        duckdb::LogicalType::INTEGER,
-        duckdb::LogicalType::INTEGER,
-        duckdb::LogicalType::INTEGER,
-    };
+    std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
     duckdb::DataChunk output_chunk;
     output_chunk.Initialize(column_types);
 
     CSVParserOptions options;
-    options.mode = CSVParserMode::PARSING;
-    options.header = false;
-    options.delimiter = ",";
-    options.escape = "";
-    options.quote = "\"";
-    options.null_str = "NULL";
-    options.all_varchar = false;
     options.force_not_null = {false, false, false};
     options.sql_types = column_types;
 
