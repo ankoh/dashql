@@ -30,7 +30,8 @@ using LT = duckdb::LogicalType;
 TEST(SimpleCSVParser, SimpleColumns) {
     auto blob_id = test::Blob::Register({R"CSV(1,2,3
 4,5,6
-7,8,9)CSV"});
+7,8,9
+)CSV"});
     BlobStreamBuffer blob_streambuf(test::Blob::StreamUnderflow, blob_id);
     std::istream blob_stream{&blob_streambuf};
 
@@ -53,24 +54,37 @@ TEST(SimpleCSVParser, SimpleColumns) {
     });
 }
 
-TEST(SimpleCSVParser, TooManyColumns) {
-    auto blob_id = test::Blob::Register({R"CSV(1,2,3,X
-4,5,6
-7,8,9)CSV"});
-    BlobStreamBuffer blob_streambuf(test::Blob::StreamUnderflow, blob_id);
-    std::istream blob_stream{&blob_streambuf};
+TEST(SimpleCSVParser, ColumnCountMismatch) {
+    auto test = [&](const char* csv) {
+        auto blob_id = test::Blob::Register({csv});
+        BlobStreamBuffer blob_streambuf(test::Blob::StreamUnderflow, blob_id);
+        std::istream blob_stream{&blob_streambuf};
 
-    std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
-    duckdb::DataChunk output_chunk;
-    output_chunk.Initialize(column_types);
+        std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
+        duckdb::DataChunk output_chunk;
+        output_chunk.Initialize(column_types);
 
-    CSVParserOptions options;
-    options.force_not_null = {false, false, false};
-    options.sql_types = column_types;
+        CSVParserOptions options;
+        options.mode = CSVParserMode::PARSING;
+        options.header = false;
+        options.delimiter = ",";
+        options.escape = "";
+        options.quote = "\"";
+        options.null_str = "NULL";
+        options.all_varchar = false;
+        options.force_not_null = {false, false, false};
+        options.sql_types = column_types;
 
-    SimpleCSVParser parser{options, blob_stream};
-    auto rc = parser.Parse(&output_chunk, 1024);
-    ASSERT_FALSE(rc.IsOk());
+        SimpleCSVParser parser{options, blob_stream};
+        auto rc = parser.Parse(&output_chunk, 128);
+        ASSERT_FALSE(rc.IsOk());
+    };
+    test("1,2,3,X\n4,5,6\n7,8,9\n");
+    test("1,2,3\n4,5,6,X\n7,8,9\n");
+    test("1,2,3\n4,5,6\n7,8,9,X\n");
+    test("1,2\n4,5,6\n7,8,9\n");
+    test("1,2,3\n4,5\n7,8,9\n");
+    test("1,2,3\n4,5,6\n7,8\n");
 }
 
 }  // namespace
