@@ -35,7 +35,7 @@ std::streamsize BlobStreamBufferBase::xsgetn(char* out, std::streamsize capacity
 }
 
 BlobStreamBuffer::BlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id,
-                                   std::vector<PodVector<char>>* cached_buffers)
+                                   CachedBuffers* cached_buffers)
     : BlobStreamBufferBase(underflow, blob_id), cached_buffers_(cached_buffers), cache_iter_(0), buffer_() {
     buffer_.reserve(BLOB_STREAMBUF_SIZE);
 }
@@ -61,7 +61,7 @@ BlobStreamBufferBase::int_type BlobStreamBuffer::underflow() {
 }
 
 CachingBlobStreamBuffer::CachingBlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id,
-                                                 std::vector<PodVector<char>>&& cached_buffers)
+                                                 CachedBuffers&& cached_buffers)
     : BlobStreamBufferBase(underflow, blob_id), buffers_(move(cached_buffers)) {
     if (buffers_.empty()) {
         buffers_.emplace_back();
