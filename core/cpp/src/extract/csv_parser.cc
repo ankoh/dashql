@@ -90,7 +90,7 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
 
     // Dont write the actual data chunks when sniffing the dialect
     if (options.mode == +CSVParserMode::SNIFFING_DIALECT) {
-        current_column++;
+        ++current_column;
         return;
     }
 
@@ -98,6 +98,7 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
     if (current_column >= options.sql_types.size()) {
         FailWith(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_column << ": expected " << options.sql_types.size()
                                               << " values per row, but got more.";
+        return;
     }
 
     // Insert the line number into the chunk
@@ -114,7 +115,7 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
             auto old_val = val;
             std::string new_val = "";
             size_t prev_pos = 0;
-            for (size_t i = 0; i < escapes.size(); i++) {
+            for (size_t i = 0; i < escapes.size(); ++i) {
                 size_t next_pos = escapes[i];
                 new_val += old_val.substr(prev_pos, next_pos - prev_pos);
 
@@ -135,12 +136,12 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
     }
 
     // Move to the next column
-    current_column++;
+    ++current_column;
 }
 
 bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     if (error) return true;
-    current_line++;
+    ++current_line;
 
     if (current_column < options.sql_types.size() && (options.mode != +CSVParserMode::SNIFFING_DIALECT)) {
         FailWith(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_column << ": expected " << options.sql_types.size()
@@ -164,7 +165,7 @@ bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) 
 }
 
 void CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
-    if (!output_chunk || parse_chunk.size() == 0) return;
+    if (error || !output_chunk || parse_chunk.size() == 0) return;
 
     // Convert the columns in the parsed chunk to the types of the table
     output_chunk->SetCardinality(parse_chunk);
