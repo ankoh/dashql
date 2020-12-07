@@ -68,9 +68,9 @@ class CSVParser {
     /// The error (if any)
     std::optional<Error> error = std::nullopt;
     /// The buffer
-    std::vector<char> buffer = {};
+    PodVector<char> buffer = {};
     /// The temporary buffer
-    std::vector<char> tmp = {};
+    PodVector<char> tmp = {};
     /// The buffer size
     size_t buffer_size = 0;
     /// The buffer position
