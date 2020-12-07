@@ -3,6 +3,7 @@
 #ifndef INCLUDE_DASHQL_COMMON_POD_VECTOR_H_
 #define INCLUDE_DASHQL_COMMON_POD_VECTOR_H_
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -13,8 +14,7 @@
 
 namespace dashql {
 
-template <typename V>
-class PodVector {
+template <typename V> class PodVector {
     static_assert(std::is_pod_v<V>, "Element type must be a POD");
 
    public:
@@ -35,8 +35,7 @@ class PodVector {
     /// Constructor
     PodVector() : buffer_(nullptr), size_(0), capacity_(0) {}
     /// Constructor
-    explicit PodVector(const PodVector& other)
-        : buffer_(), size_(0), capacity_(0) {
+    explicit PodVector(const PodVector& other) : buffer_(), size_(0), capacity_(0) {
         resize(other.size());
         std::memcpy(begin(), other.begin(), other.size() * sizeof(V));
     }
@@ -60,7 +59,10 @@ class PodVector {
     /// Get the end
     V* end() { return begin() + size_; }
     /// Get the last element
-    V& back() { assert(size_ > 0); return *(end() - 1); }
+    V& back() {
+        assert(size_ > 0);
+        return *(end() - 1);
+    }
     /// Get the const begin
     const V* begin() const { return reinterpret_cast<const V*>(buffer_.get()); }
     /// Get the const end
@@ -71,7 +73,10 @@ class PodVector {
     /// Subscript operator
     auto& operator[](size_t index) { return *(begin() + index); }
     /// Subscript operator
-    auto& operator[](size_t index) const { assert(size_ > 0); return *(begin() + index); }
+    auto& operator[](size_t index) const {
+        assert(size_ > 0);
+        return *(begin() + index);
+    }
 
     /// Reserve bytes in the vector
     void reserve(size_t new_size) {
@@ -81,8 +86,7 @@ class PodVector {
             capacity_ = 0;
         }
         char* new_buffer_ptr_ = static_cast<char*>(realloc(buffer_.get(), new_size * sizeof(V)));
-        if (!new_buffer_ptr_)
-            throw std::bad_alloc();
+        if (!new_buffer_ptr_) throw std::bad_alloc();
         buffer_.release();
         buffer_.reset(new_buffer_ptr_);
     }
@@ -90,7 +94,7 @@ class PodVector {
     /// Resize the vector
     void resize(size_t new_size) {
         constexpr size_t MIN_CAPACITY = 256 / sizeof(V);
-        if (new_size < capacity_)  {
+        if (new_size < capacity_) {
             if ((new_size < capacity_ / 2) && (capacity_ > MIN_CAPACITY)) {
                 reserve(new_size);
             }
@@ -101,7 +105,7 @@ class PodVector {
                 if (next_cap < new_cap || next_cap > MAX_SIZE) {
                     new_cap = MAX_SIZE;
                 } else {
-                    new_cap  = next_cap;
+                    new_cap = next_cap;
                 }
             }
             reserve(new_cap);
@@ -140,6 +144,6 @@ class PodVector {
     void pop_back() { erase(size_ - 1); }
 };
 
-}
+}  // namespace dashql
 
 #endif
