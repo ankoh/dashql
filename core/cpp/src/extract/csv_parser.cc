@@ -96,7 +96,7 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
 
     // More values than types?
     if (current_column >= options.sql_types.size()) {
-        FailWith(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_column << ": expected " << options.sql_types.size()
+        FailWith(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_line << ": expected " << options.sql_types.size()
                                               << " values per row, but got more.";
         return;
     }
@@ -144,7 +144,7 @@ bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) 
     ++current_line;
 
     if (current_column < options.sql_types.size() && (options.mode != +CSVParserMode::SNIFFING_DIALECT)) {
-        FailWith(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_column << ": expected " << options.sql_types.size()
+        FailWith(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_line << ": expected " << options.sql_types.size()
                                               << " values per row, but got " << current_column << ".";
         return true;
     }
@@ -320,7 +320,7 @@ in_quotes:
         }
     } while (ReadBuffer());
     // still in quoted state at the end of the file, error:
-    return Error(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_column << ": unterminated quotes.";
+    return Error(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_line << ": unterminated quotes.";
 
 unquote:
     // This state handles the state directly after we unquote
@@ -347,7 +347,7 @@ unquote:
         goto add_row;
     } else {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << current_column
+               << "Line " << current_line
                << ": quote should be followed by end of value, end of row or another quote.";
     }
 
@@ -357,11 +357,11 @@ handle_escape:
     buffer_position++;
     if (buffer_position >= buffer_size && !ReadBuffer()) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
+               << "Line " << current_line << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
     }
     if (buffer[buffer_position] != options.quote[0] && buffer[buffer_position] != options.escape[0]) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
+               << "Line " << current_line << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
     }
     // escape was followed by quote or escape, go back to quoted state
     goto in_quotes;
@@ -522,7 +522,7 @@ in_quotes:
     } while (ReadBuffer());
 
     // Still in quoted state at the end of the file, error:
-    return Error(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_column << ": unterminated quote.";
+    return Error(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_line << ": unterminated quote.";
 
 unquote:
     // This state handles the state directly after we unquote
@@ -549,7 +549,7 @@ unquote:
             count++;
             if (count > delimiter_pos && count > quote_pos) {
                 return Error(ErrorCode::CSV_PARSER_ERROR)
-                       << "Line " << current_column
+                       << "Line " << current_line
                        << ": quote should be followed by end of value, end of row or another quote.";
             }
             if (delimiter_pos == options.delimiter.size()) {
@@ -566,7 +566,7 @@ unquote:
     } while (ReadBuffer());
 
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << current_column << ": quote should be followed by end of value, end of row or another quote.";
+           << "Line " << current_line << ": quote should be followed by end of value, end of row or another quote.";
 
 handle_escape:
     escape_pos = 0;
@@ -580,7 +580,7 @@ handle_escape:
             count++;
             if (count > escape_pos && count > quote_pos) {
                 return Error(ErrorCode::CSV_PARSER_ERROR)
-                       << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
+                       << "Line " << current_line << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
             }
             if (quote_pos == options.quote.size() || escape_pos == options.escape.size()) {
                 // Found quote or escape: move back to quoted state
@@ -590,7 +590,7 @@ handle_escape:
     } while (ReadBuffer());
 
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
+           << "Line " << current_line << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
 
 carriage_return:
     // This stage optionally skips a newline (\n) character, which allows \r\n to be interpreted as a single line
