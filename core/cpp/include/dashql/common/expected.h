@@ -11,6 +11,8 @@ namespace dashql {
 
 using ErrorCode = duckdb::web::ErrorCode;
 using Error = duckdb::web::Error;
+template <typename Fn>
+using ErrorBuilder = duckdb::web::ErrorBuilder<Fn>;
 template <typename V>
 using Expected = duckdb::web::Expected<V>;
 using Signal = duckdb::web::Signal;

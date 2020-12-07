@@ -59,8 +59,8 @@ bool CSVParser::ReadBuffer() {
 
     // Exceeded maximum line size?
     if ((remaining + buffer_read_size) > CSV_PARSER_MAXIMUM_LINE_SIZE) {
-        FailWith(Error(ErrorCode::CSV_PARSER_ERROR)
-                 << "Maximum line size of " << CSV_PARSER_MAXIMUM_LINE_SIZE << "bytes exceeded!");
+        FailWith(ErrorCode::CSV_PARSER_ERROR)
+            << "Maximum line size of " << CSV_PARSER_MAXIMUM_LINE_SIZE << "bytes exceeded!";
         return false;
     }
 
@@ -96,9 +96,9 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
 
     // More values than types?
     if (current_column >= options.sql_types.size()) {
-        FailWith(Error(ErrorCode::CSV_PARSER_ERROR)
-                 << "Line " << current_column << ": expected " << options.sql_types.size()
-                 << " values per row, but got more. (" << options.ToString() << ")");
+        FailWith(ErrorCode::CSV_PARSER_ERROR)
+            << "Line " << current_column << ": expected " << options.sql_types.size()
+            << " values per row, but got more. (" << options.ToString() << ")";
     }
 
     // Insert the line number into the chunk
@@ -140,12 +140,13 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
 }
 
 bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+    if (error) return true;
     current_line++;
 
     if (current_column < options.sql_types.size() && (options.mode != +CSVParserMode::SNIFFING_DIALECT)) {
-        FailWith(Error(ErrorCode::CSV_PARSER_ERROR)
-                 << "Line " << current_column << ": expected " << options.sql_types.size()
-                 << " values per row, but got " << current_column << ". (" << options.ToString() << ")");
+        FailWith(ErrorCode::CSV_PARSER_ERROR)
+            << "Line " << current_column << ": expected " << options.sql_types.size()
+            << " values per row, but got " << current_column << ". (" << options.ToString() << ")";
         return true;
     }
     if (options.mode == +CSVParserMode::SNIFFING_DIALECT) {
@@ -205,15 +206,15 @@ void CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
                     VectorOperations::Cast(parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size());
                 }
             } catch (const Exception& e) {
-                FailWith(Error(ErrorCode::CSV_PARSER_ERROR)
-                         << e.what() << " in column " << current_column << " between line "
-                         << (current_line - parse_chunk.size()) << " and " << current_line
-                         << ". Parser options: " << options.ToString());
+                FailWith(ErrorCode::CSV_PARSER_ERROR)
+                    << e.what() << " in column " << current_column << " between line "
+                    << (current_line - parse_chunk.size()) << " and " << current_line
+                    << ". Parser options: " << options.ToString();
+                return;
             }
         }
     }
     parse_chunk.Reset();
-    return;
 }
 
 /// Constructor
@@ -273,7 +274,7 @@ add_value:
     // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
-    if (buffer_position >= buffer_size && !ReadBuffer()) {
+    if (error || (buffer_position >= buffer_size && !ReadBuffer())) {
         // File ends right after delimiter, go to final state
         goto final_state;
     }
@@ -290,7 +291,7 @@ add_row : {
     // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
-    if (buffer_position >= buffer_size && !ReadBuffer()) {
+    if (error || (buffer_position >= buffer_size && !ReadBuffer())) {
         // file ends right after delimiter, go to final state
         goto final_state;
     }
@@ -397,7 +398,7 @@ final_state:
     }
 
     /// Final flush
-    if (options.mode == +CSVParserMode::PARSING) {
+    if (!error && options.mode == +CSVParserMode::PARSING) {
         Flush(output_chunk, output_capacity);
     }
     return ParsingDone();
@@ -478,7 +479,7 @@ add_value:
     // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
-    if (buffer_position >= buffer_size && !ReadBuffer()) {
+    if (error || (buffer_position >= buffer_size && !ReadBuffer())) {
         // File ends right after delimiter, go to final state
         goto final_state;
     }
@@ -495,7 +496,7 @@ add_row : {
     // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
-    if (buffer_position >= buffer_size && !ReadBuffer()) {
+    if (error || (buffer_position >= buffer_size && !ReadBuffer())) {
         // File ends right after newline, go to final state
         goto final_state;
     }
@@ -626,7 +627,7 @@ final_state:
     }
 
     // Final flush
-    if (options.mode == +CSVParserMode::PARSING) {
+    if (!error && options.mode == +CSVParserMode::PARSING) {
         Flush(output_chunk, output_capacity);
     }
     return ParsingDone();
