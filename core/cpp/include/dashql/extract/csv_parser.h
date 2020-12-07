@@ -9,6 +9,7 @@
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/pattern_search.h"
+#include "dashql/common/pod_vector.h"
 #include "duckdb/common/types.hpp"
 #include "duckdb/common/types/data_chunk.hpp"
 #include "duckdb/function/scalar/strftime.hpp"
@@ -65,6 +66,8 @@ class CSVParser {
     /// The input stream
     std::istream& in;
 
+    /// The error (if any)
+    std::optional<Error> error = std::nullopt;
     /// The buffer
     std::vector<char> buffer = {};
     /// The temporary buffer
@@ -85,16 +88,18 @@ class CSVParser {
     /// The parse chunk
     duckdb::DataChunk parse_chunk = {};
 
+    /// Fail with error
+    void FailWith(Error e) { if (!error) { error = std::move(e); } }
     /// Get the line number string
     std::string GetLineNumberStr() const;
     /// Read into buffer
-    Expected<bool> ReadBuffer();
+    bool ReadBuffer();
     /// Add a value
-    Signal AddValue(std::string_view val, std::vector<size_t> &escape_positions);
+    void AddValue(std::string_view val, std::vector<size_t> &escape_positions);
     /// Adds a row to the output_chunk, returns true if the chunk is filled as a result of this row being added
-    Expected<bool> AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity);
+    bool AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity);
     /// Flush data chunk
-    Signal Flush(duckdb::DataChunk* output_chunk, size_t output_capacity);
+    void Flush(duckdb::DataChunk* output_chunk, size_t output_capacity);
 
    public:
     /// Constructor

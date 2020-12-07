@@ -45,6 +45,7 @@ template <typename V> class PodVector {
     PodVector& operator=(const PodVector& other) {
         resize(other.size());
         std::memcpy(begin(), other.begin(), other.size() * sizeof(V));
+        return *this;
     }
 
     /// Get the data?
