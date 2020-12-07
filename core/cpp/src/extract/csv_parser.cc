@@ -11,12 +11,37 @@ namespace {
 
 char is_newline(char c) { return c == '\n' || c == '\r'; }
 
-string GetLineNumberStr(size_t linenr, bool linenr_estimated) {
-    string estimated = (linenr_estimated ? string(" (estimated)") : string(""));
-    return std::to_string(linenr + 1) + estimated;
+}  // namespace
+
+/// Dump parser options as string
+std::string CSVParserOptions::ToString() const {
+    std::stringstream out;
+    out << "mode=" << mode;
+    out << ", types=[";
+    for (unsigned i = 0; i < sql_types.size(); ++i) {
+        if (i > 0) out << ", ";
+        out << sql_types[i].ToString();
+    }
+    out << "], quote='" << quote << "'";
+    out << ", escape='" << escape << "'";
+    out << ", header=" << header;
+    out << ", skip_rows=" << skip_rows;
+    out << ", num_cols=" << num_cols;
+    out << ", null_str='" << null_str << "'";
+    out << ", force_not_null=[";
+    for (unsigned i = 0; i < force_not_null.size(); ++i) {
+        if (i > 0) out << ", ";
+        out << force_not_null[i];
+    }
+    out << "], all_varchar=" << all_varchar;
+    return out.str();
 }
 
-}  // namespace
+CSVParser::CSVParser(const CSVParserOptions& options, std::istream& in)
+    : options(options), in(in) {}
+
+CSVParser::CSVParser(CSVParser&& other, const CSVParserOptions& options, std::istream& in)
+    : options(options), in(in), buffer(move(other.buffer)), tmp(move(other.tmp)), column_counts(other.column_counts) {}
 
 Expected<bool> CSVParser::ReadBuffer() {
     std::swap(buffer, tmp);
@@ -59,7 +84,7 @@ Signal CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
     }
 
     // Dont write the actual data chunks when sniffing the dialect
-    if (options.mode == CSVParserMode::SNIFFING_DIALECT) {
+    if (options.mode == +CSVParserMode::SNIFFING_DIALECT) {
         current_column++;
         return Signal::OK();
     }
@@ -67,7 +92,7 @@ Signal CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
     // More values than types?
     if (current_column >= options.sql_types.size()) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << GetLineNumberStr() << ": expected " << options.sql_types.size()
+               << "Line " << current_column << ": expected " << options.sql_types.size()
                << " values per row, but got more. (" << options.ToString() << ")";
     }
 
@@ -113,20 +138,20 @@ Signal CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
 Expected<bool> CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     current_line++;
 
-    if (current_column < options.sql_types.size() && (options.mode != CSVParserMode::SNIFFING_DIALECT)) {
+    if (current_column < options.sql_types.size() && (options.mode != +CSVParserMode::SNIFFING_DIALECT)) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << GetLineNumberStr() << ": expected " << options.sql_types.size()
+               << "Line " << current_column << ": expected " << options.sql_types.size()
                << " values per row, but got " << current_column << ". (" << options.ToString() << ")";
     }
-    if (options.mode == CSVParserMode::SNIFFING_DIALECT) {
+    if (options.mode == +CSVParserMode::SNIFFING_DIALECT) {
         column_counts.push_back(current_column);
         if (column_counts.size() == output_capacity) return true;
     } else {
         parse_chunk.SetCardinality(parse_chunk.size() + 1);
     }
-    if (options.mode == CSVParserMode::PARSING_HEADER) return true;
-    if (options.mode == CSVParserMode::SNIFFING_DATATYPES && parse_chunk.size() == output_capacity) return true;
-    if (options.mode == CSVParserMode::PARSING && parse_chunk.size() == output_capacity) {
+    if (options.mode == +CSVParserMode::PARSING_HEADER) return true;
+    if (options.mode == +CSVParserMode::SNIFFING_DATATYPES && parse_chunk.size() == output_capacity) return true;
+    if (options.mode == +CSVParserMode::PARSING && parse_chunk.size() == output_capacity) {
         Flush(output_chunk, output_capacity);
         return true;
     }
@@ -183,6 +208,14 @@ Signal CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity)
     parse_chunk.Reset();
     return Signal::OK();
 }
+
+/// Constructor
+SimpleCSVParser::SimpleCSVParser(const CSVParserOptions& options, std::istream& in)
+    : CSVParser(options, in) {}
+
+/// Move constructor to reuse state
+SimpleCSVParser::SimpleCSVParser(SimpleCSVParser&& other, const CSVParserOptions& options, std::istream& in)
+    : CSVParser(move(other), options, in) {}
 
 Signal SimpleCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     // Used for parsing algorithm
@@ -286,7 +319,7 @@ in_quotes:
     } while (ReadBuffer());
     // still in quoted state at the end of the file, error:
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << GetLineNumberStr() << ": unterminated quotes. (" << options.ToString() << ")";
+           << "Line " << current_column << ": unterminated quotes. (" << options.ToString() << ")";
 
 unquote:
     // This state handles the state directly after we unquote
@@ -313,7 +346,7 @@ unquote:
         goto add_row;
     } else {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << GetLineNumberStr()
+               << "Line " << current_column
                << ": quote should be followed by end of value, end of row or another quote. (" << options.ToString()
                << ")";
     }
@@ -324,12 +357,12 @@ handle_escape:
     buffer_position++;
     if (buffer_position >= buffer_size && !ReadBuffer()) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << GetLineNumberStr() << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
+               << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
                << options.ToString() << ")";
     }
     if (buffer[buffer_position] != options.quote[0] && buffer[buffer_position] != options.escape[0]) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << GetLineNumberStr() << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
+               << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
                << options.ToString() << ")";
     }
     // escape was followed by quote or escape, go back to quoted state
@@ -363,11 +396,17 @@ final_state:
     }
 
     /// Final flush
-    if (options.mode == CSVParserMode::PARSING) {
+    if (options.mode == +CSVParserMode::PARSING) {
         Flush(output_chunk, output_capacity);
     }
     return Signal::OK();
 }
+
+ComplexCSVParser::ComplexCSVParser(const CSVParserOptions& options, std::istream& in)
+    : CSVParser(options, in) {}
+
+ComplexCSVParser::ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOptions& options, std::istream& in)
+    : CSVParser(move(other), options, in) {}
 
 Signal ComplexCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     // Used for parsing algorithm
@@ -492,7 +531,7 @@ in_quotes:
 
     // Still in quoted state at the end of the file, error:
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << GetLineNumberStr() << ": unterminated quote. (" << options.ToString() << ")";
+           << "Line " << current_column << ": unterminated quote. (" << options.ToString() << ")";
 
 unquote:
     // This state handles the state directly after we unquote
@@ -519,7 +558,7 @@ unquote:
             count++;
             if (count > delimiter_pos && count > quote_pos) {
                 return Error(ErrorCode::CSV_PARSER_ERROR)
-                       << "Line " << GetLineNumberStr()
+                       << "Line " << current_column
                        << ": quote should be followed by end of value, end of row or another quote. ("
                        << options.ToString() << ")";
             }
@@ -537,7 +576,7 @@ unquote:
     } while (ReadBuffer());
 
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << GetLineNumberStr()
+           << "Line " << current_column
            << ": quote should be followed by end of value, end of row or another quote. (" << options.ToString() << ")";
 
 handle_escape:
@@ -552,7 +591,7 @@ handle_escape:
             count++;
             if (count > escape_pos && count > quote_pos) {
                 return Error(ErrorCode::CSV_PARSER_ERROR)
-                       << "Line " << GetLineNumberStr() << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
+                       << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
                        << options.ToString() << ")";
             }
             if (quote_pos == options.quote.size() || escape_pos == options.escape.size()) {
@@ -563,7 +602,7 @@ handle_escape:
     } while (ReadBuffer());
 
     return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << GetLineNumberStr() << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
+           << "Line " << current_column << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE. ("
            << options.ToString() << ")";
 
 carriage_return:
@@ -592,7 +631,7 @@ final_state:
     }
 
     // Final flush
-    if (options.mode == CSVParserMode::PARSING) {
+    if (options.mode == +CSVParserMode::PARSING) {
         Flush(output_chunk, output_capacity);
     }
     return Signal::OK();

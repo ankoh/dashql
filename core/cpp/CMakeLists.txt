@@ -208,6 +208,7 @@ target_link_libraries(dashql_parser dashql_proto)
 add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/common/blob_stream.cc
+    ${CMAKE_SOURCE_DIR}/src/common/pattern_search.cc
     ${CMAKE_SOURCE_DIR}/src/common/substring_buffer.cc
     ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
     ${CMAKE_SOURCE_DIR}/src/extract/csv_parser.cc
