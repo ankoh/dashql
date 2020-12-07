@@ -69,7 +69,7 @@ class ErrorBuilder {
    public:
     /// Constructor
     ErrorBuilder(ErrorCode code, bool ignore, Context* context, Callback callback)
-        : error_code_(code), ignore_(ignore), callback_() {}
+        : error_code_(code), ignore_(ignore), context_(context), callback_(callback) {}
     /// Destructor
     ~ErrorBuilder() {
         if (!ignore_) callback_(context_, Error{error_code_, error_message_.str()});
