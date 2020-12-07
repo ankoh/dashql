@@ -6,6 +6,8 @@
 #define INCLUDE_DASHQL_EXTRACT_CSV_PARSER_H_
 
 #include <map>
+#include <optional>
+
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/pattern_search.h"
@@ -16,12 +18,7 @@
 
 namespace dashql {
 
-BETTER_ENUM(CSVParserMode, uint8_t,
-    PARSING,
-    PARSING_HEADER,
-    SNIFFING_DIALECT,
-    SNIFFING_DATATYPES
-)
+BETTER_ENUM(CSVParserMode, uint8_t, PARSING, PARSING_HEADER, SNIFFING_DIALECT, SNIFFING_DATATYPES)
 
 constexpr size_t CSV_OUTPUT_CHUNK_SIZE = 1024;
 constexpr size_t CSV_PARSER_INITIAL_BUFFER_SIZE = 16384;
@@ -51,9 +48,11 @@ struct CSVParserOptions {
     /// Consider all columns to be of type varchar
     bool all_varchar = false;
     /// The date format to use (if any is specified)
-    std::map<duckdb::LogicalTypeId, duckdb::StrpTimeFormat> date_format = {{duckdb::LogicalTypeId::DATE, {}}, {duckdb::LogicalTypeId::TIMESTAMP, {}}};
+    std::map<duckdb::LogicalTypeId, duckdb::StrpTimeFormat> date_format = {{duckdb::LogicalTypeId::DATE, {}},
+                                                                           {duckdb::LogicalTypeId::TIMESTAMP, {}}};
     /// Whether or not a type format is specified
-    std::map<duckdb::LogicalTypeId, bool> has_format = {{duckdb::LogicalTypeId::DATE, false}, {duckdb::LogicalTypeId::TIMESTAMP, false}};
+    std::map<duckdb::LogicalTypeId, bool> has_format = {{duckdb::LogicalTypeId::DATE, false},
+                                                        {duckdb::LogicalTypeId::TIMESTAMP, false}};
 
     /// Dump parser options as string
     std::string ToString() const;
@@ -89,13 +88,17 @@ class CSVParser {
     duckdb::DataChunk parse_chunk = {};
 
     /// Fail with error
-    void FailWith(Error e) { if (!error) { error = std::move(e); } }
+    void FailWith(Error e) {
+        if (!error) {
+            error = std::move(e);
+        }
+    }
     /// Get the line number string
     std::string GetLineNumberStr() const;
     /// Read into buffer
     bool ReadBuffer();
     /// Add a value
-    void AddValue(std::string_view val, std::vector<size_t> &escape_positions);
+    void AddValue(std::string_view val, std::vector<size_t>& escape_positions);
     /// Adds a row to the output_chunk, returns true if the chunk is filled as a result of this row being added
     bool AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity);
     /// Flush data chunk
@@ -112,7 +115,7 @@ class CSVParser {
     CSVParser& operator=(const CSVParser& other) = delete;
 };
 
-class SimpleCSVParser: public CSVParser {
+class SimpleCSVParser : public CSVParser {
    public:
     /// Constructor
     SimpleCSVParser(const CSVParserOptions& options, std::istream& in);
@@ -125,8 +128,7 @@ class SimpleCSVParser: public CSVParser {
     Signal Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
 };
 
-
-class ComplexCSVParser: public CSVParser {
+class ComplexCSVParser : public CSVParser {
    protected:
     /// The shift array for the delimiter search
     PatternShiftArray delimiter_search;
@@ -145,6 +147,6 @@ class ComplexCSVParser: public CSVParser {
     Signal Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
 };
 
-}
+}  // namespace dashql
 
 #endif
