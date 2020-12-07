@@ -42,7 +42,7 @@ TEST(SimpleCSVParser, SimpleColumns) {
 
     CSVParserOptions options;
     options.mode = CSVParserMode::PARSING;
-    options.header = true;
+    options.header = false;
     options.delimiter = ",";
     options.escape = "";
     options.quote = "\"";

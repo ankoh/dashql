@@ -293,7 +293,6 @@ std::vector<const GrammarTest*> GrammarTest::GetTests(std::string_view filename)
     for (auto& test: iter->second) {
         tests.emplace_back(&test);
     }
-    std::cout << "filename " << tests.size() << std::endl;
     return tests;
 }
 

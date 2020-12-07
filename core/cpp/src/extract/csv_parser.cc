@@ -47,7 +47,7 @@ CSVParser::CSVParser(CSVParser&& other, const CSVParserOptions& options, std::is
     parse_chunk.Initialize(varchar_types);
 }
 
-Expected<bool> CSVParser::ReadBuffer() {
+bool CSVParser::ReadBuffer() {
     std::swap(buffer, tmp);
 
     // Get the remaining part of the last buffer
@@ -59,8 +59,9 @@ Expected<bool> CSVParser::ReadBuffer() {
 
     // Exceeded maximum line size?
     if ((remaining + buffer_read_size) > CSV_PARSER_MAXIMUM_LINE_SIZE) {
-        return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Maximum line size of " << CSV_PARSER_MAXIMUM_LINE_SIZE << "bytes exceeded!";
+        FailWith(Error(ErrorCode::CSV_PARSER_ERROR)
+                 << "Maximum line size of " << CSV_PARSER_MAXIMUM_LINE_SIZE << "bytes exceeded!");
+        return false;
     }
 
     // Need to resize the buffer?
@@ -81,23 +82,23 @@ Expected<bool> CSVParser::ReadBuffer() {
     return n > 0;
 }
 
-Signal CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
+void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
     // Skip a single trailing delimiter in last column
     if (options.sql_types.size() > 0 && current_column == options.sql_types.size() && val.length() == 0) {
-        return Signal::OK();
+        return;
     }
 
     // Dont write the actual data chunks when sniffing the dialect
     if (options.mode == +CSVParserMode::SNIFFING_DIALECT) {
         current_column++;
-        return Signal::OK();
+        return;
     }
 
     // More values than types?
     if (current_column >= options.sql_types.size()) {
-        return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << current_column << ": expected " << options.sql_types.size()
-               << " values per row, but got more. (" << options.ToString() << ")";
+        FailWith(Error(ErrorCode::CSV_PARSER_ERROR)
+                 << "Line " << current_column << ": expected " << options.sql_types.size()
+                 << " values per row, but got more. (" << options.ToString() << ")");
     }
 
     // Insert the line number into the chunk
@@ -108,7 +109,7 @@ Signal CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
         FlatVector::SetNull(parse_chunk.data[current_column], row_entry, true);
     } else {
         auto& v = parse_chunk.data[current_column];
-        auto parse_data = FlatVector::GetData<string_t>(v);
+        auto* parse_data = FlatVector::GetData<string_t>(v);
         if (escapes.size() > 0) {
             // Remove escape characters (if any)
             auto old_val = val;
@@ -136,16 +137,16 @@ Signal CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
 
     // Move to the next column
     current_column++;
-    return Signal::OK();
 }
 
-Expected<bool> CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) {
     current_line++;
 
     if (current_column < options.sql_types.size() && (options.mode != +CSVParserMode::SNIFFING_DIALECT)) {
-        return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << current_column << ": expected " << options.sql_types.size() << " values per row, but got "
-               << current_column << ". (" << options.ToString() << ")";
+        FailWith(Error(ErrorCode::CSV_PARSER_ERROR)
+                 << "Line " << current_column << ": expected " << options.sql_types.size()
+                 << " values per row, but got " << current_column << ". (" << options.ToString() << ")");
+        return true;
     }
     if (options.mode == +CSVParserMode::SNIFFING_DIALECT) {
         column_counts.push_back(current_column);
@@ -163,8 +164,8 @@ Expected<bool> CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_
     return false;
 }
 
-Signal CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
-    if (!output_chunk || parse_chunk.size() == 0) return Signal::OK();
+void CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+    if (!output_chunk || parse_chunk.size() == 0) return;
 
     // Convert the columns in the parsed chunk to the types of the table
     output_chunk->SetCardinality(parse_chunk);
@@ -204,15 +205,15 @@ Signal CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity)
                     VectorOperations::Cast(parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size());
                 }
             } catch (const Exception& e) {
-                return Error(ErrorCode::CSV_PARSER_ERROR)
-                       << e.what() << " in column " << current_column << " between line "
-                       << (current_line - parse_chunk.size()) << " and " << current_line
-                       << ". Parser options: " << options.ToString();
+                FailWith(Error(ErrorCode::CSV_PARSER_ERROR)
+                         << e.what() << " in column " << current_column << " between line "
+                         << (current_line - parse_chunk.size()) << " and " << current_line
+                         << ". Parser options: " << options.ToString());
             }
         }
     }
     parse_chunk.Reset();
-    return Signal::OK();
+    return;
 }
 
 /// Constructor
@@ -227,6 +228,7 @@ Signal SimpleCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_cap
     bool finished_chunk = false;
     size_t offset = 0;
     std::vector<size_t> escapes;
+    Expected<bool> read;
 
     // Read values into the buffer (if any)
     if (buffer_position >= buffer_size) {
@@ -266,8 +268,8 @@ normal:
     goto final_state;
 
 add_value:
-    if (auto ok = AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes); !ok)
-        return ok.err();
+    AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
+
     // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
@@ -281,12 +283,9 @@ add_row : {
     // Check type of newline (\r or \n)
     bool carriage_return = buffer[buffer_position] == '\r';
     // Add value
-    if (auto ok = AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes); !ok)
-        return ok.err();
+    AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
     // Add row
-    auto maybe_finished = AddRow(output_chunk, output_capacity);
-    if (!maybe_finished) return maybe_finished.err();
-    finished_chunk = *maybe_finished;
+    finished_chunk = AddRow(output_chunk, output_capacity);
 
     // Increase position by 1 and move start to the new position
     offset = 0;
@@ -393,11 +392,8 @@ final_state:
     if (finished_chunk) return Signal::OK();
     if (current_column > 0 || buffer_position > token_start) {
         // remaining values to be added to the chunk
-        if (auto ok = AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes); !ok)
-            return ok.err();
-        auto maybe_finished = AddRow(output_chunk, output_capacity);
-        if (!maybe_finished) return maybe_finished.err();
-        finished_chunk = *maybe_finished;
+        AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
+        finished_chunk = AddRow(output_chunk, output_capacity);
     }
 
     /// Final flush
@@ -477,8 +473,8 @@ normal:
     goto final_state;
 
 add_value:
-    if (auto ok = AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes); !ok)
-        return ok.err();
+    AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
+
     // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
@@ -492,12 +488,10 @@ add_row : {
     // Check type of newline (\r or \n)
     bool carriage_return = buffer[buffer_position] == '\r';
     // Add value
-    if (auto ok = AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes); !ok)
-        return ok.err();
+    AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
+
     // Add row
-    auto maybe_finished = AddRow(output_chunk, output_capacity);
-    if (!maybe_finished) return maybe_finished.err();
-    finished_chunk = *maybe_finished;
+    finished_chunk = AddRow(output_chunk, output_capacity);
     // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
@@ -627,11 +621,8 @@ final_state:
     if (finished_chunk) return Signal::OK();
     if (current_column > 0 || buffer_position > token_start) {
         // Remaining values to be added to the chunk
-        if (auto ok = AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes); !ok)
-            return ok.err();
-        auto maybe_finished = AddRow(output_chunk, output_capacity);
-        if (!maybe_finished) return maybe_finished.err();
-        finished_chunk = *maybe_finished;
+        AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
+        finished_chunk = AddRow(output_chunk, output_capacity);
     }
 
     // Final flush
