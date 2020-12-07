@@ -62,4 +62,35 @@ TEST(SimpleCSVParser, SimpleColumns) {
     });
 }
 
+TEST(SimpleCSVParser, TooManyColumns) {
+    auto blob_id = test::Blob::Register({R"CSV(1,2,3,X
+4,5,6
+7,8,9)CSV"});
+    BlobStreamBuffer blob_streambuf(test::Blob::StreamUnderflow, blob_id);
+    std::istream blob_stream{&blob_streambuf};
+
+    std::vector<duckdb::LogicalType> column_types{
+        duckdb::LogicalType::INTEGER,
+        duckdb::LogicalType::INTEGER,
+        duckdb::LogicalType::INTEGER,
+    };
+    duckdb::DataChunk output_chunk;
+    output_chunk.Initialize(column_types);
+
+    CSVParserOptions options;
+    options.mode = CSVParserMode::PARSING;
+    options.header = false;
+    options.delimiter = ",";
+    options.escape = "";
+    options.quote = "\"";
+    options.null_str = "NULL";
+    options.all_varchar = false;
+    options.force_not_null = {false, false, false};
+    options.sql_types = column_types;
+
+    SimpleCSVParser parser{options, blob_stream};
+    auto rc = parser.Parse(&output_chunk, 1024);
+    ASSERT_FALSE(rc.IsOk());
+}
+
 }  // namespace
