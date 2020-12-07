@@ -274,6 +274,7 @@ endif()
 
 if(NOT EMSCRIPTEN)
     add_executable(tester
+        ${CMAKE_SOURCE_DIR}/test/common/pod_vector_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/csv_parser_test.cc
