@@ -65,13 +65,6 @@ TEST(SimpleCSVParser, ColumnCountMismatch) {
         output_chunk.Initialize(column_types);
 
         CSVParserOptions options;
-        options.mode = CSVParserMode::PARSING;
-        options.header = false;
-        options.delimiter = ",";
-        options.escape = "";
-        options.quote = "\"";
-        options.null_str = "NULL";
-        options.all_varchar = false;
         options.force_not_null = {false, false, false};
         options.sql_types = column_types;
 
