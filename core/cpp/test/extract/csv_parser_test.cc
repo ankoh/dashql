@@ -88,6 +88,12 @@ TEST(SimpleCSVParser, InvalidCSV) {
     test("1,2,3\n\"4,5,6\n7,8,9\n");
     test("1,2,3\n4\",5,6\n7,8,9\n");
     test("1,2,3\n4,5,6\n7,8,9\n\"");
+
+    // Invalid Escapes
+    test("\\1,2,3\n4,5,6\n7,8,9\n");
+    test("1\\,2,3\n4,5,6\n7,8,9\n");
+    test("1,2,\\3\n4,5,6\n7,8,9\n");
+    test("1,2,3\\\n4,5,6\n7,8,9\n\\");
 }
 
 }  // namespace
