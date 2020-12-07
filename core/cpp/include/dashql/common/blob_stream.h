@@ -3,8 +3,9 @@
 #ifndef INCLUDE_DASHQL_COMMON_STREAMS_H_
 #define INCLUDE_DASHQL_COMMON_STREAMS_H_
 
-#include <vector>
 #include <iostream>
+#include <memory>
+#include <vector>
 
 namespace dashql {
 
@@ -12,11 +13,11 @@ using BlobID = size_t;
 
 constexpr size_t BLOB_SREAMBUF_SIZE = 16 * 1024;
 
-class BlobIStreamBuffer: public std::streambuf {
-    public:
-    using UnderflowFunc = size_t(*)(BlobID, char*, size_t);
+class BlobIStreamBuffer : public std::streambuf {
+   public:
+    using UnderflowFunc = size_t (*)(BlobID, char*, size_t);
 
-    protected:
+   protected:
     /// The underflow function
     UnderflowFunc underflow_func_;
     /// The blob id
@@ -31,7 +32,7 @@ class BlobIStreamBuffer: public std::streambuf {
     /// Is at EOF?
     inline bool IsEOF() const { return blob_end_ && (egptr() == gptr()); }
 
-    public:
+   public:
     /// Constructor
     BlobIStreamBuffer(UnderflowFunc underflow, BlobID blob_id);
 
@@ -46,6 +47,6 @@ class BlobIStreamBuffer: public std::streambuf {
     int_type underflow() override;
 };
 
-} // namespace dashql
+}  // namespace dashql
 
-#endif // INCLUDE_DASHQL_COMMON_STREAMS_H_
+#endif  // INCLUDE_DASHQL_COMMON_STREAMS_H_
