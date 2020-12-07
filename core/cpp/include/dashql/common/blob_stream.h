@@ -18,6 +18,7 @@ constexpr size_t BLOB_STREAMBUF_MIN_READ = 128;
 class BlobStreamBufferBase : public std::streambuf {
    public:
     using UnderflowFunc = size_t (*)(BlobID, char*, size_t);
+    using CachedBuffers = std::vector<PodVector<char>>;
 
    protected:
     /// The underflow function
@@ -51,7 +52,7 @@ class BlobStreamBufferBase : public std::streambuf {
 class BlobStreamBuffer : public BlobStreamBufferBase {
    protected:
     /// The cached buffers (if any)
-    std::vector<PodVector<char>>* cached_buffers_;
+    CachedBuffers* cached_buffers_;
     /// The cache iterator
     size_t cache_iter_;
     /// The buffer
@@ -59,7 +60,7 @@ class BlobStreamBuffer : public BlobStreamBufferBase {
 
    public:
     /// Constructor
-    BlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id, std::vector<PodVector<char>>* cached_buffers = nullptr);
+    BlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id, CachedBuffers* cached_buffers = nullptr);
 
     /// Virtual function called by other member functions to get the current character
     /// in the controlled input sequence without changing the current position.
@@ -71,11 +72,11 @@ class BlobStreamBuffer : public BlobStreamBufferBase {
 class CachingBlobStreamBuffer : public BlobStreamBufferBase {
    protected:
     /// The buffer
-    std::vector<PodVector<char>> buffers_;
+    CachedBuffers buffers_;
 
    public:
     /// Constructor
-    CachingBlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id, std::vector<PodVector<char>>&& cached_buffers = {});
+    CachingBlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id, CachedBuffers&& cached_buffers = {});
 
     /// Virtual function called by other member functions to get the current character
     /// in the controlled input sequence without changing the current position.
