@@ -65,7 +65,7 @@ include_directories(
 # ---------------------------------------------------------------------------
 # Parser
 
-set(REQUIRED_BISON_VERSION 3.3)
+set(REQUIRED_BISON_VERSION 3.7)
 find_package(BISON ${REQUIRED_BISON_VERSION})
 find_package(FLEX REQUIRED)
 
