@@ -96,9 +96,8 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
 
     // More values than types?
     if (current_column >= options.sql_types.size()) {
-        FailWith(ErrorCode::CSV_PARSER_ERROR)
-            << "Line " << current_column << ": expected " << options.sql_types.size()
-            << " values per row, but got more.";
+        FailWith(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_column << ": expected " << options.sql_types.size()
+                                              << " values per row, but got more.";
     }
 
     // Insert the line number into the chunk
@@ -144,9 +143,8 @@ bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) 
     current_line++;
 
     if (current_column < options.sql_types.size() && (options.mode != +CSVParserMode::SNIFFING_DIALECT)) {
-        FailWith(ErrorCode::CSV_PARSER_ERROR)
-            << "Line " << current_column << ": expected " << options.sql_types.size()
-            << " values per row, but got " << current_column << ".";
+        FailWith(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_column << ": expected " << options.sql_types.size()
+                                              << " values per row, but got " << current_column << ".";
         return true;
     }
     if (options.mode == +CSVParserMode::SNIFFING_DIALECT) {
@@ -206,9 +204,8 @@ void CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
                     VectorOperations::Cast(parse_chunk.data[col_idx], output_chunk->data[col_idx], parse_chunk.size());
                 }
             } catch (const Exception& e) {
-                FailWith(ErrorCode::CSV_PARSER_ERROR)
-                    << e.what() << " in column " << current_column << " between line "
-                    << (current_line - parse_chunk.size()) << " and " << current_line;
+                FailWith(ErrorCode::CSV_PARSER_ERROR) << e.what() << " in column " << current_column << " between line "
+                                                      << (current_line - parse_chunk.size()) << " and " << current_line;
                 return;
             }
         }
@@ -322,8 +319,7 @@ in_quotes:
         }
     } while (ReadBuffer());
     // still in quoted state at the end of the file, error:
-    return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << current_column << ": unterminated quotes.";
+    return Error(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_column << ": unterminated quotes.";
 
 unquote:
     // This state handles the state directly after we unquote
@@ -525,8 +521,7 @@ in_quotes:
     } while (ReadBuffer());
 
     // Still in quoted state at the end of the file, error:
-    return Error(ErrorCode::CSV_PARSER_ERROR)
-           << "Line " << current_column << ": unterminated quote.";
+    return Error(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_column << ": unterminated quote.";
 
 unquote:
     // This state handles the state directly after we unquote
