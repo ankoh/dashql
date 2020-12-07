@@ -88,10 +88,14 @@ class CSVParser {
     duckdb::DataChunk parse_chunk = {};
 
     /// Fail with error
-    void FailWith(Error e) {
+    inline void FailWith(Error e) {
         if (!error) {
             error = std::move(e);
         }
+    }
+    /// The parsing finished
+    inline Signal ParsingDone() {
+        return error ? *error : Signal::OK();
     }
     /// Get the line number string
     std::string GetLineNumberStr() const;
