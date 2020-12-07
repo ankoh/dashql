@@ -10,7 +10,7 @@
 using namespace dashql;
 using FFIResponse = duckdb::web::FFIResponse;
 using FFIResponseBuffer = duckdb::web::FFIResponseBuffer;
-using BlobIStreamBuffer = dashql::BlobIStreamBuffer;
+using BlobStreamBuffer = dashql::BlobStreamBuffer;
 
 namespace {
 

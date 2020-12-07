@@ -79,7 +79,7 @@ TEST_F(SessionTest, CSVExtractAutoDetect) {
 // 346,TEST2,15:16:17,13-12-2004,13-12-04 15:16:00)CSV";
 // 
 //     auto blob_id = Blob::Register(input);
-//     BlobIStreamBuffer blob_streambuf{Blob::StreamUnderflow, blob_id};
+//     BlobStreamBuffer blob_streambuf{Blob::StreamUnderflow, blob_id};
 // 
 //     duckdb::BufferedCSVReaderOptions csv_options;
 //     csv_options.file_path = std::string{"blob:"} + std::to_string(blob_id);

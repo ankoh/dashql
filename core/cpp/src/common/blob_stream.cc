@@ -4,24 +4,17 @@
 
 namespace dashql {
 
-/// Constructor
-BlobIStreamBuffer::BlobIStreamBuffer(BlobIStreamBuffer::UnderflowFunc underflow, BlobID blob_id)
-    : underflow_func_(underflow), blob_id_(blob_id), blob_offset_(), blob_end_(), buffer_() {
-    buffer_ = std::unique_ptr<char[]>(new char[BLOB_SREAMBUF_SIZE]);
-}
+BlobStreamBufferBase::BlobStreamBufferBase(BlobStreamBufferBase::UnderflowFunc underflow, BlobID blob_id)
+    : underflow_func_(underflow), blob_id_(blob_id), reached_eof_() {}
 
-/// Virtual function (to be read s-how-many-c) called by other member functions to get
-/// an estimate on the number of characters available in the associated input sequence.
-std::streamsize BlobIStreamBuffer::showmanyc() {
+std::streamsize BlobStreamBufferBase::showmanyc() {
     if (egptr() - gptr() == 0) {
         underflow();
     }
     return egptr() - gptr();
 }
 
-/// Retrieves characters from the controlled input sequence and stores them in the array pointed by s,
-/// until either n characters have been extracted or the end of the sequence is reached.
-std::streamsize BlobIStreamBuffer::xsgetn(char* out, std::streamsize capacity) {
+std::streamsize BlobStreamBufferBase::xsgetn(char* out, std::streamsize capacity) {
     std::streamsize copied = 0;
     while (copied < capacity) {
         auto available = egptr() - gptr();
@@ -41,20 +34,63 @@ std::streamsize BlobIStreamBuffer::xsgetn(char* out, std::streamsize capacity) {
     return copied;
 }
 
-/// Virtual function called by other member functions to get the current character
-/// in the controlled input sequence without changing the current position.
-BlobIStreamBuffer::int_type BlobIStreamBuffer::underflow() {
-    if (gptr() < egptr()) {
+BlobStreamBuffer::BlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id,
+                                   std::vector<PodVector<char>>&& cached_buffers)
+    : BlobStreamBufferBase(underflow, blob_id), cached_buffers_(move(cached_buffers)), cache_iter_(0), buffer_() {
+    buffer_.reserve(BLOB_STREAMBUF_SIZE);
+}
+
+BlobStreamBufferBase::int_type BlobStreamBuffer::underflow() {
+    if (gptr() < egptr()) return *gptr();
+    if (reached_eof_) return traits_type::eof();
+
+    // Hits the cache?
+    if (cache_iter_++ < cached_buffers_.size()) {
+        auto& buffer = cached_buffers_[cache_iter_];
+        assert(!buffer.empty());
+        setg(buffer.begin(), buffer.begin(), buffer.end());
         return *gptr();
     }
-    if (blob_end_) {
-        blob_offset_ += egptr() - eback();
-        auto n = underflow_func_(blob_id_, buffer_.get(), BLOB_SREAMBUF_SIZE);
-        blob_end_ = n == 0;
-        setg(buffer_.get(), buffer_.get(), buffer_.get() + n);
-        return blob_end_ ? traits_type::eof() : *gptr();
+
+    // Fill buffer with new data
+    auto n = underflow_func_(blob_id_, buffer_.begin(), buffer_.capacity());
+    buffer_.resize_static(n);
+    setg(buffer_.begin(), buffer_.begin(), buffer_.end());
+    reached_eof_ = n == 0;
+    return reached_eof_ ? traits_type::eof() : *gptr();
+}
+
+CachingBlobStreamBuffer::CachingBlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id, std::vector<PodVector<char>>&& cached_buffers)
+    : BlobStreamBufferBase(underflow, blob_id), buffers_(move(cached_buffers)) {
+    if (buffers_.empty()) {
+        buffers_.emplace_back();
+        buffers_.back().reserve(BLOB_STREAMBUF_SIZE);
     }
-    return traits_type::eof();
+}
+
+BlobStreamBufferBase::int_type CachingBlobStreamBuffer::underflow() {
+    if (gptr() < egptr()) return *gptr();
+    if (reached_eof_) return traits_type::eof();
+
+    // Space left in previous buffer?
+    auto& last = buffers_.back();
+    size_t n = 0;
+    if ((last.size() + BLOB_STREAMBUF_MIN_READ) < last.capacity()) {
+        // Load data into previous buffer
+        n = underflow_func_(blob_id_, last.end(), last.capacity() - last.size());
+        setg(last.end(), last.end(), last.end() + n);
+        last.resize_static(last.size() + n);
+    } else {
+        // Load BLOB chunk into new buffer
+        buffers_.emplace_back();
+        auto& buffer = buffers_.back();
+        buffer.resize(BLOB_STREAMBUF_SIZE);
+        n = underflow_func_(blob_id_, buffer.begin(), buffer.capacity());
+        buffer.resize_static(n);
+        setg(buffer.begin(), buffer.begin(), buffer.end());
+    }
+    reached_eof_ = n == 0;
+    return reached_eof_ ? traits_type::eof() : *gptr();
 }
 
 }  // namespace dashql
