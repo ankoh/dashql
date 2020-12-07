@@ -51,7 +51,7 @@ class BlobStreamBufferBase : public std::streambuf {
 class BlobStreamBuffer : public BlobStreamBufferBase {
    protected:
     /// The cached buffers (if any)
-    std::vector<PodVector<char>> cached_buffers_;
+    std::vector<PodVector<char>>* cached_buffers_;
     /// The cache iterator
     size_t cache_iter_;
     /// The buffer
@@ -59,7 +59,7 @@ class BlobStreamBuffer : public BlobStreamBufferBase {
 
    public:
     /// Constructor
-    BlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id, std::vector<PodVector<char>>&& cached_buffers = {});
+    BlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id, std::vector<PodVector<char>>* cached_buffers = nullptr);
 
     /// Virtual function called by other member functions to get the current character
     /// in the controlled input sequence without changing the current position.

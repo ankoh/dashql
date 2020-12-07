@@ -35,8 +35,8 @@ std::streamsize BlobStreamBufferBase::xsgetn(char* out, std::streamsize capacity
 }
 
 BlobStreamBuffer::BlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id,
-                                   std::vector<PodVector<char>>&& cached_buffers)
-    : BlobStreamBufferBase(underflow, blob_id), cached_buffers_(move(cached_buffers)), cache_iter_(0), buffer_() {
+                                   std::vector<PodVector<char>>* cached_buffers)
+    : BlobStreamBufferBase(underflow, blob_id), cached_buffers_(cached_buffers), cache_iter_(0), buffer_() {
     buffer_.reserve(BLOB_STREAMBUF_SIZE);
 }
 
@@ -45,8 +45,8 @@ BlobStreamBufferBase::int_type BlobStreamBuffer::underflow() {
     if (reached_eof_) return traits_type::eof();
 
     // Hits the cache?
-    if (cache_iter_++ < cached_buffers_.size()) {
-        auto& buffer = cached_buffers_[cache_iter_];
+    if (cached_buffers_ && (cache_iter_++ < cached_buffers_->size())) {
+        auto& buffer = cached_buffers_->at(cache_iter_);
         assert(!buffer.empty());
         setg(buffer.begin(), buffer.begin(), buffer.end());
         return *gptr();
@@ -60,7 +60,8 @@ BlobStreamBufferBase::int_type BlobStreamBuffer::underflow() {
     return reached_eof_ ? traits_type::eof() : *gptr();
 }
 
-CachingBlobStreamBuffer::CachingBlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id, std::vector<PodVector<char>>&& cached_buffers)
+CachingBlobStreamBuffer::CachingBlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id,
+                                                 std::vector<PodVector<char>>&& cached_buffers)
     : BlobStreamBufferBase(underflow, blob_id), buffers_(move(cached_buffers)) {
     if (buffers_.empty()) {
         buffers_.emplace_back();
