@@ -10,6 +10,8 @@ namespace dashql {
 
 using BlobID = size_t;
 
+constexpr size_t BLOB_SREAMBUF_SIZE = 16 * 1024;
+
 class BlobIStreamBuffer: public std::streambuf {
     public:
     using UnderflowFunc = size_t(*)(BlobID, char*, size_t);
@@ -23,8 +25,8 @@ class BlobIStreamBuffer: public std::streambuf {
     size_t blob_offset_;
     /// Reached the blob end?
     bool blob_end_;
-    /// The stream buffer
-    std::vector<char> buffer_;
+    /// The buffer
+    std::unique_ptr<char[]> buffer_;
 
     /// Is at EOF?
     inline bool IsEOF() const { return blob_end_ && (egptr() == gptr()); }

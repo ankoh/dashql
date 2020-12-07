@@ -6,7 +6,9 @@ namespace dashql {
 
 /// Constructor
 BlobIStreamBuffer::BlobIStreamBuffer(BlobIStreamBuffer::UnderflowFunc underflow, BlobID blob_id)
-    : underflow_func_(underflow), blob_id_(blob_id), blob_offset_(), blob_end_(), buffer_() {}
+    : underflow_func_(underflow), blob_id_(blob_id), blob_offset_(), blob_end_(), buffer_() {
+    buffer_ = std::unique_ptr<char[]>(new char[BLOB_SREAMBUF_SIZE]);
+}
 
 /// Virtual function (to be read s-how-many-c) called by other member functions to get
 /// an estimate on the number of characters available in the associated input sequence.
@@ -47,9 +49,9 @@ BlobIStreamBuffer::int_type BlobIStreamBuffer::underflow() {
     }
     if (blob_end_) {
         blob_offset_ += egptr() - eback();
-        auto n = underflow_func_(blob_id_, buffer_.data(), buffer_.size());
+        auto n = underflow_func_(blob_id_, buffer_.get(), BLOB_SREAMBUF_SIZE);
         blob_end_ = n == 0;
-        setg(buffer_.data(), buffer_.data(), buffer_.data() + n);
+        setg(buffer_.get(), buffer_.get(), buffer_.get() + n);
         return blob_end_ ? traits_type::eof() : *gptr();
     }
     return traits_type::eof();
