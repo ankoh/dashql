@@ -3,6 +3,7 @@
 #ifndef INCLUDE_DASHQL_COMMON_POD_VECTOR_H_
 #define INCLUDE_DASHQL_COMMON_POD_VECTOR_H_
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -111,6 +112,12 @@ template <typename V> class PodVector {
             reserve(new_cap);
         }
         size_ = new_size;
+    }
+
+    /// Resize without reallocation
+    void resize_static(size_t new_size) {
+        assert(new_size < capacity_);
+        size_ = std::min<size_t>(new_size, capacity_);
     }
 
     /// Remove element at position

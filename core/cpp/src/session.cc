@@ -87,7 +87,7 @@ ExpectedBuffer<proto::session::Plan> Session::PlanProgram() {
 }
 
 /// Extract csv
-Signal Session::ExtractCSV(BlobIStreamBuffer& blob_streambuf, duckdb::BufferedCSVReaderOptions csv_options, std::vector<duckdb::LogicalType>&& csv_col_types, const std::string& schema_name, const std::string& table_name) {
+Signal Session::ExtractCSV(BlobStreamBuffer& blob_streambuf, duckdb::BufferedCSVReaderOptions csv_options, std::vector<duckdb::LogicalType>&& csv_col_types, const std::string& schema_name, const std::string& table_name) {
 
     // Parse csv blob
     auto blob_stream = std::make_unique<std::istream>(&blob_streambuf);
