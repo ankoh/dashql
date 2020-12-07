@@ -65,7 +65,7 @@ class BlobStreamBuffer : public BlobStreamBufferBase {
     /// in the controlled input sequence without changing the current position.
     /// Derived classes can override this behavior to modify the gptr and egptr internal pointers in such a way 
     /// that more characters from the input sequence may be made accessible through the buffer.
-    int_type underflow() override = 0;
+    int_type underflow() override;
 };
 
 class CachingBlobStreamBuffer : public BlobStreamBufferBase {
@@ -81,7 +81,7 @@ class CachingBlobStreamBuffer : public BlobStreamBufferBase {
     /// in the controlled input sequence without changing the current position.
     /// Derived classes can override this behavior to modify the gptr and egptr internal pointers in such a way 
     /// that more characters from the input sequence may be made accessible through the buffer.
-    int_type underflow() override = 0;
+    int_type underflow() override;
 };
 
 }  // namespace dashql
