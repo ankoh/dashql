@@ -29,10 +29,11 @@ RUN mkdir -p /opt/emsdk \
     && find . -name "*.a" -exec rm {} \; \
     && find . -name "*.tmp" -exec rm {} \;
 
-ENV NVM_DIR=/usr/local/nvm
-ARG NVM_VERSION="v0.37.0"
+ENV NVM_DIR=/opt/nvm
+ARG NVM_VERSION="v0.37.2"
 ARG NODE_VERSION="v15.2"
-RUN mkdir -p /usr/local/nvm \
+RUN mkdir -p /opt/nvm \
+    && ls -lisah /opt/nvm \
     && curl https://raw.githubusercontent.com/creationix/nvm/${NVM_VERSION}/install.sh | bash \
     && source ${NVM_DIR}/nvm.sh \
     && nvm install ${NODE_VERSION} \
@@ -77,7 +78,7 @@ RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
     && echo "export CARGO_HOME=/opt/rust" >> /opt/env.sh \
     && echo "export RUSTUP_HOME=/opt/rust" >> /opt/env.sh \
-    && echo "source /usr/local/nvm/nvm.sh" >> /opt/env.sh \
+    && echo "source /opt/nvm/nvm.sh" >> /opt/env.sh \
     && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh
 
