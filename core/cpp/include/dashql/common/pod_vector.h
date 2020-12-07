@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <type_traits>
@@ -80,37 +81,54 @@ template <typename V> class PodVector {
     }
 
     /// Reserve bytes in the vector
-    void reserve(size_t new_size) {
-        if (new_size == 0) {
-            buffer_.reset();
-            size_ = 0;
-            capacity_ = 0;
+    void reserve(size_t new_capacity) {
+        // Smaller than capacity?
+        if (new_capacity <= capacity_) return;
+
+        // Increase capacity until the buffer is large enough
+        auto n = capacity_;
+        while (n < new_capacity) {
+            auto step = n + (n >> 2) + 8;
+            if (step < n || step > MAX_SIZE) {
+                n = MAX_SIZE;
+            } else {
+                n = step;
+            }
         }
-        char* new_buffer_ptr_ = static_cast<char*>(realloc(buffer_.get(), new_size * sizeof(V)));
-        if (!new_buffer_ptr_) throw std::bad_alloc();
+
+        // Allocate new buffer
+        char* new_buffer = static_cast<char*>(realloc(buffer_.get(), n * sizeof(V)));
+        if (!new_buffer) throw std::bad_alloc();
         buffer_.release();
-        buffer_.reset(new_buffer_ptr_);
+        buffer_.reset(new_buffer);
+        capacity_ = n;
+        size_ = std::min<size_t>(size_, capacity_);
     }
 
     /// Resize the vector
     void resize(size_t new_size) {
         constexpr size_t MIN_CAPACITY = 256 / sizeof(V);
-        if (new_size < capacity_) {
-            if ((new_size < capacity_ / 2) && (capacity_ > MIN_CAPACITY)) {
-                reserve(new_size);
-            }
-        } else if (new_size > capacity_) {
-            auto new_cap = capacity_;
-            while (new_cap < new_size) {
-                auto next_cap = new_cap + (new_cap >> 2) + 8;
-                if (next_cap < new_cap || next_cap > MAX_SIZE) {
-                    new_cap = MAX_SIZE;
-                } else {
-                    new_cap = next_cap;
-                }
-            }
-            reserve(new_cap);
+
+        // Clear completely?
+        if (new_size == 0) {
+            buffer_.reset();
+            capacity_ = 0;
+            size_ = 0;
+            return;
         }
+
+        // Keep buffer?
+        if (new_size < capacity_ && ((new_size > capacity_ / 2) || (capacity_ <= MIN_CAPACITY))) {
+            size_ = new_size;
+            return;
+        } 
+
+        // Allocate new buffer
+        char* new_buffer = static_cast<char*>(realloc(buffer_.get(), new_size * sizeof(V)));
+        if (!new_buffer) throw std::bad_alloc();
+        buffer_.release();
+        buffer_.reset(new_buffer);
+        capacity_ = new_size;
         size_ = new_size;
     }
 

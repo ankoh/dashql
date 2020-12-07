@@ -6,6 +6,7 @@
 #define INCLUDE_DASHQL_EXTRACT_CSV_PARSER_H_
 
 #include <map>
+#include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/pattern_search.h"
 #include "duckdb/common/types.hpp"
@@ -14,7 +15,12 @@
 
 namespace dashql {
 
-enum class CSVParserMode : uint8_t { PARSING = 0, SNIFFING_DIALECT = 1, SNIFFING_DATATYPES = 2, PARSING_HEADER = 3 };
+BETTER_ENUM(CSVParserMode, uint8_t,
+    PARSING,
+    PARSING_HEADER,
+    SNIFFING_DIALECT,
+    SNIFFING_DATATYPES
+)
 
 constexpr size_t CSV_OUTPUT_CHUNK_SIZE = 1024;
 constexpr size_t CSV_PARSER_INITIAL_BUFFER_SIZE = 16384;
@@ -60,24 +66,24 @@ class CSVParser {
     std::istream& in;
 
     /// The buffer
-    std::vector<char> buffer;
+    std::vector<char> buffer = {};
     /// The temporary buffer
-    std::vector<char> tmp;
+    std::vector<char> tmp = {};
     /// The buffer size
-    size_t buffer_size;
+    size_t buffer_size = 0;
     /// The buffer position
-    size_t buffer_position;
+    size_t buffer_position = 0;
     /// The start of the current token
-    size_t token_start;
+    size_t token_start = 0;
     /// The current line
-    size_t current_line;
+    size_t current_line = 0;
     /// The current column
-    size_t current_column;
+    size_t current_column = 0;
 
     /// The column counts
-    std::vector<size_t> column_counts;
+    std::vector<size_t> column_counts = {};
     /// The parse chunk
-    duckdb::DataChunk parse_chunk;
+    duckdb::DataChunk parse_chunk = {};
 
     /// Get the line number string
     std::string GetLineNumberStr() const;
@@ -95,7 +101,10 @@ class CSVParser {
     CSVParser(const CSVParserOptions& options, std::istream& in);
     /// Move constructor to reuse state
     CSVParser(CSVParser&& other, const CSVParserOptions& options, std::istream& in);
-
+    /// Deleted copy constructor
+    CSVParser(const CSVParser& other) = delete;
+    /// Deleted copy assignment
+    CSVParser& operator=(const CSVParser& other) = delete;
 };
 
 class SimpleCSVParser: public CSVParser {
@@ -126,8 +135,6 @@ class ComplexCSVParser: public CSVParser {
     ComplexCSVParser(const CSVParserOptions& options, std::istream& in);
     /// Move constructor to reuse state
     ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOptions& options, std::istream& in);
-    /// Move assignment
-    ComplexCSVParser& operator=(ComplexCSVParser&& other);
 
     /// Parse the input
     Signal Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
