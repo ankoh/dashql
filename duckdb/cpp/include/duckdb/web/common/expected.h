@@ -51,6 +51,47 @@ struct Error {
     }
 };
 
+template <typename Context>
+class ErrorBuilder {
+   protected:
+    using Callback = void(*)(Context*, Error&&);
+    /// The state
+    Context* context_;
+    /// The error code
+    ErrorCode error_code_;
+    /// Ingore the error messages?
+    bool ignore_;
+    /// The callback
+    Callback callback_;
+    /// Message
+    std::stringstream error_message_;
+
+   public:
+    /// Constructor
+    ErrorBuilder(ErrorCode code, bool ignore, Context* context, Callback callback)
+        : error_code_(code), ignore_(ignore), callback_() {}
+    /// Destructor
+    ~ErrorBuilder() {
+        if (!ignore_) callback_(context_, Error{error_code_, error_message_.str()});
+    }
+
+    ErrorBuilder& operator<<(const std::string& v) {
+        if (ignore_) return *this;
+        error_message_ << v;
+        return *this;
+    }
+    ErrorBuilder& operator<<(const char* v) {
+        if (ignore_) return *this;
+        error_message_ << v;
+        return *this;
+    }
+    ErrorBuilder& operator<<(uint32_t v) {
+        if (ignore_) return *this;
+        error_message_ << v;
+        return *this;
+    }
+};
+
 template <typename V> struct Expected {
     /// The data
     std::variant<V, Error> data_;

@@ -58,6 +58,8 @@ struct CSVParserOptions {
     std::string ToString() const;
 };
 
+class CSVParser;
+
 class CSVParser {
    protected:
     /// The parser options
@@ -88,17 +90,11 @@ class CSVParser {
     duckdb::DataChunk parse_chunk = {};
 
     /// Fail with error
-    inline void FailWith(Error e) {
-        if (!error) {
-            error = std::move(e);
-        }
+    inline auto FailWith(ErrorCode ec) {
+        return ErrorBuilder<CSVParser>{ec, !!error, this, [](CSVParser* p, Error&& err) { p->error = err; }};
     }
     /// The parsing finished
-    inline Signal ParsingDone() {
-        return error ? *error : Signal::OK();
-    }
-    /// Get the line number string
-    std::string GetLineNumberStr() const;
+    inline Signal ParsingDone() { return error ? *error : Signal::OK(); }
     /// Read into buffer
     bool ReadBuffer();
     /// Add a value
