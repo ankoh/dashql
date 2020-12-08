@@ -1,4 +1,5 @@
 #include "dashql/extract/csv_sniffer.h"
+
 #include <vector>
 
 using namespace duckdb;
@@ -45,9 +46,54 @@ CSVSniffer::DialectScore CSVSniffer::TryDialect(CSVParserOptions& options) {
 
 /// Detect the dialect
 void CSVSniffer::DetectDialect() {
-    std::vector<std::string_view> delim_candidates{",", "|", ";", "\t"};
-    std::vector<std::vector<std::string_view>> quote_candidates{{"\""}, {"\"", "'"}, {""}};
-    std::vector<std::vector<std::string_view>> escape_candidates{{"\\"}, {""}};
+    using namespace std;
+
+    // Default candidates for delimiter detection
+    vector<string_view> delim_candidates{",", "|", ";", "\t"};
+    // Default candidates for quote rule auto detection
+    vector<CSVQuoteRule> quoterule_candidates = {CSVQuoteRule::QUOTES_RFC, CSVQuoteRule::QUOTES_OTHER,
+                                                 CSVQuoteRule::NO_QUOTES};
+    // Default candidates for quote sign auto detection (per quote rule)
+    vector<vector<std::string_view>> quote_candidates_map{{"\""}, {"\"", "'"}, {""}};
+    // Default candidates for escape character auto detection (per quote rule)
+    vector<vector<string_view>> escape_candidates_map{{""}, {"\\"}, {""}};
+
+    // User-specified delimiter?
+    if (user_options.delimiter) {
+        delim_candidates = {*user_options.delimiter};
+    }
+    // User-specified quote?
+    if (user_options.quote) {
+        quote_candidates_map = {{*user_options.quote}, {*user_options.quote}, {*user_options.quote}};
+    }
+    // User-specified escape?
+    if (user_options.escape) {
+        if (user_options.escape == "") {
+            quoterule_candidates = {CSVQuoteRule::QUOTES_RFC};
+        } else {
+            quoterule_candidates = {CSVQuoteRule::QUOTES_OTHER};
+        }
+        escape_candidates_map[static_cast<uint8_t>(quoterule_candidates[0])] = {*user_options.escape};
+    }
+
+    vector<CSVParserOptions> info_candidates;
+    size_t best_consistent_rows = 0;
+    size_t best_num_cols = 0;
+
+    auto options = detected_options;
+    for (auto quoterule : quoterule_candidates) {
+        for (auto& quote : quote_candidates_map[static_cast<uint8_t>(quoterule)]) {
+            for (auto& delim : delim_candidates) {
+                for (auto &escape : escape_candidates_map[static_cast<uint8_t>(quoterule)]) {
+                    options.delimiter = delim;
+                    options.quote = quote;
+                    options.escape = escape;
+
+                    auto score = TryDialect(options);
+                }
+            }
+        }
+    }
 }
 
 /// Detect the data types

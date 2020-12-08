@@ -36,19 +36,15 @@ std::string CSVParserOptions::ToString() const {
     return out.str();
 }
 
-CSVParser::CSVParser(const CSVParserOptions& options, std::istream& in) : options(options), in(in) {
-    vector<LogicalType> varchar_types(options.sql_types.size(), LogicalType::VARCHAR);
-    parse_chunk.Initialize(varchar_types);
-}
-
-CSVParser::CSVParser(CSVParser&& other, const CSVParserOptions& options, std::istream& in)
-    : options(options), in(in), buffer(move(other.buffer)), tmp(move(other.tmp)), column_counts(other.column_counts) {
+CSVParser::CSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated) : options(options), in(in), buffers(move(donated)) {
     vector<LogicalType> varchar_types(options.sql_types.size(), LogicalType::VARCHAR);
     parse_chunk.Initialize(varchar_types);
 }
 
 bool CSVParser::ReadBuffer() {
-    std::swap(buffer, tmp);
+    std::swap(buffers[0], buffers[1]);
+    auto& buffer = buffers[0];
+    auto& tmp = buffers[1];
 
     // Get the remaining part of the last buffer
     auto remaining = buffer_size - token_start;
@@ -215,13 +211,12 @@ void CSVParser::Flush(size_t limit, duckdb::DataChunk* output_chunk) {
 }
 
 /// Constructor
-SimpleCSVParser::SimpleCSVParser(const CSVParserOptions& options, std::istream& in) : CSVParser(options, in) {}
-
-/// Move constructor to reuse state
-SimpleCSVParser::SimpleCSVParser(SimpleCSVParser&& other, const CSVParserOptions& options, std::istream& in)
-    : CSVParser(move(other), options, in) {}
+SimpleCSVParser::SimpleCSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated_buffers) : CSVParser(options, in, move(donated_buffers)) {}
 
 Signal SimpleCSVParser::Parse(size_t limit, duckdb::DataChunk* output_chunk) {
+    auto& buffer = buffers[0];
+    auto& tmp = buffers[1];
+
     // Dialect
     auto quote = *options.quote;
     auto delimiter = *options.delimiter;
@@ -400,12 +395,12 @@ final_state:
     return ParsingDone();
 }
 
-ComplexCSVParser::ComplexCSVParser(const CSVParserOptions& options, std::istream& in) : CSVParser(options, in) {}
-
-ComplexCSVParser::ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOptions& options, std::istream& in)
-    : CSVParser(move(other), options, in) {}
+ComplexCSVParser::ComplexCSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated_buffers) : CSVParser(options, in, move(donated_buffers)) {}
 
 Signal ComplexCSVParser::Parse(size_t limit, duckdb::DataChunk* output_chunk) {
+    auto& buffer = buffers[0];
+    auto& tmp = buffers[1];
+
     // Dialect
     auto quote = *options.quote;
     auto delimiter = *options.delimiter;
