@@ -37,8 +37,10 @@ std::string CSVParserOptions::ToString() const {
 }
 
 CSVParser::CSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated) : options(options), in(in), buffers(move(donated)) {
-    vector<LogicalType> varchar_types(options.sql_types.size(), LogicalType::VARCHAR);
-    parse_chunk.Initialize(varchar_types);
+    if (options.mode == +CSVParserMode::PARSING || options.mode == +CSVParserMode::PARSING_HEADER) {
+        vector<LogicalType> varchar_types(options.sql_types.size(), LogicalType::VARCHAR);
+        parse_chunk.Initialize(varchar_types);
+    }
 }
 
 bool CSVParser::ReadBuffer() {
