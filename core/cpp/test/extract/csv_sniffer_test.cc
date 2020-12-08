@@ -71,6 +71,16 @@ INSTANTIATE_TEST_SUITE_P(CSVSniffer, CSVDialectDetectionTestSuite, ::testing::Va
         {"\"", "|", ""},
         {"\'", "|", "\\"},
         {"", "|", ""},
+    }},
+    DetectionTest{"1;2;3\n4;5;6\n7;8;9", {
+        {"\"", ";", ""},
+        {"\'", ";", "\\"},
+        {"", ";", ""},
+    }},
+    DetectionTest{"1\t2\t3\n4\t5\t6\n7\t8\t9", {
+        {"\"", "\t", ""},
+        {"\'", "\t", "\\"},
+        {"", "\t", ""},
     }}
 ));
 // clang-format on
