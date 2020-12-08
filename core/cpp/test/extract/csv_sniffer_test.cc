@@ -62,6 +62,7 @@ TEST_P(CSVDialectDetectionTestSuite, CandidatesMatch) {
 
 // clang-format off
 INSTANTIATE_TEST_SUITE_P(CSVSniffer, CSVDialectDetectionTestSuite, ::testing::Values(
+    // Separators
     DetectionTest{"1,2,3\n4,5,6\n7,8,9", {
         {"\"", ",", ""},
         {"\'", ",", "\\"},
@@ -82,6 +83,8 @@ INSTANTIATE_TEST_SUITE_P(CSVSniffer, CSVDialectDetectionTestSuite, ::testing::Va
         {"\'", "\t", "\\"},
         {"", "\t", ""},
     }},
+
+    // Ambiguous quotes
     DetectionTest{R"CSV("1","2","3"
 "4","5","6"
 "7","8","9")CSV", {
@@ -89,12 +92,15 @@ INSTANTIATE_TEST_SUITE_P(CSVSniffer, CSVDialectDetectionTestSuite, ::testing::Va
         {"\'", ",", "\\"},
         {"", ",", ""},
     }},
-    DetectionTest{R"CSV('1','2','3'
-'4','5','6'
-'7','8','9')CSV", {
+    DetectionTest{"'1','2','3'\n'4','5','6'\n'7','8','9'", {
         {"\"", ",", ""},
         {"\'", ",", "\\"},
         {"", ",", ""},
+    }},
+
+    // Identifying quotes
+    DetectionTest{"'1,1','2','3'\n'4','5','6'\n'7','8','9'", {
+        {"\'", ",", "\\"},
     }}
 ));
 // clang-format on
