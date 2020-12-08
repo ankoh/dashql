@@ -30,11 +30,11 @@ struct CSVParserOptions {
     /// The SQL types
     std::vector<duckdb::LogicalType> sql_types = {};
     /// Delimiter to separate columns within each line
-    std::string_view delimiter = ",";
+    std::optional<std::string_view> delimiter = ",";
     /// Quote used for columns that contain reserved characters, e.g., delimiter
-    std::string_view quote = "\"";
+    std::optional<std::string_view> quote = "\"";
     /// Escape character to escape quote character
-    std::string_view escape = "\\";
+    std::optional<std::string_view> escape = "\\";
     /// Whether or not the file has a header line
     bool header = false;
     /// How many leading rows to skip
@@ -57,7 +57,7 @@ struct CSVParserOptions {
     /// Dump parser options as string
     std::string ToString() const;
     /// Requires a complex parser?
-    bool IsSingleCharacterDialect() const { return (delimiter.size() > 1) || (quote.size() > 1) || (escape.size() > 1); }
+    bool IsSingleCharacterDialect() const { return (delimiter->size() > 1) || (quote->size() > 1) || (escape->size() > 1); }
 };
 
 class CSVParser {

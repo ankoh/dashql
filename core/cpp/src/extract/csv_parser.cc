@@ -22,8 +22,8 @@ std::string CSVParserOptions::ToString() const {
         if (i > 0) out << ", ";
         out << sql_types[i].ToString();
     }
-    out << "], quote='" << quote << "'";
-    out << ", escape='" << escape << "'";
+    out << "], quote='" << quote.value_or("") << "'";
+    out << ", escape='" << escape.value_or("") << "'";
     out << ", header=" << header;
     out << ", skip_rows=" << skip_rows;
     out << ", null_str='" << null_str << "'";
@@ -119,10 +119,10 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
                 size_t next_pos = escapes[i];
                 new_val += old_val.substr(prev_pos, next_pos - prev_pos);
 
-                if (options.escape.size() == 0 || options.escape == options.quote) {
-                    prev_pos = next_pos + options.quote.size();
+                if (options.escape->size() == 0 || options.escape == options.quote) {
+                    prev_pos = next_pos + options.quote->size();
                 } else {
-                    prev_pos = next_pos + options.escape.size();
+                    prev_pos = next_pos + options.escape->size();
                 }
             }
 
@@ -222,11 +222,15 @@ SimpleCSVParser::SimpleCSVParser(SimpleCSVParser&& other, const CSVParserOptions
     : CSVParser(move(other), options, in) {}
 
 Signal SimpleCSVParser::Parse(size_t limit, duckdb::DataChunk* output_chunk) {
-    // Used for parsing algorithm
+    // Dialect
+    auto quote = *options.quote;
+    auto delimiter = *options.delimiter;
+    auto escape = *options.escape;
+
+    // Parsing state
     bool finished_chunk = false;
     size_t offset = 0;
     std::vector<size_t> escapes;
-    Expected<bool> read;
 
     // Read values into the buffer (if any)
     if (buffer_position >= buffer_size) {
@@ -238,7 +242,7 @@ Signal SimpleCSVParser::Parse(size_t limit, duckdb::DataChunk* output_chunk) {
 value_start:
     // This state parses the first character of a value
     offset = 0;
-    if (buffer[buffer_position] == options.quote[0]) {
+    if (buffer[buffer_position] == quote[0]) {
         // Quote: actual value starts in the next position
         // move to in_quotes state
         token_start = buffer_position + 1;
@@ -253,7 +257,7 @@ normal:
     // This state parses the remainder of a non-quoted value until we reach a delimiter or newline
     do {
         for (; buffer_position < buffer_size; buffer_position++) {
-            if (buffer[buffer_position] == options.delimiter[0]) {
+            if (buffer[buffer_position] == delimiter[0]) {
                 // Delimiter: end the value and add it to the chunk
                 goto add_value;
             } else if (is_newline(buffer[buffer_position])) {
@@ -309,17 +313,17 @@ in_quotes:
     buffer_position++;
     do {
         for (; buffer_position < buffer_size; buffer_position++) {
-            if (buffer[buffer_position] == options.quote[0]) {
+            if (buffer[buffer_position] == quote[0]) {
                 // quote: move to unquoted state
                 goto unquote;
-            } else if (buffer[buffer_position] == options.escape[0]) {
+            } else if (buffer[buffer_position] == escape[0]) {
                 // escape: store the escaped position and move to handle_escape state
                 escapes.push_back(buffer_position - token_start);
                 goto handle_escape;
             }
         }
     } while (ReadBuffer());
-    // still in quoted state at the end of the file, error:
+    // Still in quoted state at the end of the file, error:
     return Error(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_line << ": unterminated quotes.";
 
 unquote:
@@ -329,17 +333,16 @@ unquote:
 
     buffer_position++;
     if (buffer_position >= buffer_size && !ReadBuffer()) {
-        // file ends right after unquote, go to final state
+        // File ends right after unquote, go to final state
         offset = 1;
         goto final_state;
     }
-    if (buffer[buffer_position] == options.quote[0] &&
-        (options.escape.size() == 0 || options.escape[0] == options.quote[0])) {
-        // escaped quote, return to quoted state and store escape position
+    if (buffer[buffer_position] == quote[0] && (escape.size() == 0 || escape[0] == quote[0])) {
+        // Escaped quote, return to quoted state and store escape position
         escapes.push_back(buffer_position - token_start);
         goto in_quotes;
-    } else if (buffer[buffer_position] == options.delimiter[0]) {
-        // delimiter, add value
+    } else if (buffer[buffer_position] == delimiter[0]) {
+        // Delimiter, add value
         offset = 1;
         goto add_value;
     } else if (is_newline(buffer[buffer_position])) {
@@ -359,7 +362,7 @@ handle_escape:
         return Error(ErrorCode::CSV_PARSER_ERROR)
                << "Line " << current_line << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
     }
-    if (buffer[buffer_position] != options.quote[0] && buffer[buffer_position] != options.escape[0]) {
+    if (buffer[buffer_position] != quote[0] && buffer[buffer_position] != escape[0]) {
         return Error(ErrorCode::CSV_PARSER_ERROR)
                << "Line " << current_line << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
     }
@@ -403,7 +406,12 @@ ComplexCSVParser::ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOpti
     : CSVParser(move(other), options, in) {}
 
 Signal ComplexCSVParser::Parse(size_t limit, duckdb::DataChunk* output_chunk) {
-    // Used for parsing algorithm
+    // Dialect
+    auto quote = *options.quote;
+    auto delimiter = *options.delimiter;
+    auto escape = *options.escape;
+
+    // Parsing state
     bool finished_chunk = false;
     vector<size_t> escapes;
     uint8_t delimiter_pos = 0, escape_pos = 0, quote_pos = 0;
@@ -428,9 +436,9 @@ value_start:
             quote_search.Match(quote_pos, buffer[buffer_position]);
             delimiter_search.Match(delimiter_pos, buffer[buffer_position]);
             count++;
-            if (delimiter_pos == options.delimiter.size()) {
+            if (delimiter_pos == delimiter.size()) {
                 // Found a delimiter, add the value
-                offset = options.delimiter.size() - 1;
+                offset = delimiter.size() - 1;
                 goto add_value;
             } else if (is_newline(buffer[buffer_position])) {
                 // Found a newline, add the row
@@ -440,9 +448,9 @@ value_start:
                 // Did not find a quote directly at the start of the value, stop looking for the quote now
                 goto normal;
             }
-            if (quote_pos == options.quote.size()) {
+            if (quote_pos == quote.size()) {
                 // Found a quote, go to quoted loop and skip the initial quote
-                token_start += options.quote.size();
+                token_start += quote.size();
                 goto in_quotes;
             }
         }
@@ -456,8 +464,8 @@ normal:
     do {
         for (; buffer_position < buffer_size; buffer_position++) {
             delimiter_search.Match(delimiter_pos, buffer[buffer_position]);
-            if (delimiter_pos == options.delimiter.size()) {
-                offset = options.delimiter.size() - 1;
+            if (delimiter_pos == delimiter.size()) {
+                offset = delimiter.size() - 1;
                 goto add_value;
             } else if (is_newline(buffer[buffer_position])) {
                 goto add_row;
@@ -512,10 +520,10 @@ in_quotes:
         for (; buffer_position < buffer_size; buffer_position++) {
             quote_search.Match(quote_pos, buffer[buffer_position]);
             escape_search.Match(escape_pos, buffer[buffer_position]);
-            if (quote_pos == options.quote.size()) {
+            if (quote_pos == quote.size()) {
                 goto unquote;
-            } else if (escape_pos == options.escape.size()) {
-                escapes.push_back(buffer_position - token_start - (options.escape.size() - 1));
+            } else if (escape_pos == escape.size()) {
+                escapes.push_back(buffer_position - token_start - (escape.size() - 1));
                 goto handle_escape;
             }
         }
@@ -533,12 +541,12 @@ unquote:
     buffer_position++;
     if (buffer_position >= buffer_size && !ReadBuffer()) {
         // File ends right after unquote, go to final state
-        offset = options.quote.size();
+        offset = quote.size();
         goto final_state;
     }
     if (is_newline(buffer[buffer_position])) {
         // Quote followed by newline, add row
-        offset = options.quote.size();
+        offset = quote.size();
         goto add_row;
     }
     do {
@@ -552,14 +560,14 @@ unquote:
                        << "Line " << current_line
                        << ": quote should be followed by end of value, end of row or another quote.";
             }
-            if (delimiter_pos == options.delimiter.size()) {
+            if (delimiter_pos == delimiter.size()) {
                 // Quote followed by delimiter, add value
-                offset = options.quote.size() + options.delimiter.size() - 1;
+                offset = quote.size() + delimiter.size() - 1;
                 goto add_value;
-            } else if (quote_pos == options.quote.size() &&
-                       (options.escape.size() == 0 || options.escape == options.quote)) {
+            } else if (quote_pos == quote.size() &&
+                       (escape.size() == 0 || escape == quote)) {
                 // Quote followed by quote, go back to quoted state and add to escape
-                escapes.push_back(buffer_position - token_start - (options.quote.size() - 1));
+                escapes.push_back(buffer_position - token_start - (quote.size() - 1));
                 goto in_quotes;
             }
         }
@@ -582,7 +590,7 @@ handle_escape:
                 return Error(ErrorCode::CSV_PARSER_ERROR)
                        << "Line " << current_line << ": neither QUOTE nor ESCAPE is proceeded by ESCAPE.";
             }
-            if (quote_pos == options.quote.size() || escape_pos == options.escape.size()) {
+            if (quote_pos == quote.size() || escape_pos == escape.size()) {
                 // Found quote or escape: move back to quoted state
                 goto in_quotes;
             }
