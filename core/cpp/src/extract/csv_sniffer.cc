@@ -110,6 +110,7 @@ Expected<std::vector<CSVSniffer::Dialect>> CSVSniffer::DetectDialect() {
                         continue;
                     } else if ((more_values || single_column_before) && fully_consistent) {
                         best = score;
+                        std::cout << "clear" << std::endl;
                         candidates.clear();
                         candidates.push_back({quote, delim, escape});
 
