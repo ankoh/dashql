@@ -9,7 +9,7 @@
 namespace dashql {
 
 class CSVSniffer {
-   protected:
+   public:
     /// A dialect
     struct Dialect {
         /// The quote
@@ -31,6 +31,7 @@ class CSVSniffer {
         size_t first_consistent_row = 0;
     };
 
+   protected:
     /// The user provided options
     const CSVParserOptions& user_options_;
     /// The parser options
