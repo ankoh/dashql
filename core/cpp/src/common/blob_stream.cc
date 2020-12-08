@@ -69,6 +69,12 @@ CachingBlobStreamBuffer::CachingBlobStreamBuffer(UnderflowFunc underflow, BlobID
     }
 }
 
+void CachingBlobStreamBuffer::Rewind() {
+    assert(!buffers_.empty());
+    auto& first = buffers_.front();
+    setg(first.begin(), first.begin(), first.end());
+}
+
 BlobStreamBufferBase::int_type CachingBlobStreamBuffer::underflow() {
     if (gptr() < egptr()) return *gptr();
     if (reached_eof_) return traits_type::eof();
