@@ -1,6 +1,12 @@
 // Copyright (c) 2020 The DashQL Authors
 
-// c.f.: dashql/extract/csv_extract.h
+// This file copies large parts of the buffered CSV reader in DuckDB:
+// https://github.com/cwida/duckdb/blob/6c3e3ab96ba20d7a5f51e5ec8afbeca3d0822528/src/execution/operator/persistent/buffered_csv_reader.cpp
+//
+// Notable changes:
+//  - We only read from istreams.
+//  - We don't seek during dialect detection.
+//  - We use error codes instead of exceptions.
 
 #ifndef INCLUDE_DASHQL_EXTRACT_CSV_PARSER_H_
 #define INCLUDE_DASHQL_EXTRACT_CSV_PARSER_H_

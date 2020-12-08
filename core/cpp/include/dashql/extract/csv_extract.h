@@ -1,14 +1,5 @@
 // Copyright (c) 2020 The DashQL Authors
 
-// This file copies large parts of the buffered CSV reader in DuckDB:
-// https://github.com/cwida/duckdb/blob/6c3e3ab96ba20d7a5f51e5ec8afbeca3d0822528/src/execution/operator/persistent/buffered_csv_reader.cpp
-//
-// Notable changes:
-//  - We only read from istreams.
-//  - We don't like exceptions.
-//  - We flush directly into tables instead of accumulating a single insert chunk.
-//  - We don't jump within the stream for sampling since we try to avoid blob buffering.
-
 #ifndef INCLUDE_DASHQL_EXTRACT_CSV_EXTRACT_H_
 #define INCLUDE_DASHQL_EXTRACT_CSV_EXTRACT_H_
 
