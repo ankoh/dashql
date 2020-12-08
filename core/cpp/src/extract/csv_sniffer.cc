@@ -1,5 +1,7 @@
+#include "dashql/common/defer.h"
 #include "dashql/extract/csv_sniffer.h"
 
+#include <array>
 #include <vector>
 
 using namespace duckdb;
@@ -7,8 +9,8 @@ using namespace duckdb;
 namespace dashql {
 
 /// Constructor
-CSVSniffer::CSVSniffer(const CSVParserOptions& user_options, CachingBlobStreamBuffer&& streambuf)
-    : user_options(user_options), detected_options(user_options), blob_streambuf(move(streambuf)) {}
+CSVSniffer::CSVSniffer(const CSVParserOptions& user_options_, CachingBlobStreamBuffer&& streambuf)
+    : user_options_(user_options_), detected_options_(user_options_), blob_streambuf_(move(streambuf)) {}
 
 /// Test a dialect
 CSVSniffer::DialectScore CSVSniffer::TryDialect(CSVParserOptions& options) {
@@ -31,14 +33,16 @@ CSVSniffer::DialectScore CSVSniffer::TryDialect(CSVParserOptions& options) {
 
     // Parse the input with the given dialect
     options.mode = CSVParserMode::SNIFFING_DIALECT;
-    blob_streambuf.Rewind();
-    std::istream in{&blob_streambuf};
+    blob_streambuf_.Rewind();
+    std::istream in{&blob_streambuf_};
     if (options.IsSingleCharacterDialect()) {
-        SimpleCSVParser parser{options, in};
+        SimpleCSVParser parser{options, in, move(donated_buffers_)};
+        auto donate_back = defer([&]() { donated_buffers_ = parser.DonateBuffers(); });
         if (!parser.Parse(sample_limit)) return {};
         return get_score(parser);
     } else {
-        ComplexCSVParser parser{options, in};
+        ComplexCSVParser parser{options, in, move(donated_buffers_)};
+        auto donate_back = defer([&]() { donated_buffers_ = parser.DonateBuffers(); });
         if (!parser.Parse(sample_limit)) return {};
         return get_score(parser);
     }
@@ -59,28 +63,29 @@ void CSVSniffer::DetectDialect() {
     vector<vector<string_view>> escape_candidates_map{{""}, {"\\"}, {""}};
 
     // User-specified delimiter?
-    if (user_options.delimiter) {
-        delim_candidates = {*user_options.delimiter};
+    if (user_options_.delimiter) {
+        delim_candidates = {*user_options_.delimiter};
     }
     // User-specified quote?
-    if (user_options.quote) {
-        quote_candidates_map = {{*user_options.quote}, {*user_options.quote}, {*user_options.quote}};
+    if (user_options_.quote) {
+        quote_candidates_map = {{*user_options_.quote}, {*user_options_.quote}, {*user_options_.quote}};
     }
     // User-specified escape?
-    if (user_options.escape) {
-        if (user_options.escape == "") {
+    if (user_options_.escape) {
+        if (user_options_.escape == "") {
             quoterule_candidates = {CSVQuoteRule::QUOTES_RFC};
         } else {
             quoterule_candidates = {CSVQuoteRule::QUOTES_OTHER};
         }
-        escape_candidates_map[static_cast<uint8_t>(quoterule_candidates[0])] = {*user_options.escape};
+        escape_candidates_map[static_cast<uint8_t>(quoterule_candidates[0])] = {*user_options_.escape};
     }
 
     vector<CSVParserOptions> info_candidates;
     size_t best_consistent_rows = 0;
     size_t best_num_cols = 0;
 
-    auto options = detected_options;
+    // Try all the dialects and find the best one
+    auto options = detected_options_;
     for (auto quoterule : quoterule_candidates) {
         for (auto& quote : quote_candidates_map[static_cast<uint8_t>(quoterule)]) {
             for (auto& delim : delim_candidates) {
@@ -101,11 +106,11 @@ void CSVSniffer::DetectTypes() {}
 
 /// Detect the parser options
 const CSVParserOptions& CSVSniffer::Detect() {
-    detected_options = user_options;
-    blob_streambuf.Rewind();
+    detected_options_ = user_options_;
+    blob_streambuf_.Rewind();
     DetectDialect();
     DetectTypes();
-    return detected_options;
+    return detected_options_;
 }
 
 }  // namespace dashql

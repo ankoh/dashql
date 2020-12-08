@@ -21,11 +21,13 @@ class CSVSniffer {
     };
 
     /// The user provided options
-    const CSVParserOptions& user_options;
+    const CSVParserOptions& user_options_;
     /// The parser options
-    CSVParserOptions detected_options;
+    CSVParserOptions detected_options_;
     /// The blob stream buffer
-    CachingBlobStreamBuffer blob_streambuf;
+    CachingBlobStreamBuffer blob_streambuf_;
+    /// The donated buffers
+    std::array<std::vector<char>, 2> donated_buffers_ = {};
 
     /// Try a dialect
     DialectScore TryDialect(CSVParserOptions& options);
