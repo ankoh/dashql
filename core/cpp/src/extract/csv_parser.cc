@@ -139,7 +139,7 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
     ++current_column;
 }
 
-bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+bool CSVParser::AddRow(size_t limit, duckdb::DataChunk* output_chunk) {
     if (error) return true;
     ++current_line;
 
@@ -150,21 +150,21 @@ bool CSVParser::AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity) 
     }
     if (options.mode == +CSVParserMode::SNIFFING_DIALECT) {
         column_counts.push_back(current_column);
-        if (column_counts.size() == output_capacity) return true;
+        if (column_counts.size() == limit) return true;
     } else {
         parse_chunk.SetCardinality(parse_chunk.size() + 1);
     }
     if (options.mode == +CSVParserMode::PARSING_HEADER) return true;
-    if (options.mode == +CSVParserMode::SNIFFING_DATATYPES && parse_chunk.size() == output_capacity) return true;
-    if (options.mode == +CSVParserMode::PARSING && parse_chunk.size() == output_capacity) {
-        Flush(output_chunk, output_capacity);
+    if (options.mode == +CSVParserMode::SNIFFING_DATATYPES && parse_chunk.size() == limit) return true;
+    if (options.mode == +CSVParserMode::PARSING && parse_chunk.size() == limit) {
+        Flush(limit, output_chunk);
         return true;
     }
     current_column = 0;
     return false;
 }
 
-void CSVParser::Flush(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+void CSVParser::Flush(size_t limit, duckdb::DataChunk* output_chunk) {
     if (error || !output_chunk || parse_chunk.size() == 0) return;
 
     // Convert the columns in the parsed chunk to the types of the table
@@ -221,7 +221,7 @@ SimpleCSVParser::SimpleCSVParser(const CSVParserOptions& options, std::istream& 
 SimpleCSVParser::SimpleCSVParser(SimpleCSVParser&& other, const CSVParserOptions& options, std::istream& in)
     : CSVParser(move(other), options, in) {}
 
-Signal SimpleCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+Signal SimpleCSVParser::Parse(size_t limit, duckdb::DataChunk* output_chunk) {
     // Used for parsing algorithm
     bool finished_chunk = false;
     size_t offset = 0;
@@ -283,7 +283,7 @@ add_row : {
     // Add value
     AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
     // Add row
-    finished_chunk = AddRow(output_chunk, output_capacity);
+    finished_chunk = AddRow(limit, output_chunk);
 
     // Increase position by 1 and move start to the new position
     offset = 0;
@@ -387,12 +387,12 @@ final_state:
     if (current_column > 0 || buffer_position > token_start) {
         // remaining values to be added to the chunk
         AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
-        finished_chunk = AddRow(output_chunk, output_capacity);
+        finished_chunk = AddRow(limit, output_chunk);
     }
 
     /// Final flush
     if (!error && options.mode == +CSVParserMode::PARSING) {
-        Flush(output_chunk, output_capacity);
+        Flush(limit, output_chunk);
     }
     return ParsingDone();
 }
@@ -402,7 +402,7 @@ ComplexCSVParser::ComplexCSVParser(const CSVParserOptions& options, std::istream
 ComplexCSVParser::ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOptions& options, std::istream& in)
     : CSVParser(move(other), options, in) {}
 
-Signal ComplexCSVParser::Parse(duckdb::DataChunk* output_chunk, size_t output_capacity) {
+Signal ComplexCSVParser::Parse(size_t limit, duckdb::DataChunk* output_chunk) {
     // Used for parsing algorithm
     bool finished_chunk = false;
     vector<size_t> escapes;
@@ -485,7 +485,7 @@ add_row : {
     AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
 
     // Add row
-    finished_chunk = AddRow(output_chunk, output_capacity);
+    finished_chunk = AddRow(limit, output_chunk);
     // Increase position by 1 and move start to the new position
     offset = 0;
     token_start = ++buffer_position;
@@ -611,12 +611,12 @@ final_state:
     if (current_column > 0 || buffer_position > token_start) {
         // Remaining values to be added to the chunk
         AddValue({buffer.data() + token_start, buffer_position - token_start - offset}, escapes);
-        finished_chunk = AddRow(output_chunk, output_capacity);
+        finished_chunk = AddRow(limit, output_chunk);
     }
 
     // Final flush
     if (!error && options.mode == +CSVParserMode::PARSING) {
-        Flush(output_chunk, output_capacity);
+        Flush(limit, output_chunk);
     }
     return ParsingDone();
 }
