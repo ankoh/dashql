@@ -25,6 +25,8 @@
 namespace dashql {
 
 BETTER_ENUM(CSVParserMode, uint8_t, PARSING, PARSING_HEADER, SNIFFING_DIALECT, SNIFFING_DATATYPES)
+    
+BETTER_ENUM(CSVQuoteRule, uint8_t, QUOTES_RFC = 0, QUOTES_OTHER = 1, NO_QUOTES = 2);
 
 constexpr size_t CSV_OUTPUT_CHUNK_SIZE = 1024;
 constexpr size_t CSV_PARSER_INITIAL_BUFFER_SIZE = 16384;
@@ -76,9 +78,7 @@ class CSVParser {
     /// The error (if any)
     std::optional<Error> error = std::nullopt;
     /// The buffer
-    std::vector<char> buffer = {};
-    /// The temporary buffer
-    std::vector<char> tmp = {};
+    std::array<std::vector<char>, 2> buffers = {};
     /// The buffer size
     size_t buffer_size = 0;
     /// The buffer position
@@ -112,9 +112,7 @@ class CSVParser {
 
    public:
     /// Constructor
-    CSVParser(const CSVParserOptions& options, std::istream& in);
-    /// Move constructor to reuse state
-    CSVParser(CSVParser&& other, const CSVParserOptions& options, std::istream& in);
+    CSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated_buffers = {});
     /// Deleted copy constructor
     CSVParser(const CSVParser& other) = delete;
     /// Deleted copy assignment
@@ -127,9 +125,7 @@ class CSVParser {
 class SimpleCSVParser : public CSVParser {
    public:
     /// Constructor
-    SimpleCSVParser(const CSVParserOptions& options, std::istream& in);
-    /// Move constructor to reuse state
-    SimpleCSVParser(SimpleCSVParser&& other, const CSVParserOptions& options, std::istream& in);
+    SimpleCSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated_buffers = {});
     /// Move assignment
     SimpleCSVParser& operator=(SimpleCSVParser&& other);
 
@@ -148,9 +144,7 @@ class ComplexCSVParser : public CSVParser {
 
    public:
     /// Constructor
-    ComplexCSVParser(const CSVParserOptions& options, std::istream& in);
-    /// Move constructor to reuse state
-    ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOptions& options, std::istream& in);
+    ComplexCSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated_buffers = {});
 
     /// Parse the input
     Signal Parse(size_t limit = CSV_OUTPUT_CHUNK_SIZE, duckdb::DataChunk* output_chunk = nullptr);
