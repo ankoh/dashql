@@ -120,6 +120,8 @@ class CSVParser {
 
     /// Return the column counts
     auto& GetColumnCounts() const { return column_counts; }
+    /// Donate the buffers
+    auto DonateBuffers() { return move(buffers); }
 };
 
 class SimpleCSVParser : public CSVParser {
