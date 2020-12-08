@@ -280,6 +280,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/csv_parser_test.cc
+        ${CMAKE_SOURCE_DIR}/test/extract/csv_sniffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/grammar_test_suite.cc
         ${CMAKE_SOURCE_DIR}/test/program_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/session_test.cc
