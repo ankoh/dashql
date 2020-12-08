@@ -1,11 +1,13 @@
 #include "dashql/extract/csv_sniffer.h"
+#include <vector>
 
 using namespace duckdb;
 
 namespace dashql {
 
 /// Constructor
-CSVSniffer::CSVSniffer(CachingBlobStreamBuffer&& streambuf) : blob_streambuf(move(streambuf)), detected_options() {}
+CSVSniffer::CSVSniffer(const CSVParserOptions& user_options, CachingBlobStreamBuffer&& streambuf)
+    : user_options(user_options), detected_options(user_options), blob_streambuf(move(streambuf)) {}
 
 /// Test a dialect
 CSVSniffer::DialectScore CSVSniffer::TryDialect(CSVParserOptions& options) {
@@ -42,18 +44,22 @@ CSVSniffer::DialectScore CSVSniffer::TryDialect(CSVParserOptions& options) {
 }
 
 /// Detect the dialect
-void CSVSniffer::DetectDialect() {}
+void CSVSniffer::DetectDialect() {
+    std::vector<std::string_view> delim_candidates{",", "|", ";", "\t"};
+    std::vector<std::vector<std::string_view>> quote_candidates{{"\""}, {"\"", "'"}, {""}};
+    std::vector<std::vector<std::string_view>> escape_candidates{{"\\"}, {""}};
+}
 
 /// Detect the data types
 void CSVSniffer::DetectTypes() {}
 
 /// Detect the parser options
-CSVParserOptions CSVSniffer::Detect() {
-    detected_options = CSVParserOptions{};
+const CSVParserOptions& CSVSniffer::Detect() {
+    detected_options = user_options;
     blob_streambuf.Rewind();
     DetectDialect();
     DetectTypes();
-    return move(detected_options);
+    return detected_options;
 }
 
 }  // namespace dashql

@@ -20,10 +20,12 @@ class CSVSniffer {
         size_t column_count = 0;
     };
 
-    /// The blob stream buffer
-    CachingBlobStreamBuffer blob_streambuf;
+    /// The user provided options
+    const CSVParserOptions& user_options;
     /// The parser options
     CSVParserOptions detected_options;
+    /// The blob stream buffer
+    CachingBlobStreamBuffer blob_streambuf;
 
     /// Try a dialect
     DialectScore TryDialect(CSVParserOptions& options);
@@ -34,10 +36,10 @@ class CSVSniffer {
 
    public:
     /// Constructor
-    CSVSniffer(CachingBlobStreamBuffer&& streambuf);
+    CSVSniffer(const CSVParserOptions& user_options, CachingBlobStreamBuffer&& streambuf);
 
     /// Detect the parser options
-    CSVParserOptions Detect();
+    const CSVParserOptions& Detect();
 };
 
 }  // namespace dashql
