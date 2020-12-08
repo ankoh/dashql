@@ -50,13 +50,13 @@ TEST_P(CSVDialectDetectionTestSuite, CandidatesMatch) {
     EXPECT_TRUE(rc.IsOk());
 
     auto& candidates = rc.value();
-    EXPECT_EQ(candidates.size(), param.candidates.size());
+    ASSERT_EQ(candidates.size(), param.candidates.size());
     for (unsigned i = 0; i < param.candidates.size(); ++i) {
         auto& have = candidates[i];
         auto& want = param.candidates[i];
-        EXPECT_EQ(have.delimiter, want.delimiter);
-        EXPECT_EQ(have.escape, want.escape);
-        EXPECT_EQ(have.quote, want.quote);
+        EXPECT_EQ(have.delimiter, want.delimiter) << "i=" << i;
+        EXPECT_EQ(have.escape, want.escape) << "i=" << i;
+        EXPECT_EQ(have.quote, want.quote) << "i=" << i;
     }
 }
 
@@ -81,6 +81,20 @@ INSTANTIATE_TEST_SUITE_P(CSVSniffer, CSVDialectDetectionTestSuite, ::testing::Va
         {"\"", "\t", ""},
         {"\'", "\t", "\\"},
         {"", "\t", ""},
+    }},
+    DetectionTest{R"CSV("1","2","3"
+"4","5","6"
+"7","8","9")CSV", {
+        {"\"", ",", ""},
+        {"\'", ",", "\\"},
+        {"", ",", ""},
+    }},
+    DetectionTest{R"CSV('1','2','3'
+'4','5','6'
+'7','8','9')CSV", {
+        {"\"", ",", ""},
+        {"\'", ",", "\\"},
+        {"", ",", ""},
     }}
 ));
 // clang-format on
