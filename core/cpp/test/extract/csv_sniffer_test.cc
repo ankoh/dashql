@@ -21,14 +21,16 @@ class CSVSnifferProxy : public CSVSniffer {
     CSVSnifferProxy(const CSVParserOptions& user_options, CachingBlobStreamBuffer&& streambuf)
         : CSVSniffer(user_options, move(streambuf)) {}
 
+    using CSVSniffer::DetectDialect;
     using CSVSniffer::DetectTypes;
 };
 
 struct DetectionTest {
+    std::string test;
     std::string input;
     std::vector<CSVSniffer::Dialect> candidates;
     friend std::ostream& operator<<(std::ostream& out, const DetectionTest& param) {
-        out << param.input;
+        out << param.test;
         return out;
     }
 };
@@ -42,10 +44,24 @@ TEST_P(CSVDialectDetectionTestSuite, CandidatesMatch) {
 
     CSVParserOptions presets;
     CSVSnifferProxy sniffer{presets, move(blob_streambuf)};
-    sniffer.DetectTypes();
+    auto rc = sniffer.DetectDialect();
+    EXPECT_TRUE(rc.IsOk());
+
+    auto& candidates = rc.value();
+    EXPECT_EQ(candidates.size(), param.candidates.size());
+    for (unsigned i = 0; i < param.candidates.size(); ++i) {
+        auto& have = candidates[i];
+        auto& want = param.candidates[i];
+        EXPECT_EQ(have.delimiter, want.delimiter);
+        EXPECT_EQ(have.escape, want.escape);
+        EXPECT_EQ(have.quote, want.quote);
+    }
 }
 
-INSTANTIATE_TEST_SUITE_P(CSVSniffer, CSVDialectDetectionTestSuite,
-                         ::testing::Values(DetectionTest{"1,2,3\n4,5,6\n7,8,9", {{"", ",", ""}}}));
+// clang-format off
+INSTANTIATE_TEST_SUITE_P(CSVSniffer, CSVDialectDetectionTestSuite, ::testing::Values(
+    DetectionTest{"test1", "1,2,3\n4,5,6\n7,8,9", {{"\"", ",", "\\"}}})
+);
+// clang-format on
 
 }  // namespace
