@@ -78,6 +78,9 @@ class CachingBlobStreamBuffer : public BlobStreamBufferBase {
     /// Constructor
     CachingBlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id, CachedBuffers&& cached_buffers = {});
 
+    /// Rewind the caching blob stream
+    void Rewind();
+
     /// Virtual function called by other member functions to get the current character
     /// in the controlled input sequence without changing the current position.
     /// Derived classes can override this behavior to modify the gptr and egptr internal pointers in such a way 

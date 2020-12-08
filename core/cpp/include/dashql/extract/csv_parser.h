@@ -56,9 +56,9 @@ struct CSVParserOptions {
 
     /// Dump parser options as string
     std::string ToString() const;
+    /// Requires a complex parser?
+    bool IsSingleCharacterDialect() const { return (delimiter.size() > 1) || (quote.size() > 1) || (escape.size() > 1); }
 };
-
-class CSVParser;
 
 class CSVParser {
    protected:
@@ -100,9 +100,9 @@ class CSVParser {
     /// Add a value
     void AddValue(std::string_view val, std::vector<size_t>& escape_positions);
     /// Adds a row to the output_chunk, returns true if the chunk is filled as a result of this row being added
-    bool AddRow(duckdb::DataChunk* output_chunk, size_t output_capacity);
+    bool AddRow(size_t limit, duckdb::DataChunk* output_chunk);
     /// Flush data chunk
-    void Flush(duckdb::DataChunk* output_chunk, size_t output_capacity);
+    void Flush(size_t limit, duckdb::DataChunk* output_chunk);
 
    public:
     /// Constructor
@@ -113,6 +113,9 @@ class CSVParser {
     CSVParser(const CSVParser& other) = delete;
     /// Deleted copy assignment
     CSVParser& operator=(const CSVParser& other) = delete;
+
+    /// Return the column counts
+    auto& GetColumnCounts() const { return column_counts; }
 };
 
 class SimpleCSVParser : public CSVParser {
@@ -125,7 +128,7 @@ class SimpleCSVParser : public CSVParser {
     SimpleCSVParser& operator=(SimpleCSVParser&& other);
 
     /// Parse the input
-    Signal Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
+    Signal Parse(size_t limit = CSV_OUTPUT_CHUNK_SIZE, duckdb::DataChunk* output_chunk = nullptr);
 };
 
 class ComplexCSVParser : public CSVParser {
@@ -144,7 +147,7 @@ class ComplexCSVParser : public CSVParser {
     ComplexCSVParser(ComplexCSVParser&& other, const CSVParserOptions& options, std::istream& in);
 
     /// Parse the input
-    Signal Parse(duckdb::DataChunk* output_chunk = nullptr, size_t output_capacity = CSV_OUTPUT_CHUNK_SIZE);
+    Signal Parse(size_t limit = CSV_OUTPUT_CHUNK_SIZE, duckdb::DataChunk* output_chunk = nullptr);
 };
 
 }  // namespace dashql

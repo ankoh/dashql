@@ -44,7 +44,7 @@ TEST(SimpleCSVParser, SimpleColumns) {
     options.sql_types = column_types;
 
     SimpleCSVParser parser{options, blob_stream};
-    auto rc = parser.Parse(&output_chunk, 1024);
+    auto rc = parser.Parse(128, &output_chunk);
 
     ASSERT_TRUE(rc.IsOk()) << rc.err().message();
     MatchIntegerChunk(output_chunk, {
@@ -69,7 +69,7 @@ TEST(SimpleCSVParser, InvalidCSV) {
         options.sql_types = column_types;
 
         SimpleCSVParser parser{options, blob_stream};
-        auto rc = parser.Parse(&output_chunk, 128);
+        auto rc = parser.Parse(128, &output_chunk);
         EXPECT_FALSE(rc.IsOk());
     };
 
