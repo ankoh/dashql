@@ -25,7 +25,7 @@
 namespace dashql {
 
 BETTER_ENUM(CSVParserMode, uint8_t, PARSING, PARSING_HEADER, SNIFFING_DIALECT, SNIFFING_DATATYPES)
-    
+
 BETTER_ENUM(CSVQuoteRule, uint8_t, QUOTES_RFC = 0, QUOTES_OTHER = 1, NO_QUOTES = 2);
 
 constexpr size_t CSV_OUTPUT_CHUNK_SIZE = 1024;
@@ -65,7 +65,10 @@ struct CSVParserOptions {
     /// Dump parser options as string
     std::string ToString() const;
     /// Requires a complex parser?
-    bool IsSingleCharacterDialect() const { return (delimiter->size() > 1) || (quote->size() > 1) || (escape->size() > 1); }
+    bool IsSingleCharacterDialect() const {
+        return (delimiter.value_or("").size() <= 1) && (quote.value_or("").size() <= 1) &&
+               (escape.value_or("").size() <= 1);
+    }
 };
 
 class CSVParser {
@@ -127,7 +130,8 @@ class CSVParser {
 class SimpleCSVParser : public CSVParser {
    public:
     /// Constructor
-    SimpleCSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated_buffers = {});
+    SimpleCSVParser(const CSVParserOptions& options, std::istream& in,
+                    std::array<std::vector<char>, 2> donated_buffers = {});
     /// Move assignment
     SimpleCSVParser& operator=(SimpleCSVParser&& other);
 
@@ -146,7 +150,8 @@ class ComplexCSVParser : public CSVParser {
 
    public:
     /// Constructor
-    ComplexCSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated_buffers = {});
+    ComplexCSVParser(const CSVParserOptions& options, std::istream& in,
+                     std::array<std::vector<char>, 2> donated_buffers = {});
 
     /// Parse the input
     Signal Parse(size_t limit = CSV_OUTPUT_CHUNK_SIZE, duckdb::DataChunk* output_chunk = nullptr);
