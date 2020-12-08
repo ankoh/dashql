@@ -10,14 +10,25 @@ namespace dashql {
 
 class CSVSniffer {
    protected:
+    /// A dialect
+    struct Dialect {
+        /// The quote
+        std::string_view quote;
+        /// The delimiter
+        std::string_view delimiter;
+        /// The escape
+        std::string_view escape;
+    };
     /// A dialect evaluation
     struct DialectScore {
+        /// The row count
+        size_t row_count = 0;
+        /// The column count
+        size_t column_count = 0;
         /// The number of consistent rows
         size_t consistent_rows = 0;
         /// The first consistent row
         size_t first_consistent_row = 0;
-        /// The column count
-        size_t column_count = 0;
     };
 
     /// The user provided options
@@ -32,7 +43,7 @@ class CSVSniffer {
     /// Try a dialect
     DialectScore TryDialect(CSVParserOptions& options);
     /// Detect the dialect
-    void DetectDialect();
+    Expected<std::vector<Dialect>> DetectDialect();
     /// Detct the data types
     void DetectTypes();
 
