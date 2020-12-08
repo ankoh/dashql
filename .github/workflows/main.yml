@@ -31,7 +31,9 @@ jobs:
               -B./core/cpp/build/debug \
               -DCMAKE_BUILD_TYPE=Debug \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_C_COMPILER=clang \
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CXX_COMPILER=clang++ \
               -DCMAKE_BUILD_TYPE=Debug
           ccache -s
           make -C./core/cpp/build/debug -j`nproc`
@@ -80,7 +82,9 @@ jobs:
               -B./core/cpp/build/release \
               -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_C_COMPILER=clang \
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CXX_COMPILER=clang++ \
               -DCMAKE_BUILD_TYPE=Release
           ccache -s
           make -C./core/cpp/build/release -j`nproc`
