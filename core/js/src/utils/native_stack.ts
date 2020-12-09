@@ -15,7 +15,7 @@ export class NativeStack {
 
     /// Resize the buffer
     protected resize(newSize: number) {
-        let b = new Uint32Array(new ArrayBuffer(newSize * 4))
+        let b = new Uint32Array(new ArrayBuffer(newSize))
         b.set(this._buffer);
         this._buffer = b;
     }
