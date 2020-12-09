@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer, ProgramBuffer } from '../bindings';
+import { FlatBuffer, ProgramBuffer } from '../core_bindings';
 import { NativeStack, NativeBitmap } from '../utils';
 import { syntax as sx } from '@dashql/proto';
 

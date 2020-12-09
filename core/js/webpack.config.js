@@ -32,7 +32,7 @@ const browserTarget = {
                 ]
             },
             {
-                test: /dashql_core_(web|node)\.wasm$/,
+                test: /core_(web|node)\.wasm$/,
                 type: 'javascript/auto',
                 loader: 'file-loader',
                 options: {
