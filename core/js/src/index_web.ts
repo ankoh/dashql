@@ -1,10 +1,15 @@
 // Copyright (c) 2020 The DashQL Authors
 
+export * as proto from "@dashql/proto";
+export * as actions from "./actions";
+export * as model from "./model";
+export * as utils from "./utils";
+export * from "./core_bindings";
+
 import dashql_core_wasm from './wasm/core_web.wasm';
 import dashql_core_init from './wasm/core_web.js';
-
 import { DashQLCoreModule } from './wasm/core_module';
-import { DashQLCoreBindings, DashQLCoreRuntime, DASHQL_CORE_RUNTIME_STUBS } from './';
+import { DashQLCoreBindings, DashQLCoreRuntime, DashQLCoreRuntimeStubs } from './core_bindings';
 
 export class DashQLCore extends DashQLCoreBindings {
     protected runtime: DashQLCoreRuntime;
@@ -55,11 +60,9 @@ export class DashQLCore extends DashQLCoreBindings {
         });
     }
 
-    public static async create(runtime: DashQLCoreRuntime = DASHQL_CORE_RUNTIME_STUBS, path: string | null = null): Promise<DashQLCore> {
+    public static async create(runtime: DashQLCoreRuntime = DashQLCoreRuntimeStubs(), path: string | null = null): Promise<DashQLCore> {
         const core = new DashQLCore(runtime, path);
         await DashQLCoreBindings.init(core);
         return core;
     }
 }
-
-export * from './';

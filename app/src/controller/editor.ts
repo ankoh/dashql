@@ -34,7 +34,7 @@ export class EditorController {
     }
 
     /// Display module errors
-    protected displayErrors(program: core.parser.Program): void {
+    protected displayErrors(program: core.model.Program): void {
         const model = this._editor?.getModel();
         if (!model) {
             return;

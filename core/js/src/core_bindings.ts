@@ -1,8 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { DashQLCoreModule } from './wasm/core_module';
-import { Program } from  './parser';
-import { flatbuffers } from 'flatbuffers';
+import { Program, FlatBuffer, PlanBuffer, ProgramBuffer } from  './model';
 import * as proto from '@dashql/proto';
 
 ///
@@ -15,9 +14,11 @@ export interface DashQLCoreRuntime {
 }
 
 /// Stubs for the DashQL core runtime
-export const DASHQL_CORE_RUNTIME_STUBS: DashQLCoreRuntime = {
-    dashql_pong: () => { console.log("pong"); return 42; },
-    dashql_blob_stream_underflow: () => { return 0; }
+export function DashQLCoreRuntimeStubs(): DashQLCoreRuntime {
+    return {
+        dashql_pong: () => { console.log("pong"); return 42; },
+        dashql_blob_stream_underflow: () => { return 0; }
+    };
 }
 
 /// The proxy for either the browser- order node-based DashQLCore API
@@ -128,38 +129,4 @@ export abstract class DashQLCoreBindings {
         let instance = this._instance!;
         return instance.ccall('dashql_ping', 'number', [], []);
     }
-
 };
-
-/// An owning flatbuffer
-export abstract class FlatBuffer<Proto> {
-    /// The buffer
-    protected _buffer: flatbuffers.ByteBuffer;
-    /// The root
-    protected _root: Proto;
-
-    /// Constructor
-    constructor(buffer: Uint8Array = new Uint8Array(0)) {
-        var copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
-        copy.set(buffer);
-        this._buffer = new flatbuffers.ByteBuffer(copy);
-        this._root = this.getRoot(this._buffer);
-    }
-
-    /// Initialize the buffer
-    protected abstract getRoot(buffer: flatbuffers.ByteBuffer): Proto;
-    /// Get the object
-    public get root(): Proto { return this._root; }
-};
-
-export class PlanBuffer extends FlatBuffer<proto.session.Plan> {
-    public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.session.Plan.getRoot(buffer);
-    }
-}
-
-export class ProgramBuffer extends FlatBuffer<proto.syntax.Program> {
-    public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.syntax.Program.getRoot(buffer);
-    }
-}

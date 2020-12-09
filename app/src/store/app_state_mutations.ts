@@ -26,8 +26,8 @@ export enum ActionType {
 export type ActionVariant =
     | Action<ActionType.CONFIGURE_APP, AppSettings>
     | Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
-    | Action<ActionType.SET_STUDIO_PROGRAM, core.parser.Program>
-    | Action<ActionType.SET_PLAN, core.Plan>
+    | Action<ActionType.SET_STUDIO_PROGRAM, core.model.Program>
+    | Action<ActionType.SET_PLAN, core.model.Plan>
     | Action<ActionType.CLEAR_PLAN, {}>
     ;
 
@@ -44,13 +44,13 @@ export class AppStateMutations {
     }
 
     /// Set the editor text
-    public static setStudioProgram(program: core.parser.Program): ActionVariant {
+    public static setStudioProgram(program: core.model.Program): ActionVariant {
         return { type: ActionType.SET_STUDIO_PROGRAM, payload: program };
     }
 
 
     /// Set the editor modul
-    public static setPlan(plan: core.Plan): ActionVariant {
+    public static setPlan(plan: core.model.Plan): ActionVariant {
         return { type: ActionType.SET_PLAN, payload: plan };
     }
 

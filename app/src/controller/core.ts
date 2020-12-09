@@ -13,7 +13,7 @@ export class CoreController {
     /// The WebAssembly module
     _module: DashQLCore | null;
     /// The previous program
-    _program: core.parser.Program | null;
+    _program: core.model.Program | null;
 
     constructor() {
         this._runtime = CORE_RUNTIME;
@@ -27,17 +27,17 @@ export class CoreController {
     }
 
     /// Parse a program
-    parseProgram(input: string): core.parser.Program {
+    parseProgram(input: string): core.model.Program {
         this._program = this._module!.parseProgram(input);
         return this._program!;
     }
 
     /// Plan the last program
-    planProgram(): core.Plan | null {
+    planProgram(): core.model.Plan | null {
         if (this._program == null) {
             return null;
         }
         const plan_buffer = this._module!.planProgram();
-        return new core.Plan(this._program, plan_buffer);
+        return new core.model.Plan(this._program, plan_buffer);
     }
 }
