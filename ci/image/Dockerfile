@@ -3,7 +3,7 @@ FROM ubuntu:20.10
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential git \
-        ccache cmake ninja-build clang clang-tidy curl python python3 \
+        ccache cmake ninja-build llvm clang clang-tidy curl python python3 \
         bison flex \
         openjdk-14-jdk \
         libpthread-stubs0-dev \
