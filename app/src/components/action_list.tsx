@@ -36,7 +36,7 @@ function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
 
 interface Props {
     className?: string
-    plan: core.Plan | null;
+    plan: core.model.Plan | null;
     close: () => void;
 }
 
@@ -45,7 +45,7 @@ interface State {
 
 class ActionList extends React.Component<Props, State> {
 
-    public renderActions(plan: core.Plan)  {
+    public renderActions(plan: core.model.Plan)  {
         let setup_actions: JSX.Element[] = [];
         let program_actions: JSX.Element[] = [];
         plan.iterateSetupActions((i: number, o: proto.action.SetupAction) => {

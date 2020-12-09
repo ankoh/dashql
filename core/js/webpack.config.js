@@ -13,7 +13,7 @@ const browserTarget = {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
         publicPath: 'dist/',
-        library: 'DashQLParser',
+        library: 'DashQLCore',
         libraryTarget: 'umd',
         umdNamedDefine: true,
         globalObject: 'this'

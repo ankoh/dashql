@@ -1,8 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer, PlanBuffer } from './core_bindings';
-import { Program } from './parser/';
+import { FlatBuffer } from './buffer';
+import { Program } from './program';
 import * as proto from '@dashql/proto';
+
+export class PlanBuffer extends FlatBuffer<proto.session.Plan> {
+    public getRoot(buffer: flatbuffers.ByteBuffer) {
+        return proto.session.Plan.getRoot(buffer);
+    }
+}
 
 export class Plan {
     /// The program

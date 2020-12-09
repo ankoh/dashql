@@ -15,7 +15,7 @@ import {
     VariableBoxIcon,
 } from '../svg/icons';
 
-import sx = core.proto.syntax;
+import sx = proto.syntax;
 import styles from './program_graph.module.css';
 
 function getStatementTypeLabel(type: proto.syntax.StatementType) {
@@ -101,7 +101,7 @@ function Node(props: ProgramNodeData) {
 }
 
 interface ProgramGraphProps {
-    program: core.parser.Program | null;
+    program: core.model.Program | null;
     className?: string
 }
 
@@ -127,7 +127,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
             ranksep: 40,
             rankdir: 'LR'
         });
-        this.props.program.iterateStatements((idx: number, stmt: core.parser.Statement) => {
+        this.props.program.iterateStatements((idx: number, stmt: core.model.Statement) => {
             g.setNode(idx.toString(), {
                 ...NODE_SIZE,
             });

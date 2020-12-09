@@ -1,10 +1,17 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer, ProgramBuffer } from '../core_bindings';
+import { FlatBuffer } from './buffer';
 import { NativeStack, NativeBitmap } from '../utils';
 import { syntax as sx } from '@dashql/proto';
+import * as proto from '@dashql/proto';
 
 const decoder = new TextDecoder();
+
+export class ProgramBuffer extends FlatBuffer<proto.syntax.Program> {
+    public getRoot(buffer: flatbuffers.ByteBuffer) {
+        return proto.syntax.Program.getRoot(buffer);
+    }
+}
 
 export class Program {
     /// The original text
