@@ -3,7 +3,7 @@ import * as model from './';
 
 export default function createStore(): model.AppReduxStore {
     return createReduxStore<model.AppState, model.ActionVariant, any, any>(
-        model.AppStateMutation.reducer,
+        model.AppStateMutation.reduce,
     );
 }
 

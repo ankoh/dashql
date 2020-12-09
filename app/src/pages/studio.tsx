@@ -59,7 +59,7 @@ class Studio extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    program: state.studioProgram
+    program: state.core.program
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({

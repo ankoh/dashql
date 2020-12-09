@@ -1,5 +1,5 @@
 import * as monaco from 'monaco-editor';
-import { AppReduxStore, AppStateMutation } from '../model';
+import { AppReduxStore } from '../model';
 import { CoreController } from './core';
 import * as core from '@dashql/core';
 
@@ -25,12 +25,12 @@ export class EditorController {
     /// Update studio text
     public updateStudioText(input: string) {
         const s = this._store.getState();
-        if (s.studioProgram != null && s.studioProgram.text == input) {
+        if (s.core.program != null && s.core.program.text == input) {
             return;
         }
         const p = this._core.parseProgram(input);
         this.displayErrors(p);
-        this._store.dispatch(AppStateMutation.setStudioProgram(p));
+        this._store.dispatch(core.model.StateMutation.setProgram(p));
     }
 
     /// Display module errors

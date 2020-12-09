@@ -135,7 +135,7 @@ class Editor extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    program: state.studioProgram || new core.model.Program()
+    program: state.core.program || new core.model.Program()
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({

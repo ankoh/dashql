@@ -5,30 +5,18 @@ import { AppSettings } from "./settings";
 
 const MAX_LOG_SIZE = 100;
 
-/// An action
-export type Action<T, P> = {
-    readonly type: T;
-    readonly payload: P;
-}
-
 /// An action type
 export enum ActionType {
     CONFIGURE_APP           = 'CONFIGURE_APP',
     LOG_PUSH_ENTRY          = 'LOG_PUSH_ENTRY',
-    SET_PLAN                = 'SET_PLAN',
-    SET_STUDIO_PROGRAM_TEXT = 'SET_STUDIO_PROGRAM_TEXT',
-    SET_STUDIO_PROGRAM      = 'SET_STUDIO_PROGRAM',
-    CLEAR_PLAN              = 'CLEAR_PLAN',
     OTHER                   = 'OTHER',
 }
 
 /// An action variant
 export type ActionVariant =
-    | Action<ActionType.CONFIGURE_APP, AppSettings>
-    | Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
-    | Action<ActionType.SET_STUDIO_PROGRAM, core.model.Program>
-    | Action<ActionType.SET_PLAN, core.model.Plan>
-    | Action<ActionType.CLEAR_PLAN, {}>
+    | core.model.Action<ActionType.CONFIGURE_APP, AppSettings>
+    | core.model.Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
+    | core.model.ActionVariant
     ;
 
 /// Mutation of the application state
@@ -43,19 +31,8 @@ export class AppStateMutation {
         return { type: ActionType.LOG_PUSH_ENTRY, payload: log };
     }
 
-    /// Set the editor text
-    public static setStudioProgram(program: core.model.Program): ActionVariant {
-        return { type: ActionType.SET_STUDIO_PROGRAM, payload: program };
-    }
-
-
-    /// Set the editor modul
-    public static setPlan(plan: core.model.Plan): ActionVariant {
-        return { type: ActionType.SET_PLAN, payload: plan };
-    }
-
     /// Set the editor program
-    public static reducer(
+    public static reduce(
         state: AppState = new AppState(),
         action: ActionVariant,
     ): AppState {
@@ -75,23 +52,10 @@ export class AppStateMutation {
                         }
                     }),
                 };
-            case ActionType.SET_STUDIO_PROGRAM:
-                return {
-                    ...state,
-                    studioProgram: action.payload
-                };
-            case ActionType.SET_PLAN:
-                return {
-                    ...state,
-                    plan: action.payload
-                };
-            case ActionType.CLEAR_PLAN:
-                return {
-                    ...state,
-                    plan: null
-                };
-            default:
-                return state;
+            default: {
+                const c = core.model.StateMutation.reduce(state.core, action);
+                return (c !== state.core) ? { ...state, core: c } : state;
+            }
         }
     }
 }

@@ -5,16 +5,9 @@ import { LaunchProgress } from "./launch_progress";
 import { LogEntry } from "./log";
 import { AppSettings } from "./settings";
 
-class ProgramInspectionState {
-    /// The hovered path (if any)
-    hoveredPath: core.model.NodePath | null = null;
-    /// The focused path (if any)
-    focusedPath: core.model.NodePath | null = null;
-    /// The expanded paths
-    expandedPaths: Immutable.List<core.model.NodePath>[] = [];
-}
-
 export class AppState {
+    // The core state
+    public core: core.model.State;
     /// The launch progress
     public launchProgress: LaunchProgress;
     // The app config
@@ -23,22 +16,14 @@ export class AppState {
     public tasks: Immutable.Map<number, TaskInfo>;
     // The log entries
     public logEntries: Immutable.List<LogEntry>;
-    /// The studio program
-    public studioProgram: core.model.Program | null;
-    /// The studio inspection state
-    public studioInspection: ProgramInspectionState;
-    /// The plan
-    public plan: core.model.Plan | null;
 
     /// Constructor
     constructor() {
+        this.core = new core.model.State();
         this.launchProgress = new LaunchProgress();
         this.appSettings = null;
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logEntries = Immutable.List<LogEntry>();
-        this.studioProgram = null;
-        this.studioInspection = new ProgramInspectionState();
-        this.plan = null;
         return;
     }
 }
