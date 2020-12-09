@@ -29,7 +29,9 @@ struct PatternShiftArray {
     /// The shifts
     std::unique_ptr<uint8_t[]> shifts;
 
+    /// Constructor
     PatternShiftArray();
+    /// Constructor
     PatternShiftArray(std::string pattern);
 
     inline bool Match(uint8_t &position, uint8_t byte_value) {
