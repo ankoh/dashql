@@ -1,19 +1,16 @@
 import { Statement } from "../model";
 
-
 class Action {
 }
 
 export class ProgramAction extends Action {
-    /// The statement
-    origin_statement: Statement;
-    ///
+    /// The origin statement
+    origin: Statement;
 
     constructor(origin: Statement) {
         super();
-        this.origin_statement = origin;
+        this.origin = origin;
     }
 }
 
-export class SetupAction extends Action {
-}
+export class SetupAction extends Action {}
