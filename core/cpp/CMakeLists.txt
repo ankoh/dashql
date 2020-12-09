@@ -278,13 +278,13 @@ if (EMSCRIPTEN)
         "
     )
 
-    add_executable(dashql_core_web ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-    target_link_libraries(dashql_core_web dashql_core duckdb_ffi)
-    set_target_properties(dashql_core_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web,worker'")
+    add_executable(core_web ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
+    target_link_libraries(core_web dashql_core duckdb_ffi)
+    set_target_properties(core_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
-    add_executable(dashql_core_node ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-    target_link_libraries(dashql_core_node dashql_core duckdb_ffi)
-    set_target_properties(dashql_core_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
+    add_executable(core_node ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
+    target_link_libraries(core_node dashql_core duckdb_ffi)
+    set_target_properties(core_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 
 else()
 

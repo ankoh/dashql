@@ -28,7 +28,7 @@ emcmake cmake \
 emmake make \
     -C/wd/core/cpp/build/wasm/${BUILD_TYPE} \
     -j${CORES} \
-    dashql_core_web dashql_core_node duckdb_web duckdb_node
+    core_web core_node duckdb_web duckdb_node
 
-cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/dashql_*.{wasm,js} "${CORE_JS_LIB_DIR}"
-cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/duckdb/duckdb_*.{wasm,js} "${DUCKDB_JS_LIB_DIR}"
+cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/*.{wasm,js} "${CORE_JS_LIB_DIR}"
+cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/duckdb/*.{wasm,js} "${DUCKDB_JS_LIB_DIR}"
