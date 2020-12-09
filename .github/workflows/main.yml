@@ -285,4 +285,5 @@ jobs:
         script: |-
             source /opt/env.sh
             cd ./plugins/extract/fortnite-replay/
+            cargo build
             cargo build --target wasm32-unknown-unknown
