@@ -1,8 +1,9 @@
-import { AppReduxStore, AppStateMutation } from '../model';
+import { AppReduxStore } from '../model';
 import { EditorController } from './editor';
 import { LogController } from './log';
 import { InterpreterController } from './interpreter';
 import { CoreController } from './core';
+import * as core from '@dashql/core';
 
 export const DEMO_SCRIPT =
 `-- This script outlines basic concepts of the SQL extension DashQL.
@@ -57,9 +58,9 @@ export class DemoController {
     public setup() {
         const program = this._core.parseProgram(DEMO_SCRIPT);
         const plan = this._core.planProgram();
-        this._store.dispatch(AppStateMutation.setStudioProgram(program));
+        this._store.dispatch(core.model.StateMutation.setProgram(program));
         if (plan != null) {
-            this._store.dispatch(AppStateMutation.setPlan(plan));
+            this._store.dispatch(core.model.StateMutation.setPlan(plan));
         }
     }
 }

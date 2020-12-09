@@ -3,8 +3,10 @@ import { LogEntry } from "./log";
 import { Plan } from "./plan";
 import { Program } from "./program";
 
-export class Store {
-    /// The studio program
+export class State {
+    /// The program text
+    public program_text: string;
+    /// The program
     public program: Program | null;
     /// The plan
     public plan: Plan | null;
@@ -13,6 +15,7 @@ export class Store {
 
     /// Constructor
     constructor() {
+        this.program_text = "";
         this.program = null;
         this.plan = null;
         this.logEntries = Immutable.List<LogEntry>();
