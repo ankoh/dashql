@@ -53,8 +53,7 @@ export class AppStateMutation {
                     }),
                 };
             default: {
-                const c = core.model.StateMutation.reduce(state.core, action);
-                return (c !== state.core) ? { ...state, core: c } : state;
+                return core.model.StateMutation.reduce(state, action);
             }
         }
     }

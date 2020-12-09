@@ -36,25 +36,34 @@ export class StateMutation {
         return { type: ActionType.CLEAR_PLAN, payload: {} };
     }
 
-    public static reduce(
-        state: State,
+    public static reduce<S extends State>(
+        state: S,
         action: ActionVariant,
-    ): State {
+    ): S {
         switch (action.type) {
             case ActionType.SET_PROGRAM:
                 return {
                     ...state,
-                    program: action.payload
+                    core: {
+                        ...state.core,
+                        program: action.payload
+                    }
                 };
             case ActionType.SET_PLAN:
                 return {
                     ...state,
-                    plan: action.payload
+                    core: {
+                        ...state.core,
+                        plan: action.payload
+                    }
                 };
             case ActionType.CLEAR_PLAN:
                 return {
                     ...state,
-                    plan: null
+                    core: {
+                        ...state.core,
+                        plan: null 
+                    }
                 };
             default:
                 return state;
