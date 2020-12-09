@@ -3,7 +3,7 @@ import * as core from "@dashql/core";
 import { TaskID, TaskInfo } from "./task";
 import { LaunchProgress } from "./launch_progress";
 import { LogEntry } from "./log";
-import { AppSettings } from "./app_settings";
+import { AppSettings } from "./settings";
 
 class ProgramInspectionState {
     /// The hovered path (if any)

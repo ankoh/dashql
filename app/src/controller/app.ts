@@ -1,4 +1,4 @@
-import { AppReduxStore } from '../store';
+import { AppReduxStore } from '../model';
 import { EditorController } from './editor';
 import { LogController } from './log';
 import { InterpreterController } from './interpreter';

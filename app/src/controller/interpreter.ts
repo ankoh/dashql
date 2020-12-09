@@ -1,4 +1,4 @@
-import { AppReduxStore } from '../store';
+import { AppReduxStore } from '../model';
 import * as core from '@dashql/core';
 
 export class InterpreterController {
