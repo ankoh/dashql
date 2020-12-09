@@ -7,11 +7,11 @@ import { AppSettings } from "./app_settings";
 
 class ProgramInspectionState {
     /// The hovered path (if any)
-    hoveredPath: core.parser.NodePath | null = null;
+    hoveredPath: core.model.NodePath | null = null;
     /// The focused path (if any)
-    focusedPath: core.parser.NodePath | null = null;
+    focusedPath: core.model.NodePath | null = null;
     /// The expanded paths
-    expandedPaths: Immutable.List<core.parser.NodePath>[] = [];
+    expandedPaths: Immutable.List<core.model.NodePath>[] = [];
 }
 
 export class AppState {
@@ -24,11 +24,11 @@ export class AppState {
     // The log entries
     public logEntries: Immutable.List<LogEntry>;
     /// The studio program
-    public studioProgram: core.parser.Program | null;
+    public studioProgram: core.model.Program | null;
     /// The studio inspection state
     public studioInspection: ProgramInspectionState;
     /// The plan
-    public plan: core.Plan | null;
+    public plan: core.model.Plan | null;
 
     /// Constructor
     constructor() {

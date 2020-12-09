@@ -14,7 +14,7 @@ import { ToolBar } from './studio_toolbar';
 import styles from './studio.module.css';
 
 interface Props {
-    program: core.parser.Program | null;
+    program: core.model.Program | null;
     className?: string
 }
 

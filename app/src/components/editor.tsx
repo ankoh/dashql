@@ -13,7 +13,7 @@ import styles from './editor.module.css';
 type Props = {
     appContext: IAppContext;
     className?: string;
-    program: core.parser.Program;
+    program: core.model.Program;
 };
 
 class Editor extends React.Component<Props> {
@@ -135,7 +135,7 @@ class Editor extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    program: state.studioProgram || new core.parser.Program()
+    program: state.studioProgram || new core.model.Program()
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({

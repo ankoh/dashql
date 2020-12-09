@@ -15,7 +15,6 @@
         "node": ">=14.13"
     },
     "dependencies": {
-        "@dashql/proto": "file:../proto/",
         "@dashql/core": "file:../core/js/",
         "@dashql/duckdb": "0.0.8",
         "@dashql/gridstack": "^2.1.1",
