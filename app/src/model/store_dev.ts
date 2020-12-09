@@ -1,11 +1,11 @@
 import { compose, createStore as createReduxStore } from 'redux';
-import * as Model from './';
+import * as model from './';
 
-function actionSanitizer(action: Model.ActionVariant) {
+function actionSanitizer(action: model.ActionVariant) {
     return action;
 }
 
-function stateSanitizer(state: Model.AppState) {
+function stateSanitizer(state: model.AppStateMutation) {
     return {
         ...state
     };
@@ -28,9 +28,9 @@ if (
 const enhancer = composeEnhancers();
 /* tslint:enable */
 
-export default function createStore(): Model.AppReduxStore {
-    const store = createReduxStore<Model.AppState, Model.ActionVariant, any, any>(
-        Model.AppStateMutations.reducer,
+export default function createStore(): model.AppReduxStore {
+    const store = createReduxStore<model.AppState, model.ActionVariant, any, any>(
+        model.AppStateMutation.reducer,
         enhancer,
     );
 

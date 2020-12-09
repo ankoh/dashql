@@ -1,4 +1,4 @@
-import { AppReduxStore, AppStateMutations, LogEntry, LogLevel } from '../store';
+import { AppReduxStore, AppStateMutation, LogEntry, LogLevel } from '../model';
 import { LoggableError } from '../util/error';
 
 export class LogController {
@@ -18,7 +18,7 @@ export class LogController {
         logEntry.timestamp = new Date();
 
         // Store in redux store
-        this.store.dispatch(AppStateMutations.pushLogEntry(logEntry));
+        this.store.dispatch(AppStateMutation.pushLogEntry(logEntry));
     }
 
     public logError(error: LoggableError) {
@@ -29,7 +29,7 @@ export class LogController {
         logEntry.timestamp = new Date();
 
         // Store in redux store
-        this.store.dispatch(AppStateMutations.pushLogEntry(logEntry));
+        this.store.dispatch(AppStateMutation.pushLogEntry(logEntry));
     }
 
     // Log levels

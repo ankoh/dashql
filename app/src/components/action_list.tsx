@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as core from "@dashql/core";
 import { proto } from "@dashql/core";
-import { AppState, Dispatch } from '../store';
+import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 import { ActionStatusSpinner } from './spinners';
 import { ChevronRightIcon, CloseIcon } from '../svg/icons';

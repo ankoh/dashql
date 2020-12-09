@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AppReduxStore } from '../store';
+import { AppReduxStore } from '../model';
 import { connect } from 'react-redux';
 import { AutoSizer, withAutoSizer } from '../util/autosizer';
 import { Scrollbars } from 'react-custom-scrollbars';

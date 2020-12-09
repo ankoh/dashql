@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as core from "@dashql/core";
 import { Board, EditorLoader } from '../components';
-import { AppState, Dispatch } from '../store';
+import { AppState, Dispatch } from '../model';
 import { ProgramGraph } from "../components";
 import { connect } from 'react-redux';
 // import Outline from './outline';

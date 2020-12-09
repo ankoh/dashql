@@ -1,7 +1,7 @@
 import * as core from "@dashql/core";
 import { LogEntry } from "./log";
-import { AppState } from "./app_state";
-import { AppSettings } from "./app_settings";
+import { AppState } from "./state";
+import { AppSettings } from "./settings";
 
 const MAX_LOG_SIZE = 100;
 
@@ -32,7 +32,7 @@ export type ActionVariant =
     ;
 
 /// Mutation of the application state
-export class AppStateMutations {
+export class AppStateMutation {
     /// Configure the application
     public static configureApp(config: AppSettings): ActionVariant {
         return { type: ActionType.CONFIGURE_APP, payload: config };
