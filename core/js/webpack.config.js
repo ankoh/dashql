@@ -6,7 +6,7 @@ const browserTarget = {
     target: 'web',
     mode: 'production',
     entry: {
-        "targets/web/dashql_core": './src/targets/web/dashql_core.ts'
+        "dashql_core_web": './src/index_web.ts'
     },
     devtool:'source-map',
     output: {
@@ -58,7 +58,7 @@ const nodeTarget = {
     ...browserTarget,
     target: 'node',
     entry: {
-        "targets/node/dashql_core": './src/targets/node/dashql_core.ts'
+        "dashql_core_node": './src/index_node.ts'
     },
     plugins: [
         new CleanWebpackPlugin({
