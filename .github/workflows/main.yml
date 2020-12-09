@@ -53,68 +53,68 @@ jobs:
             ./core/cpp/build/debug/duckdb/duckdb_tester \
                 --gtest_output=xml:./reports/tests_db_debug.xml
 
-#  linux_x86_coverage:
-#    name: Linux / x86 / Coverage
-#    runs-on: self-hosted
-#    steps:
-#    - uses: actions/checkout@v2
-#
-#    - name: Prepare repository
-#      uses: ./ci/image
-#      with:
-#        script: |-
-#          make reset_duckdb
-#          git submodule update --init --recursive
-#          mkdir -p ./core/cpp/build/coverage ./reports
-#
-#    - name: Compile flatbuffer schema
-#      uses: ./ci/image
-#      with:
-#        script: |-
-#            ./scripts/generate_proto.sh
-#
-#    - name: Build
-#      uses: ./ci/image
-#      with:
-#        script: |-
-#          cmake \
-#              -S./core/cpp/ \
-#              -B./core/cpp/build/coverage \
-#              -DCODE_COVERAGE=1 \
-#              -DCMAKE_BUILD_TYPE=Debug \
-#              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-#              -DCMAKE_C_COMPILER=clang \
-#              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-#              -DCMAKE_CXX_COMPILER=clang++ \
-#              -DCMAKE_BUILD_TYPE=Debug
-#          ccache -s
-#          make -C./core/cpp/build/coverage -j`nproc`
-#          ccache -s
-#
-#    - name: Test Core
-#      uses: ./ci/image
-#      with:
-#        script: |-
-#            export LLVM_PROFILE_FILE=./core.profraw
-#            ./core/cpp/build/coverage/tester ./core/cpp/
-#
-#    - name: Test WebDB
-#      uses: ./ci/image
-#      with:
-#        script: |-
-#            export LLVM_PROFILE_FILE=./webdb.profraw
-#            ./core/cpp/build/coverage/duckdb/duckdb_tester
-#
-#    - name: Code Coverage
-#      uses: ./ci/image
-#      with:
-#        script: |-
-#            llvm-profdata merge \
-#                -sparse ./core.profraw ./webdb.profraw \
-#                -o ./main.profdata
-#            llvm-cov report tester \
-#                --instr-profile ./main.profdata \
-#                -ignore-filename-regex submodules
+  linux_x86_coverage:
+    name: Linux / x86 / Coverage
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Prepare repository
+      uses: ./ci/image
+      with:
+        script: |-
+          make reset_duckdb
+          git submodule update --init --recursive
+          mkdir -p ./core/cpp/build/coverage ./reports
+
+    - name: Compile flatbuffer schema
+      uses: ./ci/image
+      with:
+        script: |-
+            ./scripts/generate_proto.sh
+
+    - name: Build
+      uses: ./ci/image
+      with:
+        script: |-
+          cmake \
+              -S./core/cpp/ \
+              -B./core/cpp/build/coverage \
+              -DCODE_COVERAGE=1 \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_C_COMPILER=clang \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CXX_COMPILER=clang++ \
+              -DCMAKE_BUILD_TYPE=Debug
+          ccache -s
+          make -C./core/cpp/build/coverage -j`nproc`
+          ccache -s
+
+    - name: Test Core
+      uses: ./ci/image
+      with:
+        script: |-
+            export LLVM_PROFILE_FILE=./core.profraw
+            ./core/cpp/build/coverage/tester ./core/cpp/
+
+    - name: Test WebDB
+      uses: ./ci/image
+      with:
+        script: |-
+            export LLVM_PROFILE_FILE=./webdb.profraw
+            ./core/cpp/build/coverage/duckdb/duckdb_tester
+
+    - name: Code Coverage
+      uses: ./ci/image
+      with:
+        script: |-
+            llvm-profdata merge \
+                -sparse ./core.profraw ./webdb.profraw \
+                -o ./main.profdata
+            llvm-cov report tester \
+                --instr-profile ./main.profdata \
+                -ignore-filename-regex submodules
 
   linux_x86_release:
     name: Linux / x86 / Release
