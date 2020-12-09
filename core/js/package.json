@@ -33,11 +33,11 @@
         "dist/**/*.js",
         "dist/*.wasm"
     ],
-    "main": "./dist/targets/node/dashql_core.js",
-    "module": "./dist/targets/node/dashql_core.js",
-    "types": "./dist/targets/node/dashql_core.d.ts",
+    "main": "./dist/dashql_core_node.js",
+    "module": "./dist/dashql_core_node.js",
+    "types": "./dist/index_node.d.ts",
     "browser": {
-        "./dist/targets/node/dashql_core.js": "./dist/targets/web/dashql_core.js",
+        "./dist/dashql_core_node.js": "./dist/dashql_core_web.js",
         "worker_threads": false,
         "perf_hooks": false,
         "fs": false,
