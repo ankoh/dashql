@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer, PlanBuffer } from './bindings';
+import { FlatBuffer, PlanBuffer } from './core_bindings';
 import { Program } from './parser/';
 import * as proto from '@dashql/proto';
 

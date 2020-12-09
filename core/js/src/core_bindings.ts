@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DashQLCoreModule } from './wasm/dashql_core_module';
+import { DashQLCoreModule } from './wasm/core_module';
 import { Program } from  './parser';
 import { flatbuffers } from 'flatbuffers';
 import * as proto from '@dashql/proto';
