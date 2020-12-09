@@ -1,10 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import dashql_core_wasm from '../../wasm/dashql_core_web.wasm';
-import dashql_core_init from '../../wasm/dashql_core_web.js';
+import dashql_core_wasm from './wasm/dashql_core_web.wasm';
+import dashql_core_init from './wasm/dashql_core_web.js';
 
-import { DashQLCoreModule } from '../../wasm/dashql_core_module';
-import { DashQLCoreBindings, DashQLCoreRuntime, DASHQL_CORE_RUNTIME_STUBS } from '../../';
+import { DashQLCoreModule } from './wasm/dashql_core_module';
+import { DashQLCoreBindings, DashQLCoreRuntime, DASHQL_CORE_RUNTIME_STUBS } from './';
 
 export class DashQLCore extends DashQLCoreBindings {
     protected runtime: DashQLCoreRuntime;
@@ -62,4 +62,4 @@ export class DashQLCore extends DashQLCoreBindings {
     }
 }
 
-export * from '../../';
+export * from './';
