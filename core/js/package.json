@@ -29,8 +29,9 @@
     },
     "scripts": {
         "build": "webpack --mode=production",
-        "test": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js --env=./jest.env.js",
-        "test:ci": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./node_modules/jest/bin/jest.js --env=./jest.env.js --ci --reporters=default --reporters=jest-junit"
+        "test": "node ./node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --env=./jest.env.js",
+        "test:silent": "node ./node_modules/jest/bin/jest.js --silent --runInBand --detectOpenHandles --env=./jest.env.js",
+        "test:ci": "node ./node_modules/jest/bin/jest.js --silent --runInBand --detectOpenHandles --env=./jest.env.js --ci --reporters=default --reporters=jest-junit"
     },
     "files": [
         "dist/**/*.d.ts",
