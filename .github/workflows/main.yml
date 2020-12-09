@@ -112,7 +112,7 @@ jobs:
             llvm-profdata merge \
                 -sparse ./core.profraw ./webdb.profraw \
                 -o ./main.profdata
-            llvm-cov report tester \
+            llvm-cov report ./core/cpp/build/coverage/tester \
                 --instr-profile ./main.profdata \
                 -ignore-filename-regex submodules
 
