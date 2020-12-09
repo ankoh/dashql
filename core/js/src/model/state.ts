@@ -3,7 +3,7 @@ import { LogEntry } from "./log";
 import { Plan } from "./plan";
 import { Program } from "./program";
 
-export class State {
+export class CoreState {
     /// The program text
     public program_text: string;
     /// The program
@@ -19,7 +19,15 @@ export class State {
         this.program = null;
         this.plan = null;
         this.logEntries = Immutable.List<LogEntry>();
-        return;
     }
 }
 
+export class State {
+    /// The core
+    public core: CoreState;
+
+    /// Constructor
+    constructor() {
+        this.core = new CoreState();
+    }
+}
