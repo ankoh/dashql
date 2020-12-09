@@ -4,7 +4,7 @@ import * as core from '@dashql/core';
 import { AutoSizer } from '../util/autosizer';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
-import { AppState, Dispatch } from '../store';
+import { AppState, Dispatch } from '../model';
 import classNames from 'classnames';
 
 import { theme as monaco_theme } from './editor_theme_light';

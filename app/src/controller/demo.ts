@@ -1,4 +1,4 @@
-import { AppReduxStore, AppStateMutations } from '../store';
+import { AppReduxStore, AppStateMutation } from '../model';
 import { EditorController } from './editor';
 import { LogController } from './log';
 import { InterpreterController } from './interpreter';
@@ -57,9 +57,9 @@ export class DemoController {
     public setup() {
         const program = this._core.parseProgram(DEMO_SCRIPT);
         const plan = this._core.planProgram();
-        this._store.dispatch(AppStateMutations.setStudioProgram(program));
+        this._store.dispatch(AppStateMutation.setStudioProgram(program));
         if (plan != null) {
-            this._store.dispatch(AppStateMutations.setPlan(plan));
+            this._store.dispatch(AppStateMutation.setPlan(plan));
         }
     }
 }

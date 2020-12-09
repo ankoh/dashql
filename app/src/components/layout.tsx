@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { DashboardModel, WidgetModel, WidgetType, ParameterType, ChartType } from '../models/dashboard';
+import { DashboardModel, WidgetModel, WidgetType, ParameterType, ChartType } from '../model/dashboard';
 import {
     IntegerParameter,
     FloatParameter,
