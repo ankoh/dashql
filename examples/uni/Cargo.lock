@@ -446,7 +446,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pkg_uni_schema"
+name = "pkg_uni"
 version = "0.1.0"
 dependencies = [
  "parquet",
