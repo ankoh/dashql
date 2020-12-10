@@ -11,7 +11,7 @@ export class CoreState {
     public program: Program | null;
     /// The plan
     public plan: Plan | null;
-    /// The plan entities
+    /// The plan objects
     public planObjects: Immutable.Map<PlanObjectID, PlanObject>;
     /// The log entries
     public logEntries: Immutable.List<LogEntry>;

@@ -1,3 +1,4 @@
+import { DashQLCoreBindings } from '@dashql/core';
 import { compose, createStore as createReduxStore } from 'redux';
 import * as model from './';
 
@@ -28,9 +29,11 @@ if (
 const enhancer = composeEnhancers();
 /* tslint:enable */
 
-export default function createStore(): model.AppReduxStore {
+export default function createStore(core: DashQLCoreBindings): model.AppReduxStore {
     const store = createReduxStore<model.AppState, model.ActionVariant, any, any>(
-        model.AppStateMutation.reduce,
+        (state: model.AppState | undefined, variant: model.ActionVariant) => {
+            return model.AppStateMutation.reduce(state, variant, core);
+        },
         enhancer,
     );
 

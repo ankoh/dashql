@@ -9,14 +9,14 @@ export * from "./core_bindings";
 import dashql_core_wasm from './wasm/core_node.wasm';
 import dashql_core_init from './wasm/core_node.js';
 import { DashQLCoreModule } from './wasm/core_module';
-import { DashQLCoreBindings, DashQLCoreRuntime, DashQLCoreRuntimeStubs } from './core_bindings';
+import { DashQLCoreBindings, DashQLCoreRuntime, DASHQL_CORE_RUNTIME_STUBS } from './core_bindings';
 import fs from 'fs';
 
 export class DashQLCore extends DashQLCoreBindings {
     protected runtime: DashQLCoreRuntime;
     protected path: string;
 
-    protected constructor(runtime: DashQLCoreRuntime, path: string | null = null) {
+    public constructor(runtime: DashQLCoreRuntime = DASHQL_CORE_RUNTIME_STUBS, path: string | null = null) {
         super();
         this.runtime = runtime;
         this.path = path ?? dashql_core_wasm;
@@ -47,11 +47,5 @@ export class DashQLCore extends DashQLCoreBindings {
                 return path;
             }
         });
-    }
-
-    public static async create(runtime: DashQLCoreRuntime = DashQLCoreRuntimeStubs(), path: string | null = null): Promise<DashQLCore> {
-        const core = new DashQLCore(runtime, path);
-        await DashQLCoreBindings.init(core);
-        return core;
     }
 }

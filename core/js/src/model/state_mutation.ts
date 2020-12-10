@@ -1,3 +1,4 @@
+import { DashQLCoreBindings } from "../core_bindings";
 import { State } from "./state";
 import { Plan } from "./plan";
 import { Program } from "./program";
@@ -12,7 +13,9 @@ export type Action<T, P> = {
 export enum ActionType {
     SET_PROGRAM             = 'SET_PROGRAM',
     SET_PLAN                = 'SET_PLAN',
-    CLEAR_PLAN              = 'CLEAR_PLAN',
+    ADD_PLAN_OBJECTS        = 'ADD_PLAN_OBJECTS',
+    DELETE_PLAN_OBJECTS     = 'DELETE_PLAN_OBJECTS',
+    DELETE_PLAN             = 'DELETE_PLAN',
     OTHER                   = 'OTHER',
 }
 
@@ -20,7 +23,7 @@ export enum ActionType {
 export type ActionVariant =
     | Action<ActionType.SET_PROGRAM, Program>
     | Action<ActionType.SET_PLAN, Plan>
-    | Action<ActionType.CLEAR_PLAN, {}>
+    | Action<ActionType.DELETE_PLAN, {}>
     ;
 
 export class StateMutation {
@@ -33,12 +36,13 @@ export class StateMutation {
     }
 
     public static clearPlan(): ActionVariant {
-        return { type: ActionType.CLEAR_PLAN, payload: {} };
+        return { type: ActionType.DELETE_PLAN, payload: {} };
     }
 
     public static reduce<S extends State>(
         state: S,
         action: ActionVariant,
+        _core: DashQLCoreBindings
     ): S {
         switch (action.type) {
             case ActionType.SET_PROGRAM:
@@ -57,7 +61,7 @@ export class StateMutation {
                         plan: action.payload
                     }
                 };
-            case ActionType.CLEAR_PLAN:
+            case ActionType.DELETE_PLAN:
                 return {
                     ...state,
                     core: {

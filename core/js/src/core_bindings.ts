@@ -1,8 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { DashQLCoreModule } from './wasm/core_module';
-import { Program, FlatBuffer, PlanBuffer, ProgramBuffer } from  './model';
-import * as proto from '@dashql/proto';
+import { Plan, Program, PlanBuffer, ProgramBuffer } from  './model';
 
 ///
 /// dashql_blobstream_underflow(blob: number, buffer_ofs, buffer_size): uint32_t
@@ -14,12 +13,10 @@ export interface DashQLCoreRuntime {
 }
 
 /// Stubs for the DashQL core runtime
-export function DashQLCoreRuntimeStubs(): DashQLCoreRuntime {
-    return {
-        dashql_pong: () => { console.log("pong"); return 42; },
-        dashql_blob_stream_underflow: () => { return 0; }
-    };
-}
+export const DASHQL_CORE_RUNTIME_STUBS: DashQLCoreRuntime = {
+    dashql_pong: () => { console.log("pong"); return 42; },
+    dashql_blob_stream_underflow: () => { return 0; }
+};
 
 /// The proxy for either the browser- order node-based DashQLCore API
 export abstract class DashQLCoreBindings {
@@ -30,35 +27,38 @@ export abstract class DashQLCoreBindings {
     /// The resolver for the open promise (called by onRuntimeInitialized)
     private _openPromiseResolver: () => void = () => {};
 
+    /// The program
+    protected _program: Program | null = null;
+
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<DashQLCoreModule>): Promise<DashQLCoreModule>;
 
     /// Init the module
-    public static async init(derived: DashQLCoreBindings) {
+    public async init() {
         // Already opened?
-        if (derived._instance != null) {
+        if (this._instance != null) {
             return;
         }
         // Open in progress?
-        if (derived._openPromise != null) {
-            await derived._openPromise;
+        if (this._openPromise != null) {
+            await this._openPromise;
         }
 
         // Create a promise that we can await
-        derived._openPromise = new Promise(resolve => {
-            derived._openPromiseResolver = resolve;
+        this._openPromise = new Promise(resolve => {
+            this._openPromiseResolver = resolve;
         });
 
         // Initialize duckdb
-        derived._instance = await derived.instantiate({
+        this._instance = await this.instantiate({
             print: console.log.bind(console),
             printErr: console.log.bind(console),
-            onRuntimeInitialized: derived._openPromiseResolver,
+            onRuntimeInitialized: this._openPromiseResolver,
         });
 
         // Wait for onRuntimeInitialized
-        await derived._openPromise;
-        derived._openPromise = null;
+        await this._openPromise;
+        this._openPromise = null;
     }
 
     // Call a core function with packed response buffer
@@ -111,17 +111,19 @@ export abstract class DashQLCoreBindings {
 
         /// Clear the utf8 string buffer
         instance.stackRestore(stackPointer);
-        return new Program(text, textUTF8, buffer);
+        this._program = new Program(text, textUTF8, buffer);
+        return this._program;
     }
 
     /// Plan a program
-    public planProgram(): FlatBuffer<proto.session.Plan> {
+    public planProgram(): Plan | null {
+        if (!this._program) return null;
         let instance = this._instance!;
         let [ptr, ofs, size] = this.callSRet('dashql_plan_program', [], []);
         let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
         let buffer = new PlanBuffer(mem);
         instance.ccall('dashql_clear_response', null, [], []);
-        return buffer;
+        return new Plan(this._program, buffer);
     }
 
     /// Ping the runtime
