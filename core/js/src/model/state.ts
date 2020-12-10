@@ -1,7 +1,7 @@
 import * as Immutable from "immutable";
 import { LogEntry } from "./log";
 import { Plan } from "./plan";
-import { PlanObject } from "./plan_object";
+import { PlanObjectID, PlanObject } from "./plan_object";
 import { Program } from "./program";
 
 export class CoreState {
@@ -12,7 +12,7 @@ export class CoreState {
     /// The plan
     public plan: Plan | null;
     /// The plan entities
-    public planObjects: Immutable.Map<number, PlanObject>;
+    public planObjects: Immutable.Map<PlanObjectID, PlanObject>;
     /// The log entries
     public logEntries: Immutable.List<LogEntry>;
 
@@ -21,7 +21,7 @@ export class CoreState {
         this.program_text = "";
         this.program = null;
         this.plan = null;
-        this.planObjects = Immutable.Map<number, PlanObject>();
+        this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();
         this.logEntries = Immutable.List<LogEntry>();
     }
 }
