@@ -229,18 +229,18 @@ aws_stable_invalidate:
 # Examples
 
 # Package the uni schema data
-UNI_SCHEMA_DIR="${ROOT_DIR}/examples/uni-schema"
+UNI_SCHEMA_DIR="${ROOT_DIR}/examples/uni"
 UNI_SCHEMA_OUT="${UNI_SCHEMA_DIR}/out"
-UNI_SCHEMA_PKG="${UNI_SCHEMA_DIR}/target/release/pkg_uni_schema"
+UNI_SCHEMA_PKG="${UNI_SCHEMA_DIR}/target/release/pkg_uni"
 .PHONY: pkg_uni_schema
-pkg_uni_schema:
+pkg_uni:
 	cargo +nightly build --manifest-path="${UNI_SCHEMA_DIR}/Cargo.toml" --release
 	mkdir -p ${UNI_SCHEMA_OUT}
 	${UNI_SCHEMA_PKG} ${UNI_SCHEMA_OUT}
-	cd ${UNI_SCHEMA_OUT} && rm -f ./data.zip && zip ./data.zip ./*.parquet
+	cd ${UNI_SCHEMA_OUT} && rm -f ./tables.zip && zip ./tables.zip ./*.parquet
 
 # Copy university schema data to s3
-aws_update_uni_schema:
-	aws s3 cp "${UNI_SCHEMA_OUT}/data.zip" "${CDN_S3_BUCKET}/examples/uni/data.zip" \
+aws_update_uni:
+	aws s3 cp "${UNI_SCHEMA_OUT}/tables.zip" "${CDN_S3_BUCKET}/demo/uni/tables-de.zip" \
 		--cache-control "max-age=604800" \
 		--acl public-read
