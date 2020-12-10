@@ -31,7 +31,7 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
     }
 
     auto g = root.append_child("graph");
-    g.append_attribute("next_state_id").set_value(graph.next_state_id);
+    g.append_attribute("next_entity_id").set_value(graph.next_entity_id);
     auto setup_actions = g.append_child("setup");
     for (auto& action : graph.setup_actions) {
         auto s = setup_actions.append_child("action");
@@ -40,7 +40,7 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
             s.append_attribute("status") =
                 action_status_tt->names[static_cast<uint16_t>(action->action_status->status_code())];
         }
-        s.append_attribute("state") = action->state_id;
+        s.append_attribute("entity_id") = action->entity_id;
         auto t = s.append_child("target");
         t.append_attribute("name_qualified") = action->target_name_qualified.c_str();
         t.append_attribute("name_short") = action->target_name_short.c_str();
@@ -55,7 +55,7 @@ void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInsta
             p.append_attribute("status") =
                 action_status_tt->names[static_cast<uint16_t>(action->action_status->status_code())];
         }
-        p.append_attribute("state") = action->state_id;
+        p.append_attribute("entity_id") = action->entity_id;
         auto t = p.append_child("target");
         t.append_attribute("name_qualified") = action->target_name_qualified.c_str();
         t.append_attribute("name_short") = action->target_name_short.c_str();
