@@ -9,6 +9,8 @@ export enum PlanObjectType {
 }
 /// A plan obbject id
 export type PlanObjectID = number;
+/// A span in the core module
+export interface CoreMemory { address: number; size: number; }
 
 /// A plan object
 export class PlanObject {
@@ -33,6 +35,11 @@ export class PlanObject {
         this.name_qualified_ = name_qualified;
         this.name_short_ = name_short;
     }
+
+    /// Get the object id
+    public get object_id(): PlanObjectID { return this.object_id_; }
+    /// Get the core buffer, if any
+    public get core_memory(): CoreMemory  | null { return null; }
 }
 
 // Buffer that is directly copied into the core module
@@ -46,6 +53,14 @@ class CoreBuffer extends PlanObject {
         super(object_id, type, name_qualified, name_short);
         this.buffer_offset_ = buffer_offset;
         this.buffer_size_ = buffer_size;
+    }
+
+    /// Get the core buffer (if any)
+    public get core_memory(): CoreMemory  | null {
+        return {
+            address: this.buffer_offset_,
+            size: this.buffer_size_,
+        };
     }
 }
 
