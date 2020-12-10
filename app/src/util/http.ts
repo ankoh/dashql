@@ -1,4 +1,4 @@
-import { HTTPStatusError, LoggableError } from '../util/error';
+import { error } from '@dashql/core';
 
 const defaultTimeout = 7000;
 
@@ -11,7 +11,7 @@ export function loadWithTimeout<T>(
     const fetchPromise = fetch(url, options)
         .then(resp => {
             if (!resp.ok) {
-                throw new HTTPStatusError(resp.status);
+                throw new error.HTTPStatusError(resp.status);
             }
             return resp.json();
         })
@@ -19,7 +19,7 @@ export function loadWithTimeout<T>(
             return data as T;
         });
     const timeoutPromise = new Promise<T>((_, reject) => {
-        return setTimeout(() => reject(new LoggableError('timeout')), timeout);
+        return setTimeout(() => reject(new error.LoggableError('timeout')), timeout);
     });
     return Promise.race([fetchPromise, timeoutPromise]);
 }

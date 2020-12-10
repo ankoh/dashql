@@ -1,5 +1,5 @@
-import { AppReduxStore, AppStateMutation, LogEntry, LogLevel } from '../model';
-import { LoggableError } from '../util/error';
+import { error, model } from '@dashql/core';
+import { AppReduxStore } from '../model';
 
 export class LogController {
     // The store
@@ -10,31 +10,31 @@ export class LogController {
         this.store = store;
     }
 
-    protected log(level: LogLevel, text: string) {
+    protected log(level: model.LogLevel, text: string) {
         // Build log entry
-        const logEntry = new LogEntry();
+        const logEntry = new model.LogEntry();
         logEntry.level = level;
         logEntry.text = text;
         logEntry.timestamp = new Date();
 
         // Store in redux store
-        this.store.dispatch(AppStateMutation.pushLogEntry(logEntry));
+        this.store.dispatch(model.StateMutation.pushLogEntry(logEntry));
     }
 
-    public logError(error: LoggableError) {
+    public logError(error: error.LoggableError) {
         // Build log entry
-        const logEntry = new LogEntry();
+        const logEntry = new model.LogEntry();
         logEntry.level = error.logLevel;
         logEntry.text = error.message;
         logEntry.timestamp = new Date();
 
         // Store in redux store
-        this.store.dispatch(AppStateMutation.pushLogEntry(logEntry));
+        this.store.dispatch(model.StateMutation.pushLogEntry(logEntry));
     }
 
     // Log levels
-    public debug(text: string)      { this.log(LogLevel.DEBUG, text); }
-    public info(text: string)       { this.log(LogLevel.INFO, text); }
-    public warning(text: string)    { this.log(LogLevel.WARNING, text); }
-    public error(text: string)      { this.log(LogLevel.ERROR, text); }
+    public debug(text: string)      { this.log(model.LogLevel.DEBUG, text); }
+    public info(text: string)       { this.log(model.LogLevel.INFO, text); }
+    public warning(text: string)    { this.log(model.LogLevel.WARNING, text); }
+    public error(text: string)      { this.log(model.LogLevel.ERROR, text); }
 }
