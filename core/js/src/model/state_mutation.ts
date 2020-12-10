@@ -1,6 +1,7 @@
 import { DashQLCoreBindings } from "../core_bindings";
 import { State } from "./state";
 import { Plan } from "./plan";
+import { PlanObjectID, PlanObject } from "./plan_object";
 import { Program } from "./program";
 
 /// An action
@@ -23,6 +24,8 @@ export enum ActionType {
 export type ActionVariant =
     | Action<ActionType.SET_PROGRAM, Program>
     | Action<ActionType.SET_PLAN, Plan>
+    | Action<ActionType.ADD_PLAN_OBJECTS, PlanObject[]>
+    | Action<ActionType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
     | Action<ActionType.DELETE_PLAN, {}>
     ;
 
@@ -42,7 +45,7 @@ export class StateMutation {
     public static reduce<S extends State>(
         state: S,
         action: ActionVariant,
-        _core: DashQLCoreBindings
+        core: DashQLCoreBindings
     ): S {
         switch (action.type) {
             case ActionType.SET_PROGRAM:
@@ -59,6 +62,34 @@ export class StateMutation {
                     core: {
                         ...state.core,
                         plan: action.payload
+                    }
+                };
+            case ActionType.ADD_PLAN_OBJECTS:
+                return {
+                    ...state,
+                    core: {
+                        ...state.core,
+                        planObjects: state.core.planObjects.withMutations(os => {
+                            for (const o of action.payload) {
+                                os.set(o.object_id, o);
+                            }
+                        })
+                    }
+                };
+            case ActionType.DELETE_PLAN_OBJECTS:
+                return {
+                    ...state,
+                    core: {
+                        ...state.core,
+                        planObjects: state.core.planObjects.withMutations(os => {
+                            for (const id of action.payload) {
+                                const mem = os.get(id)?.core_memory;
+                                if (mem) {
+                                    core.free(mem.address, mem.size);
+                                }
+                            }
+                            os.deleteAll(action.payload);
+                        })
                     }
                 };
             case ActionType.DELETE_PLAN:

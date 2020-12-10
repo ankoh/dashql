@@ -126,6 +126,12 @@ export abstract class DashQLCoreBindings {
         return new Plan(this._program, buffer);
     }
 
+    /// Free memory
+    public free(ptr: number, _size: number) {
+        if (!this._instance) return;
+        this._instance._free(ptr);
+    }
+
     /// Ping the runtime
     public ping(): number {
         let instance = this._instance!;
