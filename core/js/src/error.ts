@@ -1,4 +1,4 @@
-import { LogLevel } from '../model';
+import { LogLevel } from './model';
 
 // Inheriting from error requires a tiny hack as the Error class apparently messes up the prototype chain.
 // https://stackoverflow.com/questions/41102060/typescript-extending-error-class

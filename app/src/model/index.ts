@@ -7,7 +7,6 @@ import { Store } from 'redux';
 export * from './settings';
 export * from './state';
 export * from './state_mutation';
-export * from './log';
 export * from './task';
 
 // The action dispatch
