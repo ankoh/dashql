@@ -167,6 +167,17 @@ docker_ci_image:
 		-f ./ci/image/Dockerfile \
 		-
 
+# Build the uni schema
+UNI_SCHEMA_DIR="${ROOT_DIR}/examples/uni-schema"
+UNI_SCHEMA_OUT="${UNI_SCHEMA_DIR}/out"
+UNI_SCHEMA_PKG="${UNI_SCHEMA_DIR}/target/release/pkg_uni_schema"
+.PHONY: uni_schema
+uni_schema:
+	cargo +nightly build --manifest-path="${UNI_SCHEMA_DIR}/Cargo.toml" --release
+	mkdir -p ${UNI_SCHEMA_OUT}
+	${UNI_SCHEMA_PKG} ${UNI_SCHEMA_OUT}
+	cd ${UNI_SCHEMA_OUT} && rm -f ./data.zip && zip ./data.zip ./*.parquet
+
 # ---------------------------------------------------------------------------
 # Deployment
 
