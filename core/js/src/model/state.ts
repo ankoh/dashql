@@ -4,7 +4,7 @@ import { Plan } from "./plan";
 import { PlanObjectID, PlanObject } from "./plan_object";
 import { Program } from "./program";
 
-export class CoreState {
+export class State {
     /// The program text
     public program_text: string;
     /// The program
@@ -23,15 +23,5 @@ export class CoreState {
         this.plan = null;
         this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();
         this.logEntries = Immutable.List<LogEntry>();
-    }
-}
-
-export class State {
-    /// The core
-    public core: CoreState;
-
-    /// Constructor
-    constructor() {
-        this.core = new CoreState();
     }
 }

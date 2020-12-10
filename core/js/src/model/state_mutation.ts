@@ -1,3 +1,4 @@
+import * as Immutable from "immutable";
 import { DashQLCoreBindings } from "../core_bindings";
 import { State } from "./state";
 import { Plan } from "./plan";
@@ -51,58 +52,50 @@ export class StateMutation {
             case ActionType.SET_PROGRAM:
                 return {
                     ...state,
-                    core: {
-                        ...state.core,
-                        program: action.payload
-                    }
+                    program: action.payload
                 };
             case ActionType.SET_PLAN:
                 return {
                     ...state,
-                    core: {
-                        ...state.core,
-                        plan: action.payload
-                    }
+                    plan: action.payload
                 };
             case ActionType.ADD_PLAN_OBJECTS:
                 return {
                     ...state,
-                    core: {
-                        ...state.core,
-                        planObjects: state.core.planObjects.withMutations(os => {
-                            for (const o of action.payload) {
-                                const mem = os.get(o.object_id)?.core_memory;
-                                if (mem) {
-                                    core.free(mem.address, mem.size);
-                                }
-                                os.set(o.object_id, o);
+                    planObjects: state.planObjects.withMutations(os => {
+                        for (const o of action.payload) {
+                            const mem = os.get(o.object_id)?.core_memory;
+                            if (mem) {
+                                core.free(mem.address, mem.size);
                             }
-                        })
-                    }
+                            os.set(o.object_id, o);
+                        }
+                    })
                 };
             case ActionType.DELETE_PLAN_OBJECTS:
                 return {
                     ...state,
-                    core: {
-                        ...state.core,
-                        planObjects: state.core.planObjects.withMutations(os => {
-                            for (const id of action.payload) {
-                                const mem = os.get(id)?.core_memory;
-                                if (mem) {
-                                    core.free(mem.address, mem.size);
-                                }
+                    planObjects: state.planObjects.withMutations(os => {
+                        for (const id of action.payload) {
+                            const mem = os.get(id)?.core_memory;
+                            if (mem) {
+                                core.free(mem.address, mem.size);
                             }
-                            os.deleteAll(action.payload);
-                        })
-                    }
+                        }
+                        os.deleteAll(action.payload);
+                    })
                 };
             case ActionType.DELETE_PLAN:
+                state.planObjects.forEach(o => {
+                    const mem = o.core_memory;
+                    if (mem) {
+                        core.free(mem.address, mem.size);
+                    }
+                });
                 return {
                     ...state,
-                    core: {
-                        ...state.core,
-                        plan: null 
-                    }
+                    plan: null,
+                    planObjects: Immutable.Map<PlanObjectID, PlanObject>(),
                 };
             default:
                 return state;

@@ -5,7 +5,9 @@ import { LaunchProgress } from "./launch_progress";
 import { LogEntry } from "./log";
 import { AppSettings } from "./settings";
 
-export class AppState extends core.model.State {
+export class AppState {
+    /// The core
+    public core: core.model.State;
     /// The launch progress
     public launchProgress: LaunchProgress;
     // The app config
@@ -17,12 +19,11 @@ export class AppState extends core.model.State {
 
     /// Constructor
     constructor() {
-        super();
+        this.core = new core.model.State();
         this.launchProgress = new LaunchProgress();
         this.appSettings = null;
         this.tasks = Immutable.Map<TaskID, TaskInfo>();
         this.logEntries = Immutable.List<LogEntry>();
-        return;
     }
 }
 
