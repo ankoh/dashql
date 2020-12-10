@@ -6,16 +6,12 @@ interface TestOp {
     key: number;
     by: number;
 }
-interface TestInput {
-    key: number;
-    rank: number;
-}
 
-function PUSH(key: number, rank: number) { return { key: key, rank: rank }; }
+function PUSH(key: number, rank: number): [number, number] { return [key, rank]; }
 function POP(key: number) { return { type: TestOpType.POP, key: key, by: 0 }; }
 function DEC(key: number, by: number = 1) { return { type: TestOpType.DEC, key: key, by: by }; }
 
-const tests: [string, TestInput[], TestOp[]][] = [
+const tests: [string, [number, number][], TestOp[]][] = [
     [
         "simple_1",
         [ PUSH(0, 0) ],
@@ -36,8 +32,18 @@ const tests: [string, TestInput[], TestOp[]][] = [
 describe('TopologicalSort', () => {
     test.each(tests)(
         "%s",
-        (_name, _input, _ops) => {
-            const _heap = new core.utils.TopologicalSort(42);
+        (_name, input, ops) => {
+            input.sort((l, r) => l[1] - r[1]);
+            const heap = new core.utils.TopologicalSort(input);
+            for (const op of ops) {
+                if (op.type == TestOpType.DEC) {
+                    heap.decrementKey(op.key, op.by);
+                } else {
+                    expect(heap.empty()).toBe(false);
+                    expect(heap.top()).toBe(op.key);
+                    heap.pop();
+                }
+            }
         }
     );
 })

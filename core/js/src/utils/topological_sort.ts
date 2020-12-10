@@ -9,10 +9,15 @@ export class TopologicalSort {
     /// The size
     _size: number;
 
-    public constructor(size: number) {
-        this._entries = new Uint32Array(2 * size);
-        this._index = new Uint32Array(size);
-        this._size = 0;
+    public constructor(entries: [number, number][]) {
+        this._entries = new Uint32Array(2 * entries.length);
+        this._index = new Uint32Array(entries.length);
+        this._size = entries.length;
+        for (let i = 0; i < entries.length; ++i) {
+            this._entries[2 * i] = entries[i][0];
+            this._entries[2 * i + 1] = entries[i][1];
+            this._index[entries[i][0]] = i;
+        }
     }
 
     /// Access element
@@ -36,10 +41,11 @@ export class TopologicalSort {
     }
     /// Sift an element up
     protected siftUp(i: number) {
-        for (let p = (i - 1) / 2; i > 0 && this.rank(p) > this.rank(i);) {
+        for (let p = Math.floor((i - 1) / 2); i > 0 && this.rank(p) > this.rank(i);) {
+            console.log(p);
             this.swapAt(i, p);
             i = p;
-            p = (i - 1) / 2;
+            p = Math.floor((i - 1) / 2);
         }
     }
     /// Sift an element down
@@ -71,7 +77,7 @@ export class TopologicalSort {
     protected popBack() { --this._size; }
     /// Pop the min element
     public pop() {
-        this.swapAt(0, this._entries.length - 1);
+        this.swapAt(0, this._size - 1);
         this.popBack();
         this.siftDown(0);
     }
