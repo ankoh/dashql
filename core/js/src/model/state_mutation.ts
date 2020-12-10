@@ -71,6 +71,10 @@ export class StateMutation {
                         ...state.core,
                         planObjects: state.core.planObjects.withMutations(os => {
                             for (const o of action.payload) {
+                                const mem = os.get(o.object_id)?.core_memory;
+                                if (mem) {
+                                    core.free(mem.address, mem.size);
+                                }
                                 os.set(o.object_id, o);
                             }
                         })
