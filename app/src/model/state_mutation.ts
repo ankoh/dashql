@@ -1,4 +1,4 @@
-import * as core from "@dashql/core";
+import { model, DashQLCoreBindings } from "@dashql/core";
 import { LogEntry } from "./log";
 import { AppState } from "./state";
 import { AppSettings } from "./settings";
@@ -14,9 +14,9 @@ export enum ActionType {
 
 /// An action variant
 export type ActionVariant =
-    | core.model.Action<ActionType.CONFIGURE_APP, AppSettings>
-    | core.model.Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
-    | core.model.ActionVariant
+    | model.Action<ActionType.CONFIGURE_APP, AppSettings>
+    | model.Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
+    | model.ActionVariant
     ;
 
 /// Mutation of the application state
@@ -35,6 +35,7 @@ export class AppStateMutation {
     public static reduce(
         state: AppState = new AppState(),
         action: ActionVariant,
+        core: DashQLCoreBindings,
     ): AppState {
         switch (action.type) {
             case ActionType.CONFIGURE_APP:
@@ -53,7 +54,7 @@ export class AppStateMutation {
                     }),
                 };
             default: {
-                return core.model.StateMutation.reduce(state, action);
+                return model.StateMutation.reduce(state, action, core);
             }
         }
     }

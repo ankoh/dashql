@@ -3,7 +3,8 @@ import { DashQLCore } from '../';
 var core: DashQLCore;
 
 beforeAll(async () => {
-    core = await DashQLCore.create();
+    core = new DashQLCore();
+    await core.init();
 });
 
 describe('Runtime', () => {
