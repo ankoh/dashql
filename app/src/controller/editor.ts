@@ -1,21 +1,20 @@
 import * as monaco from 'monaco-editor';
 import { AppReduxStore } from '../model';
-import { CoreController } from './core';
 import * as core from '@dashql/core';
 
 export class EditorController {
+    /// The core
+    protected _core: core.DashQLCoreBindings;
     /// The editor
     protected _editor: monaco.editor.IStandaloneCodeEditor | null;
     /// The store
     protected _store: AppReduxStore;
-    /// The parser
-    protected _core: CoreController;
 
     /// Constructor
-    constructor(store: AppReduxStore, core: CoreController) {
+    constructor(core: core.DashQLCoreBindings, store: AppReduxStore) {
+        this._core = core;
         this._store = store;
         this._editor = null;
-        this._core = core;
     }
 
     public registerEditor(editor: monaco.editor.IStandaloneCodeEditor) {

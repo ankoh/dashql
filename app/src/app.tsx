@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { createCore } from './core';
 import { createStore } from './model';
 import { AppController } from './controller';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
@@ -12,8 +13,9 @@ import './app.module.css';
 import './fonts/fonts.module.css';
 import '@dashql/gridstack/dist/gridstack.min.css';
 
-const store = createStore();
-const controller = new AppController(store);
+const core = createCore();
+const store = createStore(core);
+const controller = new AppController(core, store);
 controller.init();
 
 const appContext: IAppContext = {

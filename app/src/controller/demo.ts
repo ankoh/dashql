@@ -2,7 +2,6 @@ import { AppReduxStore } from '../model';
 import { EditorController } from './editor';
 import { LogController } from './log';
 import { InterpreterController } from './interpreter';
-import { CoreController } from './core';
 import * as core from '@dashql/core';
 
 export const DEMO_SCRIPT =
@@ -36,10 +35,10 @@ VIZ weather_avg USING LINE;
 
 /// A controller
 export class DemoController {
+    /// The core
+    protected _core: core.DashQLCoreBindings;
     /// The Store
     protected _store: AppReduxStore;
-    /// The parser
-    protected _core: CoreController;
     /// The logger
     protected _log: LogController;
     /// The editor controller
@@ -47,7 +46,7 @@ export class DemoController {
     /// The interpreter controller
     protected _interpreter: InterpreterController;
 
-    constructor(store: AppReduxStore, core: CoreController, log: LogController, editor: EditorController, interpreter: InterpreterController) {
+    constructor(core: core.DashQLCoreBindings, store: AppReduxStore, log: LogController, editor: EditorController, interpreter: InterpreterController) {
         this._store = store;
         this._core = core;
         this._log = log;

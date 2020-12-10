@@ -1,6 +1,7 @@
-import { Store } from 'redux';
-import { AppState } from './state';
+import { DashQLCore } from '@dashql/core';
 import { ActionVariant } from './state_mutation';
+import { AppState } from './state';
+import { Store } from 'redux';
 
 // Export things
 export * from './settings';
@@ -15,7 +16,7 @@ export type Dispatch = (action: ActionVariant) => void;
 export type AppReduxStore = Store<AppState>;
 
 /// Create the store with respect to the environment
-export let createStore: () => AppReduxStore;
+export let createStore: (core: DashQLCore) => AppReduxStore;
 if (process.env.NODE_ENV === 'production') {
     createStore = require('./store_prod').default;
 } else {
