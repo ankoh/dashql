@@ -25,6 +25,7 @@ IN_IMAGE_MOUNTS=-v${ROOT_DIR}:/wd/ -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscrip
 IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/
 IN_IMAGE=docker run --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} dashql/ci:${CI_IMAGE_TAG}
 
+CDN_S3_BUCKET="s3://dashql-cdn"
 STABLE_S3_BUCKET="s3://dashql-app"
 STABLE_CF_DIST="E1WT3LVZLA4YZX"
 
@@ -167,17 +168,6 @@ docker_ci_image:
 		-f ./ci/image/Dockerfile \
 		-
 
-# Build the uni schema
-UNI_SCHEMA_DIR="${ROOT_DIR}/examples/uni-schema"
-UNI_SCHEMA_OUT="${UNI_SCHEMA_DIR}/out"
-UNI_SCHEMA_PKG="${UNI_SCHEMA_DIR}/target/release/pkg_uni_schema"
-.PHONY: uni_schema
-uni_schema:
-	cargo +nightly build --manifest-path="${UNI_SCHEMA_DIR}/Cargo.toml" --release
-	mkdir -p ${UNI_SCHEMA_OUT}
-	${UNI_SCHEMA_PKG} ${UNI_SCHEMA_OUT}
-	cd ${UNI_SCHEMA_OUT} && rm -f ./data.zip && zip ./data.zip ./*.parquet
-
 # ---------------------------------------------------------------------------
 # Deployment
 
@@ -234,3 +224,23 @@ aws_stable_invalidate:
 	aws cloudfront create-invalidation \
 		--distribution-id ${STABLE_CF_DIST} \
 		--paths /
+
+# ---------------------------------------------------------------------------
+# Examples
+
+# Package the uni schema data
+UNI_SCHEMA_DIR="${ROOT_DIR}/examples/uni-schema"
+UNI_SCHEMA_OUT="${UNI_SCHEMA_DIR}/out"
+UNI_SCHEMA_PKG="${UNI_SCHEMA_DIR}/target/release/pkg_uni_schema"
+.PHONY: pkg_uni_schema
+pkg_uni_schema:
+	cargo +nightly build --manifest-path="${UNI_SCHEMA_DIR}/Cargo.toml" --release
+	mkdir -p ${UNI_SCHEMA_OUT}
+	${UNI_SCHEMA_PKG} ${UNI_SCHEMA_OUT}
+	cd ${UNI_SCHEMA_OUT} && rm -f ./data.zip && zip ./data.zip ./*.parquet
+
+# Copy university schema data to s3
+aws_update_uni_schema:
+	aws s3 cp "${UNI_SCHEMA_OUT}/data.zip" "${CDN_S3_BUCKET}/examples/uni/data.zip" \
+		--cache-control "max-age=604800" \
+		--acl public-read
