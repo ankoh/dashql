@@ -76,10 +76,9 @@ class JSBuffer extends PlanObject {
 }
 
 /// A ZIP archive.
-/// ZIP archives are copied into the core module since we have to unpack the archive there anyway.
-export class ZipArchive extends CoreBuffer {
-    constructor(object_id: PlanObjectID, name_qualified: string, name_short: string, buffer_offset: number, buffer_size: number) {
-        super(object_id, PlanObjectType.ARCHIVE_ZIP, name_qualified, name_short, buffer_offset, buffer_size);
+export class ZipArchive extends JSBuffer {
+    constructor(object_id: PlanObjectID, name_qualified: string, name_short: string, buffer: Uint8Array) {
+        super(object_id, PlanObjectType.ARCHIVE_ZIP, name_qualified, name_short, buffer);
     }
 };
 
@@ -93,7 +92,7 @@ export class Blob extends JSBuffer {
 
 /// A parquet blob.
 /// Parquet files are copied into the core module since we can read them directly in DuckDB.
-export class ParquetBlob extends CoreBuffer {
+export class ParquetFile extends CoreBuffer {
     constructor(object_id: PlanObjectID, name_qualified: string, name_short: string, buffer_offset: number, buffer_size: number) {
         super(object_id, PlanObjectType.BLOB_PARQUET, name_qualified, name_short, buffer_offset, buffer_size);
     }
