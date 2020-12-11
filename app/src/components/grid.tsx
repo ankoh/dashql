@@ -43,8 +43,6 @@ type WidgetWithContextProps = WidgetProps & {
 };
 
 type WidgetWithContextState = {
-    /** The current grid context, in which this widget is rendered. */
-    context: GridContext | null;
     /** The DOM element that is placed as widget on the grid. */
     widget: GridItemHTMLElement | null;
     /** The DOM element that should hold the inner widget content. */
@@ -53,62 +51,51 @@ type WidgetWithContextState = {
 
 class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWithContextState> {
     state: WidgetWithContextState = {
-        context: null,
         widget: null,
         contentNode: null,
     };
 
     /** Run all operations needed when the grid changes which holds our widget. */
-    updateGrid = () => {
+    updateGrid = (prevProps: WidgetWithContextProps) => {
         const { context } = this.props;
 
         // Context is the same as previously, nothing to be done.
-        if (context === this.state.context) {
+        if (context === prevProps.context) {
             return;
         }
 
         const newState: WidgetWithContextState = {
-            context: null,
             widget: null,
             contentNode: null,
         };
 
-        const {
-            onAdded,
-            onChange,
-            onDragStart,
-            onDragStop,
-            onRemoved,
-            onResizeStart,
-            onResizeStop,
-            ...widgetProps
-        } = this.props;
+        const widgetProps = { ...this.props };
+
+        const events = [
+            'onAdded',
+            'onChange',
+            'onDragStart',
+            'onDragStop',
+            'onRemoved',
+            'onResizeStart',
+            'onResizeStop',
+        ];
 
         // Delete properties that do not belong to `GridStackWidget` options.
+        for (const event of events) {
+            delete widgetProps[event as keyof WidgetWithContextProps];
+        }
         delete widgetProps.context;
         delete widgetProps.children;
 
-        const listeners = {
-            onAdded,
-            onChange,
-            onDragStart,
-            onDragStop,
-            onRemoved,
-            onResizeStart,
-            onResizeStop,
-        };
-
         // We previously had a (different) grid, remove widget from it.
-        if (this.state.context && this.state.widget) {
-            this.state.context.grid.removeWidget(this.state.widget);
+        if (prevProps.context && this.state.widget) {
+            prevProps.context.grid.removeWidget(this.state.widget);
 
             // Remove all listeners we registered on the grid context.
-            for (const [event, listener] of Object.entries(listeners)) {
-                const eventListeners = this.state.context.listeners[event as keyof WidgetListeners];
-
-                if (listener) {
-                    eventListeners.delete(this.state.widget);
-                }
+            for (const event of events) {
+                const eventListeners = prevProps.context.listeners[event as keyof WidgetListeners];
+                eventListeners.delete(this.state.widget);
             }
         }
 
@@ -132,25 +119,6 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
             // Get the content node of the widget (which is a sibling among e.g. he resize handle nodes).
             const contentNode = widget.querySelector('.grid-stack-item-content');
 
-            // Register our event listeners on the grid context.
-            for (const [event, listener] of Object.entries(listeners)) {
-                const eventListeners = context.listeners[event as keyof WidgetListeners];
-
-                if (listener) {
-                    eventListeners.set(
-                        widget,
-                        listener as WidgetAddedListener &
-                            WidgetChangeListener &
-                            WidgetDragStartListener &
-                            WidgetDragStopListener &
-                            WidgetRemovedListener &
-                            WidgetResizeStartListener &
-                            WidgetResizeStopListener,
-                    );
-                }
-            }
-
-            newState.context = context;
             newState.widget = widget;
             newState.contentNode = contentNode;
         }
@@ -166,9 +134,9 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
             this.props.w !== prevProps.w ||
             this.props.h !== prevProps.h;
 
-        if (this.state.context && this.state.widget && dimensionsChanged) {
+        if (this.props.context && this.state.widget && dimensionsChanged) {
             // Update widget dimensions on the grid.
-            this.state.context.grid.update(this.state.widget, {
+            this.props.context.grid.update(this.state.widget, {
                 x: this.props.x,
                 y: this.props.y,
                 w: this.props.w,
@@ -177,18 +145,60 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
         }
     }
 
+    updateEventListeners(prevProps: WidgetWithContextProps) {
+        if (!this.props.context || !this.state.widget) {
+            return;
+        }
+
+        const listeners = {
+            onAdded: this.props.onAdded,
+            onChange: this.props.onChange,
+            onDragStart: this.props.onDragStart,
+            onDragStop: this.props.onDragStop,
+            onRemoved: this.props.onRemoved,
+            onResizeStart: this.props.onResizeStart,
+            onResizeStop: this.props.onResizeStop,
+        };
+
+        // Update this widget's event listeners on the grid context.
+        for (const [event, listener] of Object.entries(listeners)) {
+            const eventListeners = this.props.context.listeners[event as keyof WidgetListeners];
+
+            if (eventListeners.has(this.state.widget) && eventListeners.get(this.state.widget) === listener) {
+                continue;
+            }
+
+            if (listener) {
+                eventListeners.set(
+                    this.state.widget,
+                    listener as WidgetAddedListener &
+                        WidgetChangeListener &
+                        WidgetDragStartListener &
+                        WidgetDragStopListener &
+                        WidgetRemovedListener &
+                        WidgetResizeStartListener &
+                        WidgetResizeStopListener,
+                );
+            } else {
+                eventListeners.delete(this.state.widget);
+            }
+        }
+    }
+
     componentDidMount() {
-        this.updateGrid();
+        this.updateGrid({});
+        this.updateEventListeners({});
     }
 
     componentDidUpdate(prevProps: WidgetWithContextProps) {
-        this.updateGrid();
+        this.updateGrid(prevProps);
+        this.updateEventListeners(prevProps);
         this.updateDimensions(prevProps);
     }
 
     componentWillUnmount() {
-        if (this.state.context && this.state.widget) {
-            this.state.context.grid.removeWidget(this.state.widget);
+        if (this.props.context && this.state.widget) {
+            this.props.context.grid.removeWidget(this.state.widget);
         }
     }
 
