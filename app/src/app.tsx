@@ -11,7 +11,7 @@ import { AppContextProvider, IAppContext } from './app_context';
 
 import './app.module.css';
 import './fonts/fonts.module.css';
-import '@dashql/gridstack/dist/gridstack.min.css';
+import 'gridstack/dist/gridstack.min.css';
 
 const core = createCore();
 const store = createStore(core);
@@ -27,11 +27,7 @@ ReactDOM.render(
         <AppContextProvider value={appContext}>
             <BrowserRouter>
                 <Switch>
-                    <Route
-                        exact
-                        path="/studio"
-                        component={withNavBar(Studio)}
-                    />
+                    <Route exact path="/studio" component={withNavBar(Studio)} />
                     <Route path="/404" component={NotFound} />
                     <Redirect to="/404" />
                 </Switch>
