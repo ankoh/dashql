@@ -1,5 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
+export type TopoKey = number;
+export type TopoRank = number;
+
 /// A native heap
 export class TopologicalSort {
     /// The entries
@@ -9,7 +12,8 @@ export class TopologicalSort {
     /// The size
     _size: number;
 
-    public constructor(entries: [number, number][]) {
+    /// Constructor
+    public constructor(entries: [TopoKey, TopoRank][] = []) {
         this._entries = new Uint32Array(2 * entries.length);
         this._index = new Uint32Array(entries.length);
         this._size = entries.length;
@@ -21,11 +25,11 @@ export class TopologicalSort {
     }
 
     /// Access element
-    protected value(index: number) {
+    protected value(index: number): TopoKey {
         return this._entries[2 * index];
     }
     /// Access rank
-    protected rank(index: number) {
+    protected rank(index: number): TopoRank {
         return this._entries[2 * index + 1];
     }
     /// Swap two positions
@@ -82,13 +86,13 @@ export class TopologicalSort {
         this.siftDown(0);
     }
     /// Decrement a key
-    public decrementKey(key: number, by: number) {
+    public decrementKey(key: TopoKey, by: number) {
         const i = this._index[key];
         this._entries[2 * i + 1] -= Math.min(this._entries[2 * i + 1], by);
         this.siftUp(i);
     }
     /// Get the current rank of a key
-    public findRank(key: number) {
+    public findRank(key: TopoKey) {
         return this.rank(this._index[key]);
     }
 }

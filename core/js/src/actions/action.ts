@@ -1,6 +1,6 @@
 import { Statement } from "../model";
 
-class Action {
+export class Action {
 }
 
 export class ProgramAction extends Action {

@@ -23,9 +23,9 @@ export abstract class DashQLCoreBindings {
     /// The instance
     private _instance: DashQLCoreModule | null = null;
     /// The loading promise
-    private _openPromise: Promise<void> | null = null;
+    private _open_promise: Promise<void> | null = null;
     /// The resolver for the open promise (called by onRuntimeInitialized)
-    private _openPromiseResolver: () => void = () => {};
+    private _open_promise_resolver: () => void = () => {};
 
     /// The program
     protected _program: Program | null = null;
@@ -40,25 +40,25 @@ export abstract class DashQLCoreBindings {
             return;
         }
         // Open in progress?
-        if (this._openPromise != null) {
-            await this._openPromise;
+        if (this._open_promise != null) {
+            await this._open_promise;
         }
 
         // Create a promise that we can await
-        this._openPromise = new Promise(resolve => {
-            this._openPromiseResolver = resolve;
+        this._open_promise = new Promise(resolve => {
+            this._open_promise_resolver = resolve;
         });
 
         // Initialize duckdb
         this._instance = await this.instantiate({
             print: console.log.bind(console),
             printErr: console.log.bind(console),
-            onRuntimeInitialized: this._openPromiseResolver,
+            onRuntimeInitialized: this._open_promise_resolver,
         });
 
         // Wait for onRuntimeInitialized
-        await this._openPromise;
-        this._openPromise = null;
+        await this._open_promise;
+        this._open_promise = null;
     }
 
     // Call a core function with packed response buffer
