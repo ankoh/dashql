@@ -6,20 +6,12 @@
     padding: 10px;
 }
 
-.grid
-    > .item:global(.ui-draggable-dragging)
-    > div:global(.grid-stack-item-content),
-.grid
-    > .item:global(.ui-resizable-resizing)
-    > div:global(.grid-stack-item-content) {
+.grid > .item:global(.ui-draggable-dragging) > div:global(.grid-stack-item-content),
+.grid > .item:global(.ui-resizable-resizing) > div:global(.grid-stack-item-content) {
     box-shadow: none;
 }
-.grid
-    > .item:global(.ui-draggable-dragging)
-    > div:global(.grid-stack-item-content)::after,
-.grid
-    > .item:global(.ui-resizable-resizing)
-    > div:global(.grid-stack-item-content)::after {
+.grid > .item:global(.ui-draggable-dragging) > div:global(.grid-stack-item-content)::after,
+.grid > .item:global(.ui-resizable-resizing) > div:global(.grid-stack-item-content)::after {
     content: '';
     position: absolute;
     top: 10px;

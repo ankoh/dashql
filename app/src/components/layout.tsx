@@ -173,7 +173,13 @@ class Layout extends React.Component<Props> {
 
     renderWidget = (widget: WidgetModel) => {
         return (
-            <Widget key={widget.id} {...widget.position}>
+            <Widget
+                key={widget.id}
+                x={widget.position.x}
+                y={widget.position.y}
+                w={widget.position.width}
+                h={widget.position.height}
+            >
                 {this.renderContent(widget)}
             </Widget>
         );
@@ -182,6 +188,7 @@ class Layout extends React.Component<Props> {
     render() {
         return (
             <Grid
+                className={styles.grid}
                 resizable={{
                     autoHide: true,
                     handles: 'n,ne,e,se,s,sw,w,nw',
@@ -190,9 +197,6 @@ class Layout extends React.Component<Props> {
                 column={12}
                 cellHeight={50}
                 float
-                // TODO: Fix missing typings on `_class` property.
-                // @ts-ignore
-                _class={styles.grid}
                 itemClass={styles.item}
             >
                 {this.dashboard.widgets.map(this.renderWidget)}

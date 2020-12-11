@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { GridItemHTMLElement, GridStack, GridStackNode, GridStackOptions, GridStackWidget } from '@dashql/gridstack';
+import { GridItemHTMLElement, GridStack, GridStackNode, GridStackOptions, GridStackWidget } from 'gridstack';
+import 'gridstack/dist/jq/gridstack-dd-jqueryui';
 
 const GridContext = React.createContext(undefined as { grid: GridStack; listeners: WidgetListeners } | undefined);
 
@@ -128,9 +129,6 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
             // Request a new widget DOM node that is managed by the new grid.
             const widget = grid.addWidget(...widgetArguments);
 
-            // FIXME: This should not be needed and seems to be a bug in the upstream gridstack.js library.
-            grid.makeWidget(widget);
-
             // Get the content node of the widget (which is a sibling among e.g. he resize handle nodes).
             const contentNode = widget.querySelector('.grid-stack-item-content');
 
@@ -165,18 +163,17 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
         const dimensionsChanged =
             this.props.x !== prevProps.x ||
             this.props.y !== prevProps.y ||
-            this.props.width !== prevProps.width ||
-            this.props.height !== prevProps.height;
+            this.props.w !== prevProps.w ||
+            this.props.h !== prevProps.h;
 
         if (this.state.context && this.state.widget && dimensionsChanged) {
             // Update widget dimensions on the grid.
-            this.state.context.grid.update(
-                this.state.widget,
-                this.props.x,
-                this.props.y,
-                this.props.width,
-                this.props.height,
-            );
+            this.state.context.grid.update(this.state.widget, {
+                x: this.props.x,
+                y: this.props.y,
+                w: this.props.w,
+                h: this.props.h,
+            });
         }
     }
 
@@ -272,28 +269,31 @@ type GridResizeStopListener = (event: Event, element: GridItemHTMLElement) => vo
 
 type GridListeners = {
     /** Event firing when widgets are placed on the grid. */
-    onAdded: GridAddedListener | null;
+    onAdded?: GridAddedListener;
     /** Event firing when widgets have been moved or resized on the grid. */
-    onChange: GridChangeListener | null;
+    onChange?: GridChangeListener;
     /** Event firing when the grid is disabled. */
-    onDisable: GridDisableListener | null;
+    onDisable?: GridDisableListener;
     /** Event firing when starting to drag a widget on the grid. */
-    onDragStart: GridDragStartListener | null;
+    onDragStart?: GridDragStartListener;
     /** Event firing when stopping to drag a widget on the grid. */
-    onDragStop: GridDragStopListener | null;
+    onDragStop?: GridDragStopListener;
     /** Event firing when a widget has been dropped onto the grid. */
-    onDropped: GridDroppedListener | null;
+    onDropped?: GridDroppedListener;
     /** Event firing when the grid is enabled. */
-    onEnable: GridEnableListener | null;
+    onEnable?: GridEnableListener;
     /** Event firing when a widget has been removed from the grid. */
-    onRemoved: GridRemovedListener | null;
+    onRemoved?: GridRemovedListener;
     /** Event firing when starting to resize a widget on the grid. */
-    onResizeStart: GridResizeStartListener | null;
+    onResizeStart?: GridResizeStartListener;
     /** Event firing when stopping to resize a widget on the grid. */
-    onResizeStop: GridResizeStopListener | null;
+    onResizeStop?: GridResizeStopListener;
 };
 
-export type GridProps = GridStackOptions & GridListeners;
+export type GridProps = Omit<GridStackOptions, 'class' | 'children'> &
+    GridListeners & {
+        className?: string;
+    };
 
 type GridContext = {
     /** The grid instance. */
@@ -410,8 +410,55 @@ export class Grid extends React.Component<GridProps, GridState> {
     };
 
     componentDidMount() {
-        // Initialize the grid.
-        const grid = GridStack.init(this.props, this.refs.grid as HTMLElement);
+        const gridElement = this.refs.grid as HTMLElement;
+
+        const grid = GridStack.init(
+            {
+                acceptWidgets: this.props.acceptWidgets,
+                alwaysShowResizeHandle: this.props.alwaysShowResizeHandle,
+                animate: this.props.animate,
+                auto: this.props.auto,
+                cellHeight: this.props.cellHeight,
+                cellHeightUnit: this.props.cellHeightUnit,
+                column: this.props.column,
+                disableDrag: this.props.disableDrag,
+                disableOneColumnMode: this.props.disableOneColumnMode,
+                disableResize: this.props.disableResize,
+                draggable: this.props.draggable,
+                dragIn: this.props.dragIn,
+                dragInOptions: this.props.dragInOptions,
+                dragOut: this.props.dragOut,
+                float: this.props.float,
+                handle: this.props.handle,
+                handleClass: this.props.handleClass,
+                itemClass: this.props.itemClass,
+                margin: this.props.margin,
+                marginTop: this.props.marginTop,
+                marginRight: this.props.marginRight,
+                marginBottom: this.props.marginBottom,
+                marginLeft: this.props.marginLeft,
+                marginUnit: this.props.marginUnit,
+                maxRow: this.props.maxRow,
+                minRow: this.props.minRow,
+                minWidth: this.props.minWidth,
+                oneColumnModeDomSort: this.props.oneColumnModeDomSort,
+                placeholderClass: this.props.placeholderClass,
+                placeholderText: this.props.placeholderText,
+                resizable: this.props.resizable,
+                removable: this.props.removable,
+                removableOptions: this.props.removableOptions,
+                removeTimeout: this.props.removeTimeout,
+                row: this.props.row,
+                rtl: this.props.rtl,
+                staticGrid: this.props.staticGrid,
+                styleInHead: this.props.styleInHead,
+            },
+            gridElement,
+        );
+
+        if (this.props.className) {
+            gridElement.classList.add(...this.props.className.split(' '));
+        }
 
         grid.on('added', this.handleAdded as GridEventCallback);
         grid.on('change', this.handleChange as GridEventCallback);
