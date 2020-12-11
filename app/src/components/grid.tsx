@@ -1,24 +1,48 @@
 import * as React from 'react';
-import { createPortal } from 'react-dom';
-import { GridItemHTMLElement, GridStack, GridStackNode, GridStackOptions, GridStackWidget } from '@dashql/gridstack';
+import { Responsive as GridLayout, ResponsiveProps, ItemCallback, Layout } from 'react-grid-layout';
 
-const GridContext = React.createContext(undefined as { grid: GridStack; listeners: WidgetListeners } | undefined);
+const GridContext = React.createContext(undefined as { listeners: WidgetListeners } | undefined);
 
-export type WidgetProps = GridStackWidget & {
-    /** Event firing when the widget is placed on the grid. */
-    onAdded?: WidgetAddedListener;
-    /** Event firing when the widget has been moved or resized on the grid. */
-    onChange?: WidgetChangeListener;
+export type WidgetProps = {
+    /** The horizontal position of the widget on the grid. */
+    x?: number;
+    /** The vertical position of the widget on the grid. */
+    y?: number;
+    /** The width of the widget. */
+    w?: number;
+    /** The height of the widget. */
+    h?: number;
+    /** The minimum width of the widget. */
+    minW?: number;
+    /** The maximum width of the widget. */
+    maxW?: number;
+    /** The minimum height of the widget. */
+    minH?: number;
+    /** The maximum height of the widget. */
+    maxH?: number;
+    /** If true, equal to `isDraggable: false, isResizable: false`. */
+    static?: boolean;
+    /** If false, will not be draggable. Overrides `static`. */
+    isDraggable?: boolean;
+    /** If false, will not be resizable. Overrides `static`. */
+    isResizable?: boolean;
+    /** By default, a handle is only shown on the bottom-right (southeast) corner. */
+    /** Note that resizing from the top or left is generally not intuitive. */
+    resizeHandles?: ['s' | 'w' | 'e' | 'n' | 'sw' | 'nw' | 'se' | 'ne'][];
+    /** If true and draggable, item will be moved only within grid. */
+    isBounded?: boolean;
     /** Event firing when starting to drag the widget. */
-    onDragStart?: WidgetDragStartListener;
+    onDragStart?: ItemCallback;
+    /** Event firing when draging the widget. */
+    onDrag?: ItemCallback;
     /** Event firing when stopping to drag the widget. */
-    onDragStop?: WidgetDragStopListener;
-    /** Event firing when the widget has been removed from the grid. */
-    onRemoved?: WidgetRemovedListener;
+    onDragStop?: ItemCallback;
     /** Event firing when starting to resize the widget. */
-    onResizeStart?: WidgetResizeStartListener;
+    onResizeStart?: ItemCallback;
+    /** Event firing when resizing the widget. */
+    onResize?: ItemCallback;
     /** Event firing when stopping to resize the widget. */
-    onResizeStop?: WidgetResizeStopListener;
+    onResizeStop?: ItemCallback;
 };
 
 /**
@@ -41,263 +65,56 @@ type WidgetWithContextProps = WidgetProps & {
     context?: GridContext;
 };
 
-type WidgetWithContextState = {
-    /** The current grid context, in which this widget is rendered. */
-    context: GridContext | null;
-    /** The DOM element that is placed as widget on the grid. */
-    widget: GridItemHTMLElement | null;
-    /** The DOM element that should hold the inner widget content. */
-    contentNode: Element | null;
-};
-
-class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWithContextState> {
-    state: WidgetWithContextState = {
-        context: null,
-        widget: null,
-        contentNode: null,
-    };
-
-    /** Run all operations needed when the grid changes which holds our widget. */
-    updateGrid = () => {
-        const { context } = this.props;
-
-        // Context is the same as previously, nothing to be done.
-        if (context === this.state.context) {
-            return;
-        }
-
-        const newState: WidgetWithContextState = {
-            context: null,
-            widget: null,
-            contentNode: null,
-        };
-
-        const {
-            onAdded,
-            onChange,
-            onDragStart,
-            onDragStop,
-            onRemoved,
-            onResizeStart,
-            onResizeStop,
-            ...widgetProps
-        } = this.props;
-
-        // Delete properties that do not belong to `GridStackWidget` options.
-        delete widgetProps.context;
-        delete widgetProps.children;
-
-        const listeners = {
-            onAdded,
-            onChange,
-            onDragStart,
-            onDragStop,
-            onRemoved,
-            onResizeStart,
-            onResizeStop,
-        };
-
-        // We previously had a (different) grid, remove widget from it.
-        if (this.state.context && this.state.widget) {
-            this.state.context.grid.removeWidget(this.state.widget);
-
-            // Remove all listeners we registered on the grid context.
-            for (const [event, listener] of Object.entries(listeners)) {
-                const eventListeners = this.state.context.listeners[event as keyof WidgetListeners];
-
-                if (listener) {
-                    eventListeners.delete(this.state.widget);
-                }
-            }
-        }
-
-        if (context) {
-            const { grid } = context;
-
-            // Determine which arguments need to be passed to `addWidget`.
-            const widgetArguments = (() => {
-                if (Object.keys(widgetProps).length == 0) {
-                    // Create a new widget without options.
-                    return [];
-                } else {
-                    // Create a new widget from the provided properties.
-                    return [widgetProps];
-                }
-            })();
-
-            // Request a new widget DOM node that is managed by the new grid.
-            const widget = grid.addWidget(...widgetArguments);
-
-            // FIXME: This should not be needed and seems to be a bug in the upstream gridstack.js library.
-            grid.makeWidget(widget);
-
-            // Get the content node of the widget (which is a sibling among e.g. he resize handle nodes).
-            const contentNode = widget.querySelector('.grid-stack-item-content');
-
-            // Register our event listeners on the grid context.
-            for (const [event, listener] of Object.entries(listeners)) {
-                const eventListeners = context.listeners[event as keyof WidgetListeners];
-
-                if (listener) {
-                    eventListeners.set(
-                        widget,
-                        listener as WidgetAddedListener &
-                            WidgetChangeListener &
-                            WidgetDragStartListener &
-                            WidgetDragStopListener &
-                            WidgetRemovedListener &
-                            WidgetResizeStartListener &
-                            WidgetResizeStopListener,
-                    );
-                }
-            }
-
-            newState.context = context;
-            newState.widget = widget;
-            newState.contentNode = contentNode;
-        }
-
-        this.setState(newState);
-    };
-
-    /** Update the widget's dimensions in the grid (if changed). */
-    updateDimensions(prevProps: WidgetWithContextProps) {
-        const dimensionsChanged =
-            this.props.x !== prevProps.x ||
-            this.props.y !== prevProps.y ||
-            this.props.width !== prevProps.width ||
-            this.props.height !== prevProps.height;
-
-        if (this.state.context && this.state.widget && dimensionsChanged) {
-            // Update widget dimensions on the grid.
-            this.state.context.grid.update(
-                this.state.widget,
-                this.props.x,
-                this.props.y,
-                this.props.width,
-                this.props.height,
-            );
-        }
-    }
-
-    componentDidMount() {
-        this.updateGrid();
-    }
+class WidgetWithContext extends React.Component<WidgetWithContextProps> {
+    declare context: React.ContextType<typeof GridContext>;
 
     componentDidUpdate(prevProps: WidgetWithContextProps) {
-        this.updateGrid();
-        this.updateDimensions(prevProps);
-    }
-
-    componentWillUnmount() {
-        if (this.state.context && this.state.widget) {
-            this.state.context.grid.removeWidget(this.state.widget);
-        }
+        this.context.listeners;
     }
 
     render() {
-        const { contentNode } = this.state;
-
-        // We don't have any DOM node yet into which we can render our content.
-        if (!contentNode) {
-            return null;
-        }
-
-        // Render widget contents into the correct DOM node managed by the grid.
-        return createPortal(this.props.children, contentNode);
+        return (
+            <div
+                data-grid={{
+                    x: this.props.x,
+                    y: this.props.y,
+                    w: this.props.w,
+                    h: this.props.h,
+                    minW: this.props.minW,
+                    maxW: this.props.maxW,
+                    minH: this.props.minH,
+                    maxH: this.props.maxH,
+                    static: this.props.static,
+                    isDraggable: this.props.isDraggable,
+                    isResizable: this.props.isResizable,
+                    resizeHandles: this.props.resizeHandles,
+                    isBounded: this.props.isBounded,
+                }}
+            >
+                {this.props.children}
+            </div>
+        );
     }
 }
 
-/** A generic event callback as accepted by the `grid.on` method. */
-type GridEventCallback = (event: Event, arg2?: GridStackNode[] | GridItemHTMLElement | undefined) => void;
-
-/** Listener handling event when the widget is placed on the grid. */
-type WidgetAddedListener = (event: Event, item: GridStackNode) => void;
-
-/** Listener handling event when the widget has been moved or resized on the grid. */
-type WidgetChangeListener = (event: Event, items: GridStackNode) => void;
-
-/** Listener handling event when starting to drag the widget. */
-type WidgetDragStartListener = (event: Event, element: GridItemHTMLElement) => void;
-
-/** Listener handling event when stopping to drag the widget. */
-type WidgetDragStopListener = (event: Event, element: GridItemHTMLElement) => void;
-
-/** Listener handling event when the widget has been removed from the grid. */
-type WidgetRemovedListener = (event: Event, items: GridStackNode) => void;
-
-/** Listener handling event when starting to resize the widget. */
-type WidgetResizeStartListener = (event: Event, element: GridItemHTMLElement) => void;
-
-/** Listener handling event when stopping to resize the widget. */
-type WidgetResizeStopListener = (event: Event, element: GridItemHTMLElement) => void;
-
 type WidgetListeners = {
-    /** An `Added` event listener corresponding to an element on the grid. */
-    onAdded: WeakMap<GridItemHTMLElement, WidgetAddedListener>;
-    /** A `Change` event listener corresponding to an element on the grid. */
-    onChange: WeakMap<GridItemHTMLElement, WidgetChangeListener>;
     /** A `DragStart` event listener corresponding to an element on the grid. */
-    onDragStart: WeakMap<GridItemHTMLElement, WidgetDragStartListener>;
+    onDragStart: WeakMap<HTMLElement, ItemCallback>;
+    /** A `Drag` event listener corresponding to an element on the grid. */
+    onDrag: WeakMap<HTMLElement, ItemCallback>;
     /** A `DragStop` event listener corresponding to an element on the grid. */
-    onDragStop: WeakMap<GridItemHTMLElement, WidgetDragStopListener>;
-    /** A `Removed` event listener corresponding to an element on the grid. */
-    onRemoved: WeakMap<GridItemHTMLElement, WidgetRemovedListener>;
+    onDragStop: WeakMap<HTMLElement, ItemCallback>;
     /** A `ResizeStart` event listener corresponding to an element on the grid. */
-    onResizeStart: WeakMap<GridItemHTMLElement, WidgetResizeStartListener>;
+    onResizeStart: WeakMap<HTMLElement, ItemCallback>;
+    /** A `Resize` event listener corresponding to an element on the grid. */
+    onResize: WeakMap<HTMLElement, ItemCallback>;
     /** A `ResizeStart` event listener corresponding to an element on the grid. */
-    onResizeStop: WeakMap<GridItemHTMLElement, WidgetResizeStartListener>;
+    onResizeStop: WeakMap<HTMLElement, ItemCallback>;
 };
 
-/** Listener handling event when items are added to the grid. */
-type GridAddedListener = (event: Event, items: GridStackNode[]) => void;
-/** Listener handling event when items change on the grid. */
-type GridChangeListener = (event: Event, items: GridStackNode[]) => void;
-/** Listener handling event when the grid is disabled. */
-type GridDisableListener = (event: Event) => void;
-/** Listener handling event when starting to drag a widget on the grid. */
-type GridDragStartListener = (event: Event, element: GridItemHTMLElement) => void;
-/** Listener handling event when stopping to drag a widget on the grid. */
-type GridDragStopListener = (event: Event, element: GridItemHTMLElement) => void;
-/** Listener handling event when a widget is dropped onto the grid. */
-type GridDroppedListener = (event: Event, previousWidget: GridStackNode, newWidget: GridStackNode) => void;
-/** Listener handling event when the grid is enabled. */
-type GridEnableListener = (event: Event) => void;
-/** Listener handling event when items are removed from the grid. */
-type GridRemovedListener = (event: Event, items: GridStackNode[]) => void;
-/** Listener handling event when starting to resize a widget on the grid. */
-type GridResizeStartListener = (event: Event, element: GridItemHTMLElement) => void;
-/** Listener handling event when stopping to resize a widget on the grid. */
-type GridResizeStopListener = (event: Event, element: GridItemHTMLElement) => void;
-
-type GridListeners = {
-    /** Event firing when widgets are placed on the grid. */
-    onAdded: GridAddedListener | null;
-    /** Event firing when widgets have been moved or resized on the grid. */
-    onChange: GridChangeListener | null;
-    /** Event firing when the grid is disabled. */
-    onDisable: GridDisableListener | null;
-    /** Event firing when starting to drag a widget on the grid. */
-    onDragStart: GridDragStartListener | null;
-    /** Event firing when stopping to drag a widget on the grid. */
-    onDragStop: GridDragStopListener | null;
-    /** Event firing when a widget has been dropped onto the grid. */
-    onDropped: GridDroppedListener | null;
-    /** Event firing when the grid is enabled. */
-    onEnable: GridEnableListener | null;
-    /** Event firing when a widget has been removed from the grid. */
-    onRemoved: GridRemovedListener | null;
-    /** Event firing when starting to resize a widget on the grid. */
-    onResizeStart: GridResizeStartListener | null;
-    /** Event firing when stopping to resize a widget on the grid. */
-    onResizeStop: GridResizeStopListener | null;
-};
-
-export type GridProps = GridStackOptions & GridListeners;
+export type GridProps = ResponsiveProps;
 
 type GridContext = {
-    /** The grid instance. */
-    grid: GridStack;
     /** The event listeners attached to the grid. */
     listeners: WidgetListeners;
 };
@@ -317,131 +134,139 @@ export class Grid extends React.Component<GridProps, GridState> {
     };
 
     widgetListeners: WidgetListeners = {
-        onAdded: new WeakMap(),
-        onChange: new WeakMap(),
         onDragStart: new WeakMap(),
+        onDrag: new WeakMap(),
         onDragStop: new WeakMap(),
-        onRemoved: new WeakMap(),
         onResizeStart: new WeakMap(),
+        onResize: new WeakMap(),
         onResizeStop: new WeakMap(),
     };
 
-    handleAdded: GridAddedListener = (event: Event, items: GridStackNode[]) => {
-        for (const item of items) {
-            const element = item.el;
-
-            if (element) {
-                const listener = this.widgetListeners.onAdded.get(element);
-                listener?.(event, item);
-            }
-        }
-
-        this.props.onAdded?.(event, items);
-    };
-
-    handleChange: GridChangeListener = (event: Event, items: GridStackNode[]) => {
-        for (const item of items) {
-            const element = item.el;
-
-            if (element) {
-                const listener = this.widgetListeners.onChange.get(element);
-                listener?.(event, item);
-            }
-        }
-
-        this.props.onChange?.(event, items);
-    };
-
-    handleDisable: GridDisableListener = (event: Event) => {
-        this.props.onDisable?.(event);
-
-        this.props.onDisable?.(event);
-    };
-
-    handleDragStart: GridDragStartListener = (event: Event, element: GridItemHTMLElement) => {
+    handleDragStart = (
+        layout: Layout[],
+        oldItem: Layout,
+        newItem: Layout,
+        placeholder: Layout,
+        event: MouseEvent,
+        element: HTMLElement,
+    ) => {
         const listener = this.widgetListeners.onDragStart.get(element);
-        listener?.(event, element);
+        listener?.(layout, oldItem, newItem, placeholder, event, element);
 
-        this.props.onDragStart?.(event, element);
+        this.props.onDragStart?.(layout, oldItem, newItem, placeholder, event, element);
     };
 
-    handleDragStop: GridDragStopListener = (event: Event, element: GridItemHTMLElement) => {
+    handleDrag = (
+        layout: Layout[],
+        oldItem: Layout,
+        newItem: Layout,
+        placeholder: Layout,
+        event: MouseEvent,
+        element: HTMLElement,
+    ) => {
+        const listener = this.widgetListeners.onDrag.get(element);
+        listener?.(layout, oldItem, newItem, placeholder, event, element);
+
+        this.props.onDrag?.(layout, oldItem, newItem, placeholder, event, element);
+    };
+
+    handleDragStop = (
+        layout: Layout[],
+        oldItem: Layout,
+        newItem: Layout,
+        placeholder: Layout,
+        event: MouseEvent,
+        element: HTMLElement,
+    ) => {
         const listener = this.widgetListeners.onDragStop.get(element);
-        listener?.(event, element);
+        listener?.(layout, oldItem, newItem, placeholder, event, element);
 
-        this.props.onDragStop?.(event, element);
+        this.props.onDragStop?.(layout, oldItem, newItem, placeholder, event, element);
     };
 
-    handleDropped: GridDroppedListener = (event: Event, previousWidget: GridStackNode, newWidget: GridStackNode) => {
-        this.props.onDropped?.(event, previousWidget, newWidget);
-    };
-
-    handleEnable: GridEnableListener = (event: Event) => {
-        this.props.onEnable?.(event);
-
-        this.props.onEnable?.(event);
-    };
-
-    handleRemoved: GridRemovedListener = (event: Event, items: GridStackNode[]) => {
-        for (const item of items) {
-            const element = item.el;
-
-            if (element) {
-                const listener = this.widgetListeners.onRemoved.get(element);
-                listener?.(event, item);
-            }
-        }
-
-        this.props.onRemoved?.(event, items);
-    };
-
-    handleResizeStart: GridResizeStartListener = (event: Event, element: GridItemHTMLElement) => {
+    handleResizeStart = (
+        layout: Layout[],
+        oldItem: Layout,
+        newItem: Layout,
+        placeholder: Layout,
+        event: MouseEvent,
+        element: HTMLElement,
+    ) => {
         const listener = this.widgetListeners.onResizeStart.get(element);
-        listener?.(event, element);
+        listener?.(layout, oldItem, newItem, placeholder, event, element);
 
-        this.props.onResizeStart?.(event, element);
+        this.props.onResizeStart?.(layout, oldItem, newItem, placeholder, event, element);
     };
 
-    handleResizeStop: GridResizeStopListener = (event: Event, element: GridItemHTMLElement) => {
+    handleResize = (
+        layout: Layout[],
+        oldItem: Layout,
+        newItem: Layout,
+        placeholder: Layout,
+        event: MouseEvent,
+        element: HTMLElement,
+    ) => {
+        const listener = this.widgetListeners.onResize.get(element);
+        listener?.(layout, oldItem, newItem, placeholder, event, element);
+
+        this.props.onResize?.(layout, oldItem, newItem, placeholder, event, element);
+    };
+
+    handleResizeStop = (
+        layout: Layout[],
+        oldItem: Layout,
+        newItem: Layout,
+        placeholder: Layout,
+        event: MouseEvent,
+        element: HTMLElement,
+    ) => {
         const listener = this.widgetListeners.onResizeStop.get(element);
-        listener?.(event, element);
+        listener?.(layout, oldItem, newItem, placeholder, event, element);
 
-        this.props.onResizeStop?.(event, element);
+        this.props.onResizeStop?.(layout, oldItem, newItem, placeholder, event, element);
     };
-
-    componentDidMount() {
-        // Initialize the grid.
-        const grid = GridStack.init(this.props, this.refs.grid as HTMLElement);
-
-        grid.on('added', this.handleAdded as GridEventCallback);
-        grid.on('change', this.handleChange as GridEventCallback);
-        grid.on('disable', this.handleDisable as GridEventCallback);
-        grid.on('dragstart', this.handleDragStart as GridEventCallback);
-        grid.on('dragstop', this.handleDragStop as GridEventCallback);
-        grid.on('dropped', (this.handleDropped as unknown) as GridEventCallback);
-        grid.on('enable', this.handleEnable as GridEventCallback);
-        grid.on('removed', this.handleRemoved as GridEventCallback);
-        grid.on('resizestart', this.handleResizeStart as GridEventCallback);
-        grid.on('resizestop', this.handleResizeStop as GridEventCallback);
-
-        this.setState({
-            context: {
-                grid,
-                listeners: this.widgetListeners,
-            },
-        });
-    }
-
-    componentWillUnmount() {
-        // Destroy the grid.
-        this.state.context?.grid.destroy();
-    }
 
     render() {
         return (
-            <div ref="grid" className="grid-stack">
+            <GridLayout
+                className={this.props.className}
+                style={this.props.style}
+                autoSize={this.props.autoSize}
+                draggableCancel={this.props.draggableCancel}
+                draggableHandle={this.props.draggableHandle}
+                verticalCompact={this.props.verticalCompact}
+                compactType={this.props.compactType}
+                width={this.props.width}
+                rowHeight={this.props.rowHeight}
+                droppingItem={this.props.droppingItem}
+                isDraggable={this.props.isDraggable}
+                isResizable={this.props.isResizable}
+                resizeHandles={this.props.resizeHandles}
+                resizeHandle={this.props.resizeHandle}
+                isDroppable={this.props.isDroppable}
+                isBounded={this.props.isBounded}
+                preventCollision={this.props.preventCollision}
+                useCSSTransforms={this.props.useCSSTransforms}
+                maxRows={this.props.maxRows}
+                transformScale={this.props.transformScale}
+                onDragStart={this.handleDragStart}
+                onDrag={this.handleDrag}
+                onDragStop={this.handleDragStop}
+                onResizeStart={this.handleResizeStart}
+                onResize={this.handleResize}
+                onResizeStop={this.handleResizeStop}
+                onDrop={this.props.onDrop}
+                breakpoints={this.props.breakpoints}
+                cols={this.props.cols}
+                margin={this.props.margin}
+                containerPadding={this.props.containerPadding}
+                layouts={this.props.layouts}
+                onBreakpointChange={this.props.onBreakpointChange}
+                onLayoutChange={this.props.onLayoutChange}
+                onWidthChange={this.props.onWidthChange}
+            >
                 <GridContext.Provider value={this.state.context}>{this.props.children}</GridContext.Provider>
-            </div>
+            </GridLayout>
         );
     }
 }
