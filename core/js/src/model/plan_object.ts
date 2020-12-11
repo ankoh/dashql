@@ -45,22 +45,16 @@ export class PlanObject {
 // Buffer that is directly copied into the core module
 class CoreBuffer extends PlanObject {
     /// The offset within the core module
-    buffer_offset_: number;
-    /// The size within the core module
-    buffer_size_: number;
+    buffer_: CoreMemory;
 
-    constructor(object_id: PlanObjectID, type: PlanObjectType, name_qualified: string, name_short: string, buffer_offset: number, buffer_size: number) {
+    constructor(object_id: PlanObjectID, type: PlanObjectType, name_qualified: string, name_short: string, buffer: CoreMemory) {
         super(object_id, type, name_qualified, name_short);
-        this.buffer_offset_ = buffer_offset;
-        this.buffer_size_ = buffer_size;
+        this.buffer_ = buffer;
     }
 
     /// Get the core buffer (if any)
     public get core_memory(): CoreMemory  | null {
-        return {
-            address: this.buffer_offset_,
-            size: this.buffer_size_,
-        };
+        return this.buffer_;
     }
 }
 
@@ -92,9 +86,9 @@ export class Blob extends JSBuffer {
 
 /// A parquet blob.
 /// Parquet files are copied into the core module since we can read them directly in DuckDB.
-export class ParquetFile extends CoreBuffer {
-    constructor(object_id: PlanObjectID, name_qualified: string, name_short: string, buffer_offset: number, buffer_size: number) {
-        super(object_id, PlanObjectType.BLOB_PARQUET, name_qualified, name_short, buffer_offset, buffer_size);
+export class ParquetBlob extends JSBuffer {
+    constructor(object_id: PlanObjectID, name_qualified: string, name_short: string, buffer: Uint8Array) {
+        super(object_id, PlanObjectType.BLOB_PARQUET, name_qualified, name_short, buffer);
     }
 };
 
