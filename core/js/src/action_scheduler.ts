@@ -1,11 +1,21 @@
-import { Plan } from "./model";
+import { Action } from "./actions";
+import { TopologicalSort, TopoKey, TopoRank } from "./utils";
 
-export class ActionScheduler {
+export class ActionScheduler<DerivedAction extends Action> {
     /// The plan
-    plan: Plan;
+    _actions: DerivedAction[];
+    /// The pending actions
+    _pending: TopologicalSort;
 
     /// Constructor
-    constructor(plan: Plan) {
-        this.plan = plan;
+    constructor(actions: DerivedAction[]) {
+        let deps: [TopoKey, TopoRank][] = [];
+        deps.length = actions.length;
+        for (let i = 0; i < actions.length; ++i) {
+            // XXX
+        }
+
+        this._actions = actions;
+        this._pending = new TopologicalSort([]);
     }
 };
