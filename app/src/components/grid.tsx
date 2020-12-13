@@ -145,7 +145,7 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
         }
     }
 
-    updateEventListeners(prevProps: WidgetWithContextProps) {
+    updateEventListeners() {
         if (!this.props.context || !this.state.widget) {
             return;
         }
@@ -187,12 +187,12 @@ class WidgetWithContext extends React.Component<WidgetWithContextProps, WidgetWi
 
     componentDidMount() {
         this.updateGrid({});
-        this.updateEventListeners({});
+        this.updateEventListeners();
     }
 
     componentDidUpdate(prevProps: WidgetWithContextProps) {
         this.updateGrid(prevProps);
-        this.updateEventListeners(prevProps);
+        this.updateEventListeners();
         this.updateDimensions(prevProps);
     }
 
