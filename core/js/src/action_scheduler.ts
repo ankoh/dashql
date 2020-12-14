@@ -21,7 +21,7 @@ export class ActionScheduler {
         this._setup_actions = [];
         for (let i = 0; i < action_graph.setupActionsLength(); ++i) {
             const a = action_graph.setupActions(i)!;
-            this._setup_actions.push(translateSetupAction(a));
+            this._setup_actions.push(translateSetupAction(this._program, a));
         }
 
         // Translate the program actions
