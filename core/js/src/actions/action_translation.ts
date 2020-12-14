@@ -3,7 +3,7 @@ import { SetupAction, ProgramAction } from "./action";
 import { Statement, Program } from "../model";
 
 /// Translate a setup action
-export function translateSetupAction(a: proto.action.SetupAction): SetupAction {
+export function translateSetupAction(p: Program, a: proto.action.SetupAction): SetupAction {
     switch (a.actionType()) {
         case proto.action.SetupActionType.DROP_BLOB:
             break;
@@ -22,7 +22,7 @@ export function translateSetupAction(a: proto.action.SetupAction): SetupAction {
         case proto.action.SetupActionType.IMPORT_VIZ:
             break;
     }
-    return new SetupAction();
+    return new SetupAction(p);
 }
 
 /// Translate a program action
@@ -50,5 +50,5 @@ export function translateProgramAction(p: Program, a: proto.action.ProgramAction
             break;
     }
     const stmt = p.getStatement(a.originStatement());
-    return new ProgramAction(stmt);
+    return new ProgramAction(p, stmt);
 }
