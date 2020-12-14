@@ -41,6 +41,14 @@ export class Program {
         return decoder.decode(view);
     }
 
+    /// Get a statement
+    public getStatement(i: number): Statement {
+        const stmt = new Statement(this);
+        stmt.statement_id = i;
+        stmt.statement = this.proto.statements(i, stmt.statement)!;
+        return stmt;
+    }
+
     /// Iterate over statements
     public iterateStatements(fn: (idx: number, node: Statement) => void): number {
         const stmt = new Statement(this);
