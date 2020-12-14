@@ -15,35 +15,35 @@ export interface CoreMemory { address: number; size: number; }
 /// A plan object
 export class PlanObject {
     /// The object id
-    object_id_: PlanObjectID;
+    _object_id: PlanObjectID;
     /// The type
-    object_type_: PlanObjectType;
+    _object_type: PlanObjectType;
     /// The time when the object was created
-    time_created_: Date;
+    _time_created: Date;
     /// The time when the object was updated
-    time_updated_: Date;
+    _time_updated: Date;
     /// The short name (if any)
-    name_qualified_: string;
+    _name_qualified: string;
     /// The short name (if any)
-    name_short_: string;
+    _name_short: string;
 
     constructor(object_id: PlanObjectID, type: PlanObjectType, name_qualified: string, name_short: string) {
-        this.object_id_ = object_id;
-        this.object_type_ = type;
-        this.time_created_ = new Date();
-        this.time_updated_ = new Date();
-        this.name_qualified_ = name_qualified;
-        this.name_short_ = name_short;
+        this._object_id = object_id;
+        this._object_type = type;
+        this._time_created = new Date();
+        this._time_updated = new Date();
+        this._name_qualified = name_qualified;
+        this._name_short = name_short;
     }
 
     /// Get the object id
-    public get object_id(): PlanObjectID { return this.object_id_; }
+    public get object_id(): PlanObjectID { return this._object_id; }
     /// Get the core buffer, if any
     public get core_memory(): CoreMemory  | null { return null; }
 }
 
 // Buffer that is directly copied into the core module
-class CoreBuffer extends PlanObject {
+export class CoreBuffer extends PlanObject {
     /// The offset within the core module
     buffer_: CoreMemory;
 
