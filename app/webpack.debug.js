@@ -14,6 +14,12 @@ module.exports = {
         cssIdentifier: '[local]_[hash:base64]'
     }),
     mode: 'development',
+    watchOptions: {
+        ignored: [
+            'node_modules/**',
+            'dist/**',
+        ]
+    }
     performance: {
         hints: false
     },
