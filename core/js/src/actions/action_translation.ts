@@ -1,26 +1,34 @@
 import * as proto from "@dashql/proto";
 import { SetupAction, ProgramAction } from "./action";
 import { Statement, Program } from "../model";
+import { DropBlobAction } from "./drop_blob";
+import { DropTableAction } from "./drop_table";
+import { DropViewAction } from "./drop_view";
+import { DropVizAction } from "./drop_viz";
+import { ImportBlobAction } from "./import_blob";
+import { ImportTableAction } from "./import_table";
+import { ImportViewAction } from "./import_view";
+import { ImportVizAction } from "./import_viz";
 
 /// Translate a setup action
 export function translateSetupAction(p: Program, a: proto.action.SetupAction): SetupAction {
     switch (a.actionType()) {
         case proto.action.SetupActionType.DROP_BLOB:
-            break;
+            return new DropBlobAction(p);
         case proto.action.SetupActionType.DROP_TABLE:
-            break;
+            return new DropTableAction(p);
         case proto.action.SetupActionType.DROP_VIEW:
-            break;
+            return new DropViewAction(p);
         case proto.action.SetupActionType.DROP_VIZ:
-            break;
+            return new DropVizAction(p);
         case proto.action.SetupActionType.IMPORT_BLOB:
-            break;
+            return new ImportBlobAction(p);
         case proto.action.SetupActionType.IMPORT_TABLE:
-            break;
+            return new ImportTableAction(p);
         case proto.action.SetupActionType.IMPORT_VIEW:
-            break;
+            return new ImportViewAction(p);
         case proto.action.SetupActionType.IMPORT_VIZ:
-            break;
+            return new ImportVizAction(p);
     }
     return new SetupAction(p);
 }
