@@ -72,6 +72,11 @@ duckdb_tests:
 core_js:
 	npm --prefix ${ROOT_DIR}/core/js run build
 
+# Build the dashql_core javascript library
+.PHONY: core_js_watch
+core_js_watch:
+	npm --prefix ${ROOT_DIR}/core/js run build:watch
+
 # Test the dashql_core javascript library
 .PHONY: core_js_tests
 core_js_tests:
