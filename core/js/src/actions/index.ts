@@ -10,3 +10,4 @@ export * from "./table_create";
 export * from "./table_modify";
 export * from "./viz_create";
 export * from "./viz_update";
+export * from "./action_translation";

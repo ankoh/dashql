@@ -1,4 +1,4 @@
-import { Statement } from "../model";
+import { Statement, Program } from "../model";
 
 export class Action {
 }
