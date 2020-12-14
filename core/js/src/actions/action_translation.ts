@@ -1,6 +1,7 @@
 import * as proto from "@dashql/proto";
 import { SetupAction, ProgramAction } from "./action";
 import { Statement, Program } from "../model";
+
 import { DropBlobAction } from "./drop_blob";
 import { DropTableAction } from "./drop_table";
 import { DropViewAction } from "./drop_view";
@@ -9,6 +10,17 @@ import { ImportBlobAction } from "./import_blob";
 import { ImportTableAction } from "./import_table";
 import { ImportViewAction } from "./import_view";
 import { ImportVizAction } from "./import_viz";
+
+import { ExtractCSVAction } from "./extract_csv";
+import { ExtractJsonAction } from "./extract_json";
+import { LoadFileAction } from "./load_file";
+import { LoadHTTPAction } from "./load_http";
+import { ParameterAction } from "./parameter";
+import { CreateTableAction } from "./table_create";
+import { ModifyTableAction } from "./table_modify";
+import { ViewCreateAction } from "./view_create";
+import { CreateVizAction } from "./viz_create";
+import { UpdateVizAction } from "./viz_update";
 
 /// Translate a setup action
 export function translateSetupAction(p: Program, a: proto.action.SetupAction): SetupAction {
@@ -35,28 +47,28 @@ export function translateSetupAction(p: Program, a: proto.action.SetupAction): S
 
 /// Translate a program action
 export function translateProgramAction(p: Program, a: proto.action.ProgramAction): ProgramAction {
+    const stmt = p.getStatement(a.originStatement());
     switch (a.actionType()) {
         case proto.action.ProgramActionType.EXTRACT_CSV:
-            break;
+            return new ExtractCSVAction(p, stmt);
         case proto.action.ProgramActionType.EXTRACT_JSON:
-            break;
+            return new ExtractJsonAction(p, stmt);
         case proto.action.ProgramActionType.LOAD_FILE:
-            break;
+            return new LoadFileAction(p, stmt);
         case proto.action.ProgramActionType.LOAD_HTTP:
-            break;
+            return new LoadHTTPAction(p, stmt);
         case proto.action.ProgramActionType.PARAMETER:
-            break;
+            return new ParameterAction(p, stmt);
         case proto.action.ProgramActionType.TABLE_CREATE:
-            break;
+            return new CreateTableAction(p, stmt);
         case proto.action.ProgramActionType.TABLE_MODIFY:
-            break;
+            return new ModifyTableAction(p, stmt);
         case proto.action.ProgramActionType.VIEW_CREATE:
-            break;
+            return new ViewCreateAction(p, stmt);
         case proto.action.ProgramActionType.VIZ_CREATE:
-            break;
+            return new CreateVizAction(p, stmt);
         case proto.action.ProgramActionType.VIZ_UPDATE:
-            break;
+            return new UpdateVizAction(p, stmt);
     }
-    const stmt = p.getStatement(a.originStatement());
     return new ProgramAction(p, stmt);
 }
