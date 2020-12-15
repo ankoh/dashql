@@ -22,53 +22,56 @@ import { ViewCreateAction } from "./view_create";
 import { CreateVizAction } from "./viz_create";
 import { UpdateVizAction } from "./viz_update";
 
+import SetupActionType = proto.action.SetupActionType;
+import ProgramActionType = proto.action.ProgramActionType;
+
 /// Translate a setup action
-export function translateSetupAction(p: Program, a: proto.action.SetupAction): SetupAction {
+export function translateSetupAction(a: proto.action.SetupAction, p: Program): SetupAction {
     switch (a.actionType()) {
-        case proto.action.SetupActionType.DROP_BLOB:
-            return new DropBlobAction(p);
-        case proto.action.SetupActionType.DROP_TABLE:
-            return new DropTableAction(p);
-        case proto.action.SetupActionType.DROP_VIEW:
-            return new DropViewAction(p);
-        case proto.action.SetupActionType.DROP_VIZ:
-            return new DropVizAction(p);
-        case proto.action.SetupActionType.IMPORT_BLOB:
-            return new ImportBlobAction(p);
-        case proto.action.SetupActionType.IMPORT_TABLE:
-            return new ImportTableAction(p);
-        case proto.action.SetupActionType.IMPORT_VIEW:
-            return new ImportViewAction(p);
-        case proto.action.SetupActionType.IMPORT_VIZ:
-            return new ImportVizAction(p);
+        case SetupActionType.DROP_BLOB:
+            return new DropBlobAction(a, p);
+        case SetupActionType.DROP_TABLE:
+            return new DropTableAction(a, p);
+        case SetupActionType.DROP_VIEW:
+            return new DropViewAction(a, p);
+        case SetupActionType.DROP_VIZ:
+            return new DropVizAction(a, p);
+        case SetupActionType.IMPORT_BLOB:
+            return new ImportBlobAction(a, p);
+        case SetupActionType.IMPORT_TABLE:
+            return new ImportTableAction(a, p);
+        case SetupActionType.IMPORT_VIEW:
+            return new ImportViewAction(a, p);
+        case SetupActionType.IMPORT_VIZ:
+            return new ImportVizAction(a, p);
     }
-    return new SetupAction(p);
+    return new SetupAction(a, p);
 }
 
 /// Translate a program action
-export function translateProgramAction(p: Program, a: proto.action.ProgramAction): ProgramAction {
+export function translateProgramAction(a: proto.action.ProgramAction, p: Program): ProgramAction {
     const stmt = p.getStatement(a.originStatement());
     switch (a.actionType()) {
-        case proto.action.ProgramActionType.EXTRACT_CSV:
-            return new ExtractCSVAction(p, stmt);
-        case proto.action.ProgramActionType.EXTRACT_JSON:
-            return new ExtractJsonAction(p, stmt);
-        case proto.action.ProgramActionType.LOAD_FILE:
-            return new LoadFileAction(p, stmt);
-        case proto.action.ProgramActionType.LOAD_HTTP:
-            return new LoadHTTPAction(p, stmt);
-        case proto.action.ProgramActionType.PARAMETER:
-            return new ParameterAction(p, stmt);
-        case proto.action.ProgramActionType.TABLE_CREATE:
-            return new CreateTableAction(p, stmt);
-        case proto.action.ProgramActionType.TABLE_MODIFY:
-            return new ModifyTableAction(p, stmt);
-        case proto.action.ProgramActionType.VIEW_CREATE:
-            return new ViewCreateAction(p, stmt);
-        case proto.action.ProgramActionType.VIZ_CREATE:
-            return new CreateVizAction(p, stmt);
-        case proto.action.ProgramActionType.VIZ_UPDATE:
-            return new UpdateVizAction(p, stmt);
+        case ProgramActionType.EXTRACT_CSV:
+            return new ExtractCSVAction(a, p, stmt);
+        case ProgramActionType.EXTRACT_JSON:
+            return new ExtractJsonAction(a, p, stmt);
+        case ProgramActionType.LOAD_FILE:
+            return new LoadFileAction(a, p, stmt);
+        case ProgramActionType.LOAD_HTTP:
+            return new LoadHTTPAction(a, p, stmt);
+        case ProgramActionType.PARAMETER:
+            return new ParameterAction(a, p, stmt);
+        case ProgramActionType.TABLE_CREATE:
+            return new CreateTableAction(a, p, stmt);
+        case ProgramActionType.TABLE_MODIFY:
+            return new ModifyTableAction(a, p, stmt);
+        case ProgramActionType.VIEW_CREATE:
+            return new ViewCreateAction(a, p, stmt);
+        case ProgramActionType.VIZ_CREATE:
+            return new CreateVizAction(a, p, stmt);
+        case ProgramActionType.VIZ_UPDATE:
+            return new UpdateVizAction(a, p, stmt);
     }
-    return new ProgramAction(p, stmt);
+    return new ProgramAction(a, p, stmt);
 }
