@@ -1,26 +1,34 @@
+import * as proto from "@dashql/proto";
 import { Statement, Program } from "../model";
 
-export class Action {
+export class Action<ActionBuffer> {
+    /// A protocol buffer
+    _action: ActionBuffer;
     /// A program
-    program: Program;
+    _program: Program;
 
-    constructor(program: Program) {
-        this.program = program;
+    /// Constructor
+    constructor(action: ActionBuffer, program: Program) {
+        this._action = action;
+        this._program = program;
     }
 }
 
-export class ProgramAction extends Action {
+export class ProgramAction extends Action<proto.action.ProgramAction> {
     /// The origin statement
-    origin: Statement;
+    _origin: Statement;
 
-    constructor(program: Program, origin: Statement) {
-        super(program);
-        this.origin = origin;
+    /// Constructor
+    constructor(action: proto.action.ProgramAction, program: Program, origin: Statement) {
+        super(action, program);
+        this._origin = origin;
     }
 }
 
-export class SetupAction extends Action {
-    constructor(program: Program) {
-        super(program);
+export class SetupAction extends Action<proto.action.SetupAction> {
+
+    /// Constructor
+    constructor(action: proto.action.SetupAction, program: Program) {
+        super(action, program);
     }
 }
