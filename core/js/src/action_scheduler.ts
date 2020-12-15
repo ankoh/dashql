@@ -21,14 +21,14 @@ export class ActionScheduler {
         this._setup_actions = [];
         for (let i = 0; i < action_graph.setupActionsLength(); ++i) {
             const a = action_graph.setupActions(i)!;
-            this._setup_actions.push(translateSetupAction(this._program, a));
+            this._setup_actions.push(translateSetupAction(a, this._program));
         }
 
         // Translate the program actions
         this._program_actions = [];
         for (let i = 0; i < action_graph.programActionsLength(); ++i) {
             const a = action_graph.programActions(i)!;
-            this._program_actions.push(translateProgramAction(this._program, a));
+            this._program_actions.push(translateProgramAction(a, this._program));
         }
 
         // Build the dependency heap
