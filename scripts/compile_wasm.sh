@@ -19,14 +19,14 @@ mkdir -p ${CPP_BUILD_DIR}
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
 emcmake cmake \
-    -S/wd/core/cpp/ \
-    -B/wd/core/cpp/build/wasm/${BUILD_TYPE} \
+    -S"${CPP_SOURCE_DIR}/" \
+    -B"${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}" \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
 
 emmake make \
-    -C/wd/core/cpp/build/wasm/${BUILD_TYPE} \
+    -C"${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}" \
     -j${CORES} \
     core_web core_node duckdb_web duckdb_node
 
