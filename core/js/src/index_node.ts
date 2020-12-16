@@ -1,11 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-export * as proto from "@dashql/proto";
-export * as actions from "./actions";
-export * as error from "./error";
-export * as model from "./model";
-export * as utils from "./utils";
-export * from "./core_bindings";
+export * from "./index_base";
 
 import dashql_core_wasm from './wasm/core_node.wasm';
 import dashql_core_init from './wasm/core_node.js';

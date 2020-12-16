@@ -26,7 +26,7 @@ import SetupActionType = proto.action.SetupActionType;
 import ProgramActionType = proto.action.ProgramActionType;
 
 /// Translate a setup action
-export function translateSetupAction(a: proto.action.SetupAction): SetupAction {
+export function translateSetupAction(a: proto.action.SetupAction): SetupAction | null {
     switch (a.actionType()) {
         case SetupActionType.DROP_BLOB:
             return new DropBlobAction(a);
@@ -45,11 +45,11 @@ export function translateSetupAction(a: proto.action.SetupAction): SetupAction {
         case SetupActionType.IMPORT_VIZ:
             return new ImportVizAction(a);
     }
-    return new SetupAction(a);
+    return null;
 }
 
 /// Translate a program action
-export function translateProgramAction(a: proto.action.ProgramAction, s: Statement): ProgramAction {
+export function translateProgramAction(a: proto.action.ProgramAction, s: Statement): ProgramAction | null {
     switch (a.actionType()) {
         case ProgramActionType.EXTRACT_CSV:
             return new ExtractCSVAction(a, s);
@@ -72,5 +72,5 @@ export function translateProgramAction(a: proto.action.ProgramAction, s: Stateme
         case ProgramActionType.VIZ_UPDATE:
             return new UpdateVizAction(a, s);
     }
-    return new ProgramAction(a, s);
+    return null;
 }
