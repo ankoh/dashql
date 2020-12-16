@@ -6,7 +6,16 @@ export class NativeBitmap {
     _buffer: Uint32Array;
 
     public constructor(size: number) {
-        this._buffer = new Uint32Array(size);
+        this._buffer = new Uint32Array(size >> 5);
+    }
+
+    /// Is empty?
+    public isEmpty(): boolean {
+        let r = 0;
+        for (let i = 0; i < this._buffer.length; ++i) {
+            r |= this._buffer[i];
+        }
+        return r != 0;
     }
 
     /// Set a bit
