@@ -4,14 +4,14 @@ import * as core from '@dashql/core';
 
 export class EditorController {
     /// The core
-    protected _core: core.DashQLCoreBindings;
+    protected _core: core.DashQLCoreWasmBindings;
     /// The editor
     protected _editor: monaco.editor.IStandaloneCodeEditor | null;
     /// The store
     protected _store: AppReduxStore;
 
     /// Constructor
-    constructor(core: core.DashQLCoreBindings, store: AppReduxStore) {
+    constructor(core: core.DashQLCoreWasmBindings, store: AppReduxStore) {
         this._core = core;
         this._store = store;
         this._editor = null;

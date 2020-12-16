@@ -1,4 +1,4 @@
-import { DashQLCoreBindings } from '@dashql/core';
+import { DashQLCoreWasmBindings } from '@dashql/core';
 import { AppReduxStore } from '../model';
 import { EditorController } from './editor';
 import { LogController } from './log';
@@ -11,7 +11,7 @@ const workerIntervalMS = 400;
 /// A controller
 export class AppController {
     /// The core
-    protected _core: DashQLCoreBindings;
+    protected _core: DashQLCoreWasmBindings;
     /// The store
     protected _store: AppReduxStore;
     /// The logger
@@ -27,7 +27,7 @@ export class AppController {
     protected workerTimer: number | null;
 
     // Constructor
-    constructor(core: DashQLCoreBindings, store: AppReduxStore) {
+    constructor(core: DashQLCoreWasmBindings, store: AppReduxStore) {
         this._core = core;
         this._store = store;
         this._log = new LogController(store);

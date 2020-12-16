@@ -1,4 +1,4 @@
-import { model, DashQLCoreBindings } from "@dashql/core";
+import { model, DashQLCoreWasmBindings } from "@dashql/core";
 import { AppState } from "./state";
 import { AppSettings } from "./settings";
 
@@ -25,7 +25,7 @@ export class AppStateMutation {
     public static reduce(
         state: AppState = new AppState(),
         action: ActionVariant,
-        core: DashQLCoreBindings,
+        core: DashQLCoreWasmBindings,
     ): AppState {
         switch (action.type) {
             case ActionType.CONFIGURE_APP:

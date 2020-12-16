@@ -32,7 +32,7 @@ const browserTarget = {
                 ]
             },
             {
-                test: /core_(web|node)\.wasm$/,
+                test: /core_wasm_(web|node)\.wasm$/,
                 type: 'javascript/auto',
                 loader: 'file-loader',
                 options: {
