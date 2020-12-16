@@ -10,6 +10,7 @@ enum ActionStatusCode: uint8 {
     PREPARING,
     BLOCKED,
     RUNNING,
+    TEARDOWN,
     COMPLETED,
     ERROR,
 }
@@ -58,6 +59,8 @@ enum SetupActionType: uint8 {
 table SetupAction {
     action_type: SetupActionType;
     action_status: ActionStatus;
+    depends_on: [uint32];
+    required_for: [uint32];
     object_id: uint32;
     target_name_qualified: string;
     target_name_short: string;
