@@ -1,14 +1,14 @@
-import { DashQLCoreBindings } from "../core_bindings";
 import { Plan } from "../model";
+import { Platform } from "../platform";
 
 export class ActionContext {
-    /// The bindings
-    _bindings: DashQLCoreBindings;
+    /// The platform
+    _platform: Platform;
     /// The program
     _plan: Plan;
 
-    constructor(bindings: DashQLCoreBindings, plan: Plan) {
-        this._bindings = bindings;
+    constructor(platform: Platform, plan: Plan) {
+        this._platform = platform;
         this._plan = plan;
     }
 };
