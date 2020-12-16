@@ -207,7 +207,7 @@ jobs:
             emmake make \
                 -C./core/cpp/build/wasm/release \
                 -j`nproc` \
-                core_web core_node duckdb_web duckdb_node
+                core_wasm_web core_wasm_node duckdb_web duckdb_node
 
             cp ./core/cpp/build/wasm/release/*.wasm ./core/js/src/wasm/
             cp ./core/cpp/build/wasm/release/*.js ./core/js/src/wasm/
