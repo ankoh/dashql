@@ -21,9 +21,14 @@ DUCKDB_JS_WASM_DIR="${ROOT_DIR}/duckdb/js/src/wasm"
 CI_IMAGE_NAMESPACE="dashql"
 CI_IMAGE_NAME="ci"
 CI_IMAGE_TAG="$(shell cat ./ci/image/TAG)"
+CI_IMAGE_FULLY_QUALIFIED="${CI_IMAGE_NAMESPACE}/${CI_IMAGE_NAME}:${CI_IMAGE_TAG}"
 IN_IMAGE_MOUNTS=-v${ROOT_DIR}:/wd/ -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscripten_cache/ -v${ROOT_DIR}/.ccache/:/mnt/ccache/
 IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/
-IN_IMAGE=docker run --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} dashql/ci:${CI_IMAGE_TAG}
+
+# If we have the CI image locally, run build commands through it
+if [[ "$(docker images -q "${CI_IMAGE_FULLY_QUALIFIED}" 2> /dev/null)" == "" ]]; then
+	EXEC_ENVIRONMENT=docker run --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} "${CI_IMAGE_FULLY_QUALIFIED}"
+fi
 
 CDN_S3_BUCKET="s3://dashql-cdn"
 STABLE_S3_BUCKET="s3://dashql-app"
@@ -85,18 +90,18 @@ core_js_tests:
 # Compile the flatbuffer schema
 .PHONY: proto
 proto:
-	${IN_IMAGE} bash -ec ./scripts/generate_proto.sh
+	${EXEC_ENVIRONMENT} bash -ec ./scripts/generate_proto.sh
 	npm --prefix ${ROOT_DIR}/proto run build
 
 # Build the wasm module with debug info
 .PHONY: wasm
 wasm:
-	${IN_IMAGE} bash -ec "./scripts/compile_wasm.sh RelWithDebInfo"
+	${EXEC_ENVIRONMENT} bash -ec "./scripts/compile_wasm.sh RelWithDebInfo"
 
 # Build the wasm modules
 .PHONY: wasm_release
 wasm_release:
-	${IN_IMAGE} bash -ec "./scripts/compile_wasm.sh Release"
+	${EXEC_ENVIRONMENT} bash -ec "./scripts/compile_wasm.sh Release"
 
 # Builds the app
 .PHONY: app
@@ -169,7 +174,7 @@ clean:
 .PHONY: docker_ci_image
 docker_ci_image:
 	tar -cvf - ./ci/image/Dockerfile | docker build \
-		-t ${CI_IMAGE_NAMESPACE}/${CI_IMAGE_NAME}:${CI_IMAGE_TAG} \
+		-t ${CI_IMAGE_FULLY_QUALIFIED} \
 		-f ./ci/image/Dockerfile \
 		-
 
