@@ -1,6 +1,6 @@
 import * as proto from "@dashql/proto";
 import { SetupAction, ProgramAction } from "./action";
-import { Statement, Program } from "../model";
+import { Statement } from "../model";
 
 import { DropBlobAction } from "./drop_blob";
 import { DropTableAction } from "./drop_table";
@@ -26,52 +26,51 @@ import SetupActionType = proto.action.SetupActionType;
 import ProgramActionType = proto.action.ProgramActionType;
 
 /// Translate a setup action
-export function translateSetupAction(a: proto.action.SetupAction, p: Program): SetupAction {
+export function translateSetupAction(a: proto.action.SetupAction): SetupAction {
     switch (a.actionType()) {
         case SetupActionType.DROP_BLOB:
-            return new DropBlobAction(a, p);
+            return new DropBlobAction(a);
         case SetupActionType.DROP_TABLE:
-            return new DropTableAction(a, p);
+            return new DropTableAction(a);
         case SetupActionType.DROP_VIEW:
-            return new DropViewAction(a, p);
+            return new DropViewAction(a);
         case SetupActionType.DROP_VIZ:
-            return new DropVizAction(a, p);
+            return new DropVizAction(a);
         case SetupActionType.IMPORT_BLOB:
-            return new ImportBlobAction(a, p);
+            return new ImportBlobAction(a);
         case SetupActionType.IMPORT_TABLE:
-            return new ImportTableAction(a, p);
+            return new ImportTableAction(a);
         case SetupActionType.IMPORT_VIEW:
-            return new ImportViewAction(a, p);
+            return new ImportViewAction(a);
         case SetupActionType.IMPORT_VIZ:
-            return new ImportVizAction(a, p);
+            return new ImportVizAction(a);
     }
-    return new SetupAction(a, p);
+    return new SetupAction(a);
 }
 
 /// Translate a program action
-export function translateProgramAction(a: proto.action.ProgramAction, p: Program): ProgramAction {
-    const stmt = p.getStatement(a.originStatement());
+export function translateProgramAction(a: proto.action.ProgramAction, s: Statement): ProgramAction {
     switch (a.actionType()) {
         case ProgramActionType.EXTRACT_CSV:
-            return new ExtractCSVAction(a, p, stmt);
+            return new ExtractCSVAction(a, s);
         case ProgramActionType.EXTRACT_JSON:
-            return new ExtractJsonAction(a, p, stmt);
+            return new ExtractJsonAction(a, s);
         case ProgramActionType.LOAD_FILE:
-            return new LoadFileAction(a, p, stmt);
+            return new LoadFileAction(a, s);
         case ProgramActionType.LOAD_HTTP:
-            return new LoadHTTPAction(a, p, stmt);
+            return new LoadHTTPAction(a, s);
         case ProgramActionType.PARAMETER:
-            return new ParameterAction(a, p, stmt);
+            return new ParameterAction(a, s);
         case ProgramActionType.TABLE_CREATE:
-            return new CreateTableAction(a, p, stmt);
+            return new CreateTableAction(a, s);
         case ProgramActionType.TABLE_MODIFY:
-            return new ModifyTableAction(a, p, stmt);
+            return new ModifyTableAction(a, s);
         case ProgramActionType.VIEW_CREATE:
-            return new ViewCreateAction(a, p, stmt);
+            return new ViewCreateAction(a, s);
         case ProgramActionType.VIZ_CREATE:
-            return new CreateVizAction(a, p, stmt);
+            return new CreateVizAction(a, s);
         case ProgramActionType.VIZ_UPDATE:
-            return new UpdateVizAction(a, p, stmt);
+            return new UpdateVizAction(a, s);
     }
-    return new ProgramAction(a, p, stmt);
+    return new ProgramAction(a, s);
 }
