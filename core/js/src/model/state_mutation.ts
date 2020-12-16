@@ -1,5 +1,5 @@
 import * as Immutable from "immutable";
-import { DashQLCoreBindings } from "../core_bindings";
+import { DashQLCoreWasmBindings } from "../wasm";
 import { LogEntry } from "./log";
 import { Plan } from "./plan";
 import { PlanObjectID, PlanObject } from "./plan_object";
@@ -57,7 +57,7 @@ export class StateMutation {
     public static reduce<S extends State>(
         state: S,
         action: ActionVariant,
-        core: DashQLCoreBindings
+        core: DashQLCoreWasmBindings
     ): S {
         switch (action.type) {
             case ActionType.LOG_PUSH_ENTRY:

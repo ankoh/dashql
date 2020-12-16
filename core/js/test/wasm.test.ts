@@ -1,9 +1,9 @@
-import { DashQLCore } from '../';
+import { DashQLCoreWasm } from '../';
 
-var core: DashQLCore;
+var core: DashQLCoreWasm;
 
 beforeAll(async () => {
-    core = new DashQLCore();
+    core = new DashQLCoreWasm();
     await core.init();
 });
 

@@ -1,25 +1,25 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DashQLCoreModule } from './wasm/core_module';
-import { Plan, Program, PlanBuffer, ProgramBuffer } from  './model';
+import { DashQLCoreModule } from './core_wasm_module';
+import { Plan, Program, PlanBuffer, ProgramBuffer } from  '../model';
 
 ///
 /// dashql_blobstream_underflow(blob: number, buffer_ofs, buffer_size): uint32_t
 
 /// The core runtime
-export interface DashQLCoreRuntime {
+export interface DashQLCoreWasmRuntime {
     dashql_pong(): number;
     dashql_blob_stream_underflow(): number;
 }
 
 /// Stubs for the DashQL core runtime
-export const DASHQL_CORE_RUNTIME_STUBS: DashQLCoreRuntime = {
+export const DASHQL_CORE_WASM_RUNTIME_STUBS: DashQLCoreWasmRuntime = {
     dashql_pong: () => { console.log("pong"); return 42; },
     dashql_blob_stream_underflow: () => { return 0; }
 };
 
 /// The proxy for either the browser- order node-based DashQLCore API
-export abstract class DashQLCoreBindings {
+export abstract class DashQLCoreWasmBindings {
     /// The instance
     private _instance: DashQLCoreModule | null = null;
     /// The loading promise

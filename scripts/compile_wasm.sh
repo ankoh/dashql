@@ -18,6 +18,9 @@ mkdir -p ${CPP_BUILD_DIR}
 
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
+rm ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/*.{wasm,js}
+rm ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/duckdb/*.{wasm,js}
+
 emcmake cmake \
     -S"${CPP_SOURCE_DIR}/" \
     -B"${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}" \
@@ -28,7 +31,7 @@ emcmake cmake \
 emmake make \
     -C"${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}" \
     -j${CORES} \
-    core_web core_node duckdb_web duckdb_node
+    core_wasm_web core_wasm_node duckdb_web duckdb_node
 
 cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/*.{wasm,js} "${CORE_JS_LIB_DIR}"
 cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/duckdb/*.{wasm,js} "${DUCKDB_JS_LIB_DIR}"

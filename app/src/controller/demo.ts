@@ -36,7 +36,7 @@ VIZ weather_avg USING LINE;
 /// A controller
 export class DemoController {
     /// The core
-    protected _core: core.DashQLCoreBindings;
+    protected _core: core.DashQLCoreWasmBindings;
     /// The Store
     protected _store: AppReduxStore;
     /// The logger
@@ -46,7 +46,7 @@ export class DemoController {
     /// The interpreter controller
     protected _interpreter: InterpreterController;
 
-    constructor(core: core.DashQLCoreBindings, store: AppReduxStore, log: LogController, editor: EditorController, interpreter: InterpreterController) {
+    constructor(core: core.DashQLCoreWasmBindings, store: AppReduxStore, log: LogController, editor: EditorController, interpreter: InterpreterController) {
         this._store = store;
         this._core = core;
         this._log = log;
