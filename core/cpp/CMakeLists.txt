@@ -87,24 +87,26 @@ include_directories(
 # Parser
 
 set(REQUIRED_BISON_VERSION 3.7)
-find_package(BISON ${REQUIRED_BISON_VERSION})
-find_package(FLEX REQUIRED)
 
-# In the case where we cannot find a system-wide installation, look for
-# homebrew and ask for its bison installation.
-if(NOT BISON_FOUND)
-    find_program(BREW_BIN brew)
-    if (BREW_BIN)
-        execute_process(COMMAND ${BREW_BIN} --prefix bison
-                        OUTPUT_VARIABLE BISON_PREFIX
-                        OUTPUT_STRIP_TRAILING_WHITESPACE)
-        set(BISON_EXECUTABLE "${BISON_PREFIX}/bin/bison")
-        find_package(BISON ${REQUIRED_BISON_VERSION})
-    endif()
+# If Bison has been installed via homebrew, prefer this installation.
+find_program(BREW_BIN brew)
+if (BREW_BIN)
+    execute_process(COMMAND ${BREW_BIN} --prefix bison
+                    OUTPUT_VARIABLE BISON_PREFIX
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(BISON_EXECUTABLE "${BISON_PREFIX}/bin/bison")
+    find_package(BISON ${REQUIRED_BISON_VERSION})
 endif()
+
+if (NOT BISON_FOUND)
+    find_package(BISON ${REQUIRED_BISON_VERSION})
+endif()
+
 if (NOT BISON_FOUND)
     message(FATAL_ERROR "Could not find bison")
 endif()
+
+find_package(FLEX REQUIRED)
 
 set(GRAMMAR_OUT ${CMAKE_BINARY_DIR}/dashql.y)
 set(GRAMMAR_DELIMITER ${CMAKE_SOURCE_DIR}/src/parser/grammar/delimiter.y)
