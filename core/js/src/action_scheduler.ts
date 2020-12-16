@@ -21,7 +21,7 @@ export class ActionScheduler {
         this._setup_actions = [];
         for (let i = 0; i < action_graph.setupActionsLength(); ++i) {
             const a = action_graph.setupActions(i)!;
-            this._setup_actions.push(translateSetupAction(a));
+            this._setup_actions.push(translateSetupAction(a)!);
         }
 
         // Translate the program actions
@@ -29,7 +29,7 @@ export class ActionScheduler {
         for (let i = 0; i < action_graph.programActionsLength(); ++i) {
             const a = action_graph.programActions(i)!;
             const s = this._program.getStatement(a.originStatement());
-            this._program_actions.push(translateProgramAction(a, s));
+            this._program_actions.push(translateProgramAction(a, s)!);
         }
 
         // Build the dependency heap
