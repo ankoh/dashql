@@ -40,22 +40,21 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this._failed_actions = new NativeBitmap(this._actions.length);
     }
 
+    protected schedule_next(context: ActionContext) {
+        while ((!this._action_queue.empty()) && (this._action_queue.topRank() == 0)) {
+            const next_action_id = this._action_queue.top();
+            const next_action = this._actions[next_action_id];
+            this._scheduled_actions.set(next_action_id);
+            this._action_promise_mapping[next_action_id] = this._action_promises.length;
+            this._action_promises.push(next_action.execute(context));
+        }
+    }
+
     async execute(context: ActionContext): Promise<boolean> {
         // Execute an action
-        const action_id: ActionID = await Promise.any(this._action_promises);
+        const action_id: ActionID = await Promise.race(this._action_promises);
         this._action_promises.splice(this._action_promise_mapping[action_id]!, 1);
         this._action_promise_mapping[action_id] = null;
-
-        // Helper to schedule the next actions
-        const schedule_next = () => {
-            while ((!this._action_queue.empty()) && (this._action_queue.topRank() == 0)) {
-                const next_action_id = this._action_queue.top();
-                const next_action = this._actions[next_action_id];
-                this._scheduled_actions.set(next_action_id);
-                this._action_promise_mapping[next_action_id] = this._action_promises.length;
-                this._action_promises.push(next_action.execute(context));
-            }
-        }
 
         // Check the new status of the action
         switch (this._actions[action_id].status!.statusCode()) {
@@ -75,7 +74,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
                 for (const req of this._actions[action_id].buffer.requiredForArray()!) {
                     this._action_queue.decrementKey(req, 1);
                 }
-                schedule_next();
+                this.schedule_next(context);
                 break;
             case proto.action.ActionStatusCode.ERROR:
                 this._scheduled_actions.clear(action_id);

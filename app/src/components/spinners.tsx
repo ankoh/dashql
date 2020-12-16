@@ -60,8 +60,9 @@ interface IActionStatusSpinnerProps {
     fill?: string;
 }
 
-export function ActionStatusSpinner(props: IActionStatusSpinnerProps) {
+export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Element {
     const status_code = props.status ? props.status.statusCode() : proto.action.ActionStatusCode.NONE;
+    let element = <div />;
     switch (status_code) {
         case proto.action.ActionStatusCode.NONE:
         case proto.action.ActionStatusCode.RUNNING:
@@ -69,7 +70,7 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps) {
         case proto.action.ActionStatusCode.ERROR:
         case proto.action.ActionStatusCode.BLOCKED:
         case proto.action.ActionStatusCode.PREPARING:
-            return (
+            element = (
                 <svg
                     className={classNames(props.className)}
                     width={props.width || '24px'}
@@ -87,4 +88,5 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps) {
                 </svg>
             );
     }
+    return element;
 }
