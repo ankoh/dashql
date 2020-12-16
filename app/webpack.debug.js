@@ -19,7 +19,7 @@ module.exports = {
             'node_modules/**',
             'dist/**',
         ]
-    }
+    },
     performance: {
         hints: false
     },
