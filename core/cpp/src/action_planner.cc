@@ -298,8 +298,6 @@ Signal ActionPlanner::MigrateActionGraph() {
     if (!prev_action_graph_) return Signal::OK();
 
     auto& prev_program_actions = prev_action_graph_->program_actions;
-    auto& next_setup_actions = action_graph_->setup_actions;
-    auto& next_program_actions = action_graph_->program_actions;
     using ActionID = size_t;
 
     // We know for every previous action whether it is applicable.
@@ -371,32 +369,38 @@ Signal ActionPlanner::MigrateActionGraph() {
             s->action_type = drop_action;
             s->target_name_qualified = prev_action->target_name_qualified;
             s->target_name_short = prev_action->target_name_short;
+
+            // If statement B depends on A, the setup action of B must be executed before A.
+            // This flips the original dependencies to ensure that, for example, derived views are dropped before tables.
+            s->depends_on = prev_action->required_for;
+            s->required_for = prev_action->depends_on;
         }
     }
 
-    // Now sort the setup actions in reverse topological order.
-    // If statement B depends on A, the setup action of B must be executed before A.
-    // This flips the original dependencies to ensure that, for example, derived views are dropped before tables.
-    std::vector<std::pair<ActionID, int>> deps;
-    deps.reserve(prev_program_actions.size());
-    for (unsigned i = 0; i < prev_program_actions.size(); ++i) {
-        deps.push_back({i, prev_program_actions[i]->required_for.size()});
+    // Store setup actions and remember mapping
+    const unsigned invalid_action_idx = std::numeric_limits<unsigned>::max();
+    std::vector<unsigned> setup_action_mapping;
+    setup_action_mapping.resize(setup.size(), invalid_action_idx);
+    for (unsigned i = 0; i < setup.size(); ++i) {
+        if (setup[i] && setup[i]->action_type != SetupActionType::NONE) {
+            setup_action_mapping[i] = action_graph_->setup_actions.size();
+            action_graph_->setup_actions.push_back(move(setup[i]));
+        }
     }
-    TopologicalSort<ActionID> pending_actions{move(deps)};
-    while (!pending_actions.Empty()) {
-        auto [prev_action_id, key] = pending_actions.Top();
-        pending_actions.Pop();
 
-        // Decrement key of action that the top depends on
-        auto& action = *prev_program_actions[prev_action_id];
-        for (auto next : action.depends_on) {
-            pending_actions.DecrementKey(next);
+    // Patch all setup dependencies
+    auto patch_setup_ids = [&](std::vector<uint32_t>& ids) {
+        auto n = 0;
+        for (unsigned i = 0; i < ids.size(); ++i) {
+            if (auto mapped = setup_action_mapping[ids[i]]; mapped != invalid_action_idx) {
+                ids[n++] = mapped;
+            }
         }
-
-        // Emit setup action
-        if (setup[prev_action_id] && setup[prev_action_id]->action_type != SetupActionType::NONE) {
-            next_setup_actions.push_back(move(setup[prev_action_id]));
-        }
+        ids.resize(n);
+    };
+    for (auto& s: action_graph_->setup_actions) {
+        patch_setup_ids(s->required_for);
+        patch_setup_ids(s->depends_on);
     }
     return Signal::OK();
 }
