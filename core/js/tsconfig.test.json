@@ -11,7 +11,8 @@
         "declarationDir": "dist",
         "noImplicitAny": true,
         "esModuleInterop": true,
-        "types": ["emscripten", "jest", "node"]
+        "types": ["emscripten", "jest", "node"],
+        "lib": ["esnext", "dom"]
     },
     "exclude": [
         "./test/**/*.ts",

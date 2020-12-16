@@ -1,4 +1,5 @@
 export * from "./action";
+export * from "./action_context";
 export * from "./action_translation";
 export * from "./drop_blob";
 export * from "./drop_table";
