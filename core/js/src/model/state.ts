@@ -3,6 +3,7 @@ import { LogEntry } from "./log";
 import { Plan } from "./plan";
 import { PlanObjectID, PlanObject } from "./plan_object";
 import { Program } from "./program";
+import { Store } from 'redux';
 
 export class State {
     /// The log entries
@@ -25,3 +26,9 @@ export class State {
         this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();
     }
 }
+
+export interface DerivedState {
+    core: State;
+};
+
+export type DerivedReduxStore = Store<DerivedState>;
