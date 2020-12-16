@@ -1,4 +1,4 @@
-import { DashQLCoreBindings } from '@dashql/core';
+import { DashQLCoreWasmBindings } from '@dashql/core';
 import { createStore as createReduxStore } from 'redux';
 import { ActionVariant } from './state_mutation';
 import { AppState } from './state';
@@ -15,7 +15,7 @@ export type Dispatch = (action: ActionVariant) => void;
 // The store type
 export type AppReduxStore = Store<AppState>;
 
-export function createStore(core: DashQLCoreBindings): model.AppReduxStore {
+export function createStore(core: DashQLCoreWasmBindings): model.AppReduxStore {
     return createReduxStore<model.AppState, model.ActionVariant, any, any>(
         (state: model.AppState | undefined, variant: model.ActionVariant) => {
             return model.AppStateMutation.reduce(state, variant, core);
