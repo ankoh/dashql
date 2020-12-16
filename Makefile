@@ -24,11 +24,7 @@ CI_IMAGE_TAG="$(shell cat ./ci/image/TAG)"
 CI_IMAGE_FULLY_QUALIFIED="${CI_IMAGE_NAMESPACE}/${CI_IMAGE_NAME}:${CI_IMAGE_TAG}"
 IN_IMAGE_MOUNTS=-v${ROOT_DIR}:/wd/ -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscripten_cache/ -v${ROOT_DIR}/.ccache/:/mnt/ccache/
 IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/
-
-# If we have the CI image locally, run build commands through it
-if [[ "$(docker images -q "${CI_IMAGE_FULLY_QUALIFIED}" 2> /dev/null)" == "" ]]; then
-	EXEC_ENVIRONMENT=docker run --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} "${CI_IMAGE_FULLY_QUALIFIED}"
-fi
+EXEC_ENVIRONMENT?=docker run --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} "${CI_IMAGE_FULLY_QUALIFIED}"
 
 CDN_S3_BUCKET="s3://dashql-cdn"
 STABLE_S3_BUCKET="s3://dashql-app"
