@@ -1,5 +1,5 @@
 import * as proto from "@dashql/proto";
-import { NativeBitmap, TopologicalSort, TopoKey, TopoRank } from "./utils";
+import { NativeBitmap, NativeStack, TopologicalSort, TopoKey, TopoRank } from "./utils";
 import { ActionID, Action, ProtoAction, translateSetupAction, translateProgramAction } from "./actions";
 import { ActionContext } from "./actions";
 import { Program } from './model';
@@ -40,49 +40,51 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this._failed_actions = new NativeBitmap(this._actions.length);
     }
 
-    protected schedule_next(context: ActionContext) {
+    protected schedule_next(context: ActionContext, diff: NativeStack) {
         while ((!this._action_queue.empty()) && (this._action_queue.topRank() == 0)) {
             const next_action_id = this._action_queue.top();
             const next_action = this._actions[next_action_id];
             this._scheduled_actions.set(next_action_id);
             this._action_promise_mapping[next_action_id] = this._action_promises.length;
             this._action_promises.push(next_action.execute(context));
+            diff.push(next_action_id);
         }
     }
 
-    async execute(context: ActionContext): Promise<boolean> {
+    async execute(context: ActionContext, diff: NativeStack): Promise<boolean> {
         // Execute an action
         const action_id: ActionID = await Promise.race(this._action_promises);
         this._action_promises.splice(this._action_promise_mapping[action_id]!, 1);
         this._action_promise_mapping[action_id] = null;
+        diff.push(action_id);
 
         // Check the new status of the action
         switch (this._actions[action_id].status!.statusCode()) {
-            case proto.action.ActionStatusCode.NONE:
-                break;
             case proto.action.ActionStatusCode.PREPARING:
-                break;
             case proto.action.ActionStatusCode.BLOCKED:
-                break;
             case proto.action.ActionStatusCode.RUNNING:
-                break;
             case proto.action.ActionStatusCode.TEARDOWN:
                 break;
+
             case proto.action.ActionStatusCode.COMPLETED:
                 this._scheduled_actions.clear(action_id);
                 this._completed_actions.set(action_id);
                 for (const req of this._actions[action_id].buffer.requiredForArray()!) {
                     this._action_queue.decrementKey(req, 1);
                 }
-                this.schedule_next(context);
+                this.schedule_next(context, diff);
                 break;
+
+            case proto.action.ActionStatusCode.NONE:
             case proto.action.ActionStatusCode.ERROR:
                 this._scheduled_actions.clear(action_id);
                 this._failed_actions.set(action_id);
                 break;
         }
 
-        return Promise.resolve(true);
+        // No more scheduled actions left?
+        const done = this._scheduled_actions.isEmpty();
+        return Promise.resolve(done);
     }
 }
 
