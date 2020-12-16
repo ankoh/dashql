@@ -1,5 +1,5 @@
 import * as proto from "@dashql/proto";
-import { SetupAction, ProgramAction } from "./action";
+import { ActionID, SetupAction, ProgramAction } from "./action";
 import { Statement } from "../model";
 
 import { DropBlobAction } from "./drop_blob";
@@ -26,51 +26,51 @@ import SetupActionType = proto.action.SetupActionType;
 import ProgramActionType = proto.action.ProgramActionType;
 
 /// Translate a setup action
-export function translateSetupAction(a: proto.action.SetupAction): SetupAction | null {
+export function translateSetupAction(id: ActionID, a: proto.action.SetupAction): SetupAction | null {
     switch (a.actionType()) {
         case SetupActionType.DROP_BLOB:
-            return new DropBlobAction(a);
+            return new DropBlobAction(id, a);
         case SetupActionType.DROP_TABLE:
-            return new DropTableAction(a);
+            return new DropTableAction(id, a);
         case SetupActionType.DROP_VIEW:
-            return new DropViewAction(a);
+            return new DropViewAction(id, a);
         case SetupActionType.DROP_VIZ:
-            return new DropVizAction(a);
+            return new DropVizAction(id, a);
         case SetupActionType.IMPORT_BLOB:
-            return new ImportBlobAction(a);
+            return new ImportBlobAction(id, a);
         case SetupActionType.IMPORT_TABLE:
-            return new ImportTableAction(a);
+            return new ImportTableAction(id, a);
         case SetupActionType.IMPORT_VIEW:
-            return new ImportViewAction(a);
+            return new ImportViewAction(id, a);
         case SetupActionType.IMPORT_VIZ:
-            return new ImportVizAction(a);
+            return new ImportVizAction(id, a);
     }
     return null;
 }
 
 /// Translate a program action
-export function translateProgramAction(a: proto.action.ProgramAction, s: Statement): ProgramAction | null {
+export function translateProgramAction(id: ActionID, a: proto.action.ProgramAction, s: Statement): ProgramAction | null {
     switch (a.actionType()) {
         case ProgramActionType.EXTRACT_CSV:
-            return new ExtractCSVAction(a, s);
+            return new ExtractCSVAction(id, a, s);
         case ProgramActionType.EXTRACT_JSON:
-            return new ExtractJsonAction(a, s);
+            return new ExtractJsonAction(id, a, s);
         case ProgramActionType.LOAD_FILE:
-            return new LoadFileAction(a, s);
+            return new LoadFileAction(id, a, s);
         case ProgramActionType.LOAD_HTTP:
-            return new LoadHTTPAction(a, s);
+            return new LoadHTTPAction(id, a, s);
         case ProgramActionType.PARAMETER:
-            return new ParameterAction(a, s);
+            return new ParameterAction(id, a, s);
         case ProgramActionType.TABLE_CREATE:
-            return new CreateTableAction(a, s);
+            return new CreateTableAction(id, a, s);
         case ProgramActionType.TABLE_MODIFY:
-            return new ModifyTableAction(a, s);
+            return new ModifyTableAction(id, a, s);
         case ProgramActionType.VIEW_CREATE:
-            return new ViewCreateAction(a, s);
+            return new ViewCreateAction(id, a, s);
         case ProgramActionType.VIZ_CREATE:
-            return new CreateVizAction(a, s);
+            return new CreateVizAction(id, a, s);
         case ProgramActionType.VIZ_UPDATE:
-            return new UpdateVizAction(a, s);
+            return new UpdateVizAction(id, a, s);
     }
     return null;
 }

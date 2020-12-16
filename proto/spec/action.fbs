@@ -20,7 +20,6 @@ enum ActionBlocker: uint8 {
     DEPENDENCY,
     USER_INTERACTION,
     HTTP_REQUEST,
-    SCHEDULER,
 }
 
 struct ActionStatus {

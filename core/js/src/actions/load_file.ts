@@ -1,23 +1,22 @@
 import * as proto from "@dashql/proto";
 import { Statement } from "../model";
-import { ProgramAction } from "./action";
+import { ActionID, ProgramAction } from "./action";
 import { ActionContext } from "./action_context";
 
 export class LoadFileAction extends ProgramAction {
-    constructor(action: proto.action.ProgramAction, statement: Statement) {
-        super(action, statement);
+    constructor(action_id: ActionID, action: proto.action.ProgramAction, statement: Statement) {
+        super(action_id, action, statement);
     }
 
-    async prepare(_context: ActionContext): Promise<proto.action.ActionStatusCode> {
-        return proto.action.ActionStatusCode.COMPLETED;
+    public async prepare(_context: ActionContext): Promise<ActionID> {
+        return this._action_id;
     }
 
-    async execute(_context: ActionContext): Promise<proto.action.ActionStatusCode> {
-
-        return proto.action.ActionStatusCode.COMPLETED;
+    public async execute(_context: ActionContext): Promise<ActionID> {
+        return this._action_id;
     }
 
-    async teardown(_context: ActionContext): Promise<proto.action.ActionStatusCode> {
-        return proto.action.ActionStatusCode.COMPLETED;
+    public async teardown(_context: ActionContext): Promise<ActionID> {
+        return this._action_id;
     }
 };

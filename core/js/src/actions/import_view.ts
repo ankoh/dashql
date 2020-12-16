@@ -1,22 +1,21 @@
 import * as proto from "@dashql/proto";
-import { SetupAction } from "./action";
+import { ActionID, SetupAction } from "./action";
 import { ActionContext } from "./action_context";
 
 export class ImportViewAction extends SetupAction {
-    constructor(action: proto.action.SetupAction) {
-        super(action);
+    constructor(action_id: ActionID, action: proto.action.SetupAction) {
+        super(action_id, action);
     }
 
-    async prepare(_context: ActionContext): Promise<proto.action.ActionStatusCode> {
-        return proto.action.ActionStatusCode.COMPLETED;
+    public async prepare(_context: ActionContext): Promise<ActionID> {
+        return this._action_id;
     }
 
-    async execute(_context: ActionContext): Promise<proto.action.ActionStatusCode> {
-
-        return proto.action.ActionStatusCode.COMPLETED;
+    public async execute(_context: ActionContext): Promise<ActionID> {
+        return this._action_id;
     }
 
-    async teardown(_context: ActionContext): Promise<proto.action.ActionStatusCode> {
-        return proto.action.ActionStatusCode.COMPLETED;
+    public async teardown(_context: ActionContext): Promise<ActionID> {
+        return this._action_id;
     }
 }

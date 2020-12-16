@@ -22,4 +22,11 @@ export class NativeBitmap {
         const bit_idx = index & 31;
         return (this._buffer[byte_idx] & (1 << bit_idx)) != 0;
     }
+
+    /// Clear a bit
+    public clear(index: number) {
+        const byte_idx = index >> 5;
+        const bit_idx = index & 31;
+        this._buffer[byte_idx] &= ~(1 << bit_idx);
+    }
 }
