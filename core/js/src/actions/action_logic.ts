@@ -5,7 +5,7 @@ import { ActionContext } from "./action_context";
 export type ActionID = number;
 
 export interface ProtoAction {
-    actionStatus(obj?: proto.action.ActionStatus): proto.action.ActionStatus|null;
+    actionStatusCode(): proto.action.ActionStatusCode;
 
     dependsOn(index: number): number | null;
     dependsOnLength(): number;
@@ -36,7 +36,7 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     /// Get the flatbuffer
     public get buffer() { return this._action; }
     /// Get the status
-    public get status() { return this._action.actionStatus(); }
+    public get status() { return this._action.actionStatusCode(); }
 
     /// Execute an action
     public abstract execute(context: ActionContext): Promise<proto.action.ActionStatusCode>;
