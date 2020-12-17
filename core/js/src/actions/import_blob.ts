@@ -7,15 +7,15 @@ export class ImportBlobAction extends SetupAction {
         super(action_id, action);
     }
 
-    public async prepare(_context: ActionContext): Promise<proto.action.ActionStatusCode> {
-        return proto.action.ActionStatusCode.NONE;
+    public async prepare(_context: ActionContext): Promise<ActionID> {
+        return this._action_id;
     }
 
-    public async execute(_context: ActionContext): Promise<proto.action.ActionStatusCode> {
-        return proto.action.ActionStatusCode.NONE;
+    public async execute(_context: ActionContext): Promise<ActionID> {
+        return this._action_id;
     }
 
-    public async teardown(_context: ActionContext): Promise<proto.action.ActionStatusCode> {
-        return proto.action.ActionStatusCode.NONE;
+    public async teardown(_context: ActionContext): Promise<ActionID> {
+        return this._action_id;
     }
 }

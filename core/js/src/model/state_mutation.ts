@@ -35,7 +35,7 @@ export type ActionVariant =
     | Action<ActionType.DELETE_PLAN, {}>
     ;
 
-export type StateMutationDispatch = (action: ActionVariant) => void;
+export type StateMutationDispatcher = (action: ActionVariant) => void;
 
 export class StateMutation {
     public static pushLogEntry(log: LogEntry): ActionVariant {
