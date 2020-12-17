@@ -21,19 +21,16 @@ export interface ProtoAction {
     targetNameShort(): string | null;
 }
 
-export abstract class Action<ActionBuffer extends ProtoAction> {
+export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     /// The action id
     _action_id: ActionID;
     /// The protocol buffer
     _action: ActionBuffer;
-    /// The last update
-    _last_update: Date;
 
     /// Constructor
     constructor(action_id: ActionID, action: ActionBuffer) {
         this._action_id = action_id;
         this._action = action;
-        this._last_update = new Date();
     }
 
     /// Get the flatbuffer
@@ -41,15 +38,11 @@ export abstract class Action<ActionBuffer extends ProtoAction> {
     /// Get the status
     public get status() { return this._action.actionStatus(); }
 
-    /// Prepare an action
-    public abstract prepare(context: ActionContext): Promise<proto.action.ActionStatusCode>;
     /// Execute an action
     public abstract execute(context: ActionContext): Promise<proto.action.ActionStatusCode>;
-    /// Teardown an action
-    public abstract teardown(context: ActionContext): Promise<proto.action.ActionStatusCode>;
 }
 
-export abstract class ProgramAction extends Action<proto.action.ProgramAction> {
+export abstract class ProgramActionLogic extends ActionLogic<proto.action.ProgramAction> {
     /// The origin statement
     _origin: Statement;
 
@@ -60,7 +53,7 @@ export abstract class ProgramAction extends Action<proto.action.ProgramAction> {
     }
 }
 
-export abstract class SetupAction extends Action<proto.action.SetupAction> {
+export abstract class SetupActionLogic extends ActionLogic<proto.action.SetupAction> {
     /// Constructor
     constructor(action_id: ActionID, action: proto.action.SetupAction) {
         super(action_id, action);
