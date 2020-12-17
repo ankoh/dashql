@@ -17,27 +17,27 @@ export class Program {
     /// The original text
     _text: string;
     /// The encoded text buffer based to the core
-    _text_buffer: Uint8Array;
+    _textBuffer: Uint8Array;
     /// The program
     _program: FlatBuffer<sx.Program>;
 
     /// Constructor
-    public constructor(text: string = "", text_buffer: Uint8Array = new Uint8Array(0), program: FlatBuffer<sx.Program> = new ProgramBuffer()) {
+    public constructor(text: string = "", textBuffer: Uint8Array = new Uint8Array(0), program: FlatBuffer<sx.Program> = new ProgramBuffer()) {
         this._text = text;
-        this._text_buffer = text_buffer;
+        this._textBuffer = textBuffer;
         this._program = program;
     }
 
     /// Access the text
     public get text() { return this._text; }
     /// Access the text
-    public get text_buffer() { return this._text_buffer; }
+    public get text_buffer() { return this._textBuffer; }
     /// Access the flatbuffer
     public get proto() { return this._program.root; }
 
     /// Access the text
     public textAt(_loc: sx.Location): string {
-        const view = new Uint8Array(this._text_buffer.buffer, _loc.offset(), _loc.length());
+        const view = new Uint8Array(this._textBuffer.buffer, _loc.offset(), _loc.length());
         return decoder.decode(view);
     }
 

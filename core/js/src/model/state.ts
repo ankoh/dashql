@@ -33,5 +33,6 @@ export class CoreState {
 }
 
 export interface DerivedState {
+    /// The core state
     core: CoreState;
 };
