@@ -23,16 +23,16 @@ export async function persist(state: CoreState, _platform: Platform): Promise<Pe
 export async function rehydrate(persisted: PersistedCoreState, platform: Platform): Promise<CoreState> {
     let state = new CoreState();
     if (persisted.program != null) {
-        state.program = await platform.core_wasm.parseProgram(persisted.program)
-        state.plan = await platform.core_wasm.planProgram();
+        state.program = await platform.coreWasm.parseProgram(persisted.program)
+        state.plan = await platform.coreWasm.planProgram();
     }
 
     let cachedFiles: [string, CachedFileData][] = persisted.cachedFileData
-        .filter(f => (platform.blobs.isCached(f.data)))
-        .map(f => [f.cache_key, f]);
+        .filter(f => (platform.cache.cachesBlob(f.data)))
+        .map(f => [f.cacheKey, f]);
     let cachedHTTPData: [string, CachedHTTPData][] = persisted.cachedHTTPData
-        .filter(h => (!h.request.body || platform.blobs.isCached(h.request.body)) && (!h.response.body || platform.blobs.isCached(h.response.body)))
-        .map(h => [h.cache_key, h]);
+        .filter(h => (!h.request.body || platform.cache.cachesBlob(h.request.body)) && (!h.response.body || platform.cache.cachesBlob(h.response.body)))
+        .map(h => [h.cacheKey, h]);
 
     state.cachedFileData = Immutable.Map(cachedFiles);
     state.cachedHTTPData = Immutable.Map(cachedHTTPData);

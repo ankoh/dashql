@@ -1,9 +1,9 @@
 export type CacheKey = string;
-export type BlobKey = string;
+export type BlobKey = number;
 
 export interface CachedFileData {
-    cache_key: string;
-    file_name: string;
+    cacheKey: string;
+    fileName: string;
     data: BlobKey;
 }
 
@@ -24,7 +24,14 @@ export interface HTTPResponse {
 }
 
 export interface CachedHTTPData {
-    cache_key: string;
+    cacheKey: string;
     request: HTTPRequest;
     response: HTTPResponse;
+}
+
+export interface CacheEntry {
+    cacheKey: string;
+    dateCreated: Date;
+    dateLastAccess: Date;
+    accessCount: number;
 }
