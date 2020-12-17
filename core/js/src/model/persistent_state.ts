@@ -4,29 +4,25 @@ import { CoreState } from  "./state";
 import { CachedFileData, CachedHTTPData } from "./cache";
 import { LogEntry } from "./log";
 
-export interface PersistedCoreState {
+export interface PersistentCoreState {
     logEntries: LogEntry[];
-    program: string | null;
+    programText: string;
     cachedFileData: CachedFileData[];
     cachedHTTPData: CachedHTTPData[];
 };
 
-export async function persist(state: CoreState, _platform: Platform): Promise<PersistedCoreState> {
+export function persistState(state: CoreState, _platform: Platform): PersistentCoreState {
     return {
         logEntries: state.logEntries.toArray(),
-        program: state.program?.text || null,
+        programText: state.programText,
         cachedFileData: state.cachedFileData.valueSeq().toArray(),
         cachedHTTPData: state.cachedHTTPData.valueSeq().toArray(),
     };
 }
 
-export async function rehydrate(persisted: PersistedCoreState, platform: Platform): Promise<CoreState> {
+export function rehydrateState(persisted: PersistentCoreState, platform: Platform): CoreState {
     let state = new CoreState();
-    if (persisted.program != null) {
-        state.program = await platform.coreWasm.parseProgram(persisted.program)
-        state.plan = await platform.coreWasm.planProgram();
-    }
-
+    state.programText = persisted.programText;
     let cachedFiles: [string, CachedFileData][] = persisted.cachedFileData
         .filter(f => (platform.cache.cachesBlob(f.data)))
         .map(f => [f.cacheKey, f]);
