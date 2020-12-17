@@ -48,6 +48,8 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this._interrupt = promise;
     }
 
+    /// Schedule all actions that can be scheduled.
+    /// An action can be scheduled if its rank is zero in the dependency heap.
     protected schedule_next(context: ActionContext, diff: NativeStack) {
         while ((!this._action_queue.empty()) && (this._action_queue.topRank() == 0)) {
             const next_action_id = this._action_queue.top();
@@ -66,8 +68,8 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         if (action_id == null) {
             /// Update interrupt promise since someone might have just replaced it.
             this._action_promises[0] = this._interrupt;
-            /// Return true and let the graph scheduler deal with the interrupt reason.
-            return true;
+            /// Return false to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
+            return false;
         }
 
         // Remove action promise
@@ -164,5 +166,10 @@ export class ActionGraphScheduler {
     public cancel() {
         this._canceled = true;
         this.interrupt();
+    }
+
+    public async execute(context: ActionContext) {
+
+        
     }
 };
