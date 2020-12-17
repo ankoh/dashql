@@ -14,6 +14,7 @@ export class CoreState {
     public programText: string;
     /// The program
     public program: Program | null;
+
     /// The plan
     public plan: Plan | null;
     /// The plan objects

@@ -82,7 +82,7 @@ Signal ActionPlanner::TranslateStatements() {
         // Write action
         auto action = std::make_unique<proto::action::ProgramActionT>();
         action->action_type = ProgramActionType::NONE;
-        action->action_status = std::make_unique<proto::action::ActionStatus>();
+        action->action_status_code = proto::action::ActionStatusCode::NONE;
         action->origin_statement = stmt_id;
         action->depends_on = {};
         action->required_for = {};
@@ -218,7 +218,7 @@ Signal ActionPlanner::IdentifyApplicableActions() {
 
         // Action not completed?
         // Irrelevant for the graph migration.
-        if (!a.action_status || a.action_status->status_code() != proto::action::ActionStatusCode::COMPLETED) {
+        if (a.action_status_code != proto::action::ActionStatusCode::COMPLETED) {
             invalidate(prev_action_id);
             continue;
         }
@@ -340,7 +340,7 @@ Signal ActionPlanner::MigrateActionGraph() {
 
             // Update the target id of the new action and mark it as complete
             auto& next_action = action_graph_->program_actions[*next_action_id];
-            next_action->action_status->mutate_status_code(proto::action::ActionStatusCode::COMPLETED);
+            next_action->action_status_code = proto::action::ActionStatusCode::COMPLETED;
             next_action->object_id = prev_action->object_id;
             assert(next_action->target_name_short == prev_action->target_name_short);
             assert(next_action->target_name_qualified == prev_action->target_name_qualified);

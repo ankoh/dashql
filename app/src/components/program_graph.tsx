@@ -75,7 +75,7 @@ function StatementTypeIcon(props: IIconProps & { type: proto.syntax.StatementTyp
 interface ProgramNodeData extends NodeData {
     data: {
         statementType: proto.syntax.StatementType;
-        actionStatus: proto.action.ActionStatus | null;
+        actionStatus: proto.action.ActionStatusCode | null;
     }
 }
 
