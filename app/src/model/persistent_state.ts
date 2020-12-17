@@ -18,7 +18,7 @@ function createPersistentStateTransform(platform: core.platform.Platform) {
                 core: core.model.rehydrateState(inbound.core, platform)
             };
         },
-        (outbound: AppState, _key) => {
+        (outbound: AppState, _key): PersistentAppState => {
             return {
                 ...outbound,
                 core: core.model.persistState(outbound.core, platform),
