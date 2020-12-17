@@ -1,6 +1,6 @@
 import * as proto from "@dashql/proto";
 import { NativeBitmap, NativeStack, TopologicalSort, TopoKey, TopoRank } from "./utils";
-import { ActionID, Action, ProtoAction, translateSetupAction, translateProgramAction } from "./actions";
+import { ActionID, ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramActionLogic } from "./actions";
 import { ActionContext } from "./actions";
 import { Program } from './model';
 
@@ -9,7 +9,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     _interrupt: Promise<ActionID | null>;
 
     /// The actions
-    _actions: Action<ActionBuffer>[];
+    _actions: ActionLogic<ActionBuffer>[];
     /// The pending actions
     _action_queue: TopologicalSort;
     /// The action promises
@@ -24,7 +24,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The failed actions
     _failed_actions: NativeBitmap;
 
-    constructor(interrupt: Promise<ActionID | null>, actions: Action<ActionBuffer>[]) {
+    constructor(interrupt: Promise<ActionID | null>, actions: ActionLogic<ActionBuffer>[]) {
         this._interrupt = interrupt;
         this._actions = actions;
         this._action_promises = [this._interrupt];
@@ -133,7 +133,7 @@ export class ActionGraphScheduler {
         let setup_actions = [];
         for (let i = 0; i < action_graph.setupActionsLength(); ++i) {
             const a = action_graph.setupActions(i)!;
-            setup_actions.push(translateSetupAction(i, a)!);
+            setup_actions.push(resolveSetupActionLogic(i, a)!);
         }
         this._setup_actions = new ActionScheduler<proto.action.SetupAction>(this._interrupt_promise, setup_actions);
 
@@ -142,7 +142,7 @@ export class ActionGraphScheduler {
         for (let i = 0; i < action_graph.programActionsLength(); ++i) {
             const a = action_graph.programActions(i)!;
             const s = program.getStatement(a.originStatement());
-            program_actions.push(translateProgramAction(i, a, s)!);
+            program_actions.push(resolveProgramActionLogic(i, a, s)!);
         }
         this._program_actions = new ActionScheduler<proto.action.ProgramAction>(this._interrupt_promise, program_actions);
     }
