@@ -78,7 +78,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         diff.push(action_id);
 
         // Check the new status of the action
-        switch (this._actions[action_id].status!.statusCode()) {
+        switch (this._actions[action_id].status) {
             case proto.action.ActionStatusCode.PREPARING:
             case proto.action.ActionStatusCode.BLOCKED:
             case proto.action.ActionStatusCode.RUNNING:
