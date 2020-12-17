@@ -27,7 +27,7 @@ export enum ActionType {
 /// An action variant
 export type ActionVariant =
       Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
-    | Action<ActionType.SET_PROGRAM, Program>
+    | Action<ActionType.SET_PROGRAM, [string, Program]>
     | Action<ActionType.SET_PLAN, Plan>
     | Action<ActionType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | Action<ActionType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
@@ -41,8 +41,8 @@ export class StateMutation {
         return { type: ActionType.LOG_PUSH_ENTRY, payload: log };
     }
 
-    public static setProgram(program: Program): ActionVariant {
-        return { type: ActionType.SET_PROGRAM, payload: program };
+    public static setProgram(program_text: string, program: Program): ActionVariant {
+        return { type: ActionType.SET_PROGRAM, payload: [program_text, program] };
     }
 
     public static setPlan(plan: Plan): ActionVariant {
@@ -71,7 +71,8 @@ export class StateMutation {
             case ActionType.SET_PROGRAM:
                 return {
                     ...state,
-                    program: action.payload
+                    programText: action.payload[0],
+                    program: action.payload[1]
                 };
             case ActionType.SET_PLAN:
                 return {

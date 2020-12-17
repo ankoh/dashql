@@ -3,6 +3,7 @@ import { AppState } from './state';
 import { Store } from 'redux';
 
 // Export things
+export * from './persistent_state';
 export * from './settings';
 export * from './state';
 export * from './state_mutation';

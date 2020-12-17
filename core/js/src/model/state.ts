@@ -9,6 +9,8 @@ export class CoreState {
     /// The log entries
     public logEntries: Immutable.List<LogEntry>;
 
+    /// The program text
+    public programText: string;
     /// The program
     public program: Program | null;
     /// The plan
@@ -24,6 +26,7 @@ export class CoreState {
     /// Constructor
     constructor() {
         this.logEntries = Immutable.List<LogEntry>();
+        this.programText = "";
         this.program = null;
         this.plan = null;
         this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();

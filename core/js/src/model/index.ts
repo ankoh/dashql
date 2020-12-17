@@ -1,11 +1,11 @@
 export * from "./buffer";
 export * from "./cache";
 export * from "./log";
-export * from "./persistent_state";
 export * from "./plan";
 export * from "./program";
 export * from "./state";
 export * from "./state_mutation";
+export * from "./persistent_state";
 
 import { Store } from "redux";
 import { CoreState } from "./state";
