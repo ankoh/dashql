@@ -14,22 +14,17 @@ export class ProgramBuffer extends FlatBuffer<proto.syntax.Program> {
 }
 
 export class Program {
-    /// The original text
-    _text: string;
     /// The encoded text buffer based to the core
     _textBuffer: Uint8Array;
     /// The program
     _program: FlatBuffer<sx.Program>;
 
     /// Constructor
-    public constructor(text: string = "", textBuffer: Uint8Array = new Uint8Array(0), program: FlatBuffer<sx.Program> = new ProgramBuffer()) {
-        this._text = text;
+    public constructor(textBuffer: Uint8Array = new Uint8Array(0), program: FlatBuffer<sx.Program> = new ProgramBuffer()) {
         this._textBuffer = textBuffer;
         this._program = program;
     }
 
-    /// Access the text
-    public get text() { return this._text; }
     /// Access the text
     public get text_buffer() { return this._textBuffer; }
     /// Access the flatbuffer

@@ -24,12 +24,12 @@ export class EditorController {
     /// Update studio text
     public updateStudioText(input: string) {
         const s = this._store.getState();
-        if (s.core.program != null && s.core.program.text == input) {
+        if (s.core.program != null && s.core.programText == input) {
             return;
         }
         const p = this._core.parseProgram(input);
         this.displayErrors(p);
-        this._store.dispatch(core.model.StateMutation.setProgram(p));
+        this._store.dispatch(core.model.StateMutation.setProgram(input, p));
     }
 
     /// Display module errors

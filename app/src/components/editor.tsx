@@ -13,6 +13,7 @@ import styles from './editor.module.css';
 type Props = {
     appContext: IAppContext;
     className?: string;
+    programText: string;
     program: core.model.Program;
 };
 
@@ -44,8 +45,8 @@ class Editor extends React.Component<Props> {
             return;
         }
         // Value changed?
-        if (this.editor && this.editor.getValue() !== this.props.program.text) {
-            this.editor.setValue(this.props.program.text);
+        if (this.editor && this.editor.getValue() !== this.props.programText) {
+            this.editor.setValue(this.props.programText);
         }
         // Layout editor
         if (this.monacoContainer) {
@@ -59,7 +60,7 @@ class Editor extends React.Component<Props> {
             this.editor = monaco.editor.create(this.monacoContainer, {
                 fontSize: 13,
                 language: "sql",
-                value: this.props.program.text,
+                value: this.props.programText,
                 links: false,
                 minimap: {
                     enabled: false
@@ -135,6 +136,7 @@ class Editor extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
+    programText: state.core.programText,
     program: state.core.program || new core.model.Program()
 });
 
