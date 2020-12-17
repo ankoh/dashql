@@ -160,9 +160,7 @@ void generate_action_tests(const std::filesystem::path& source_dir) {
                     auto status_str = p.attribute("status").as_string();
                     auto status = GetActionStatus(status_str);
                     if (i < prev_action_graph->program_actions.size()) {
-                        auto s = std::make_unique<proto::action::ActionStatus>();
-                        s->mutate_status_code(status);
-                        prev_action_graph->program_actions[i++]->action_status = move(s);
+                        prev_action_graph->program_actions[i++]->action_status_code = status;
                     }
 
                 }
