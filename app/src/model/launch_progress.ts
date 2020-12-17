@@ -10,12 +10,12 @@ export enum LaunchProgressStatus {
 /// A launch progress
 export class LaunchProgress {
     /// The app config
-    public app_config: LaunchProgressStatus = LaunchProgressStatus.COMPLETED;
+    public appConfig: LaunchProgressStatus = LaunchProgressStatus.COMPLETED;
     /// The version check
-    public version_check: LaunchProgressStatus = LaunchProgressStatus.STARTED;
+    public versionCheck: LaunchProgressStatus = LaunchProgressStatus.STARTED;
     /// The parser status
-    public parser_status: LaunchProgressStatus = LaunchProgressStatus.STARTED;
+    public parserStatus: LaunchProgressStatus = LaunchProgressStatus.STARTED;
     /// The duckdb status
-    public duckdb_status: LaunchProgressStatus = LaunchProgressStatus.STARTED;
+    public duckdbStatus: LaunchProgressStatus = LaunchProgressStatus.STARTED;
 }
 
