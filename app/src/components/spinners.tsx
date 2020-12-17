@@ -53,7 +53,7 @@ export class RectangleWaveSpinner extends React.PureComponent<
 }
 
 interface IActionStatusSpinnerProps {
-    status: proto.action.ActionStatus | null;
+    status: proto.action.ActionStatusCode | null;
     className?: string;
     width?: string;
     height?: string;
@@ -61,7 +61,7 @@ interface IActionStatusSpinnerProps {
 }
 
 export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Element {
-    const status_code = props.status ? props.status.statusCode() : proto.action.ActionStatusCode.NONE;
+    const status_code = props.status ? props.status : proto.action.ActionStatusCode.NONE;
     let element = <div />;
     switch (status_code) {
         case proto.action.ActionStatusCode.NONE:

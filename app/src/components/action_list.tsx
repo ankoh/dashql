@@ -56,7 +56,7 @@ class ActionList extends React.Component<Props, State> {
             );
         });
         plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
-            const status = o.actionStatus();
+            const status = o.actionStatusCode();
             program_actions.push(
                 <div key={i} className={styles.action}>
                     <div className={styles.action_expand}>
