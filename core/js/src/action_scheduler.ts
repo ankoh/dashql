@@ -44,9 +44,15 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this._failed_actions = new NativeBitmap(this._actions.length);
     }
 
-    public set interrupt(promise: Promise<ActionID | null>) {
-        this._interrupt = promise;
-    }
+    /// Set the scheduler interrupt promise
+    public set interrupt(promise: Promise<ActionID | null>) { this._interrupt = promise; }
+
+    /// Are no more actions scheduled?
+    public noneScheduled(): boolean { return this._scheduled_actions.empty(); }
+    /// Are there failed actions?
+    public someFailed(): boolean { return !this._failed_actions.empty(); }
+    /// Are all complete?
+    public allComplete(): boolean { return this._completed_actions.allSet(); }
 
     /// Schedule all actions that can be scheduled.
     /// An action can be scheduled if its rank is zero in the dependency heap.
@@ -102,7 +108,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         }
 
         // No more scheduled actions left?
-        const done = this._scheduled_actions.isEmpty();
+        const done = this._scheduled_actions.empty();
         return Promise.resolve(done);
     }
 }
@@ -169,7 +175,6 @@ export class ActionGraphScheduler {
     }
 
     public async execute(context: ActionContext) {
-
         
     }
 };
