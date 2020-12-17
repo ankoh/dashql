@@ -22,6 +22,8 @@ export class Plan {
         this._plan = plan;
     }
 
+    /// Get the buffer
+    public get buffer() { return this._plan; }
     /// Access the program
     public get program() { return this._program; }
     /// Access the action graph

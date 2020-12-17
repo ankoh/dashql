@@ -1,15 +1,14 @@
 import * as Immutable from "immutable";
+import { CacheKey, CachedHTTPData, CachedFileData } from "./cache";
 import { LogEntry } from "./log";
 import { Plan } from "./plan";
 import { PlanObjectID, PlanObject } from "./plan_object";
 import { Program } from "./program";
-import { Store } from 'redux';
 
-export class State {
+export class CoreState {
     /// The log entries
     public logEntries: Immutable.List<LogEntry>;
-    /// The program text
-    public program_text: string;
+
     /// The program
     public program: Program | null;
     /// The plan
@@ -17,18 +16,22 @@ export class State {
     /// The plan objects
     public planObjects: Immutable.Map<PlanObjectID, PlanObject>;
 
+    /// The cached file data
+    public cachedFileData: Immutable.Map<CacheKey, CachedFileData>;
+    /// The cached http data
+    public cachedHTTPData: Immutable.Map<CacheKey, CachedHTTPData>;
+
     /// Constructor
     constructor() {
         this.logEntries = Immutable.List<LogEntry>();
-        this.program_text = "";
         this.program = null;
         this.plan = null;
         this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();
+        this.cachedFileData = Immutable.Map<CacheKey, CachedFileData>();
+        this.cachedHTTPData = Immutable.Map<CacheKey, CachedHTTPData>();
     }
 }
 
 export interface DerivedState {
-    core: State;
+    core: CoreState;
 };
-
-export type DerivedReduxStore = Store<DerivedState>;
