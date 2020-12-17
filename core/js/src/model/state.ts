@@ -2,7 +2,7 @@ import * as Immutable from "immutable";
 import { CacheKey, CachedHTTPData, CachedFileData } from "./cache";
 import { LogEntry } from "./log";
 import { Plan } from "./plan";
-import { ActionInfo } from "./action_info";
+import { Action } from "./action";
 import { PlanObjectID, PlanObject } from "./plan_object";
 import { Program } from "./program";
 
@@ -19,9 +19,9 @@ export class CoreState {
     /// The plan objects
     public planObjects: Immutable.Map<PlanObjectID, PlanObject>;
     /// The setup actions
-    public planSetupActions: Immutable.List<ActionInfo>;
+    public planSetupActions: Immutable.List<Action>;
     /// The program actions
-    public planProgramActions: Immutable.List<ActionInfo>;
+    public planProgramActions: Immutable.List<Action>;
 
     /// The cached file data
     public cachedFileData: Immutable.Map<CacheKey, CachedFileData>;
@@ -35,8 +35,8 @@ export class CoreState {
         this.program = null;
         this.plan = null;
         this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();
-        this.planSetupActions = Immutable.List<ActionInfo>();
-        this.planProgramActions = Immutable.List<ActionInfo>();
+        this.planSetupActions = Immutable.List<Action>();
+        this.planProgramActions = Immutable.List<Action>();
         this.cachedFileData = Immutable.Map<CacheKey, CachedFileData>();
         this.cachedHTTPData = Immutable.Map<CacheKey, CachedHTTPData>();
     }
