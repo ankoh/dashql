@@ -1,10 +1,9 @@
 import * as Immutable from "immutable";
-import { DashQLCoreWasmBindings } from "../wasm";
 import { LogEntry } from "./log";
 import { Plan } from "./plan";
 import { PlanObjectID, PlanObject } from "./plan_object";
 import { Program } from "./program";
-import { State } from "./state";
+import { CoreState } from "./state";
 
 const MAX_LOG_SIZE = 100;
 
@@ -54,11 +53,10 @@ export class StateMutation {
         return { type: ActionType.DELETE_PLAN, payload: {} };
     }
 
-    public static reduce<S extends State>(
-        state: S,
+    public static reduce(
+        state: CoreState,
         action: ActionVariant,
-        core: DashQLCoreWasmBindings
-    ): S {
+    ): CoreState {
         switch (action.type) {
             case ActionType.LOG_PUSH_ENTRY:
                 return {
@@ -85,11 +83,7 @@ export class StateMutation {
                     ...state,
                     planObjects: state.planObjects.withMutations(os => {
                         for (const o of action.payload) {
-                            const mem = os.get(o.object_id)?.core_memory;
-                            if (mem) {
-                                core.free(mem.address, mem.size);
-                            }
-                            os.set(o.object_id, o);
+                            os.set(o.objectId, o);
                         }
                     })
                 };
@@ -97,22 +91,10 @@ export class StateMutation {
                 return {
                     ...state,
                     planObjects: state.planObjects.withMutations(os => {
-                        for (const id of action.payload) {
-                            const mem = os.get(id)?.core_memory;
-                            if (mem) {
-                                core.free(mem.address, mem.size);
-                            }
-                        }
                         os.deleteAll(action.payload);
                     })
                 };
             case ActionType.DELETE_PLAN:
-                state.planObjects.forEach(o => {
-                    const mem = o.core_memory;
-                    if (mem) {
-                        core.free(mem.address, mem.size);
-                    }
-                });
                 return {
                     ...state,
                     plan: null,

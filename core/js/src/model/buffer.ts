@@ -19,4 +19,6 @@ export abstract class FlatBuffer<Proto> {
     protected abstract getRoot(buffer: flatbuffers.ByteBuffer): Proto;
     /// Get the object
     public get root(): Proto { return this._root; }
+    /// Get the byte buffer
+    public get bytes(): Uint8Array { return this._buffer.bytes(); }
 };

@@ -7,19 +7,19 @@ import { Plan, Program, PlanBuffer, ProgramBuffer } from  '../model';
 /// dashql_blobstream_underflow(blob: number, buffer_ofs, buffer_size): uint32_t
 
 /// The core runtime
-export interface DashQLCoreWasmRuntime {
+export interface CoreWasmRuntime {
     dashql_pong(): number;
     dashql_blob_stream_underflow(): number;
 }
 
 /// Stubs for the DashQL core runtime
-export const DASHQL_CORE_WASM_RUNTIME_STUBS: DashQLCoreWasmRuntime = {
+export const CORE_WASM_RUNTIME_STUBS: CoreWasmRuntime = {
     dashql_pong: () => { console.log("pong"); return 42; },
     dashql_blob_stream_underflow: () => { return 0; }
 };
 
 /// The proxy for either the browser- order node-based DashQLCore API
-export abstract class DashQLCoreWasmBindings {
+export abstract class CoreWasmBindings {
     /// The instance
     private _instance: DashQLCoreModule | null = null;
     /// The loading promise
