@@ -1,1 +1,2 @@
-export * from "./core_wasm_bindings";
+export * from "./api";
+export * from "./bindings";

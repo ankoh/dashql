@@ -14,7 +14,7 @@ import './fonts/fonts.module.css';
 import 'gridstack/dist/gridstack.min.css';
 
 const core = createCore();
-const store = createStore(core);
+const store = createStore();
 const controller = new AppController(core, store);
 controller.init();
 
