@@ -8,9 +8,8 @@ export enum LogLevel {
 }
 
 /// The log entry
-export class LogEntry {
-    public timestamp: Date = new Date();
-    public level: LogLevel = LogLevel.UNDEFINED;
-    public text: string = '';
+export interface LogEntry {
+    timestamp: Date;
+    level: LogLevel;
+    text: string;
 }
-

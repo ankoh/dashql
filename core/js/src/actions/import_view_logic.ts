@@ -1,5 +1,6 @@
 import * as proto from "@dashql/proto";
-import { ActionID, SetupActionLogic } from "./action_logic";
+import { ActionID } from "../model";
+import { SetupActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 
 export class ImportViewActionLogic extends SetupActionLogic {
