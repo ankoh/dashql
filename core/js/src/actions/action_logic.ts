@@ -24,6 +24,8 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     _action_id: ActionID;
     /// The protocol buffer
     _action: ActionBuffer;
+    /// The blocker (if any)
+    _blocker: proto.action.ActionBlocker | null = null;
 
     /// Constructor
     constructor(action_id: ActionID, action: ActionBuffer) {
@@ -35,6 +37,8 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     public get buffer() { return this._action; }
     /// Get the status
     public get status() { return this._action.actionStatusCode(); }
+    /// Get the blocker
+    public get blocker() { return this._blocker; }
 
     /// Execute an action
     public abstract execute(context: ActionContext): Promise<proto.action.ActionStatusCode>;

@@ -14,8 +14,18 @@ export class TopologicalSort {
 
     /// Constructor
     public constructor(entries: [TopoKey, TopoRank][] = []) {
-        this._entries = new Uint32Array(2 * entries.length);
-        this._index = new Uint32Array(entries.length);
+        this._entries = new Uint32Array(0);
+        this._index = new Uint32Array(0);
+        this._size = 0;
+        this.reset(entries);
+    }
+
+    /// Reset the heap
+    public reset(entries: [TopoKey, TopoRank][] = []) {
+        if (this._entries.length < entries.length) {
+            this._entries = new Uint32Array(2 * entries.length);
+            this._index = new Uint32Array(entries.length);
+        }
         this._size = entries.length;
         for (let i = 0; i < entries.length; ++i) {
             this._entries[2 * i] = entries[i][0];
