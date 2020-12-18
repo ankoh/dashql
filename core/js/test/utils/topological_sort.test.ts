@@ -1,4 +1,4 @@
-import * as core from '../../';
+import * as core from '../../src/index_node';
 
 enum TestOpType { POP, DEC }
 interface TestOp {

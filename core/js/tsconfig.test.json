@@ -1,21 +1,6 @@
 {
-    "compilerOptions": {
-        "outDir": "./dist/",
-        "target": "es6",
-        "module": "es6",
-        "moduleResolution": "node",
-        "strict": true,
-        "sourceMap": true,
-        "declaration": true,
-        "declarationMap": true,
-        "declarationDir": "dist",
-        "noImplicitAny": true,
-        "esModuleInterop": true,
-        "types": ["emscripten", "jest", "node"],
-        "lib": ["esnext", "dom"]
-    },
+    "extends": "./tsconfig.json",
     "exclude": [
-        "./test/**/*.ts",
         "./node_modules"
     ]
 }
