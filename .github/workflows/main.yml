@@ -220,7 +220,7 @@ jobs:
         script: |-
             source /opt/env.sh
             cd ./proto
-            npm ci --cache /mnt/npm_cache
+            npm ci --no-optional --cache /mnt/npm_cache
             npm run build
 
     - name: Build @dashql/core
@@ -229,7 +229,7 @@ jobs:
         script: |-
             source /opt/env.sh
             cd ./core/js
-            npm ci --cache /mnt/npm_cache
+            npm ci --no-optional --cache /mnt/npm_cache
             npm run build
 
     - name: Test @dashql/core
@@ -246,7 +246,7 @@ jobs:
         script: |-
             source /opt/env.sh
             cd ./duckdb/js
-            npm ci --cache /mnt/npm_cache
+            npm ci --no-optional --cache /mnt/npm_cache
             npm run build
 
     - name: Test @dashql/duckdb
@@ -263,7 +263,7 @@ jobs:
         script: |-
             source /opt/env.sh
             cd ./app
-            npm ci --cache /mnt/npm_cache
+            npm ci --no-optional --cache /mnt/npm_cache
             npm run build:release
 
   plugins:
