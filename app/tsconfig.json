@@ -9,7 +9,11 @@
         "strict": true,
         "types": ["node"],
         "jsx": "react",
-        "plugins": [{ "name": "typescript-plugin-css-modules" }]
+        "plugins": [{ "name": "typescript-plugin-css-modules" }],
+        "baseUrl": ".",
+        "paths": {
+            "@dashql/proto": ["../proto/dashql_proto.ts"]
+        }
     },
     "exclude": [
         "./test/**/*.ts",
