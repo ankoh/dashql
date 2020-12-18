@@ -28,7 +28,7 @@ module.exports = {
         historyApiFallback: true,
         contentBase: path.join(__dirname, './build/debug'),
         compress: true,
-        port: 9000,
+        port: 9001,
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
