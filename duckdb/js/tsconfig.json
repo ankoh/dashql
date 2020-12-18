@@ -4,6 +4,7 @@
         "target": "es6",
         "module": "es6",
         "moduleResolution": "node",
+        "strict": true,
         "sourceMap": true,
         "declaration": true,
         "declarationMap": true,

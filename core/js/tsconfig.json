@@ -12,7 +12,11 @@
         "noImplicitAny": true,
         "esModuleInterop": true,
         "types": ["emscripten", "jest", "node"],
-        "lib": ["esnext", "dom"]
+        "lib": ["esnext", "dom"],
+        "baseUrl": ".",
+        "paths": {
+            "@dashql/proto": ["../../proto/dashql_proto.ts"]
+        }
     },
     "exclude": [
         "./test/**/*.ts",

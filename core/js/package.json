@@ -4,7 +4,6 @@
     "description": "DashQL Core Library",
     "license": "AGPL-3.0-or-later",
     "dependencies": {
-        "@dashql/proto": "file:../../proto/",
         "cross-fetch": "^3.0.6",
         "flatbuffers": "^1.12.0",
         "immutable": "^4.0.0-rc.12",
@@ -31,6 +30,7 @@
     "scripts": {
         "build:watch": "webpack --watch --progress --mode=production",
         "build": "webpack --mode=production",
+        "build:test": "webpack --mode=production",
         "test": "node ./node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --env=./jest.env.js",
         "test:silent": "node ./node_modules/jest/bin/jest.js --silent --runInBand --detectOpenHandles --env=./jest.env.js",
         "test:ci": "node ./node_modules/jest/bin/jest.js --silent --runInBand --detectOpenHandles --env=./jest.env.js --ci --reporters=default --reporters=jest-junit"
