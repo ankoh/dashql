@@ -20,6 +20,7 @@
         "chart.js": "^2.9.4",
         "classnames": "^2.2.6",
         "dagre": "^0.8.5",
+        "fsevents": "*",
         "gridstack": "^3.1.2",
         "immutable": "^4.0.0-rc.12",
         "monaco-editor": "^0.21.2",
@@ -71,5 +72,8 @@
         "webpack-bundle-analyzer": "^3.9.0",
         "webpack-cli": "^4.1.0",
         "webpack-dev-server": "^3.11.0"
+    },
+    "optionalDependencies": {
+        "fsevents": "*"
     }
 }
