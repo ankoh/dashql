@@ -210,13 +210,13 @@ export class ActionGraphScheduler {
 
             // Synchronize all the diffed actions
             let actionUpdates: ActionUpdate[] = [];
-            while (!diff.empty()) {
-                const diffActionId = diff.top();
-                const diffAction = scheduler.actions[getActionIndex(diffActionId)];
+            for (;!diff.empty(); diff.pop()) {
+                const actionId = diff.top();
+                const action = scheduler.actions[getActionIndex(actionId)];
                 actionUpdates.push({
-                    actionId: diffActionId,
-                    statusCode: diffAction.status,
-                    blocker: diffAction.blocker,
+                    actionId: actionId,
+                    statusCode: action.status,
+                    blocker: action.blocker,
                 });
             }
 
