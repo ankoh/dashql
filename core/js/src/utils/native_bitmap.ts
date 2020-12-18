@@ -7,9 +7,22 @@ export class NativeBitmap {
     /// The size of the buffer
     _size: number;
 
-    public constructor(size: number) {
+    public constructor(size: number = 0) {
         this._buffer = new Uint32Array(size >> 5);
         this._size = size;
+    }
+
+    /// Reset the bitmap to a new size
+    public reset(newSize: number) {
+        const n = newSize >> 5;
+        if (n > this._buffer.length) {
+            this._buffer = new Uint32Array(n);
+        } else {
+            for (let i = 0; i < this._buffer.length; ++i) {
+                this._buffer[i] = 0;
+            }
+        }
+        this._size = newSize;
     }
 
     /// Are no bits set?

@@ -57,6 +57,14 @@ export class StateMutations {
         return { type: StateMutationType.SET_PLAN, payload: null };
     }
 
+    public static setPlanActions(actions: Action[]) {
+        return { type: StateMutationType.SET_PLAN_ACTIONS, payload: actions };
+    }
+
+    public static updatePlanActions(updates: ActionUpdate[]) {
+        return { type: StateMutationType.UPDATE_PLAN_ACTIONS, payload: updates };
+    }
+
     public static reduce(
         state: CoreState,
         mutation: StateMutationVariant,
@@ -107,7 +115,6 @@ export class StateMutations {
                                 blocker: update.blocker,
                                 timeScheduled: a.timeCreated || now,
                                 timeLastUpdate: now,
-                                errorMessage: update.errorMessage
                             });
                         }
                     })
