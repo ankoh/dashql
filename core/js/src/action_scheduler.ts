@@ -11,76 +11,97 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The actions
     _actions: ActionLogic<ActionBuffer>[];
     /// The pending actions
-    _action_queue: TopologicalSort;
+    _actionQueue: TopologicalSort;
     /// The action promises
-    _action_promises: Promise<ActionID | null>[];
+    _actionPromises: Promise<ActionID | null>[];
     /// The action promise mapping
-    _action_promise_mapping: (number | null)[];
+    _actionPromiseMapping: (number | null)[];
 
     /// The scheduled actions
-    _scheduled_actions: NativeBitmap;
+    _scheduledActions: NativeBitmap;
     /// The completed actions
-    _completed_actions: NativeBitmap;
+    _completedActions: NativeBitmap;
     /// The failed actions
-    _failed_actions: NativeBitmap;
+    _failedActions: NativeBitmap;
+
+    /// First actions scheduled?
+    _firstScheduled: boolean;
 
     constructor(interrupt: Promise<ActionID | null>, actions: ActionLogic<ActionBuffer>[]) {
         this._interrupt = interrupt;
         this._actions = actions;
-        this._action_promises = [this._interrupt];
-        this._action_promise_mapping = [];
+        this._actionPromises = [this._interrupt];
+        this._actionPromiseMapping = [];
 
+        // Build the dependency heap
         let deps: [TopoKey, TopoRank][] = [];
         deps.length += actions.length;
         for (let i = 0; i < actions.length; ++i) {
             deps[i] = [i, actions[i].buffer.dependsOnLength()];
-            this._action_promise_mapping.push(null);
+            this._actionPromiseMapping.push(null);
         }
         deps.sort((l, r) => l[1] - r[1]);
-        this._action_queue = new TopologicalSort(deps);
+        this._actionQueue = new TopologicalSort(deps);
 
-        this._scheduled_actions = new NativeBitmap(this._actions.length);
-        this._completed_actions = new NativeBitmap(this._actions.length);
-        this._failed_actions = new NativeBitmap(this._actions.length);
+        // Build the status bitmaps
+        this._scheduledActions = new NativeBitmap(this._actions.length);
+        this._completedActions = new NativeBitmap(this._actions.length);
+        this._failedActions = new NativeBitmap(this._actions.length);
+
+        // Remember that we havent scheduled the very first actions yet
+        this._firstScheduled = false;
     }
 
     /// Set the scheduler interrupt promise
     public set interrupt(promise: Promise<ActionID | null>) { this._interrupt = promise; }
 
+    /// Is there work left?
+    public workLeft(): boolean { return !this._scheduledActions.empty(); }
     /// Are no more actions scheduled?
-    public noneScheduled(): boolean { return this._scheduled_actions.empty(); }
+    public noneScheduled(): boolean { return this._scheduledActions.empty(); }
     /// Are there failed actions?
-    public someFailed(): boolean { return !this._failed_actions.empty(); }
+    public someFailed(): boolean { return !this._failedActions.empty(); }
     /// Are all complete?
-    public allComplete(): boolean { return this._completed_actions.allSet(); }
+    public allComplete(): boolean { return this._completedActions.allSet(); }
 
     /// Schedule all actions that can be scheduled.
     /// An action can be scheduled if its rank is zero in the dependency heap.
-    protected schedule_next(context: ActionContext, diff: NativeStack) {
-        while ((!this._action_queue.empty()) && (this._action_queue.topRank() == 0)) {
-            const next_action_id = this._action_queue.top();
+    protected scheduleNext(context: ActionContext, diff: NativeStack) {
+        while ((!this._actionQueue.empty()) && (this._actionQueue.topRank() == 0)) {
+            const next_action_id = this._actionQueue.top();
             const next_action = this._actions[next_action_id];
-            this._scheduled_actions.set(next_action_id);
-            this._action_promise_mapping[next_action_id] = this._action_promises.length;
-            this._action_promises.push(next_action.execute(context));
+            this._scheduledActions.set(next_action_id);
+            this._actionPromiseMapping[next_action_id] = this._actionPromises.length;
+            this._actionPromises.push(next_action.execute(context));
             diff.push(next_action_id);
         }
     }
 
+    /// Execute the first time.
+    /// Returns true if execute should be called again.
+    public async executeFirst(context: ActionContext, diff: NativeStack): Promise<boolean> {
+        this.scheduleNext(context, diff);
+        return this.execute(context, diff);
+    }
+
     /// Waits until one of the currently running action promises resolves or rejects.
-    async execute(context: ActionContext, diff: NativeStack): Promise<boolean> {
-        // Execute an action
-        const action_id = await Promise.race(this._action_promises);
+    /// Returns true if execute should be called again.
+    public async execute(context: ActionContext, diff: NativeStack): Promise<boolean> {
+        // Nothing to do?
+        if (!this.workLeft()) return false;
+
+        // Wait for next action to complete
+        const action_id = await Promise.race(this._actionPromises);
         if (action_id == null) {
             /// Update interrupt promise since someone might have just replaced it.
-            this._action_promises[0] = this._interrupt;
+            this._actionPromises[0] = this._interrupt;
             /// Return false to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
-            return false;
+            return true;
         }
 
         // Remove action promise
-        this._action_promises.splice(this._action_promise_mapping[action_id]!, 1);
-        this._action_promise_mapping[action_id] = null;
+        this._actionPromises.splice(this._actionPromiseMapping[action_id]!, 1);
+        this._actionPromiseMapping[action_id] = null;
         diff.push(action_id);
 
         // Check the new status of the action
@@ -92,77 +113,76 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
                 break;
 
             case proto.action.ActionStatusCode.COMPLETED:
-                this._scheduled_actions.clear(action_id);
-                this._completed_actions.set(action_id);
+                this._scheduledActions.clear(action_id);
+                this._completedActions.set(action_id);
                 for (const req of this._actions[action_id].buffer.requiredForArray()!) {
-                    this._action_queue.decrementKey(req, 1);
+                    this._actionQueue.decrementKey(req, 1);
                 }
-                this.schedule_next(context, diff);
+                this.scheduleNext(context, diff);
                 break;
 
             case proto.action.ActionStatusCode.NONE:
             case proto.action.ActionStatusCode.ERROR:
-                this._scheduled_actions.clear(action_id);
-                this._failed_actions.set(action_id);
+                this._scheduledActions.clear(action_id);
+                this._failedActions.set(action_id);
                 break;
         }
 
         // No more scheduled actions left?
-        const done = this._scheduled_actions.empty();
-        return Promise.resolve(done);
+        return Promise.resolve(!this.workLeft());
     }
 }
 
 export class ActionGraphScheduler {
     /// The setup actions
-    _setup_actions: ActionScheduler<proto.action.SetupAction>;
+    _setupActions: ActionScheduler<proto.action.SetupAction>;
     /// The program actions
-    _program_actions: ActionScheduler<proto.action.ProgramAction>;
+    _programActions: ActionScheduler<proto.action.ProgramAction>;
 
     /// The cancel promise
-    _interrupt_promise: Promise<ActionID | null>;
+    _interruptPromise: Promise<ActionID | null>;
     /// The cancel promise
-    _interrupt_function: () => void;
+    _interruptFunction: () => void;
     /// Has been canceled?
     _canceled: boolean;
 
     /// Constructor
     constructor(program: Program, action_graph: proto.action.ActionGraph) {
         // Setup the scheduler canceling
-        this._interrupt_function = () => {};
-        this._interrupt_promise = new Promise((resolve: (value: any) => void, _reject: (reason?: void) => void) => {
-            this._interrupt_function = () => resolve(null);
+        this._interruptFunction = () => {};
+        this._interruptPromise = new Promise((resolve: (value: any) => void, _reject: (reason?: void) => void) => {
+            this._interruptFunction = () => resolve(null);
         });
         this._canceled = false;
 
         // Translate the setup actions
-        let setup_actions = [];
+        let setupActions = [];
         for (let i = 0; i < action_graph.setupActionsLength(); ++i) {
             const a = action_graph.setupActions(i)!;
-            setup_actions.push(resolveSetupActionLogic(i, a)!);
+            setupActions.push(resolveSetupActionLogic(i, a)!);
         }
-        this._setup_actions = new ActionScheduler<proto.action.SetupAction>(this._interrupt_promise, setup_actions);
+        this._setupActions = new ActionScheduler<proto.action.SetupAction>(this._interruptPromise, setupActions);
 
         // Translate the program actions
-        let program_actions = [];
+        let programActions = [];
         for (let i = 0; i < action_graph.programActionsLength(); ++i) {
             const a = action_graph.programActions(i)!;
             const s = program.getStatement(a.originStatement());
-            program_actions.push(resolveProgramActionLogic(i, a, s)!);
+            programActions.push(resolveProgramActionLogic(i, a, s)!);
         }
-        this._program_actions = new ActionScheduler<proto.action.ProgramAction>(this._interrupt_promise, program_actions);
+        this._programActions = new ActionScheduler<proto.action.ProgramAction>(this._interruptPromise, programActions);
     }
 
     /// Interrupt the scheduler
     protected interrupt() {
         // Setup a new interrupt promise
-        const prev_interrupt = this._interrupt_function;
-        this._interrupt_function = () => {};
-        this._interrupt_promise = new Promise((resolve: (value: any) => void, _reject: (reason?: void) => void) => {
-            this._interrupt_function = () => resolve(null);
+        const prev_interrupt = this._interruptFunction;
+        this._interruptFunction = () => {};
+        this._interruptPromise = new Promise((resolve: (value: any) => void, _reject: (reason?: void) => void) => {
+            this._interruptFunction = () => resolve(null);
         });
-        this._setup_actions.interrupt = this._interrupt_promise;
-        this._program_actions.interrupt = this._interrupt_promise;
+        this._setupActions.interrupt = this._interruptPromise;
+        this._programActions.interrupt = this._interruptPromise;
 
         // Fire the interrupt
         prev_interrupt();
@@ -174,7 +194,18 @@ export class ActionGraphScheduler {
         this.interrupt();
     }
 
-    public async execute(context: ActionContext) {
-        
+    public async execute(ctx: ActionContext) {
+        // Setup actions
+        let diff = new NativeStack(64);
+        for (let workLeft = await this._setupActions.executeFirst(ctx, diff); workLeft; diff.clear(),
+                 workLeft = await this._setupActions.execute(ctx, diff)) {
+        }
+
+        // Program actions
+        diff.clear();
+        for (let workLeft = await this._programActions.executeFirst(ctx, diff); workLeft; diff.clear(),
+                 workLeft = await this._programActions.execute(ctx, diff)) {
+
+        }
     }
 };
