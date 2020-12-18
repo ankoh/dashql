@@ -9,7 +9,7 @@ const browserTarget = {
     entry: {
         "dashql_core_web": './src/index_web.ts'
     },
-    devtool:'source-map',
+    devtool: 'source-map',
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
@@ -20,7 +20,10 @@ const browserTarget = {
         globalObject: 'this'
     },
     resolve: {
-        extensions: ['.ts', '.js']
+        extensions: ['.ts', '.js'],
+        alias: {
+            "@dashql/proto": path.resolve(__dirname, '../../proto/dashql_proto.ts')
+        }
     },
     module: {
         rules: [
