@@ -7,14 +7,14 @@ import { CoreState } from "./state";
 
 const MAX_LOG_SIZE = 100;
 
-/// An action
-export type Action<T, P> = {
+/// A mutation
+export type StateMutation<T, P> = {
     readonly type: T;
     readonly payload: P;
 }
 
-/// An action type
-export enum ActionType {
+/// A mutation type
+export enum StateMutationType {
     LOG_PUSH_ENTRY          = 'LOG_PUSH_ENTRY',
     SET_PROGRAM             = 'SET_PROGRAM',
     SET_PLAN                = 'SET_PLAN',
@@ -24,78 +24,78 @@ export enum ActionType {
     OTHER                   = 'OTHER',
 }
 
-/// An action variant
-export type ActionVariant =
-      Action<ActionType.LOG_PUSH_ENTRY, LogEntry>
-    | Action<ActionType.SET_PROGRAM, [string, Program]>
-    | Action<ActionType.SET_PLAN, Plan>
-    | Action<ActionType.INSERT_PLAN_OBJECTS, PlanObject[]>
-    | Action<ActionType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
-    | Action<ActionType.DELETE_PLAN, {}>
+/// A mutation variant
+export type StateMutationVariant =
+      StateMutation<StateMutationType.LOG_PUSH_ENTRY, LogEntry>
+    | StateMutation<StateMutationType.SET_PROGRAM, [string, Program]>
+    | StateMutation<StateMutationType.SET_PLAN, Plan>
+    | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
+    | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
+    | StateMutation<StateMutationType.DELETE_PLAN, {}>
     ;
 
-export type StateMutationDispatcher = (action: ActionVariant) => void;
+export type StateMutationDispatcher = (mutation: StateMutationVariant) => void;
 
-export class StateMutation {
-    public static pushLogEntry(log: LogEntry): ActionVariant {
-        return { type: ActionType.LOG_PUSH_ENTRY, payload: log };
+export class StateMutations {
+    public static pushLogEntry(log: LogEntry): StateMutationVariant {
+        return { type: StateMutationType.LOG_PUSH_ENTRY, payload: log };
     }
 
-    public static setProgram(program_text: string, program: Program): ActionVariant {
-        return { type: ActionType.SET_PROGRAM, payload: [program_text, program] };
+    public static setProgram(program_text: string, program: Program): StateMutationVariant {
+        return { type: StateMutationType.SET_PROGRAM, payload: [program_text, program] };
     }
 
-    public static setPlan(plan: Plan): ActionVariant {
-        return { type: ActionType.SET_PLAN, payload: plan };
+    public static setPlan(plan: Plan): StateMutationVariant {
+        return { type: StateMutationType.SET_PLAN, payload: plan };
     }
 
-    public static clearPlan(): ActionVariant {
-        return { type: ActionType.DELETE_PLAN, payload: {} };
+    public static clearPlan(): StateMutationVariant {
+        return { type: StateMutationType.DELETE_PLAN, payload: {} };
     }
 
     public static reduce(
         state: CoreState,
-        action: ActionVariant,
+        mutation: StateMutationVariant,
     ): CoreState {
-        switch (action.type) {
-            case ActionType.LOG_PUSH_ENTRY:
+        switch (mutation.type) {
+            case StateMutationType.LOG_PUSH_ENTRY:
                 return {
                     ...state,
                     logEntries: state.logEntries.withMutations(list => {
-                        list.unshift(action.payload);
+                        list.unshift(mutation.payload);
                         if (list.size > MAX_LOG_SIZE) {
                             list.pop();
                         }
                     }),
                 };
-            case ActionType.SET_PROGRAM:
+            case StateMutationType.SET_PROGRAM:
                 return {
                     ...state,
-                    programText: action.payload[0],
-                    program: action.payload[1]
+                    programText: mutation.payload[0],
+                    program: mutation.payload[1]
                 };
-            case ActionType.SET_PLAN:
+            case StateMutationType.SET_PLAN:
                 return {
                     ...state,
-                    plan: action.payload
+                    plan: mutation.payload
                 };
-            case ActionType.INSERT_PLAN_OBJECTS:
+            case StateMutationType.INSERT_PLAN_OBJECTS:
                 return {
                     ...state,
                     planObjects: state.planObjects.withMutations(os => {
-                        for (const o of action.payload) {
+                        for (const o of mutation.payload) {
                             os.set(o.objectId, o);
                         }
                     })
                 };
-            case ActionType.DELETE_PLAN_OBJECTS:
+            case StateMutationType.DELETE_PLAN_OBJECTS:
                 return {
                     ...state,
                     planObjects: state.planObjects.withMutations(os => {
-                        os.deleteAll(action.payload);
+                        os.deleteAll(mutation.payload);
                     })
                 };
-            case ActionType.DELETE_PLAN:
+            case StateMutationType.DELETE_PLAN:
                 return {
                     ...state,
                     plan: null,

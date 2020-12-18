@@ -1,8 +1,8 @@
 import * as proto from "@dashql/proto";
 import { NativeBitmap, NativeStack, TopologicalSort, TopoKey, TopoRank } from "./utils";
-import { ActionID, ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramActionLogic } from "./actions";
+import { ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramActionLogic } from "./actions";
 import { ActionContext } from "./actions";
-import { Program } from './model';
+import { ActionID, ActionClass, buildActionID, getActionIndex, Program } from './model';
 
 export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The cancel promise
@@ -24,9 +24,6 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The failed actions
     _failedActions: NativeBitmap;
 
-    /// First actions scheduled?
-    _firstScheduled: boolean;
-
     constructor(interrupt: Promise<ActionID | null>, actions: ActionLogic<ActionBuffer>[]) {
         this._interrupt = interrupt;
         this._actions = actions;
@@ -47,11 +44,10 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this._scheduledActions = new NativeBitmap(this._actions.length);
         this._completedActions = new NativeBitmap(this._actions.length);
         this._failedActions = new NativeBitmap(this._actions.length);
-
-        // Remember that we havent scheduled the very first actions yet
-        this._firstScheduled = false;
     }
 
+    /// Get the actions
+    public get actions() { return this._actions; }
     /// Set the scheduler interrupt promise
     public set interrupt(promise: Promise<ActionID | null>) { this._interrupt = promise; }
 
@@ -91,21 +87,22 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         if (!this.workLeft()) return false;
 
         // Wait for next action to complete
-        const action_id = await Promise.race(this._actionPromises);
-        if (action_id == null) {
+        const next = await Promise.race(this._actionPromises);
+        if (next == null) {
             /// Update interrupt promise since someone might have just replaced it.
             this._actionPromises[0] = this._interrupt;
             /// Return false to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
             return true;
         }
+        diff.push(next);
 
         // Remove action promise
-        this._actionPromises.splice(this._actionPromiseMapping[action_id]!, 1);
-        this._actionPromiseMapping[action_id] = null;
-        diff.push(action_id);
+        const action_idx = getActionIndex(next);
+        this._actionPromises.splice(this._actionPromiseMapping[action_idx]!, 1);
+        this._actionPromiseMapping[action_idx] = null;
 
         // Check the new status of the action
-        switch (this._actions[action_id].status) {
+        switch (this._actions[action_idx].status) {
             case proto.action.ActionStatusCode.PREPARING:
             case proto.action.ActionStatusCode.BLOCKED:
             case proto.action.ActionStatusCode.RUNNING:
@@ -113,9 +110,9 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
                 break;
 
             case proto.action.ActionStatusCode.COMPLETED:
-                this._scheduledActions.clear(action_id);
-                this._completedActions.set(action_id);
-                for (const req of this._actions[action_id].buffer.requiredForArray()!) {
+                this._scheduledActions.clear(action_idx);
+                this._completedActions.set(action_idx);
+                for (const req of this._actions[action_idx].buffer.requiredForArray()!) {
                     this._actionQueue.decrementKey(req, 1);
                 }
                 this.scheduleNext(context, diff);
@@ -123,8 +120,8 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
 
             case proto.action.ActionStatusCode.NONE:
             case proto.action.ActionStatusCode.ERROR:
-                this._scheduledActions.clear(action_id);
-                this._failedActions.set(action_id);
+                this._scheduledActions.clear(action_idx);
+                this._failedActions.set(action_idx);
                 break;
         }
 
@@ -158,17 +155,19 @@ export class ActionGraphScheduler {
         // Translate the setup actions
         let setupActions = [];
         for (let i = 0; i < action_graph.setupActionsLength(); ++i) {
+            const aid = buildActionID(i, ActionClass.SetupAction);
             const a = action_graph.setupActions(i)!;
-            setupActions.push(resolveSetupActionLogic(i, a)!);
+            setupActions.push(resolveSetupActionLogic(aid, a)!);
         }
         this._setupActions = new ActionScheduler<proto.action.SetupAction>(this._interruptPromise, setupActions);
 
         // Translate the program actions
         let programActions = [];
         for (let i = 0; i < action_graph.programActionsLength(); ++i) {
+            const aid = buildActionID(i, ActionClass.ProgramAction);
             const a = action_graph.programActions(i)!;
             const s = program.getStatement(a.originStatement());
-            programActions.push(resolveProgramActionLogic(i, a, s)!);
+            programActions.push(resolveProgramActionLogic(aid, a, s)!);
         }
         this._programActions = new ActionScheduler<proto.action.ProgramAction>(this._interruptPromise, programActions);
     }
@@ -195,10 +194,19 @@ export class ActionGraphScheduler {
     }
 
     public async execute(ctx: ActionContext) {
+        const dispatch = ctx.platform.state.dispatch;
+
         // Setup actions
-        let diff = new NativeStack(64);
+        const diff = new NativeStack(64);
         for (let workLeft = await this._setupActions.executeFirst(ctx, diff); workLeft; diff.clear(),
                  workLeft = await this._setupActions.execute(ctx, diff)) {
+
+            // Synchronize all the diffed actions
+            while (!diff.empty()) {
+                const diff_action_id = diff.top();
+                const diff_action = this._setupActions.actions[diff_action_id];
+                
+            }
         }
 
         // Program actions

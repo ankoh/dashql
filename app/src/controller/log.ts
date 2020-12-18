@@ -12,24 +12,26 @@ export class LogController {
 
     protected log(level: model.LogLevel, text: string) {
         // Build log entry
-        const logEntry = new model.LogEntry();
-        logEntry.level = level;
-        logEntry.text = text;
-        logEntry.timestamp = new Date();
+        const logEntry: model.LogEntry = {
+            level: level,
+            text: text,
+            timestamp: new Date(),
+        };
 
         // Store in redux store
-        this.store.dispatch(model.StateMutation.pushLogEntry(logEntry));
+        this.store.dispatch(model.StateMutations.pushLogEntry(logEntry));
     }
 
     public logError(error: error.LoggableError) {
         // Build log entry
-        const logEntry = new model.LogEntry();
-        logEntry.level = error.logLevel;
-        logEntry.text = error.message;
-        logEntry.timestamp = new Date();
+        const logEntry: model.LogEntry = {
+            level: error.logLevel,
+            text: error.message,
+            timestamp: new Date(),
+        };
 
         // Store in redux store
-        this.store.dispatch(model.StateMutation.pushLogEntry(logEntry));
+        this.store.dispatch(model.StateMutations.pushLogEntry(logEntry));
     }
 
     // Log levels

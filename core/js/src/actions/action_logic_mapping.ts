@@ -1,6 +1,6 @@
 import * as proto from "@dashql/proto";
-import { ActionID, SetupActionLogic, ProgramActionLogic } from "./action_logic";
-import { Statement } from "../model";
+import { SetupActionLogic, ProgramActionLogic } from "./action_logic";
+import { ActionID, Statement } from "../model";
 
 import { DropBlobActionLogic } from "./drop_blob_logic";
 import { DropTableActionLogic } from "./drop_table_logic";
