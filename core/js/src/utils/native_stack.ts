@@ -20,6 +20,8 @@ export class NativeStack {
         this._buffer = b;
     }
 
+    /// Clear the stack
+    public clear() { return this._size = 0; }
     /// Is empty?
     public empty(): boolean { return this._size <= 0; }
     /// Return the top element
