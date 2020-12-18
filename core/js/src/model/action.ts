@@ -56,9 +56,6 @@ export interface Action {
     timeScheduled: Date | null;
     /// The time of the last update
     timeLastUpdate: Date | null;
-
-    /// The error message (if any)
-    errorMessage: string | null;
 }
 
 export interface ActionLogEntry extends LogEntry {
@@ -73,6 +70,4 @@ export interface ActionUpdate {
     statusCode: proto.action.ActionStatusCode;
     /// The blocker (if any)
     blocker: proto.action.ActionBlocker | null;
-    /// The error message (if any)
-    errorMessage: string | null;
 };

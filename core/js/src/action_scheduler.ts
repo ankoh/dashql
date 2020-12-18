@@ -2,30 +2,33 @@ import * as proto from "@dashql/proto";
 import { NativeBitmap, NativeStack, TopologicalSort, TopoKey, TopoRank } from "./utils";
 import { ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramActionLogic } from "./actions";
 import { ActionContext } from "./actions";
-import { ActionID, ActionClass, buildActionID, getActionIndex, Program } from './model';
+import { ActionID, ActionClass, ActionUpdate, buildActionID, getActionIndex, Program, StateMutations } from './model';
 
 export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The cancel promise
     _interrupt: Promise<ActionID | null>;
 
     /// The actions
-    _actions: ActionLogic<ActionBuffer>[];
+    _actions: ActionLogic<ActionBuffer>[] = [];
     /// The pending actions
-    _actionQueue: TopologicalSort;
+    _actionQueue: TopologicalSort = new TopologicalSort();
     /// The action promises
-    _actionPromises: Promise<ActionID | null>[];
+    _actionPromises: Promise<ActionID | null>[] = [];
     /// The action promise mapping
-    _actionPromiseMapping: (number | null)[];
+    _actionPromiseMapping: (number | null)[] = [];
 
     /// The scheduled actions
-    _scheduledActions: NativeBitmap;
+    _scheduledActions: NativeBitmap = new NativeBitmap();
     /// The completed actions
-    _completedActions: NativeBitmap;
+    _completedActions: NativeBitmap = new NativeBitmap();
     /// The failed actions
-    _failedActions: NativeBitmap;
+    _failedActions: NativeBitmap = new NativeBitmap();
 
-    constructor(interrupt: Promise<ActionID | null>, actions: ActionLogic<ActionBuffer>[]) {
+    constructor(interrupt: Promise<ActionID | null>) {
         this._interrupt = interrupt;
+    }
+
+    public reset(actions: ActionLogic<ActionBuffer>[]) {
         this._actions = actions;
         this._actionPromises = [this._interrupt];
         this._actionPromiseMapping = [];
@@ -38,12 +41,12 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
             this._actionPromiseMapping.push(null);
         }
         deps.sort((l, r) => l[1] - r[1]);
-        this._actionQueue = new TopologicalSort(deps);
+        this._actionQueue.reset(deps);
 
         // Build the status bitmaps
-        this._scheduledActions = new NativeBitmap(this._actions.length);
-        this._completedActions = new NativeBitmap(this._actions.length);
-        this._failedActions = new NativeBitmap(this._actions.length);
+        this._scheduledActions.reset(this._actions.length);
+        this._completedActions.reset(this._actions.length);
+        this._failedActions.reset(this._actions.length);
     }
 
     /// Get the actions
@@ -131,11 +134,6 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
 }
 
 export class ActionGraphScheduler {
-    /// The setup actions
-    _setupActions: ActionScheduler<proto.action.SetupAction>;
-    /// The program actions
-    _programActions: ActionScheduler<proto.action.ProgramAction>;
-
     /// The cancel promise
     _interruptPromise: Promise<ActionID | null>;
     /// The cancel promise
@@ -143,13 +141,24 @@ export class ActionGraphScheduler {
     /// Has been canceled?
     _canceled: boolean;
 
+    /// The setup actions
+    _setupActions: ActionScheduler<proto.action.SetupAction>;
+    /// The program actions
+    _programActions: ActionScheduler<proto.action.ProgramAction>;
+
     /// Constructor
-    constructor(program: Program, action_graph: proto.action.ActionGraph) {
-        // Setup the scheduler canceling
+    constructor() {
         this._interruptFunction = () => {};
         this._interruptPromise = new Promise((resolve: (value: any) => void, _reject: (reason?: void) => void) => {
             this._interruptFunction = () => resolve(null);
         });
+        this._canceled = false;
+        this._setupActions = new ActionScheduler<proto.action.SetupAction>(this._interruptPromise);
+        this._programActions = new ActionScheduler<proto.action.ProgramAction>(this._interruptPromise);
+    }
+
+    /// Reset the scheduler
+    public reset(program: Program, action_graph: proto.action.ActionGraph) {
         this._canceled = false;
 
         // Translate the setup actions
@@ -159,7 +168,7 @@ export class ActionGraphScheduler {
             const a = action_graph.setupActions(i)!;
             setupActions.push(resolveSetupActionLogic(aid, a)!);
         }
-        this._setupActions = new ActionScheduler<proto.action.SetupAction>(this._interruptPromise, setupActions);
+        this._setupActions.reset(setupActions);
 
         // Translate the program actions
         let programActions = [];
@@ -169,7 +178,7 @@ export class ActionGraphScheduler {
             const s = program.getStatement(a.originStatement());
             programActions.push(resolveProgramActionLogic(aid, a, s)!);
         }
-        this._programActions = new ActionScheduler<proto.action.ProgramAction>(this._interruptPromise, programActions);
+        this._programActions.reset(programActions);
     }
 
     /// Interrupt the scheduler
@@ -193,27 +202,34 @@ export class ActionGraphScheduler {
         this.interrupt();
     }
 
-    public async execute(ctx: ActionContext) {
+    /// Execute all exctions of a scheduler
+    protected async executeActions<ActionBuffer extends ProtoAction>(ctx: ActionContext, diff: NativeStack, scheduler: ActionScheduler<ActionBuffer>) {
         const dispatch = ctx.platform.state.dispatch;
-
-        // Setup actions
-        const diff = new NativeStack(64);
-        for (let workLeft = await this._setupActions.executeFirst(ctx, diff); workLeft; diff.clear(),
-                 workLeft = await this._setupActions.execute(ctx, diff)) {
+        for (let workLeft = await scheduler.executeFirst(ctx, diff); workLeft; diff.clear(),
+                 workLeft = await scheduler.execute(ctx, diff)) {
 
             // Synchronize all the diffed actions
+            let actionUpdates: ActionUpdate[] = [];
             while (!diff.empty()) {
-                const diff_action_id = diff.top();
-                const diff_action = this._setupActions.actions[diff_action_id];
-                
+                const diffActionId = diff.top();
+                const diffAction = scheduler.actions[getActionIndex(diffActionId)];
+                actionUpdates.push({
+                    actionId: diffActionId,
+                    statusCode: diffAction.status,
+                    blocker: diffAction.blocker,
+                });
             }
-        }
 
-        // Program actions
-        diff.clear();
-        for (let workLeft = await this._programActions.executeFirst(ctx, diff); workLeft; diff.clear(),
-                 workLeft = await this._programActions.execute(ctx, diff)) {
-
+            // Update all actions in the store
+            dispatch(StateMutations.updatePlanActions(actionUpdates));
         }
     }
-};
+
+    /// Execute the entire action graph
+    public async execute(ctx: ActionContext) {
+        const diff = new NativeStack(64);
+        await this.executeActions(ctx, diff, this._setupActions);
+        diff.clear();
+        await this.executeActions(ctx, diff, this._programActions);
+    }
+};  
