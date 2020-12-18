@@ -2,7 +2,7 @@ import * as proto from "@dashql/proto";
 import { NativeBitmap, NativeStack, TopologicalSort, TopoKey, TopoRank } from "./utils";
 import { ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramActionLogic } from "./actions";
 import { ActionContext } from "./actions";
-import { ActionID, Action, ActionClass, ActionUpdate, buildActionID, getActionIndex, Program, StateMutations } from './model';
+import { ActionID, Action, ActionClass, ActionUpdate, buildActionID, getActionIndex, StateMutations } from './model';
 
 export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The cancel promise
