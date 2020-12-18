@@ -2,7 +2,7 @@ import * as proto from "@dashql/proto";
 import { NativeBitmap, NativeStack, TopologicalSort, TopoKey, TopoRank } from "./utils";
 import { ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramActionLogic } from "./actions";
 import { ActionContext } from "./actions";
-import { ActionID, ActionClass, ActionUpdate, buildActionID, getActionIndex, Program, StateMutations } from './model';
+import { ActionID, Action, ActionClass, ActionUpdate, buildActionID, getActionIndex, Program, StateMutations } from './model';
 
 export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The cancel promise
@@ -158,27 +158,66 @@ export class ActionGraphScheduler {
     }
 
     /// Reset the scheduler
-    public reset(program: Program, action_graph: proto.action.ActionGraph) {
+    public reset(ctx: ActionContext) {
         this._canceled = false;
+        const program = ctx.plan.program!;
+        const graph = ctx.plan.action_graph!;
+        const now = new Date();
 
         // Translate the setup actions
-        let setupActions = [];
-        for (let i = 0; i < action_graph.setupActionsLength(); ++i) {
-            const aid = buildActionID(i, ActionClass.SetupAction);
-            const a = action_graph.setupActions(i)!;
-            setupActions.push(resolveSetupActionLogic(aid, a)!);
+        let actionInfos: Action[] = [];
+        let setupLogic = [];
+        for (let i = 0; i < graph.setupActionsLength(); ++i) {
+            const actionId = buildActionID(i, ActionClass.SetupAction);
+            const a = graph.setupActions(i)!;
+            setupLogic.push(resolveSetupActionLogic(actionId, a)!);
+            actionInfos.push({
+                actionId: actionId,
+                actionType: a.actionType(),
+                statusCode: a.actionStatusCode(),
+                blocker: null,
+                dependsOn: a.dependsOnArray() || new Uint32Array(),
+                requiredFor: a.requiredForArray() || new Uint32Array(),
+                originStatement: null,
+                objectId: a.objectId(),
+                targetNameQualified: a.targetNameQualified() || "",
+                targetNameShort: a.targetNameQualified() || "",
+                script: null,
+                timeCreated: now,
+                timeScheduled: null,
+                timeLastUpdate: now,
+            });
         }
-        this._setupActions.reset(setupActions);
+        this._setupActions.reset(setupLogic);
 
         // Translate the program actions
-        let programActions = [];
-        for (let i = 0; i < action_graph.programActionsLength(); ++i) {
-            const aid = buildActionID(i, ActionClass.ProgramAction);
-            const a = action_graph.programActions(i)!;
+        let programLogic = [];
+        for (let i = 0; i < graph.programActionsLength(); ++i) {
+            const actionId = buildActionID(i, ActionClass.ProgramAction);
+            const a = graph.programActions(i)!;
             const s = program.getStatement(a.originStatement());
-            programActions.push(resolveProgramActionLogic(aid, a, s)!);
+            programLogic.push(resolveProgramActionLogic(actionId, a, s)!);
+            actionInfos.push({
+                actionId: actionId,
+                actionType: a.actionType(),
+                statusCode: a.actionStatusCode(),
+                blocker: null,
+                dependsOn: a.dependsOnArray() || new Uint32Array(),
+                requiredFor: a.requiredForArray() || new Uint32Array(),
+                originStatement: a.originStatement(),
+                objectId: a.objectId(),
+                targetNameQualified: a.targetNameQualified() || "",
+                targetNameShort: a.targetNameQualified() || "",
+                script: a.script(),
+                timeCreated: now,
+                timeScheduled: null,
+                timeLastUpdate: now,
+            });
         }
-        this._programActions.reset(programActions);
+        this._programActions.reset(programLogic);
+
+        // Set all actions in the store
+        ctx.platform.state.dispatch(StateMutations.setPlanActions(actionInfos));
     }
 
     /// Interrupt the scheduler
@@ -227,6 +266,7 @@ export class ActionGraphScheduler {
 
     /// Execute the entire action graph
     public async execute(ctx: ActionContext) {
+        // Execute the actions
         const diff = new NativeStack(64);
         await this.executeActions(ctx, diff, this._setupActions);
         diff.clear();
