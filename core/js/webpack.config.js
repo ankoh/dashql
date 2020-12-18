@@ -1,6 +1,7 @@
 const path = require('path');
 const webpack = require('webpack');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
 
 const browserTarget = {
     target: 'web',
@@ -41,6 +42,30 @@ const browserTarget = {
             }
         ]
     },
+    optimization: {
+        moduleIds: 'deterministic',
+        splitChunks: {
+            chunks: 'async',
+            minSize: 20000,
+            minRemainingSize: 0,
+            minChunks: 1,
+            maxAsyncRequests: 30,
+            maxInitialRequests: 30,
+            automaticNameDelimiter: '~',
+            enforceSizeThreshold: 50000,
+            cacheGroups: {
+                vendors: {
+                    test: /[\\/]node_modules[\\/]/,
+                    priority: -10,
+                },
+                default: {
+                    minChunks: 2,
+                    priority: -20,
+                    reuseExistingChunk: true,
+                }
+            }
+        }
+    },
     plugins: [
         new CleanWebpackPlugin({
             root: "./dist",
@@ -67,6 +92,13 @@ const nodeTarget = {
             cleanOnceAfterBuildPatterns: [],
             verbose: true,
         }),
+        new CompressionPlugin({
+            filename: "[path][base].gz",
+            algorithm: 'gzip',
+            test: /\.js$|\.css$|\.html$|\.eot$|\.ttf$|\.woff$|\.svg$|\.json$|\.wasm$/,
+            threshold: 10240,
+            minRatio: 0.8
+        })
     ],
 };
 nodeTarget.module.rules[0] = {
