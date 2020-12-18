@@ -28,7 +28,7 @@ export interface Action {
     /// The action id
     actionId: ActionID;
     /// The setup action
-    actionType: proto.action.SetupActionType;
+    actionType: proto.action.SetupActionType | proto.action.ProgramActionType;
     /// The status code
     statusCode: proto.action.ActionStatusCode;
     /// The blocker
