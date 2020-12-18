@@ -5,6 +5,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
 
 /// IMPORTANT
 ///
@@ -99,21 +100,26 @@ function configure(params) {
         optimization: {
             moduleIds: 'deterministic',
             splitChunks: {
-                chunks: 'all',
-                minSize: 30000,
+                chunks: 'async',
+                minSize: 20000,
+                minRemainingSize: 0,
                 minChunks: 1,
-                maxAsyncRequests: 5,
-                maxInitialRequests: 3,
+                maxAsyncRequests: 30,
+                maxInitialRequests: 30,
+                automaticNameDelimiter: '~',
+                enforceSizeThreshold: 50000,
                 cacheGroups: {
                     vendors: {
                         test: /[\\/]node_modules[\\/]/,
+                        name: "vendors",
                         priority: -10,
                     },
                     default: {
+                        name: "default",
                         minChunks: 2,
                         priority: -20,
                         reuseExistingChunk: true,
-                    }
+                    },
                 }
             }
         },
@@ -138,6 +144,13 @@ function configure(params) {
             new webpack.DefinePlugin({
                 // Referenced by react-flow...
                 'process.env.FORCE_SIMILAR_INSTEAD_OF_MAP': JSON.stringify(process.env.FORCE_SIMILAR_INSTEAD_OF_MAP)
+            }),
+            new CompressionPlugin({
+                filename: "[path][base].gz",
+                algorithm: 'gzip',
+                test: /\.js$|\.css$|\.html$|\.eot$|\.ttf$|\.woff$|\.svg$|\.json$|\.wasm$/,
+                threshold: 10240,
+                minRatio: 0.8
             })
         ]
     };
