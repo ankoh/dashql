@@ -1,6 +1,8 @@
+import * as proto from "@dashql/proto";
 import * as Immutable from "immutable";
 import { LogEntry } from "./log";
 import { Plan } from "./plan";
+import { ActionID, Action, ActionUpdate, ActionLogEntry } from "./action";
 import { PlanObjectID, PlanObject } from "./plan_object";
 import { Program } from "./program";
 import { CoreState } from "./state";
@@ -18,9 +20,10 @@ export enum StateMutationType {
     LOG_PUSH_ENTRY          = 'LOG_PUSH_ENTRY',
     SET_PROGRAM             = 'SET_PROGRAM',
     SET_PLAN                = 'SET_PLAN',
+    SET_PLAN_ACTIONS        = 'SET_PLAN_ACTIONS',
+    UPDATE_PLAN_ACTIONS     = 'UPDATE_PLAN_ACTIONS',
     INSERT_PLAN_OBJECTS     = 'INSERT_PLAN_OBJECTS',
     DELETE_PLAN_OBJECTS     = 'DELETE_PLAN_OBJECTS',
-    DELETE_PLAN             = 'DELETE_PLAN',
     OTHER                   = 'OTHER',
 }
 
@@ -28,10 +31,11 @@ export enum StateMutationType {
 export type StateMutationVariant =
       StateMutation<StateMutationType.LOG_PUSH_ENTRY, LogEntry>
     | StateMutation<StateMutationType.SET_PROGRAM, [string, Program]>
-    | StateMutation<StateMutationType.SET_PLAN, Plan>
+    | StateMutation<StateMutationType.SET_PLAN, Plan | null>
+    | StateMutation<StateMutationType.SET_PLAN_ACTIONS, Action[]>
+    | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
-    | StateMutation<StateMutationType.DELETE_PLAN, {}>
     ;
 
 export type StateMutationDispatcher = (mutation: StateMutationVariant) => void;
@@ -50,7 +54,7 @@ export class StateMutations {
     }
 
     public static clearPlan(): StateMutationVariant {
-        return { type: StateMutationType.DELETE_PLAN, payload: {} };
+        return { type: StateMutationType.SET_PLAN, payload: null };
     }
 
     public static reduce(
@@ -77,7 +81,36 @@ export class StateMutations {
             case StateMutationType.SET_PLAN:
                 return {
                     ...state,
-                    plan: mutation.payload
+                    plan: mutation.payload,
+                    planActions: Immutable.Map<ActionID, Action>(),
+                    planActionLog: Immutable.List<ActionLogEntry>(),
+                };
+            case StateMutationType.SET_PLAN_ACTIONS:
+                return {
+                    ...state,
+                    planActions: Immutable.Map<ActionID, Action>(mutation.payload.map(a => [a.actionId, a]))
+                };
+            case StateMutationType.UPDATE_PLAN_ACTIONS:
+                return {
+                    ...state,
+                    planActions: state.planActions.withMutations(actions => {
+                        let now = new Date();
+                        for (const update of mutation.payload) {
+                            let a = actions.get(update.actionId);
+                            if (!a) {
+                                console.warn("UPDATE_ACTIONS refers to unknown action id: " + update.actionId);
+                                continue;
+                            }
+                            actions.set(update.actionId, {
+                                ...a,
+                                statusCode: update.statusCode,
+                                blocker: update.blocker,
+                                timeScheduled: a.timeCreated || now,
+                                timeLastUpdate: now,
+                                errorMessage: update.errorMessage
+                            });
+                        }
+                    })
                 };
             case StateMutationType.INSERT_PLAN_OBJECTS:
                 return {
@@ -94,12 +127,6 @@ export class StateMutations {
                     planObjects: state.planObjects.withMutations(os => {
                         os.deleteAll(mutation.payload);
                     })
-                };
-            case StateMutationType.DELETE_PLAN:
-                return {
-                    ...state,
-                    plan: null,
-                    planObjects: Immutable.Map<PlanObjectID, PlanObject>(),
                 };
             default:
                 return state;

@@ -32,7 +32,7 @@ export interface Action {
     /// The status code
     statusCode: proto.action.ActionStatusCode;
     /// The blocker
-    blocker: proto.action.ActionBlocker;
+    blocker: proto.action.ActionBlocker | null;
 
     /// The dependencies
     dependsOn: Uint32Array;
@@ -56,8 +56,6 @@ export interface Action {
     timeScheduled: Date | null;
     /// The time of the last update
     timeLastUpdate: Date | null;
-    /// The time when completed
-    timeCompleted: Date | null;
 
     /// The error message (if any)
     errorMessage: string | null;
@@ -67,3 +65,14 @@ export interface ActionLogEntry extends LogEntry {
     /// The action id
     actionId: ActionID;
 }
+
+export interface ActionUpdate {
+    /// The action id
+    actionId: ActionID;
+    /// The status code
+    statusCode: proto.action.ActionStatusCode;
+    /// The blocker (if any)
+    blocker: proto.action.ActionBlocker | null;
+    /// The error message (if any)
+    errorMessage: string | null;
+};
