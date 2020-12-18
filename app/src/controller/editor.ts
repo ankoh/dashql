@@ -29,7 +29,7 @@ export class EditorController {
         }
         const p = this._core.parseProgram(input);
         this.displayErrors(p);
-        this._store.dispatch(core.model.StateMutation.setProgram(input, p));
+        this._store.dispatch(core.model.StateMutations.setProgram(input, p));
     }
 
     /// Display module errors

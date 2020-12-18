@@ -1,6 +1,6 @@
 import * as proto from "@dashql/proto";
-import { Statement } from "../model";
-import { ActionID, ProgramActionLogic } from "./action_logic";
+import { ActionID, Statement } from "../model";
+import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 
 export class ExtractJsonActionLogic extends ProgramActionLogic {

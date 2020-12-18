@@ -1,4 +1,4 @@
-import { ActionVariant } from './state_mutation';
+import { StateMutationVariant } from './state_mutation';
 import { AppState } from './state';
 import { Store } from 'redux';
 
@@ -9,7 +9,7 @@ export * from './state';
 export * from './state_mutation';
 
 // The action dispatch
-export type Dispatch = (action: ActionVariant) => void;
+export type Dispatch = (mutation: StateMutationVariant) => void;
 // The store type
 export type AppReduxStore = Store<AppState>;
 

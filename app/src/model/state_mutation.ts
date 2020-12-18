@@ -2,38 +2,38 @@ import { model } from "@dashql/core";
 import { AppState } from "./state";
 import { AppSettings } from "./settings";
 
-/// An action type
-export enum ActionType {
+/// A mutation type
+export enum StateMutationType {
     CONFIGURE_APP           = 'CONFIGURE_APP',
     OTHER                   = 'OTHER',
 }
 
-/// An action variant
-export type ActionVariant =
-    | model.Action<ActionType.CONFIGURE_APP, AppSettings>
-    | model.ActionVariant
+/// An state mutation variant
+export type StateMutationVariant =
+    | model.StateMutation<StateMutationType.CONFIGURE_APP, AppSettings>
+    | model.StateMutationVariant
     ;
 
 /// Mutation of the application state
 export class AppStateMutation {
     /// Configure the application
-    public static configureApp(config: AppSettings): ActionVariant {
-        return { type: ActionType.CONFIGURE_APP, payload: config };
+    public static configureApp(config: AppSettings): StateMutationVariant {
+        return { type: StateMutationType.CONFIGURE_APP, payload: config };
     }
 
     /// Set the editor program
     public static reduce(
         state: AppState = new AppState(),
-        action: ActionVariant,
+        mutation: StateMutationVariant,
     ): AppState {
-        switch (action.type) {
-            case ActionType.CONFIGURE_APP:
+        switch (mutation.type) {
+            case StateMutationType.CONFIGURE_APP:
                 return {
                     ...state,
-                    appSettings: action.payload,
+                    appSettings: mutation.payload,
                 };
             default: {
-                const s = model.StateMutation.reduce(state.core, action);
+                const s = model.StateMutations.reduce(state.core, mutation);
                 return s === state.core ? state : {
                     ...state,
                     core: s 

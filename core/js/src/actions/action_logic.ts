@@ -1,8 +1,6 @@
 import * as proto from "@dashql/proto";
-import { Statement } from "../model";
+import { ActionID, Statement } from "../model";
 import { ActionContext } from "./action_context";
-
-export type ActionID = number;
 
 export interface ProtoAction {
     actionStatusCode(): proto.action.ActionStatusCode;

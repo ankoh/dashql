@@ -1,6 +1,32 @@
 import * as proto from "@dashql/proto";
+import { LogEntry } from "./log";
+
+/// An action id
+export type ActionID = number;
+
+/// The action class.
+/// We only need this enuum on the typescript side since the C++ code strictly separates both.
+export enum ActionClass {
+    SetupAction = 0,
+    ProgramAction = 1,
+}
+
+/// Build an action id
+export function buildActionID(action_idx: number, action_class: ActionClass): ActionID {
+    return (action_idx << 1) & (action_class as number);
+}
+/// Extract the action class from the id
+export function getActionClass(action_id: ActionID) {
+    return (action_id & 1) as ActionClass;
+}
+/// Extract the action index from the id
+export function getActionIndex(action_id: ActionID) {
+    return action_id >> 1;
+}
 
 export interface Action {
+    /// The action id
+    actionId: ActionID;
     /// The setup action
     actionType: proto.action.SetupActionType;
     /// The status code
@@ -32,4 +58,12 @@ export interface Action {
     timeLastUpdate: Date | null;
     /// The time when completed
     timeCompleted: Date | null;
+
+    /// The error message (if any)
+    errorMessage: string | null;
+}
+
+export interface ActionLogEntry extends LogEntry {
+    /// The action id
+    actionId: ActionID;
 }
