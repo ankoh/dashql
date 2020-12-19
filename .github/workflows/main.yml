@@ -96,11 +96,17 @@ jobs:
       with:
         script: |-
             llvm-profdata merge \
-                -sparse ./lib.profraw \
-                -o ./coverage.profdata
+                -sparse ./reports/lib.profraw \
+                -o ./reports/lib.profdata
             llvm-cov report ./lib/build/coverage/tester \
-                --instr-profile ./coverage.profdata \
+                --instr-profile ./reports/lib.profdata \
                 -ignore-filename-regex submodules
+
+    - uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./reports/lib.profdata
+        flags: unittests
 
   linux_x86_release:
     name: Linux / x86 / Release
@@ -246,8 +252,7 @@ jobs:
     - uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        directory: ./reports
-        files: coverage_core.json,coverage_webdb.json
+        files: ./reports/coverage_core.json,./reports/coverage_webdb.json
         flags: unittests
 
   plugins:
