@@ -243,6 +243,13 @@ jobs:
             npm ci --no-optional --cache /mnt/npm_cache
             npm run build:release
 
+    - uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: ./reports
+        files: coverage_core.json,coverage_webdb.json
+        flags: unittests
+
   plugins:
     name: Plugins
     runs-on: self-hosted
