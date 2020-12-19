@@ -98,14 +98,15 @@ jobs:
             llvm-profdata merge \
                 -sparse ./reports/lib.profraw \
                 -o ./reports/lib.profdata
-            llvm-cov report ./lib/build/coverage/tester \
+            llvm-cov show \
                 --instr-profile ./reports/lib.profdata \
-                -ignore-filename-regex submodules
+                -ignore-filename-regex submodules \
+                > ./reports/coverage_lib.txt
 
     - uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./reports/lib.profdata
+        files: ./reports/coverage_lib.txt
         flags: unittests
 
   linux_x86_release:
