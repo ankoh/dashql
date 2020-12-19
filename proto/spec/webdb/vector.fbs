@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace duckdb.web.proto;
+namespace dashql.proto.webdb;
 
 // A 128-bit integer
 struct I128 {
@@ -12,7 +12,7 @@ struct I128 {
 struct Interval {
     months: int32;
     days: int32;
-    msecs: int64;
+    micros: int64;
 }
 
 // Typed vectors

@@ -1,15 +1,13 @@
 #include <cstdint>
 
-#include "duckdb/web/common/ffi_response.h"
 #include "dashql/common/blob_stream.h"
+#include "dashql/common/ffi_response.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "dashql/session.h"
 #include "flatbuffers/flatbuffers.h"
 
 using namespace dashql;
-using FFIResponse = duckdb::web::FFIResponse;
-using FFIResponseBuffer = duckdb::web::FFIResponseBuffer;
 using BlobStreamBuffer = dashql::BlobStreamBuffer;
 
 namespace {
@@ -39,14 +37,14 @@ void dashql_parse_program(FFIResponse* response, const char* text) {
     GetResponseBuffer().Clear();
     auto& session = GetSession();
     auto program = session.ParseProgram(text);
-    GetResponseBuffer().Store(*response, move(program));
+    GetResponseBuffer().Store(*response, std::move(program));
 }
 
 void dashql_plan_program(FFIResponse* response) {
     GetResponseBuffer().Clear();
     auto& session = GetSession();
     auto plan = session.PlanProgram();
-    GetResponseBuffer().Store(*response, move(plan));
+    GetResponseBuffer().Store(*response, std::move(plan));
 }
 
 size_t dashql_pong();

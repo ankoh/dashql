@@ -2,16 +2,17 @@
 
 #include <iostream>
 
-#include "duckdb/web/common/ffi_response.h"
-#include "duckdb/web/common/span.h"
-#include "duckdb/web/webdb.h"
+#include "dashql/common/ffi_response.h"
+#include "dashql/common/span.h"
+#include "dashql/webdb/webdb.h"
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/idl.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
 namespace fb = flatbuffers;
-using namespace duckdb::web;
+using namespace dashql;
+using namespace dashql::webdb;
 
 namespace {
 

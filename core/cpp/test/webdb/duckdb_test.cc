@@ -3,15 +3,16 @@
 #include <sstream>
 
 #include "dashql/proto_generated.h"
-#include "duckdb/web/webdb.h"
-#include "duckdb/web/iterator.h"
+#include "dashql/webdb/webdb.h"
+#include "dashql/webdb/iterator.h"
 #include "gtest/gtest.h"
 
 #include "duckdb/common/vector_size.hpp"
 #include "duckdb/common/types.hpp"
 
-using namespace duckdb::web;
+using namespace dashql::webdb;
 using namespace std;
+namespace p = dashql::proto::webdb;
 
 namespace {
 
@@ -22,7 +23,7 @@ TEST(DuckDBTests, Settings) {
 
 TEST(DuckDBTests, SQLTypeIDs) {
     using dt = duckdb::LogicalTypeId;
-    using pt = proto::SQLTypeID;
+    using pt = p::SQLTypeID;
 
     ASSERT_EQ(static_cast<uint8_t>(dt::INVALID), static_cast<uint8_t>(pt::INVALID));
     ASSERT_EQ(static_cast<uint8_t>(dt::SQLNULL), static_cast<uint8_t>(pt::SQLNULL));

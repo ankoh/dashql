@@ -8,7 +8,7 @@
 #include <optional>
 #include "dashql/parser/parser.h"
 #include "dashql/proto_generated.h"
-#include "duckdb/web/common/span.h"
+#include "dashql/common/span.h"
 
 namespace sx = dashql::proto::syntax;
 
