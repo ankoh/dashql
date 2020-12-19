@@ -88,18 +88,15 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
-            export LLVM_PROFILE_FILE=./core.profraw
+            export LLVM_PROFILE_FILE=./lib.profraw
             ./lib/build/coverage/tester ./lib/
 
     - name: Code Coverage
       uses: ./ci/image
       with:
         script: |-
-            llvm-profdata merge \
-                -sparse ./core.profraw ./webdb.profraw \
-                -o ./main.profdata
             llvm-cov report ./lib/build/coverage/tester \
-                --instr-profile ./main.profdata \
+                --instr-profile ./lib.profdata \
                 -ignore-filename-regex submodules
 
   linux_x86_release:
