@@ -5,7 +5,7 @@ include(ExternalProject)
 # Build gtest
 ExternalProject_Add(
     gtest_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../submodules/googletest/googletest"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/googletest/googletest"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/gtest"
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}
@@ -25,7 +25,7 @@ ExternalProject_Add(
 # Build gmock
 ExternalProject_Add(
     gmock_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../submodules/googletest/googlemock"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/googletest/googlemock"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/gmock"
     CMAKE_ARGS
         -G${CMAKE_GENERATOR}

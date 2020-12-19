@@ -5,7 +5,7 @@ include(ExternalProject)
 # Flatbuffers library
 ExternalProject_Add(
     flatbuffers_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../submodules/flatbuffers"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/flatbuffers"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/flatbuffers"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/flatbuffers/install"
     CMAKE_ARGS

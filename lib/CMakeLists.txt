@@ -7,7 +7,7 @@ if (POLICY CMP0048)
     cmake_policy(SET CMP0048 NEW)
 endif (POLICY CMP0048)
 
-project(dashql_core VERSION 0.1)
+project(dashql VERSION 0.1)
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -70,7 +70,7 @@ endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
-set(DUCKDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../submodules/duckdb")
+set(DUCKDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/duckdb")
 set(DUCKDB_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/src/include")
 set(DUCKDB_UTF8PROC_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/utf8proc/include")
 set(DUCKDB_AMALGAMATION "${DUCKDB_SOURCE_DIR}/src/amalgamation/duckdb.cpp")
@@ -83,7 +83,7 @@ add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}
 # ---------------------------------------------------------------------------
 # Proto
 
-add_subdirectory("${CMAKE_SOURCE_DIR}/../../proto" "${CMAKE_BINARY_DIR}/proto/")
+add_subdirectory("${CMAKE_SOURCE_DIR}/../proto" "${CMAKE_BINARY_DIR}/proto/")
 
 # ---------------------------------------------------------------------------
 # Headers
@@ -240,7 +240,7 @@ target_link_libraries(dashql_parser dashql_proto)
 # ---------------------------------------------------------------------------
 # Libraries
 
-add_library(dashql_core
+add_library(dashql
     ${CMAKE_SOURCE_DIR}/src/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/common/blob_stream.cc
     ${CMAKE_SOURCE_DIR}/src/common/pattern_search.cc
@@ -268,14 +268,14 @@ add_library(dashql_test
 )
 
 target_link_libraries(dashql_webdb dashql_proto spdlog)
-target_link_libraries(dashql_core dashql_parser dashql_webdb dashql_proto)
-target_link_libraries(dashql_test dashql_core dashql_proto pugixml gtest)
+target_link_libraries(dashql dashql_parser dashql_webdb dashql_proto)
+target_link_libraries(dashql_test dashql dashql_proto pugixml gtest)
 
 # ---------------------------------------------------------------------------
 # Emscripten
 
-add_executable(dashql_core_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-target_link_libraries(dashql_core_ffi dashql_core dashql_webdb dashql_proto spdlog)
+add_executable(dashql_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
+target_link_libraries(dashql_ffi dashql dashql_webdb dashql_proto spdlog)
 
 # We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
 if (EMSCRIPTEN)
@@ -310,11 +310,11 @@ if (EMSCRIPTEN)
     )
 
     add_executable(core_wasm_web ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-    target_link_libraries(core_wasm_web dashql_core duckdb_ffi)
+    target_link_libraries(core_wasm_web dashql duckdb_ffi)
     set_target_properties(core_wasm_web PROPERTIES LINK_FLAGS "${CORE_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
     add_executable(core_wasm_node ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-    target_link_libraries(core_wasm_node dashql_core duckdb_ffi)
+    target_link_libraries(core_wasm_node dashql duckdb_ffi)
     set_target_properties(core_wasm_node PROPERTIES LINK_FLAGS "${CORE_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 
     set(DUCKDB_WASM_LINKER_FLAGS " \
@@ -368,7 +368,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     target_link_libraries(tester
-        dashql_core
+        dashql
         dashql_test
         dashql_proto
         flatbuffers gtest gmock
@@ -379,7 +379,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/testgen.cc
     )
     target_link_libraries(testgen
-        dashql_core
+        dashql
         dashql_test
         dashql_proto
         pugixml
