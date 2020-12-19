@@ -51,7 +51,7 @@
     },
     "jest-junit": {
         "suiteName": "Javascript",
-        "outputDirectory": "../../reports",
+        "outputDirectory": "../reports",
         "outputName": "tests_js.xml",
         "uniqueOutputName": "false",
         "classNameTemplate": "{classname}",
