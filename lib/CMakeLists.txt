@@ -374,7 +374,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     target_link_libraries(tester
-        dashql
+        dashql_core
         dashql_test
         dashql_proto
         flatbuffers gtest gmock
@@ -385,7 +385,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/testgen.cc
     )
     target_link_libraries(testgen
-        dashql
+        dashql_core
         dashql_test
         dashql_proto
         pugixml
