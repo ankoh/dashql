@@ -7,12 +7,12 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "dashql/common/error.h"
 #include "dashql/common/hash.h"
 #include "dashql/common/variant.h"
 #include "dashql/parser/grammar/nodes.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
-#include "duckdb/web/common/error.h"
 
 namespace fb = flatbuffers;
 

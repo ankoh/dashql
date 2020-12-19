@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace duckdb.web.proto;
+namespace dashql.proto.webdb;
 
 enum StatusCode: uint8 {
     SUCCESS = 0,

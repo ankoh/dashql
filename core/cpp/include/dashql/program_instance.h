@@ -10,7 +10,7 @@
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
-#include "duckdb/web/webdb.h"
+#include "dashql/webdb/webdb.h"
 
 namespace dashql {
 
@@ -55,7 +55,7 @@ class ProgramInstance {
     /// Get the text at a location
     std::string_view TextAt(sx::Location loc) const { return std::string_view{*program_text_}.substr(loc.offset(), loc.length()); }
     /// Evaluate the program partially
-    Signal EvaluatePartially(duckdb::web::WebDB& database);
+    Signal EvaluatePartially(webdb::WebDB& database);
     /// Render the statement text
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
 

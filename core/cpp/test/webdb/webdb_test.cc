@@ -3,15 +3,16 @@
 #include <sstream>
 
 #include "dashql/proto_generated.h"
-#include "duckdb/web/webdb.h"
-#include "duckdb/web/iterator.h"
+#include "dashql/webdb/iterator.h"
+#include "dashql/webdb/webdb.h"
 #include "gtest/gtest.h"
 
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/timestamp.hpp"
 
-using namespace duckdb::web;
+using namespace dashql::webdb;
 using namespace std;
+namespace p = dashql::proto::webdb;
 
 namespace {
 

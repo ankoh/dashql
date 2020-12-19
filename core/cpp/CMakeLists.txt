@@ -66,10 +66,24 @@ if(CODE_COVERAGE)
 endif()
 
 # ---------------------------------------------------------------------------
-# Add subdirectories
+# DuckDB
+
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+set(DUCKDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../submodules/duckdb")
+set(DUCKDB_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/src/include")
+set(DUCKDB_UTF8PROC_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/utf8proc/include")
+set(DUCKDB_AMALGAMATION "${DUCKDB_SOURCE_DIR}/src/amalgamation/duckdb.cpp")
+
+add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}
+    COMMAND ${Python3_EXECUTABLE} "${DUCKDB_SOURCE_DIR}/scripts/amalgamation.py"
+    WORKING_DIRECTORY "${DUCKDB_SOURCE_DIR}"
+)
+
+# ---------------------------------------------------------------------------
+# Proto
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/../../proto" "${CMAKE_BINARY_DIR}/proto/")
-add_subdirectory("${CMAKE_SOURCE_DIR}/../../duckdb/cpp/" "${CMAKE_BINARY_DIR}/duckdb/")
 
 # ---------------------------------------------------------------------------
 # Headers
@@ -77,10 +91,8 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/../../duckdb/cpp/" "${CMAKE_BINARY_DIR}/du
 include_directories(
     "${CMAKE_SOURCE_DIR}/include"
     "${CMAKE_BINARY_DIR}/include"
-    "${CMAKE_SOURCE_DIR}/../../duckdb/cpp/include"
-    "${CMAKE_BINARY_DIR}/duckdb/include"
     "${DUCKDB_INCLUDE_DIR}"
-    "${UTF8PROC_INCLUDE_DIR}"
+    "${DUCKDB_UTF8PROC_INCLUDE_DIR}"
 )
 
 # ---------------------------------------------------------------------------
@@ -241,7 +253,13 @@ add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/session.cc
 )
 
-target_link_libraries(dashql_core dashql_parser dashql_proto duckdb_webdb)
+add_library(dashql_webdb
+    ${DUCKDB_AMALGAMATION}
+    ${CMAKE_SOURCE_DIR}/src/webdb/webdb.cc
+    ${CMAKE_SOURCE_DIR}/src/webdb/codec.cc
+    ${CMAKE_SOURCE_DIR}/src/webdb/iterator.cc
+    ${CMAKE_SOURCE_DIR}/src/webdb/json.cc
+)
 
 add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/action_graph_tests.cc
@@ -249,17 +267,28 @@ add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
+target_link_libraries(dashql_webdb dashql_proto spdlog)
+target_link_libraries(dashql_core dashql_parser dashql_webdb dashql_proto)
 target_link_libraries(dashql_test dashql_core dashql_proto pugixml gtest)
 
 # ---------------------------------------------------------------------------
 # Emscripten
 
-add_executable(duckdb_core_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-target_link_libraries(duckdb_core_ffi dashql_core duckdb_webdb dashql_proto spdlog)
+add_executable(dashql_core_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
+target_link_libraries(dashql_core_ffi dashql_core dashql_webdb dashql_proto spdlog)
 
 # We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
 if (EMSCRIPTEN)
-    set(EM_LINKER_FLAGS " \
+    set(WEBDB_INTERFACE " \
+        _dashql_webdb_connect, \
+        _dashql_webdb_disconnect, \
+        _dashql_webdb_run_query, \
+        _dashql_webdb_send_query, \
+        _dashql_webdb_fetch_query_results, \
+        _dashql_webdb_analyze_query \
+    ")
+
+    set(CORE_WASM_LINKER_FLAGS " \
         -s LLD_REPORT_UNDEFINED=1 \
         -s WARN_ON_UNDEFINED_SYMBOLS=0 \
         -s USE_PTHREADS=0 \
@@ -274,7 +303,7 @@ if (EMSCRIPTEN)
             _dashql_clear_response, \
             _dashql_parse_program, \
             _dashql_plan_program, \
-            ${DUCKDB_WEB_CONNECTION_INTERFACE} \
+            ${WEBDB_INTERFACE}
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
@@ -282,12 +311,39 @@ if (EMSCRIPTEN)
 
     add_executable(core_wasm_web ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
     target_link_libraries(core_wasm_web dashql_core duckdb_ffi)
-    set_target_properties(core_wasm_web PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='web'")
+    set_target_properties(core_wasm_web PROPERTIES LINK_FLAGS "${CORE_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
     add_executable(core_wasm_node ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
     target_link_libraries(core_wasm_node dashql_core duckdb_ffi)
-    set_target_properties(core_wasm_node PROPERTIES LINK_FLAGS "${EM_LINKER_FLAGS} -s ENVIRONMENT='node'")
+    set_target_properties(core_wasm_node PROPERTIES LINK_FLAGS "${CORE_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 
+    set(DUCKDB_WASM_LINKER_FLAGS " \
+        -s LLD_REPORT_UNDEFINED=1 \
+        -s WARN_ON_UNDEFINED_SYMBOLS=0 \
+        -s USE_PTHREADS=0 \
+        -s DISABLE_EXCEPTION_CATCHING=0 \
+        -s MODULARIZE=1 \
+        -s EXPORT_NAME='DashQLCore' \
+        -s EXPORTED_FUNCTIONS='[ \
+            _main, \
+            _malloc, \
+            _free, \
+            _dashql_clear_response, \
+            ${WEBDB_INTERFACE}
+        ]' \
+        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
+        "
+    )
+
+    add_executable(webdb_wasm_web ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc)
+    target_compile_definitions(duckdb_web PUBLIC WITH_WEBDB_MAIN)
+    target_link_libraries(duckdb_web dashql_webdb flatbuffers spdlog)
+    set_target_properties(duckdb_web PROPERTIES LINK_FLAGS "${DUCKDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
+
+    add_executable(webdb_wasm_node ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc)
+    target_compile_definitions(duckdb_node PUBLIC WITH_WEBDB_MAIN)
+    target_link_libraries(duckdb_node dashql_webdb flatbuffers spdlog)
+    set_target_properties(duckdb_node PROPERTIES LINK_FLAGS "${DUCKDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
 
 
@@ -306,6 +362,9 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/grammar_test_suite.cc
         ${CMAKE_SOURCE_DIR}/test/program_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/session_test.cc
+        ${CMAKE_SOURCE_DIR}/test/webdb/duckdb_test.cc
+        ${CMAKE_SOURCE_DIR}/test/webdb/iterator_test.cc
+        ${CMAKE_SOURCE_DIR}/test/webdb/webdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     target_link_libraries(tester
@@ -327,4 +386,20 @@ if(NOT EMSCRIPTEN)
         flatbuffers gtest gmock
         Threads::Threads
     )
+endif()
+
+# ---------------------------------------------------------------------------
+# Benchmarks
+
+if(NOT EMSCRIPTEN)
+
+    add_executable(bm_result_codec
+        ${CMAKE_SOURCE_DIR}/bench/bm_result_codec.cc
+    )
+    target_link_libraries(bm_result_codec
+        dashql_webdb
+        dashql_proto
+        benchmark
+        flatbuffers gtest gmock Threads::Threads)
+
 endif()

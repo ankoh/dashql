@@ -3,8 +3,8 @@
 #include <sstream>
 
 #include "dashql/proto_generated.h"
-#include "duckdb/web/webdb.h"
-#include "duckdb/web/iterator.h"
+#include "dashql/webdb/iterator.h"
+#include "dashql/webdb/webdb.h"
 #include "gtest/gtest.h"
 
 #include "duckdb/common/types/date.hpp"
@@ -14,8 +14,9 @@
 #include "duckdb/common/operator/add.hpp"
 
 using namespace duckdb;
-using namespace duckdb::web;
+using namespace dashql::webdb;
 using namespace std;
+namespace p = dashql::proto::webdb;
 
 namespace {
 
@@ -29,7 +30,7 @@ TEST(QueryResultIterator, BoolColumn) {
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::BOOLEAN);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::BOOLEAN);
     QueryResultIterator iter{conn, result};
     for (unsigned i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd());
@@ -49,7 +50,7 @@ TEST(QueryResultIterator, TinyIntColumn) {
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::TINYINT);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::TINYINT);
     QueryResultIterator iter{conn, result};
     for (unsigned i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd());
@@ -69,7 +70,7 @@ TEST(QueryResultIterator, SmallIntColumn) {
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::SMALLINT);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::SMALLINT);
     QueryResultIterator iter{conn, result};
     for (unsigned i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd());
@@ -89,7 +90,7 @@ TEST(QueryResultIterator, IntegerColumn) {
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::INTEGER);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::INTEGER);
     QueryResultIterator iter{conn, result};
     for (unsigned i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd());
@@ -109,7 +110,7 @@ TEST(QueryResultIterator, BigIntColumn) {
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::BIGINT);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::BIGINT);
     QueryResultIterator iter{conn, result};
     for (unsigned i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd());
@@ -129,7 +130,7 @@ TEST(QueryResultIterator, FloatColumn) {
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::FLOAT);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::FLOAT);
     QueryResultIterator iter{conn, result};
     for (unsigned i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd());
@@ -149,7 +150,7 @@ TEST(QueryResultIterator, VarcharColumn) {
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::VARCHAR);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::VARCHAR);
     QueryResultIterator iter{conn, result};
     for (unsigned i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd());
@@ -170,7 +171,7 @@ TEST(QueryResultIterator, DateColumn) {
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::DATE);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::DATE);
     QueryResultIterator iter{conn, result};
     for (int32_t i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd()) << "i=" << i;
@@ -186,13 +187,13 @@ TEST(QueryResultIterator, TimeColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
     auto expected = conn.SendQuery(R"RAW(
-        SELECT TIME '01:00:00' + CAST(CONCAT(MOD(v, 1000)::VARCHAR, ' millisecond') AS INTERVAL) FROM generate_series(0, 10000) AS t(v);
+        SELECT TIME '01:00:00' + CAST(CONCAT(MOD(v, 1000)::VARCHAR, ' microsecond') AS INTERVAL) FROM generate_series(0, 10000) AS t(v);
     )RAW");
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::TIME);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::TIME);
     QueryResultIterator iter{conn, result};
     for (int32_t i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd()) << "i=" << i;
@@ -207,13 +208,13 @@ TEST(QueryResultIterator, TimestampColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
     auto expected = conn.SendQuery(R"RAW(
-        SELECT TIMESTAMP '2020-10-09 01:00:00' + CAST(CONCAT(MOD(v, 1000)::VARCHAR, ' millisecond') AS INTERVAL) FROM generate_series(0, 10000) AS t(v);
+        SELECT TIMESTAMP '2020-10-09 01:00:00' + CAST(CONCAT(MOD(v, 1000)::VARCHAR, ' microsecond') AS INTERVAL) FROM generate_series(0, 10000) AS t(v);
     )RAW");
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::TIMESTAMP);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::TIMESTAMP);
     QueryResultIterator iter{conn, result};
     for (int32_t i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd()) << "i=" << i;
@@ -230,13 +231,13 @@ TEST(QueryResultIterator, IntervalColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
     auto expected = conn.SendQuery(R"RAW(
-        SELECT CAST(CONCAT(MOD(v, 1000)::VARCHAR, ' millisecond') AS INTERVAL) FROM generate_series(0, 10000) AS t(v);
+        SELECT CAST(CONCAT(MOD(v, 1000)::VARCHAR, ' microsecond') AS INTERVAL) FROM generate_series(0, 10000) AS t(v);
     )RAW");
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
     ASSERT_EQ(result.column_types()->size(), 1);
-    ASSERT_EQ(result.column_types()->Get(0)->type_id(), proto::SQLTypeID::INTERVAL);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::INTERVAL);
     QueryResultIterator iter{conn, result};
     for (int32_t i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd()) << "i=" << i;
@@ -244,7 +245,7 @@ TEST(QueryResultIterator, IntervalColumn) {
         auto v = iter.GetValue(0).value_.interval; // XXX DuckDB lacks GetValue<interval_t>
         ASSERT_EQ(v.days, expected.days);
         ASSERT_EQ(v.months, expected.months);
-        ASSERT_EQ(v.msecs, expected.msecs);
+        ASSERT_EQ(v.micros, expected.micros);
         iter.Next();
     }
     ASSERT_TRUE(iter.IsEnd());

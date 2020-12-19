@@ -43,7 +43,7 @@
         </parameters>
         <graph next_object_id="4">
             <setup>
-                <action type="DROP_BLOB" object_id="0">
+                <action type="DROP_BLOB" status="NONE" object_id="0">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                 </action>
             </setup>

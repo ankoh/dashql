@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/codec.h"
+#include "dashql/webdb/codec.h"
 
 #include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
@@ -8,9 +8,11 @@
 #include <iostream>
 
 namespace fb = flatbuffers;
+namespace p = dashql::proto::webdb;
+using namespace duckdb;
 
-namespace duckdb {
-namespace web {
+namespace dashql {
+namespace webdb {
 
 #define LOGICAL_OPERATOR_TYPES \
     X(LOGICAL_INVALID) \
@@ -59,19 +61,19 @@ namespace web {
     X(LOGICAL_EXPORT) \
     X(LOGICAL_VACUUM)
 
-proto::OperatorType MapOperatorType(duckdb::LogicalOperatorType type) {
+p::OperatorType MapOperatorType(duckdb::LogicalOperatorType type) {
     using D = duckdb::LogicalOperatorType;
-    using P = proto::OperatorType;
+    using P = p::OperatorType;
     switch (type) {
 #define X(NAME)                             \
     case duckdb::LogicalOperatorType::NAME: \
-        return proto::OperatorType::NAME;
+        return p::OperatorType::NAME;
         LOGICAL_OPERATOR_TYPES
 #undef X
         default:
-            return proto::OperatorType::LOGICAL_INVALID;
+            return p::OperatorType::LOGICAL_INVALID;
     };
-    return proto::OperatorType::LOGICAL_INVALID;
+    return p::OperatorType::LOGICAL_INVALID;
 }
 
 /// Iterate over a vector
@@ -96,7 +98,7 @@ template <typename T, bool WITH_NULL, typename OP> void iterVec(duckdb::VectorDa
 
 /// Write a fixed-length result column
 template <typename VecType, typename FlatbufferType = VecType>
-static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
+static fb::Offset<p::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
                                           duckdb::VectorData &vec, size_t count) {
     assert(sizeof(VecType) == duckdb::GetTypeIdSize(type));
 
@@ -118,59 +120,59 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
     }
 
     // Build the query result column
-    fb::Offset<proto::Vector> wrapper;
+    fb::Offset<p::Vector> wrapper;
     auto build = [&](auto &v, auto vt) {
         if (n_buf) v.add_null_mask(*n_buf);
         auto ofs = v.Finish();
-        proto::VectorBuilder w{builder};
+        p::VectorBuilder w{builder};
         w.add_variant(ofs.Union());
         w.add_variant_type(vt);
         wrapper = w.Finish();
     };
     if constexpr (std::is_same_v<VecType, bool>) {
-        proto::VectorU8Builder vec{builder};
+        p::VectorU8Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorU8);
+        build(vec, p::VectorVariant::VectorU8);
     } else if constexpr (std::is_same_v<VecType, int8_t>) {
-        proto::VectorI8Builder vec{builder};
+        p::VectorI8Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorI8);
+        build(vec, p::VectorVariant::VectorI8);
     } else if constexpr (std::is_same_v<VecType, uint8_t>) {
-        proto::VectorU8Builder vec{builder};
+        p::VectorU8Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorU8);
+        build(vec, p::VectorVariant::VectorU8);
     } else if constexpr (std::is_same_v<VecType, uint16_t>) {
-        proto::VectorU16Builder vec{builder};
+        p::VectorU16Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorU16);
+        build(vec, p::VectorVariant::VectorU16);
     } else if constexpr (std::is_same_v<VecType, int16_t>) {
-        proto::VectorI16Builder vec{builder};
+        p::VectorI16Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorI16);
+        build(vec, p::VectorVariant::VectorI16);
     } else if constexpr (std::is_same_v<VecType, uint32_t>) {
-        proto::VectorU32Builder vec{builder};
+        p::VectorU32Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorU32);
+        build(vec, p::VectorVariant::VectorU32);
     } else if constexpr (std::is_same_v<VecType, int32_t>) {
-        proto::VectorI32Builder vec{builder};
+        p::VectorI32Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorI32);
+        build(vec, p::VectorVariant::VectorI32);
     } else if constexpr (std::is_same_v<VecType, uint64_t>) {
-        proto::VectorU64Builder vec{builder};
+        p::VectorU64Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorU64);
+        build(vec, p::VectorVariant::VectorU64);
     } else if constexpr (std::is_same_v<VecType, int64_t>) {
-        proto::VectorI64Builder vec{builder};
+        p::VectorI64Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorI64);
+        build(vec, p::VectorVariant::VectorI64);
     } else if constexpr (std::is_same_v<VecType, float>) {
-        proto::VectorF32Builder vec{builder};
+        p::VectorF32Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorF32);
+        build(vec, p::VectorVariant::VectorF32);
     } else if constexpr (std::is_same_v<VecType, double>) {
-        proto::VectorF64Builder vec{builder};
+        p::VectorF64Builder vec{builder};
         vec.add_values(d_buf);
-        build(vec, proto::VectorVariant::VectorF64);
+        build(vec, p::VectorVariant::VectorF64);
     } else {
         assert(false);
     }
@@ -178,9 +180,9 @@ static fb::Offset<proto::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb
 }
 
 /// Write a fixed-length result column
-static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
+static fb::Offset<p::Vector> writeI128Col(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
                                               duckdb::VectorData &vec, size_t count) {
-    proto::I128 *values;
+    p::I128 *values;
     auto d_buf = builder.CreateUninitializedVectorOfStructs(count, &values);
     std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
 
@@ -189,30 +191,30 @@ static fb::Offset<proto::Vector> writeI128Col(fb::FlatBufferBuilder &builder, du
         uint8_t *nullmask;
         n_buf = builder.CreateUninitializedVector(count, &nullmask);
         iterVec<hugeint_t, true>(vec, count, [&](unsigned i, hugeint_t value, bool null) {
-            values[i] = proto::I128{value.lower, value.upper};
+            values[i] = p::I128{value.lower, value.upper};
             nullmask[i] = null;
         });
     } else {
         iterVec<hugeint_t, false>(vec, count, [&](unsigned i, hugeint_t value, bool null) {
-            values[i] = proto::I128{value.lower, value.upper};
+            values[i] = p::I128{value.lower, value.upper};
         });
     }
 
     // Build the query result column
-    proto::VectorI128Builder v_i128_b{builder};
+    p::VectorI128Builder v_i128_b{builder};
     if (n_buf) v_i128_b.add_null_mask(*n_buf);
     v_i128_b.add_values(d_buf);
     auto v_i128 = v_i128_b.Finish();
-    proto::VectorBuilder v{builder};
+    p::VectorBuilder v{builder};
     v.add_variant(v_i128.Union());
-    v.add_variant_type(proto::VectorVariant::VectorI128);
+    v.add_variant_type(p::VectorVariant::VectorI128);
     return v.Finish();
 }
 
 /// Write a interval result column
-static fb::Offset<proto::Vector> writeIntervalCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
+static fb::Offset<p::Vector> writeIntervalCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
                                                   duckdb::VectorData &vec, size_t count) {
-    proto::Interval *values;
+    p::Interval *values;
     auto d_buf = builder.CreateUninitializedVectorOfStructs(count, &values);
     std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
     assert(type == duckdb::PhysicalType::INTERVAL);
@@ -222,28 +224,28 @@ static fb::Offset<proto::Vector> writeIntervalCol(fb::FlatBufferBuilder &builder
         uint8_t *nullmask;
         n_buf = builder.CreateUninitializedVector(count, &nullmask);
         iterVec<interval_t, true>(vec, count, [&](unsigned i, interval_t value, bool null) {
-            values[i] = proto::Interval{value.months, value.days, value.msecs};
+            values[i] = p::Interval{value.months, value.days, value.micros};
             nullmask[i] = null;
         });
     } else {
         iterVec<interval_t, false>(vec, count, [&](unsigned i, interval_t value, bool null) {
-            values[i] = proto::Interval{value.months, value.days, value.msecs};
+            values[i] = p::Interval{value.months, value.days, value.micros};
         });
     }
 
     // Build the query result column
-    proto::VectorIntervalBuilder v_interval_b{builder};
+    p::VectorIntervalBuilder v_interval_b{builder};
     if (n_buf) v_interval_b.add_null_mask(*n_buf);
     v_interval_b.add_values(d_buf);
     auto v_interval = v_interval_b.Finish();
-    proto::VectorBuilder v{builder};
+    p::VectorBuilder v{builder};
     v.add_variant(v_interval.Union());
-    v.add_variant_type(proto::VectorVariant::VectorInterval);
+    v.add_variant_type(p::VectorVariant::VectorInterval);
     return v.Finish();
 }
 
 /// Write a string result column
-static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec, size_t count) {
+static fb::Offset<p::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duckdb::VectorData &vec, size_t count) {
     // First collect string views and copy nulls (if any)
     std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
     std::vector<std::string_view> strings{count};
@@ -292,18 +294,18 @@ static fb::Offset<proto::Vector> writeStringCol(fb::FlatBufferBuilder &builder, 
     auto d_buf = builder.CreateVector(s_ofs);
 
     // Build string vector
-    proto::VectorStringBuilder v_sb{builder};
+    p::VectorStringBuilder v_sb{builder};
     v_sb.add_values(d_buf);
     if (n_buf) v_sb.add_null_mask(*n_buf);
     auto v_sb_ofs = v_sb.Finish();
-    proto::VectorBuilder v_b{builder};
+    p::VectorBuilder v_b{builder};
     v_b.add_variant(v_sb_ofs.Union());
-    v_b.add_variant_type(proto::VectorVariant::VectorString);
+    v_b.add_variant_type(p::VectorVariant::VectorString);
     return v_b.Finish();
 }
 
 /// Write the query result chunk
-fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder &builder, uint64_t queryID,
+fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder &builder, uint64_t queryID,
                                                           duckdb::DataChunk *chunkPtr,
                                                           nonstd::span<duckdb::LogicalType> types) {
     duckdb::DataChunk tmp;
@@ -312,7 +314,7 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
     auto vectors = chunk.Orrify();
 
     // Write chunk columns
-    std::vector<fb::Offset<proto::Vector>> columns;
+    std::vector<fb::Offset<p::Vector>> columns;
     for (size_t column_id = 0; column_id < chunk.ColumnCount(); ++column_id) {
         auto l_Type = types[column_id];
         auto p_type = l_Type.InternalType();
@@ -323,7 +325,7 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
         // We try to catch this via tests.
 
         // Write result column
-        auto column = [&]() -> fb::Offset<proto::Vector> {
+        auto column = [&]() -> fb::Offset<p::Vector> {
             switch (p_type) {
                 case duckdb::PhysicalType::BOOL:
                     // XXX It would be rather easy to bitpack booleans into u8 vectors, implement later
@@ -361,7 +363,7 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
     auto column_offset = builder.CreateVector(columns);
 
     // Build result chunk
-    proto::QueryResultChunkBuilder chunk_builder{builder};
+    p::QueryResultChunkBuilder chunk_builder{builder};
     chunk_builder.add_query_id(queryID);
     chunk_builder.add_row_count(size);
     chunk_builder.add_columns(column_offset);
@@ -369,10 +371,10 @@ fb::Offset<proto::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBuffe
 }
 
 /// Write the query result
-fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, duckdb::QueryResult &result,
+fb::Offset<p::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, duckdb::QueryResult &result,
                                                 uint64_t queryID, bool async) {
     // Fetch result rows and immediately write them into a flatbuffer
-    std::vector<fb::Offset<proto::QueryResultChunk>> chunks;
+    std::vector<fb::Offset<p::QueryResultChunk>> chunks;
     if (!async) {
         for (auto chunk = result.Fetch(); !!chunk && chunk->size() > 0; chunk = result.Fetch())
             chunks.push_back(WriteQueryResultChunk(builder, queryID, chunk.get(), result.types));
@@ -380,14 +382,14 @@ fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, 
     auto data_chunks = builder.CreateVector(chunks);
 
     // Write column types
-    fb::Offset<fb::Vector<const proto::SQLType *>> columnTypes;
+    fb::Offset<fb::Vector<const p::SQLType *>> columnTypes;
     {
-        proto::SQLType *writer;
-        columnTypes = builder.CreateUninitializedVectorOfStructs<proto::SQLType>(result.types.size(), &writer);
+        p::SQLType *writer;
+        columnTypes = builder.CreateUninitializedVectorOfStructs<p::SQLType>(result.types.size(), &writer);
         for (size_t i = 0; i < result.types.size(); ++i) {
             auto t = result.types[i];
-            writer[i] = proto::SQLType{
-                static_cast<proto::SQLTypeID>(t.id()),
+            writer[i] = p::SQLType{
+                static_cast<p::SQLTypeID>(t.id()),
                 t.width(),
                 t.scale(),
             };
@@ -398,7 +400,7 @@ fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, 
     auto columnNames = builder.CreateVectorOfStrings(result.names);
 
     // Write the query result
-    proto::QueryResultBuilder result_builder{builder};
+    p::QueryResultBuilder result_builder{builder};
     result_builder.add_query_id(queryID);
     result_builder.add_column_names(columnNames);
     result_builder.add_column_types(columnTypes);
@@ -407,7 +409,7 @@ fb::Offset<proto::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, 
 }
 
 /// Write the query plan
-fb::Offset<proto::QueryPlan> WriteQueryPlan(fb::FlatBufferBuilder &builder, duckdb::LogicalOperator &plan) {
+fb::Offset<p::QueryPlan> WriteQueryPlan(fb::FlatBufferBuilder &builder, duckdb::LogicalOperator &plan) {
     // Remember the children
     std::vector<duckdb::LogicalOperator *> operators;
     std::vector<std::tuple<size_t, size_t>> op_child_edges;
@@ -490,13 +492,13 @@ fb::Offset<proto::QueryPlan> WriteQueryPlan(fb::FlatBufferBuilder &builder, duck
     }
 
     // Write the query result
-    proto::QueryPlanBuilder plan_builder{builder};
+    p::QueryPlanBuilder plan_builder{builder};
     plan_builder.add_operator_types(op_type_vec);
     plan_builder.add_operator_children(op_child_vec);
     plan_builder.add_operator_child_offsets(op_child_ofs_vec);
     return plan_builder.Finish();
 }
 
-}  // namespace web
-}  // namespace duckdb
+}  // namespace webdb
+}  // namespace dashql
 

@@ -4,7 +4,7 @@
 #include <stack>
 #include <unordered_map>
 
-#include "duckdb/web/common/span.h"
+#include "dashql/common/span.h"
 
 namespace dashql {
 

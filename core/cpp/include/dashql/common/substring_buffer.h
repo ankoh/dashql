@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_STRING_INDEX_H_
-#define INCLUDE_DASHQL_STRING_INDEX_H_
+#ifndef INCLUDE_DASHQL_COMMON_STRING_INDEX_H_
+#define INCLUDE_DASHQL_COMMON_STRING_INDEX_H_
 
 #include "dashql/proto_generated.h"
 #include <array>

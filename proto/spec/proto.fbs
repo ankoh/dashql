@@ -6,10 +6,10 @@ include "syntax.fbs";
 include "syntax_dashql.fbs";
 include "syntax_sql.fbs";
 
-include "duckdb/error.fbs";
-include "duckdb/import.fbs";
-include "duckdb/query_plan.fbs";
-include "duckdb/query_result.fbs";
-include "duckdb/sql_type.fbs";
-include "duckdb/vector.fbs";
+include "webdb/error.fbs";
+include "webdb/import.fbs";
+include "webdb/query_plan.fbs";
+include "webdb/query_result.fbs";
+include "webdb/sql_type.fbs";
+include "webdb/vector.fbs";
 

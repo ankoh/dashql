@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/iterator.h"
+#include "dashql/webdb/iterator.h"
 
 #include <optional>
 #include <random>
@@ -12,11 +12,15 @@
 #include "dashql/proto_generated.h"
 #include "duckdb/common/types/date.hpp"
 
-namespace duckdb {
-namespace web {
+namespace p = dashql::proto::webdb;
+using duckdb::hugeint_t;
+using duckdb::interval_t;
+
+namespace dashql {
+namespace webdb {
 
 // Constructor
-QueryResultIterator::QueryResultIterator(WebDB::Connection& connection, const proto::QueryResult& result)
+QueryResultIterator::QueryResultIterator(WebDB::Connection& connection, const p::QueryResult& result)
     : connection(connection),
       result(result),
       globalRowIndex(0),
@@ -36,7 +40,7 @@ QueryResultIterator::QueryResultIterator(WebDB::Connection& connection, const pr
 }
 
 /// Verify the result chunk
-bool QueryResultIterator::Verify(const proto::QueryResultChunk& chunk) const {
+bool QueryResultIterator::Verify(const p::QueryResultChunk& chunk) const {
     auto columns = chunk.columns();
     if (!columns || columns->size() != result.column_types()->size()) return false;
     // XXX Check row counts
@@ -93,33 +97,33 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
 
     // Load value depending on physical type
     switch (column->variant_type()) {
-        case proto::VectorVariant::NONE:
+        case p::VectorVariant::NONE:
             break;
-        case proto::VectorVariant::VectorI8:
+        case p::VectorVariant::VectorI8:
             copy(v_i64, column->variant_as_VectorI8());
             break;
-        case proto::VectorVariant::VectorU8:
+        case p::VectorVariant::VectorU8:
             copy(v_u64, column->variant_as_VectorU8());
             break;
-        case proto::VectorVariant::VectorI16:
+        case p::VectorVariant::VectorI16:
             copy(v_i64, column->variant_as_VectorI16());
             break;
-        case proto::VectorVariant::VectorU16:
+        case p::VectorVariant::VectorU16:
             copy(v_u64, column->variant_as_VectorU16());
             break;
-        case proto::VectorVariant::VectorI32:
+        case p::VectorVariant::VectorI32:
             copy(v_i64, column->variant_as_VectorI32());
             break;
-        case proto::VectorVariant::VectorU32:
+        case p::VectorVariant::VectorU32:
             copy(v_u64, column->variant_as_VectorU32());
             break;
-        case proto::VectorVariant::VectorI64:
+        case p::VectorVariant::VectorI64:
             copy(v_i64, column->variant_as_VectorI64());
             break;
-        case proto::VectorVariant::VectorU64:
+        case p::VectorVariant::VectorU64:
             copy(v_u64, column->variant_as_VectorU64());
             break;
-        case proto::VectorVariant::VectorI128: {
+        case p::VectorVariant::VectorI128: {
             auto* vec_i128 = column->variant_as_VectorI128();
             auto* values = vec_i128->values();
             auto* null_mask = vec_i128->null_mask();
@@ -129,24 +133,24 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
             if (null_mask) null = null_mask->Get(row);
             break;
         }
-        case proto::VectorVariant::VectorF32:
+        case p::VectorVariant::VectorF32:
             copy(v_f64, column->variant_as_VectorF32());
             break;
-        case proto::VectorVariant::VectorF64:
+        case p::VectorVariant::VectorF64:
             copy(v_f64, column->variant_as_VectorF64());
             break;
-        case proto::VectorVariant::VectorInterval: {
+        case p::VectorVariant::VectorInterval: {
             auto* vec_interval = column->variant_as_VectorInterval();
             auto* values = vec_interval->values();
             auto* null_mask = vec_interval->null_mask();
             auto* v = values->Get(row);
             v_interval.months = v->months();
             v_interval.days = v->days();
-            v_interval.msecs = v->msecs();
+            v_interval.micros = v->micros();
             if (null_mask) null = null_mask->Get(row);
             break;
         }
-        case proto::VectorVariant::VectorString: {
+        case p::VectorVariant::VectorString: {
             auto* vec_i128 = column->variant_as_VectorString();
             auto* values = vec_i128->values();
             auto* null_mask = vec_i128->null_mask();
@@ -158,51 +162,51 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
 
     // Get value
     switch (type->type_id()) {
-        case proto::SQLTypeID::ANY:
+        case p::SQLTypeID::ANY:
             return duckdb::Value{duckdb::LogicalType::ANY};
-        case proto::SQLTypeID::INVALID:
-        case proto::SQLTypeID::UNKNOWN:
-        case proto::SQLTypeID::SQLNULL:
+        case p::SQLTypeID::INVALID:
+        case p::SQLTypeID::UNKNOWN:
+        case p::SQLTypeID::SQLNULL:
             return duckdb::Value{};
-        case proto::SQLTypeID::BOOLEAN:
+        case p::SQLTypeID::BOOLEAN:
             return duckdb::Value::BOOLEAN(v_u64);
-        case proto::SQLTypeID::TINYINT:
+        case p::SQLTypeID::TINYINT:
             return duckdb::Value::TINYINT(v_i64);
-        case proto::SQLTypeID::SMALLINT:
+        case p::SQLTypeID::SMALLINT:
             return duckdb::Value::SMALLINT(v_i64);
-        case proto::SQLTypeID::INTEGER:
+        case p::SQLTypeID::INTEGER:
             return duckdb::Value::INTEGER(v_i64);
-        case proto::SQLTypeID::BIGINT:
+        case p::SQLTypeID::BIGINT:
             return duckdb::Value::BIGINT(v_i64);
-        case proto::SQLTypeID::FLOAT:
+        case p::SQLTypeID::FLOAT:
             return duckdb::Value::FLOAT(v_f64);
-        case proto::SQLTypeID::DOUBLE:
+        case p::SQLTypeID::DOUBLE:
             return duckdb::Value::FLOAT(v_f64);
-        case proto::SQLTypeID::CHAR:
+        case p::SQLTypeID::CHAR:
             return duckdb::Value(value_str);
-        case proto::SQLTypeID::VARCHAR:
+        case p::SQLTypeID::VARCHAR:
             return duckdb::Value(value_str);
-        case proto::SQLTypeID::HUGEINT:
+        case p::SQLTypeID::HUGEINT:
             return duckdb::Value::HUGEINT(v_i128);
-        case proto::SQLTypeID::DATE:
+        case p::SQLTypeID::DATE:
             return duckdb::Value::DATE(v_i64);
-        case proto::SQLTypeID::TIME:
+        case p::SQLTypeID::TIME:
             return duckdb::Value::TIME(v_i64);
-        case proto::SQLTypeID::TIMESTAMP:
+        case p::SQLTypeID::TIMESTAMP:
             return duckdb::Value::TIMESTAMP(v_i64);
-        case proto::SQLTypeID::INTERVAL:
+        case p::SQLTypeID::INTERVAL:
             return duckdb::Value::INTERVAL(v_interval);
-        case proto::SQLTypeID::BLOB:
-        case proto::SQLTypeID::DECIMAL:
-        case proto::SQLTypeID::HASH:
-        case proto::SQLTypeID::LIST:
-        case proto::SQLTypeID::POINTER:
-        case proto::SQLTypeID::STRUCT:
-        case proto::SQLTypeID::VARBINARY:
+        case p::SQLTypeID::BLOB:
+        case p::SQLTypeID::DECIMAL:
+        case p::SQLTypeID::HASH:
+        case p::SQLTypeID::LIST:
+        case p::SQLTypeID::POINTER:
+        case p::SQLTypeID::STRUCT:
+        case p::SQLTypeID::VARBINARY:
             return duckdb::Value{};
     }
     return duckdb::Value{};
 }
 
-}  // namespace web
-}  // namespace duckdb
+}  // namespace webdb
+}  // namespace dashql
