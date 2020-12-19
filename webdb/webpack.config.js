@@ -7,14 +7,14 @@ const browserTarget = {
     target: 'web',
     mode: 'production',
     entry: {
-        "targets/web/duckdb": './src/targets/web/duckdb.ts'
+        "dashql_webdb": './src/index_web.ts'
     },
     devtool:'source-map',
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
         publicPath: 'dist/',
-        library: 'DuckDB',
+        library: 'WebDB',
         libraryTarget: 'umd',
         umdNamedDefine: true,
         globalObject: 'this'
@@ -33,11 +33,11 @@ const browserTarget = {
                 ]
             },
             {
-                test: /duckdb_(web|node)\.wasm$/,
+                test: /webdb_wasm(_node)?\.wasm$/,
                 type: 'javascript/auto',
                 loader: 'file-loader',
                 options: {
-                    name: 'duckdb.wasm',
+                    name: 'dashql_webdb.wasm',
                 }
             }
         ]
@@ -83,7 +83,7 @@ const nodeTarget = {
     ...browserTarget,
     target: 'node',
     entry: {
-        "targets/node/duckdb": './src/targets/node/duckdb.ts'
+        "dashql_webdb_node": './src/index_node.ts'
     },
     plugins: [
         new CleanWebpackPlugin({

@@ -15,8 +15,8 @@
         "node": ">=14.13"
     },
     "dependencies": {
-        "@dashql/core": "file:../core/js/",
-        "@dashql/duckdb": "0.0.8",
+        "@dashql/core": "file:../core/",
+        "@dashql/webdb": "file:../webdb/",
         "chart.js": "^2.9.4",
         "classnames": "^2.2.6",
         "dagre": "^0.8.5",

@@ -1,5 +1,5 @@
 name: "Main"
-on: [push, pull_request]
+on: [push]
 
 jobs:
   linux_x86_debug:
@@ -14,7 +14,7 @@ jobs:
         script: |-
           make reset_duckdb
           git submodule update --init --recursive
-          mkdir -p ./core/cpp/build/debug ./reports
+          mkdir -p ./lib/build/debug ./reports
 
     - name: Compile flatbuffer schema
       uses: ./ci/image
@@ -27,8 +27,8 @@ jobs:
       with:
         script: |-
           cmake \
-              -S./core/cpp/ \
-              -B./core/cpp/build/debug \
+              -S./lib/ \
+              -B./lib/build/debug \
               -DCMAKE_BUILD_TYPE=Debug \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
               -DCMAKE_C_COMPILER=clang \
@@ -36,22 +36,15 @@ jobs:
               -DCMAKE_CXX_COMPILER=clang++ \
               -DCMAKE_BUILD_TYPE=Debug
           ccache -s
-          make -C./core/cpp/build/debug -j`nproc`
+          make -C./lib/build/debug -j`nproc`
           ccache -s
 
-    - name: Test Core
+    - name: Test
       uses: ./ci/image
       with:
         script: |-
-            ./core/cpp/build/debug/tester ./core/cpp/ \
+            ./lib/build/debug/tester ./lib/ \
                 --gtest_output=xml:./reports/tests_debug.xml
-
-    - name: Test WebDB
-      uses: ./ci/image
-      with:
-        script: |-
-            ./core/cpp/build/debug/duckdb/duckdb_tester \
-                --gtest_output=xml:./reports/tests_db_debug.xml
 
   linux_x86_coverage:
     name: Linux / x86 / Coverage
@@ -65,7 +58,7 @@ jobs:
         script: |-
           make reset_duckdb
           git submodule update --init --recursive
-          mkdir -p ./core/cpp/build/coverage ./reports
+          mkdir -p ./lib/build/coverage ./reports
 
     - name: Compile flatbuffer schema
       uses: ./ci/image
@@ -78,8 +71,8 @@ jobs:
       with:
         script: |-
           cmake \
-              -S./core/cpp/ \
-              -B./core/cpp/build/coverage \
+              -S./lib/ \
+              -B./lib/build/coverage \
               -DCODE_COVERAGE=1 \
               -DCMAKE_BUILD_TYPE=Debug \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
@@ -88,22 +81,15 @@ jobs:
               -DCMAKE_CXX_COMPILER=clang++ \
               -DCMAKE_BUILD_TYPE=Debug
           ccache -s
-          make -C./core/cpp/build/coverage -j`nproc`
+          make -C./lib/build/coverage -j`nproc`
           ccache -s
 
-    - name: Test Core
+    - name: Test
       uses: ./ci/image
       with:
         script: |-
             export LLVM_PROFILE_FILE=./core.profraw
-            ./core/cpp/build/coverage/tester ./core/cpp/
-
-    - name: Test WebDB
-      uses: ./ci/image
-      with:
-        script: |-
-            export LLVM_PROFILE_FILE=./webdb.profraw
-            ./core/cpp/build/coverage/duckdb/duckdb_tester
+            ./lib/build/coverage/tester ./lib/
 
     - name: Code Coverage
       uses: ./ci/image
@@ -112,7 +98,7 @@ jobs:
             llvm-profdata merge \
                 -sparse ./core.profraw ./webdb.profraw \
                 -o ./main.profdata
-            llvm-cov report ./core/cpp/build/coverage/tester \
+            llvm-cov report ./lib/build/coverage/tester \
                 --instr-profile ./main.profdata \
                 -ignore-filename-regex submodules
 
@@ -128,7 +114,7 @@ jobs:
         script: |-
           make reset_duckdb
           git submodule update --init --recursive
-          mkdir -p ./core/cpp/build/release ./reports
+          mkdir -p ./lib/build/release ./reports
 
     - name: Compile flatbuffer schema
       uses: ./ci/image
@@ -141,8 +127,8 @@ jobs:
       with:
         script: |-
           cmake \
-              -S./core/cpp/ \
-              -B./core/cpp/build/release \
+              -S./lib/ \
+              -B./lib/build/release \
               -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
               -DCMAKE_C_COMPILER=clang \
@@ -150,22 +136,15 @@ jobs:
               -DCMAKE_CXX_COMPILER=clang++ \
               -DCMAKE_BUILD_TYPE=Release
           ccache -s
-          make -C./core/cpp/build/release -j`nproc`
+          make -C./lib/build/release -j`nproc`
           ccache -s
 
-    - name: Test Core
+    - name: Test
       uses: ./ci/image
       with:
         script: |-
-            ./core/cpp/build/release/tester ./core/cpp/ \
+            ./lib/build/release/tester ./lib/ \
                 --gtest_output=xml:./reports/tests_release.xml
-
-    - name: Test WebDB
-      uses: ./ci/image
-      with:
-        script: |-
-            ./core/cpp/build/release/duckdb/duckdb_tester \
-                --gtest_output=xml:./reports/tests_db_release.xml
 
   web:
     name: Web
@@ -185,7 +164,7 @@ jobs:
         script: |-
           make reset_duckdb
           git submodule update --init --recursive
-          mkdir -p ./core/cpp/build/wasm/release ./reports
+          mkdir -p ./lib/build/wasm/release ./reports
 
     - name: Compile flatbuffer schema
       uses: ./ci/image
@@ -198,21 +177,19 @@ jobs:
       with:
         script: |-
             emcmake cmake \
-                -S./core/cpp/ \
-                -B./core/cpp/build/wasm/release \
+                -S./lib/ \
+                -B./lib/build/wasm/release \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
             emmake make \
-                -C./core/cpp/build/wasm/release \
+                -C./lib/build/wasm/release \
                 -j`nproc` \
-                core_wasm_web core_wasm_node duckdb_web duckdb_node
+                core_wasm core_wasm_node webdb_wasm webdb_wasm_node
 
-            cp ./core/cpp/build/wasm/release/*.wasm ./core/js/src/wasm/
-            cp ./core/cpp/build/wasm/release/*.js ./core/js/src/wasm/
-            cp ./core/cpp/build/wasm/release/duckdb/*.wasm ./duckdb/js/src/wasm/
-            cp ./core/cpp/build/wasm/release/duckdb/*.js ./duckdb/js/src/wasm/
+            cp ./lib/build/wasm/release/core_*.{wasm,js} ./core/src/wasm/
+            cp ./lib/build/wasm/release/webdb_*.{wasm,js} ./webdb/src/wasm/
 
     - name: Build @dashql/proto
       uses: ./ci/image
@@ -228,7 +205,7 @@ jobs:
       with:
         script: |-
             source /opt/env.sh
-            cd ./core/js
+            cd ./core
             npm ci --no-optional --cache /mnt/npm_cache
             npm run build
 
@@ -237,24 +214,24 @@ jobs:
       with:
         script: |-
             source /opt/env.sh
-            cd ./core/js
+            cd ./core
             npm run test:ci
 
-    - name: Build @dashql/duckdb
+    - name: Build @dashql/webdb
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./duckdb/js
+            cd ./webdb
             npm ci --no-optional --cache /mnt/npm_cache
             npm run build
 
-    - name: Test @dashql/duckdb
+    - name: Test @dashql/webdb
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./duckdb/js
+            cd ./webdb
             npm run test:ci
 
     - name: Build App

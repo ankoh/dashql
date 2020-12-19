@@ -1,10 +1,11 @@
-import * as duckdb from '../';
+import * as webdb from '../src/index_node';
+import * as path from 'path';
 
-var db: duckdb.DuckDB;
-var conn: duckdb.DuckDBConnection;
+var db: webdb.WebDB;
+var conn: webdb.WebDBConnection;
 
 beforeAll(async () => {
-    db = new duckdb.DuckDB();
+    db = new webdb.WebDB(path.resolve(__dirname, "../src/wasm/webdb_wasm.wasm"));
     await db.open();
 });
 
@@ -16,7 +17,7 @@ afterEach(async () => {
     await conn.disconnect();
 });
 
-describe('DuckDBBindings', () => {
+describe('WebDBBindings', () => {
     describe('error handling', () => {
         test('INVALID SQL', async () => {
             let error: Error | null = null;

@@ -12,11 +12,11 @@ APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 APP_RELEASE_ARCHIVE="${ROOT_DIR}/artifacts/dashql-${APP_RELEASE_TAG}.tar.gz"
 APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 
-CORE_SOURCE_DIR="${ROOT_DIR}/core/cpp"
-CORE_DEBUG_DIR="${ROOT_DIR}/core/cpp/build/debug"
-CORE_RELEASE_DIR="${ROOT_DIR}/core/cpp/build/release"
-CORE_JS_WASM_DIR="${ROOT_DIR}/core/js/src/wasm"
-DUCKDB_JS_WASM_DIR="${ROOT_DIR}/duckdb/js/src/wasm"
+LIB_SOURCE_DIR="${ROOT_DIR}/lib"
+LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/debug"
+LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/release"
+CORE_WASM_DIR="${ROOT_DIR}/core/src/wasm"
+WEBDB_WASM_DIR="${ROOT_DIR}/webdb/src/wasm"
 
 CI_IMAGE_NAMESPACE="dashql"
 CI_IMAGE_NAME="ci"
@@ -38,34 +38,34 @@ CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 # Compile the core in debug mode
 .PHONY: core
 core:
-	mkdir -p ${CORE_DEBUG_DIR}
-	cmake -S ${CORE_SOURCE_DIR} -B ${CORE_DEBUG_DIR} \
+	mkdir -p ${LIB_DEBUG_DIR}
+	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_DEBUG_DIR} \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
-	make -C ${CORE_DEBUG_DIR} -j ${CORES}
+	make -C ${LIB_DEBUG_DIR} -j ${CORES}
 
 # Compile the core in release mode
 .PHONY: core_release
 core_release:
-	mkdir -p ${CORE_RELEASE_DIR}
-	cmake -S ${CORE_SOURCE_DIR} -B ${CORE_RELEASE_DIR} \
+	mkdir -p ${LIB_RELEASE_DIR}
+	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_RELEASE_DIR} \
 		-DCMAKE_BUILD_TYPE=Release
-	make -C ${CORE_RELEASE_DIR} -j ${CORES}
+	make -C ${LIB_RELEASE_DIR} -j ${CORES}
 
 # Test the core library
 .PHONY: core_tests
 core_tests:
-	${CORE_DEBUG_DIR}/tester ${CORE_SOURCE_DIR}
+	${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
 
 # Generate declarative tests
 .PHONY: testgen
 core_testgen:
-	${CORE_DEBUG_DIR}/testgen ${CORE_SOURCE_DIR}
+	${LIB_DEBUG_DIR}/testgen ${LIB_SOURCE_DIR}
 
 # Test the duckdb library
 .PHONY: duckdb_tests
 duckdb_tests:
-	${CORE_DEBUG_DIR}/duckdb/duckdb_tester
+	${LIB_DEBUG_DIR}/duckdb/duckdb_tester
 
 
 # Build the dashql_core javascript library
@@ -145,11 +145,11 @@ npm_install:
 # Generate the compile commands for the language server
 .PHONY: compile_commands
 compile_commands: 
-	mkdir -p ${CORE_DEBUG_DIR}
-	cmake -S ${CORE_SOURCE_DIR} -B ${CORE_DEBUG_DIR} \
+	mkdir -p ${LIB_DEBUG_DIR}
+	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_DEBUG_DIR} \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
-	ln -sf ${CORE_DEBUG_DIR}/compile_commands.json ${ROOT_DIR}/compile_commands.json
+	ln -sf ${LIB_DEBUG_DIR}/compile_commands.json ${ROOT_DIR}/compile_commands.json
 
 # Reset the duckdb repo
 .PHONY: reset_duckdb

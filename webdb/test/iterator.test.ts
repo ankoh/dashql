@@ -1,11 +1,12 @@
-import * as duckdb from '../';
+import * as webdb from '../src/index_node';
+import * as path from 'path';
 
-var db: duckdb.DuckDB;
-var conn: duckdb.DuckDBConnection;
+var db: webdb.WebDB;
+var conn: webdb.WebDBConnection;
 const testRows = 3000;
 
 beforeAll(async () => {
-    db = new duckdb.DuckDB();
+    db = new webdb.WebDB(path.resolve(__dirname, "../src/wasm/webdb_wasm.wasm"));
     await db.open();
 });
 
@@ -24,9 +25,9 @@ describe('QueryResultRowIterator', () => {
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${testRows}) as t(v);
             `);
             expect(result.root.columnTypesLength()).toBe(1);
-            let chunks = new duckdb.QueryResultChunkStream(conn, result);
-            let iter = await duckdb.QueryResultRowIterator.iterate(chunks);
-            let value = new duckdb.Value();
+            let chunks = new webdb.QueryResultChunkStream(conn, result);
+            let iter = await webdb.QueryResultRowIterator.iterate(chunks);
+            let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
                 expect(iter.getValue(0, value).i8).toBe(i & 127);
@@ -40,9 +41,9 @@ describe('QueryResultRowIterator', () => {
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${testRows}) as t(v);
             `);
             expect(result.root.columnTypesLength()).toBe(1);
-            let chunks = new duckdb.QueryResultChunkStream(conn, result);
-            let iter = await duckdb.QueryResultRowIterator.iterate(chunks);
-            let value = new duckdb.Value();
+            let chunks = new webdb.QueryResultChunkStream(conn, result);
+            let iter = await webdb.QueryResultRowIterator.iterate(chunks);
+            let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
                 expect(iter.getValue(0, value).i16).toBe(i & 32767);
@@ -57,9 +58,9 @@ describe('QueryResultRowIterator', () => {
             `);
             expect(result.root.columnTypesLength()).toBe(1);
 
-            let chunks = new duckdb.QueryResultChunkStream(conn, result);
-            let iter = await duckdb.QueryResultRowIterator.iterate(chunks);
-            let value = new duckdb.Value();
+            let chunks = new webdb.QueryResultChunkStream(conn, result);
+            let iter = await webdb.QueryResultRowIterator.iterate(chunks);
+            let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
                 expect(iter.getValue(0, value).i32).toBe(i);
@@ -73,9 +74,9 @@ describe('QueryResultRowIterator', () => {
                 SELECT v::BIGINT FROM generate_series(0, ${testRows}) as t(v);
             `);
             expect(result.root.columnTypesLength()).toBe(1);
-            let chunks = new duckdb.QueryResultChunkStream(conn, result);
-            let iter = await duckdb.QueryResultRowIterator.iterate(chunks);
-            let value = new duckdb.Value();
+            let chunks = new webdb.QueryResultChunkStream(conn, result);
+            let iter = await webdb.QueryResultRowIterator.iterate(chunks);
+            let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
                 expect(iter.getValue(0, value).i64.low).toBe(i);
@@ -93,7 +94,7 @@ describe('QueryResultChunkStream', () => {
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${testRows}) as t(v);
             `);
             expect(result.root.columnTypesLength()).toBe(1);
-            let chunks = new duckdb.QueryResultChunkStream(conn, result);
+            let chunks = new webdb.QueryResultChunkStream(conn, result);
             let i = 0;
             while (await chunks.next()) {
                 chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
@@ -108,7 +109,7 @@ describe('QueryResultChunkStream', () => {
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${testRows}) as t(v);
             `);
             expect(result.root.columnTypesLength()).toBe(1);
-            let chunks = new duckdb.QueryResultChunkStream(conn, result);
+            let chunks = new webdb.QueryResultChunkStream(conn, result);
             let i = 0;
             while (await chunks.next()) {
                 chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
@@ -123,7 +124,7 @@ describe('QueryResultChunkStream', () => {
                 SELECT v::INTEGER FROM generate_series(0, ${testRows}) as t(v);
             `);
             expect(result.root.columnTypesLength()).toBe(1);
-            let chunks = new duckdb.QueryResultChunkStream(conn, result);
+            let chunks = new webdb.QueryResultChunkStream(conn, result);
             let i = 0;
             while (await chunks.next()) {
                 chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {

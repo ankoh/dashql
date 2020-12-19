@@ -22,7 +22,7 @@ const browserTarget = {
     resolve: {
         extensions: ['.ts', '.js'],
         alias: {
-            "@dashql/proto": path.resolve(__dirname, '../../proto/dashql_proto.ts')
+            "@dashql/proto": path.resolve(__dirname, '../proto/dashql_proto.ts')
         }
     },
     module: {
@@ -36,7 +36,7 @@ const browserTarget = {
                 ]
             },
             {
-                test: /core_wasm_(web|node)\.wasm$/,
+                test: /core_wasm(_node)?\.wasm$/,
                 type: 'javascript/auto',
                 loader: 'file-loader',
                 options: {
