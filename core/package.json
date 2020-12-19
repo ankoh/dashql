@@ -37,7 +37,7 @@
         "build:test": "webpack --mode=production",
         "test": "node ./node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --env=./jest.env.js",
         "test:silent": "node ./node_modules/jest/bin/jest.js --silent --runInBand --detectOpenHandles --env=./jest.env.js",
-        "test:ci": "node ./node_modules/jest/bin/jest.js --silent --runInBand --detectOpenHandles --env=./jest.env.js --ci --reporters=default --reporters=jest-junit"
+        "test:ci": "node ./node_modules/jest/bin/jest.js --silent --runInBand --detectOpenHandles --env=./jest.env.js --ci"
     },
     "files": [
         "dist/**/*.d.ts",
@@ -57,7 +57,7 @@
     "jest-junit": {
         "suiteName": "Javascript",
         "outputDirectory": "../reports",
-        "outputName": "tests_js.xml",
+        "outputName": "tests_core.xml",
         "uniqueOutputName": "false",
         "classNameTemplate": "{classname}",
         "titleTemplate": "{title}",
