@@ -71,17 +71,17 @@ duckdb_tests:
 # Build the dashql_core javascript library
 .PHONY: core_js
 core_js:
-	npm --prefix ${ROOT_DIR}/core/js run build
+	npm --prefix ${ROOT_DIR}/core run build
 
 # Build the dashql_core javascript library
 .PHONY: core_js_watch
 core_js_watch:
-	npm --prefix ${ROOT_DIR}/core/js run build:watch
+	npm --prefix ${ROOT_DIR}/core run build:watch
 
 # Test the dashql_core javascript library
 .PHONY: core_js_tests
 core_js_tests:
-	npm --prefix ${ROOT_DIR}/core/js run test:silent
+	npm --prefix ${ROOT_DIR}/core run test:silent
 
 # Compile the flatbuffer schema
 .PHONY: proto
@@ -121,21 +121,21 @@ app_release_server:
 app_start:
 	npm --prefix ${ROOT_DIR}/app run start
 
-# Build the duckdb.wasm javascript library
-.PHONY: duckdb_js
-duckdb_js:
-	npm --prefix ${ROOT_DIR}/duckdb/js run build
+# Build the webdb library
+.PHONY: webdb
+webdb:
+	npm --prefix ${ROOT_DIR}/webdb run build
 
-# Run the javascript tests duckdb.wasm
-.PHONY: duckdb_js_test
-duckdb_js_tests:
-	npm --prefix ${ROOT_DIR}/duckdb/js run test
+# Run the javascript tests
+.PHONY: webdb_tests
+webdb_tests:
+	npm --prefix ${ROOT_DIR}/webdb run test
 
 # Install all npm packages
 .PHONY: npm_install
 npm_install:
-	npm --prefix ${ROOT_DIR}/duckdb/js install
-	npm --prefix ${ROOT_DIR}/core/js install
+	npm --prefix ${ROOT_DIR}/webdb install
+	npm --prefix ${ROOT_DIR}/core install
 	npm --prefix ${ROOT_DIR}/app install
 	npm --prefix ${ROOT_DIR}/proto install
 
