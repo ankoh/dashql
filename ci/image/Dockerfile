@@ -70,6 +70,9 @@ RUN export RUSTUP_HOME=/opt/rust \
     && chgrp -R actions /opt/rust \
     && chmod -R g=u /opt/rust
 
+RUN curl -s https://codecov.io/bash > /usr/local/bin/codecov \
+    && chmod +x /usr/local/bin/codecov
+
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
     && echo "export EMSDK=$EMSDK" >> /opt/env.sh \
