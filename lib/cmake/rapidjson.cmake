@@ -5,7 +5,7 @@ include(ExternalProject)
 # Get rapidjson
 ExternalProject_Add(
     rapidjson_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../submodules/rapidjson"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/rapidjson"
     PREFIX "third_party/rapidjson"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/rapidjson/install"
     CMAKE_ARGS

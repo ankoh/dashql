@@ -5,7 +5,7 @@ include(ExternalProject)
 # Get pugixml
 ExternalProject_Add(
     pugixml_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../submodules/pugixml"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/pugixml"
     PREFIX "third_party/pugixml"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/pugixml/install"
     CMAKE_ARGS

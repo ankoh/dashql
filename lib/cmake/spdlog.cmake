@@ -4,7 +4,7 @@ include(ExternalProject)
 
 ExternalProject_Add(
     spdlog_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../submodules/spdlog"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/spdlog"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/spdlog/install"
     PREFIX "${CMAKE_BINARY_DIR}/third_party/spdlog"
     CMAKE_ARGS
