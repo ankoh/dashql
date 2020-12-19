@@ -98,7 +98,7 @@ jobs:
             llvm-profdata merge \
                 -sparse ./reports/lib.profraw \
                 -o ./reports/lib.profdata
-            llvm-cov show \
+            llvm-cov show ./lib/build/coverage/tester \
                 --instr-profile ./reports/lib.profdata \
                 -ignore-filename-regex submodules \
                 > ./reports/coverage_lib.txt
