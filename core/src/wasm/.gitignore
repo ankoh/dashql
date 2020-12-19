@@ -1,6 +1,4 @@
-/core_wasm_web.js
-/core_wasm_web.wasm
-/core_wasm_web.worker.js
+/core_wasm.js
+/core_wasm.wasm
 /core_wasm_node.js
 /core_wasm_node.wasm
-/core_wasm_node.worker.js

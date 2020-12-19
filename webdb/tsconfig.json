@@ -11,7 +11,11 @@
         "declarationDir": "./dist",
         "noImplicitAny": true,
         "esModuleInterop": true,
-        "types": ["emscripten", "jest"]
+        "types": ["emscripten", "jest", "node"],
+        "baseUrl": ".",
+        "paths": {
+            "@dashql/proto": ["../proto/dashql_proto.ts"]
+        }
     },
     "exclude": [
         "./test/**/*.ts",
