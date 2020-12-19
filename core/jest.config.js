@@ -14,7 +14,13 @@ module.exports = {
             tsConfig: 'tsconfig.test.json'
         }
     },
-    reporters: [ "default", "jest-junit" ]
+    reporters: [ "default", "jest-junit" ],
+    collectCoverage: true,
+    coverageDirectory: "../reports",
+    testPathIgnorePatterns: ["/node_modules/"],
+    coverageReporters: [
+        ["json", {file: 'coverage_core.json'}]
+    ]
 };
 
 
