@@ -232,10 +232,10 @@ aws_stable_invalidate:
 		--paths /
 
 # ---------------------------------------------------------------------------
-# Examples
+# Data
 
 # Package the uni schema data
-UNI_SCHEMA_DIR="${ROOT_DIR}/examples/uni"
+UNI_SCHEMA_DIR="${ROOT_DIR}/demos/uni"
 UNI_SCHEMA_OUT="${UNI_SCHEMA_DIR}/out"
 UNI_SCHEMA_PKG="${UNI_SCHEMA_DIR}/target/release/pkg_uni"
 .PHONY: pkg_uni_schema
