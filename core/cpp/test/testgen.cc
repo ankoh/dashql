@@ -11,7 +11,7 @@
 #include "dashql/parser/parser_driver.h"
 #include "dashql/test/grammar_tests.h"
 #include "dashql/test/action_graph_tests.h"
-#include "duckdb/web/common/span.h"
+#include "dashql/common/span.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-internal.h"

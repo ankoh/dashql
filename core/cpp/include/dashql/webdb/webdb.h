@@ -8,14 +8,14 @@
 #include <string>
 #include <unordered_map>
 
-#include "dashql/proto_generated.h"
 #include "duckdb.hpp"
-#include "duckdb/web/common/expected.h"
-#include "duckdb/web/common/ffi_response.h"
-#include "duckdb/web/common/span.h"
+#include "dashql/proto_generated.h"
+#include "dashql/common/expected.h"
+#include "dashql/common/ffi_response.h"
+#include "dashql/common/span.h"
 
-namespace duckdb {
-namespace web {
+namespace dashql {
+namespace webdb {
 
 /// The Web API context
 class WebDB {
@@ -69,13 +69,13 @@ class WebDB {
         auto& GetConnection() { return connection_; }
 
         /// Run a SQL query
-        ExpectedBuffer<proto::QueryResult> RunQuery(std::string_view text);
+        ExpectedBuffer<proto::webdb::QueryResult> RunQuery(std::string_view text);
         /// Send a SQL query
-        ExpectedBuffer<proto::QueryResult> SendQuery(std::string_view text);
+        ExpectedBuffer<proto::webdb::QueryResult> SendQuery(std::string_view text);
         /// Fetch query results
-        ExpectedBuffer<proto::QueryResultChunk> FetchQueryResults();
+        ExpectedBuffer<proto::webdb::QueryResultChunk> FetchQueryResults();
         /// Analyze a SQL query
-        ExpectedBuffer<proto::QueryPlan> AnalyzeQuery(std::string_view text);
+        ExpectedBuffer<proto::webdb::QueryPlan> AnalyzeQuery(std::string_view text);
     };
 
    protected:

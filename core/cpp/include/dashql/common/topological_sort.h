@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_MIN_HEAP_H_
-#define INCLUDE_DASHQL_MIN_HEAP_H_
+#ifndef INCLUDE_DASHQL_COMMON_TOPOLOGICAL_SORT_H_
+#define INCLUDE_DASHQL_COMMON_TOPOLOGICAL_SORT_H_
 
 #include <tuple>
 #include <unordered_map>

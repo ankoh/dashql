@@ -1,10 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "duckdb/query_plan.fbs";
-include "duckdb/sql_type.fbs";
-include "duckdb/vector.fbs";
+include "webdb/query_plan.fbs";
+include "webdb/sql_type.fbs";
+include "webdb/vector.fbs";
 
-namespace duckdb.web.proto;
+namespace dashql.proto.webdb;
 
 table ImportDataChunk {
     table_id: uint64;

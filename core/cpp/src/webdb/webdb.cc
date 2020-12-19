@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/webdb.h"
+#include "dashql/webdb/webdb.h"
 
 #include <cstdio>
 #include <memory>
@@ -8,18 +8,21 @@
 #include <string_view>
 #include <unordered_map>
 
+#include "dashql/webdb/codec.h"
+#include "dashql/webdb/json.h"
 #include "duckdb.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/main/client_context.hpp"
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/planner/planner.hpp"
-#include "duckdb/web/codec.h"
-#include "duckdb/web/json.h"
 #include "flatbuffers/flatbuffers.h"
 #include "spdlog/spdlog.h"
 
 namespace fb = flatbuffers;
-using namespace duckdb::web;
+namespace p = dashql::proto::webdb;
+
+namespace dashql {
+namespace webdb {
 
 /// Constructor
 WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
@@ -29,7 +32,7 @@ WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
       current_query_result_() {}
 
 /// Run a SQL query
-ExpectedBuffer<proto::QueryResult> WebDB::Connection::RunQuery(std::string_view text) {
+ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(std::string_view text) {
     try {
         // Send the query
         auto result = connection_.SendQuery(std::string{text});
@@ -47,7 +50,7 @@ ExpectedBuffer<proto::QueryResult> WebDB::Connection::RunQuery(std::string_view 
 }
 
 /// Start a SQL query
-ExpectedBuffer<proto::QueryResult> WebDB::Connection::SendQuery(std::string_view text) {
+ExpectedBuffer<p::QueryResult> WebDB::Connection::SendQuery(std::string_view text) {
     try {
         // Send the query
         auto result = connection_.SendQuery(std::string{text});
@@ -65,7 +68,7 @@ ExpectedBuffer<proto::QueryResult> WebDB::Connection::SendQuery(std::string_view
 }
 
 /// Fetch query results
-ExpectedBuffer<proto::QueryResultChunk> WebDB::Connection::FetchQueryResults() {
+ExpectedBuffer<p::QueryResultChunk> WebDB::Connection::FetchQueryResults() {
     try {
         // Fetch data if a query is active
         std::unique_ptr<duckdb::DataChunk> chunk;
@@ -90,7 +93,7 @@ ExpectedBuffer<proto::QueryResultChunk> WebDB::Connection::FetchQueryResults() {
 }
 
 /// Analyze a SQL query
-ExpectedBuffer<proto::QueryPlan> WebDB::Connection::AnalyzeQuery(std::string_view text) {
+ExpectedBuffer<p::QueryPlan> WebDB::Connection::AnalyzeQuery(std::string_view text) {
     // Parse the statements
     duckdb::Connection conn{*database_};
     duckdb::Parser parser;
@@ -129,3 +132,5 @@ WebDB::Connection* WebDB::Connect() {
 
 /// End a session
 void WebDB::Disconnect(Connection* session) { connections_.erase(session); }
+
+}}

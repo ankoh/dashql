@@ -1,13 +1,12 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_COMMON_RAW_BUFFER_H_
-#define INCLUDE_DUCKDB_WEB_COMMON_RAW_BUFFER_H_
+#ifndef INCLUDE_DASHQL_COMMON_RAW_BUFFER_H_
+#define INCLUDE_DASHQL_COMMON_RAW_BUFFER_H_
 
 #include <memory>
-#include "duckdb/web/common/span.h"
+#include "dashql/common/span.h"
 
-namespace duckdb {
-namespace web {
+namespace dashql {
 
 class RawBuffer {
    protected:
@@ -29,8 +28,7 @@ class RawBuffer {
     auto operator*() { return nonstd::span<char>{ buffer_.get(), size_ }; }
 };
 
-}  // namespace web
-}  // namespace duckdb
+}  // namespace dashql
 
-#endif  // INCLUDE_DUCKDB_WEB_COMMON_RAW_BUFFER_H_
+#endif  // INCLUDE_DASHQL_COMMON_RAW_BUFFER_H_
 

@@ -15,29 +15,28 @@
 #include <vector>
 
 #include "dashql/common/blob_stream.h"
+#include "dashql/common/expected.h"
+#include "dashql/common/raw_buffer.h"
 #include "dashql/program_instance.h"
 #include "dashql/proto_generated.h"
+#include "dashql/webdb/webdb.h"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
-#include "duckdb/web/common/expected.h"
-#include "duckdb/web/common/raw_buffer.h"
-#include "duckdb/web/webdb.h"
 
 namespace dashql {
 
-template <typename T> using ExpectedBufferRef = duckdb::web::ExpectedBufferRef<T>;
 using ActionGraph = proto::action::ActionGraph;
 using Plan = proto::session::Plan;
 using Program = proto::syntax::Program;
-using RawBuffer = duckdb::web::RawBuffer;
+using RawBuffer = dashql::RawBuffer;
 
 namespace fb = flatbuffers;
 
 class Session {
    protected:
     /// The database
-    duckdb::web::WebDB database_;
+    webdb::WebDB database_;
     /// The connection (if any)
-    duckdb::web::WebDB::Connection* database_connection_;
+    webdb::WebDB::Connection* database_connection_;
 
     /// The volatile program text (if any)
     std::shared_ptr<std::string> volatile_program_text_;
@@ -54,7 +53,9 @@ class Session {
     size_t planner_log_writer_;
 
     /// Extract csv
-    Signal ExtractCSV(BlobStreamBuffer& blob_streambuf, duckdb::BufferedCSVReaderOptions csv_options, std::vector<duckdb::LogicalType>&& csv_col_types, const std::string& schema_name, const std::string& table_name);
+    Signal ExtractCSV(BlobStreamBuffer& blob_streambuf, duckdb::BufferedCSVReaderOptions csv_options,
+                      std::vector<duckdb::LogicalType>&& csv_col_types, const std::string& schema_name,
+                      const std::string& table_name);
 
    public:
     /// Constructor
