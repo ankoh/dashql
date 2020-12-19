@@ -240,7 +240,7 @@ target_link_libraries(dashql_parser dashql_proto)
 # ---------------------------------------------------------------------------
 # Libraries
 
-add_library(dashql
+add_library(dashql_core
     ${CMAKE_SOURCE_DIR}/src/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/common/blob_stream.cc
     ${CMAKE_SOURCE_DIR}/src/common/pattern_search.cc
@@ -268,14 +268,14 @@ add_library(dashql_test
 )
 
 target_link_libraries(dashql_webdb dashql_proto spdlog)
-target_link_libraries(dashql dashql_parser dashql_webdb dashql_proto)
-target_link_libraries(dashql_test dashql dashql_proto pugixml gtest)
+target_link_libraries(dashql_core dashql_parser dashql_webdb dashql_proto)
+target_link_libraries(dashql_test dashql_core dashql_proto pugixml gtest)
 
 # ---------------------------------------------------------------------------
 # Emscripten
 
 add_executable(dashql_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-target_link_libraries(dashql_ffi dashql dashql_webdb dashql_proto spdlog)
+target_link_libraries(dashql_ffi dashql_core dashql_webdb dashql_proto spdlog)
 
 # We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
 if (EMSCRIPTEN)
@@ -303,21 +303,27 @@ if (EMSCRIPTEN)
             _dashql_clear_response, \
             _dashql_parse_program, \
             _dashql_plan_program, \
-            ${WEBDB_INTERFACE}
+            ${WEBDB_INTERFACE} \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
     )
 
-    add_executable(core_wasm_web ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-    target_link_libraries(core_wasm_web dashql duckdb_ffi)
-    set_target_properties(core_wasm_web PROPERTIES LINK_FLAGS "${CORE_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
+    add_executable(core_wasm
+        ${CMAKE_SOURCE_DIR}/src/session_ffi.cc
+        ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
+    )
+    target_link_libraries(core_wasm dashql_core)
+    set_target_properties(core_wasm PROPERTIES LINK_FLAGS "${CORE_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
-    add_executable(core_wasm_node ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-    target_link_libraries(core_wasm_node dashql duckdb_ffi)
+    add_executable(core_wasm_node
+        ${CMAKE_SOURCE_DIR}/src/session_ffi.cc
+        ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
+    )
+    target_link_libraries(core_wasm_node dashql_core)
     set_target_properties(core_wasm_node PROPERTIES LINK_FLAGS "${CORE_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 
-    set(DUCKDB_WASM_LINKER_FLAGS " \
+    set(WEBDB_WASM_LINKER_FLAGS " \
         -s LLD_REPORT_UNDEFINED=1 \
         -s WARN_ON_UNDEFINED_SYMBOLS=0 \
         -s USE_PTHREADS=0 \
@@ -328,22 +334,22 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
-            _dashql_clear_response, \
-            ${WEBDB_INTERFACE}
+            _dashql_webdb_clear_response, \
+            ${WEBDB_INTERFACE} \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
         "
     )
 
-    add_executable(webdb_wasm_web ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc)
-    target_compile_definitions(duckdb_web PUBLIC WITH_WEBDB_MAIN)
-    target_link_libraries(duckdb_web dashql_webdb flatbuffers spdlog)
-    set_target_properties(duckdb_web PROPERTIES LINK_FLAGS "${DUCKDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
+    add_executable(webdb_wasm ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc)
+    target_compile_definitions(webdb_wasm PUBLIC WITH_WEBDB_MAIN)
+    target_link_libraries(webdb_wasm dashql_webdb flatbuffers spdlog)
+    set_target_properties(webdb_wasm PROPERTIES LINK_FLAGS "${WEBDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
     add_executable(webdb_wasm_node ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc)
-    target_compile_definitions(duckdb_node PUBLIC WITH_WEBDB_MAIN)
-    target_link_libraries(duckdb_node dashql_webdb flatbuffers spdlog)
-    set_target_properties(duckdb_node PROPERTIES LINK_FLAGS "${DUCKDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
+    target_compile_definitions(webdb_wasm_node PUBLIC WITH_WEBDB_MAIN)
+    target_link_libraries(webdb_wasm_node dashql_webdb flatbuffers spdlog)
+    set_target_properties(webdb_wasm_node PROPERTIES LINK_FLAGS "${WEBDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
 
 

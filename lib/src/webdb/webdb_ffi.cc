@@ -37,51 +37,51 @@ using ConnectionHdl = uintptr_t;
 using BufferHdl = uintptr_t;
 
 /// Clear the response
-void duckdb_web_clear_response() {
+void dashql_webdb_clear_response() {
     GetResponseBuffer().Clear();
 }
 
 /// Create a conn
-ConnectionHdl duckdb_web_connect() {
+ConnectionHdl dashql_webdb_connect() {
     return reinterpret_cast<ConnectionHdl>(GetWebDB().Connect());
 }
 /// End a conn
-void duckdb_web_disconnect(ConnectionHdl connHdl) {
+void dashql_webdb_disconnect(ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     GetWebDB().Disconnect(c);
 }
 
 /// Access a buffer
-void* duckdb_web_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl) {
+void* dashql_webdb_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl) {
     return reinterpret_cast<void*>(bufferHdl);
 }
 
 /// Run a query
-void duckdb_web_run_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
+void dashql_webdb_run_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->RunQuery(text);
-    GetResponseBuffer().Store(*packed, move(r));
+    GetResponseBuffer().Store(*packed, std::move(r));
 }
 
 /// Send a query
-void duckdb_web_send_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
+void dashql_webdb_send_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->SendQuery(text);
-    GetResponseBuffer().Store(*packed, move(r));
+    GetResponseBuffer().Store(*packed, std::move(r));
 }
 
 /// Fetch query results
-void duckdb_web_fetch_query_results(FFIResponse* packed, ConnectionHdl connHdl) {
+void dashql_webdb_fetch_query_results(FFIResponse* packed, ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->FetchQueryResults();
-    GetResponseBuffer().Store(*packed, move(r));
+    GetResponseBuffer().Store(*packed, std::move(r));
 }
 
 /// Analyze a query
-void duckdb_web_analyze_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
+void dashql_webdb_analyze_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->AnalyzeQuery(text);
-    GetResponseBuffer().Store(*packed, move(r));
+    GetResponseBuffer().Store(*packed, std::move(r));
 }
 
 }

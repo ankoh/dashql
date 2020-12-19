@@ -3,8 +3,8 @@
 export * from "./bindings";
 export * from "./core_wasm_module";
 
-import dashql_core_wasm from './core_wasm_web.wasm';
-import dashql_core_init from './core_wasm_web.js';
+import dashql_core_wasm from './core_wasm.wasm';
+import dashql_core_init from './core_wasm.js';
 import { DashQLCoreModule } from './core_wasm_module';
 import { CoreWasmBindings, CoreWasmRuntime, CORE_WASM_RUNTIME_STUBS } from './bindings';
 
