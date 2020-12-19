@@ -44,7 +44,7 @@ jobs:
       with:
         script: |-
             ./lib/build/debug/tester ./lib/ \
-                --gtest_output=xml:./reports/tests_debug.xml
+                --gtest_output=xml:./reports/tests_lib_debug.xml
 
   linux_x86_coverage:
     name: Linux / x86 / Coverage
@@ -144,7 +144,7 @@ jobs:
       with:
         script: |-
             ./lib/build/release/tester ./lib/ \
-                --gtest_output=xml:./reports/tests_release.xml
+                --gtest_output=xml:./reports/tests_lib_release.xml
 
   web:
     name: Web
