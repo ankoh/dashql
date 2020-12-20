@@ -129,7 +129,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         }
 
         // No more scheduled actions left?
-        return Promise.resolve(!this.workLeft());
+        return !this.workLeft();
     }
 }
 
