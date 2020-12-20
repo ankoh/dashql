@@ -5,6 +5,7 @@ import { Plan } from "./plan";
 import { ActionID, Action, ActionLogEntry } from "./action";
 import { PlanObjectID, PlanObject } from "./plan_object";
 import { Program } from "./program";
+import { Store } from "redux";
 
 export class CoreState {
     /// The log entries
@@ -47,3 +48,6 @@ export interface DerivedState {
     /// The core state
     core: CoreState;
 };
+
+// The store type
+export type DerivedReduxStore = Store<DerivedState>;
