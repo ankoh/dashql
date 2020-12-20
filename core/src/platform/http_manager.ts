@@ -14,7 +14,7 @@ interface CachedHTTPEntry {
     /// The response
     response: Response;
     /// The response body buffer
-    responseBody: Uint8Array | null;
+    responseBody: Blob | null;
 }
 
 /// A HTTP request cache
@@ -69,24 +69,15 @@ export class HTTPManager {
 
         // Send HTTP request
         const res = await fetch(req);
-        let resBody: Uint8Array | null = null;
+        let chunks = [];
         if (res.body) {
             // Read response stream
             const reader = res.body.getReader();
-            let chunks = [];
             let chunkBytes = 0;
             for (let c = await reader.read(); c.done; c = await reader.read()) {
                 chunks.push(c.value!);
                 chunkBytes += c.value!.length;
                 onProgress(res, chunkBytes);
-            }
-
-            // Concatenate response body
-            resBody = new Uint8Array(chunkBytes);
-            let offset = 0;
-            for (let chunk of chunks) {
-                resBody.set(chunk, offset);
-                offset += chunk.length;
             }
         }
 
@@ -96,7 +87,7 @@ export class HTTPManager {
             request: req,
             requestBody: reqBody,
             response: res,
-            responseBody: resBody,
+            responseBody: chunks ? new Blob(chunks) : null,
         });
     }
 }
