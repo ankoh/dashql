@@ -17,11 +17,11 @@ export class NativeMinHeap {
         this._entries = new Uint32Array(0);
         this._index = new Uint32Array(0);
         this._size = 0;
-        this.reset(entries);
+        this.build(entries);
     }
 
-    /// Reset the heap
-    public reset(entries: [NativeMinHeapKey, NativeMinHeapRank][] = []) {
+    /// Build the heap with entries
+    public build(entries: [NativeMinHeapKey, NativeMinHeapRank][] = []) {
         if (this._entries.length < entries.length) {
             this._entries = new Uint32Array(2 * entries.length);
             this._index = new Uint32Array(entries.length);
@@ -31,6 +31,18 @@ export class NativeMinHeap {
             this._entries[2 * i] = entries[i][0];
             this._entries[2 * i + 1] = entries[i][1];
             this._index[entries[i][0]] = i;
+        }
+    }
+
+    /// Build the default heap
+    public buildDefault(size: number) {
+        this._entries = new Uint32Array(2 * size);
+        this._index = new Uint32Array(size);
+        this._size = size;
+        for (let i = 0; i < size; ++i) {
+            this._entries[2 * i] = i;
+            this._entries[2 * i + 1] = 0;
+            this._index[i] = i;
         }
     }
 
@@ -96,13 +108,30 @@ export class NativeMinHeap {
         this.siftDown(0);
     }
     /// Decrement a key
-    public decrementKey(key: NativeMinHeapKey, by: number) {
+    public decrementRank(key: NativeMinHeapKey, by: number = 1) {
         const i = this._index[key];
         this._entries[2 * i + 1] -= Math.min(this._entries[2 * i + 1], by);
         this.siftUp(i);
     }
+    /// Increment a key
+    public incrementRank(key: NativeMinHeapKey, by: number = 1) {
+        const i = this._index[key];
+        this._entries[2 * i + 1] += Math.min(this._entries[2 * i + 1], by);
+        this.siftDown(i);
+    }
+    /// Set a key
+    public setRank(key: NativeMinHeapKey, rank: number) {
+        const i = this._index[key];
+        const prev = this._entries[2 * i + 1];
+        this._entries[2 * i + 1] = rank;
+        if (rank < prev) {
+            this.siftUp(i);
+        } else {
+            this.siftDown(i);
+        }
+    }
     /// Get the current rank of a key
-    public findRank(key: NativeMinHeapKey) {
+    public getRank(key: NativeMinHeapKey) {
         return this.rank(this._index[key]);
     }
 }

@@ -1,15 +1,17 @@
 import * as core from '../../src/index_node';
 
-enum TestOpType { POP, DEC }
+enum TestOpType { POP, DEC, INC, SET }
 interface TestOp {
     type: TestOpType;
     key: number;
-    by: number;
+    value: number;
 }
 
 function PUSH(key: number, rank: number): [number, number] { return [key, rank]; }
-function POP(key: number) { return { type: TestOpType.POP, key: key, by: 0 }; }
-function DEC(key: number, by: number = 1) { return { type: TestOpType.DEC, key: key, by: by }; }
+function POP(key: number) { return { type: TestOpType.POP, key: key, value: 0 }; }
+function DEC(key: number, by: number = 1) { return { type: TestOpType.DEC, key: key, value: by }; }
+function INC(key: number, by: number = 1) { return { type: TestOpType.INC, key: key, value: by }; }
+function SET(key: number, rank: number = 1) { return { type: TestOpType.SET, key: key, value: rank }; }
 
 const tests: [string, [number, number][], TestOp[]][] = [
     [
@@ -36,12 +38,21 @@ describe('NativeMinHeap', () => {
             input.sort((l, r) => l[1] - r[1]);
             const heap = new core.utils.NativeMinHeap(input);
             for (const op of ops) {
-                if (op.type == TestOpType.DEC) {
-                    heap.decrementKey(op.key, op.by);
-                } else {
-                    expect(heap.empty()).toBe(false);
-                    expect(heap.top()).toBe(op.key);
-                    heap.pop();
+                switch (op.type) {
+                    case TestOpType.DEC:
+                        heap.decrementRank(op.key, op.value);
+                        break;
+                    case TestOpType.INC:
+                        heap.incrementRank(op.key, op.value);
+                        break;
+                    case TestOpType.SET:
+                        heap.setRank(op.key, op.value);
+                        break;
+                    default:
+                        expect(heap.empty()).toBe(false);
+                        expect(heap.top()).toBe(op.key);
+                        heap.pop();
+                        break;
                 }
             }
         }

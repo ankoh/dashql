@@ -41,7 +41,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
             this._actionPromiseMapping.push(null);
         }
         deps.sort((l, r) => l[1] - r[1]);
-        this._actionQueue.reset(deps);
+        this._actionQueue.build(deps);
 
         // Build the status bitmaps
         this._scheduledActions.reset(this._actions.length);
@@ -116,7 +116,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
                 this._scheduledActions.clear(action_idx);
                 this._completedActions.set(action_idx);
                 for (const req of this._actions[action_idx].buffer.requiredForArray()!) {
-                    this._actionQueue.decrementKey(req, 1);
+                    this._actionQueue.decrementRank(req);
                 }
                 this.scheduleNext(context, diff);
                 break;

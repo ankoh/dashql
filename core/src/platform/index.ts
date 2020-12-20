@@ -1,4 +1,3 @@
-export * from "./cache_manager";
 export * from "./core_wasm_api";
 export * from "./database_manager";
 export * from "./file_manager";

@@ -6,8 +6,6 @@ export class PlatformMock {
     public state: model.DerivedReduxStore;
     /// The core wasm api
     public coreWasm: platform.CoreWasmAPI;
-    /// The cache manager
-    public cacheManager: platform.CacheManager;
     /// The database manager
     public databaseManager: platform.DatabaseManager;
     /// The file manager
@@ -18,7 +16,6 @@ export class PlatformMock {
     constructor(store: model.DerivedReduxStore) {
         this.state = store;
         this.coreWasm = mock({} as platform.CoreWasmAPI);
-        this.cacheManager = mock(platform.CacheManager);
         this.databaseManager = mock(platform.DatabaseManager);
         this.fileManager = mock(platform.FileManager);
         this.httpManager = mock(platform.HTTPManager);
@@ -28,7 +25,6 @@ export class PlatformMock {
         return new platform.Platform(
             this.state,
             instance(this.coreWasm),
-            instance(this.cacheManager),
             instance(this.databaseManager),
             instance(this.fileManager),
             instance(this.httpManager)
