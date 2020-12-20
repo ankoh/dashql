@@ -7,14 +7,14 @@ type HTTPProgressHandler = (res: Response, sig: string, receivedBytes: number) =
 
 /// A cached HTTP entry
 interface CachedHTTPEntry extends LRUCacheEntry {
+    /// The cache key
+    key: string;
     /// The request
     request: Request;
-    /// The request body buffer
+    /// The request body (if any)
     requestBody: Uint8Array | null;
     /// The response
     response: Response;
-    /// The response body buffer
-    responseBody: Blob | null;
 }
 
 /// A HTTP request cache
@@ -69,14 +69,11 @@ export class HTTPManager {
 
         // Send HTTP request
         const res = await fetch(req);
-        let chunks = null;
         if (res.body) {
             // Read response stream
             const reader = res.body.getReader();
             let chunkBytes = 0;
-            chunks = [];
             for (let c = await reader.read(); c.done; c = await reader.read()) {
-                chunks.push(c.value!);
                 chunkBytes += c.value!.length;
                 onProgress(res, sig, chunkBytes);
             }
@@ -88,7 +85,6 @@ export class HTTPManager {
             request: req,
             requestBody: reqBody,
             response: res,
-            responseBody: chunks ? new Blob(chunks) : null,
         });
     }
 }
