@@ -1,12 +1,11 @@
-import { LRUCache, LRUCacheEntry } from "../utils/lru_cache";
+import { LRUCache } from "../utils/lru_cache";
 import { IHasher, createSHA256 } from "../utils/hash";
 
 const REQUEST_CACHE_SIZE = 64;
 
 type HTTPProgressHandler = (res: Response, sig: string, receivedBytes: number) => void;
 
-/// A cached HTTP entry
-interface CachedHTTPEntry extends LRUCacheEntry {
+export interface HTTPData {
     /// The cache key
     key: string;
     /// The request
@@ -18,14 +17,14 @@ interface CachedHTTPEntry extends LRUCacheEntry {
 }
 
 /// A HTTP request cache
-class HTTPRequestCache extends LRUCache<CachedHTTPEntry> {
+class HTTPRequestCache extends LRUCache<HTTPData> {
     /// Constructor
     constructor(size: number) {
         super(size);
     }
 
     /// Update handler
-    onEvict(_slot: number, _next: CachedHTTPEntry, _evicted: CachedHTTPEntry | null): void {
+    onEvict(_slot: number, _next: HTTPData, _evicted: HTTPData | null): void {
         // XXX
     }
 }
@@ -62,7 +61,7 @@ export class HTTPManager {
     }
 
     /// Send a HTTP request
-    public async fetch(req: Request, reqBody: Uint8Array | null, onProgress: HTTPProgressHandler): Promise<CachedHTTPEntry> {
+    public async fetch(req: Request, reqBody: Uint8Array | null, onProgress: HTTPProgressHandler): Promise<HTTPData> {
         const sig = this.hashRequest(req, reqBody);
         const cached = this._request_cache.find(sig);
         if (cached) return cached;
