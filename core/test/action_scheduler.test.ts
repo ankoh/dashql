@@ -1,5 +1,6 @@
-import { DashQLCoreWasm, CORE_WASM_RUNTIME_STUBS } from '../src/index_node';
+import { DashQLCoreWasm, CORE_WASM_RUNTIME_STUBS, model } from '../src/index_node';
 import * as path from 'path';
+import { PlatformMock } from './mocks';
 
 var core: DashQLCoreWasm;
 
@@ -18,5 +19,11 @@ describe('Action Planner', () => {
            expect(action_graph.setupActionsLength()).toBe(0);
            expect(action_graph.programActionsLength()).toBe(1);
        });
+   });
+
+   describe('test', () => {
+        const store = model.createStore();
+        const platformMock = new PlatformMock(store);
+        const platform = platformMock.getInstance();
    });
 });
