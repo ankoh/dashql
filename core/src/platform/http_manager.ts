@@ -5,9 +5,15 @@ const REQUEST_CACHE_SIZE = 64;
 
 /// A cached HTTP entry
 interface CachedHTTPEntry {
+    /// The request signature
+    signature: string;
+    /// The request
     request: Request;
+    /// The request body buffer
     requestBody: Uint8Array | null;
+    /// The response
     response: Response;
+    /// The response body buffer
     responseBody: Uint8Array | null;
 }
 
@@ -86,6 +92,7 @@ export class HTTPManager {
 
         // Cache response
         return this._request_cache.insert(sig, {
+            signature: sig,
             request: req,
             requestBody: reqBody,
             response: res,
