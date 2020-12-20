@@ -71,11 +71,12 @@ export class HTTPManager {
 
         // Send HTTP request
         const res = await fetch(req);
-        let chunks = [];
+        let chunks = null;
         if (res.body) {
             // Read response stream
             const reader = res.body.getReader();
             let chunkBytes = 0;
+            chunks = [];
             for (let c = await reader.read(); c.done; c = await reader.read()) {
                 chunks.push(c.value!);
                 chunkBytes += c.value!.length;
