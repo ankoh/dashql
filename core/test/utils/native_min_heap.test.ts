@@ -29,12 +29,12 @@ const tests: [string, [number, number][], TestOp[]][] = [
     ],
 ];
 
-describe('TopologicalSort', () => {
+describe('NativeMinHeap', () => {
     test.each(tests)(
         "%s",
         (_name, input, ops) => {
             input.sort((l, r) => l[1] - r[1]);
-            const heap = new core.utils.TopologicalSort(input);
+            const heap = new core.utils.NativeMinHeap(input);
             for (const op of ops) {
                 if (op.type == TestOpType.DEC) {
                     heap.decrementKey(op.key, op.by);

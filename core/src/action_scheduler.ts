@@ -1,5 +1,5 @@
 import * as proto from "@dashql/proto";
-import { NativeBitmap, NativeStack, TopologicalSort, TopoKey, TopoRank } from "./utils";
+import { NativeBitmap, NativeStack, NativeMinHeap, NativeMinHeapKey, NativeMinHeapRank } from "./utils";
 import { ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramActionLogic } from "./actions";
 import { ActionContext } from "./actions";
 import { ActionID, Action, ActionClass, ActionUpdate, buildActionID, getActionIndex, StateMutations } from './model';
@@ -11,7 +11,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The actions
     _actions: ActionLogic<ActionBuffer>[] = [];
     /// The pending actions
-    _actionQueue: TopologicalSort = new TopologicalSort();
+    _actionQueue: NativeMinHeap = new NativeMinHeap();
     /// The action promises
     _actionPromises: Promise<ActionID | null>[] = [];
     /// The action promise mapping
@@ -34,7 +34,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this._actionPromiseMapping = [];
 
         // Build the dependency heap
-        let deps: [TopoKey, TopoRank][] = [];
+        let deps: [NativeMinHeapKey, NativeMinHeapRank][] = [];
         deps.length += actions.length;
         for (let i = 0; i < actions.length; ++i) {
             deps[i] = [i, actions[i].buffer.dependsOnLength()];

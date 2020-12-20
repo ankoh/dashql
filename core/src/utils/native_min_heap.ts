@@ -1,10 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
-export type TopoKey = number;
-export type TopoRank = number;
+export type NativeMinHeapKey = number;
+export type NativeMinHeapRank = number;
 
 /// A native heap
-export class TopologicalSort {
+export class NativeMinHeap {
     /// The entries
     _entries: Uint32Array;
     /// The index
@@ -13,7 +13,7 @@ export class TopologicalSort {
     _size: number;
 
     /// Constructor
-    public constructor(entries: [TopoKey, TopoRank][] = []) {
+    public constructor(entries: [NativeMinHeapKey, NativeMinHeapRank][] = []) {
         this._entries = new Uint32Array(0);
         this._index = new Uint32Array(0);
         this._size = 0;
@@ -21,7 +21,7 @@ export class TopologicalSort {
     }
 
     /// Reset the heap
-    public reset(entries: [TopoKey, TopoRank][] = []) {
+    public reset(entries: [NativeMinHeapKey, NativeMinHeapRank][] = []) {
         if (this._entries.length < entries.length) {
             this._entries = new Uint32Array(2 * entries.length);
             this._index = new Uint32Array(entries.length);
@@ -35,11 +35,11 @@ export class TopologicalSort {
     }
 
     /// Access element
-    protected value(index: number): TopoKey {
+    protected value(index: number): NativeMinHeapKey {
         return this._entries[2 * index];
     }
     /// Access rank
-    protected rank(index: number): TopoRank {
+    protected rank(index: number): NativeMinHeapRank {
         return this._entries[2 * index + 1];
     }
     /// Swap two positions
@@ -96,13 +96,13 @@ export class TopologicalSort {
         this.siftDown(0);
     }
     /// Decrement a key
-    public decrementKey(key: TopoKey, by: number) {
+    public decrementKey(key: NativeMinHeapKey, by: number) {
         const i = this._index[key];
         this._entries[2 * i + 1] -= Math.min(this._entries[2 * i + 1], by);
         this.siftUp(i);
     }
     /// Get the current rank of a key
-    public findRank(key: TopoKey) {
+    public findRank(key: NativeMinHeapKey) {
         return this.rank(this._index[key]);
     }
 }
