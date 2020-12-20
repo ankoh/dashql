@@ -3,6 +3,8 @@ import { IHasher, createSHA256 } from "../utils/hash";
 
 const REQUEST_CACHE_SIZE = 64;
 
+type HTTPProgressHandler = (res: Response, sig: string, receivedBytes: number) => void;
+
 /// A cached HTTP entry
 interface CachedHTTPEntry {
     /// The request signature
@@ -62,7 +64,7 @@ export class HTTPManager {
     }
 
     /// Send a HTTP request
-    public async fetch(req: Request, reqBody: Uint8Array | null, onProgress: (res: Response, receivedBytes: number) => void): Promise<CachedHTTPEntry> {
+    public async fetch(req: Request, reqBody: Uint8Array | null, onProgress: HTTPProgressHandler): Promise<CachedHTTPEntry> {
         const sig = this.hashRequest(req, reqBody);
         const cached = this._request_cache.find(sig);
         if (cached) return cached;
@@ -77,7 +79,7 @@ export class HTTPManager {
             for (let c = await reader.read(); c.done; c = await reader.read()) {
                 chunks.push(c.value!);
                 chunkBytes += c.value!.length;
-                onProgress(res, chunkBytes);
+                onProgress(res, sig, chunkBytes);
             }
         }
 
