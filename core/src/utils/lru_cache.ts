@@ -2,9 +2,9 @@ import { NativeBitmap, NativeMinHeap } from "../utils";
 
 /// Caches the last N requests.
 /// Evicts cached requests with LRU queue.
-export abstract class LRUCache<Key, Value> {
+export abstract class LRUCache<Value> {
     /// The slots
-    _slots: ([Key, Value] | null)[];
+    _slots: ([string, Value] | null)[];
     /// The slot mask
     _slot_mask: NativeBitmap;
     /// The LRU queue
@@ -19,22 +19,20 @@ export abstract class LRUCache<Key, Value> {
         this._lru_queue.buildDefault(size);
     }
 
-    /// Compare two keys
-    protected abstract compare(l: Key, r: Key): number;
-    /// Evict an entry
-    protected abstract evict(k: Key, v: Value): void;
+    /// Update handler
+    protected abstract onEvict(slot: number, newEntry: [string, Value], evictedEntry: [string, Value] | null): void;
     /// Use a slot?
-    protected useSlot(slot: number) {
+    protected use(slot: number) {
         this._lru_queue.setRank(slot, new Date().getTime());
     }
 
     /// Find an entry
-    public find(k: Key): Value | null {
+    public find(k: string): Value | null {
         for (let i = 0; i < this._slots.length; ++i) {
             const entry = this._slots[i];
             if (!entry) continue;
-            if (this.compare(entry[0], k) == 0) {
-                this.useSlot(i);
+            if (entry[0] == k) {
+                this.use(i);
                 return entry[1];
             }
         }
@@ -42,13 +40,15 @@ export abstract class LRUCache<Key, Value> {
     }
 
     /// Insert an entry
-    public insert(k: Key, v: Value) {
+    public insert(k: string, v: Value): Value {
         const i = this._lru_queue.top();
         if (this._slot_mask.isSet(i)) {
-            const entry = this._slots[i]!;
-            this.evict(entry[0], entry[1]);
-            this._slots[i] = [k, v];
-            this.useSlot(i);
+            const prev = this._slots[i]!;
+            const next: [string, Value] = [k, v];
+            this.onEvict(i, prev, next);
+            this._slots[i] = next;
+            this.use(i);
         }
+        return v;
     }
 }
