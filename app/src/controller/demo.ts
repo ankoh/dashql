@@ -57,9 +57,15 @@ export class DemoController {
     public setup() {
         const program = this._core.parseProgram(DEMO_SCRIPT);
         const plan = this._core.planProgram();
-        this._store.dispatch(core.model.StateMutations.setProgram(DEMO_SCRIPT, program));
+        this._store.dispatch({
+            type: core.model.StateMutationType.SET_PROGRAM,
+            payload: [DEMO_SCRIPT, program]
+        });
         if (plan != null) {
-            this._store.dispatch(core.model.StateMutations.setPlan(plan));
+            this._store.dispatch({
+                type: core.model.StateMutationType.SET_PLAN,
+                payload: plan
+            });
         }
     }
 }

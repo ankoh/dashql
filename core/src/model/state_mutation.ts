@@ -49,22 +49,6 @@ export type StateMutationVariant =
 export type StateMutationDispatcher = (mutation: StateMutationVariant) => void;
 
 export class StateMutations {
-    public static pushLogEntry(log: LogEntry): StateMutationVariant {
-        return { type: StateMutationType.LOG_PUSH_ENTRY, payload: log };
-    }
-
-    public static setProgram(program_text: string, program: Program): StateMutationVariant {
-        return { type: StateMutationType.SET_PROGRAM, payload: [program_text, program] };
-    }
-
-    public static setPlan(plan: Plan): StateMutationVariant {
-        return { type: StateMutationType.SET_PLAN, payload: plan };
-    }
-
-    public static clearPlan(): StateMutationVariant {
-        return { type: StateMutationType.SET_PLAN, payload: null };
-    }
-
     public static reduce(state: CoreState, mutation: StateMutationVariant): CoreState {
         switch (mutation.type) {
             case StateMutationType.LOG_PUSH_ENTRY:

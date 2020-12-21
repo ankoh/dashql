@@ -19,7 +19,10 @@ export class LogController {
         };
 
         // Store in redux store
-        this.store.dispatch(model.StateMutations.pushLogEntry(logEntry));
+        this.store.dispatch({
+            type: model.StateMutationType.LOG_PUSH_ENTRY,
+            payload: logEntry,
+        });
     }
 
     public logError(error: error.LoggableError) {
@@ -31,7 +34,10 @@ export class LogController {
         };
 
         // Store in redux store
-        this.store.dispatch(model.StateMutations.pushLogEntry(logEntry));
+        this.store.dispatch({
+            type: model.StateMutationType.LOG_PUSH_ENTRY,
+            payload: logEntry,
+        });
     }
 
     // Log levels
