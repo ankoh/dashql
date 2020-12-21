@@ -29,7 +29,10 @@ export class EditorController {
         }
         const p = this._core.parseProgram(input);
         this.displayErrors(p);
-        this._store.dispatch(core.model.StateMutations.setProgram(input, p));
+        this._store.dispatch({
+            type: core.model.StateMutationType.SET_PROGRAM,
+            payload: p,
+        });
     }
 
     /// Display module errors
