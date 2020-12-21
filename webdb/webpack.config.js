@@ -75,7 +75,8 @@ const browserTarget = {
         }),
     ],
     externals: {
-        flatbuffers: "flatbuffers",
+        "@dashql/proto": "@dashql/proto",
+        "flatbuffers": "flatbuffers",
     }
 };
 

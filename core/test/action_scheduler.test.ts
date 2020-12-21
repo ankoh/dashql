@@ -21,8 +21,15 @@ describe('Action Planner', () => {
        });
    });
 
-   describe('test', () => {
+});
+
+describe('Action Scheduler', () => {
+   describe('setup actions', () => {
+   });
+
+   describe('program actions', () => {
         const platformMock = new PlatformMock();
         const platform = platformMock.getInstance();
+
    });
 });

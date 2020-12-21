@@ -21,9 +21,6 @@ const browserTarget = {
     },
     resolve: {
         extensions: ['.ts', '.js'],
-        alias: {
-            "@dashql/proto": path.resolve(__dirname, '../proto/dashql_proto.ts')
-        }
     },
     module: {
         rules: [
@@ -85,10 +82,12 @@ const browserTarget = {
         })
     ],
     externals: {
-        flatbuffers: "flatbuffers",
-        axios: "axios",
-        hash: "hash-wasm",
-        immutable: "immutable"
+        "@dashql/proto": "@dashql/proto",
+        "@dashql/webdb": "@dashql/webdb",
+        "flatbuffers": "flatbuffers",
+        "axios": "axios",
+        "hash-wasm": "hash-wasm",
+        "immutable": "immutable"
     }
 };
 
