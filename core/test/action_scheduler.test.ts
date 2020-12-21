@@ -27,11 +27,11 @@ describe('Action Scheduler', () => {
     describe('setup actions', () => {});
 
     describe('program actions', () => {
-        test('select 1', async () => {
+        test('select 1 into a', async () => {
             const platformMock = new PlatformMock();
             const platform = platformMock.getInstance();
 
-            const program = core.parseProgram('select 1');
+            const program = core.parseProgram('select 1 into a');
             const plan = core.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(1);
@@ -44,7 +44,7 @@ describe('Action Scheduler', () => {
             scheduler.reset(logic);
             expect(scheduler.actions.length).toBe(1);
             expect(scheduler.actions[0].actionClass).toBe(ActionClass.ProgramAction);
-            expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.VIZ_CREATE); // XXX
+            expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.TABLE_CREATE);
             expect(scheduler.actions[0].status).toBe(ActionStatus.NONE);
 
             const diff = new utils.NativeStack();
