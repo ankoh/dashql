@@ -1,5 +1,5 @@
-import { LRUCache } from "../utils/lru_cache";
-import { IHasher, createSHA256 } from "../utils/hash";
+import { LRUCache } from '../utils/lru_cache';
+import { IHasher, createSHA256 } from '../utils/hash';
 
 const REQUEST_CACHE_SIZE = 64;
 
@@ -48,7 +48,7 @@ export class HTTPManager {
 
     /// Hash a request
     protected hashRequest(req: Request, reqBody: Uint8Array | null): string {
-        console.assert(this._hasher != null, "hasher must be initialized");
+        console.assert(this._hasher != null, 'hasher must be initialized');
         let hasher = this._hasher!;
         hasher.init();
         hasher.update(req.url);
@@ -57,7 +57,7 @@ export class HTTPManager {
             hasher.update(key);
         });
         if (reqBody) hasher.update(reqBody);
-        return hasher.digest("hex");
+        return hasher.digest('hex');
     }
 
     /// Send a HTTP request
