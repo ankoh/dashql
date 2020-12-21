@@ -22,8 +22,7 @@ describe('Action Planner', () => {
    });
 
    describe('test', () => {
-        const store = model.createStore();
-        const platformMock = new PlatformMock(store);
+        const platformMock = new PlatformMock();
         const platform = platformMock.getInstance();
    });
 });
