@@ -14,6 +14,8 @@ export abstract class LRUCache<Value extends LRUCacheEntry> {
     _slotMapping: Map<string, number>;
     /// The LRU queue
     _lruQueue: NativeMinHeap;
+    /// The clock
+    _clock: number;
 
     constructor(size: number) {
         this._slots = [];
@@ -22,13 +24,14 @@ export abstract class LRUCache<Value extends LRUCacheEntry> {
         this._slotMapping = new Map();
         this._lruQueue = new NativeMinHeap();
         this._lruQueue.buildDefault(size);
+        this._clock = 0;
     }
 
     /// Update handler
     protected abstract onEvict(slot: number, newEntry: Value, evictedEntry: Value | null): void;
     /// Use a slot?
     protected use(slot: number) {
-        this._lruQueue.setRank(slot, new Date().getTime());
+        this._lruQueue.setRank(slot, ++this._clock);
     }
 
     /// Find an entry
