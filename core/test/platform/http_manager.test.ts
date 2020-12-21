@@ -19,7 +19,7 @@ describe('HTTPManager', () => {
         const http = new platform.HTTPManager();
         await http.init();
 
-        // Initial request
+        // Test initial request
         httpMock.onAny().reply(200, encodeTextBody("foo"));
         let r = await http.request({
             url: "http://localhost/test1",
@@ -27,7 +27,7 @@ describe('HTTPManager', () => {
         });
         expect(decodeTextBody(new Uint8Array(r.response.data))).toBe("foo");
 
-        // A different request must fail
+        // Test failing request
         httpMock.reset();
         httpMock.onAny().reply(404);
         expect(async () =>
@@ -37,13 +37,13 @@ describe('HTTPManager', () => {
             })
         ).rejects.toThrow(new Error("Request failed with status code 404"));
 
-        // // Make sure an identical request hits the cache
-        // httpMock.reset();
-        // httpMock.onAny().reply(404);
-        // r = await http.request({
-        //     url: "http://localhost/test1",
-        //     method: "GET",
-        // });
-        // expect(decodeTextBody(new Uint8Array(r.response.data))).toBe("foo");
+        // Test cache hit
+        httpMock.reset();
+        httpMock.onAny().reply(404);
+        r = await http.request({
+            url: "http://localhost/test1",
+            method: "GET",
+        });
+        expect(decodeTextBody(new Uint8Array(r.response.data))).toBe("foo");
     });
 });
