@@ -16,11 +16,6 @@ export type StateMutationVariant =
 
 /// Mutation of the application state
 export class AppStateMutation {
-    /// Configure the application
-    public static configureApp(config: AppSettings): StateMutationVariant {
-        return { type: StateMutationType.CONFIGURE_APP, payload: config };
-    }
-
     /// Set the editor program
     public static reduce(
         state: AppState = new AppState(),
