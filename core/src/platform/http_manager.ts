@@ -1,5 +1,6 @@
 import { LRUCache } from '../utils/lru_cache';
 import { IHasher, createSHA256 } from '../utils/hash';
+import { DerivedReduxStore, StateMutationType } from '../model';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
 
@@ -18,29 +19,44 @@ export interface HTTPData {
 
 /// A HTTP request cache
 class HTTPRequestCache extends LRUCache<HTTPData> {
+    /// The redux store
+    _store: DerivedReduxStore;
+
     /// Constructor
-    constructor(size: number) {
+    constructor(store: DerivedReduxStore, size: number) {
         super(size);
+        this._store = store;
     }
 
-    /// Update handler
-    onEvict(_slot: number, _next: HTTPData, _evicted: HTTPData | null): void {
-        // if (evicted) {
-        //     console.log("evict: " + evicted.key);
-        // }
-        // XXX
+    /// Insert handler
+    onInsert(_slot: number, next: HTTPData, evicted: HTTPData | null): void {
+        this._store.dispatch({
+            type: StateMutationType.CACHE_HTTP_DATA,
+            payload: [next, evicted?.key]
+        });
+    }
+
+    /// Hit handler
+    onHit(_slot: number, next: HTTPData): void {
+        this._store.dispatch({
+            type: StateMutationType.HIT_CACHED_HTTP_DATA,
+            payload: next.key
+        });
     }
 }
 
 export class HTTPManager {
+    /// The redux store
+    _store: DerivedReduxStore;
     /// The request cache
     _request_cache: HTTPRequestCache;
     /// The hasher
     _hasher: IHasher | null;
 
     /// Constructor
-    constructor(cache_size: number = REQUEST_CACHE_SIZE) {
-        this._request_cache = new HTTPRequestCache(cache_size);
+    constructor(store: DerivedReduxStore,cache_size: number = REQUEST_CACHE_SIZE) {
+        this._store = store;
+        this._request_cache = new HTTPRequestCache(store, cache_size);
         this._hasher = null;
     }
 
@@ -54,8 +70,9 @@ export class HTTPManager {
         console.assert(this._hasher != null, 'hasher must be initialized');
         let hasher = this._hasher!;
         hasher.init();
-        if (req.url)
+        if (req.url) {
             hasher.update(req.url);
+        }
         for (const key in req.headers) {
             const value = req.headers[key];
             hasher.update(key);

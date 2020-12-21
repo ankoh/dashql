@@ -18,9 +18,12 @@ class FileCache extends LRUCache<FileData> {
         super(size);
     }
 
-    /// Update handler
-    onEvict(_slot: number, _next: FileData, _evicted: FileData | null): void {
-        // XXX
+    /// Insert handler
+    onInsert(_slot: number, _next: FileData, _evicted: FileData | null): void {
+    }
+
+    /// Hit handler
+    onHit(_slot: number, _next: FileData): void {
     }
 }
 

@@ -27,8 +27,11 @@ export abstract class LRUCache<Value extends LRUCacheEntry> {
         this._clock = 0;
     }
 
-    /// Update handler
-    protected abstract onEvict(slot: number, newEntry: Value, evictedEntry: Value | null): void;
+    /// Insert handler
+    protected abstract onInsert(slot: number, newEntry: Value, evictedEntry: Value | null): void;
+    /// Hit handler
+    protected abstract onHit(slot: number, newEntry: Value): void;
+
     /// Use a slot?
     protected use(slot: number) {
         this._lruQueue.setRank(slot, ++this._clock);
@@ -41,6 +44,7 @@ export abstract class LRUCache<Value extends LRUCacheEntry> {
             return null;
         }
         this.use(i);
+        this.onHit(i, this._slots[i]!);
         return this._slots[i];
     }
 
@@ -51,10 +55,10 @@ export abstract class LRUCache<Value extends LRUCacheEntry> {
         if (e) {
             this._slotMapping.delete(e.key)
         }
-        this.onEvict(i, v, e);
         this._slots[i] = v;
         this._slotMapping.set(v.key, i);
         this.use(i);
+        this.onInsert(i, v, e);
         return v;
     }
 }
