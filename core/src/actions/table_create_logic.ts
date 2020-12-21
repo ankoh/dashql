@@ -9,6 +9,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
     }
 
     public async execute(_context: ActionContext): Promise<ActionID> {
+        this._status = proto.action.ActionStatusCode.COMPLETED;
         return this._action_id;
     }
 };

@@ -15,7 +15,7 @@ export class NativeStack {
 
     /// Resize the buffer
     protected resize(newSize: number) {
-        let b = new Uint32Array(new ArrayBuffer(newSize))
+        let b = new Uint32Array(newSize)
         b.set(this._buffer);
         this._buffer = b;
     }
@@ -30,7 +30,7 @@ export class NativeStack {
     public pop(): number { return this._buffer[--this._size]; }
     /// Push a new element
     public push(v: number) {
-        if (this._size == this._buffer.length) {
+        if (this._size >= this._buffer.length) {
             this.resize(this._buffer.length * 1.5);
         }
         this._buffer[this._size++] = v;

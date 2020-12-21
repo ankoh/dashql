@@ -13,7 +13,7 @@ export enum ActionClass {
 
 /// Build an action id
 export function buildActionID(action_idx: number, action_class: ActionClass): ActionID {
-    return (action_idx << 1) & (action_class as number);
+    return (action_idx << 1) | (action_class as number);
 }
 /// Extract the action class from the id
 export function getActionClass(action_id: ActionID) {
