@@ -23,7 +23,7 @@ export class Plan {
     }
 
     /// Get the buffer
-    public get buffer() { return this._plan; }
+    public get buffer() { return this._plan.root; }
     /// Access the program
     public get program() { return this._program; }
     /// Access the action graph
@@ -48,5 +48,29 @@ export class Plan {
         for (let i = 0; i < count; ++i) {
             fn(i, graph.programActions(i, tmp)!);
         }
+    }
+
+    /// Map program actions
+    public mapProgramActions<T>(fn: (node: proto.action.ProgramAction) => T): T[] {
+        const graph = this._plan.root.actionGraph();
+        if (!graph) return [];
+        let mapped: T[] = [];
+        mapped.length = graph.programActionsLength();
+        this.iterateProgramActions((i, n) => {
+            mapped[i] = fn(n);
+        });
+        return mapped;
+    }
+
+    /// Map setup actions
+    public mapSetupActions<T>(fn: (node: proto.action.SetupAction) => T): T[] {
+        const graph = this._plan.root.actionGraph();
+        if (!graph) return [];
+        let mapped: T[] = [];
+        mapped.length = graph.programActionsLength();
+        this.iterateSetupActions((i, n) => {
+            mapped[i] = fn(n);
+        });
+        return mapped;
     }
 }

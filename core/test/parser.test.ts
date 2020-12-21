@@ -12,7 +12,7 @@ describe('Parser', () => {
    describe('errors', () => {
        test('syntax error', async () => {
            const r = core.parseProgram("?");
-           const p = r.proto;
+           const p = r.buffer;
            expect(p.statementsLength()).toEqual(0);
            expect(p.errorsLength()).toEqual(1);
        });
@@ -23,7 +23,7 @@ describe('Parser', () => {
            const r = core.parseProgram(`
                select 1;
            `);
-           const p = r.proto;
+           const p = r.buffer;
            expect(p.errorsLength()).toEqual(0);
            expect(p.statementsLength()).toEqual(1);
        });

@@ -9,10 +9,14 @@ beforeAll(async () => {
 });
 
 describe('Action Scheduler', () => {
-   describe('setup actions', () => {
-   });
-
    describe('program actions', () => {
-        test('hello world', async () => {});
+        test('select 1', async () => {
+            const program = core.parseProgram("select 1");
+            expect(program.buffer.statementsLength()).toBe(1);
+            const plan = core.planProgram();
+            const graph = plan!.buffer.actionGraph()!;
+            expect(graph.setupActionsLength()).toBe(0);
+            expect(graph.programActionsLength()).toBe(1);
+        });
    });
 });

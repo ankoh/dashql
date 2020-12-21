@@ -42,8 +42,8 @@ export class EditorController {
             return;
         }
         const markers = new Array<monaco.editor.IMarkerData>();
-        for (let i = 0; i < program.proto.errorsLength(); ++i) {
-            const error = program.proto.errors(i)!;
+        for (let i = 0; i < program.buffer.errorsLength(); ++i) {
+            const error = program.buffer.errors(i)!;
             const location = error.location()!;
             const begin = model.getPositionAt(location.offset());
             const startLineNumber = begin.lineNumber;

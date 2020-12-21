@@ -26,9 +26,9 @@ export class Program {
     }
 
     /// Access the text
-    public get text_buffer() { return this._textBuffer; }
+    public get textBuffer() { return this._textBuffer; }
     /// Access the flatbuffer
-    public get proto() { return this._program.root; }
+    public get buffer() { return this._program.root; }
 
     /// Access the text
     public textAt(_loc: sx.Location): string {
@@ -39,18 +39,18 @@ export class Program {
     /// Get a statement
     public getStatement(i: number): Statement {
         const stmt = new Statement(this);
-        stmt.statement_id = i;
-        stmt.statement = this.proto.statements(i, stmt.statement)!;
+        stmt.statementId = i;
+        stmt.statement = this.buffer.statements(i, stmt.statement)!;
         return stmt;
     }
 
     /// Iterate over statements
     public iterateStatements(fn: (idx: number, node: Statement) => void): number {
         const stmt = new Statement(this);
-        const count = this.proto.statementsLength();
+        const count = this.buffer.statementsLength();
         for (let i = 0; i < count; ++i) {
-            stmt.statement_id = i;
-            stmt.statement = this.proto.statements(i, stmt.statement)!;
+            stmt.statementId = i;
+            stmt.statement = this.buffer.statements(i, stmt.statement)!;
             fn(i, stmt);
         }
         return count;
@@ -59,9 +59,9 @@ export class Program {
     /// Iterate over statements
     public iterateDependencies(fn: (idx: number, node: sx.Dependency) => void): number {
         let dep = new sx.Dependency();
-        const count = this.proto.dependenciesLength();
+        const count = this.buffer.dependenciesLength();
         for (let i = 0; i < count; ++i) {
-            dep = this.proto.dependencies(i, dep)!;
+            dep = this.buffer.dependencies(i, dep)!;
             fn(i, dep);
         }
         return count;
@@ -81,6 +81,8 @@ export class Node {
     } 
     /// Get the module
     public get program() { return this._program; }
+    /// Get the module
+    public get programBuffer() { return this._program.buffer; }
     /// Get the node
     public get node() { return this._node; }
     /// Get the node
@@ -123,7 +125,7 @@ export class Node {
         while (c > 0) {
             const step = Math.floor(c / 2);
             const iter = lb + step;
-            n.node = this.program.proto.nodes(iter, n.node)!;
+            n.node = this.programBuffer.nodes(iter, n.node)!;
             if (n.node.attributeKey() < key) {
                 lb = iter + 1;
                 c -= step + 1;
@@ -134,7 +136,7 @@ export class Node {
         if (lb >= children_begin + children_count) {
             return null;
         }
-        n.node = this.program.proto.nodes(lb, n.node)!;
+        n.node = this.programBuffer.nodes(lb, n.node)!;
         return (n.node.attributeKey() == key) ? n : null;
     }
 
@@ -144,7 +146,7 @@ export class Node {
         const count = this._node.childrenCount();
         n = n || new Node(this._program);
         for (let i = 0; i < count; ++i) {
-            n.node = this.program.proto.nodes(begin + i, n.node)!;
+            n.node = this.programBuffer.nodes(begin + i, n.node)!;
             fn(i, n);
         }
         return count;
@@ -154,19 +156,19 @@ export class Node {
 /// A single step in a node path
 export class NodePathStep {
     /// The node id
-    node_id: number;
+    nodeId: number;
     /// The attribute key, NONE if array element
-    attribute_key: sx.AttributeKey;
+    attributeKey: sx.AttributeKey;
     /// The index of the node within the parent
-    index_in_parent: number;
+    indexInParent: number;
     /// The number of visited children
-    visited_children: number;
+    visitedChildren: number;
 
-    constructor(node_id: number, attribute_key: sx.AttributeKey, index_in_parent: number) {
-        this.node_id = node_id;
-        this.attribute_key = attribute_key;
-        this.index_in_parent = index_in_parent;
-        this.visited_children = 0;
+    constructor(nodeId: number, attributeKey: sx.AttributeKey, indexInParent: number) {
+        this.nodeId = nodeId;
+        this.attributeKey = attributeKey;
+        this.indexInParent = indexInParent;
+        this.visitedChildren = 0;
     }
 };
 
@@ -183,22 +185,22 @@ export class NodePath {
     }
 
     /// Visit a new node
-    visit(node_id: number, node: Node) {
+    visit(nodeId: number, node: Node) {
         // Pop from path until we find our parent
         const parent_id = node.parent;
-        while (this.steps.length > 0 && this.steps[this.steps.length - 1].node_id != parent_id) {
+        while (this.steps.length > 0 && this.steps[this.steps.length - 1].nodeId != parent_id) {
             this.steps.pop();
         }
 
         // Determine the index within the parent
-        let index_in_parent = 0;
+        let indexInParent = 0;
         if (this.steps.length > 0) {
             const parent = this.steps[this.steps.length - 1];
-            index_in_parent = parent.visited_children++;
+            indexInParent = parent.visitedChildren++;
         }
 
         // Push node
-        this.steps.push(new NodePathStep(node_id, node.key, index_in_parent));
+        this.steps.push(new NodePathStep(nodeId, node.key, indexInParent));
     }
 }
 
@@ -206,23 +208,25 @@ export class Statement {
     /// The module
     _program: Program;
     /// The statement id
-    _statement_id: number;
+    _statementId: number;
     /// The statement
     _statement: sx.Statement;
 
     /// Constructor
-    public constructor(module: Program, statement_id: number = -1, statement: sx.Statement = new sx.Statement()) {
+    public constructor(module: Program, statementId: number = -1, statement: sx.Statement = new sx.Statement()) {
         this._program = module;
-        this._statement_id = statement_id;
+        this._statementId = statementId;
         this._statement = statement;
     }
 
     /// Get the module buffer
     public get program() { return this._program; }
+    /// Get the module buffer
+    public get programBuffer() { return this._program.buffer; }
     /// Get the statement id
-    public get statement_id() { return this._statement_id; }
+    public get statementId() { return this._statementId; }
     /// Set the statement id
-    public set statement_id(id: number) { this._statement_id = id; }
+    public set statementId(id: number) { this._statementId = id; }
     /// Get the statement buffer
     public get statement() { return this._statement; }
     /// Set the statement buffer
@@ -230,23 +234,23 @@ export class Statement {
     /// Get the statement type
     public get statement_type() { return this._statement.statementType(); }
     /// Get the short name
-    public get target_name_short() { return this._statement.nameShort(); }
+    public get targetNameShort() { return this._statement.nameShort(); }
     /// Get the qualified name
-    public get target_name_qualified() { return this._statement.nameQualified(); }
+    public get targetNameQualified() { return this._statement.nameQualified(); }
     /// Get the root
     public get root() { return this._statement.rootNode(); }
     /// Get the root node
     public root_node(obj: Node | null = null) {
         const n = obj || new Node(this._program);
-        n.node = this.program.proto.nodes(this._statement.rootNode(), n.node)!;
+        n.node = this.programBuffer.nodes(this._statement.rootNode(), n.node)!;
         return n;
     }
 
     /// Perform a pre-order DFS traversal
-    public traversePreOrder(visit: (node_id: number, node: Node, path: NodePath) => void) {
+    public traversePreOrder(visit: (nodeId: number, node: Node, path: NodePath) => void) {
         // Prepare the DFS
-        const path = new NodePath(this._statement_id);
-        const pending_cap = this.program.proto.nodesLength() / this.program.proto.statementsLength();
+        const path = new NodePath(this._statementId);
+        const pending_cap = this.programBuffer.nodesLength() / this.programBuffer.statementsLength();
         const pending = new NativeStack(pending_cap);
         pending.push(this._statement.rootNode());
 
@@ -256,7 +260,7 @@ export class Statement {
 
         while (!pending.empty()) {
             const top = pending.pop();
-            current.node = this.program.proto.nodes(top, current.node)!;
+            current.node = this.programBuffer.nodes(top, current.node)!;
             const node = current.node;
             const nodeType = current.nodeType;
 
@@ -277,15 +281,15 @@ export class Statement {
     }
 
     /// Perform a DFS traversal with preorder and postorder hooks
-    public traverse(visit_preorder: (node_id: number, node: Node, path: NodePath) => void, visit_postorder: (node_id: number, node: Node) => void) {
+    public traverse(visit_preorder: (nodeId: number, node: Node, path: NodePath) => void, visit_postorder: (nodeId: number, node: Node) => void) {
         // Prepare the DFS
-        const path = new NodePath(this._statement_id);
-        const pending_cap = this.program.proto.nodesLength() / this.program.proto.statementsLength();
+        const path = new NodePath(this._statementId);
+        const pending_cap = this.programBuffer.nodesLength() / this.programBuffer.statementsLength();
         const pending = new NativeStack(pending_cap);
         pending.push(this._statement.rootNode());
 
         /// Use a compact bitmap to track visited nodes
-        const visited = new NativeBitmap(this.program.proto.nodesLength());
+        const visited = new NativeBitmap(this.programBuffer.nodesLength());
 
         // We always pass the same objects to the function to spare us all the allocations.
         // The function MUST NOT store the node elsewhere.
@@ -293,7 +297,7 @@ export class Statement {
 
         while (!pending.empty()) {
             const top = pending.top();
-            current.node = this.program.proto.nodes(top, current.node)!;
+            current.node = this.programBuffer.nodes(top, current.node)!;
             const node = current.node;
             const nodeType = current.nodeType;
 
