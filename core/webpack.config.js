@@ -86,6 +86,9 @@ const browserTarget = {
     ],
     externals: {
         flatbuffers: "flatbuffers",
+        axios: "axios",
+        hash: "hash-wasm",
+        immutable: "immutable"
     }
 };
 

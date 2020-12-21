@@ -1,19 +1,19 @@
 import { LRUCache } from '../utils/lru_cache';
 import { IHasher, createSHA256 } from '../utils/hash';
+import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios from 'axios';
 
 const REQUEST_CACHE_SIZE = 64;
 
-type HTTPProgressHandler = (res: Response, sig: string, receivedBytes: number) => void;
+type HTTPProgressHandler = (sig: string, progress: ProgressEvent) => void;
 
 export interface HTTPData {
     /// The cache key
     key: string;
     /// The request
-    request: Request;
-    /// The request body (if any)
-    requestBody: Uint8Array | null;
+    request: AxiosRequestConfig;
     /// The response
-    response: Response;
+    response: AxiosResponse<ArrayBuffer>;
 }
 
 /// A HTTP request cache
@@ -47,42 +47,41 @@ export class HTTPManager {
     }
 
     /// Hash a request
-    protected hashRequest(req: Request, reqBody: Uint8Array | null): string {
+    protected hashRequest(req: AxiosRequestConfig): string {
         console.assert(this._hasher != null, 'hasher must be initialized');
         let hasher = this._hasher!;
         hasher.init();
-        hasher.update(req.url);
-        req.headers.forEach((value: string, key: string) => {
-            hasher.update(value);
+        if (req.url)
+            hasher.update(req.url);
+        for (const key in req.headers) {
+            const value = req.headers[key];
             hasher.update(key);
-        });
-        if (reqBody) hasher.update(reqBody);
+            hasher.update(value);
+        }
+        if (req.data) {
+            if (typeof req.data === 'string' || req.data instanceof String) {
+                hasher.update(req.data.toString());
+            } else if (req.data.constructor == Uint8Array) {
+                hasher.update(req.data);
+            }
+        }
         return hasher.digest('hex');
     }
 
     /// Send a HTTP request
-    public async fetch(req: Request, reqBody: Uint8Array | null, onProgress: HTTPProgressHandler): Promise<HTTPData> {
-        const sig = this.hashRequest(req, reqBody);
+    public async request(req: AxiosRequestConfig, onProgress: HTTPProgressHandler = (_sig: string, _event: ProgressEvent) => {}): Promise<HTTPData> {
+        const sig = this.hashRequest(req);
         const cached = this._request_cache.find(sig);
         if (cached) return cached;
 
         // Send HTTP request
-        const res = await fetch(req);
-        if (res.body) {
-            // Read response stream
-            const reader = res.body.getReader();
-            let chunkBytes = 0;
-            for (let c = await reader.read(); c.done; c = await reader.read()) {
-                chunkBytes += c.value!.length;
-                onProgress(res, sig, chunkBytes);
-            }
-        }
+        req.onDownloadProgress = (event: ProgressEvent) => onProgress(sig, event);
+        const res = await axios.request<ArrayBuffer>(req);
 
         // Cache response
         return this._request_cache.insert({
             key: sig,
             request: req,
-            requestBody: reqBody,
             response: res,
         });
     }
