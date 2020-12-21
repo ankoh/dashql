@@ -67,8 +67,7 @@ export class NativeMinHeap {
     }
     /// Sift an element up
     protected siftUp(i: number) {
-        for (let p = Math.floor((i - 1) / 2); i > 0 && this.rank(p) > this.rank(i);) {
-            console.log(p);
+        for (let p = Math.floor((i - 1) / 2); i > 0 && this.rank(p) >= this.rank(i);) {
             this.swapAt(i, p);
             i = p;
             p = Math.floor((i - 1) / 2);
