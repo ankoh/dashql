@@ -57,6 +57,11 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
         return this._blocker;
     }
 
+    /// Return with a status
+    protected returnWithStatus(status: proto.action.ActionStatusCode): ActionID {
+        this._status = status;
+        return this._action_id;
+    }
     /// Execute an action
     public abstract execute(context: ActionContext): Promise<ActionID>;
 }

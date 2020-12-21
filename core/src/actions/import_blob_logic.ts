@@ -2,6 +2,7 @@ import * as proto from "@dashql/proto";
 import { ActionID } from "../model";
 import { SetupActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
+import ActionStatusCode = proto.action.ActionStatusCode;
 
 export class ImportBlobActionLogic extends SetupActionLogic {
     constructor(action_id: ActionID, action: proto.action.SetupAction) {
@@ -9,6 +10,6 @@ export class ImportBlobActionLogic extends SetupActionLogic {
     }
 
     public async execute(_context: ActionContext): Promise<ActionID> {
-        return this._action_id;
+        return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }
