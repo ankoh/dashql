@@ -1,6 +1,6 @@
-import { DerivedReduxStore } from "../model";
-import { LRUCache } from "../utils/lru_cache";
-import { ObjectURL } from "../model";
+import { DerivedReduxStore } from '../model';
+import { LRUCache } from '../utils/lru_cache';
+import { ObjectURL } from '../model';
 
 const REQUEST_FILE_SIZE = 64;
 
@@ -40,6 +40,5 @@ export class FileManager {
         return null;
     }
 
-    public addFile(_key: string, _file: File) {
-    }
+    public addFile(_key: string, _file: File) {}
 }
