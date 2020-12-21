@@ -12,7 +12,7 @@ const MAX_LOG_SIZE = 100;
 /// A mutation
 export type StateMutation<T, P> = {
     readonly type: T;
-    readonly payload: P;
+    readonly data: P;
 };
 
 /// A mutation type
@@ -55,7 +55,7 @@ export class StateMutations {
                 return {
                     ...state,
                     logEntries: state.logEntries.withMutations(list => {
-                        list.unshift(mutation.payload);
+                        list.unshift(mutation.data);
                         if (list.size > MAX_LOG_SIZE) {
                             list.pop();
                         }
@@ -64,27 +64,27 @@ export class StateMutations {
             case StateMutationType.SET_PROGRAM:
                 return {
                     ...state,
-                    programText: mutation.payload[0],
-                    program: mutation.payload[1],
+                    programText: mutation.data[0],
+                    program: mutation.data[1],
                 };
             case StateMutationType.SET_PLAN:
                 return {
                     ...state,
-                    plan: mutation.payload,
+                    plan: mutation.data,
                     planActions: Immutable.Map<ActionID, Action>(),
                     planActionLog: Immutable.List<ActionLogEntry>(),
                 };
             case StateMutationType.SET_PLAN_ACTIONS:
                 return {
                     ...state,
-                    planActions: Immutable.Map<ActionID, Action>(mutation.payload.map(a => [a.actionId, a])),
+                    planActions: Immutable.Map<ActionID, Action>(mutation.data.map(a => [a.actionId, a])),
                 };
             case StateMutationType.UPDATE_PLAN_ACTIONS:
                 return {
                     ...state,
                     planActions: state.planActions.withMutations(actions => {
                         let now = new Date();
-                        for (const update of mutation.payload) {
+                        for (const update of mutation.data) {
                             let a = actions.get(update.actionId);
                             if (!a) {
                                 console.warn('UPDATE_ACTIONS refers to unknown action id: ' + update.actionId);
@@ -104,7 +104,7 @@ export class StateMutations {
                 return {
                     ...state,
                     planObjects: state.planObjects.withMutations(os => {
-                        for (const o of mutation.payload) {
+                        for (const o of mutation.data) {
                             os.set(o.objectId, o);
                         }
                     }),
@@ -113,14 +113,14 @@ export class StateMutations {
                 return {
                     ...state,
                     planObjects: state.planObjects.withMutations(os => {
-                        os.deleteAll(mutation.payload);
+                        os.deleteAll(mutation.data);
                     }),
                 };
             case StateMutationType.CACHE_FILE_DATA:
                 return {
                     ...state,
                     cachedFileData: state.cachedFileData.withMutations(c => {
-                        const [next, evict] = mutation.payload;
+                        const [next, evict] = mutation.data;
                         if (evict != null) {
                             const v = c.get(evict);
                             c.delete(evict);
@@ -135,7 +135,7 @@ export class StateMutations {
                 return {
                     ...state,
                     cachedHTTPData: state.cachedHTTPData.withMutations(c => {
-                        const [next, evict] = mutation.payload;
+                        const [next, evict] = mutation.data;
                         if (evict != null) {
                             c.delete(evict);
                         }
@@ -146,7 +146,7 @@ export class StateMutations {
                 return {
                     ...state,
                     cachedFileData: state.cachedFileData.withMutations(c => {
-                        const e = c.get(mutation.payload);
+                        const e = c.get(mutation.data);
                         if (!e) return;
                         c.set(e.key, {
                             ...e,
@@ -159,7 +159,7 @@ export class StateMutations {
                 return {
                     ...state,
                     cachedHTTPData: state.cachedHTTPData.withMutations(c => {
-                        const e = c.get(mutation.payload);
+                        const e = c.get(mutation.data);
                         if (!e) return;
                         c.set(e.key, {
                             ...e,
