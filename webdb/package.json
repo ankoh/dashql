@@ -3,7 +3,7 @@
     "version": "0.0.8",
     "description": "DuckDB powered by WebAssembly",
     "author": "Andre Kohn <kohn.a@outlook.com>",
-    "license": "MIT",
+    "license": "AGPL-3.0-or-later",
     "dependencies": {
         "@dashql/proto": "file:../proto/",
         "flatbuffers": "^1.12.0",
