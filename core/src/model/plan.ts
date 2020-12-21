@@ -51,25 +51,25 @@ export class Plan {
     }
 
     /// Map program actions
-    public mapProgramActions<T>(fn: (node: proto.action.ProgramAction) => T): T[] {
+    public mapProgramActions<T>(fn: (idx: number, node: proto.action.ProgramAction) => T): T[] {
         const graph = this._plan.root.actionGraph();
         if (!graph) return [];
         let mapped: T[] = [];
         mapped.length = graph.programActionsLength();
         this.iterateProgramActions((i, n) => {
-            mapped[i] = fn(n);
+            mapped[i] = fn(i, n);
         });
         return mapped;
     }
 
     /// Map setup actions
-    public mapSetupActions<T>(fn: (node: proto.action.SetupAction) => T): T[] {
+    public mapSetupActions<T>(fn: (idx: number, node: proto.action.SetupAction) => T): T[] {
         const graph = this._plan.root.actionGraph();
         if (!graph) return [];
         let mapped: T[] = [];
         mapped.length = graph.programActionsLength();
         this.iterateSetupActions((i, n) => {
-            mapped[i] = fn(n);
+            mapped[i] = fn(i, n);
         });
         return mapped;
     }
