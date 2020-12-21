@@ -2,7 +2,7 @@ import * as proto from "@dashql/proto";
 import { NativeBitmap, NativeStack, NativeMinHeap, NativeMinHeapKey, NativeMinHeapRank } from "./utils";
 import { ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramActionLogic } from "./actions";
 import { ActionContext } from "./actions";
-import { ActionID, Action, ActionClass, ActionUpdate, buildActionID, getActionIndex, StateMutations } from './model';
+import { ActionID, Action, ActionClass, ActionUpdate, buildActionID, getActionIndex, StateMutationType } from './model';
 
 export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The cancel promise
@@ -217,7 +217,10 @@ export class ActionGraphScheduler {
         this._programActions.reset(programLogic);
 
         // Set all actions in the store
-        ctx.platform.state.dispatch(StateMutations.setPlanActions(actionInfos));
+        ctx.platform.state.dispatch({
+            type: StateMutationType.SET_PLAN_ACTIONS,
+            payload: actionInfos
+        });
     }
 
     /// Interrupt the scheduler
@@ -260,7 +263,10 @@ export class ActionGraphScheduler {
             }
 
             // Update all actions in the store
-            dispatch(StateMutations.updatePlanActions(actionUpdates));
+            dispatch({
+                type: StateMutationType.UPDATE_PLAN_ACTIONS,
+                payload: actionUpdates
+            });
         }
     }
 
