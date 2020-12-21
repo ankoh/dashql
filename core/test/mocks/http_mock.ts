@@ -9,10 +9,10 @@ export function mockHTTP(): HTTPMock {
 
 export function encodeTextBody(body: string) {
     var encoder = new TextEncoder();
-    return encoder.encode(body);
+    return encoder.encode(body).buffer;
 }
 
-export function decodeTextBody(body: Uint16Array) {
+export function decodeTextBody(body: ArrayBuffer) {
     var decoder = new TextDecoder();
     return decoder.decode(body);
 }
