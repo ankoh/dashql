@@ -1,11 +1,28 @@
 import { platform } from '../../src/index_node';
+import { mockHTTP, HTTPMock, encodeTextBody } from '../mocks/http_mock';
 
-const http = new platform.HTTPManager();
+let httpMock: HTTPMock;
 
-beforeAll(async () => {
-    await http.init();
+beforeEach(() => {
+    httpMock = mockHTTP();
+});
+
+afterEach(() => {
+    httpMock.reset();
 });
 
 describe('HTTPManager', () => {
     test('init', () => {});
+
+    test('fetch', async () => {
+        httpMock.onAny().reply(200, encodeTextBody("foo"));
+
+        const http = new platform.HTTPManager();
+        await http.init();
+
+        await http.request({
+            url: "http://localhost/test1",
+            method: "GET",
+        });
+    });
 });
