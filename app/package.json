@@ -16,6 +16,7 @@
     },
     "dependencies": {
         "@dashql/core": "file:../core/",
+        "@dashql/proto": "file:../proto/",
         "@dashql/webdb": "file:../webdb/",
         "chart.js": "^2.9.4",
         "classnames": "^2.2.6",
