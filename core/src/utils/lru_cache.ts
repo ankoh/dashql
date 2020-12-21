@@ -34,7 +34,9 @@ export abstract class LRUCache<Value extends LRUCacheEntry> {
     /// Find an entry
     public find(k: string): Value | null {
         const i = this._slotMapping.get(k);
-        if (!i) return null;
+        if (i === undefined) {
+            return null;
+        }
         this.use(i);
         return this._slots[i];
     }
