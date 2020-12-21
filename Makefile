@@ -36,8 +36,8 @@ CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 # Building
 
 # Compile the core in debug mode
-.PHONY: core
-core:
+.PHONY: lib
+lib:
 	mkdir -p ${LIB_DEBUG_DIR}
 	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_DEBUG_DIR} \
 		-DCMAKE_BUILD_TYPE=Debug \
@@ -45,42 +45,36 @@ core:
 	make -C ${LIB_DEBUG_DIR} -j ${CORES}
 
 # Compile the core in release mode
-.PHONY: core_release
-core_release:
+.PHONY: lib_release
+lib_release:
 	mkdir -p ${LIB_RELEASE_DIR}
 	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_RELEASE_DIR} \
 		-DCMAKE_BUILD_TYPE=Release
 	make -C ${LIB_RELEASE_DIR} -j ${CORES}
 
 # Test the core library
-.PHONY: core_tests
-core_tests:
+.PHONY: lib_tests
+lib_tests:
 	${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
 
 # Generate declarative tests
 .PHONY: testgen
-core_testgen:
+lib_testgen:
 	${LIB_DEBUG_DIR}/testgen ${LIB_SOURCE_DIR}
 
-# Test the duckdb library
-.PHONY: duckdb_tests
-duckdb_tests:
-	${LIB_DEBUG_DIR}/duckdb/duckdb_tester
-
-
 # Build the dashql_core javascript library
-.PHONY: core_js
-core_js:
+.PHONY: core
+core:
 	npm --prefix ${ROOT_DIR}/core run build
 
 # Build the dashql_core javascript library
-.PHONY: core_js_watch
-core_js_watch:
+.PHONY: core_watch
+core_watch:
 	npm --prefix ${ROOT_DIR}/core run build:watch
 
 # Test the dashql_core javascript library
-.PHONY: core_js_tests
-core_js_tests:
+.PHONY: core_tests
+core_tests:
 	npm --prefix ${ROOT_DIR}/core run test:silent
 
 # Compile the flatbuffer schema
