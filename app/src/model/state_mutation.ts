@@ -25,7 +25,7 @@ export class AppStateMutation {
             case StateMutationType.CONFIGURE_APP:
                 return {
                     ...state,
-                    appSettings: mutation.payload,
+                    appSettings: mutation.data,
                 };
             default: {
                 const s = model.StateMutations.reduce(state.core, mutation);

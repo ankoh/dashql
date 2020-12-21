@@ -32,7 +32,7 @@ class HTTPRequestCache extends LRUCache<HTTPData> {
     onInsert(_slot: number, next: HTTPData, evicted: HTTPData | null): void {
         this._store.dispatch({
             type: StateMutationType.CACHE_HTTP_DATA,
-            payload: [next, evicted?.key]
+            data: [next, evicted?.key]
         });
     }
 
@@ -40,7 +40,7 @@ class HTTPRequestCache extends LRUCache<HTTPData> {
     onHit(_slot: number, next: HTTPData): void {
         this._store.dispatch({
             type: StateMutationType.HIT_CACHED_HTTP_DATA,
-            payload: next.key
+            data: next.key
         });
     }
 }

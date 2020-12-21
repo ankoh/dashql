@@ -31,7 +31,7 @@ export class EditorController {
         this.displayErrors(p);
         this._store.dispatch({
             type: core.model.StateMutationType.SET_PROGRAM,
-            payload: p,
+            data: p,
         });
     }
 

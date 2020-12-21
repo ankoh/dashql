@@ -21,7 +21,7 @@ export class LogController {
         // Store in redux store
         this.store.dispatch({
             type: model.StateMutationType.LOG_PUSH_ENTRY,
-            payload: logEntry,
+            data: logEntry,
         });
     }
 
@@ -36,7 +36,7 @@ export class LogController {
         // Store in redux store
         this.store.dispatch({
             type: model.StateMutationType.LOG_PUSH_ENTRY,
-            payload: logEntry,
+            data: logEntry,
         });
     }
 
