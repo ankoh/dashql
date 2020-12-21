@@ -17,7 +17,7 @@ beforeAll(async () => {
     await core.init();
 });
 
-
+/// Build a program action
 function buildProgramAction(type: ProgramActionType, status: ActionStatus, dependsOn: number[], requiredFor: number[], originStmt: number, objectId: number, targetQualified: string, targetShort: string, script: string | null) {
     const builder = new flatbuffers.Builder(64 + 8 * dependsOn.length + 8 * requiredFor.length + targetQualified.length + targetShort.length);
 
@@ -32,6 +32,7 @@ function buildProgramAction(type: ProgramActionType, status: ActionStatus, depen
     ProgramAction.addActionStatusCode(builder, status);
     ProgramAction.addDependsOn(builder, dependsOnOfs);
     ProgramAction.addRequiredFor(builder, requiredForOfs);
+    ProgramAction.addOriginStatement(builder, originStmt);
     ProgramAction.addObjectId(builder, objectId);
     ProgramAction.addTargetNameQualified(builder, targetQualifiedOfs);
     ProgramAction.addTargetNameShort(builder, targetShortOfs);
