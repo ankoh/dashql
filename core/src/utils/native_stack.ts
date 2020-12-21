@@ -8,7 +8,7 @@ export class NativeStack {
     /// The size
     _size: number;
 
-    public constructor(capacity: number) {
+    public constructor(capacity: number = 8) {
         this._buffer = new Uint32Array(capacity);
         this._size = 0;
     }
