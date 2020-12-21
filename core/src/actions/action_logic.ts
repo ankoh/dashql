@@ -1,16 +1,16 @@
-import * as proto from "@dashql/proto";
-import { ActionID, Statement } from "../model";
-import { ActionContext } from "./action_context";
+import * as proto from '@dashql/proto';
+import { ActionID, Statement, getActionClass, getActionIndex } from '../model';
+import { ActionContext } from './action_context';
 
 export interface ProtoAction {
     actionStatusCode(): proto.action.ActionStatusCode;
 
     dependsOn(index: number): number | null;
     dependsOnLength(): number;
-    dependsOnArray():Uint32Array | null;
+    dependsOnArray(): Uint32Array | null;
     requiredFor(index: number): number | null;
     requiredForLength(): number;
-    requiredForArray():Uint32Array | null;
+    requiredForArray(): Uint32Array | null;
 
     objectId(): number;
     mutate_object_id(value: number): boolean;
@@ -24,6 +24,8 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     _action_id: ActionID;
     /// The protocol buffer
     _action: ActionBuffer;
+    /// The status
+    _status: proto.action.ActionStatusCode;
     /// The blocker (if any)
     _blocker: proto.action.ActionBlocker | null = null;
 
@@ -31,17 +33,32 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     constructor(action_id: ActionID, action: ActionBuffer) {
         this._action_id = action_id;
         this._action = action;
+        this._status = action.actionStatusCode();
     }
 
+    /// Get the action class
+    public get actionClass() {
+        return getActionClass(this._action_id);
+    }
+    /// Get the action index
+    public get actionIndex() {
+        return getActionIndex(this._action_id);
+    }
     /// Get the flatbuffer
-    public get buffer() { return this._action; }
+    public get buffer() {
+        return this._action;
+    }
     /// Get the status
-    public get status() { return this._action.actionStatusCode(); }
+    public get status() {
+        return this._status;
+    }
     /// Get the blocker
-    public get blocker() { return this._blocker; }
+    public get blocker() {
+        return this._blocker;
+    }
 
     /// Execute an action
-    public abstract execute(context: ActionContext): Promise<proto.action.ActionStatusCode>;
+    public abstract execute(context: ActionContext): Promise<ActionID>;
 }
 
 export abstract class ProgramActionLogic extends ActionLogic<proto.action.ProgramAction> {
