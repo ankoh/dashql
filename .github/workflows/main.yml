@@ -207,23 +207,6 @@ jobs:
             npm ci --no-optional --cache /mnt/npm_cache
             npm run build
 
-    - name: Build @dashql/core
-      uses: ./ci/image
-      with:
-        script: |-
-            source /opt/env.sh
-            cd ./core
-            npm ci --no-optional --cache /mnt/npm_cache
-            npm run build
-
-    - name: Test @dashql/core
-      uses: ./ci/image
-      with:
-        script: |-
-            source /opt/env.sh
-            cd ./core
-            npm run test:ci
-
     - name: Build @dashql/webdb
       uses: ./ci/image
       with:
@@ -233,12 +216,29 @@ jobs:
             npm ci --no-optional --cache /mnt/npm_cache
             npm run build
 
+    - name: Build @dashql/core
+      uses: ./ci/image
+      with:
+        script: |-
+            source /opt/env.sh
+            cd ./core
+            npm ci --no-optional --cache /mnt/npm_cache
+            npm run build
+
     - name: Test @dashql/webdb
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
             cd ./webdb
+            npm run test:ci
+
+    - name: Test @dashql/core
+      uses: ./ci/image
+      with:
+        script: |-
+            source /opt/env.sh
+            cd ./core
             npm run test:ci
 
     - name: Build App
