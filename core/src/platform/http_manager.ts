@@ -25,6 +25,9 @@ class HTTPRequestCache extends LRUCache<HTTPData> {
 
     /// Update handler
     onEvict(_slot: number, _next: HTTPData, _evicted: HTTPData | null): void {
+        // if (evicted) {
+        //     console.log("evict: " + evicted.key);
+        // }
         // XXX
     }
 }
@@ -36,8 +39,8 @@ export class HTTPManager {
     _hasher: IHasher | null;
 
     /// Constructor
-    constructor() {
-        this._request_cache = new HTTPRequestCache(REQUEST_CACHE_SIZE);
+    constructor(cache_size: number = REQUEST_CACHE_SIZE) {
+        this._request_cache = new HTTPRequestCache(cache_size);
         this._hasher = null;
     }
 
