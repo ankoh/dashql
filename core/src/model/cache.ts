@@ -1,4 +1,6 @@
-export type ObjectURL = String;
+import { AxiosRequestConfig, AxiosResponse } from 'axios';
+
+export type ObjectURL = string;
 
 export interface CacheEntry {
     /// The cache key
@@ -19,10 +21,7 @@ export interface CachedFileData extends CacheEntry {
 /// A cached HTTP entry
 export interface CachedHTTPData extends CacheEntry {
     /// The request
-    request: Request;
-    /// The request body (if any)
-    requestBody: Uint8Array | null;
+    request: AxiosRequestConfig;
     /// The response
-    response: Response;
+    response: AxiosResponse<ArrayBuffer>;
 }
-

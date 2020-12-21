@@ -1,11 +1,11 @@
-import * as proto from "@dashql/proto";
-import * as Immutable from "immutable";
-import { LogEntry } from "./log";
-import { Plan } from "./plan";
-import { ActionID, Action, ActionUpdate, ActionLogEntry } from "./action";
-import { PlanObjectID, PlanObject } from "./plan_object";
-import { Program } from "./program";
-import { CoreState } from "./state";
+import * as Immutable from 'immutable';
+import { LogEntry } from './log';
+import { Plan } from './plan';
+import { ActionID, Action, ActionUpdate, ActionLogEntry } from './action';
+import { PlanObjectID, PlanObject } from './plan_object';
+import { Program } from './program';
+import { CoreState } from './state';
+import { CachedFileData, CachedHTTPData } from './cache';
 
 const MAX_LOG_SIZE = 100;
 
@@ -13,29 +13,37 @@ const MAX_LOG_SIZE = 100;
 export type StateMutation<T, P> = {
     readonly type: T;
     readonly payload: P;
-}
+};
 
 /// A mutation type
 export enum StateMutationType {
-    LOG_PUSH_ENTRY          = 'LOG_PUSH_ENTRY',
-    SET_PROGRAM             = 'SET_PROGRAM',
-    SET_PLAN                = 'SET_PLAN',
-    SET_PLAN_ACTIONS        = 'SET_PLAN_ACTIONS',
-    UPDATE_PLAN_ACTIONS     = 'UPDATE_PLAN_ACTIONS',
-    INSERT_PLAN_OBJECTS     = 'INSERT_PLAN_OBJECTS',
-    DELETE_PLAN_OBJECTS     = 'DELETE_PLAN_OBJECTS',
-    OTHER                   = 'OTHER',
+    LOG_PUSH_ENTRY = 'LOG_PUSH_ENTRY',
+    SET_PROGRAM = 'SET_PROGRAM',
+    SET_PLAN = 'SET_PLAN',
+    SET_PLAN_ACTIONS = 'SET_PLAN_ACTIONS',
+    UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
+    INSERT_PLAN_OBJECTS = 'INSERT_PLAN_OBJECTS',
+    DELETE_PLAN_OBJECTS = 'DELETE_PLAN_OBJECTS',
+    CACHE_HTTP_DATA = 'CACHE_HTTP_DATA',
+    CACHE_FILE_DATA = 'CACHE_FILE_DATA',
+    HIT_CACHED_HTTP_DATA = 'HIT_CACHED_HTTP_DATA',
+    HIT_CACHED_FILE_DATA = 'HIT_CACHED_FILE_DATA',
+    OTHER = 'OTHER',
 }
 
 /// A mutation variant
 export type StateMutationVariant =
-      StateMutation<StateMutationType.LOG_PUSH_ENTRY, LogEntry>
+    | StateMutation<StateMutationType.LOG_PUSH_ENTRY, LogEntry>
     | StateMutation<StateMutationType.SET_PROGRAM, [string, Program]>
     | StateMutation<StateMutationType.SET_PLAN, Plan | null>
     | StateMutation<StateMutationType.SET_PLAN_ACTIONS, Action[]>
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
+    | StateMutation<StateMutationType.CACHE_FILE_DATA, [CachedFileData, string | null]>
+    | StateMutation<StateMutationType.CACHE_HTTP_DATA, [CachedHTTPData, string | null]>
+    | StateMutation<StateMutationType.HIT_CACHED_FILE_DATA, string>
+    | StateMutation<StateMutationType.HIT_CACHED_HTTP_DATA, string>
     ;
 
 export type StateMutationDispatcher = (mutation: StateMutationVariant) => void;
@@ -65,10 +73,7 @@ export class StateMutations {
         return { type: StateMutationType.UPDATE_PLAN_ACTIONS, payload: updates };
     }
 
-    public static reduce(
-        state: CoreState,
-        mutation: StateMutationVariant,
-    ): CoreState {
+    public static reduce(state: CoreState, mutation: StateMutationVariant): CoreState {
         switch (mutation.type) {
             case StateMutationType.LOG_PUSH_ENTRY:
                 return {
@@ -84,7 +89,7 @@ export class StateMutations {
                 return {
                     ...state,
                     programText: mutation.payload[0],
-                    program: mutation.payload[1]
+                    program: mutation.payload[1],
                 };
             case StateMutationType.SET_PLAN:
                 return {
@@ -96,7 +101,7 @@ export class StateMutations {
             case StateMutationType.SET_PLAN_ACTIONS:
                 return {
                     ...state,
-                    planActions: Immutable.Map<ActionID, Action>(mutation.payload.map(a => [a.actionId, a]))
+                    planActions: Immutable.Map<ActionID, Action>(mutation.payload.map(a => [a.actionId, a])),
                 };
             case StateMutationType.UPDATE_PLAN_ACTIONS:
                 return {
@@ -106,7 +111,7 @@ export class StateMutations {
                         for (const update of mutation.payload) {
                             let a = actions.get(update.actionId);
                             if (!a) {
-                                console.warn("UPDATE_ACTIONS refers to unknown action id: " + update.actionId);
+                                console.warn('UPDATE_ACTIONS refers to unknown action id: ' + update.actionId);
                                 continue;
                             }
                             actions.set(update.actionId, {
@@ -117,7 +122,7 @@ export class StateMutations {
                                 timeLastUpdate: now,
                             });
                         }
-                    })
+                    }),
                 };
             case StateMutationType.INSERT_PLAN_OBJECTS:
                 return {
@@ -126,13 +131,65 @@ export class StateMutations {
                         for (const o of mutation.payload) {
                             os.set(o.objectId, o);
                         }
-                    })
+                    }),
                 };
             case StateMutationType.DELETE_PLAN_OBJECTS:
                 return {
                     ...state,
                     planObjects: state.planObjects.withMutations(os => {
                         os.deleteAll(mutation.payload);
+                    }),
+                };
+            case StateMutationType.CACHE_FILE_DATA:
+                return {
+                    ...state,
+                    cachedFileData: state.cachedFileData.withMutations(c => {
+                        const [next, evict] = mutation.payload;
+                        if (evict != null) {
+                            const v = c.get(evict);
+                            c.delete(evict);
+                            if (v !== undefined) {
+                                URL.revokeObjectURL(v.objectURL);
+                            }
+                        }
+                        c.set(next.key, next);
+                    })
+                };
+            case StateMutationType.CACHE_HTTP_DATA:
+                return {
+                    ...state,
+                    cachedHTTPData: state.cachedHTTPData.withMutations(c => {
+                        const [next, evict] = mutation.payload;
+                        if (evict != null) {
+                            c.delete(evict);
+                        }
+                        c.set(next.key, next);
+                    })
+                };
+            case StateMutationType.HIT_CACHED_FILE_DATA:
+                return {
+                    ...state,
+                    cachedFileData: state.cachedFileData.withMutations(c => {
+                        const e = c.get(mutation.payload);
+                        if (!e) return;
+                        c.set(e.key, {
+                            ...e,
+                            timeLastAccess: new Date(),
+                            accessCount: ++e.accessCount
+                        });
+                    })
+                };
+            case StateMutationType.HIT_CACHED_HTTP_DATA:
+                return {
+                    ...state,
+                    cachedHTTPData: state.cachedHTTPData.withMutations(c => {
+                        const e = c.get(mutation.payload);
+                        if (!e) return;
+                        c.set(e.key, {
+                            ...e,
+                            timeLastAccess: new Date(),
+                            accessCount: ++e.accessCount
+                        });
                     })
                 };
             default:
