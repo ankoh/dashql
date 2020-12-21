@@ -14,7 +14,7 @@ export interface CoreWasmRuntime {
 
 /// Stubs for the DashQL core runtime
 export const CORE_WASM_RUNTIME_STUBS: CoreWasmRuntime = {
-    dashql_pong: () => { console.log("pong"); return 42; },
+    dashql_pong: () => { return 42; },
     dashql_blob_stream_underflow: () => { return 0; }
 };
 
