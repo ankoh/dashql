@@ -27,8 +27,13 @@ IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/
 EXEC_ENVIRONMENT?=docker run --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} "${CI_IMAGE_FULLY_QUALIFIED}"
 
 CDN_S3_BUCKET="s3://dashql-cdn"
-STABLE_S3_BUCKET="s3://dashql-app"
-STABLE_CF_DIST="E1WT3LVZLA4YZX"
+CDN_CF_DIST="E18RW837PIKROW"
+APP_STABLE_S3_BUCKET="s3://dashql-app"
+APP_STABLE_CF_DIST="E1WT3LVZLA4YZX"
+APP_STAGING_S3_BUCKET="s3://dashql-app-staging"
+APP_STAGING_CF_DIST="E2FIJASHV9TIS5"
+WEBSITE_S3_BUCKET="s3://dashql-cdn"
+WEBSITE_CF_DIST="E2N5KIE8UNXGM3"
 
 CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
@@ -189,10 +194,10 @@ docker_ci_image:
 aws_stable_deploy:
 	rm -rf ${APP_DEPLOY_TMP} && mkdir -p ${APP_DEPLOY_TMP}
 	tar -C ${APP_DEPLOY_TMP} -xvzf ${APP_RELEASE_ARCHIVE}
-	aws s3 sync "${APP_DEPLOY_TMP}/static" "${STABLE_S3_BUCKET}/static" \
+	aws s3 sync "${APP_DEPLOY_TMP}/static" "${APP_STABLE_S3_BUCKET}/static" \
 		--cache-control "max-age=604800" \
 		--acl public-read
-	aws s3 sync ${APP_DEPLOY_TMP} ${STABLE_S3_BUCKET}/ \
+	aws s3 sync ${APP_DEPLOY_TMP} ${APP_STABLE_S3_BUCKET}/ \
 		--exclude "static" \
 		--cache-control "max-age=600" \
 		--acl public-read
@@ -208,11 +213,11 @@ aws_stable_deploy:
 aws_stable_replace:
 	rm -rf ${APP_DEPLOY_TMP} && mkdir -p ${APP_DEPLOY_TMP}
 	tar -C ${APP_DEPLOY_TMP} -xvzf ${APP_RELEASE_ARCHIVE}
-	aws s3 sync "${APP_DEPLOY_TMP}/static" "${STABLE_S3_BUCKET}/static" \
+	aws s3 sync "${APP_DEPLOY_TMP}/static" "${APP_STABLE_S3_BUCKET}/static" \
 		--cache-control "max-age=604800" \
 		--acl public-read \
 		--delete
-	aws s3 sync ${APP_DEPLOY_TMP} ${STABLE_S3_BUCKET}/ \
+	aws s3 sync ${APP_DEPLOY_TMP} ${APP_STABLE_S3_BUCKET}/ \
 		--exclude "static" \
 		--cache-control "max-age=600" \
 		--acl public-read
@@ -222,7 +227,7 @@ aws_stable_replace:
 .PHONY: aws_stable_invalidate
 aws_stable_invalidate:
 	aws cloudfront create-invalidation \
-		--distribution-id ${STABLE_CF_DIST} \
+		--distribution-id ${APP_STABLE_CF_DIST} \
 		--paths /
 
 # ---------------------------------------------------------------------------
