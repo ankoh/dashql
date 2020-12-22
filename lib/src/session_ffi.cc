@@ -12,8 +12,9 @@ using BlobStreamBuffer = dashql::BlobStreamBuffer;
 
 namespace {
 
+std::unique_ptr<Session> session = nullptr;
+
 Session& GetSession() {
-    static std::unique_ptr<Session> session = nullptr;
     if (session == nullptr) {
         session = std::make_unique<Session>();
     }
@@ -28,6 +29,10 @@ FFIResponseBuffer& GetResponseBuffer() {
 }  // namespace
 
 extern "C" {
+
+void dashql_reset_session() {
+    session.reset();    
+}
 
 void dashql_clear_response() {
     GetResponseBuffer().Clear();

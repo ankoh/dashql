@@ -96,6 +96,8 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/../proto" "${CMAKE_BINARY_DIR}/proto/")
 include_directories(
     "${CMAKE_SOURCE_DIR}/include"
     "${CMAKE_BINARY_DIR}/include"
+    "${DUCKDB_INCLUDE_DIR}"
+    "${DUCKDB_UTF8PROC_INCLUDE_DIR}"
 )
 
 # ---------------------------------------------------------------------------
@@ -270,8 +272,8 @@ add_library(dashql_test
 )
 
 target_link_libraries(dashql_webdb dashql_proto duckdb spdlog)
-target_link_libraries(dashql_core dashql_parser dashql_webdb dashql_proto)
-target_link_libraries(dashql_test dashql_core dashql_proto pugixml gtest)
+target_link_libraries(dashql_core dashql_parser dashql_webdb dashql_proto duckdb)
+target_link_libraries(dashql_test dashql_core dashql_proto pugixml gtest duckdb)
 
 # ---------------------------------------------------------------------------
 # Emscripten
@@ -301,6 +303,7 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
+            _dashql_reset_session, \
             _dashql_ping, \
             _dashql_clear_response, \
             _dashql_parse_program, \
