@@ -113,15 +113,18 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
             case proto.action.ActionStatusCode.TEARDOWN:
                 break;
 
-            case proto.action.ActionStatusCode.COMPLETED:
+            case proto.action.ActionStatusCode.COMPLETED: {
                 this._scheduledActions.clear(action_idx);
                 this._completedActions.set(action_idx);
-                for (const req of this._actions[action_idx].buffer.requiredForArray()!) {
-                    this._actionQueue.decrementRank(req);
+                const requiredFor = this._actions[action_idx].buffer.requiredForArray();
+                if (requiredFor) {
+                    for (const req of requiredFor) {
+                        this._actionQueue.decrementRank(req);
+                    }
+                    this.scheduleNext(context, diff);
                 }
-                this.scheduleNext(context, diff);
                 break;
-
+            }
             case proto.action.ActionStatusCode.NONE:
             case proto.action.ActionStatusCode.ERROR:
                 this._scheduledActions.clear(action_idx);
@@ -130,7 +133,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         }
 
         // No more scheduled actions left?
-        return !this.workLeft();
+        return this.workLeft();
     }
 }
 

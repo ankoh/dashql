@@ -8,7 +8,7 @@ export class NativeBitmap {
     _size: number;
 
     public constructor(size: number = 0) {
-        this._buffer = new Uint32Array(size >> 5);
+        this._buffer = new Uint32Array((size >> 5) + 1);
         this._size = size;
     }
 
@@ -53,22 +53,22 @@ export class NativeBitmap {
 
     /// Set a bit
     public set(index: number) {
-        const byte_idx = index >> 5;
+        const entry_idx = index >> 5;
         const bit_idx = index & 31;
-        this._buffer[byte_idx] |= 1 << bit_idx;
+        this._buffer[entry_idx] |= 1 << bit_idx;
     }
 
     /// Is a bit set?
     public isSet(index: number) {
-        const byte_idx = index >> 5;
+        const entry_idx = index >> 5;
         const bit_idx = index & 31;
-        return (this._buffer[byte_idx] & (1 << bit_idx)) != 0;
+        return (this._buffer[entry_idx] & (1 << bit_idx)) != 0;
     }
 
     /// Clear a bit
     public clear(index: number) {
-        const byte_idx = index >> 5;
+        const entry_idx = index >> 5;
         const bit_idx = index & 31;
-        this._buffer[byte_idx] &= ~(1 << bit_idx);
+        this._buffer[entry_idx] &= ~(1 << bit_idx);
     }
 }
