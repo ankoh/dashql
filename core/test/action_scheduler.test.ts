@@ -42,7 +42,7 @@ function resolveProgramActionLogic(plan: model.Plan) {
 describe('Action Scheduler', () => {
     describe('program actions', () => {
 
-        test('single select', async () => {
+        test('single table', async () => {
             const platformMock = new PlatformMock();
             const platform = platformMock.getInstance();
 
@@ -183,6 +183,55 @@ describe('Action Scheduler', () => {
             expect(scheduler.actions[1].status).toBe(ActionStatus.COMPLETED);
             expect(scheduler.actions[2].status).toBe(ActionStatus.COMPLETED);
             expect(workLeft).toBe(false);
+        });
+
+        test('independent', async () => {
+            const platformMock = new PlatformMock();
+            const platform = platformMock.getInstance();
+
+            const program = core.parseProgram(`
+                SELECT 1 INTO A;
+                SELECT 1 INTO B;
+                SELECT 1 INTO C;
+            `);
+            const plan = core.planProgram();
+            const graph = plan!.buffer.actionGraph()!;
+            expect(program.buffer.statementsLength()).toBe(3);
+            expect(graph.setupActionsLength()).toBe(0);
+            expect(graph.programActionsLength()).toBe(3);
+
+            const logic = resolveProgramActionLogic(plan!);
+            const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
+            const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt);
+            scheduler.prepare(logic);
+            scheduler.actions.forEach((a, i) => {
+                expect(a.actionClass).toBe(ActionClass.ProgramAction);
+                expect(a.buffer.originStatement()).toBe(i);
+                expect(a.status).toBe(ActionStatus.NONE);
+            });
+            expect(scheduler.actions.map((a) => a.buffer.actionType())).toEqual([
+                ProgramActionType.TABLE_CREATE,
+                ProgramActionType.TABLE_CREATE,
+                ProgramActionType.TABLE_CREATE
+            ]);
+            expect(scheduler.actions.map((a) => a.buffer.dependsOnArray())).toEqual([
+                null, null, null,
+            ]);
+            expect(scheduler.actions.map((a) => a.buffer.requiredForArray())).toEqual([
+                null, null, null
+            ]);
+
+            const ctx = new actions.ActionContext(platform, plan!);
+            const diff = new utils.NativeStack();
+            let workLeft = await scheduler.executeFirst(ctx, diff);
+            expect(workLeft).toBe(true);
+            workLeft = await scheduler.execute(ctx, diff);
+            expect(workLeft).toBe(true);
+            workLeft = await scheduler.execute(ctx, diff);
+            expect(workLeft).toBe(false);
+            expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
+            expect(scheduler.actions[1].status).toBe(ActionStatus.COMPLETED);
+            expect(scheduler.actions[2].status).toBe(ActionStatus.COMPLETED);
         });
     });
 });
