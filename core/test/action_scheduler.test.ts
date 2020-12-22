@@ -19,23 +19,30 @@ beforeEach(async () => {
 })
 
 function resolveProgramActionLogic(plan: model.Plan) {
-    return plan.mapProgramActions((i, a) => {
+    let r: actions.ActionLogic<proto.action.ProgramAction>[] = [];
+    const graph = plan.action_graph;
+    if (!graph) return r;
+    const count = graph.programActionsLength();
+    r.length = count;
+    for (let i = 0; i < count; ++i) {
+        const action = graph.programActions(i)!;
+        const stmt = plan.program.getStatement(i);
         const aid = model.buildActionID(i, model.ActionClass.ProgramAction);
-        const stmtId = a.originStatement();
-        const stmt = plan.program.getStatement(stmtId);
-        return actions.resolveProgramActionLogic(aid, a, stmt)!;
-    });
+        r[i] = actions.resolveProgramActionLogic(aid, action, stmt)!;
+    }
+    return r;
 }
 
 describe('Action Scheduler', () => {
     describe('setup actions', () => {});
 
     describe('program actions', () => {
-        test('select 1 into a', async () => {
+
+        test('single select', async () => {
             const platformMock = new PlatformMock();
             const platform = platformMock.getInstance();
 
-            const program = core.parseProgram('select 1 into a');
+            const program = core.parseProgram('SELECT 1 INTO a');
             const plan = core.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(1);
@@ -66,13 +73,10 @@ describe('Action Scheduler', () => {
 
             const program = core.parseProgram(`
                 DECLARE PARAMETER country TYPE TEXT;
-
                 LOAD weather_csv FROM http (
                     url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
                 );
-
                 EXTRACT weather FROM weather_csv USING CSV;
-
                 VIZ weather_avg USING LINE;
             `);
             const plan = core.planProgram();
@@ -85,17 +89,18 @@ describe('Action Scheduler', () => {
             const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
             const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt);
             scheduler.prepare(logic);
-            //expect(scheduler.actions.length).toBe(1);
-            //expect(scheduler.actions[0].actionClass).toBe(ActionClass.ProgramAction);
-            //expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.TABLE_CREATE);
-            //expect(scheduler.actions[0].status).toBe(ActionStatus.NONE);
-
-            //const diff = new utils.NativeStack();
-            //const ctx = new actions.ActionContext(platform, plan!);
-
-            //const cont = await scheduler.executeFirst(ctx, diff);
-            //expect(cont).toBe(false);
-            //expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
+            expect(scheduler.actions.length).toBe(4);
+            scheduler.actions.forEach((a, i) => {
+                expect(a.actionClass).toBe(ActionClass.ProgramAction);
+                expect(a.buffer.originStatement()).toBe(i);
+                expect(a.status).toBe(ActionStatus.NONE);
+            });
+            expect(scheduler.actions.map((a) => a.buffer.actionType())).toEqual([
+                ProgramActionType.PARAMETER,
+                ProgramActionType.LOAD_HTTP,
+                ProgramActionType.EXTRACT_CSV,
+                ProgramActionType.VIZ_CREATE
+            ]);
         });
     });
 });
