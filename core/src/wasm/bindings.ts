@@ -90,6 +90,12 @@ export abstract class CoreWasmBindings {
         return [status, data, dataSize];
     }
 
+    /// Reset the session
+    public resetSession() {
+        let instance = this._instance!;
+        return instance.ccall('dashql_reset_session', null, [], []);
+    }
+
     /// Parse a string and return a flatbuffer
     public parseProgram(text: string): Program {
         let instance = this._instance!;
