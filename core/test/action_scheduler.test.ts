@@ -14,6 +14,10 @@ beforeAll(async () => {
     await core.init();
 });
 
+beforeEach(async () => {
+    core.resetSession();
+})
+
 function resolveProgramActionLogic(plan: model.Plan) {
     return plan.mapProgramActions((i, a) => {
         const aid = model.buildActionID(i, model.ActionClass.ProgramAction);
@@ -41,7 +45,7 @@ describe('Action Scheduler', () => {
             const logic = resolveProgramActionLogic(plan!);
             const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
             const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt);
-            scheduler.reset(logic);
+            scheduler.prepare(logic);
             expect(scheduler.actions.length).toBe(1);
             expect(scheduler.actions[0].actionClass).toBe(ActionClass.ProgramAction);
             expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.TABLE_CREATE);
@@ -53,6 +57,45 @@ describe('Action Scheduler', () => {
             const cont = await scheduler.executeFirst(ctx, diff);
             expect(cont).toBe(false);
             expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
+        });
+
+
+        test('chain', async () => {
+            const platformMock = new PlatformMock();
+            const platform = platformMock.getInstance();
+
+            const program = core.parseProgram(`
+                DECLARE PARAMETER country TYPE TEXT;
+
+                LOAD weather_csv FROM http (
+                    url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                );
+
+                EXTRACT weather FROM weather_csv USING CSV;
+
+                VIZ weather_avg USING LINE;
+            `);
+            const plan = core.planProgram();
+            const graph = plan!.buffer.actionGraph()!;
+            expect(program.buffer.statementsLength()).toBe(4);
+            expect(graph.setupActionsLength()).toBe(0);
+            expect(graph.programActionsLength()).toBe(4);
+
+            const logic = resolveProgramActionLogic(plan!);
+            const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
+            const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt);
+            scheduler.prepare(logic);
+            //expect(scheduler.actions.length).toBe(1);
+            //expect(scheduler.actions[0].actionClass).toBe(ActionClass.ProgramAction);
+            //expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.TABLE_CREATE);
+            //expect(scheduler.actions[0].status).toBe(ActionStatus.NONE);
+
+            //const diff = new utils.NativeStack();
+            //const ctx = new actions.ActionContext(platform, plan!);
+
+            //const cont = await scheduler.executeFirst(ctx, diff);
+            //expect(cont).toBe(false);
+            //expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
         });
     });
 });

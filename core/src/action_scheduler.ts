@@ -28,7 +28,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this._interrupt = interrupt;
     }
 
-    public reset(actions: ActionLogic<ActionBuffer>[]) {
+    public prepare(actions: ActionLogic<ActionBuffer>[]) {
         this._actions = actions;
         this._actionPromises = [this._interrupt];
         this._actionPromiseMapping = [];
@@ -159,7 +159,7 @@ export class ActionGraphScheduler {
     }
 
     /// Reset the scheduler
-    public reset(ctx: ActionContext) {
+    public prepare(ctx: ActionContext) {
         this._canceled = false;
         const program = ctx.plan.program!;
         const graph = ctx.plan.action_graph!;
@@ -189,7 +189,7 @@ export class ActionGraphScheduler {
                 timeLastUpdate: now,
             });
         }
-        this._setupActions.reset(setupLogic);
+        this._setupActions.prepare(setupLogic);
 
         // Translate the program actions
         let programLogic = [];
@@ -215,7 +215,7 @@ export class ActionGraphScheduler {
                 timeLastUpdate: now,
             });
         }
-        this._programActions.reset(programLogic);
+        this._programActions.prepare(programLogic);
 
         // Set all actions in the store
         ctx.platform.state.dispatch({
