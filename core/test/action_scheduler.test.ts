@@ -40,8 +40,6 @@ function resolveProgramActionLogic(plan: model.Plan) {
 }
 
 describe('Action Scheduler', () => {
-    describe('setup actions', () => {});
-
     describe('program actions', () => {
 
         test('single select', async () => {
@@ -71,7 +69,6 @@ describe('Action Scheduler', () => {
             expect(workLeft).toBe(false);
             expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
         });
-
 
         test('chain', async () => {
             const platformMock = new PlatformMock();
