@@ -29,6 +29,7 @@ jobs:
           cmake \
               -S./lib/ \
               -B./lib/build/debug \
+              -DCODE_COVERAGE=1 \
               -DCMAKE_BUILD_TYPE=Debug \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
               -DCMAKE_C_COMPILER=clang \
@@ -43,53 +44,9 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
+            export LLVM_PROFILE_FILE=./reports/lib.profraw
             ./lib/build/debug/tester ./lib/ \
                 --gtest_output=xml:./reports/tests_lib_debug.xml
-
-  linux_x86_coverage:
-    name: Linux / x86 / Coverage
-    runs-on: self-hosted
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Prepare repository
-      uses: ./ci/image
-      with:
-        script: |-
-          make reset_duckdb
-          git submodule update --init --recursive
-          mkdir -p ./lib/build/coverage ./reports
-
-    - name: Compile flatbuffer schema
-      uses: ./ci/image
-      with:
-        script: |-
-            ./scripts/generate_proto.sh
-
-    - name: Build
-      uses: ./ci/image
-      with:
-        script: |-
-          cmake \
-              -S./lib/ \
-              -B./lib/build/coverage \
-              -DCODE_COVERAGE=1 \
-              -DCMAKE_BUILD_TYPE=Debug \
-              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_C_COMPILER=clang \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_CXX_COMPILER=clang++ \
-              -DCMAKE_BUILD_TYPE=Debug
-          ccache -s
-          make -C./lib/build/coverage -j`nproc`
-          ccache -s
-
-    - name: Test
-      uses: ./ci/image
-      with:
-        script: |-
-            export LLVM_PROFILE_FILE=./reports/lib.profraw
-            ./lib/build/coverage/tester ./lib/
 
     - name: Code Coverage
       uses: ./ci/image
