@@ -116,7 +116,6 @@ jobs:
     needs:
     - linux_x86_debug
     - linux_x86_release
-    - linux_x86_coverage
     - plugins
 
     steps:
