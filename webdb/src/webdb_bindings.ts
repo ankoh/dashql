@@ -149,7 +149,7 @@ export abstract class WebDBBindings {
         let stackPointer = instance.stackSave();
 
         // Allocate the packed response buffer
-        let response = instance.allocate(3 * 8, 'i8', instance.ALLOC_STACK);
+        let response = instance.stackAlloc(3 * 8);
         argTypes.unshift('number');
         args.unshift(response);
 
