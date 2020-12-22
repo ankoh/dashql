@@ -27,12 +27,9 @@ function resolveProgramActionLogic(plan: model.Plan) {
     r.length = count;
     for (let i = 0; i < count; ++i) {
         const action = graph!.programActions(i)!;
-        expect(action.originStatement()).toEqual(i);
-    }
-    for (let i = 0; i < count; ++i) {
-        const action = graph!.programActions(i)!;
         expect(action).toBeDefined();
         expect(action).not.toBeNull();
+        expect(action.originStatement()).toEqual(i);
         expect(action.actionType()).not.toEqual(ProgramActionType.NONE);
         const stmt = plan.program.getStatement(i);
         const aid = model.buildActionID(i, model.ActionClass.ProgramAction);
