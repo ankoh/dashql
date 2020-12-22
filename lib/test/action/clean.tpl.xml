@@ -9,6 +9,14 @@
         </parameters>
     </next>
 </test>
+<test name="select_into">
+    <previous />
+    <next>
+        <text>
+            SELECT 1 INTO a;
+        </text>
+    </next>
+</test>
 <test name="param_load">
     <previous />
     <next>

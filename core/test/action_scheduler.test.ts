@@ -21,14 +21,23 @@ beforeEach(async () => {
 function resolveProgramActionLogic(plan: model.Plan) {
     let r: actions.ActionLogic<proto.action.ProgramAction>[] = [];
     const graph = plan.action_graph;
-    if (!graph) return r;
-    const count = graph.programActionsLength();
+    expect(graph).toBeDefined();
+    expect(graph).not.toBeNull();
+    const count = graph!.programActionsLength();
     r.length = count;
     for (let i = 0; i < count; ++i) {
-        const action = graph.programActions(i)!;
+        const action = graph!.programActions(i)!;
+        expect(action.originStatement()).toEqual(i);
+    }
+    for (let i = 0; i < count; ++i) {
+        const action = graph!.programActions(i)!;
+        expect(action).toBeDefined();
+        expect(action).not.toBeNull();
+        expect(action.actionType()).not.toEqual(ProgramActionType.NONE);
         const stmt = plan.program.getStatement(i);
         const aid = model.buildActionID(i, model.ActionClass.ProgramAction);
         r[i] = actions.resolveProgramActionLogic(aid, action, stmt)!;
+        expect(r[i]).not.toBeNull();
     }
     return r;
 }

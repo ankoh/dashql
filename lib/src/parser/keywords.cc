@@ -5,7 +5,8 @@ namespace dashql {
 namespace parser {
 
 /// The keyword map
-static const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
+static const std::unordered_map<std::string_view, Keyword>& KeywordMap() {
+    static const std::unordered_map<std::string_view, Keyword> keywords = {
 #define X(CATEGORY, NAME, TOKEN) { NAME, Keyword{ NAME, Parser::token::DQL_##TOKEN, KeywordCategory::CATEGORY } },
 #include "./grammar/lists/dashql_keywords.list"
 #include "./grammar/lists/sql_column_name_keywords.list"
@@ -13,6 +14,8 @@ static const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
 #include "./grammar/lists/sql_type_func_keywords.list"
 #include "./grammar/lists/sql_unreserved_keywords.list"
 #undef X
+    };
+    return keywords;
 };
 
 /// Determine the maximum keyword length
@@ -40,7 +43,7 @@ const Keyword* Keyword::Find(std::string_view text) {
     std::string_view text_lc{buffer.data(), text.size()};
 
     // Find the keyword
-    if (auto iter = KEYWORDS.find(text_lc); iter != KEYWORDS.end())
+    if (auto iter = KeywordMap().find(text_lc); iter != KeywordMap().end())
         return &iter->second;
     return nullptr;
 }

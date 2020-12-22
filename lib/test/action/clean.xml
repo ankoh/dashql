@@ -24,6 +24,31 @@
         </graph>
     </next>
 </test>
+<test name="select_into">
+    <previous>
+        <text></text>
+        <parameters />
+        <graph next_object_id="0">
+            <setup />
+            <program />
+        </graph>
+    </previous>
+    <next>
+        <text>
+            SELECT 1 INTO a;
+        </text>
+        <parameters />
+        <graph next_object_id="1">
+            <setup />
+            <program>
+                <action id="0" type="TABLE_CREATE" status="NONE" object_id="0">
+                    <target name_qualified="global.a" name_short="a" />
+                    <script>SELECT 1 INTO a</script>
+                </action>
+            </program>
+        </graph>
+    </next>
+</test>
 <test name="param_load">
     <previous>
         <text></text>

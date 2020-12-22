@@ -48,7 +48,8 @@ struct StatementTranslation {
     ProgramActionType action_type;
     bool render_script;
 };
-static std::unordered_map<sx::StatementType, StatementTranslation> STATEMENT_TRANSLATION = {
+static const std::unordered_map<sx::StatementType, StatementTranslation>& StatementTranslationMap() {
+    static const std::unordered_map<sx::StatementType, StatementTranslation> mapping = {
 // clang-format off
 #define X(STMT_TYPE, PROGRAM_ACTION, RENDER_SCRIPT) \
     {sx::StatementType::STMT_TYPE, {proto::action::ProgramActionType::PROGRAM_ACTION, RENDER_SCRIPT}},
@@ -65,6 +66,8 @@ static std::unordered_map<sx::StatementType, StatementTranslation> STATEMENT_TRA
     X(VIZUALIZE, VIZ_CREATE, false)
 #undef X
     // clang-format on
+    };
+    return mapping;
 };
 
 // Translate statements
@@ -92,7 +95,7 @@ Signal ActionPlanner::TranslateStatements() {
         action->script = "";
 
         // Find action type
-        if (auto iter = STATEMENT_TRANSLATION.find(stmt->statement_type); iter != STATEMENT_TRANSLATION.end()) {
+        if (auto iter = StatementTranslationMap().find(stmt->statement_type); iter != StatementTranslationMap().end()) {
             auto [action_type, requires_script] = iter->second;
             action->action_type = action_type;
             if (requires_script) {
