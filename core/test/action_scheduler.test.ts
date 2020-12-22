@@ -67,8 +67,8 @@ describe('Action Scheduler', () => {
             const diff = new utils.NativeStack();
             const ctx = new actions.ActionContext(platform, plan!);
 
-            const cont = await scheduler.executeFirst(ctx, diff);
-            expect(cont).toBe(false);
+            const workLeft = await scheduler.executeFirst(ctx, diff);
+            expect(workLeft).toBe(false);
             expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
         });
 
@@ -83,7 +83,7 @@ describe('Action Scheduler', () => {
                     url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
                 );
                 EXTRACT weather FROM weather_csv USING CSV;
-                VIZ weather_avg USING LINE;
+                VIZ weather USING LINE;
             `);
             const plan = core.planProgram();
             const graph = plan!.buffer.actionGraph()!;
@@ -107,6 +107,33 @@ describe('Action Scheduler', () => {
                 ProgramActionType.EXTRACT_CSV,
                 ProgramActionType.VIZ_CREATE
             ]);
+            expect(scheduler.actions.map((a) => a.buffer.dependsOnArray())).toEqual([
+                null,
+                new Uint32Array([0]),
+                new Uint32Array([1]),
+                new Uint32Array([2])
+            ]);
+            expect(scheduler.actions.map((a) => a.buffer.requiredForArray())).toEqual([
+                new Uint32Array([1]),
+                new Uint32Array([2]),
+                new Uint32Array([3]),
+                null
+            ]);
+
+            const ctx = new actions.ActionContext(platform, plan!);
+            const diff = new utils.NativeStack();
+            let workLeft = await scheduler.executeFirst(ctx, diff);
+            expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
+            expect(workLeft).toBe(true);
+            workLeft = await scheduler.execute(ctx, diff);
+            expect(scheduler.actions[1].status).toBe(ActionStatus.COMPLETED);
+            expect(workLeft).toBe(true);
+            workLeft = await scheduler.execute(ctx, diff);
+            expect(scheduler.actions[2].status).toBe(ActionStatus.COMPLETED);
+            expect(workLeft).toBe(true);
+            workLeft = await scheduler.execute(ctx, diff);
+            expect(scheduler.actions[3].status).toBe(ActionStatus.COMPLETED);
+            expect(workLeft).toBe(false);
         });
     });
 });
