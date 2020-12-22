@@ -71,4 +71,15 @@ export class NativeBitmap {
         const bit_idx = index & 31;
         this._buffer[entry_idx] &= ~(1 << bit_idx);
     }
+
+    /// Get the entries (slow, only for debugging)
+    public entries() {
+        let buffer = [];
+        for (let i = 0; i < this._size; ++i) {
+            if (this.isSet(i)) {
+                buffer.push(i);
+            }
+        }
+        return buffer;
+    }
 }
