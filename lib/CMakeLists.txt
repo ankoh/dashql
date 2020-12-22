@@ -310,7 +310,7 @@ if (EMSCRIPTEN)
             _dashql_plan_program, \
             ${WEBDB_INTERFACE} \
         ]' \
-        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
+        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         "
     )
 
@@ -342,7 +342,7 @@ if (EMSCRIPTEN)
             _dashql_webdb_clear_response, \
             ${WEBDB_INTERFACE} \
         ]' \
-        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\",\"allocate\",\"ALLOC_STACK\", \"ALLOC_NORMAL\"]' \
+        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         "
     )
 

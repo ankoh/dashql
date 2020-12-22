@@ -72,7 +72,7 @@ export abstract class CoreWasmBindings {
         let stackPointer = instance.stackSave();
 
         // Allocate the packed response buffer
-        let response = instance.allocate(3 * 8, 'i8', instance.ALLOC_STACK);
+        let response = instance.stackAlloc(3 * 8);
         argTypes.unshift('number');
         args.unshift(response);
 
@@ -104,7 +104,7 @@ export abstract class CoreWasmBindings {
         /// Encode the utf8 string and append 2 zero bytes for flex
         let encoder = new TextEncoder();
         let textUTF8 = encoder.encode(text);
-        let textMem = instance.allocate(textUTF8.length + 2, 'i8', instance.ALLOC_STACK);
+        let textMem = instance.stackAlloc(textUTF8.length + 2);
         instance.HEAPU8.set(textUTF8, textMem);
         instance.HEAPU8[textUTF8.length] = 0;
         instance.HEAPU8[textUTF8.length + 1] = 0;

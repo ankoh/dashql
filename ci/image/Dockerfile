@@ -14,7 +14,7 @@ RUN apt-get update -qq \
 SHELL ["/bin/bash", "-c"]
 RUN groupadd -g 10101 actions
 
-ARG EMSDK_VERSION="2.0.4"
+ARG EMSDK_VERSION="2.0.9"
 RUN mkdir -p /opt/emsdk \
     && cd /opt/emsdk \
     && curl -SL https://github.com/emscripten-core/emsdk/archive/${EMSDK_VERSION}.tar.gz | tar -xz --strip-components=1 \

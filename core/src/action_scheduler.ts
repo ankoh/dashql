@@ -35,7 +35,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
 
         // Build the dependency heap
         let deps: [NativeMinHeapKey, NativeMinHeapRank][] = [];
-        deps.length += actions.length;
+        deps.length = actions.length;
         for (let i = 0; i < actions.length; ++i) {
             deps[i] = [i, actions[i].buffer.dependsOnLength()];
             this._actionPromiseMapping.push(null);
