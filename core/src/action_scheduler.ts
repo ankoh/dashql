@@ -13,9 +13,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The pending actions
     _actionQueue: NativeMinHeap = new NativeMinHeap();
     /// The action promises
-    _actionPromises: Promise<ActionID | null>[] = [];
-    /// The action promise mapping
-    _actionPromiseMapping: (number | null)[] = [];
+    _actionPromises: (Promise<ActionID | null> | null)[] = [];
 
     /// The scheduled actions
     _scheduledActions: NativeBitmap = new NativeBitmap();
@@ -28,17 +26,20 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this._interrupt = interrupt;
     }
 
+    /// Get the scheduled actions
+    public get scheduled() { return this._scheduledActions; }
+
+    /// Prepare the scheduler
     public prepare(actions: ActionLogic<ActionBuffer>[]) {
         this._actions = actions;
-        this._actionPromises = [this._interrupt];
-        this._actionPromiseMapping = [];
+        this._actionPromises = [];
 
         // Build the dependency heap
         let deps: [NativeMinHeapKey, NativeMinHeapRank][] = [];
         deps.length = actions.length;
         for (let i = 0; i < actions.length; ++i) {
             deps[i] = [i, actions[i].buffer.dependsOnLength()];
-            this._actionPromiseMapping.push(null);
+            this._actionPromises.push(null);
         }
         deps.sort((l, r) => l[1] - r[1]);
         this._actionQueue.build(deps);
@@ -71,8 +72,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
             const next_action = this._actions[next_action_id];
             this._actionQueue.pop();
             this._scheduledActions.set(next_action_id);
-            this._actionPromiseMapping[next_action_id] = this._actionPromises.length;
-            this._actionPromises.push(next_action.execute(context));
+            this._actionPromises[next_action_id] = next_action.execute(context);
             diff.push(next_action_id);
         }
     }
@@ -91,7 +91,11 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         if (!this.workLeft()) return false;
 
         // Wait for next action to complete
-        const next = await Promise.race(this._actionPromises);
+        let promises: Promise<ActionID | null>[]  = [this._interrupt];
+        this._actionPromises.forEach(p => {
+            if (p) promises.push(p);
+        });
+        const next = await Promise.race(promises);
         if (next == null) {
             /// Update interrupt promise since someone might have just replaced it.
             this._actionPromises[0] = this._interrupt;
@@ -100,12 +104,9 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         }
         diff.push(next);
 
-        // Remove action promise
-        const action_idx = getActionIndex(next);
-        this._actionPromises.splice(this._actionPromiseMapping[action_idx]!, 1);
-        this._actionPromiseMapping[action_idx] = null;
-
         // Check the new status of the action
+        const action_idx = getActionIndex(next);
+        this._actionPromises[action_idx] = null;
         switch (this._actions[action_idx].status) {
             case proto.action.ActionStatusCode.PREPARING:
             case proto.action.ActionStatusCode.BLOCKED:
