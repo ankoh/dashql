@@ -75,6 +75,9 @@ export abstract class ProgramActionLogic extends ActionLogic<proto.action.Progra
         super(action_id, action);
         this._origin = origin;
     }
+
+    /// Return the origin
+    public get origin() { return this._origin; }
 }
 
 export abstract class SetupActionLogic extends ActionLogic<proto.action.SetupAction> {
