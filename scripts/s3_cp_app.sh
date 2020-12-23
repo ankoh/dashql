@@ -18,7 +18,7 @@ set -euo pipefail
 # That means that caches are never "stale" since an updated index.html will refer to new filenames.
 
 S3_BUCKET="$1"
-APP_RELEASE_ARCHIVE="$2"
+APP_RELEASE="$2"
 
 # -------------------------------------------------------------------------------------
 # Cache TTLs:
@@ -34,8 +34,6 @@ TTL_STATIC=604800
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
-APP_DEPLOY_TMP_ARCHIVE="${ROOT_DIR}/artifacts/tmp/plain"
-APP_DEPLOY_TMP_BROTLI="${ROOT_DIR}/artifacts/tmp/brotli"
 
 BROTLI_LEVEL=11
 BROTLI_FILE_MATCHERS=(
@@ -63,22 +61,19 @@ realpath --version 1>/dev/null \
 # Prepare archive
 
 rm -rf ${APP_DEPLOY_TMP}
-mkdir -p ${APP_DEPLOY_TMP_ARCHIVE} ${APP_DEPLOY_TMP_BROTLI}
-
-echo "Extracting tarball"
-tar -C ${APP_DEPLOY_TMP_ARCHIVE} -xzf ${APP_RELEASE_ARCHIVE}
+mkdir -p ${APP_DEPLOY_TMP}
 
 # -------------------------------------------------------------------------------------
 # Compress files with brotli
 
 echo "Compressing .js, .css, .ttf and .wasm with brotli"
-find ${APP_DEPLOY_TMP_ARCHIVE} \
+find ${APP_RELEASE} \
     -type f \( -iname "*.js" -o -iname "*.css" -o -iname "*.ttf"  -o -iname "*.wasm" \) \
-    -exec sh -c "export OUT=${APP_DEPLOY_TMP_BROTLI}/\$(realpath --relative-to ${APP_DEPLOY_TMP_ARCHIVE} {}) && mkdir -p \$(dirname \${OUT}) && brotli --verbose --force --quality=${BROTLI_LEVEL} --output=\${OUT} {}" \; \
+    -exec sh -c "export OUT=${APP_DEPLOY_TMP}/\$(realpath --relative-to ${APP_RELEASE} {}) && mkdir -p \$(dirname \${OUT}) && brotli --verbose --force --quality=${BROTLI_LEVEL} --output=\${OUT} {}" \; \
 
 echo "Files"
-rsync -av --ignore-existing ${APP_DEPLOY_TMP_ARCHIVE}/ ${APP_DEPLOY_TMP_BROTLI}/
-find ${APP_DEPLOY_TMP_BROTLI} \
+rsync -av --ignore-existing ${APP_RELEASE}/ ${APP_DEPLOY_TMP}/
+find ${APP_DEPLOY_TMP} \
     -type f \
     -exec sh -c "du -hs {}" \; \
 
@@ -90,7 +85,7 @@ for IDX in "${!BROTLI_FILE_MATCHERS[@]}"; do
     BROTLI_CONTENT_TYPE=${BROTLI_CONTENT_TYPES[$IDX]}
 
     echo "Copy ./static/${BROTLI_FILE_MATCHER} to S3"
-    aws s3 cp "${APP_DEPLOY_TMP_BROTLI}/static" "${S3_BUCKET}/static" \
+    aws s3 cp "${APP_DEPLOY_TMP}/static" "${S3_BUCKET}/static" \
         --recursive \
         --exclude "*" \
         --include "${BROTLI_FILE_MATCHER}" \
@@ -104,7 +99,7 @@ done
 # Copy uncompressed files to S3
 
 echo "Copy ./static/ to S3"
-aws s3 cp "${APP_DEPLOY_TMP_BROTLI}/static" "${S3_BUCKET}/static" \
+aws s3 cp "${APP_DEPLOY_TMP}/static" "${S3_BUCKET}/static" \
     --recursive \
     --exclude "*.js" \
     --exclude "*.css" \
@@ -119,7 +114,7 @@ aws s3 cp "${APP_DEPLOY_TMP_BROTLI}/static" "${S3_BUCKET}/static" \
 # We copy the new index.html at the end to hide the new build until everything is uploaded.
 
 echo "Copy ./index.html to S3"
-aws s3 cp "${APP_DEPLOY_TMP_BROTLI}/index.html" "${S3_BUCKET}/index.html" \
+aws s3 cp "${APP_DEPLOY_TMP}/index.html" "${S3_BUCKET}/index.html" \
     --content-type "text/html" \
     --cache-control "max-age=${TTL_INDEX}" \
     --acl public-read
