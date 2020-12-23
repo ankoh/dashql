@@ -16,7 +16,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
     core.resetSession();
-})
+});
 
 function resolveProgramActionLogic(plan: model.Plan) {
     let r: actions.ActionLogic<proto.action.ProgramAction>[] = [];
@@ -41,7 +41,6 @@ function resolveProgramActionLogic(plan: model.Plan) {
 
 describe('Action Scheduler', () => {
     describe('program actions', () => {
-
         test('single table', async () => {
             const platformMock = new PlatformMock();
             const platform = platformMock.getInstance();
@@ -97,23 +96,23 @@ describe('Action Scheduler', () => {
                 expect(a.buffer.originStatement()).toBe(i);
                 expect(a.status).toBe(ActionStatus.NONE);
             });
-            expect(scheduler.actions.map((a) => a.buffer.actionType())).toEqual([
+            expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
                 ProgramActionType.PARAMETER,
                 ProgramActionType.LOAD_HTTP,
                 ProgramActionType.EXTRACT_CSV,
-                ProgramActionType.CREATE_VIZ
+                ProgramActionType.CREATE_VIZ,
             ]);
-            expect(scheduler.actions.map((a) => a.buffer.dependsOnArray())).toEqual([
+            expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([
                 null,
                 new Uint32Array([0]),
                 new Uint32Array([1]),
-                new Uint32Array([2])
+                new Uint32Array([2]),
             ]);
-            expect(scheduler.actions.map((a) => a.buffer.requiredForArray())).toEqual([
+            expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([
                 new Uint32Array([1]),
                 new Uint32Array([2]),
                 new Uint32Array([3]),
-                null
+                null,
             ]);
 
             const ctx = new actions.ActionContext(platform, plan!);
@@ -156,20 +155,20 @@ describe('Action Scheduler', () => {
                 expect(a.buffer.originStatement()).toBe(i);
                 expect(a.status).toBe(ActionStatus.NONE);
             });
-            expect(scheduler.actions.map((a) => a.buffer.actionType())).toEqual([
+            expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
                 ProgramActionType.CREATE_TABLE,
                 ProgramActionType.CREATE_VIZ,
-                ProgramActionType.CREATE_VIZ
+                ProgramActionType.CREATE_VIZ,
             ]);
-            expect(scheduler.actions.map((a) => a.buffer.dependsOnArray())).toEqual([
+            expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([
                 null,
                 new Uint32Array([0]),
                 new Uint32Array([0]),
             ]);
-            expect(scheduler.actions.map((a) => a.buffer.requiredForArray())).toEqual([
+            expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([
                 new Uint32Array([1, 2]),
                 null,
-                null
+                null,
             ]);
 
             const ctx = new actions.ActionContext(platform, plan!);
@@ -209,17 +208,13 @@ describe('Action Scheduler', () => {
                 expect(a.buffer.originStatement()).toBe(i);
                 expect(a.status).toBe(ActionStatus.NONE);
             });
-            expect(scheduler.actions.map((a) => a.buffer.actionType())).toEqual([
+            expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
                 ProgramActionType.CREATE_TABLE,
                 ProgramActionType.CREATE_TABLE,
-                ProgramActionType.CREATE_TABLE
+                ProgramActionType.CREATE_TABLE,
             ]);
-            expect(scheduler.actions.map((a) => a.buffer.dependsOnArray())).toEqual([
-                null, null, null,
-            ]);
-            expect(scheduler.actions.map((a) => a.buffer.requiredForArray())).toEqual([
-                null, null, null
-            ]);
+            expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([null, null, null]);
+            expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([null, null, null]);
 
             const ctx = new actions.ActionContext(platform, plan!);
             const diff = new utils.NativeStack();

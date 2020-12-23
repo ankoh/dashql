@@ -9,7 +9,19 @@ export class LoadHTTPActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public async execute(_context: ActionContext): Promise<ActionID> {
+    public async execute(context: ActionContext): Promise<ActionID> {
+        const program = context.plan.program;
+        const statement = this.origin;
+        const statement_root = statement.root_node;
+
+        // 1) Build the request
+
+        // 2) Send the request
+
+        // 3) Receive the response
+
+        // 4) Extract the response if it's an archive
+
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 };
