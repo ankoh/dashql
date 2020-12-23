@@ -1,5 +1,5 @@
 import { error, model } from '@dashql/core';
-import { AppReduxStore } from '../model';
+import { AppReduxStore, mutate } from '../model';
 
 export class LogController {
     // The store
@@ -19,7 +19,7 @@ export class LogController {
         };
 
         // Store in redux store
-        this.store.dispatch({
+        mutate(this.store.dispatch, {
             type: model.StateMutationType.LOG_PUSH_ENTRY,
             data: logEntry,
         });

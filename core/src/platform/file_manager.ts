@@ -1,6 +1,7 @@
 import { LRUCache } from '../utils/lru_cache';
 import { ObjectURL } from '../model';
-import { DerivedReduxStore, StateMutationType } from '../model';
+import { DerivedReduxStore, StateMutationType, CachedFileData } from '../model';
+import { mutate } from '../model';
 
 const FILE_CACHE_SIZE = 64;
 
@@ -23,15 +24,15 @@ class FileCache extends LRUCache<FileData> {
 
     /// Insert handler
     onInsert(_slot: number, next: FileData, evicted: FileData | null): void {
-        this._store.dispatch({
+        mutate(this._store.dispatch, {
             type: StateMutationType.CACHE_FILE_DATA,
-            data: [next.objectURL, evicted?.key]
+            data: [{ objectURL: next.objectURL} as CachedFileData, evicted?.key || null]
         });
     }
 
     /// Hit handler
     onHit(_slot: number, next: FileData): void {
-        this._store.dispatch({
+        mutate(this._store.dispatch, {
             type: StateMutationType.HIT_CACHED_FILE_DATA,
             data: next.key
         });
