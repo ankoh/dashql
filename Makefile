@@ -176,26 +176,6 @@ docker_ci_image:
 # ---------------------------------------------------------------------------
 # Deployment
 
-# Upload the release build to the S3 bucket.
-#
-# We deliberately do not sync with --delete here.
-# A client may still see the old index.html while we're propagating the new one.
-# This would result in broken apps until the caches pick up the new version.
-#
-# We instead plain copy the whole release archive independent of whether the files exist.
-# This allows us to discover old versions quickly via the modification timestamps.
-#
-# We also rely on cache busting.
-# All files in the static folder MUST include [contenthash] in the filename.
-# That means that caches are never "stale" since an updated index.html will refer to new filenames.
-#
-# Cache TTLs:
-#   index.html 10 minutes
-#   static     7 days
-#
-TTL_INDEX=600
-TTL_STATIC=604800
-
 .PHONY: aws_stable_deploy
 aws_stable_deploy:
 	./scripts/s3_cp_app.sh ${APP_STABLE_S3_BUCKET} ${APP_RELEASE_ARCHIVE}
@@ -216,7 +196,6 @@ aws_nightly_deploy:
 .PHONY: aws_nightly_prune
 aws_nightly_prune:
 	./scripts/s3_rm_outdated.sh ${APP_NIGHTLY_S3_BUCKET} "1 week"
-
 
 # ---------------------------------------------------------------------------
 # Data
