@@ -95,13 +95,6 @@ const nodeTarget = {
             cleanOnceBeforeBuildPatterns: ["*.wasm", "!.*"],
             cleanOnceAfterBuildPatterns: [],
             verbose: true,
-        }),
-        new CompressionPlugin({
-            filename: "[path][base].gz",
-            algorithm: 'gzip',
-            test: /\.js$|\.css$|\.html$|\.eot$|\.ttf$|\.woff$|\.svg$|\.json$|\.wasm$/,
-            threshold: 10240,
-            minRatio: 0.8
         })
     ],
 };
