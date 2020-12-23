@@ -14,6 +14,12 @@ export type StateMutationVariant =
     | model.StateMutationVariant
     ;
 
+// The action dispatch
+export type Dispatch = (mutation: StateMutationVariant) => void;
+// Mutate the store
+export function mutate(dispatch: Dispatch, m: StateMutationVariant) {
+    return dispatch(m);
+}
 /// Mutation of the application state
 export class AppStateMutation {
     /// Set the editor program

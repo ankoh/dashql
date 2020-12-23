@@ -1,6 +1,6 @@
 import { LRUCache } from '../utils/lru_cache';
 import { IHasher, createSHA256 } from '../utils/hash';
-import { DerivedReduxStore, StateMutationType } from '../model';
+import { DerivedReduxStore, StateMutationType, mutate, CachedHTTPData } from '../model';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
 
@@ -30,15 +30,15 @@ class HTTPRequestCache extends LRUCache<HTTPData> {
 
     /// Insert handler
     onInsert(_slot: number, next: HTTPData, evicted: HTTPData | null): void {
-        this._store.dispatch({
+        mutate(this._store.dispatch, {
             type: StateMutationType.CACHE_HTTP_DATA,
-            data: [next, evicted?.key]
+            data: [next as CachedHTTPData, evicted?.key || null]
         });
     }
 
     /// Hit handler
     onHit(_slot: number, next: HTTPData): void {
-        this._store.dispatch({
+        mutate(this._store.dispatch, {
             type: StateMutationType.HIT_CACHED_HTTP_DATA,
             data: next.key
         });

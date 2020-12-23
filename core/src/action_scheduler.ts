@@ -2,7 +2,7 @@ import * as proto from "@dashql/proto";
 import { NativeBitmap, NativeStack, NativeMinHeap, NativeMinHeapKey, NativeMinHeapRank } from "./utils";
 import { ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramActionLogic } from "./actions";
 import { ActionContext } from "./actions";
-import { ActionID, Action, ActionClass, ActionUpdate, buildActionID, getActionIndex, StateMutationType } from './model';
+import { ActionID, Action, ActionClass, ActionUpdate, buildActionID, getActionIndex, StateMutationType, mutate } from './model';
 
 export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The cancel promise
@@ -222,9 +222,9 @@ export class ActionGraphScheduler {
         this._programActions.prepare(programLogic);
 
         // Set all actions in the store
-        ctx.platform.state.dispatch({
+        mutate(ctx.platform.state.dispatch, {
             type: StateMutationType.SET_PLAN_ACTIONS,
-            payload: actionInfos
+            data: actionInfos
         });
     }
 
@@ -251,7 +251,6 @@ export class ActionGraphScheduler {
 
     /// Execute all exctions of a scheduler
     protected async executeActions<ActionBuffer extends ProtoAction>(ctx: ActionContext, diff: NativeStack, scheduler: ActionScheduler<ActionBuffer>) {
-        const dispatch = ctx.platform.state.dispatch;
         for (let workLeft = await scheduler.executeFirst(ctx, diff); workLeft; diff.clear(),
                  workLeft = await scheduler.execute(ctx, diff)) {
 
@@ -268,9 +267,9 @@ export class ActionGraphScheduler {
             }
 
             // Update all actions in the store
-            dispatch({
+            mutate(ctx.platform.state.dispatch, {
                 type: StateMutationType.UPDATE_PLAN_ACTIONS,
-                payload: actionUpdates
+                data: actionUpdates
             });
         }
     }
