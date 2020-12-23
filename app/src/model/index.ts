@@ -8,8 +8,6 @@ export * from './settings';
 export * from './state';
 export * from './state_mutation';
 
-// The action dispatch
-export type Dispatch = (mutation: StateMutationVariant) => void;
 // The store type
 export type AppReduxStore = Store<AppState>;
 

@@ -1,4 +1,4 @@
-import { AppReduxStore } from '../model';
+import { AppReduxStore, mutate } from '../model';
 import { EditorController } from './editor';
 import { LogController } from './log';
 import { InterpreterController } from './interpreter';
@@ -57,14 +57,14 @@ export class DemoController {
     public setup() {
         const program = this._core.parseProgram(DEMO_SCRIPT);
         const plan = this._core.planProgram();
-        this._store.dispatch({
+        mutate(this._store.dispatch, {
             type: core.model.StateMutationType.SET_PROGRAM,
-            payload: [DEMO_SCRIPT, program]
+            data: [DEMO_SCRIPT, program]
         });
         if (plan != null) {
-            this._store.dispatch({
+            mutate(this._store.dispatch, {
                 type: core.model.StateMutationType.SET_PLAN,
-                payload: plan
+                data: plan
             });
         }
     }

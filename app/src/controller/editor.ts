@@ -1,5 +1,5 @@
 import * as monaco from 'monaco-editor';
-import { AppReduxStore } from '../model';
+import { AppReduxStore, mutate } from '../model';
 import * as core from '@dashql/core';
 
 export class EditorController {
@@ -29,9 +29,9 @@ export class EditorController {
         }
         const p = this._core.parseProgram(input);
         this.displayErrors(p);
-        this._store.dispatch({
+        mutate(this._store.dispatch, {
             type: core.model.StateMutationType.SET_PROGRAM,
-            data: p,
+            data: [input, p],
         });
     }
 

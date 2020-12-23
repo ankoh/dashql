@@ -48,6 +48,13 @@ export type StateMutationVariant =
 
 export type StateMutationDispatcher = (mutation: StateMutationVariant) => void;
 
+// The action dispatch
+export type Dispatch = (mutation: StateMutationVariant) => void;
+// Mutate the store
+export function mutate(dispatch: Dispatch, m: StateMutationVariant) {
+    return dispatch(m);
+}
+
 export class StateMutations {
     public static reduce(state: CoreState, mutation: StateMutationVariant): CoreState {
         switch (mutation.type) {
