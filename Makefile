@@ -192,18 +192,13 @@ docker_ci_image:
 # Cache TTLs:
 #   index.html 10 minutes
 #   static     7 days
-# 
+#
+TTL_INDEX=600
+TTL_STATIC=604800
+
 .PHONY: aws_stable_deploy
 aws_stable_deploy:
-	rm -rf ${APP_DEPLOY_TMP} && mkdir -p ${APP_DEPLOY_TMP}
-	tar -C ${APP_DEPLOY_TMP} -xvzf ${APP_RELEASE_ARCHIVE}
-	aws s3 cp "${APP_DEPLOY_TMP}/static" "${APP_STABLE_S3_BUCKET}/static" \
-		--recursive \
-		--cache-control "max-age=604800" \
-		--acl public-read
-	aws s3 cp "${APP_DEPLOY_TMP}/index.html" "${APP_STABLE_S3_BUCKET}/index.html" \
-		--cache-control "max-age=600" \
-		--acl public-read
+	./scripts/s3_cp_app.sh ${APP_STABLE_S3_BUCKET} ${APP_RELEASE_ARCHIVE}
 
 # Remove old app versions.
 # Make sure a newer versions exist and that the CDN no longer refers to an outdated index.html!
@@ -214,15 +209,7 @@ aws_stable_prune:
 # Deploy a nightly build
 .PHONY: aws_nightly_deploy
 aws_nightly_deploy:
-	rm -rf ${APP_DEPLOY_TMP} && mkdir -p ${APP_DEPLOY_TMP}
-	tar -C ${APP_DEPLOY_TMP} -xvzf ${APP_RELEASE_ARCHIVE}
-	aws s3 cp "${APP_DEPLOY_TMP}/static" "${APP_NIGHTLY_S3_BUCKET}/static" \
-		--recursive \
-		--cache-control "max-age=604800" \
-		--acl public-read
-	aws s3 cp "${APP_DEPLOY_TMP}/index.html" "${APP_NIGHTLY_S3_BUCKET}/index.html" \
-		--cache-control "max-age=600" \
-		--acl public-read
+	./scripts/s3_cp_app.sh ${APP_NIGHTLY_S3_BUCKET} ${APP_RELEASE_ARCHIVE}
 
 # Remove old app versions.
 # Make sure a newer versions exist and that the CDN no longer refers to an outdated index.html!

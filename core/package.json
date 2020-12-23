@@ -20,7 +20,6 @@
         "axios-mock-adapter": "^1.19.0",
         "benny": "^3.6.14",
         "clean-webpack-plugin": "^3.0.0",
-        "compression-webpack-plugin": "^7.0.0",
         "file-loader": "^6.1.0",
         "jest": "^26.4.2",
         "jest-junit": "^12.0.0",

@@ -1,7 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const CompressionPlugin = require('compression-webpack-plugin');
 
 const browserTarget = {
     target: 'web',
@@ -92,13 +91,6 @@ const nodeTarget = {
             cleanOnceBeforeBuildPatterns: ["!.*"],
             cleanOnceAfterBuildPatterns: [],
             verbose: true,
-        }),
-        new CompressionPlugin({
-            filename: "[path][base].gz",
-            algorithm: 'gzip',
-            test: /\.js$|\.css$|\.html$|\.eot$|\.ttf$|\.woff$|\.svg$|\.json$|\.wasm$/,
-            threshold: 10240,
-            minRatio: 0.8
         })
     ],
 };
