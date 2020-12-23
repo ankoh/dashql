@@ -24,11 +24,10 @@ set -euo pipefail
 # -------------------------------------------------------------------------------------
 # CONFIG
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
-
 S3_BUCKET="$1"
 APP_RELEASE_ARCHIVE="$2"
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 APP_DEPLOY_TMP_ARCHIVE="${ROOT_DIR}/artifacts/tmp/plain"
 APP_DEPLOY_TMP_BROTLI="${ROOT_DIR}/artifacts/tmp/brotli"
@@ -114,6 +113,8 @@ aws s3 cp "${APP_DEPLOY_TMP_BROTLI}/static" "${S3_BUCKET}/static" \
 
 # -------------------------------------------------------------------------------------
 # Copy index.html to S3
+
+# We copy the new index.html at the end to hide the new build until everything is uploaded.
 
 echo "Copy ./index.html to S3"
 aws s3 cp "${APP_DEPLOY_TMP_BROTLI}/index.html" "${S3_BUCKET}/index.html" \
