@@ -5,6 +5,7 @@ RUN apt-get update -qq \
         build-essential git \
         ccache cmake ninja-build llvm clang clang-tidy curl python python3 \
         bison flex \
+        brotli awscli \
         openjdk-14-jdk \
         libpthread-stubs0-dev \
         libboost-all-dev \
