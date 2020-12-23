@@ -41,7 +41,7 @@
         <graph next_object_id="1">
             <setup />
             <program>
-                <action id="0" type="TABLE_CREATE" status="NONE" object_id="0">
+                <action id="0" type="CREATE_TABLE" status="NONE" object_id="0">
                     <target name_qualified="global.a" name_short="a" />
                     <script>SELECT 1 INTO a</script>
                 </action>
@@ -193,7 +193,7 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action id="3" type="TABLE_CREATE" status="NONE" object_id="3">
+                <action id="3" type="CREATE_TABLE" status="NONE" object_id="3">
                     <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="2" />
@@ -254,7 +254,7 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action id="3" type="TABLE_CREATE" status="NONE" object_id="3">
+                <action id="3" type="CREATE_TABLE" status="NONE" object_id="3">
                     <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="2" />
@@ -265,13 +265,13 @@
                     </required_for>
                     <script>SELECT * INTO weather_avg FROM weather</script>
                 </action>
-                <action id="4" type="VIZ_CREATE" status="NONE" object_id="4">
+                <action id="4" type="CREATE_VIZ" status="NONE" object_id="4">
                     <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
                 </action>
-                <action id="5" type="VIZ_CREATE" status="NONE" object_id="5">
+                <action id="5" type="CREATE_VIZ" status="NONE" object_id="5">
                     <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="3" />
@@ -333,7 +333,7 @@
                         <ref action="4" />
                     </required_for>
                 </action>
-                <action id="3" type="TABLE_CREATE" status="NONE" object_id="3">
+                <action id="3" type="CREATE_TABLE" status="NONE" object_id="3">
                     <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="2" />
@@ -343,7 +343,7 @@
                     </required_for>
                     <script>SELECT * INTO weather_avg FROM weather</script>
                 </action>
-                <action id="4" type="TABLE_CREATE" status="NONE" object_id="4">
+                <action id="4" type="CREATE_TABLE" status="NONE" object_id="4">
                     <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="2" />
@@ -353,13 +353,13 @@
                     </required_for>
                     <script>SELECT * INTO weather_binned FROM weather</script>
                 </action>
-                <action id="5" type="VIZ_CREATE" status="NONE" object_id="5">
+                <action id="5" type="CREATE_VIZ" status="NONE" object_id="5">
                     <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
                 </action>
-                <action id="6" type="VIZ_CREATE" status="NONE" object_id="6">
+                <action id="6" type="CREATE_VIZ" status="NONE" object_id="6">
                     <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="4" />
@@ -430,7 +430,7 @@
                         <ref action="5" />
                     </required_for>
                 </action>
-                <action id="4" type="TABLE_CREATE" status="NONE" object_id="4">
+                <action id="4" type="CREATE_TABLE" status="NONE" object_id="4">
                     <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="3" />
@@ -441,7 +441,7 @@
                     </required_for>
                     <script>SELECT * INTO weather_avg FROM weather WHERE month = 5</script>
                 </action>
-                <action id="5" type="TABLE_CREATE" status="NONE" object_id="5">
+                <action id="5" type="CREATE_TABLE" status="NONE" object_id="5">
                     <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="3" />
@@ -452,13 +452,13 @@
                     </required_for>
                     <script>SELECT * INTO weather_binned FROM weather WHERE month = 5</script>
                 </action>
-                <action id="6" type="VIZ_CREATE" status="NONE" object_id="6">
+                <action id="6" type="CREATE_VIZ" status="NONE" object_id="6">
                     <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="4" />
                     </depends_on>
                 </action>
-                <action id="7" type="VIZ_CREATE" status="NONE" object_id="7">
+                <action id="7" type="CREATE_VIZ" status="NONE" object_id="7">
                     <target name_qualified="global.weather_binned" name_short="weather_binned" />
                     <depends_on>
                         <ref action="5" />
@@ -524,7 +524,7 @@
                         <ref action="4" />
                     </required_for>
                 </action>
-                <action id="4" type="TABLE_CREATE" status="NONE" object_id="4">
+                <action id="4" type="CREATE_TABLE" status="NONE" object_id="4">
                     <target name_qualified="global.weather_avg" name_short="weather_avg" />
                     <depends_on>
                         <ref action="3" />
@@ -623,7 +623,7 @@
                         <ref action="7" />
                     </required_for>
                 </action>
-                <action id="7" type="TABLE_CREATE" status="NONE" object_id="7">
+                <action id="7" type="CREATE_TABLE" status="NONE" object_id="7">
                     <target name_qualified="global.countries_joined" name_short="countries_joined" />
                     <depends_on>
                         <ref action="5" />
@@ -635,7 +635,7 @@
                     </required_for>
                     <script>SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = 5</script>
                 </action>
-                <action id="8" type="VIZ_CREATE" status="NONE" object_id="8">
+                <action id="8" type="CREATE_VIZ" status="NONE" object_id="8">
                     <target name_qualified="global.countries_joined" name_short="countries_joined" />
                     <depends_on>
                         <ref action="7" />

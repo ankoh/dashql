@@ -59,7 +59,7 @@ describe('Action Scheduler', () => {
             scheduler.prepare(logic);
             expect(scheduler.actions.length).toBe(1);
             expect(scheduler.actions[0].actionClass).toBe(ActionClass.ProgramAction);
-            expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.TABLE_CREATE);
+            expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.CREATE_TABLE);
             expect(scheduler.actions[0].status).toBe(ActionStatus.NONE);
 
             const diff = new utils.NativeStack();
@@ -101,7 +101,7 @@ describe('Action Scheduler', () => {
                 ProgramActionType.PARAMETER,
                 ProgramActionType.LOAD_HTTP,
                 ProgramActionType.EXTRACT_CSV,
-                ProgramActionType.VIZ_CREATE
+                ProgramActionType.CREATE_VIZ
             ]);
             expect(scheduler.actions.map((a) => a.buffer.dependsOnArray())).toEqual([
                 null,
@@ -157,9 +157,9 @@ describe('Action Scheduler', () => {
                 expect(a.status).toBe(ActionStatus.NONE);
             });
             expect(scheduler.actions.map((a) => a.buffer.actionType())).toEqual([
-                ProgramActionType.TABLE_CREATE,
-                ProgramActionType.VIZ_CREATE,
-                ProgramActionType.VIZ_CREATE
+                ProgramActionType.CREATE_TABLE,
+                ProgramActionType.CREATE_VIZ,
+                ProgramActionType.CREATE_VIZ
             ]);
             expect(scheduler.actions.map((a) => a.buffer.dependsOnArray())).toEqual([
                 null,
@@ -210,9 +210,9 @@ describe('Action Scheduler', () => {
                 expect(a.status).toBe(ActionStatus.NONE);
             });
             expect(scheduler.actions.map((a) => a.buffer.actionType())).toEqual([
-                ProgramActionType.TABLE_CREATE,
-                ProgramActionType.TABLE_CREATE,
-                ProgramActionType.TABLE_CREATE
+                ProgramActionType.CREATE_TABLE,
+                ProgramActionType.CREATE_TABLE,
+                ProgramActionType.CREATE_TABLE
             ]);
             expect(scheduler.actions.map((a) => a.buffer.dependsOnArray())).toEqual([
                 null, null, null,
