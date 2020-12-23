@@ -9,7 +9,6 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 APP_RELEASE_DIR="${ROOT_DIR}/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
-APP_RELEASE_ARCHIVE="${ROOT_DIR}/artifacts/dashql-${APP_RELEASE_TAG}.tar.gz"
 APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 
 LIB_SOURCE_DIR="${ROOT_DIR}/lib"
@@ -107,8 +106,6 @@ app:
 .PHONY: app_release
 app_release:
 	npm --prefix ${ROOT_DIR}/app run build:release
-	tar -C "./app/build/release" -czf ${APP_RELEASE_ARCHIVE} .
-	@echo "Release: ${APP_RELEASE_ARCHIVE}"
 
 # Runs a node server with the release build
 .PHONY: app_release_server
@@ -178,7 +175,7 @@ docker_ci_image:
 
 .PHONY: aws_stable_deploy
 aws_stable_deploy:
-	./scripts/s3_cp_app.sh ${APP_STABLE_S3_BUCKET} ${APP_RELEASE_ARCHIVE}
+	./scripts/s3_cp_app.sh ${APP_STABLE_S3_BUCKET} ./app/build/release
 
 # Remove old app versions.
 # Make sure a newer versions exist and that the CDN no longer refers to an outdated index.html!
@@ -189,7 +186,7 @@ aws_stable_prune:
 # Deploy a nightly build
 .PHONY: aws_nightly_deploy
 aws_nightly_deploy:
-	./scripts/s3_cp_app.sh ${APP_NIGHTLY_S3_BUCKET} ${APP_RELEASE_ARCHIVE}
+	./scripts/s3_cp_app.sh ${APP_NIGHTLY_S3_BUCKET} ./app/build/release
 
 # Remove old app versions.
 # Make sure a newer versions exist and that the CDN no longer refers to an outdated index.html!
