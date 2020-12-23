@@ -8,7 +8,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 DATE=date
 if [[ "$OSTYPE" == "darwin"* ]]; then
     DATE=gdate
-    echo "We use gdate on macOS. Install it with: brew install coreutils"
+    echo "We use GNU date on macOS. Install it with: brew install coreutils"
 fi
 ${DATE} --version 1>/dev/null \
     && { echo "[ OK   ] Command: ${DATE}"; } \
