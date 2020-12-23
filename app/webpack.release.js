@@ -7,12 +7,12 @@ module.exports = {
         tsLoaderOptions: {
             compilerOptions: {
                 configFile: './tsconfig.json',
-                sourceMap: true,
+                sourceMap: false,
             }
         },
         extractCss: true,
         cssIdentifier: '[hash:base64]'
     }),
     mode: 'production',
-    devtool: 'source-map'
+    devtool: false
 }
