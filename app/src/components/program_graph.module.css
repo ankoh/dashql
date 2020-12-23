@@ -10,8 +10,8 @@
 .controls {
     top: 16px;
     right: 16px;
-    left: unset;
-    bottom: unset;
+    left: unset!important;
+    bottom: unset!important;
 }
 
 .node {
