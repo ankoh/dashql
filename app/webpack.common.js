@@ -5,7 +5,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const CompressionPlugin = require('compression-webpack-plugin');
 
 /// IMPORTANT
 ///
@@ -144,13 +143,6 @@ function configure(params) {
             new webpack.DefinePlugin({
                 // Referenced by react-flow...
                 'process.env.FORCE_SIMILAR_INSTEAD_OF_MAP': JSON.stringify(process.env.FORCE_SIMILAR_INSTEAD_OF_MAP)
-            }),
-            new CompressionPlugin({
-                filename: "[path][base].gz",
-                algorithm: 'gzip',
-                test: /\.js$|\.css$|\.html$|\.eot$|\.ttf$|\.woff$|\.svg$|\.json$|\.wasm$/,
-                threshold: 10240,
-                minRatio: 0.8
             })
         ]
     };
