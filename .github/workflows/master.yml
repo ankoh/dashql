@@ -209,6 +209,12 @@ jobs:
             npm ci --no-optional --cache /mnt/npm_cache
             npm run build:release
 
+    - uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./reports/coverage_core.json,./reports/coverage_webdb.json
+        flags: unittests
+
     - name: Deploy as nightly
       uses: ./ci/image
       with:
@@ -221,12 +227,6 @@ jobs:
             rm -rf ./artifacts/tmp
             tar -C ./app/build/release -czf ./artifacts/dashql.tar.gz .
             ./scripts/s3_cp_app.sh s3://dashql-app-nightly ./artifacts/dashql.tar.gz
-
-    - uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./reports/coverage_core.json,./reports/coverage_webdb.json
-        flags: unittests
 
   plugins:
     name: Plugins
