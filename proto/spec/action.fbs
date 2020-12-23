@@ -66,11 +66,12 @@ enum ProgramActionType: uint8 {
     LOAD_HTTP,
     EXTRACT_JSON,
     EXTRACT_CSV,
-    VIEW_CREATE,
-    TABLE_CREATE,
-    TABLE_MODIFY,
-    VIZ_CREATE,
-    VIZ_UPDATE,
+    CREATE_VIEW,
+    CREATE_TABLE,
+    MODIFY_TABLE,
+    UNNAMED_SELECT,
+    CREATE_VIZ,
+    UPDATE_VIZ,
 }
 
 table ProgramAction {

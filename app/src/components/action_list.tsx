@@ -19,15 +19,17 @@ function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
             return "Load HTTP";
         case proto.action.ProgramActionType.PARAMETER:
             return "Define Parameter";
-        case proto.action.ProgramActionType.TABLE_CREATE:
+        case proto.action.ProgramActionType.CREATE_TABLE:
             return "Create Table";
-        case proto.action.ProgramActionType.TABLE_MODIFY:
+        case proto.action.ProgramActionType.MODIFY_TABLE:
             return "Modify Table";
-        case proto.action.ProgramActionType.VIEW_CREATE:
+        case proto.action.ProgramActionType.UNNAMED_SELECT:
+            return "Select";
+        case proto.action.ProgramActionType.CREATE_VIEW:
             return "Create View";
-        case proto.action.ProgramActionType.VIZ_CREATE:
+        case proto.action.ProgramActionType.CREATE_VIZ:
             return "Create Viz";
-        case proto.action.ProgramActionType.VIZ_UPDATE:
+        case proto.action.ProgramActionType.UPDATE_VIZ:
             return "Update Viz";
         default:
             return "?";

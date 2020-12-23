@@ -59,11 +59,11 @@ static const std::unordered_map<sx::StatementType, StatementTranslation>& Statem
     X(LOAD_HTTP, LOAD_HTTP, false)
     X(EXTRACT_JSON, EXTRACT_JSON, false)
     X(EXTRACT_CSV, EXTRACT_CSV, false)
-    X(SELECT, VIZ_CREATE, true)
-    X(SELECT_INTO, TABLE_CREATE, true)
-    X(CREATE_TABLE, TABLE_CREATE, true)
-    X(CREATE_VIEW, VIEW_CREATE, true)
-    X(VIZUALIZE, VIZ_CREATE, false)
+    X(SELECT, CREATE_VIZ, true)
+    X(SELECT_INTO, CREATE_TABLE, true)
+    X(CREATE_TABLE, CREATE_TABLE, true)
+    X(CREATE_VIEW, CREATE_VIEW, true)
+    X(VIZUALIZE, CREATE_VIZ, false)
 #undef X
     // clang-format on
     };
@@ -149,11 +149,12 @@ static std::unordered_map<ProgramActionType, ProgramActionInvalidation> ACTION_T
     X(LOAD_HTTP, IMPORT_BLOB, DROP_BLOB, NONE, false)
     X(EXTRACT_JSON, IMPORT_TABLE, DROP_TABLE, NONE, false)
     X(EXTRACT_CSV, IMPORT_TABLE, DROP_TABLE, NONE, false)
-    X(VIEW_CREATE, IMPORT_VIEW, DROP_VIEW, NONE, true)
-    X(TABLE_CREATE, IMPORT_TABLE, DROP_TABLE, NONE, true)
-    X(TABLE_MODIFY, IMPORT_TABLE, DROP_TABLE, NONE, true)
-    X(VIZ_CREATE, IMPORT_VIZ, DROP_VIZ, VIZ_UPDATE, false)
-    X(VIZ_UPDATE, IMPORT_VIZ, DROP_VIZ, VIZ_UPDATE, false)
+    X(CREATE_VIEW, IMPORT_VIEW, DROP_VIEW, NONE, true)
+    X(CREATE_TABLE, IMPORT_TABLE, DROP_TABLE, NONE, true)
+    X(MODIFY_TABLE, IMPORT_TABLE, DROP_TABLE, NONE, true)
+    X(UNNAMED_SELECT, NONE, NONE, NONE, false)
+    X(CREATE_VIZ, IMPORT_VIZ, DROP_VIZ, UPDATE_VIZ, false)
+    X(UPDATE_VIZ, IMPORT_VIZ, DROP_VIZ, UPDATE_VIZ, false)
 #undef X
     // clang-format on
 };

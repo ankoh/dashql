@@ -18,6 +18,7 @@ import { LoadHTTPActionLogic } from "./load_http_logic";
 import { ParameterActionLogic } from "./parameter_logic";
 import { CreateTableActionLogic } from "./table_create_logic";
 import { ModifyTableActionLogic } from "./table_modify_logic";
+import { UnnamedSelectLogic } from "./unnamed_select_logic";
 import { ViewCreateActionLogic } from "./view_create_logic";
 import { CreateVizActionLogic } from "./viz_create_logic";
 import { UpdateVizActionLogic } from "./viz_update_logic";
@@ -61,15 +62,17 @@ export function resolveProgramActionLogic(id: ActionID, a: proto.action.ProgramA
             return new LoadHTTPActionLogic(id, a, s);
         case ProgramActionType.PARAMETER:
             return new ParameterActionLogic(id, a, s);
-        case ProgramActionType.TABLE_CREATE:
+        case ProgramActionType.CREATE_TABLE:
             return new CreateTableActionLogic(id, a, s);
-        case ProgramActionType.TABLE_MODIFY:
+        case ProgramActionType.MODIFY_TABLE:
             return new ModifyTableActionLogic(id, a, s);
-        case ProgramActionType.VIEW_CREATE:
+        case ProgramActionType.UNNAMED_SELECT:
+            return new UnnamedSelectLogic(id, a, s);
+        case ProgramActionType.CREATE_VIEW:
             return new ViewCreateActionLogic(id, a, s);
-        case ProgramActionType.VIZ_CREATE:
+        case ProgramActionType.CREATE_VIZ:
             return new CreateVizActionLogic(id, a, s);
-        case ProgramActionType.VIZ_UPDATE:
+        case ProgramActionType.UPDATE_VIZ:
             return new UpdateVizActionLogic(id, a, s);
     }
     return null;
