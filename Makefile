@@ -206,9 +206,9 @@ aws_stable_deploy:
 		--acl public-read
 
 # Remove old app versions.
-# Make sure a newer version exists and that the CDN no longer refers to the previous index.html!
-.PHONY: aws_stable_rm_old
-aws_stable_rm_old:
+# Make sure a newer versions exist and that the CDN no longer refers to an outdated index.html!
+.PHONY: aws_stable_prune
+aws_stable_prune:
 	./scripts/s3_rm_outdated.sh ${APP_STABLE_S3_BUCKET} "1 week"
 
 # Deploy a nightly build
@@ -225,9 +225,9 @@ aws_nightly_deploy:
 		--acl public-read
 
 # Remove old app versions.
-# Make sure a newer version exists and that the CDN no longer refers to the previous index.html!
-.PHONY: aws_nightly_rm_old
-aws_nightly_rm_old:
+# Make sure a newer versions exist and that the CDN no longer refers to an outdated index.html!
+.PHONY: aws_nightly_prune
+aws_nightly_prune:
 	./scripts/s3_rm_outdated.sh ${APP_NIGHTLY_S3_BUCKET} "1 week"
 
 
