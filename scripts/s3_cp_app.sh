@@ -48,7 +48,7 @@ BROTLI_CONTENT_TYPES=(
     "application/javascript"
     "text/css"
     "font/ttf"
-    "application/webassembly"
+    "application/wasm"
 )
 
 brotli --version 1>/dev/null \
