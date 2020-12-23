@@ -223,10 +223,7 @@ jobs:
             export AWS_SECRET_ACCESS_KEY="${{ secrets.S3_APP_NIGHTLY_SECRET }}"
             export AWS_DEFAULT_REGION="eu-central-1"
 
-            mkdir -p ./artifacts
-            rm -rf ./artifacts/tmp
-            tar -C ./app/build/release -czf ./artifacts/dashql.tar.gz .
-            ./scripts/s3_cp_app.sh s3://dashql-app-nightly ./artifacts/dashql.tar.gz
+            ./scripts/s3_cp_app.sh s3://dashql-app-nightly ./app/build/release
 
   plugins:
     name: Plugins
