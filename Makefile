@@ -30,8 +30,8 @@ CDN_S3_BUCKET="s3://dashql-cdn"
 CDN_CF_DIST="E18RW837PIKROW"
 APP_STABLE_S3_BUCKET="s3://dashql-app"
 APP_STABLE_CF_DIST="E1WT3LVZLA4YZX"
-APP_STAGING_S3_BUCKET="s3://dashql-app-staging"
-APP_STAGING_CF_DIST="E2FIJASHV9TIS5"
+APP_NIGHTLY_S3_BUCKET="s3://dashql-app-nightly"
+APP_NIGHTLY_CF_DIST="EQPYKLIF8GRS4"
 WEBSITE_S3_BUCKET="s3://dashql-cdn"
 WEBSITE_CF_DIST="E2N5KIE8UNXGM3"
 
@@ -182,6 +182,9 @@ docker_ci_image:
 # A client may still see the old index.html while we're propagating the new one.
 # This would result in broken apps until the caches pick up the new version.
 #
+# We instead plain copy the whole release archive independent of whether the files exist.
+# This allows us to discover old versions quickly via the modification timestamps.
+#
 # We also rely on cache busting.
 # All files in the static folder MUST include [contenthash] in the filename.
 # That means that caches are never "stale" since an updated index.html will refer to new filenames.
@@ -194,41 +197,39 @@ docker_ci_image:
 aws_stable_deploy:
 	rm -rf ${APP_DEPLOY_TMP} && mkdir -p ${APP_DEPLOY_TMP}
 	tar -C ${APP_DEPLOY_TMP} -xvzf ${APP_RELEASE_ARCHIVE}
-	aws s3 sync "${APP_DEPLOY_TMP}/static" "${APP_STABLE_S3_BUCKET}/static" \
+	aws s3 cp "${APP_DEPLOY_TMP}/static" "${APP_STABLE_S3_BUCKET}/static" \
+		--recursive \
 		--cache-control "max-age=604800" \
 		--acl public-read
-	aws s3 sync ${APP_DEPLOY_TMP} ${APP_STABLE_S3_BUCKET}/ \
-		--exclude "static" \
+	aws s3 cp "${APP_DEPLOY_TMP}/index.html" "${APP_STABLE_S3_BUCKET}/index.html" \
 		--cache-control "max-age=600" \
 		--acl public-read
 
-# Upload the release build to the S3 bucket and cleanup old files.
-#
-# !! This will remove old webpack chunks that stale index.html files might still refer to. !!
-#
-# You have to wait at least `max-age` of the index.html before you can sync with --delete.
-# Better run this command rarely and at least 1 day after running aws_stable_deploy with the same release.
-#
-.PHONY: aws_stable_replace
-aws_stable_replace:
+# Remove old app versions.
+# Make sure a newer version exists and that the CDN no longer refers to the previous index.html!
+.PHONY: aws_stable_rm_old
+aws_stable_rm_old:
+	./scripts/s3_rm_outdated.sh ${APP_STABLE_S3_BUCKET} "1 week"
+
+# Deploy a nightly build
+.PHONY: aws_nightly_deploy
+aws_nightly_deploy:
 	rm -rf ${APP_DEPLOY_TMP} && mkdir -p ${APP_DEPLOY_TMP}
 	tar -C ${APP_DEPLOY_TMP} -xvzf ${APP_RELEASE_ARCHIVE}
-	aws s3 sync "${APP_DEPLOY_TMP}/static" "${APP_STABLE_S3_BUCKET}/static" \
+	aws s3 cp "${APP_DEPLOY_TMP}/static" "${APP_NIGHTLY_S3_BUCKET}/static" \
+		--recursive \
 		--cache-control "max-age=604800" \
-		--acl public-read \
-		--delete
-	aws s3 sync ${APP_DEPLOY_TMP} ${APP_STABLE_S3_BUCKET}/ \
-		--exclude "static" \
+		--acl public-read
+	aws s3 cp "${APP_DEPLOY_TMP}/index.html" "${APP_NIGHTLY_S3_BUCKET}/index.html" \
 		--cache-control "max-age=600" \
 		--acl public-read
 
-# Invalidate cloudfront caches.
-# You should never need this since we are using cache busting.
-.PHONY: aws_stable_invalidate
-aws_stable_invalidate:
-	aws cloudfront create-invalidation \
-		--distribution-id ${APP_STABLE_CF_DIST} \
-		--paths /
+# Remove old app versions.
+# Make sure a newer version exists and that the CDN no longer refers to the previous index.html!
+.PHONY: aws_nightly_rm_old
+aws_nightly_rm_old:
+	./scripts/s3_rm_outdated.sh ${APP_NIGHTLY_S3_BUCKET} "1 week"
+
 
 # ---------------------------------------------------------------------------
 # Data
