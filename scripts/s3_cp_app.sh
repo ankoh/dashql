@@ -1,6 +1,9 @@
 #!/bin/bash
 # Copyright (c) 2020 The DashQL Authors
 
+set -euo pipefail
+
+# -------------------------------------------------------------------------------------
 # Upload the build to the S3 bucket.
 #
 # We deliberately do not sync with --delete here.
@@ -13,27 +16,26 @@
 # We also rely on cache busting.
 # All files in the static folder MUST include [contenthash] in the filename.
 # That means that caches are never "stale" since an updated index.html will refer to new filenames.
-#
+
+S3_BUCKET="$1"
+APP_RELEASE_ARCHIVE="$2"
+
+# -------------------------------------------------------------------------------------
 # Cache TTLs:
 #   index.html 10 minutes
 #   static     7 days
 #
 
-set -euo pipefail
+TTL_INDEX=600
+TTL_STATIC=604800
 
 # -------------------------------------------------------------------------------------
 # CONFIG
-
-S3_BUCKET="$1"
-APP_RELEASE_ARCHIVE="$2"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 APP_DEPLOY_TMP_ARCHIVE="${ROOT_DIR}/artifacts/tmp/plain"
 APP_DEPLOY_TMP_BROTLI="${ROOT_DIR}/artifacts/tmp/brotli"
-
-TTL_INDEX=600
-TTL_STATIC=604800
 
 BROTLI_LEVEL=11
 BROTLI_FILE_MATCHERS=(
