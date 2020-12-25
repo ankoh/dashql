@@ -181,7 +181,7 @@ aws_stable_deploy:
 # Make sure a newer versions exist and that the CDN no longer refers to an outdated index.html!
 .PHONY: aws_stable_prune
 aws_stable_prune:
-	./scripts/s3_rm_outdated.sh ${APP_STABLE_S3_BUCKET} "1 month"
+	./scripts/s3_rm_outdated.sh ${APP_STABLE_S3_BUCKET} "1 week"
 
 # Deploy a nightly build
 .PHONY: aws_nightly_deploy
