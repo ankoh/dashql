@@ -1,7 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { DashQLCoreModule } from './core_wasm_module';
-import { Plan, Program, PlanBuffer, ProgramBuffer } from  '../model';
+import { Plan, Program } from  '../model';
+import { flatbuffers } from "flatbuffers";
+import * as proto from "@dashql/proto";
 
 ///
 /// dashql_blobstream_underflow(blob: number, buffer_ofs, buffer_size): uint32_t
@@ -96,6 +98,13 @@ export abstract class CoreWasmBindings {
         return instance.ccall('dashql_reset_session', null, [], []);
     }
 
+    /// Copy a flatbuffer
+    public copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
+        var copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
+        copy.set(buffer);
+        return new flatbuffers.ByteBuffer(copy);
+    }
+
     /// Parse a string and return a flatbuffer
     public parseProgram(text: string): Program {
         let instance = this._instance!;
@@ -111,13 +120,13 @@ export abstract class CoreWasmBindings {
 
         /// Call the parse function
         let [ptr, ofs, size] = this.callSRet('dashql_parse_program', ['number'], [textMem]);
-        let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
-        let buffer = new ProgramBuffer(mem);
+        let mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
+        let program = proto.syntax.Program.getRoot(mem);
         instance.ccall('dashql_clear_response', null, [], []);
 
         /// Clear the utf8 string buffer
         instance.stackRestore(stackPointer);
-        this._program = new Program(textUTF8, buffer);
+        this._program = new Program(textUTF8, program);
         return this._program;
     }
 
@@ -126,10 +135,10 @@ export abstract class CoreWasmBindings {
         if (!this._program) return null;
         let instance = this._instance!;
         let [ptr, ofs, size] = this.callSRet('dashql_plan_program', [], []);
-        let mem = instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size);
-        let buffer = new PlanBuffer(mem);
+        let mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
+        let plan = proto.session.Plan.getRoot(mem);
         instance.ccall('dashql_clear_response', null, [], []);
-        return new Plan(this._program, buffer);
+        return new Plan(this._program, plan);
     }
 
     /// Free memory

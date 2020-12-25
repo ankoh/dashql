@@ -1,23 +1,15 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer } from './buffer';
 import { NativeStack, NativeBitmap } from '../utils';
 import { syntax as sx } from '@dashql/proto';
-import * as proto from '@dashql/proto';
 
 const decoder = new TextDecoder();
-
-export class ProgramBuffer extends FlatBuffer<proto.syntax.Program> {
-    public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.syntax.Program.getRoot(buffer);
-    }
-}
 
 export class Program {
     /// The encoded text buffer based to the core
     _textBuffer: Uint8Array;
     /// The program
-    _program: FlatBuffer<sx.Program>;
+    _program: sx.Program;
     /// The patch (if any)
     _patch: sx.ProgramPatch | null;
     /// The patched nodes
@@ -26,18 +18,18 @@ export class Program {
     _patchNodes: Map<number, number>;
 
     /// Constructor
-    public constructor(textBuffer: Uint8Array = new Uint8Array(0), program: FlatBuffer<sx.Program> = new ProgramBuffer()) {
+    public constructor(textBuffer: Uint8Array = new Uint8Array(0), program: sx.Program = new sx.Program()) {
         this._textBuffer = textBuffer;
         this._program = program;
         this._patch = null;
-        this._patchBitmap = new NativeBitmap(program.root.nodesLength());
+        this._patchBitmap = new NativeBitmap(program.nodesLength());
         this._patchNodes = new Map<number, number>();
     }
 
     /// Access the text
     public get textBuffer() { return this._textBuffer; }
     /// Access the flatbuffer
-    public get buffer() { return this._program.root; }
+    public get buffer() { return this._program; }
 
     /// Access the text
     public textAt(_loc: sx.Location): string {
@@ -48,7 +40,7 @@ export class Program {
     /// Patch the program
     public patch(patch: sx.ProgramPatch) {
         this._patch = patch;
-        this._patchBitmap.reset(this._program.root.nodesLength());
+        this._patchBitmap.reset(this._program.nodesLength());
         this._patchNodes.clear();
         let tmp = new sx.PatchedNode();
         for (let i = 0; i < patch.nodesLength(); ++i) {
@@ -62,7 +54,7 @@ export class Program {
     public getNode(i: number, n: Node | null): Node {
         n = n || new Node(this);
         if (!this._patchBitmap.isSet(i)) {
-            n.node = this._program.root.nodes(i, n.node)!;
+            n.node = this._program.nodes(i, n.node)!;
         } else {
             const m = this._patchNodes.get(i)!;
             n.node = this._patch!.nodes(m)!.newNode()!;

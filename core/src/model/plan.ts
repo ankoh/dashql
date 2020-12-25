@@ -1,37 +1,30 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { FlatBuffer } from './buffer';
 import { Program } from './program';
 import * as proto from '@dashql/proto';
-
-export class PlanBuffer extends FlatBuffer<proto.session.Plan> {
-    public getRoot(buffer: flatbuffers.ByteBuffer) {
-        return proto.session.Plan.getRoot(buffer);
-    }
-}
 
 export class Plan {
     /// The program
     _program: Program;
     /// The module
-    _plan: FlatBuffer<proto.session.Plan>;
+    _plan: proto.session.Plan;
 
     /// Constructor
-    public constructor(program: Program, plan: FlatBuffer<proto.session.Plan> = new PlanBuffer()) {
+    public constructor(program: Program, plan: proto.session.Plan = new proto.session.Plan()) {
         this._program = program;
         this._plan = plan;
     }
 
     /// Get the buffer
-    public get buffer() { return this._plan.root; }
+    public get buffer() { return this._plan; }
     /// Access the program
     public get program() { return this._program; }
     /// Access the action graph
-    public get action_graph() { return this._plan.root.actionGraph(); }
+    public get action_graph() { return this._plan.actionGraph(); }
 
     /// Iterate setup actions
     public iterateSetupActions(fn: (idx: number, node: proto.action.SetupAction) => void) {
-        const graph = this._plan.root.actionGraph();
+        const graph = this._plan.actionGraph();
         if (!graph) return;
         const count = graph.setupActionsLength();
         const tmp = new proto.action.SetupAction();
@@ -41,7 +34,7 @@ export class Plan {
     }
     /// Iterate program actions
     public iterateProgramActions(fn: (idx: number, node: proto.action.ProgramAction) => void) {
-        const graph = this._plan.root.actionGraph();
+        const graph = this._plan.actionGraph();
         if (!graph) return;
         const count = graph.programActionsLength();
         const tmp = new proto.action.ProgramAction();
@@ -52,7 +45,7 @@ export class Plan {
 
     /// Map program actions
     public mapProgramActions<T>(fn: (idx: number, node: proto.action.ProgramAction) => T): T[] {
-        const graph = this._plan.root.actionGraph();
+        const graph = this._plan.actionGraph();
         if (!graph) return [];
         let mapped: T[] = [];
         mapped.length = graph.programActionsLength();
@@ -64,7 +57,7 @@ export class Plan {
 
     /// Map setup actions
     public mapSetupActions<T>(fn: (idx: number, node: proto.action.SetupAction) => T): T[] {
-        const graph = this._plan.root.actionGraph();
+        const graph = this._plan.actionGraph();
         if (!graph) return [];
         let mapped: T[] = [];
         mapped.length = graph.programActionsLength();
