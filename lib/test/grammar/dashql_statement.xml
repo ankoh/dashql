@@ -10,3 +10,46 @@
         <dependencies />
     </expected>
 </test>
+<test name="load_url_parameter">
+    <input>
+        LOAD weather_csv FROM http (
+            url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+        );
+    </input>
+    <expected>
+        <statements>
+            <statement type="LOAD_HTTP" name="global.weather_csv">
+                <node type="OBJECT_DASHQL_LOAD" loc="9..130" text="LOAD weath..&#10;        )">
+                    <node key="DASHQL_LOAD_METHOD" value="HTTP" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="14..25" text="weather_csv" />
+                    </node>
+                    <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="56..120" text="format('ht..l.country)">
+                        <node key="SQL_FUNCTION_ARGUMENTS">
+                            <node type="OBJECT_SQL_CONST" loc="63..103" text="'https://c..eather/%s'">
+                                <node key="SQL_CONST_TYPE" value="STRING" />
+                                <node key="SQL_CONST_VALUE" loc="63..103" text="'https://c..eather/%s'" />
+                            </node>
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="105..119" text="global.country">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="105..111" text="global" />
+                                    <node loc="112..119" text="country" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_FUNCTION_NAME" loc="56..62" text="format" />
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="37..38" text="&#10;" />
+            <line_break loc="120..121" text="&#10;" />
+            <line_break loc="131..132" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
