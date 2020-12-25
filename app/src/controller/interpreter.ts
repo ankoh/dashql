@@ -11,5 +11,5 @@ export class InterpreterController {
     }
 
     /// Evaluate a program
-    public async eval(_program: core.model.FlatBuffer<core.proto.syntax.Program>) {}
+    public async eval(_program: core.proto.syntax.Program) {}
 }
