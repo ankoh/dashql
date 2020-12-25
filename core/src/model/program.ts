@@ -18,11 +18,20 @@ export class Program {
     _textBuffer: Uint8Array;
     /// The program
     _program: FlatBuffer<sx.Program>;
+    /// The patch (if any)
+    _patch: sx.ProgramPatch | null;
+    /// The patched nodes
+    _patchBitmap: NativeBitmap;
+    /// The patched node positions
+    _patchNodes: Map<number, number>;
 
     /// Constructor
     public constructor(textBuffer: Uint8Array = new Uint8Array(0), program: FlatBuffer<sx.Program> = new ProgramBuffer()) {
         this._textBuffer = textBuffer;
         this._program = program;
+        this._patch = null;
+        this._patchBitmap = new NativeBitmap(program.root.nodesLength());
+        this._patchNodes = new Map<number, number>();
     }
 
     /// Access the text
@@ -34,6 +43,31 @@ export class Program {
     public textAt(_loc: sx.Location): string {
         const view = new Uint8Array(this._textBuffer.buffer, _loc.offset(), _loc.length());
         return decoder.decode(view);
+    }
+
+    /// Patch the program
+    public patch(patch: sx.ProgramPatch) {
+        this._patch = patch;
+        this._patchBitmap.reset(this._program.root.nodesLength());
+        this._patchNodes.clear();
+        let tmp = new sx.PatchedNode();
+        for (let i = 0; i < patch.nodesLength(); ++i) {
+            let p = patch.nodes(i, tmp)!;
+            this._patchBitmap.set(p.nodeId());
+            this._patchNodes.set(p.nodeId(), i);
+        }
+    }
+
+    /// Get a node
+    public getNode(i: number, n: Node | null): Node {
+        n = n || new Node(this);
+        if (!this._patchBitmap.isSet(i)) {
+            n.node = this._program.root.nodes(i, n.node)!;
+        } else {
+            const m = this._patchNodes.get(i)!;
+            n.node = this._patch!.nodes(m)!.newNode()!;
+        }
+        return n;
     }
 
     /// Get a statement
@@ -125,7 +159,7 @@ export class Node {
         while (c > 0) {
             const step = Math.floor(c / 2);
             const iter = lb + step;
-            n.node = this.programBuffer.nodes(iter, n.node)!;
+            n = this.program.getNode(iter, n)!;
             if (n.node.attributeKey() < key) {
                 lb = iter + 1;
                 c -= step + 1;
@@ -136,7 +170,7 @@ export class Node {
         if (lb >= children_begin + children_count) {
             return null;
         }
-        n.node = this.programBuffer.nodes(lb, n.node)!;
+        n = this.program.getNode(lb, n)!;
         return (n.node.attributeKey() == key) ? n : null;
     }
 
@@ -146,7 +180,7 @@ export class Node {
         const count = this._node.childrenCount();
         n = n || new Node(this._program);
         for (let i = 0; i < count; ++i) {
-            n.node = this.programBuffer.nodes(begin + i, n.node)!;
+            n = this.program.getNode(begin + i, n)!;
             fn(i, n);
         }
         return count;
@@ -240,10 +274,8 @@ export class Statement {
     /// Get the root
     public get root() { return this._statement.rootNode(); }
     /// Get the root node
-    public root_node(obj: Node | null = null) {
-        const n = obj || new Node(this._program);
-        n.node = this.programBuffer.nodes(this._statement.rootNode(), n.node)!;
-        return n;
+    public root_node(n: Node | null = null) {
+        return this.program.getNode(this._statement.rootNode(), n)!;
     }
 
     /// Perform a pre-order DFS traversal
@@ -256,11 +288,11 @@ export class Statement {
 
         // We always pass the same objects to the function to spare us all the allocations.
         // The function MUST NOT store the node elsewhere.
-        const current = new Node(this._program);
+        let current = new Node(this._program);
 
         while (!pending.empty()) {
             const top = pending.pop();
-            current.node = this.programBuffer.nodes(top, current.node)!;
+            current = this.program.getNode(top, current)!;
             const node = current.node;
             const nodeType = current.nodeType;
 
@@ -293,11 +325,11 @@ export class Statement {
 
         // We always pass the same objects to the function to spare us all the allocations.
         // The function MUST NOT store the node elsewhere.
-        const current = new Node(this._program);
+        let current = new Node(this._program);
 
         while (!pending.empty()) {
             const top = pending.top();
-            current.node = this.programBuffer.nodes(top, current.node)!;
+            current = this.program.getNode(top, current)!;
             const node = current.node;
             const nodeType = current.nodeType;
 
