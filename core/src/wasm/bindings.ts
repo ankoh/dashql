@@ -99,7 +99,7 @@ export abstract class CoreWasmBindings {
     }
 
     /// Copy a flatbuffer
-    public copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
+    protected copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
         var copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
         copy.set(buffer);
         return new flatbuffers.ByteBuffer(copy);

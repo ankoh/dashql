@@ -1,4 +1,10 @@
 <test name="dashql_syntax_error">
     <input>?</input>
 </test>
-
+<test name="load_url_parameter">
+    <input>
+        LOAD weather_csv FROM http (
+            url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+        );
+    </input>
+</test>
