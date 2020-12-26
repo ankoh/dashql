@@ -8,6 +8,10 @@ beforeAll(async () => {
     await core.init();
 });
 
+beforeEach(async () => {
+    core.resetSession();
+});
+
 describe('Parser', () => {
    describe('errors', () => {
        test('syntax error', async () => {
@@ -27,7 +31,19 @@ describe('Parser', () => {
            expect(p.errorsLength()).toEqual(0);
            expect(p.statementsLength()).toEqual(1);
        });
+
+       test('load http from url', async () => {
+           const r = core.parseProgram(`
+                LOAD weather_csv FROM http (
+                    url = 'https://localhost/test'
+                );
+           `);
+           const p = r.buffer;
+           expect(p.errorsLength()).toEqual(0);
+           expect(p.statementsLength()).toEqual(1);
+       });
    });
+
 
 
     // describe('node inspection', () => {

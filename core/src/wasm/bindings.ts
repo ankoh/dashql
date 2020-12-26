@@ -115,8 +115,8 @@ export abstract class CoreWasmBindings {
         let textUTF8 = encoder.encode(text);
         let textMem = instance.stackAlloc(textUTF8.length + 2);
         instance.HEAPU8.set(textUTF8, textMem);
-        instance.HEAPU8[textUTF8.length] = 0;
-        instance.HEAPU8[textUTF8.length + 1] = 0;
+        instance.HEAPU8[textMem + textUTF8.length] = 0;
+        instance.HEAPU8[textMem + textUTF8.length + 1] = 0;
 
         /// Call the parse function
         let [ptr, ofs, size] = this.callSRet('dashql_parse_program', ['number'], [textMem]);

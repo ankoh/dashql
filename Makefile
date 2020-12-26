@@ -79,7 +79,7 @@ core_watch:
 # Test the dashql_core javascript library
 .PHONY: core_tests
 core_tests:
-	npm --prefix ${ROOT_DIR}/core run test:silent
+	npm --prefix ${ROOT_DIR}/core run test
 
 # Compile the flatbuffer schema
 .PHONY: proto
