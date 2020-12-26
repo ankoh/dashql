@@ -9,10 +9,16 @@ export enum SpecType {
     OBJECT_SPEC = 'OBJECT_SPEC',
 }
 
+export enum Matching {
+    MISSING,
+    TYPE_MISMATCH,
+    MATCHED
+}
+
 interface Spec<NODE_TYPE, VALUE_TYPE> {
     readonly specType: NODE_TYPE;
     readonly nodeType: proto.syntax.NodeType | null;
-    present: boolean;
+    matching: Matching;
     value: VALUE_TYPE;
 }
 
@@ -33,7 +39,7 @@ export function numberNode(value = 0): NodeSchema {
     return {
         specType: SpecType.NUMBER_SPEC,
         nodeType: proto.syntax.NodeType.UI32,
-        present: false,
+        matching: Matching.MISSING,
         value: value,
     };
 }
@@ -42,7 +48,7 @@ export function booleanNode(value: boolean = false): NodeSchema {
     return {
         specType: SpecType.BOOL_SPEC,
         nodeType: proto.syntax.NodeType.BOOL,
-        present: false,
+        matching: Matching.MISSING,
         value: value,
     };
 }
@@ -51,7 +57,7 @@ export function stringNode(value: string = ""): NodeSchema {
     return {
         specType: SpecType.STRING_SPEC,
         nodeType: null,
-        present: false,
+        matching: Matching.MISSING,
         value: value,
     };
 }
@@ -60,7 +66,7 @@ export function enumNode(enumType: proto.syntax.NodeType, defaultValue: number =
     return {
         specType: SpecType.ENUM_SPEC,
         nodeType: enumType,
-        present: false,
+        matching: Matching.MISSING,
         value: defaultValue,
     };
 }
@@ -69,7 +75,7 @@ export function arrayNode(elementSchemas: NodeSchema[]): NodeSchema {
     return {
         specType: SpecType.ARRAY_SPEC,
         nodeType: proto.syntax.NodeType.ARRAY,
-        present: false,
+        matching: Matching.MISSING,
         value: elementSchemas,
     };
 }
@@ -78,7 +84,7 @@ export function objectNode(objecType: proto.syntax.NodeType, objectSchema: Objec
     return {
         specType: SpecType.OBJECT_SPEC,
         nodeType: objecType,
-        present: false,
+        matching: Matching.MISSING,
         value: objectSchema,
     };
 }
