@@ -1,4 +1,9 @@
+ARG EMSDK_VERSION="2.0.9"
+FROM emscripten/emsdk:${EMSDK_VERSION} as emsdk
+
 FROM ubuntu:20.10
+
+COPY --from=emsdk /emsdk /opt/emsdk
 
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -14,21 +19,6 @@ RUN apt-get update -qq \
 
 SHELL ["/bin/bash", "-c"]
 RUN groupadd -g 10101 actions
-
-ARG EMSDK_VERSION="2.0.9"
-RUN mkdir -p /opt/emsdk \
-    && cd /opt/emsdk \
-    && curl -SL https://github.com/emscripten-core/emsdk/archive/${EMSDK_VERSION}.tar.gz | tar -xz --strip-components=1 \
-    && ./emsdk install ${EMSDK_VERSION} \
-    && ./emsdk activate ${EMSDK_VERSION} \
-    && /bin/bash ./emsdk_env.sh \
-    && rm -rf ./emscripten/tag-*/tests \
-    && rm -rf ./emscripten/tag-*/site \
-    && rm -rf ./emscripten/tag-*/docs \
-    && rm -rf ./zips \
-    && find . -name "*.o" -exec rm {} \; \
-    && find . -name "*.a" -exec rm {} \; \
-    && find . -name "*.tmp" -exec rm {} \;
 
 ENV NVM_DIR=/opt/nvm
 ARG NVM_VERSION="v0.37.2"
@@ -85,4 +75,3 @@ RUN source /opt/emsdk/emsdk_env.sh \
 
 ENTRYPOINT ["/opt/entrypoint.sh"]
 WORKDIR /wd
-
