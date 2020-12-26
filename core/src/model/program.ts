@@ -404,7 +404,7 @@ export class Statement {
     /// Match a schema
     public matchSchema(spec: schema.NodeSchema) {
         let mappedNodes: Map<number, schema.NodeSchema> = new Map();
-        this.traverse(
+        this.traversePreOrder(
             (nodeId: number, node: Node, path: NodePath) => {
                 const step = path.steps[path.steps.length - 1];
 
@@ -475,10 +475,7 @@ export class Statement {
                         }
                         break;
                 }
-            },
-            (nodeId: number, _node: Node) => {
-                mappedNodes.delete(nodeId);
-            },
+            }
         );
     }
 }
