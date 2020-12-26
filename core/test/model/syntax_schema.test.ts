@@ -38,9 +38,9 @@ describe('Statement schema', () => {
             }),
         }));
 
-        expect(method.present).toBe(true);
-        expect(method.value).toBe(sxd.LoadMethodType.HTTP);
-        expect(url.present).toBe(true);
+        expect(method.matching).toEqual(schema.Matching.MATCHED);
+        expect(method.value).toEqual(sxd.LoadMethodType.HTTP);
+        expect(url.matching).toEqual(schema.Matching.MATCHED);
         expect(url.value).toEqual("'https://localhost/test'");
     });
 });

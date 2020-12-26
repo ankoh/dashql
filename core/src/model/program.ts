@@ -434,45 +434,38 @@ export class Statement {
                 if (!currentSchema) return;
                 // Wrong node type?
                 // This also catches invalid object and enum types.
-                if (currentSchema.nodeType != null && currentSchema.nodeType != node.nodeType) return;
+                if (currentSchema.nodeType != null && currentSchema.nodeType != node.nodeType) {
+                    currentSchema.matching = schema.Matching.TYPE_MISMATCH;
+                    return;
+                }
 
                 // Match the child schema
                 switch (currentSchema.specType) {
                     case schema.SpecType.BOOL_SPEC:
-                        if (node.nodeType == sx.NodeType.BOOL) {
-                            currentSchema.present = true;
-                            currentSchema.value = node.buffer.childrenBeginOrValue() != 0;
-                        }
+                        currentSchema.matching = schema.Matching.MATCHED;
+                        currentSchema.value = node.buffer.childrenBeginOrValue() != 0;
                         break;
                     case schema.SpecType.NUMBER_SPEC:
-                        if (node.nodeType == sx.NodeType.UI32) {
-                            currentSchema.present = true;
-                            currentSchema.value = node.buffer.childrenBeginOrValue();
-                        }
+                        currentSchema.matching = schema.Matching.MATCHED;
+                        currentSchema.value = node.buffer.childrenBeginOrValue();
                         break;
                     case schema.SpecType.STRING_SPEC:
                         if (node.nodeType == sx.NodeType.STRING_REF) {
-                            currentSchema.present = true;
+                            currentSchema.matching = schema.Matching.MATCHED;
                             currentSchema.value = this.program.textAt(node.buffer.location()!);
                         }
                         break;
                     case schema.SpecType.ENUM_SPEC:
-                        if (node.nodeType >= sx.NodeType.ENUM_MIN_ && node.nodeType < sx.NodeType.OBJECT_MIN_) {
-                            currentSchema.present = true;
-                            currentSchema.value = node.buffer.childrenBeginOrValue();
-                        }
+                        currentSchema.matching = schema.Matching.MATCHED;
+                        currentSchema.value = node.buffer.childrenBeginOrValue();
                         break;
                     case schema.SpecType.OBJECT_SPEC:
-                        if (node.nodeType >= sx.NodeType.OBJECT_MIN_) {
-                            currentSchema.present = true;
-                            mappedNodes.set(nodeId, currentSchema);
-                        }
+                        currentSchema.matching = schema.Matching.MATCHED;
+                        mappedNodes.set(nodeId, currentSchema);
                         break;
                     case schema.SpecType.ARRAY_SPEC:
-                        if (node.nodeType == sx.NodeType.ARRAY) {
-                            currentSchema.present = true;
-                            mappedNodes.set(nodeId, currentSchema);
-                        }
+                        currentSchema.matching = schema.Matching.MATCHED;
+                        mappedNodes.set(nodeId, currentSchema);
                         break;
                 }
             }
