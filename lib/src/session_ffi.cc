@@ -45,10 +45,13 @@ void dashql_parse_program(FFIResponse* response, const char* text) {
     GetResponseBuffer().Store(*response, std::move(program));
 }
 
-void dashql_plan_program(FFIResponse* response) {
+void dashql_plan_program(FFIResponse* response, const void* args_buffer) {
     GetResponseBuffer().Clear();
     auto& session = GetSession();
-    auto plan = session.PlanProgram();
+    auto* args = flatbuffers::GetRoot<proto::session::PlanArguments>(args_buffer);
+    proto::session::PlanArgumentsT unpackedArgs;
+    args->UnPackTo(&unpackedArgs);
+    auto plan = session.PlanProgram(unpackedArgs);
     GetResponseBuffer().Store(*response, std::move(plan));
 }
 

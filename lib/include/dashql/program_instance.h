@@ -29,15 +29,15 @@ class ProgramInstance {
     std::shared_ptr<sx::ProgramT> program_;
     /// The parameter values.
     /// Maps the id of parameter statements to parameter values.
-    std::vector<std::shared_ptr<proto::session::ParameterValueT>> parameter_values_;
+    std::vector<std::unique_ptr<proto::session::ParameterValueT>> parameter_values_;
     /// The patch for partial evaluation (if any)
     std::unique_ptr<sx::ProgramPatchT> patch_;
 
     public:
     /// Constructor
-    ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program);
+    ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::session::ParameterValueT>> params = {});
     /// Constructor
-    ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program);
+    ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::session::ParameterValueT>> params = {});
 
     /// Get the program text
     auto& program_text() const { return *program_text_; }
@@ -48,8 +48,6 @@ class ProgramInstance {
     /// Get the patch
     auto& patch() const { return patch_; }
 
-    /// Set the parameter value
-    void SetParameterValue(std::shared_ptr<proto::session::ParameterValueT> param);
     /// Find the parameter value
     const proto::session::ParameterValueT* FindParameterValue(size_t stmt_id) const;
     /// Get the text at a location

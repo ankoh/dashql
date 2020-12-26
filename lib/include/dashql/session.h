@@ -66,7 +66,7 @@ class Session {
     /// Parse a program
     ExpectedBuffer<proto::syntax::Program> ParseProgram(std::string_view text);
     /// Plan the last program
-    ExpectedBuffer<proto::session::Plan> PlanProgram();
+    ExpectedBuffer<proto::session::Plan> PlanProgram(proto::session::PlanArgumentsT& args);
 
     void UpdateParameter();
 };
