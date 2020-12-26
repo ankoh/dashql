@@ -38,11 +38,11 @@ ExpectedBuffer<proto::syntax::Program> Session::ParseProgram(std::string_view te
 }
 
 /// Evaluate a program
-ExpectedBuffer<proto::session::Plan> Session::PlanProgram() {
+ExpectedBuffer<proto::session::Plan> Session::PlanProgram(proto::session::PlanArgumentsT& args) {
     // Get previous and next program
     auto prev_program = planned_program_.get();
     auto prev_graph = planned_graph_.get();
-    auto next_program = std::make_unique<ProgramInstance>(std::move(volatile_program_text_), std::move(volatile_program_));
+    auto next_program = std::make_unique<ProgramInstance>(std::move(volatile_program_text_), std::move(volatile_program_), move(args.parameters));
 
     // Evaluate partially
     if (auto ok = next_program->EvaluatePartially(database_); !ok) {

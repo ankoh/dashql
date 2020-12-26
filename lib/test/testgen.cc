@@ -8,10 +8,10 @@
 #include <vector>
 
 #include "dashql/action_planner.h"
-#include "dashql/parser/parser_driver.h"
-#include "dashql/test/grammar_tests.h"
-#include "dashql/test/action_graph_tests.h"
 #include "dashql/common/span.h"
+#include "dashql/parser/parser_driver.h"
+#include "dashql/test/action_graph_tests.h"
+#include "dashql/test/grammar_tests.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-internal.h"
@@ -78,8 +78,7 @@ proto::action::ActionStatusCode GetActionStatus(std::string_view type) {
     auto& names = tt->names;
     auto& num_elems = tt->num_elems;
     for (unsigned i = 0; i < num_elems; ++i) {
-        if (type == std::string_view{names[i]})
-            return static_cast<proto::action::ActionStatusCode>(i);
+        if (type == std::string_view{names[i]}) return static_cast<proto::action::ActionStatusCode>(i);
     }
     return proto::action::ActionStatusCode::NONE;
 }
@@ -89,8 +88,7 @@ proto::syntax_dashql::ParameterType GetParameterType(std::string_view type) {
     auto& names = tt->names;
     auto& num_elems = tt->num_elems;
     for (unsigned i = 0; i < num_elems; ++i) {
-        if (type == std::string_view{names[i]})
-            return static_cast<proto::syntax_dashql::ParameterType>(i);
+        if (type == std::string_view{names[i]}) return static_cast<proto::syntax_dashql::ParameterType>(i);
     }
     return proto::syntax_dashql::ParameterType::NONE;
 }
@@ -146,23 +144,22 @@ void generate_action_tests(const std::filesystem::path& source_dir) {
             auto prev_text = prev.child("text").text().get();
             auto prev_params = prev.child("parameters");
             auto prev_program = parser::ParserDriver::Parse(prev_text);
-            ProgramInstance prev_program_instance{std::string_view{prev_text}, move(prev_program)};
-            std::vector<proto::session::ParameterValueT> prev_param_values;
-            for (auto param: prev_params.children()) {
-                prev_program_instance.SetParameterValue(GetParameter(param));
+            std::vector<std::unique_ptr<proto::session::ParameterValueT>> prev_param_values;
+            for (auto& param : prev_params.children()) {
+                prev_param_values.push_back(GetParameter(param));
             }
-            ActionPlanner prev_planner{prev_program_instance};
+            ProgramInstance prev_program_inst{std::string_view{prev_text}, move(prev_program), move(prev_param_values)};
+            ActionPlanner prev_planner{prev_program_inst};
             prev_planner.PlanActionGraph();
             auto prev_action_graph = prev_planner.Finish();
             {
                 unsigned i = 0;
-                for (auto p: prev.child("graph").child("program").children()) {
+                for (auto p : prev.child("graph").child("program").children()) {
                     auto status_str = p.attribute("status").as_string();
                     auto status = GetActionStatus(status_str);
                     if (i < prev_action_graph->program_actions.size()) {
                         prev_action_graph->program_actions[i++]->action_status_code = status;
                     }
-
                 }
             }
 
@@ -171,19 +168,19 @@ void generate_action_tests(const std::filesystem::path& source_dir) {
             auto next_text = next.child("text").text().get();
             auto next_params = next.child("parameters");
             auto next_program = parser::ParserDriver::Parse(next_text);
-            ProgramInstance next_program_instance{std::string{next_text}, move(next_program)};
-            std::vector<proto::session::ParameterValueT> next_param_values;
-            for (auto param: next_params.children()) {
-                next_program_instance.SetParameterValue(GetParameter(param));
+            std::vector<std::unique_ptr<proto::session::ParameterValueT>> next_param_values;
+            for (auto& param : next_params.children()) {
+                next_param_values.push_back(GetParameter(param));
             }
-            ActionPlanner next_planner{next_program_instance, &prev_program_instance, prev_action_graph.get()};
+            ProgramInstance next_program_inst{std::string{next_text}, move(next_program), move(next_param_values)};
+            ActionPlanner next_planner{next_program_inst, &prev_program_inst, prev_action_graph.get()};
             next_planner.PlanActionGraph();
             auto next_action_graph = next_planner.Finish();
 
             prev.remove_children();
-            ActionGraphTest::EncodeActionGraph(prev, prev_program_instance, *prev_action_graph);
+            ActionGraphTest::EncodeActionGraph(prev, prev_program_inst, *prev_action_graph);
             next.remove_children();
-            ActionGraphTest::EncodeActionGraph(next, next_program_instance, *next_action_graph);
+            ActionGraphTest::EncodeActionGraph(next, next_program_inst, *next_action_graph);
         }
 
         // Write xml document
@@ -191,7 +188,7 @@ void generate_action_tests(const std::filesystem::path& source_dir) {
     }
 }
 
-}
+}  // namespace
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {

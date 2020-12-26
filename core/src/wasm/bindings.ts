@@ -133,28 +133,28 @@ export abstract class CoreWasmBindings {
     /// Plan a program
     public planProgram(params: PlanParameter[] = []): Plan | null {
         if (!this._program) return null;
-        let instance = this._instance!;
+        const instance = this._instance!;
 
         // Encode the arguments
-        let builder = new flatbuffers.Builder(params.reduce((acc, v) => (acc + v.value.length + 16), 0));
-        let paramOfs: flatbuffers.Offset[] = params.map(param => {
+        const builder = new flatbuffers.Builder(params.reduce((acc, v) => (acc + v.value.length + 16), 0));
+        const paramOfs: flatbuffers.Offset[] = params.map(param => {
             const v = builder.createString(param.value);
             return proto.session.ParameterValue.create(builder, param.type, param.origin, v);
         });
-        let paramVectorOfs = proto.session.PlanArguments.createParametersVector(builder, paramOfs);
-        let args = proto.session.PlanArguments.create(builder, paramVectorOfs);
+        const paramVectorOfs = proto.session.PlanArguments.createParametersVector(builder, paramOfs);
+        const args = proto.session.PlanArguments.create(builder, paramVectorOfs);
         builder.finish(args);
 
         // Copy the arguments into the wasm module
-        let argsBuffer = builder.dataBuffer();
-        let argsMem = argsBuffer.bytes().subarray(argsBuffer.position());
-        let argsPtr = instance.stackAlloc(argsMem.length);
+        const argsBuffer = builder.dataBuffer();
+        const argsMem = argsBuffer.bytes().subarray(argsBuffer.position());
+        const argsPtr = instance.stackAlloc(argsMem.length);
         instance.HEAPU8.set(argsMem, argsPtr);
 
         // Call the planner function 
-        let [ptr, ofs, size] = this.callSRet('dashql_plan_program', [], []);
-        let mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
-        let plan = proto.session.Plan.getRoot(mem);
+        const [ptr, ofs, size] = this.callSRet('dashql_plan_program', ['number'], [argsPtr]);
+        const mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
+        const plan = proto.session.Plan.getRoot(mem);
         instance.ccall('dashql_clear_response', null, [], []);
         return new Plan(this._program, plan);
     }
