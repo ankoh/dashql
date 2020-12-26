@@ -58,12 +58,12 @@ lib_release:
 
 # Test the core library
 .PHONY: lib_tests
-lib_tests:
+lib_tests: lib
 	${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
 
 # Generate declarative tests
 .PHONY: testgen
-lib_testgen:
+lib_testgen: lib
 	${LIB_DEBUG_DIR}/testgen ${LIB_SOURCE_DIR}
 
 # Build the dashql_core javascript library

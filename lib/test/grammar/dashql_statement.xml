@@ -24,9 +24,9 @@
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="14..25" text="weather_csv" />
                     </node>
-                    <node key="DASHQL_OPTION_URL" type="OBJECT_SQL_CONST" loc="56..89" text="'https://l..'&#10;        ">
+                    <node key="DASHQL_OPTION_URL" type="OBJECT_SQL_CONST" loc="56..80" text="'https://l..host/test'">
                         <node key="SQL_CONST_TYPE" value="STRING" />
-                        <node key="SQL_CONST_VALUE" loc="56..89" text="'https://l..'&#10;        " />
+                        <node key="SQL_CONST_VALUE" loc="56..80" text="'https://l..host/test'" />
                     </node>
                 </node>
             </statement>

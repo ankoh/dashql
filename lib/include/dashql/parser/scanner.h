@@ -87,7 +87,7 @@ class Scanner {
     /// Begin a literal
     void BeginLiteral(sx::Location loc);
     /// End a literal
-    sx::Location EndLiteral(sx::Location loc);
+    sx::Location EndLiteral(sx::Location loc, bool trim_right = false);
 
     /// Begin a comment
     void BeginComment(sx::Location loc);

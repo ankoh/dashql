@@ -111,7 +111,7 @@ class ParserDriver {
     auto& scanner() { return scanner_; }
 
     /// Add a an array
-    sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true);
+    sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true, bool shrink_location = false);
     /// Add an object
     sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty = true);
     /// Add a statement
