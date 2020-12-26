@@ -3,8 +3,6 @@ FROM emscripten/emsdk:${EMSDK_VERSION} as emsdk
 
 FROM ubuntu:20.10
 
-COPY --from=emsdk /emsdk /opt/emsdk
-
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential git \
@@ -16,6 +14,8 @@ RUN apt-get update -qq \
         libboost-all-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=emsdk /emsdk /opt/emsdk
 
 SHELL ["/bin/bash", "-c"]
 RUN groupadd -g 10101 actions
