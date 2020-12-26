@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { DashQLCoreModule } from './core_wasm_module';
-import { Plan, Program } from  '../model';
+import { Plan, PlanParameter, Program } from  '../model';
 import { flatbuffers } from "flatbuffers";
 import * as proto from "@dashql/proto";
 
@@ -131,9 +131,31 @@ export abstract class CoreWasmBindings {
     }
 
     /// Plan a program
-    public planProgram(): Plan | null {
+    public planProgram(params: PlanParameter[] = []): Plan | null {
         if (!this._program) return null;
         let instance = this._instance!;
+
+        // Encode the arguments
+        let builder = new flatbuffers.Builder(params.reduce((acc, v) => (acc + v.value.length + 16), 0));
+        let paramOfs: flatbuffers.Offset[] = [];
+        for (const param of params) {
+            const v = builder.createString(param.value);
+            const p = proto.session.ParameterValue.create(builder, param.type, param.origin, v);
+            paramOfs.push(p);
+        }
+        let paramVectorOfs = proto.session.PlanArguments.createParametersVector(builder, paramOfs);
+        let args = proto.session.PlanArguments.create(builder, paramVectorOfs);
+        builder.finish(args);
+
+        // Copy the arguments into the wasm module
+        let argsByteBuffer = builder.dataBuffer();
+        let argsRawBuffer = argsByteBuffer.bytes();
+        let argsOfs = argsByteBuffer.position();
+        let argsMem = argsRawBuffer.subarray(argsOfs);
+        let argsPtr = instance.stackAlloc(argsMem.length);
+        instance.HEAPU8.set(argsMem, argsPtr);
+
+        // Call the planner function 
         let [ptr, ofs, size] = this.callSRet('dashql_plan_program', [], []);
         let mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
         let plan = proto.session.Plan.getRoot(mem);

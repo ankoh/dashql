@@ -3,6 +3,12 @@
 import { Program } from './program';
 import * as proto from '@dashql/proto';
 
+export interface PlanParameter {
+    type: proto.syntax_dashql.ParameterType;
+    origin: number;
+    value: string;
+}
+
 export class Plan {
     /// The program
     _program: Program;
