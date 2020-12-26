@@ -92,12 +92,12 @@
     <expected>
         <statements>
             <statement type="SELECT">
-                <node type="OBJECT_DASHQL_QUERY" loc="9..28" text="select b'1010'&#10;    ">
-                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..28" text="select b'1010'&#10;    ">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..23" text="select b'1010'">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..23" text="select b'1010'">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_CONST" loc="16..28" text="b'1010'&#10;    ">
+                            <node type="OBJECT_SQL_CONST" loc="16..23" text="b'1010'">
                                 <node key="SQL_CONST_TYPE" value="BITSTRING" />
-                                <node key="SQL_CONST_VALUE" loc="16..28" text="b'1010'&#10;    " />
+                                <node key="SQL_CONST_VALUE" loc="16..23" text="b'1010'" />
                             </node>
                         </node>
                     </node>
@@ -242,12 +242,12 @@
     <expected>
         <statements>
             <statement type="SELECT">
-                <node type="OBJECT_DASHQL_QUERY" loc="9..26" text="select 'foo'&#10;    ">
-                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..26" text="select 'foo'&#10;    ">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..21" text="select 'foo'">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..21" text="select 'foo'">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_CONST" loc="16..26" text="'foo'&#10;    ">
+                            <node type="OBJECT_SQL_CONST" loc="16..21" text="'foo'">
                                 <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="16..26" text="'foo'&#10;    " />
+                                <node key="SQL_CONST_VALUE" loc="16..21" text="'foo'" />
                             </node>
                         </node>
                     </node>
@@ -270,12 +270,12 @@
     <expected>
         <statements>
             <statement type="SELECT">
-                <node type="OBJECT_DASHQL_QUERY" loc="9..30" text="select '''..oo'''&#10;    ">
-                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..30" text="select '''..oo'''&#10;    ">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..25" text="select '''foo'''">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..25" text="select '''foo'''">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_CONST" loc="16..30" text="'''foo'''&#10;    ">
+                            <node type="OBJECT_SQL_CONST" loc="16..25" text="'''foo'''">
                                 <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="16..30" text="'''foo'''&#10;    " />
+                                <node key="SQL_CONST_VALUE" loc="16..25" text="'''foo'''" />
                             </node>
                         </node>
                     </node>
@@ -298,12 +298,12 @@
     <expected>
         <statements>
             <statement type="SELECT">
-                <node type="OBJECT_DASHQL_QUERY" loc="9..28" text="select '&quot;foo&quot;'&#10;    ">
-                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..28" text="select '&quot;foo&quot;'&#10;    ">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..23" text="select '&quot;foo&quot;'">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..23" text="select '&quot;foo&quot;'">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_CONST" loc="16..28" text="'&quot;foo&quot;'&#10;    ">
+                            <node type="OBJECT_SQL_CONST" loc="16..23" text="'&quot;foo&quot;'">
                                 <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="16..28" text="'&quot;foo&quot;'&#10;    " />
+                                <node key="SQL_CONST_VALUE" loc="16..23" text="'&quot;foo&quot;'" />
                             </node>
                         </node>
                     </node>

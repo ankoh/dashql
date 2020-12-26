@@ -35,9 +35,9 @@
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="296..303" text="country" />
                     </node>
-                    <node key="DASHQL_OPTION_DEFAULT_VALUE" type="OBJECT_SQL_CONST" loc="344..357" text="'DE'&#10;        ">
+                    <node key="DASHQL_OPTION_DEFAULT_VALUE" type="OBJECT_SQL_CONST" loc="344..348" text="'DE'">
                         <node key="SQL_CONST_TYPE" value="STRING" />
-                        <node key="SQL_CONST_VALUE" loc="344..357" text="'DE'&#10;        " />
+                        <node key="SQL_CONST_VALUE" loc="344..348" text="'DE'" />
                     </node>
                 </node>
             </statement>

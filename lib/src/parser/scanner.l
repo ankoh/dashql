@@ -318,7 +318,7 @@ auto loc = sx::Location();
 
 {xbstart}       { BEGIN(xb); ctx.BeginLiteral(loc); }
 <xb>{quotestop} |
-<xb>{quotefail} { BEGIN(INITIAL); return Parser::make_BCONST(ctx.EndLiteral(loc)); }
+<xb>{quotefail} { BEGIN(INITIAL); return Parser::make_BCONST(ctx.EndLiteral(loc, true)); }
 <xh>{xhinside}  |
 <xb>{xbinside}  {}
 <xh>{quotecontinue} |
@@ -328,13 +328,13 @@ auto loc = sx::Location();
 
 {xhstart}       { BEGIN(xh); ctx.BeginLiteral(loc); }
 <xh>{quotestop} |
-<xh>{quotefail} { BEGIN(INITIAL); return Parser::make_XCONST(ctx.EndLiteral(loc)); }
+<xh>{quotefail} { BEGIN(INITIAL); return Parser::make_XCONST(ctx.EndLiteral(loc, true)); }
 <xh><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated hexadecimal bit string literal"); }
 
 
 {xqstart}       { BEGIN(xq); ctx.BeginLiteral(loc); }
 <xq>{quotestop} |
-<xq>{quotefail} { BEGIN(INITIAL); return Parser::make_SCONST(ctx.EndLiteral(loc)); }
+<xq>{quotefail} { BEGIN(INITIAL); return Parser::make_SCONST(ctx.EndLiteral(loc, true)); }
 <xq>{xqdouble}  {}
 <xq>{xqinside}  {}
 <xq><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated quoted string"); }
@@ -345,7 +345,7 @@ auto loc = sx::Location();
 <xd>{xdinside}  {}
 <xd>{xdstop}    { 
                     BEGIN(INITIAL); 
-                    auto l = ctx.EndLiteral(loc);
+                    auto l = ctx.EndLiteral(loc, true);
                     if (l.length() == 2)
                         ctx.AddError(l, "zero-length delimited identifier");
                     return Parser::make_IDENT(l);

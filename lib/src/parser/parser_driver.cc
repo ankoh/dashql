@@ -238,7 +238,7 @@ void ParserDriver::ComputeDependencies() {
 }
 
 /// Add an array
-sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_empty) {
+sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_empty, bool shrink_location) {
     auto begin = nodes_.size();
     nodes_.reserve(nodes_.size() + values.size());
     for (auto& v : values) {
@@ -248,6 +248,11 @@ sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_e
     auto n = nodes_.size() - begin;
     if ((n == 0) && null_if_empty) {
         return Null();
+    }
+    if (n > 0 && shrink_location) {
+        auto fstBegin = nodes_[0].location().offset();
+        auto lstEnd = nodes_.back().location().offset() + nodes_.back().location().length();
+        loc = sx::Location(fstBegin, lstEnd - fstBegin);
     }
     return sx::Node(loc, sx::NodeType::ARRAY, sx::AttributeKey::NONE, NO_PARENT, begin, n);
 }

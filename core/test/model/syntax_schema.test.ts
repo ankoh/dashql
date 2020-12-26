@@ -21,7 +21,9 @@ beforeEach(async () => {
 describe('Statement schema', () => {
     test('simple load', async () => {
         const program = core.parseProgram(`
-            LOAD weather_csv FROM http (url = 'https://localhost/test');
+            LOAD weather_csv FROM http (
+                url = 'https://localhost/test'
+            );
         `);
         expect(program.buffer.errorsLength()).toEqual(0);
         expect(program.buffer.statementsLength()).toEqual(1);

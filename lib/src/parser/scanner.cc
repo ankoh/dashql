@@ -19,8 +19,20 @@ std::string_view Scanner::TextAt(sx::Location loc) {
 void Scanner::BeginLiteral(sx::Location loc) { literal_begin_ = loc; }
 
 /// End a literal
-sx::Location Scanner::EndLiteral(sx::Location loc) {
-    return sx::Location(literal_begin_.offset(), loc.offset() + loc.length() - literal_begin_.offset());
+sx::Location Scanner::EndLiteral(sx::Location loc, bool trim_right) {
+    auto begin = literal_begin_.offset();
+    auto end = loc.offset() + loc.length();
+    if (trim_right) {
+        auto text = input_text();
+        for (; begin < end; --end) {
+            auto c = text[end - 1];
+            if (c == ' ' || c == '\n') {
+                continue;
+            }
+            break;
+        }
+    }
+    return sx::Location(begin, end - begin);
 }
 
 /// Begin a comment
