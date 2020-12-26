@@ -137,21 +137,17 @@ export abstract class CoreWasmBindings {
 
         // Encode the arguments
         let builder = new flatbuffers.Builder(params.reduce((acc, v) => (acc + v.value.length + 16), 0));
-        let paramOfs: flatbuffers.Offset[] = [];
-        for (const param of params) {
+        let paramOfs: flatbuffers.Offset[] = params.map(param => {
             const v = builder.createString(param.value);
-            const p = proto.session.ParameterValue.create(builder, param.type, param.origin, v);
-            paramOfs.push(p);
-        }
+            return proto.session.ParameterValue.create(builder, param.type, param.origin, v);
+        });
         let paramVectorOfs = proto.session.PlanArguments.createParametersVector(builder, paramOfs);
         let args = proto.session.PlanArguments.create(builder, paramVectorOfs);
         builder.finish(args);
 
         // Copy the arguments into the wasm module
-        let argsByteBuffer = builder.dataBuffer();
-        let argsRawBuffer = argsByteBuffer.bytes();
-        let argsOfs = argsByteBuffer.position();
-        let argsMem = argsRawBuffer.subarray(argsOfs);
+        let argsBuffer = builder.dataBuffer();
+        let argsMem = argsBuffer.bytes().subarray(argsBuffer.position());
         let argsPtr = instance.stackAlloc(argsMem.length);
         instance.HEAPU8.set(argsMem, argsPtr);
 
